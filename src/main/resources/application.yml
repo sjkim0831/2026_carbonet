@@ -1,0 +1,148 @@
+server:
+  port: 18000
+  forward-headers-strategy: native
+
+egov:
+  page:
+    size: 10
+    unit: 10
+  login:
+    lock: true
+    lockCount: 5
+
+spring:
+  application:
+    name: carbonet
+  main:
+    allow-bean-definition-overriding: true
+  profiles:
+    active: local
+  datasource:
+    driver-class-name: cubrid.jdbc.driver.CUBRIDDriver
+    url: jdbc:cubrid:${CUBRID_HOST:127.0.0.1}:33000:carbonet:::?charset=UTF-8
+    username: dba
+    password: ""
+    hikari:
+      maximum-pool-size: 20
+      connection-timeout: 30000
+      initialization-fail-timeout: -1
+  jpa:
+    database-platform: org.hibernate.dialect.CUBRIDDialect
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        show_sql: false
+        format_sql: false
+    open-in-view: false
+    show-sql: false
+  messages:
+    encoding: UTF-8
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+  thymeleaf:
+    encoding: UTF-8
+    mode: HTML
+    cache: false
+  devtools:
+    livereload:
+      enabled: true
+    restart:
+      enabled: true
+      additional-paths:
+        - src/main/resources/templates
+        - src/main/resources/static
+
+logging:
+  file:
+    name: /tmp/carbonet-runtime-18000.log
+  level:
+    org:
+      egovframe:
+        rte: info
+      springframework:
+        web: info
+      hibernate:
+        SQL: off
+        type:
+          descriptor:
+            sql: off
+    egovframework:
+      com: info
+
+Globals:
+  auth: security
+
+token:
+  accessSecret: ${TOKEN_ACCESS_SECRET:change-me-access-secret}
+  refreshSecret: ${TOKEN_REFRESH_SECRET:change-me-refresh-secret}
+  accessExpiration: 3600000
+  refreshExpiration: 3600000
+
+security:
+  gateway:
+    enabled: ${SECURITY_GATEWAY_ENABLED:false}
+    code-id: ${SECURITY_GATEWAY_CODE_ID:}
+  codex:
+    enabled: ${SECURITY_CODEX_ENABLED:false}
+    api-key: ${SECURITY_CODEX_API_KEY:}
+    history-file: ${SECURITY_CODEX_HISTORY_FILE:/tmp/carbonet-codex-history.jsonl}
+  request-log:
+    enabled: ${SECURITY_REQUEST_LOG_ENABLED:true}
+    file: ${SECURITY_REQUEST_LOG_FILE:/tmp/carbonet-request-execution-history.jsonl}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,mappings
+
+org:
+  egovframe:
+    crypto:
+      algorithm: SHA-256
+      algorithmKey: egovframe
+      algorithmKeyHash: gdyYs/IZqY86VcWhT8emCYfqY1ahw2vtLG+/FzNqtrQ=
+
+    security:
+      loginUrl: /signin/loginView
+      logoutSuccessUrl: /signin/loginView
+      loginFailureUrl: /signin/loginFailure
+      accessDeniedUrl: /signin/accessDenied
+      csrfAccessDeniedUrl: /signin/csrfAccessDenied
+      defaultTargetUrl: /main
+      dataSource: dataSource
+      excludeList: /css/**,/images/**,/js/**,/uat/**,/home/**,/signin/**,/join/**,/admin/login/**,/actuator/**
+      csrf: true
+      xframeOptions: sameorigin
+      sniff: false
+      xssProtection: true
+      cacheControl: false
+      concurrentMaxSessons: 1
+      errorIfMaximumExceeded: false
+      concurrentExpiredUrl: /signin/loginView
+      hash: plaintext
+      hashBase64: false
+      requestMatcherType: ant
+      jdbcMapClass: org.egovframe.boot.security.userdetails.DefaultMapUserDetailsMapping
+      jdbcUsersByUsernameQuery: >
+        SELECT USER_ID, PASSWORD, 'TRUE' AS ENABLED
+        FROM COMVNUSERMASTER
+        WHERE USER_ID = ?
+      jdbcAuthoritiesByUsernameQuery: >
+        SELECT A.SCRTY_DTRMN_TRGET_ID USER_ID, A.AUTHOR_CODE AUTHORITY
+        FROM MSATNEMPLYRSCRTYESTBS A, COMVNUSERMASTER B WHERE
+        A.SCRTY_DTRMN_TRGET_ID = B.ESNTL_ID AND B.USER_ID = ?
+      sqlRolesAndUrl: >
+        SELECT A.ROLE_PTTRN URL, B.AUTHOR_CODE AUTHORITY
+        FROM MSATNROLEINFO A, MSATNAUTHORROLERELATE B
+        WHERE A.ROLE_CODE = B.ROLE_CODE  AND A.ROLE_TY = 'url'
+        ORDER BY A.ROLE_SORT
+      sqlHierarchicalRoles: >
+        SELECT CHLDRN_ROLE AS CHILD, PARNTS_ROLE PARENT FROM MSATNROLES_HIERARCHY

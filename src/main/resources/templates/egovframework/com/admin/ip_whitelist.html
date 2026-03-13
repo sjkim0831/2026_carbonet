@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>IP 화이트리스트 | CCUS 통합관리 시스템</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Public+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <style type="text/tailwindcss">
+        :root {
+            --kr-gov-blue: #00378b;
+            --kr-gov-blue-hover: #002d72;
+            --kr-gov-text-primary: #1a1a1a;
+            --kr-gov-text-secondary: #4d4d4d;
+            --kr-gov-border-light: #d9d9d9;
+            --kr-gov-focus: #005fde;
+            --kr-gov-radius: 5px;
+        }
+        @layer base {
+            body { font-family: 'Noto Sans KR', 'Public Sans', sans-serif; -webkit-font-smoothing: antialiased; }
+            .skip-link { @apply absolute -top-full left-0 bg-[var(--kr-gov-blue)] text-white p-3 z-[100] transition-all focus:top-0 focus:outline-none focus:ring-2 focus:ring-white; }
+        }
+        .material-symbols-outlined { font-variation-settings: 'wght' 400, 'opsz' 24; font-size: 24px; line-height: 1.6; }
+        .gov-card { @apply border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm; }
+        .gov-label { @apply block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] mb-2; }
+        .gov-input, .gov-select { @apply w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm focus:ring-2 focus:ring-[var(--kr-gov-focus)] focus:border-[var(--kr-gov-focus)] outline-none; }
+        .gov-btn { @apply inline-flex items-center justify-center gap-1.5 px-4 py-2 text-[13px] font-bold rounded-[var(--kr-gov-radius)] transition-colors; }
+        .gov-btn-primary { @apply bg-[var(--kr-gov-blue)] text-white hover:bg-[var(--kr-gov-blue-hover)]; }
+        .gov-btn-outline { @apply bg-white border border-[var(--kr-gov-border-light)] text-[var(--kr-gov-text-secondary)] hover:bg-gray-50; }
+        .gov-table-header { @apply bg-gray-50 border-y border-[var(--kr-gov-border-light)] text-[13px] font-bold text-[var(--kr-gov-text-secondary)]; }
+        .badge { @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold; }
+    </style>
+</head>
+<body class="bg-[#f8f9fa] text-[var(--kr-gov-text-primary)]">
+<a class="skip-link" href="#main-content">본문 바로가기</a>
+<div th:replace="~{egovframework/com/admin/header :: headerFragment}"></div>
+<div class="flex min-h-[calc(100vh-124px)]">
+    <aside aria-label="관리자 사이드 메뉴" class="js-admin-lnb w-72 bg-white border-r border-[var(--kr-gov-border-light)] p-5 flex flex-col"></aside>
+    <main class="flex-1 p-8 overflow-y-auto" id="main-content">
+        <nav aria-label="Breadcrumb" class="flex items-center gap-2 text-sm text-[var(--kr-gov-text-secondary)] mb-4">
+            <span class="material-symbols-outlined text-[18px]">home</span>
+            <span>시스템</span>
+            <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+            <span>환경</span>
+            <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+            <span class="font-bold text-[var(--kr-gov-blue)]">IP 화이트리스트</span>
+        </nav>
+
+        <div class="flex items-end justify-between mb-6">
+            <div>
+                <h2 class="text-2xl font-black">IP 화이트리스트</h2>
+                <p class="text-sm text-[var(--kr-gov-text-secondary)] mt-1">관리자, 배치, 연계 API 접근에 허용된 IP 정책과 승인 요청을 함께 관리합니다.</p>
+            </div>
+        </div>
+
+        <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+            <article class="gov-card" th:each="card : ${ipWhitelistSummary}">
+                <p class="text-xs font-bold text-[var(--kr-gov-text-secondary)]" th:text="${card['title']}">활성 규칙</p>
+                <p class="text-2xl font-black mt-3" th:text="${card['value']}">12</p>
+                <p class="text-sm text-[var(--kr-gov-text-secondary)] mt-2" th:text="${card['description']}">설명</p>
+            </article>
+        </section>
+
+        <section class="gov-card mb-6">
+            <div class="flex items-center gap-2 border-b pb-4 mb-4">
+                <span class="material-symbols-outlined text-[var(--kr-gov-blue)]">shield_with_house</span>
+                <h3 class="text-lg font-bold">허용 정책 조회</h3>
+            </div>
+            <form action="/admin/system/ip_whitelist" class="grid grid-cols-1 md:grid-cols-4 gap-4" method="get">
+                <div>
+                    <label class="gov-label" for="searchIp">IP 또는 설명</label>
+                    <input class="gov-input" id="searchIp" name="searchIp" placeholder="예: 203.248 또는 운영센터" th:value="${searchIp}" type="text" />
+                </div>
+                <div>
+                    <label class="gov-label" for="accessScope">접근 범위</label>
+                    <select class="gov-select" id="accessScope" name="accessScope">
+                        <option value="" th:selected="${accessScope == null or accessScope == ''}">전체</option>
+                        <option value="ADMIN" th:selected="${accessScope == 'ADMIN'}">관리자</option>
+                        <option value="BATCH" th:selected="${accessScope == 'BATCH'}">배치</option>
+                        <option value="INTERNAL" th:selected="${accessScope == 'INTERNAL'}">내부망</option>
+                        <option value="API" th:selected="${accessScope == 'API'}">API</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="gov-label" for="status">상태</label>
+                    <select class="gov-select" id="status" name="status">
+                        <option value="" th:selected="${status == null or status == ''}">전체</option>
+                        <option value="ACTIVE" th:selected="${status == 'ACTIVE'}">활성</option>
+                        <option value="PENDING" th:selected="${status == 'PENDING'}">검토중</option>
+                        <option value="INACTIVE" th:selected="${status == 'INACTIVE'}">비활성</option>
+                    </select>
+                </div>
+                <div class="flex items-end gap-2">
+                    <button class="gov-btn gov-btn-primary w-full" type="submit">조회</button>
+                    <a class="gov-btn gov-btn-outline w-full" href="/admin/system/ip_whitelist">초기화</a>
+                </div>
+            </form>
+        </section>
+
+        <section class="gov-card mb-6">
+            <div class="flex items-center justify-between border-b pb-4 mb-4">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[var(--kr-gov-blue)]">vpn_lock</span>
+                    <h3 class="text-lg font-bold">적용 중인 화이트리스트</h3>
+                </div>
+                <span class="text-sm text-[var(--kr-gov-text-secondary)]">검색 결과 <strong th:text="${#lists.size(ipWhitelistRows)}">0</strong>건</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left border-collapse">
+                    <thead>
+                    <tr class="gov-table-header">
+                        <th class="px-4 py-3">규칙 ID</th>
+                        <th class="px-4 py-3">IP / 대역</th>
+                        <th class="px-4 py-3">접근 범위</th>
+                        <th class="px-4 py-3">설명</th>
+                        <th class="px-4 py-3">담당 조직</th>
+                        <th class="px-4 py-3">상태</th>
+                        <th class="px-4 py-3">최근 반영</th>
+                        <th class="px-4 py-3">비고</th>
+                    </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                    <tr th:each="row : ${ipWhitelistRows}">
+                        <td class="px-4 py-3 font-bold" th:text="${row['ruleId']}">WL-001</td>
+                        <td class="px-4 py-3 font-mono text-[13px]" th:text="${row['ipAddress']}">203.248.117.0/24</td>
+                        <td class="px-4 py-3" th:text="${row['accessScope']}">ADMIN</td>
+                        <td class="px-4 py-3">
+                            <div class="font-semibold" th:text="${row['description']}">운영센터 고정망</div>
+                        </td>
+                        <td class="px-4 py-3" th:text="${row['owner']}">정책관리팀</td>
+                        <td class="px-4 py-3">
+                            <span class="badge bg-emerald-100 text-emerald-700" th:if="${row['status'] == 'ACTIVE'}">활성</span>
+                            <span class="badge bg-amber-100 text-amber-700" th:if="${row['status'] == 'PENDING'}">검토중</span>
+                            <span class="badge bg-gray-200 text-gray-700" th:if="${row['status'] == 'INACTIVE'}">비활성</span>
+                        </td>
+                        <td class="px-4 py-3 text-[var(--kr-gov-text-secondary)]" th:text="${row['updatedAt']}">2026-03-10 09:20</td>
+                        <td class="px-4 py-3 text-[var(--kr-gov-text-secondary)]" th:text="${row['memo']}">상시 허용</td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(ipWhitelistRows)}">
+                        <td class="px-4 py-6 text-center text-gray-500" colspan="8">조건에 맞는 허용 정책이 없습니다.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="grid grid-cols-1 xl:grid-cols-[1.3fr_0.9fr] gap-6">
+            <article class="gov-card">
+                <div class="flex items-center gap-2 border-b pb-4 mb-4">
+                    <span class="material-symbols-outlined text-[var(--kr-gov-blue)]">approval</span>
+                    <h3 class="text-lg font-bold">승인 요청 현황</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left border-collapse">
+                        <thead>
+                        <tr class="gov-table-header">
+                            <th class="px-4 py-3">요청번호</th>
+                            <th class="px-4 py-3">IP</th>
+                            <th class="px-4 py-3">범위</th>
+                            <th class="px-4 py-3">사유</th>
+                            <th class="px-4 py-3">상태</th>
+                            <th class="px-4 py-3">요청일시</th>
+                            <th class="px-4 py-3">요청자</th>
+                        </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                        <tr th:each="row : ${ipWhitelistRequestRows}">
+                            <td class="px-4 py-3 font-bold" th:text="${row['requestId']}">REQ-240312-01</td>
+                            <td class="px-4 py-3 font-mono text-[13px]" th:text="${row['ipAddress']}">175.213.44.82</td>
+                            <td class="px-4 py-3" th:text="${row['accessScope']}">ADMIN</td>
+                            <td class="px-4 py-3" th:text="${row['reason']}">협력사 취약점 점검</td>
+                            <td class="px-4 py-3" th:text="${row['approvalStatus']}">검토중</td>
+                            <td class="px-4 py-3" th:text="${row['requestedAt']}">2026-03-12 08:45</td>
+                            <td class="px-4 py-3" th:text="${row['requester']}">보안담당 김민수</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+
+            <article class="gov-card">
+                <div class="flex items-center gap-2 border-b pb-4 mb-4">
+                    <span class="material-symbols-outlined text-[var(--kr-gov-blue)]">task_alt</span>
+                    <h3 class="text-lg font-bold">운영 체크포인트</h3>
+                </div>
+                <ul class="space-y-3 text-sm text-[var(--kr-gov-text-secondary)]">
+                    <li class="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3">외부 협력사 임시 허용은 종료일 기준 자동 회수 여부를 함께 검토합니다.</li>
+                    <li class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">게이트웨이 정책 반영 전 동일 대역 중복 등록 여부를 확인합니다.</li>
+                    <li class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">배치 서버 고정 IP 변경 시 API 인증서와 방화벽 정책도 같이 점검합니다.</li>
+                </ul>
+            </article>
+        </section>
+    </main>
+</div>
+<div th:replace="~{egovframework/com/admin/footer :: footerFragment}"></div>
+</body>
+</html>

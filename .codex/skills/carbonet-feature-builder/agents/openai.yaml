@@ -1,0 +1,4 @@
+interface:
+  display_name: "Carbonet Feature Builder"
+  short_description: "Build Carbonet menus and features"
+  default_prompt: "Use $carbonet-feature-builder to implement a Carbonet menu or business feature with the current project structure, menu-code system, and DB patterns."

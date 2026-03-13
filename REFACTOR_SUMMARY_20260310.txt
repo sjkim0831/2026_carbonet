@@ -1,0 +1,48 @@
+리팩터링 요약 (2026-03-10)
+
+1. 패키지 구조 정리
+- common / config / feature 기준으로 재구성
+- config 하위를 common, data, filter, web로 분리
+- feature/home, feature/admin, feature/member를 기능 기준으로 정리
+
+2. DAO -> Mapper 전환
+- common, admin, member의 DAO 패키지를 mapper로 전환
+- 클래스명 및 빈 이름을 *DAO -> *Mapper로 변경
+- MyBatis XML namespace를 Mapper 기준으로 변경
+
+3. 공통/중복 VO 정리
+- auth의 EgovDefaultVO 제거
+- member의 UserDefaultVO가 ComDefaultVO 상속하도록 정리
+- 중복 공통 LoginVO 제거
+
+4. admin 구조 정리
+- admin/model 추가
+- 코드/메뉴 기능의 Map 기반 반환을 VO 기반으로 전환
+- AdminCodeCommandVO, ClassCodeVO, CommonCodeVO, DetailCodeVO, MenuInfoVO 추가
+
+5. home 구조 정리
+- HomeManageController 제거
+- HomePageController, HomeFragmentController로 분리
+- HomeMenuService, HomeMypageService 추가
+- 홈 메뉴를 Map<String, Object> 대신 HomeMenuNode VO로 전환
+
+6. 설정 중복 제거
+- 공통 설정 CommonConfig로 통합
+- JPA 설정 JpaConfig로 통합
+- FilterConfig, WebMvcConfig로 웹/필터 설정 통합
+- DataSourceConfig, IdGeneratorConfig, MyBatisConfig로 데이터 설정 정리
+
+7. 검증 결과
+- mvn -q -DskipTests compile 통과
+- /home -> HTTP 200
+- /home/fragments/header -> HTTP 200
+- /admin/ -> /admin/login/loginView 로 302
+- /mypage -> /signin/loginView 로 302
+
+8. Git 상태 메모
+- member/common/config 일부는 rename으로 인식됨
+- admin/home 일부는 변경량이 커서 delete/create로 보일 수 있음
+- 코드 동작과는 무관하며 커밋 가능 상태임
+
+커밋 메시지 초안
+refactor: reorganize egov com packages and convert dao layer to mapper

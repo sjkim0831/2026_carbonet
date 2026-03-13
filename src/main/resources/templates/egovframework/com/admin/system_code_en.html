@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Code Management | CCUS Integrated Management System</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Public+Sans:wght@400;600;700&display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <style type="text/tailwindcss">
+        :root {
+            --kr-gov-blue: #00378b;
+            --kr-gov-blue-hover: #002d72;
+            --kr-gov-green: #006b5d;
+            --kr-gov-text-primary: #1a1a1a;
+            --kr-gov-text-secondary: #4d4d4d;
+            --kr-gov-border-light: #d9d9d9;
+            --kr-gov-focus: #005fde;
+            --kr-gov-bg-gray: #f2f2f2;
+            --kr-gov-radius: 5px;
+            --kr-gov-error: #c62828;
+        }
+
+        @layer base {
+            body { font-family: 'Noto Sans KR', 'Public Sans', sans-serif; -webkit-font-smoothing: antialiased; }
+            .skip-link {
+                @apply absolute -top-full left-0 bg-[var(--kr-gov-blue)] text-white p-3 z-[100] transition-all focus:top-0 focus:outline-none focus:ring-2 focus:ring-white;
+            }
+        }
+
+        .material-symbols-outlined { font-variation-settings: 'wght' 400, 'opsz' 24; font-size: 24px; line-height: 1.6; }
+        .gov-card { @apply border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm; }
+        .gov-label { @apply block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] mb-2; }
+        .gov-input, .gov-select { @apply w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm focus:ring-2 focus:ring-[var(--kr-gov-focus)] focus:border-[var(--kr-gov-focus)] outline-none; }
+        .gov-btn { @apply inline-flex items-center justify-center gap-1.5 px-4 py-2 text-[13px] font-bold rounded-[var(--kr-gov-radius)] transition-colors; }
+        .gov-btn-primary { @apply bg-[var(--kr-gov-blue)] text-white hover:bg-[var(--kr-gov-blue-hover)]; }
+        .gov-btn-outline { @apply bg-white border border-[var(--kr-gov-border-light)] text-[var(--kr-gov-text-secondary)] hover:bg-gray-50; }
+        .gov-btn-danger { @apply bg-red-600 text-white hover:bg-red-700; }
+        .gov-table-header { @apply bg-gray-50 border-y border-[var(--kr-gov-border-light)] text-[13px] font-bold text-[var(--kr-gov-text-secondary)]; }
+    </style>
+</head>
+
+<body class="bg-[#f8f9fa] text-[var(--kr-gov-text-primary)]">
+    <a class="skip-link" href="#main-content">Skip to content</a>
+
+    <div th:replace="~{egovframework/com/admin/header :: headerFragment}"></div>
+
+    <div class="flex min-h-[calc(100vh-124px)]">
+        <aside class="js-admin-lnb w-72 bg-white border-r border-[var(--kr-gov-border-light)] p-5 flex flex-col" aria-label="Admin Side Menu"></aside>
+
+        <main class="flex-1 p-8 overflow-y-auto" id="main-content">
+            <nav aria-label="Breadcrumb" class="flex items-center gap-2 text-sm text-[var(--kr-gov-text-secondary)] mb-4">
+                <span class="material-symbols-outlined text-[18px]">home</span>
+                <span>System</span>
+                <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+                <span class="font-bold text-[var(--kr-gov-blue)]">Code Management</span>
+            </nav>
+
+            <div class="flex items-end justify-between mb-6">
+                <div>
+                    <h2 class="text-2xl font-black text-[var(--kr-gov-text-primary)]">Code Management</h2>
+                    <p class="text-sm text-[var(--kr-gov-text-secondary)] mt-1">Manage class codes, code IDs, and detail codes.</p>
+                </div>
+            </div>
+
+            <div class="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                 th:if="${codeMgmtError}" th:text="${codeMgmtError}"></div>
+
+            <section class="gov-card mb-8">
+                <div class="flex items-center gap-2 border-b pb-4 mb-4">
+                    <span class="material-symbols-outlined text-[var(--kr-gov-blue)]">category</span>
+                    <h3 class="text-lg font-bold">Class Codes</h3>
+                </div>
+                <form method="post" action="/en/admin/system/code/class/create" class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
+                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                    <div>
+                        <label class="gov-label" for="clCode">Class Code</label>
+                        <input class="gov-input" id="clCode" name="clCode" placeholder="e.g., HME" type="text" />
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="gov-label" for="clCodeNm">Class Name</label>
+                        <input class="gov-input" id="clCodeNm" name="clCodeNm" placeholder="e.g., Home Menu" type="text" />
+                    </div>
+                    <div>
+                        <label class="gov-label" for="clCodeDc">Description (EN)</label>
+                        <input class="gov-input" id="clCodeDc" name="clCodeDc" placeholder="Description" type="text" />
+                    </div>
+                    <div>
+                        <label class="gov-label" for="clUseAt">Use</label>
+                        <select class="gov-select" id="clUseAt" name="useAt">
+                            <option value="Y">Y</option>
+                            <option value="N">N</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-5 flex justify-end gap-2">
+                        <button class="gov-btn gov-btn-primary" type="submit">Add Class Code</button>
+                    </div>
+                </form>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left border-collapse">
+                        <thead>
+                            <tr class="gov-table-header">
+                                <th class="px-4 py-3">Class Code</th>
+                                <th class="px-4 py-3">Class Name</th>
+                                <th class="px-4 py-3">Description (EN)</th>
+                                <th class="px-4 py-3 text-center">Use</th>
+                                <th class="px-4 py-3 text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <tr th:each="row : ${clCodeList}">
+                                <td class="px-4 py-3 font-bold" th:text="${row.CL_CODE}">CL</td>
+                                <td class="px-4 py-3">
+                                    <form method="post" action="/en/admin/system/code/class/update" class="grid grid-cols-1 md:grid-cols-4 gap-2 items-center">
+                                        <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                        <input type="hidden" name="clCode" th:value="${row.CL_CODE}" />
+                                        <input class="gov-input" name="clCodeNm" th:value="${row.CL_CODE_NM}" />
+                                        <input class="gov-input" name="clCodeDc" th:value="${row.CL_CODE_DC}" />
+                                        <select class="gov-select" name="useAt">
+                                            <option value="Y" th:selected="${row.USE_AT == 'Y'}">Y</option>
+                                            <option value="N" th:selected="${row.USE_AT == 'N'}">N</option>
+                                        </select>
+                                        <div class="flex gap-2 justify-end md:col-span-1">
+                                            <button class="gov-btn gov-btn-outline" type="submit">Update</button>
+                                        </div>
+                                    </form>
+                                </td>
+                                <td class="px-4 py-3 text-gray-500" th:text="${row.CL_CODE_DC}">-</td>
+                                <td class="px-4 py-3 text-center" th:text="${row.USE_AT}">Y</td>
+                                <td class="px-4 py-3 text-center">
+                                    <form method="post" action="/en/admin/system/code/class/delete">
+                                        <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                        <input type="hidden" name="clCode" th:value="${row.CL_CODE}" />
+                                        <button class="gov-btn gov-btn-danger" type="submit">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(clCodeList)}">
+                                <td class="px-4 py-6 text-center text-gray-500" colspan="5">No class codes found.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="gov-card mb-8">
+                <div class="flex items-center gap-2 border-b pb-4 mb-4">
+                    <span class="material-symbols-outlined text-[var(--kr-gov-blue)]">list_alt</span>
+                    <h3 class="text-lg font-bold">Code IDs</h3>
+                </div>
+                <form method="post" action="/en/admin/system/code/group/create" class="grid grid-cols-1 md:grid-cols-6 gap-4 mb-4">
+                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                    <div>
+                        <label class="gov-label" for="codeId">Code ID</label>
+                        <input class="gov-input" id="codeId" name="codeId" placeholder="e.g., HMENU1" type="text" />
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="gov-label" for="codeIdNm">Code Name</label>
+                        <input class="gov-input" id="codeIdNm" name="codeIdNm" placeholder="e.g., Home Menu" type="text" />
+                    </div>
+                    <div>
+                        <label class="gov-label" for="codeIdDc">Description (EN)</label>
+                        <input class="gov-input" id="codeIdDc" name="codeIdDc" placeholder="Description" type="text" />
+                    </div>
+                    <div>
+                        <label class="gov-label" for="codeCl">Class Code</label>
+                        <select class="gov-select" id="codeCl" name="clCode">
+                            <option th:each="cl : ${clCodeList}" th:value="${cl.CL_CODE}" th:text="${cl.CL_CODE + ' - ' + cl.CL_CODE_NM}">Class</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="gov-label" for="codeUseAt">Use</label>
+                        <select class="gov-select" id="codeUseAt" name="useAt">
+                            <option value="Y">Y</option>
+                            <option value="N">N</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-6 flex justify-end gap-2">
+                        <button class="gov-btn gov-btn-primary" type="submit">Add Code ID</button>
+                    </div>
+                </form>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left border-collapse">
+                        <thead>
+                            <tr class="gov-table-header">
+                                <th class="px-4 py-3">Code ID</th>
+                                <th class="px-4 py-3">Code Name</th>
+                                <th class="px-4 py-3">Description (EN)</th>
+                                <th class="px-4 py-3">Class</th>
+                                <th class="px-4 py-3 text-center">Use</th>
+                                <th class="px-4 py-3 text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <tr th:each="row : ${codeList}">
+                                <td class="px-4 py-3 font-bold" th:text="${row.CODE_ID}">CODE</td>
+                                <td class="px-4 py-3">
+                                    <form method="post" action="/en/admin/system/code/group/update" class="grid grid-cols-1 md:grid-cols-5 gap-2 items-center">
+                                        <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                        <input type="hidden" name="codeId" th:value="${row.CODE_ID}" />
+                                        <input class="gov-input" name="codeIdNm" th:value="${row.CODE_ID_NM}" />
+                                        <input class="gov-input" name="codeIdDc" th:value="${row.CODE_ID_DC}" />
+                                        <select class="gov-select" name="clCode">
+                                            <option th:each="cl : ${clCodeList}"
+                                                    th:value="${cl.CL_CODE}"
+                                                    th:selected="${cl.CL_CODE == row.CL_CODE}"
+                                                    th:text="${cl.CL_CODE + ' - ' + cl.CL_CODE_NM}">Class</option>
+                                        </select>
+                                        <select class="gov-select" name="useAt">
+                                            <option value="Y" th:selected="${row.USE_AT == 'Y'}">Y</option>
+                                            <option value="N" th:selected="${row.USE_AT == 'N'}">N</option>
+                                        </select>
+                                        <div class="flex gap-2 justify-end md:col-span-1">
+                                            <button class="gov-btn gov-btn-outline" type="submit">Update</button>
+                                        </div>
+                                    </form>
+                                </td>
+                                <td class="px-4 py-3 text-gray-500" th:text="${row.CODE_ID_DC}">-</td>
+                                <td class="px-4 py-3 text-gray-500" th:text="${row.CL_CODE_NM}">-</td>
+                                <td class="px-4 py-3 text-center" th:text="${row.USE_AT}">Y</td>
+                                <td class="px-4 py-3 text-center">
+                                    <form method="post" action="/en/admin/system/code/group/delete">
+                                        <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                        <input type="hidden" name="codeId" th:value="${row.CODE_ID}" />
+                                        <button class="gov-btn gov-btn-danger" type="submit">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(codeList)}">
+                                <td class="px-4 py-6 text-center text-gray-500" colspan="6">No code IDs found.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="gov-card">
+                <div class="flex items-center gap-2 border-b pb-4 mb-4">
+                    <span class="material-symbols-outlined text-[var(--kr-gov-blue)]">fact_check</span>
+                    <h3 class="text-lg font-bold">Detail Codes</h3>
+                </div>
+                <form method="get" action="/en/admin/system/code" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div class="md:col-span-2">
+                        <label class="gov-label" for="detailCodeId">Select Code ID</label>
+                        <select class="gov-select" id="detailCodeId" name="detailCodeId">
+                            <option th:each="row : ${codeList}" th:value="${row.CODE_ID}" th:selected="${row.CODE_ID == detailCodeId}" th:text="${row.CODE_ID + ' - ' + row.CODE_ID_NM}">Code</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-2 flex items-end">
+                        <button class="gov-btn gov-btn-outline" type="submit">Search</button>
+                    </div>
+                </form>
+                <form method="post" action="/en/admin/system/code/detail/create" class="grid grid-cols-1 md:grid-cols-6 gap-4 mb-4">
+                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                    <div>
+                        <label class="gov-label" for="detailCodeIdInput">Code ID</label>
+                        <select class="gov-select" id="detailCodeIdInput" name="codeId">
+                            <option th:each="row : ${codeList}" th:value="${row.CODE_ID}" th:selected="${row.CODE_ID == detailCodeId}" th:text="${row.CODE_ID}">Code</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="gov-label" for="detailCode">Code</label>
+                        <input class="gov-input" id="detailCode" name="code" placeholder="e.g., H001" type="text" />
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="gov-label" for="detailCodeNm">Code Name</label>
+                        <input class="gov-input" id="detailCodeNm" name="codeNm" placeholder="Name" type="text" />
+                    </div>
+                    <div>
+                        <label class="gov-label" for="detailCodeDc">Description (EN)</label>
+                        <input class="gov-input" id="detailCodeDc" name="codeDc" placeholder="Description" type="text" />
+                    </div>
+                    <div>
+                        <label class="gov-label" for="detailUseAt">Use</label>
+                        <select class="gov-select" id="detailUseAt" name="useAt">
+                            <option value="Y">Y</option>
+                            <option value="N">N</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-6 flex justify-end gap-2">
+                        <button class="gov-btn gov-btn-primary" type="submit">Add Detail Code</button>
+                    </div>
+                </form>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left border-collapse">
+                        <thead>
+                            <tr class="gov-table-header">
+                                <th class="px-4 py-3">Code ID</th>
+                                <th class="px-4 py-3">Code</th>
+                                <th class="px-4 py-3">Code Name</th>
+                                <th class="px-4 py-3">Description (EN)</th>
+                                <th class="px-4 py-3 text-center">Use</th>
+                                <th class="px-4 py-3 text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <tr th:each="row : ${detailCodeList}">
+                                <td class="px-4 py-3 font-bold" th:text="${row.CODE_ID}">CODE</td>
+                                <td class="px-4 py-3" th:text="${row.CODE}">VAL</td>
+                                <td class="px-4 py-3">
+                                    <form method="post" action="/en/admin/system/code/detail/update" class="grid grid-cols-1 md:grid-cols-4 gap-2 items-center">
+                                        <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                        <input type="hidden" name="codeId" th:value="${row.CODE_ID}" />
+                                        <input type="hidden" name="code" th:value="${row.CODE}" />
+                                        <input class="gov-input" name="codeNm" th:value="${row.CODE_NM}" />
+                                        <input class="gov-input" name="codeDc" th:value="${row.CODE_DC}" />
+                                        <select class="gov-select" name="useAt">
+                                            <option value="Y" th:selected="${row.USE_AT == 'Y'}">Y</option>
+                                            <option value="N" th:selected="${row.USE_AT == 'N'}">N</option>
+                                        </select>
+                                        <div class="flex gap-2 justify-end md:col-span-1">
+                                            <button class="gov-btn gov-btn-outline" type="submit">Update</button>
+                                        </div>
+                                    </form>
+                                </td>
+                                <td class="px-4 py-3 text-gray-500" th:text="${row.CODE_DC}">-</td>
+                                <td class="px-4 py-3 text-center" th:text="${row.USE_AT}">Y</td>
+                                <td class="px-4 py-3 text-center">
+                                    <form method="post" action="/en/admin/system/code/detail/delete">
+                                        <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                        <input type="hidden" name="codeId" th:value="${row.CODE_ID}" />
+                                        <input type="hidden" name="code" th:value="${row.CODE}" />
+                                        <button class="gov-btn gov-btn-danger" type="submit">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(detailCodeList)}">
+                                <td class="px-4 py-6 text-center text-gray-500" colspan="6">No detail codes found.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div th:replace="~{egovframework/com/admin/footer :: footerFragment}"></div>
+
+    <script th:inline="javascript">
+        function logout() {
+            if (confirm("Do you want to log out?")) {
+                fetch('/en/admin/login/actionLogout', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(response => {
+                        if (response.status === 'success') {
+                            location.href = '/en/admin/login/loginView';
+                        }
+                    });
+            }
+        }
+    </script>
+    <script src="/js/accessibility.js" defer></script>
+</body>
+
+</html>

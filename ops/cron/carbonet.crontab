@@ -1,0 +1,18 @@
+# Carbonet cron jobs managed from the repository.
+# Install with: /opt/projects/carbonet/ops/cron/install_cron.sh
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+PROJECT_ROOT=/opt/projects/carbonet
+
+# Every minute: heartbeat for cron verification
+* * * * * /bin/bash ${PROJECT_ROOT}/ops/cron/jobs/heartbeat.sh >> ${PROJECT_ROOT}/logs/cron/heartbeat.log 2>&1
+
+# Every 10 minutes: external token refresh check
+*/10 * * * * /bin/bash ${PROJECT_ROOT}/ops/cron/jobs/external_token_refresh.sh >> ${PROJECT_ROOT}/logs/cron/external_token_refresh.log 2>&1
+
+# Every 30 minutes: certificate expiry sync check
+*/30 * * * * /bin/bash ${PROJECT_ROOT}/ops/cron/jobs/certificate_expiry_sync.sh >> ${PROJECT_ROOT}/logs/cron/certificate_expiry_sync.log 2>&1
+
+# Daily 02:00: nightly emissions aggregation check
+0 2 * * * /bin/bash ${PROJECT_ROOT}/ops/cron/jobs/nightly_emission_aggregation.sh >> ${PROJECT_ROOT}/logs/cron/nightly_emission_aggregation.log 2>&1

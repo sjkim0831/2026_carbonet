@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>크론/스케줄러 관리 | CCUS 통합관리 시스템</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Public+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <style type="text/tailwindcss">
+        :root { --kr-gov-blue:#00378b; --kr-gov-blue-hover:#002d72; --kr-gov-border-light:#d9d9d9; --kr-gov-text-primary:#1a1a1a; --kr-gov-text-secondary:#4d4d4d; --kr-gov-radius:5px; }
+        @layer base { body { font-family:'Noto Sans KR','Public Sans',sans-serif; -webkit-font-smoothing:antialiased; } }
+        .material-symbols-outlined { font-variation-settings: 'wght' 400, 'opsz' 24; font-size: 24px; line-height: 1.6; }
+        .gov-card { @apply border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm; }
+        .gov-table-header { @apply bg-gray-50 border-y border-[var(--kr-gov-border-light)] text-[13px] font-bold text-[var(--kr-gov-text-secondary)]; }
+        .status-badge { @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold; }
+        .status-ACTIVE { @apply bg-emerald-100 text-emerald-700; }
+        .status-PAUSED { @apply bg-amber-100 text-amber-700; }
+        .status-REVIEW { @apply bg-rose-100 text-rose-700; }
+        .status-HEALTHY { @apply bg-emerald-100 text-emerald-700; }
+        .status-STANDBY { @apply bg-slate-100 text-slate-700; }
+        .status-DEGRADED { @apply bg-orange-100 text-orange-700; }
+        .status-SUCCESS { @apply bg-emerald-100 text-emerald-700; }
+        .status-FAILED { @apply bg-rose-100 text-rose-700; }
+    </style>
+</head>
+<body class="bg-[#f8f9fa] text-[var(--kr-gov-text-primary)]">
+<div th:replace="~{egovframework/com/admin/header :: headerFragment}"></div>
+<div class="flex min-h-[calc(100vh-124px)]">
+    <aside aria-label="관리자 사이드 메뉴" class="js-admin-lnb w-72 bg-white border-r border-[var(--kr-gov-border-light)] p-5 flex flex-col"></aside>
+    <main class="flex-1 p-8 overflow-y-auto">
+        <nav class="flex items-center gap-2 text-sm text-[var(--kr-gov-text-secondary)] mb-4">
+            <span>시스템</span><span>›</span><span>운영자동화</span><span>›</span><span class="font-bold text-[var(--kr-gov-blue)]">크론/스케줄러 관리</span>
+        </nav>
+        <div class="mb-6 flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+            <div>
+                <h2 class="text-2xl font-black">크론/스케줄러 관리</h2>
+                <p class="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">정기 배치, 수동 실행 잡, 워커 상태, 최근 실행 이력을 한 화면에서 점검합니다.</p>
+            </div>
+            <form action="/admin/system/scheduler" class="grid grid-cols-1 md:grid-cols-3 gap-3 xl:w-[44rem]" method="get">
+                <div>
+                    <label class="block mb-1 text-sm font-bold" for="jobStatus">잡 상태</label>
+                    <select class="gov-input w-full" id="jobStatus" name="jobStatus">
+                        <option value="">전체</option>
+                        <option th:selected="${jobStatus == 'ACTIVE'}" value="ACTIVE">ACTIVE</option>
+                        <option th:selected="${jobStatus == 'PAUSED'}" value="PAUSED">PAUSED</option>
+                        <option th:selected="${jobStatus == 'REVIEW'}" value="REVIEW">REVIEW</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block mb-1 text-sm font-bold" for="executionType">실행 유형</label>
+                    <select class="gov-input w-full" id="executionType" name="executionType">
+                        <option value="">전체</option>
+                        <option th:selected="${executionType == 'CRON'}" value="CRON">정기</option>
+                        <option th:selected="${executionType == 'MANUAL'}" value="MANUAL">수동</option>
+                    </select>
+                </div>
+                <div class="flex gap-2 items-end">
+                    <button class="px-4 py-2 rounded-[var(--kr-gov-radius)] bg-[var(--kr-gov-blue)] text-white text-sm font-bold hover:bg-[var(--kr-gov-blue-hover)] w-full" type="submit">조회</button>
+                    <a class="px-4 py-2 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] text-sm font-bold text-center w-full bg-white" href="/admin/system/scheduler">초기화</a>
+                </div>
+            </form>
+        </div>
+        <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+            <article class="gov-card" th:each="card : ${schedulerSummary}">
+                <p class="text-xs font-bold text-[var(--kr-gov-text-secondary)]" th:text="${card['title']}">등록 잡</p>
+                <p class="mt-3 text-2xl font-black" th:text="${card['value']}">14</p>
+                <p class="mt-2 text-sm text-[var(--kr-gov-text-secondary)]" th:text="${card['description']}">설명</p>
+            </article>
+        </section>
+        <section class="gov-card mb-6 p-0 overflow-hidden">
+            <div class="px-6 py-5 border-b border-[var(--kr-gov-border-light)] flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-bold">잡 목록</h3>
+                    <p class="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">Cron 표현식, 최근 실행, 다음 실행 시점을 함께 확인합니다.</p>
+                </div>
+                <span class="text-sm text-[var(--kr-gov-text-secondary)]">총 <strong th:text="${#lists.size(schedulerJobRows)}">0</strong>건</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left border-collapse">
+                    <thead>
+                    <tr class="gov-table-header">
+                        <th class="px-4 py-3">잡 ID</th>
+                        <th class="px-4 py-3">잡명</th>
+                        <th class="px-4 py-3">Cron</th>
+                        <th class="px-4 py-3">유형</th>
+                        <th class="px-4 py-3">상태</th>
+                        <th class="px-4 py-3">최근 실행</th>
+                        <th class="px-4 py-3">다음 실행</th>
+                        <th class="px-4 py-3">담당</th>
+                    </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                    <tr th:each="row : ${schedulerJobRows}">
+                        <td class="px-4 py-3 font-bold" th:text="${row['jobId']}">SCH-001</td>
+                        <td class="px-4 py-3" th:text="${row['jobName']}">야간 배출량 집계</td>
+                        <td class="px-4 py-3 font-mono text-[13px]" th:text="${row['cronExpression']}">0 0 2 * * ?</td>
+                        <td class="px-4 py-3" th:text="${row['executionType']}">정기</td>
+                        <td class="px-4 py-3"><span class="status-badge" th:classappend="' status-' + ${row['jobStatus']}" th:text="${row['jobStatus']}">ACTIVE</span></td>
+                        <td class="px-4 py-3 text-[var(--kr-gov-text-secondary)]" th:text="${row['lastRunAt']}">2026-03-13 02:00</td>
+                        <td class="px-4 py-3 text-[var(--kr-gov-text-secondary)]" th:text="${row['nextRunAt']}">2026-03-14 02:00</td>
+                        <td class="px-4 py-3" th:text="${row['owner']}">배출 운영팀</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        <section class="grid grid-cols-1 xl:grid-cols-[1.2fr_1fr] gap-6 mb-6">
+            <article class="gov-card p-0 overflow-hidden">
+                <div class="px-6 py-5 border-b border-[var(--kr-gov-border-light)]">
+                    <h3 class="text-lg font-bold">워커 노드 상태</h3>
+                    <p class="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">클러스터 heartbeat와 노드별 실행 부하를 확인합니다.</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left border-collapse">
+                        <thead>
+                        <tr class="gov-table-header">
+                            <th class="px-4 py-3">노드 ID</th>
+                            <th class="px-4 py-3">역할</th>
+                            <th class="px-4 py-3">상태</th>
+                            <th class="px-4 py-3">실행중</th>
+                            <th class="px-4 py-3">Heartbeat</th>
+                        </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                        <tr th:each="row : ${schedulerNodeRows}">
+                            <td class="px-4 py-3 font-mono text-[13px]" th:text="${row['nodeId']}">batch-node-01</td>
+                            <td class="px-4 py-3" th:text="${row['role']}">주 스케줄러</td>
+                            <td class="px-4 py-3"><span class="status-badge" th:classappend="' status-' + ${row['status']}" th:text="${row['status']}">HEALTHY</span></td>
+                            <td class="px-4 py-3" th:text="${row['runningJobs']}">5</td>
+                            <td class="px-4 py-3 text-[var(--kr-gov-text-secondary)]" th:text="${row['heartbeatAt']}">2026-03-13 11:46:11</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+            <article class="gov-card">
+                <h3 class="text-lg font-bold">운영 메모</h3>
+                <ul class="mt-4 space-y-3 text-sm text-[var(--kr-gov-text-secondary)] leading-6">
+                    <li class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">Cron 잡 신규 등록 시 `운영환경`, `재시도 정책`, `중복 실행 방지 키`를 함께 검토합니다.</li>
+                    <li class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">`REVIEW` 상태 잡은 즉시 재실행하지 말고 최근 이력과 관련 승인 상태를 먼저 확인합니다.</li>
+                    <li class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">대량 보정성 수동 실행은 운영 공지와 로그 보존 기준을 남긴 뒤 진행합니다.</li>
+                </ul>
+            </article>
+        </section>
+        <section class="gov-card mb-6 p-0 overflow-hidden">
+            <div class="px-6 py-5 border-b border-[var(--kr-gov-border-light)]">
+                <h3 class="text-lg font-bold">최근 실행 이력</h3>
+                <p class="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">성공, 실패, 재검토 대상 이력을 빠르게 추적할 수 있도록 구성했습니다.</p>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left border-collapse">
+                    <thead>
+                    <tr class="gov-table-header">
+                        <th class="px-4 py-3">실행 시각</th>
+                        <th class="px-4 py-3">잡 ID</th>
+                        <th class="px-4 py-3">결과</th>
+                        <th class="px-4 py-3">소요 시간</th>
+                        <th class="px-4 py-3">메시지</th>
+                    </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                    <tr th:each="row : ${schedulerExecutionRows}">
+                        <td class="px-4 py-3 text-[var(--kr-gov-text-secondary)]" th:text="${row['executedAt']}">2026-03-13 11:30</td>
+                        <td class="px-4 py-3 font-bold" th:text="${row['jobId']}">SCH-002</td>
+                        <td class="px-4 py-3"><span class="status-badge" th:classappend="' status-' + ${row['result']}" th:text="${row['result']}">SUCCESS</span></td>
+                        <td class="px-4 py-3" th:text="${row['duration']}">18s</td>
+                        <td class="px-4 py-3" th:text="${row['message']}">메시지</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        <section class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <article class="gov-card" th:each="item : ${schedulerPlaybooks}">
+                <h3 class="text-lg font-bold" th:text="${item['title']}">Cron 표현식 점검</h3>
+                <p class="mt-3 text-sm leading-6 text-[var(--kr-gov-text-secondary)]" th:text="${item['body']}">설명</p>
+            </article>
+        </section>
+    </main>
+</div>
+<div th:replace="~{egovframework/com/admin/footer :: footerFragment}"></div>
+</body>
+</html>

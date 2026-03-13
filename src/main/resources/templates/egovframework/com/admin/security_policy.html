@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>보안 정책 관리 | CCUS 통합관리 시스템</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Public+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <style type="text/tailwindcss">
+        :root { --kr-gov-blue:#00378b; --kr-gov-blue-hover:#002d72; --kr-gov-border-light:#d9d9d9; --kr-gov-text-primary:#1a1a1a; --kr-gov-text-secondary:#4d4d4d; --kr-gov-radius:5px; }
+        @layer base { body { font-family:'Noto Sans KR','Public Sans',sans-serif; -webkit-font-smoothing:antialiased; } }
+        .material-symbols-outlined { font-variation-settings: 'wght' 400, 'opsz' 24; font-size: 24px; line-height: 1.6; }
+        .admin-sidebar-link { @apply flex items-center gap-3 px-4 py-3 text-[15px] font-medium text-[var(--kr-gov-text-secondary)] hover:bg-gray-100 rounded-[var(--kr-gov-radius)] transition-colors; }
+        .admin-sidebar-link.active { @apply bg-[var(--kr-gov-blue)] text-white font-bold; }
+        .admin-sidebar-sublink { @apply flex items-center gap-2 pl-12 pr-4 py-2 text-[14px] text-[var(--kr-gov-text-secondary)] hover:text-[var(--kr-gov-blue)] hover:font-bold transition-all; }
+        .admin-sidebar-sublink.active { @apply text-[var(--kr-gov-blue)] font-bold relative; }
+        .admin-sidebar-sublink.active::before { content:''; @apply absolute left-8 w-1.5 h-1.5 bg-[var(--kr-gov-blue)] rounded-full top-1/2 -translate-y-1/2; }
+        .gov-card { @apply border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm; }
+        .gov-table-header { @apply bg-gray-50 border-y border-[var(--kr-gov-border-light)] text-[13px] font-bold text-[var(--kr-gov-text-secondary)]; }
+        .badge { @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold; }
+    </style>
+</head>
+<body class="bg-[#f8f9fa] text-[var(--kr-gov-text-primary)]">
+<div th:replace="~{egovframework/com/admin/header :: headerFragment}"></div>
+<div class="flex min-h-[calc(100vh-124px)]">
+    <aside class="js-admin-lnb w-72 bg-white border-r border-[var(--kr-gov-border-light)] p-5 flex flex-col" aria-label="관리자 사이드 메뉴"></aside>
+    <main class="flex-1 p-8 overflow-y-auto">
+        <nav class="flex items-center gap-2 text-sm text-[var(--kr-gov-text-secondary)] mb-4">
+            <span>시스템</span><span>›</span><span>보안운영</span><span>›</span><span class="font-bold text-[var(--kr-gov-blue)]">보안 정책 관리</span>
+        </nav>
+        <div class="mb-6">
+            <h2 class="text-2xl font-black">보안 정책 관리</h2>
+            <p class="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">로그인, 검색 API, 관리자 접근에 대한 임계치와 자동 대응 규칙을 관리합니다.</p>
+        </div>
+        <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+            <article class="gov-card" th:each="card : ${securityPolicySummary}">
+                <p class="text-xs font-bold text-[var(--kr-gov-text-secondary)]" th:text="${card['title']}">적용 정책</p>
+                <p class="mt-3 text-2xl font-black" th:text="${card['value']}">7</p>
+                <p class="mt-2 text-sm text-[var(--kr-gov-text-secondary)]" th:text="${card['description']}">설명</p>
+            </article>
+        </section>
+        <section class="gov-card mb-6 p-0 overflow-hidden">
+            <div class="px-6 py-5 border-b border-[var(--kr-gov-border-light)] flex items-center justify-between">
+                <h3 class="text-lg font-bold">적용 정책 목록</h3>
+                <span class="text-sm text-[var(--kr-gov-text-secondary)]">총 <strong th:text="${#lists.size(securityPolicyRows)}">0</strong>건</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left border-collapse">
+                    <thead><tr class="gov-table-header"><th class="px-4 py-3">정책 ID</th><th class="px-4 py-3">대상 URL</th><th class="px-4 py-3">정책명</th><th class="px-4 py-3">기본 임계치</th><th class="px-4 py-3">Burst</th><th class="px-4 py-3">조치</th><th class="px-4 py-3">상태</th><th class="px-4 py-3">수정일시</th></tr></thead>
+                    <tbody class="divide-y divide-gray-100">
+                    <tr th:each="row : ${securityPolicyRows}">
+                        <td class="px-4 py-3 font-bold" th:text="${row['policyId']}">POL-001</td>
+                        <td class="px-4 py-3 font-mono text-[13px]" th:text="${row['targetUrl']}">/signin/actionLogin</td>
+                        <td class="px-4 py-3" th:text="${row['policyName']}">사용자 로그인 보호</td>
+                        <td class="px-4 py-3" th:text="${row['threshold']}">분당 30회</td>
+                        <td class="px-4 py-3" th:text="${row['burst']}">10초 5회</td>
+                        <td class="px-4 py-3" th:text="${row['action']}">CAPTCHA</td>
+                        <td class="px-4 py-3"><span class="badge bg-emerald-100 text-emerald-700" th:text="${row['status']}">ACTIVE</span></td>
+                        <td class="px-4 py-3 text-[var(--kr-gov-text-secondary)]" th:text="${row['updatedAt']}">2026-03-12 08:20</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        <section class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <article class="gov-card" th:each="item : ${securityPolicyPlaybooks}">
+                <h3 class="text-lg font-bold" th:text="${item['title']}">플레이북</h3>
+                <p class="mt-3 text-sm leading-6 text-[var(--kr-gov-text-secondary)]" th:text="${item['body']}">설명</p>
+            </article>
+        </section>
+    </main>
+</div>
+<div th:replace="~{egovframework/com/admin/footer :: footerFragment}"></div>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>권한 변경 | CCUS 통합관리 시스템</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Public+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <style type="text/tailwindcss">
+        :root {
+            --kr-gov-blue: #00378b;
+            --kr-gov-border-light: #d9d9d9;
+            --kr-gov-text-secondary: #4d4d4d;
+            --kr-gov-text-primary: #1a1a1a;
+            --kr-gov-focus: #005fde;
+            --kr-gov-radius: 5px;
+        }
+        @layer base {
+            body { font-family: 'Noto Sans KR', 'Public Sans', sans-serif; -webkit-font-smoothing: antialiased; }
+        }
+        .skip-link {
+            position: absolute;
+            left: 0;
+            top: -9999px;
+            background: var(--kr-gov-blue);
+            color: #fff;
+            padding: 0.75rem;
+            z-index: 100;
+            transition: top .2s ease;
+        }
+        .skip-link:focus {
+            top: 0;
+            outline: none;
+            box-shadow: 0 0 0 2px #fff;
+        }
+        .material-symbols-outlined { font-variation-settings: 'wght' 400, 'opsz' 24; font-size: 24px; line-height: 1.6; }
+        .gov-card { @apply border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm; }
+        .gov-table-header { @apply bg-gray-50 border-y border-[var(--kr-gov-border-light)] text-[13px] font-bold text-[var(--kr-gov-text-secondary)]; }
+        .gov-select { @apply w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm focus:ring-2 focus:ring-[var(--kr-gov-focus)] focus:border-[var(--kr-gov-focus)] outline-none; }
+        .badge { @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold; }
+    </style>
+</head>
+<body class="bg-[#f8f9fa] text-[#1a1a1a]">
+<a class="skip-link" href="#main-content">본문 바로가기</a>
+<div th:replace="~{egovframework/com/admin/header :: headerFragment}"></div>
+<div class="flex min-h-[calc(100vh-124px)]">
+    <aside class="js-admin-lnb w-72 bg-white border-r border-[var(--kr-gov-border-light)] p-5 flex flex-col" aria-label="관리자 사이드 메뉴"></aside>
+    <main class="flex-1 p-8 overflow-y-auto" id="main-content">
+        <nav class="flex items-center gap-2 text-sm text-[var(--kr-gov-text-secondary)] mb-4">
+            <span class="material-symbols-outlined text-[18px]">home</span>
+            <span>회원/권한</span>
+            <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+            <span class="font-bold text-[var(--kr-gov-blue)]">권한 변경</span>
+        </nav>
+
+        <div class="flex items-end justify-between mb-6">
+            <div>
+                <h2 class="text-2xl font-black">권한 변경</h2>
+                <p class="text-sm text-[var(--kr-gov-text-secondary)] mt-1">관리자 계정별 현재 권한 그룹과 변경 대상 권한 그룹을 확인하는 화면입니다.</p>
+            </div>
+            <span class="badge bg-blue-50 text-[var(--kr-gov-blue)]" th:text="${assignmentCount + '명'}">0명</span>
+        </div>
+
+        <div class="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+             th:if="${authChangeError}" th:text="${authChangeError}"></div>
+        <div class="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"
+             th:if="${authChangeUpdated}"
+             th:text="${#strings.isEmpty(authChangeTargetUserId) ? '관리자 권한이 변경되었습니다.' : authChangeTargetUserId + ' 권한이 변경되었습니다.'}">
+            관리자 권한이 변경되었습니다.
+        </div>
+        <div class="mb-4 rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700"
+             th:if="${!#strings.isEmpty(authChangeMessage)}"
+             th:text="${authChangeMessage}"></div>
+
+        <section class="gov-card mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <article class="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] p-4 bg-gray-50">
+                    <h3 class="font-black">이 화면의 역할</h3>
+                    <p class="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">사용자 단위로 현재 Role을 확인하고, 회원 수정 화면과 연계할 권한 변경 기준을 검토합니다.</p>
+                </article>
+                <article class="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] p-4 bg-gray-50">
+                    <h3 class="font-black">권장 운영</h3>
+                    <p class="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">기본 권한은 권한 그룹/부서 권한에서 정하고, 여기서는 개인 예외와 직접 변경만 다룹니다.</p>
+                </article>
+                <article class="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] p-4 bg-gray-50">
+                    <h3 class="font-black">다음 단계</h3>
+                    <p class="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">저장 기능은 사용자-Role 변경 이력과 함께 붙이는 것이 안전합니다.</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="gov-card">
+            <div class="flex items-center gap-2 border-b pb-4 mb-4">
+                <span class="material-symbols-outlined text-[var(--kr-gov-blue)]">manage_accounts</span>
+                <h3 class="text-lg font-bold">관리자 권한 변경 대상</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left border-collapse">
+                    <thead>
+                    <tr class="gov-table-header">
+                        <th class="px-4 py-3">관리자 ID</th>
+                        <th class="px-4 py-3">이름</th>
+                        <th class="px-4 py-3">조직 ID</th>
+                        <th class="px-4 py-3">현재 권한 그룹</th>
+                        <th class="px-4 py-3">변경 가능 후보</th>
+                        <th class="px-4 py-3">상태</th>
+                    </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                    <tr th:each="row : ${roleAssignments}">
+                        <td class="px-4 py-3 font-bold" th:text="${row.emplyrId}">webmaster</td>
+                        <td class="px-4 py-3" th:text="${row.userNm}">웹마스터</td>
+                        <td class="px-4 py-3 text-[var(--kr-gov-text-secondary)]" th:text="${row.orgnztId}">ORGNZT_0001</td>
+                        <td class="px-4 py-3">
+                            <div class="font-semibold" th:text="${#strings.isEmpty(row.authorNm) ? '미지정' : row.authorNm}">시스템 마스터</div>
+                            <div class="text-xs text-[var(--kr-gov-text-secondary)]" th:text="${row.authorCode}">ROLE_SYSTEM_MASTER</div>
+                        </td>
+                        <td class="px-4 py-3">
+                            <form class="flex items-center gap-2"
+                                  method="post"
+                                  action="/admin/member/auth-change/save">
+                                <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                <input type="hidden" name="emplyrId" th:value="${row.emplyrId}" />
+                                <select class="gov-select min-w-[14rem]" name="authorCode"
+                                        th:attr="disabled=${!isWebmaster or row.emplyrId == 'webmaster'} ? 'disabled' : null">
+                                    <option th:each="group : ${authorGroups}"
+                                            th:value="${group.authorCode}"
+                                            th:selected="${row.authorCode == group.authorCode}"
+                                            th:text="${group.authorNm + ' (' + group.authorCode + ')'}">시스템 관리자 (ROLE_SYSTEM_ADMIN)</option>
+                                </select>
+                                <button class="badge bg-[var(--kr-gov-blue)] text-white disabled:opacity-50"
+                                        type="submit"
+                                        th:attr="disabled=${!isWebmaster or row.emplyrId == 'webmaster'} ? 'disabled' : null">저장</button>
+                            </form>
+                            <div class="mt-2 text-xs text-[var(--kr-gov-text-secondary)]"
+                                 th:if="${row.emplyrId == 'webmaster'}">webmaster는 ROLE_SYSTEM_MASTER로 고정됩니다.</div>
+                            <div class="mt-2 text-xs text-[var(--kr-gov-text-secondary)]"
+                                 th:if="${!isWebmaster and row.emplyrId != 'webmaster'}">webmaster 계정만 권한을 변경할 수 있습니다.</div>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="badge bg-emerald-50 text-emerald-700" th:text="${row.emplyrSttusCode == 'P' ? '활성' : row.emplyrSttusCode}">활성</span>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(roleAssignments)}">
+                        <td class="px-4 py-6 text-center text-[var(--kr-gov-text-secondary)]" colspan="6">표시할 관리자 계정이 없습니다.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+<div th:replace="~{egovframework/com/admin/footer :: footerFragment}"></div>
+<script src="/js/accessibility.js" defer></script>
+</body>
+</html>

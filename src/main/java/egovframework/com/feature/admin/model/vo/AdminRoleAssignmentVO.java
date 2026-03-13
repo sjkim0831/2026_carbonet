@@ -1,0 +1,16 @@
+package egovframework.com.feature.admin.model.vo;
+
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class AdminRoleAssignmentVO {
+
+    private String emplyrId;
+    private String userNm;
+    private String orgnztId;
+    private String emplyrSttusCode;
+    private String authorCode;
+    private String authorNm;
+}

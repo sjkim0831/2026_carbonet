@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>페이지 관리 | CCUS 통합관리 시스템</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Public+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <style type="text/tailwindcss">
+        :root {
+            --kr-gov-blue: #00378b;
+            --kr-gov-blue-hover: #002d72;
+            --kr-gov-text-primary: #1a1a1a;
+            --kr-gov-text-secondary: #4d4d4d;
+            --kr-gov-border-light: #d9d9d9;
+            --kr-gov-focus: #005fde;
+            --kr-gov-radius: 5px;
+            --kr-gov-error: #c62828;
+        }
+        @layer base {
+            body { font-family: 'Noto Sans KR', 'Public Sans', sans-serif; -webkit-font-smoothing: antialiased; }
+            .skip-link { @apply absolute -top-full left-0 bg-[var(--kr-gov-blue)] text-white p-3 z-[100] transition-all focus:top-0 focus:outline-none focus:ring-2 focus:ring-white; }
+        }
+        .material-symbols-outlined { font-variation-settings: 'wght' 400, 'opsz' 24; font-size: 24px; line-height: 1.6; }
+        .gov-card { @apply border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm; }
+        .gov-label { @apply block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] mb-2; }
+        .gov-input, .gov-select { @apply w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm focus:ring-2 focus:ring-[var(--kr-gov-focus)] focus:border-[var(--kr-gov-focus)] outline-none; }
+        .gov-btn { @apply inline-flex items-center justify-center gap-1.5 px-4 py-2 text-[13px] font-bold rounded-[var(--kr-gov-radius)] transition-colors; }
+        .gov-btn-primary { @apply bg-[var(--kr-gov-blue)] text-white hover:bg-[var(--kr-gov-blue-hover)]; }
+        .gov-btn-outline { @apply bg-white border border-[var(--kr-gov-border-light)] text-[var(--kr-gov-text-secondary)] hover:bg-gray-50; }
+        .gov-btn-danger { @apply bg-red-600 text-white hover:bg-red-700; }
+        .gov-table-header { @apply bg-gray-50 border-y border-[var(--kr-gov-border-light)] text-[13px] font-bold text-[var(--kr-gov-text-secondary)]; }
+        .icon-combo { @apply relative; }
+        .icon-combo-trigger { @apply flex w-full items-center justify-between rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-3 py-2 text-sm; }
+        .icon-combo-panel { @apply absolute left-0 top-[calc(100%+8px)] z-20 hidden w-full rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-3 shadow-lg; }
+        .icon-combo[open] .icon-combo-panel { @apply block; }
+        .icon-grid { @apply grid grid-cols-4 md:grid-cols-6 gap-2 max-h-[28rem] overflow-y-auto; }
+        .icon-grid-item { @apply flex w-full min-w-0 flex-col items-center justify-center gap-1 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-2 py-3 text-xs text-[var(--kr-gov-text-secondary)] cursor-pointer transition-colors hover:border-[var(--kr-gov-blue)] hover:bg-blue-50; }
+        .icon-grid-item.active { @apply border-[var(--kr-gov-blue)] bg-blue-50 text-[var(--kr-gov-blue)] font-bold; }
+        .icon-search { @apply w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm focus:ring-2 focus:ring-[var(--kr-gov-focus)] focus:border-[var(--kr-gov-focus)] outline-none mb-3; }
+    </style>
+</head>
+
+<body class="bg-[#f8f9fa] text-[var(--kr-gov-text-primary)]">
+<a class="skip-link" href="#main-content">본문 바로가기</a>
+<div th:replace="~{egovframework/com/admin/header :: headerFragment}"></div>
+
+<div class="flex min-h-[calc(100vh-124px)]">
+    <aside aria-label="관리자 사이드 메뉴" class="js-admin-lnb w-72 bg-white border-r border-[var(--kr-gov-border-light)] p-5 flex flex-col"></aside>
+
+    <main class="flex-1 p-8 overflow-y-auto" id="main-content">
+        <nav aria-label="Breadcrumb" class="flex items-center gap-2 text-sm text-[var(--kr-gov-text-secondary)] mb-4">
+            <span class="material-symbols-outlined text-[18px]">home</span>
+            <span>시스템</span>
+            <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+            <span>코드 관리</span>
+            <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+            <span class="font-bold text-[var(--kr-gov-blue)]">페이지 관리</span>
+        </nav>
+
+        <div class="flex items-end justify-between mb-6">
+            <div>
+                <h2 class="text-2xl font-black text-[var(--kr-gov-text-primary)]">페이지 관리</h2>
+                <p class="text-sm text-[var(--kr-gov-text-secondary)] mt-1">관리자 메뉴에 등록되는 페이지 코드와 URL을 공통코드 기준으로 관리합니다.</p>
+            </div>
+        </div>
+
+        <div class="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+             th:if="${pageMgmtError}" th:text="${pageMgmtError}"></div>
+
+        <section class="gov-card mb-8">
+            <div class="flex items-center gap-2 border-b pb-4 mb-4">
+                <span class="material-symbols-outlined text-[var(--kr-gov-blue)]">web</span>
+                <h3 class="text-lg font-bold">페이지 등록</h3>
+            </div>
+
+            <form method="post" action="/admin/system/page-management/create" class="grid grid-cols-1 xl:grid-cols-6 gap-4">
+                <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                <input type="hidden" name="menuType" th:value="${menuType}" />
+                <div>
+                    <label class="gov-label" for="domainCode">도메인</label>
+                    <select class="gov-select js-domain-select" id="domainCode" name="domainCode">
+                        <option value="">선택</option>
+                        <option th:each="opt : ${domainOptions}" th:value="${opt['code']}" th:text="${opt['label']}">시스템 (A006)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="gov-label" for="code">페이지 코드</label>
+                    <input class="gov-input js-page-code" id="code" name="code" placeholder="예: A0060105" type="text" />
+                </div>
+                <div>
+                    <label class="gov-label" for="codeNm">페이지명</label>
+                    <input class="gov-input" id="codeNm" name="codeNm" placeholder="예: 페이지 관리" type="text" />
+                </div>
+                <div>
+                    <label class="gov-label" for="codeDc">영문 페이지명</label>
+                    <input class="gov-input" id="codeDc" name="codeDc" placeholder="예: Page Management" type="text" />
+                </div>
+                <div class="xl:col-span-2">
+                    <label class="gov-label" for="menuUrl">페이지 URL</label>
+                    <input class="gov-input" id="menuUrl" name="menuUrl" placeholder="예: /admin/system/page-management" type="text" />
+                </div>
+                <div>
+                    <label class="gov-label" for="menuIcon">메뉴 아이콘</label>
+                    <details class="icon-combo js-icon-combo">
+                        <summary class="icon-combo-trigger list-none cursor-pointer">
+                            <span class="flex items-center gap-2">
+                                <span class="material-symbols-outlined js-icon-preview">web</span>
+                                <span class="js-icon-label">web</span>
+                            </span>
+                            <span class="material-symbols-outlined text-[18px]">expand_more</span>
+                        </summary>
+                        <div class="icon-combo-panel">
+                            <input type="hidden" name="menuIcon" value="web" class="js-icon-input" />
+                            <input type="text" class="icon-search js-icon-search" placeholder="아이콘 검색" />
+                            <p class="mb-2 text-xs text-[var(--kr-gov-text-secondary)]">스크롤해서 전체 아이콘을 볼 수 있습니다.</p>
+                            <div class="icon-grid">
+                                <button th:each="icon : ${iconOptions}" type="button" class="icon-grid-item js-icon-option"
+                                        th:attr="data-icon=${icon}" th:classappend="${icon == 'web'} ? ' active' : ''">
+                                    <span class="material-symbols-outlined" th:text="${icon}">web</span>
+                                    <span th:text="${icon}">web</span>
+                                </button>
+                            </div>
+                        </div>
+                    </details>
+                </div>
+                <div>
+                    <label class="gov-label" for="useAt">사용 여부</label>
+                    <select class="gov-select" id="useAt" name="useAt">
+                        <option th:each="opt : ${useAtOptions}" th:value="${opt}" th:text="${opt}">Y</option>
+                    </select>
+                </div>
+                <div class="xl:col-span-4 rounded-[var(--kr-gov-radius)] border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-[var(--kr-gov-text-secondary)]">
+                    도메인을 선택하면 페이지 코드 입력칸에 해당 도메인 공통코드 앞자리를 미리 채웁니다. 페이지 코드는 8자리 상세 코드 체계를 따릅니다.
+                </div>
+                <div class="xl:col-span-6 flex justify-end gap-2">
+                    <button class="gov-btn gov-btn-primary" type="submit">페이지 코드 추가</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="gov-card">
+            <div class="flex items-center gap-2 border-b pb-4 mb-4">
+                <span class="material-symbols-outlined text-[var(--kr-gov-blue)]">travel_explore</span>
+                <h3 class="text-lg font-bold">등록 페이지 목록</h3>
+            </div>
+
+            <form method="get" action="/admin/system/page-management" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                <div>
+                    <label class="gov-label" for="menuType">화면 구분</label>
+                    <select class="gov-select" id="menuType" name="menuType">
+                        <option value="USER" th:selected="${menuType == 'USER'}">홈</option>
+                        <option value="ADMIN" th:selected="${menuType == 'ADMIN'}">관리자</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="gov-label" for="searchKeyword">페이지명/코드 검색</label>
+                    <input class="gov-input" id="searchKeyword" name="searchKeyword" th:value="${searchKeyword}" placeholder="예: 페이지 관리 또는 A0060105" type="text" />
+                </div>
+                <div>
+                    <label class="gov-label" for="searchUrl">URL 검색</label>
+                    <input class="gov-input" id="searchUrl" name="searchUrl" th:value="${searchUrl}" placeholder="/admin/system" type="text" />
+                </div>
+                <div class="flex items-end gap-2">
+                    <button class="gov-btn gov-btn-outline w-full" type="submit">조회</button>
+                    <a class="gov-btn gov-btn-outline w-full" th:href="@{/admin/system/page-management(menuType=${menuType})}">초기화</a>
+                </div>
+            </form>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left border-collapse">
+                    <thead>
+                    <tr class="gov-table-header">
+                        <th class="px-4 py-3">도메인</th>
+                        <th class="px-4 py-3">페이지 코드</th>
+                        <th class="px-4 py-3">페이지명</th>
+                        <th class="px-4 py-3">영문 페이지명</th>
+                        <th class="px-4 py-3">URL</th>
+                        <th class="px-4 py-3">아이콘</th>
+                        <th class="px-4 py-3 text-center">사용</th>
+                        <th class="px-4 py-3 text-center">관리</th>
+                    </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                    <tr th:each="row : ${pageRows}">
+                        <td class="px-4 py-3 whitespace-nowrap" th:text="${row.domainName}">시스템</td>
+                        <td class="px-4 py-3 font-bold whitespace-nowrap" th:text="${row.code}">A0060105</td>
+                        <td class="px-4 py-3 min-w-[12rem]" th:text="${row.codeNm}">페이지 관리</td>
+                        <td class="px-4 py-3 min-w-[12rem]" th:text="${row.codeDc}">Page Management</td>
+                        <td class="px-4 py-3 min-w-[16rem] break-all text-[var(--kr-gov-text-secondary)]" th:text="${row.menuUrl}">/admin/system/page-management</td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-[var(--kr-gov-text-secondary)]">
+                                <span class="material-symbols-outlined text-[18px]" th:text="${row.menuIcon}">web</span>
+                                <span th:text="${row.menuIcon}">web</span>
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-center font-semibold" th:text="${row.useAt}">Y</td>
+                        <td class="px-4 py-3 text-center whitespace-nowrap">
+                            <form method="post" action="/admin/system/page-management/delete" onsubmit="return confirm('삭제 후 다시 생성해야 합니다. 계속하시겠습니까?');">
+                                <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                <input type="hidden" name="code" th:value="${row.code}" />
+                                <input type="hidden" name="menuType" th:value="${menuType}" />
+                                <input type="hidden" name="searchKeyword" th:value="${searchKeyword}" />
+                                <input type="hidden" name="searchUrl" th:value="${searchUrl}" />
+                                <button class="gov-btn gov-btn-danger" type="submit">삭제</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(pageRows)}">
+                        <td class="px-4 py-6 text-center text-gray-500" colspan="8">등록된 페이지가 없습니다.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+
+<div th:replace="~{egovframework/com/admin/footer :: footerFragment}"></div>
+<script>
+    window.addEventListener("DOMContentLoaded", function () {
+        var domainSelect = document.querySelector(".js-domain-select");
+        var pageCodeInput = document.querySelector(".js-page-code");
+        if (!domainSelect || !pageCodeInput) {
+            return;
+        }
+        domainSelect.addEventListener("change", function () {
+            var prefix = (domainSelect.value || "").trim();
+            var current = (pageCodeInput.value || "").trim();
+            if (!prefix) {
+                return;
+            }
+            if (!current || current.length < prefix.length || current.indexOf(prefix) !== 0) {
+                pageCodeInput.value = prefix;
+            }
+        });
+
+        document.querySelectorAll(".js-icon-combo").forEach(function (combo) {
+            var hidden = combo.querySelector(".js-icon-input");
+            var preview = combo.querySelector(".js-icon-preview");
+            var label = combo.querySelector(".js-icon-label");
+            var search = combo.querySelector(".js-icon-search");
+            combo.querySelectorAll(".js-icon-option").forEach(function (option) {
+                option.addEventListener("click", function () {
+                    var icon = option.getAttribute("data-icon") || "web";
+                    hidden.value = icon;
+                    if (preview) preview.textContent = icon;
+                    if (label) label.textContent = icon;
+                    combo.querySelectorAll(".js-icon-option").forEach(function (item) {
+                        item.classList.remove("active");
+                    });
+                    option.classList.add("active");
+                    combo.removeAttribute("open");
+                });
+            });
+            if (search) {
+                search.addEventListener("input", function () {
+                    var keyword = (search.value || "").trim().toLowerCase();
+                    combo.querySelectorAll(".js-icon-option").forEach(function (item) {
+                        var icon = (item.getAttribute("data-icon") || "").toLowerCase();
+                        item.style.display = !keyword || icon.indexOf(keyword) !== -1 ? "" : "none";
+                    });
+                });
+            }
+        });
+    });
+</script>
+<script src="/js/accessibility.js" defer></script>
+</body>
+
+</html>

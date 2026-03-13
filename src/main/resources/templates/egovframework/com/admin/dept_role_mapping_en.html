@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Department Role Mapping | CCUS Integrated Management System</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Public+Sans:wght@400;600;700;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <style type="text/tailwindcss">
+        :root {
+            --kr-gov-blue: #00378b;
+            --kr-gov-border-light: #d9d9d9;
+            --kr-gov-text-secondary: #4d4d4d;
+            --kr-gov-text-primary: #1a1a1a;
+            --kr-gov-focus: #005fde;
+            --kr-gov-radius: 5px;
+        }
+        @layer base {
+            body { font-family: 'Noto Sans KR', 'Public Sans', sans-serif; -webkit-font-smoothing: antialiased; }
+        }
+        .skip-link {
+            position: absolute;
+            left: 0;
+            top: -9999px;
+            background: var(--kr-gov-blue);
+            color: #fff;
+            padding: 0.75rem;
+            z-index: 100;
+            transition: top .2s ease;
+        }
+        .skip-link:focus {
+            top: 0;
+            outline: none;
+            box-shadow: 0 0 0 2px #fff;
+        }
+        .material-symbols-outlined { font-variation-settings: 'wght' 400, 'opsz' 24; font-size: 24px; line-height: 1.6; }
+        .gov-card { @apply border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm; }
+        .gov-table-header { @apply bg-gray-50 border-y border-[var(--kr-gov-border-light)] text-[13px] font-bold text-[var(--kr-gov-text-secondary)]; }
+        .gov-select { @apply w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm focus:ring-2 focus:ring-[var(--kr-gov-focus)] focus:border-[var(--kr-gov-focus)] outline-none; }
+        .badge { @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold; }
+    </style>
+</head>
+<body class="bg-[#f8f9fa] text-[#1a1a1a]">
+<a class="skip-link" href="#main-content">Skip to content</a>
+<div th:replace="~{egovframework/com/admin/header :: headerFragment}"></div>
+<div class="flex min-h-[calc(100vh-124px)]">
+    <aside class="js-admin-lnb w-72 bg-white border-r border-[var(--kr-gov-border-light)] p-5 flex flex-col" aria-label="Admin Side Menu"></aside>
+    <main class="flex-1 p-8 overflow-y-auto" id="main-content">
+        <nav class="flex items-center gap-2 text-sm text-[var(--kr-gov-text-secondary)] mb-4">
+            <span class="material-symbols-outlined text-[18px]">home</span>
+            <span>Members / Permissions</span>
+            <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+            <span class="font-bold text-[var(--kr-gov-blue)]">Department Role Mapping</span>
+        </nav>
+        <div class="flex items-end justify-between mb-6">
+            <div>
+                <h2 class="text-2xl font-black">Department Role Mapping</h2>
+                <p class="text-sm text-[var(--kr-gov-text-secondary)] mt-1">Select a company first, then review its member list and department baseline role mappings together.</p>
+            </div>
+            <span class="badge bg-blue-50 text-[var(--kr-gov-blue)]" th:text="${mappingCount + ' departments'}">0 departments</span>
+        </div>
+        <div class="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+             th:if="${deptRoleError}" th:text="${deptRoleError}"></div>
+        <div class="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"
+             th:if="${deptRoleUpdated}"
+             th:text="${#strings.isEmpty(deptRoleTargetInsttId) ? 'Department role mapping has been saved.' : deptRoleTargetInsttId + ' mapping has been saved.'}">
+            Department role mapping has been saved.
+        </div>
+        <div class="mb-4 rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700"
+             th:if="${!#strings.isEmpty(deptRoleMessage)}"
+             th:text="${deptRoleMessage}"></div>
+        <section class="gov-card">
+            <div class="flex items-center gap-2 border-b pb-4 mb-4">
+                <span class="material-symbols-outlined text-[var(--kr-gov-blue)]">account_tree</span>
+                <h3 class="text-lg font-bold">Baseline Roles by Company / Department</h3>
+            </div>
+            <form class="mb-4 flex flex-wrap items-center gap-3" method="get" action="/en/admin/react-migration">
+                <input type="hidden" name="route" value="dept-role" />
+                <label class="text-sm font-bold text-[var(--kr-gov-text-secondary)]" for="insttIdSelect">Company</label>
+                <select class="gov-select max-w-md" id="insttIdSelect" name="insttId" onchange="this.form.submit()">
+                    <option th:each="company : ${departmentCompanyOptions}"
+                            th:value="${company['insttId']}"
+                            th:selected="${selectedInsttId == company['insttId']}"
+                            th:text="${company['cmpnyNm']}">Company</option>
+                </select>
+            </form>
+            <div class="mb-6 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] overflow-hidden">
+                <div class="flex items-center justify-between gap-3 bg-gray-50 border-b border-[var(--kr-gov-border-light)] px-4 py-4">
+                    <h4 class="font-black">Selected Company Member Authorities</h4>
+                    <span class="badge bg-white text-[var(--kr-gov-text-secondary)]" th:text="${companyMemberCount + ' members'}">0 members</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left border-collapse">
+                        <thead>
+                        <tr class="gov-table-header">
+                            <th class="px-4 py-3">Member ID</th>
+                            <th class="px-4 py-3">Name</th>
+                            <th class="px-4 py-3">Department</th>
+                            <th class="px-4 py-3">Current Authority</th>
+                            <th class="px-4 py-3">Update Role</th>
+                        </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                        <tr th:each="member : ${companyMembers}">
+                            <td class="px-4 py-3 font-semibold" th:text="${member.userId}">user01</td>
+                            <td class="px-4 py-3" th:text="${member.userNm}">John Doe</td>
+                            <td class="px-4 py-3" th:text="${#strings.isEmpty(member.deptNm) ? 'Unassigned' : member.deptNm}">Advanced Tech</td>
+                            <td class="px-4 py-3">
+                                <div class="font-semibold"
+                                     th:text="${#strings.isEmpty(member.authorNm) ? 'No authority assigned' : member.authorNm}">No authority assigned</div>
+                                <div class="text-xs text-[var(--kr-gov-text-secondary)]" th:text="${member.authorCode}">ROLE_USER</div>
+                            </td>
+                            <td class="px-4 py-3">
+                                <form class="flex items-center gap-2" method="post" action="/en/admin/member/dept-role-mapping/member-save">
+                                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                    <input type="hidden" name="insttId" th:value="${selectedInsttId}" />
+                                    <input type="hidden" name="entrprsMberId" th:value="${member.userId}" />
+                                    <select class="gov-select min-w-[16rem]" name="authorCode">
+                                        <option th:each="group : ${memberAssignableAuthorGroups}"
+                                                th:value="${group.authorCode}"
+                                                th:selected="${member.authorCode == group.authorCode}"
+                                                th:text="${group.authorNmEn + ' (' + group.authorCode + ')'}">General User (ROLE_USER)</option>
+                                    </select>
+                                    <button class="badge bg-[var(--kr-gov-blue)] text-white" type="submit">Save</button>
+                                </form>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(companyMembers)}">
+                            <td class="px-4 py-6 text-center text-[var(--kr-gov-text-secondary)]" colspan="5">No members found for the selected company.</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+<div th:replace="~{egovframework/com/admin/footer :: footerFragment}"></div>
+<script src="/js/accessibility.js" defer></script>
+</body>
+</html>

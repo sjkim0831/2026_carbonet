@@ -1,0 +1,1585 @@
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<header th:fragment="headerFragment"
+    th:with="isEn=${#strings.startsWith(#httpServletRequest.requestURI, '/en/admin') or (#httpServletRequest.getParameter('language') != null and #httpServletRequest.getParameter('language').equalsIgnoreCase('en'))}"
+    class="bg-white border-b border-[var(--kr-gov-border-light)] sticky top-0 z-40" role="banner">
+    <input th:if="${_csrf != null}" type="hidden" id="admin-csrf-token" th:value="${_csrf.token}" />
+    <input th:if="${_csrf != null}" type="hidden" id="admin-csrf-header" th:value="${_csrf.headerName}" />
+    <div class="bg-[var(--kr-gov-bg-gray)] border-b border-[var(--kr-gov-border-light)]">
+        <div class="max-w-full mx-auto px-6 py-1.5 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <img th:attr="alt=${isEn} ? 'Government Symbol of the Republic of Korea' : '대한민국정부 상징'" alt="대한민국정부 상징" class="h-3.5"
+                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8BPzqtzSLVGSrjt4mzhhVBy9SocCRDssk1F3XRVu7Xq9jHh7qzzt48wFi8qduCiJmB0LRQczPB7waPe3h0gkjn3jOEDxt6UJSJjdXNf8P-4WlM2BEZrfg2SL91uSiZrFcCk9KYrsdg-biTS9dtJ_OIghDBEVoAzMc33XcCYR_UP0QQdoYzBe840YrtH40xGyB9MSr0QH4D0foqlvOhG0jX8CDayXNlDsSKlfClVd3K2aodlwg4xSxgXHB3vnnnA0L2yNBNihQQg0" />
+                <span id="admin-top-gov-text" class="text-[12px] font-medium text-[var(--kr-gov-text-secondary)]"
+                    th:text="${isEn} ? 'Official Government Service of the Republic of Korea' : '대한민국정부 공식 누리집'">대한민국정부 공식 누리집</span>
+            </div>
+            <div class="flex items-center gap-4 text-[11px] font-medium text-[var(--kr-gov-text-secondary)]">
+                <span th:if="${loginVO != null}">
+                    <span id="admin-login-label" th:text="${isEn} ? 'Admin Login:' : '관리자 로그인:'">관리자 로그인:</span>
+                    <span th:text="${loginVO.userName}">홍길동</span>
+                </span>
+                <button id="admin-logout-text" type="button" class="hover:underline" onclick="logout()"
+                    th:text="${isEn} ? 'Logout' : '로그아웃'">로그아웃</button>
+            </div>
+        </div>
+    </div>
+    <div class="max-w-full mx-auto px-6">
+        <div class="flex justify-between items-center h-20">
+            <div class="flex items-center gap-4">
+                <a class="flex items-center gap-2" href="/admin/">
+                    <span class="material-symbols-outlined text-[32px] text-[var(--kr-gov-blue)]">eco</span>
+                    <div class="flex flex-col">
+                        <h1 id="admin-brand-title" class="text-xl font-bold tracking-tight text-[var(--kr-gov-text-primary)]"
+                            th:text="${isEn} ? 'CCUS Integrated Management System' : 'CCUS 통합관리 시스템'">CCUS 통합관리 시스템</h1>
+                        <p class="text-[10px] text-[var(--kr-gov-blue)] font-black uppercase tracking-widest">Admin
+                            Dashboard</p>
+                    </div>
+                </a>
+            </div>
+            <nav class="hidden xl:flex items-center space-x-2 h-full" id="adminGnbMenu"
+                th:attr="aria-label=${isEn} ? 'Admin Main Menu' : '관리자 주 메뉴'" aria-label="관리자 주 메뉴">
+                    <a class="js-gnb-menu px-5 py-2 text-[16px] font-bold text-[var(--kr-gov-text-secondary)] hover:text-[var(--kr-gov-blue)]"
+                        data-domain="대시보드" href="/admin/">대시보드</a>
+                    <a class="js-gnb-menu px-5 py-2 text-[16px] font-bold text-[var(--kr-gov-text-secondary)] hover:text-[var(--kr-gov-blue)]"
+                        data-domain="회원관리" href="/admin/react-migration?route=member-list">회원관리</a>
+                <a class="js-gnb-menu px-5 py-2 text-[16px] font-bold text-[var(--kr-gov-text-secondary)] hover:text-[var(--kr-gov-blue)]"
+                    data-domain="배출/인증" href="#">배출/인증</a>
+                <a class="js-gnb-menu px-5 py-2 text-[16px] font-bold text-[var(--kr-gov-text-secondary)] hover:text-[var(--kr-gov-blue)]"
+                    data-domain="거래/정산" href="#">거래/정산</a>
+                <a class="js-gnb-menu px-5 py-2 text-[16px] font-bold text-[var(--kr-gov-text-secondary)] hover:text-[var(--kr-gov-blue)]"
+                    data-domain="콘텐츠" href="#">콘텐츠</a>
+                <a class="js-gnb-menu px-5 py-2 text-[16px] font-bold text-[var(--kr-gov-text-secondary)] hover:text-[var(--kr-gov-blue)]"
+                    data-domain="외부연계" href="#">외부연계</a>
+                <a class="js-gnb-menu px-5 py-2 text-[16px] font-bold text-[var(--kr-gov-text-secondary)] hover:text-[var(--kr-gov-blue)]"
+                    data-domain="시스템" href="#">시스템</a>
+                <a class="js-gnb-menu px-5 py-2 text-[16px] font-bold text-[var(--kr-gov-text-secondary)] hover:text-[var(--kr-gov-blue)]"
+                    data-domain="모니터링" href="#">모니터링</a>
+            </nav>
+<div class="flex items-center gap-2">
+<div id="admin-session-timer"
+    class="hidden lg:flex items-center gap-2 px-3 py-2 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white text-[12px] font-bold text-[var(--kr-gov-text-secondary)]"
+    th:attr="aria-label=${isEn} ? 'Session timer' : '세션 타이머'">
+<span class="material-symbols-outlined text-[18px]">timer</span>
+<span id="admin-session-label" th:text="${isEn} ? 'Session' : '세션'">세션</span>
+<span id="admin-session-remaining" class="min-w-[44px] text-[var(--kr-gov-blue)]">60:00</span>
+<button id="admin-session-refresh" type="button"
+    class="px-2 py-1 rounded border border-[var(--kr-gov-border-light)] text-[11px] font-bold hover:bg-gray-100"
+    th:text="${isEn} ? 'Extend' : '연장'">연장</button>
+</div>
+<div class="hidden md:flex items-center gap-1 mr-1">
+<a id="admin-lang-ko" href="/admin/" class="px-3 py-1.5 text-[12px] font-bold rounded border border-[var(--kr-gov-border-light)] text-[var(--kr-gov-text-secondary)] hover:bg-gray-100"
+    th:text="${isEn} ? 'KOR' : '한글'">한글</a>
+<a id="admin-lang-en" href="/en/admin/" class="px-3 py-1.5 text-[12px] font-bold rounded border border-[var(--kr-gov-border-light)] text-[var(--kr-gov-text-secondary)] hover:bg-gray-100">ENG</a>
+</div>
+<div class="relative help-button">
+<button id="admin-help-btn" type="button" aria-haspopup="true" class="p-2.5 text-[var(--kr-gov-text-secondary)] hover:bg-gray-100 rounded-full flex items-center gap-1.5"
+    th:attr="aria-label=${isEn} ? 'Help' : '도움말'" aria-label="도움말">
+<span class="material-symbols-outlined">help</span>
+<span id="admin-help-text" class="text-[14px] font-bold hidden lg:inline" th:text="${isEn} ? 'Help' : '도움말'">도움말</span>
+</button>
+<div class="help-tooltip">
+<h4 class="font-bold text-[var(--kr-gov-blue)] mb-2 flex items-center gap-1">
+<span class="material-symbols-outlined text-[18px]">info</span>
+                                <span th:text="${isEn} ? 'Dashboard Guide' : '대시보드 가이드'">대시보드 가이드</span>
+                            </h4>
+<ul class="space-y-2 text-[12px] text-[var(--kr-gov-text-secondary)]">
+<li class="flex gap-2"><span class="text-blue-500">•</span><span th:text="${isEn} ? 'Top cards summarize key real-time indicators.' : '상단 카드는 실시간 주요 지표를 요약하여 표시합니다.'">상단 카드는 실시간 주요 지표를 요약하여 표시합니다.</span></li>
+<li class="flex gap-2"><span class="text-blue-500">•</span><span th:text="${isEn} ? 'Pending members can be processed immediately with the approve button.' : '미승인 회원은 승인 버튼을 통해 즉시 처리가 가능합니다.'">미승인 회원은 승인 버튼을 통해 즉시 처리가 가능합니다.</span></li>
+<li class="flex gap-2"><span class="text-blue-500">•</span><span th:text="${isEn} ? 'CRITICAL logs require immediate action.' : '시스템 로그의 CRITICAL 항목은 즉각적인 조치가 필요합니다.'">시스템 로그의 CRITICAL 항목은 즉각적인 조치가 필요합니다.</span></li>
+</ul>
+<button type="button" class="mt-3 w-full py-1.5 bg-[var(--kr-gov-bg-gray)] text-[11px] font-bold rounded hover:bg-gray-200"
+    th:text="${isEn} ? 'Download Full Manual' : '상세 매뉴얼 다운로드'">상세 매뉴얼 다운로드</button>
+</div>
+</div>
+<button id="admin-notice-btn" type="button" class="p-2.5 text-[var(--kr-gov-text-secondary)] hover:bg-gray-100 rounded-full relative"
+    th:attr="aria-label=${isEn} ? 'Notifications' : '알림'" aria-label="알림">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+</button>
+<button id="admin-settings-btn" type="button" class="p-2.5 text-[var(--kr-gov-text-secondary)] hover:bg-gray-100 rounded-full"
+    th:attr="aria-label=${isEn} ? 'Settings' : '설정'" aria-label="설정">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+        </div>
+    </div>
+<style>
+    .help-tooltip {
+        visibility: hidden;
+        opacity: 0;
+        position: absolute;
+        right: 0;
+        top: 100%;
+        margin-top: 0.5rem;
+        width: 16rem;
+        padding: 1rem;
+        background: #fff;
+        border: 1px solid var(--kr-gov-border-light);
+        border-radius: var(--kr-gov-radius);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+        z-index: 50;
+        font-size: 0.875rem;
+        transition: opacity .2s ease, visibility .2s ease;
+    }
+    .help-button:hover .help-tooltip {
+        visibility: visible;
+        opacity: 1;
+    }
+    .help-button:focus-within .help-tooltip {
+        visibility: visible;
+        opacity: 1;
+    }
+    #admin-session-timer.session-warning {
+        border-color: #f59e0b;
+        background: #fffbeb;
+        color: #92400e;
+    }
+    #admin-session-timer.session-warning #admin-session-remaining {
+        color: #b45309;
+    }
+    #admin-session-timer.session-danger {
+        border-color: #ef4444;
+        background: #fef2f2;
+        color: #991b1b;
+    }
+    #admin-session-timer.session-danger #admin-session-remaining {
+        color: #dc2626;
+    }
+    .js-admin-lnb .admin-sidebar-link {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.625rem 1rem;
+        font-size: 14px;
+        font-weight: 500;
+        line-height: 1.6;
+        color: var(--kr-gov-text-secondary);
+        border-radius: var(--kr-gov-radius);
+        transition: background-color .15s ease;
+    }
+    .js-admin-lnb .admin-sidebar-link.active {
+        background: var(--kr-gov-blue);
+        color: #fff;
+        font-weight: 700;
+    }
+    .js-admin-lnb .gnb-tree-group {
+        margin-bottom: 1rem;
+    }
+    .js-admin-lnb .gnb-tree-title {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: .5rem;
+        margin-bottom: .25rem;
+        font-size: 13px;
+        font-weight: 900;
+        line-height: 1.6;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+    }
+    #adminGnbMenu .js-gnb-menu {
+        line-height: 1.6;
+    }
+    .js-admin-lnb .gnb-tree-title.active {
+        color: var(--kr-gov-blue);
+    }
+    .js-admin-lnb .gnb-tree-title.inactive {
+        color: #9ca3af;
+    }
+    .js-admin-lnb .gnb-tree-links {
+        margin-left: .5rem;
+    }
+    .js-admin-layout-shell {
+        position: relative;
+        align-items: stretch;
+        background:
+            linear-gradient(
+                90deg,
+                #fff 0,
+                #fff 18rem,
+                #f8f9fa 18rem,
+                #f8f9fa 100%
+            );
+    }
+    .js-admin-layout-shell::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 18rem;
+        width: 1px;
+        background: var(--kr-gov-border-light);
+        pointer-events: none;
+        z-index: 1;
+    }
+    .js-admin-lnb {
+        position: sticky;
+        top: 124px;
+        align-self: flex-start;
+        z-index: 10;
+        background: #fff;
+        border-right: 0 !important;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+        min-height: calc(100vh - 124px);
+        max-height: calc(100vh - 124px);
+        overflow-y: auto;
+    }
+</style>
+
+<script>
+    window.addEventListener("DOMContentLoaded", function () {
+        function getCurrentLanguage() {
+            var path = normalizePath(window.location.pathname || "");
+            if (path.indexOf("/en/admin") === 0) {
+                return "en";
+            }
+            var params = new URLSearchParams(window.location.search || "");
+            var lang = (params.get("language") || "").toLowerCase();
+            if (lang === "en") {
+                return "en";
+            }
+            return (document.documentElement.lang || "").toLowerCase().indexOf("en") === 0 ? "en" : "ko";
+        }
+
+        function normalizeUrl(url) {
+            var raw = (url || "").trim();
+            if (!raw) {
+                return "/";
+            }
+            var parts = raw.split("#");
+            var withoutHash = parts[0];
+            var qIndex = withoutHash.indexOf("?");
+            var path = qIndex >= 0 ? withoutHash.substring(0, qIndex) : withoutHash;
+            var query = qIndex >= 0 ? withoutHash.substring(qIndex) : "";
+            if (!path) {
+                path = "/";
+            }
+            if (path.length > 1 && path.charAt(path.length - 1) === "/") {
+                path = path.slice(0, -1);
+            }
+            return path + query;
+        }
+
+        function getCsrfHeaders() {
+            var tokenEl = document.getElementById("admin-csrf-token");
+            var headerEl = document.getElementById("admin-csrf-header");
+            var headers = {};
+            if (tokenEl && headerEl && tokenEl.value && headerEl.value) {
+                headers[headerEl.value] = tokenEl.value;
+            }
+            return headers;
+        }
+
+        function pathOnly(url) {
+            return normalizeUrl(url).split("?")[0];
+        }
+
+        function adminReactRouteToLegacy(url) {
+            var normalized = normalizeUrl(url);
+            var path = pathOnly(normalized);
+            if (path !== "/admin/react-migration" && path !== "/en/admin/react-migration") {
+                return normalized;
+            }
+            var params = new URLSearchParams(normalized.split("?")[1] || "");
+            var route = (params.get("route") || "").trim();
+            var isEn = path.indexOf("/en/admin") === 0;
+            var prefix = isEn ? "/en/admin" : "/admin";
+            var routeMap = {
+                "member-approve": prefix + "/member/approve",
+                "company-approve": prefix + "/member/company-approve",
+                "member-edit": prefix + "/member/edit",
+                "member-detail": prefix + "/member/detail",
+                "password-reset": prefix + "/member/reset_password",
+                "member-list": prefix + "/member/list",
+                "admin-list": prefix + "/member/admin_list",
+                "company-list": prefix + "/member/company_list",
+                "company-detail": prefix + "/member/company_detail",
+                "company-account": prefix + "/member/company_account",
+                "admin-create": prefix + "/member/admin_account",
+                "admin-permission": prefix + "/member/admin_account/permissions",
+                "auth-group": prefix + "/auth/group",
+                "auth-change": prefix + "/member/auth-change",
+                "dept-role": prefix + "/member/dept-role-mapping"
+            };
+            return routeMap[route] || normalized;
+        }
+
+        function legacyAdminPathToReact(path) {
+            var normalized = pathOnly(path);
+            var isEn = normalized.indexOf("/en/admin") === 0;
+            var base = isEn ? "/en/admin/react-migration?route=" : "/admin/react-migration?route=";
+            var route = "";
+            if (normalized === "/admin/member/approve" || normalized === "/en/admin/member/approve") route = "member-approve";
+            else if (normalized === "/admin/member/company-approve" || normalized === "/en/admin/member/company-approve") route = "company-approve";
+            else if (normalized === "/admin/member/edit" || normalized === "/en/admin/member/edit") route = "member-edit";
+            else if (normalized === "/admin/member/detail" || normalized === "/en/admin/member/detail") route = "member-detail";
+            else if (normalized === "/admin/member/reset_password" || normalized === "/en/admin/member/reset_password") route = "password-reset";
+            else if (normalized === "/admin/member/list" || normalized === "/en/admin/member/list") route = "member-list";
+            else if (normalized === "/admin/member/admin_list" || normalized === "/en/admin/member/admin_list"
+                || normalized === "/admin/member/admin-list" || normalized === "/en/admin/member/admin-list") route = "admin-list";
+            else if (normalized === "/admin/member/company_list" || normalized === "/en/admin/member/company_list") route = "company-list";
+            else if (normalized === "/admin/member/company_detail" || normalized === "/en/admin/member/company_detail") route = "company-detail";
+            else if (normalized === "/admin/member/company_account" || normalized === "/en/admin/member/company_account") route = "company-account";
+            else if (normalized === "/admin/member/admin_account" || normalized === "/en/admin/member/admin_account") route = "admin-create";
+            else if (normalized === "/admin/member/admin_account/permissions" || normalized === "/en/admin/member/admin_account/permissions") route = "admin-permission";
+            else if (normalized === "/admin/auth/group" || normalized === "/en/admin/auth/group"
+                || normalized === "/admin/system/role" || normalized === "/en/admin/system/role") route = "auth-group";
+            else if (normalized === "/admin/member/auth-change" || normalized === "/en/admin/member/auth-change"
+                || normalized === "/admin/system/auth-change" || normalized === "/en/admin/system/auth-change") route = "auth-change";
+            else if (normalized === "/admin/member/dept-role-mapping" || normalized === "/en/admin/member/dept-role-mapping"
+                || normalized === "/admin/system/dept-role-mapping" || normalized === "/en/admin/system/dept-role-mapping") route = "dept-role";
+            return route ? (base + route) : path;
+        }
+
+        var defaultDomainMenus = {
+            "대시보드": {
+                label: "대시보드",
+                labelEn: "Dashboard",
+                summary: "통합 운영 현황",
+                groups: [
+                    {
+                        title: "대시보드",
+                        titleEn: "Dashboard",
+                        icon: "dashboard",
+                        links: [
+                            { text: "통합 대시보드", tEn: "Dashboard", u: "/admin/", icon: "dashboard" }
+                        ]
+                    }
+                ]
+            },
+            "회원관리": { label: "회원관리", labelEn: "Member Management", summary: "회원 관리", groups: [] },
+            "배출/인증": { label: "배출/인증", labelEn: "Emissions/Certification", summary: "배출 및 인증 관리", groups: [] },
+            "거래/정산": { label: "거래/정산", labelEn: "Transactions/Settlement", summary: "거래 및 정산 관리", groups: [] },
+            "콘텐츠": { label: "콘텐츠", labelEn: "Content", summary: "콘텐츠 관리", groups: [] },
+            "외부연계": { label: "외부연계", labelEn: "External Integration", summary: "외부 연계 관리", groups: [] },
+            "시스템": {
+                label: "시스템",
+                labelEn: "System",
+                summary: "시스템 관리",
+                groups: [
+                    {
+                        title: "환경",
+                        titleEn: "Environment",
+                        icon: "settings",
+                        links: [
+                            { text: "코드 관리", tEn: "Code Management", u: "/admin/system/code", icon: "category" },
+                            { text: "페이지 관리", tEn: "Page Management", u: "/admin/system/page-management", icon: "web" },
+                            { text: "기능 관리", tEn: "Function Management", u: "/admin/system/feature-management", icon: "extension" },
+                            { text: "메뉴 관리", tEn: "Menu Management", u: "/admin/system/menu-management", icon: "account_tree" }
+                        ]
+                    }
+                ]
+            },
+            "모니터링": { label: "모니터링", labelEn: "Monitoring", summary: "모니터링 관리", groups: [] }
+        };
+        var domainMenus = JSON.parse(JSON.stringify(defaultDomainMenus));
+
+        var gnbLinks = Array.prototype.slice.call(document.querySelectorAll(".js-gnb-menu"));
+        var lnb = document.querySelector(".js-admin-lnb");
+        if (!gnbLinks.length || !lnb) {
+            return;
+        }
+        if (lnb.parentElement) {
+            lnb.parentElement.classList.add("js-admin-layout-shell");
+        }
+
+        function canonicalMenuPath(path) {
+            var normalized = pathOnly(adminReactRouteToLegacy(path));
+            if (normalized === "/admin/system/role") return "/admin/auth/group";
+            if (normalized === "/en/admin/system/role") return "/en/admin/auth/group";
+            if (normalized === "/admin/system/auth-change") return "/admin/member/auth-change";
+            if (normalized === "/en/admin/system/auth-change") return "/en/admin/member/auth-change";
+            if (normalized === "/admin/system/dept-role-mapping") return "/admin/member/dept-role-mapping";
+            if (normalized === "/en/admin/system/dept-role-mapping") return "/en/admin/member/dept-role-mapping";
+            if (normalized === "/admin/member/company_account") return "/admin/member/company_account";
+            if (normalized === "/en/admin/member/company_account") return "/en/admin/member/company_account";
+            return normalized;
+        }
+
+        function normalizePath(path) { return canonicalMenuPath(path); }
+
+        function canonicalizeAdminPath(path, toEnglish) {
+            var normalized = normalizePath(path || "/admin");
+            if (toEnglish) {
+                if (normalized.indexOf("/en/admin") === 0) {
+                    return normalized;
+                }
+                if (normalized.indexOf("/admin") === 0) {
+                    return "/en" + normalized;
+                }
+                return normalized;
+            }
+            if (normalized.indexOf("/en/admin") === 0) {
+                return normalized.replace(/^\/en/, "");
+            }
+            return normalized;
+        }
+
+        function buildLocaleTarget(toEnglish) {
+            var currentFullPath = normalizeUrl((window.location.pathname || "/admin") + (window.location.search || ""));
+            var currentPathOnly = pathOnly(currentFullPath);
+            if (currentPathOnly === "/admin/react-migration" || currentPathOnly === "/en/admin/react-migration") {
+                var reactParams = new URLSearchParams(currentFullPath.split("?")[1] || "");
+                reactParams.delete("content");
+                reactParams.delete("language");
+                var reactBase = toEnglish ? "/en/admin/react-migration" : "/admin/react-migration";
+                var reactQuery = reactParams.toString();
+                return reactBase + (reactQuery ? "?" + reactQuery : "");
+            }
+            var path = normalizePath(window.location.pathname || "/admin");
+            var queryString = window.location.search || "";
+            var params = new URLSearchParams(queryString);
+            params.delete("content");
+            params.delete("language");
+
+            if (toEnglish) {
+                path = canonicalizeAdminPath(path, true);
+            } else {
+                path = canonicalizeAdminPath(path, false);
+            }
+
+            var query = params.toString();
+            return path + (query ? "?" + query : "");
+        }
+
+        function withLanguage(pathOrUrl) {
+            if (!pathOrUrl || pathOrUrl === "#") {
+                return pathOrUrl;
+            }
+            pathOrUrl = legacyAdminPathToReact(pathOrUrl);
+            var parts = pathOrUrl.split("?");
+            var path = parts[0];
+            var params = new URLSearchParams(parts[1] || "");
+            var currentLang = getCurrentLanguage();
+
+            if (path.indexOf("/en/admin") === 0) {
+                path = canonicalizeAdminPath(path, currentLang === "en");
+            } else if (path.indexOf("/admin") === 0) {
+                if (currentLang === "en") {
+                    path = canonicalizeAdminPath(path, true);
+                } else {
+                    path = canonicalizeAdminPath(path, false);
+                }
+            } else {
+                return pathOrUrl;
+            }
+
+            params.delete("content");
+            params.delete("language");
+            var query = params.toString();
+            return path + (query ? "?" + query : "");
+        }
+
+        function applyLocaleToStaticLinksAndForms(root) {
+            var currentLang = getCurrentLanguage();
+            var scope = root || document;
+            Array.prototype.forEach.call(scope.querySelectorAll("a[href]"), function (a) {
+                var href = a.getAttribute("href") || "";
+                if (!href || href === "#" || (href.indexOf("/admin") !== 0 && href.indexOf("/en/admin") !== 0)) {
+                    return;
+                }
+                var normalized = withLanguage(href);
+                if (normalized && normalized !== href) {
+                    a.setAttribute("href", normalized);
+                }
+            });
+
+            Array.prototype.forEach.call(scope.querySelectorAll("form[action]"), function (form) {
+                var action = form.getAttribute("action") || "";
+                if (!action || (action.indexOf("/admin") !== 0 && action.indexOf("/en/admin") !== 0)) {
+                    return;
+                }
+                form.setAttribute("action", withLanguage(action.split("?")[0]));
+                var langInput = form.querySelector("input[name='language']");
+                if (!langInput) {
+                    langInput = document.createElement("input");
+                    langInput.type = "hidden";
+                    langInput.name = "language";
+                    form.appendChild(langInput);
+                }
+                langInput.value = currentLang === "en" ? "en" : "ko";
+            });
+        }
+
+        function translateDomainLabel(label, lang) {
+            if (lang !== "en") {
+                return label;
+            }
+            if (domainMenus && domainMenus[label] && domainMenus[label].labelEn) {
+                return domainMenus[label].labelEn;
+            }
+            return label;
+        }
+
+        function normalizeFetchedDomainMenus(data) {
+            if (!data || typeof data !== "object") {
+                return {};
+            }
+            var normalized = {};
+            Object.keys(data).forEach(function (key) {
+                var entry = data[key];
+                if (!entry || typeof entry !== "object") {
+                    return;
+                }
+                var normalizedKey = (entry.label || key || "").trim();
+                if (!normalizedKey) {
+                    return;
+                }
+                normalized[normalizedKey] = entry;
+            });
+            return normalized;
+        }
+
+        function mergeDefaultMenus(normalizedMenus) {
+            var merged = {};
+            Object.keys(normalizedMenus || {}).forEach(function (domainKey) {
+                merged[domainKey] = normalizedMenus[domainKey];
+            });
+            Object.keys(defaultDomainMenus).forEach(function (domainKey) {
+                if (!merged[domainKey]) {
+                    merged[domainKey] = JSON.parse(JSON.stringify(defaultDomainMenus[domainKey]));
+                }
+            });
+
+            var memberEntry = merged["회원관리"];
+            if (memberEntry) {
+                var memberGroups = Array.isArray(memberEntry.groups) ? memberEntry.groups.slice() : [];
+                var memberGroup = null;
+                var companyGroup = null;
+                var permissionGroup = null;
+                var historyGroup = null;
+                memberGroups.forEach(function (group) {
+                    var title = (group && group.title ? group.title : "") + " " + (group && group.titleEn ? group.titleEn : "");
+                    if (title.indexOf("회원사") !== -1 || title.toLowerCase().indexOf("company") !== -1) {
+                        companyGroup = group;
+                    } else if (title.indexOf("회원") !== -1 || title.toLowerCase().indexOf("member") !== -1) {
+                        memberGroup = group;
+                    }
+                    if (title.indexOf("권한") !== -1 || title.toLowerCase().indexOf("permission") !== -1 || title.toLowerCase().indexOf("role") !== -1) {
+                        permissionGroup = group;
+                    }
+                    if (title.indexOf("이력") !== -1 || title.indexOf("로그") !== -1
+                            || title.toLowerCase().indexOf("history") !== -1 || title.toLowerCase().indexOf("log") !== -1) {
+                        historyGroup = group;
+                    }
+                });
+                if (!memberGroup) {
+                    memberGroup = {
+                        title: "회원",
+                        titleEn: "Members",
+                        icon: "group",
+                        links: []
+                    };
+                    memberGroups.push(memberGroup);
+                }
+                if (!companyGroup) {
+                    companyGroup = {
+                        title: "회원사",
+                        titleEn: "Companies",
+                        icon: "apartment",
+                        links: []
+                    };
+                    memberGroups.push(companyGroup);
+                }
+                if (!permissionGroup) {
+                    permissionGroup = {
+                        title: "권한",
+                        titleEn: "Permissions",
+                        icon: "admin_panel_settings",
+                        links: []
+                    };
+                    memberGroups.push(permissionGroup);
+                }
+                if (!historyGroup) {
+                    historyGroup = {
+                        title: "이력",
+                        titleEn: "History",
+                        icon: "history",
+                        links: []
+                    };
+                    memberGroups.push(historyGroup);
+                }
+
+                var memberLinks = Array.isArray(memberGroup.links) ? memberGroup.links.slice() : [];
+                var companyLinks = Array.isArray(companyGroup.links) ? companyGroup.links.slice() : [];
+                var permissionLinks = Array.isArray(permissionGroup.links) ? permissionGroup.links.slice() : [];
+                var historyLinks = Array.isArray(historyGroup.links) ? historyGroup.links.slice() : [];
+                var requiredMemberLinks = [
+                    { text: "회원 목록", tEn: "Member List", u: "/admin/react-migration?route=member-list", icon: "list_alt" },
+                    { text: "신규 회원 등록", tEn: "New Member Registration", u: "/admin/member/register", icon: "person_add" }
+                ];
+                var requiredCompanyLinks = [
+                    { text: "회원사 목록", tEn: "Company List", u: "/admin/react-migration?route=company-list", icon: "apartment" },
+                    { text: "회원사 가입승인", tEn: "Company Approval", u: "/admin/react-migration?route=company-approve", icon: "verified_user" },
+                    { text: "회원사 추가", tEn: "Add Company", u: "/admin/react-migration?route=company-account", icon: "person_add" }
+                ];
+                var requiredPermissionLinks = [
+                    { text: "권한 그룹", tEn: "Permission Groups", u: "/admin/react-migration?route=auth-group", icon: "admin_panel_settings" },
+                    { text: "권한 변경", tEn: "Authority Change", u: "/admin/react-migration?route=auth-change", icon: "manage_accounts" },
+                    { text: "부서 권한 맵핑", tEn: "Department Role Mapping", u: "/admin/react-migration?route=dept-role", icon: "account_tree" }
+                ];
+                var requiredHistoryLinks = [
+                    { text: "로그인 이력", tEn: "Login History", u: "/admin/member/login_history", icon: "history" }
+                ];
+
+                requiredMemberLinks.forEach(function (requiredLink) {
+                    var existingIndex = -1;
+                    memberLinks.some(function (link, index) {
+                        var url = link.u || link.url || link.route || "";
+                        var text = (link.text || link.t || "").trim();
+                        var textEn = (link.tEn || "").trim();
+                        if (url === requiredLink.u || url === withLanguage(requiredLink.u)
+                                || text === requiredLink.text || textEn === requiredLink.tEn) {
+                            existingIndex = index;
+                            return true;
+                        }
+                        return false;
+                    });
+                    if (existingIndex >= 0) {
+                        memberLinks[existingIndex] = Object.assign({}, memberLinks[existingIndex], requiredLink);
+                    } else {
+                        memberLinks.push(requiredLink);
+                    }
+                });
+                requiredCompanyLinks.forEach(function (requiredLink) {
+                    var existingIndex = -1;
+                    companyLinks.some(function (link, index) {
+                        var url = link.u || link.url || link.route || "";
+                        var text = (link.text || link.t || "").trim();
+                        var textEn = (link.tEn || "").trim();
+                        if (url === requiredLink.u || url === withLanguage(requiredLink.u)
+                                || text === requiredLink.text || textEn === requiredLink.tEn) {
+                            existingIndex = index;
+                            return true;
+                        }
+                        return false;
+                    });
+                    if (existingIndex >= 0) {
+                        companyLinks[existingIndex] = Object.assign({}, companyLinks[existingIndex], requiredLink);
+                    } else {
+                        companyLinks.push(requiredLink);
+                    }
+                });
+                requiredPermissionLinks.forEach(function (requiredLink) {
+                    var existingIndex = -1;
+                    permissionLinks.some(function (link, index) {
+                        var url = link.u || link.url || link.route || "";
+                        var text = (link.text || link.t || "").trim();
+                        var textEn = (link.tEn || "").trim();
+                        if (url === requiredLink.u || url === withLanguage(requiredLink.u)
+                                || text === requiredLink.text || textEn === requiredLink.tEn) {
+                            existingIndex = index;
+                            return true;
+                        }
+                        return false;
+                    });
+                    if (existingIndex >= 0) {
+                        permissionLinks[existingIndex] = Object.assign({}, permissionLinks[existingIndex], requiredLink);
+                    } else {
+                        permissionLinks.push(requiredLink);
+                    }
+                });
+                requiredHistoryLinks.forEach(function (requiredLink) {
+                    var existingIndex = -1;
+                    historyLinks.some(function (link, index) {
+                        var url = link.u || link.url || link.route || "";
+                        var text = (link.text || link.t || "").trim();
+                        var textEn = (link.tEn || "").trim();
+                        if (url === requiredLink.u || url === withLanguage(requiredLink.u)
+                                || text === requiredLink.text || textEn === requiredLink.tEn) {
+                            existingIndex = index;
+                            return true;
+                        }
+                        return false;
+                    });
+                    if (existingIndex >= 0) {
+                        historyLinks[existingIndex] = Object.assign({}, historyLinks[existingIndex], requiredLink);
+                    } else {
+                        historyLinks.unshift(requiredLink);
+                    }
+                });
+
+                historyLinks = historyLinks.filter(function (link, index, array) {
+                    var url = link.u || link.url || link.route || "";
+                    if (!url) {
+                        return true;
+                    }
+                    return array.findIndex(function (candidate) {
+                        var candidateUrl = candidate.u || candidate.url || candidate.route || "";
+                        return candidateUrl === url;
+                    }) === index;
+                });
+
+                memberGroup.links = memberLinks;
+                companyGroup.links = companyLinks;
+                permissionGroup.links = permissionLinks;
+                historyGroup.links = historyLinks;
+                memberEntry.groups = memberGroups;
+                merged["회원관리"] = memberEntry;
+            }
+
+            var systemEntry = merged["시스템"];
+            if (!systemEntry) {
+                return merged;
+            }
+
+            var groups = Array.isArray(systemEntry.groups) ? systemEntry.groups.slice() : [];
+            var hasCodeManagement = false;
+            var hasPageManagement = false;
+            var hasFunctionManagement = false;
+            var hasMenuManagement = false;
+            var codeGroupIndex = -1;
+            var codeLinkIndex = -1;
+            var functionGroupIndex = -1;
+            var functionLinkIndex = -1;
+
+            groups.forEach(function (group, groupIndex) {
+                (group.links || []).forEach(function (link, linkIndex) {
+                    var url = link.u || link.url || link.route || "";
+                    if (url === "/admin/system/code" || url === "/en/admin/system/code") {
+                        hasCodeManagement = true;
+                        codeGroupIndex = groupIndex;
+                        codeLinkIndex = linkIndex;
+                    }
+                    if (url === "/admin/system/page-management" || url === "/en/admin/system/page-management") {
+                        hasPageManagement = true;
+                    }
+                    if (url === "/admin/system/feature-management" || url === "/en/admin/system/feature-management") {
+                        hasFunctionManagement = true;
+                        functionGroupIndex = groupIndex;
+                        functionLinkIndex = linkIndex;
+                    }
+                    if (url === "/admin/system/menu-management" || url === "/en/admin/system/menu-management") {
+                        hasMenuManagement = true;
+                    }
+                });
+            });
+
+            var environmentGroup = null;
+            groups.forEach(function (group) {
+                var title = (group && group.title ? group.title : "") + " " + (group && group.titleEn ? group.titleEn : "");
+                if (title.indexOf("환경") !== -1 || title.toLowerCase().indexOf("environment") !== -1 || title.toLowerCase().indexOf("config") !== -1) {
+                    environmentGroup = group;
+                }
+            });
+
+                if (!environmentGroup) {
+                    environmentGroup = {
+                        title: "환경",
+                        titleEn: "Environment",
+                        icon: "settings",
+                        links: []
+                    };
+                    groups.push(environmentGroup);
+                }
+
+            if (!hasCodeManagement) {
+                environmentGroup.links.push({ text: "코드 관리", tEn: "Code Management", u: "/admin/system/code", icon: "category" });
+                hasCodeManagement = true;
+                codeGroupIndex = groups.indexOf(environmentGroup);
+                codeLinkIndex = Math.max(0, environmentGroup.links.length - 1);
+            }
+            if (!hasPageManagement) {
+                var pageManagementLink = { text: "페이지 관리", tEn: "Page Management", u: "/admin/system/page-management", icon: "web" };
+                environmentGroup.links.push(pageManagementLink);
+            }
+            if (!hasFunctionManagement) {
+                var functionManagementLink = { text: "기능 관리", tEn: "Function Management", u: "/admin/system/feature-management", icon: "extension" };
+                environmentGroup.links.push(functionManagementLink);
+                hasFunctionManagement = true;
+                functionGroupIndex = groups.indexOf(environmentGroup);
+                functionLinkIndex = Math.max(0, environmentGroup.links.length - 1);
+            }
+            if (!hasMenuManagement) {
+                var menuManagementLink = { text: "메뉴 관리", tEn: "Menu Management", u: "/admin/system/menu-management", icon: "account_tree" };
+                environmentGroup.links.push(menuManagementLink);
+            }
+            var securityOpsGroup = null;
+            groups.forEach(function (group) {
+                var title = (group && group.title ? group.title : "") + " " + (group && group.titleEn ? group.titleEn : "");
+                if (title.indexOf("보안운영") !== -1 || title.toLowerCase().indexOf("security operations") !== -1) {
+                    securityOpsGroup = group;
+                }
+            });
+            if (!securityOpsGroup) {
+                securityOpsGroup = {
+                    title: "보안운영",
+                    titleEn: "Security Operations",
+                    icon: "shield",
+                    links: []
+                };
+                groups.push(securityOpsGroup);
+            }
+
+            [
+                { text: "보안 정책 관리", tEn: "Security Policy Management", u: "/admin/system/security-policy", icon: "policy" },
+                { text: "실시간 공격 현황", tEn: "Real-time Attack Monitoring", u: "/admin/system/security-monitoring", icon: "monitoring" },
+                { text: "차단 대상 관리", tEn: "Blocklist Management", u: "/admin/system/blocklist", icon: "gpp_bad" },
+                { text: "IP 화이트리스트", tEn: "IP Whitelist", u: "/admin/system/ip_whitelist", icon: "shield_lock" },
+                { text: "접근 차단 이력", tEn: "Access Block History", u: "/admin/system/security", icon: "history" },
+                { text: "보안 감사 로그", tEn: "Security Audit Log", u: "/admin/system/security-audit", icon: "fact_check" }
+            ].forEach(function (requiredLink) {
+                var exists = false;
+                (securityOpsGroup.links || []).forEach(function (link) {
+                    var url = link.u || link.url || link.route || "";
+                    var text = (link.text || link.t || "").trim();
+                    var textEn = (link.tEn || "").trim();
+                    if (url === requiredLink.u || url === withLanguage(requiredLink.u)
+                            || text === requiredLink.text || textEn === requiredLink.tEn) {
+                        exists = true;
+                    }
+                });
+                if (!exists) {
+                    securityOpsGroup.links.push(requiredLink);
+                }
+            });
+
+            var automationGroup = null;
+            groups.forEach(function (group) {
+                var title = (group && group.title ? group.title : "") + " " + (group && group.titleEn ? group.titleEn : "");
+                if (title.indexOf("운영자동화") !== -1 || title.toLowerCase().indexOf("automation ops") !== -1) {
+                    automationGroup = group;
+                }
+            });
+            if (!automationGroup) {
+                automationGroup = {
+                    title: "운영자동화",
+                    titleEn: "Automation Ops",
+                    icon: "schedule",
+                    links: []
+                };
+                groups.push(automationGroup);
+            }
+
+            [
+                { text: "크론/스케줄러 관리", tEn: "Cron Scheduler Management", u: "/admin/system/scheduler", icon: "schedule" },
+                { text: "Codex Provision", tEn: "Codex Provision", u: "/admin/system/codex-provision", icon: "smart_toy" }
+            ].forEach(function (requiredLink) {
+                var exists = false;
+                (automationGroup.links || []).forEach(function (link) {
+                    var url = link.u || link.url || link.route || "";
+                    var text = (link.text || link.t || "").trim();
+                    var textEn = (link.tEn || "").trim();
+                    if (url === requiredLink.u || url === withLanguage(requiredLink.u)
+                            || text === requiredLink.text || textEn === requiredLink.tEn) {
+                        exists = true;
+                    }
+                });
+                if (!exists) {
+                    automationGroup.links.push(requiredLink);
+                }
+            });
+
+            systemEntry.groups = groups;
+            merged["시스템"] = systemEntry;
+            return merged;
+        }
+
+        function syncGnbMenuOrder() {
+            var gnb = document.getElementById("adminGnbMenu");
+            if (!gnb) {
+                return;
+            }
+            var isEn = getCurrentLanguage() === "en";
+            var linkMap = {};
+            Array.prototype.forEach.call(gnb.querySelectorAll(".js-gnb-menu"), function (link) {
+                linkMap[link.getAttribute("data-domain")] = link;
+            });
+
+            Object.keys(domainMenus).forEach(function (domainKey) {
+                var link = linkMap[domainKey];
+                if (!link) {
+                    return;
+                }
+                var entry = domainMenus[domainKey] || {};
+                link.textContent = isEn ? (entry.labelEn || domainKey) : (entry.label || domainKey);
+                var firstPath = findFirstNavigablePath(domainKey);
+                link.setAttribute("href", firstPath || "#");
+                gnb.appendChild(link);
+            });
+        }
+
+        function translateMenuLabel(label, lang) {
+            if (lang !== "en") {
+                return label;
+            }
+            return label;
+        }
+
+        function updateLocaleSwitchLinks() {
+            var koLink = document.getElementById("admin-lang-ko");
+            var enLink = document.getElementById("admin-lang-en");
+            if (!koLink || !enLink) {
+                return;
+            }
+
+            koLink.setAttribute("href", buildLocaleTarget(false));
+            enLink.setAttribute("href", buildLocaleTarget(true));
+            var isEn = getCurrentLanguage() === "en";
+
+            koLink.classList.toggle("bg-[var(--kr-gov-blue)]", !isEn);
+            koLink.classList.toggle("text-white", !isEn);
+            enLink.classList.toggle("bg-[var(--kr-gov-blue)]", isEn);
+            enLink.classList.toggle("text-white", isEn);
+
+            koLink.onclick = function (e) {
+                e.preventDefault();
+                window.location.href = buildLocaleTarget(false);
+            };
+            enLink.onclick = function (e) {
+                e.preventDefault();
+                window.location.href = buildLocaleTarget(true);
+            };
+        }
+
+        function applyHeaderFooterLocaleText() {
+            var isEn = getCurrentLanguage() === "en";
+            var topGov = document.getElementById("admin-top-gov-text");
+            if (topGov) {
+                topGov.textContent = isEn
+                    ? "Official Government Service of the Republic of Korea"
+                    : "대한민국정부 공식 누리집";
+            }
+            var loginLabel = document.getElementById("admin-login-label");
+            if (loginLabel) {
+                loginLabel.textContent = isEn ? "Admin Login:" : "관리자 로그인:";
+            }
+            var logoutText = document.getElementById("admin-logout-text");
+            if (logoutText) {
+                logoutText.textContent = isEn ? "Logout" : "로그아웃";
+            }
+            var brandTitle = document.getElementById("admin-brand-title");
+            if (brandTitle) {
+                brandTitle.textContent = isEn ? "CCUS Integrated Management System" : "CCUS 통합관리 시스템";
+            }
+            var helpBtn = document.getElementById("admin-help-btn");
+            var helpText = document.getElementById("admin-help-text");
+            if (helpBtn) {
+                helpBtn.setAttribute("aria-label", isEn ? "Help" : "도움말");
+            }
+            if (helpText) {
+                helpText.textContent = isEn ? "Help" : "도움말";
+            }
+            var noticeBtn = document.getElementById("admin-notice-btn");
+            if (noticeBtn) {
+                noticeBtn.setAttribute("aria-label", isEn ? "Notifications" : "알림");
+            }
+            var settingsBtn = document.getElementById("admin-settings-btn");
+            if (settingsBtn) {
+                settingsBtn.setAttribute("aria-label", isEn ? "Settings" : "설정");
+            }
+            var footerTitle = document.getElementById("admin-footer-title");
+            if (footerTitle) {
+                footerTitle.textContent = isEn
+                    ? "Net Zero CCUS Integrated Management HQ (Admin Console)"
+                    : "탄소중립 CCUS 통합관리본부 (Admin Console)";
+            }
+            var footerTerms = document.getElementById("admin-footer-terms");
+            if (footerTerms) {
+                footerTerms.textContent = isEn ? "Terms of Service" : "서비스 이용약관";
+            }
+            var footerPrivacy = document.getElementById("admin-footer-privacy");
+            if (footerPrivacy) {
+                footerPrivacy.textContent = isEn ? "Privacy Policy" : "개인정보처리방침";
+            }
+            var footerUpdated = document.getElementById("admin-footer-updated");
+            if (footerUpdated) {
+                footerUpdated.textContent = isEn ? "Last Updated: 2025.08.14 14:45" : "최종 업데이트: 2025.08.14 14:45";
+            }
+            var sessionLabel = document.getElementById("admin-session-label");
+            if (sessionLabel) {
+                sessionLabel.textContent = isEn ? "Session" : "세션";
+            }
+            var sessionRefresh = document.getElementById("admin-session-refresh");
+            if (sessionRefresh) {
+                sessionRefresh.textContent = isEn ? "Extend" : "연장";
+            }
+        }
+
+        function setupSessionTimer() {
+            var timerWrap = document.getElementById("admin-session-timer");
+            var timerValue = document.getElementById("admin-session-remaining");
+            var refreshBtn = document.getElementById("admin-session-refresh");
+            if (!timerWrap || !timerValue || !refreshBtn) {
+                return;
+            }
+            if (window.__adminSessionTimerInterval) {
+                window.clearInterval(window.__adminSessionTimerInterval);
+            }
+
+            var SESSION_DURATION_MS = 60 * 60 * 1000;
+            var WARNING_MS = 5 * 60 * 1000;
+            var DANGER_MS = 60 * 1000;
+            var storageKey = "adminSessionExpireAt";
+            var now = Date.now();
+            var expireAt = parseInt(window.sessionStorage.getItem(storageKey) || "", 10);
+            if (!expireAt || Number.isNaN(expireAt) || expireAt <= now) {
+                expireAt = now + SESSION_DURATION_MS;
+                window.sessionStorage.setItem(storageKey, String(expireAt));
+            }
+
+            function formatRemaining(ms) {
+                var totalSeconds = Math.max(0, Math.floor(ms / 1000));
+                var minutes = Math.floor(totalSeconds / 60);
+                var seconds = totalSeconds % 60;
+                return String(minutes).padStart(2, "0") + ":" + String(seconds).padStart(2, "0");
+            }
+
+            function handleExpiry() {
+                timerValue.textContent = "00:00";
+                timerWrap.classList.remove("session-warning");
+                timerWrap.classList.add("session-danger");
+                var isEn = getCurrentLanguage() === "en";
+                alert(isEn ? "Your session has expired. You will be logged out." : "세션이 만료되어 로그아웃됩니다.");
+                logout();
+            }
+
+            function tick() {
+                var remaining = expireAt - Date.now();
+                if (remaining <= 0) {
+                    clearInterval(intervalId);
+                    handleExpiry();
+                    return;
+                }
+                timerValue.textContent = formatRemaining(remaining);
+                timerWrap.classList.toggle("session-warning", remaining <= WARNING_MS && remaining > DANGER_MS);
+                timerWrap.classList.toggle("session-danger", remaining <= DANGER_MS);
+            }
+
+            refreshBtn.onclick = function () {
+                var isEn = getCurrentLanguage() === "en";
+                var confirmed = window.confirm(isEn
+                    ? "Extend the current session?"
+                    : "현재 세션을 연장하시겠습니까?");
+                if (!confirmed) {
+                    return;
+                }
+                var refreshUrl = withLanguage("/admin/login/refreshSession");
+                var headers = getCsrfHeaders();
+                headers["X-Requested-With"] = "XMLHttpRequest";
+                fetch(refreshUrl, {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: headers
+                }).then(function (response) {
+                    if (!response.ok) {
+                        throw new Error("HTTP " + response.status);
+                    }
+                    return response.json();
+                }).then(function (payload) {
+                    if (!payload || payload.status !== "success") {
+                        throw new Error("REFRESH_FAILED");
+                    }
+                    expireAt = Date.now() + (payload.accessExpiresIn || SESSION_DURATION_MS);
+                    window.sessionStorage.setItem(storageKey, String(expireAt));
+                    tick();
+                    window.alert(isEn
+                        ? "The session has been extended."
+                        : "세션이 연장되었습니다.");
+                }).catch(function () {
+                    window.alert(isEn
+                        ? "Failed to extend the session. You will be redirected to login."
+                        : "세션 연장에 실패했습니다. 로그인 화면으로 이동합니다.");
+                    logout();
+                });
+            };
+
+            if (!window.__adminSessionTimerActivityBound) {
+                ["click", "keydown"].forEach(function (eventName) {
+                    document.addEventListener(eventName, function () {
+                        var savedExpireAt = parseInt(window.sessionStorage.getItem(storageKey) || "", 10);
+                        if (!savedExpireAt || Number.isNaN(savedExpireAt)) {
+                            return;
+                        }
+                        var remaining = savedExpireAt - Date.now();
+                        if (remaining > WARNING_MS) {
+                            return;
+                        }
+                        var nextExpireAt = Date.now() + SESSION_DURATION_MS;
+                        window.sessionStorage.setItem(storageKey, String(nextExpireAt));
+                    }, { passive: true });
+                });
+                window.__adminSessionTimerActivityBound = true;
+            }
+
+            tick();
+            window.__adminSessionTimerInterval = window.setInterval(function () {
+                expireAt = parseInt(window.sessionStorage.getItem(storageKey) || String(expireAt), 10);
+                tick();
+            }, 1000);
+        }
+
+        function resolveMenuPath(item) {
+            var text = item.text || item.t || "";
+            var route = item.route || item.path || "";
+            if (route) {
+                return withLanguage(route);
+            }
+            var source = item.u || item.url || "";
+            if (source) {
+                if (source.charAt(0) === "/" && source.indexOf(".html") === -1) {
+                    return withLanguage(source);
+                }
+                var matchedAdminHtml = source.match(/\/admin\/(.+)\.html$/);
+                if (matchedAdminHtml && matchedAdminHtml[1]) {
+                    return withLanguage("/admin/" + matchedAdminHtml[1]);
+                }
+            }
+            var directMap = {
+                "통합 대시보드": "/admin/",
+                "Dashboard": "/admin/",
+                "신규 회원 등록": "/admin/member/register",
+                "New Member Registration": "/admin/member/register",
+                "가입 승인": "/admin/react-migration?route=member-approve",
+                "Membership Approval": "/admin/react-migration?route=member-approve",
+                "회원사 가입승인": "/admin/react-migration?route=company-approve",
+                "Company Approval": "/admin/react-migration?route=company-approve",
+                "회원 수정": "/admin/react-migration?route=member-edit",
+                "Edit Member": "/admin/react-migration?route=member-edit",
+                "회원 상세": "/admin/react-migration?route=member-detail",
+                "Member Detail": "/admin/react-migration?route=member-detail",
+                "접근 차단 이력": "/admin/system/security",
+                "Access Block History": "/admin/system/security",
+                "보안 정책 관리": "/admin/system/security-policy",
+                "Security Policy Management": "/admin/system/security-policy",
+                "실시간 공격 현황": "/admin/system/security-monitoring",
+                "Real-time Attack Monitoring": "/admin/system/security-monitoring",
+                "차단 대상 관리": "/admin/system/blocklist",
+                "Blocklist Management": "/admin/system/blocklist",
+                "보안 감사 로그": "/admin/system/security-audit",
+                "Security Audit Log": "/admin/system/security-audit",
+                "IP 화이트리스트": "/admin/system/ip_whitelist",
+                "IP Whitelist": "/admin/system/ip_whitelist",
+                "크론/스케줄러 관리": "/admin/system/scheduler",
+                "Cron Scheduler Management": "/admin/system/scheduler",
+                "Codex Provision": "/admin/system/codex-provision",
+                "로그인 이력": "/admin/member/login_history",
+                "Login History": "/admin/member/login_history",
+                "권한 그룹": "/admin/react-migration?route=auth-group",
+                "Permission Groups": "/admin/react-migration?route=auth-group",
+                "권한 변경": "/admin/react-migration?route=auth-change",
+                "Authority Change": "/admin/react-migration?route=auth-change",
+                "부서 권한 맵핑": "/admin/react-migration?route=dept-role",
+                "Department Role Mapping": "/admin/react-migration?route=dept-role",
+                "코드 관리": "/admin/system/code",
+                "Code Management": "/admin/system/code",
+                "페이지 관리": "/admin/system/page-management",
+                "Page Management": "/admin/system/page-management",
+                "기능 관리": "/admin/system/feature-management",
+                "Function Management": "/admin/system/feature-management",
+                "메뉴 관리": "/admin/system/menu-management",
+                "Menu Management": "/admin/system/menu-management"
+            };
+            if (directMap[text]) {
+                return withLanguage(directMap[text]);
+            }
+            if (!source) {
+                return "#";
+            }
+            return "#";
+        }
+
+        function findDomainByPath(pathname) {
+            var target = normalizePath(pathname);
+            var matchedDomain = null;
+            Object.keys(domainMenus).some(function (domainName) {
+                var groups = domainMenus[domainName].groups || [];
+                return groups.some(function (group) {
+                    var links = group.links || [];
+                    return links.some(function (item) {
+                        var href = resolveMenuPath(item);
+                        if (href !== "#" && normalizePath(href) === target) {
+                            matchedDomain = domainName;
+                            return true;
+                        }
+                        return false;
+                    });
+                });
+            });
+            return matchedDomain;
+        }
+
+        function findFirstNavigablePath(domain) {
+            var groups = (domainMenus[domain] && domainMenus[domain].groups) ? domainMenus[domain].groups : [];
+            var firstPath = "";
+            groups.some(function (group) {
+                return (group.links || []).some(function (item) {
+                    var href = resolveMenuPath(item);
+                    if (href && href !== "#") {
+                        firstPath = href;
+                        return true;
+                    }
+                    return false;
+                });
+            });
+            return firstPath;
+        }
+
+        function renderLnb(domain, pathOverride) {
+            var isEn = getCurrentLanguage() === "en";
+            var groups = (domainMenus[domain] && domainMenus[domain].groups) ? domainMenus[domain].groups : [];
+            var currentPath = normalizePath(pathOverride || (window.location.pathname + window.location.search) || "");
+            function groupIcon(group) {
+                if (group && group.icon) {
+                    return group.icon;
+                }
+                var title = (group && group.title) ? group.title : "";
+                if (title.indexOf("회원사") !== -1 || title.indexOf("Company") !== -1) return "apartment";
+                if (title.indexOf("회원") !== -1 || title.indexOf("Members") !== -1) return "group";
+                if (title.indexOf("관리자") !== -1 || title.indexOf("Admin") !== -1) return "admin_panel_settings";
+                if (title.indexOf("권한") !== -1 || title.indexOf("Permissions") !== -1) return "admin_panel_settings";
+                if (title.indexOf("이력") !== -1 || title.indexOf("History") !== -1) return "history";
+                if (title.indexOf("배출") !== -1) return "co2";
+                if (title.indexOf("인증") !== -1) return "verified";
+                if (title.indexOf("감사") !== -1) return "fact_check";
+                if (title.indexOf("거래") !== -1) return "receipt_long";
+                if (title.indexOf("정산") !== -1) return "payments";
+                if (title.indexOf("환불") !== -1) return "currency_exchange";
+                if (title.indexOf("게시판") !== -1) return "article";
+                if (title.indexOf("가시요소") !== -1) return "deployed_code";
+                if (title.indexOf("지원") !== -1) return "support_agent";
+                if (title.indexOf("연계") !== -1) return "hub";
+                if (title.indexOf("API") !== -1) return "api";
+                if (title.indexOf("운영") !== -1) return "dns";
+                if (title.indexOf("환경") !== -1) return "settings";
+                if (title.indexOf("보안") !== -1) return "security";
+                if (title.indexOf("로그") !== -1) return "history";
+                if (title.indexOf("백업") !== -1) return "backup";
+                if (title.indexOf("대시보드") !== -1) return "dashboard";
+                if (title.indexOf("센서") !== -1) return "sensors";
+                if (title.indexOf("성능") !== -1) return "monitoring";
+                return "folder";
+            }
+            function subIcon(item) {
+                if (item && item.icon) {
+                    return item.icon;
+                }
+                var text = item && (item.text || item.t) ? (item.text || item.t) : "";
+                if (text.indexOf("회원사") !== -1 || text.indexOf("Company") !== -1) return "apartment";
+                if (text.indexOf("목록") !== -1 || text.indexOf("List") !== -1) return "list_alt";
+                if (text.indexOf("승인") !== -1 || text.indexOf("Approve") !== -1 || text.indexOf("Approval") !== -1) return "how_to_reg";
+                if (text.indexOf("상세") !== -1 || text.indexOf("Detail") !== -1) return "person_search";
+                if (text.indexOf("통계") !== -1 || text.indexOf("Statistics") !== -1 || text.indexOf("Stat") !== -1) return "bar_chart";
+                if (text.indexOf("설정") !== -1 || text.indexOf("Config") !== -1 || text.indexOf("Setting") !== -1) return "settings";
+                if (text.indexOf("로그") !== -1 || text.indexOf("Log") !== -1 || text.indexOf("이력") !== -1 || text.indexOf("History") !== -1) return "history";
+                if (text.indexOf("권한") !== -1 || text.indexOf("Role") !== -1 || text.indexOf("Permission") !== -1) return "admin_panel_settings";
+                if (text.indexOf("계정") !== -1 || text.indexOf("Account") !== -1) return "badge";
+                if (text.indexOf("검색") !== -1 || text.indexOf("Search") !== -1) return "search";
+                if (text.indexOf("대시보드") !== -1 || text.indexOf("Dashboard") !== -1) return "dashboard";
+                if (text.indexOf("모니터링") !== -1 || text.indexOf("Monitoring") !== -1) return "monitoring";
+                if (text.indexOf("배너") !== -1 || text.indexOf("Banner") !== -1) return "ad";
+                if (text.indexOf("팝업") !== -1 || text.indexOf("Popup") !== -1) return "open_in_new";
+                if (text.indexOf("API") !== -1) return "api";
+                if (text.indexOf("백업") !== -1 || text.indexOf("Backup") !== -1 || text.indexOf("복구") !== -1 || text.indexOf("Restore") !== -1) return "backup";
+                return "chevron_right";
+            }
+            var activePath = "";
+            groups.some(function (group) {
+                return (group.links || []).some(function (item) {
+                    var href = resolveMenuPath(item);
+                    if (href !== "#" && normalizePath(href) === currentPath) {
+                        activePath = normalizePath(href);
+                        return true;
+                    }
+                    return false;
+                });
+            });
+            var groupsHtml = groups.map(function (group, idx) {
+                var groupHasActive = false;
+                var linksHtml = group.links.map(function (item, linkIdx) {
+                    var text = item.text || item.t || "";
+                    var displayText = isEn ? (item.tEn || item.textEn || translateMenuLabel(text, "en")) : text;
+                    var href = resolveMenuPath(item);
+                    var normalizedHref = normalizePath(href);
+                    var isActive = (activePath && href !== "#" && normalizedHref === activePath) || (!activePath && idx === 0 && linkIdx === 0);
+                    if (isActive && activePath) {
+                        groupHasActive = true;
+                    }
+                    return '<a class="admin-sidebar-link' + (isActive ? ' active' : '') + '" href="' + href + '"><span class="material-symbols-outlined text-[20px]">' + subIcon(item) + '</span>' + displayText + '</a>';
+                }).join("");
+                var groupTitle = isEn ? (group.titleEn || translateMenuLabel(group.title, "en")) : group.title;
+                return '' +
+                    '<div class="gnb-tree-group">' +
+                    '<button class="gnb-tree-title ' + ((activePath ? groupHasActive : idx === 0) ? 'active' : 'inactive') + '" type="button">' +
+                    '<span class="flex items-center gap-2"><span class="material-symbols-outlined text-[20px]">' + groupIcon(group) + '</span>' + groupTitle + '</span>' +
+                    '<span class="material-symbols-outlined text-[18px] gnb-toggle-icon">' + ((activePath ? groupHasActive : idx === 0) ? "expand_more" : "chevron_right") + '</span></button>' +
+                    '<div class="gnb-tree-links" style="' + ((activePath ? groupHasActive : idx === 0) ? "" : "display:none;") + '">' + linksHtml + '</div>' +
+                    '</div>';
+            }).join("");
+
+            lnb.innerHTML = '' +
+                '<div class="mb-6"><div class="relative">' +
+                '<input class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-[var(--kr-gov-radius)] text-sm focus:ring-2 focus:ring-[var(--kr-gov-blue)] focus:border-[var(--kr-gov-blue)] outline-none" id="gnbMenuFilter" placeholder="' + (isEn ? 'Search menu (e.g. log, approval)' : '메뉴 검색 (예: 로그, 승인)') + '" type="text">' +
+                '<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[20px]">search</span>' +
+                '</div>' +
+                '<div class="space-y-1 overflow-y-auto" id="gnbTreeWrap">' + groupsHtml + '</div>' +
+                '<div class="mt-auto border-t pt-5 border-[var(--kr-gov-border-light)]">' +
+                '<div class="p-4 bg-blue-50 rounded-[var(--kr-gov-radius)] border border-blue-100">' +
+                '<p class="text-[12px] font-bold text-[var(--kr-gov-blue)] mb-1">' + (isEn ? (translateDomainLabel(domain, "en") + ' Domain Active') : (domain + ' 도메인 활성화')) + '</p>' +
+                '<p class="text-[11px] text-[var(--kr-gov-text-secondary)]">' + (isEn ? ('Currently displaying ' + groups.reduce(function(acc, g){ return acc + g.links.length; }, 0) + ' menus') : ('현재 전체 메뉴 ' + groups.reduce(function(acc, g){ return acc + g.links.length; }, 0) + '개 노출 중')) + '</p>' +
+                '</div>' +
+                '</div>';
+
+            Array.prototype.forEach.call(lnb.querySelectorAll(".gnb-tree-title"), function (btn) {
+                btn.addEventListener("click", function () {
+                    var links = btn.nextElementSibling;
+                    var marker = btn.querySelector(".gnb-toggle-icon");
+                    var open = links.style.display !== "none";
+                    links.style.display = open ? "none" : "";
+                    marker.textContent = open ? "chevron_right" : "expand_more";
+                });
+            });
+
+            var filter = lnb.querySelector("#gnbMenuFilter");
+            filter.addEventListener("input", function () {
+                var keyword = filter.value.trim().toLowerCase();
+                Array.prototype.forEach.call(lnb.querySelectorAll(".gnb-tree-group"), function (groupEl) {
+                    var title = groupEl.querySelector(".gnb-tree-title").textContent.toLowerCase();
+                    var visibleCount = 0;
+                    Array.prototype.forEach.call(groupEl.querySelectorAll(".gnb-tree-links a"), function (a) {
+                        var show = a.textContent.toLowerCase().indexOf(keyword) !== -1 || title.indexOf(keyword) !== -1;
+                        a.style.display = show ? "" : "none";
+                        if (show) {
+                            visibleCount += 1;
+                        }
+                    });
+                    groupEl.style.display = visibleCount > 0 || keyword === "" ? "" : "none";
+                });
+            });
+        }
+
+        function setActive(domain) {
+            var lang = getCurrentLanguage();
+            gnbLinks.forEach(function (link) {
+                var active = link.getAttribute("data-domain") === domain;
+                var domainLabel = link.getAttribute("data-domain") || "";
+                link.textContent = translateDomainLabel(domainLabel, lang);
+                link.classList.toggle("text-[var(--kr-gov-blue)]", active);
+                link.classList.toggle("border-b-4", active);
+                link.classList.toggle("border-[var(--kr-gov-blue)]", active);
+                link.classList.toggle("text-[var(--kr-gov-text-secondary)]", !active);
+                link.classList.toggle("hover:text-[var(--kr-gov-blue)]", !active);
+            });
+        }
+
+        function applyPathState(pathname, push) {
+            var targetUrl = normalizeUrl(pathname || (window.location.pathname + window.location.search) || "/");
+            var targetPath = normalizePath(targetUrl);
+            var matchedDomain = findDomainByPath(targetPath);
+            var domain = matchedDomain || currentDomain || "회원관리";
+            currentDomain = domain;
+            window.localStorage.setItem("adminGnbDomain", domain);
+            if (push) {
+                window.history.pushState({ admin: true }, "", targetUrl);
+            }
+            setActive(domain);
+            renderLnb(domain, targetPath);
+            updateLocaleSwitchLinks();
+            applyLocaleToStaticLinksAndForms(document);
+            applyHeaderFooterLocaleText();
+            document.title = document.title || "Admin";
+            window.scrollTo(0, 0);
+        }
+
+        function navigateAdminRoute(pathname, push) {
+            var targetUrl = normalizeUrl(pathname);
+            var currentUrl = normalizeUrl(window.location.pathname + window.location.search);
+            if (targetUrl === currentUrl) {
+                applyPathState(targetUrl, false);
+                return;
+            }
+            fetch(targetUrl, {
+                method: "GET",
+                credentials: "same-origin",
+                headers: { "X-Requested-With": "XMLHttpRequest" }
+            }).then(function (response) {
+                var responseUrl = response.url || targetUrl;
+                if ((response.redirected && /\/(en\/)?admin\/login\/loginView/.test(responseUrl)) ||
+                    /\/(en\/)?admin\/login\/loginView/.test(responseUrl)) {
+                    window.location.href = responseUrl;
+                    throw new Error("__LOGIN_REDIRECT__");
+                }
+                if (!response.ok) {
+                    throw new Error("HTTP " + response.status);
+                }
+                return response.text().then(function (html) {
+                    return { html: html, responseUrl: responseUrl };
+                });
+            }).then(function (payload) {
+                var html = payload.html;
+                var parser = new DOMParser();
+                var doc = parser.parseFromString(html, "text/html");
+                var loginForm = doc.querySelector("form[action*='/admin/login/actionLogin'], form[action*='/en/admin/login/actionLogin']");
+                if (loginForm) {
+                    window.location.href = payload.responseUrl || withLanguage("/admin/login/loginView");
+                    return;
+                }
+                var nextMain = doc.querySelector("#main-content");
+                var currentMain = document.querySelector("#main-content");
+                if (!nextMain || !currentMain) {
+                    loadDashboardFallback(targetUrl, push);
+                    return;
+                }
+                syncPageHeadStyles(doc);
+                currentMain.className = nextMain.className;
+                currentMain.innerHTML = nextMain.innerHTML;
+                if (doc.title) {
+                    document.title = doc.title;
+                }
+                applyPathState(targetUrl, push);
+            }).catch(function () {
+                if (arguments[0] && arguments[0].message === "__LOGIN_REDIRECT__") {
+                    return;
+                }
+                loadDashboardFallback(targetUrl, push);
+            });
+        }
+
+        function loadDashboardFallback(targetPath, push) {
+            fetch(withLanguage("/admin"), {
+                method: "GET",
+                credentials: "same-origin",
+                headers: { "X-Requested-With": "XMLHttpRequest" }
+            }).then(function (response) {
+                var responseUrl = response.url || withLanguage("/admin");
+                if ((response.redirected && /\/(en\/)?admin\/login\/loginView/.test(responseUrl)) ||
+                    /\/(en\/)?admin\/login\/loginView/.test(responseUrl)) {
+                    window.location.href = responseUrl;
+                    throw new Error("__LOGIN_REDIRECT__");
+                }
+                if (!response.ok) {
+                    throw new Error("HTTP " + response.status);
+                }
+                return response.text().then(function (html) {
+                    return { html: html, responseUrl: responseUrl };
+                });
+            }).then(function (payload) {
+                var html = payload.html;
+                var parser = new DOMParser();
+                var doc = parser.parseFromString(html, "text/html");
+                var loginForm = doc.querySelector("form[action*='/admin/login/actionLogin'], form[action*='/en/admin/login/actionLogin']");
+                if (loginForm) {
+                    window.location.href = payload.responseUrl || withLanguage("/admin/login/loginView");
+                    return;
+                }
+                var nextMain = doc.querySelector("#main-content");
+                var currentMain = document.querySelector("#main-content");
+                if (!nextMain || !currentMain) {
+                    window.location.href = withLanguage("/admin");
+                    return;
+                }
+                syncPageHeadStyles(doc);
+                currentMain.className = nextMain.className;
+                currentMain.innerHTML = nextMain.innerHTML;
+                if (doc.title) {
+                    document.title = doc.title;
+                }
+                applyPathState(targetPath, push);
+            }).catch(function () {
+                if (arguments[0] && arguments[0].message === "__LOGIN_REDIRECT__") {
+                    return;
+                }
+                window.location.href = withLanguage("/admin");
+            });
+        }
+
+        function syncPageHeadStyles(doc) {
+            var head = document.head;
+            Array.prototype.forEach.call(
+                head.querySelectorAll("[data-admin-dynamic-head='true']"),
+                function (el) { el.remove(); }
+            );
+
+            var nextStyle = doc.head.querySelector("style[type='text/tailwindcss']");
+            if (nextStyle) {
+                var styleClone = document.createElement("style");
+                styleClone.setAttribute("type", "text/tailwindcss");
+                styleClone.setAttribute("data-admin-dynamic-head", "true");
+                styleClone.textContent = nextStyle.textContent || "";
+                head.appendChild(styleClone);
+            }
+
+            var nextConfig = doc.head.querySelector("script#tailwind-config");
+            if (nextConfig) {
+                var configClone = document.createElement("script");
+                configClone.setAttribute("id", "tailwind-config");
+                configClone.setAttribute("data-admin-dynamic-head", "true");
+                configClone.textContent = nextConfig.textContent || "";
+                head.appendChild(configClone);
+            }
+        }
+
+        var savedDomain = window.localStorage.getItem("adminGnbDomain");
+        var pathDomain = findDomainByPath((window.location.pathname + window.location.search) || "");
+        var currentDomain = pathDomain || (domainMenus[savedDomain] ? savedDomain : "회원관리");
+        if (pathDomain) {
+            window.localStorage.setItem("adminGnbDomain", pathDomain);
+        }
+        setActive(currentDomain);
+        renderLnb(currentDomain);
+        syncGnbMenuOrder();
+        updateLocaleSwitchLinks();
+        applyLocaleToStaticLinksAndForms(document);
+        applyHeaderFooterLocaleText();
+        setupSessionTimer();
+
+        function applyMenuData(data) {
+            var normalizedMenus = mergeDefaultMenus(normalizeFetchedDomainMenus(data));
+            if (!Object.keys(normalizedMenus).length) {
+                return;
+            }
+            domainMenus = normalizedMenus;
+            var pathDomain = findDomainByPath((window.location.pathname + window.location.search) || "");
+            var savedDomain = window.localStorage.getItem("adminGnbDomain");
+            var fallbackDomain = Object.keys(domainMenus)[0] || "회원관리";
+            currentDomain = pathDomain || (domainMenus[savedDomain] ? savedDomain : fallbackDomain);
+            if (pathDomain) {
+                window.localStorage.setItem("adminGnbDomain", pathDomain);
+            }
+            syncGnbMenuOrder();
+            setActive(currentDomain);
+            renderLnb(currentDomain);
+            applyLocaleToStaticLinksAndForms(document);
+            setupSessionTimer();
+        }
+
+        fetch(withLanguage("/admin/system/menu-data"), {
+            method: "GET",
+            credentials: "same-origin",
+            headers: { "X-Requested-With": "XMLHttpRequest" }
+        }).then(function (response) {
+            if (!response.ok) {
+                return null;
+            }
+            return response.json();
+        }).then(function (payload) {
+            if (payload) {
+                applyMenuData(payload);
+            }
+        }).catch(function () {});
+
+        gnbLinks.forEach(function (link) {
+            link.addEventListener("click", function (e) {
+                var domain = link.getAttribute("data-domain");
+                if (!domainMenus[domain]) {
+                    return;
+                }
+                e.preventDefault();
+                window.localStorage.setItem("adminGnbDomain", domain);
+                setActive(domain);
+                renderLnb(domain);
+                var firstPath = findFirstNavigablePath(domain);
+                if (firstPath) {
+                    window.location.href = firstPath;
+                }
+            });
+        });
+    });
+</script>
+
+</header>
+
+</html>

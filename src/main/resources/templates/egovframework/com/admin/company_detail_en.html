@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Company Detail | CCUS Integrated Management System</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Public+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <style type="text/tailwindcss">
+        :root {
+            --kr-gov-blue: #00378b;
+            --kr-gov-blue-hover: #002d72;
+            --kr-gov-text-primary: #1a1a1a;
+            --kr-gov-text-secondary: #4d4d4d;
+            --kr-gov-border-light: #d9d9d9;
+            --kr-gov-focus: #005fde;
+            --kr-gov-radius: 5px;
+        }
+        @layer base {
+            body { font-family: 'Noto Sans KR', 'Public Sans', sans-serif; -webkit-font-smoothing: antialiased; }
+            .skip-link { @apply absolute -top-full left-0 bg-[var(--kr-gov-blue)] text-white p-3 z-[100] transition-all focus:top-0 focus:outline-none focus:ring-2 focus:ring-white; }
+        }
+        .material-symbols-outlined { font-variation-settings: 'wght' 400, 'opsz' 24; font-size: 24px; line-height: 1.6; }
+        .gov-card { @apply rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-6 shadow-sm; }
+        .gov-label { @apply mb-2 block text-[13px] font-bold text-[var(--kr-gov-text-secondary)]; }
+        .gov-readonly { @apply w-full rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 px-4 py-2.5 text-[14px] text-[var(--kr-gov-text-primary)]; }
+    </style>
+</head>
+<body class="bg-[#f8f9fa] text-[var(--kr-gov-text-primary)]">
+<a class="skip-link" href="#main-content">Skip to main content</a>
+<div th:replace="~{egovframework/com/admin/header :: headerFragment}"></div>
+<div class="flex min-h-[calc(100vh-124px)]">
+    <aside aria-label="Admin side menu" class="js-admin-lnb w-72 bg-white border-r border-[var(--kr-gov-border-light)] p-5 flex flex-col"></aside>
+    <main class="flex-1 p-8 overflow-y-auto" id="main-content">
+        <nav aria-label="Breadcrumb" class="mb-3 flex items-center gap-2 text-sm text-[var(--kr-gov-text-secondary)]">
+            <span class="material-symbols-outlined text-[18px]">home</span>
+            <span>Members</span>
+            <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+            <span>Companies</span>
+            <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+            <span class="font-bold text-[var(--kr-gov-blue)]">Company Detail</span>
+        </nav>
+        <div class="mb-8 flex items-center justify-between gap-4 border-b border-[var(--kr-gov-border-light)] pb-6">
+            <div>
+                <h2 class="text-2xl font-black">Company Detail</h2>
+                <p class="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">Read-only view for the company application and attachment files.</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <a class="inline-flex items-center gap-1.5 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-2 text-sm font-bold hover:bg-gray-50"
+                   href="/en/admin/react-migration?route=company-list">
+                    <span class="material-symbols-outlined text-[18px]">list</span>
+                    List
+                </a>
+                <a class="inline-flex items-center gap-1.5 rounded-[var(--kr-gov-radius)] bg-[var(--kr-gov-blue)] px-4 py-2 text-sm font-bold text-white hover:bg-[var(--kr-gov-blue-hover)]"
+                   th:href="@{/en/admin/react-migration(route='company-account',insttId=${insttId})}">
+                    <span class="material-symbols-outlined text-[18px]">edit</span>
+                    Edit
+                </a>
+            </div>
+        </div>
+
+        <div class="mb-4 text-sm font-medium text-red-600" th:if="${companyDetailError}" th:text="${companyDetailError}"></div>
+
+        <div th:if="${company != null}" class="grid grid-cols-1 gap-8 xl:grid-cols-3">
+            <section class="gov-card xl:col-span-1">
+                <div class="flex flex-col items-center text-center">
+                    <div class="mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-gray-100">
+                        <span class="material-symbols-outlined text-[48px] text-gray-400">apartment</span>
+                    </div>
+                    <h3 class="mb-2 text-xl font-bold" th:text="${company.insttNm}">Company</h3>
+                    <div class="mb-3 flex flex-wrap justify-center gap-2">
+                        <span class="rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-[12px] font-bold text-[var(--kr-gov-blue)]"
+                              th:text="${companyTypeLabel}">Type</span>
+                        <span class="rounded-full px-2.5 py-1 text-[12px] font-bold"
+                              th:classappend="${companyStatusBadgeClass}"
+                              th:text="${companyStatusLabel}">Status</span>
+                    </div>
+                    <div class="w-full rounded-[var(--kr-gov-radius)] bg-gray-50 p-4 text-left text-sm">
+                        <div class="mb-2 flex justify-between gap-4">
+                            <span class="text-[var(--kr-gov-text-secondary)]">Application ID</span>
+                            <strong th:text="${company.insttId}">INSTT_...</strong>
+                        </div>
+                        <div class="mb-2 flex justify-between gap-4">
+                            <span class="text-[var(--kr-gov-text-secondary)]">Created At</span>
+                            <strong th:text="${company.frstRegistPnttm}">2026.03.12</strong>
+                        </div>
+                        <div class="flex justify-between gap-4">
+                            <span class="text-[var(--kr-gov-text-secondary)]">Updated At</span>
+                            <strong th:text="${company.lastUpdtPnttm}">2026.03.12</strong>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="flex flex-col gap-8 xl:col-span-2">
+                <section class="gov-card">
+                    <div class="mb-6 flex items-center gap-2 border-b pb-4">
+                        <span class="material-symbols-outlined text-[var(--kr-gov-blue)]">business</span>
+                        <h3 class="text-lg font-bold">Business Information</h3>
+                    </div>
+                    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                        <div class="md:col-span-2">
+                            <label class="gov-label">Institution / Company Name</label>
+                            <div class="gov-readonly" th:text="${company.insttNm}">Company</div>
+                        </div>
+                        <div>
+                            <label class="gov-label">Business Registration Number</label>
+                            <div class="gov-readonly" th:text="${company.bizrno}">0000000000</div>
+                        </div>
+                        <div>
+                            <label class="gov-label">Representative Name</label>
+                            <div class="gov-readonly" th:text="${company.reprsntNm}">Representative</div>
+                        </div>
+                        <div>
+                            <label class="gov-label">ZIP Code</label>
+                            <div class="gov-readonly" th:text="${company.zip}">000000</div>
+                        </div>
+                        <div>
+                            <label class="gov-label">Membership Type</label>
+                            <div class="gov-readonly" th:text="${companyTypeLabel}">Type</div>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="gov-label">Address</label>
+                            <div class="gov-readonly" th:text="${company.adres}">Address</div>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="gov-label">Detailed Address</label>
+                            <div class="gov-readonly" th:text="${company.detailAdres}">Detail</div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="gov-card">
+                    <div class="mb-6 flex items-center gap-2 border-b pb-4">
+                        <span class="material-symbols-outlined text-[var(--kr-gov-blue)]">person</span>
+                        <h3 class="text-lg font-bold">Contact Information</h3>
+                    </div>
+                    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                        <div>
+                            <label class="gov-label">Contact Name</label>
+                            <div class="gov-readonly" th:text="${company.chargerNm}">Contact</div>
+                        </div>
+                        <div>
+                            <label class="gov-label">Email</label>
+                            <div class="gov-readonly" th:text="${company.chargerEmail}">email@example.com</div>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="gov-label">Phone Number</label>
+                            <div class="gov-readonly" th:text="${company.chargerTel}">010-0000-0000</div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="gov-card">
+                    <div class="mb-6 flex items-center gap-2 border-b pb-4">
+                        <span class="material-symbols-outlined text-[var(--kr-gov-blue)]">upload_file</span>
+                        <h3 class="text-lg font-bold">Attachment Files</h3>
+                    </div>
+                    <div class="overflow-x-auto rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)]">
+                        <table class="w-full text-sm">
+                            <thead class="bg-[#f8f9fa] text-left">
+                            <tr>
+                                <th class="px-4 py-3">No.</th>
+                                <th class="px-4 py-3">File Name</th>
+                                <th class="px-4 py-3">Extension</th>
+                                <th class="px-4 py-3">Size</th>
+                                <th class="px-4 py-3">Created At</th>
+                                <th class="px-4 py-3 text-center">Download</th>
+                            </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                            <tr th:each="file : ${companyFiles}">
+                                <td class="px-4 py-3" th:text="${file.fileSn}">1</td>
+                                <td class="px-4 py-3 font-medium" th:text="${file.orignlFileNm}">file.pdf</td>
+                                <td class="px-4 py-3" th:text="${file.fileExtsn}">.pdf</td>
+                                <td class="px-4 py-3" th:text="${file.fileMg != null ? #numbers.formatInteger(file.fileMg, 0, 'COMMA') + ' bytes' : '-'}">0 bytes</td>
+                                <td class="px-4 py-3" th:text="${file.regDate}">2026.03.12 10:00:00</td>
+                                <td class="px-4 py-3 text-center">
+                                    <a class="inline-flex items-center gap-1 rounded border border-[var(--kr-gov-border-light)] px-3 py-1.5 font-bold hover:bg-gray-50"
+                                       th:href="${companyFileBaseUrl + '?fileId=' + file.fileId + '&download=true'}">
+                                        <span class="material-symbols-outlined text-[18px]">download</span>
+                                        Download
+                                    </a>
+                                </td>
+                            </tr>
+                            <tr th:if="${companyFiles == null or #lists.isEmpty(companyFiles)}">
+                                <td class="px-4 py-8 text-center text-gray-500" colspan="6">No saved attachment files.</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+</div>
+<div th:replace="~{egovframework/com/admin/footer :: footerFragment}"></div>
+<script src="/js/accessibility.js" defer></script>
+</body>
+</html>

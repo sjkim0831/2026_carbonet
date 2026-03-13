@@ -1,0 +1,30 @@
+# Build output
+/target/
+
+# Runtime logs
+/logs/
+/${sys:LOG_PATH}/
+
+# Local SQL work files
+/sql/
+*.log
+startup.log
+
+# IDE/OS
+/.idea/
+.vscode/
+.DS_Store
+
+# Local mounts / temp
+/wsl.localhost/
+/wsl$/
+/file/
+/sql/
+
+# Frontend local artifacts
+/frontend/node_modules/
+/frontend/dist/
+/frontend/*.tsbuildinfo
+
+# Migration scratch files
+/tmp/

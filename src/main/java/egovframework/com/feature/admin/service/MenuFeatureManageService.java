@@ -1,0 +1,18 @@
+package egovframework.com.feature.admin.service;
+
+import egovframework.com.feature.admin.model.vo.MenuFeatureVO;
+
+import java.util.List;
+
+public interface MenuFeatureManageService {
+
+    List<MenuFeatureVO> selectMenuPageOptions(String codeId) throws Exception;
+
+    List<MenuFeatureVO> selectMenuFeatureList(String codeId, String menuCode, String searchKeyword) throws Exception;
+
+    int countFeatureCode(String featureCode) throws Exception;
+
+    void insertMenuFeature(String menuCode, String featureCode, String featureNm, String featureNmEn, String featureDc, String useAt) throws Exception;
+
+    void deleteMenuFeature(String featureCode) throws Exception;
+}

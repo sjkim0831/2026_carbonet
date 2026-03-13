@@ -1,0 +1,33 @@
+package egovframework.com.feature.admin.mapper;
+
+import egovframework.com.common.mapper.support.BaseMapperSupport;
+import egovframework.com.feature.admin.dto.request.AdminMenuFeatureCommandDTO;
+import egovframework.com.feature.admin.model.vo.MenuFeatureVO;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository("menuFeatureManageMapper")
+public class MenuFeatureManageMapper extends BaseMapperSupport {
+
+    public List<MenuFeatureVO> selectMenuPageOptions(AdminMenuFeatureCommandDTO params) {
+        return selectList("MenuFeatureManageMapper.selectMenuPageOptions", params);
+    }
+
+    public List<MenuFeatureVO> selectMenuFeatureList(AdminMenuFeatureCommandDTO params) {
+        return selectList("MenuFeatureManageMapper.selectMenuFeatureList", params);
+    }
+
+    public int countFeatureCode(AdminMenuFeatureCommandDTO params) {
+        Integer count = selectOne("MenuFeatureManageMapper.countFeatureCode", params);
+        return count == null ? 0 : count;
+    }
+
+    public void insertMenuFeature(AdminMenuFeatureCommandDTO params) {
+        insert("MenuFeatureManageMapper.insertMenuFeature", params);
+    }
+
+    public void deleteMenuFeature(String featureCode) {
+        delete("MenuFeatureManageMapper.deleteMenuFeature", featureCode);
+    }
+}

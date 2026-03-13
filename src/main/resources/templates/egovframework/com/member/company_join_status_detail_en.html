@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Membership Application Details - CCUS Integrated Management Portal</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&amp;family=Public+Sans:wght@400;600;700&amp;display=swap" rel="stylesheet" />
+    <link href="https://fonts.material.com/icon?family=Material+Icons" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet" />
+    <style type="text/tailwindcss">
+        :root {
+            --kr-gov-blue: #00378b;
+            --kr-gov-blue-hover: #002d72;
+            --kr-gov-emerald: #059669;
+            --kr-gov-text-primary: #1a1a1a;
+            --kr-gov-text-secondary: #4d4d4d;
+            --kr-gov-border-light: #d9d9d9;
+            --kr-gov-focus: #005fde;
+            --kr-gov-bg-gray: #f8fafc;
+            --kr-gov-radius: 8px;
+            --kr-gov-red: #d32f2f;
+        }
+        @layer base {
+            body { font-family: 'Noto Sans KR', 'Public Sans', sans-serif; -webkit-font-smoothing: antialiased; }
+            .skip-link {
+                @apply absolute -top-full left-0 bg-[var(--kr-gov-blue)] text-white p-3 z-[100] transition-all focus:top-0 focus:outline-none focus:ring-2 focus:ring-white;
+            }
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'wght' 400, 'opsz' 24;
+            font-size: 24px;
+            stroke-width: 1.6px;
+        }
+        .stepper-active .stepper-circle { @apply bg-[var(--kr-gov-blue)] text-white border-[var(--kr-gov-blue)]; }
+        .stepper-active-reject .stepper-circle { @apply bg-[var(--kr-gov-red)] text-white border-[var(--kr-gov-red)]; }
+        .stepper-complete .stepper-circle { @apply bg-emerald-500 text-white border-emerald-500; }
+        .stepper-pending .stepper-circle { @apply bg-white text-gray-400 border-gray-200; }
+    </style>
+</head>
+<body class="bg-[var(--kr-gov-bg-gray)] text-[var(--kr-gov-text-primary)] min-h-screen flex flex-col">
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <div id="shared-header" th:replace="egovframework/com/common/fragments/header_en :: header"></div>
+    <main class="flex-grow max-w-5xl mx-auto w-full py-12 px-4" id="main-content">
+        <div class="mb-10 text-center">
+            <h2 class="text-3xl font-bold text-[var(--kr-gov-text-primary)] mb-3">Membership Application Details</h2>
+            <p class="text-lg text-[var(--kr-gov-text-secondary)]">Review your submitted application and current processing status.</p>
+        </div>
+
+        <div th:if="${result != null}" class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden mb-8">
+            <div class="bg-gray-50 px-8 py-4 border-b border-gray-200 flex justify-between items-center">
+                <span class="text-sm font-bold text-[var(--kr-gov-blue)] bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
+                    Application No.: <span th:text="${result.insttId}">APP-00000</span>
+                </span>
+                <span class="text-xs text-[var(--kr-gov-text-secondary)] font-medium">Last updated: <span th:text="${result.lastUpdtPnttm}">2026.00.00</span></span>
+            </div>
+            <div class="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div class="space-y-1">
+                    <p class="text-sm font-bold text-[var(--kr-gov-text-secondary)]">Organization Name</p>
+                    <p class="text-base font-medium text-[var(--kr-gov-text-primary)]" th:text="${result.insttNm}">(Company)</p>
+                </div>
+                <div class="space-y-1">
+                    <p class="text-sm font-bold text-[var(--kr-gov-text-secondary)]">Business Registration No.</p>
+                    <p class="text-base font-medium text-[var(--kr-gov-text-primary)]" th:text="${result.bizrno}">000-00-00000</p>
+                </div>
+                <div class="space-y-1">
+                    <p class="text-sm font-bold text-[var(--kr-gov-text-secondary)]">Representative</p>
+                    <p class="text-base font-medium text-[var(--kr-gov-text-primary)]" th:text="${result.reprsntNm}">Representative</p>
+                </div>
+                <div class="space-y-1">
+                    <p class="text-sm font-bold text-[var(--kr-gov-text-secondary)]">Submitted On</p>
+                    <p class="text-base font-medium text-[var(--kr-gov-text-primary)]" th:text="${result.frstRegistPnttm}">2026.00.00</p>
+                </div>
+            </div>
+        </div>
+
+        <div th:if="${result != null}" class="bg-white border border-gray-200 rounded-xl shadow-sm p-10 mb-8">
+            <div class="relative flex justify-between items-center max-w-3xl mx-auto mb-12">
+                <div class="relative z-10 flex flex-col items-center gap-3 stepper-complete">
+                    <div class="stepper-circle w-12 h-12 rounded-full border-2 flex items-center justify-center font-bold text-lg">01</div>
+                    <span class="text-sm font-bold text-[var(--kr-gov-text-primary)]">Submitted</span>
+                </div>
+                <div class="flex-grow h-0.5 mx-4" th:classappend="${result.insttSttus == 'A' ? 'bg-gray-200' : 'bg-emerald-500'}"></div>
+                <div class="relative z-10 flex flex-col items-center gap-3" th:classappend="${result.insttSttus == 'A' ? 'stepper-active' : 'stepper-complete'}">
+                    <div class="stepper-circle w-12 h-12 rounded-full border-2 flex items-center justify-center font-bold text-lg">02</div>
+                    <span class="text-sm font-bold" th:classappend="${result.insttSttus == 'A' ? 'text-[var(--kr-gov-blue)]' : 'text-[var(--kr-gov-text-primary)]'}">Under Review</span>
+                </div>
+                <div class="flex-grow h-0.5 mx-4" th:classappend="${result.insttSttus == 'A' ? 'bg-gray-200' : (result.insttSttus == 'R' ? 'bg-[var(--kr-gov-red)]' : 'bg-emerald-500')}"></div>
+                <div class="relative z-10 flex flex-col items-center gap-3" th:classappend="${result.insttSttus == 'A' ? 'stepper-pending' : (result.insttSttus == 'R' ? 'stepper-active-reject' : 'stepper-active')}">
+                    <div class="stepper-circle w-12 h-12 rounded-full border-2 flex items-center justify-center font-bold text-lg">03</div>
+                    <span class="text-sm font-bold" th:classappend="${result.insttSttus == 'A' ? 'text-gray-400' : (result.insttSttus == 'P' ? 'text-emerald-600' : 'text-red-600')}">
+                        <span th:if="${result.insttSttus == 'A'}">Pending Approval</span>
+                        <span th:if="${result.insttSttus == 'P'}">Approved</span>
+                        <span th:if="${result.insttSttus == 'R'}">Rejected</span>
+                        <span th:if="${result.insttSttus == 'X'}">Blocked</span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="bg-blue-50 border border-blue-100 rounded-lg p-6 flex items-start gap-4" th:if="${result.insttSttus == 'A'}">
+                <span class="material-symbols-outlined text-[var(--kr-gov-blue)] mt-0.5">query_stats</span>
+                <div class="space-y-1">
+                    <h4 class="text-base font-bold text-blue-900">The administrator is currently reviewing your documents.</h4>
+                    <p class="text-sm text-blue-800 leading-relaxed">Your submitted information and supporting files are under review. This usually takes 3 to 5 business days.</p>
+                </div>
+            </div>
+            <div class="bg-emerald-50 border border-emerald-100 rounded-lg p-6 flex items-start gap-4" th:if="${result.insttSttus == 'P'}">
+                <span class="material-symbols-outlined text-[var(--kr-gov-emerald)] mt-0.5">check_circle</span>
+                <div class="space-y-1">
+                    <h4 class="text-base font-bold text-emerald-900">Your membership application has been approved.</h4>
+                    <p class="text-sm text-emerald-800 leading-relaxed">A notice has been sent to the email address used during registration.</p>
+                </div>
+            </div>
+            <div class="bg-red-50 border border-red-100 rounded-lg p-6 flex flex-col gap-4" th:if="${result.insttSttus == 'R'}">
+                <div class="flex items-start gap-4">
+                    <span class="material-symbols-outlined text-red-600 mt-0.5">error</span>
+                    <div class="space-y-1">
+                        <h4 class="text-base font-bold text-red-900">Your membership application was rejected.</h4>
+                        <p class="text-sm text-red-800 leading-relaxed">Please review the rejection reason below and submit a corrected application if needed.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-red-50 border border-red-100 rounded-lg p-6 flex items-start gap-4" th:if="${result.insttSttus == 'X'}">
+                <span class="material-symbols-outlined text-red-600 mt-0.5">block</span>
+                <div class="space-y-1">
+                    <h4 class="text-base font-bold text-red-900">Membership access has been blocked.</h4>
+                    <p class="text-sm text-red-800 leading-relaxed">Resubmission is not available. Please contact the administrator.</p>
+                </div>
+            </div>
+
+            <div class="border border-red-200 rounded-lg overflow-hidden bg-white mt-4" th:if="${result.rjctRsn != null and result.rjctRsn != ''}">
+                <div class="bg-red-50 px-6 py-3 border-b border-red-100">
+                    <h5 class="text-sm font-bold text-red-900 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-sm">speaker_notes</span>
+                        Rejection Reason
+                    </h5>
+                </div>
+                <div class="p-6">
+                    <p class="text-base text-[var(--kr-gov-text-primary)] leading-relaxed" th:text="${result.rjctRsn}">Reason</p>
+                    <p class="mt-4 text-xs text-[var(--kr-gov-text-secondary)]">Handled by CCUS Integrated Management Division
+                        <span th:if="${result.rjctPnttm != null}" th:text="'(' + ${result.rjctPnttm} + ')'">(2026.00.00)</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div th:if="${result != null}" class="bg-white border border-gray-200 rounded-xl shadow-sm p-8 mb-12">
+            <h3 class="text-lg font-bold text-[var(--kr-gov-text-primary)] mb-6 flex items-center gap-2">
+                <span class="material-symbols-outlined text-[var(--kr-gov-text-secondary)]">description</span>
+                Attached Documents
+            </h3>
+            <ul class="divide-y divide-gray-100 border border-gray-100 rounded-lg overflow-hidden">
+                <li th:each="file : ${insttFiles}" class="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-gray-400">attach_file</span>
+                        <span class="text-sm font-medium text-[var(--kr-gov-text-primary)]" th:text="${#strings.isEmpty(file.orignlFileNm) ? file.streFileNm : file.orignlFileNm}">file.pdf</span>
+                    </div>
+                    <button type="button" th:data-fileid="${file.fileId}"
+                        onclick="location.href='/join/downloadInsttFile?fileId=' + encodeURIComponent(this.getAttribute('data-fileid'))"
+                        class="flex items-center gap-1 text-[var(--kr-gov-blue)] font-bold text-xs hover:underline">
+                        <span class="material-symbols-outlined text-[18px]">download</span>
+                        Download
+                    </button>
+                </li>
+                <li th:if="${insttFiles == null or #lists.isEmpty(insttFiles)}" class="p-4 text-center text-gray-400 text-sm">
+                    No attached documents.
+                </li>
+            </ul>
+        </div>
+
+        <div class="flex items-center justify-center gap-4">
+            <button type="button" onclick="history.back()"
+                class="px-8 h-14 border border-[var(--kr-gov-border-light)] text-[var(--kr-gov-text-primary)] font-bold rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2">
+                <span class="material-symbols-outlined">arrow_back</span>
+                Back
+            </button>
+            <a href="/en/home" class="px-8 h-14 bg-[var(--kr-gov-blue)] text-white font-bold rounded-lg hover:bg-[var(--kr-gov-blue-hover)] transition-colors flex items-center gap-2">
+                <span class="material-symbols-outlined">home</span>
+                Go to Home
+            </a>
+        </div>
+    </main>
+    <div id="shared-footer" th:replace="egovframework/com/common/fragments/footer_en :: footer"></div>
+    <script>
+        (function syncHeaderLinks() {
+            const ko = document.getElementById('langKoBtn');
+            const en = document.getElementById('langEnBtn');
+            const mobileKo = document.getElementById('mobileLangKoBtn');
+            const mobileEn = document.getElementById('mobileLangEnBtn');
+            if (ko) ko.href = '/join/companyJoinStatusSearch';
+            if (en) en.href = '/join/en/companyJoinStatusSearch';
+            if (mobileKo) mobileKo.href = '/join/companyJoinStatusSearch';
+            if (mobileEn) mobileEn.href = '/join/en/companyJoinStatusSearch';
+        })();
+    </script>
+    <script src="/js/accessibility.js" defer></script>
+</body>
+</html>
