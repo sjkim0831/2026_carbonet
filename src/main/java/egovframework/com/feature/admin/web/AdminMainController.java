@@ -4905,6 +4905,10 @@ public class AdminMainController {
                 isEn ? "Operation Admin" : "운영 관리자",
                 isEn ? "Operational processing across service domains" : "서비스 운영 전반 처리 권한",
                 existingCodes));
+        generalRoles.add(recommendedRole("ROLE_COMPANY_ADMIN",
+                isEn ? "Company Admin" : "회원사 관리자",
+                isEn ? "Company-scoped authority management for one institution" : "단일 회원사 범위의 권한/회원 운영 기준 롤",
+                existingCodes));
         generalRoles.add(recommendedRole("ROLE_CS_ADMIN",
                 isEn ? "CS Admin" : "CS 관리자",
                 isEn ? "Customer support and member response authority" : "고객 지원 및 회원 응대 권한",
@@ -4924,6 +4928,26 @@ public class AdminMainController {
         departmentRoles.add(recommendedRole("ROLE_DEPT_CS",
                 isEn ? "Department CS" : "부서 CS 기본권한",
                 isEn ? "Default department-level customer support baseline" : "CS부서 기본 권한 베이스라인",
+                existingCodes));
+        departmentRoles.add(recommendedRole("ROLE_DEPT_SUSTAINABILITY",
+                isEn ? "Department Sustainability" : "부서 탄소/ESG 기본권한",
+                isEn ? "Baseline role for carbon, ESG, and sustainability departments" : "탄소/ESG/지속가능경영 부서 기준 권한",
+                existingCodes));
+        departmentRoles.add(recommendedRole("ROLE_DEPT_PRODUCTION",
+                isEn ? "Department Production" : "부서 생산 기본권한",
+                isEn ? "Baseline role for production and manufacturing departments" : "생산/공정 부서 기준 권한",
+                existingCodes));
+        departmentRoles.add(recommendedRole("ROLE_DEPT_PROCUREMENT",
+                isEn ? "Department Procurement" : "부서 구매 기본권한",
+                isEn ? "Baseline role for procurement and SCM departments" : "구매/SCM 부서 기준 권한",
+                existingCodes));
+        departmentRoles.add(recommendedRole("ROLE_DEPT_QUALITY",
+                isEn ? "Department Quality" : "부서 품질 기본권한",
+                isEn ? "Baseline role for quality, certification, and audit departments" : "품질/인증/심사 부서 기준 권한",
+                existingCodes));
+        departmentRoles.add(recommendedRole("ROLE_DEPT_SALES",
+                isEn ? "Department Sales" : "부서 영업 기본권한",
+                isEn ? "Baseline role for sales and account management departments" : "영업/고객사 관리 부서 기준 권한",
                 existingCodes));
         sections.add(recommendedRoleSection(
                 "DEPARTMENT",
@@ -5048,11 +5072,15 @@ public class AdminMainController {
             Map<String, String> row = new java.util.LinkedHashMap<>();
             String deptName = safeString(mapping.getDeptNm());
             String mappedAuthorCode = safeString(mapping.getAuthorCode());
-            row.put("cmpnyNm", safeString(mapping.getCmpnyNm()));
-            row.put("insttId", safeString(mapping.getInsttId()));
+            String companyName = safeString(mapping.getCmpnyNm());
+            String insttId = safeString(mapping.getInsttId());
+            row.put("cmpnyNm", companyName);
+            row.put("insttId", insttId);
             row.put("deptNm", deptName.isEmpty() ? (isEn ? "Unassigned" : "미지정") : deptName);
             row.put("memberCount", String.valueOf(mapping.getMemberCount()));
-            String recommendedRoleCode = mappedAuthorCode.isEmpty() ? resolveDepartmentRoleCode(deptName) : mappedAuthorCode;
+            String recommendedRoleCode = mappedAuthorCode.isEmpty()
+                    ? resolveDepartmentRoleCode(insttId, companyName, deptName)
+                    : mappedAuthorCode;
             row.put("recommendedRoleCode", recommendedRoleCode);
             row.put("recommendedRoleName",
                     safeString(mapping.getAuthorNm()).isEmpty()
@@ -5060,7 +5088,7 @@ public class AdminMainController {
                             : safeString(mapping.getAuthorNm()));
             row.put("status",
                     mappedAuthorCode.isEmpty()
-                            ? ("ROLE_DEPT_UNKNOWN".equals(recommendedRoleCode) ? "review" : "ready")
+                            ? (isUnknownDepartmentRole(recommendedRoleCode) ? "review" : "ready")
                             : "mapped");
             rows.add(row);
         }
@@ -5097,7 +5125,7 @@ public class AdminMainController {
             summary.put("code", roleCode);
             summary.put("name", safeString(row.get("recommendedRoleName")));
             summary.put("description", resolveDepartmentRoleDescription(roleCode, isEn));
-            summary.put("status", "ROLE_DEPT_UNKNOWN".equals(roleCode) ? "missing" : "existing");
+            summary.put("status", isUnknownDepartmentRole(roleCode) ? "missing" : "existing");
             dedup.put(roleCode, summary);
         }
         return new ArrayList<>(dedup.values());
@@ -5155,10 +5183,10 @@ public class AdminMainController {
     private boolean isCompanyScopedAuthorCode(String authorCode, String roleCategory) {
         String normalizedCode = safeString(authorCode).toUpperCase(Locale.ROOT);
         if ("DEPARTMENT".equals(roleCategory)) {
-            return normalizedCode.startsWith("ROLE_DEPT_COMPANY_");
+            return normalizedCode.startsWith("ROLE_DEPT_I");
         }
         if ("USER".equals(roleCategory)) {
-            return normalizedCode.startsWith("ROLE_USER_COMPANY_");
+            return normalizedCode.startsWith("ROLE_USER_I");
         }
         return false;
     }
@@ -5191,16 +5219,24 @@ public class AdminMainController {
             return "";
         }
         if ("DEPARTMENT".equals(roleCategory)) {
-            return "ROLE_DEPT_COMPANY_" + token + "_";
+            return "ROLE_DEPT_I" + shortenInsttScopeToken(token) + "_";
         }
         if ("USER".equals(roleCategory)) {
-            return "ROLE_USER_COMPANY_" + token + "_";
+            return "ROLE_USER_I" + shortenInsttScopeToken(token) + "_";
         }
         return "";
     }
 
     private String normalizeInsttScopeToken(String insttId) {
         return safeString(insttId).toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]", "");
+    }
+
+    private String shortenInsttScopeToken(String normalizedToken) {
+        String token = safeString(normalizedToken);
+        if (token.length() <= 8) {
+            return token;
+        }
+        return token.substring(token.length() - 8);
     }
 
     private String resolveSelectedInsttId(String insttId, List<Map<String, String>> companyOptions) {
@@ -5338,35 +5374,134 @@ public class AdminMainController {
         }
     }
 
-    private String resolveDepartmentRoleCode(String deptName) {
-        String normalized = safeString(deptName).toUpperCase(Locale.ROOT);
-        if (normalized.contains("CS") || normalized.contains("고객") || normalized.contains("문의")) {
-            return "ROLE_DEPT_CS";
+    private String resolveDepartmentRoleCode(String insttId, String companyName, String deptName) {
+        String departmentRoleType = resolveDepartmentRoleTypeFromDeptName(companyName, deptName);
+        if ("UNKNOWN".equals(departmentRoleType)) {
+            return "ROLE_DEPT_UNKNOWN";
         }
-        if (normalized.contains("운영") || normalized.contains("기술") || normalized.contains("서비스")) {
-            return "ROLE_DEPT_OPERATION";
+        String scopedPrefix = buildScopedAuthorPrefix("DEPARTMENT", insttId);
+        if (!scopedPrefix.isEmpty()) {
+            return scopedPrefix + departmentRoleType;
         }
-        return "ROLE_DEPT_UNKNOWN";
+        return "ROLE_DEPT_" + departmentRoleType;
     }
 
     private String resolveDepartmentRoleName(String roleCode, boolean isEn) {
-        if ("ROLE_DEPT_CS".equals(roleCode)) {
+        String roleType = resolveDepartmentRoleType(roleCode);
+        if ("CS".equals(roleType)) {
             return isEn ? "Department CS baseline" : "부서 CS 기본권한";
         }
-        if ("ROLE_DEPT_OPERATION".equals(roleCode)) {
+        if ("OPS".equals(roleType) || "OPERATION".equals(roleType)) {
             return isEn ? "Department operation baseline" : "부서 운영 기본권한";
+        }
+        if ("ESG".equals(roleType) || "SUSTAINABILITY".equals(roleType)) {
+            return isEn ? "Department sustainability baseline" : "부서 탄소/ESG 기본권한";
+        }
+        if ("PROD".equals(roleType) || "PRODUCTION".equals(roleType)) {
+            return isEn ? "Department production baseline" : "부서 생산 기본권한";
+        }
+        if ("PROC".equals(roleType) || "PROCUREMENT".equals(roleType)) {
+            return isEn ? "Department procurement baseline" : "부서 구매 기본권한";
+        }
+        if ("QUAL".equals(roleType) || "QUALITY".equals(roleType)) {
+            return isEn ? "Department quality baseline" : "부서 품질 기본권한";
+        }
+        if ("SALE".equals(roleType) || "SALES".equals(roleType)) {
+            return isEn ? "Department sales baseline" : "부서 영업 기본권한";
+        }
+        if ("MGMT".equals(roleType) || "MANAGEMENT".equals(roleType)) {
+            return isEn ? "Department management baseline" : "부서 경영지원 기본권한";
         }
         return isEn ? "Needs review" : "검토 필요";
     }
 
     private String resolveDepartmentRoleDescription(String roleCode, boolean isEn) {
-        if ("ROLE_DEPT_CS".equals(roleCode)) {
+        String roleType = resolveDepartmentRoleType(roleCode);
+        if ("CS".equals(roleType)) {
             return isEn ? "Baseline authority for customer support departments." : "CS부서 기본 권한 베이스라인";
         }
-        if ("ROLE_DEPT_OPERATION".equals(roleCode)) {
-            return isEn ? "Baseline authority for operations and technical departments." : "운영부서 기본 권한 베이스라인";
+        if ("OPS".equals(roleType) || "OPERATION".equals(roleType)) {
+            return isEn ? "Baseline authority for operations and technical departments." : "운영/기술 부서 기본 권한 베이스라인";
+        }
+        if ("ESG".equals(roleType) || "SUSTAINABILITY".equals(roleType)) {
+            return isEn ? "Baseline authority for carbon, ESG, and sustainability departments." : "탄소/ESG/지속가능경영 부서 기본 권한 베이스라인";
+        }
+        if ("PROD".equals(roleType) || "PRODUCTION".equals(roleType)) {
+            return isEn ? "Baseline authority for production and manufacturing departments." : "생산/공정 부서 기본 권한 베이스라인";
+        }
+        if ("PROC".equals(roleType) || "PROCUREMENT".equals(roleType)) {
+            return isEn ? "Baseline authority for procurement and SCM departments." : "구매/SCM 부서 기본 권한 베이스라인";
+        }
+        if ("QUAL".equals(roleType) || "QUALITY".equals(roleType)) {
+            return isEn ? "Baseline authority for quality, certification, and audit departments." : "품질/인증/심사 부서 기본 권한 베이스라인";
+        }
+        if ("SALE".equals(roleType) || "SALES".equals(roleType)) {
+            return isEn ? "Baseline authority for sales and account management departments." : "영업/고객사 관리 부서 기본 권한 베이스라인";
+        }
+        if ("MGMT".equals(roleType) || "MANAGEMENT".equals(roleType)) {
+            return isEn ? "Baseline authority for management support, finance, and HR departments." : "경영지원/재무/인사 부서 기본 권한 베이스라인";
         }
         return isEn ? "Department role needs review." : "회사/부서 기준 검토가 필요한 권한입니다.";
+    }
+
+    private String resolveDepartmentRoleTypeFromDeptName(String companyName, String deptName) {
+        String searchText = (safeString(companyName) + " " + safeString(deptName)).toUpperCase(Locale.ROOT);
+        if (containsAny(searchText, "탄소", "ESG", "환경", "지속가능", "NETZERO", "SUSTAIN")) {
+            return "ESG";
+        }
+        if (containsAny(searchText, "생산", "제조", "공정", "설비", "PLANT", "PRODUCTION", "MANUFACTUR", "FACTORY")) {
+            return "PROD";
+        }
+        if (containsAny(searchText, "구매", "자재", "조달", "SCM", "PROCUREMENT", "PURCHASE", "MATERIAL")) {
+            return "PROC";
+        }
+        if (containsAny(searchText, "품질", "QA", "QC", "인증", "심사", "QUALITY", "AUDIT", "CERT")) {
+            return "QUAL";
+        }
+        if (containsAny(searchText, "영업", "마케팅", "사업", "SALES", "ACCOUNT", "BIZDEV", "BUSINESS")) {
+            return "SALE";
+        }
+        if (containsAny(searchText, "고객", "문의", "CS", "VOC", "SUPPORT", "HELPDESK")) {
+            return "CS";
+        }
+        if (containsAny(searchText, "운영", "기술", "개발", "IT", "시스템", "플랫폼", "INFRA", "DEVOPS", "ENGINEER")) {
+            return "OPS";
+        }
+        if (containsAny(searchText, "경영", "지원", "재무", "회계", "인사", "총무", "HR", "FINANCE", "ACCOUNTING", "MANAGEMENT")) {
+            return "MGMT";
+        }
+        return "UNKNOWN";
+    }
+
+    private String resolveDepartmentRoleType(String roleCode) {
+        String normalizedRoleCode = safeString(roleCode).toUpperCase(Locale.ROOT);
+        if (normalizedRoleCode.startsWith("ROLE_DEPT_I")) {
+            int lastUnderscore = normalizedRoleCode.lastIndexOf('_');
+            if (lastUnderscore > "ROLE_DEPT_I".length()) {
+                return normalizedRoleCode.substring(lastUnderscore + 1);
+            }
+        }
+        if (normalizedRoleCode.startsWith("ROLE_DEPT_")) {
+            return normalizedRoleCode.substring("ROLE_DEPT_".length());
+        }
+        return "UNKNOWN";
+    }
+
+    private boolean isUnknownDepartmentRole(String roleCode) {
+        return "UNKNOWN".equals(resolveDepartmentRoleType(roleCode));
+    }
+
+    private boolean containsAny(String source, String... keywords) {
+        if (source == null || source.isEmpty() || keywords == null) {
+            return false;
+        }
+        for (String keyword : keywords) {
+            String normalizedKeyword = safeString(keyword).toUpperCase(Locale.ROOT);
+            if (!normalizedKeyword.isEmpty() && source.contains(normalizedKeyword)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private Map<String, String> roleCategoryOption(String code, String name) {

@@ -95,9 +95,14 @@ export function DeptRoleMappingMigrationPage() {
           {page?.deptRoleError || error}
         </section>
       ) : null}
-      {(message || page?.deptRoleMessage) ? (
+      {page?.deptRoleUpdated || message ? (
         <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-          {message || page?.deptRoleMessage}
+          {message || (page?.deptRoleTargetInsttId ? `${page.deptRoleTargetInsttId} 부서 권한 맵핑이 저장되었습니다.` : "부서 권한 맵핑이 저장되었습니다.")}
+        </section>
+      ) : null}
+      {page?.deptRoleMessage && !message ? (
+        <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          {page.deptRoleMessage}
         </section>
       ) : null}
 
@@ -109,12 +114,12 @@ export function DeptRoleMappingMigrationPage() {
           </section>
         }
       >
-        <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm mb-6" data-help-id="dept-role-company">
+        <section className="gov-card" data-help-id="dept-role-company">
           <div className="flex items-center gap-2 border-b pb-4 mb-4">
             <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">account_tree</span>
             <h3 className="text-lg font-bold">선택 회사의 부서 권한 목록</h3>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="mb-4 flex flex-wrap items-center gap-3">
             <label className="text-sm font-bold text-[var(--kr-gov-text-secondary)]">회사명</label>
             <select
               className="max-w-md w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
@@ -129,130 +134,136 @@ export function DeptRoleMappingMigrationPage() {
               ))}
             </select>
           </div>
-        </section>
-
-        <section className="mb-6 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] overflow-hidden" data-help-id="dept-role-departments">
-          <div className="flex items-center justify-between gap-3 bg-gray-50 border-b border-[var(--kr-gov-border-light)] px-4 py-4">
-            <h4 className="font-black">선택 회사 부서 기본 권한</h4>
-            <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-white text-[var(--kr-gov-text-secondary)]">
-              {page?.mappingCount ?? 0}개 부서
-            </span>
+          <div className="mb-6 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] overflow-hidden" data-help-id="dept-role-departments">
+            <div className="flex items-center justify-between gap-3 bg-gray-50 border-b border-[var(--kr-gov-border-light)] px-4 py-4">
+              <h4 className="font-black">선택 회사 부서 기본 권한</h4>
+              <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-white text-[var(--kr-gov-text-secondary)]">
+                {page?.mappingCount ?? 0}개 부서
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left border-collapse">
+                <thead>
+                  <tr className="bg-gray-50 border-y border-[var(--kr-gov-border-light)] text-[13px] font-bold text-[var(--kr-gov-text-secondary)]">
+                    <th className="px-4 py-3">회사</th>
+                    <th className="px-4 py-3">부서명</th>
+                    <th className="px-4 py-3">권장 Role</th>
+                    <th className="px-4 py-3">권한 수정</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {(page?.departmentMappings || []).map((row) => {
+                    const key = `${row.insttId}:${row.deptNm}`;
+                    return (
+                      <tr key={key}>
+                        <td className="px-4 py-3">{row.cmpnyNm}</td>
+                        <td className="px-4 py-3">{row.deptNm}</td>
+                        <td className="px-4 py-3">
+                          <div className="font-semibold">{row.recommendedRoleName || row.authorNm || "-"}</div>
+                          <div className="text-xs text-[var(--kr-gov-text-secondary)]">{row.authorCode || "-"}</div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <select
+                              className="min-w-[16rem] border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
+                              disabled={!canUseAllCompanies && !canUseOwnCompany}
+                              value={deptDrafts[key] || ""}
+                              onChange={(e) =>
+                                setDeptDrafts((current) => ({ ...current, [key]: e.target.value }))
+                              }
+                            >
+                              {(page?.departmentAuthorGroups || []).map((group) => (
+                                <option key={group.authorCode} value={group.authorCode}>
+                                  {group.authorNm} ({group.authorCode})
+                                </option>
+                              ))}
+                            </select>
+                            <PermissionButton
+                              allowed={canUseAllCompanies || canUseOwnCompany}
+                              className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-[var(--kr-gov-blue)] text-white"
+                              onClick={() => handleDeptSave(row)}
+                              reason="전체 회사 또는 자기 회사 관리 권한이 있어야 부서 기본 Role을 저장할 수 있습니다."
+                              type="button"
+                            >
+                              저장
+                            </PermissionButton>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50 border-y border-[var(--kr-gov-border-light)] text-[13px] font-bold text-[var(--kr-gov-text-secondary)]">
-                  <th className="px-4 py-3">회사</th>
-                  <th className="px-4 py-3">부서명</th>
-                  <th className="px-4 py-3">권장 Role</th>
-                  <th className="px-4 py-3">권한 수정</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {(page?.departmentMappings || []).map((row) => {
-                  const key = `${row.insttId}:${row.deptNm}`;
-                  return (
-                    <tr key={key}>
-                      <td className="px-4 py-3">{row.cmpnyNm}</td>
-                      <td className="px-4 py-3">{row.deptNm}</td>
-                      <td className="px-4 py-3">
-                        <div className="font-semibold">{row.recommendedRoleName || row.authorNm || "-"}</div>
-                        <div className="text-xs text-[var(--kr-gov-text-secondary)]">{row.authorCode || "-"}</div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <select
-                            className="min-w-[16rem] border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
-                            disabled={!canUseAllCompanies && !canUseOwnCompany}
-                            value={deptDrafts[key] || ""}
-                            onChange={(e) =>
-                              setDeptDrafts((current) => ({ ...current, [key]: e.target.value }))
-                            }
-                          >
-                            {(page?.departmentAuthorGroups || []).map((group) => (
-                              <option key={group.authorCode} value={group.authorCode}>
-                                {group.authorNm} ({group.authorCode})
-                              </option>
-                            ))}
-                          </select>
-                          <PermissionButton
-                            allowed={canUseAllCompanies || canUseOwnCompany}
-                            className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-[var(--kr-gov-blue)] text-white"
-                            onClick={() => handleDeptSave(row)}
-                            reason="전체 회사 또는 자기 회사 관리 권한이 있어야 부서 기본 Role을 저장할 수 있습니다."
-                            type="button"
-                          >
-                            저장
-                          </PermissionButton>
-                        </div>
+          <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] overflow-hidden" data-help-id="dept-role-members">
+            <div className="flex items-center justify-between gap-3 bg-gray-50 border-b border-[var(--kr-gov-border-light)] px-4 py-4">
+              <h4 className="font-black">선택 회사 회원 권한 목록</h4>
+              <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-white text-[var(--kr-gov-text-secondary)]">
+                {page?.companyMemberCount ?? 0}명
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left border-collapse">
+                <thead>
+                  <tr className="bg-gray-50 border-y border-[var(--kr-gov-border-light)] text-[13px] font-bold text-[var(--kr-gov-text-secondary)]">
+                    <th className="px-4 py-3">회원 ID</th>
+                    <th className="px-4 py-3">이름</th>
+                    <th className="px-4 py-3">부서명</th>
+                    <th className="px-4 py-3">현재 권한</th>
+                    <th className="px-4 py-3">권한 수정</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {(page?.companyMembers || []).length === 0 ? (
+                    <tr>
+                      <td className="px-4 py-6 text-center text-[var(--kr-gov-text-secondary)]" colSpan={5}>
+                        선택한 회사의 회원이 없습니다.
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] overflow-hidden" data-help-id="dept-role-members">
-          <div className="flex items-center justify-between gap-3 bg-gray-50 border-b border-[var(--kr-gov-border-light)] px-4 py-4">
-            <h4 className="font-black">선택 회사 회원 권한 목록</h4>
-            <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-white text-[var(--kr-gov-text-secondary)]">
-              {page?.companyMemberCount ?? 0}명
-            </span>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50 border-y border-[var(--kr-gov-border-light)] text-[13px] font-bold text-[var(--kr-gov-text-secondary)]">
-                  <th className="px-4 py-3">회원 ID</th>
-                  <th className="px-4 py-3">이름</th>
-                  <th className="px-4 py-3">부서명</th>
-                  <th className="px-4 py-3">현재 권한</th>
-                  <th className="px-4 py-3">권한 수정</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {(page?.companyMembers || []).map((row) => (
-                  <tr key={row.userId}>
-                    <td className="px-4 py-3 font-semibold">{row.userId}</td>
-                    <td className="px-4 py-3">{row.userNm}</td>
-                    <td className="px-4 py-3">{row.deptNm || "미지정"}</td>
-                    <td className="px-4 py-3">
-                      <div className="font-semibold">{row.authorNm || "권한 미지정"}</div>
-                      <div className="text-xs text-[var(--kr-gov-text-secondary)]">{row.authorCode || "-"}</div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <select
-                          className="min-w-[16rem] border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
-                          disabled={!canUseAllCompanies && !canUseOwnCompany}
-                          value={memberDrafts[row.userId] || ""}
-                          onChange={(e) =>
-                            setMemberDrafts((current) => ({ ...current, [row.userId]: e.target.value }))
-                          }
-                        >
-                          {(page?.memberAssignableAuthorGroups || []).map((group) => (
-                            <option key={group.authorCode} value={group.authorCode}>
-                              {group.authorNm} ({group.authorCode})
-                            </option>
-                          ))}
-                        </select>
-                        <PermissionButton
-                          allowed={canUseAllCompanies || canUseOwnCompany}
-                          className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-[var(--kr-gov-blue)] text-white"
-                          onClick={() => handleMemberSave(row.userId)}
-                          reason="전체 회사 또는 자기 회사 관리 권한이 있어야 회원 권한을 저장할 수 있습니다."
-                          type="button"
-                        >
-                          저장
-                        </PermissionButton>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                  ) : (
+                    (page?.companyMembers || []).map((row) => (
+                      <tr key={row.userId}>
+                        <td className="px-4 py-3 font-semibold">{row.userId}</td>
+                        <td className="px-4 py-3">{row.userNm}</td>
+                        <td className="px-4 py-3">{row.deptNm || "미지정"}</td>
+                        <td className="px-4 py-3">
+                          <div className="font-semibold">{row.authorNm || "권한 미지정"}</div>
+                          <div className="text-xs text-[var(--kr-gov-text-secondary)]">{row.authorCode || "-"}</div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <select
+                              className="min-w-[16rem] border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
+                              disabled={!canUseAllCompanies && !canUseOwnCompany}
+                              value={memberDrafts[row.userId] || ""}
+                              onChange={(e) =>
+                                setMemberDrafts((current) => ({ ...current, [row.userId]: e.target.value }))
+                              }
+                            >
+                              {(page?.memberAssignableAuthorGroups || []).map((group) => (
+                                <option key={group.authorCode} value={group.authorCode}>
+                                  {group.authorNm} ({group.authorCode})
+                                </option>
+                              ))}
+                            </select>
+                            <PermissionButton
+                              allowed={canUseAllCompanies || canUseOwnCompany}
+                              className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-[var(--kr-gov-blue)] text-white"
+                              onClick={() => handleMemberSave(row.userId)}
+                              reason="전체 회사 또는 자기 회사 관리 권한이 있어야 회원 권한을 저장할 수 있습니다."
+                              type="button"
+                            >
+                              저장
+                            </PermissionButton>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
       </CanView>
