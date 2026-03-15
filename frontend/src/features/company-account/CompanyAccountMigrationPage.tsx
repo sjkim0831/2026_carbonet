@@ -232,7 +232,7 @@ export function CompanyAccountMigrationPage() {
                   <label className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2">기관/기업명 <span className="text-red-500">*</span></label>
                   <div className="flex gap-2">
                     <input className="w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!page?.canUseCompanyAccountSave} value={form.agencyName} onChange={(e) => updateField("agencyName", e.target.value)} />
-                    <button className="rounded-[var(--kr-gov-radius)] bg-gray-800 px-4 text-sm font-bold text-white" disabled type="button">중복확인</button>
+                    <button className="h-12 shrink-0 rounded-[var(--kr-gov-radius)] bg-gray-800 px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-600" disabled type="button">중복확인</button>
                   </div>
                 </div>
                 <label>
@@ -319,12 +319,14 @@ export function CompanyAccountMigrationPage() {
               </div>
             </section>
 
-            <div className="flex flex-col gap-4 border-t border-gray-100 pt-8 md:flex-row" data-help-id="company-account-actions">
+            <div className="flex flex-col gap-4 border-t border-gray-100 pt-8 md:flex-row md:items-stretch" data-help-id="company-account-actions">
               <a className="flex h-14 flex-1 items-center justify-center rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] text-lg font-bold text-[var(--kr-gov-text-primary)] hover:bg-gray-50" href={buildLocalizedPath("/admin/member/company_list", "/en/admin/member/company_list")}>목록</a>
-              <PermissionButton allowed={!!page?.canUseCompanyAccountSave} className="flex h-14 flex-[2] items-center justify-center gap-2 rounded-[var(--kr-gov-radius)] bg-[var(--kr-gov-blue)] text-lg font-bold text-white shadow-lg transition-colors hover:bg-[var(--kr-gov-blue-hover)]" data-action="save" onClick={handleSave} reason="전체 관리자만 회원사 정보를 저장할 수 있습니다." type="button">
-                <span>{page?.isEditMode ? "회원사 수정 저장" : "회원사 저장"}</span>
-                <span className="material-symbols-outlined">arrow_forward</span>
-              </PermissionButton>
+              <div className="flex-1 md:flex-[2]">
+                <PermissionButton allowed={!!page?.canUseCompanyAccountSave} className="flex h-14 w-full items-center justify-center gap-2 rounded-[var(--kr-gov-radius)] bg-[var(--kr-gov-blue)] px-6 text-lg font-bold text-white shadow-lg transition-colors hover:bg-[var(--kr-gov-blue-hover)] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 disabled:shadow-none" data-action="save" onClick={handleSave} reason="전체 관리자만 회원사 정보를 저장할 수 있습니다." type="button">
+                  <span>{page?.isEditMode ? "회원사 수정 저장" : "회원사 저장"}</span>
+                  <span className="material-symbols-outlined">arrow_forward</span>
+                </PermissionButton>
+              </div>
             </div>
           </div>
         </div>

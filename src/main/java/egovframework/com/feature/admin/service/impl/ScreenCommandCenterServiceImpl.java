@@ -2917,10 +2917,10 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
 
     private String resolveMenuLookupUrl(String pageId, String routePath) {
         if (routePath.startsWith("/admin/")) {
-            return "/admin/react-migration?route=" + pageId;
+            return routePath;
         }
         if (routePath.startsWith("/en/admin/")) {
-            return "/en/admin/react-migration?route=" + pageId;
+            return routePath;
         }
         return routePath;
     }

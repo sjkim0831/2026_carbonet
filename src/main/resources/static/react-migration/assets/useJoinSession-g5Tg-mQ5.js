@@ -1,1 +1,0 @@
-import{am as i}from"./client-DX4Nmj7w.js";import{u as r}from"./useAsyncValue-BzJNMvex.js";function u(n={}){const{enabled:o=!0,onSuccess:e}=n;return r(async()=>{const s=await i();if(!s)throw new Error("Join session is unavailable");return s},[],{enabled:o,onSuccess:e})}export{u};

@@ -19,9 +19,9 @@ spring:
     active: local
   datasource:
     driver-class-name: cubrid.jdbc.driver.CUBRIDDriver
-    url: jdbc:cubrid:${CUBRID_HOST:100.121.241.72}:33000:carbonet:::?charset=UTF-8
-    username: dba
-    password: ""
+    url: jdbc:cubrid:${CUBRID_HOST:100.121.241.72}:${CUBRID_PORT:33000}:${CUBRID_DB:carbonet}:::?charset=UTF-8
+    username: ${CUBRID_USER:dba}
+    password: ${CUBRID_PASSWORD:}
     hikari:
       maximum-pool-size: 20
       connection-timeout: 30000

@@ -75,8 +75,7 @@
                 <span class="material-symbols-outlined text-[var(--kr-gov-blue)]">account_tree</span>
                 <h3 class="text-lg font-bold">선택 회사의 부서 권한 목록</h3>
             </div>
-            <form class="mb-4 flex flex-wrap items-center gap-3" method="get" action="/admin/react-migration">
-                <input type="hidden" name="route" value="dept-role" />
+            <form class="mb-4 flex flex-wrap items-center gap-3" method="get" action="/admin/member/dept-role-mapping">
                 <label class="text-sm font-bold text-[var(--kr-gov-text-secondary)]" for="insttIdSelect">회사명</label>
                 <select class="gov-select max-w-md" id="insttIdSelect" name="insttId" onchange="this.form.submit()">
                     <option th:each="company : ${departmentCompanyOptions}"

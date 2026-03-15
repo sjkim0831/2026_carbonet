@@ -3320,6 +3320,7 @@ public class AdminMainController {
         String selectedAuthorCode = "";
         String selectedAuthorName = "";
         String authGroupError = "";
+        boolean featureCatalogDeferred = false;
         try {
             canViewGeneralAuthorityGroups = hasGeneralAuthorityGroupAccess(currentUserId, webmaster);
             if (!canViewGeneralAuthorityGroups && "GENERAL".equals(selectedRoleCategory)) {
@@ -3329,20 +3330,26 @@ public class AdminMainController {
                         : "일반 권한 그룹은 마스터 권한이 있을 때만 조회할 수 있습니다.";
             }
             authorGroups = authGroupManageService.selectAuthorList();
-            featureAssignmentCounts = toFeatureAssignmentCountMap(authGroupManageService.selectFeatureAssignmentStats());
-            Set<String> grantableFeatureCodes = resolveGrantableFeatureCodeSet(currentUserId, webmaster);
-            featureSections = filterFeatureCatalogSectionsByGrantable(
-                    buildFeatureCatalogSections(
-                            applyFeatureAssignmentStats(authGroupManageService.selectFeatureCatalog(), featureAssignmentCounts), isEn),
-                    grantableFeatureCodes);
             scopeContext = buildAuthGroupScopeContext(insttId, userSearchKeyword, selectedRoleCategory,
                     currentUserId, webmaster, authorGroups, isEn);
             filteredAuthorGroups = scopeContext.getReferenceAuthorGroups();
             selectedAuthorCode = resolveSelectedAuthorCode(authorCode, filteredAuthorGroups);
-            selectedFeatureCodes = selectedAuthorCode.isEmpty()
-                    ? Collections.emptyList()
-                    : filterFeatureCodesByGrantable(authGroupManageService.selectAuthorFeatureCodes(selectedAuthorCode),
-                    grantableFeatureCodes);
+            if (selectedAuthorCode.isEmpty()) {
+                featureAssignmentCounts = Collections.emptyMap();
+                featureSections = Collections.emptyList();
+                selectedFeatureCodes = Collections.emptyList();
+                featureCatalogDeferred = true;
+            } else {
+                featureAssignmentCounts = toFeatureAssignmentCountMap(authGroupManageService.selectFeatureAssignmentStats());
+                Set<String> grantableFeatureCodes = resolveGrantableFeatureCodeSet(currentUserId, webmaster);
+                featureSections = filterFeatureCatalogSectionsByGrantable(
+                        buildFeatureCatalogSections(
+                                applyFeatureAssignmentStats(authGroupManageService.selectFeatureCatalog(), featureAssignmentCounts), isEn),
+                        grantableFeatureCodes);
+                selectedFeatureCodes = filterFeatureCodesByGrantable(
+                        authGroupManageService.selectAuthorFeatureCodes(selectedAuthorCode),
+                        grantableFeatureCodes);
+            }
             selectedAuthorName = resolveSelectedAuthorName(selectedAuthorCode, filteredAuthorGroups);
             if (authGroupError.isEmpty()) {
                 authGroupError = safeString(scopeContext.getErrorMessage());
@@ -3358,6 +3365,7 @@ public class AdminMainController {
             authGroupError = isEn
                     ? "Failed to load permission groups and feature catalog."
                     : "권한 그룹 및 기능 목록을 불러오지 못했습니다.";
+            featureCatalogDeferred = false;
         }
 
         response.put("isEn", isEn);
@@ -3381,6 +3389,7 @@ public class AdminMainController {
         response.put("selectedAuthorCode", selectedAuthorCode);
         response.put("selectedAuthorName", selectedAuthorName);
         response.put("selectedFeatureCodes", selectedFeatureCodes);
+        response.put("featureCatalogDeferred", featureCatalogDeferred);
         response.put("canViewGeneralAuthorityGroups", canViewGeneralAuthorityGroups);
         response.put("canManageScopedAuthorityGroups", canManageScopedAuthorityGroups);
         response.put("authGroupBasePath", resolveAuthGroupBasePath(request, locale));
@@ -3746,7 +3755,6 @@ public class AdminMainController {
             List<AuthorInfoVO> allAuthorGroups = authGroupManageService.selectAuthorList();
             String currentUserInsttId = resolveCurrentUserInsttId(currentUserId);
             String scopedInsttId = globalDeptRoleAccess ? safeString(insttId) : currentUserInsttId;
-            authorGroups = filterAuthorGroupsByScope(allAuthorGroups, "DEPARTMENT", scopedInsttId, globalDeptRoleAccess);
             departmentRows = buildDepartmentRoleRows(mappings, isEn);
             companyOptions = buildDepartmentCompanyOptions(departmentRows);
             if (!globalDeptRoleAccess) {
@@ -3762,10 +3770,14 @@ public class AdminMainController {
                         .filter(row -> selectedInsttIdValue.equals(row.get("insttId")))
                         .collect(Collectors.toList());
             }
+            String authorScopeInsttId = !selectedInsttId.isEmpty() ? selectedInsttId : scopedInsttId;
+            authorGroups = filterScopedDepartmentAuthorGroups(
+                    filterAuthorGroupsByScope(allAuthorGroups, "DEPARTMENT", authorScopeInsttId, globalDeptRoleAccess),
+                    departmentRows);
             companyMembers = selectedInsttId.isEmpty()
                     ? Collections.emptyList()
                     : authGroupManageService.selectUserAuthorityTargets(selectedInsttId, null);
-            memberAssignableAuthorGroups = buildDeptMemberAssignableGroups(allAuthorGroups, scopedInsttId, globalDeptRoleAccess);
+            memberAssignableAuthorGroups = buildDeptMemberAssignableGroups(allAuthorGroups, authorScopeInsttId, globalDeptRoleAccess);
             companyMemberCount = companyMembers.size();
             mappingCount = departmentRows.size();
         } catch (Exception e) {

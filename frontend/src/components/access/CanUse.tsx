@@ -24,7 +24,9 @@ export function PermissionButton(props: PermissionButtonProps) {
   const { allowed, reason, children, ...buttonProps } = props;
   return (
     <CanUse allowed={allowed} reason={reason}>
-      <button {...buttonProps} disabled={!allowed || buttonProps.disabled} />
+      <button {...buttonProps} disabled={!allowed || buttonProps.disabled}>
+        {children}
+      </button>
     </CanUse>
   );
 }

@@ -444,6 +444,104 @@ function getPageComponent(route: MigrationPageId): ComponentType {
   }
 }
 
+function preloadPageModule(route: MigrationPageId) {
+  switch (route) {
+    case "admin-home":
+    case "admin-login":
+      return import("./features/admin-entry/AdminEntryPages");
+    case "auth-group":
+      return import("./features/auth-groups/AuthGroupMigrationPage");
+    case "auth-change":
+      return import("./features/auth-change/AuthChangeMigrationPage");
+    case "dept-role":
+      return import("./features/dept-role-mapping/DeptRoleMappingMigrationPage");
+    case "member-edit":
+      return import("./features/member-edit/MemberEditMigrationPage");
+    case "password-reset":
+      return import("./features/password-reset/PasswordResetMigrationPage");
+    case "admin-permission":
+      return import("./features/admin-permissions/AdminPermissionMigrationPage");
+    case "admin-create":
+      return import("./features/admin-account-create/AdminAccountCreateMigrationPage");
+    case "company-account":
+      return import("./features/company-account/CompanyAccountMigrationPage");
+    case "admin-list":
+      return import("./features/admin-list/AdminListMigrationPage");
+    case "company-list":
+      return import("./features/company-list/CompanyListMigrationPage");
+    case "member-approve":
+      return import("./features/member-approve/MemberApproveMigrationPage");
+    case "company-approve":
+      return import("./features/company-approve/CompanyApproveMigrationPage");
+    case "member-list":
+      return import("./features/member-list/MemberListMigrationPage");
+    case "member-detail":
+      return import("./features/member-detail/MemberDetailMigrationPage");
+    case "company-detail":
+      return import("./features/company-detail/CompanyDetailMigrationPage");
+    case "member-stats":
+      return import("./features/member-stats/MemberStatsMigrationPage");
+    case "member-register":
+      return import("./features/member-register/MemberRegisterMigrationPage");
+    case "emission-result-list":
+      return import("./features/emission-result-list/EmissionResultListMigrationPage");
+    case "system-code":
+      return import("./features/system-code/SystemCodeMigrationPage");
+    case "page-management":
+      return import("./features/page-management/PageManagementMigrationPage");
+    case "function-management":
+      return import("./features/function-management/FunctionManagementMigrationPage");
+    case "menu-management":
+      return import("./features/menu-management/MenuManagementMigrationPage");
+    case "full-stack-management":
+      return import("./features/menu-management/FullStackManagementMigrationPage");
+    case "platform-studio":
+    case "screen-elements-management":
+    case "event-management-console":
+    case "function-management-console":
+    case "api-management-console":
+    case "controller-management-console":
+    case "db-table-management":
+    case "column-management-console":
+    case "automation-studio":
+      return import("./features/platform-studio/PlatformStudioMigrationPage");
+    case "ip-whitelist":
+      return import("./features/ip-whitelist/IpWhitelistMigrationPage");
+    case "login-history":
+      return import("./features/login-history/LoginHistoryMigrationPage");
+    case "security-history":
+      return import("./features/security-history/SecurityHistoryMigrationPage");
+    case "security-policy":
+      return import("./features/security-policy/SecurityPolicyMigrationPage");
+    case "security-monitoring":
+      return import("./features/security-monitoring/SecurityMonitoringMigrationPage");
+    case "blocklist":
+      return import("./features/blocklist/BlocklistMigrationPage");
+    case "security-audit":
+      return import("./features/security-audit/SecurityAuditMigrationPage");
+    case "scheduler-management":
+      return import("./features/scheduler-management/SchedulerManagementMigrationPage");
+    default:
+      return Promise.resolve();
+  }
+}
+
+function resolvePageFromPath(pathname: string, search = ""): MigrationPageId {
+  const normalizedCurrentPath = normalizeComparablePath(pathname);
+  const normalizedKoPath = normalizeComparablePath(pathname.replace(/^\/en/, "") || "/home");
+  const matched = ROUTES.find((entry) =>
+    normalizeComparablePath(entry.koPath) === normalizedKoPath || normalizeComparablePath(entry.enPath) === normalizedCurrentPath
+  );
+  if (matched) {
+    return matched.id;
+  }
+  const nextUrl = `${pathname}${search}`;
+  if (nextUrl.startsWith("/admin") || nextUrl.startsWith("/en/admin")) {
+    return "admin-home";
+  }
+  return "home";
+}
+
 export default function App() {
   useTelemetryTransport();
   const [locationState, setLocationState] = useState(() => `${window.location.pathname}${window.location.search}${window.location.hash}`);
@@ -454,6 +552,8 @@ export default function App() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [helpContent, setHelpContent] = useState(getPageHelp(page));
   const [insttWarning, setInsttWarning] = useState("");
+  const [routeLoading, setRouteLoading] = useState(false);
+  preloadPageModule(page);
   const CurrentPage = getPageComponent(page);
 
   usePageTelemetry(page, locale);
@@ -470,6 +570,17 @@ export default function App() {
       setLocationState(`${window.location.pathname}${window.location.search}${window.location.hash}`);
       setHelpOpen(false);
       setInsttWarning("");
+      setRouteLoading(false);
+    }
+
+    async function handleReactNavigation(nextUrl: URL) {
+      setRouteLoading(true);
+      try {
+        const nextPage = resolvePageFromPath(nextUrl.pathname, nextUrl.search);
+        await preloadPageModule(nextPage);
+      } finally {
+        navigate(`${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`);
+      }
     }
 
     function handleDocumentClick(event: MouseEvent) {
@@ -499,7 +610,7 @@ export default function App() {
         return;
       }
       event.preventDefault();
-      navigate(`${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`);
+      void handleReactNavigation(nextUrl);
     }
 
     window.addEventListener("popstate", syncLocation);
@@ -594,6 +705,23 @@ export default function App() {
         </div>
       ) : null}
 
+      {routeLoading ? (
+        <div className="fixed inset-0 z-[1300] flex items-center justify-center bg-slate-950/18 backdrop-blur-[1px]">
+          <div className="min-w-[17rem] rounded-[calc(var(--kr-gov-radius)+6px)] border border-slate-200 bg-white/95 px-6 py-5 shadow-[0_24px_80px_rgba(15,23,42,0.16)]">
+            <div className="flex items-center gap-4">
+              <div className="relative h-10 w-10 shrink-0">
+                <span className="absolute inset-0 rounded-full border-[3px] border-slate-200" />
+                <span className="absolute inset-0 animate-spin rounded-full border-[3px] border-transparent border-t-[var(--kr-gov-blue)] border-r-[var(--kr-gov-blue)]" />
+              </div>
+              <div>
+                <p className="text-sm font-black text-[var(--kr-gov-text-primary)]">페이지 이동 중</p>
+                <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">새 화면을 준비한 뒤 전환합니다.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <Suspense fallback={<PageLoadingFallback />}>
         <CurrentPage />
       </Suspense>
@@ -602,9 +730,5 @@ export default function App() {
 }
 
 function PageLoadingFallback() {
-  return (
-    <div className="px-4 py-16 text-center text-[var(--kr-gov-text-secondary)]">
-      화면을 불러오는 중입니다.
-    </div>
-  );
+  return null;
 }

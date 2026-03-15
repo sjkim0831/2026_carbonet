@@ -308,30 +308,7 @@
         }
 
         function legacyAdminPathToReact(path) {
-            var normalized = pathOnly(path);
-            var isEn = normalized.indexOf("/en/admin") === 0;
-            var base = isEn ? "/en/admin/react-migration?route=" : "/admin/react-migration?route=";
-            var route = "";
-            if (normalized === "/admin/member/approve" || normalized === "/en/admin/member/approve") route = "member-approve";
-            else if (normalized === "/admin/member/company-approve" || normalized === "/en/admin/member/company-approve") route = "company-approve";
-            else if (normalized === "/admin/member/edit" || normalized === "/en/admin/member/edit") route = "member-edit";
-            else if (normalized === "/admin/member/detail" || normalized === "/en/admin/member/detail") route = "member-detail";
-            else if (normalized === "/admin/member/reset_password" || normalized === "/en/admin/member/reset_password") route = "password-reset";
-            else if (normalized === "/admin/member/list" || normalized === "/en/admin/member/list") route = "member-list";
-            else if (normalized === "/admin/member/admin_list" || normalized === "/en/admin/member/admin_list"
-                || normalized === "/admin/member/admin-list" || normalized === "/en/admin/member/admin-list") route = "admin-list";
-            else if (normalized === "/admin/member/company_list" || normalized === "/en/admin/member/company_list") route = "company-list";
-            else if (normalized === "/admin/member/company_detail" || normalized === "/en/admin/member/company_detail") route = "company-detail";
-            else if (normalized === "/admin/member/company_account" || normalized === "/en/admin/member/company_account") route = "company-account";
-            else if (normalized === "/admin/member/admin_account" || normalized === "/en/admin/member/admin_account") route = "admin-create";
-            else if (normalized === "/admin/member/admin_account/permissions" || normalized === "/en/admin/member/admin_account/permissions") route = "admin-permission";
-            else if (normalized === "/admin/auth/group" || normalized === "/en/admin/auth/group"
-                || normalized === "/admin/system/role" || normalized === "/en/admin/system/role") route = "auth-group";
-            else if (normalized === "/admin/member/auth-change" || normalized === "/en/admin/member/auth-change"
-                || normalized === "/admin/system/auth-change" || normalized === "/en/admin/system/auth-change") route = "auth-change";
-            else if (normalized === "/admin/member/dept-role-mapping" || normalized === "/en/admin/member/dept-role-mapping"
-                || normalized === "/admin/system/dept-role-mapping" || normalized === "/en/admin/system/dept-role-mapping") route = "dept-role";
-            return route ? (base + route) : path;
+            return adminReactRouteToLegacy(path);
         }
 
         var defaultDomainMenus = {
@@ -444,17 +421,9 @@
 
         function buildLocaleTarget(toEnglish) {
             var currentFullPath = normalizeUrl((window.location.pathname || "/admin") + (window.location.search || ""));
-            var currentPathOnly = pathOnly(currentFullPath);
-            if (currentPathOnly === "/admin/react-migration" || currentPathOnly === "/en/admin/react-migration") {
-                var reactParams = new URLSearchParams(currentFullPath.split("?")[1] || "");
-                reactParams.delete("content");
-                reactParams.delete("language");
-                var reactBase = toEnglish ? "/en/admin/react-migration" : "/admin/react-migration";
-                var reactQuery = reactParams.toString();
-                return reactBase + (reactQuery ? "?" + reactQuery : "");
-            }
-            var path = normalizePath(window.location.pathname || "/admin");
-            var queryString = window.location.search || "";
+            var legacyTarget = adminReactRouteToLegacy(currentFullPath);
+            var path = normalizePath(pathOnly(legacyTarget) || "/admin");
+            var queryString = legacyTarget.indexOf("?") >= 0 ? legacyTarget.substring(legacyTarget.indexOf("?")) : "";
             var params = new URLSearchParams(queryString);
             params.delete("content");
             params.delete("language");

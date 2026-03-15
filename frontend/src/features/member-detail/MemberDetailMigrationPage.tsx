@@ -35,6 +35,8 @@ export function MemberDetailMigrationPage() {
       ]}
       subtitle=""
       title="회원 상세 정보"
+      loading={pageState.loading && !page && !error}
+      loadingLabel="회원 상세 정보를 불러오는 중입니다."
     >
       {error ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</section> : null}
       <CanView allowed={!!page?.canViewMemberDetail} fallback={<section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm"><p className="text-sm text-[var(--kr-gov-text-secondary)]">회원 상세를 볼 권한이 없거나 대상이 없습니다.</p></section>}>

@@ -277,15 +277,15 @@ export function MemberEditMigrationPage() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <label>
-                  <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">회원명</span>
+                  <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">회원명 <span className="text-[var(--kr-gov-error)]">*</span></span>
                   <input className="w-full h-11 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUse} value={form.applcntNm} onChange={(e) => setForm({ ...form, applcntNm: e.target.value })} />
                 </label>
                 <label>
-                  <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">이메일</span>
+                  <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">이메일 <span className="text-[var(--kr-gov-error)]">*</span></span>
                   <input className="w-full h-11 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUse} value={form.applcntEmailAdres} onChange={(e) => setForm({ ...form, applcntEmailAdres: e.target.value })} />
                 </label>
                 <label>
-                  <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">연락처</span>
+                  <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">연락처 <span className="text-[var(--kr-gov-error)]">*</span></span>
                   <input className="w-full h-11 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUse} value={form.phoneNumber} onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })} />
                 </label>
                 <label>
@@ -293,13 +293,13 @@ export function MemberEditMigrationPage() {
                   <input className="w-full h-11 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUse} value={form.deptNm} onChange={(e) => setForm({ ...form, deptNm: e.target.value })} />
                 </label>
                 <label>
-                  <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">회원 유형</span>
+                  <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">회원 유형 <span className="text-[var(--kr-gov-error)]">*</span></span>
                   <select className="w-full h-11 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUse} value={form.entrprsSeCode} onChange={(e) => setForm({ ...form, entrprsSeCode: e.target.value })}>
                     {((page?.memberTypeOptions as Array<{ code: string; label: string }>) || []).map((opt) => <option key={opt.code} value={opt.code}>{opt.label}</option>)}
                   </select>
                 </label>
                 <label>
-                  <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">회원 상태</span>
+                  <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">회원 상태 <span className="text-[var(--kr-gov-error)]">*</span></span>
                   <select className="w-full h-11 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUse} value={form.entrprsMberSttus} onChange={(e) => setForm({ ...form, entrprsMberSttus: e.target.value })}>
                     {((page?.memberStatusOptions as Array<{ code: string; label: string }>) || []).map((opt) => <option key={opt.code} value={opt.code}>{opt.label}</option>)}
                   </select>
@@ -320,7 +320,7 @@ export function MemberEditMigrationPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="md:col-span-2">
                     <label>
-                      <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">기준 권한 롤</span>
+                      <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">기준 권한 롤 <span className="text-[var(--kr-gov-error)]">*</span></span>
                       <select className="w-full h-11 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUse} value={form.authorCode} onChange={(e) => setForm({ ...form, authorCode: e.target.value })}>
                         <option value="">권한 롤 선택</option>
                         {(page?.permissionAuthorGroups || []).map((group) => (

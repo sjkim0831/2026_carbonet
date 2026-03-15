@@ -63,9 +63,11 @@ export function AdminListMigrationPage() {
         { label: "관리자 회원 목록 조회" }
       ]}
       title="관리자 회원 목록 조회"
+      loading={!page && !error}
+      loadingLabel="관리자 목록을 불러오는 중입니다."
     >
       {error ? <section className="mb-4 text-sm text-red-600 font-medium"><p>{error}</p></section> : null}
-      <CanView allowed={!!page?.canViewAdminList} fallback={<section className="panel"><p className="state-text">화면을 불러오는 중입니다.</p></section>}>
+      <CanView allowed={!!page?.canViewAdminList} fallback={<section className="panel"><p className="state-text">관리자 목록을 불러올 수 없습니다.</p></section>}>
         <section className="gov-card mb-8" data-help-id="admin-list-search">
           <form
             className="grid grid-cols-1 md:grid-cols-3 gap-6"
@@ -122,7 +124,7 @@ export function AdminListMigrationPage() {
               </a>
               <a
                 className="flex items-center gap-1.5 px-3 py-2 bg-[var(--kr-gov-green)] text-white rounded-[var(--kr-gov-radius)] text-[13px] font-bold hover:opacity-90"
-                href={buildLocalizedPath("/admin/react-migration?route=admin-create", "/en/admin/react-migration?route=admin-create")}
+                href={buildLocalizedPath("/admin/member/admin_account", "/en/admin/member/admin_account")}
               >
                 <span className="material-symbols-outlined text-[18px]">person_add</span> 신규 관리자 등록
               </a>
@@ -156,13 +158,13 @@ export function AdminListMigrationPage() {
                       <td className="px-6 py-4 text-gray-500">{String(row.emailAdres || "-")}</td>
                       <td className="px-6 py-4 text-gray-500">{String(row.sbscrbDe || "-")}</td>
                       <td className="px-6 py-4 text-center">
-                        <span className={`status-badge ${statusBadgeClass(String(row.emplyrStusCode || ""))}`}>
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${statusBadgeClass(String(row.emplyrStusCode || ""))}`}>
                           {statusLabel(String(row.emplyrStusCode || ""))}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center space-x-1">
-                        <a className="inline-flex px-3 py-1.5 border border-[var(--kr-gov-border-light)] text-[12px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-100" href={buildLocalizedPath(`/admin/react-migration?route=admin-permission&emplyrId=${encodeURIComponent(String(row.emplyrId || ""))}`, `/en/admin/react-migration?route=admin-permission&emplyrId=${encodeURIComponent(String(row.emplyrId || ""))}`)}>수정</a>
-                        <a className="inline-flex px-3 py-1.5 bg-[var(--kr-gov-blue)] text-white text-[12px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)]" href={buildLocalizedPath(`/admin/react-migration?route=admin-permission&emplyrId=${encodeURIComponent(String(row.emplyrId || ""))}&mode=detail`, `/en/admin/react-migration?route=admin-permission&emplyrId=${encodeURIComponent(String(row.emplyrId || ""))}&mode=detail`)}>상세</a>
+                        <a className="inline-flex px-3 py-1.5 border border-[var(--kr-gov-border-light)] text-[12px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-100" href={buildLocalizedPath(`/admin/member/admin_account/permissions?emplyrId=${encodeURIComponent(String(row.emplyrId || ""))}`, `/en/admin/member/admin_account/permissions?emplyrId=${encodeURIComponent(String(row.emplyrId || ""))}`)}>수정</a>
+                        <a className="inline-flex px-3 py-1.5 bg-[var(--kr-gov-blue)] text-white text-[12px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)]" href={buildLocalizedPath(`/admin/member/admin_account/permissions?emplyrId=${encodeURIComponent(String(row.emplyrId || ""))}&mode=detail`, `/en/admin/member/admin_account/permissions?emplyrId=${encodeURIComponent(String(row.emplyrId || ""))}&mode=detail`)}>상세</a>
                       </td>
                     </tr>
                   ))}

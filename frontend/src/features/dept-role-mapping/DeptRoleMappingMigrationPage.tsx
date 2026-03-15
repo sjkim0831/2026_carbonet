@@ -22,12 +22,9 @@ export function DeptRoleMappingMigrationPage() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    fetchFrontendSession().then(setSession).catch((err: Error) => setError(err.message));
-  }, []);
-
-  useEffect(() => {
-    fetchDeptRolePage(insttId)
-      .then((payload) => {
+    Promise.all([fetchFrontendSession(), fetchDeptRolePage(insttId)])
+      .then(([sessionPayload, payload]) => {
+        setSession(sessionPayload);
         setPage(payload);
         setInsttId(payload.selectedInsttId || "");
         const nextDeptDrafts: Record<string, string> = {};
@@ -89,6 +86,8 @@ export function DeptRoleMappingMigrationPage() {
       ]}
       subtitle="최상단에서 회사를 선택하고, 해당 회사 회원 목록과 부서별 기본 Role 맵핑을 함께 확인하는 화면입니다."
       title="부서 권한 맵핑"
+      loading={!page && !error}
+      loadingLabel="부서 권한 정보를 불러오는 중입니다."
     >
       {(page?.deptRoleError || error) ? (
         <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

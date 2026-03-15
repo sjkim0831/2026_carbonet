@@ -123,24 +123,21 @@ export function CompanyApproveMigrationPage() {
 
   return (
     <AdminPageShell
+      actions={(
+        <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-blue-50 text-[var(--kr-gov-blue)]">
+          총 {Number(page?.memberApprovalTotalCount || 0).toLocaleString()}건
+        </span>
+      )}
+      breadcrumbs={[
+        { label: "홈", href: buildLocalizedPath("/admin/", "/en/admin/") },
+        { label: "회원사" },
+        { label: "회원사 가입승인" }
+      ]}
       subtitle="회원사 등록 신청 내역을 검토하고 승인 또는 반려 상태를 처리합니다."
       title="회원사 가입승인"
+      loading={pageState.loading && !page && !error}
+      loadingLabel="회원사 승인 대상을 불러오는 중입니다."
     >
-      <section className="flex flex-col gap-4 mb-8 xl:flex-row xl:items-start xl:justify-between">
-        <div>
-          <div className="flex items-center gap-2 mb-2 text-xs">
-            <span className="font-bold text-[var(--kr-gov-blue)] bg-blue-50 px-2 py-0.5 rounded border border-blue-100">회원관리</span>
-            <span className="text-gray-400">/</span>
-            <span className="text-gray-500">회원사 가입승인</span>
-          </div>
-          <h2 className="text-2xl font-black tracking-tight">회원사 가입승인</h2>
-          <p className="text-sm text-[var(--kr-gov-text-secondary)] mt-1">회원사 등록 신청 내역을 검토하고 승인 또는 반려 상태를 처리합니다.</p>
-        </div>
-        <div className="text-sm text-gray-500">
-          총 <span className="font-bold text-[var(--kr-gov-blue)]">{Number(page?.memberApprovalTotalCount || 0).toLocaleString()}</span>건
-        </div>
-      </section>
-
       <section className="gov-card p-6 mb-6">
         <div className="flex items-start gap-4">
           <span className="material-symbols-outlined text-[40px] text-[var(--kr-gov-blue)]">domain_verification</span>
@@ -219,7 +216,7 @@ export function CompanyApproveMigrationPage() {
                       <td className="px-4 py-4 text-gray-700">{String(row.businessNumber || "-")}</td>
                       <td className="px-4 py-4 text-gray-700">{String(row.representativeName || "-")}</td>
                       <td className="px-4 py-4">
-                        <a className="inline-flex items-center gap-1 text-xs font-bold text-[var(--kr-gov-blue)] hover:underline" href={String(row.editUrl || buildLocalizedPath(`/admin/react-migration?route=company-account&insttId=${encodeURIComponent(id)}`, `/en/admin/react-migration?route=company-account&insttId=${encodeURIComponent(id)}`))}>
+                        <a className="inline-flex items-center gap-1 text-xs font-bold text-[var(--kr-gov-blue)] hover:underline" href={String(row.editUrl || buildLocalizedPath(`/admin/member/company_account?insttId=${encodeURIComponent(id)}`, `/en/admin/member/company_account?insttId=${encodeURIComponent(id)}`))}>
                           회원사 정보 수정
                         </a>
                       </td>
@@ -305,7 +302,7 @@ export function CompanyApproveMigrationPage() {
                     <div className="grid grid-cols-[140px_1fr]">
                       <div className="bg-gray-50 px-4 py-3 text-sm font-bold text-[var(--kr-gov-text-secondary)] border-b border-r border-[var(--kr-gov-border-light)]">회원사 정보</div>
                       <div className="px-4 py-3 text-sm text-[var(--kr-gov-text-primary)] border-b border-[var(--kr-gov-border-light)]">
-                        <a className="font-bold text-[var(--kr-gov-blue)] hover:underline" href={String(reviewRow.editUrl || buildLocalizedPath(`/admin/react-migration?route=company-account&insttId=${encodeURIComponent(String(reviewRow.insttId || ""))}`, `/en/admin/react-migration?route=company-account&insttId=${encodeURIComponent(String(reviewRow.insttId || ""))}`))}>
+                        <a className="font-bold text-[var(--kr-gov-blue)] hover:underline" href={String(reviewRow.editUrl || buildLocalizedPath(`/admin/member/company_account?insttId=${encodeURIComponent(String(reviewRow.insttId || ""))}`, `/en/admin/member/company_account?insttId=${encodeURIComponent(String(reviewRow.insttId || ""))}`))}>
                           회원사 정보 수정 화면으로 이동
                         </a>
                       </div>

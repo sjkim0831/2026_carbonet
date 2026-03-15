@@ -181,9 +181,11 @@ export function MemberListMigrationPage() {
         { label: "회원 목록 조회" }
       ]}
       title="회원 목록 조회"
+      loading={pageState.loading && !page && !error}
+      loadingLabel="회원 목록을 불러오는 중입니다."
     >
       {error ? <section className="border border-red-200 bg-red-50 rounded-[var(--kr-gov-radius)] px-4 py-3 mb-4"><p className="text-sm text-red-700">조회 중 오류: {error}</p></section> : null}
-      <CanView allowed={!!page?.canViewMemberList} fallback={<section className="bg-white border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] px-6 py-8"><p className="text-sm text-[var(--kr-gov-text-secondary)]">회원 목록을 불러오는 중입니다.</p></section>}>
+      <CanView allowed={!!page?.canViewMemberList} fallback={<section className="bg-white border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] px-6 py-8"><p className="text-sm text-[var(--kr-gov-text-secondary)]">회원 목록을 불러올 수 없습니다.</p></section>}>
         <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm mb-8" data-help-id="member-search-form">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6" data-help-id="member-list-search">
             <label>

@@ -217,9 +217,9 @@
                                 </td>
                                 <td class="px-6 py-4 text-center space-x-1">
                                     <a class="inline-flex px-3 py-1.5 border border-[var(--kr-gov-border-light)] text-[12px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-100"
-                                       th:href="@{/en/admin/react-migration(route='member-edit',memberId=${member.entrprsmberId})}">Edit</a>
+                                       th:href="@{/en/admin/member/edit(memberId=${member.entrprsmberId})}">Edit</a>
                                     <a class="inline-flex px-3 py-1.5 bg-[var(--kr-gov-blue)] text-white text-[12px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)]"
-                                       th:href="@{/en/admin/react-migration(route='member-detail',memberId=${member.entrprsmberId})}">Detail</a>
+                                       th:href="@{/en/admin/member/detail(memberId=${member.entrprsmberId})}">Detail</a>
                                 </td>
                             </tr>
                             <tr th:if="${#lists.isEmpty(member_list)}">

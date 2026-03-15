@@ -24,8 +24,14 @@ public final class ReactPageUrlMapper {
 
         String route = resolveAdminRoute(path);
         if (!route.isEmpty()) {
-            return buildRuntimeUrl(english ? "/en/admin/react-migration?route=" : "/admin/react-migration?route=", route,
-                    querySuffix);
+            String localizedPath = english ? localizeAdminPath(resolveAdminPath(route)) : resolveAdminPath(route);
+            if (localizedPath.isEmpty()) {
+                return "";
+            }
+            if (querySuffix == null || querySuffix.isEmpty()) {
+                return localizedPath;
+            }
+            return localizedPath + "?" + querySuffix;
         }
 
         route = resolveHomeRoute(path);
@@ -68,6 +74,19 @@ public final class ReactPageUrlMapper {
             return base + route;
         }
         return base + route + "&" + querySuffix;
+    }
+
+    private static String localizeAdminPath(String path) {
+        if (path == null || path.isEmpty()) {
+            return "";
+        }
+        if (path.startsWith("/en/")) {
+            return path;
+        }
+        if (path.startsWith("/")) {
+            return "/en" + path;
+        }
+        return "/en/" + path;
     }
 
     private static String resolveAdminRoute(String path) {

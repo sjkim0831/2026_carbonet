@@ -851,12 +851,125 @@ export type MypageSectionPayload = MypagePayload & {
 
 let frontendSessionCache: FrontendSession | null = null;
 let frontendSessionPromise: Promise<FrontendSession> | null = null;
+let adminMenuTreeCache: AdminMenuTreePayload | null = null;
+let adminMenuTreePromise: Promise<AdminMenuTreePayload> | null = null;
 let joinSessionCache: JoinSessionPayload | null = null;
 let joinSessionPromise: Promise<JoinSessionPayload> | null = null;
+const SESSION_STORAGE_CACHE_PREFIX = "carbonet:api-cache:";
+const FRONTEND_SESSION_STORAGE_KEY = `${SESSION_STORAGE_CACHE_PREFIX}frontend-session`;
+const ADMIN_MENU_TREE_STORAGE_KEY = `${SESSION_STORAGE_CACHE_PREFIX}admin-menu-tree`;
+const DEFAULT_PAGE_CACHE_TTL_MS = 60 * 1000;
+const SESSION_CACHE_TTL_MS = 5 * 60 * 1000;
+
+type SessionStorageCacheEntry<T> = {
+  expiresAt: number;
+  value: T;
+};
+
+function readSessionStorageCache<T>(key: string): T | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    const raw = window.sessionStorage.getItem(key);
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw) as SessionStorageCacheEntry<T>;
+    if (!parsed || typeof parsed.expiresAt !== "number" || parsed.expiresAt <= Date.now()) {
+      window.sessionStorage.removeItem(key);
+      return null;
+    }
+    return parsed.value ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function writeSessionStorageCache<T>(key: string, value: T, ttlMs: number) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    const payload: SessionStorageCacheEntry<T> = {
+      expiresAt: Date.now() + ttlMs,
+      value
+    };
+    window.sessionStorage.setItem(key, JSON.stringify(payload));
+  } catch {
+    // Ignore storage quota or serialization errors and keep the runtime path working.
+  }
+}
+
+function removeSessionStorageCache(key: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    window.sessionStorage.removeItem(key);
+  } catch {
+    // Ignore sessionStorage failures.
+  }
+}
+
+function buildPageCacheKey(path: string) {
+  return `${SESSION_STORAGE_CACHE_PREFIX}${path}`;
+}
+
+function invalidateAdminPageCaches() {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    const keysToDelete: string[] = [];
+    for (let index = 0; index < window.sessionStorage.length; index += 1) {
+      const key = window.sessionStorage.key(index);
+      if (!key) {
+        continue;
+      }
+      if (
+        key.startsWith(SESSION_STORAGE_CACHE_PREFIX) &&
+        key !== FRONTEND_SESSION_STORAGE_KEY &&
+        key !== ADMIN_MENU_TREE_STORAGE_KEY
+      ) {
+        keysToDelete.push(key);
+      }
+    }
+    keysToDelete.forEach((key) => window.sessionStorage.removeItem(key));
+  } catch {
+    // Ignore cache eviction failures.
+  }
+}
+
+async function fetchCachedJson<T>(options: {
+  cacheKey: string;
+  url: string;
+  ttlMs?: number;
+  mapError?: (body: any, status: number) => string;
+}): Promise<T> {
+  const cached = readSessionStorageCache<T>(options.cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const response = await fetch(options.url, {
+    credentials: "include"
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(options.mapError?.(body, response.status) || `Failed to load page: ${response.status}`);
+  }
+  writeSessionStorageCache(options.cacheKey, body as T, options.ttlMs ?? DEFAULT_PAGE_CACHE_TTL_MS);
+  return body as T;
+}
 
 export function invalidateFrontendSessionCache() {
   frontendSessionCache = null;
   frontendSessionPromise = null;
+  adminMenuTreeCache = null;
+  adminMenuTreePromise = null;
+  removeSessionStorageCache(FRONTEND_SESSION_STORAGE_KEY);
+  removeSessionStorageCache(ADMIN_MENU_TREE_STORAGE_KEY);
 }
 
 export function invalidateJoinSessionCache() {
@@ -865,6 +978,11 @@ export function invalidateJoinSessionCache() {
 }
 
 export async function fetchFrontendSession(): Promise<FrontendSession> {
+  const storedSession = readSessionStorageCache<FrontendSession>(FRONTEND_SESSION_STORAGE_KEY);
+  if (storedSession) {
+    frontendSessionCache = storedSession;
+  }
+
   if (frontendSessionCache) {
     return frontendSessionCache;
   }
@@ -879,6 +997,7 @@ export async function fetchFrontendSession(): Promise<FrontendSession> {
         }
         const session = await response.json() as FrontendSession;
         frontendSessionCache = session;
+        writeSessionStorageCache(FRONTEND_SESSION_STORAGE_KEY, session, SESSION_CACHE_TTL_MS);
         return session;
       })
       .finally(() => {
@@ -894,10 +1013,35 @@ export async function fetchFrontendSession(): Promise<FrontendSession> {
 }
 
 export async function fetchAdminMenuTree(): Promise<AdminMenuTreePayload> {
-  const response = await fetch(buildLocalizedPath("/admin/system/menu-data", "/en/admin/system/menu-data"), {
-    credentials: "include"
-  });
-  return readJsonResponse<AdminMenuTreePayload>(response);
+  const storedMenuTree = readSessionStorageCache<AdminMenuTreePayload>(ADMIN_MENU_TREE_STORAGE_KEY);
+  if (storedMenuTree) {
+    adminMenuTreeCache = storedMenuTree;
+  }
+
+  if (adminMenuTreeCache) {
+    return adminMenuTreeCache;
+  }
+
+  if (!adminMenuTreePromise) {
+    adminMenuTreePromise = fetch(buildLocalizedPath("/admin/system/menu-data", "/en/admin/system/menu-data"), {
+      credentials: "include"
+    })
+      .then((response) => readJsonResponse<AdminMenuTreePayload>(response))
+      .then((payload) => {
+        adminMenuTreeCache = payload;
+        writeSessionStorageCache(ADMIN_MENU_TREE_STORAGE_KEY, payload, SESSION_CACHE_TTL_MS);
+        return payload;
+      })
+      .finally(() => {
+        adminMenuTreePromise = null;
+      });
+  }
+
+  if (!adminMenuTreePromise) {
+    throw new Error("Admin menu tree promise was not initialized");
+  }
+
+  return adminMenuTreePromise;
 }
 
 export async function fetchAuthGroupPage(params: {
@@ -912,36 +1056,28 @@ export async function fetchAuthGroupPage(params: {
   if (params.insttId) search.set("insttId", params.insttId);
   if (params.userSearchKeyword) search.set("userSearchKeyword", params.userSearchKeyword);
   const query = search.toString();
-  const response = await fetch(`${buildAdminApiPath("/api/admin/auth-groups/page")}${query ? `?${query}` : ""}`, {
-    credentials: "include"
+  return fetchCachedJson<AuthGroupPagePayload>({
+    cacheKey: buildPageCacheKey(`auth-groups/page?${query}`),
+    url: `${buildAdminApiPath("/api/admin/auth-groups/page")}${query ? `?${query}` : ""}`,
+    mapError: (_body, status) => `Failed to load auth-group page: ${status}`
   });
-
-  if (!response.ok) {
-    throw new Error(`Failed to load auth-group page: ${response.status}`);
-  }
-
-  return response.json();
 }
 
 export async function fetchAuthChangePage(): Promise<AuthChangePagePayload> {
-  const response = await fetch(buildAdminApiPath("/api/admin/auth-change/page"), {
-    credentials: "include"
+  return fetchCachedJson<AuthChangePagePayload>({
+    cacheKey: buildPageCacheKey("auth-change/page"),
+    url: buildAdminApiPath("/api/admin/auth-change/page"),
+    mapError: (_body, status) => `Failed to load auth-change page: ${status}`
   });
-  if (!response.ok) {
-    throw new Error(`Failed to load auth-change page: ${response.status}`);
-  }
-  return response.json();
 }
 
 export async function fetchDeptRolePage(insttId?: string): Promise<DeptRolePagePayload> {
   const query = insttId ? `?insttId=${encodeURIComponent(insttId)}` : "";
-  const response = await fetch(`${buildAdminApiPath("/api/admin/dept-role-mapping/page")}${query}`, {
-    credentials: "include"
+  return fetchCachedJson<DeptRolePagePayload>({
+    cacheKey: buildPageCacheKey(`dept-role/page${query}`),
+    url: `${buildAdminApiPath("/api/admin/dept-role-mapping/page")}${query}`,
+    mapError: (_body, status) => `Failed to load dept-role page: ${status}`
   });
-  if (!response.ok) {
-    throw new Error(`Failed to load dept-role page: ${response.status}`);
-  }
-  return response.json();
 }
 
 export async function fetchMemberEditPage(memberId: string): Promise<MemberEditPagePayload> {
@@ -968,19 +1104,19 @@ export async function fetchPasswordResetPage(params?: { memberId?: string; pageI
 }
 
 export async function fetchAdminPermissionPage(emplyrId: string) {
-  const response = await fetch(`${buildAdminApiPath("/api/admin/member/admin-account/permissions")}?emplyrId=${encodeURIComponent(emplyrId)}`, {
-    credentials: "include"
+  return fetchCachedJson<AdminPermissionPagePayload>({
+    cacheKey: buildPageCacheKey(`admin-permission/page?emplyrId=${encodeURIComponent(emplyrId)}`),
+    url: `${buildAdminApiPath("/api/admin/member/admin-account/permissions")}?emplyrId=${encodeURIComponent(emplyrId)}`,
+    mapError: (_body, status) => `Failed to load admin permission page: ${status}`
   });
-  if (!response.ok) throw new Error(`Failed to load admin permission page: ${response.status}`);
-  return response.json() as Promise<AdminPermissionPagePayload>;
 }
 
 export async function fetchAdminAccountCreatePage() {
-  const response = await fetch(buildAdminApiPath("/api/admin/member/admin-account/page"), {
-    credentials: "include"
+  return fetchCachedJson<AdminAccountCreatePagePayload>({
+    cacheKey: buildPageCacheKey("admin-account-create/page"),
+    url: buildAdminApiPath("/api/admin/member/admin-account/page"),
+    mapError: (_body, status) => `Failed to load admin account create page: ${status}`
   });
-  if (!response.ok) throw new Error(`Failed to load admin account create page: ${response.status}`);
-  return response.json() as Promise<AdminAccountCreatePagePayload>;
 }
 
 export async function checkAdminAccountId(adminId: string) {
@@ -1049,14 +1185,11 @@ export async function checkJoinEmail(email: string) {
 
 export async function fetchCompanyAccountPage(insttId?: string) {
   const query = insttId ? `?insttId=${encodeURIComponent(insttId)}` : "";
-  const response = await fetch(`${buildAdminApiPath("/api/admin/member/company-account/page")}${query}`, {
-    credentials: "include"
+  return fetchCachedJson<CompanyAccountPagePayload>({
+    cacheKey: buildPageCacheKey(`company-account/page${query}`),
+    url: `${buildAdminApiPath("/api/admin/member/company-account/page")}${query}`,
+    mapError: (body, status) => body.companyAccountErrors?.[0] || `Failed to load company account page: ${status}`
   });
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    throw new Error(body.companyAccountErrors?.[0] || `Failed to load company account page: ${response.status}`);
-  }
-  return response.json() as Promise<CompanyAccountPagePayload>;
 }
 
 export async function fetchAdminListPage(params?: { pageIndex?: number; searchKeyword?: string; sbscrbSttus?: string; }) {
@@ -1064,11 +1197,12 @@ export async function fetchAdminListPage(params?: { pageIndex?: number; searchKe
   if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
   if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
   if (params?.sbscrbSttus) search.set("sbscrbSttus", params.sbscrbSttus);
-  const response = await fetch(`${buildAdminApiPath("/api/admin/member/admin-list/page")}${search.toString() ? `?${search.toString()}` : ""}`, {
-    credentials: "include"
+  const query = search.toString();
+  return fetchCachedJson<AdminListPagePayload>({
+    cacheKey: buildPageCacheKey(`admin-list/page?${query}`),
+    url: `${buildAdminApiPath("/api/admin/member/admin-list/page")}${query ? `?${query}` : ""}`,
+    mapError: (_body, status) => `Failed to load admin list page: ${status}`
   });
-  if (!response.ok) throw new Error(`Failed to load admin list page: ${response.status}`);
-  return response.json() as Promise<AdminListPagePayload>;
 }
 
 export async function fetchCompanyListPage(params?: { pageIndex?: number; searchKeyword?: string; sbscrbSttus?: string; }) {
@@ -1076,12 +1210,12 @@ export async function fetchCompanyListPage(params?: { pageIndex?: number; search
   if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
   if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
   if (params?.sbscrbSttus) search.set("sbscrbSttus", params.sbscrbSttus);
-  const response = await fetch(`${buildAdminApiPath("/api/admin/member/company-list/page")}${search.toString() ? `?${search.toString()}` : ""}`, {
-    credentials: "include"
+  const query = search.toString();
+  return fetchCachedJson<CompanyListPagePayload>({
+    cacheKey: buildPageCacheKey(`company-list/page?${query}`),
+    url: `${buildAdminApiPath("/api/admin/member/company-list/page")}${query ? `?${query}` : ""}`,
+    mapError: (body, status) => body.company_listError || `Failed to load company list page: ${status}`
   });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body.company_listError || `Failed to load company list page: ${response.status}`);
-  return body as CompanyListPagePayload;
 }
 
 export async function fetchMemberApprovePage(params?: { pageIndex?: number; searchKeyword?: string; membershipType?: string; sbscrbSttus?: string; result?: string; }) {
@@ -1091,12 +1225,12 @@ export async function fetchMemberApprovePage(params?: { pageIndex?: number; sear
   if (params?.membershipType) search.set("membershipType", params.membershipType);
   if (params?.sbscrbSttus) search.set("sbscrbSttus", params.sbscrbSttus);
   if (params?.result) search.set("result", params.result);
-  const response = await fetch(`${buildAdminApiPath("/api/admin/member/approve/page")}${search.toString() ? `?${search.toString()}` : ""}`, {
-    credentials: "include"
+  const query = search.toString();
+  return fetchCachedJson<MemberApprovePagePayload>({
+    cacheKey: buildPageCacheKey(`member-approve/page?${query}`),
+    url: `${buildAdminApiPath("/api/admin/member/approve/page")}${query ? `?${query}` : ""}`,
+    mapError: (body, status) => body.memberApprovalError || `Failed to load member approval page: ${status}`
   });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body.memberApprovalError || `Failed to load member approval page: ${response.status}`);
-  return body as MemberApprovePagePayload;
 }
 
 export async function fetchCompanyApprovePage(params?: { pageIndex?: number; searchKeyword?: string; sbscrbSttus?: string; result?: string; }) {
@@ -1105,12 +1239,12 @@ export async function fetchCompanyApprovePage(params?: { pageIndex?: number; sea
   if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
   if (params?.sbscrbSttus) search.set("sbscrbSttus", params.sbscrbSttus);
   if (params?.result) search.set("result", params.result);
-  const response = await fetch(`${buildAdminApiPath("/api/admin/member/company-approve/page")}${search.toString() ? `?${search.toString()}` : ""}`, {
-    credentials: "include"
+  const query = search.toString();
+  return fetchCachedJson<CompanyApprovePagePayload>({
+    cacheKey: buildPageCacheKey(`company-approve/page?${query}`),
+    url: `${buildAdminApiPath("/api/admin/member/company-approve/page")}${query ? `?${query}` : ""}`,
+    mapError: (body, status) => body.memberApprovalError || `Failed to load company approval page: ${status}`
   });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body.memberApprovalError || `Failed to load company approval page: ${response.status}`);
-  return body as CompanyApprovePagePayload;
 }
 
 export async function fetchMemberListPage(params?: { pageIndex?: number; searchKeyword?: string; membershipType?: string; sbscrbSttus?: string; }) {
@@ -1119,11 +1253,12 @@ export async function fetchMemberListPage(params?: { pageIndex?: number; searchK
   if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
   if (params?.membershipType) search.set("membershipType", params.membershipType);
   if (params?.sbscrbSttus) search.set("sbscrbSttus", params.sbscrbSttus);
-  const response = await fetch(`${buildAdminApiPath("/api/admin/member/list/page")}${search.toString() ? `?${search.toString()}` : ""}`, {
-    credentials: "include"
+  const query = search.toString();
+  return fetchCachedJson<MemberListPagePayload>({
+    cacheKey: buildPageCacheKey(`member-list/page?${query}`),
+    url: `${buildAdminApiPath("/api/admin/member/list/page")}${query ? `?${query}` : ""}`,
+    mapError: (_body, status) => `Failed to load member list page: ${status}`
   });
-  if (!response.ok) throw new Error(`Failed to load member list page: ${response.status}`);
-  return response.json() as Promise<MemberListPagePayload>;
 }
 
 export async function fetchMemberStatsPage() {
@@ -1145,21 +1280,19 @@ export async function fetchMemberRegisterPage() {
 }
 
 export async function fetchMemberDetailPage(memberId: string) {
-  const response = await fetch(`${buildAdminApiPath("/api/admin/member/detail/page")}?memberId=${encodeURIComponent(memberId)}`, {
-    credentials: "include"
+  return fetchCachedJson<MemberDetailPagePayload>({
+    cacheKey: buildPageCacheKey(`member-detail/page?memberId=${encodeURIComponent(memberId)}`),
+    url: `${buildAdminApiPath("/api/admin/member/detail/page")}?memberId=${encodeURIComponent(memberId)}`,
+    mapError: (body, status) => body.member_detailError || `Failed to load member detail page: ${status}`
   });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body.member_detailError || `Failed to load member detail page: ${response.status}`);
-  return body as MemberDetailPagePayload;
 }
 
 export async function fetchCompanyDetailPage(insttId: string) {
-  const response = await fetch(`${buildAdminApiPath("/api/admin/member/company-detail/page")}?insttId=${encodeURIComponent(insttId)}`, {
-    credentials: "include"
+  return fetchCachedJson<CompanyDetailPagePayload>({
+    cacheKey: buildPageCacheKey(`company-detail/page?insttId=${encodeURIComponent(insttId)}`),
+    url: `${buildAdminApiPath("/api/admin/member/company-detail/page")}?insttId=${encodeURIComponent(insttId)}`,
+    mapError: (body, status) => body.companyDetailError || `Failed to load company detail page: ${status}`
   });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body.companyDetailError || `Failed to load company detail page: ${response.status}`);
-  return body as CompanyDetailPagePayload;
 }
 
 export async function fetchSystemCodePage(detailCodeId?: string) {
@@ -1855,6 +1988,7 @@ export async function createAuthGroup(
   if (!response.ok || !body.success) {
     throw new Error(body.message || `Failed to create auth group: ${response.status}`);
   }
+  invalidateAdminPageCaches();
   return body;
 }
 
@@ -1876,6 +2010,7 @@ export async function saveAuthGroupFeatures(
   if (!response.ok || !body.success) {
     throw new Error(body.message || `Failed to save auth-group features: ${response.status}`);
   }
+  invalidateAdminPageCaches();
   return body;
 }
 
@@ -1896,6 +2031,7 @@ export async function saveAdminAuthChange(
   if (!response.ok || !body.success) {
     throw new Error(body.message || `Failed to save auth change: ${response.status}`);
   }
+  invalidateAdminPageCaches();
   return body;
 }
 
@@ -1918,6 +2054,7 @@ export async function saveDeptRoleMapping(
   if (!response.ok || !body.success) {
     throw new Error(body.message || `Failed to save dept mapping: ${response.status}`);
   }
+  invalidateAdminPageCaches();
   return body;
 }
 
@@ -1939,6 +2076,7 @@ export async function saveDeptRoleMember(
   if (!response.ok || !body.success) {
     throw new Error(body.message || `Failed to save dept member role: ${response.status}`);
   }
+  invalidateAdminPageCaches();
   return body;
 }
 
@@ -1970,6 +2108,7 @@ export async function saveMemberEdit(
   if (!response.ok || !body.success) {
     throw new Error(body.message || (body.errors ? body.errors.join(", ") : `Failed to save member edit: ${response.status}`));
   }
+  invalidateAdminPageCaches();
   return body;
 }
 
@@ -1988,6 +2127,7 @@ export async function resetMemberPasswordAction(session: FrontendSession, member
   if (!response.ok || body.status !== "success") {
     throw new Error(body.errors || `Failed to reset password: ${response.status}`);
   }
+  invalidateAdminPageCaches();
   return body;
 }
 
@@ -2002,6 +2142,7 @@ export async function saveAdminPermission(session: FrontendSession, payload: { e
   if (!response.ok || !body.success) {
     throw new Error(body.message || (body.errors ? body.errors.join(", ") : `Failed to save admin permission: ${response.status}`));
   }
+  invalidateAdminPageCaches();
   return body;
 }
 
@@ -2032,6 +2173,7 @@ export async function createAdminAccount(
   if (!response.ok || !body.success) {
     throw new Error(body.message || (body.errors ? body.errors.join(", ") : `Failed to create admin account: ${response.status}`));
   }
+  invalidateAdminPageCaches();
   return body;
 }
 
@@ -2078,6 +2220,7 @@ export async function saveCompanyAccount(
   if (!response.ok || !body.success) {
     throw new Error(body.message || (body.errors ? body.errors.join(", ") : `Failed to save company account: ${response.status}`));
   }
+  invalidateAdminPageCaches();
   return body;
 }
 
@@ -2095,6 +2238,7 @@ export async function submitMemberApproveAction(
   if (!response.ok || !body.success) {
     throw new Error(body.message || `Failed to approve member: ${response.status}`);
   }
+  invalidateAdminPageCaches();
   return body;
 }
 
@@ -2112,6 +2256,7 @@ export async function submitCompanyApproveAction(
   if (!response.ok || !body.success) {
     throw new Error(body.message || `Failed to approve company: ${response.status}`);
   }
+  invalidateAdminPageCaches();
   return body;
 }
 

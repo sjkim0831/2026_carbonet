@@ -139,7 +139,7 @@
                         </p>
                         <div class="pt-2">
                             <a class="inline-flex items-center gap-2 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-2 text-sm font-bold text-[var(--kr-gov-text-secondary)] hover:bg-gray-50"
-                               href="/admin/react-migration?route=member-list">
+                               href="/admin/member/list">
                                 <span class="material-symbols-outlined text-[18px]">arrow_back</span>
                                 회원 목록으로 이동
                             </a>
@@ -417,7 +417,7 @@
 
                 <div class="mt-8 flex justify-center gap-3 border-t pt-6">
                     <button class="min-w-[140px] rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-8 py-3 font-bold text-[var(--kr-gov-text-secondary)] hover:bg-gray-50"
-                            onclick="window.location.href='/admin/react-migration?route=member-detail&memberId=' + encodeURIComponent(document.querySelector('input[name=memberId]').value)"
+                            onclick="window.location.href='/admin/member/detail?memberId=' + encodeURIComponent(document.querySelector('input[name=memberId]').value)"
                             type="button">상세로 이동</button>
                     <button class="min-w-[140px] rounded-[var(--kr-gov-radius)] bg-[var(--kr-gov-blue)] px-8 py-3 font-bold text-white hover:bg-[var(--kr-gov-blue-hover)]"
                             type="submit">저장</button>

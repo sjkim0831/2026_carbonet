@@ -3,6 +3,7 @@ import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { CanView } from "../../components/access/CanView";
 import { PermissionButton } from "../../components/access/CanUse";
+import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import {
   fetchMemberApprovePage,
   MemberApprovePagePayload,
@@ -134,24 +135,19 @@ export function MemberApproveMigrationPage() {
 
   return (
     <AdminPageShell
+      actions={(
+        <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-blue-50 text-[var(--kr-gov-blue)]">
+          총 {Number(page?.memberApprovalTotalCount || 0).toLocaleString()}건
+        </span>
+      )}
+      breadcrumbs={[
+        { label: "홈", href: buildLocalizedPath("/admin/", "/en/admin/") },
+        { label: "회원" },
+        { label: "회원 가입 승인 관리" }
+      ]}
       subtitle="기업회원 가입 신청을 검토하고 승인 또는 반려 상태를 처리합니다."
       title="회원 가입 승인 관리"
     >
-      <section className="flex flex-col gap-3 mb-8 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <div className="flex items-center gap-2 mb-2 text-xs">
-            <span className="font-bold text-[var(--kr-gov-blue)] bg-blue-50 px-2 py-0.5 rounded border border-blue-100">회원관리</span>
-            <span className="text-gray-400">/</span>
-            <span className="text-gray-500">회원 가입 승인</span>
-          </div>
-          <h2 className="text-2xl font-black tracking-tight">회원 가입 승인 관리</h2>
-          <p className="text-sm text-[var(--kr-gov-text-secondary)] mt-1">기업회원 가입 신청을 검토하고 승인 또는 반려 상태를 처리합니다.</p>
-        </div>
-        <div className="text-sm text-gray-500">
-          총 <span className="font-bold text-[var(--kr-gov-blue)]">{Number(page?.memberApprovalTotalCount || 0).toLocaleString()}</span>건
-        </div>
-      </section>
-
       {message ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</section> : null}
       {error ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</section> : null}
       <CanView allowed={!!page?.canViewMemberApprove} fallback={<section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm"><p className="text-sm text-[var(--kr-gov-text-secondary)]">회원 승인 화면을 볼 권한이 없습니다.</p></section>}>

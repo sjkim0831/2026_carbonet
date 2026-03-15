@@ -91,21 +91,19 @@ export function AuthGroupMigrationPage() {
     page?.selectedAuthorName || text(page, "권한 그룹을 선택하세요", "Select a role group");
 
   useEffect(() => {
-    fetchFrontendSession()
-      .then(setSession)
-      .catch((err: Error) => setError(err.message));
-  }, []);
-
-  useEffect(() => {
     setLoading(true);
     setError("");
-    fetchAuthGroupPage({
-      authorCode,
-      roleCategory,
-      insttId,
-      userSearchKeyword: submittedUserSearchKeyword
-    })
-      .then((nextPage) => {
+    Promise.all([
+      fetchFrontendSession(),
+      fetchAuthGroupPage({
+        authorCode,
+        roleCategory,
+        insttId,
+        userSearchKeyword: submittedUserSearchKeyword
+      })
+    ])
+      .then(([sessionPayload, nextPage]) => {
+        setSession(sessionPayload);
         setPage(nextPage);
         setRoleCategory(nextPage.selectedRoleCategory || "GENERAL");
         setInsttId(nextPage.authGroupSelectedInsttId || "");
@@ -315,6 +313,8 @@ export function AuthGroupMigrationPage() {
         "Webmaster can review the full feature catalog and use this page as the master authority baseline."
       )}
       title={text(page, "권한 그룹", "Permission Groups")}
+      loading={loading && !page && !error}
+      loadingLabel={text(page, "권한 그룹 구성을 불러오는 중입니다.", "Loading authority group configuration.")}
     >
       {page?.authGroupError ? (
         <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -332,17 +332,17 @@ export function AuthGroupMigrationPage() {
         </section>
       ) : null}
 
-      <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm mb-8" data-help-id="auth-group-filters">
+      <section className="gov-card border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm mb-8" data-help-id="auth-group-filters">
         <div className="flex items-center gap-2 border-b pb-4 mb-4">
           <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">tune</span>
           <h3 className="text-lg font-bold">{text(page, "권한 분류", "Role Category")}</h3>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <label className="block text-[13px] font-bold text-[var(--kr-gov-text-secondary)]">
+          <label className="gov-label block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] !mb-0">
             {text(page, "권한 분류", "Role category")}
           </label>
           <select
-            className="w-[18rem] border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
+            className="gov-select w-[18rem] border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
             value={roleCategory}
             onChange={(event) => {
               setRoleCategory(event.target.value);
@@ -361,7 +361,7 @@ export function AuthGroupMigrationPage() {
                 {text(page, "회사명", "Company")}
               </label>
               <select
-                className="min-w-[28rem] w-[28rem] border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
+                className="gov-select min-w-[28rem] w-[28rem] border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
                 value={insttId}
                 onChange={(event) => setInsttId(event.target.value)}
               >
@@ -384,18 +384,18 @@ export function AuthGroupMigrationPage() {
         }
         fallback={null}
       >
-        <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm mb-8" data-help-id="auth-group-create">
+        <section className="gov-card border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm mb-8" data-help-id="auth-group-create">
           <div className="flex items-center gap-2 border-b pb-4 mb-4">
             <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">add_moderator</span>
             <h3 className="text-lg font-bold">{text(page, "권한 그룹 추가", "Create Authority Group")}</h3>
           </div>
           <form className="grid grid-cols-1 md:grid-cols-4 gap-4" onSubmit={handleCreate}>
             <label>
-              <span className="block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">
+              <span className="gov-label block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">
                 {text(page, "Role 코드", "Role Code")}
               </span>
               <input
-                className="w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
+                className="gov-select w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
                 placeholder={
                   roleCategory === "GENERAL"
                     ? "ROLE_OPERATION_ADMIN"
@@ -410,11 +410,11 @@ export function AuthGroupMigrationPage() {
               />
             </label>
             <label>
-              <span className="block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">
+              <span className="gov-label block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">
                 {text(page, "Role 명", "Role Name")}
               </span>
               <input
-                className="w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
+                className="gov-select w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
                 placeholder={
                   roleCategory === "GENERAL"
                     ? text(page, "운영 관리자", "Operations Administrator")
@@ -429,11 +429,11 @@ export function AuthGroupMigrationPage() {
               />
             </label>
             <label className="md:col-span-2">
-              <span className="block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">
+              <span className="gov-label block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">
                 {text(page, "설명", "Description")}
               </span>
               <input
-                className="w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
+                className="gov-select w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
                 placeholder={
                   roleCategory === "GENERAL"
                     ? text(page, "운영 업무 전반 권한", "Administrative role baseline")
@@ -449,11 +449,11 @@ export function AuthGroupMigrationPage() {
             </label>
             {(roleCategory === "DEPARTMENT" || roleCategory === "USER") && (
               <label className="md:col-span-2">
-                <span className="block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">
+                <span className="gov-label block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">
                   {text(page, "회사 범위", "Company Scope")}
                 </span>
                 <select
-                  className="w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
+                  className="gov-select w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
                   value={insttId}
                   onChange={(event) => setInsttId(event.target.value)}
                 >
@@ -824,12 +824,6 @@ export function AuthGroupMigrationPage() {
               ))}
             </select>
           </div>
-
-          {loading ? (
-            <p className="text-sm text-[var(--kr-gov-text-secondary)]">
-              {text(page, "불러오는 중입니다.", "Loading...")}
-            </p>
-          ) : null}
 
           <div className="space-y-6">
             {(page?.featureSections || []).map((section) => (

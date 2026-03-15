@@ -120,6 +120,8 @@ export function CompanyListMigrationPage() {
         { label: "회원사 목록 조회" }
       ]}
       title="회원사 목록 조회"
+      loading={pageState.loading && !page && !error}
+      loadingLabel="회원사 목록을 불러오는 중입니다."
     >
       {error ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">조회 중 오류: {error}</section> : null}
       <CanView allowed={!!page?.canViewCompanyList} fallback={<section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm"><p className="text-sm text-[var(--kr-gov-text-secondary)]">회원사 목록을 볼 권한이 없습니다.</p></section>}>
@@ -153,7 +155,7 @@ export function CompanyListMigrationPage() {
               <span className="material-symbols-outlined text-[18px]">download</span>
               회원사 엑셀 다운로드
             </a>
-            <a className="flex items-center gap-1.5 px-3 py-2 bg-[var(--kr-gov-green)] text-white rounded-[var(--kr-gov-radius)] text-[13px] font-bold hover:opacity-90" href={buildLocalizedPath("/admin/react-migration?route=company-account", "/en/admin/react-migration?route=company-account")}>
+            <a className="flex items-center gap-1.5 px-3 py-2 bg-[var(--kr-gov-green)] text-white rounded-[var(--kr-gov-radius)] text-[13px] font-bold hover:opacity-90" href={buildLocalizedPath("/admin/member/company_account", "/en/admin/member/company_account")}>
               <span className="material-symbols-outlined text-[18px]">person_add</span>
               신규 회원사 등록
             </a>
@@ -189,10 +191,10 @@ export function CompanyListMigrationPage() {
                         <span className={`inline-flex px-2 py-0.5 text-[11px] font-bold rounded-full ${resolveStatusBadgeClass(row.joinStat)}`}>{resolveStatusLabel(row.joinStat)}</span>
                       </td>
                       <td className="px-6 py-4 text-center space-x-1">
-                        <a className="inline-flex px-3 py-1.5 border border-[var(--kr-gov-border-light)] text-[12px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-100" href={buildLocalizedPath(`/admin/react-migration?route=company-account&insttId=${encodeURIComponent(insttId)}`, `/en/admin/react-migration?route=company-account&insttId=${encodeURIComponent(insttId)}`)}>
+                        <a className="inline-flex px-3 py-1.5 border border-[var(--kr-gov-border-light)] text-[12px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-100" href={buildLocalizedPath(`/admin/member/company_account?insttId=${encodeURIComponent(insttId)}`, `/en/admin/member/company_account?insttId=${encodeURIComponent(insttId)}`)}>
                           수정
                         </a>
-                        <a className="inline-flex px-3 py-1.5 bg-[var(--kr-gov-blue)] text-white text-[12px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)]" href={buildLocalizedPath(`/admin/react-migration?route=company-detail&insttId=${encodeURIComponent(insttId)}`, `/en/admin/react-migration?route=company-detail&insttId=${encodeURIComponent(insttId)}`)}>
+                        <a className="inline-flex px-3 py-1.5 bg-[var(--kr-gov-blue)] text-white text-[12px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)]" href={buildLocalizedPath(`/admin/member/company_detail?insttId=${encodeURIComponent(insttId)}`, `/en/admin/member/company_detail?insttId=${encodeURIComponent(insttId)}`)}>
                           상세
                         </a>
                       </td>

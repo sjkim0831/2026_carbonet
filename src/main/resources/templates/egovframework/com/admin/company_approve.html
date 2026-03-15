@@ -96,8 +96,7 @@
             오류 메시지
         </div>
 
-        <form class="gov-card p-5 mb-6" method="get" action="/admin/react-migration">
-            <input type="hidden" name="route" value="company-approve"/>
+        <form class="gov-card p-5 mb-6" method="get" action="/admin/member/company-approve">
             <div class="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)_auto_auto] lg:items-end">
                 <div>
                     <label class="block text-sm font-bold mb-2">상태</label>
@@ -113,7 +112,7 @@
                     <input class="w-full rounded border-gray-300 text-sm" name="searchKeyword" placeholder="회원사명, 사업자등록번호 검색" th:value="${searchKeyword}" type="text"/>
                 </div>
                 <button class="gov-btn-primary h-10" type="submit">검색</button>
-                <a class="gov-btn-outline h-10 inline-flex items-center justify-center" href="/admin/react-migration?route=company-approve">초기화</a>
+                <a class="gov-btn-outline h-10 inline-flex items-center justify-center" href="/admin/member/company-approve">초기화</a>
             </div>
         </form>
 
@@ -210,15 +209,15 @@
 
             <div class="flex items-center justify-center gap-1 border-t border-[var(--kr-gov-border-light)] px-6 py-4 bg-white" th:if="${totalPages > 1}">
                 <a class="rounded px-3 py-2 text-sm text-gray-500 hover:bg-gray-100"
-                   th:href="@{/admin/react-migration(route='company-approve',pageIndex=${pageIndex - 1}, searchKeyword=${searchKeyword}, sbscrbSttus=${sbscrbSttus})}"
+                   th:href="@{/admin/member/company-approve(pageIndex=${pageIndex - 1}, searchKeyword=${searchKeyword}, sbscrbSttus=${sbscrbSttus})}"
                    th:if="${pageIndex > 1}">이전</a>
                 <a class="rounded px-3 py-2 text-sm"
                    th:classappend="${page == pageIndex} ? ' bg-[var(--kr-gov-blue)] text-white font-bold' : ' text-gray-600 hover:bg-gray-100'"
                    th:each="page : ${#numbers.sequence(startPage, endPage)}"
-                   th:href="@{/admin/react-migration(route='company-approve',pageIndex=${page}, searchKeyword=${searchKeyword}, sbscrbSttus=${sbscrbSttus})}"
+                   th:href="@{/admin/member/company-approve(pageIndex=${page}, searchKeyword=${searchKeyword}, sbscrbSttus=${sbscrbSttus})}"
                    th:text="${page}">1</a>
                 <a class="rounded px-3 py-2 text-sm text-gray-500 hover:bg-gray-100"
-                   th:href="@{/admin/react-migration(route='company-approve',pageIndex=${pageIndex + 1}, searchKeyword=${searchKeyword}, sbscrbSttus=${sbscrbSttus})}"
+                   th:href="@{/admin/member/company-approve(pageIndex=${pageIndex + 1}, searchKeyword=${searchKeyword}, sbscrbSttus=${sbscrbSttus})}"
                    th:if="${pageIndex < totalPages}">다음</a>
             </div>
         </form>

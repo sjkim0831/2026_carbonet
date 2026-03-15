@@ -149,7 +149,7 @@
                         <span class="material-symbols-outlined text-[18px]">download</span> 관리자 엑셀 다운로드
                     </a>
                     <a class="flex items-center gap-1.5 px-3 py-2 bg-[var(--kr-gov-green)] text-white rounded-[var(--kr-gov-radius)] text-[13px] font-bold hover:opacity-90"
-                       href="/admin/react-migration?route=admin-create">
+                       href="/admin/member/admin_account">
                         <span class="material-symbols-outlined text-[18px]">person_add</span> 신규 관리자 등록
                     </a>
                 </div>
@@ -199,9 +199,9 @@
                                 </td>
                                 <td class="px-6 py-4 text-center space-x-1">
                                     <a class="inline-flex px-3 py-1.5 border border-[var(--kr-gov-border-light)] text-[12px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-100"
-                                       th:href="@{/admin/react-migration(route='admin-permission',emplyrId=${member.emplyrId})}">수정</a>
+                                       th:href="@{/admin/member/admin_account/permissions(emplyrId=${member.emplyrId})}">수정</a>
                                     <a class="inline-flex px-3 py-1.5 bg-[var(--kr-gov-blue)] text-white text-[12px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)]"
-                                       th:href="@{/admin/react-migration(route='admin-permission',emplyrId=${member.emplyrId},mode='detail')}">상세</a>
+                                       th:href="@{/admin/member/admin_account/permissions(emplyrId=${member.emplyrId},mode='detail')}">상세</a>
                                 </td>
                             </tr>
                             <tr th:if="${#lists.isEmpty(member_list)}">

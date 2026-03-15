@@ -150,7 +150,7 @@
                         <span class="material-symbols-outlined text-[18px]">download</span> Company Excel Download
                     </a>
                     <a class="flex items-center gap-1.5 px-3 py-2 bg-[var(--kr-gov-green)] text-white rounded-[var(--kr-gov-radius)] text-[13px] font-bold hover:opacity-90"
-                       href="/en/admin/react-migration?route=company-account">
+                       href="/en/admin/member/company_account">
                         <span class="material-symbols-outlined text-[18px]">person_add</span> New Company Registration
                     </a>
                 </div>
@@ -192,9 +192,9 @@
                                 </td>
                                 <td class="px-6 py-4 text-center space-x-1">
                                     <a class="inline-flex px-3 py-1.5 border border-[var(--kr-gov-border-light)] text-[12px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-100"
-                                       th:href="@{/en/admin/react-migration(route='company-account',insttId=${company.insttId})}">Edit</a>
+                                       th:href="@{/en/admin/member/company_account(insttId=${company.insttId})}">Edit</a>
                                     <a class="inline-flex px-3 py-1.5 bg-[var(--kr-gov-blue)] text-white text-[12px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)]"
-                                       th:href="@{/en/admin/react-migration(route='company-detail',insttId=${company.insttId})}">Detail</a>
+                                       th:href="@{/en/admin/member/company_detail(insttId=${company.insttId})}">Detail</a>
                                 </td>
                             </tr>
                             <tr th:if="${#lists.isEmpty(company_list)}">

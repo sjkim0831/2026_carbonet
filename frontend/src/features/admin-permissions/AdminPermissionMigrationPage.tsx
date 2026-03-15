@@ -115,14 +115,14 @@ export function AdminPermissionMigrationPage() {
             <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">shield</span>
             <div>
               <h3 className="text-lg font-bold text-[var(--kr-gov-text-primary)]">{text(page, "권한 롤 및 개별 권한", "Role and Individual Permissions")}</h3>
-              <p className="text-sm text-[var(--kr-gov-text-secondary)]">{text(page, "관리자 롤을 기준으로 계정별 예외 권한을 조정합니다.", "Adjust account-specific permission exceptions based on the administrator role.")}</p>
+              <p className="text-sm text-[var(--kr-gov-text-secondary)]">{text(page, "관리자 롤을 기준으로 체크를 맞춘 뒤, 계정별 추가 허용 또는 제외 권한을 직접 조정합니다.", "Align the baseline to the administrator role, then adjust account-specific additions or removals directly.")}</p>
             </div>
           </div>
           <div className="p-6 space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="md:col-span-2">
                 <label className="block">
-                  <span className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2">{text(page, "기준 권한 롤", "Base Role")}</span>
+                  <span className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2">{text(page, "기준 권한 롤", "Base Role")} <span className="text-red-500">*</span></span>
                   <select className="w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!page?.canUseAdminPermissionSave || readOnly} value={authorCode} onChange={(e) => setAuthorCode(e.target.value)}>
                     <option value="">{text(page, "권한 롤 선택", "Select a role")}</option>
                     {(page?.permissionAuthorGroups || []).map((group) => <option key={group.authorCode} value={group.authorCode}>{group.authorNm} ({group.authorCode})</option>)}
@@ -148,7 +148,7 @@ export function AdminPermissionMigrationPage() {
                       <h4 className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{section.menuNm || section.menuNmEn || section.menuCode}</h4>
                       <p className="mt-1 text-xs text-slate-500">{section.menuUrl || text(page, "연결 URL 없음", "No linked URL")}</p>
                     </div>
-                    <span className="text-xs font-bold text-slate-500">{section.features.length}개 기능</span>
+                    <span className="text-xs font-bold text-slate-500">{section.features.length}{text(page, "개 기능", " features")}</span>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4">
                     {section.features.map((feature) => (
@@ -173,7 +173,7 @@ export function AdminPermissionMigrationPage() {
         </section>
         <div className="pt-2 flex justify-center gap-4">
           <a className="min-w-[180px] h-14 border border-[var(--kr-gov-border-light)] text-[var(--kr-gov-text-primary)] text-lg font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-50 transition-colors flex items-center justify-center" href={buildLocalizedPath("/admin/member/admin_list", "/en/admin/member/admin_list")}>{text(page, "목록으로", "Back to list")}</a>
-          <PermissionButton allowed={!!page?.canUseAdminPermissionSave && !readOnly} className="min-w-[220px] h-14 bg-[var(--kr-gov-blue)] text-white text-lg font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)] transition-colors shadow-lg" onClick={handleSave} reason={text(page, "webmaster만 관리자 권한을 저장할 수 있습니다.", "Only webmaster can save administrator permissions.")} type="button">{readOnly ? text(page, "상세 모드", "Detail mode") : text(page, "권한 저장", "Save permissions")}</PermissionButton>
+          <PermissionButton allowed={!!page?.canUseAdminPermissionSave && !readOnly} className="min-w-[220px] h-14 bg-[var(--kr-gov-blue)] text-white text-lg font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)] transition-colors shadow-lg" onClick={handleSave} reason={readOnly ? text(page, "상세 모드에서는 저장할 수 없습니다.", "Save is unavailable in detail mode.") : text(page, "webmaster만 관리자 권한을 저장할 수 있습니다.", "Only webmaster can save administrator permissions.")} type="button">{readOnly ? text(page, "상세 모드", "Detail mode") : text(page, "권한 저장", "Save permissions")}</PermissionButton>
         </div>
       </CanView>
     </AdminPageShell>

@@ -21,6 +21,14 @@ const ROLE_PRESETS = [
   { code: "GENERAL", label: "일반 관리자" }
 ] as const;
 
+function roleChipClass(active: boolean) {
+  return `flex items-center justify-center min-h-[52px] rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] px-4 text-sm font-bold transition-all ${
+    active
+      ? "border-[var(--kr-gov-blue)] bg-blue-50 text-[var(--kr-gov-blue)] shadow-sm"
+      : "bg-white text-[var(--kr-gov-text-secondary)]"
+  }`;
+}
+
 type CompanyResult = CompanySearchPayload["list"][number];
 
 function normalizeText(value: unknown, fallback = "-") {
@@ -207,7 +215,7 @@ export function AdminAccountCreateMigrationPage() {
             void handleSave();
           }}
         >
-          <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm">
+          <section className="section-shell border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm">
             <div className="flex items-center gap-2 px-6 py-4 border-b border-[var(--kr-gov-border-light)]">
               <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">shield_person</span>
               <div>
@@ -219,7 +227,7 @@ export function AdminAccountCreateMigrationPage() {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 {ROLE_PRESETS.map((preset) => (
                   <button
-                    className={`flex items-center justify-center min-h-[52px] rounded-[var(--kr-gov-radius)] border px-4 text-sm font-bold transition-all ${rolePreset === preset.code ? "border-[var(--kr-gov-blue)] bg-blue-50 text-[var(--kr-gov-blue)] shadow-sm" : "border-[var(--kr-gov-border-light)] bg-white text-[var(--kr-gov-text-secondary)]"}`}
+                    className={roleChipClass(rolePreset === preset.code)}
                     disabled={!canUseCreate}
                     key={preset.code}
                     onClick={() => setRolePreset(preset.code)}
@@ -232,110 +240,115 @@ export function AdminAccountCreateMigrationPage() {
             </div>
           </section>
 
-          <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm">
+          <section className="section-shell border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm">
             <div className="flex items-center gap-2 px-6 py-4 border-b border-[var(--kr-gov-border-light)]">
               <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">manage_accounts</span>
               <h3 className="text-lg font-bold text-[var(--kr-gov-text-primary)]">계정 정보</h3>
             </div>
             <div className="p-6 grid grid-cols-1 xl:grid-cols-2 gap-6">
               <div className="space-y-1">
-                <label className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="admin-id">아이디 <span className="text-red-500">*</span></label>
+                <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="admin-id">아이디 <span className="text-red-500">*</span></label>
                 <div className="flex gap-2">
-                  <input className="w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} id="admin-id" placeholder="6~16자 영문, 숫자" spellCheck={false} value={adminId} onChange={(e) => setAdminId(e.target.value)} />
+                  <input className="form-input w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} id="admin-id" placeholder="6~16자 영문, 숫자" spellCheck={false} value={adminId} onChange={(e) => setAdminId(e.target.value)} />
                   <PermissionButton allowed={canUseCreate} className="px-4 bg-gray-800 text-white text-sm font-bold rounded-[var(--kr-gov-radius)] whitespace-nowrap" onClick={handleCheckId} reason="생성 권한이 있어야 중복 확인을 사용할 수 있습니다." type="button">중복확인</PermissionButton>
                 </div>
                 {idCheckMessage ? <div className="text-sm text-[var(--kr-gov-blue)]">{idCheckMessage}</div> : null}
               </div>
               <div className="space-y-1">
-                <label className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="user-name-top">이름 <span className="text-red-500">*</span></label>
-                <input className="w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} id="user-name-top" value={adminName} onChange={(e) => setAdminName(e.target.value)} />
+                <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="user-name-top">이름 <span className="text-red-500">*</span></label>
+                <input className="form-input w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} id="user-name-top" value={adminName} onChange={(e) => setAdminName(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="password">비밀번호 <span className="text-red-500">*</span></label>
-                <input className="w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} id="password" placeholder="영문, 숫자, 특수문자 조합 8자 이상" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="password">비밀번호 <span className="text-red-500">*</span></label>
+                <input className="form-input w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} id="password" placeholder="영문, 숫자, 특수문자 조합 8자 이상" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
               </div>
               <div className="space-y-1">
-                <label className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="password-confirm">비밀번호 확인 <span className="text-red-500">*</span></label>
-                <input className="w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} id="password-confirm" placeholder="비밀번호를 다시 입력하세요" type="password" value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} />
+                <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="password-confirm">비밀번호 확인 <span className="text-red-500">*</span></label>
+                <input className="form-input w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} id="password-confirm" placeholder="비밀번호를 다시 입력하세요" type="password" value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} />
+                {passwordConfirm ? (
+                  <div className={`text-sm ${password === passwordConfirm ? "text-[var(--kr-gov-success)]" : "text-[var(--kr-gov-error)]"}`}>
+                    {password === passwordConfirm ? "비밀번호가 일치합니다." : "비밀번호가 일치하지 않습니다."}
+                  </div>
+                ) : null}
               </div>
             </div>
           </section>
 
           <div className="grid grid-cols-1 gap-6" id="infoSectionGrid">
-            <section className={`border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm ${rolePreset === "MASTER" ? "xl:col-span-2" : ""}`}>
+            <section className={`section-shell border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm ${rolePreset === "MASTER" ? "xl:col-span-2" : ""}`}>
               <div className="flex items-center gap-2 px-6 py-4 border-b border-[var(--kr-gov-border-light)]">
                 <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">badge</span>
                 <h3 className="text-lg font-bold text-[var(--kr-gov-text-primary)]">개인 정보</h3>
               </div>
               <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="md:col-span-2 space-y-1">
-                  <label className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="user-name">성명 <span className="text-red-500">*</span></label>
-                  <input className="w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} id="user-name" placeholder="사용자 성함을 입력하세요" value={adminName} onChange={(e) => setAdminName(e.target.value)} />
+                  <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="user-name">성명 <span className="text-red-500">*</span></label>
+                  <input className="form-input w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} id="user-name" placeholder="사용자 성함을 입력하세요" value={adminName} onChange={(e) => setAdminName(e.target.value)} />
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="email">공식 이메일 <span className="text-red-500">*</span></label>
-                  <input className="w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} id="email" placeholder="example@korea.kr / domain.com" type="email" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} />
+                  <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="email">공식 이메일 <span className="text-red-500">*</span></label>
+                  <input className="form-input w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} id="email" placeholder="example@korea.kr / domain.com" type="email" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} />
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="contact-mid">연락처 <span className="text-red-500">*</span></label>
+                  <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="contact-mid">연락처 <span className="text-red-500">*</span></label>
                   <div className="flex gap-2">
-                    <select className="w-24 h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} value={phone1} onChange={(e) => setPhone1(e.target.value)}>
+                    <select className="form-input w-24 h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} value={phone1} onChange={(e) => setPhone1(e.target.value)}>
                       <option value="010">010</option>
                       <option value="011">011</option>
                       <option value="02">02</option>
                     </select>
                     <span className="flex items-center">-</span>
-                    <input className="flex-1 h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} id="contact-mid" inputMode="numeric" value={phone2} onChange={(e) => setPhone2(e.target.value)} />
+                    <input className="form-input flex-1 h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} id="contact-mid" inputMode="numeric" value={phone2} onChange={(e) => setPhone2(e.target.value)} />
                     <span className="flex items-center">-</span>
-                    <input className="flex-1 h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} inputMode="numeric" value={phone3} onChange={(e) => setPhone3(e.target.value)} />
+                    <input className="form-input flex-1 h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} inputMode="numeric" value={phone3} onChange={(e) => setPhone3(e.target.value)} />
                   </div>
                 </div>
               </div>
             </section>
 
             {rolePreset !== "MASTER" ? (
-              <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm">
+              <section className="section-shell border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm">
                 <div className="flex items-center gap-2 px-6 py-4 border-b border-[var(--kr-gov-border-light)]">
                   <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">corporate_fare</span>
                   <h3 className="text-lg font-bold text-[var(--kr-gov-text-primary)]">소속 정보</h3>
                 </div>
                 <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="md:col-span-2 space-y-1">
-                    <label className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="affiliation-type">회원 유형</label>
-                    <select className="w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} id="affiliation-type" value={membershipType} onChange={(e) => setMembershipType(e.target.value)}>
+                    <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="affiliation-type">회원 유형</label>
+                    <select className="form-input w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} id="affiliation-type" value={membershipType} onChange={(e) => setMembershipType(e.target.value)}>
                       <option value="">유형을 선택하세요</option>
                       <option value="enterprise">기업회원</option>
                       <option value="agency">기관회원</option>
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <label className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="department">부서명</label>
-                    <input className="w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} id="department" placeholder="부서명을 입력하세요" value={deptNm} onChange={(e) => setDeptNm(e.target.value)} />
+                    <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="department">부서명</label>
+                    <input className="form-input w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} id="department" placeholder="부서명을 입력하세요" value={deptNm} onChange={(e) => setDeptNm(e.target.value)} />
                   </div>
                   <div className="space-y-1">
-                    <label className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="company-search">소속 기관 / 기업명 <span className="text-red-500">*</span></label>
+                    <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="company-search">소속 기관 / 기업명 <span className="text-red-500">*</span></label>
                     <div className="flex gap-2">
                       <input type="hidden" value={insttId} />
-                      <input className="w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-gray-50" id="company-search" placeholder="기업명을 검색해 주세요" readOnly value={companyName} />
+                      <input className="form-input w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-gray-50" id="company-search" placeholder="기업명을 검색해 주세요" readOnly value={companyName} />
                       <PermissionButton allowed={canUseCreate} className="px-5 bg-gray-800 text-white text-sm font-bold rounded-[var(--kr-gov-radius)] whitespace-nowrap flex items-center gap-1" onClick={() => setCompanySearchOpen(true)} reason="생성 권한이 있어야 기관 검색을 사용할 수 있습니다." type="button">
                         <span className="material-symbols-outlined text-[18px]">search</span> 기관 검색
                       </PermissionButton>
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <label className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="biz-number">사업자등록번호</label>
-                    <input className="w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-gray-50" id="biz-number" readOnly value={bizrno} />
+                    <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="biz-number">사업자등록번호</label>
+                    <input className="form-input w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-gray-50" id="biz-number" readOnly value={bizrno} />
                   </div>
                   <div className="space-y-1">
-                    <label className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="representative-name">대표자명</label>
-                    <input className="w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-gray-50" id="representative-name" readOnly value={representativeName} />
+                    <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="representative-name">대표자명</label>
+                    <input className="form-input w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-gray-50" id="representative-name" readOnly value={representativeName} />
                   </div>
                 </div>
               </section>
             ) : null}
           </div>
 
-          <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm">
+          <section className="section-shell border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm">
             <div className="flex items-center gap-2 px-6 py-4 border-b border-[var(--kr-gov-border-light)]">
               <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">tune</span>
               <h3 className="text-lg font-bold text-[var(--kr-gov-text-primary)]">권한 부여</h3>
@@ -346,7 +359,7 @@ export function AdminAccountCreateMigrationPage() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                   {ROLE_PRESETS.map((preset) => (
                     <button
-                      className={`flex items-center justify-center min-h-[52px] rounded-[var(--kr-gov-radius)] border px-4 text-sm font-bold transition-all ${rolePreset === preset.code ? "border-[var(--kr-gov-blue)] bg-blue-50 text-[var(--kr-gov-blue)] shadow-sm" : "border-[var(--kr-gov-border-light)] bg-white text-[var(--kr-gov-text-secondary)]"}`}
+                      className={roleChipClass(rolePreset === preset.code)}
                       disabled={!canUseCreate}
                       key={`bottom-${preset.code}`}
                       onClick={() => setRolePreset(preset.code)}
@@ -467,7 +480,7 @@ export function AdminAccountCreateMigrationPage() {
               <div className="bg-gray-50 border-t border-b border-gray-200 p-4 rounded-md">
                 <p className="text-[13px] text-[var(--kr-gov-text-secondary)] flex items-center gap-1.5 leading-relaxed">
                   <span className="material-symbols-outlined text-blue-600 text-[18px]">info</span>
-                  찾으시는 정보가 없는 경우 <a className="font-bold text-[var(--kr-gov-blue)] text-sm hover:underline" href={buildLocalizedPath("/admin/react-migration?route=company-account", "/en/admin/react-migration?route=company-account")}>[신규 회원사 등록]</a>을 진행해 주세요.
+                  찾으시는 정보가 없는 경우 <a className="font-bold text-[var(--kr-gov-blue)] text-sm hover:underline" href={buildLocalizedPath("/admin/member/company_account", "/en/admin/member/company_account")}>[신규 회원사 등록]</a>을 진행해 주세요.
                 </p>
               </div>
             </div>

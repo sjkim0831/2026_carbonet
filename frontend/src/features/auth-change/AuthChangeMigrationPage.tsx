@@ -23,12 +23,9 @@ export function AuthChangeMigrationPage() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    fetchFrontendSession().then(setSession).catch((err: Error) => setError(err.message));
-  }, []);
-
-  useEffect(() => {
-    fetchAuthChangePage()
-      .then((payload) => {
+    Promise.all([fetchFrontendSession(), fetchAuthChangePage()])
+      .then(([sessionPayload, payload]) => {
+        setSession(sessionPayload);
         setPage(payload);
         const nextDrafts: Record<string, string> = {};
         payload.roleAssignments.forEach((row) => {
@@ -77,6 +74,8 @@ export function AuthChangeMigrationPage() {
         "Review and update the assigned authority group for each administrator."
       )}
       title={t(page, "권한 변경", "Authority Change")}
+      loading={!page && !error}
+      loadingLabel={t(page, "관리자 권한 데이터를 불러오는 중입니다.", "Loading administrator authority data.")}
     >
       {(page?.authChangeError || error) ? (
         <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -193,10 +192,10 @@ export function AuthChangeMigrationPage() {
                           reason={t(
                             page,
                             row.emplyrId === "webmaster"
-                              ? "webmaster는 ROLE_SYSTEM_MASTER로 고정됩니다."
+                              ? ""
                               : "webmaster 권한이 있어야 관리자 권한을 변경할 수 있습니다.",
                             row.emplyrId === "webmaster"
-                              ? "The webmaster account is fixed to ROLE_SYSTEM_MASTER."
+                              ? ""
                               : "Webmaster authority is required to change administrator authority."
                           )}
                           type="button"

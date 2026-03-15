@@ -52,18 +52,20 @@ export function CompanyDetailMigrationPage() {
       ]}
       subtitle="회원사 신청 정보와 첨부파일을 읽기 전용으로 확인합니다."
       title="회원사 상세"
+      loading={!page && !error}
+      loadingLabel="회원사 상세 정보를 불러오는 중입니다."
       actions={(
         <div className="flex items-center gap-2">
           <a
             className="inline-flex items-center gap-1.5 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-2 text-sm font-bold hover:bg-gray-50"
-            href={buildLocalizedPath("/admin/react-migration?route=company-list", "/en/admin/react-migration?route=company-list")}
+            href={buildLocalizedPath("/admin/member/company_list", "/en/admin/member/company_list")}
           >
             <span className="material-symbols-outlined text-[18px]">list</span>
             목록
           </a>
           <a
             className="inline-flex items-center gap-1.5 rounded-[var(--kr-gov-radius)] bg-[var(--kr-gov-blue)] px-4 py-2 text-sm font-bold text-white hover:bg-[var(--kr-gov-blue-hover)]"
-            href={buildLocalizedPath(`/admin/react-migration?route=company-account&insttId=${encodeURIComponent(insttId)}`, `/en/admin/react-migration?route=company-account&insttId=${encodeURIComponent(insttId)}`)}
+            href={buildLocalizedPath(`/admin/member/company_account?insttId=${encodeURIComponent(insttId)}`, `/en/admin/member/company_account?insttId=${encodeURIComponent(insttId)}`)}
           >
             <span className="material-symbols-outlined text-[18px]">edit</span>
             수정
@@ -83,7 +85,7 @@ export function CompanyDetailMigrationPage() {
             </div>
             <a
               className="inline-flex items-center gap-1.5 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-2 text-sm font-bold hover:bg-gray-50"
-              href={buildLocalizedPath(`/admin/react-migration?route=company-account&insttId=${encodeURIComponent(insttId)}`, `/en/admin/react-migration?route=company-account&insttId=${encodeURIComponent(insttId)}`)}
+              href={buildLocalizedPath(`/admin/member/company_account?insttId=${encodeURIComponent(insttId)}`, `/en/admin/member/company_account?insttId=${encodeURIComponent(insttId)}`)}
             >
               수정 화면 이동
             </a>

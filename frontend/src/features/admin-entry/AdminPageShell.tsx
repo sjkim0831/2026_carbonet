@@ -14,6 +14,8 @@ type AdminPageShellProps = {
   actions?: ReactNode;
   breadcrumbs?: BreadcrumbItem[];
   sidebarVariant?: string;
+  loading?: boolean;
+  loadingLabel?: string;
   children: ReactNode;
 };
 
@@ -197,6 +199,102 @@ function getFallbackMenuTree(): Record<string, AdminMenuDomain> {
   };
 }
 
+function cloneMenuTree(source: Record<string, AdminMenuDomain>): Record<string, AdminMenuDomain> {
+  return Object.fromEntries(
+    Object.entries(source).map(([domainKey, domain]) => [
+      domainKey,
+      {
+        ...domain,
+        groups: (domain.groups || []).map((group) => ({
+          ...group,
+          links: [...(group.links || [])]
+        }))
+      }
+    ])
+  );
+}
+
+function resolveFallbackDomainKey(label: string) {
+  const normalized = label.trim();
+  if (!normalized) {
+    return "회원관리";
+  }
+  if (normalized === "회원" || normalized === "회원사" || normalized === "관리자") {
+    return "회원관리";
+  }
+  if (normalized === "시스템") {
+    return "시스템";
+  }
+  if (normalized === "콘텐츠") {
+    return "콘텐츠";
+  }
+  if (normalized === "모니터링") {
+    return "모니터링";
+  }
+  if (normalized === "홈" || normalized === "대시보드") {
+    return "대시보드";
+  }
+  return "회원관리";
+}
+
+function ensureCurrentPageInMenuTree(
+  source: Record<string, AdminMenuDomain>,
+  currentPath: string,
+  title: string,
+  breadcrumbs?: BreadcrumbItem[],
+  en?: boolean
+) {
+  const currentFull = normalizeComparablePath(currentPath);
+  const currentBase = pathOnly(currentFull);
+  const nextTree = cloneMenuTree(source);
+
+  for (const domain of Object.values(nextTree)) {
+    for (const group of domain.groups || []) {
+      const matched = (group.links || []).some((link) => {
+        const targetFull = normalizeComparablePath(link.u || "");
+        const targetBase = pathOnly(targetFull);
+        return targetFull === currentFull || targetBase === currentBase;
+      });
+      if (matched) {
+        return nextTree;
+      }
+    }
+  }
+
+  const sectionLabel = breadcrumbs?.[1]?.label || "";
+  const pageLabel = breadcrumbs?.[breadcrumbs.length - 1]?.label || title || currentBase;
+  const domainKey = resolveFallbackDomainKey(sectionLabel);
+  const domain = nextTree[domainKey];
+  if (!domain) {
+    return nextTree;
+  }
+
+  const groupIndex = (domain.groups || []).findIndex((group) => {
+    const groupTitle = en ? (group.titleEn || group.title) : group.title;
+    return groupTitle === sectionLabel || group.title === sectionLabel;
+  });
+
+  const targetGroup = groupIndex >= 0
+    ? domain.groups[groupIndex]
+    : domain.groups[0];
+
+  if (!targetGroup) {
+    return nextTree;
+  }
+
+  targetGroup.links = [
+    {
+      text: pageLabel,
+      tEn: pageLabel,
+      u: currentFull,
+      icon: "radio_button_checked"
+    },
+    ...targetGroup.links
+  ];
+
+  return nextTree;
+}
+
 function normalizeComparablePath(value: string) {
   if (!value) {
     return "/";
@@ -248,6 +346,16 @@ function resolveActiveDomainKey(menuTree: Record<string, AdminMenuDomain>, curre
   return Object.keys(menuTree)[0] || "";
 }
 
+function resolveActiveLinkIndex(links: Array<{ u?: string }>, currentPath: string) {
+  const currentFull = normalizeComparablePath(currentPath);
+  const currentBase = pathOnly(currentFull);
+  const exactIndex = links.findIndex((link) => normalizeComparablePath(link.u || "") === currentFull);
+  if (exactIndex >= 0) {
+    return exactIndex;
+  }
+  return links.findIndex((link) => pathOnly(link.u || "") === currentBase);
+}
+
 async function handleAdminLogout() {
   try {
     await fetch(buildLocalizedPath("/admin/login/actionLogout", "/en/admin/login/actionLogout"), {
@@ -260,11 +368,24 @@ async function handleAdminLogout() {
   }
 }
 
-export function AdminPageShell({ title, subtitle, actions, breadcrumbs, sidebarVariant: _sidebarVariant, children }: AdminPageShellProps) {
+export function AdminPageShell({
+  title,
+  subtitle,
+  actions,
+  breadcrumbs,
+  sidebarVariant: _sidebarVariant,
+  loading = false,
+  loadingLabel,
+  children
+}: AdminPageShellProps) {
   const en = isEnglish();
   const currentPath = `${window.location.pathname}${window.location.search}`;
   const menuState = useAsyncValue(fetchAdminMenuTree, []);
-  const menuTree = Object.keys(menuState.value || {}).length ? (menuState.value || {}) : getFallbackMenuTree();
+  const fallbackMenuTree = useMemo(
+    () => ensureCurrentPageInMenuTree(getFallbackMenuTree(), currentPath, title, breadcrumbs, en),
+    [breadcrumbs, currentPath, en, title]
+  );
+  const menuTree = Object.keys(menuState.value || {}).length ? (menuState.value || {}) : fallbackMenuTree;
   const fallbackGnbItems = getFallbackGnbItems(en);
   const activeDomainKey = useMemo(
     () => resolveActiveDomainKey(menuTree, currentPath),
@@ -399,9 +520,10 @@ export function AdminPageShell({ title, subtitle, actions, breadcrumbs, sidebarV
       ? "session-danger"
       : (sessionRemainingMs <= ADMIN_SESSION_WARNING_MS ? "session-warning" : "")
   ].filter(Boolean).join(" ");
+  const resolvedLoadingLabel = loadingLabel || (en ? "Loading page data." : "화면을 불러오는 중입니다.");
 
   return (
-    <div className="bg-[#f8f9fa] text-[var(--kr-gov-text-primary)] min-h-screen flex flex-col">
+    <div className="relative bg-[#f8f9fa] text-[var(--kr-gov-text-primary)] min-h-screen flex flex-col">
       <a className="skip-link" href="#main-content">{en ? "Skip to content" : "본문 바로가기"}</a>
 
       <div className="bg-[var(--kr-gov-bg-gray)] border-b border-[var(--kr-gov-border-light)]">
@@ -536,11 +658,8 @@ export function AdminPageShell({ title, subtitle, actions, breadcrumbs, sidebarV
           <div className="space-y-5 overflow-y-auto" id="gnbTreeWrap">
             {(selectedDomain?.groups || []).map((group: AdminMenuGroup, index) => {
               const groupKey = group.title || `group-${index}`;
-              const groupHasActive = (group.links || []).some((link) => {
-                const targetFull = normalizeComparablePath(link.u || "");
-                const targetBase = pathOnly(targetFull);
-                return targetFull === normalizeComparablePath(currentPath) || targetBase === pathOnly(currentPath);
-              });
+              const activeLinkIndex = resolveActiveLinkIndex(group.links || [], currentPath);
+              const groupHasActive = activeLinkIndex >= 0;
               const expanded = openGroups[groupKey] ?? groupHasActive ?? index === 0;
               return (
                 <div className="gnb-tree-group" key={groupKey}>
@@ -559,9 +678,7 @@ export function AdminPageShell({ title, subtitle, actions, breadcrumbs, sidebarV
                   </button>
                   <div className={`gnb-tree-links space-y-1 ${expanded ? "" : "hidden"}`} id={`${groupKey}-links`}>
                     {(group.links || []).map((link, linkIndex) => {
-                      const targetFull = normalizeComparablePath(link.u || "");
-                      const targetBase = pathOnly(targetFull);
-                      const active = targetFull === normalizeComparablePath(currentPath) || targetBase === pathOnly(currentPath) || (!groupHasActive && index === 0 && linkIndex === 0);
+                      const active = linkIndex === activeLinkIndex;
                       return (
                         <a className={`admin-sidebar-link ${active ? "active" : ""}`} href={link.u || "#"} key={`${groupKey}-${link.u}-${linkIndex}`}>
                           <span className="material-symbols-outlined text-[20px]">{link.icon || (active ? "check_circle" : "chevron_right")}</span>
@@ -636,6 +753,26 @@ export function AdminPageShell({ title, subtitle, actions, breadcrumbs, sidebarV
           </div>
         </div>
       </footer>
+      {loading ? (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/25 px-4 backdrop-blur-[2px]">
+          <div className="min-w-[18rem] rounded-[calc(var(--kr-gov-radius)+6px)] border border-slate-200 bg-white/95 px-6 py-5 shadow-[0_24px_80px_rgba(15,23,42,0.18)]">
+            <div className="flex items-center gap-4">
+              <div className="relative h-10 w-10 shrink-0">
+                <span className="absolute inset-0 rounded-full border-[3px] border-slate-200" />
+                <span className="absolute inset-0 animate-spin rounded-full border-[3px] border-transparent border-t-[var(--kr-gov-blue)] border-r-[var(--kr-gov-blue)]" />
+              </div>
+              <div>
+                <p className="text-sm font-black text-[var(--kr-gov-text-primary)]">
+                  {en ? "Preparing screen" : "화면 준비 중"}
+                </p>
+                <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+                  {resolvedLoadingLabel}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

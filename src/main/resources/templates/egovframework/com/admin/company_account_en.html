@@ -60,7 +60,7 @@
                    th:text="${companyAccountForm != null and companyAccountForm.insttId != null and companyAccountForm.insttId != '' ? 'Edit an existing company application and review its uploaded file history.' : 'Register a company application directly from the admin screen and review uploaded files from the file table.'}">Register a company application directly from the admin screen and review uploaded files from the file table.</p>
             </div>
             <a class="inline-flex items-center gap-1.5 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-2 text-sm font-bold hover:bg-gray-50"
-               href="/en/admin/react-migration?route=company-list">
+               href="/en/admin/member/company_list">
                 <span class="material-symbols-outlined text-[18px]">list</span>
                 Company List
             </a>
@@ -237,7 +237,7 @@
 
                 <div class="flex flex-col gap-4 border-t border-gray-100 pt-8 md:flex-row">
                     <a class="flex h-14 flex-1 items-center justify-center rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] text-lg font-bold text-[var(--kr-gov-text-primary)] hover:bg-gray-50"
-                       href="/en/admin/react-migration?route=company-list">Back to List</a>
+                       href="/en/admin/member/company_list">Back to List</a>
                     <button class="flex h-14 flex-[2] items-center justify-center gap-2 rounded-[var(--kr-gov-radius)] bg-[var(--kr-gov-blue)] text-lg font-bold text-white shadow-lg transition-colors hover:bg-[var(--kr-gov-blue-hover)]"
                             type="submit">
                         <span th:text="${companyAccountForm != null and companyAccountForm.insttId != null and companyAccountForm.insttId != '' ? 'Save Company Changes' : 'Save Company'}">Save Company</span>

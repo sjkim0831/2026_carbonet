@@ -6,7 +6,12 @@ LOG_DIR="$ROOT_DIR/var/logs"
 APP_LOG="$LOG_DIR/carbonet-18000.log"
 PORT=18000
 JAR_PATH="$ROOT_DIR/target/carbonet.jar"
-DB_URL="jdbc:cubrid:100.121.241.72:33000:carbonet:::?charset=UTF-8"
+DB_HOST="${CUBRID_HOST:-100.121.241.72}"
+DB_PORT="${CUBRID_PORT:-33000}"
+DB_NAME="${CUBRID_DB:-carbonet}"
+DB_USER="${CUBRID_USER:-dba}"
+DB_PASSWORD="${CUBRID_PASSWORD:-}"
+DB_URL="jdbc:cubrid:${DB_HOST}:${DB_PORT}:${DB_NAME}:::?charset=UTF-8"
 
 mkdir -p "$LOG_DIR"
 
@@ -26,7 +31,7 @@ if [[ -n "${EXISTING_PID:-}" ]]; then
 fi
 
 echo "[deploy] start application"
-setsid sh -c "nohup java -jar '$JAR_PATH' --server.port=$PORT --spring.datasource.url=$DB_URL >> '$APP_LOG' 2>&1 < /dev/null &"
+setsid sh -c "nohup java -jar '$JAR_PATH' --server.port=$PORT --spring.datasource.url=$DB_URL --spring.datasource.username=$DB_USER --spring.datasource.password=$DB_PASSWORD >> '$APP_LOG' 2>&1 < /dev/null &"
 
 echo "[deploy] waiting for boot"
 sleep 20

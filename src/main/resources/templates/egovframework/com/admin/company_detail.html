@@ -48,12 +48,12 @@
             </div>
             <div class="flex items-center gap-2">
                 <a class="inline-flex items-center gap-1.5 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-2 text-sm font-bold hover:bg-gray-50"
-                   href="/admin/react-migration?route=company-list">
+                   href="/admin/member/company_list">
                     <span class="material-symbols-outlined text-[18px]">list</span>
                     목록
                 </a>
                 <a class="inline-flex items-center gap-1.5 rounded-[var(--kr-gov-radius)] bg-[var(--kr-gov-blue)] px-4 py-2 text-sm font-bold text-white hover:bg-[var(--kr-gov-blue-hover)]"
-                   th:href="@{/admin/react-migration(route='company-account',insttId=${insttId})}">
+                   th:href="@{/admin/member/company_account(insttId=${insttId})}">
                     <span class="material-symbols-outlined text-[18px]">edit</span>
                     수정
                 </a>
