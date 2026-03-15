@@ -1,27 +1,40 @@
 package egovframework.com.feature.admin.web;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.security.web.csrf.CsrfToken;
+import org.springframework.ui.ExtendedModelMap;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 
 @Controller
 @RequestMapping({"/admin/system", "/en/admin/system"})
 @RequiredArgsConstructor
 public class CodexProvisionPageController {
 
-    @GetMapping("/codex-provision")
+    @GetMapping({"/codex-request", "/codex-provision"})
     public String codexProvisionPage(HttpServletRequest request, Locale locale, Model model) {
+        return redirectReactMigration(request, locale, "codex-request");
+    }
+
+    @GetMapping({"/codex-request/page-data", "/codex-provision/page-data"})
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> codexProvisionPageData(HttpServletRequest request, Locale locale) {
         boolean isEn = isEnglishRequest(request, locale);
         primeCsrfToken(request);
+        ExtendedModelMap model = new ExtendedModelMap();
         model.addAttribute("codexEnabled", true);
         model.addAttribute("codexSamplePayload", samplePayload());
-        return isEn ? "egovframework/com/admin/codex_provision_en" : "egovframework/com/admin/codex_provision";
+        model.addAttribute("isEn", isEn);
+        return ResponseEntity.ok(new LinkedHashMap<>(model));
     }
 
     private boolean isEnglishRequest(HttpServletRequest request, Locale locale) {
@@ -81,5 +94,18 @@ public class CodexProvisionPageController {
         if (token instanceof CsrfToken) {
             ((CsrfToken) token).getToken();
         }
+    }
+
+    private String redirectReactMigration(HttpServletRequest request, Locale locale, String route) {
+        StringBuilder builder = new StringBuilder("forward:");
+        builder.append(isEnglishRequest(request, locale) ? "/en/admin/react-migration?route=" : "/admin/react-migration?route=");
+        builder.append(route);
+        if (request != null) {
+            String query = request.getQueryString();
+            if (query != null && !query.isBlank()) {
+                builder.append("&").append(query);
+            }
+        }
+        return builder.toString();
     }
 }

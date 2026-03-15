@@ -1,0 +1,371 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ObservabilityMapper">
+
+    <insert id="insertAuditEvent" parameterType="egovframework.com.common.audit.AuditEvent">
+        INSERT INTO AUDIT_EVENT (
+            AUDIT_ID,
+            TRACE_ID,
+            REQUEST_ID,
+            ACTOR_ID,
+            ACTOR_ROLE,
+            MENU_CODE,
+            PAGE_ID,
+            ACTION_CODE,
+            ENTITY_TYPE,
+            ENTITY_ID,
+            BEFORE_SUMMARY,
+            AFTER_SUMMARY,
+            RESULT_STATUS,
+            REASON_SUMMARY,
+            IP_ADDRESS,
+            USER_AGENT,
+            CREATED_AT
+        ) VALUES (
+            #{auditId},
+            #{traceId},
+            #{requestId},
+            #{actorId},
+            #{actorRole},
+            #{menuCode},
+            #{pageId},
+            #{actionCode},
+            #{entityType},
+            #{entityId},
+            #{beforeSummaryJson},
+            #{afterSummaryJson},
+            #{resultStatus},
+            #{reasonSummary},
+            #{ipAddress},
+            #{userAgent},
+            CURRENT_DATETIME
+        )
+    </insert>
+
+    <insert id="insertTraceEvent" parameterType="egovframework.com.common.trace.TraceEventRecordVO">
+        INSERT INTO TRACE_EVENT (
+            EVENT_ID,
+            TRACE_ID,
+            SPAN_ID,
+            PARENT_SPAN_ID,
+            EVENT_TYPE,
+            PAGE_ID,
+            COMPONENT_ID,
+            FUNCTION_ID,
+            API_ID,
+            RESULT_CODE,
+            DURATION_MS,
+            PAYLOAD_SUMMARY,
+            CREATED_AT
+        ) VALUES (
+            #{eventId},
+            #{traceId},
+            #{spanId},
+            #{parentSpanId},
+            #{eventType},
+            #{pageId},
+            #{componentId},
+            #{functionId},
+            #{apiId},
+            #{resultCode},
+            #{durationMs},
+            #{payloadSummaryJson},
+            CURRENT_DATETIME
+        )
+    </insert>
+
+    <sql id="auditEventWhere">
+        <where>
+            <if test="traceId != null and traceId != ''">
+                AND TRACE_ID = #{traceId}
+            </if>
+            <if test="actorId != null and actorId != ''">
+                AND ACTOR_ID = #{actorId}
+            </if>
+            <if test="actionCode != null and actionCode != ''">
+                AND ACTION_CODE = #{actionCode}
+            </if>
+            <if test="menuCode != null and menuCode != ''">
+                AND MENU_CODE = #{menuCode}
+            </if>
+            <if test="pageId != null and pageId != ''">
+                AND PAGE_ID = #{pageId}
+            </if>
+            <if test="resultStatus != null and resultStatus != ''">
+                AND RESULT_STATUS = #{resultStatus}
+            </if>
+            <if test="searchKeyword != null and searchKeyword != ''">
+                AND (
+                    LOWER(COALESCE(REASON_SUMMARY, '')) LIKE '%' || LOWER(#{searchKeyword}) || '%'
+                    OR LOWER(COALESCE(ENTITY_ID, '')) LIKE '%' || LOWER(#{searchKeyword}) || '%'
+                    OR LOWER(COALESCE(ACTOR_ID, '')) LIKE '%' || LOWER(#{searchKeyword}) || '%'
+                )
+            </if>
+        </where>
+    </sql>
+
+    <sql id="traceEventWhere">
+        <where>
+            <if test="traceId != null and traceId != ''">
+                AND TRACE_ID = #{traceId}
+            </if>
+            <if test="pageId != null and pageId != ''">
+                AND PAGE_ID = #{pageId}
+            </if>
+            <if test="componentId != null and componentId != ''">
+                AND COMPONENT_ID = #{componentId}
+            </if>
+            <if test="functionId != null and functionId != ''">
+                AND FUNCTION_ID = #{functionId}
+            </if>
+            <if test="apiId != null and apiId != ''">
+                AND API_ID = #{apiId}
+            </if>
+            <if test="eventType != null and eventType != ''">
+                AND EVENT_TYPE = #{eventType}
+            </if>
+            <if test="resultCode != null and resultCode != ''">
+                AND RESULT_CODE = #{resultCode}
+            </if>
+            <if test="searchKeyword != null and searchKeyword != ''">
+                AND (
+                    LOWER(COALESCE(COMPONENT_ID, '')) LIKE '%' || LOWER(#{searchKeyword}) || '%'
+                    OR LOWER(COALESCE(FUNCTION_ID, '')) LIKE '%' || LOWER(#{searchKeyword}) || '%'
+                    OR LOWER(COALESCE(API_ID, '')) LIKE '%' || LOWER(#{searchKeyword}) || '%'
+                )
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectAuditEventCount" parameterType="egovframework.com.common.audit.AuditEventSearchVO" resultType="int">
+        SELECT COUNT(*)
+        FROM AUDIT_EVENT
+        <include refid="auditEventWhere" />
+    </select>
+
+    <select id="selectAuditEventList" parameterType="egovframework.com.common.audit.AuditEventSearchVO" resultType="egovframework.com.common.audit.AuditEventRecordVO">
+        SELECT
+            AUDIT_ID AS auditId,
+            TRACE_ID AS traceId,
+            REQUEST_ID AS requestId,
+            ACTOR_ID AS actorId,
+            ACTOR_ROLE AS actorRole,
+            MENU_CODE AS menuCode,
+            PAGE_ID AS pageId,
+            ACTION_CODE AS actionCode,
+            ENTITY_TYPE AS entityType,
+            ENTITY_ID AS entityId,
+            BEFORE_SUMMARY AS beforeSummaryJson,
+            AFTER_SUMMARY AS afterSummaryJson,
+            RESULT_STATUS AS resultStatus,
+            REASON_SUMMARY AS reasonSummary,
+            IP_ADDRESS AS ipAddress,
+            USER_AGENT AS userAgent,
+            TO_CHAR(CREATED_AT, 'YYYY-MM-DD HH24:MI:SS') AS createdAt
+        FROM AUDIT_EVENT
+        <include refid="auditEventWhere" />
+        ORDER BY CREATED_AT DESC
+        LIMIT #{recordCountPerPage}
+        OFFSET #{firstIndex}
+    </select>
+
+    <select id="selectTraceEventCount" parameterType="egovframework.com.common.trace.TraceEventSearchVO" resultType="int">
+        SELECT COUNT(*)
+        FROM TRACE_EVENT
+        <include refid="traceEventWhere" />
+    </select>
+
+    <select id="selectTraceEventList" parameterType="egovframework.com.common.trace.TraceEventSearchVO" resultType="egovframework.com.common.trace.TraceEventRecordVO">
+        SELECT
+            EVENT_ID AS eventId,
+            TRACE_ID AS traceId,
+            SPAN_ID AS spanId,
+            PARENT_SPAN_ID AS parentSpanId,
+            EVENT_TYPE AS eventType,
+            PAGE_ID AS pageId,
+            COMPONENT_ID AS componentId,
+            FUNCTION_ID AS functionId,
+            API_ID AS apiId,
+            RESULT_CODE AS resultCode,
+            DURATION_MS AS durationMs,
+            PAYLOAD_SUMMARY AS payloadSummaryJson,
+            TO_CHAR(CREATED_AT, 'YYYY-MM-DD HH24:MI:SS') AS createdAt
+        FROM TRACE_EVENT
+        <include refid="traceEventWhere" />
+        ORDER BY CREATED_AT DESC
+        LIMIT #{recordCountPerPage}
+        OFFSET #{firstIndex}
+    </select>
+
+    <select id="countUiPageManifest" parameterType="string" resultType="int">
+        SELECT COUNT(*)
+        FROM UI_PAGE_MANIFEST
+        WHERE PAGE_ID = #{value}
+    </select>
+
+    <select id="selectUiPageManifest" parameterType="string" resultType="egovframework.com.common.trace.UiPageManifestVO">
+        SELECT
+            PAGE_ID AS pageId,
+            PAGE_NAME AS pageName,
+            ROUTE_PATH AS routePath,
+            DOMAIN_CODE AS domainCode,
+            MENU_CODE AS menuCode,
+            LAYOUT_VERSION AS layoutVersion,
+            DESIGN_TOKEN_VERSION AS designTokenVersion,
+            ACTIVE_YN AS activeYn
+        FROM UI_PAGE_MANIFEST
+        WHERE PAGE_ID = #{value}
+    </select>
+
+    <select id="selectUiPageManifestList" resultType="egovframework.com.common.trace.UiPageManifestVO">
+        SELECT
+            PAGE_ID AS pageId,
+            PAGE_NAME AS pageName,
+            ROUTE_PATH AS routePath,
+            DOMAIN_CODE AS domainCode,
+            MENU_CODE AS menuCode,
+            LAYOUT_VERSION AS layoutVersion,
+            DESIGN_TOKEN_VERSION AS designTokenVersion,
+            ACTIVE_YN AS activeYn
+        FROM UI_PAGE_MANIFEST
+        WHERE COALESCE(ACTIVE_YN, 'Y') = 'Y'
+        ORDER BY DOMAIN_CODE ASC, ROUTE_PATH ASC, PAGE_ID ASC
+    </select>
+
+    <insert id="insertUiPageManifest" parameterType="egovframework.com.common.trace.UiPageManifestVO">
+        INSERT INTO UI_PAGE_MANIFEST (
+            PAGE_ID,
+            PAGE_NAME,
+            ROUTE_PATH,
+            DOMAIN_CODE,
+            MENU_CODE,
+            LAYOUT_VERSION,
+            DESIGN_TOKEN_VERSION,
+            ACTIVE_YN,
+            CREATED_AT,
+            UPDATED_AT
+        ) VALUES (
+            #{pageId},
+            #{pageName},
+            #{routePath},
+            #{domainCode},
+            #{menuCode},
+            #{layoutVersion},
+            #{designTokenVersion},
+            #{activeYn},
+            CURRENT_DATETIME,
+            CURRENT_DATETIME
+        )
+    </insert>
+
+    <update id="updateUiPageManifest" parameterType="egovframework.com.common.trace.UiPageManifestVO">
+        UPDATE UI_PAGE_MANIFEST
+        SET
+            PAGE_NAME = #{pageName},
+            ROUTE_PATH = #{routePath},
+            DOMAIN_CODE = #{domainCode},
+            MENU_CODE = #{menuCode},
+            LAYOUT_VERSION = #{layoutVersion},
+            DESIGN_TOKEN_VERSION = #{designTokenVersion},
+            ACTIVE_YN = #{activeYn},
+            UPDATED_AT = CURRENT_DATETIME
+        WHERE PAGE_ID = #{pageId}
+    </update>
+
+    <select id="countUiComponentRegistry" parameterType="string" resultType="int">
+        SELECT COUNT(*)
+        FROM UI_COMPONENT_REGISTRY
+        WHERE COMPONENT_ID = #{value}
+    </select>
+
+    <insert id="insertUiComponentRegistry" parameterType="egovframework.com.common.trace.UiComponentRegistryVO">
+        INSERT INTO UI_COMPONENT_REGISTRY (
+            COMPONENT_ID,
+            COMPONENT_NAME,
+            COMPONENT_TYPE,
+            OWNER_DOMAIN,
+            PROPS_SCHEMA_JSON,
+            DESIGN_REFERENCE,
+            ACTIVE_YN,
+            CREATED_AT,
+            UPDATED_AT
+        ) VALUES (
+            #{componentId},
+            #{componentName},
+            #{componentType},
+            #{ownerDomain},
+            #{propsSchemaJson},
+            #{designReference},
+            #{activeYn},
+            CURRENT_DATETIME,
+            CURRENT_DATETIME
+        )
+    </insert>
+
+    <update id="updateUiComponentRegistry" parameterType="egovframework.com.common.trace.UiComponentRegistryVO">
+        UPDATE UI_COMPONENT_REGISTRY
+        SET
+            COMPONENT_NAME = #{componentName},
+            COMPONENT_TYPE = #{componentType},
+            OWNER_DOMAIN = #{ownerDomain},
+            PROPS_SCHEMA_JSON = #{propsSchemaJson},
+            DESIGN_REFERENCE = #{designReference},
+            ACTIVE_YN = #{activeYn},
+            UPDATED_AT = CURRENT_DATETIME
+        WHERE COMPONENT_ID = #{componentId}
+    </update>
+
+    <delete id="deleteUiPageComponentMaps" parameterType="string">
+        DELETE FROM UI_PAGE_COMPONENT_MAP
+        WHERE PAGE_ID = #{value}
+    </delete>
+
+    <insert id="insertUiPageComponentMap" parameterType="egovframework.com.common.trace.UiPageComponentMapVO">
+        INSERT INTO UI_PAGE_COMPONENT_MAP (
+            MAP_ID,
+            PAGE_ID,
+            LAYOUT_ZONE,
+            COMPONENT_ID,
+            INSTANCE_KEY,
+            DISPLAY_ORDER,
+            CONDITIONAL_RULE_SUMMARY,
+            CREATED_AT,
+            UPDATED_AT
+        ) VALUES (
+            #{mapId},
+            #{pageId},
+            #{layoutZone},
+            #{componentId},
+            #{instanceKey},
+            #{displayOrder},
+            #{conditionalRuleSummary},
+            CURRENT_DATETIME,
+            CURRENT_DATETIME
+        )
+    </insert>
+
+    <select id="selectUiPageComponentDetails" parameterType="string" resultType="egovframework.com.common.trace.UiPageComponentDetailVO">
+        SELECT
+            MAP.MAP_ID AS mapId,
+            MAP.PAGE_ID AS pageId,
+            MAP.LAYOUT_ZONE AS layoutZone,
+            MAP.COMPONENT_ID AS componentId,
+            MAP.INSTANCE_KEY AS instanceKey,
+            MAP.DISPLAY_ORDER AS displayOrder,
+            MAP.CONDITIONAL_RULE_SUMMARY AS conditionalRuleSummary,
+            REG.COMPONENT_NAME AS componentName,
+            REG.COMPONENT_TYPE AS componentType,
+            REG.OWNER_DOMAIN AS ownerDomain,
+            REG.PROPS_SCHEMA_JSON AS propsSchemaJson,
+            REG.DESIGN_REFERENCE AS designReference
+        FROM UI_PAGE_COMPONENT_MAP MAP
+        LEFT JOIN UI_COMPONENT_REGISTRY REG
+          ON MAP.COMPONENT_ID = REG.COMPONENT_ID
+        WHERE MAP.PAGE_ID = #{value}
+        ORDER BY MAP.DISPLAY_ORDER ASC, MAP.INSTANCE_KEY ASC
+    </select>
+
+</mapper>

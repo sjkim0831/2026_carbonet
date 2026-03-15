@@ -35,6 +35,13 @@ public class MenuFeatureManageServiceImpl extends EgovAbstractServiceImpl implem
     }
 
     @Override
+    public int countFeaturesByMenuCode(String menuCode) {
+        AdminMenuFeatureCommandDTO params = new AdminMenuFeatureCommandDTO();
+        params.setMenuCode(menuCode);
+        return menuFeatureManageMapper.countFeaturesByMenuCode(params);
+    }
+
+    @Override
     public int countFeatureCode(String featureCode) {
         AdminMenuFeatureCommandDTO params = new AdminMenuFeatureCommandDTO();
         params.setFeatureCode(featureCode);
@@ -51,6 +58,17 @@ public class MenuFeatureManageServiceImpl extends EgovAbstractServiceImpl implem
         params.setFeatureDc(featureDc);
         params.setUseAt(useAt);
         menuFeatureManageMapper.insertMenuFeature(params);
+    }
+
+    @Override
+    public void updateMenuFeatureMetadata(String featureCode, String featureNm, String featureNmEn, String featureDc, String useAt) {
+        AdminMenuFeatureCommandDTO params = new AdminMenuFeatureCommandDTO();
+        params.setFeatureCode(featureCode);
+        params.setFeatureNm(featureNm);
+        params.setFeatureNmEn(featureNmEn);
+        params.setFeatureDc(featureDc);
+        params.setUseAt(useAt);
+        menuFeatureManageMapper.updateMenuFeatureMetadata(params);
     }
 
     @Override

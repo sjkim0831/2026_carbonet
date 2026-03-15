@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
-import { CanView } from "../../components/CanView";
-import { PermissionButton } from "../../components/CanUse";
-import { fetchFrontendSession, fetchPasswordResetPage, FrontendSession, PasswordResetPagePayload, resetMemberPasswordAction } from "../../lib/api";
+import { useState } from "react";
+import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { useFrontendSession } from "../../app/hooks/useFrontendSession";
+import { CanView } from "../../components/access/CanView";
+import { PermissionButton } from "../../components/access/CanUse";
+import { fetchPasswordResetPage, resetMemberPasswordAction } from "../../lib/api/client";
 
 function resolveInitialMemberId() {
   if (typeof window === "undefined") return "TEST1";
@@ -10,39 +12,39 @@ function resolveInitialMemberId() {
 
 export function PasswordResetMigrationPage() {
   const initialMemberId = resolveInitialMemberId();
-  const [session, setSession] = useState<FrontendSession | null>(null);
-  const [page, setPage] = useState<PasswordResetPagePayload | null>(null);
   const [memberId, setMemberId] = useState(initialMemberId);
-  const [error, setError] = useState("");
+  const [actionError, setActionError] = useState("");
   const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    Promise.all([fetchFrontendSession(), fetchPasswordResetPage({ memberId: initialMemberId })])
-      .then(([sessionPayload, pagePayload]) => {
-        setSession(sessionPayload);
-        setPage(pagePayload);
-      })
-      .catch((err: Error) => setError(err.message));
-  }, []);
+  const sessionState = useFrontendSession();
+  const pageState = useAsyncValue(
+    () => fetchPasswordResetPage({ memberId }),
+    [memberId],
+    {
+      initialValue: null,
+      onError: () => undefined
+    }
+  );
+  const page = pageState.value;
+  const error = actionError || sessionState.error || pageState.error;
 
   async function reload() {
-    try {
-      setPage(await fetchPasswordResetPage({ memberId }));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "조회 실패");
+    setActionError("");
+    if (!await pageState.reload()) {
+      setActionError("조회 실패");
     }
   }
 
   async function handleReset() {
+    const session = sessionState.value;
     if (!session) return;
-    setError("");
+    setActionError("");
     setMessage("");
     try {
       const result = await resetMemberPasswordAction(session, memberId);
       setMessage(`임시 비밀번호: ${result.temporaryPassword}`);
       await reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "초기화 실패");
+      setActionError(err instanceof Error ? err.message : "초기화 실패");
     }
   }
 
@@ -55,7 +57,7 @@ export function PasswordResetMigrationPage() {
       {error ? <section className="panel"><p className="error-text">{error}</p></section> : null}
       {message ? <section className="panel"><p className="success-text">{message}</p></section> : null}
       <CanView allowed={!!page?.canViewResetHistory} fallback={<section className="panel"><p className="state-text">초기화 이력을 볼 수 없습니다.</p></section>}>
-        <section className="panel">
+        <section className="panel" data-help-id="password-reset-actions">
           <div className="toolbar">
             <label className="field"><span>회원 ID</span><input value={memberId} onChange={(e) => setMemberId(e.target.value)} /></label>
             <div className="toolbar-actions">
@@ -64,7 +66,7 @@ export function PasswordResetMigrationPage() {
             </div>
           </div>
         </section>
-        <section className="panel">
+        <section className="panel" data-help-id="password-reset-history">
           <div className="table-wrap">
             <table className="data-table">
               <thead><tr><th>일시</th><th>회원 ID</th><th>수행자</th><th>IP</th><th>유형</th></tr></thead>

@@ -9,14 +9,14 @@ public class ReactMigrationViewSupport {
 
     @Value("${carbonet.react-migration.dev-url:http://127.0.0.1:5173}")
     private String reactMigrationDevUrl;
+    private final ReactMigrationAssetResolver reactMigrationAssetResolver;
 
-    @Value("${carbonet.react-migration.prod-js:/react-migration/assets/index.js}")
-    private String reactMigrationProdJs;
-
-    @Value("${carbonet.react-migration.prod-css:/react-migration/assets/index.css}")
-    private String reactMigrationProdCss;
+    public ReactMigrationViewSupport(ReactMigrationAssetResolver reactMigrationAssetResolver) {
+        this.reactMigrationAssetResolver = reactMigrationAssetResolver;
+    }
 
     public String render(Model model, String route, boolean en, boolean admin) {
+        ReactMigrationAssetResolver.ReactMigrationAssets assets = reactMigrationAssetResolver.resolveAssets();
         model.addAttribute("reactRoute", normalizeRoute(route, admin));
         model.addAttribute("reactLocale", en ? "en" : "ko");
         model.addAttribute("reactAdmin", admin);
@@ -27,8 +27,8 @@ public class ReactMigrationViewSupport {
                 ? "This page mounts the React migration shell."
                 : "이 페이지는 React 마이그레이션 셸을 마운트합니다.");
         model.addAttribute("reactMigrationDevUrl", reactMigrationDevUrl);
-        model.addAttribute("reactMigrationProdJs", reactMigrationProdJs);
-        model.addAttribute("reactMigrationProdCss", reactMigrationProdCss);
+        model.addAttribute("reactMigrationProdJs", assets.getJsPath());
+        model.addAttribute("reactMigrationProdCss", assets.getCssPath());
         return en ? "egovframework/com/home/react_migration_shell_en" : "egovframework/com/home/react_migration_shell";
     }
 

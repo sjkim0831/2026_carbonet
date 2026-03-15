@@ -1,4 +1,4 @@
-import { fetchFrontendSession } from "../../lib/api";
+import { fetchFrontendSession } from "../../lib/api/client";
 
 export async function postJsonWithSession<TResponse>(url: string, payload: unknown): Promise<TResponse> {
   const session = await fetchFrontendSession();

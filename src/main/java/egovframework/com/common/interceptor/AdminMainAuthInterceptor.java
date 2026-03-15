@@ -233,6 +233,19 @@ public class AdminMainAuthInterceptor implements HandlerInterceptor {
                 suffixes.add("_BATCH_REJECT");
             }
         }
+        if (value.contains("/prepare-execution")) {
+            suffixes.add("_PREPARE");
+        } else if (value.endsWith("/execute")) {
+            suffixes.add("_EXECUTE");
+        } else if (value.endsWith("/approve")) {
+            suffixes.add("_APPROVE");
+        } else if (value.endsWith("/tickets")) {
+            suffixes.add("_CREATE");
+        } else if (value.endsWith("/save")) {
+            suffixes.add("_EDIT");
+            suffixes.add("_SAVE");
+            suffixes.add("_UPDATE");
+        }
         if (value.contains("/delete")) {
             suffixes.add("_DELETE");
         } else if (value.contains("/create")) {

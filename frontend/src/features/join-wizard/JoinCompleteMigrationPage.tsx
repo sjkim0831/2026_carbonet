@@ -1,5 +1,5 @@
-import { resetJoinSession } from "../../lib/api";
-import { buildLocalizedPath, isEnglish, navigate } from "../../lib/runtime";
+import { resetJoinSession } from "../../lib/api/client";
+import { buildLocalizedPath, getSearchParam, isEnglish, navigate } from "../../lib/navigation/runtime";
 
 type JoinCompletePayload = {
   mberId?: string;
@@ -12,11 +12,16 @@ const STORAGE_KEY = "carbonet.join.step5";
 function readPayload(): JoinCompletePayload {
   try {
     const raw = window.sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return {};
-    return JSON.parse(raw) as JoinCompletePayload;
+    if (raw) {
+      return JSON.parse(raw) as JoinCompletePayload;
+    }
   } catch {
-    return {};
   }
+  return {
+    mberId: getSearchParam("mberId"),
+    mberNm: getSearchParam("mberNm"),
+    insttNm: getSearchParam("insttNm")
+  };
 }
 
 export function JoinCompleteMigrationPage() {
@@ -133,7 +138,7 @@ export function JoinCompleteMigrationPage() {
             </div>
           </div>
 
-          <div className="bg-white border border-[var(--kr-gov-border-light)] rounded-lg shadow-sm p-8 lg:p-12 text-center" role="status" aria-live="polite">
+          <div className="bg-white border border-[var(--kr-gov-border-light)] rounded-lg shadow-sm p-8 lg:p-12 text-center" data-help-id="join-step5-summary" role="status" aria-live="polite">
             <div className="mb-6 inline-flex items-center justify-center w-20 h-20 rounded-full bg-blue-50 text-[var(--kr-gov-blue)]">
               <span className="material-symbols-outlined text-[48px]" style={{ fontVariationSettings: "'wght' 600" }}>check_circle</span>
             </div>
@@ -166,7 +171,7 @@ export function JoinCompleteMigrationPage() {
                 </div>
               </div>
             </div>
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4" data-help-id="join-step5-actions">
               <button
                 className="flex items-center justify-center h-14 bg-[var(--kr-gov-blue)] text-white text-lg font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)] transition-colors focus-visible"
                 onClick={() => void handleHome()}

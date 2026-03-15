@@ -167,13 +167,16 @@ public class AdminCodeManageServiceImpl extends EgovAbstractServiceImpl implemen
      }
  
      @Override
-     public void updatePageManagement(String code, String menuUrl, String menuIcon, String useAt, String updaterId) {
+     public void updatePageManagement(String code, String codeNm, String codeDc, String menuUrl, String menuIcon, String useAt, String updaterId) {
          AdminCodeCommandDTO params = new AdminCodeCommandDTO();
          params.setCode(code);
+         params.setCodeNm(codeNm);
+         params.setCodeDc(codeDc);
          params.setMenuUrl(menuUrl);
          params.setMenuIcon(menuIcon);
          params.setUseAt(useAt);
          params.setUpdaterId(updaterId);
+         adminCodeManageMapper.updatePageManagementNames(params);
          adminCodeManageMapper.updatePageManagementUseAt(params);
          adminCodeManageMapper.updatePageManagementMenu(params);
      }

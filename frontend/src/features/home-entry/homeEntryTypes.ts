@@ -27,3 +27,16 @@ export type SummaryCard = {
   ringText?: string;
   ringNote?: string;
 };
+
+export type HomeQuickLink = {
+  label: string;
+  href: string;
+  query?: string;
+};
+
+export type HomeServiceItem = {
+  icon: string;
+  title: string;
+  description: string;
+  href: string;
+};

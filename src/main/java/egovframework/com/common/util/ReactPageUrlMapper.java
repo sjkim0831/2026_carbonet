@@ -116,6 +116,45 @@ public final class ReactPageUrlMapper {
         if ("/admin/member/dept-role-mapping".equals(path) || "/admin/system/dept-role-mapping".equals(path)) {
             return "dept-role";
         }
+        if ("/admin/system/observability".equals(path)) {
+            return "observability";
+        }
+        if ("/admin/system/help-management".equals(path)) {
+            return "help-management";
+        }
+        if ("/admin/system/full-stack-management".equals(path)) {
+            return "full-stack-management";
+        }
+        if ("/admin/system/platform-studio".equals(path)) {
+            return "platform-studio";
+        }
+        if ("/admin/system/screen-elements-management".equals(path)) {
+            return "screen-elements-management";
+        }
+        if ("/admin/system/event-management-console".equals(path)) {
+            return "event-management-console";
+        }
+        if ("/admin/system/function-management-console".equals(path)) {
+            return "function-management-console";
+        }
+        if ("/admin/system/api-management-console".equals(path)) {
+            return "api-management-console";
+        }
+        if ("/admin/system/controller-management-console".equals(path)) {
+            return "controller-management-console";
+        }
+        if ("/admin/system/db-table-management".equals(path)) {
+            return "db-table-management";
+        }
+        if ("/admin/system/column-management-console".equals(path)) {
+            return "column-management-console";
+        }
+        if ("/admin/system/automation-studio".equals(path)) {
+            return "automation-studio";
+        }
+        if ("/admin/system/sr-workbench".equals(path)) {
+            return "sr-workbench";
+        }
         return "";
     }
 
@@ -165,6 +204,45 @@ public final class ReactPageUrlMapper {
         if ("dept-role".equals(route)) {
             return "/admin/member/dept-role-mapping";
         }
+        if ("observability".equals(route)) {
+            return "/admin/system/observability";
+        }
+        if ("help-management".equals(route)) {
+            return "/admin/system/help-management";
+        }
+        if ("full-stack-management".equals(route)) {
+            return "/admin/system/full-stack-management";
+        }
+        if ("platform-studio".equals(route)) {
+            return "/admin/system/platform-studio";
+        }
+        if ("screen-elements-management".equals(route)) {
+            return "/admin/system/screen-elements-management";
+        }
+        if ("event-management-console".equals(route)) {
+            return "/admin/system/event-management-console";
+        }
+        if ("function-management-console".equals(route)) {
+            return "/admin/system/function-management-console";
+        }
+        if ("api-management-console".equals(route)) {
+            return "/admin/system/api-management-console";
+        }
+        if ("controller-management-console".equals(route)) {
+            return "/admin/system/controller-management-console";
+        }
+        if ("db-table-management".equals(route)) {
+            return "/admin/system/db-table-management";
+        }
+        if ("column-management-console".equals(route)) {
+            return "/admin/system/column-management-console";
+        }
+        if ("automation-studio".equals(route)) {
+            return "/admin/system/automation-studio";
+        }
+        if ("sr-workbench".equals(route)) {
+            return "/admin/system/sr-workbench";
+        }
         return "";
     }
 
@@ -187,8 +265,14 @@ public final class ReactPageUrlMapper {
         if ("/join/companyRegister".equals(path)) {
             return "join-company-register";
         }
+        if ("/join/companyRegisterComplete".equals(path)) {
+            return "join-company-register-complete";
+        }
         if ("/join/companyJoinStatusSearch".equals(path) || "/join/companyJoinStatusDetail".equals(path)) {
             return "join-company-status";
+        }
+        if ("/join/companyJoinStatusGuide".equals(path)) {
+            return "join-company-status-guide";
         }
         if ("/join/companyReapply".equals(path)) {
             return "join-company-reapply";
@@ -215,8 +299,14 @@ public final class ReactPageUrlMapper {
         if ("join-company-register".equals(route)) {
             return "/join/companyRegister";
         }
+        if ("join-company-register-complete".equals(route)) {
+            return "/join/companyRegisterComplete";
+        }
         if ("join-company-status".equals(route)) {
             return "/join/companyJoinStatusSearch";
+        }
+        if ("join-company-status-guide".equals(route)) {
+            return "/join/companyJoinStatusGuide";
         }
         if ("join-company-reapply".equals(route)) {
             return "/join/companyReapply";
@@ -246,8 +336,17 @@ public final class ReactPageUrlMapper {
         if ("/join/companyRegister".equals(path)) {
             return "/join/en/companyRegister";
         }
+        if ("/join/companyRegisterComplete".equals(path)) {
+            return "/join/en/companyRegisterComplete";
+        }
         if ("/join/companyJoinStatusSearch".equals(path)) {
             return "/join/en/companyJoinStatusSearch";
+        }
+        if ("/join/companyJoinStatusGuide".equals(path)) {
+            return "/join/en/companyJoinStatusGuide";
+        }
+        if ("/join/companyReapply".equals(path)) {
+            return "/join/en/companyReapply";
         }
         return path;
     }

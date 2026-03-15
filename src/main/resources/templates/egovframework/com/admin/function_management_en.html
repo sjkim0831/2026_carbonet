@@ -58,6 +58,12 @@
         <div class="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
              th:if="${featureMgmtError}" th:text="${featureMgmtError}"></div>
 
+        <div class="mb-4 rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+             th:if="${featureUnassignedCount > 0}">
+            <span class="font-bold" th:text="${featureUnassignedCount}">0</span>
+            feature(s) are not linked to any authority group yet. Review them in authority group management instead of auto-granting all roles.
+        </div>
+
         <section class="gov-card mb-8">
             <div class="flex items-center gap-2 border-b pb-4 mb-4">
                 <span class="material-symbols-outlined text-[var(--kr-gov-blue)]">extension</span>
@@ -121,6 +127,17 @@
                 <h3 class="text-lg font-bold">Registered Features</h3>
             </div>
 
+            <div class="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 px-4 py-3">
+                    <p class="text-xs font-bold text-[var(--kr-gov-text-secondary)] uppercase">Registered Features</p>
+                    <p class="mt-1 text-2xl font-black" th:text="${featureTotalCount}">0</p>
+                </div>
+                <div class="rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-3">
+                    <p class="text-xs font-bold text-amber-700 uppercase">Needs Authority Review</p>
+                    <p class="mt-1 text-2xl font-black text-amber-900" th:text="${featureUnassignedCount}">0</p>
+                </div>
+            </div>
+
             <form method="get" action="/en/admin/system/feature-management" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                 <div>
                     <label class="gov-label" for="menuType">Screen Type</label>
@@ -159,6 +176,7 @@
                         <th class="px-4 py-3">Feature Name</th>
                         <th class="px-4 py-3">English Name</th>
                         <th class="px-4 py-3">Description</th>
+                        <th class="px-4 py-3 text-center">Authority Link</th>
                         <th class="px-4 py-3 text-center">Use</th>
                         <th class="px-4 py-3 text-center">Actions</th>
                     </tr>
@@ -174,6 +192,11 @@
                         <td class="px-4 py-3" th:text="${row.featureNm}">Create Menu</td>
                         <td class="px-4 py-3" th:text="${row.featureNmEn}">Create Menu</td>
                         <td class="px-4 py-3 min-w-[14rem] text-[var(--kr-gov-text-secondary)]" th:text="${row.featureDc}">Description</td>
+                        <td class="px-4 py-3 text-center whitespace-nowrap">
+                            <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold"
+                                  th:classappend="${row.unassignedToRole} ? ' bg-amber-100 text-amber-800' : ' bg-emerald-100 text-emerald-800'"
+                                  th:text="${row.unassignedToRole} ? 'Unassigned' : ('Roles ' + row.assignedRoleCount)}">Unassigned</span>
+                        </td>
                         <td class="px-4 py-3 text-center font-semibold" th:text="${row.useAt}">Y</td>
                         <td class="px-4 py-3 text-center whitespace-nowrap">
                             <form method="post" action="/en/admin/system/feature-management/delete" onsubmit="return confirm('Delete and recreate if needed. Continue?');">
@@ -187,7 +210,7 @@
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(featureRows)}">
-                        <td class="px-4 py-6 text-center text-gray-500" colspan="8">No features registered.</td>
+                        <td class="px-4 py-6 text-center text-gray-500" colspan="9">No features registered.</td>
                     </tr>
                     </tbody>
                 </table>

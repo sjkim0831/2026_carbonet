@@ -4,7 +4,9 @@ import egovframework.com.feature.admin.mapper.AuthGroupManageMapper;
 import egovframework.com.feature.admin.model.vo.AdminRoleAssignmentVO;
 import egovframework.com.feature.admin.model.vo.AuthorInfoVO;
 import egovframework.com.feature.admin.model.vo.DepartmentRoleMappingVO;
+import egovframework.com.feature.admin.model.vo.FeatureAssignmentStatVO;
 import egovframework.com.feature.admin.model.vo.FeatureCatalogItemVO;
+import egovframework.com.feature.admin.model.vo.FeatureReferenceCountVO;
 import egovframework.com.feature.admin.model.vo.UserAuthorityTargetVO;
 import egovframework.com.feature.admin.model.vo.UserFeatureOverrideVO;
 import egovframework.com.feature.admin.service.AuthGroupManageService;
@@ -35,6 +37,11 @@ public class AuthGroupManageServiceImpl extends EgovAbstractServiceImpl implemen
     @Override
     public List<FeatureCatalogItemVO> selectFeatureCatalog() {
         return authGroupManageMapper.selectFeatureCatalog();
+    }
+
+    @Override
+    public List<FeatureAssignmentStatVO> selectFeatureAssignmentStats() {
+        return authGroupManageMapper.selectFeatureAssignmentStats();
     }
 
     @Override
@@ -94,6 +101,36 @@ public class AuthGroupManageServiceImpl extends EgovAbstractServiceImpl implemen
     @Override
     public boolean hasAuthorFeaturePermission(String authorCode, String featureCode) {
         return authGroupManageMapper.countAuthorFeaturePermission(authorCode, featureCode) > 0;
+    }
+
+    @Override
+    public int countAuthorFeatureRelationsByFeatureCode(String featureCode) {
+        return authGroupManageMapper.countAuthorFeatureRelationsByFeatureCode(featureCode);
+    }
+
+    @Override
+    public int countUserFeatureOverridesByFeatureCode(String featureCode) {
+        return authGroupManageMapper.countUserFeatureOverridesByFeatureCode(featureCode);
+    }
+
+    @Override
+    public List<FeatureReferenceCountVO> selectAuthorFeatureRelationCounts(List<String> featureCodes) {
+        return authGroupManageMapper.selectAuthorFeatureRelationCounts(featureCodes);
+    }
+
+    @Override
+    public List<FeatureReferenceCountVO> selectUserFeatureOverrideCounts(List<String> featureCodes) {
+        return authGroupManageMapper.selectUserFeatureOverrideCounts(featureCodes);
+    }
+
+    @Override
+    public void deleteAuthorFeatureRelationsByFeatureCode(String featureCode) {
+        authGroupManageMapper.deleteAuthorFeatureRelationsByFeatureCode(featureCode);
+    }
+
+    @Override
+    public void deleteUserFeatureOverridesByFeatureCode(String featureCode) {
+        authGroupManageMapper.deleteUserFeatureOverridesByFeatureCode(featureCode);
     }
 
     @Override

@@ -178,7 +178,7 @@ public class MemberJoinController {
         session.setAttribute(SESSION_JOIN_VO, joinVO);
         setJoinStep(session, 2);
         model.addAttribute("joinVO", joinVO);
-        return "egovframework/com/member/step2_terms";
+        return "redirect:/join/step2";
     }
 
     @GetMapping({"/step2", "/ko/step2"})
@@ -261,6 +261,7 @@ public class MemberJoinController {
     @PostMapping(value = "/api/step4/submit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseBody
     public ResponseEntity<Map<String, Object>> step4SubmitApi(
+            @RequestParam(value = "membershipType", required = false) String membershipType,
             @RequestParam("mberId") String mberId,
             @RequestParam("password") String password,
             @RequestParam("mberNm") String mberNm,
@@ -302,6 +303,12 @@ public class MemberJoinController {
             response.put("message", "증빙 파일을 1개 이상 업로드해 주세요.");
             return ResponseEntity.badRequest().body(response);
         }
+        String resolvedMembershipType = resolveJoinMembershipType(membershipType, insttId, joinVO);
+        if (!hasText(resolvedMembershipType)) {
+            response.put("success", false);
+            response.put("message", "회원 유형 정보를 확인할 수 없습니다. 처음부터 다시 진행해 주세요.");
+            return ResponseEntity.badRequest().body(response);
+        }
 
         joinVO.setEntrprsmberId(mberId);
         joinVO.setEntrprsMberPassword(password);
@@ -314,7 +321,7 @@ public class MemberJoinController {
         joinVO.setAdres(adres);
         joinVO.setDetailAdres(detailAdres);
         joinVO.setDeptNm(safeTrim(deptNm));
-        joinVO.setEntrprsSeCode(normalizeMembershipCode(joinVO.getEntrprsSeCode()));
+        joinVO.setEntrprsSeCode(resolvedMembershipType);
         joinVO.setMarketingYn(normalizeMarketingYn(joinVO.getMarketingYn()));
         joinVO.setAuthTy(normalizeAuthType(joinVO.getAuthTy()));
         joinVO.setAreaNo(tel1);
@@ -350,7 +357,7 @@ public class MemberJoinController {
             return "redirect:/join/step1?expired=1";
         }
         setJoinStep(session, 3);
-        return "egovframework/com/member/step3_auth";
+        return "redirect:/join/step3";
     }
 
     @GetMapping({"/step3", "/ko/step3"})
@@ -383,9 +390,7 @@ public class MemberJoinController {
 
         session.setAttribute(SESSION_JOIN_VO, joinVO);
         setJoinStep(session, 4);
-        model.addAttribute("joinVO", joinVO);
-        model.addAttribute("mberNm", joinVO.getApplcntNm());
-        return "egovframework/com/member/step4_info";
+        return "redirect:/join/step4";
     }
 
     @GetMapping({"/step4", "/ko/step4"})
@@ -425,7 +430,8 @@ public class MemberJoinController {
      * Step 5: 가입 완료 처리
      */
     @PostMapping({"/step5", "/ko/step5"})
-    public String step5Process(@RequestParam("mberId") String mberId,
+    public String step5Process(@RequestParam(value = "membershipType", required = false) String membershipType,
+            @RequestParam("mberId") String mberId,
             @RequestParam("password") String password,
             @RequestParam("mberNm") String mberNm,
             @RequestParam("insttNm") String insttNm,
@@ -456,6 +462,10 @@ public class MemberJoinController {
         if (!hasValidEvidenceFiles(fileUploads)) {
             return "redirect:/join/step4";
         }
+        String resolvedMembershipType = resolveJoinMembershipType(membershipType, insttId, joinVO);
+        if (!hasText(resolvedMembershipType)) {
+            return "redirect:/join/step1?expired=1";
+        }
 
         // Merge data
         joinVO.setEntrprsmberId(mberId);
@@ -469,7 +479,7 @@ public class MemberJoinController {
         joinVO.setAdres(adres);
         joinVO.setDetailAdres(detailAdres);
         joinVO.setDeptNm(safeTrim(deptNm));
-        joinVO.setEntrprsSeCode(normalizeMembershipCode(joinVO.getEntrprsSeCode()));
+        joinVO.setEntrprsSeCode(resolvedMembershipType);
         joinVO.setMarketingYn(normalizeMarketingYn(joinVO.getMarketingYn()));
         joinVO.setAuthTy(normalizeAuthType(joinVO.getAuthTy()));
         joinVO.setAreaNo(tel1);
@@ -493,7 +503,9 @@ public class MemberJoinController {
         session.removeAttribute(SESSION_JOIN_STEP);
         session.removeAttribute(SESSION_JOIN_VO);
 
-        return "egovframework/com/member/step5_complete";
+        return "redirect:/join/step5?mberId=" + urlEncode(joinVO.getEntrprsmberId())
+                + "&mberNm=" + urlEncode(joinVO.getApplcntNm())
+                + "&insttNm=" + urlEncode(joinVO.getCmpnyNm());
     }
 
     @GetMapping({"/step5", "/ko/step5"})
@@ -538,7 +550,7 @@ public class MemberJoinController {
         session.setAttribute(SESSION_JOIN_VO, joinVO);
         setJoinStep(session, 2);
         model.addAttribute("joinVO", joinVO);
-        return "egovframework/com/member/step2_terms_en";
+        return "redirect:/join/en/step2";
     }
 
     @GetMapping("/en/step2")
@@ -557,7 +569,7 @@ public class MemberJoinController {
             return "redirect:/join/en/step1?expired=1";
         }
         setJoinStep(session, 3);
-        return "egovframework/com/member/step3_auth_en";
+        return "redirect:/join/en/step3";
     }
 
     @GetMapping("/en/step3")
@@ -587,9 +599,7 @@ public class MemberJoinController {
 
         session.setAttribute(SESSION_JOIN_VO, joinVO);
         setJoinStep(session, 4);
-        model.addAttribute("joinVO", joinVO);
-        model.addAttribute("mberNm", joinVO.getApplcntNm());
-        return "egovframework/com/member/step4_info_en";
+        return "redirect:/join/en/step4";
     }
 
     @GetMapping("/en/step4")
@@ -607,7 +617,8 @@ public class MemberJoinController {
 
     /** EN Step 5: Complete (form submit from step4 EN) */
     @PostMapping("/en/step5")
-    public String step5EnProcess(@RequestParam("mberId") String mberId,
+    public String step5EnProcess(@RequestParam(value = "membershipType", required = false) String membershipType,
+            @RequestParam("mberId") String mberId,
             @RequestParam("password") String password,
             @RequestParam("mberNm") String mberNm,
             @RequestParam("insttNm") String insttNm,
@@ -638,6 +649,10 @@ public class MemberJoinController {
         if (!hasValidEvidenceFiles(fileUploads)) {
             return "redirect:/join/en/step4";
         }
+        String resolvedMembershipType = resolveJoinMembershipType(membershipType, insttId, joinVO);
+        if (!hasText(resolvedMembershipType)) {
+            return "redirect:/join/en/step1?expired=1";
+        }
 
         joinVO.setEntrprsmberId(mberId);
         joinVO.setEntrprsMberPassword(password);
@@ -650,7 +665,7 @@ public class MemberJoinController {
         joinVO.setAdres(adres);
         joinVO.setDetailAdres(detailAdres);
         joinVO.setDeptNm(safeTrim(deptNm));
-        joinVO.setEntrprsSeCode(normalizeMembershipCode(joinVO.getEntrprsSeCode()));
+        joinVO.setEntrprsSeCode(resolvedMembershipType);
         joinVO.setMarketingYn(normalizeMarketingYn(joinVO.getMarketingYn()));
         joinVO.setAuthTy(normalizeAuthType(joinVO.getAuthTy()));
         joinVO.setAreaNo(tel1);
@@ -673,7 +688,9 @@ public class MemberJoinController {
         session.removeAttribute(SESSION_JOIN_STEP);
         session.removeAttribute(SESSION_JOIN_VO);
 
-        return "egovframework/com/member/step5_complete_en";
+        return "redirect:/join/en/step5?mberId=" + urlEncode(joinVO.getEntrprsmberId())
+                + "&mberNm=" + urlEncode(joinVO.getApplcntNm())
+                + "&insttNm=" + urlEncode(joinVO.getCmpnyNm());
     }
 
     @GetMapping("/en/step5")
@@ -695,6 +712,16 @@ public class MemberJoinController {
         return reactMigrationViewSupport.render(model, "join-company-register", true, false);
     }
 
+    @GetMapping({"/companyRegisterComplete", "/ko/companyRegisterComplete"})
+    public String companyRegisterCompleteView(HttpServletRequest request, Model model) {
+        return reactMigrationViewSupport.render(model, "join-company-register-complete", false, false);
+    }
+
+    @GetMapping("/en/companyRegisterComplete")
+    public String companyRegisterCompleteViewEn(HttpServletRequest request, Model model) {
+        return reactMigrationViewSupport.render(model, "join-company-register-complete", true, false);
+    }
+
     @GetMapping("/api/company-register/page")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> companyRegisterPageApi(HttpSession session) {
@@ -708,6 +735,7 @@ public class MemberJoinController {
     @PostMapping(value = "/api/company-register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseBody
     public ResponseEntity<Map<String, Object>> companyRegisterSubmitApi(
+            @RequestParam(value = "membershipType", required = false) String membershipType,
             @RequestParam("agencyName") String agencyName,
             @RequestParam("representativeName") String repName,
             @RequestParam("bizRegistrationNumber") String bizNo,
@@ -723,7 +751,10 @@ public class MemberJoinController {
         Map<String, Object> response = new java.util.LinkedHashMap<>();
         try {
             InsttInfoVO vo = new InsttInfoVO();
-            String scopedMembershipType = resolveScopedInstitutionType(session);
+            String scopedMembershipType = normalizeMembershipCode(membershipType);
+            if (!hasText(scopedMembershipType)) {
+                scopedMembershipType = resolveScopedInstitutionType(session);
+            }
             String tempId = "INSTT_" + System.currentTimeMillis();
             if (tempId.length() > 20) {
                 tempId = tempId.substring(0, 20);
@@ -767,6 +798,7 @@ public class MemberJoinController {
 
     @PostMapping({"/companyRegisterSubmit", "/ko/companyRegisterSubmit"})
     public String companyRegisterSubmit(
+            @RequestParam(value = "membershipType", required = false) String membershipType,
             @RequestParam("agencyName") String agencyName,
             @RequestParam("representativeName") String repName,
             @RequestParam("bizRegistrationNumber") String bizNo,
@@ -783,7 +815,10 @@ public class MemberJoinController {
 
         try {
             InsttInfoVO vo = new InsttInfoVO();
-            String scopedMembershipType = resolveScopedInstitutionType(session);
+            String scopedMembershipType = normalizeMembershipCode(membershipType);
+            if (!hasText(scopedMembershipType)) {
+                scopedMembershipType = resolveScopedInstitutionType(session);
+            }
             String tempId = "INSTT_" + System.currentTimeMillis();
             if (tempId.length() > 20)
                 tempId = tempId.substring(0, 20);
@@ -819,14 +854,21 @@ public class MemberJoinController {
             model.addAttribute("regDate", regDate);
 
             if ("en".equals(lang)) {
-                return "egovframework/com/member/step4_company_complete_en";
+                return "redirect:/join/en/companyRegisterComplete?insttNm=" + urlEncode(agencyName)
+                        + "&bizrno=" + urlEncode(bizNo)
+                        + "&regDate=" + urlEncode(regDate);
             }
-            return "egovframework/com/member/step4_company_complete";
+            return "redirect:/join/companyRegisterComplete?insttNm=" + urlEncode(agencyName)
+                    + "&bizrno=" + urlEncode(bizNo)
+                    + "&regDate=" + urlEncode(regDate);
 
         } catch (Exception e) {
             log.error("Company register submit failed", e);
-            model.addAttribute("errorMessage", "처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
-            return "egovframework/com/member/step4_company_register" + ("en".equals(lang) ? "_en" : "");
+            String errorMessage = "처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
+            if ("en".equals(lang)) {
+                return "redirect:/join/en/companyRegister?errorMessage=" + urlEncode(errorMessage);
+            }
+            return "redirect:/join/companyRegister?errorMessage=" + urlEncode(errorMessage);
         }
     }
 
@@ -844,13 +886,17 @@ public class MemberJoinController {
             @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "size", defaultValue = "5") int size,
             @RequestParam(value = "status", required = false, defaultValue = "") String status,
+            @RequestParam(value = "membershipType", required = false) String membershipType,
             HttpSession session) throws Exception {
 
         page = Math.max(page, 1);
         size = Math.max(1, Math.min(size, 50));
         int offset = (page - 1) * size;
         String normalizedKeyword = keyword == null ? "" : keyword.trim();
-        String scopedMembershipType = resolveScopedInstitutionType(session);
+        String scopedMembershipType = normalizeMembershipCode(membershipType);
+        if (!hasText(scopedMembershipType)) {
+            scopedMembershipType = resolveScopedInstitutionType(session);
+        }
         if (normalizedKeyword.length() > 100) {
             normalizedKeyword = normalizedKeyword.substring(0, 100);
         }
@@ -885,6 +931,16 @@ public class MemberJoinController {
     @GetMapping("/en/companyJoinStatusSearch")
     public String companyJoinStatusSearchEn(HttpServletRequest request, Model model) {
         return reactMigrationViewSupport.render(model, "join-company-status", true, false);
+    }
+
+    @GetMapping({"/companyJoinStatusGuide", "/ko/companyJoinStatusGuide"})
+    public String companyJoinStatusGuide(HttpServletRequest request, Model model) {
+        return reactMigrationViewSupport.render(model, "join-company-status-guide", false, false);
+    }
+
+    @GetMapping("/en/companyJoinStatusGuide")
+    public String companyJoinStatusGuideEn(HttpServletRequest request, Model model) {
+        return reactMigrationViewSupport.render(model, "join-company-status-guide", true, false);
     }
 
     @GetMapping("/api/company-status/detail")
@@ -944,6 +1000,15 @@ public class MemberJoinController {
             HttpServletRequest request,
             org.springframework.ui.Model model) throws Exception {
         return reactMigrationViewSupport.render(model, "join-company-reapply", false, false);
+    }
+
+    @GetMapping("/en/companyReapply")
+    public String companyReapplyEn(
+            @RequestParam("bizNo") String bizNo,
+            @RequestParam("repName") String repName,
+            HttpServletRequest request,
+            org.springframework.ui.Model model) throws Exception {
+        return reactMigrationViewSupport.render(model, "join-company-reapply", true, false);
     }
 
     @GetMapping("/api/company-reapply/page")
@@ -1056,7 +1121,7 @@ public class MemberJoinController {
         }
     }
 
-    @PostMapping({"/companyReapplySubmit", "/ko/companyReapplySubmit"})
+    @PostMapping({"/companyReapplySubmit", "/ko/companyReapplySubmit", "/en/companyReapplySubmit"})
     public String companyReapplySubmit(
             @RequestParam("insttId") String insttId,
             @RequestParam("agencyName") String agencyName,
@@ -1069,9 +1134,11 @@ public class MemberJoinController {
             @RequestParam(value = "chargerEmail", required = false) String chargerEmail,
             @RequestParam(value = "chargerTel", required = false) String chargerTel,
             @RequestParam(value = "fileUploads", required = false) java.util.List<org.springframework.web.multipart.MultipartFile> fileUploads,
+            HttpServletRequest request,
             org.springframework.ui.Model model) {
 
         try {
+            boolean english = request.getRequestURI() != null && request.getRequestURI().startsWith("/join/en/");
             String normalizedInsttId = insttId == null ? "" : insttId.trim();
 
             InsttInfoVO searchVO = new InsttInfoVO();
@@ -1117,17 +1184,21 @@ public class MemberJoinController {
             entrprsManageService.updateInsttInfo(vo);
             entrprsManageService.insertInsttFiles(insttFiles);
 
-            model.addAttribute("insttNm", agencyName);
-            model.addAttribute("bizrno", bizNo);
-            model.addAttribute("regDate", java.time.LocalDateTime.now()
-                    .format(java.time.format.DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm:ss")));
-
-            return "egovframework/com/member/step4_company_complete";
+            String regDate = java.time.LocalDateTime.now()
+                    .format(java.time.format.DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm:ss"));
+            String redirectPath = (english ? "/join/en/companyJoinStatusDetail" : "/join/companyJoinStatusDetail") + "?bizNo=" + urlEncode(bizNo)
+                    + "&repName=" + urlEncode(repName)
+                    + "&submitted=1"
+                    + "&insttNm=" + urlEncode(agencyName)
+                    + "&regDate=" + urlEncode(regDate);
+            return "redirect:" + redirectPath;
 
         } catch (Exception e) {
             log.error("Company reapply submit failed", e);
-            model.addAttribute("errorMessage", "처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
-            return "egovframework/com/member/company_join_reapply";
+            boolean english = request.getRequestURI() != null && request.getRequestURI().startsWith("/join/en/");
+            return "redirect:" + (english ? "/join/en/companyReapply" : "/join/companyReapply") + "?bizNo=" + urlEncode(bizNo)
+                    + "&repName=" + urlEncode(repName)
+                    + "&errorMessage=" + urlEncode("처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
         }
     }
 
@@ -1365,7 +1436,7 @@ public class MemberJoinController {
             path = System.getenv("CARBONET_FILE_INSTT_DIR");
         }
         if (!hasText(path)) {
-            path = "./file/instt";
+            path = "./var/file/instt";
         }
         return new File(path).getAbsoluteFile();
     }
@@ -1408,6 +1479,35 @@ public class MemberJoinController {
             return "";
         }
         EntrprsManageVO joinVO = (EntrprsManageVO) session.getAttribute(SESSION_JOIN_VO);
+        if (joinVO == null) {
+            return "";
+        }
+        return normalizeMembershipCode(joinVO.getEntrprsSeCode());
+    }
+
+    private String resolveJoinMembershipType(String membershipType, String insttId, EntrprsManageVO joinVO) {
+        String normalizedMembershipType = normalizeMembershipCode(membershipType);
+        if (hasText(normalizedMembershipType)) {
+            return normalizedMembershipType;
+        }
+
+        String normalizedInsttId = insttId == null ? "" : insttId.trim();
+        if (hasText(normalizedInsttId)) {
+            try {
+                InsttInfoVO insttInfoVO = new InsttInfoVO();
+                insttInfoVO.setInsttId(normalizedInsttId);
+                InstitutionStatusVO institutionStatus = entrprsManageService.selectInsttInfoForStatus(insttInfoVO);
+                if (institutionStatus != null) {
+                    normalizedMembershipType = normalizeMembershipCode(institutionStatus.getEntrprsSeCode());
+                    if (hasText(normalizedMembershipType)) {
+                        return normalizedMembershipType;
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Failed to resolve membership type from institution. insttId={}", normalizedInsttId, e);
+            }
+        }
+
         if (joinVO == null) {
             return "";
         }

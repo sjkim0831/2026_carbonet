@@ -1,31 +1,46 @@
 package egovframework.com.feature.admin.web;
 
+import egovframework.com.common.audit.AuditTrailService;
+import egovframework.com.common.trace.UiManifestRegistryService;
 import egovframework.com.feature.admin.model.vo.ClassCodeVO;
 import egovframework.com.feature.admin.model.vo.CommonCodeVO;
 import egovframework.com.feature.admin.model.vo.DetailCodeVO;
+import egovframework.com.feature.admin.model.vo.FeatureAssignmentStatVO;
+import egovframework.com.feature.admin.model.vo.FeatureReferenceCountVO;
 import egovframework.com.feature.admin.model.vo.MenuFeatureVO;
 import egovframework.com.feature.admin.model.vo.PageManagementVO;
 import egovframework.com.feature.admin.service.AdminCodeManageService;
 import egovframework.com.feature.admin.dto.response.MenuInfoDTO;
+import egovframework.com.feature.admin.service.AuthGroupManageService;
+import egovframework.com.feature.admin.service.FullStackGovernanceRegistryService;
 import egovframework.com.feature.admin.service.MenuFeatureManageService;
 import egovframework.com.feature.admin.service.MenuInfoService;
+import egovframework.com.feature.admin.service.ScreenCommandCenterService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.ExtendedModelMap;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.security.web.csrf.CsrfToken;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -42,6 +57,11 @@ public class AdminSystemCodeController {
     private final AdminCodeManageService adminCodeManageService;
     private final MenuInfoService menuInfoService;
     private final MenuFeatureManageService menuFeatureManageService;
+    private final AuthGroupManageService authGroupManageService;
+    private final AuditTrailService auditTrailService;
+    private final UiManifestRegistryService uiManifestRegistryService;
+    private final ScreenCommandCenterService screenCommandCenterService;
+    private final FullStackGovernanceRegistryService fullStackGovernanceRegistryService;
 
     @RequestMapping(value = "/code", method = { RequestMethod.GET, RequestMethod.POST })
     public String system_codeManagement(
@@ -49,9 +69,20 @@ public class AdminSystemCodeController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
+        return redirectReactMigration(request, locale, "system-code");
+    }
+
+    @GetMapping("/code/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> systemCodeManagementPageApi(
+            @RequestParam(value = "detailCodeId", required = false) String detailCodeId,
+            HttpServletRequest request,
+            Locale locale) {
         boolean isEn = isEnglishRequest(request, locale);
         primeCsrfToken(request);
-        return populateCodeManagementPage(detailCodeId, isEn, model);
+        ExtendedModelMap model = new ExtendedModelMap();
+        populateCodeManagementPage(detailCodeId, isEn, model);
+        return ResponseEntity.ok(new LinkedHashMap<>(model));
     }
 
     @RequestMapping(value = "/page-management", method = RequestMethod.GET)
@@ -59,15 +90,54 @@ public class AdminSystemCodeController {
             @RequestParam(value = "menuType", defaultValue = "ADMIN") String menuType,
             @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
             @RequestParam(value = "searchUrl", required = false) String searchUrl,
+            @RequestParam(value = "autoFeature", required = false) String autoFeature,
+            @RequestParam(value = "updated", required = false) String updated,
+            @RequestParam(value = "deleted", required = false) String deleted,
+            @RequestParam(value = "deletedRoleRefs", required = false) String deletedRoleRefs,
+            @RequestParam(value = "deletedUserOverrides", required = false) String deletedUserOverrides,
             HttpServletRequest request,
             Locale locale,
             Model model) {
+        return redirectReactMigration(request, locale, "page-management");
+    }
+
+    @GetMapping("/page-management/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> pageManagementPageApi(
+            @RequestParam(value = "menuType", defaultValue = "ADMIN") String menuType,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "searchUrl", required = false) String searchUrl,
+            @RequestParam(value = "autoFeature", required = false) String autoFeature,
+            @RequestParam(value = "updated", required = false) String updated,
+            @RequestParam(value = "deleted", required = false) String deleted,
+            @RequestParam(value = "deletedRoleRefs", required = false) String deletedRoleRefs,
+            @RequestParam(value = "deletedUserOverrides", required = false) String deletedUserOverrides,
+            HttpServletRequest request,
+            Locale locale) {
         boolean isEn = isEnglishRequest(request, locale);
         primeCsrfToken(request);
         String normalizedMenuType = normalizeMenuType(menuType);
         String codeId = resolveMenuCodeId(normalizedMenuType);
+        ExtendedModelMap model = new ExtendedModelMap();
         populatePageManagementModel(model, isEn, normalizedMenuType, codeId, searchKeyword, searchUrl);
-        return isEn ? "egovframework/com/admin/page_management_en" : "egovframework/com/admin/page_management";
+        if ("Y".equalsIgnoreCase(safeString(autoFeature))) {
+            model.addAttribute("pageMgmtMessage", isEn
+                    ? "The page was saved and the default VIEW feature was generated."
+                    : "페이지를 저장했고 기본 VIEW 기능도 함께 생성했습니다.");
+        } else if ("Y".equalsIgnoreCase(safeString(updated))) {
+            model.addAttribute("pageMgmtMessage", isEn
+                    ? "The page was updated and the default VIEW feature metadata was synchronized."
+                    : "페이지를 수정했고 기본 VIEW 기능 메타데이터도 함께 동기화했습니다.");
+        } else if ("Y".equalsIgnoreCase(safeString(deleted))) {
+            int deletedRoleRefCount = safeParseInt(deletedRoleRefs);
+            int deletedUserOverrideCount = safeParseInt(deletedUserOverrides);
+            model.addAttribute("pageMgmtMessage", isEn
+                    ? "The page was deleted and default VIEW permission references were cleaned up. Role mappings: "
+                        + deletedRoleRefCount + ", user overrides: " + deletedUserOverrideCount + "."
+                    : "페이지를 삭제했고 기본 VIEW 권한 참조도 함께 정리했습니다. 권한그룹 매핑 "
+                        + deletedRoleRefCount + "건, 사용자 예외권한 " + deletedUserOverrideCount + "건.");
+        }
+        return ResponseEntity.ok(new LinkedHashMap<>(model));
     }
 
     @RequestMapping(value = "/ip_whitelist", method = RequestMethod.GET)
@@ -78,10 +148,22 @@ public class AdminSystemCodeController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
+        return redirectReactMigration(request, locale, "ip-whitelist");
+    }
+
+    @GetMapping("/ip_whitelist/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> ipWhitelistPageApi(
+            @RequestParam(value = "searchIp", required = false) String searchIp,
+            @RequestParam(value = "accessScope", required = false) String accessScope,
+            @RequestParam(value = "status", required = false) String status,
+            HttpServletRequest request,
+            Locale locale) {
         boolean isEn = isEnglishRequest(request, locale);
         primeCsrfToken(request);
+        ExtendedModelMap model = new ExtendedModelMap();
         populateIpWhitelistModel(model, isEn, searchIp, accessScope, status);
-        return isEn ? "egovframework/com/admin/ip_whitelist_en" : "egovframework/com/admin/ip_whitelist";
+        return ResponseEntity.ok(new LinkedHashMap<>(model));
     }
 
     @RequestMapping(value = {"/function-management", "/feature-management"}, method = RequestMethod.GET)
@@ -92,12 +174,24 @@ public class AdminSystemCodeController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
+        return redirectReactMigration(request, locale, "function-management");
+    }
+
+    @GetMapping({"/function-management/page-data", "/feature-management/page-data"})
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> functionManagementPageApi(
+            @RequestParam(value = "menuType", defaultValue = "ADMIN") String menuType,
+            @RequestParam(value = "searchMenuCode", required = false) String searchMenuCode,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            HttpServletRequest request,
+            Locale locale) {
         boolean isEn = isEnglishRequest(request, locale);
         primeCsrfToken(request);
         String normalizedMenuType = normalizeMenuType(menuType);
         String codeId = resolveMenuCodeId(normalizedMenuType);
+        ExtendedModelMap model = new ExtendedModelMap();
         populateFunctionManagementModel(model, isEn, normalizedMenuType, codeId, searchMenuCode, searchKeyword);
-        return isEn ? "egovframework/com/admin/function_management_en" : "egovframework/com/admin/function_management";
+        return ResponseEntity.ok(new LinkedHashMap<>(model));
     }
 
     @RequestMapping(value = "/menu-management", method = RequestMethod.GET)
@@ -107,15 +201,152 @@ public class AdminSystemCodeController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
+        return redirectReactMigration(request, locale, "menu-management");
+    }
+
+    @GetMapping("/menu-management/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> menuManagementPageApi(
+            @RequestParam(value = "menuType", defaultValue = "ADMIN") String menuType,
+            @RequestParam(value = "saved", required = false) String saved,
+            HttpServletRequest request,
+            Locale locale) {
         boolean isEn = isEnglishRequest(request, locale);
         primeCsrfToken(request);
         String normalizedMenuType = normalizeMenuType(menuType);
         String codeId = resolveMenuCodeId(normalizedMenuType);
+        ExtendedModelMap model = new ExtendedModelMap();
         populateMenuManagementModel(model, isEn, normalizedMenuType, codeId);
         if ("Y".equalsIgnoreCase(safeString(saved))) {
             model.addAttribute("menuMgmtMessage", isEn ? "Menu order has been saved." : "메뉴 순서를 저장했습니다.");
         }
-        return isEn ? "egovframework/com/admin/menu_management_en" : "egovframework/com/admin/menu_management";
+        return ResponseEntity.ok(new LinkedHashMap<>(model));
+    }
+
+    @RequestMapping(value = "/full-stack-management", method = RequestMethod.GET)
+    public String fullStackManagement(
+            @RequestParam(value = "menuType", defaultValue = "ADMIN") String menuType,
+            @RequestParam(value = "saved", required = false) String saved,
+            HttpServletRequest request,
+            Locale locale,
+            Model model) {
+        return redirectReactMigration(request, locale, "full-stack-management");
+    }
+
+    @RequestMapping(value = {
+            "/platform-studio",
+            "/screen-elements-management",
+            "/event-management-console",
+            "/function-management-console",
+            "/api-management-console",
+            "/controller-management-console",
+            "/db-table-management",
+            "/column-management-console",
+            "/automation-studio"
+    }, method = RequestMethod.GET)
+    public String platformStudioPages(HttpServletRequest request, Locale locale) {
+        String requestUri = request == null ? "" : safeString(request.getRequestURI());
+        String route = "platform-studio";
+        if (requestUri.endsWith("/screen-elements-management")) {
+            route = "screen-elements-management";
+        } else if (requestUri.endsWith("/event-management-console")) {
+            route = "event-management-console";
+        } else if (requestUri.endsWith("/function-management-console")) {
+            route = "function-management-console";
+        } else if (requestUri.endsWith("/api-management-console")) {
+            route = "api-management-console";
+        } else if (requestUri.endsWith("/controller-management-console")) {
+            route = "controller-management-console";
+        } else if (requestUri.endsWith("/db-table-management")) {
+            route = "db-table-management";
+        } else if (requestUri.endsWith("/column-management-console")) {
+            route = "column-management-console";
+        } else if (requestUri.endsWith("/automation-studio")) {
+            route = "automation-studio";
+        }
+        return redirectReactMigration(request, locale, route);
+    }
+
+    @GetMapping("/full-stack-management/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> fullStackManagementPageApi(
+            @RequestParam(value = "menuType", defaultValue = "ADMIN") String menuType,
+            @RequestParam(value = "saved", required = false) String saved,
+            HttpServletRequest request,
+            Locale locale) {
+        boolean isEn = isEnglishRequest(request, locale);
+        primeCsrfToken(request);
+        String normalizedMenuType = normalizeMenuType(menuType);
+        String codeId = resolveMenuCodeId(normalizedMenuType);
+        ExtendedModelMap model = new ExtendedModelMap();
+        populateMenuManagementModel(model, isEn, normalizedMenuType, codeId);
+        model.addAttribute("fullStackSummaryRows", buildFullStackSummaryRows(codeId));
+        if ("Y".equalsIgnoreCase(safeString(saved))) {
+            model.addAttribute("menuMgmtMessage", isEn ? "Full-stack management data has been refreshed." : "풀스택 관리 데이터를 새로 불러왔습니다.");
+        }
+        return ResponseEntity.ok(new LinkedHashMap<>(model));
+    }
+
+    @PostMapping("/full-stack-management/menu-visibility")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> updateFullStackMenuVisibility(
+            @RequestParam(value = "menuType", defaultValue = "ADMIN") String menuType,
+            @RequestParam(value = "menuCode", required = false) String menuCode,
+            @RequestParam(value = "useAt", required = false) String useAt,
+            HttpServletRequest request,
+            Locale locale) {
+        boolean isEn = isEnglishRequest(request, locale);
+        String normalizedMenuType = normalizeMenuType(menuType);
+        String codeId = resolveMenuCodeId(normalizedMenuType);
+        String normalizedMenuCode = safeString(menuCode).toUpperCase(Locale.ROOT);
+        String normalizedUseAt = normalizeUseAt(useAt);
+        Map<String, Object> response = new LinkedHashMap<>();
+
+        if (normalizedMenuCode.length() != 8) {
+            response.put("success", false);
+            response.put("message", isEn ? "Select a valid 8-digit page menu." : "유효한 8자리 페이지 메뉴를 선택하세요.");
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        MenuInfoDTO currentRow = loadMenuTreeRows(codeId).stream()
+                .filter(item -> normalizedMenuCode.equalsIgnoreCase(safeString(item.getCode())))
+                .findFirst()
+                .orElse(null);
+        if (currentRow == null) {
+            response.put("success", false);
+            response.put("message", isEn ? "Menu code was not found in the selected scope." : "선택한 범위에서 메뉴 코드를 찾지 못했습니다.");
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        try {
+            adminCodeManageService.updatePageManagement(
+                    normalizedMenuCode,
+                    safeString(currentRow.getCodeNm()),
+                    safeString(currentRow.getCodeDc()),
+                    safeString(currentRow.getMenuUrl()),
+                    safeString(currentRow.getMenuIcon()),
+                    normalizedUseAt,
+                    resolveActorId(request));
+            syncDefaultViewFeatureMetadata(normalizedMenuCode, normalizedUseAt, normalizedMenuType);
+            recordMenuManagementAudit(
+                    request,
+                    normalizedMenuCode,
+                    "ADMIN-FULL-STACK-MENU-VISIBILITY",
+                    normalizedMenuCode,
+                    "{\"beforeUseAt\":\"" + safeJson(currentRow.getUseAt()) + "\"}",
+                    "{\"afterUseAt\":\"" + safeJson(normalizedUseAt) + "\"}");
+        } catch (Exception e) {
+            log.error("Failed to update full-stack menu visibility. menuCode={}, useAt={}", normalizedMenuCode, normalizedUseAt, e);
+            response.put("success", false);
+            response.put("message", isEn ? "Failed to update menu visibility." : "메뉴 표시 상태 변경에 실패했습니다.");
+            return ResponseEntity.internalServerError().body(response);
+        }
+
+        response.put("success", true);
+        response.put("message", "Y".equalsIgnoreCase(normalizedUseAt)
+                ? (isEn ? "The menu is now visible." : "메뉴를 다시 보이도록 변경했습니다.")
+                : (isEn ? "The menu is now hidden." : "메뉴를 숨김 처리했습니다."));
+        return ResponseEntity.ok(response);
     }
 
     @RequestMapping(value = "/menu-management/order", method = RequestMethod.POST)
@@ -146,6 +377,13 @@ public class AdminSystemCodeController {
                 int sortOrdr = Integer.parseInt(safeString(parts[1]));
                 menuInfoService.saveMenuOrder(code, sortOrdr);
             }
+            recordMenuManagementAudit(
+                    request,
+                    normalizedMenuType,
+                    "ADMIN-MENU-MANAGEMENT-ORDER-SAVE",
+                    normalizedMenuType,
+                    "{\"menuType\":\"" + safeJson(normalizedMenuType) + "\"}",
+                    "{\"orderPayload\":\"" + safeJson(orderPayload) + "\"}");
         } catch (Exception e) {
             log.error("Failed to save menu order. menuType={}, payload={}", normalizedMenuType, orderPayload, e);
             model.addAttribute("menuMgmtError", isEn ? "Failed to save menu order." : "메뉴 순서 저장에 실패했습니다.");
@@ -154,6 +392,103 @@ public class AdminSystemCodeController {
         }
 
         return "redirect:" + adminPrefix(request, locale) + "/system/menu-management?menuType=" + normalizedMenuType + "&saved=Y";
+    }
+
+    @PostMapping("/menu-management/create-page")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> createMenuManagedPageApi(
+            @RequestParam(value = "menuType", defaultValue = "ADMIN") String menuType,
+            @RequestParam(value = "parentCode", required = false) String parentCode,
+            @RequestParam(value = "codeNm", required = false) String codeNm,
+            @RequestParam(value = "codeDc", required = false) String codeDc,
+            @RequestParam(value = "menuUrl", required = false) String menuUrl,
+            @RequestParam(value = "menuIcon", required = false) String menuIcon,
+            @RequestParam(value = "useAt", required = false) String useAt,
+            HttpServletRequest request,
+            Locale locale) {
+        boolean isEn = isEnglishRequest(request, locale);
+        String normalizedMenuType = normalizeMenuType(menuType);
+        String codeId = resolveMenuCodeId(normalizedMenuType);
+        String normalizedParentCode = safeString(parentCode).toUpperCase(Locale.ROOT);
+        String normalizedName = safeString(codeNm);
+        String normalizedNameEn = safeString(codeDc);
+        String normalizedUrl = safeString(menuUrl);
+        String normalizedIcon = safeString(menuIcon);
+        String normalizedUseAt = normalizeUseAt(useAt);
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        String validationError = validateMenuManagedPageInput(
+                normalizedMenuType,
+                codeId,
+                normalizedParentCode,
+                normalizedName,
+                normalizedNameEn,
+                normalizedUrl,
+                isEn);
+        if (!validationError.isEmpty()) {
+            response.put("success", false);
+            response.put("message", validationError);
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        String nextPageCode = resolveNextPageCode(codeId, normalizedParentCode);
+        if (nextPageCode.isEmpty()) {
+            response.put("success", false);
+            response.put("message", isEn
+                    ? "No more page codes are available under the selected group."
+                    : "선택한 그룹 메뉴 아래에서 더 이상 사용할 페이지 코드를 만들 수 없습니다.");
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        try {
+            String actorId = resolveActorId(request);
+            adminCodeManageService.insertPageManagement(
+                    codeId,
+                    nextPageCode,
+                    normalizedName,
+                    normalizedNameEn,
+                    normalizedUrl,
+                    normalizedIcon,
+                    normalizedUseAt,
+                    actorId.isEmpty() ? "admin" : actorId);
+            ensureDefaultViewFeature(nextPageCode, normalizedName, normalizedNameEn, normalizedUseAt);
+            menuInfoService.saveMenuOrder(nextPageCode, resolveNextSiblingSortOrder(codeId, normalizedParentCode));
+            String draftPageId = buildManagedDraftPageId(normalizedUrl, nextPageCode);
+            Map<String, Object> draftRegistry = uiManifestRegistryService.ensureManagedPageDraft(
+                    draftPageId,
+                    normalizedName,
+                    normalizedUrl,
+                    nextPageCode,
+                    "USER".equals(normalizedMenuType) ? "home" : "admin");
+            recordMenuManagementAudit(
+                    request,
+                    nextPageCode,
+                    "ADMIN-MENU-MANAGEMENT-CREATE-PAGE",
+                    nextPageCode,
+                    "",
+                    "{\"menuType\":\"" + safeJson(normalizedMenuType)
+                            + "\",\"parentCode\":\"" + safeJson(normalizedParentCode)
+                            + "\",\"pageCode\":\"" + safeJson(nextPageCode)
+                            + "\",\"menuUrl\":\"" + safeJson(normalizedUrl)
+                            + "\"}");
+            response.put("draftPageId", draftPageId);
+            response.put("manifestRegistry", draftRegistry);
+        } catch (Exception e) {
+            log.error("Failed to create menu managed page. menuType={}, parentCode={}, menuUrl={}",
+                    normalizedMenuType, normalizedParentCode, normalizedUrl, e);
+            response.put("success", false);
+            response.put("message", isEn
+                    ? "Failed to create the page from menu management."
+                    : "메뉴 관리에서 페이지를 생성하지 못했습니다.");
+            return ResponseEntity.internalServerError().body(response);
+        }
+
+        response.put("success", true);
+        response.put("createdCode", nextPageCode);
+        response.put("message", isEn
+                ? "The page, menu metadata, and default VIEW feature have been created."
+                : "페이지와 메뉴 메타데이터, 기본 VIEW 기능을 함께 생성했습니다.");
+        return ResponseEntity.ok(response);
     }
 
     @RequestMapping(value = "/feature-management/create", method = RequestMethod.POST)
@@ -223,7 +558,7 @@ public class AdminSystemCodeController {
         }
 
         try {
-            menuFeatureManageService.deleteMenuFeature(normalizedFeatureCode);
+            deleteFeatureWithAssignments(normalizedFeatureCode);
         } catch (Exception e) {
             log.error("Failed to delete feature management. featureCode={}", normalizedFeatureCode, e);
             model.addAttribute("featureMgmtError", isEn ? "Failed to delete the feature." : "기능 삭제에 실패했습니다.");
@@ -280,19 +615,22 @@ public class AdminSystemCodeController {
                 return isEn ? "egovframework/com/admin/page_management_en" : "egovframework/com/admin/page_management";
             }
             adminCodeManageService.insertPageManagement(codeId, normalizedCode, normalizedName, normalizedNameEn, normalizedUrl, normalizedIcon, normalizedUseAt, "admin");
+            ensureDefaultViewFeature(normalizedCode, normalizedName, normalizedNameEn, normalizedUseAt);
         } catch (Exception e) {
             log.error("Failed to create page management. code={}", normalizedCode, e);
             model.addAttribute("pageMgmtError", isEn ? "Failed to register the page." : "페이지 등록에 실패했습니다.");
             populatePageManagementModel(model, isEn, normalizedMenuType, codeId, null, null);
             return isEn ? "egovframework/com/admin/page_management_en" : "egovframework/com/admin/page_management";
         }
-        return "redirect:" + adminPrefix(request, locale) + "/system/page-management?menuType=" + normalizedMenuType;
+        return "redirect:" + adminPrefix(request, locale) + "/system/page-management?menuType=" + normalizedMenuType + "&autoFeature=Y";
     }
 
     @RequestMapping(value = "/page-management/update", method = RequestMethod.POST)
     public String updatePageManagement(
             @RequestParam(value = "menuType", defaultValue = "ADMIN") String menuType,
             @RequestParam(value = "code", required = false) String code,
+            @RequestParam(value = "codeNm", required = false) String codeNm,
+            @RequestParam(value = "codeDc", required = false) String codeDc,
             @RequestParam(value = "menuUrl", required = false) String menuUrl,
             @RequestParam(value = "menuIcon", required = false) String menuIcon,
             @RequestParam(value = "useAt", required = false) String useAt,
@@ -303,14 +641,16 @@ public class AdminSystemCodeController {
             Model model) {
         boolean isEn = isEnglishRequest(request, locale);
         String normalizedCode = safeString(code).toUpperCase(Locale.ROOT);
+        String normalizedName = safeString(codeNm);
+        String normalizedNameEn = safeString(codeDc);
         String normalizedUrl = safeString(menuUrl);
         String normalizedIcon = safeString(menuIcon);
         String normalizedUseAt = normalizeUseAt(useAt);
 
         String normalizedMenuType = normalizeMenuType(menuType);
         String codeId = resolveMenuCodeId(normalizedMenuType);
-        if (normalizedCode.isEmpty() || normalizedUrl.isEmpty()) {
-            model.addAttribute("pageMgmtError", isEn ? "Page code and URL are required." : "페이지 코드와 URL은 필수입니다.");
+        if (normalizedCode.isEmpty() || normalizedName.isEmpty() || normalizedNameEn.isEmpty() || normalizedUrl.isEmpty()) {
+            model.addAttribute("pageMgmtError", isEn ? "Page code, page names, and URL are required." : "페이지 코드, 페이지명, 영문 페이지명, URL은 필수입니다.");
             populatePageManagementModel(model, isEn, normalizedMenuType, codeId, searchKeyword, searchUrl);
             return isEn ? "egovframework/com/admin/page_management_en" : "egovframework/com/admin/page_management";
         }
@@ -327,14 +667,15 @@ public class AdminSystemCodeController {
         }
 
         try {
-            adminCodeManageService.updatePageManagement(normalizedCode, normalizedUrl, normalizedIcon, normalizedUseAt, "admin");
+            adminCodeManageService.updatePageManagement(normalizedCode, normalizedName, normalizedNameEn, normalizedUrl, normalizedIcon, normalizedUseAt, "admin");
+            syncDefaultViewFeatureMetadata(normalizedCode, normalizedUseAt, normalizedMenuType);
         } catch (Exception e) {
             log.error("Failed to update page management. code={}", normalizedCode, e);
             model.addAttribute("pageMgmtError", isEn ? "Failed to update the page URL." : "페이지 URL 수정에 실패했습니다.");
             populatePageManagementModel(model, isEn, normalizedMenuType, codeId, searchKeyword, searchUrl);
             return isEn ? "egovframework/com/admin/page_management_en" : "egovframework/com/admin/page_management";
         }
-        return "redirect:" + adminPrefix(request, locale) + "/system/page-management?menuType=" + normalizedMenuType + "&searchKeyword=" + urlEncode(searchKeyword) + "&searchUrl=" + urlEncode(searchUrl);
+        return "redirect:" + adminPrefix(request, locale) + "/system/page-management?menuType=" + normalizedMenuType + "&searchKeyword=" + urlEncode(searchKeyword) + "&searchUrl=" + urlEncode(searchUrl) + "&updated=Y";
     }
 
     @RequestMapping(value = "/page-management/delete", method = RequestMethod.POST)
@@ -356,7 +697,37 @@ public class AdminSystemCodeController {
             return isEn ? "egovframework/com/admin/page_management_en" : "egovframework/com/admin/page_management";
         }
 
+        int defaultViewRoleRefCount = 0;
+        int defaultViewUserOverrideCount = 0;
         try {
+            List<String> linkedFeatureCodes = authGroupManageService.selectFeatureCodesByMenuCode(normalizedCode);
+            String defaultViewFeatureCode = buildDefaultViewFeatureCode(normalizedCode);
+            defaultViewRoleRefCount = authGroupManageService.countAuthorFeatureRelationsByFeatureCode(defaultViewFeatureCode);
+            defaultViewUserOverrideCount = authGroupManageService.countUserFeatureOverridesByFeatureCode(defaultViewFeatureCode);
+            List<String> nonDefaultFeatureCodes = new ArrayList<>();
+            for (String featureCode : linkedFeatureCodes) {
+                String normalizedFeatureCode = safeString(featureCode).toUpperCase(Locale.ROOT);
+                if (!normalizedFeatureCode.isEmpty() && !normalizedFeatureCode.equals(defaultViewFeatureCode)) {
+                    nonDefaultFeatureCodes.add(normalizedFeatureCode);
+                }
+            }
+            if (!nonDefaultFeatureCodes.isEmpty()) {
+                String featureCodeSummary = String.join(", ", nonDefaultFeatureCodes);
+                model.addAttribute("pageMgmtError", isEn
+                        ? "Delete the page-specific action features first. Remaining features: " + featureCodeSummary
+                            + " | Default VIEW cleanup impact: role mappings " + defaultViewRoleRefCount
+                            + ", user overrides " + defaultViewUserOverrideCount
+                        : "페이지 전용 액션 기능을 먼저 삭제해 주세요. 남아 있는 기능: " + featureCodeSummary
+                            + " | 기본 VIEW 정리 영향: 권한그룹 매핑 " + defaultViewRoleRefCount
+                            + "건, 사용자 예외권한 " + defaultViewUserOverrideCount + "건");
+                model.addAttribute("pageMgmtBlockedFeatureLinks",
+                        buildPageManagementBlockedFeatureLinks(nonDefaultFeatureCodes, normalizedMenuType, normalizedCode, request, locale));
+                populatePageManagementModel(model, isEn, normalizedMenuType, codeId, searchKeyword, searchUrl);
+                return isEn ? "egovframework/com/admin/page_management_en" : "egovframework/com/admin/page_management";
+            }
+            if (linkedFeatureCodes.stream().anyMatch(featureCode -> defaultViewFeatureCode.equalsIgnoreCase(safeString(featureCode)))) {
+                deleteFeatureWithAssignments(defaultViewFeatureCode);
+            }
             adminCodeManageService.deletePageManagement(codeId, normalizedCode);
         } catch (Exception e) {
             log.error("Failed to delete page management. code={}", normalizedCode, e);
@@ -364,7 +735,12 @@ public class AdminSystemCodeController {
             populatePageManagementModel(model, isEn, normalizedMenuType, codeId, searchKeyword, searchUrl);
             return isEn ? "egovframework/com/admin/page_management_en" : "egovframework/com/admin/page_management";
         }
-        return "redirect:" + adminPrefix(request, locale) + "/system/page-management?menuType=" + normalizedMenuType + "&searchKeyword=" + urlEncode(searchKeyword) + "&searchUrl=" + urlEncode(searchUrl);
+        return "redirect:" + adminPrefix(request, locale) + "/system/page-management?menuType=" + normalizedMenuType
+                + "&searchKeyword=" + urlEncode(searchKeyword)
+                + "&searchUrl=" + urlEncode(searchUrl)
+                + "&deleted=Y"
+                + "&deletedRoleRefs=" + defaultViewRoleRefCount
+                + "&deletedUserOverrides=" + defaultViewUserOverrideCount;
     }
 
     @RequestMapping(value = "/code/class/create", method = RequestMethod.POST)
@@ -681,11 +1057,295 @@ public class AdminSystemCodeController {
 
     private void populatePageManagementModel(Model model, boolean isEn, String menuType, String codeId, String searchKeyword, String searchUrl) {
         List<PageManagementVO> pageRows = loadPageManagementRows(codeId, searchKeyword, searchUrl);
+        applyPageManagementPermissionImpact(pageRows);
+        if ("USER".equals(menuType)) {
+            pageRows = mergeUserPublicCatalogRows(pageRows, isEn, searchKeyword, searchUrl);
+        }
 
         model.addAttribute("pageRows", pageRows);
         model.addAttribute("menuType", menuType);
         model.addAttribute("domainOptions", loadPageDomainOptions(isEn, codeId));
-        model.addAttribute("iconOptions", List.of(
+        model.addAttribute("iconOptions", buildPageIconOptions());
+        model.addAttribute("useAtOptions", List.of("Y", "N"));
+        model.addAttribute("searchKeyword", safeString(searchKeyword));
+        model.addAttribute("searchUrl", safeString(searchUrl));
+    }
+
+    private void populateFunctionManagementModel(Model model, boolean isEn, String menuType, String codeId, String searchMenuCode, String searchKeyword) {
+        List<MenuFeatureVO> featureRows = loadFeatureManagementRows(codeId, searchMenuCode, searchKeyword);
+        Map<String, Integer> featureAssignmentCounts = loadFeatureAssignmentCountMap();
+        int unassignedFeatureCount = 0;
+        for (MenuFeatureVO row : featureRows) {
+            String featureCode = safeString(row.getFeatureCode()).toUpperCase(Locale.ROOT);
+            int assignedRoleCount = featureAssignmentCounts.getOrDefault(featureCode, 0);
+            row.setAssignedRoleCount(assignedRoleCount);
+            row.setUnassignedToRole(assignedRoleCount == 0);
+            if (assignedRoleCount == 0) {
+                unassignedFeatureCount++;
+            }
+        }
+        model.addAttribute("menuType", menuType);
+        model.addAttribute("featurePageOptions", loadFeaturePageOptions(codeId));
+        model.addAttribute("featureUserPageOptions", loadFeaturePageOptions(resolveMenuCodeId("USER")));
+        model.addAttribute("featureAdminPageOptions", loadFeaturePageOptions(resolveMenuCodeId("ADMIN")));
+        model.addAttribute("featureRows", featureRows);
+        model.addAttribute("featureTotalCount", featureRows.size());
+        model.addAttribute("featureUnassignedCount", unassignedFeatureCount);
+        model.addAttribute("useAtOptions", List.of("Y", "N"));
+        model.addAttribute("searchMenuCode", safeString(searchMenuCode));
+        model.addAttribute("searchKeyword", safeString(searchKeyword));
+    }
+
+    private Map<String, Integer> loadFeatureAssignmentCountMap() {
+        try {
+            List<FeatureAssignmentStatVO> stats = authGroupManageService.selectFeatureAssignmentStats();
+            Map<String, Integer> result = new LinkedHashMap<>();
+            for (FeatureAssignmentStatVO stat : stats) {
+                String featureCode = safeString(stat.getFeatureCode()).toUpperCase(Locale.ROOT);
+                if (!featureCode.isEmpty()) {
+                    result.put(featureCode, stat.getAssignedRoleCount());
+                }
+            }
+            return result;
+        } catch (Exception e) {
+            log.error("Failed to load feature assignment statistics.", e);
+            return Collections.emptyMap();
+        }
+    }
+
+    private void populateMenuManagementModel(Model model, boolean isEn, String menuType, String codeId) {
+        List<MenuInfoDTO> menuRows = loadMenuTreeRows(codeId);
+        model.addAttribute("menuType", menuType);
+        model.addAttribute("menuRows", menuRows);
+        model.addAttribute("menuTypes", List.of(
+                menuTypeOption("USER", isEn ? "Home" : "홈"),
+                menuTypeOption("ADMIN", isEn ? "Admin" : "관리자")
+        ));
+        model.addAttribute("groupMenuOptions", buildGroupMenuOptions(menuRows));
+        model.addAttribute("iconOptions", buildPageIconOptions());
+        model.addAttribute("useAtOptions", List.of("Y", "N"));
+        model.addAttribute("menuMgmtGuide", isEn
+                ? "Create page menus here first. Existing legacy screens can stay registered and be hidden later with useAt."
+                : "새 페이지 메뉴는 여기서 먼저 등록하고, 기존 동작 중인 화면은 그대로 두고 나중에 useAt으로 숨김 처리합니다.");
+        model.addAttribute("siteMapMgmtGuide", isEn
+                ? "Site map exposure should be managed separately through a dedicated site-map management menu."
+                : "사이트맵 노출은 별도 사이트맵 관리 메뉴에서 분리해서 운영하는 것을 기본 원칙으로 둡니다.");
+    }
+
+    private List<Map<String, Object>> buildFullStackSummaryRows(String codeId) {
+        List<MenuInfoDTO> menuRows = loadMenuTreeRows(codeId);
+        if (menuRows.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Map<String, Map<String, Object>> registryByMenuCode = new HashMap<>();
+        Map<String, Map<String, Object>> registryByRoutePath = new HashMap<>();
+        Map<String, Map<String, Object>> governanceRegistryByMenuCode = fullStackGovernanceRegistryService.getAllEntries();
+        for (Map<String, Object> option : uiManifestRegistryService.selectActivePageOptions()) {
+            String menuCode = safeString(asString(option.get("menuCode"))).toUpperCase(Locale.ROOT);
+            String routePath = safeString(asString(option.get("routePath")));
+            if (!menuCode.isEmpty()) {
+                registryByMenuCode.put(menuCode, option);
+            }
+            if (!routePath.isEmpty()) {
+                registryByRoutePath.put(routePath, option);
+            }
+        }
+
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (MenuInfoDTO menuRow : menuRows) {
+            String menuCode = safeString(menuRow.getCode()).toUpperCase(Locale.ROOT);
+            if (menuCode.length() != 8) {
+                continue;
+            }
+            Map<String, Object> summary = new LinkedHashMap<>();
+            String menuUrl = safeString(menuRow.getMenuUrl());
+            List<String> featureCodes;
+            String requiredViewFeatureCode;
+            try {
+                featureCodes = authGroupManageService.selectFeatureCodesByMenuCode(menuCode);
+                requiredViewFeatureCode = safeString(authGroupManageService.selectRequiredViewFeatureCodeByMenuUrl(menuUrl));
+            } catch (Exception e) {
+                log.error("Failed to resolve feature metadata for managed menu {}.", menuCode, e);
+                featureCodes = Collections.emptyList();
+                requiredViewFeatureCode = "";
+            }
+            if (featureCodes == null) {
+                featureCodes = Collections.emptyList();
+            }
+
+            Map<String, Object> registryOption = registryByMenuCode.get(menuCode);
+            if (registryOption == null && !menuUrl.isEmpty()) {
+                registryOption = registryByRoutePath.get(menuUrl);
+            }
+            Map<String, Object> governanceRegistry = governanceRegistryByMenuCode.get(menuCode);
+            String pageId = registryOption == null ? "" : safeString(asString(registryOption.get("pageId")));
+            if (pageId.isEmpty()) {
+                pageId = safeString(asString(safeMap(governanceRegistry).get("pageId")));
+            }
+
+            int eventCount = 0;
+            int apiCount = 0;
+            int schemaCount = 0;
+            int tableCount = 0;
+            int columnCount = 0;
+            int commonCodeGroupCount = 0;
+            boolean hasManifestRegistry = false;
+            boolean hasScreenCommand = false;
+            boolean hasGovernanceRegistry = governanceRegistry != null && !"DEFAULT".equalsIgnoreCase(safeString(asString(governanceRegistry.get("source"))));
+            List<String> gaps = new ArrayList<>();
+
+            if (pageId.isEmpty()) {
+                gaps.add("screen-command");
+            } else {
+                try {
+                    Map<String, Object> payload = screenCommandCenterService.getScreenCommandPage(pageId);
+                    Map<String, Object> page = safeMap(payload.get("page"));
+                    hasScreenCommand = !page.isEmpty();
+                    Map<String, Object> manifestRegistry = safeMap(page.get("manifestRegistry"));
+                    hasManifestRegistry = !safeString(asString(manifestRegistry.get("pageId"))).isEmpty();
+                    eventCount = safeMapList(page.get("events")).size();
+                    apiCount = safeMapList(page.get("apis")).size();
+                    List<Map<String, Object>> schemas = safeMapList(page.get("schemas"));
+                    schemaCount = schemas.size();
+                    commonCodeGroupCount = safeMapList(page.get("commonCodeGroups")).size();
+                    LinkedHashSet<String> tables = new LinkedHashSet<>();
+                    int columns = 0;
+                    for (Map<String, Object> schema : schemas) {
+                        String tableName = safeString(asString(schema.get("tableName")));
+                        if (!tableName.isEmpty()) {
+                            tables.add(tableName);
+                        }
+                        columns += safeStringList(schema.get("columns")).size();
+                    }
+                    for (Map<String, Object> api : safeMapList(page.get("apis"))) {
+                        tables.addAll(safeStringList(api.get("relatedTables")));
+                    }
+                    tables.addAll(safeStringList(safeMap(page.get("menuPermission")).get("relationTables")));
+                    tableCount = tables.size();
+                    columnCount = columns;
+                    if (!hasManifestRegistry) {
+                        gaps.add("manifest");
+                    }
+                    if (schemaCount == 0) {
+                        gaps.add("schema");
+                    }
+                    if (tableCount == 0) {
+                        gaps.add("table");
+                    }
+                    if (columnCount == 0) {
+                        gaps.add("column");
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to build full-stack summary for pageId={}", pageId, e);
+                    gaps.add("screen-command-error");
+                }
+            }
+            if (governanceRegistry != null) {
+                eventCount = Math.max(eventCount, safeStringList(governanceRegistry.get("eventIds")).size());
+                apiCount = Math.max(apiCount, safeStringList(governanceRegistry.get("apiIds")).size());
+                schemaCount = Math.max(schemaCount, safeStringList(governanceRegistry.get("schemaIds")).size());
+                tableCount = Math.max(tableCount, safeStringList(governanceRegistry.get("tableNames")).size());
+                columnCount = Math.max(columnCount, safeStringList(governanceRegistry.get("columnNames")).size());
+                commonCodeGroupCount = Math.max(commonCodeGroupCount, safeStringList(governanceRegistry.get("commonCodeGroups")).size());
+            }
+
+            if (menuUrl.isEmpty()) {
+                gaps.add("menu-url");
+            }
+            if (requiredViewFeatureCode.isEmpty()) {
+                gaps.add("view-feature");
+            }
+            if (!hasGovernanceRegistry) {
+                gaps.add("governance-registry");
+            }
+
+            summary.put("menuCode", menuCode);
+            summary.put("menuNm", safeString(menuRow.getCodeNm()));
+            summary.put("menuUrl", menuUrl);
+            summary.put("pageId", pageId);
+            summary.put("hasManifestRegistry", hasManifestRegistry);
+            summary.put("hasScreenCommand", hasScreenCommand);
+            summary.put("hasGovernanceRegistry", hasGovernanceRegistry);
+            summary.put("requiredViewFeatureCode", requiredViewFeatureCode);
+            summary.put("featureCount", featureCodes.size());
+            summary.put("eventCount", eventCount);
+            summary.put("apiCount", apiCount);
+            summary.put("schemaCount", schemaCount);
+            summary.put("tableCount", tableCount);
+            summary.put("columnCount", columnCount);
+            summary.put("commonCodeGroupCount", commonCodeGroupCount);
+            summary.put("gaps", gaps);
+            summary.put("coverageScore", computeCoverageScore(summary));
+            rows.add(summary);
+        }
+
+        rows.sort(Comparator
+                .comparingInt((Map<String, Object> row) -> safeParseInt(asString(row.get("coverageScore"))))
+                .thenComparing(row -> safeString(asString(row.get("menuCode")))));
+        return rows;
+    }
+
+    private int computeCoverageScore(Map<String, Object> summary) {
+        int score = 0;
+        if (!safeString(asString(summary.get("menuUrl"))).isEmpty()) score += 10;
+        if (!safeString(asString(summary.get("requiredViewFeatureCode"))).isEmpty()) score += 15;
+        if (Boolean.TRUE.equals(summary.get("hasManifestRegistry"))) score += 15;
+        if (Boolean.TRUE.equals(summary.get("hasScreenCommand"))) score += 15;
+        if (Boolean.TRUE.equals(summary.get("hasGovernanceRegistry"))) score += 10;
+        if (safeParseInt(asString(summary.get("featureCount"))) > 0) score += 10;
+        if (safeParseInt(asString(summary.get("eventCount"))) > 0) score += 10;
+        if (safeParseInt(asString(summary.get("apiCount"))) > 0) score += 10;
+        if (safeParseInt(asString(summary.get("schemaCount"))) > 0) score += 5;
+        if (safeParseInt(asString(summary.get("tableCount"))) > 0) score += 5;
+        if (safeParseInt(asString(summary.get("columnCount"))) > 0) score += 5;
+        return score;
+    }
+
+    private Map<String, Object> safeMap(Object value) {
+        if (value instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> casted = (Map<String, Object>) value;
+            return casted;
+        }
+        return Collections.emptyMap();
+    }
+
+    private List<Map<String, Object>> safeMapList(Object value) {
+        if (!(value instanceof List)) {
+            return Collections.emptyList();
+        }
+        List<?> source = (List<?>) value;
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Object item : source) {
+            if (item instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> casted = (Map<String, Object>) item;
+                result.add(casted);
+            }
+        }
+        return result;
+    }
+
+    private List<String> safeStringList(Object value) {
+        if (!(value instanceof List)) {
+            return Collections.emptyList();
+        }
+        List<?> source = (List<?>) value;
+        List<String> result = new ArrayList<>();
+        for (Object item : source) {
+            if (item != null) {
+                result.add(safeString(item.toString()));
+            }
+        }
+        return result;
+    }
+
+    private String asString(Object value) {
+        return value == null ? "" : value.toString();
+    }
+
+    private List<String> buildPageIconOptions() {
+        return List.of(
                 "web", "category", "settings", "dashboard", "admin_panel_settings",
                 "monitoring", "api", "list_alt", "article", "folder",
                 "manage_accounts", "groups", "person_search", "how_to_reg", "history",
@@ -713,31 +1373,23 @@ public class AdminSystemCodeController {
                 "wifi", "memory", "developer_board", "devices", "desktop_windows",
                 "laptop", "phone_iphone", "print", "qr_code", "sell",
                 "shopping_cart", "request_quote", "account_balance", "insights", "timeline"
-        ));
-        model.addAttribute("useAtOptions", List.of("Y", "N"));
-        model.addAttribute("searchKeyword", safeString(searchKeyword));
-        model.addAttribute("searchUrl", safeString(searchUrl));
+        );
     }
 
-    private void populateFunctionManagementModel(Model model, boolean isEn, String menuType, String codeId, String searchMenuCode, String searchKeyword) {
-        model.addAttribute("menuType", menuType);
-        model.addAttribute("featurePageOptions", loadFeaturePageOptions(codeId));
-        model.addAttribute("featureUserPageOptions", loadFeaturePageOptions(resolveMenuCodeId("USER")));
-        model.addAttribute("featureAdminPageOptions", loadFeaturePageOptions(resolveMenuCodeId("ADMIN")));
-        model.addAttribute("featureRows", loadFeatureManagementRows(codeId, searchMenuCode, searchKeyword));
-        model.addAttribute("useAtOptions", List.of("Y", "N"));
-        model.addAttribute("searchMenuCode", safeString(searchMenuCode));
-        model.addAttribute("searchKeyword", safeString(searchKeyword));
-    }
-
-    private void populateMenuManagementModel(Model model, boolean isEn, String menuType, String codeId) {
-        List<MenuInfoDTO> menuRows = loadMenuTreeRows(codeId);
-        model.addAttribute("menuType", menuType);
-        model.addAttribute("menuRows", menuRows);
-        model.addAttribute("menuTypes", List.of(
-                menuTypeOption("USER", isEn ? "Home" : "홈"),
-                menuTypeOption("ADMIN", isEn ? "Admin" : "관리자")
-        ));
+    private List<Map<String, String>> buildGroupMenuOptions(List<MenuInfoDTO> menuRows) {
+        List<Map<String, String>> options = new ArrayList<>();
+        for (MenuInfoDTO row : menuRows) {
+            String code = safeString(row.getCode()).toUpperCase(Locale.ROOT);
+            if (code.length() != 6) {
+                continue;
+            }
+            Map<String, String> option = new LinkedHashMap<>();
+            option.put("value", code);
+            option.put("label", code + " · " + safeString(row.getCodeNm()));
+            option.put("urlPrefix", safeString(row.getMenuUrl()));
+            options.add(option);
+        }
+        return options;
     }
 
     private void populateIpWhitelistModel(Model model, boolean isEn, String searchIp, String accessScope, String status) {
@@ -855,6 +1507,59 @@ public class AdminSystemCodeController {
         }
     }
 
+    private void applyPageManagementPermissionImpact(List<PageManagementVO> pageRows) {
+        if (pageRows == null || pageRows.isEmpty()) {
+            return;
+        }
+        List<String> featureCodes = new ArrayList<>();
+        for (PageManagementVO row : pageRows) {
+            String pageCode = safeString(row.getCode()).toUpperCase(Locale.ROOT);
+            if (pageCode.isEmpty()) {
+                row.setDefaultViewRoleRefCount(0);
+                row.setDefaultViewUserOverrideCount(0);
+                continue;
+            }
+            featureCodes.add(buildDefaultViewFeatureCode(pageCode));
+        }
+
+        if (featureCodes.isEmpty()) {
+            return;
+        }
+
+        Map<String, Integer> roleRefCountMap = Collections.emptyMap();
+        Map<String, Integer> userOverrideCountMap = Collections.emptyMap();
+        try {
+            roleRefCountMap = toReferenceCountMap(authGroupManageService.selectAuthorFeatureRelationCounts(featureCodes));
+            userOverrideCountMap = toReferenceCountMap(authGroupManageService.selectUserFeatureOverrideCounts(featureCodes));
+        } catch (Exception e) {
+            log.error("Failed to load page permission impact batch. featureCodes={}", featureCodes, e);
+        }
+
+        for (PageManagementVO row : pageRows) {
+            String pageCode = safeString(row.getCode()).toUpperCase(Locale.ROOT);
+            if (pageCode.isEmpty()) {
+                continue;
+            }
+            String featureCode = buildDefaultViewFeatureCode(pageCode);
+            row.setDefaultViewRoleRefCount(roleRefCountMap.getOrDefault(featureCode, 0));
+            row.setDefaultViewUserOverrideCount(userOverrideCountMap.getOrDefault(featureCode, 0));
+        }
+    }
+
+    private Map<String, Integer> toReferenceCountMap(List<FeatureReferenceCountVO> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<String, Integer> counts = new HashMap<>();
+        for (FeatureReferenceCountVO row : rows) {
+            String featureCode = safeString(row.getFeatureCode()).toUpperCase(Locale.ROOT);
+            if (!featureCode.isEmpty()) {
+                counts.put(featureCode, row.getReferenceCount());
+            }
+        }
+        return counts;
+    }
+
     private List<MenuFeatureVO> loadFeaturePageOptions(String codeId) {
         try {
             return menuFeatureManageService.selectMenuPageOptions(codeId);
@@ -952,6 +1657,41 @@ public class AdminSystemCodeController {
         return "";
     }
 
+    private String validateMenuManagedPageInput(
+            String menuType,
+            String codeId,
+            String parentCode,
+            String codeNm,
+            String codeDc,
+            String menuUrl,
+            boolean isEn) {
+        if (parentCode.length() != 6) {
+            return isEn ? "Please select a valid group menu." : "유효한 그룹 메뉴를 선택해 주세요.";
+        }
+        boolean parentExists = loadMenuTreeRows(codeId).stream()
+                .map(MenuInfoDTO::getCode)
+                .map(this::safeString)
+                .map(value -> value.toUpperCase(Locale.ROOT))
+                .anyMatch(parentCode::equals);
+        if (!parentExists) {
+            return isEn ? "The selected group menu does not exist." : "선택한 그룹 메뉴가 존재하지 않습니다.";
+        }
+        String generatedCode = resolveNextPageCode(codeId, parentCode);
+        if (generatedCode.isEmpty()) {
+            return isEn
+                    ? "No more page codes are available under the selected group."
+                    : "선택한 그룹 메뉴 아래에서 더 이상 사용할 페이지 코드를 만들 수 없습니다.";
+        }
+        String baseError = validatePageManagementInput(generatedCode, codeNm, codeDc, menuUrl, parentCode, menuType, isEn);
+        if (!baseError.isEmpty()) {
+            return baseError;
+        }
+        if (hasExistingManagedPageUrl(codeId, menuUrl)) {
+            return isEn ? "The page URL is already registered." : "이미 등록된 페이지 URL입니다.";
+        }
+        return "";
+    }
+
     private String validateFeatureManagementInput(
             String menuCode,
             String featureCode,
@@ -976,6 +1716,85 @@ public class AdminSystemCodeController {
                     : "기능 코드는 2~30자의 영문 대문자, 숫자, 밑줄(_), 하이픈(-)만 사용할 수 있습니다.";
         }
         return "";
+    }
+
+    private void ensureDefaultViewFeature(String pageCode, String pageNameKo, String pageNameEn, String useAt) throws Exception {
+        String featureCode = buildDefaultViewFeatureCode(pageCode);
+        if (featureCode.isEmpty()) {
+            return;
+        }
+        if (menuFeatureManageService.countFeatureCode(featureCode) > 0) {
+            return;
+        }
+        menuFeatureManageService.insertMenuFeature(
+                pageCode,
+                featureCode,
+                buildDefaultViewFeatureName(pageNameKo, false),
+                buildDefaultViewFeatureName(pageNameEn, true),
+                buildDefaultViewFeatureDescription(pageNameKo, pageNameEn),
+                useAt);
+    }
+
+    private void syncDefaultViewFeatureMetadata(String pageCode, String useAt, String menuType) throws Exception {
+        String featureCode = buildDefaultViewFeatureCode(pageCode);
+        if (featureCode.isEmpty() || menuFeatureManageService.countFeatureCode(featureCode) == 0) {
+            return;
+        }
+        String codeId = resolveMenuCodeId(menuType);
+        List<PageManagementVO> pageRows = loadPageManagementRows(codeId, pageCode, null);
+        for (PageManagementVO row : pageRows) {
+            if (!pageCode.equalsIgnoreCase(safeString(row.getCode()))) {
+                continue;
+            }
+            menuFeatureManageService.updateMenuFeatureMetadata(
+                    featureCode,
+                    buildDefaultViewFeatureName(row.getCodeNm(), false),
+                    buildDefaultViewFeatureName(row.getCodeDc(), true),
+                    buildDefaultViewFeatureDescription(row.getCodeNm(), row.getCodeDc()),
+                    useAt);
+            return;
+        }
+    }
+
+    private void deleteFeatureWithAssignments(String featureCode) throws Exception {
+        String normalizedFeatureCode = safeString(featureCode).toUpperCase(Locale.ROOT);
+        if (normalizedFeatureCode.isEmpty()) {
+            return;
+        }
+        authGroupManageService.deleteAuthorFeatureRelationsByFeatureCode(normalizedFeatureCode);
+        authGroupManageService.deleteUserFeatureOverridesByFeatureCode(normalizedFeatureCode);
+        menuFeatureManageService.deleteMenuFeature(normalizedFeatureCode);
+    }
+
+    private String buildDefaultViewFeatureCode(String pageCode) {
+        String normalizedPageCode = safeString(pageCode).toUpperCase(Locale.ROOT);
+        if (normalizedPageCode.isEmpty()) {
+            return "";
+        }
+        return normalizedPageCode + "_VIEW";
+    }
+
+    private String buildDefaultViewFeatureName(String pageName, boolean english) {
+        String normalizedPageName = safeString(pageName);
+        if (normalizedPageName.isEmpty()) {
+            return english ? "View Page" : "페이지 조회";
+        }
+        return english ? "View " + normalizedPageName : normalizedPageName + " 조회";
+    }
+
+    private String buildDefaultViewFeatureDescription(String pageNameKo, String pageNameEn) {
+        String normalizedKo = safeString(pageNameKo);
+        String normalizedEn = safeString(pageNameEn);
+        if (!normalizedKo.isEmpty() && !normalizedEn.isEmpty()) {
+            return normalizedKo + " / " + normalizedEn + " page default VIEW permission";
+        }
+        if (!normalizedKo.isEmpty()) {
+            return normalizedKo + " 페이지 기본 VIEW 권한";
+        }
+        if (!normalizedEn.isEmpty()) {
+            return normalizedEn + " page default VIEW permission";
+        }
+        return "Default VIEW permission for the page";
     }
 
     private String validateMenuOrderPayload(String menuType, String orderPayload, List<MenuInfoDTO> menuRows, boolean isEn) {
@@ -1042,6 +1861,55 @@ public class AdminSystemCodeController {
         }
     }
 
+    private boolean hasExistingManagedPageUrl(String codeId, String menuUrl) {
+        String normalizedUrl = safeString(menuUrl);
+        if (normalizedUrl.isEmpty()) {
+            return false;
+        }
+        List<PageManagementVO> existingRows = loadPageManagementRows(codeId, null, normalizedUrl);
+        for (PageManagementVO row : existingRows) {
+            if (normalizedUrl.equalsIgnoreCase(safeString(row.getMenuUrl()))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String resolveNextPageCode(String codeId, String parentCode) {
+        if (parentCode.length() != 6) {
+            return "";
+        }
+        int maxSuffix = 0;
+        for (MenuInfoDTO row : loadMenuTreeRows(codeId)) {
+            String code = safeString(row.getCode()).toUpperCase(Locale.ROOT);
+            if (!code.startsWith(parentCode) || code.length() != 8) {
+                continue;
+            }
+            int suffix = safeParseInt(code.substring(6));
+            if (suffix > maxSuffix) {
+                maxSuffix = suffix;
+            }
+        }
+        if (maxSuffix >= 99) {
+            return "";
+        }
+        return parentCode + String.format(Locale.ROOT, "%02d", maxSuffix + 1);
+    }
+
+    private int resolveNextSiblingSortOrder(String codeId, String parentCode) {
+        int maxSortOrdr = 0;
+        int siblingCount = 0;
+        for (MenuInfoDTO row : loadMenuTreeRows(codeId)) {
+            String code = safeString(row.getCode()).toUpperCase(Locale.ROOT);
+            if (!code.startsWith(parentCode) || code.length() != 8) {
+                continue;
+            }
+            siblingCount++;
+            maxSortOrdr = Math.max(maxSortOrdr, row.getSortOrdr() == null ? 0 : row.getSortOrdr());
+        }
+        return Math.max(maxSortOrdr, siblingCount) + 1;
+    }
+
     private int codeDepth(String code) {
         return safeString(code).length();
     }
@@ -1087,12 +1955,158 @@ public class AdminSystemCodeController {
         }
     }
 
+    private int safeParseInt(String value) {
+        try {
+            return Integer.parseInt(safeString(value));
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    private List<Map<String, String>> buildPageManagementBlockedFeatureLinks(
+            List<String> featureCodes,
+            String menuType,
+            String menuCode,
+            HttpServletRequest request,
+            Locale locale) {
+        List<Map<String, String>> links = new ArrayList<>();
+        for (String featureCode : featureCodes) {
+            String normalizedFeatureCode = safeString(featureCode).toUpperCase(Locale.ROOT);
+            if (normalizedFeatureCode.isEmpty()) {
+                continue;
+            }
+            Map<String, String> item = new LinkedHashMap<>();
+            item.put("featureCode", normalizedFeatureCode);
+            item.put("href", adminPrefix(request, locale) + "/system/feature-management?menuType="
+                    + urlEncode(menuType)
+                    + "&searchMenuCode=" + urlEncode(menuCode)
+                    + "&searchKeyword=" + urlEncode(normalizedFeatureCode));
+            links.add(item);
+        }
+        return links;
+    }
+
 
     private boolean isValidPageManagementUrl(String menuUrl, String menuType) {
         if ("USER".equals(menuType)) {
-            return menuUrl.startsWith("/home") || menuUrl.startsWith("/en/home");
+            return menuUrl.startsWith("/home")
+                    || menuUrl.startsWith("/en/home")
+                    || menuUrl.startsWith("/join/")
+                    || menuUrl.startsWith("/join/en/")
+                    || menuUrl.startsWith("/signin/")
+                    || menuUrl.startsWith("/en/signin/")
+                    || "/mypage".equals(menuUrl)
+                    || "/en/mypage".equals(menuUrl)
+                    || "/sitemap".equals(menuUrl)
+                    || "/en/sitemap".equals(menuUrl);
         }
         return menuUrl.startsWith("/admin/") || menuUrl.startsWith("/en/admin/");
+    }
+
+    private List<PageManagementVO> mergeUserPublicCatalogRows(List<PageManagementVO> pageRows, boolean isEn, String searchKeyword, String searchUrl) {
+        Map<String, PageManagementVO> rowByUrl = new LinkedHashMap<>();
+        for (PageManagementVO row : pageRows) {
+            rowByUrl.put(safeString(row.getMenuUrl()), row);
+        }
+
+        List<PageManagementVO> merged = new ArrayList<>(pageRows);
+        for (PageManagementVO catalogRow : buildUserPublicCatalogRows(isEn)) {
+            String url = safeString(catalogRow.getMenuUrl());
+            PageManagementVO existing = rowByUrl.get(url);
+            if (existing != null) {
+                existing.setCatalogManaged(true);
+                existing.setCatalogRegistered(true);
+                existing.setManagementNote(isEn ? "Public flow catalog synced" : "공개 플로우 카탈로그 반영");
+                continue;
+            }
+            if (matchesPageManagementSearch(catalogRow, searchKeyword, searchUrl)) {
+                merged.add(catalogRow);
+            }
+        }
+
+        merged.sort(Comparator
+                .comparing(PageManagementVO::getDomainName, Comparator.nullsLast(String::compareTo))
+                .thenComparing(PageManagementVO::getMenuUrl, Comparator.nullsLast(String::compareTo))
+                .thenComparing(PageManagementVO::getCode, Comparator.nullsLast(String::compareTo)));
+        return merged;
+    }
+
+    private boolean matchesPageManagementSearch(PageManagementVO row, String searchKeyword, String searchUrl) {
+        String keyword = safeString(searchKeyword).toLowerCase(Locale.ROOT);
+        String urlKeyword = safeString(searchUrl).toLowerCase(Locale.ROOT);
+        if (!keyword.isEmpty()) {
+            String code = safeString(row.getCode()).toLowerCase(Locale.ROOT);
+            String codeNm = safeString(row.getCodeNm()).toLowerCase(Locale.ROOT);
+            String codeDc = safeString(row.getCodeDc()).toLowerCase(Locale.ROOT);
+            if (!code.contains(keyword) && !codeNm.contains(keyword) && !codeDc.contains(keyword)) {
+                return false;
+            }
+        }
+        return urlKeyword.isEmpty() || safeString(row.getMenuUrl()).toLowerCase(Locale.ROOT).contains(urlKeyword);
+    }
+
+    private List<PageManagementVO> buildUserPublicCatalogRows(boolean isEn) {
+        return Arrays.asList(
+                catalogRow("CAT-SIGNIN-01", "로그인", "Login", "/signin/loginView", "로그인·계정찾기", "Sign In", "login", isEn),
+                catalogRow("CAT-SIGNIN-02", "인증방식 선택", "Choose Authentication", "/signin/authChoice", "로그인·계정찾기", "Sign In", "verified_user", isEn),
+                catalogRow("CAT-SIGNIN-03", "아이디 찾기", "Find ID", "/signin/findId", "로그인·계정찾기", "Sign In", "search", isEn),
+                catalogRow("CAT-SIGNIN-04", "아이디 찾기 결과", "Find ID Result", "/signin/findId/result", "로그인·계정찾기", "Sign In", "fact_check", isEn),
+                catalogRow("CAT-SIGNIN-05", "비밀번호 찾기", "Reset Password", "/signin/findPassword", "로그인·계정찾기", "Sign In", "vpn_key", isEn),
+                catalogRow("CAT-SIGNIN-06", "비밀번호 찾기 결과", "Reset Password Result", "/signin/findPassword/result", "로그인·계정찾기", "Sign In", "task_alt", isEn),
+                catalogRow("CAT-JOIN-01", "1단계. 회원유형 선택", "Step 1. Member Type", "/join/step1", "회원가입", "Join", "how_to_reg", isEn),
+                catalogRow("CAT-JOIN-02", "2단계. 약관 동의", "Step 2. Terms Agreement", "/join/step2", "회원가입", "Join", "article", isEn),
+                catalogRow("CAT-JOIN-03", "3단계. 본인인증", "Step 3. Identity Verification", "/join/step3", "회원가입", "Join", "verified", isEn),
+                catalogRow("CAT-JOIN-04", "4단계. 회원정보 입력", "Step 4. Member Information", "/join/step4", "회원가입", "Join", "edit_note", isEn),
+                catalogRow("CAT-JOIN-05", "5단계. 가입 완료", "Step 5. Complete", "/join/step5", "회원가입", "Join", "check_circle", isEn),
+                catalogRow("CAT-COMPANY-01", "회원사 가입 신청", "Company Registration", "/join/companyRegister", "회원사 가입", "Company Membership", "apartment", isEn),
+                catalogRow("CAT-COMPANY-02", "회원사 가입 신청 완료", "Registration Complete", "/join/companyRegisterComplete", "회원사 가입", "Company Membership", "task", isEn),
+                catalogRow("CAT-COMPANY-03", "가입현황 조회", "Status Search", "/join/companyJoinStatusSearch", "회원사 가입", "Company Membership", "travel_explore", isEn),
+                catalogRow("CAT-COMPANY-04", "가입현황 안내", "Status Guide", "/join/companyJoinStatusGuide", "회원사 가입", "Company Membership", "info", isEn),
+                catalogRow("CAT-COMPANY-05", "가입현황 상세", "Status Detail", "/join/companyJoinStatusDetail", "회원사 가입", "Company Membership", "description", isEn),
+                catalogRow("CAT-COMPANY-06", "재신청", "Reapply", "/join/companyReapply", "회원사 가입", "Company Membership", "sync", isEn),
+                catalogRow("CAT-MEMBER-01", "마이페이지", "My Page", "/mypage", "회원 공통", "Member Common", "person", isEn),
+                catalogRow("CAT-SITEMAP-01", "사이트맵", "Site Map", "/sitemap", "회원 공통", "Member Common", "account_tree", isEn)
+        );
+    }
+
+    private PageManagementVO catalogRow(String code, String codeNm, String codeDc, String menuUrl,
+                                        String domainNameKo, String domainNameEn, String menuIcon, boolean isEn) {
+        PageManagementVO row = new PageManagementVO();
+        row.setCode(code);
+        row.setCodeNm(codeNm);
+        row.setCodeDc(codeDc);
+        row.setMenuUrl(isEn ? mapEnglishPublicUrl(menuUrl) : menuUrl);
+        row.setMenuIcon(menuIcon);
+        row.setUseAt("Y");
+        row.setDomainName(domainNameKo);
+        row.setDomainNameEn(domainNameEn);
+        row.setCatalogManaged(true);
+        row.setCatalogRegistered(false);
+        row.setManagementNote(isEn ? "Catalog-only public flow" : "카탈로그 기준 공개 플로우");
+        return row;
+    }
+
+    private String mapEnglishPublicUrl(String menuUrl) {
+        String normalized = safeString(menuUrl);
+        if (normalized.startsWith("/signin/")) {
+            return "/en" + normalized;
+        }
+        if (normalized.startsWith("/join/")) {
+            if (normalized.startsWith("/join/en/")) {
+                return normalized;
+            }
+            if ("/join/step1".equals(normalized)) {
+                return "/join/en/step1";
+            }
+            return normalized.replaceFirst("^/join/", "/join/en/");
+        }
+        if ("/mypage".equals(normalized)) {
+            return "/en/mypage";
+        }
+        if ("/sitemap".equals(normalized)) {
+            return "/en/sitemap";
+        }
+        return normalized;
     }
 
     private boolean isEnglishRequest(HttpServletRequest request, Locale locale) {
@@ -1123,6 +2137,17 @@ public class AdminSystemCodeController {
         return isEnglishRequest(request, locale) ? "/en/admin" : "/admin";
     }
 
+    private String redirectReactMigration(HttpServletRequest request, Locale locale, String route) {
+        StringBuilder builder = new StringBuilder("forward:");
+        builder.append(isEnglishRequest(request, locale) ? "/en/admin/react-migration?route=" : "/admin/react-migration?route=");
+        builder.append(route);
+        String query = request == null ? "" : safeString(request.getQueryString());
+        if (!query.isEmpty()) {
+            builder.append("&").append(query);
+        }
+        return builder.toString();
+    }
+
     private String normalizeUseAt(String useAt) {
         String value = safeString(useAt).toUpperCase(Locale.ROOT);
         return "N".equals(value) ? "N" : "Y";
@@ -1134,5 +2159,104 @@ public class AdminSystemCodeController {
 
     private String urlEncode(String value) {
         return URLEncoder.encode(safeString(value), StandardCharsets.UTF_8);
+    }
+
+    private void recordMenuManagementAudit(HttpServletRequest request,
+                                           String menuCode,
+                                           String actionCode,
+                                           String entityId,
+                                           String beforeSummaryJson,
+                                           String afterSummaryJson) {
+        try {
+            auditTrailService.record(
+                    resolveActorId(request),
+                    resolveActorRole(request),
+                    menuCode,
+                    "menu-management",
+                    actionCode,
+                    "MENU_MANAGEMENT",
+                    entityId,
+                    "SUCCESS",
+                    "",
+                    beforeSummaryJson,
+                    afterSummaryJson,
+                    resolveRequestIp(request),
+                    request == null ? "" : safeString(request.getHeader("User-Agent"))
+            );
+        } catch (Exception e) {
+            log.warn("Failed to record menu-management audit. actionCode={}, entityId={}", actionCode, entityId, e);
+        }
+    }
+
+    private String resolveActorId(HttpServletRequest request) {
+        if (request == null) {
+            return "";
+        }
+        HttpSession session = request.getSession(false);
+        if (session == null) {
+            return "";
+        }
+        Object loginVO = session.getAttribute("LoginVO");
+        if (loginVO == null) {
+            return "";
+        }
+        try {
+            Object value = loginVO.getClass().getMethod("getId").invoke(loginVO);
+            return value == null ? "" : value.toString();
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private String resolveActorRole(HttpServletRequest request) {
+        if (request == null) {
+            return "";
+        }
+        HttpSession session = request.getSession(false);
+        if (session == null) {
+            return "";
+        }
+        Object loginVO = session.getAttribute("LoginVO");
+        if (loginVO == null) {
+            return "";
+        }
+        try {
+            Object value = loginVO.getClass().getMethod("getAuthorCode").invoke(loginVO);
+            return value == null ? "" : value.toString();
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private String resolveRequestIp(HttpServletRequest request) {
+        if (request == null) {
+            return "";
+        }
+        String forwarded = safeString(request.getHeader("X-Forwarded-For"));
+        if (!forwarded.isEmpty()) {
+            return forwarded.split(",")[0].trim();
+        }
+        return safeString(request.getRemoteAddr());
+    }
+
+    private String safeJson(String value) {
+        return safeString(value).replace("\"", "'");
+    }
+
+    private String buildManagedDraftPageId(String menuUrl, String menuCode) {
+        String normalizedUrl = safeString(menuUrl).toLowerCase(Locale.ROOT);
+        if (!normalizedUrl.isEmpty()) {
+            String compact = normalizedUrl
+                    .replaceFirst("^/en/", "/")
+                    .replaceFirst("^/", "")
+                    .replace('/', '-')
+                    .replace('_', '-')
+                    .replaceAll("[^a-z0-9\\-]", "")
+                    .replaceAll("-{2,}", "-");
+            if (!compact.isEmpty()) {
+                return compact;
+            }
+        }
+        return safeString(menuCode).toLowerCase(Locale.ROOT);
     }
 }

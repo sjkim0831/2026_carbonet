@@ -12,9 +12,17 @@
     </select>
 
     <select id="selectAdminMenuDetailList" parameterType="string" resultType="egovframework.com.feature.admin.dto.response.MenuInfoDTO">
-        SELECT D.CODE, D.CODE_NM, D.CODE_DC, M.MENU_URL, M.MENU_ICON
+        SELECT
+            D.CODE,
+            D.CODE_NM,
+            D.CODE_DC,
+            D.USE_AT,
+            M.MENU_URL,
+            M.MENU_ICON,
+            O.SORT_ORDR
         FROM COMTCCMMNDETAILCODE D
         LEFT JOIN COMTNMENUINFO M ON D.CODE = M.MENU_CODE
+        LEFT JOIN COMTNMENUORDER O ON D.CODE = O.MENU_CODE
         WHERE D.CODE_ID = #{_parameter}
         ORDER BY D.CODE
     </select>
@@ -25,7 +33,11 @@
             D.CODE,
             D.CODE_NM,
             D.CODE_DC,
-            D.USE_AT,
+            CASE
+                WHEN COALESCE(D.USE_AT, 'Y') = 'Y'
+                 AND COALESCE(M.USE_AT, 'Y') = 'Y' THEN 'Y'
+                ELSE 'N'
+            END AS USE_AT,
             M.MENU_CODE,
             M.MENU_URL,
             M.MENU_ICON,
@@ -49,54 +61,58 @@
             M.MENU_ICON
         FROM COMTNMENUINFO M
         LEFT JOIN COMTCCMMNDETAILCODE D ON D.CODE = M.MENU_CODE
-        WHERE M.MENU_URL = #{_parameter}
-           OR ('/' || M.MENU_URL) = #{_parameter}
-           OR (
+        WHERE COALESCE(D.USE_AT, 'Y') = 'Y'
+          AND COALESCE(M.USE_AT, 'Y') = 'Y'
+          AND (
+                M.MENU_URL = #{_parameter}
+             OR ('/' || M.MENU_URL) = #{_parameter}
+             OR (
                 #{_parameter} = '/admin/member/approve'
-            AND M.MENU_URL = '/admin/react-migration?route=member-approve'
-           ) OR (
+                AND M.MENU_URL = '/admin/react-migration?route=member-approve'
+             ) OR (
                 #{_parameter} = '/admin/member/company-approve'
-            AND M.MENU_URL = '/admin/react-migration?route=company-approve'
-           ) OR (
+                AND M.MENU_URL = '/admin/react-migration?route=company-approve'
+             ) OR (
                 #{_parameter} = '/admin/member/edit'
-            AND M.MENU_URL = '/admin/react-migration?route=member-edit'
-           ) OR (
+                AND M.MENU_URL = '/admin/react-migration?route=member-edit'
+             ) OR (
                 #{_parameter} = '/admin/member/detail'
-            AND M.MENU_URL = '/admin/react-migration?route=member-detail'
-           ) OR (
+                AND M.MENU_URL = '/admin/react-migration?route=member-detail'
+             ) OR (
                 #{_parameter} = '/admin/member/reset_password'
-            AND M.MENU_URL = '/admin/react-migration?route=password-reset'
-           ) OR (
+                AND M.MENU_URL = '/admin/react-migration?route=password-reset'
+             ) OR (
                 #{_parameter} = '/admin/member/list'
-            AND M.MENU_URL = '/admin/react-migration?route=member-list'
-           ) OR (
+                AND M.MENU_URL = '/admin/react-migration?route=member-list'
+             ) OR (
                 #{_parameter} IN ('/admin/member/admin_list', '/admin/member/admin-list')
-            AND M.MENU_URL = '/admin/react-migration?route=admin-list'
-           ) OR (
+                AND M.MENU_URL = '/admin/react-migration?route=admin-list'
+             ) OR (
                 #{_parameter} = '/admin/member/company_list'
-            AND M.MENU_URL = '/admin/react-migration?route=company-list'
-           ) OR (
+                AND M.MENU_URL = '/admin/react-migration?route=company-list'
+             ) OR (
                 #{_parameter} = '/admin/member/company_detail'
-            AND M.MENU_URL = '/admin/react-migration?route=company-detail'
-           ) OR (
+                AND M.MENU_URL = '/admin/react-migration?route=company-detail'
+             ) OR (
                 #{_parameter} = '/admin/member/company_account'
-            AND M.MENU_URL = '/admin/react-migration?route=company-account'
-           ) OR (
+                AND M.MENU_URL = '/admin/react-migration?route=company-account'
+             ) OR (
                 #{_parameter} = '/admin/member/admin_account'
-            AND M.MENU_URL = '/admin/react-migration?route=admin-create'
-           ) OR (
+                AND M.MENU_URL = '/admin/react-migration?route=admin-create'
+             ) OR (
                 #{_parameter} = '/admin/member/admin_account/permissions'
-            AND M.MENU_URL = '/admin/react-migration?route=admin-permission'
-           ) OR (
+                AND M.MENU_URL = '/admin/react-migration?route=admin-permission'
+             ) OR (
                 #{_parameter} IN ('/admin/auth/group', '/admin/member/auth-group', '/admin/system/role')
-            AND M.MENU_URL = '/admin/react-migration?route=auth-group'
-           ) OR (
+                AND M.MENU_URL = '/admin/react-migration?route=auth-group'
+             ) OR (
                 #{_parameter} IN ('/admin/member/auth-change', '/admin/system/auth-change')
-            AND M.MENU_URL = '/admin/react-migration?route=auth-change'
-           ) OR (
+                AND M.MENU_URL = '/admin/react-migration?route=auth-change'
+             ) OR (
                 #{_parameter} IN ('/admin/member/dept-role-mapping', '/admin/system/dept-role-mapping')
-            AND M.MENU_URL = '/admin/react-migration?route=dept-role'
-           )
+                AND M.MENU_URL = '/admin/react-migration?route=dept-role'
+             )
+          )
         ORDER BY D.CODE
         LIMIT 1
     </select>

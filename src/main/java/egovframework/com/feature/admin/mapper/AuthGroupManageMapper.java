@@ -4,7 +4,9 @@ import egovframework.com.common.mapper.support.BaseMapperSupport;
 import egovframework.com.feature.admin.model.vo.AdminRoleAssignmentVO;
 import egovframework.com.feature.admin.model.vo.AuthorInfoVO;
 import egovframework.com.feature.admin.model.vo.DepartmentRoleMappingVO;
+import egovframework.com.feature.admin.model.vo.FeatureAssignmentStatVO;
 import egovframework.com.feature.admin.model.vo.FeatureCatalogItemVO;
+import egovframework.com.feature.admin.model.vo.FeatureReferenceCountVO;
 import egovframework.com.feature.admin.model.vo.UserAuthorityTargetVO;
 import egovframework.com.feature.admin.model.vo.UserFeatureOverrideVO;
 import org.springframework.stereotype.Repository;
@@ -21,6 +23,10 @@ public class AuthGroupManageMapper extends BaseMapperSupport {
 
     public List<FeatureCatalogItemVO> selectFeatureCatalog() {
         return selectList("AuthGroupManageMapper.selectFeatureCatalog");
+    }
+
+    public List<FeatureAssignmentStatVO> selectFeatureAssignmentStats() {
+        return selectList("AuthGroupManageMapper.selectFeatureAssignmentStats");
     }
 
     public List<String> selectAuthorFeatureCodes(String authorCode) {
@@ -66,6 +72,39 @@ public class AuthGroupManageMapper extends BaseMapperSupport {
         params.put("featureCode", featureCode);
         Integer count = selectOne("AuthGroupManageMapper.countAuthorFeaturePermission", params);
         return count == null ? 0 : count;
+    }
+
+    public int countAuthorFeatureRelationsByFeatureCode(String featureCode) {
+        Integer count = selectOne("AuthGroupManageMapper.countAuthorFeatureRelationsByFeatureCode", featureCode);
+        return count == null ? 0 : count;
+    }
+
+    public int countUserFeatureOverridesByFeatureCode(String featureCode) {
+        Integer count = selectOne("AuthGroupManageMapper.countUserFeatureOverridesByFeatureCode", featureCode);
+        return count == null ? 0 : count;
+    }
+
+    public List<FeatureReferenceCountVO> selectAuthorFeatureRelationCounts(List<String> featureCodes) {
+        return selectList("AuthGroupManageMapper.selectAuthorFeatureRelationCounts", featureCodes);
+    }
+
+    public List<FeatureReferenceCountVO> selectUserFeatureOverrideCounts(List<String> featureCodes) {
+        return selectList("AuthGroupManageMapper.selectUserFeatureOverrideCounts", featureCodes);
+    }
+
+    public void deleteAuthorFeatureRelationsByFeatureCode(String featureCode) {
+        delete("AuthGroupManageMapper.deleteAuthorFeatureRelationsByFeatureCode", featureCode);
+    }
+
+    public void deleteAuthorFeatureRelation(String authorCode, String featureCode) {
+        Map<String, String> params = new java.util.HashMap<>();
+        params.put("authorCode", authorCode);
+        params.put("featureCode", featureCode);
+        delete("AuthGroupManageMapper.deleteAuthorFeatureRelation", params);
+    }
+
+    public void deleteUserFeatureOverridesByFeatureCode(String featureCode) {
+        delete("AuthGroupManageMapper.deleteUserFeatureOverridesByFeatureCode", featureCode);
     }
 
     public List<UserFeatureOverrideVO> selectUserFeatureOverrides(String scrtyDtrmnTrgetId) {

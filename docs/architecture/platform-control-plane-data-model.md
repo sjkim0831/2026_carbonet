@@ -1,0 +1,210 @@
+# Platform Control Plane Data Model
+
+Generated on 2026-03-15 for the Carbonet platformization track.
+
+## Goal
+
+Define the minimum common-DB data model needed so the main platform console can manage:
+
+- projects
+- install units
+- shared common modules
+- resource ownership
+- project DB migration status
+- release and upgrade readiness
+
+## Scope
+
+These tables belong in `COMMON_DB`, not in project-owned business DBs.
+
+They form the platform control plane and should remain available even when projects are split into separate apps and separate DBs.
+
+## Core Tables
+
+### `PROJECT_REGISTRY`
+
+Tracks every managed project.
+
+Key fields:
+
+- `projectId`
+- `projectName`
+- `projectCode`
+- `routePrefix`
+- `domainHost`
+- `deploymentTarget`
+- `javaVersion`
+- `dbDriverVersion`
+- `platformVersion`
+- `projectModuleVersion`
+- `status`
+- `ownerAdminId`
+
+## Why
+
+This is the anchor table for all project-scoped rollout, install, and migration tracking.
+
+### `COMMON_MODULE_REGISTRY`
+
+Tracks reusable common modules.
+
+Key fields:
+
+- `commonModuleId`
+- `commonModuleType`
+- `moduleName`
+- `artifactCoordinate`
+- `version`
+- `status`
+- `compatibilityPolicy`
+- `publishedAt`
+
+Recommended `commonModuleType` values:
+
+- `SI_COMMON`
+- `OPS_COMMON`
+- `SECURITY_COMMON`
+- `UI_COMMON`
+- `DATA_COMMON`
+- `INTEGRATION_COMMON`
+
+### `INSTALL_UNIT`
+
+Tracks menu-centered install packages.
+
+Key fields:
+
+- `packageId`
+- `projectId`
+- `menuCode`
+- `pageId`
+- `packageName`
+- `moduleType`
+- `status`
+- `copySourcePackageId`
+- `platformVersion`
+- `moduleVersion`
+- `installedAt`
+
+### `INSTALL_UNIT_COMMON_MODULE`
+
+Join table between install units and selected common modules.
+
+Key fields:
+
+- `packageId`
+- `commonModuleId`
+- `version`
+- `requiredYn`
+- `usageMode`
+
+This table is what allows menu install screens to select common capabilities without copying source code.
+
+### `RESOURCE_REGISTRY`
+
+Tracks every managed file, code artifact, DB object, and attachment policy.
+
+Key fields:
+
+- `resourceId`
+- `projectId`
+- `packageId`
+- `resourceType`
+- `ownerScope`
+- `usageMode`
+- `logicalName`
+- `physicalName`
+- `sourcePath`
+- `dbObjectName`
+- `status`
+- `lastVerifiedAt`
+
+### `RESOURCE_DEPENDENCY`
+
+Tracks ownership and delete order.
+
+Key fields:
+
+- `dependencyId`
+- `parentResourceId`
+- `childResourceId`
+- `dependencyType`
+- `requiredYn`
+- `deleteOrder`
+- `sharedBlockReason`
+
+### `PROJECT_DB_MIGRATION_STATUS`
+
+Tracks migration state for each target project DB.
+
+Key fields:
+
+- `projectId`
+- `environmentCode`
+- `dbMigrationVersion`
+- `platformVersion`
+- `projectModuleVersion`
+- `lastAppliedAt`
+- `lastVerifiedAt`
+- `status`
+- `driftYn`
+
+### `RELEASE_UNIT`
+
+Tracks a real deployable upgrade event.
+
+Key fields:
+
+- `releaseUnitId`
+- `projectId`
+- `environmentCode`
+- `platformVersion`
+- `projectModuleVersion`
+- `dbMigrationVersion`
+- `apiContractVersion`
+- `approvalStatus`
+- `approvedBy`
+- `approvedAt`
+- `appliedAt`
+- `rollbackReadyYn`
+
+## Supporting Tables
+
+Recommended supporting tables:
+
+- `PROJECT_DB_CONNECTION`
+  stores connection metadata and access policy per project
+- `DELETE_PLAN`
+  stores generated uninstall or delete plans
+- `DELETE_PLAN_ITEM`
+  stores per-resource delete candidates and blockers
+- `ORPHAN_SCAN_RESULT`
+  stores orphan or residue scan results
+- `DRIFT_SCAN_RESULT`
+  stores drift between registry and actual project DB or code state
+
+## Relationship Summary
+
+- one `PROJECT_REGISTRY` row owns many `INSTALL_UNIT` rows
+- one `INSTALL_UNIT` row owns many `RESOURCE_REGISTRY` rows
+- one `INSTALL_UNIT` row may reference many `COMMON_MODULE_REGISTRY` rows
+- one `PROJECT_REGISTRY` row owns many `PROJECT_DB_MIGRATION_STATUS` rows by environment
+- one `RELEASE_UNIT` row points to one approved combination of platform, app, and DB versions
+
+## Minimum Rollout Order
+
+Recommended implementation order for this repository:
+
+1. add `PROJECT_REGISTRY`
+2. add `INSTALL_UNIT`
+3. add `COMMON_MODULE_REGISTRY`
+4. add `INSTALL_UNIT_COMMON_MODULE`
+5. add `RESOURCE_REGISTRY` and `RESOURCE_DEPENDENCY`
+6. add `PROJECT_DB_MIGRATION_STATUS`
+7. add `RELEASE_UNIT`
+
+## Important Rule
+
+Do not start with delete automation before `RESOURCE_REGISTRY` and `RESOURCE_DEPENDENCY` exist.
+
+Do not start with project DB split before `PROJECT_REGISTRY` and `PROJECT_DB_MIGRATION_STATUS` exist.

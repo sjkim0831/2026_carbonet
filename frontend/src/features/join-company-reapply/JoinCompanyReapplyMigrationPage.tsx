@@ -1,11 +1,12 @@
 import { ChangeEvent, useEffect, useId, useState } from "react";
-import { buildLocalizedPath, isEnglish, navigate } from "../../lib/runtime";
+import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { useExternalScript } from "../../app/hooks/useExternalScript";
+import { buildLocalizedPath, getSearchParam, isEnglish, navigate } from "../../lib/navigation/runtime";
 import {
   fetchJoinCompanyReapplyPage,
-  JoinCompanyReapplyPagePayload,
   resetJoinSession,
   submitJoinCompanyReapply
-} from "../../lib/api";
+} from "../../lib/api/client";
 
 type UploadRow = {
   id: string;
@@ -67,23 +68,29 @@ export function JoinCompanyReapplyMigrationPage() {
   const initialLookup = resolveInitialLookup();
   const [bizNo, setBizNo] = useState(initialLookup.bizNo);
   const [repName, setRepName] = useState(initialLookup.repName);
-  const [page, setPage] = useState<JoinCompanyReapplyPagePayload | null>(null);
   const [form, setForm] = useState<ReapplyForm>(EMPTY_FORM);
   const [uploadRows, setUploadRows] = useState<UploadRow[]>([createUploadRow()]);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [actionError, setActionError] = useState(() => getSearchParam("errorMessage"));
+  const [message, setMessage] = useState(() => getSearchParam("message"));
   const [submitting, setSubmitting] = useState(false);
+  const [dragTargetId, setDragTargetId] = useState<string | null>(null);
   const fileInputPrefix = useId();
+  const pageState = useAsyncValue(
+    () => fetchJoinCompanyReapplyPage({ bizNo: bizNo.trim(), repName: repName.trim() }),
+    [bizNo, repName],
+    {
+      enabled: false,
+      onSuccess(result) {
+        hydrateForm((result.result || {}) as Record<string, unknown>);
+        setUploadRows([createUploadRow()]);
+      }
+    }
+  );
+  const page = pageState.value;
+  const loading = pageState.loading;
+  const error = actionError || pageState.error;
 
-  useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
-    document.body.appendChild(script);
-    return () => {
-      script.remove();
-    };
-  }, []);
+  useExternalScript("//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js");
 
   useEffect(() => {
     if (!initialLookup.bizNo || !initialLookup.repName) return;
@@ -111,22 +118,14 @@ export function JoinCompanyReapplyMigrationPage() {
 
   async function handleLookup() {
     if (!bizNo.trim() || !repName.trim()) {
-      setError(en ? "Enter both business registration number and representative name." : "사업자등록번호와 대표자명을 모두 입력해 주세요.");
+      setActionError(en ? "Enter both business registration number and representative name." : "사업자등록번호와 대표자명을 모두 입력해 주세요.");
       return;
     }
-    setLoading(true);
-    setError("");
+    setActionError("");
     setMessage("");
-    try {
-      const result = await fetchJoinCompanyReapplyPage({ bizNo: bizNo.trim(), repName: repName.trim() });
-      setPage(result);
-      hydrateForm((result.result || {}) as Record<string, unknown>);
-      setUploadRows([createUploadRow()]);
-    } catch (nextError) {
-      setPage(null);
-      setError(nextError instanceof Error ? nextError.message : (en ? "Failed to load reapply page." : "재신청 조회에 실패했습니다."));
-    } finally {
-      setLoading(false);
+    const result = await pageState.reload();
+    if (!result) {
+      setActionError(en ? "Failed to load reapply page." : "재신청 조회에 실패했습니다.");
     }
   }
 
@@ -143,6 +142,21 @@ export function JoinCompanyReapplyMigrationPage() {
 
   function updateFileRow(id: string, file: File | null) {
     setUploadRows((current) => current.map((row) => (row.id === id ? { ...row, file } : row)));
+  }
+
+  function isAcceptedFile(file: File) {
+    const lowerName = file.name.toLowerCase();
+    return ACCEPTED_FILE_TYPES.some((ext) => lowerName.endsWith(ext));
+  }
+
+  function assignDroppedFile(rowId: string, file: File | null) {
+    if (!file) return;
+    if (!isAcceptedFile(file)) {
+      setActionError(en ? "Only PDF, JPG, and PNG files can be uploaded." : "PDF, JPG, PNG 파일만 업로드할 수 있습니다.");
+      return;
+    }
+    updateFileRow(rowId, file);
+    setActionError("");
   }
 
   function openAddressSearch() {
@@ -186,16 +200,16 @@ export function JoinCompanyReapplyMigrationPage() {
   }
 
   async function handleSubmit() {
-    setError("");
+    setActionError("");
     setMessage("");
 
     const files = uploadRows.map((row) => row.file).filter((file): file is File => file !== null);
     if (!form.chargerName || !form.chargerEmail || !form.chargerTel || !form.agencyName || !form.representativeName || !form.companyAddress || !form.zipCode) {
-      setError(en ? "Please fill in all required fields." : "필수 항목을 모두 입력해 주세요.");
+      setActionError(en ? "Please fill in all required fields." : "필수 항목을 모두 입력해 주세요.");
       return;
     }
     if (files.length === 0) {
-      setError(en ? "Please upload at least one supporting document." : "증빙 서류를 1개 이상 업로드해 주세요.");
+      setActionError(en ? "Please upload at least one supporting document." : "증빙 서류를 1개 이상 업로드해 주세요.");
       return;
     }
 
@@ -207,7 +221,7 @@ export function JoinCompanyReapplyMigrationPage() {
       });
       setMessage(en ? `${String(result.insttNm || form.agencyName)} reapplication has been submitted.` : `${String(result.insttNm || form.agencyName)} 재신청이 접수되었습니다.`);
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : (en ? "Failed to submit reapplication." : "재신청 처리에 실패했습니다."));
+      setActionError(nextError instanceof Error ? nextError.message : (en ? "Failed to submit reapplication." : "재신청 처리에 실패했습니다."));
     } finally {
       setSubmitting(false);
     }
@@ -246,9 +260,9 @@ export function JoinCompanyReapplyMigrationPage() {
                 <span className="material-symbols-outlined text-[32px] text-[var(--kr-gov-blue)]" style={{ fontVariationSettings: "'wght' 600" }}>eco</span>
                 <div className="flex flex-col">
                   <h1 className="text-lg font-bold tracking-tight text-[var(--kr-gov-text-primary)] leading-none">
-                    {en ? "CCUS Carbon Footprint Platform" : "CCUS 탄소발자국 플랫폼"}
+                    {en ? "CCUS Portal" : "CCUS 통합관리 포털"}
                   </h1>
-                  <p className="text-[9px] text-[var(--kr-gov-text-secondary)] font-bold uppercase tracking-wider mt-1">Carbon Footprint Platform</p>
+                  <p className="text-[9px] text-[var(--kr-gov-text-secondary)] font-bold uppercase tracking-wider mt-1">Carbon Capture, Utilization and Storage</p>
                 </div>
               </a>
             </div>
@@ -266,7 +280,8 @@ export function JoinCompanyReapplyMigrationPage() {
           </p>
         </div>
 
-        <section className="bg-white border border-[var(--kr-gov-border-light)] rounded-lg p-6 mb-6">
+        {!page?.success ? (
+        <section className="bg-white border border-[var(--kr-gov-border-light)] rounded-lg p-6 mb-6" data-help-id="join-company-reapply-lookup">
           <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-4 items-end">
             <div className="space-y-1.5">
               <label className="text-sm font-bold text-[var(--kr-gov-text-secondary)]" htmlFor="lookup-bizNo">
@@ -290,6 +305,7 @@ export function JoinCompanyReapplyMigrationPage() {
             </button>
           </div>
         </section>
+        ) : null}
 
         {error ? (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm flex items-start gap-2">
@@ -327,7 +343,7 @@ export function JoinCompanyReapplyMigrationPage() {
             </div>
 
             <div className="space-y-12">
-              <section>
+              <section data-help-id="join-company-reapply-form">
                 <h3 className="form-section-title">{en ? "Basic Information" : "기본 정보"}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                   <div className="space-y-1.5">
@@ -340,18 +356,36 @@ export function JoinCompanyReapplyMigrationPage() {
                     <label className="text-sm font-bold text-[var(--kr-gov-text-secondary)]" htmlFor="charger-email">
                       {en ? "Email Address" : "이메일 주소"} <span className="text-[var(--kr-gov-error)]">*</span>
                     </label>
-                    <input autoComplete="email" className="input-field" id="charger-email" onChange={(event) => updateField("chargerEmail", event.target.value)} type="email" value={form.chargerEmail} />
+                    <input
+                      autoComplete="email"
+                      className="input-field"
+                      id="charger-email"
+                      inputMode="email"
+                      onChange={(event) => updateField("chargerEmail", event.target.value)}
+                      spellCheck={false}
+                      type="text"
+                      value={form.chargerEmail}
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-sm font-bold text-[var(--kr-gov-text-secondary)]" htmlFor="charger-tel">
                       {en ? "Contact Number" : "연락처"} <span className="text-[var(--kr-gov-error)]">*</span>
                     </label>
-                    <input autoComplete="tel-national" className="input-field" id="charger-tel" inputMode="numeric" onChange={(event) => updateField("chargerTel", event.target.value)} type="tel" value={form.chargerTel} />
+                    <input
+                      autoComplete="tel-national"
+                      className="input-field"
+                      id="charger-tel"
+                      inputMode="numeric"
+                      onChange={(event) => updateField("chargerTel", event.target.value)}
+                      spellCheck={false}
+                      type="text"
+                      value={form.chargerTel}
+                    />
                   </div>
                 </div>
               </section>
 
-              <section>
+              <section data-help-id="join-company-reapply-files">
                 <h3 className="form-section-title">{en ? "Business Information" : "사업자 정보"}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                   <div className="space-y-1.5">
@@ -431,25 +465,44 @@ export function JoinCompanyReapplyMigrationPage() {
                     {uploadRows.map((row, index) => (
                       <label
                         className={`file-row flex items-center gap-3 p-4 rounded-[var(--kr-gov-radius)] transition-all cursor-pointer ${index === 0
-                          ? "border-2 border-dashed border-[var(--kr-gov-error)] bg-red-50/20 group hover:bg-red-50"
-                          : "border border-gray-200 bg-white group hover:border-[var(--kr-gov-blue)]"
+                          ? `border-2 border-dashed group ${dragTargetId === row.id ? "border-[var(--kr-gov-blue)] bg-blue-50/20" : "border-[var(--kr-gov-error)] bg-red-50/20 hover:bg-red-50"}`
+                          : `${dragTargetId === row.id ? "border-[var(--kr-gov-blue)] bg-blue-50/20" : "border border-gray-200 bg-white hover:border-[var(--kr-gov-blue)]"} group`
                         }`}
                         htmlFor={`${fileInputPrefix}-${row.id}`}
                         key={row.id}
+                        onDragEnter={() => setDragTargetId(row.id)}
+                        onDragLeave={() => setDragTargetId((current) => (current === row.id ? null : current))}
+                        onDragOver={(event) => {
+                          event.preventDefault();
+                          setDragTargetId(row.id);
+                        }}
+                        onDrop={(event) => {
+                          event.preventDefault();
+                          setDragTargetId(null);
+                          assignDroppedFile(row.id, event.dataTransfer.files?.[0] || null);
+                        }}
                       >
-                        <span className={`material-symbols-outlined transition-all ${index === 0 ? "text-[var(--kr-gov-error)] group-hover:scale-110" : "text-gray-400 group-hover:text-[var(--kr-gov-blue)]"}`}>
-                          {index === 0 ? "cloud_upload" : "attach_file"}
+                        <span className={`material-symbols-outlined transition-all ${index === 0
+                          ? `${dragTargetId === row.id ? "text-[var(--kr-gov-blue)]" : "text-[var(--kr-gov-error)]"} group-hover:scale-110`
+                          : `${dragTargetId === row.id ? "text-[var(--kr-gov-blue)]" : "text-gray-400"} group-hover:text-[var(--kr-gov-blue)]`
+                        }`}>
+                          {index === 0 ? (row.file ? "check_circle" : "cloud_upload") : (row.file ? "check_circle" : "attach_file")}
                         </span>
                         <div className="flex-grow min-w-0">
                           <input
                             accept={ACCEPTED_FILE_TYPES.join(",")}
                             className="hidden file-input"
                             id={`${fileInputPrefix}-${row.id}`}
-                            onChange={(event: ChangeEvent<HTMLInputElement>) => updateFileRow(row.id, event.target.files?.[0] || null)}
+                            onChange={(event: ChangeEvent<HTMLInputElement>) => assignDroppedFile(row.id, event.target.files?.[0] || null)}
                             type="file"
                           />
                           <div className="file-info flex items-center justify-between">
-                            <span className={`file-name text-sm truncate ${row.file ? "font-bold text-[var(--kr-gov-text-primary)]" : index === 0 ? "font-bold text-[var(--kr-gov-error)]" : "text-gray-500"}`}>
+                            <span className={`file-name text-sm truncate ${row.file
+                              ? "font-bold text-[var(--kr-gov-blue)]"
+                              : index === 0
+                                ? (dragTargetId === row.id ? "font-bold text-[var(--kr-gov-blue)]" : "font-bold text-[var(--kr-gov-error)]")
+                                : "text-gray-500"
+                            }`}>
                               {row.file
                                 ? row.file.name
                                 : en

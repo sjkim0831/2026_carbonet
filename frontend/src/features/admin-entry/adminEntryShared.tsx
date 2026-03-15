@@ -1,36 +1,60 @@
 import { ReactNode } from "react";
-import { buildLocalizedPath, isEnglish } from "../../lib/runtime";
+import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 
 export function AdminLoginFrame({ children }: { children: ReactNode }) {
   const en = isEnglish();
 
   return (
-    <div className="gov-page gov-page-admin">
-      <div className="gov-topbar">
-        <div className="gov-inner gov-topbar-inner">
-          <div className="gov-mark">대한민국 정부 공식 서비스</div>
+    <div className="bg-[var(--kr-gov-bg-gray)] text-[var(--kr-gov-text-primary)] min-h-screen flex flex-col">
+      <a className="skip-link" href="#main-content">{en ? "Skip to content" : "본문 바로가기"}</a>
+      <div className="bg-white border-b border-[var(--kr-gov-border-light)]">
+        <div className="max-w-7xl mx-auto px-4 lg:px-8 py-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <img
+              alt={en ? "Government Symbol of the Republic of Korea" : "대한민국 정부 상징"}
+              className="h-4"
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8BPzqtzSLVGSrjt4mzhhVBy9SocCRDssk1F3XRVu7Xq9jHh7qzzt48wFi8qduCiJmB0LRQczPB7waPe3h0gkjn3OEDxt6UJSJjdXNf8P-4WlM2BEZrfg2SL91uSiZrFcCk9KYrsdg-biTS9dtJ_OIghDBEVoAzMc33XcCYR_UP0QQdoYzBe840YrtH40xGyB9MSr0QH4D0foqlvOhG0jX8CDayXNlDsSKlfClVd3K2aodlwg4xSxgXHB3vnnnA0L2yNBNihQQg0"
+            />
+            <span className="text-[13px] font-medium text-[var(--kr-gov-text-secondary)]">
+              {en ? "Official Government Service of the Republic of Korea" : "대한민국 정부 공식 서비스"}
+            </span>
+          </div>
         </div>
       </div>
-      <header className="gov-header">
-        <div className="gov-inner gov-header-inner">
-          <a className="gov-brand" href={buildLocalizedPath("/", "/en/home")}>
-            <span className="gov-brand-icon">shield</span>
-            <span>
-              <strong>CCUS 통합관리 포털</strong>
-              <small>Carbon Capture, Utilization and Storage System</small>
-            </span>
-          </a>
-          <div className="gov-header-actions">
-            <div className="gov-header-badge">보안 세션 활성화됨</div>
-            <div className="gov-lang-switch">
-              <a className={!en ? "active" : ""} href="/admin/login/loginView">KO</a>
-              <a className={en ? "active" : ""} href="/en/admin/login/loginView">EN</a>
+      <header className="bg-white border-b border-[var(--kr-gov-border-light)] sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 lg:px-8">
+          <div className="flex justify-between items-center h-20">
+            <div className="flex items-center gap-3">
+              <a className="flex items-center gap-2" href={buildLocalizedPath("/", "/en/home")}>
+                <span className="material-symbols-outlined text-[32px] text-[var(--kr-gov-blue)]" style={{ fontVariationSettings: "'wght' 600" }}>shield_person</span>
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-xl font-bold tracking-tight text-[var(--kr-gov-text-primary)]">
+                      {en ? "CCUS Integrated Management Portal" : "CCUS 통합관리 포털"}
+                    </h1>
+                    <span className="bg-[#1e293b] text-white text-[10px] px-1.5 py-0.5 rounded font-black tracking-widest">ADMIN</span>
+                  </div>
+                  <p className="text-[10px] text-[var(--kr-gov-text-secondary)] font-bold uppercase tracking-wider">
+                    Carbon Capture, Utilization and Storage System
+                  </p>
+                </div>
+              </a>
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-slate-700 px-3 py-1.5 bg-slate-100 rounded-full border border-slate-200">
+                <span className="material-symbols-outlined text-[16px]">security</span>
+                {en ? "Secure Session Active" : "보안 세션 활성화됨"}
+              </div>
+              <div className="flex border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] overflow-hidden">
+                <a className={`px-3 py-1 text-xs font-bold ${!en ? "bg-[var(--kr-gov-blue)] text-white" : "bg-white text-[var(--kr-gov-text-secondary)] hover:bg-gray-100"}`} href="/admin/login/loginView">KO</a>
+                <a className={`px-3 py-1 text-xs font-bold border-l border-[var(--kr-gov-border-light)] ${en ? "bg-[var(--kr-gov-blue)] text-white" : "bg-white text-[var(--kr-gov-text-secondary)] hover:bg-gray-100"}`} href="/en/admin/login/loginView">EN</a>
+              </div>
             </div>
           </div>
         </div>
       </header>
-      <main className="gov-main gov-main-centered" id="main-content">
-        <div className="gov-inner gov-entry-wrap">{children}</div>
+      <main className="flex-grow flex flex-col items-center justify-center py-12 px-4" id="main-content">
+        {children}
       </main>
     </div>
   );

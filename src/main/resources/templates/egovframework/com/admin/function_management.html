@@ -58,6 +58,12 @@
         <div class="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
              th:if="${featureMgmtError}" th:text="${featureMgmtError}"></div>
 
+        <div class="mb-4 rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+             th:if="${featureUnassignedCount > 0}">
+            <span class="font-bold" th:text="${featureUnassignedCount}">0</span>
+            개 기능이 아직 어떤 권한 그룹에도 연결되지 않았습니다. 자동 부여 대신 권한 그룹 화면에서 검토 후 수동 반영하세요.
+        </div>
+
         <section class="gov-card mb-8">
             <div class="flex items-center gap-2 border-b pb-4 mb-4">
                 <span class="material-symbols-outlined text-[var(--kr-gov-blue)]">extension</span>
@@ -121,6 +127,17 @@
                 <h3 class="text-lg font-bold">등록 기능 목록</h3>
             </div>
 
+            <div class="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 px-4 py-3">
+                    <p class="text-xs font-bold text-[var(--kr-gov-text-secondary)] uppercase">등록 기능 수</p>
+                    <p class="mt-1 text-2xl font-black" th:text="${featureTotalCount}">0</p>
+                </div>
+                <div class="rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-3">
+                    <p class="text-xs font-bold text-amber-700 uppercase">권한 검토 필요</p>
+                    <p class="mt-1 text-2xl font-black text-amber-900" th:text="${featureUnassignedCount}">0</p>
+                </div>
+            </div>
+
             <form method="get" action="/admin/system/feature-management" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                 <div>
                     <label class="gov-label" for="menuType">화면 구분</label>
@@ -159,6 +176,7 @@
                         <th class="px-4 py-3">기능명</th>
                         <th class="px-4 py-3">영문 기능명</th>
                         <th class="px-4 py-3">설명</th>
+                        <th class="px-4 py-3 text-center">권한 연계</th>
                         <th class="px-4 py-3 text-center">사용</th>
                         <th class="px-4 py-3 text-center">관리</th>
                     </tr>
@@ -174,6 +192,11 @@
                         <td class="px-4 py-3" th:text="${row.featureNm}">메뉴 등록</td>
                         <td class="px-4 py-3" th:text="${row.featureNmEn}">Create Menu</td>
                         <td class="px-4 py-3 min-w-[14rem] text-[var(--kr-gov-text-secondary)]" th:text="${row.featureDc}">설명</td>
+                        <td class="px-4 py-3 text-center whitespace-nowrap">
+                            <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold"
+                                  th:classappend="${row.unassignedToRole} ? ' bg-amber-100 text-amber-800' : ' bg-emerald-100 text-emerald-800'"
+                                  th:text="${row.unassignedToRole} ? '미할당' : ('Role ' + row.assignedRoleCount + '개')">미할당</span>
+                        </td>
                         <td class="px-4 py-3 text-center font-semibold" th:text="${row.useAt}">Y</td>
                         <td class="px-4 py-3 text-center whitespace-nowrap">
                             <form method="post" action="/admin/system/feature-management/delete" onsubmit="return confirm('삭제 후 다시 등록해야 합니다. 계속하시겠습니까?');">
@@ -187,7 +210,7 @@
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(featureRows)}">
-                        <td class="px-4 py-6 text-center text-gray-500" colspan="8">등록된 기능이 없습니다.</td>
+                        <td class="px-4 py-6 text-center text-gray-500" colspan="9">등록된 기능이 없습니다.</td>
                     </tr>
                     </tbody>
                 </table>

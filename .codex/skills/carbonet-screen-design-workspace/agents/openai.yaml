@@ -1,0 +1,4 @@
+interface:
+  display_name: "Carbonet Screen Design Workspace"
+  short_description: "Interpret the local 화면설계 workspace"
+  default_prompt: "Use $carbonet-screen-design-workspace to analyze `/home/imaneya/workspace/화면설계`, choose the canonical design sources, and extract the routes, workflows, or schema clues relevant to this Carbonet task."

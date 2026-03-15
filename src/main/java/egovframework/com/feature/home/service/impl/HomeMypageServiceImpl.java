@@ -63,6 +63,13 @@ public class HomeMypageServiceImpl implements HomeMypageService {
                 ? ""
                 : enterprise.getEntrprsMberStus().trim();
 
+        if ("X".equalsIgnoreCase(entrprsMberSttus)) {
+            model.addAttribute("userId", userId);
+            model.addAttribute("companyName", ObjectUtils.isEmpty(enterprise.getCmpnyNm()) ? "-" : enterprise.getCmpnyNm());
+            model.addAttribute("memberStatus", entrprsMberSttus.toUpperCase(Locale.ROOT));
+            return en ? "egovframework/com/home/mypage_blocked_en" : "egovframework/com/home/mypage_blocked";
+        }
+
         if ("A".equalsIgnoreCase(entrprsMberSttus) || "R".equalsIgnoreCase(entrprsMberSttus)) {
             model.addAttribute("submittedAt", formatSubmittedAt(enterprise));
             model.addAttribute("userId", userId);
@@ -109,6 +116,13 @@ public class HomeMypageServiceImpl implements HomeMypageService {
         String entrprsMberSttus = ObjectUtils.isEmpty(enterprise.getEntrprsMberStus())
                 ? ""
                 : enterprise.getEntrprsMberStus().trim();
+
+        if ("X".equalsIgnoreCase(entrprsMberSttus)) {
+            payload.put("pageType", "blocked");
+            payload.put("companyName", ObjectUtils.isEmpty(enterprise.getCmpnyNm()) ? "-" : enterprise.getCmpnyNm());
+            payload.put("memberStatus", entrprsMberSttus.toUpperCase(Locale.ROOT));
+            return payload;
+        }
 
         if ("A".equalsIgnoreCase(entrprsMberSttus) || "R".equalsIgnoreCase(entrprsMberSttus)) {
             payload.put("pageType", "pending");

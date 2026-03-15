@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
-import { fetchJoinCompanyStatusDetail, JoinCompanyStatusDetailPayload } from "../../lib/api";
-import { buildLocalizedPath, isEnglish, navigate } from "../../lib/runtime";
+import { useMemo, useState } from "react";
+import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { fetchJoinCompanyStatusDetail } from "../../lib/api/client";
+import { buildLocalizedPath, getSearchParam, isEnglish, navigate } from "../../lib/navigation/runtime";
 
 function getInitialQuery() {
   const params = new URLSearchParams(window.location.search);
@@ -18,8 +19,8 @@ const COPY = {
   ko: {
     skip: "본문 바로가기",
     govService: "대한민국 정부 공식 서비스",
-    logoTitle: "CCUS 탄소발자국 플랫폼",
-    logoSub: "Carbon Footprint Platform",
+    logoTitle: "CCUS 통합관리 포털",
+    logoSub: "Carbon Capture, Utilization and Storage",
     searchTitle: "회원사 가입 신청 현황 조회",
     searchDesc: "회원사 등록 신청 시 입력한 정보를 통해 현재 진행 상태를 조회하실 수 있습니다.",
     detailTitle: "회원사 가입 현황 상세",
@@ -76,8 +77,8 @@ const COPY = {
   en: {
     skip: "Skip to content",
     govService: "Official Government Service of the Republic of Korea",
-    logoTitle: "CCUS Carbon Footprint Platform",
-    logoSub: "Carbon Footprint Platform",
+    logoTitle: "CCUS Portal",
+    logoSub: "Carbon Capture, Utilization and Storage",
     searchTitle: "Check Membership Application Status",
     searchDesc: "You can check the current status of your membership application using the information entered during registration.",
     detailTitle: "Membership Application Details",
@@ -152,13 +153,26 @@ export function JoinCompanyStatusMigrationPage() {
   const copy = COPY[en ? "en" : "ko"];
   const initialQuery = useMemo(() => getInitialQuery(), []);
   const isDetailPage = window.location.pathname.includes("companyJoinStatusDetail");
+  const isGuidePage = window.location.pathname.includes("companyJoinStatusGuide");
   const [mode, setMode] = useState<"biz" | "app">(initialQuery.appNo ? "app" : "biz");
   const [bizNo, setBizNo] = useState(initialQuery.bizNo);
   const [appNo, setAppNo] = useState(initialQuery.appNo);
   const [repName, setRepName] = useState(initialQuery.repName);
   const [agreed, setAgreed] = useState(false);
-  const [error, setError] = useState("");
-  const [detail, setDetail] = useState<JoinCompanyStatusDetailPayload | null>(null);
+  const detailState = useAsyncValue(
+    () => fetchJoinCompanyStatusDetail({
+      bizNo: initialQuery.bizNo || undefined,
+      appNo: initialQuery.appNo || undefined,
+      repName: initialQuery.repName
+    }),
+    [initialQuery.bizNo, initialQuery.appNo, initialQuery.repName, isDetailPage],
+    {
+      enabled: isDetailPage && Boolean(initialQuery.repName && (initialQuery.bizNo || initialQuery.appNo)),
+      onError: () => undefined
+    }
+  );
+  const detail = detailState.value;
+  const error = detailState.error;
 
   const result = (detail?.result || {}) as DetailResult;
   const files = (detail?.insttFiles || []) as DetailFile[];
@@ -166,22 +180,9 @@ export function JoinCompanyStatusMigrationPage() {
   const lastUpdated = toStringValue(result.lastUpdtPnttm, copy.noData);
   const rejectReason = toStringValue(result.rjctRsn, "");
   const rejectAt = toStringValue(result.rjctPnttm, "");
-
-  useEffect(() => {
-    if (!isDetailPage) {
-      return;
-    }
-    if (!initialQuery.repName || (!initialQuery.bizNo && !initialQuery.appNo)) {
-      return;
-    }
-    void fetchJoinCompanyStatusDetail({
-      bizNo: initialQuery.bizNo || undefined,
-      appNo: initialQuery.appNo || undefined,
-      repName: initialQuery.repName
-    })
-      .then(setDetail)
-      .catch((nextError: Error) => setError(nextError.message || copy.searchError));
-  }, [copy.searchError, initialQuery.appNo, initialQuery.bizNo, initialQuery.repName, isDetailPage]);
+  const submitted = getSearchParam("submitted") === "1";
+  const submittedCompany = getSearchParam("insttNm");
+  const submittedDate = getSearchParam("regDate");
 
   function goHome() {
     navigate(buildLocalizedPath("/home", "/en/home"));
@@ -286,9 +287,23 @@ export function JoinCompanyStatusMigrationPage() {
           </div>
         ) : null}
 
+        {submitted ? (
+          <div className="mb-8 p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 text-sm flex items-start gap-2">
+            <span className="material-symbols-outlined text-[20px] shrink-0">check_circle</span>
+            <div className="flex-grow">
+              <p className="font-bold mb-1">{en ? "Reapplication submitted successfully." : "재신청이 정상적으로 접수되었습니다."}</p>
+              <p>
+                {submittedCompany || toStringValue(result.insttNm, copy.noData)}
+                {en ? " has been resubmitted." : " 재신청이 접수되었습니다."}
+                {submittedDate ? ` (${submittedDate})` : ""}
+              </p>
+            </div>
+          </div>
+        ) : null}
+
         {detail?.result ? (
           <>
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden mb-8">
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden mb-8" data-help-id="join-company-status-detail-summary">
               <div className="bg-gray-50 px-8 py-4 border-b border-gray-200 flex justify-between items-center">
                 <span className="text-sm font-bold text-[var(--kr-gov-blue)] bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
                   {copy.appNoBadge}: <span>{toStringValue(result.insttId, copy.noData)}</span>
@@ -315,7 +330,7 @@ export function JoinCompanyStatusMigrationPage() {
               </div>
             </div>
 
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-10 mb-8">
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-10 mb-8" data-help-id="join-company-status-detail-timeline">
               <div className="relative flex justify-between items-center max-w-3xl mx-auto mb-12">
                 <div className="relative z-10 flex flex-col items-center gap-3">
                   <div className="w-12 h-12 rounded-full border-2 flex items-center justify-center font-bold text-lg bg-emerald-500 text-white border-emerald-500">01</div>
@@ -358,7 +373,7 @@ export function JoinCompanyStatusMigrationPage() {
               ) : null}
             </div>
 
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-8 mb-12">
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-8 mb-12" data-help-id="join-company-status-detail-files">
               <h3 className="text-lg font-bold text-[var(--kr-gov-text-primary)] mb-6 flex items-center gap-2">
                 <span className="material-symbols-outlined text-[var(--kr-gov-text-secondary)]">description</span>
                 {copy.attachedFiles}
@@ -393,7 +408,7 @@ export function JoinCompanyStatusMigrationPage() {
           </>
         ) : null}
 
-        <div className="flex items-center justify-center gap-4">
+        <div className="flex items-center justify-center gap-4" data-help-id="join-company-status-detail-actions">
           <button
             className="px-8 h-14 border border-[var(--kr-gov-border-light)] text-[var(--kr-gov-text-primary)] font-bold rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
             onClick={() => window.history.back()}
@@ -405,7 +420,7 @@ export function JoinCompanyStatusMigrationPage() {
           {status === "R" ? (
             <button
               className="px-10 h-14 bg-[var(--kr-gov-blue)] text-white font-bold rounded-lg hover:bg-[var(--kr-gov-blue-hover)] transition-colors flex items-center gap-2 shadow-lg shadow-blue-100"
-              onClick={() => navigate(`${buildLocalizedPath("/join/companyReapply", "/join/companyReapply")}?bizNo=${encodeURIComponent(toStringValue(result.bizrno, ""))}&repName=${encodeURIComponent(toStringValue(result.reprsntNm, ""))}`)}
+              onClick={() => navigate(`${buildLocalizedPath("/join/companyReapply", "/join/en/companyReapply")}?bizNo=${encodeURIComponent(toStringValue(result.bizrno, ""))}&repName=${encodeURIComponent(toStringValue(result.reprsntNm, ""))}`)}
               type="button"
             >
               <span className="material-symbols-outlined">edit_note</span>
@@ -426,6 +441,122 @@ export function JoinCompanyStatusMigrationPage() {
     );
   }
 
+  function renderGuidePage() {
+    return (
+      <main className="flex-grow max-w-5xl mx-auto w-full py-12 px-4" data-help-id="join-company-status-guide" id="main-content">
+        <div className="mb-10 text-center">
+          <h2 className="text-3xl font-bold text-[var(--kr-gov-text-primary)] mb-3">
+            {en ? "Membership Application Status Guide" : "회원사 가입 현황 조회 안내"}
+          </h2>
+          <p className="text-lg text-[var(--kr-gov-text-secondary)]">
+            {en
+              ? "This guide explains how to review your submitted application and processing status."
+              : "신청하신 회원사 가입 내역 및 처리 상태를 확인하는 방법에 대한 안내입니다."}
+          </p>
+        </div>
+
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-8 mb-8">
+          <div className="max-w-none">
+            <h3 className="text-xl font-bold mb-4">{en ? "Status Inquiry Process" : "가입 현황 조회 프로세스"}</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              {[
+                {
+                  step: "01",
+                  title: en ? "Submitted" : "신청 완료",
+                  description: en ? "The registration request has been successfully received." : "등록 신청이 정상적으로 접수된 상태"
+                },
+                {
+                  step: "02",
+                  title: en ? "Review" : "운영자 검토",
+                  description: en ? "Submitted documents and organization information are reviewed." : "제출 서류 및 기관 정보 적정성 확인"
+                },
+                {
+                  step: "03",
+                  title: en ? "Approved / Rejected" : "승인/반려",
+                  description: en ? "The request is either approved or returned for revision." : "최종 가입 승인 또는 보완 요청"
+                }
+              ].map((item) => (
+                <div className="bg-blue-50 p-6 rounded-lg border border-blue-100 text-center" key={item.step}>
+                  <div className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto mb-4 font-bold text-lg">
+                    {item.step}
+                  </div>
+                  <h4 className="font-bold mb-2">{item.title}</h4>
+                  <p className="text-sm text-gray-600">{item.description}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-gray-50 p-6 rounded-lg border border-gray-200 mb-8">
+              <h4 className="font-bold mb-3 flex items-center gap-2">
+                <span className="material-symbols-outlined text-gray-600">info</span>
+                {en ? "Notes" : "참고 사항"}
+              </h4>
+              <ul className="list-disc list-inside space-y-2 text-sm text-gray-600">
+                <li>{en ? "Approval usually takes 3 to 5 business days." : "가입 승인까지는 업무일 기준 평균 3~5일이 소요됩니다."}</li>
+                <li>{en ? "If rejected, the reason is provided and you may reapply after supplementing the documents." : "반려 시 사유가 함께 안내되며, 서류 보완 후 재신청이 가능합니다."}</li>
+                <li>{en ? "After approval, the registered organization can use the formal services." : "승인 완료 후에는 등록하신 정보를 기반으로 정식 서비스를 이용하실 수 있습니다."}</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="bg-gray-100 px-4 py-2 text-xs font-bold text-gray-500 border-b border-gray-200">
+              {en ? "Example Screen Layout" : "화면 구성 예시"}
+            </div>
+            <div className="p-4 bg-white">
+              <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden mb-4">
+                <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 flex justify-between items-center">
+                  <span className="text-xs font-bold text-blue-600">
+                    {en ? "Application No." : "신청 번호"}: APP-20250814-001
+                  </span>
+                  <span className="text-[10px] text-gray-400">
+                    {en ? "Last Updated" : "최종 업데이트"}: 2025.08.15 14:30
+                  </span>
+                </div>
+                <div className="p-6 grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-gray-400">{en ? "Organization Name" : "신청 기관명"}</p>
+                    <p className="text-xs font-medium">{en ? "Eco Energy Solutions Co., Ltd." : "(주)에코에너지 솔루션즈"}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-gray-400">{en ? "Representative" : "대표자명"}</p>
+                    <p className="text-xs font-medium">{en ? "Kim Cheolsu" : "김철수"}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-between items-center max-w-md mx-auto py-4">
+                <div className="flex flex-col items-center gap-2 opacity-100">
+                  <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px]">✔</div>
+                  <span className="text-[10px] font-bold">{en ? "Submitted" : "신청 완료"}</span>
+                </div>
+                <div className="flex-grow h-px bg-emerald-500 mx-2"></div>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px]">02</div>
+                  <span className="text-[10px] font-bold text-blue-600">{en ? "Under Review" : "검토 중"}</span>
+                </div>
+                <div className="flex-grow h-px bg-gray-200 mx-2"></div>
+                <div className="flex flex-col items-center gap-2 opacity-30">
+                  <div className="w-8 h-8 rounded-full bg-white border border-gray-200 text-gray-400 flex items-center justify-center text-[10px]">03</div>
+                  <span className="text-[10px] font-bold text-gray-400">{en ? "Approved" : "승인 완료"}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-center">
+          <button
+            className="px-8 py-3 bg-gray-800 text-white font-bold rounded-lg hover:bg-gray-700 transition-colors"
+            onClick={() => window.close()}
+            type="button"
+          >
+            {en ? "Close Window" : "창 닫기"}
+          </button>
+        </div>
+      </main>
+    );
+  }
+
   function renderSearchPage() {
     return (
       <main className="flex-grow py-12 px-4" id="main-content">
@@ -439,7 +570,7 @@ export function JoinCompanyStatusMigrationPage() {
           ) : null}
         </div>
         <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          <div className="lg:col-span-12 bg-white border border-[var(--kr-gov-border-light)] rounded-lg shadow-sm overflow-hidden">
+          <div className="lg:col-span-12 bg-white border border-[var(--kr-gov-border-light)] rounded-lg shadow-sm overflow-hidden" data-help-id="join-company-status-search">
             <div className="flex h-14" role="tablist" aria-label={en ? "Search method" : "조회 방식 선택"}>
               <button
                 aria-selected={mode === "biz"}
@@ -597,7 +728,7 @@ export function JoinCompanyStatusMigrationPage() {
         </div>
       </header>
 
-      {isDetailPage ? renderDetailPage() : renderSearchPage()}
+      {isGuidePage ? renderGuidePage() : isDetailPage ? renderDetailPage() : renderSearchPage()}
     </div>
   );
 }

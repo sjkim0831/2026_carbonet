@@ -43,7 +43,7 @@ public interface AdminCodeManageService {
  
      void insertPageManagement(String codeId, String code, String codeNm, String codeDc, String menuUrl, String menuIcon, String useAt, String registerId) throws Exception;
  
-     void updatePageManagement(String code, String menuUrl, String menuIcon, String useAt, String updaterId) throws Exception;
+     void updatePageManagement(String code, String codeNm, String codeDc, String menuUrl, String menuIcon, String useAt, String updaterId) throws Exception;
  
      void deletePageManagement(String codeId, String code) throws Exception;
 }

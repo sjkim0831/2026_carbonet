@@ -3,7 +3,9 @@ package egovframework.com.feature.admin.service;
 import egovframework.com.feature.admin.model.vo.AdminRoleAssignmentVO;
 import egovframework.com.feature.admin.model.vo.AuthorInfoVO;
 import egovframework.com.feature.admin.model.vo.DepartmentRoleMappingVO;
+import egovframework.com.feature.admin.model.vo.FeatureAssignmentStatVO;
 import egovframework.com.feature.admin.model.vo.FeatureCatalogItemVO;
+import egovframework.com.feature.admin.model.vo.FeatureReferenceCountVO;
 import egovframework.com.feature.admin.model.vo.UserAuthorityTargetVO;
 import egovframework.com.feature.admin.model.vo.UserFeatureOverrideVO;
 
@@ -14,6 +16,8 @@ public interface AuthGroupManageService {
     List<AuthorInfoVO> selectAuthorList() throws Exception;
 
     List<FeatureCatalogItemVO> selectFeatureCatalog() throws Exception;
+
+    List<FeatureAssignmentStatVO> selectFeatureAssignmentStats() throws Exception;
 
     List<String> selectAuthorFeatureCodes(String authorCode) throws Exception;
 
@@ -32,6 +36,18 @@ public interface AuthGroupManageService {
     List<String> selectFeatureCodesByMenuCode(String menuCode) throws Exception;
 
     boolean hasAuthorFeaturePermission(String authorCode, String featureCode) throws Exception;
+
+    int countAuthorFeatureRelationsByFeatureCode(String featureCode) throws Exception;
+
+    int countUserFeatureOverridesByFeatureCode(String featureCode) throws Exception;
+
+    List<FeatureReferenceCountVO> selectAuthorFeatureRelationCounts(List<String> featureCodes) throws Exception;
+
+    List<FeatureReferenceCountVO> selectUserFeatureOverrideCounts(List<String> featureCodes) throws Exception;
+
+    void deleteAuthorFeatureRelationsByFeatureCode(String featureCode) throws Exception;
+
+    void deleteUserFeatureOverridesByFeatureCode(String featureCode) throws Exception;
 
     List<UserFeatureOverrideVO> selectUserFeatureOverrides(String scrtyDtrmnTrgetId) throws Exception;
 

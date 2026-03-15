@@ -197,9 +197,21 @@
            AND CODE = #{code}
      </update>
 
+    <update id="updatePageManagementNames" parameterType="egovframework.com.feature.admin.dto.request.AdminCodeCommandDTO">
+        UPDATE COMTCCMMNDETAILCODE
+        SET CODE_NM = #{codeNm},
+            CODE_DC = #{codeDc},
+            LAST_UPDT_PNTTM = CURRENT_DATETIME,
+            LAST_UPDUSR_ID = #{updaterId}
+        WHERE CODE_ID = (SELECT CODE_ID FROM COMTCCMMNDETAILCODE WHERE CODE = #{code} LIMIT 1)
+          AND CODE = #{code}
+    </update>
+
     <update id="updatePageManagementMenu" parameterType="egovframework.com.feature.admin.dto.request.AdminCodeCommandDTO">
         UPDATE COMTNMENUINFO
-        SET MENU_URL = #{menuUrl},
+        SET MENU_NM = #{codeNm},
+            MENU_NM_EN = #{codeDc},
+            MENU_URL = #{menuUrl},
             MENU_ICON = #{menuIcon},
             USE_AT = #{useAt},
             LAST_UPDT_PNTTM = CURRENT_DATETIME

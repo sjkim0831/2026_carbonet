@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
-import { fetchJoinSession, JoinSessionPayload, resetJoinSession, saveJoinStep2 } from "../../lib/api";
-import { buildLocalizedPath, isEnglish, navigate } from "../../lib/runtime";
+import { useState } from "react";
+import { resetJoinSession, saveJoinStep2 } from "../../lib/api/client";
+import { useJoinSession } from "../../app/hooks/useJoinSession";
+import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
 
 const TERMS_KO = {
   title: "회원가입",
@@ -51,23 +52,19 @@ const TERMS_EN = {
 export function JoinTermsMigrationPage() {
   const en = isEnglish();
   const copy = en ? TERMS_EN : TERMS_KO;
-  const [session, setSession] = useState<JoinSessionPayload | null>(null);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
   const [marketingAgree, setMarketingAgree] = useState(false);
-  const [error, setError] = useState("");
+  const [actionError, setActionError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  async function loadSession() {
-    const payload = await fetchJoinSession();
-    setSession(payload);
-    const joinVO = (payload.joinVO || {}) as Record<string, unknown>;
-    setMarketingAgree(String(joinVO.marketingYn || "N").toUpperCase() === "Y");
-  }
-
-  useEffect(() => {
-    void loadSession().catch((nextError: Error) => setError(nextError.message));
-  }, []);
+  const sessionState = useJoinSession({
+    onSuccess(payload) {
+      const joinVO = (payload.joinVO || {}) as Record<string, unknown>;
+      setMarketingAgree(String(joinVO.marketingYn || "N").toUpperCase() === "Y");
+    }
+  });
+  const session = sessionState.value;
+  const error = actionError || sessionState.error;
 
   async function handleHome() {
     await resetJoinSession();
@@ -83,22 +80,22 @@ export function JoinTermsMigrationPage() {
     try {
       await saveJoinStep2(checked ? "Y" : "N");
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : "Failed to save join step2");
+      setActionError(nextError instanceof Error ? nextError.message : "Failed to save join step2");
     }
   }
 
   async function handleNext() {
     if (!agreeTerms || !agreePrivacy) {
-      setError(en ? "Please agree to the required terms." : "필수 약관에 동의해 주세요.");
+      setActionError(en ? "Please agree to the required terms." : "필수 약관에 동의해 주세요.");
       return;
     }
     setSubmitting(true);
-    setError("");
+    setActionError("");
     try {
       await saveJoinStep2(marketingAgree ? "Y" : "N");
       navigate(buildLocalizedPath("/join/step3", "/join/en/step3"));
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : "Failed to save join step2");
+      setActionError(nextError instanceof Error ? nextError.message : "Failed to save join step2");
     } finally {
       setSubmitting(false);
     }
@@ -179,7 +176,7 @@ export function JoinTermsMigrationPage() {
             <h3 className="text-xl font-bold text-[var(--kr-gov-text-primary)] mb-8 border-l-4 border-[var(--kr-gov-blue)] pl-4">
               {copy.sectionTitle}
             </h3>
-            <div className="mb-10 bg-blue-50 border border-blue-100 p-5 rounded-[var(--kr-gov-radius)]">
+            <div className="mb-10 bg-blue-50 border border-blue-100 p-5 rounded-[var(--kr-gov-radius)]" data-help-id="join-step2-all-agree">
               <label className="flex items-center cursor-pointer">
                 <input
                   checked={allChecked}
@@ -199,7 +196,7 @@ export function JoinTermsMigrationPage() {
               event.preventDefault();
               void handleNext();
             }}>
-              <div className="space-y-4">
+              <div className="space-y-4" data-help-id="join-step2-required-terms">
                 <div className="flex justify-between items-end">
                   <label className="flex items-center">
                     <span className="px-2 py-0.5 bg-[#d32f2f] text-white text-[11px] font-bold rounded mr-2">{copy.required}</span>
@@ -215,7 +212,7 @@ export function JoinTermsMigrationPage() {
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-4" data-help-id="join-step2-required-terms">
                 <div className="flex justify-between items-end">
                   <label className="flex items-center">
                     <span className="px-2 py-0.5 bg-[#d32f2f] text-white text-[11px] font-bold rounded mr-2">{copy.required}</span>
@@ -231,7 +228,7 @@ export function JoinTermsMigrationPage() {
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-4" data-help-id="join-step2-marketing">
                 <div className="flex justify-between items-end">
                   <label className="flex items-center">
                     <span className="px-2 py-0.5 bg-gray-500 text-white text-[11px] font-bold rounded mr-2">{copy.optional}</span>

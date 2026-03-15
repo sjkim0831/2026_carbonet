@@ -1,6 +1,7 @@
-import { buildLocalizedPath, navigate } from "../../lib/runtime";
+import { buildLocalizedPath, navigate } from "../../lib/navigation/runtime";
+import { useMemo, useState } from "react";
 import { HOME_ENTRY_ASSETS, LOCALIZED_CONTENT, LocalizedHomeContent } from "./homeEntryContent";
-import { HomeMenuItem } from "./homeEntryTypes";
+import { HomeMenuItem, HomeQuickLink } from "./homeEntryTypes";
 
 function getDesktopNavClass(en: boolean) {
   return en
@@ -12,6 +13,16 @@ function getDesktopNavLinkClass(en: boolean) {
   return en
     ? "h-full flex items-center justify-center px-[6px] 2xl:px-2 text-[12px] 2xl:text-[13px] font-bold whitespace-normal text-center leading-[1.15] break-words max-w-[92px] 2xl:max-w-[104px] tracking-[-0.01em] text-[var(--kr-gov-text-primary)] border-b-4 border-transparent hover:text-[var(--kr-gov-blue)] hover:border-[var(--kr-gov-blue)] transition-all focus-visible"
     : "h-full flex items-center px-4 text-[17px] font-bold text-[var(--kr-gov-text-primary)] border-b-4 border-transparent hover:text-[var(--kr-gov-blue)] hover:border-[var(--kr-gov-blue)] transition-all focus-visible";
+}
+
+function resolveFooterHref(label: string) {
+  if (label === "사이트맵") {
+    return "/sitemap";
+  }
+  if (label === "Sitemap") {
+    return "/en/sitemap";
+  }
+  return "#";
 }
 
 export function HomeInlineStyles({ en }: { en: boolean }) {
@@ -141,7 +152,7 @@ export function HeaderMobileMenu({
           ) : (
             <>
               <a className="px-5 py-2.5 font-bold rounded-[var(--kr-gov-radius)] transition-colors focus-visible outline-none bg-[var(--kr-gov-blue)] text-white hover:bg-[var(--kr-gov-blue-hover)] inline-flex items-center justify-center flex-1" href={buildLocalizedPath("/signin/loginView", "/en/signin/loginView")}>{content.login}</a>
-              <a className="px-5 py-2.5 font-bold rounded-[var(--kr-gov-radius)] transition-colors focus-visible outline-none bg-white text-[var(--kr-gov-blue)] border border-[var(--kr-gov-blue)] hover:bg-[var(--kr-gov-bg-gray)] inline-flex items-center justify-center flex-1" href={buildLocalizedPath("/join/step1", "/en/join/step1")}>{content.signup}</a>
+              <a className="px-5 py-2.5 font-bold rounded-[var(--kr-gov-radius)] transition-colors focus-visible outline-none bg-white text-[var(--kr-gov-blue)] border border-[var(--kr-gov-blue)] hover:bg-[var(--kr-gov-bg-gray)] inline-flex items-center justify-center flex-1" href={buildLocalizedPath("/join/step1", "/join/en/step1")}>{content.signup}</a>
             </>
           )}
         </div>
@@ -175,7 +186,7 @@ export function HeaderMobileMenu({
 
 export function HeroSection({ content }: { content: LocalizedHomeContent }) {
   return (
-    <section className="relative h-[480px] bg-slate-900 overflow-hidden">
+    <section className="relative h-[480px] bg-slate-900 overflow-hidden" data-help-id="home-hero">
       <div className="absolute inset-0">
         <img alt="Carbon capture facility" className="w-full h-full object-cover opacity-60" src={HOME_ENTRY_ASSETS.HERO_IMAGE} />
         <div className="absolute inset-0 bg-gradient-to-r from-[var(--kr-gov-blue)]/90 via-[var(--kr-gov-blue)]/40 to-transparent" />
@@ -199,21 +210,90 @@ export function HeroSection({ content }: { content: LocalizedHomeContent }) {
   );
 }
 
-export function SearchSection({ content }: { content: LocalizedHomeContent }) {
+type SearchSectionProps = {
+  content: LocalizedHomeContent;
+  homeMenu: HomeMenuItem[];
+};
+
+type SearchCandidate = {
+  label: string;
+  href: string;
+  tone: "menu" | "service" | "tag";
+};
+
+function normalizeSearchValue(value: string) {
+  return value.trim().toLowerCase().replace(/#/g, "");
+}
+
+function buildSearchCandidates(content: LocalizedHomeContent, homeMenu: HomeMenuItem[]) {
+  const menuCandidates = homeMenu.flatMap((top) => {
+    const topItem = top.label && top.url ? [{ label: top.label, href: top.url, tone: "menu" as const }] : [];
+    const sectionItems = (top.sections || []).flatMap((section) =>
+      (section.items || [])
+        .filter((item) => item.label && item.url)
+        .map((item) => ({ label: String(item.label), href: String(item.url), tone: "menu" as const }))
+    );
+    return [...topItem, ...sectionItems];
+  });
+  const serviceCandidates = content.services.map((service) => ({
+    label: service.title,
+    href: service.href,
+    tone: "service" as const
+  }));
+  const tagCandidates = content.popularTags.map((tag) => ({
+    label: tag.query || tag.label,
+    href: tag.href,
+    tone: "tag" as const
+  }));
+  const deduped = new Map<string, SearchCandidate>();
+  [...menuCandidates, ...serviceCandidates, ...tagCandidates].forEach((candidate) => {
+    deduped.set(`${candidate.label}::${candidate.href}`, candidate);
+  });
+  return Array.from(deduped.values());
+}
+
+export function SearchSection({ content, homeMenu }: SearchSectionProps) {
+  const [query, setQuery] = useState("");
+  const candidates = useMemo(() => buildSearchCandidates(content, homeMenu), [content, homeMenu]);
+  const normalizedQuery = normalizeSearchValue(query);
+  const suggestions = normalizedQuery
+    ? candidates.filter((candidate) => normalizeSearchValue(candidate.label).includes(normalizedQuery)).slice(0, 6)
+    : [];
+
+  function executeSearch(nextQuery?: string, preferredLink?: HomeQuickLink) {
+    const effectiveQuery = normalizeSearchValue(nextQuery ?? query);
+    if (preferredLink?.href) {
+      navigate(preferredLink.href);
+      return;
+    }
+    const match = candidates.find((candidate) => normalizeSearchValue(candidate.label).includes(effectiveQuery));
+    navigate(match?.href || buildLocalizedPath("/home", "/en/home"));
+  }
+
   return (
-    <section className="bg-[var(--kr-gov-bg-gray)] py-14 border-b border-[var(--kr-gov-border-light)]">
+    <section className="bg-[var(--kr-gov-bg-gray)] py-14 border-b border-[var(--kr-gov-border-light)]" data-help-id="home-search">
       <div className="max-w-4xl mx-auto px-4 text-center">
         <h3 className="text-2xl font-bold mb-8 text-[var(--kr-gov-text-primary)]">{content.searchTitle}</h3>
         <div className="relative group max-w-3xl mx-auto">
-          <input className="w-full h-16 pl-8 pr-20 text-lg border-2 border-[var(--kr-gov-blue)] rounded-[var(--kr-gov-radius)] focus:ring-4 focus:ring-[var(--kr-gov-blue)]/10 focus:border-[var(--kr-gov-blue)] transition-all focus-visible shadow-sm placeholder-gray-500" placeholder={content.searchPlaceholder} type="text" aria-label={content.searchAria} autoComplete="off" />
-          <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 bg-[var(--kr-gov-blue)] text-white rounded-[var(--kr-gov-radius)] flex items-center justify-center hover:bg-[var(--kr-gov-blue-hover)] focus-visible">
+          <input className="w-full h-16 pl-8 pr-20 text-lg border-2 border-[var(--kr-gov-blue)] rounded-[var(--kr-gov-radius)] focus:ring-4 focus:ring-[var(--kr-gov-blue)]/10 focus:border-[var(--kr-gov-blue)] transition-all focus-visible shadow-sm placeholder-gray-500" placeholder={content.searchPlaceholder} type="text" aria-label={content.searchAria} autoComplete="off" value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { executeSearch(); } }} />
+          <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 bg-[var(--kr-gov-blue)] text-white rounded-[var(--kr-gov-radius)] flex items-center justify-center hover:bg-[var(--kr-gov-blue-hover)] focus-visible" onClick={() => executeSearch()}>
             <span className="material-symbols-outlined text-[28px]">search</span>
           </button>
+          {suggestions.length > 0 ? (
+            <div className="absolute left-0 right-0 mt-3 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white text-left shadow-xl overflow-hidden">
+              {suggestions.map((candidate) => (
+                <button key={`${candidate.label}-${candidate.href}`} type="button" className="flex w-full items-center justify-between gap-3 px-5 py-4 text-sm hover:bg-slate-50 focus-visible" onClick={() => navigate(candidate.href)}>
+                  <span className="font-bold text-[var(--kr-gov-text-primary)]">{candidate.label}</span>
+                  <span className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-blue)]">{candidate.tone}</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
         <div className="mt-6 flex flex-wrap justify-center items-center gap-3 text-sm">
           <span className="font-bold text-[var(--kr-gov-text-secondary)]">{content.popularSearches}</span>
           {content.popularTags.map((tag) => (
-            <a className="px-3 py-1 bg-white border border-[var(--kr-gov-border-light)] rounded-full hover:border-[var(--kr-gov-blue)] hover:text-[var(--kr-gov-blue)] transition-colors" href="#" key={tag}>{tag}</a>
+            <button type="button" className="px-3 py-1 bg-white border border-[var(--kr-gov-border-light)] rounded-full hover:border-[var(--kr-gov-blue)] hover:text-[var(--kr-gov-blue)] transition-colors" key={tag.label} onClick={() => { setQuery(tag.query || tag.label); executeSearch(tag.query || tag.label, tag); }}>{tag.label}</button>
           ))}
         </div>
       </div>
@@ -223,14 +303,14 @@ export function SearchSection({ content }: { content: LocalizedHomeContent }) {
 
 export function CoreServiceGrid({ content }: { content: LocalizedHomeContent }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      {content.services.map(([icon, title, description]) => (
-        <a className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white transition-all hover:shadow-lg focus-visible outline-none flex flex-col items-start h-full p-6 group h-full" href="#" key={title}>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" data-help-id="home-services">
+      {content.services.map((service) => (
+        <a className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white transition-all hover:shadow-lg focus-visible outline-none flex flex-col items-start h-full p-6 group h-full" href={service.href} key={service.title}>
           <div className="w-14 h-14 bg-[var(--kr-gov-bg-gray)] text-[var(--kr-gov-blue)] rounded-[var(--kr-gov-radius)] flex items-center justify-center mb-6 group-hover:bg-[var(--kr-gov-blue)] group-hover:text-white transition-colors border border-[var(--kr-gov-border-light)]">
-            <span className="material-symbols-outlined" style={{ fontVariationSettings: "'wght' 400" }}>{icon}</span>
+            <span className="material-symbols-outlined" style={{ fontVariationSettings: "'wght' 400" }}>{service.icon}</span>
           </div>
-          <h3 className="text-lg font-bold mb-2">{title}</h3>
-          <p className="text-[var(--kr-gov-text-secondary)] text-sm leading-relaxed">{description}</p>
+          <h3 className="text-lg font-bold mb-2">{service.title}</h3>
+          <p className="text-[var(--kr-gov-text-secondary)] text-sm leading-relaxed">{service.description}</p>
         </a>
       ))}
     </div>
@@ -239,7 +319,7 @@ export function CoreServiceGrid({ content }: { content: LocalizedHomeContent }) 
 
 export function SummarySection({ content }: { content: LocalizedHomeContent }) {
   return (
-    <section className="bg-gray-50 border-y border-[var(--kr-gov-border-light)] py-20">
+    <section className="bg-gray-50 border-y border-[var(--kr-gov-border-light)] py-20" data-help-id="home-summary">
       <div className="max-w-7xl mx-auto px-4 lg:px-8">
         <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-4">
           <div>
@@ -320,6 +400,7 @@ export function SummarySection({ content }: { content: LocalizedHomeContent }) {
 }
 
 export function HomeFooter({ content }: { content: LocalizedHomeContent }) {
+  const english = content.skipLink === LOCALIZED_CONTENT.en.skipLink;
   return (
     <footer className="bg-white border-t border-[var(--kr-gov-border-light)]">
       <div className="max-w-7xl mx-auto px-4 lg:px-8 pt-12 pb-8">
@@ -336,7 +417,18 @@ export function HomeFooter({ content }: { content: LocalizedHomeContent }) {
           </div>
           <div className="flex flex-wrap gap-x-8 gap-y-4 text-sm font-bold">
             {content.footerLinks.map((link, index) => (
-              <a className={index === 0 ? "text-[var(--kr-gov-blue)] hover:underline" : "text-[var(--kr-gov-text-primary)] hover:underline"} href="#" key={link}>{link}</a>
+              <a
+                className={index === 0 ? "text-[var(--kr-gov-blue)] hover:underline" : "text-[var(--kr-gov-text-primary)] hover:underline"}
+                href={resolveFooterHref(link)}
+                key={link}
+                onClick={(event) => {
+                  if (resolveFooterHref(link) === "#") {
+                    event.preventDefault();
+                  }
+                }}
+              >
+                {link}
+              </a>
             ))}
           </div>
         </div>
@@ -347,7 +439,7 @@ export function HomeFooter({ content }: { content: LocalizedHomeContent }) {
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2 px-3 py-1 bg-[var(--kr-gov-bg-gray)] rounded-[var(--kr-gov-radius)] text-xs font-bold text-[var(--kr-gov-text-secondary)]">
               <span>{content.lastModified}</span>
-              <time dateTime="2025-08-14">2025.08.14</time>
+              <time dateTime="2025-08-14">{english ? "Aug 14, 2025" : "2025.08.14"}</time>
             </div>
             <img alt={content.waAlt} className="h-10" src={HOME_ENTRY_ASSETS.WA_MARK} />
           </div>

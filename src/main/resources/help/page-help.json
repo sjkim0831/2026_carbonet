@@ -1,0 +1,44 @@
+{
+  "company-account": {
+    "title": "회원사 계정 도움말",
+    "summary": "기관 조회, 회원사 기본 정보 편집, 첨부 파일 확인을 안내합니다.",
+    "items": [
+      { "id": "lookup", "title": "기관 조회와 저장", "body": "기관 ID로 조회한 뒤 저장 권한이 있으면 회원사 정보를 갱신할 수 있습니다.", "anchorSelector": "[data-help-id=\"company-account-lookup\"]" },
+      { "id": "form", "title": "회원사 정보 입력", "body": "회원 유형, 기업명, 대표자, 사업자번호, 담당자 정보를 입력합니다.", "anchorSelector": "[data-help-id=\"company-account-form\"]" },
+      { "id": "files", "title": "첨부 파일", "body": "기존 첨부 문서를 확인하고 신규 파일을 추가할 수 있습니다.", "anchorSelector": "[data-help-id=\"company-account-files\"]" }
+    ]
+  },
+  "auth-group": {
+    "title": "권한 그룹 도움말",
+    "summary": "권한 분류별 조회, 권한 그룹 생성, 기능 매핑 저장을 안내합니다.",
+    "items": [
+      { "id": "filters", "title": "권한 그룹 조회", "body": "권한 분류, 회사, 권한 그룹을 선택해 조회 범위를 조정합니다.", "anchorSelector": "[data-help-id=\"auth-group-filters\"]" },
+      { "id": "create", "title": "권한 그룹 생성", "body": "새 권한 그룹 코드를 입력해 생성합니다.", "anchorSelector": "[data-help-id=\"auth-group-create\"]", "placement": "right", "iconName": "add_circle", "highlightStyle": "success" },
+      { "id": "features", "title": "기능 매핑", "body": "선택한 권한 그룹에 연결할 기능 코드를 저장합니다.", "anchorSelector": "[data-help-id=\"auth-group-features\"]", "placement": "left", "iconName": "tune", "highlightStyle": "focus", "ctaLabel": "권한 그룹 열기", "ctaUrl": "/admin/auth/group" }
+    ]
+  },
+  "join-auth": {
+    "title": "본인 확인 도움말",
+    "summary": "인증 수단을 선택해 다음 단계로 진행합니다.",
+    "items": [
+      { "id": "methods", "title": "인증 수단 선택", "body": "원패스, 공동인증서, 금융인증서, 간편인증, 이메일 인증 중 하나를 선택합니다.", "anchorSelector": "[data-help-id=\"join-step3-methods\"]" }
+    ]
+  },
+  "join-info": {
+    "title": "정보 입력 도움말",
+    "summary": "사용자 정보, 기관 정보, 증빙 문서를 입력하고 가입을 제출합니다.",
+    "items": [
+      { "id": "user", "title": "사용자 정보", "body": "아이디, 비밀번호, 연락처, 이메일을 입력하고 중복 확인을 진행합니다.", "anchorSelector": "[data-help-id=\"join-step4-user\"]" },
+      { "id": "org", "title": "기관 정보", "body": "기관 검색, 사업자번호, 부서명, 주소를 입력합니다.", "anchorSelector": "[data-help-id=\"join-step4-org\"]" },
+      { "id": "files", "title": "증빙 문서", "body": "지원 파일 형식과 크기를 확인한 뒤 증빙 문서를 업로드합니다.", "anchorSelector": "[data-help-id=\"join-step4-files\"]" }
+    ]
+  },
+  "join-complete": {
+    "title": "가입 완료 도움말",
+    "summary": "신청 완료 후 확인 가능한 정보와 다음 행동을 안내합니다.",
+    "items": [
+      { "id": "summary", "title": "신청 완료 정보", "body": "이름, 아이디, 소속 기관과 승인 안내를 확인합니다.", "anchorSelector": "[data-help-id=\"join-step5-summary\"]" },
+      { "id": "actions", "title": "다음 이동", "body": "홈으로 돌아가거나 이후 승인 안내를 기다립니다.", "anchorSelector": "[data-help-id=\"join-step5-actions\"]" }
+    ]
+  }
+}

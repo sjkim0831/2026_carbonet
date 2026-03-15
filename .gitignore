@@ -2,7 +2,7 @@
 /target/
 
 # Runtime logs
-/logs/
+/var/logs/
 /${sys:LOG_PATH}/
 
 # Local SQL work files
@@ -18,7 +18,7 @@ startup.log
 # Local mounts / temp
 /wsl.localhost/
 /wsl$/
-/file/
+/var/file/
 /sql/
 
 # Frontend local artifacts

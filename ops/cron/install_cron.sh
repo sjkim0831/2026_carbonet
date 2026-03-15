@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_ROOT="/opt/projects/carbonet"
-CRON_FILE="${PROJECT_ROOT}/ops/cron/carbonet.crontab"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../project-paths.sh"
+
+CRON_FILE="${CRON_ROOT}/carbonet.crontab"
 BEGIN_MARKER="# BEGIN CARBONET MANAGED CRON"
 END_MARKER="# END CARBONET MANAGED CRON"
 TMP_FILE="$(mktemp)"
 
-mkdir -p "${PROJECT_ROOT}/logs/cron"
+mkdir -p "${LOG_ROOT}/cron"
 
 CURRENT_CRONTAB="$(mktemp)"
 if crontab -l > "${CURRENT_CRONTAB}" 2>/dev/null; then

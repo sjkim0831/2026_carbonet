@@ -17,4 +17,9 @@ public class PageManagementVO {
     private String domainCode;
     private String domainName;
     private String domainNameEn;
+    private int defaultViewRoleRefCount;
+    private int defaultViewUserOverrideCount;
+    private boolean catalogManaged;
+    private boolean catalogRegistered;
+    private String managementNote;
 }

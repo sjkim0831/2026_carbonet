@@ -13,11 +13,14 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
+import java.util.HashMap;
 import java.util.Map;
 
 @Controller("authPageController")
@@ -151,11 +154,7 @@ public class AuthPageController {
         if (shouldRedirectToCanonicalPublicSignin(request, resolvedLanguage)) {
             return redirectToCanonicalSignin(request, resolvedLanguage, "/findPassword/result");
         }
-        model.addAttribute("language", resolvedLanguage);
-        if ("en".equals(resolvedLanguage)) {
-            return "egovframework/com/auth/find_password_result_en";
-        }
-        return "egovframework/com/auth/find_password_result";
+        return reactMigrationViewSupport.render(model, "signin-find-password-result", "en".equals(resolvedLanguage), false);
     }
 
     @GetMapping("/findId/result")
@@ -168,11 +167,20 @@ public class AuthPageController {
         if (shouldRedirectToCanonicalPublicSignin(request, resolvedLanguage)) {
             return redirectToCanonicalSignin(request, resolvedLanguage, "/findId/result");
         }
-        model.addAttribute("language", resolvedLanguage);
+        return reactMigrationViewSupport.render(model, "signin-find-id-result", "en".equals(resolvedLanguage), false);
+    }
+
+    @GetMapping("/api/findId/result")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> findIdResultApi(
+            @RequestParam(value = "language", required = false) String language,
+            @RequestParam(value = "applcntNm", required = false) String applcntNm,
+            @RequestParam(value = "email", required = false) String email,
+            @RequestParam(value = "tab", required = false, defaultValue = "domestic") String tab,
+            HttpServletRequest request) {
+        String resolvedLanguage = resolveLanguage(language, request);
         String normalizedTab = "overseas".equalsIgnoreCase(tab) ? "overseas" : "domestic";
-        model.addAttribute("tab", normalizedTab);
-        model.addAttribute("applcntNm", applcntNm);
-        model.addAttribute("email", email);
+
         String foundId = null;
         if (!ObjectUtils.isEmpty(applcntNm) && !ObjectUtils.isEmpty(email)) {
             EntrprsManageVO searchVO = new EntrprsManageVO();
@@ -184,19 +192,18 @@ public class AuthPageController {
                 foundId = null;
             }
         }
-        model.addAttribute("maskedId", maskUserId(foundId));
-        model.addAttribute("found", !ObjectUtils.isEmpty(foundId));
 
         String languagePrefix = "en".equals(resolvedLanguage) ? "/en/signin" : "/signin";
         String passwordResetUrl = "overseas".equals(normalizedTab)
                 ? languagePrefix + "/findPassword/overseas"
                 : languagePrefix + "/findPassword";
-        model.addAttribute("passwordResetUrl", passwordResetUrl);
 
-        if ("en".equals(resolvedLanguage)) {
-            return "egovframework/com/auth/find_id_result_en";
-        }
-        return "egovframework/com/auth/find_id_result";
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("tab", normalizedTab);
+        payload.put("found", !ObjectUtils.isEmpty(foundId));
+        payload.put("maskedId", maskUserId(foundId));
+        payload.put("passwordResetUrl", passwordResetUrl);
+        return ResponseEntity.ok(payload);
     }
 
     private String resolveLanguage(String language, HttpServletRequest request) {
@@ -296,9 +303,16 @@ public class AuthPageController {
 
     @RequestMapping(value = "/loginForbidden", method = { RequestMethod.GET, RequestMethod.POST })
     public String loginForbidden(
-            @RequestParam(value = "pathCode", required = false, defaultValue = "1") String pathCode, Model model) {
+            @RequestParam(value = "language", required = false) String language,
+            @RequestParam(value = "pathCode", required = false, defaultValue = "1") String pathCode,
+            Model model,
+            HttpServletRequest request) {
+        String resolvedLanguage = resolveLanguage(language, request);
+        if (shouldRedirectToCanonicalPublicSignin(request, resolvedLanguage)) {
+            return redirectToCanonicalSignin(request, resolvedLanguage, "/loginForbidden");
+        }
         model.addAttribute("pathCode", pathCode);
-        return "egovframework/com/auth/forbidden";
+        return reactMigrationViewSupport.render(model, "signin-forbidden", "en".equals(resolvedLanguage), false);
     }
 
 }

@@ -18,6 +18,11 @@ public class MenuFeatureManageMapper extends BaseMapperSupport {
         return selectList("MenuFeatureManageMapper.selectMenuFeatureList", params);
     }
 
+    public int countFeaturesByMenuCode(AdminMenuFeatureCommandDTO params) {
+        Integer count = selectOne("MenuFeatureManageMapper.countFeaturesByMenuCode", params);
+        return count == null ? 0 : count;
+    }
+
     public int countFeatureCode(AdminMenuFeatureCommandDTO params) {
         Integer count = selectOne("MenuFeatureManageMapper.countFeatureCode", params);
         return count == null ? 0 : count;
@@ -25,6 +30,10 @@ public class MenuFeatureManageMapper extends BaseMapperSupport {
 
     public void insertMenuFeature(AdminMenuFeatureCommandDTO params) {
         insert("MenuFeatureManageMapper.insertMenuFeature", params);
+    }
+
+    public void updateMenuFeatureMetadata(AdminMenuFeatureCommandDTO params) {
+        update("MenuFeatureManageMapper.updateMenuFeatureMetadata", params);
     }
 
     public void deleteMenuFeature(String featureCode) {

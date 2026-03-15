@@ -19,6 +19,9 @@
             <a id="admin-footer-privacy" class="hover:underline" href="#"
                 th:text="${isEn} ? 'Privacy Policy' : '개인정보처리방침'">개인정보처리방침</a>
             <span class="text-gray-300">|</span>
+            <a class="hover:underline" th:href="${isEn} ? '/en/admin/content/sitemap' : '/admin/content/sitemap'"
+                th:text="${isEn} ? 'Sitemap' : '사이트맵'">사이트맵</a>
+            <span class="text-gray-300">|</span>
             <div
                 class="bg-[var(--kr-gov-bg-gray)] px-3 py-1 rounded-[5px] text-[11px] font-bold border border-gray-200">
                 <span id="admin-footer-updated" th:text="${isEn} ? 'Last Updated: 2025.08.14 14:45' : '최종 업데이트: 2025.08.14 14:45'">Last Updated: 2025.08.14 14:45</span>

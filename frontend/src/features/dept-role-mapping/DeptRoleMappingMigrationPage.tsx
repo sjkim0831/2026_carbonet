@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { CanView } from "../../components/CanView";
-import { PermissionButton } from "../../components/CanUse";
+import { CanView } from "../../components/access/CanView";
+import { PermissionButton } from "../../components/access/CanUse";
 import {
   DeptRolePagePayload,
   FrontendSession,
@@ -8,7 +8,9 @@ import {
   fetchFrontendSession,
   saveDeptRoleMapping,
   saveDeptRoleMember
-} from "../../lib/api";
+} from "../../lib/api/client";
+import { buildLocalizedPath } from "../../lib/navigation/runtime";
+import { AdminPageShell } from "../admin-entry/AdminPageShell";
 
 export function DeptRoleMappingMigrationPage() {
   const [session, setSession] = useState<FrontendSession | null>(null);
@@ -74,76 +76,93 @@ export function DeptRoleMappingMigrationPage() {
   }
 
   return (
-    <main className="app-shell">
-      <section className="hero-card">
-        <p className="eyebrow">Carbonet React Migration</p>
-        <h1>부서 권한 맵핑 React 전환</h1>
-        <p className="lede">
-          회사 선택, 부서 기본 Role 저장, 회원 권한 저장을 모두 권한 기반 노출/사용 제어로 전환합니다.
-        </p>
-      </section>
-
-      {error ? <section className="panel"><p className="error-text">{error}</p></section> : null}
-      {message ? <section className="panel"><p className="success-text">{message}</p></section> : null}
+    <AdminPageShell
+      actions={(
+        <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-blue-50 text-[var(--kr-gov-blue)]">
+          {page?.mappingCount ?? 0}개 부서
+        </span>
+      )}
+      breadcrumbs={[
+        { label: "홈", href: buildLocalizedPath("/admin/", "/en/admin/") },
+        { label: "회원/권한" },
+        { label: "부서 권한 맵핑" }
+      ]}
+      subtitle="최상단에서 회사를 선택하고, 해당 회사 회원 목록과 부서별 기본 Role 맵핑을 함께 확인하는 화면입니다."
+      title="부서 권한 맵핑"
+    >
+      {(page?.deptRoleError || error) ? (
+        <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {page?.deptRoleError || error}
+        </section>
+      ) : null}
+      {(message || page?.deptRoleMessage) ? (
+        <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          {message || page?.deptRoleMessage}
+        </section>
+      ) : null}
 
       <CanView
         allowed={canViewCompanySelector}
-        fallback={<section className="panel"><p className="state-text">부서 권한 화면을 불러올 수 없습니다.</p></section>}
+        fallback={
+          <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm">
+            <p className="text-sm text-[var(--kr-gov-text-secondary)]">부서 권한 화면을 불러올 수 없습니다.</p>
+          </section>
+        }
       >
-        <section className="panel">
-          <div className="toolbar">
-            <div>
-              <p className="caption">Current User</p>
-              <h2>{page?.currentUserId || "-"}</h2>
-            </div>
-            <div className="toolbar-actions">
-              <label className="field">
-                <span>회사 선택</span>
-                <select
-                  disabled={!canUseAllCompanies && !canUseOwnCompany}
-                  value={insttId}
-                  onChange={(e) => setInsttId(e.target.value)}
-                >
-                  {(page?.departmentCompanyOptions || []).map((option) => (
-                    <option key={option.insttId} value={option.insttId}>
-                      {option.cmpnyNm}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
+        <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm mb-6" data-help-id="dept-role-company">
+          <div className="flex items-center gap-2 border-b pb-4 mb-4">
+            <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">account_tree</span>
+            <h3 className="text-lg font-bold">선택 회사의 부서 권한 목록</h3>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="text-sm font-bold text-[var(--kr-gov-text-secondary)]">회사명</label>
+            <select
+              className="max-w-md w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
+              disabled={!canUseAllCompanies && !canUseOwnCompany}
+              value={insttId}
+              onChange={(e) => setInsttId(e.target.value)}
+            >
+              {(page?.departmentCompanyOptions || []).map((option) => (
+                <option key={option.insttId} value={option.insttId}>
+                  {option.cmpnyNm}
+                </option>
+              ))}
+            </select>
           </div>
         </section>
 
-        <section className="panel">
-          <div className="section-head">
-            <div>
-              <p className="caption">Department Roles</p>
-              <h2>선택 회사의 부서 권한 목록</h2>
-            </div>
-            <div className="stat-chip">{page?.mappingCount ?? 0}개 부서</div>
+        <section className="mb-6 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] overflow-hidden" data-help-id="dept-role-departments">
+          <div className="flex items-center justify-between gap-3 bg-gray-50 border-b border-[var(--kr-gov-border-light)] px-4 py-4">
+            <h4 className="font-black">선택 회사 부서 기본 권한</h4>
+            <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-white text-[var(--kr-gov-text-secondary)]">
+              {page?.mappingCount ?? 0}개 부서
+            </span>
           </div>
-          <div className="table-wrap">
-            <table className="data-table">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left border-collapse">
               <thead>
-                <tr>
-                  <th>회사</th>
-                  <th>부서명</th>
-                  <th>권장 Role</th>
-                  <th>권한 수정</th>
+                <tr className="bg-gray-50 border-y border-[var(--kr-gov-border-light)] text-[13px] font-bold text-[var(--kr-gov-text-secondary)]">
+                  <th className="px-4 py-3">회사</th>
+                  <th className="px-4 py-3">부서명</th>
+                  <th className="px-4 py-3">권장 Role</th>
+                  <th className="px-4 py-3">권한 수정</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-100">
                 {(page?.departmentMappings || []).map((row) => {
                   const key = `${row.insttId}:${row.deptNm}`;
                   return (
                     <tr key={key}>
-                      <td>{row.cmpnyNm}</td>
-                      <td>{row.deptNm}</td>
-                      <td>{row.recommendedRoleName || row.authorNm || "-"}</td>
-                      <td>
-                        <div className="inline-form">
+                      <td className="px-4 py-3">{row.cmpnyNm}</td>
+                      <td className="px-4 py-3">{row.deptNm}</td>
+                      <td className="px-4 py-3">
+                        <div className="font-semibold">{row.recommendedRoleName || row.authorNm || "-"}</div>
+                        <div className="text-xs text-[var(--kr-gov-text-secondary)]">{row.authorCode || "-"}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
                           <select
+                            className="min-w-[16rem] border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
                             disabled={!canUseAllCompanies && !canUseOwnCompany}
                             value={deptDrafts[key] || ""}
                             onChange={(e) =>
@@ -158,7 +177,7 @@ export function DeptRoleMappingMigrationPage() {
                           </select>
                           <PermissionButton
                             allowed={canUseAllCompanies || canUseOwnCompany}
-                            className="primary-button"
+                            className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-[var(--kr-gov-blue)] text-white"
                             onClick={() => handleDeptSave(row)}
                             reason="전체 회사 또는 자기 회사 관리 권한이 있어야 부서 기본 Role을 저장할 수 있습니다."
                             type="button"
@@ -175,38 +194,38 @@ export function DeptRoleMappingMigrationPage() {
           </div>
         </section>
 
-        <section className="panel">
-          <div className="section-head">
-            <div>
-              <p className="caption">Company Members</p>
-              <h2>선택 회사 회원 권한 목록</h2>
-            </div>
-            <div className="stat-chip">{page?.companyMemberCount ?? 0}명</div>
+        <section className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] overflow-hidden" data-help-id="dept-role-members">
+          <div className="flex items-center justify-between gap-3 bg-gray-50 border-b border-[var(--kr-gov-border-light)] px-4 py-4">
+            <h4 className="font-black">선택 회사 회원 권한 목록</h4>
+            <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-white text-[var(--kr-gov-text-secondary)]">
+              {page?.companyMemberCount ?? 0}명
+            </span>
           </div>
-          <div className="table-wrap">
-            <table className="data-table">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left border-collapse">
               <thead>
-                <tr>
-                  <th>회원 ID</th>
-                  <th>이름</th>
-                  <th>부서명</th>
-                  <th>현재 권한</th>
-                  <th>권한 수정</th>
+                <tr className="bg-gray-50 border-y border-[var(--kr-gov-border-light)] text-[13px] font-bold text-[var(--kr-gov-text-secondary)]">
+                  <th className="px-4 py-3">회원 ID</th>
+                  <th className="px-4 py-3">이름</th>
+                  <th className="px-4 py-3">부서명</th>
+                  <th className="px-4 py-3">현재 권한</th>
+                  <th className="px-4 py-3">권한 수정</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-100">
                 {(page?.companyMembers || []).map((row) => (
                   <tr key={row.userId}>
-                    <td>{row.userId}</td>
-                    <td>{row.userNm}</td>
-                    <td>{row.deptNm || "-"}</td>
-                    <td>
-                      <strong>{row.authorNm || "권한 미지정"}</strong>
-                      <div className="caption">{row.authorCode || "-"}</div>
+                    <td className="px-4 py-3 font-semibold">{row.userId}</td>
+                    <td className="px-4 py-3">{row.userNm}</td>
+                    <td className="px-4 py-3">{row.deptNm || "미지정"}</td>
+                    <td className="px-4 py-3">
+                      <div className="font-semibold">{row.authorNm || "권한 미지정"}</div>
+                      <div className="text-xs text-[var(--kr-gov-text-secondary)]">{row.authorCode || "-"}</div>
                     </td>
-                    <td>
-                      <div className="inline-form">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
                         <select
+                          className="min-w-[16rem] border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
                           disabled={!canUseAllCompanies && !canUseOwnCompany}
                           value={memberDrafts[row.userId] || ""}
                           onChange={(e) =>
@@ -221,7 +240,7 @@ export function DeptRoleMappingMigrationPage() {
                         </select>
                         <PermissionButton
                           allowed={canUseAllCompanies || canUseOwnCompany}
-                          className="primary-button"
+                          className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-[var(--kr-gov-blue)] text-white"
                           onClick={() => handleMemberSave(row.userId)}
                           reason="전체 회사 또는 자기 회사 관리 권한이 있어야 회원 권한을 저장할 수 있습니다."
                           type="button"
@@ -237,6 +256,6 @@ export function DeptRoleMappingMigrationPage() {
           </div>
         </section>
       </CanView>
-    </main>
+    </AdminPageShell>
   );
 }

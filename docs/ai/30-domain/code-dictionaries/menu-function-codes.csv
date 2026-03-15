@@ -1,0 +1,2 @@
+menu_code,menu_name_ko,menu_name_en,feature_code,feature_name_ko,feature_name_en,actor,route,notes
+HMENU0000,예시메뉴,Example Menu,FUNC0000,예시기능,Example Function,USER,/example,Replace example row

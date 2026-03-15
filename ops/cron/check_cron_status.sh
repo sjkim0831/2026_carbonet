@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_ROOT="/opt/projects/carbonet"
-LOG_DIR="${PROJECT_ROOT}/logs/cron"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../project-paths.sh"
+
+LOG_DIR="${LOG_ROOT}/cron"
 
 echo "[cron.service]"
 if systemctl is-active cron >/dev/null 2>&1; then

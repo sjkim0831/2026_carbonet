@@ -32,6 +32,7 @@
         .gov-btn-outline { @apply bg-white border border-[var(--kr-gov-border-light)] text-[var(--kr-gov-text-secondary)] hover:bg-gray-50; }
         .gov-btn-danger { @apply bg-red-600 text-white hover:bg-red-700; }
         .gov-table-header { @apply bg-gray-50 border-y border-[var(--kr-gov-border-light)] text-[13px] font-bold text-[var(--kr-gov-text-secondary)]; }
+        .gov-chip { @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-bold; }
         .icon-combo { @apply relative; }
         .icon-combo-trigger { @apply flex w-full items-center justify-between rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-3 py-2 text-sm; }
         .icon-combo-panel { @apply absolute left-0 top-[calc(100%+8px)] z-20 hidden w-full rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-3 shadow-lg; }
@@ -40,6 +41,8 @@
         .icon-grid-item { @apply flex w-full min-w-0 flex-col items-center justify-center gap-1 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-2 py-3 text-xs text-[var(--kr-gov-text-secondary)] cursor-pointer transition-colors hover:border-[var(--kr-gov-blue)] hover:bg-blue-50; }
         .icon-grid-item.active { @apply border-[var(--kr-gov-blue)] bg-blue-50 text-[var(--kr-gov-blue)] font-bold; }
         .icon-search { @apply w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm focus:ring-2 focus:ring-[var(--kr-gov-focus)] focus:border-[var(--kr-gov-focus)] outline-none mb-3; }
+        .page-edit-row { display: none; }
+        .page-edit-row.open { display: table-row; }
     </style>
 </head>
 
@@ -68,7 +71,19 @@
         </div>
 
         <div class="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-             th:if="${pageMgmtError}" th:text="${pageMgmtError}"></div>
+             th:if="${pageMgmtError}">
+            <p th:text="${pageMgmtError}" class="leading-6"></p>
+            <div class="mt-3 flex flex-wrap gap-2" th:if="${pageMgmtBlockedFeatureLinks != null and !#lists.isEmpty(pageMgmtBlockedFeatureLinks)}">
+                <a th:each="item : ${pageMgmtBlockedFeatureLinks}"
+                   th:href="${item.href}"
+                   class="inline-flex items-center gap-1 rounded-full border border-red-300 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100">
+                    <span class="material-symbols-outlined text-[16px]">link</span>
+                    <span th:text="${item.featureCode}">A0060105_UPDATE</span>
+                </a>
+            </div>
+        </div>
+        <div class="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+             th:if="${pageMgmtMessage}" th:text="${pageMgmtMessage}"></div>
 
         <section class="gov-card mb-8">
             <div class="flex items-center gap-2 border-b pb-4 mb-4">
@@ -133,7 +148,10 @@
                     </select>
                 </div>
                 <div class="xl:col-span-4 rounded-[var(--kr-gov-radius)] border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-[var(--kr-gov-text-secondary)]">
-                    도메인을 선택하면 페이지 코드 입력칸에 해당 도메인 공통코드 앞자리를 미리 채웁니다. 페이지 코드는 8자리 상세 코드 체계를 따릅니다.
+                    도메인을 선택하면 페이지 코드 입력칸에 해당 도메인 공통코드 앞자리를 미리 채웁니다. 페이지 코드는 8자리 상세 코드 체계를 따르며 사용자 화면은 `/home`, `/join`, `/signin`, `/mypage`, `/sitemap` 경로도 등록할 수 있습니다.
+                </div>
+                <div class="xl:col-span-2 rounded-[var(--kr-gov-radius)] border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                    페이지 등록 시 <span class="font-bold">페이지코드_VIEW</span> 기본 기능을 자동 생성합니다. 권한 부여는 권한 그룹 화면에서 수동으로 검토하세요.
                 </div>
                 <div class="xl:col-span-6 flex justify-end gap-2">
                     <button class="gov-btn gov-btn-primary" type="submit">페이지 코드 추가</button>
@@ -184,12 +202,26 @@
                     </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                    <tr th:each="row : ${pageRows}">
+                    <th:block th:each="row : ${pageRows}">
+                    <tr>
                         <td class="px-4 py-3 whitespace-nowrap" th:text="${row.domainName}">시스템</td>
-                        <td class="px-4 py-3 font-bold whitespace-nowrap" th:text="${row.code}">A0060105</td>
+                        <td class="px-4 py-3 font-bold whitespace-nowrap">
+                            <div class="flex flex-col gap-1">
+                                <span th:text="${row.code}">A0060105</span>
+                                <span th:if="${row.catalogManaged}" class="gov-chip bg-slate-100 text-slate-700"
+                                      th:text="${row.catalogRegistered} ? '카탈로그+등록' : '카탈로그 미등록'">카탈로그 미등록</span>
+                            </div>
+                        </td>
                         <td class="px-4 py-3 min-w-[12rem]" th:text="${row.codeNm}">페이지 관리</td>
                         <td class="px-4 py-3 min-w-[12rem]" th:text="${row.codeDc}">Page Management</td>
-                        <td class="px-4 py-3 min-w-[16rem] break-all text-[var(--kr-gov-text-secondary)]" th:text="${row.menuUrl}">/admin/system/page-management</td>
+                        <td class="px-4 py-3 min-w-[16rem] break-all text-[var(--kr-gov-text-secondary)]">
+                            <div class="flex flex-col gap-1">
+                                <span th:text="${row.menuUrl}">/admin/system/page-management</span>
+                                <span th:if="${row.managementNote != null and !#strings.isEmpty(row.managementNote)}"
+                                      class="text-xs text-[var(--kr-gov-text-secondary)]"
+                                      th:text="${row.managementNote}">카탈로그 기준 공개 플로우</span>
+                            </div>
+                        </td>
                         <td class="px-4 py-3 whitespace-nowrap">
                             <span class="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-[var(--kr-gov-text-secondary)]">
                                 <span class="material-symbols-outlined text-[18px]" th:text="${row.menuIcon}">web</span>
@@ -198,16 +230,86 @@
                         </td>
                         <td class="px-4 py-3 text-center font-semibold" th:text="${row.useAt}">Y</td>
                         <td class="px-4 py-3 text-center whitespace-nowrap">
-                            <form method="post" action="/admin/system/page-management/delete" onsubmit="return confirm('삭제 후 다시 생성해야 합니다. 계속하시겠습니까?');">
+                            <div class="flex flex-col items-center gap-2" th:if="${!row.catalogManaged or row.catalogRegistered}">
+                                <button class="gov-btn gov-btn-outline js-page-edit-toggle w-full" type="button" th:attr="data-code=${row.code}">수정</button>
+                                <form method="post" action="/admin/system/page-management/delete"
+                                  th:attr="onsubmit=|return confirm('삭제 후 다시 생성해야 합니다. 기본 VIEW 정리 영향: 권한그룹 매핑 ${row.defaultViewRoleRefCount}건, 사용자 예외권한 ${row.defaultViewUserOverrideCount}건. 계속하시겠습니까?');|">
+                                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                    <input type="hidden" name="code" th:value="${row.code}" />
+                                    <input type="hidden" name="menuType" th:value="${menuType}" />
+                                    <input type="hidden" name="searchKeyword" th:value="${searchKeyword}" />
+                                    <input type="hidden" name="searchUrl" th:value="${searchUrl}" />
+                                    <button class="gov-btn gov-btn-danger w-full" type="submit">삭제</button>
+                                </form>
+                                <div class="flex flex-wrap justify-center gap-1.5">
+                                    <span class="gov-chip bg-blue-50 text-[var(--kr-gov-blue)]" th:text="|Role ${row.defaultViewRoleRefCount}|">Role 0</span>
+                                    <span class="gov-chip bg-amber-50 text-amber-800" th:text="|User ${row.defaultViewUserOverrideCount}|">User 0</span>
+                                </div>
+                            </div>
+                            <div class="text-xs leading-5 text-[var(--kr-gov-text-secondary)]" th:if="${row.catalogManaged and !row.catalogRegistered}">
+                                사이트맵/공개 플로우 카탈로그에 포함된 화면입니다. 실제 권한·기능 관리를 하려면 8자리 페이지 코드로 별도 등록하세요.
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="bg-gray-50 page-edit-row" th:if="${!row.catalogManaged or row.catalogRegistered}" th:attr="data-code=${row.code}">
+                        <td class="px-4 py-4" colspan="8">
+                            <form method="post" action="/admin/system/page-management/update" class="grid grid-cols-1 md:grid-cols-6 gap-3 items-end rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4">
                                 <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
                                 <input type="hidden" name="code" th:value="${row.code}" />
                                 <input type="hidden" name="menuType" th:value="${menuType}" />
                                 <input type="hidden" name="searchKeyword" th:value="${searchKeyword}" />
                                 <input type="hidden" name="searchUrl" th:value="${searchUrl}" />
-                                <button class="gov-btn gov-btn-danger" type="submit">삭제</button>
+                                <label>
+                                    <span class="gov-label">페이지명</span>
+                                    <input class="gov-input" name="codeNm" th:value="${row.codeNm}" type="text" />
+                                </label>
+                                <label>
+                                    <span class="gov-label">영문 페이지명</span>
+                                    <input class="gov-input" name="codeDc" th:value="${row.codeDc}" type="text" />
+                                </label>
+                                <label class="md:col-span-2">
+                                    <span class="gov-label">페이지 URL</span>
+                                    <input class="gov-input" name="menuUrl" th:value="${row.menuUrl}" type="text" />
+                                </label>
+                                <label>
+                                    <span class="gov-label">메뉴 아이콘</span>
+                                    <details class="icon-combo js-icon-combo">
+                                        <summary class="icon-combo-trigger list-none cursor-pointer">
+                                            <span class="flex items-center gap-2">
+                                                <span class="material-symbols-outlined js-icon-preview" th:text="${row.menuIcon}">web</span>
+                                                <span class="js-icon-label" th:text="${row.menuIcon}">web</span>
+                                            </span>
+                                            <span class="material-symbols-outlined text-[18px]">expand_more</span>
+                                        </summary>
+                                        <div class="icon-combo-panel">
+                                            <input type="hidden" name="menuIcon" th:value="${row.menuIcon}" class="js-icon-input" />
+                                            <input type="text" class="icon-search js-icon-search" placeholder="아이콘 검색" />
+                                            <p class="mb-2 text-xs text-[var(--kr-gov-text-secondary)]">스크롤해서 전체 아이콘을 볼 수 있습니다.</p>
+                                            <div class="icon-grid">
+                                                <button th:each="icon : ${iconOptions}" type="button" class="icon-grid-item js-icon-option"
+                                                        th:attr="data-icon=${icon}" th:classappend="${icon == row.menuIcon} ? ' active' : ''">
+                                                    <span class="material-symbols-outlined" th:text="${icon}">web</span>
+                                                    <span th:text="${icon}">web</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </details>
+                                </label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <label>
+                                        <span class="gov-label">사용</span>
+                                        <select class="gov-select" name="useAt">
+                                            <option th:each="opt : ${useAtOptions}" th:selected="${row.useAt == opt}" th:value="${opt}" th:text="${opt}">Y</option>
+                                        </select>
+                                    </label>
+                                    <div class="flex items-end">
+                                        <button class="gov-btn gov-btn-outline w-full" type="submit">수정 저장</button>
+                                    </div>
+                                </div>
                             </form>
                         </td>
                     </tr>
+                    </th:block>
                     <tr th:if="${#lists.isEmpty(pageRows)}">
                         <td class="px-4 py-6 text-center text-gray-500" colspan="8">등록된 페이지가 없습니다.</td>
                     </tr>
@@ -264,6 +366,35 @@
                     });
                 });
             }
+        });
+    });
+</script>
+<script>
+    window.addEventListener("DOMContentLoaded", function () {
+
+        document.querySelectorAll(".js-page-edit-toggle").forEach(function (button) {
+            button.addEventListener("click", function () {
+                var code = button.getAttribute("data-code");
+                if (!code) {
+                    return;
+                }
+                var row = document.querySelector('.page-edit-row[data-code="' + code + '"]');
+                if (!row) {
+                    return;
+                }
+                var shouldOpen = !row.classList.contains("open");
+                document.querySelectorAll(".page-edit-row.open").forEach(function (openRow) {
+                    openRow.classList.remove("open");
+                });
+                document.querySelectorAll(".js-page-edit-toggle").forEach(function (toggleButton) {
+                    toggleButton.textContent = "수정";
+                });
+                if (!shouldOpen) {
+                    return;
+                }
+                row.classList.toggle("open");
+                button.textContent = "수정 닫기";
+            });
         });
     });
 </script>

@@ -41,6 +41,14 @@
         ORDER BY F.MENU_CODE, F.FEATURE_CODE
     </select>
 
+    <select id="selectFeatureAssignmentStats" resultType="egovframework.com.feature.admin.model.vo.FeatureAssignmentStatVO">
+        SELECT
+            FEATURE_CODE AS featureCode,
+            COUNT(*) AS assignedRoleCount
+        FROM COMTNAUTHORFUNCTIONRELATE
+        GROUP BY FEATURE_CODE
+    </select>
+
     <select id="selectAuthorFeatureCodes" parameterType="string" resultType="string">
         SELECT FEATURE_CODE
         FROM COMTNAUTHORFUNCTIONRELATE
@@ -73,6 +81,17 @@
         WHERE AUTHOR_CODE = #{_parameter}
     </delete>
 
+    <delete id="deleteAuthorFeatureRelationsByFeatureCode" parameterType="string">
+        DELETE FROM COMTNAUTHORFUNCTIONRELATE
+        WHERE FEATURE_CODE = #{_parameter}
+    </delete>
+
+    <delete id="deleteAuthorFeatureRelation" parameterType="map">
+        DELETE FROM COMTNAUTHORFUNCTIONRELATE
+        WHERE AUTHOR_CODE = #{authorCode}
+          AND FEATURE_CODE = #{featureCode}
+    </delete>
+
     <insert id="insertAuthorFeatureRelation" parameterType="map">
         INSERT INTO COMTNAUTHORFUNCTIONRELATE (
             AUTHOR_CODE,
@@ -100,7 +119,12 @@
         FROM COMTNMENUINFO M
         INNER JOIN COMTNMENUFUNCTIONINFO F
             ON F.MENU_CODE = M.MENU_CODE
-        WHERE (
+        LEFT JOIN COMTCCMMNDETAILCODE D
+            ON D.CODE = M.MENU_CODE
+        WHERE COALESCE(D.USE_AT, 'Y') = 'Y'
+          AND COALESCE(M.USE_AT, 'Y') = 'Y'
+          AND COALESCE(F.USE_AT, 'Y') = 'Y'
+          AND (
                 M.MENU_URL = #{_parameter}
              OR ('/' || M.MENU_URL) = #{_parameter}
              OR (
@@ -148,6 +172,9 @@
              ) OR (
                     #{_parameter} IN ('/admin/member/dept-role-mapping', '/admin/system/dept-role-mapping')
                 AND M.MENU_URL = '/admin/react-migration?route=dept-role'
+             ) OR (
+                    #{_parameter} = '/admin/system/sr-workbench'
+                AND M.MENU_URL = '/admin/react-migration?route=sr-workbench'
              )
         )
           AND F.FEATURE_CODE LIKE '%\_VIEW' ESCAPE '\'
@@ -156,56 +183,65 @@
 
     <select id="selectMenuCodeByMenuUrl" parameterType="string" resultType="string">
         SELECT MENU_CODE
-        FROM COMTNMENUINFO
-        WHERE MENU_URL = #{_parameter}
-           OR ('/' || MENU_URL) = #{_parameter}
-           OR (
+        FROM COMTNMENUINFO M
+        LEFT JOIN COMTCCMMNDETAILCODE D
+            ON D.CODE = M.MENU_CODE
+        WHERE COALESCE(D.USE_AT, 'Y') = 'Y'
+          AND COALESCE(M.USE_AT, 'Y') = 'Y'
+          AND (
+                M.MENU_URL = #{_parameter}
+             OR ('/' || M.MENU_URL) = #{_parameter}
+             OR (
                 #{_parameter} = '/admin/member/approve'
-            AND MENU_URL = '/admin/react-migration?route=member-approve'
-           ) OR (
+                AND M.MENU_URL = '/admin/react-migration?route=member-approve'
+             ) OR (
                 #{_parameter} = '/admin/member/company-approve'
-            AND MENU_URL = '/admin/react-migration?route=company-approve'
-           ) OR (
+                AND M.MENU_URL = '/admin/react-migration?route=company-approve'
+             ) OR (
                 #{_parameter} = '/admin/member/edit'
-            AND MENU_URL = '/admin/react-migration?route=member-edit'
-           ) OR (
+                AND M.MENU_URL = '/admin/react-migration?route=member-edit'
+             ) OR (
                 #{_parameter} = '/admin/member/detail'
-            AND MENU_URL = '/admin/react-migration?route=member-detail'
-           ) OR (
+                AND M.MENU_URL = '/admin/react-migration?route=member-detail'
+             ) OR (
                 #{_parameter} = '/admin/member/reset_password'
-            AND MENU_URL = '/admin/react-migration?route=password-reset'
-           ) OR (
+                AND M.MENU_URL = '/admin/react-migration?route=password-reset'
+             ) OR (
                 #{_parameter} = '/admin/member/list'
-            AND MENU_URL = '/admin/react-migration?route=member-list'
-           ) OR (
+                AND M.MENU_URL = '/admin/react-migration?route=member-list'
+             ) OR (
                 #{_parameter} IN ('/admin/member/admin_list', '/admin/member/admin-list')
-            AND MENU_URL = '/admin/react-migration?route=admin-list'
-           ) OR (
+                AND M.MENU_URL = '/admin/react-migration?route=admin-list'
+             ) OR (
                 #{_parameter} = '/admin/member/company_list'
-            AND MENU_URL = '/admin/react-migration?route=company-list'
-           ) OR (
+                AND M.MENU_URL = '/admin/react-migration?route=company-list'
+             ) OR (
                 #{_parameter} = '/admin/member/company_detail'
-            AND MENU_URL = '/admin/react-migration?route=company-detail'
-           ) OR (
+                AND M.MENU_URL = '/admin/react-migration?route=company-detail'
+             ) OR (
                 #{_parameter} = '/admin/member/company_account'
-            AND MENU_URL = '/admin/react-migration?route=company-account'
-           ) OR (
+                AND M.MENU_URL = '/admin/react-migration?route=company-account'
+             ) OR (
                 #{_parameter} = '/admin/member/admin_account'
-            AND MENU_URL = '/admin/react-migration?route=admin-create'
-           ) OR (
+                AND M.MENU_URL = '/admin/react-migration?route=admin-create'
+             ) OR (
                 #{_parameter} = '/admin/member/admin_account/permissions'
-            AND MENU_URL = '/admin/react-migration?route=admin-permission'
-           ) OR (
+                AND M.MENU_URL = '/admin/react-migration?route=admin-permission'
+             ) OR (
                 #{_parameter} IN ('/admin/auth/group', '/admin/member/auth-group', '/admin/system/role')
-            AND MENU_URL = '/admin/react-migration?route=auth-group'
-           ) OR (
+                AND M.MENU_URL = '/admin/react-migration?route=auth-group'
+             ) OR (
                 #{_parameter} IN ('/admin/member/auth-change', '/admin/system/auth-change')
-            AND MENU_URL = '/admin/react-migration?route=auth-change'
-           ) OR (
+                AND M.MENU_URL = '/admin/react-migration?route=auth-change'
+             ) OR (
                 #{_parameter} IN ('/admin/member/dept-role-mapping', '/admin/system/dept-role-mapping')
-            AND MENU_URL = '/admin/react-migration?route=dept-role'
-           )
-        ORDER BY MENU_CODE
+                AND M.MENU_URL = '/admin/react-migration?route=dept-role'
+             ) OR (
+                #{_parameter} = '/admin/system/sr-workbench'
+                AND M.MENU_URL = '/admin/react-migration?route=sr-workbench'
+             )
+          )
+        ORDER BY M.MENU_CODE
         LIMIT 1
     </select>
 
@@ -221,6 +257,42 @@
         FROM COMTNAUTHORFUNCTIONRELATE
         WHERE AUTHOR_CODE = #{authorCode}
           AND FEATURE_CODE = #{featureCode}
+    </select>
+
+    <select id="countAuthorFeatureRelationsByFeatureCode" parameterType="string" resultType="int">
+        SELECT COUNT(*)
+        FROM COMTNAUTHORFUNCTIONRELATE
+        WHERE FEATURE_CODE = #{_parameter}
+    </select>
+
+    <select id="countUserFeatureOverridesByFeatureCode" parameterType="string" resultType="int">
+        SELECT COUNT(*)
+        FROM COMTNUSERFEATUREOVERRIDE
+        WHERE FEATURE_CODE = #{_parameter}
+    </select>
+
+    <select id="selectAuthorFeatureRelationCounts" parameterType="list" resultType="egovframework.com.feature.admin.model.vo.FeatureReferenceCountVO">
+        SELECT
+            FEATURE_CODE AS featureCode,
+            COUNT(*) AS referenceCount
+        FROM COMTNAUTHORFUNCTIONRELATE
+        WHERE FEATURE_CODE IN
+        <foreach collection="list" item="featureCode" open="(" separator="," close=")">
+            #{featureCode}
+        </foreach>
+        GROUP BY FEATURE_CODE
+    </select>
+
+    <select id="selectUserFeatureOverrideCounts" parameterType="list" resultType="egovframework.com.feature.admin.model.vo.FeatureReferenceCountVO">
+        SELECT
+            FEATURE_CODE AS featureCode,
+            COUNT(*) AS referenceCount
+        FROM COMTNUSERFEATUREOVERRIDE
+        WHERE FEATURE_CODE IN
+        <foreach collection="list" item="featureCode" open="(" separator="," close=")">
+            #{featureCode}
+        </foreach>
+        GROUP BY FEATURE_CODE
     </select>
 
     <select id="selectUserFeatureOverrides" parameterType="string" resultType="egovframework.com.feature.admin.model.vo.UserFeatureOverrideVO">
@@ -369,6 +441,11 @@
     <delete id="deleteUserFeatureOverrides" parameterType="string">
         DELETE FROM COMTNUSERFEATUREOVERRIDE
         WHERE SCRTY_DTRMN_TRGET_ID = #{_parameter}
+    </delete>
+
+    <delete id="deleteUserFeatureOverridesByFeatureCode" parameterType="string">
+        DELETE FROM COMTNUSERFEATUREOVERRIDE
+        WHERE FEATURE_CODE = #{_parameter}
     </delete>
 
     <insert id="insertUserFeatureOverride" parameterType="map">

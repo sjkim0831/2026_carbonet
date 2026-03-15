@@ -1,10 +1,13 @@
 package egovframework.com.config.web;
 
 import egovframework.com.common.interceptor.CompanyScopeInterceptor;
+import egovframework.com.common.interceptor.ReactShellNoCacheInterceptor;
+import egovframework.com.common.interceptor.TraceContextInterceptor;
 import egovframework.com.common.pagination.PaginationDialect;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.CacheControl;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
@@ -15,11 +18,15 @@ import org.thymeleaf.spring5.templateresolver.SpringResourceTemplateResolver;
 import org.thymeleaf.spring5.view.ThymeleafViewResolver;
 import org.thymeleaf.templatemode.TemplateMode;
 
+import java.util.concurrent.TimeUnit;
+
 @Configuration
 @RequiredArgsConstructor
 public class WebMvcConfig implements WebMvcConfigurer {
 
     private final CompanyScopeInterceptor companyScopeInterceptor;
+    private final TraceContextInterceptor traceContextInterceptor;
+    private final ReactShellNoCacheInterceptor reactShellNoCacheInterceptor;
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
@@ -27,6 +34,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addResourceHandler("/signin/**").addResourceLocations("classpath:/static/");
         registry.addResourceHandler("/main/**").addResourceLocations("classpath:/static/");
         registry.addResourceHandler("/admin/**").addResourceLocations("classpath:/static/");
+        registry.addResourceHandler("/react-migration/assets/**")
+                .addResourceLocations("classpath:/static/react-migration/assets/")
+                .setCacheControl(CacheControl.maxAge(365, TimeUnit.DAYS).cachePublic());
     }
 
     @Override
@@ -35,6 +45,10 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addInterceptor(companyScopeInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns("/css/**", "/js/**", "/images/**", "/webjars/**", "/error/**", "/favicon.ico");
+        registry.addInterceptor(traceContextInterceptor)
+                .addPathPatterns("/**")
+                .excludePathPatterns("/css/**", "/js/**", "/images/**", "/webjars/**", "/error/**", "/favicon.ico");
+        registry.addInterceptor(reactShellNoCacheInterceptor).addPathPatterns("/**");
     }
 
     @Bean

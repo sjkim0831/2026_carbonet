@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { FrontendSession, fetchFrontendSession } from "../../lib/api";
-import { buildLocalizedPath, isEnglish, navigate } from "../../lib/runtime";
+import { useFrontendSession } from "../../app/hooks/useFrontendSession";
+import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { buildLocalizedPath, getNavigationEventName, isEnglish, navigate } from "../../lib/navigation/runtime";
 import { LOCALIZED_CONTENT, HOME_ENTRY_ASSETS } from "./homeEntryContent";
 import {
   HeaderBrand,
@@ -18,41 +19,39 @@ import { HomePayload } from "./homeEntryTypes";
 export function HomeLandingPage() {
   const en = isEnglish();
   const content = en ? LOCALIZED_CONTENT.en : LOCALIZED_CONTENT.ko;
-  const [payload, setPayload] = useState<HomePayload | null>(null);
-  const [session, setSession] = useState<FrontendSession | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  useEffect(() => {
-    fetch(buildLocalizedPath("/api/home", "/api/en/home"), { credentials: "include" })
-      .then((response) => response.json())
-      .then((body) => setPayload(body as HomePayload))
-      .catch(() => setPayload({ isLoggedIn: false, isEn: en, homeMenu: [] }));
-
-    fetchFrontendSession().then(setSession).catch(() => undefined);
-  }, [en]);
+  const payloadState = useAsyncValue<HomePayload>(
+    async () => {
+      const response = await fetch(buildLocalizedPath("/api/home", "/api/en/home"), { credentials: "include" });
+      return response.json() as Promise<HomePayload>;
+    },
+    [en],
+    {
+      initialValue: { isLoggedIn: false, isEn: en, homeMenu: [] },
+      onError: () => undefined
+    }
+  );
+  const sessionState = useFrontendSession();
 
   useEffect(() => {
     document.body.classList.toggle("mobile-menu-open", mobileMenuOpen);
     return () => document.body.classList.remove("mobile-menu-open");
   }, [mobileMenuOpen]);
 
-  async function handleLogout() {
-    if (!session) {
-      return;
+  useEffect(() => {
+    function handleNavigationSync() {
+      void payloadState.reload();
+      void sessionState.reload();
     }
-    const headers: Record<string, string> = {};
-    if (session.csrfHeaderName && session.csrfToken) {
-      headers[session.csrfHeaderName] = session.csrfToken;
-    }
-    await fetch(buildLocalizedPath("/signin/actionLogout", "/en/signin/actionLogout"), {
-      method: "POST",
-      credentials: "include",
-      headers
-    });
-    navigate(buildLocalizedPath("/home", "/en/home"));
-  }
 
-  const homeMenu = payload?.homeMenu || [];
+    window.addEventListener(getNavigationEventName(), handleNavigationSync);
+    return () => {
+      window.removeEventListener(getNavigationEventName(), handleNavigationSync);
+    };
+  }, [payloadState, sessionState]);
+
+  const payload = payloadState.value || { isLoggedIn: false, isEn: en, homeMenu: [] };
+  const homeMenu = payload.homeMenu || [];
 
   return (
     <>
@@ -81,12 +80,12 @@ export function HomeLandingPage() {
                   <button type="button" className={`px-2 py-1 text-xs font-bold focus-visible ${en ? "bg-white text-[var(--kr-gov-text-secondary)] hover:bg-gray-100" : "bg-[var(--kr-gov-blue)] text-white"}`} onClick={() => navigate("/home")}>KO</button>
                   <button type="button" className={`px-2 py-1 text-xs font-bold focus-visible border-l border-[var(--kr-gov-border-light)] ${en ? "bg-[var(--kr-gov-blue)] text-white" : "bg-white text-[var(--kr-gov-text-secondary)] hover:bg-gray-100"}`} onClick={() => navigate("/en/home")}>EN</button>
                 </div>
-                {payload?.isLoggedIn ? (
-                  <button type="button" className="hidden xl:inline-flex px-5 py-2.5 font-bold rounded-[var(--kr-gov-radius)] transition-colors focus-visible outline-none bg-[var(--kr-gov-blue)] text-white hover:bg-[var(--kr-gov-blue-hover)]" onClick={handleLogout}>{content.logout}</button>
+                {payload.isLoggedIn ? (
+                  <button type="button" className="hidden xl:inline-flex px-5 py-2.5 font-bold rounded-[var(--kr-gov-radius)] transition-colors focus-visible outline-none bg-[var(--kr-gov-blue)] text-white hover:bg-[var(--kr-gov-blue-hover)]" onClick={() => void sessionState.logout()}>{content.logout}</button>
                 ) : (
                   <>
                     <a className="hidden xl:inline-flex px-5 py-2.5 font-bold rounded-[var(--kr-gov-radius)] transition-colors focus-visible outline-none bg-[var(--kr-gov-blue)] text-white hover:bg-[var(--kr-gov-blue-hover)] items-center" href={buildLocalizedPath("/signin/loginView", "/en/signin/loginView")}>{content.login}</a>
-                    <a className="hidden xl:inline-flex px-5 py-2.5 font-bold rounded-[var(--kr-gov-radius)] transition-colors focus-visible outline-none bg-white text-[var(--kr-gov-blue)] border border-[var(--kr-gov-blue)] hover:bg-[var(--kr-gov-bg-gray)] items-center" href={buildLocalizedPath("/join/step1", "/en/join/step1")}>{content.signup}</a>
+                    <a className="hidden xl:inline-flex px-5 py-2.5 font-bold rounded-[var(--kr-gov-radius)] transition-colors focus-visible outline-none bg-white text-[var(--kr-gov-blue)] border border-[var(--kr-gov-blue)] hover:bg-[var(--kr-gov-bg-gray)] items-center" href={buildLocalizedPath("/join/step1", "/join/en/step1")}>{content.signup}</a>
                   </>
                 )}
                 <button
@@ -110,22 +109,28 @@ export function HomeLandingPage() {
             content={content}
             en={en}
             homeMenu={homeMenu}
-            isLoggedIn={Boolean(payload?.isLoggedIn)}
+            isLoggedIn={Boolean(payload.isLoggedIn)}
             onClose={() => setMobileMenuOpen(false)}
-            onLogout={handleLogout}
+            onLogout={sessionState.logout}
           />
         </div>
         <main id="main-content">
-          <HeroSection content={content} />
-          <SearchSection content={content} />
-          <section className="max-w-7xl mx-auto px-4 lg:px-8 py-20">
+          <div data-help-id="home-hero">
+            <HeroSection content={content} />
+          </div>
+          <div data-help-id="home-search">
+            <SearchSection content={content} homeMenu={homeMenu} />
+          </div>
+          <section className="max-w-7xl mx-auto px-4 lg:px-8 py-20" data-help-id="home-services">
             <div className="mb-10">
               <h2 className="text-3xl font-bold text-[var(--kr-gov-text-primary)]">{content.coreServicesTitle}</h2>
               <p className="text-[var(--kr-gov-text-secondary)] mt-2">{content.coreServicesDescription}</p>
             </div>
             <CoreServiceGrid content={content} />
           </section>
-          <SummarySection content={content} />
+          <div data-help-id="home-summary">
+            <SummarySection content={content} />
+          </div>
         </main>
         <HomeFooter content={content} />
       </div>

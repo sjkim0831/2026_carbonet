@@ -1,15 +1,23 @@
-import { ChangeEvent, KeyboardEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, KeyboardEvent, useMemo, useState } from "react";
+import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { useExternalScript } from "../../app/hooks/useExternalScript";
+import {
+  UserGovernmentBar,
+  UserLanguageToggle,
+  UserPortalHeader
+} from "../../components/user-shell/UserPortalChrome";
 import {
   checkCompanyNameDuplicate,
   fetchJoinCompanyRegisterPage,
-  JoinCompanyRegisterPagePayload,
   resetJoinSession,
   searchJoinCompanies,
   submitJoinCompanyRegister
-} from "../../lib/api";
-import { buildLocalizedPath, isEnglish, navigate } from "../../lib/runtime";
+} from "../../lib/api/client";
+import { buildLocalizedPath, getSearchParam, isEnglish, navigate } from "../../lib/navigation/runtime";
+import { EN_MEMBERSHIP_CARDS, KO_MEMBERSHIP_CARDS } from "../join/sharedMembershipCards";
 
 type CompanyForm = {
+  membershipType: string;
   chargerName: string;
   chargerEmail: string;
   chargerTel: string;
@@ -20,6 +28,19 @@ type CompanyForm = {
   companyAddress: string;
   companyAddressDetail: string;
 };
+
+type UploadRow = {
+  id: number;
+  file: File | null;
+};
+
+let uploadRowSequence = 1;
+
+function createUploadRow(): UploadRow {
+  const row = { id: uploadRowSequence, file: null };
+  uploadRowSequence += 1;
+  return row;
+}
 
 const COPY = {
   ko: {
@@ -143,6 +164,7 @@ const COPY = {
 } as const;
 
 const INITIAL_FORM: CompanyForm = {
+  membershipType: "EMITTER",
   chargerName: "",
   chargerEmail: "",
   chargerTel: "",
@@ -157,34 +179,40 @@ const INITIAL_FORM: CompanyForm = {
 export function JoinCompanyRegisterMigrationPage() {
   const en = isEnglish();
   const copy = COPY[en ? "en" : "ko"];
-  const [page, setPage] = useState<JoinCompanyRegisterPagePayload | null>(null);
   const [form, setForm] = useState<CompanyForm>(INITIAL_FORM);
-  const [files, setFiles] = useState<File[]>([]);
+  const [uploadRows, setUploadRows] = useState<UploadRow[]>([createUploadRow()]);
   const [duplicateChecked, setDuplicateChecked] = useState(false);
   const [duplicateMessage, setDuplicateMessage] = useState("");
   const [duplicateAvailable, setDuplicateAvailable] = useState(false);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
+  const [actionError, setActionError] = useState(() => getSearchParam("errorMessage"));
   const [modalOpen, setModalOpen] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState("");
   const [searchPage, setSearchPage] = useState(1);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [searchRows, setSearchRows] = useState<Array<{ insttId: string; cmpnyNm: string; bizrno: string; cxfc: string; joinStat?: string | null }>>([]);
-  const [searchTotalPages, setSearchTotalPages] = useState(0);
   const [searchTouched, setSearchTouched] = useState(false);
+  const pageState = useAsyncValue(fetchJoinCompanyRegisterPage, [], {
+    onSuccess(payload) {
+      setForm((current) => ({
+        ...current,
+        membershipType: String(payload.membershipType || "EMITTER")
+      }));
+    }
+  });
+  const page = pageState.value;
+  const searchState = useAsyncValue(
+    () => searchJoinCompanies({ keyword: searchKeyword.trim(), page: searchPage, size: 5, membershipType: form.membershipType }),
+    [searchKeyword, searchPage, form.membershipType, modalOpen, searchTouched],
+    {
+      enabled: modalOpen && searchTouched,
+      initialValue: { list: [], totalCnt: 0, page: 1, size: 5, totalPages: 0 },
+      onError: () => undefined
+    }
+  );
+  const error = actionError || pageState.error || (searchState.error ? copy.modalSearchError : "");
+  const searchRows = searchState.value?.list || [];
+  const searchTotalPages = searchState.value?.totalPages || 0;
+  const searchLoading = searchState.loading;
 
-  useEffect(() => {
-    void fetchJoinCompanyRegisterPage()
-      .then(setPage)
-      .catch((nextError: Error) => setError(nextError.message));
-  }, []);
-
-  useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
-    document.body.appendChild(script);
-    return () => script.remove();
-  }, []);
+  useExternalScript("//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js");
 
   const pagination = useMemo(() => {
     if (searchTotalPages <= 1) return [];
@@ -219,21 +247,23 @@ export function JoinCompanyRegisterMigrationPage() {
       setDuplicateChecked(false);
       return;
     }
-    setError("");
+    setActionError("");
     try {
       const duplicated = await checkCompanyNameDuplicate(form.agencyName.trim());
       setDuplicateMessage(duplicated ? copy.duplicateExists : copy.duplicateAvailable);
       setDuplicateAvailable(!duplicated);
       setDuplicateChecked(true);
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : copy.searchFailed);
+      setActionError(nextError instanceof Error ? nextError.message : copy.searchFailed);
     }
   }
 
   function handleFileChange(index: number, event: ChangeEvent<HTMLInputElement>) {
     const nextFile = event.target.files?.[0];
     if (!nextFile) {
-      setFiles((current) => current.filter((_, currentIndex) => currentIndex !== index));
+      setUploadRows((current) => current.map((row, currentIndex) => (
+        currentIndex === index ? { ...row, file: null } : row
+      )));
       return;
     }
     const lower = nextFile.name.toLowerCase();
@@ -248,20 +278,22 @@ export function JoinCompanyRegisterMigrationPage() {
       event.target.value = "";
       return;
     }
-    setFiles((current) => {
+    setUploadRows((current) => {
       const next = [...current];
-      next[index] = nextFile;
+      next[index] = { ...next[index], file: nextFile };
       return next;
     });
   }
 
   function addFileRow() {
-    setFiles((current) => [...current, new File([], "")]);
+    setUploadRows((current) => [...current, createUploadRow()]);
   }
 
   function removeFileRow(index: number) {
-    setFiles((current) => {
-      if (current.length <= 1) return [];
+    setUploadRows((current) => {
+      if (current.length <= 1) {
+        return [{ ...current[0], file: null }];
+      }
       return current.filter((_, currentIndex) => currentIndex !== index);
     });
   }
@@ -279,37 +311,26 @@ export function JoinCompanyRegisterMigrationPage() {
 
   async function runCompanySearch(pageNo: number) {
     setSearchTouched(true);
-    setSearchLoading(true);
-    setError("");
-    try {
-      const result = await searchJoinCompanies({ keyword: searchKeyword.trim(), page: pageNo, size: 5 });
-      setSearchRows(result.list);
-      setSearchTotalPages(result.totalPages);
-      setSearchPage(pageNo);
-    } catch {
-      setError(copy.modalSearchError);
-    } finally {
-      setSearchLoading(false);
-    }
+    setActionError("");
+    setSearchPage(pageNo);
   }
 
   function openCompanySearchModal() {
     setModalOpen(true);
     setSearchKeyword("");
-    setSearchRows([]);
     setSearchPage(1);
-    setSearchTotalPages(0);
     setSearchTouched(false);
   }
 
   async function handleSubmit() {
-    setError("");
-    setMessage("");
+    setActionError("");
     if (!duplicateChecked) {
       window.alert(copy.needDuplicateCheck);
       return;
     }
-    const uploadedFiles = files.filter((file) => file.size > 0);
+    const uploadedFiles = uploadRows
+      .map((row) => row.file)
+      .filter((file): file is File => Boolean(file && file.size > 0));
     if (uploadedFiles.length === 0) {
       window.alert(copy.needFile);
       return;
@@ -320,9 +341,14 @@ export function JoinCompanyRegisterMigrationPage() {
         lang: en ? "en" : "ko",
         fileUploads: uploadedFiles
       });
-      setMessage(String(result.message || copy.submitSuccess));
+      window.sessionStorage.setItem("carbonet.join.company-register.complete", JSON.stringify({
+        insttNm: String(result.insttNm || form.agencyName),
+        bizrno: String(result.bizrno || form.bizRegistrationNumber),
+        regDate: String(result.regDate || "")
+      }));
+      navigate(buildLocalizedPath("/join/companyRegisterComplete", "/join/en/companyRegisterComplete"));
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : copy.registerFailed);
+      setActionError(nextError instanceof Error ? nextError.message : copy.registerFailed);
     }
   }
 
@@ -330,8 +356,6 @@ export function JoinCompanyRegisterMigrationPage() {
     await resetJoinSession();
     navigate(buildLocalizedPath("/home", "/en/home"));
   }
-
-  const fileRows = files.length === 0 ? [null] : files;
 
   function renderJoinStatusBadge(joinStat?: string | null) {
     if (joinStat === "A") {
@@ -358,36 +382,13 @@ export function JoinCompanyRegisterMigrationPage() {
     <div className="bg-[#f8f9fa] text-[var(--kr-gov-text-primary)] min-h-screen flex flex-col">
       <a className="skip-link" href="#main-content">{en ? "Skip to content" : "본문 바로가기"}</a>
 
-      <div className="bg-white border-b border-[var(--kr-gov-border-light)]">
-        <div className="max-w-7xl mx-auto px-4 lg:px-8 py-2 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <img alt={en ? "Emblem of the Republic of Korea" : "대한민국 정부 상징"} className="h-4" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8BPzqtzSLVGSrjt4mzhhVBy9SocCRDssk1F3XRVu7Xq9jHh7qzzt48wFi8qduCiJmB0LRQczPB7waPe3h0gkjn3jOEDxt6UJSJjdXNf8P-4WlM2BEZrfg2SL91uSiZrFcCk9KYrsdg-biTS9dtJ_OIghDBEVoAzMc33XcCYR_UP0QQdoYzBe840YrtH40xGyB9MSr0QH4D0foqlvOhG0jX8CDayXNlDsSKlfClVd3K2aodlwg4xSxgXHB3vnnnA0L2yNBNihQQg0" />
-            <span className="text-[13px] font-medium text-[var(--kr-gov-text-secondary)]">{en ? "Official Government Service of the Republic of Korea" : "대한민국 정부 공식 서비스"}</span>
-          </div>
-        </div>
-      </div>
-
-      <header className="bg-white border-b border-[var(--kr-gov-border-light)] sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            <div className="flex items-center gap-3 shrink-0">
-              <a className="flex items-center gap-2 focus-visible" href="#" onClick={(event) => { event.preventDefault(); void handleHome(); }}>
-                <span className="material-symbols-outlined text-[32px] text-[var(--kr-gov-blue)]" style={{ fontVariationSettings: "'wght' 600" }}>eco</span>
-                <div className="flex flex-col">
-                  <h1 className="text-lg font-bold tracking-tight text-[var(--kr-gov-text-primary)] leading-none">{en ? "CCUS Carbon Footprint Platform" : "CCUS 탄소발자국 플랫폼"}</h1>
-                  <p className="text-[9px] text-[var(--kr-gov-text-secondary)] font-bold uppercase tracking-wider mt-1">Carbon Footprint Platform</p>
-                </div>
-              </a>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="flex border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] overflow-hidden">
-                <button className={`px-3 py-1 text-xs font-bold ${en ? "bg-white text-[var(--kr-gov-text-secondary)] hover:bg-gray-100" : "bg-[var(--kr-gov-blue)] text-white"}`} id="langKoBtn" onClick={() => navigate("/join/companyRegister")} type="button">KO</button>
-                <button className={`px-3 py-1 text-xs font-bold border-l border-[var(--kr-gov-border-light)] ${en ? "bg-[var(--kr-gov-blue)] text-white" : "bg-white text-[var(--kr-gov-text-secondary)] hover:bg-gray-100"}`} id="langEnBtn" onClick={() => navigate("/join/en/companyRegister")} type="button">EN</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <UserGovernmentBar governmentText={en ? "Official Government Service of the Republic of Korea" : "대한민국 정부 공식 서비스"} />
+      <UserPortalHeader
+        brandSubtitle="Carbon Footprint Platform"
+        brandTitle={en ? "CCUS Carbon Footprint Platform" : "CCUS 탄소발자국 플랫폼"}
+        onHomeClick={() => { void handleHome(); }}
+        rightContent={<UserLanguageToggle en={en} onEn={() => navigate("/join/en/companyRegister")} onKo={() => navigate("/join/companyRegister")} />}
+      />
 
       <main className="flex-grow py-12 px-4" id="main-content">
         <div className="max-w-[850px] mx-auto">
@@ -433,24 +434,52 @@ export function JoinCompanyRegisterMigrationPage() {
               </div>
             ) : null}
 
-            {message ? (
-              <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 text-sm flex items-start gap-2">
-                <span className="material-symbols-outlined text-[20px] shrink-0">check_circle</span>
-                <div className="flex-grow">
-                  <p className="font-bold mb-1">{copy.submitSuccess}</p>
-                  <p>{message}</p>
-                </div>
-              </div>
-            ) : null}
-
             <div className="bg-blue-50 border border-blue-100 p-4 rounded-[var(--kr-gov-radius)] mb-8 flex items-start gap-3">
               <span className="material-symbols-outlined text-blue-600">info</span>
               <p className="text-[15px] text-blue-800 leading-relaxed">{copy.notification}</p>
             </div>
           </div>
 
-          <form className="space-y-8" onSubmit={(event) => { event.preventDefault(); void handleSubmit(); }}>
-            <section>
+          <form className="mt-8 space-y-8" onSubmit={(event) => { event.preventDefault(); void handleSubmit(); }}>
+            <section data-help-id="join-company-register-contact">
+              <h4 className="text-lg font-bold text-[var(--kr-gov-text-primary)] flex items-center gap-2 mb-6 pb-2 border-b-2 border-gray-100">
+                <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">category</span>
+                {en ? "Membership Type" : "회원사 유형"}
+              </h4>
+              <fieldset>
+                <legend className="sr-only">{en ? "Company membership type selection" : "회원사 유형 선택"}</legend>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {(en ? EN_MEMBERSHIP_CARDS : KO_MEMBERSHIP_CARDS).map((card) => {
+                    const active = form.membershipType === card.value;
+                    return (
+                      <label className={`type-card group${active ? " active" : ""}`} key={card.value}>
+                        <input
+                          checked={active}
+                          className="sr-only"
+                          name="membership_type"
+                          onChange={() => updateField("membershipType", card.value)}
+                          required
+                          type="radio"
+                          value={card.value}
+                        />
+                        <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 transition-colors ${card.iconWrapClass} ${card.hoverIconWrapClass}`}>
+                          <span className={`material-symbols-outlined text-4xl ${card.iconClass} group-hover:text-white`}>{card.icon}</span>
+                        </div>
+                        <h3 className="text-lg font-bold mb-3 break-keep">{card.title}</h3>
+                        <p className="text-sm text-[var(--kr-gov-text-secondary)] leading-relaxed whitespace-pre-line">{card.description}</p>
+                        <div className={`check-icon absolute top-4 right-4 text-[var(--kr-gov-blue)]${active ? "" : " hidden"}`}>
+                          <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                            check_circle
+                          </span>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            </section>
+
+            <section data-help-id="join-company-register-business">
               <h4 className="text-lg font-bold text-[var(--kr-gov-text-primary)] flex items-center gap-2 mb-6 pb-2 border-b-2 border-gray-100">
                 <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">person</span>{copy.contactSection}
               </h4>
@@ -461,16 +490,16 @@ export function JoinCompanyRegisterMigrationPage() {
                 </div>
                 <div className="space-y-1">
                   <label className="form-label" htmlFor="charger-email">{copy.chargerEmail} <span className="text-red-500">*</span></label>
-                  <input className="form-input" id="charger-email" onChange={(event) => updateField("chargerEmail", event.target.value)} placeholder={copy.placeholderEmail} required type="email" value={form.chargerEmail} />
+                  <input className="form-input" id="charger-email" inputMode="email" onChange={(event) => updateField("chargerEmail", event.target.value)} placeholder={copy.placeholderEmail} required type="text" value={form.chargerEmail} />
                 </div>
                 <div className="space-y-1">
                   <label className="form-label" htmlFor="charger-tel">{copy.chargerTel} <span className="text-red-500">*</span></label>
-                  <input className="form-input" id="charger-tel" onChange={(event) => updateField("chargerTel", event.target.value)} placeholder={copy.placeholderTel} required type="tel" value={form.chargerTel} />
+                  <input className="form-input" id="charger-tel" inputMode="tel" onChange={(event) => updateField("chargerTel", event.target.value)} placeholder={copy.placeholderTel} required type="text" value={form.chargerTel} />
                 </div>
               </div>
             </section>
 
-            <section>
+            <section data-help-id="join-company-register-files">
               <h4 className="text-lg font-bold text-[var(--kr-gov-text-primary)] flex items-center gap-2 mb-6 pb-2 border-b-2 border-gray-100">
                 <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">business_center</span>{copy.businessSection}
               </h4>
@@ -515,25 +544,25 @@ export function JoinCompanyRegisterMigrationPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <label className="form-label mb-0">{copy.fileDesc} <span className="text-red-500">*</span></label>
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded transition-colors border border-gray-200" onClick={addFileRow} type="button">
+                  <button className="join-upload-add-btn" onClick={addFileRow} type="button">
                     <span className="material-symbols-outlined text-[18px]">add</span>{copy.addFile}
                   </button>
                 </div>
                 <div className="space-y-2">
-                  {fileRows.map((file, index) => (
-                    <div className={`file-row flex items-center gap-3 p-3 border border-gray-200 rounded-lg bg-white group hover:border-[var(--kr-gov-blue)] transition-all cursor-pointer ${file ? "border-[var(--kr-gov-blue)] bg-blue-50/30" : ""}`} key={index}>
-                      <span className="material-symbols-outlined text-gray-400 group-hover:text-[var(--kr-gov-blue)]">attach_file</span>
+                  {uploadRows.map((row, index) => (
+                    <div className={`join-upload-row ${row.file && row.file.size > 0 ? "is-selected" : ""}`} key={row.id}>
+                      <span className="material-symbols-outlined join-upload-icon">attach_file</span>
                       <div className="flex-grow min-w-0">
-                        <input accept=".pdf,.jpg,.jpeg,.png" className="hidden" id={`company-file-${index}`} onChange={(event) => handleFileChange(index, event)} type="file" />
-                        <label className="block cursor-pointer" htmlFor={`company-file-${index}`}>
+                        <input accept=".pdf,.jpg,.jpeg,.png" className="hidden" id={`company-file-${row.id}`} onChange={(event) => handleFileChange(index, event)} type="file" />
+                        <label className="join-upload-label" htmlFor={`company-file-${row.id}`}>
                           <div className="file-info flex items-center justify-between">
-                            <span className={`file-name text-sm truncate ${file ? "font-bold text-[var(--kr-gov-blue)]" : "text-gray-500"}`}>{file && file.size > 0 ? file.name : copy.emptyFile}</span>
-                            <span className="file-size text-xs text-gray-400">{file && file.size > 0 ? formatBytes(file.size) : ""}</span>
+                            <span className={`join-upload-name ${row.file && row.file.size > 0 ? "is-selected" : ""}`}>{row.file && row.file.size > 0 ? row.file.name : copy.emptyFile}</span>
+                            <span className="join-upload-size">{row.file && row.file.size > 0 ? formatBytes(row.file.size) : ""}</span>
                           </div>
                         </label>
                       </div>
-                      {fileRows.length > 1 || (file && file.size > 0) ? (
-                        <button className="remove-file-btn text-gray-400 hover:text-red-500 transition-colors" onClick={() => removeFileRow(index)} type="button">
+                      {uploadRows.length > 1 || (row.file && row.file.size > 0) ? (
+                        <button className="join-upload-remove-btn" onClick={() => removeFileRow(index)} type="button">
                           <span className="material-symbols-outlined">close</span>
                         </button>
                       ) : null}

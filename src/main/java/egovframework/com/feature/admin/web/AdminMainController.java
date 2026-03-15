@@ -12,6 +12,7 @@ import egovframework.com.feature.member.model.vo.UserManageVO;
 import egovframework.com.feature.admin.model.vo.AdminRoleAssignmentVO;
 import egovframework.com.feature.admin.model.vo.AuthorInfoVO;
 import egovframework.com.feature.admin.model.vo.DepartmentRoleMappingVO;
+import egovframework.com.feature.admin.model.vo.FeatureAssignmentStatVO;
 import egovframework.com.feature.admin.model.vo.FeatureCatalogItemVO;
 import egovframework.com.feature.admin.model.vo.FeatureCatalogSectionVO;
 import egovframework.com.feature.admin.model.vo.LoginHistorySearchVO;
@@ -37,6 +38,7 @@ import egovframework.com.feature.member.dto.response.CompanySearchResponseDTO;
 import egovframework.com.feature.auth.service.AuthService;
 import egovframework.com.feature.auth.util.JwtTokenProvider;
 import egovframework.com.feature.auth.util.ClientIpUtil;
+import egovframework.com.common.audit.AuditTrailService;
 import egovframework.com.common.util.ReactPageUrlMapper;
 import egovframework.com.common.logging.RequestExecutionLogService;
 import egovframework.com.common.logging.RequestExecutionLogVO;
@@ -124,6 +126,7 @@ public class AdminMainController {
     private final AuthService authService;
     private final MenuInfoService menuInfoService;
     private final RequestExecutionLogService requestExecutionLogService;
+    private final AuditTrailService auditTrailService;
 
     @RequestMapping(value = { "", "/" }, method = { RequestMethod.GET, RequestMethod.POST })
     public String adminMainEntry(HttpServletRequest request, Locale locale) {
@@ -135,16 +138,29 @@ public class AdminMainController {
     }
 
     @RequestMapping(value = "/member/stats", method = { RequestMethod.GET, RequestMethod.POST })
-    public String member_stats() {
-        return "egovframework/com/admin/member_stats";
+    public String member_stats(HttpServletRequest request, Locale locale) {
+        return redirectReactMigration(request, locale, "member-stats");
+    }
+
+    @GetMapping("/member/stats/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> memberStatsPageApi(HttpServletRequest request, Locale locale) {
+        boolean isEn = isEnglishRequest(request, locale);
+        primeCsrfToken(request);
+        return ResponseEntity.ok(buildMemberStatsPageData(isEn));
     }
 
     @RequestMapping(value = "/member/register", method = { RequestMethod.GET, RequestMethod.POST })
     public String member_register(HttpServletRequest request, Locale locale) {
-        if (isEnglishRequest(request, locale)) {
-            return "egovframework/com/admin/member_register_en";
-        }
-        return "egovframework/com/admin/member_register";
+        return redirectReactMigration(request, locale, "member-register");
+    }
+
+    @GetMapping("/member/register/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> memberRegisterPageApi(HttpServletRequest request, Locale locale) {
+        boolean isEn = isEnglishRequest(request, locale);
+        primeCsrfToken(request);
+        return ResponseEntity.ok(buildMemberRegisterPageData(isEn));
     }
 
     @RequestMapping(value = "/member/approve", method = RequestMethod.GET)
@@ -424,6 +440,11 @@ public class AdminMainController {
                 ? (targetMemberIds.size() > 1 ? "batchApproved" : "approved")
                 : (targetMemberIds.size() > 1 ? "batchRejected" : "rejected"));
         response.put("selectedIds", targetMemberIds);
+        recordApprovalAuditSafely(request, currentUserId, currentUserAuthorCode, "AMENU_MEMBER_APPROVE", "member-approve",
+                "MEMBER_APPROVAL_" + ("P".equals(targetStatus) ? "APPROVE" : "REJECT"),
+                "MEMBER", targetMemberIds.toString(), "SUCCESS",
+                "{\"action\":\"" + normalizedAction + "\",\"selectedIds\":\"" + safeJson(targetMemberIds.toString()) + "\"}",
+                "{\"targetStatus\":\"" + targetStatus + "\"}");
         return ResponseEntity.ok(response);
     }
 
@@ -471,6 +492,11 @@ public class AdminMainController {
                 ? (targetInsttIds.size() > 1 ? "batchApproved" : "approved")
                 : (targetInsttIds.size() > 1 ? "batchRejected" : "rejected"));
         response.put("selectedIds", targetInsttIds);
+        recordApprovalAuditSafely(request, currentUserId, currentUserAuthorCode, "AMENU_COMPANY_APPROVE", "company-approve",
+                "COMPANY_APPROVAL_" + ("P".equals(targetStatus) ? "APPROVE" : "REJECT"),
+                "COMPANY", targetInsttIds.toString(), "SUCCESS",
+                "{\"action\":\"" + normalizedAction + "\",\"selectedIds\":\"" + safeJson(targetInsttIds.toString()) + "\"}",
+                "{\"targetStatus\":\"" + targetStatus + "\"}");
         return ResponseEntity.ok(response);
     }
 
@@ -511,7 +537,7 @@ public class AdminMainController {
                             ? "You can only edit members in your own company."
                             : "본인 회사 소속 회원만 수정할 수 있습니다.");
                 } else {
-                    populateMemberEditModel(model, member, isEn);
+                    populateMemberEditModel(model, member, isEn, extractCurrentUserId(request));
                 }
             } catch (Exception e) {
                 log.error("Failed to load member edit page api. memberId={}", normalizedMemberId, e);
@@ -596,6 +622,8 @@ public class AdminMainController {
             errors.add(isEn ? "Please select a valid member status." : "유효한 회원 상태를 선택해 주세요.");
         }
         try {
+            Set<String> grantableFeatureCodes = resolveGrantableFeatureCodeSet(extractCurrentUserId(request),
+                    isWebmaster(extractCurrentUserId(request)));
             permissionAuthorGroups = authGroupManageService.selectAuthorList();
             if (normalizedAuthorCode.isEmpty()) {
                 errors.add(isEn ? "Please select a role." : "권한 롤을 선택해 주세요.");
@@ -603,6 +631,7 @@ public class AdminMainController {
                 errors.add(isEn ? "Please select a valid role." : "유효한 권한 롤을 선택해 주세요.");
             } else {
                 baselineFeatureCodes = normalizeFeatureCodes(authGroupManageService.selectAuthorFeatureCodes(normalizedAuthorCode));
+                normalizedFeatureCodes = filterFeatureCodesByGrantable(normalizedFeatureCodes, grantableFeatureCodes);
             }
         } catch (Exception e) {
             log.error("Failed to load permission data for member edit api. memberId={}", normalizedMemberId, e);
@@ -638,7 +667,8 @@ public class AdminMainController {
                     "USR02",
                     baselineFeatureCodes,
                     normalizedFeatureCodes,
-                    extractCurrentUserId(request));
+                    extractCurrentUserId(request),
+                    resolveGrantableFeatureCodeSet(extractCurrentUserId(request), isWebmaster(extractCurrentUserId(request))));
         } catch (Exception e) {
             log.error("Failed to save member edit api. memberId={}", normalizedMemberId, e);
             response.put("success", false);
@@ -648,6 +678,16 @@ public class AdminMainController {
 
         response.put("success", true);
         response.put("memberId", normalizedMemberId);
+        recordAdminActionAudit(request,
+                extractCurrentUserId(request),
+                resolveCurrentUserAuthorCode(extractCurrentUserId(request)),
+                "AMENU_MEMBER_EDIT",
+                "member-edit",
+                "MEMBER_EDIT_SAVE",
+                "MEMBER",
+                normalizedMemberId,
+                "{\"memberId\":\"" + safeJson(normalizedMemberId) + "\",\"authorCode\":\"" + safeJson(normalizedAuthorCode) + "\"}",
+                "{\"status\":\"SUCCESS\"}");
         return ResponseEntity.ok(response);
     }
 
@@ -733,6 +773,8 @@ public class AdminMainController {
             errors.add(isEn ? "Please select a valid member status." : "유효한 회원 상태를 선택해 주세요.");
         }
         try {
+            Set<String> grantableFeatureCodes = resolveGrantableFeatureCodeSet(extractCurrentUserId(request),
+                    isWebmaster(extractCurrentUserId(request)));
             permissionAuthorGroups = authGroupManageService.selectAuthorList();
             if (normalizedAuthorCode.isEmpty()) {
                 errors.add(isEn ? "Please select a role." : "권한 롤을 선택해 주세요.");
@@ -740,6 +782,7 @@ public class AdminMainController {
                 errors.add(isEn ? "Please select a valid role." : "유효한 권한 롤을 선택해 주세요.");
             } else {
                 baselineFeatureCodes = normalizeFeatureCodes(authGroupManageService.selectAuthorFeatureCodes(normalizedAuthorCode));
+                normalizedFeatureCodes = filterFeatureCodesByGrantable(normalizedFeatureCodes, grantableFeatureCodes);
             }
         } catch (Exception e) {
             log.error("Failed to load permission data for member edit. memberId={}", normalizedMemberId, e);
@@ -763,9 +806,9 @@ public class AdminMainController {
 
         if (!errors.isEmpty()) {
             try {
-                populateMemberEditModel(model, member, isEn);
+                populateMemberEditModel(model, member, isEn, extractCurrentUserId(request));
                 populatePermissionEditorModel(model, permissionAuthorGroups, normalizedAuthorCode, safeString(member.getUniqId()),
-                        normalizedFeatureCodes, isEn);
+                        normalizedFeatureCodes, isEn, extractCurrentUserId(request));
             } catch (Exception e) {
                 log.error("Failed to populate member edit model (validation errors). memberId={}", normalizedMemberId, e);
                 ensureMemberEditDefaults(model, isEn);
@@ -782,14 +825,15 @@ public class AdminMainController {
                     "USR02",
                     baselineFeatureCodes,
                     normalizedFeatureCodes,
-                    extractCurrentUserId(request));
+                    extractCurrentUserId(request),
+                    resolveGrantableFeatureCodeSet(extractCurrentUserId(request), isWebmaster(extractCurrentUserId(request))));
             return "redirect:" + adminPrefix(request, locale) + "/member/edit?memberId=" + urlEncode(normalizedMemberId) + "&updated=true";
         } catch (Exception e) {
             log.error("Failed to save member edit. memberId={}", normalizedMemberId, e);
             try {
-                populateMemberEditModel(model, member, isEn);
+                populateMemberEditModel(model, member, isEn, extractCurrentUserId(request));
                 populatePermissionEditorModel(model, permissionAuthorGroups, normalizedAuthorCode, safeString(member.getUniqId()),
-                        normalizedFeatureCodes, isEn);
+                        normalizedFeatureCodes, isEn, extractCurrentUserId(request));
             } catch (Exception inner) {
                 log.error("Failed to populate member edit model (save error). memberId={}", normalizedMemberId, inner);
                 ensureMemberEditDefaults(model, isEn);
@@ -963,6 +1007,16 @@ public class AdminMainController {
         response.put("status", "success");
         response.put("temporaryPassword", temporaryPassword);
         response.put("message", isEn ? "The password has been reset." : "비밀번호가 초기화되었습니다.");
+        recordAdminActionAudit(request,
+                currentAdminUserId,
+                resolveCurrentUserAuthorCode(currentAdminUserId),
+                "AMENU_PASSWORD_RESET",
+                "password-reset",
+                "MEMBER_PASSWORD_RESET",
+                "MEMBER",
+                normalizedMemberId,
+                "{\"memberId\":\"" + safeJson(normalizedMemberId) + "\"}",
+                "{\"status\":\"SUCCESS\"}");
         return ResponseEntity.ok(response);
     }
 
@@ -1214,12 +1268,23 @@ public class AdminMainController {
                     "USR03",
                     baselineFeatureCodes,
                     featureCodes.isEmpty() ? baselineFeatureCodes : featureCodes,
-                    currentUserId);
+                    currentUserId,
+                    resolveGrantableFeatureCodeSet(currentUserId, true));
             response.put("success", true);
             response.put("emplyrId", adminId);
             response.put("authorCode", authorCode);
             response.put("insttId", insttId);
             response.put("companyName", institutionInfo == null ? "" : safeString(institutionInfo.getInsttNm()));
+            recordAdminActionAudit(request,
+                    currentUserId,
+                    resolveCurrentUserAuthorCode(currentUserId),
+                    "AMENU_ADMIN_CREATE",
+                    "admin-create",
+                    "ADMIN_ACCOUNT_CREATE",
+                    "ADMIN",
+                    adminId,
+                    "{\"adminId\":\"" + safeJson(adminId) + "\",\"authorCode\":\"" + safeJson(authorCode) + "\",\"insttId\":\"" + safeJson(insttId) + "\"}",
+                    "{\"status\":\"SUCCESS\"}");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Failed to create admin account. adminId={}, authorCode={}", adminId, authorCode, e);
@@ -1254,7 +1319,7 @@ public class AdminMainController {
                             ? "Administrator information was not found."
                             : "관리자 정보를 찾을 수 없습니다.");
                 } else {
-                    populateAdminAccountEditModel(model, adminMemberOpt.get(), isEn, null);
+                    populateAdminAccountEditModel(model, adminMemberOpt.get(), isEn, null, extractCurrentUserId(request));
                 }
             } catch (Exception e) {
                 log.error("Failed to load admin account edit page api. emplyrId={}", normalizedEmplyrId, e);
@@ -1346,7 +1411,8 @@ public class AdminMainController {
                     "USR03",
                     baselineFeatureCodes,
                     normalizedFeatureCodes,
-                    currentUserId);
+                    currentUserId,
+                    resolveGrantableFeatureCodeSet(currentUserId, true));
         } catch (Exception e) {
             log.error("Failed to save admin account permissions api. emplyrId={}, authorCode={}", normalizedEmplyrId, normalizedAuthorCode, e);
             response.put("success", false);
@@ -1359,6 +1425,16 @@ public class AdminMainController {
         response.put("success", true);
         response.put("emplyrId", normalizedEmplyrId);
         response.put("authorCode", normalizedAuthorCode);
+        recordAdminActionAudit(request,
+                currentUserId,
+                resolveCurrentUserAuthorCode(currentUserId),
+                "AMENU_ADMIN_PERMISSION",
+                "admin-permission",
+                "ADMIN_PERMISSION_SAVE",
+                "ADMIN",
+                normalizedEmplyrId,
+                "{\"emplyrId\":\"" + safeJson(normalizedEmplyrId) + "\",\"authorCode\":\"" + safeJson(normalizedAuthorCode) + "\"}",
+                "{\"status\":\"SUCCESS\"}");
         return ResponseEntity.ok(response);
     }
 
@@ -1436,7 +1512,7 @@ public class AdminMainController {
 
         if (!errors.isEmpty()) {
             try {
-                populateAdminAccountEditModel(model, adminMember, isEn, normalizedFeatureCodes);
+                populateAdminAccountEditModel(model, adminMember, isEn, normalizedFeatureCodes, currentUserId);
             } catch (Exception e) {
                 log.error("Failed to populate admin account edit model (validation errors). emplyrId={}", normalizedEmplyrId, e);
                 ensureAdminAccountDefaults(model, isEn);
@@ -1452,12 +1528,13 @@ public class AdminMainController {
                     "USR03",
                     baselineFeatureCodes,
                     normalizedFeatureCodes,
-                    currentUserId);
+                    currentUserId,
+                    resolveGrantableFeatureCodeSet(currentUserId, true));
             return "redirect:" + adminPrefix(request, locale) + "/member/admin_account?emplyrId=" + urlEncode(normalizedEmplyrId) + "&updated=true";
         } catch (Exception e) {
             log.error("Failed to save admin account permissions. emplyrId={}, authorCode={}", normalizedEmplyrId, normalizedAuthorCode, e);
             try {
-                populateAdminAccountEditModel(model, adminMember, isEn, normalizedFeatureCodes);
+                populateAdminAccountEditModel(model, adminMember, isEn, normalizedFeatureCodes, currentUserId);
             } catch (Exception inner) {
                 log.error("Failed to populate admin account edit model (save error). emplyrId={}", normalizedEmplyrId, inner);
                 ensureAdminAccountDefaults(model, isEn);
@@ -1583,11 +1660,29 @@ public class AdminMainController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
-        primeCsrfToken(request);
+        return redirectReactMigration(request, locale, "emission-result-list");
+    }
+
+    @GetMapping("/emission/result_list/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> emissionResultListPageApi(
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "resultStatus", required = false) String resultStatus,
+            @RequestParam(value = "verificationStatus", required = false) String verificationStatus,
+            HttpServletRequest request,
+            Locale locale) {
         boolean isEn = isEnglishRequest(request, locale);
-        String viewName = isEn ? "egovframework/com/admin/emission_result_list_en"
-                : "egovframework/com/admin/emission_result_list";
-        return populateEmissionResultList(pageIndexParam, searchKeyword, resultStatus, verificationStatus, model, viewName, isEn);
+        primeCsrfToken(request);
+        ExtendedModelMap model = new ExtendedModelMap();
+        populateEmissionResultList(pageIndexParam, searchKeyword, resultStatus, verificationStatus, model,
+                isEn ? "egovframework/com/admin/emission_result_list_en"
+                        : "egovframework/com/admin/emission_result_list",
+                isEn);
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.putAll(model);
+        response.put("isEn", isEn);
+        return ResponseEntity.ok(response);
     }
 
     @RequestMapping(value = "/member/company_detail", method = RequestMethod.GET)
@@ -1982,10 +2077,23 @@ public class AdminMainController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
+        return redirectReactMigration(request, locale, "security-history");
+    }
+
+    @GetMapping("/system/security/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> securityHistoryPageApi(
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "userSe", required = false) String userSe,
+            HttpServletRequest request,
+            Locale locale) {
         primeCsrfToken(request);
         boolean isEn = isEnglishRequest(request, locale);
-        String viewName = isEn ? "egovframework/com/admin/security_history_en" : "egovframework/com/admin/security_history";
-        return populateBlockedLoginHistory(pageIndexParam, searchKeyword, userSe, model, viewName);
+        ExtendedModelMap model = new ExtendedModelMap();
+        populateBlockedLoginHistory(pageIndexParam, searchKeyword, userSe, model, isEn ? "egovframework/com/admin/security_history_en" : "egovframework/com/admin/security_history");
+        model.addAttribute("isEn", isEn);
+        return ResponseEntity.ok(new LinkedHashMap<>(model));
     }
 
     @RequestMapping(value = "/system/security-policy", method = { RequestMethod.GET, RequestMethod.POST })
@@ -1993,10 +2101,20 @@ public class AdminMainController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
+        return redirectReactMigration(request, locale, "security-policy");
+    }
+
+    @GetMapping("/system/security-policy/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> securityPolicyPageApi(
+            HttpServletRequest request,
+            Locale locale) {
         primeCsrfToken(request);
         boolean isEn = isEnglishRequest(request, locale);
-        String viewName = isEn ? "egovframework/com/admin/security_policy_en" : "egovframework/com/admin/security_policy";
-        return populateSecurityPolicyPage(model, viewName, isEn);
+        ExtendedModelMap model = new ExtendedModelMap();
+        populateSecurityPolicyPage(model, isEn ? "egovframework/com/admin/security_policy_en" : "egovframework/com/admin/security_policy", isEn);
+        model.addAttribute("isEn", isEn);
+        return ResponseEntity.ok(new LinkedHashMap<>(model));
     }
 
     @RequestMapping(value = "/system/security-monitoring", method = { RequestMethod.GET, RequestMethod.POST })
@@ -2004,10 +2122,20 @@ public class AdminMainController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
+        return redirectReactMigration(request, locale, "security-monitoring");
+    }
+
+    @GetMapping("/system/security-monitoring/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> securityMonitoringPageApi(
+            HttpServletRequest request,
+            Locale locale) {
         primeCsrfToken(request);
         boolean isEn = isEnglishRequest(request, locale);
-        String viewName = isEn ? "egovframework/com/admin/security_monitoring_en" : "egovframework/com/admin/security_monitoring";
-        return populateSecurityMonitoringPage(model, viewName, isEn);
+        ExtendedModelMap model = new ExtendedModelMap();
+        populateSecurityMonitoringPage(model, isEn ? "egovframework/com/admin/security_monitoring_en" : "egovframework/com/admin/security_monitoring", isEn);
+        model.addAttribute("isEn", isEn);
+        return ResponseEntity.ok(new LinkedHashMap<>(model));
     }
 
     @RequestMapping(value = "/system/blocklist", method = { RequestMethod.GET, RequestMethod.POST })
@@ -2018,10 +2146,23 @@ public class AdminMainController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
+        return redirectReactMigration(request, locale, "blocklist");
+    }
+
+    @GetMapping("/system/blocklist/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> blocklistPageApi(
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "blockType", required = false) String blockType,
+            @RequestParam(value = "status", required = false) String status,
+            HttpServletRequest request,
+            Locale locale) {
         primeCsrfToken(request);
         boolean isEn = isEnglishRequest(request, locale);
-        String viewName = isEn ? "egovframework/com/admin/blocklist_en" : "egovframework/com/admin/blocklist";
-        return populateBlocklistPage(searchKeyword, blockType, status, model, viewName, isEn);
+        ExtendedModelMap model = new ExtendedModelMap();
+        populateBlocklistPage(searchKeyword, blockType, status, model, isEn ? "egovframework/com/admin/blocklist_en" : "egovframework/com/admin/blocklist", isEn);
+        model.addAttribute("isEn", isEn);
+        return ResponseEntity.ok(new LinkedHashMap<>(model));
     }
 
     @RequestMapping(value = "/system/security-audit", method = { RequestMethod.GET, RequestMethod.POST })
@@ -2029,10 +2170,20 @@ public class AdminMainController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
+        return redirectReactMigration(request, locale, "security-audit");
+    }
+
+    @GetMapping("/system/security-audit/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> securityAuditPageApi(
+            HttpServletRequest request,
+            Locale locale) {
         primeCsrfToken(request);
         boolean isEn = isEnglishRequest(request, locale);
-        String viewName = isEn ? "egovframework/com/admin/security_audit_en" : "egovframework/com/admin/security_audit";
-        return populateSecurityAuditPage(model, viewName, isEn);
+        ExtendedModelMap model = new ExtendedModelMap();
+        populateSecurityAuditPage(model, isEn ? "egovframework/com/admin/security_audit_en" : "egovframework/com/admin/security_audit", isEn);
+        model.addAttribute("isEn", isEn);
+        return ResponseEntity.ok(new LinkedHashMap<>(model));
     }
 
     @RequestMapping(value = "/system/scheduler", method = { RequestMethod.GET, RequestMethod.POST })
@@ -2042,10 +2193,22 @@ public class AdminMainController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
+        return redirectReactMigration(request, locale, "scheduler-management");
+    }
+
+    @GetMapping("/system/scheduler/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> schedulerPageApi(
+            @RequestParam(value = "jobStatus", required = false) String jobStatus,
+            @RequestParam(value = "executionType", required = false) String executionType,
+            HttpServletRequest request,
+            Locale locale) {
         primeCsrfToken(request);
         boolean isEn = isEnglishRequest(request, locale);
-        String viewName = isEn ? "egovframework/com/admin/scheduler_management_en" : "egovframework/com/admin/scheduler_management";
-        return populateSchedulerPage(jobStatus, executionType, model, viewName, isEn);
+        ExtendedModelMap model = new ExtendedModelMap();
+        populateSchedulerPage(jobStatus, executionType, model, isEn ? "egovframework/com/admin/scheduler_management_en" : "egovframework/com/admin/scheduler_management", isEn);
+        model.addAttribute("isEn", isEn);
+        return ResponseEntity.ok(new LinkedHashMap<>(model));
     }
 
     @RequestMapping(value = "/member/login_history", method = { RequestMethod.GET, RequestMethod.POST })
@@ -2057,10 +2220,24 @@ public class AdminMainController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
+        return redirectReactMigration(request, locale, "login-history");
+    }
+
+    @GetMapping("/api/admin/member/login-history/page")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> loginHistoryPageApi(
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "userSe", required = false) String userSe,
+            @RequestParam(value = "loginResult", required = false) String loginResult,
+            HttpServletRequest request,
+            Locale locale) {
         primeCsrfToken(request);
         boolean isEn = isEnglishRequest(request, locale);
-        String viewName = isEn ? "egovframework/com/admin/login_history_en" : "egovframework/com/admin/login_history";
-        return populateLoginHistory(pageIndexParam, searchKeyword, userSe, loginResult, model, viewName);
+        ExtendedModelMap model = new ExtendedModelMap();
+        populateLoginHistory(pageIndexParam, searchKeyword, userSe, loginResult, model, isEn ? "egovframework/com/admin/login_history_en" : "egovframework/com/admin/login_history");
+        model.addAttribute("isEn", isEn);
+        return ResponseEntity.ok(new LinkedHashMap<>(model));
     }
 
     private String populateMemberList(
@@ -2713,6 +2890,81 @@ public class AdminMainController {
         return viewName;
     }
 
+    private Map<String, Object> buildMemberStatsPageData(boolean isEn) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("isEn", isEn);
+        response.put("title", isEn ? "Member Statistics Dashboard" : "회원 통계 현황");
+        response.put("subtitle", isEn
+                ? "Analyze the registered member base by member type, monthly signups, and regional distribution."
+                : "시스템에 등록된 전체 회원 정보를 유형별, 지역별로 분석합니다.");
+        response.put("totalMembers", 1422);
+        response.put("memberTypeStats", List.of(
+                buildStatsRow("enterprise", isEn ? "Enterprise Members" : "기업 회원", "78.7", "1120", "bg-blue-600"),
+                buildStatsRow("individual", isEn ? "Individual Members" : "개인 회원", "21.3", "302", "bg-emerald-500")));
+        response.put("monthlySignupStats", List.of(
+                buildMonthlySignupRow(isEn ? "Apr" : "04월", "100", "56", false),
+                buildMonthlySignupRow(isEn ? "May" : "05월", "85", "48", false),
+                buildMonthlySignupRow(isEn ? "Jun" : "06월", "120", "63", false),
+                buildMonthlySignupRow(isEn ? "Jul" : "07월", "145", "81", false),
+                buildMonthlySignupRow(isEn ? "Aug" : "08월", "170", "96", true)));
+        response.put("regionalDistribution", List.of(
+                buildRegionalDistributionRow(isEn ? "Capital Area" : "수도권", "42.5", isEn ? "774 companies" : "774개 기업"),
+                buildRegionalDistributionRow(isEn ? "Yeongnam Area" : "영남권", "28.2", isEn ? "513 companies" : "513개 기업"),
+                buildRegionalDistributionRow(isEn ? "Chungcheong Area" : "충청권", "18.4", isEn ? "335 companies" : "335개 기업"),
+                buildRegionalDistributionRow(isEn ? "Honam and Others" : "호남·기타", "10.9", isEn ? "198 companies" : "198개 기업")));
+        return response;
+    }
+
+    private Map<String, Object> buildMemberRegisterPageData(boolean isEn) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("isEn", isEn);
+        response.put("memberTypeOptions", List.of(
+                buildOptionRow("enterprise", isEn ? "Enterprise (Emitter)" : "기업 (배출사업자)"),
+                buildOptionRow("center", isEn ? "Promotion Center" : "진흥센터"),
+                buildOptionRow("authority", isEn ? "Competent Authority" : "주무관청")));
+        response.put("permissionOptions", List.of(
+                buildOptionRow("READ", isEn ? "Data Inquiry" : "데이터 조회 권한"),
+                buildOptionRow("WRITE", isEn ? "Data Entry / Edit" : "데이터 입력/수정 권한"),
+                buildOptionRow("AUDIT", isEn ? "Certification Audit" : "인증 심사 권한"),
+                buildOptionRow("REPORT", isEn ? "Report Download" : "통계 리포트 다운로드")));
+        response.put("defaultOrganizationName", "");
+        return response;
+    }
+
+    private Map<String, String> buildStatsRow(String key, String label, String percentage, String count, String colorClass) {
+        Map<String, String> row = new LinkedHashMap<>();
+        row.put("key", key);
+        row.put("label", label);
+        row.put("percentage", percentage);
+        row.put("count", count);
+        row.put("colorClass", colorClass);
+        return row;
+    }
+
+    private Map<String, String> buildMonthlySignupRow(String month, String currentHeight, String previousHeight, boolean active) {
+        Map<String, String> row = new LinkedHashMap<>();
+        row.put("month", month);
+        row.put("currentHeight", currentHeight);
+        row.put("previousHeight", previousHeight);
+        row.put("active", active ? "Y" : "N");
+        return row;
+    }
+
+    private Map<String, String> buildRegionalDistributionRow(String region, String percentage, String countLabel) {
+        Map<String, String> row = new LinkedHashMap<>();
+        row.put("region", region);
+        row.put("percentage", percentage);
+        row.put("countLabel", countLabel);
+        return row;
+    }
+
+    private Map<String, String> buildOptionRow(String value, String label) {
+        Map<String, String> row = new LinkedHashMap<>();
+        row.put("value", value);
+        row.put("label", label);
+        return row;
+    }
+
     private String populateEmissionResultList(
             String pageIndexParam,
             String searchKeyword,
@@ -3062,6 +3314,7 @@ public class AdminMainController {
         List<AuthorInfoVO> authorGroups;
         List<AuthorInfoVO> filteredAuthorGroups;
         List<FeatureCatalogSectionVO> featureSections;
+        Map<String, Integer> featureAssignmentCounts;
         List<String> selectedFeatureCodes;
         AuthGroupScopeContext scopeContext;
         String selectedAuthorCode = "";
@@ -3076,14 +3329,20 @@ public class AdminMainController {
                         : "일반 권한 그룹은 마스터 권한이 있을 때만 조회할 수 있습니다.";
             }
             authorGroups = authGroupManageService.selectAuthorList();
-            featureSections = buildFeatureCatalogSections(authGroupManageService.selectFeatureCatalog(), isEn);
+            featureAssignmentCounts = toFeatureAssignmentCountMap(authGroupManageService.selectFeatureAssignmentStats());
+            Set<String> grantableFeatureCodes = resolveGrantableFeatureCodeSet(currentUserId, webmaster);
+            featureSections = filterFeatureCatalogSectionsByGrantable(
+                    buildFeatureCatalogSections(
+                            applyFeatureAssignmentStats(authGroupManageService.selectFeatureCatalog(), featureAssignmentCounts), isEn),
+                    grantableFeatureCodes);
             scopeContext = buildAuthGroupScopeContext(insttId, userSearchKeyword, selectedRoleCategory,
                     currentUserId, webmaster, authorGroups, isEn);
             filteredAuthorGroups = scopeContext.getReferenceAuthorGroups();
             selectedAuthorCode = resolveSelectedAuthorCode(authorCode, filteredAuthorGroups);
             selectedFeatureCodes = selectedAuthorCode.isEmpty()
                     ? Collections.emptyList()
-                    : authGroupManageService.selectAuthorFeatureCodes(selectedAuthorCode);
+                    : filterFeatureCodesByGrantable(authGroupManageService.selectAuthorFeatureCodes(selectedAuthorCode),
+                    grantableFeatureCodes);
             selectedAuthorName = resolveSelectedAuthorName(selectedAuthorCode, filteredAuthorGroups);
             if (authGroupError.isEmpty()) {
                 authGroupError = safeString(scopeContext.getErrorMessage());
@@ -3093,6 +3352,7 @@ public class AdminMainController {
             authorGroups = Collections.emptyList();
             filteredAuthorGroups = Collections.emptyList();
             featureSections = Collections.emptyList();
+            featureAssignmentCounts = Collections.emptyMap();
             selectedFeatureCodes = Collections.emptyList();
             scopeContext = AuthGroupScopeContext.empty();
             authGroupError = isEn
@@ -3110,7 +3370,9 @@ public class AdminMainController {
         response.put("featureSections", featureSections);
         response.put("authorGroupCount", filteredAuthorGroups.size());
         response.put("featureCount", selectedFeatureCodes.size());
+        response.put("catalogFeatureCount", countTotalFeatureCount(featureSections));
         response.put("pageCount", countSelectedPageCount(featureSections, selectedFeatureCodes));
+        response.put("unassignedFeatureCount", countUnassignedFeatureCount(featureSections));
         response.put("recommendedRoleSections", filterRecommendedRoleSections(buildRecommendedRoleSections(authorGroups, isEn), selectedRoleCategory));
         response.put("assignmentAuthorities", buildAssignmentAuthorities(isEn));
         response.put("roleCategories", buildRoleCategories(isEn));
@@ -3189,6 +3451,17 @@ public class AdminMainController {
             return ResponseEntity.internalServerError().body(response);
         }
 
+        recordAdminActionAudit(request,
+                currentUserId,
+                currentUserAuthorCode,
+                "AMENU_AUTH_GROUP",
+                "auth-group",
+                "AUTH_GROUP_CREATE",
+                "AUTHOR_GROUP",
+                normalizedCode,
+                "{\"authorCode\":\"" + safeJson(normalizedCode) + "\",\"roleCategory\":\"" + safeJson(selectedRoleCategory)
+                        + "\",\"insttId\":\"" + safeJson(scopedInsttId) + "\"}",
+                "{\"status\":\"SUCCESS\"}");
         response.put("success", true);
         response.put("authorCode", normalizedCode);
         response.put("roleCategory", selectedRoleCategory);
@@ -3241,10 +3514,15 @@ public class AdminMainController {
             }
         }
 
+        Set<String> grantableFeatureCodes;
         try {
+            grantableFeatureCodes = resolveGrantableFeatureCodeSet(currentUserId, webmaster);
             authGroupManageService.saveAuthorFeatureRelations(
                     normalizedAuthorCode,
-                    payload == null ? Collections.emptyList() : payload.getFeatureCodes());
+                    mergeRoleFeatureSelection(
+                            normalizedAuthorCode,
+                            payload == null ? Collections.emptyList() : payload.getFeatureCodes(),
+                            grantableFeatureCodes));
         } catch (Exception e) {
             log.error("Failed to save role-feature relations api. authorCode={}", normalizedAuthorCode, e);
             response.put("success", false);
@@ -3252,9 +3530,23 @@ public class AdminMainController {
             return ResponseEntity.internalServerError().body(response);
         }
 
+        List<String> savedFeatureCodes = filterFeatureCodesByGrantable(
+                payload == null ? Collections.emptyList() : payload.getFeatureCodes(),
+                grantableFeatureCodes);
         response.put("success", true);
         response.put("authorCode", normalizedAuthorCode);
-        response.put("featureCount", payload == null || payload.getFeatureCodes() == null ? 0 : payload.getFeatureCodes().size());
+        response.put("featureCount", savedFeatureCodes.size());
+        recordAdminActionAudit(request,
+                currentUserId,
+                currentUserAuthorCode,
+                "AMENU_AUTH_GROUP",
+                "auth-group",
+                "AUTH_GROUP_FEATURE_SAVE",
+                "AUTHOR_GROUP",
+                normalizedAuthorCode,
+                "{\"authorCode\":\"" + safeJson(normalizedAuthorCode) + "\",\"featureCodes\":\""
+                        + safeJson(savedFeatureCodes.toString()) + "\"}",
+                "{\"status\":\"SUCCESS\"}");
         return ResponseEntity.ok(response);
     }
 
@@ -3361,6 +3653,16 @@ public class AdminMainController {
         response.put("success", true);
         response.put("emplyrId", normalizedEmplyrId);
         response.put("authorCode", normalizedAuthorCode);
+        recordAdminActionAudit(request,
+                currentUserId,
+                resolveCurrentUserAuthorCode(currentUserId),
+                "AMENU_AUTH_CHANGE",
+                "auth-change",
+                "ADMIN_ROLE_ASSIGNMENT_SAVE",
+                "ADMIN",
+                normalizedEmplyrId,
+                "{\"emplyrId\":\"" + safeJson(normalizedEmplyrId) + "\",\"authorCode\":\"" + safeJson(normalizedAuthorCode) + "\"}",
+                "{\"status\":\"SUCCESS\"}");
         return ResponseEntity.ok(response);
     }
 
@@ -3572,6 +3874,16 @@ public class AdminMainController {
         response.put("insttId", normalizedInsttId);
         response.put("deptNm", normalizedDeptNm);
         response.put("authorCode", normalizedAuthorCode);
+        recordAdminActionAudit(request,
+                currentUserId,
+                currentUserAuthorCode,
+                "AMENU_DEPT_ROLE",
+                "dept-role",
+                "DEPARTMENT_ROLE_MAPPING_SAVE",
+                "DEPARTMENT_ROLE",
+                normalizedInsttId + ":" + normalizedDeptNm,
+                "{\"insttId\":\"" + safeJson(normalizedInsttId) + "\",\"deptNm\":\"" + safeJson(normalizedDeptNm) + "\",\"authorCode\":\"" + safeJson(normalizedAuthorCode) + "\"}",
+                "{\"status\":\"SUCCESS\"}");
         return ResponseEntity.ok(response);
     }
 
@@ -3648,6 +3960,16 @@ public class AdminMainController {
         response.put("insttId", normalizedInsttId);
         response.put("entrprsMberId", normalizedEntrprsMberId);
         response.put("authorCode", normalizedAuthorCode);
+        recordAdminActionAudit(request,
+                currentUserId,
+                currentUserAuthorCode,
+                "AMENU_DEPT_ROLE",
+                "dept-role",
+                "COMPANY_MEMBER_ROLE_SAVE",
+                "MEMBER",
+                normalizedEntrprsMberId,
+                "{\"insttId\":\"" + safeJson(normalizedInsttId) + "\",\"memberId\":\"" + safeJson(normalizedEntrprsMberId) + "\",\"authorCode\":\"" + safeJson(normalizedAuthorCode) + "\"}",
+                "{\"status\":\"SUCCESS\"}");
         return ResponseEntity.ok(response);
     }
 
@@ -3832,6 +4154,17 @@ public class AdminMainController {
             return auth_group(null, selectedRoleCategory, scopedInsttId, null, request, locale, model);
         }
 
+        recordAdminActionAudit(request,
+                currentUserId,
+                currentUserAuthorCode,
+                "AMENU_AUTH_GROUP",
+                "auth-group",
+                "AUTH_GROUP_CREATE",
+                "AUTHOR_GROUP",
+                normalizedCode,
+                "{\"authorCode\":\"" + safeJson(normalizedCode) + "\",\"roleCategory\":\"" + safeJson(selectedRoleCategory)
+                        + "\",\"insttId\":\"" + safeJson(scopedInsttId) + "\"}",
+                "{\"status\":\"SUCCESS\"}");
         return "redirect:" + buildAuthGroupRedirectUrl(request, locale, normalizedCode, selectedRoleCategory, scopedInsttId);
     }
 
@@ -3877,10 +4210,15 @@ public class AdminMainController {
             }
         }
 
+        Set<String> grantableFeatureCodes;
         try {
+            grantableFeatureCodes = resolveGrantableFeatureCodeSet(currentUserId, webmaster);
             authGroupManageService.saveAuthorFeatureRelations(
                     normalizedAuthorCode,
-                    featureCodes == null ? Collections.emptyList() : featureCodes);
+                    mergeRoleFeatureSelection(
+                            normalizedAuthorCode,
+                            featureCodes == null ? Collections.emptyList() : featureCodes,
+                            grantableFeatureCodes));
         } catch (Exception e) {
             log.error("Failed to save role-feature relations. authorCode={}", normalizedAuthorCode, e);
             model.addAttribute("authGroupError", isEn
@@ -3889,6 +4227,18 @@ public class AdminMainController {
             return auth_group(normalizedAuthorCode, selectedRoleCategory, scopedInsttId, null, request, locale, model);
         }
 
+        List<String> savedFeatureCodes = filterFeatureCodesByGrantable(featureCodes, grantableFeatureCodes);
+        recordAdminActionAudit(request,
+                currentUserId,
+                currentUserAuthorCode,
+                "AMENU_AUTH_GROUP",
+                "auth-group",
+                "AUTH_GROUP_FEATURE_SAVE",
+                "AUTHOR_GROUP",
+                normalizedAuthorCode,
+                "{\"authorCode\":\"" + safeJson(normalizedAuthorCode) + "\",\"featureCodes\":\""
+                        + safeJson(savedFeatureCodes.toString()) + "\"}",
+                "{\"status\":\"SUCCESS\"}");
         return "redirect:" + buildAuthGroupRedirectUrl(request, locale, normalizedAuthorCode, selectedRoleCategory);
     }
 
@@ -4218,6 +4568,35 @@ public class AdminMainController {
         return new ArrayList<>(sectionMap.values());
     }
 
+    private List<FeatureCatalogItemVO> applyFeatureAssignmentStats(
+            List<FeatureCatalogItemVO> featureRows,
+            Map<String, Integer> featureAssignmentCounts) {
+        if (featureRows == null || featureRows.isEmpty()) {
+            return Collections.emptyList();
+        }
+        for (FeatureCatalogItemVO row : featureRows) {
+            String featureCode = safeString(row.getFeatureCode()).toUpperCase(Locale.ROOT);
+            int assignedRoleCount = featureAssignmentCounts.getOrDefault(featureCode, 0);
+            row.setAssignedRoleCount(assignedRoleCount);
+            row.setUnassignedToRole(assignedRoleCount == 0);
+        }
+        return featureRows;
+    }
+
+    private Map<String, Integer> toFeatureAssignmentCountMap(List<FeatureAssignmentStatVO> stats) {
+        if (stats == null || stats.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<String, Integer> result = new LinkedHashMap<>();
+        for (FeatureAssignmentStatVO stat : stats) {
+            String featureCode = safeString(stat.getFeatureCode()).toUpperCase(Locale.ROOT);
+            if (!featureCode.isEmpty()) {
+                result.put(featureCode, stat.getAssignedRoleCount());
+            }
+        }
+        return result;
+    }
+
     private String resolveSelectedAuthorCode(String authorCode, List<AuthorInfoVO> authorGroups) {
         String normalized = safeString(authorCode).toUpperCase(Locale.ROOT);
         if (!normalized.isEmpty()) {
@@ -4249,7 +4628,26 @@ public class AdminMainController {
         java.util.Set<String> selectedCodes = new java.util.HashSet<>(selectedFeatureCodes);
         return (int) featureSections.stream()
                 .filter(section -> section.getFeatures().stream()
-                        .anyMatch(feature -> selectedCodes.contains(feature.getFeatureCode())))
+                .anyMatch(feature -> selectedCodes.contains(feature.getFeatureCode())))
+                .count();
+    }
+
+    private int countTotalFeatureCount(List<FeatureCatalogSectionVO> featureSections) {
+        if (featureSections == null || featureSections.isEmpty()) {
+            return 0;
+        }
+        return featureSections.stream()
+                .mapToInt(section -> section.getFeatures() == null ? 0 : section.getFeatures().size())
+                .sum();
+    }
+
+    private int countUnassignedFeatureCount(List<FeatureCatalogSectionVO> featureSections) {
+        if (featureSections == null || featureSections.isEmpty()) {
+            return 0;
+        }
+        return (int) featureSections.stream()
+                .flatMap(section -> section.getFeatures().stream())
+                .filter(FeatureCatalogItemVO::isUnassignedToRole)
                 .count();
     }
 
@@ -4375,6 +4773,90 @@ public class AdminMainController {
             log.error("Failed to resolve current admin role. userId={}", safeString(currentUserId), e);
             return "";
         }
+    }
+
+    private void recordApprovalAuditSafely(HttpServletRequest request,
+                                           String actorId,
+                                           String actorRole,
+                                           String menuCode,
+                                           String pageId,
+                                           String actionCode,
+                                           String entityType,
+                                           String entityId,
+                                           String resultStatus,
+                                           String beforeSummaryJson,
+                                           String afterSummaryJson) {
+        try {
+            auditTrailService.record(
+                    actorId,
+                    actorRole,
+                    menuCode,
+                    pageId,
+                    actionCode,
+                    entityType,
+                    entityId,
+                    resultStatus,
+                    "",
+                    beforeSummaryJson,
+                    afterSummaryJson,
+                    resolveRequestIp(request),
+                    request == null ? "" : safeString(request.getHeader("User-Agent"))
+            );
+        } catch (Exception e) {
+            log.warn("Failed to record approval audit. actorId={}, actionCode={}, entityId={}", actorId, actionCode, entityId, e);
+        }
+    }
+
+    private void recordAdminActionAudit(HttpServletRequest request,
+                                        String actorId,
+                                        String actorRole,
+                                        String menuCode,
+                                        String pageId,
+                                        String actionCode,
+                                        String entityType,
+                                        String entityId,
+                                        String beforeSummaryJson,
+                                        String afterSummaryJson) {
+        try {
+            auditTrailService.record(
+                    actorId,
+                    actorRole,
+                    menuCode,
+                    pageId,
+                    actionCode,
+                    entityType,
+                    entityId,
+                    "SUCCESS",
+                    "",
+                    beforeSummaryJson,
+                    afterSummaryJson,
+                    resolveRequestIp(request),
+                    request == null ? "" : safeString(request.getHeader("User-Agent"))
+            );
+        } catch (Exception e) {
+            log.warn("Failed to record admin action audit. actorId={}, actionCode={}, entityId={}", actorId, actionCode, entityId, e);
+        }
+    }
+
+    private String safeJson(String value) {
+        return safeString(value).replace("\"", "'");
+    }
+
+    private String resolveRequestIp(HttpServletRequest request) {
+        if (request == null) {
+            return ClientIpUtil.getClientIp();
+        }
+        String forwarded = safeString(request.getHeader("X-Forwarded-For"));
+        if (!forwarded.isEmpty()) {
+            int index = forwarded.indexOf(',');
+            return index >= 0 ? forwarded.substring(0, index).trim() : forwarded;
+        }
+        String realIp = safeString(request.getHeader("X-Real-IP"));
+        if (!realIp.isEmpty()) {
+            return realIp;
+        }
+        String remoteAddr = safeString(request.getRemoteAddr());
+        return remoteAddr.isEmpty() ? ClientIpUtil.getClientIp() : remoteAddr;
     }
 
     private boolean hasGlobalDeptRoleAccess(String currentUserId, String authorCode) {
@@ -5184,7 +5666,7 @@ public class AdminMainController {
             path = safeString(System.getenv("CARBONET_FILE_INSTT_DIR"));
         }
         if (path.isEmpty()) {
-            path = "./file/instt";
+            path = "./var/file/instt";
         }
         return new File(path).getAbsoluteFile();
     }
@@ -6034,7 +6516,8 @@ public class AdminMainController {
         return safeString(filePath).isEmpty() ? "No document registered" : "Business registration file attached";
     }
 
-    private void populateMemberEditModel(Model model, EntrprsManageVO member, boolean isEn) throws Exception {
+    private void populateMemberEditModel(Model model, EntrprsManageVO member, boolean isEn,
+                                         String currentUserId) throws Exception {
         ensureMemberEditDefaults(model, isEn);
         InstitutionStatusVO institutionInfo = loadInstitutionInfo(member);
         EntrprsManageVO displayMember = mergeMemberWithInstitutionInfo(member, institutionInfo);
@@ -6079,7 +6562,8 @@ public class AdminMainController {
                 safeString(authGroupManageService.selectEnterpriseAuthorCodeByUserId(displayMember.getEntrprsmberId())),
                 safeString(displayMember.getUniqId()),
                 null,
-                isEn);
+                isEn,
+                currentUserId);
     }
 
     private void ensureMemberEditDefaults(Model model, boolean isEn) {
@@ -6136,7 +6620,7 @@ public class AdminMainController {
     }
 
     private void populateAdminAccountEditModel(Model model, EmplyrInfo adminMember, boolean isEn,
-                                               List<String> effectiveFeatureCodes) throws Exception {
+                                               List<String> effectiveFeatureCodes, String currentUserId) throws Exception {
         ensureAdminAccountDefaults(model, isEn);
         model.addAttribute("adminPermissionTarget", adminMember);
         model.addAttribute("adminPermissionStatusLabel", isEn
@@ -6153,15 +6637,19 @@ public class AdminMainController {
                 safeString(authGroupManageService.selectAuthorCodeByUserId(adminMember.getEmplyrId())),
                 safeString(adminMember.getEsntlId()),
                 effectiveFeatureCodes,
-                isEn);
+                isEn,
+                currentUserId);
     }
 
     private void populatePermissionEditorModel(Model model, List<AuthorInfoVO> authorGroups, String selectedAuthorCode,
                                                String scrtyTargetId, List<String> effectiveFeatureCodes,
-                                               boolean isEn) throws Exception {
+                                               boolean isEn, String currentUserId) throws Exception {
         ensurePermissionEditorDefaults(model, isEn);
         List<AuthorInfoVO> safeAuthorGroups = authorGroups == null ? Collections.emptyList() : authorGroups;
-        List<FeatureCatalogSectionVO> featureSections = buildFeatureCatalogSections(authGroupManageService.selectFeatureCatalog(), isEn);
+        Set<String> grantableFeatureCodes = resolveGrantableFeatureCodeSet(currentUserId, isWebmaster(currentUserId));
+        List<FeatureCatalogSectionVO> featureSections = filterFeatureCatalogSectionsByGrantable(
+                buildFeatureCatalogSections(authGroupManageService.selectFeatureCatalog(), isEn),
+                grantableFeatureCodes);
         String normalizedAuthorCode = normalizeSelectedAuthorCode(selectedAuthorCode, safeAuthorGroups);
         Set<String> baselineFeatureCodes = new LinkedHashSet<>(normalizedAuthorCode.isEmpty()
                 ? Collections.emptyList()
@@ -6186,6 +6674,9 @@ public class AdminMainController {
         } else {
             effectiveCodeSet.addAll(baselineFeatureCodes);
         }
+
+        baselineFeatureCodes = filterFeatureCodeSetByGrantable(baselineFeatureCodes, grantableFeatureCodes);
+        effectiveCodeSet = filterFeatureCodeSetByGrantable(effectiveCodeSet, grantableFeatureCodes);
 
         Set<String> addedFeatureCodes = new LinkedHashSet<>(effectiveCodeSet);
         addedFeatureCodes.removeAll(baselineFeatureCodes);
@@ -6312,7 +6803,7 @@ public class AdminMainController {
 
     private void savePermissionOverrides(String scrtyTargetId, String memberTypeCode,
                                          List<String> baselineFeatureCodes, List<String> effectiveFeatureCodes,
-                                         String actorId) throws Exception {
+                                         String actorId, Set<String> grantableFeatureCodes) throws Exception {
         String normalizedTargetId = safeString(scrtyTargetId);
         if (normalizedTargetId.isEmpty()) {
             throw new IllegalArgumentException("Security target ID is required.");
@@ -6320,9 +6811,16 @@ public class AdminMainController {
         Set<String> baseline = new LinkedHashSet<>(baselineFeatureCodes == null
                 ? Collections.emptyList()
                 : normalizeFeatureCodes(baselineFeatureCodes));
-        Set<String> effective = new LinkedHashSet<>(effectiveFeatureCodes == null
+        Set<String> requestedEffective = new LinkedHashSet<>(effectiveFeatureCodes == null
                 ? Collections.emptyList()
                 : normalizeFeatureCodes(effectiveFeatureCodes));
+        Set<String> effective = grantableFeatureCodes == null
+                ? requestedEffective
+                : mergeManagedFeatureSelection(
+                        baseline,
+                        resolveEffectiveFeatureCodeSet(normalizedTargetId, baseline),
+                        requestedEffective,
+                        grantableFeatureCodes);
         List<String> allowFeatureCodes = new ArrayList<>(effective);
         allowFeatureCodes.removeAll(baseline);
         List<String> denyFeatureCodes = new ArrayList<>(baseline);
@@ -6375,6 +6873,139 @@ public class AdminMainController {
             label = fallback.apply(safeString(code.getCode()).toUpperCase(Locale.ROOT));
         }
         return label;
+    }
+
+    private Set<String> resolveGrantableFeatureCodeSet(String currentUserId, boolean webmaster) throws Exception {
+        if (webmaster) {
+            return null;
+        }
+        Set<String> grantable = new LinkedHashSet<>();
+        String currentAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+        if (!currentAuthorCode.isEmpty()) {
+            grantable.addAll(normalizeFeatureCodes(authGroupManageService.selectAuthorFeatureCodes(currentAuthorCode)));
+        }
+        String actorEsntlId = safeString(authGroupManageService.selectAdminEssentialIdByUserId(currentUserId));
+        if (!actorEsntlId.isEmpty()) {
+            applyUserFeatureOverrides(grantable, authGroupManageService.selectUserFeatureOverrides(actorEsntlId));
+        }
+        return grantable;
+    }
+
+    private void applyUserFeatureOverrides(Set<String> featureCodes, List<UserFeatureOverrideVO> overrides) {
+        if (featureCodes == null || overrides == null || overrides.isEmpty()) {
+            return;
+        }
+        for (UserFeatureOverrideVO override : overrides) {
+            String featureCode = safeString(override.getFeatureCode()).toUpperCase(Locale.ROOT);
+            if (featureCode.isEmpty()) {
+                continue;
+            }
+            if ("D".equalsIgnoreCase(safeString(override.getOverrideType()))) {
+                featureCodes.remove(featureCode);
+            } else {
+                featureCodes.add(featureCode);
+            }
+        }
+    }
+
+    private List<FeatureCatalogSectionVO> filterFeatureCatalogSectionsByGrantable(List<FeatureCatalogSectionVO> featureSections,
+                                                                                  Set<String> grantableFeatureCodes) {
+        if (grantableFeatureCodes == null) {
+            return featureSections == null ? Collections.emptyList() : featureSections;
+        }
+        if (featureSections == null || featureSections.isEmpty() || grantableFeatureCodes.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<FeatureCatalogSectionVO> filteredSections = new ArrayList<>();
+        for (FeatureCatalogSectionVO section : featureSections) {
+            List<FeatureCatalogItemVO> filteredFeatures = section.getFeatures().stream()
+                    .filter(feature -> grantableFeatureCodes.contains(safeString(feature.getFeatureCode()).toUpperCase(Locale.ROOT)))
+                    .collect(Collectors.toList());
+            if (filteredFeatures.isEmpty()) {
+                continue;
+            }
+            FeatureCatalogSectionVO filteredSection = new FeatureCatalogSectionVO();
+            filteredSection.setMenuCode(section.getMenuCode());
+            filteredSection.setMenuNm(section.getMenuNm());
+            filteredSection.setMenuNmEn(section.getMenuNmEn());
+            filteredSection.setMenuUrl(section.getMenuUrl());
+            filteredSection.setFeatures(filteredFeatures);
+            filteredSections.add(filteredSection);
+        }
+        return filteredSections;
+    }
+
+    private List<String> filterFeatureCodesByGrantable(List<String> featureCodes, Set<String> grantableFeatureCodes) {
+        if (grantableFeatureCodes == null) {
+            return normalizeFeatureCodes(featureCodes);
+        }
+        if (featureCodes == null || featureCodes.isEmpty() || grantableFeatureCodes.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return normalizeFeatureCodes(featureCodes).stream()
+                .filter(grantableFeatureCodes::contains)
+                .collect(Collectors.toList());
+    }
+
+    private Set<String> filterFeatureCodeSetByGrantable(Set<String> featureCodes, Set<String> grantableFeatureCodes) {
+        if (featureCodes == null || featureCodes.isEmpty()) {
+            return new LinkedHashSet<>();
+        }
+        if (grantableFeatureCodes == null) {
+            return new LinkedHashSet<>(featureCodes);
+        }
+        Set<String> filtered = new LinkedHashSet<>(featureCodes);
+        filtered.retainAll(grantableFeatureCodes);
+        return filtered;
+    }
+
+    private List<String> mergeRoleFeatureSelection(String authorCode, List<String> requestedFeatureCodes,
+                                                   Set<String> grantableFeatureCodes) throws Exception {
+        List<String> normalizedRequested = normalizeFeatureCodes(requestedFeatureCodes);
+        if (grantableFeatureCodes == null) {
+            return normalizedRequested;
+        }
+        Set<String> merged = new LinkedHashSet<>(normalizeFeatureCodes(authGroupManageService.selectAuthorFeatureCodes(authorCode)));
+        merged.removeIf(grantableFeatureCodes::contains);
+        merged.addAll(filterFeatureCodesByGrantable(normalizedRequested, grantableFeatureCodes));
+        return new ArrayList<>(merged);
+    }
+
+    private Set<String> resolveEffectiveFeatureCodeSet(String scrtyTargetId, Set<String> baselineFeatureCodes) throws Exception {
+        Set<String> effective = new LinkedHashSet<>(baselineFeatureCodes == null ? Collections.emptySet() : baselineFeatureCodes);
+        if (!safeString(scrtyTargetId).isEmpty()) {
+            applyUserFeatureOverrides(effective, authGroupManageService.selectUserFeatureOverrides(scrtyTargetId));
+        }
+        return effective;
+    }
+
+    private Set<String> mergeManagedFeatureSelection(Set<String> baselineFeatureCodes, Set<String> currentEffectiveFeatureCodes,
+                                                     Set<String> requestedManagedFeatureCodes,
+                                                     Set<String> grantableFeatureCodes) {
+        if (grantableFeatureCodes == null) {
+            return new LinkedHashSet<>(requestedManagedFeatureCodes);
+        }
+        Set<String> merged = new LinkedHashSet<>(baselineFeatureCodes == null ? Collections.emptySet() : baselineFeatureCodes);
+        Set<String> currentEffective = currentEffectiveFeatureCodes == null ? Collections.emptySet() : currentEffectiveFeatureCodes;
+        for (String featureCode : currentEffective) {
+            if (!grantableFeatureCodes.contains(featureCode)) {
+                merged.add(featureCode);
+            }
+        }
+        if (baselineFeatureCodes != null) {
+            for (String featureCode : baselineFeatureCodes) {
+                if (!grantableFeatureCodes.contains(featureCode) && !currentEffective.contains(featureCode)) {
+                    merged.remove(featureCode);
+                }
+            }
+        }
+        merged.removeIf(grantableFeatureCodes::contains);
+        if (requestedManagedFeatureCodes != null) {
+            merged.addAll(requestedManagedFeatureCodes.stream()
+                    .filter(grantableFeatureCodes::contains)
+                    .collect(Collectors.toCollection(LinkedHashSet::new)));
+        }
+        return merged;
     }
 
     private List<Map<String, String>> defaultMemberTypeOptions(boolean isEn) {

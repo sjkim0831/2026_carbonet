@@ -7,6 +7,9 @@
     <meta th:if="${_csrf != null}" name="_csrf_header" th:content="${_csrf.headerName}">
     <title th:text="${reactShellTitle}">React Migration Shell</title>
     <meta name="description" th:content="${reactShellDescription}">
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Public+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
@@ -33,12 +36,7 @@
     </style>
 </head>
 <body>
-<div id="root">
-    <section class="react-shell-fallback">
-        <p>React migration shell loading...</p>
-        <p>Add <code>?dev=1</code> to use the Vite dev server.</p>
-    </section>
-</div>
+<div id="root"></div>
 
 <script th:inline="javascript">
     window.__CARBONET_REACT_MIGRATION__ = {

@@ -7,7 +7,12 @@ import egovframework.com.feature.admin.service.MenuInfoService;
 import org.egovframe.rte.fdl.cmmn.EgovAbstractServiceImpl;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.LinkedHashMap;
 
 @Service("menuInfoService")
 public class MenuInfoServiceImpl extends EgovAbstractServiceImpl implements MenuInfoService {
@@ -25,12 +30,12 @@ public class MenuInfoServiceImpl extends EgovAbstractServiceImpl implements Menu
 
     @Override
     public List<MenuInfoDTO> selectAdminMenuDetailList(String codeId) {
-        return menuInfoMapper.selectAdminMenuDetailList(codeId);
+        return sortMenuRows(menuInfoMapper.selectAdminMenuDetailList(codeId));
     }
 
     @Override
     public List<MenuInfoDTO> selectMenuTreeList(String codeId) {
-        return menuInfoMapper.selectMenuTreeList(codeId);
+        return sortMenuRows(menuInfoMapper.selectMenuTreeList(codeId));
     }
 
     @Override
@@ -46,5 +51,84 @@ public class MenuInfoServiceImpl extends EgovAbstractServiceImpl implements Menu
             return;
         }
         menuInfoMapper.insertMenuOrder(menuCode, sortOrdr);
+    }
+
+    private List<MenuInfoDTO> sortMenuRows(List<MenuInfoDTO> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return rows;
+        }
+        List<MenuInfoDTO> sorted = new ArrayList<>(rows);
+        Map<String, Integer> sortOrderMap = new LinkedHashMap<>();
+        for (MenuInfoDTO row : sorted) {
+            String code = safeString(row.getCode()).toUpperCase(Locale.ROOT);
+            if (!code.isEmpty()) {
+                sortOrderMap.put(code, row.getSortOrdr());
+            }
+        }
+        sorted.sort(Comparator
+                .comparingInt((MenuInfoDTO row) -> codeDepth(row.getCode()))
+                .thenComparing(row -> domainCode(row.getCode()))
+                .thenComparingInt(row -> parentDepthSort(row, sortOrderMap))
+                .thenComparingInt(row -> effectiveSort(row.getCode(), row.getSortOrdr()))
+                .thenComparing(row -> safeString(row.getCode())));
+        return sorted;
+    }
+
+    private int codeDepth(String code) {
+        return safeString(code).length();
+    }
+
+    private String domainCode(String code) {
+        String normalized = safeString(code).toUpperCase(Locale.ROOT);
+        return normalized.substring(0, Math.min(4, normalized.length()));
+    }
+
+    private int parentDepthSort(MenuInfoDTO row, Map<String, Integer> sortOrderMap) {
+        String code = safeString(row.getCode()).toUpperCase(Locale.ROOT);
+        if (code.length() == 6) {
+            return normalizeSort(sortOrderMap.get(code.substring(0, 4)));
+        }
+        if (code.length() == 8) {
+            Integer groupSort = sortOrderMap.get(code.substring(0, 6));
+            if (groupSort != null) {
+                return normalizeSort(groupSort);
+            }
+            return normalizeSort(sortOrderMap.get(code.substring(0, 4)));
+        }
+        return 0;
+    }
+
+    private int effectiveSort(String code, Integer sortOrdr) {
+        if (sortOrdr != null) {
+            return sortOrdr;
+        }
+        return fallbackCodeSort(code);
+    }
+
+    private int normalizeSort(Integer sortOrdr) {
+        return sortOrdr == null ? Integer.MAX_VALUE : sortOrdr;
+    }
+
+    private int fallbackCodeSort(String code) {
+        String normalized = safeString(code);
+        if (normalized.length() == 4) {
+            return parseSort(normalized.substring(1));
+        }
+        if (normalized.length() >= 6) {
+            return parseSort(normalized.substring(normalized.length() - 2));
+        }
+        return Integer.MAX_VALUE;
+    }
+
+    private int parseSort(String value) {
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            return Integer.MAX_VALUE;
+        }
+    }
+
+    private String safeString(String value) {
+        return value == null ? "" : value.trim();
     }
 }

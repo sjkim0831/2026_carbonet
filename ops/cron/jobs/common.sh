@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_ROOT="/opt/projects/carbonet"
-LOG_DIR="${PROJECT_ROOT}/logs/cron"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../../project-paths.sh"
+
+LOG_DIR="${LOG_ROOT}/cron"
 APP_URL="http://127.0.0.1:18000/home"
 
 mkdir -p "${LOG_DIR}"

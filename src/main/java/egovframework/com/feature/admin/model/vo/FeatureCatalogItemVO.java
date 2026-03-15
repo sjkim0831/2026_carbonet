@@ -16,4 +16,6 @@ public class FeatureCatalogItemVO {
     private String featureNmEn;
     private String featureDc;
     private String useAt;
+    private int assignedRoleCount;
+    private boolean unassignedToRole;
 }

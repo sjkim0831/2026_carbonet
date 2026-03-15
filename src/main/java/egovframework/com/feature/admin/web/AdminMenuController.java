@@ -280,8 +280,14 @@ public class AdminMenuController {
         if (url.isEmpty() || "#".equals(url)) {
             return url;
         }
-        String mapped = ReactPageUrlMapper.toRuntimeUrl(url, isEn);
-        return mapped.isEmpty() ? url : mapped;
+        String canonical = ReactPageUrlMapper.toCanonicalMenuUrl(url);
+        if (!canonical.isEmpty()) {
+            url = canonical;
+        }
+        if (isEn && !url.startsWith("/en/")) {
+            return "/en" + url;
+        }
+        return url;
     }
 
     private String safeString(String value) {
@@ -329,9 +335,10 @@ public class AdminMenuController {
     }
 
     private String resolveCodeByUrl(List<MenuInfoDTO> rows, String menuUrl) {
-        String normalizedUrl = normalizeMenuUrl(menuUrl);
+        String normalizedUrl = ReactPageUrlMapper.toCanonicalMenuUrl(normalizeMenuUrl(menuUrl));
         for (MenuInfoDTO row : rows) {
-            if (normalizeMenuUrl(row.getMenuUrl()).equals(normalizedUrl)) {
+            String rowUrl = ReactPageUrlMapper.toCanonicalMenuUrl(normalizeMenuUrl(row.getMenuUrl()));
+            if (rowUrl.equals(normalizedUrl)) {
                 return safeString(row.getCode());
             }
         }

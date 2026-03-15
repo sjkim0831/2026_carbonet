@@ -29,7 +29,12 @@ import java.util.Locale;
 import java.util.Map;
 
 @Controller
-@RequestMapping({"/admin/system/codex-provision", "/en/admin/system/codex-provision"})
+@RequestMapping({
+        "/admin/system/codex-request",
+        "/en/admin/system/codex-request",
+        "/admin/system/codex-provision",
+        "/en/admin/system/codex-provision"
+})
 @RequiredArgsConstructor
 @Slf4j
 public class CodexProvisionAdminController {

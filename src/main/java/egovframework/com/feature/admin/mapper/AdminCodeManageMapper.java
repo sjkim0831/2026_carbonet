@@ -109,6 +109,10 @@ public class AdminCodeManageMapper extends BaseMapperSupport {
         update("AdminCodeManageMapper.updatePageManagementMenu", params);
     }
 
+    public void updatePageManagementNames(AdminCodeCommandDTO params) {
+        update("AdminCodeManageMapper.updatePageManagementNames", params);
+    }
+
     public void updatePageManagementUseAt(AdminCodeCommandDTO params) {
         update("AdminCodeManageMapper.updatePageManagementUseAt", params);
     }

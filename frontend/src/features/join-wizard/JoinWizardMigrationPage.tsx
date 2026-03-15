@@ -1,111 +1,26 @@
 import { useEffect, useState } from "react";
-import { fetchJoinSession, JoinSessionPayload, resetJoinSession, saveJoinStep1 } from "../../lib/api";
-import { buildLocalizedPath, getSearchParam, isEnglish, navigate } from "../../lib/runtime";
-
-type MembershipCard = {
-  value: string;
-  icon: string;
-  iconWrapClass: string;
-  iconClass: string;
-  hoverIconWrapClass: string;
-  title: string;
-  description: string;
-};
-
-const KO_CARDS: MembershipCard[] = [
-  {
-    value: "EMITTER",
-    icon: "factory",
-    iconWrapClass: "bg-blue-50",
-    iconClass: "text-[var(--kr-gov-blue)]",
-    hoverIconWrapClass: "group-hover:bg-[var(--kr-gov-blue)]",
-    title: "CO2 배출 및 포집 기업",
-    description: "이산화탄소를 배출하거나\n포집 시설을 운영하는 기업"
-  },
-  {
-    value: "PERFORMER",
-    icon: "settings_suggest",
-    iconWrapClass: "bg-cyan-50",
-    iconClass: "text-cyan-600",
-    hoverIconWrapClass: "group-hover:bg-cyan-700",
-    title: "CCUS 사업 수행 기업",
-    description: "수송·저장 및 활용 등\nCCUS 사업을 수행하는 기업"
-  },
-  {
-    value: "CENTER",
-    icon: "hub",
-    iconWrapClass: "bg-emerald-50",
-    iconClass: "text-[#008450]",
-    hoverIconWrapClass: "group-hover:bg-[#008450]",
-    title: "CCUS 진흥센터",
-    description: "시스템 운영 및 CCUS 기술\n진흥 업무를 담당하는 기관"
-  },
-  {
-    value: "GOV",
-    icon: "account_balance",
-    iconWrapClass: "bg-slate-100",
-    iconClass: "text-slate-600",
-    hoverIconWrapClass: "group-hover:bg-slate-700",
-    title: "주무관청 / 행정기관",
-    description: "정책 수립 및 관리를 담당하는\n정부 부처 및 행정기관"
-  }
-];
-
-const EN_CARDS: MembershipCard[] = [
-  {
-    value: "EMITTER",
-    icon: "factory",
-    iconWrapClass: "bg-blue-50",
-    iconClass: "text-[var(--kr-gov-blue)]",
-    hoverIconWrapClass: "group-hover:bg-[var(--kr-gov-blue)]",
-    title: "CO2 Emitter / Capture Company",
-    description: "Companies that emit CO2\nor operate carbon capture facilities"
-  },
-  {
-    value: "PERFORMER",
-    icon: "settings_suggest",
-    iconWrapClass: "bg-cyan-50",
-    iconClass: "text-cyan-600",
-    hoverIconWrapClass: "group-hover:bg-cyan-700",
-    title: "CCUS Project Executor",
-    description: "Companies engaged in\ntransport, storage, and utilization of CO2"
-  },
-  {
-    value: "CENTER",
-    icon: "hub",
-    iconWrapClass: "bg-emerald-50",
-    iconClass: "text-[#008450]",
-    hoverIconWrapClass: "group-hover:bg-[#008450]",
-    title: "CCUS Promotion Center",
-    description: "Organizations in charge\nof system operation and CCUS technology promotion"
-  },
-  {
-    value: "GOV",
-    icon: "account_balance",
-    iconWrapClass: "bg-slate-100",
-    iconClass: "text-slate-600",
-    hoverIconWrapClass: "group-hover:bg-slate-700",
-    title: "Competent Authority / Government",
-    description: "Government ministries and\nadministrative agencies responsible for policy"
-  }
-];
+import { resetJoinSession, saveJoinStep1 } from "../../lib/api/client";
+import { useJoinSession } from "../../app/hooks/useJoinSession";
+import {
+  UserGovernmentBar,
+  UserLanguageToggle,
+  UserPortalHeader
+} from "../../components/user-shell/UserPortalChrome";
+import { buildLocalizedPath, getSearchParam, isEnglish, navigate } from "../../lib/navigation/runtime";
+import { EN_MEMBERSHIP_CARDS, KO_MEMBERSHIP_CARDS } from "../join/sharedMembershipCards";
 
 export function JoinWizardMigrationPage() {
   const en = isEnglish();
-  const [session, setSession] = useState<JoinSessionPayload | null>(null);
   const [membershipType, setMembershipType] = useState("EMITTER");
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
-
-  async function loadSession() {
-    const payload = await fetchJoinSession();
-    setSession(payload);
-    setMembershipType(String(payload.membershipType || "EMITTER"));
-  }
-
-  useEffect(() => {
-    void loadSession().catch((nextError: Error) => setError(nextError.message));
-  }, []);
+  const [actionError, setActionError] = useState("");
+  const sessionState = useJoinSession({
+    onSuccess(payload) {
+      setMembershipType(String(payload.membershipType || "EMITTER"));
+    }
+  });
+  const session = sessionState.value;
+  const error = actionError || sessionState.error;
 
   useEffect(() => {
     if (getSearchParam("expired") === "1") {
@@ -130,97 +45,45 @@ export function JoinWizardMigrationPage() {
 
   async function handleCardSelect(nextType: string) {
     setMembershipType(nextType);
-    setError("");
+    setActionError("");
     try {
       await saveJoinStep1(nextType);
-      await loadSession();
+      await sessionState.reload();
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : "Failed to save join step1");
+      setActionError(nextError instanceof Error ? nextError.message : "Failed to save join step1");
     }
   }
 
   async function handleNext() {
     setSubmitting(true);
-    setError("");
+    setActionError("");
     try {
       await saveJoinStep1(membershipType);
       navigate(buildLocalizedPath("/join/step2", "/join/en/step2"));
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : "Failed to save join step1");
+      setActionError(nextError instanceof Error ? nextError.message : "Failed to save join step1");
     } finally {
       setSubmitting(false);
     }
   }
 
-  const cards = en ? EN_CARDS : KO_CARDS;
+  const cards = en ? EN_MEMBERSHIP_CARDS : KO_MEMBERSHIP_CARDS;
 
   return (
     <div className="join-step1-screen bg-[var(--kr-gov-bg-gray)] text-[var(--kr-gov-text-primary)] min-h-screen flex flex-col">
       <a className="skip-link" href="#main-content">{en ? "Skip to content" : "본문 바로가기"}</a>
 
-      <div className="bg-white border-b border-[var(--kr-gov-border-light)]">
-        <div className="max-w-7xl mx-auto px-4 lg:px-8 py-2 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <img
-              alt={en ? "Emblem of the Republic of Korea" : "대한민국 정부 상징"}
-              className="h-4"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8BPzqtzSLVGSrjt4mzhhVBy9SocCRDssk1F3XRVu7Xq9jHh7qzzt48wFi8qduCiJmB0LRQczPB7waPe3h0gkjn3jOEDxt6UJSJjdXNf8P-4WlM2BEZrfg2SL91uSiZrFcCk9KYrsdg-biTS9dtJ_OIghDBEVoAzMc33XcCYR_UP0QQdoYzBe840YrtH40xGyB9MSr0QH4D0foqlvOhG0jX8CDayXNlDsSKlfClVd3K2aodlwg4xSxgXHB3vnnnA0L2yNBNihQQg0"
-            />
-            <span className="text-[13px] font-medium text-[var(--kr-gov-text-secondary)]">
-              {en ? "Official Government Service of the Republic of Korea" : "대한민국 정부 공식 서비스"}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <header className="bg-white border-b border-[var(--kr-gov-border-light)] sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            <div className="flex items-center gap-3 shrink-0">
-              <a className="flex items-center gap-2 focus-visible" href="#" onClick={(event) => {
-                event.preventDefault();
-                void handleHome();
-              }}>
-                <span className="material-symbols-outlined text-[32px] text-[var(--kr-gov-blue)]" style={{ fontVariationSettings: "'wght' 600" }}>
-                  eco
-                </span>
-                <div className="flex flex-col">
-                  <h1 className="text-lg font-bold tracking-tight text-[var(--kr-gov-text-primary)] leading-none">
-                    {en ? "CCUS Carbon Footprint Platform" : "CCUS 탄소발자국 플랫폼"}
-                  </h1>
-                  <p className="text-[9px] text-[var(--kr-gov-text-secondary)] font-bold uppercase tracking-wider mt-1">
-                    Carbon Footprint Platform
-                  </p>
-                </div>
-              </a>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="flex border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] overflow-hidden">
-                <button
-                  className={`px-3 py-1 text-xs font-bold ${en ? "bg-white text-[var(--kr-gov-text-secondary)] hover:bg-gray-100" : "bg-[var(--kr-gov-blue)] text-white"}`}
-                  id="langKoBtn"
-                  onClick={() => void handleLanguageChange(false)}
-                  type="button"
-                >
-                  KO
-                </button>
-                <button
-                  className={`px-3 py-1 text-xs font-bold border-l border-[var(--kr-gov-border-light)] ${en ? "bg-[var(--kr-gov-blue)] text-white" : "bg-white text-[var(--kr-gov-text-secondary)] hover:bg-gray-100"}`}
-                  id="langEnBtn"
-                  onClick={() => void handleLanguageChange(true)}
-                  type="button"
-                >
-                  EN
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <UserGovernmentBar governmentText={en ? "Official Government Service of the Republic of Korea" : "대한민국 정부 공식 서비스"} />
+      <UserPortalHeader
+        brandSubtitle="Carbon Footprint Platform"
+        brandTitle={en ? "CCUS Carbon Footprint Platform" : "CCUS 탄소발자국 플랫폼"}
+        onHomeClick={() => { void handleHome(); }}
+        rightContent={<UserLanguageToggle en={en} onEn={() => { void handleLanguageChange(true); }} onKo={() => { void handleLanguageChange(false); }} />}
+      />
 
       <main className="flex-grow py-12 px-4" id="main-content">
         <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-10">
+          <div className="text-center mb-10" data-help-id="join-hero">
             <h2 className="text-3xl font-bold text-[var(--kr-gov-text-primary)] mb-2">{en ? "Registration" : "회원가입"}</h2>
             <p className="text-[var(--kr-gov-text-secondary)]">
               {en ? "Please select the membership type that fits your organization." : "사용자 환경에 맞는 회원 유형을 선택해 주세요."}
@@ -253,9 +116,9 @@ export function JoinWizardMigrationPage() {
             </div>
           ) : null}
 
-          <fieldset className="mb-12">
+          <fieldset className="mb-12" data-help-id="join-step1-cards">
             <legend className="sr-only">{en ? "Membership type selection" : "회원 유형 선택"}</legend>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" data-help-id="membership-type-card-group">
               {cards.map((card) => {
                 const active = membershipType === card.value;
                 return (
@@ -289,25 +152,27 @@ export function JoinWizardMigrationPage() {
             </div>
           </fieldset>
 
-          <div className="flex items-center justify-center gap-4">
-            <button
-              className="w-40 h-14 border border-[var(--kr-gov-border-light)] bg-white text-[var(--kr-gov-text-primary)] flex items-center justify-center rounded-[var(--kr-gov-radius)] font-bold hover:bg-gray-50 transition-colors"
-              onClick={() => void handleHome()}
-              type="button"
-            >
-              {en ? "Home" : "홈으로"}
-            </button>
-            <button
-              className="w-40 h-14 bg-[var(--kr-gov-blue)] text-white flex items-center justify-center rounded-[var(--kr-gov-radius)] font-bold hover:bg-[var(--kr-gov-blue-hover)] transition-colors"
-              disabled={submitting || !session?.canViewStep1}
-              onClick={() => void handleNext()}
-              type="button"
-            >
-              {submitting ? "..." : en ? "Next" : "다음 단계"}
-            </button>
+          <div className="flex items-center justify-center gap-4" data-help-id="join-step1-actions">
+            <div className="flex items-center justify-center gap-4" data-help-id="join-wizard-actions">
+              <button
+                className="w-40 h-14 border border-[var(--kr-gov-border-light)] bg-white text-[var(--kr-gov-text-primary)] flex items-center justify-center rounded-[var(--kr-gov-radius)] font-bold hover:bg-gray-50 transition-colors"
+                onClick={() => void handleHome()}
+                type="button"
+              >
+                {en ? "Home" : "홈으로"}
+              </button>
+              <button
+                className="w-40 h-14 bg-[var(--kr-gov-blue)] text-white flex items-center justify-center rounded-[var(--kr-gov-radius)] font-bold hover:bg-[var(--kr-gov-blue-hover)] transition-colors"
+                disabled={submitting || !session?.canViewStep1}
+                onClick={() => void handleNext()}
+                type="button"
+              >
+                {submitting ? "..." : en ? "Next" : "다음 단계"}
+              </button>
+            </div>
           </div>
 
-          <div className="max-w-5xl mx-auto mt-16 bg-white border border-[var(--kr-gov-border-light)] p-6 rounded-lg">
+          <div className="max-w-5xl mx-auto mt-16 bg-white border border-[var(--kr-gov-border-light)] p-6 rounded-lg" data-help-id="join-step1-guide">
             <div className="flex gap-3">
               <span className="material-symbols-outlined text-blue-600">help</span>
               <div className="text-sm text-[var(--kr-gov-text-secondary)]">

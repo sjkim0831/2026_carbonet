@@ -40,7 +40,7 @@
                     <a class="js-gnb-menu px-5 py-2 text-[16px] font-bold text-[var(--kr-gov-text-secondary)] hover:text-[var(--kr-gov-blue)]"
                         data-domain="대시보드" href="/admin/">대시보드</a>
                     <a class="js-gnb-menu px-5 py-2 text-[16px] font-bold text-[var(--kr-gov-text-secondary)] hover:text-[var(--kr-gov-blue)]"
-                        data-domain="회원관리" href="/admin/react-migration?route=member-list">회원관리</a>
+                        data-domain="회원관리" href="/admin/member/list">회원관리</a>
                 <a class="js-gnb-menu px-5 py-2 text-[16px] font-bold text-[var(--kr-gov-text-secondary)] hover:text-[var(--kr-gov-blue)]"
                     data-domain="배출/인증" href="#">배출/인증</a>
                 <a class="js-gnb-menu px-5 py-2 text-[16px] font-bold text-[var(--kr-gov-text-secondary)] hover:text-[var(--kr-gov-blue)]"
@@ -353,7 +353,21 @@
             "회원관리": { label: "회원관리", labelEn: "Member Management", summary: "회원 관리", groups: [] },
             "배출/인증": { label: "배출/인증", labelEn: "Emissions/Certification", summary: "배출 및 인증 관리", groups: [] },
             "거래/정산": { label: "거래/정산", labelEn: "Transactions/Settlement", summary: "거래 및 정산 관리", groups: [] },
-            "콘텐츠": { label: "콘텐츠", labelEn: "Content", summary: "콘텐츠 관리", groups: [] },
+            "콘텐츠": {
+                label: "콘텐츠",
+                labelEn: "Content",
+                summary: "콘텐츠 관리",
+                groups: [
+                    {
+                        title: "콘텐츠 운영",
+                        titleEn: "Content Operations",
+                        icon: "inventory_2",
+                        links: [
+                            { text: "사이트맵", tEn: "Sitemap", u: "/admin/content/sitemap", icon: "map" }
+                        ]
+                    }
+                ]
+            },
             "외부연계": { label: "외부연계", labelEn: "External Integration", summary: "외부 연계 관리", groups: [] },
             "시스템": {
                 label: "시스템",
@@ -368,7 +382,17 @@
                             { text: "코드 관리", tEn: "Code Management", u: "/admin/system/code", icon: "category" },
                             { text: "페이지 관리", tEn: "Page Management", u: "/admin/system/page-management", icon: "web" },
                             { text: "기능 관리", tEn: "Function Management", u: "/admin/system/feature-management", icon: "extension" },
-                            { text: "메뉴 관리", tEn: "Menu Management", u: "/admin/system/menu-management", icon: "account_tree" }
+                            { text: "메뉴 관리", tEn: "Menu Management", u: "/admin/system/menu-management", icon: "account_tree" },
+                            { text: "풀스택 관리", tEn: "Full-Stack Management", u: "/admin/system/full-stack-management", icon: "hub" },
+                            { text: "플랫폼 스튜디오", tEn: "Platform Studio", u: "/admin/system/platform-studio", icon: "dashboard_customize" },
+                            { text: "화면 요소 관리", tEn: "Screen Elements", u: "/admin/system/screen-elements-management?focus=surfaces", icon: "crop_landscape" },
+                            { text: "이벤트 관리", tEn: "Event Management", u: "/admin/system/event-management-console?focus=events", icon: "bolt" },
+                            { text: "함수 콘솔", tEn: "Function Console", u: "/admin/system/function-management-console?focus=functions", icon: "functions" },
+                            { text: "API 관리", tEn: "API Management", u: "/admin/system/api-management-console?focus=apis", icon: "api" },
+                            { text: "컨트롤러 관리", tEn: "Controller Management", u: "/admin/system/controller-management-console?focus=controllers", icon: "account_tree" },
+                            { text: "DB 테이블 관리", tEn: "DB Table Management", u: "/admin/system/db-table-management?focus=db", icon: "database" },
+                            { text: "컬럼 관리", tEn: "Column Management", u: "/admin/system/column-management-console?focus=columns", icon: "view_column" },
+                            { text: "자동화 스튜디오", tEn: "Automation Studio", u: "/admin/system/automation-studio?focus=automation", icon: "smart_toy" }
                         ]
                     }
                 ]
@@ -449,7 +473,6 @@
             if (!pathOrUrl || pathOrUrl === "#") {
                 return pathOrUrl;
             }
-            pathOrUrl = legacyAdminPathToReact(pathOrUrl);
             var parts = pathOrUrl.split("?");
             var path = parts[0];
             var params = new URLSearchParams(parts[1] || "");
@@ -608,18 +631,18 @@
                 var permissionLinks = Array.isArray(permissionGroup.links) ? permissionGroup.links.slice() : [];
                 var historyLinks = Array.isArray(historyGroup.links) ? historyGroup.links.slice() : [];
                 var requiredMemberLinks = [
-                    { text: "회원 목록", tEn: "Member List", u: "/admin/react-migration?route=member-list", icon: "list_alt" },
+                    { text: "회원 목록", tEn: "Member List", u: "/admin/member/list", icon: "list_alt" },
                     { text: "신규 회원 등록", tEn: "New Member Registration", u: "/admin/member/register", icon: "person_add" }
                 ];
                 var requiredCompanyLinks = [
-                    { text: "회원사 목록", tEn: "Company List", u: "/admin/react-migration?route=company-list", icon: "apartment" },
-                    { text: "회원사 가입승인", tEn: "Company Approval", u: "/admin/react-migration?route=company-approve", icon: "verified_user" },
-                    { text: "회원사 추가", tEn: "Add Company", u: "/admin/react-migration?route=company-account", icon: "person_add" }
+                    { text: "회원사 목록", tEn: "Company List", u: "/admin/member/company_list", icon: "apartment" },
+                    { text: "회원사 가입승인", tEn: "Company Approval", u: "/admin/member/company-approve", icon: "verified_user" },
+                    { text: "회원사 추가", tEn: "Add Company", u: "/admin/member/company_account", icon: "person_add" }
                 ];
                 var requiredPermissionLinks = [
-                    { text: "권한 그룹", tEn: "Permission Groups", u: "/admin/react-migration?route=auth-group", icon: "admin_panel_settings" },
-                    { text: "권한 변경", tEn: "Authority Change", u: "/admin/react-migration?route=auth-change", icon: "manage_accounts" },
-                    { text: "부서 권한 맵핑", tEn: "Department Role Mapping", u: "/admin/react-migration?route=dept-role", icon: "account_tree" }
+                    { text: "권한 그룹", tEn: "Permission Groups", u: "/admin/auth/group", icon: "admin_panel_settings" },
+                    { text: "권한 변경", tEn: "Authority Change", u: "/admin/member/auth-change", icon: "manage_accounts" },
+                    { text: "부서 권한 맵핑", tEn: "Department Role Mapping", u: "/admin/member/dept-role-mapping", icon: "account_tree" }
                 ];
                 var requiredHistoryLinks = [
                     { text: "로그인 이력", tEn: "Login History", u: "/admin/member/login_history", icon: "history" }
@@ -721,6 +744,47 @@
                 merged["회원관리"] = memberEntry;
             }
 
+            var contentEntry = merged["콘텐츠"];
+            if (!contentEntry) {
+                contentEntry = {
+                    label: "콘텐츠",
+                    labelEn: "Content",
+                    summary: "콘텐츠 관리",
+                    groups: []
+                };
+                merged["콘텐츠"] = contentEntry;
+            }
+
+            var contentGroups = Array.isArray(contentEntry.groups) ? contentEntry.groups.slice() : [];
+            var contentOperationsGroup = null;
+            var hasAdminSitemap = false;
+            contentGroups.forEach(function (group) {
+                var title = (group && group.title ? group.title : "") + " " + (group && group.titleEn ? group.titleEn : "");
+                if (title.indexOf("콘텐츠 운영") !== -1 || title.toLowerCase().indexOf("content operations") !== -1 || title.indexOf("콘텐츠") !== -1) {
+                    contentOperationsGroup = group;
+                }
+                (group.links || []).forEach(function (link) {
+                    var url = link.u || link.url || link.route || "";
+                    if (url === "/admin/content/sitemap" || url === "/en/admin/content/sitemap") {
+                        hasAdminSitemap = true;
+                    }
+                });
+            });
+            if (!contentOperationsGroup) {
+                contentOperationsGroup = {
+                    title: "콘텐츠 운영",
+                    titleEn: "Content Operations",
+                    icon: "inventory_2",
+                    links: []
+                };
+                contentGroups.push(contentOperationsGroup);
+            }
+            if (!hasAdminSitemap) {
+                contentOperationsGroup.links.push({ text: "사이트맵", tEn: "Sitemap", u: "/admin/content/sitemap", icon: "map" });
+            }
+            contentEntry.groups = contentGroups;
+            merged["콘텐츠"] = contentEntry;
+
             var systemEntry = merged["시스템"];
             if (!systemEntry) {
                 return merged;
@@ -797,6 +861,31 @@
                 var menuManagementLink = { text: "메뉴 관리", tEn: "Menu Management", u: "/admin/system/menu-management", icon: "account_tree" };
                 environmentGroup.links.push(menuManagementLink);
             }
+            var hasFullStackManagement = environmentGroup.links.some(function (link) {
+                return link && (link.u === "/admin/system/full-stack-management" || link.u === "/en/admin/system/full-stack-management");
+            });
+            if (!hasFullStackManagement) {
+                var fullStackManagementLink = { text: "풀스택 관리", tEn: "Full-Stack Management", u: "/admin/system/full-stack-management", icon: "hub" };
+                environmentGroup.links.push(fullStackManagementLink);
+            }
+            [
+                { text: "플랫폼 스튜디오", tEn: "Platform Studio", u: "/admin/system/platform-studio", icon: "dashboard_customize" },
+                { text: "화면 요소 관리", tEn: "Screen Elements", u: "/admin/system/screen-elements-management?focus=surfaces", icon: "crop_landscape" },
+                { text: "이벤트 관리", tEn: "Event Management", u: "/admin/system/event-management-console?focus=events", icon: "bolt" },
+                { text: "함수 콘솔", tEn: "Function Console", u: "/admin/system/function-management-console?focus=functions", icon: "functions" },
+                { text: "API 관리", tEn: "API Management", u: "/admin/system/api-management-console?focus=apis", icon: "api" },
+                { text: "컨트롤러 관리", tEn: "Controller Management", u: "/admin/system/controller-management-console?focus=controllers", icon: "account_tree" },
+                { text: "DB 테이블 관리", tEn: "DB Table Management", u: "/admin/system/db-table-management?focus=db", icon: "database" },
+                { text: "컬럼 관리", tEn: "Column Management", u: "/admin/system/column-management-console?focus=columns", icon: "view_column" },
+                { text: "자동화 스튜디오", tEn: "Automation Studio", u: "/admin/system/automation-studio?focus=automation", icon: "smart_toy" }
+            ].forEach(function (requiredLink) {
+                var exists = environmentGroup.links.some(function (link) {
+                    return link && ((link.u || "") === requiredLink.u || (link.text || "") === requiredLink.text);
+                });
+                if (!exists) {
+                    environmentGroup.links.push(requiredLink);
+                }
+            });
             var securityOpsGroup = null;
             groups.forEach(function (group) {
                 var title = (group && group.title ? group.title : "") + " " + (group && group.titleEn ? group.titleEn : "");
@@ -855,8 +944,10 @@
             }
 
             [
+                { text: "도움말 운영", tEn: "Help Management", u: "/admin/system/help-management", icon: "help_center" },
+                { text: "SR 워크벤치", tEn: "SR Workbench", u: "/admin/system/sr-workbench", icon: "assignment" },
                 { text: "크론/스케줄러 관리", tEn: "Cron Scheduler Management", u: "/admin/system/scheduler", icon: "schedule" },
-                { text: "Codex Provision", tEn: "Codex Provision", u: "/admin/system/codex-provision", icon: "smart_toy" }
+                { text: "Codex 요청", tEn: "Codex Request", u: "/admin/system/codex-request", icon: "smart_toy" }
             ].forEach(function (requiredLink) {
                 var exists = false;
                 (automationGroup.links || []).forEach(function (link) {
@@ -1116,12 +1207,12 @@
             var text = item.text || item.t || "";
             var route = item.route || item.path || "";
             if (route) {
-                return withLanguage(route);
+                return withLanguage(adminReactRouteToLegacy(route));
             }
             var source = item.u || item.url || "";
             if (source) {
                 if (source.charAt(0) === "/" && source.indexOf(".html") === -1) {
-                    return withLanguage(source);
+                    return withLanguage(adminReactRouteToLegacy(source));
                 }
                 var matchedAdminHtml = source.match(/\/admin\/(.+)\.html$/);
                 if (matchedAdminHtml && matchedAdminHtml[1]) {
@@ -1133,14 +1224,10 @@
                 "Dashboard": "/admin/",
                 "신규 회원 등록": "/admin/member/register",
                 "New Member Registration": "/admin/member/register",
-                "가입 승인": "/admin/react-migration?route=member-approve",
-                "Membership Approval": "/admin/react-migration?route=member-approve",
-                "회원사 가입승인": "/admin/react-migration?route=company-approve",
-                "Company Approval": "/admin/react-migration?route=company-approve",
-                "회원 수정": "/admin/react-migration?route=member-edit",
-                "Edit Member": "/admin/react-migration?route=member-edit",
-                "회원 상세": "/admin/react-migration?route=member-detail",
-                "Member Detail": "/admin/react-migration?route=member-detail",
+                "가입 승인": "/admin/member/approve",
+                "Membership Approval": "/admin/member/approve",
+                "회원사 가입승인": "/admin/member/company-approve",
+                "Company Approval": "/admin/member/company-approve",
                 "접근 차단 이력": "/admin/system/security",
                 "Access Block History": "/admin/system/security",
                 "보안 정책 관리": "/admin/system/security-policy",
@@ -1155,15 +1242,17 @@
                 "IP Whitelist": "/admin/system/ip_whitelist",
                 "크론/스케줄러 관리": "/admin/system/scheduler",
                 "Cron Scheduler Management": "/admin/system/scheduler",
-                "Codex Provision": "/admin/system/codex-provision",
+                "Codex Provision": "/admin/system/codex-request",
+                "Codex Request": "/admin/system/codex-request",
+                "Codex 요청": "/admin/system/codex-request",
                 "로그인 이력": "/admin/member/login_history",
                 "Login History": "/admin/member/login_history",
-                "권한 그룹": "/admin/react-migration?route=auth-group",
-                "Permission Groups": "/admin/react-migration?route=auth-group",
-                "권한 변경": "/admin/react-migration?route=auth-change",
-                "Authority Change": "/admin/react-migration?route=auth-change",
-                "부서 권한 맵핑": "/admin/react-migration?route=dept-role",
-                "Department Role Mapping": "/admin/react-migration?route=dept-role",
+                "권한 그룹": "/admin/auth/group",
+                "Permission Groups": "/admin/auth/group",
+                "권한 변경": "/admin/member/auth-change",
+                "Authority Change": "/admin/member/auth-change",
+                "부서 권한 맵핑": "/admin/member/dept-role-mapping",
+                "Department Role Mapping": "/admin/member/dept-role-mapping",
                 "코드 관리": "/admin/system/code",
                 "Code Management": "/admin/system/code",
                 "페이지 관리": "/admin/system/page-management",
@@ -1171,7 +1260,29 @@
                 "기능 관리": "/admin/system/feature-management",
                 "Function Management": "/admin/system/feature-management",
                 "메뉴 관리": "/admin/system/menu-management",
-                "Menu Management": "/admin/system/menu-management"
+                "Menu Management": "/admin/system/menu-management",
+                "풀스택 관리": "/admin/system/full-stack-management",
+                "Full-Stack Management": "/admin/system/full-stack-management",
+                "플랫폼 스튜디오": "/admin/system/platform-studio",
+                "Platform Studio": "/admin/system/platform-studio",
+                "화면 요소 관리": "/admin/system/screen-elements-management",
+                "Screen Elements": "/admin/system/screen-elements-management",
+                "이벤트 관리": "/admin/system/event-management-console",
+                "Event Management": "/admin/system/event-management-console",
+                "함수 콘솔": "/admin/system/function-management-console",
+                "Function Console": "/admin/system/function-management-console",
+                "API 관리": "/admin/system/api-management-console",
+                "API Management": "/admin/system/api-management-console",
+                "컨트롤러 관리": "/admin/system/controller-management-console",
+                "Controller Management": "/admin/system/controller-management-console",
+                "DB 테이블 관리": "/admin/system/db-table-management",
+                "DB Table Management": "/admin/system/db-table-management",
+                "컬럼 관리": "/admin/system/column-management-console",
+                "Column Management": "/admin/system/column-management-console",
+                "자동화 스튜디오": "/admin/system/automation-studio",
+                "Automation Studio": "/admin/system/automation-studio",
+                "사이트맵": "/admin/content/sitemap",
+                "Sitemap": "/admin/content/sitemap"
             };
             if (directMap[text]) {
                 return withLanguage(directMap[text]);
@@ -1571,10 +1682,6 @@
                 window.localStorage.setItem("adminGnbDomain", domain);
                 setActive(domain);
                 renderLnb(domain);
-                var firstPath = findFirstNavigablePath(domain);
-                if (firstPath) {
-                    window.location.href = firstPath;
-                }
             });
         });
     });

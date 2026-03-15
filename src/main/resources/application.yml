@@ -19,7 +19,7 @@ spring:
     active: local
   datasource:
     driver-class-name: cubrid.jdbc.driver.CUBRIDDriver
-    url: jdbc:cubrid:${CUBRID_HOST:127.0.0.1}:33000:carbonet:::?charset=UTF-8
+    url: jdbc:cubrid:${CUBRID_HOST:100.121.241.72}:33000:carbonet:::?charset=UTF-8
     username: dba
     password: ""
     hikari:
@@ -93,9 +93,32 @@ security:
     enabled: ${SECURITY_CODEX_ENABLED:false}
     api-key: ${SECURITY_CODEX_API_KEY:}
     history-file: ${SECURITY_CODEX_HISTORY_FILE:/tmp/carbonet-codex-history.jsonl}
+    runner:
+      enabled: ${SECURITY_CODEX_RUNNER_ENABLED:false}
+      repo-root: ${SECURITY_CODEX_RUNNER_REPO_ROOT:}
+      workspace-root: ${SECURITY_CODEX_RUNNER_WORKSPACE_ROOT:/tmp/carbonet-sr-codex-runner}
+      history-file: ${SECURITY_CODEX_RUNNER_HISTORY_FILE:/tmp/carbonet-sr-codex-runner-history.jsonl}
+      allowed-path-prefixes: ${SECURITY_CODEX_RUNNER_ALLOWED_PATH_PREFIXES:src/main/java,src/main/resources,frontend/src,docs/ai,ops/scripts}
+      codex-command: ${SECURITY_CODEX_RUNNER_CODEX_COMMAND:}
+      backend-verify-command: ${SECURITY_CODEX_RUNNER_BACKEND_VERIFY_COMMAND:mvn -q -DskipTests package}
+      frontend-verify-command: ${SECURITY_CODEX_RUNNER_FRONTEND_VERIFY_COMMAND:npm run build}
+      frontend-verify-workdir: ${SECURITY_CODEX_RUNNER_FRONTEND_VERIFY_WORKDIR:frontend}
+      deploy-command: ${SECURITY_CODEX_RUNNER_DEPLOY_COMMAND:}
+      command-timeout-seconds: ${SECURITY_CODEX_RUNNER_COMMAND_TIMEOUT_SECONDS:1800}
+      verify-timeout-seconds: ${SECURITY_CODEX_RUNNER_VERIFY_TIMEOUT_SECONDS:1800}
   request-log:
     enabled: ${SECURITY_REQUEST_LOG_ENABLED:true}
     file: ${SECURITY_REQUEST_LOG_FILE:/tmp/carbonet-request-execution-history.jsonl}
+
+observability:
+  trace:
+    enabled: ${OBSERVABILITY_TRACE_ENABLED:true}
+    response-headers-enabled: ${OBSERVABILITY_TRACE_RESPONSE_HEADERS_ENABLED:true}
+  audit:
+    enabled: ${OBSERVABILITY_AUDIT_ENABLED:true}
+    log-writer-enabled: ${OBSERVABILITY_AUDIT_LOG_WRITER_ENABLED:true}
+  ui:
+    manifest-enabled: ${OBSERVABILITY_UI_MANIFEST_ENABLED:true}
 
 management:
   endpoints:

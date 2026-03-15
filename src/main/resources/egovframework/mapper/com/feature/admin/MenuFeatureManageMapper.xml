@@ -16,6 +16,8 @@
             ON D.CODE = M.MENU_CODE
            AND D.CODE_ID = #{codeId}
         WHERE LENGTH(M.MENU_CODE) = 8
+          AND COALESCE(D.USE_AT, 'Y') = 'Y'
+          AND COALESCE(M.USE_AT, 'Y') = 'Y'
         ORDER BY D.CODE
     </select>
 
@@ -57,6 +59,12 @@
         WHERE FEATURE_CODE = #{featureCode}
     </select>
 
+    <select id="countFeaturesByMenuCode" parameterType="egovframework.com.feature.admin.dto.request.AdminMenuFeatureCommandDTO" resultType="int">
+        SELECT COUNT(*)
+        FROM COMTNMENUFUNCTIONINFO
+        WHERE MENU_CODE = #{menuCode}
+    </select>
+
     <insert id="insertMenuFeature" parameterType="egovframework.com.feature.admin.dto.request.AdminMenuFeatureCommandDTO">
         INSERT INTO COMTNMENUFUNCTIONINFO (
             MENU_CODE,
@@ -78,6 +86,16 @@
             CURRENT_DATETIME
         )
     </insert>
+
+    <update id="updateMenuFeatureMetadata" parameterType="egovframework.com.feature.admin.dto.request.AdminMenuFeatureCommandDTO">
+        UPDATE COMTNMENUFUNCTIONINFO
+        SET FEATURE_NM = #{featureNm},
+            FEATURE_NM_EN = #{featureNmEn},
+            FEATURE_DC = #{featureDc},
+            USE_AT = #{useAt},
+            LAST_UPDT_PNTTM = CURRENT_DATETIME
+        WHERE FEATURE_CODE = #{featureCode}
+    </update>
 
     <delete id="deleteMenuFeature" parameterType="string">
         DELETE FROM COMTNMENUFUNCTIONINFO

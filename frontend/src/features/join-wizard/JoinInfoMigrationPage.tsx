@@ -1,14 +1,18 @@
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { useJoinSession } from "../../app/hooks/useJoinSession";
+import {
+  UserGovernmentBar,
+  UserPortalHeader
+} from "../../components/user-shell/UserPortalChrome";
 import {
   checkJoinEmail,
   checkJoinMemberId,
-  fetchJoinSession,
-  JoinSessionPayload,
   resetJoinSession,
   searchJoinCompanies,
   submitJoinStep4
-} from "../../lib/api";
-import { buildLocalizedPath, isEnglish, navigate } from "../../lib/runtime";
+} from "../../lib/api/client";
+import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
 
 type JoinFormState = {
   mberId: string;
@@ -27,6 +31,11 @@ type JoinFormState = {
   bizrno: string;
   representativeName: string;
   deptNm: string;
+};
+
+type UploadRow = {
+  id: number;
+  file: File | null;
 };
 
 const COPY = {
@@ -188,24 +197,20 @@ const INITIAL_FORM: JoinFormState = {
 export function JoinInfoMigrationPage() {
   const en = isEnglish();
   const copy = COPY[en ? "en" : "ko"];
-  const [session, setSession] = useState<JoinSessionPayload | null>(null);
   const [form, setForm] = useState<JoinFormState>(INITIAL_FORM);
-  const [files, setFiles] = useState<File[]>([]);
-  const [error, setError] = useState("");
+  const [uploadRows, setUploadRows] = useState<UploadRow[]>([{ id: 1, file: null }]);
+  const [actionError, setActionError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [idChecked, setIdChecked] = useState(false);
   const [emailChecked, setEmailChecked] = useState(false);
   const [idMessage, setIdMessage] = useState("");
   const [emailMessage, setEmailMessage] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
+  const [draftSearchKeyword, setDraftSearchKeyword] = useState("");
   const [searchKeyword, setSearchKeyword] = useState("");
   const [searchPage, setSearchPage] = useState(1);
-  const [searchResult, setSearchResult] = useState<{ list: Array<{ insttId: string; cmpnyNm: string; bizrno: string; cxfc: string }>; totalPages: number } | null>(null);
-  const [searchLoading, setSearchLoading] = useState(false);
-
-  useEffect(() => {
-    void fetchJoinSession().then((payload) => {
-      setSession(payload);
+  const sessionState = useJoinSession({
+    onSuccess(payload) {
       const joinVO = (payload.joinVO || {}) as Record<string, unknown>;
       setForm((current) => ({
         ...current,
@@ -213,19 +218,27 @@ export function JoinInfoMigrationPage() {
         applcntEmailAdres: String(joinVO.authEmail || ""),
         deptNm: String(joinVO.deptNm || "")
       }));
-    }).catch((nextError: Error) => setError(nextError.message));
-  }, []);
-
-  useEffect(() => {
-    if (!modalOpen) {
-      return;
     }
-    setSearchLoading(true);
-    void searchJoinCompanies({ keyword: searchKeyword, page: searchPage, size: 5, status: "P" })
-      .then((result) => setSearchResult({ list: result.list, totalPages: result.totalPages }))
-      .catch(() => setError(copy.searchError))
-      .finally(() => setSearchLoading(false));
-  }, [copy.searchError, modalOpen, searchKeyword, searchPage]);
+  });
+  const session = sessionState.value;
+  const searchState = useAsyncValue(
+    () => searchJoinCompanies({
+      keyword: searchKeyword,
+      page: searchPage,
+      size: 5,
+      status: "P",
+      membershipType: session?.membershipType
+    }),
+    [modalOpen, searchKeyword, searchPage, session?.membershipType],
+    {
+      enabled: modalOpen,
+      initialValue: { list: [], totalCnt: 0, page: 1, size: 5, totalPages: 0 },
+      onError: () => undefined
+    }
+  );
+  const searchResult = searchState.value;
+  const searchLoading = searchState.loading;
+  const error = actionError || sessionState.error || (searchState.error ? copy.searchError : "");
 
   useEffect(() => {
     const script = document.createElement("script");
@@ -305,7 +318,9 @@ export function JoinInfoMigrationPage() {
   function handleFileChange(index: number, event: ChangeEvent<HTMLInputElement>) {
     const nextFile = event.target.files?.[0];
     if (!nextFile) {
-      setFiles((current) => current.filter((_, currentIndex) => currentIndex !== index));
+      setUploadRows((current) => current.map((row, currentIndex) => (
+        currentIndex === index ? { ...row, file: null } : row
+      )));
       return;
     }
     const lower = nextFile.name.toLowerCase();
@@ -320,21 +335,24 @@ export function JoinInfoMigrationPage() {
       event.target.value = "";
       return;
     }
-    setFiles((current) => {
+    setUploadRows((current) => {
       const next = [...current];
-      next[index] = nextFile;
+      next[index] = { ...next[index], file: nextFile };
       return next;
     });
   }
 
   function addFileRow() {
-    setFiles((current) => [...current, new File([], "")]);
+    setUploadRows((current) => [
+      ...current,
+      { id: current.length === 0 ? 1 : Math.max(...current.map((row) => row.id)) + 1, file: null }
+    ]);
   }
 
   function removeFileRow(index: number) {
-    setFiles((current) => {
+    setUploadRows((current) => {
       if (current.length <= 1) {
-        return [];
+        return [{ ...current[0], file: null }];
       }
       return current.filter((_, currentIndex) => currentIndex !== index);
     });
@@ -369,16 +387,19 @@ export function JoinInfoMigrationPage() {
       window.alert(copy.pwMismatch);
       return;
     }
-    const uploadedFiles = files.filter((file) => file.size > 0);
+    const uploadedFiles = uploadRows
+      .map((row) => row.file)
+      .filter((file): file is File => Boolean(file && file.size > 0));
     if (uploadedFiles.length === 0) {
       window.alert(copy.needFile);
       return;
     }
 
     setSubmitting(true);
-    setError("");
+    setActionError("");
     try {
       const result = await submitJoinStep4({
+        membershipType: session?.membershipType,
         mberId: form.mberId,
         password: form.password,
         mberNm: form.mberNm,
@@ -403,7 +424,7 @@ export function JoinInfoMigrationPage() {
       }));
       navigate(buildLocalizedPath("/join/step5", "/join/en/step5"));
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : "Failed to submit join step4");
+      setActionError(nextError instanceof Error ? nextError.message : "Failed to submit join step4");
     } finally {
       setSubmitting(false);
     }
@@ -412,6 +433,27 @@ export function JoinInfoMigrationPage() {
   async function handleHome() {
     await resetJoinSession();
     navigate(buildLocalizedPath("/home", "/en/home"));
+  }
+
+  async function handleOpenCompanySearch() {
+    setActionError("");
+    if (!await sessionState.reload()) {
+      setActionError(copy.searchError);
+      return;
+    }
+    setDraftSearchKeyword("");
+    setSearchKeyword("");
+    setSearchPage(1);
+    setModalOpen(true);
+  }
+
+  function closeCompanySearch() {
+    setModalOpen(false);
+  }
+
+  function runCompanySearch(page = 1) {
+    setSearchKeyword(draftSearchKeyword.trim());
+    setSearchPage(page);
   }
 
   function selectCompany(row: { insttId: string; cmpnyNm: string; bizrno: string; cxfc: string }) {
@@ -425,36 +467,16 @@ export function JoinInfoMigrationPage() {
     setModalOpen(false);
   }
 
-  const fileRows = files.length === 0 ? [null] : files;
-
   return (
-    <div className="join-step4-screen bg-[#f8f9fa] text-[var(--kr-gov-text-primary)] min-h-screen flex flex-col">
+    <div className="join-step4-screen bg-[var(--kr-gov-bg-gray)] text-[var(--kr-gov-text-primary)] min-h-screen flex flex-col">
       <a className="skip-link" href="#main-content">{en ? "Skip to content" : "본문 바로가기"}</a>
 
-      <div className="bg-white border-b border-[var(--kr-gov-border-light)]">
-        <div className="max-w-7xl mx-auto px-4 lg:px-8 py-2 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <img alt={en ? "Emblem of the Republic of Korea" : "대한민국 정부 상징"} className="h-4" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8BPzqtzSLVGSrjt4mzhhVBy9SocCRDssk1F3XRVu7Xq9jHh7qzzt48wFi8qduCiJmB0LRQczPB7waPe3h0gkjn3jOEDxt6UJSJjdXNf8P-4WlM2BEZrfg2SL91uSiZrFcCk9KYrsdg-biTS9dtJ_OIghDBEVoAzMc33XcCYR_UP0QQdoYzBe840YrtH40xGyB9MSr0QH4D0foqlvOhG0jX8CDayXNlDsSKlfClVd3K2aodlwg4xSxgXHB3vnnnA0L2yNBNihQQg0" />
-            <span className="text-[13px] font-medium text-[var(--kr-gov-text-secondary)]">{en ? "Official Government Service of the Republic of Korea" : "대한민국 정부 공식 서비스"}</span>
-          </div>
-        </div>
-      </div>
-
-      <header className="bg-white border-b border-[var(--kr-gov-border-light)] sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            <div className="flex items-center gap-3 shrink-0">
-              <a className="flex items-center gap-2 focus-visible" href="#" onClick={(event) => { event.preventDefault(); void handleHome(); }}>
-                <span className="material-symbols-outlined text-[32px] text-[var(--kr-gov-blue)]" style={{ fontVariationSettings: "'wght' 600" }}>eco</span>
-                <div className="flex flex-col">
-                  <h1 className="text-lg font-bold tracking-tight text-[var(--kr-gov-text-primary)] leading-none">{en ? "CCUS Carbon Footprint Platform" : "CCUS 탄소발자국 플랫폼"}</h1>
-                  <p className="text-[9px] text-[var(--kr-gov-text-secondary)] font-bold uppercase tracking-wider mt-1">Carbon Footprint Platform</p>
-                </div>
-              </a>
-            </div>
-          </div>
-        </div>
-      </header>
+      <UserGovernmentBar governmentText={en ? "Official Government Service of the Republic of Korea" : "대한민국 정부 공식 서비스"} />
+      <UserPortalHeader
+        brandSubtitle="Carbon Capture, Utilization and Storage"
+        brandTitle={en ? "CCUS Integrated Management Portal" : "CCUS 통합관리 포털"}
+        onHomeClick={() => { void handleHome(); }}
+      />
 
       <main className="flex-grow py-12 px-4" id="main-content">
         <div className="max-w-5xl mx-auto">
@@ -479,8 +501,8 @@ export function JoinInfoMigrationPage() {
 
           <div className="bg-white border border-[var(--kr-gov-border-light)] rounded-lg shadow-sm overflow-hidden p-8 md:p-12">
             <form className="space-y-10" onSubmit={(event) => { event.preventDefault(); void handleSubmit(); }}>
-              <section>
-                <h3 className="text-lg font-bold text-[var(--kr-gov-text-primary)] flex items-center gap-2 mb-6 pb-2 border-b-2 border-gray-100">
+              <section data-help-id="join-step4-user">
+                <h3 className="section-title">
                   <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">person</span>
                   {copy.userSection}
                 </h3>
@@ -521,7 +543,7 @@ export function JoinInfoMigrationPage() {
                   <div className="md:col-span-2 space-y-1">
                     <label className="form-label" htmlFor="email">{copy.email} <span className="text-red-500">*</span></label>
                     <div className="flex gap-2">
-                      <input className="form-input" id="email" onChange={(event) => updateField("applcntEmailAdres", event.target.value)} placeholder={copy.emailPlaceholder} required type="email" value={form.applcntEmailAdres} />
+                      <input className="form-input" id="email" inputMode="email" onChange={(event) => updateField("applcntEmailAdres", event.target.value)} placeholder={copy.emailPlaceholder} required type="text" value={form.applcntEmailAdres} />
                       <button className="px-4 bg-gray-800 text-white text-sm font-bold rounded-[var(--kr-gov-radius)] whitespace-nowrap" onClick={() => void handleCheckEmail()} type="button">{copy.duplicateCheck}</button>
                     </div>
                     {emailMessage ? <div className={`mt-1 text-[12px] ${emailChecked ? "text-green-600 font-bold" : "text-red-500"}`}>{emailMessage}</div> : null}
@@ -538,8 +560,8 @@ export function JoinInfoMigrationPage() {
                 </div>
               </section>
 
-              <section>
-                <h3 className="text-lg font-bold text-[var(--kr-gov-text-primary)] flex items-center gap-2 mb-6 pb-2 border-b-2 border-gray-100">
+              <section data-help-id="join-step4-org">
+                <h3 className="section-title">
                   <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">corporate_fare</span>
                   {copy.orgSection}
                 </h3>
@@ -547,8 +569,8 @@ export function JoinInfoMigrationPage() {
                   <div className="md:col-span-2 space-y-1">
                     <label className="form-label" htmlFor="company-search">{copy.companyName} <span className="text-red-500">*</span></label>
                     <div className="relative">
-                      <input className="form-input pr-24" id="company-search" placeholder={copy.companyPlaceholder} readOnly required type="text" value={form.insttNm} />
-                      <button className="absolute right-2 top-2 bottom-2 px-4 bg-[var(--kr-gov-blue)] text-white text-sm font-bold rounded-[var(--kr-gov-radius)] flex items-center gap-1" onClick={() => { setModalOpen(true); setSearchPage(1); }} type="button">
+                      <input className={`form-input pr-24${en ? " bg-gray-50" : ""}`} id="company-search" placeholder={copy.companyPlaceholder} readOnly required type="text" value={form.insttNm} />
+                      <button className="absolute right-2 top-2 bottom-2 px-4 bg-[var(--kr-gov-blue)] text-white text-sm font-bold rounded-[var(--kr-gov-radius)] flex items-center gap-1" onClick={() => void handleOpenCompanySearch()} type="button">
                         <span className="material-symbols-outlined text-sm">search</span> {copy.search}
                       </button>
                     </div>
@@ -565,30 +587,30 @@ export function JoinInfoMigrationPage() {
                     <label className="form-label" htmlFor="department">{copy.department}</label>
                     <input className="form-input" id="department" onChange={(event) => updateField("deptNm", event.target.value)} placeholder={copy.departmentPlaceholder} type="text" value={form.deptNm} />
                   </div>
-                  <div className="md:col-span-2 space-y-1">
+                  <div className="md:col-span-2 space-y-1" data-help-id="join-step4-files">
                     <label className="form-label">{copy.fileTitle} <span className="text-red-500">*</span></label>
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <p className="text-sm text-[var(--kr-gov-text-secondary)]">{copy.fileDesc}</p>
-                        <button className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded transition-colors border border-gray-200" onClick={addFileRow} type="button">
+                        <button className="join-upload-add-btn" onClick={addFileRow} type="button">
                           <span className="material-symbols-outlined text-[18px]">add</span>{copy.addFile}
                         </button>
                       </div>
                       <div className="space-y-2">
-                        {fileRows.map((file, index) => (
-                          <div className={`flex items-center gap-3 p-3 border border-gray-200 rounded-lg bg-white group hover:border-[var(--kr-gov-blue)] transition-all ${file ? "border-[var(--kr-gov-blue)] bg-blue-50/30" : ""}`} key={index}>
-                            <span className="material-symbols-outlined text-gray-400 group-hover:text-[var(--kr-gov-blue)]">attach_file</span>
+                        {uploadRows.map((row, index) => (
+                          <div className={`join-upload-row ${row.file && row.file.size > 0 ? "is-selected" : ""}`} key={row.id}>
+                            <span className="material-symbols-outlined join-upload-icon">attach_file</span>
                             <div className="flex-grow min-w-0">
-                              <input accept=".pdf,.jpg,.jpeg,.png" className="hidden" id={`file-input-${index}`} onChange={(event) => handleFileChange(index, event)} type="file" />
-                              <label className="block cursor-pointer" htmlFor={`file-input-${index}`}>
+                              <input accept=".pdf,.jpg,.jpeg,.png" className="hidden" id={`file-input-${row.id}`} onChange={(event) => handleFileChange(index, event)} type="file" />
+                              <label className="join-upload-label" htmlFor={`file-input-${row.id}`}>
                                 <div className="flex items-center justify-between">
-                                  <span className={`truncate text-sm ${file ? "font-bold text-[var(--kr-gov-blue)]" : "text-gray-500"}`}>{file && file.size > 0 ? file.name : copy.emptyFile}</span>
-                                  <span className="text-xs text-gray-400">{file && file.size > 0 ? formatBytes(file.size) : ""}</span>
+                                  <span className={`join-upload-name ${row.file && row.file.size > 0 ? "is-selected" : ""}`}>{row.file && row.file.size > 0 ? row.file.name : copy.emptyFile}</span>
+                                  <span className="join-upload-size">{row.file && row.file.size > 0 ? formatBytes(row.file.size) : ""}</span>
                                 </div>
                               </label>
                             </div>
-                            {fileRows.length > 1 || (file && file.size > 0) ? (
-                              <button className="text-gray-400 hover:text-red-500 transition-colors" onClick={() => removeFileRow(index)} type="button">
+                            {uploadRows.length > 1 || (row.file && row.file.size > 0) ? (
+                              <button className="join-upload-remove-btn" onClick={() => removeFileRow(index)} type="button">
                                 <span className="material-symbols-outlined">close</span>
                               </button>
                             ) : null}
@@ -614,13 +636,13 @@ export function JoinInfoMigrationPage() {
         </div>
       </main>
 
-      <div aria-labelledby="modal-title" aria-modal="true" className={`fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center p-4 backdrop-blur-sm ${modalOpen ? "" : "hidden"}`} role="dialog">
-        <div className="bg-white w-full max-w-[800px] rounded-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div aria-labelledby="modal-title" aria-modal="true" className={`modal-overlay ${modalOpen ? "" : "hidden"}`} role="dialog">
+        <div className="modal-container">
           <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
             <h2 className="text-xl font-bold text-[var(--kr-gov-text-primary)] flex items-center gap-2" id="modal-title">
               <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">corporate_fare</span>{copy.companyModalTitle}
             </h2>
-            <button className="text-gray-400 hover:text-gray-600 rounded-full p-1" onClick={() => setModalOpen(false)} type="button"><span className="material-symbols-outlined">close</span></button>
+            <button className="text-gray-400 hover:text-gray-600 rounded-full p-1" onClick={closeCompanySearch} type="button"><span className="material-symbols-outlined">close</span></button>
           </div>
           <div className="p-6 overflow-y-auto">
             <div className="mb-8">
@@ -629,9 +651,22 @@ export function JoinInfoMigrationPage() {
                 <div className="flex gap-2">
                   <div className="relative flex-grow">
                     <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">search</span>
-                    <input className="form-input pl-11" id="modal-search" onChange={(event) => setSearchKeyword(event.target.value)} placeholder={copy.companyModalPlaceholder} type="text" value={searchKeyword} />
+                    <input
+                      className="form-input pl-11"
+                      id="modal-search"
+                      onChange={(event) => setDraftSearchKeyword(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          runCompanySearch(1);
+                        }
+                      }}
+                      placeholder={copy.companyModalPlaceholder}
+                      type="text"
+                      value={draftSearchKeyword}
+                    />
                   </div>
-                  <button className="px-8 bg-[var(--kr-gov-blue)] text-white font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)] transition-colors" onClick={() => setSearchPage(1)} type="button">{copy.search}</button>
+                  <button className="px-8 bg-[var(--kr-gov-blue)] text-white font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)] transition-colors" onClick={() => runCompanySearch(1)} type="button">{copy.search}</button>
                 </div>
               </div>
             </div>
@@ -675,7 +710,7 @@ export function JoinInfoMigrationPage() {
             </div>
           </div>
           <div className="px-6 py-4 bg-gray-100 flex justify-end gap-2">
-            <button className="px-6 py-2.5 bg-white border border-[var(--kr-gov-border-light)] text-[var(--kr-gov-text-primary)] font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-50" onClick={() => setModalOpen(false)} type="button">{copy.cancel}</button>
+            <button className="px-6 py-2.5 bg-white border border-[var(--kr-gov-border-light)] text-[var(--kr-gov-text-primary)] font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-50" onClick={closeCompanySearch} type="button">{copy.cancel}</button>
           </div>
         </div>
       </div>

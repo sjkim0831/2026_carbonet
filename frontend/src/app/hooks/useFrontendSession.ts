@@ -1,0 +1,55 @@
+import { useMemo } from "react";
+import { fetchFrontendSession, FrontendSession, invalidateFrontendSessionCache } from "../../lib/api/client";
+import { buildLocalizedPath, getCsrfMeta, getNavigationEventName, isEnglish, navigate } from "../../lib/navigation/runtime";
+import { useAsyncValue } from "./useAsyncValue";
+
+type UseFrontendSessionOptions = {
+  enabled?: boolean;
+};
+
+export function useFrontendSession(options: UseFrontendSessionOptions = {}) {
+  const { enabled = true } = options;
+  const sessionState = useAsyncValue<FrontendSession>(fetchFrontendSession, [], { enabled });
+  const logoutMessage = isEnglish()
+    ? "Do you want to log out?"
+    : "로그아웃 하시겠습니까?";
+
+  const actions = useMemo(() => ({
+    async logout() {
+      if (!window.confirm(logoutMessage)) {
+        return;
+      }
+
+      const session = sessionState.value;
+      const headers: Record<string, string> = {};
+      const csrf = getCsrfMeta();
+      if (session?.csrfHeaderName && session.csrfToken) {
+        headers[session.csrfHeaderName] = session.csrfToken;
+      } else if (csrf.token) {
+        headers[csrf.headerName] = csrf.token;
+      }
+
+      try {
+        await fetch(buildLocalizedPath("/signin/actionLogout", "/en/signin/actionLogout"), {
+          method: "POST",
+          credentials: "include",
+          headers
+        });
+      } finally {
+        invalidateFrontendSessionCache();
+        const nextPath = buildLocalizedPath("/home", "/en/home");
+        const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+        if (currentPath === nextPath) {
+          window.dispatchEvent(new Event(getNavigationEventName()));
+          return;
+        }
+        navigate(nextPath);
+      }
+    }
+  }), [logoutMessage, sessionState.value]);
+
+  return {
+    ...sessionState,
+    ...actions
+  };
+}

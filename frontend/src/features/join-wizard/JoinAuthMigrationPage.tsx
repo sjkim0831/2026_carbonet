@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { resetJoinSession, saveJoinStep3 } from "../../lib/api";
-import { buildLocalizedPath, isEnglish, navigate } from "../../lib/runtime";
+import { resetJoinSession, saveJoinStep3 } from "../../lib/api/client";
+import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
 
 type AuthOption = {
   method: string;
@@ -241,6 +241,7 @@ export function JoinAuthMigrationPage() {
           <div
             aria-label={en ? "Select identity verification method" : "본인인증 수단 선택"}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto mb-16"
+            data-help-id="join-step3-methods"
             id="authForm"
           >
             {options.map((option) => (
