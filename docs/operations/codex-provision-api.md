@@ -452,9 +452,9 @@ curl -X POST "http://localhost:18000/signin/codex/provision" \
 ```
 
 ## 중계 스크립트
-- 스크립트: [codex_provision.sh](/opt/projects/carbonet-react-migration/ops/scripts/scripts/codex_provision.sh)
-- 샘플 요청: [codex-provision-request.sample.json](/opt/projects/carbonet-react-migration/ops/scripts/scripts/codex-provision-request.sample.json)
-- SR 워크벤치 샘플 요청: [sr-workbench-provision-request.sample.json](/opt/projects/carbonet-react-migration/ops/scripts/scripts/sr-workbench-provision-request.sample.json)
+- 스크립트: [codex_provision.sh](/opt/projects/carbonet/ops/scripts/codex_provision.sh)
+- 샘플 요청: [codex-provision-request.sample.json](/opt/projects/carbonet/ops/scripts/codex-provision-request.sample.json)
+- SR 워크벤치 샘플 요청: [sr-workbench-provision-request.sample.json](/opt/projects/carbonet/ops/scripts/sr-workbench-provision-request.sample.json)
 
 사용 예시:
 ```bash
@@ -462,12 +462,12 @@ export SECURITY_CODEX_ENABLED=true
 export SECURITY_CODEX_API_KEY='your-secret-key'
 export CODEX_BASE_URL='http://localhost:18000'
 
-bash ops/scripts/scripts/codex_provision.sh ops/scripts/scripts/codex-provision-request.sample.json
+bash ops/scripts/codex_provision.sh ops/scripts/codex-provision-request.sample.json
 ```
 
 stdin으로도 호출 가능하다:
 ```bash
-cat ops/scripts/scripts/codex-provision-request.sample.json | bash ops/scripts/scripts/codex_provision.sh -
+cat ops/scripts/codex-provision-request.sample.json | bash ops/scripts/codex_provision.sh -
 ```
 
 ## 운영 권장 방식
