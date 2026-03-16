@@ -5,6 +5,7 @@ interface Props {
   children: ReactNode;
   fallback?: ReactNode;
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
+  resetKey?: string;
 }
 
 interface State {
@@ -45,6 +46,12 @@ export class ErrorBoundary extends Component<Props, State> {
     }
 
     this.reportErrorToBackend(errorDetails);
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    if (this.state.hasError && prevProps.resetKey !== this.props.resetKey) {
+      this.setState({ hasError: false, error: null });
+    }
   }
 
   private generateFingerprint(error: Error, errorInfo: ErrorInfo): string {

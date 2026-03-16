@@ -573,6 +573,7 @@ export default function App() {
   const [routeLoading, setRouteLoading] = useState(false);
   preloadPageModule(page);
   const CurrentPage = getPageComponent(page);
+  const boundaryResetKey = `${page}|${window.location.pathname}|${window.location.search}`;
 
   usePageTelemetry(page, locale);
 
@@ -740,7 +741,7 @@ export default function App() {
         </div>
       ) : null}
 
-      <ErrorBoundary>
+      <ErrorBoundary resetKey={boundaryResetKey}>
         <Suspense fallback={<PageLoadingFallback />}>
           <CurrentPage />
         </Suspense>
