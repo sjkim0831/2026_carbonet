@@ -56,15 +56,7 @@
     script.type = "module";
     script.src = useDevServer ? `${config.devUrl}/src/main.tsx` : config.prodJs;
     script.onerror = () => {
-        const root = document.getElementById("root");
-        if (root) {
-            root.innerHTML = `
-              <section class="react-shell-fallback">
-                <p>React bundle could not be loaded.</p>
-                <p>Use <code>?dev=1</code> for the Vite dev server, or provide the built bundle at <code>${config.prodJs}</code>.</p>
-              </section>
-            `;
-        }
+        console.error("React bundle could not be loaded.", config.prodJs);
     };
     document.body.appendChild(script);
 </script>

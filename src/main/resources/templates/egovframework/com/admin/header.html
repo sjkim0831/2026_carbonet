@@ -8,7 +8,8 @@
         <div class="max-w-full mx-auto px-6 py-1.5 flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <img th:attr="alt=${isEn} ? 'Government Symbol of the Republic of Korea' : '대한민국정부 상징'" alt="대한민국정부 상징" class="h-3.5"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8BPzqtzSLVGSrjt4mzhhVBy9SocCRDssk1F3XRVu7Xq9jHh7qzzt48wFi8qduCiJmB0LRQczPB7waPe3h0gkjn3jOEDxt6UJSJjdXNf8P-4WlM2BEZrfg2SL91uSiZrFcCk9KYrsdg-biTS9dtJ_OIghDBEVoAzMc33XcCYR_UP0QQdoYzBe840YrtH40xGyB9MSr0QH4D0foqlvOhG0jX8CDayXNlDsSKlfClVd3K2aodlwg4xSxgXHB3vnnnA0L2yNBNihQQg0" />
+                    onerror="if (this.dataset.fallbackApplied === '1') { this.style.display='none'; return; } this.dataset.fallbackApplied='1'; this.src='/img/egovframework/kr_gov_symbol.svg';"
+                    th:src="@{/img/egovframework/kr_gov_symbol.png}" src="/img/egovframework/kr_gov_symbol.png" />
                 <span id="admin-top-gov-text" class="text-[12px] font-medium text-[var(--kr-gov-text-secondary)]"
                     th:text="${isEn} ? 'Official Government Service of the Republic of Korea' : '대한민국정부 공식 누리집'">대한민국정부 공식 누리집</span>
             </div>
@@ -192,9 +193,13 @@
     .js-admin-lnb .gnb-tree-links {
         margin-left: .5rem;
     }
+    :root {
+        --admin-shell-offset: 124px;
+    }
     .js-admin-layout-shell {
         position: relative;
         align-items: stretch;
+        min-height: calc(100dvh - var(--admin-shell-offset));
         background:
             linear-gradient(
                 90deg,
@@ -217,14 +222,21 @@
     }
     .js-admin-lnb {
         position: sticky;
-        top: 124px;
+        top: var(--admin-shell-offset);
         align-self: flex-start;
+        flex: 0 0 18rem;
         z-index: 10;
         background: #fff;
         border-right: 0 !important;
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-        min-height: calc(100vh - 124px);
-        max-height: calc(100vh - 124px);
+        height: calc(100dvh - var(--admin-shell-offset));
+        min-height: calc(100dvh - var(--admin-shell-offset));
+        max-height: calc(100dvh - var(--admin-shell-offset));
+        overflow-y: auto;
+    }
+    .js-admin-lnb-body {
+        flex: 1 1 auto;
+        min-height: 0;
         overflow-y: auto;
     }
 </style>
@@ -1395,7 +1407,7 @@
                 '<input class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-[var(--kr-gov-radius)] text-sm focus:ring-2 focus:ring-[var(--kr-gov-blue)] focus:border-[var(--kr-gov-blue)] outline-none" id="gnbMenuFilter" placeholder="' + (isEn ? 'Search menu (e.g. log, approval)' : '메뉴 검색 (예: 로그, 승인)') + '" type="text">' +
                 '<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[20px]">search</span>' +
                 '</div>' +
-                '<div class="space-y-1 overflow-y-auto" id="gnbTreeWrap">' + groupsHtml + '</div>' +
+                '<div class="js-admin-lnb-body space-y-1" id="gnbTreeWrap">' + groupsHtml + '</div>' +
                 '<div class="mt-auto border-t pt-5 border-[var(--kr-gov-border-light)]">' +
                 '<div class="p-4 bg-blue-50 rounded-[var(--kr-gov-radius)] border border-blue-100">' +
                 '<p class="text-[12px] font-bold text-[var(--kr-gov-blue)] mb-1">' + (isEn ? (translateDomainLabel(domain, "en") + ' Domain Active') : (domain + ' 도메인 활성화')) + '</p>' +
@@ -1506,6 +1518,7 @@
                 syncPageHeadStyles(doc);
                 currentMain.className = nextMain.className;
                 currentMain.innerHTML = nextMain.innerHTML;
+                syncDynamicPageScripts(doc);
                 if (doc.title) {
                     document.title = doc.title;
                 }
@@ -1554,6 +1567,7 @@
                 syncPageHeadStyles(doc);
                 currentMain.className = nextMain.className;
                 currentMain.innerHTML = nextMain.innerHTML;
+                syncDynamicPageScripts(doc);
                 if (doc.title) {
                     document.title = doc.title;
                 }
@@ -1590,6 +1604,32 @@
                 configClone.textContent = nextConfig.textContent || "";
                 head.appendChild(configClone);
             }
+        }
+
+        function syncDynamicPageScripts(doc) {
+            Array.prototype.forEach.call(
+                document.querySelectorAll("[data-admin-dynamic-script='true']"),
+                function (el) { el.remove(); }
+            );
+
+            Array.prototype.forEach.call(
+                doc.querySelectorAll("script[data-admin-page-script='true']"),
+                function (scriptEl) {
+                    var nextScript = document.createElement("script");
+                    Array.prototype.forEach.call(scriptEl.attributes, function (attr) {
+                        if (attr && attr.name !== "data-admin-page-script") {
+                            nextScript.setAttribute(attr.name, attr.value);
+                        }
+                    });
+                    nextScript.setAttribute("data-admin-dynamic-script", "true");
+                    if (scriptEl.src) {
+                        nextScript.src = scriptEl.src;
+                    } else {
+                        nextScript.textContent = scriptEl.textContent || "";
+                    }
+                    document.body.appendChild(nextScript);
+                }
+            );
         }
 
         var savedDomain = window.localStorage.getItem("adminGnbDomain");
@@ -1640,6 +1680,33 @@
                 applyMenuData(payload);
             }
         }).catch(function () {});
+
+        lnb.addEventListener("click", function (e) {
+            var target = e.target;
+            if (!(target instanceof Element)) {
+                return;
+            }
+            var link = target.closest("a.admin-sidebar-link");
+            if (!(link instanceof HTMLAnchorElement)) {
+                return;
+            }
+            var href = link.getAttribute("href") || "";
+            if (!href || href === "#" || link.target === "_blank" || link.hasAttribute("download")) {
+                return;
+            }
+            if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+                return;
+            }
+            var nextUrl = new URL(link.href, window.location.origin);
+            if (nextUrl.origin !== window.location.origin) {
+                return;
+            }
+            if (!/^\/(en\/)?admin\//.test(nextUrl.pathname)) {
+                return;
+            }
+            e.preventDefault();
+            navigateAdminRoute(nextUrl.pathname + nextUrl.search, true);
+        });
 
         gnbLinks.forEach(function (link) {
             link.addEventListener("click", function (e) {

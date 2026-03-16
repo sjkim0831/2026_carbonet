@@ -160,33 +160,132 @@ public class WebUtil {
 	}
 
 	/**
-	 * LDAP 파라미터에서 특수문자 제거.
-	 * 파라미터 별로 제거를 해야 함.
-	 * 일괄 연결된 파라미터들은 따로 처리해야 함.
-	 * TODO : LDAP Injection Prevent 로직 추가 필요
-	 * @param value
-	 * @return
+	 * LDAP 파라미터에서 특수문자 이스케이프 (RFC 4515 기준).
+	 * LDAP search filter에서 메타문자로 인식되는 문자를 이스케이프 처리.
+	 *
+	 * @param value 이스케이프할 값
+	 * @return 이스케이프된 값
 	 */
 	public static String removeLDAPInjectionRisk(String value) {
-
-		String returnValue = value;
-		if (returnValue == null || returnValue.trim().equals("")) {
+		if (value == null || value.trim().equals("")) {
 			return "";
 		}
+		return escapeLDAPSearchFilter(value);
+	}
 
-		/*모든 특수문자 제거*/
-//		String match = "[^\uAC00-\uD7A30-9a-zA-Z]";//특수문자 = 한글,숫자,영문 제외
-//		returnValue = returnValue.replaceAll(match, "");
+	/**
+	 * LDAP Search Filter용 값 이스케이프 (RFC 4515).
+	 * 다음 문자들을 이스케이프: \ * ( ) NUL
+	 *
+	 * @param value 이스케이프할 값
+	 * @return 이스케이프된 값
+	 */
+	public static String escapeLDAPSearchFilter(String value) {
+		if (value == null) {
+			return "";
+		}
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < value.length(); i++) {
+			char c = value.charAt(i);
+			switch (c) {
+				case '\\':
+					sb.append("\\5c");
+					break;
+				case '*':
+					sb.append("\\2a");
+					break;
+				case '(':
+					sb.append("\\28");
+					break;
+				case ')':
+					sb.append("\\29");
+					break;
+				case '\0':
+					sb.append("\\00");
+					break;
+				default:
+					sb.append(c);
+			}
+		}
+		return sb.toString();
+	}
 
-		/*특수문자 선택적 제거*/
-		returnValue = returnValue.replaceAll("\\*", "");
-		returnValue = returnValue.replaceAll("&", "");
-		returnValue = returnValue.replaceAll("|", "");
-		returnValue = returnValue.replaceAll("//", "");
-		//...
-		//개별로 필요한 항목들 추가 필요
+	/**
+	 * LDAP Distinguished Name (DN)용 값 이스케이프.
+	 * DN에서 특수하게 처리해야 하는 문자들을 이스케이프.
+	 *
+	 * @param value 이스케이프할 값
+	 * @return 이스케이프된 값
+	 */
+	public static String escapeLDAPDN(String value) {
+		if (value == null) {
+			return "";
+		}
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < value.length(); i++) {
+			char c = value.charAt(i);
+			switch (c) {
+				case '\\':
+					sb.append("\\5c");
+					break;
+				case ',':
+					sb.append("\\2c");
+					break;
+				case '+':
+					sb.append("\\2b");
+					break;
+				case '"':
+					sb.append("\\22");
+					break;
+				case '<':
+					sb.append("\\3c");
+					break;
+				case '>':
+					sb.append("\\3e");
+					break;
+				case ';':
+					sb.append("\\3b");
+					break;
+				case '=':
+					sb.append("\\3d");
+					break;
+				case '#':
+					sb.append("\\23");
+					break;
+				case ' ':
+					if (i == 0 || i == value.length() - 1) {
+						sb.append("\\20");
+					} else {
+						sb.append(c);
+					}
+					break;
+				default:
+					sb.append(c);
+			}
+		}
+		return sb.toString();
+	}
 
-		return returnValue;
+	/**
+	 * LDAP 파라미터에서 위험한 패턴 검사.
+	 * 잠재적인 LDAP Injection 시도를 탐지.
+	 *
+	 * @param value 검사할 값
+	 * @return 위험 패턴이 발견되면 true
+	 */
+	public static boolean containsLDAPInjectionPattern(String value) {
+		if (value == null || value.isEmpty()) {
+			return false;
+		}
+		String lower = value.toLowerCase();
+		return lower.contains("(objectclass=")
+			|| lower.contains(")(&")
+			|| lower.contains("|")
+			|| lower.contains("&")
+			|| lower.matches(".*\\([^)]*=[^)]*\\).*")
+			|| lower.contains("1=1")
+			|| lower.contains("admin")
+			|| lower.contains("guest");
 	}
 
 }

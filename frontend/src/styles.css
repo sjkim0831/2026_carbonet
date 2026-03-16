@@ -14,19 +14,29 @@
   --kr-gov-success: #039855;
   --kr-gov-warning-bg: #fff4f4;
   --kr-gov-warning-border: #fca5a5;
-  background: #fff;
+  background: #f2f2f2;
 }
 
 * {
   box-sizing: border-box;
 }
 
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
 body {
   margin: 0;
   min-width: 320px;
   -webkit-font-smoothing: antialiased;
-  background: #fff;
+  background: var(--kr-gov-bg-gray);
   color: var(--kr-gov-text-primary);
+}
+
+#root {
+  background: var(--kr-gov-bg-gray);
 }
 
 .help-fab {
@@ -2511,9 +2521,14 @@ dd {
   margin-left: 0.5rem;
 }
 
+:root {
+  --admin-shell-offset: 124px;
+}
+
 .js-admin-layout-shell {
   position: relative;
   align-items: stretch;
+  min-height: calc(100dvh - var(--admin-shell-offset));
   background: linear-gradient(90deg, #fff 0, #fff 18rem, #f8f9fa 18rem, #f8f9fa 100%);
 }
 
@@ -2531,13 +2546,21 @@ dd {
 
 .js-admin-lnb {
   position: sticky;
-  top: 124px;
+  top: var(--admin-shell-offset);
   align-self: flex-start;
+  flex: 0 0 18rem;
   z-index: 10;
   background: #fff;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  min-height: calc(100vh - 124px);
-  max-height: calc(100vh - 124px);
+  height: calc(100dvh - var(--admin-shell-offset));
+  min-height: calc(100dvh - var(--admin-shell-offset));
+  max-height: calc(100dvh - var(--admin-shell-offset));
+  overflow-y: auto;
+}
+
+.js-admin-lnb-body {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -2565,6 +2588,7 @@ dd {
   .js-admin-lnb {
     position: static;
     width: 100%;
+    height: auto;
     min-height: auto;
     max-height: none;
   }

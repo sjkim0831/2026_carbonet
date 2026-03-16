@@ -2,7 +2,9 @@ package egovframework.com.feature.admin.web;
 
 import egovframework.com.feature.admin.dto.request.SrTicketApprovalRequest;
 import egovframework.com.feature.admin.dto.request.SrTicketCreateRequest;
+import egovframework.com.feature.admin.dto.request.SrTicketExecuteRequest;
 import egovframework.com.feature.admin.service.SrTicketWorkbenchService;
+import egovframework.com.feature.home.web.ReactMigrationViewSupport;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -27,17 +29,17 @@ import java.util.Map;
 public class AdminSrWorkbenchController {
 
     private final SrTicketWorkbenchService srTicketWorkbenchService;
+    private final ReactMigrationViewSupport reactMigrationViewSupport;
 
     @RequestMapping(value = "/system/sr-workbench", method = RequestMethod.GET)
     public String srWorkbenchPage(HttpServletRequest request, Locale locale, Model model) {
-        StringBuilder builder = new StringBuilder("forward:");
-        builder.append(isEnglishRequest(request, locale) ? "/en/admin/react-migration?route=" : "/admin/react-migration?route=");
-        builder.append("sr-workbench");
-        String query = request == null ? "" : safe(request.getQueryString());
-        if (!query.isEmpty()) {
-            builder.append("&").append(query);
-        }
-        return builder.toString();
+        boolean en = isEnglishRequest(request, locale);
+        reactMigrationViewSupport.populate(model, "sr-workbench", en, true);
+        model.addAttribute("pageTitle", en ? "SR Workbench" : "SR 워크벤치");
+        model.addAttribute("pageSubtitle", en
+                ? "Issue SR tickets, review approvals, and prepare Codex execution in the shared admin workspace."
+                : "공통 관리자 작업공간에서 SR 티켓 발행, 승인 검토, Codex 실행 준비를 처리합니다.");
+        return en ? "egovframework/com/admin/sr_workbench_en" : "egovframework/com/admin/sr_workbench";
     }
 
     @GetMapping("/api/admin/sr-workbench/page")
@@ -76,8 +78,10 @@ public class AdminSrWorkbenchController {
     @ResponseBody
     public ResponseEntity<Map<String, Object>> executeTicket(
             @PathVariable("ticketId") String ticketId,
+            @RequestBody(required = false) SrTicketExecuteRequest request,
             HttpServletRequest httpServletRequest) throws Exception {
-        return ResponseEntity.ok(srTicketWorkbenchService.executeTicket(ticketId, resolveActorId(httpServletRequest)));
+        String approvalToken = request != null ? request.getApprovalToken() : null;
+        return ResponseEntity.ok(srTicketWorkbenchService.executeTicket(ticketId, resolveActorId(httpServletRequest), approvalToken));
     }
 
     private String resolveActorId(HttpServletRequest request) {

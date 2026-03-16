@@ -1,7 +1,5 @@
 package egovframework.com.feature.auth.service.impl;
 
-import com.querydsl.core.Tuple;
-import com.querydsl.jpa.impl.JPAQueryFactory;
 import egovframework.com.feature.auth.domain.entity.*;
 import egovframework.com.feature.auth.domain.repository.EmployeeMemberRepository;
 import egovframework.com.feature.auth.domain.repository.EnterpriseMemberRepository;
@@ -12,6 +10,7 @@ import egovframework.com.feature.auth.dto.internal.LoginIncorrectDTO;
 import egovframework.com.feature.auth.dto.internal.LoginPolicyDTO;
 import egovframework.com.feature.auth.dto.request.LoginRequestDTO;
 import egovframework.com.feature.auth.dto.response.LoginResponseDTO;
+import egovframework.com.feature.auth.mapper.AuthLoginMapper;
 import egovframework.com.feature.auth.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,138 +39,41 @@ public class AuthServiceImpl extends EgovAbstractServiceImpl implements AuthServ
     private final EmployeeMemberRepository empRepository; // 업무사용자
     private final LoginPolicyRepository loginPolicyRepository; // 로그인정책관리
     private final PasswordResetHistoryRepository passwordResetHistoryRepository;
-    private final JPAQueryFactory queryFactory;
+    private final AuthLoginMapper authLoginMapper;
 
     @Override
     public LoginResponseDTO actionLogin(LoginRequestDTO loginVO) {
         String userId = normalizeUserId(loginVO.getUserId());
         String userSe = loginVO.getUserSe();
 
-        QGnrlMber gnrlMber = QGnrlMber.gnrlMber;
-        QEntrprsMber entrprsMber = QEntrprsMber.entrprsMber;
-        QEmplyrInfo emplyrInfo = QEmplyrInfo.emplyrInfo;
-        QEmplyrscrtyestbs emplyrscrtyestbs = QEmplyrscrtyestbs.emplyrscrtyestbs;
-
-        Tuple tuple = null;
-        Emplyrscrtyestbs es = null;
-        String authorCode = "";
-
         switch (userSe) {
             case "GNR":
-                tuple = queryFactory
-                        .select(gnrlMber, emplyrscrtyestbs)
-                        .from(gnrlMber)
-                        .innerJoin(emplyrscrtyestbs)
-                        .on(gnrlMber.esntlId.eq(emplyrscrtyestbs.scrtyDtrmnTrgetId))
-                        .where(gnrlMber.mberId.eq(userId)
-                                .and(gnrlMber.mberStus.eq("P")))
-                        .fetchOne();
-                if (tuple == null) {
+                LoginResponseDTO generalUser = authLoginMapper.selectGeneralLoginUser(userId);
+                if (generalUser == null) {
                     return null;
                 }
-                GnrlMber gm = tuple.get(gnrlMber);
-                if (gm == null) {
+                if (!matchesPassword(loginVO.getUserPw(), userId, generalUser.getUserPw())) {
                     return null;
                 }
-                if (!matchesPassword(loginVO.getUserPw(), userId, gm.getPassword())) {
-                    return null;
-                }
-                es = tuple.get(emplyrscrtyestbs);
-                authorCode = es != null && es.getAuthorCode() != null ? es.getAuthorCode() : "";
-
-                LoginResponseDTO gnrVo = new LoginResponseDTO(
-                        gm.getMberId(),
-                        gm.getMberNm(),
-                        gm.getPassword(),
-                        gm.getIhidNum(),
-                        gm.getMberEmailAdres(),
-                        "GNR",
-                        "",
-                        gm.getEsntlId(),
-                        "",
-                        authorCode);
-                gnrVo.setAuthTy(gm.getAuthTy());
-                gnrVo.setAuthDn(gm.getAuthDn());
-                gnrVo.setAuthCi(gm.getAuthCi());
-                gnrVo.setAuthDi(gm.getAuthDi());
-                gnrVo.setMemberStatus(gm.getMberStus());
-                return gnrVo;
+                return generalUser;
             case "ENT":
-                tuple = queryFactory
-                        .select(entrprsMber, emplyrscrtyestbs)
-                        .from(entrprsMber)
-                        .innerJoin(emplyrscrtyestbs)
-                        .on(entrprsMber.esntlId.eq(emplyrscrtyestbs.scrtyDtrmnTrgetId))
-                        .where(entrprsMber.entrprsMberId.eq(loginVO.getUserId())
-                                .and(entrprsMber.entrprsMberStus.in("A", "P", "R")))
-                        .fetchOne();
-                if (tuple == null) {
+                LoginResponseDTO enterpriseUser = authLoginMapper.selectEnterpriseLoginUser(userId);
+                if (enterpriseUser == null) {
                     return null;
                 }
-                EntrprsMber em = tuple.get(entrprsMber);
-                if (em == null) {
+                if (!matchesPassword(loginVO.getUserPw(), userId, enterpriseUser.getUserPw())) {
                     return null;
                 }
-                if (!matchesPassword(loginVO.getUserPw(), userId, em.getEntrprsMberPassword())) {
-                    return null;
-                }
-                es = tuple.get(emplyrscrtyestbs);
-                authorCode = es != null && es.getAuthorCode() != null ? es.getAuthorCode() : "";
-                LoginResponseDTO entVo = new LoginResponseDTO(
-                        em.getEntrprsMberId(),
-                        em.getCmpnyNm(),
-                        em.getEntrprsMberPassword(),
-                        em.getBizrno(),
-                        em.getApplcntEmailAdres(),
-                        "ENT",
-                        "",
-                        em.getEsntlId(),
-                        "",
-                        authorCode);
-                entVo.setAuthTy(em.getAuthTy());
-                entVo.setAuthDn(em.getAuthDn());
-                entVo.setAuthCi(em.getAuthCi());
-                entVo.setAuthDi(em.getAuthDi());
-                entVo.setMemberStatus(em.getEntrprsMberStus());
-                return entVo;
+                return enterpriseUser;
             case "USR":
-                tuple = queryFactory
-                        .select(emplyrInfo, emplyrscrtyestbs)
-                        .from(emplyrInfo)
-                        .innerJoin(emplyrscrtyestbs)
-                        .on(emplyrInfo.esntlId.eq(emplyrscrtyestbs.scrtyDtrmnTrgetId))
-                        .where(emplyrInfo.emplyrId.eq(loginVO.getUserId())
-                                .and(emplyrInfo.emplyrStusCode.eq("P")))
-                        .fetchOne();
-                if (tuple == null) {
+                LoginResponseDTO employeeUser = authLoginMapper.selectEmployeeLoginUser(userId);
+                if (employeeUser == null) {
                     return null;
                 }
-                EmplyrInfo ei = tuple.get(emplyrInfo);
-                if (ei == null) {
+                if (!matchesPassword(loginVO.getUserPw(), userId, employeeUser.getUserPw())) {
                     return null;
                 }
-                if (!matchesPassword(loginVO.getUserPw(), userId, ei.getPassword())) {
-                    return null;
-                }
-                es = tuple.get(emplyrscrtyestbs);
-                authorCode = es != null && es.getAuthorCode() != null ? es.getAuthorCode() : "";
-                LoginResponseDTO usrVo = new LoginResponseDTO(
-                        ei.getEmplyrId(),
-                        ei.getUserNm(),
-                        ei.getPassword(),
-                        ei.getIhidNum(),
-                        ei.getEmailAdres(),
-                        "USR",
-                        ei.getOrgnztId(),
-                        ei.getEsntlId(),
-                        "",
-                        authorCode);
-                usrVo.setAuthTy(ei.getAuthTy());
-                usrVo.setAuthDn(ei.getAuthDn());
-                usrVo.setAuthCi(ei.getAuthCi());
-                usrVo.setAuthDi(ei.getAuthDi());
-                usrVo.setMemberStatus(ei.getEmplyrStusCode());
-                return usrVo;
+                return employeeUser;
             default:
                 return null;
         }

@@ -75,7 +75,10 @@ public class SrTicketWorkbenchServiceImpl implements SrTicketWorkbenchService {
     public Map<String, Object> createTicket(SrTicketCreateRequest request, String actorId) throws Exception {
         SrTicketRecordVO ticket = new SrTicketRecordVO();
         String now = now();
-        ticket.setTicketId("SR-" + UUID.randomUUID().toString().replace("-", "").substring(0, 10).toUpperCase(Locale.ROOT));
+        String requestedTicketId = request != null ? request.getTicketId() : null;
+        ticket.setTicketId(safe(requestedTicketId).isEmpty() 
+            ? "SR-" + UUID.randomUUID().toString().replace("-", "").substring(0, 10).toUpperCase(Locale.ROOT)
+            : requestedTicketId);
         ticket.setStatus("OPEN");
         ticket.setCreatedAt(now);
         ticket.setUpdatedAt(now);
@@ -223,7 +226,7 @@ public class SrTicketWorkbenchServiceImpl implements SrTicketWorkbenchService {
     }
 
     @Override
-    public Map<String, Object> executeTicket(String ticketId, String actorId) throws Exception {
+    public Map<String, Object> executeTicket(String ticketId, String actorId, String approvalToken) throws Exception {
         SrTicketRecordVO ticket = findTicket(ticketId);
         if (ticket == null) {
             throw new IllegalArgumentException("SR 티켓을 찾을 수 없습니다.");
@@ -243,7 +246,7 @@ public class SrTicketWorkbenchServiceImpl implements SrTicketWorkbenchService {
 
         SrTicketRunnerExecutionVO execution;
         try {
-            execution = srTicketCodexRunnerService.execute(ticket, actorId);
+            execution = srTicketCodexRunnerService.execute(ticket, actorId, approvalToken);
         } catch (Exception e) {
             String failedAt = now();
             ticket.setUpdatedAt(failedAt);

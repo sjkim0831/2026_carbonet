@@ -1,6 +1,4 @@
 package egovframework.com.config.data;
-
-import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
@@ -14,7 +12,6 @@ import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.persistence.EntityManagerFactory;
-import javax.persistence.EntityManager;
 import javax.sql.DataSource;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,13 +23,16 @@ public class JpaConfig {
 
     private final DataSource dataSource;
 
-    @Value("${jpa.hibernate.ddl-auto:none}")
+    @Value("${spring.jpa.hibernate.ddl-auto:none}")
     private String ddlAuto;
 
-    @Value("${jpa.show-sql:true}")
+    @Value("${spring.jpa.database-platform:}")
+    private String databasePlatform;
+
+    @Value("${spring.jpa.show-sql:false}")
     private boolean showSql;
 
-    @Value("${jpa.properties.hibernate.format_sql:true}")
+    @Value("${spring.jpa.properties.hibernate.format_sql:false}")
     private boolean formatSql;
 
     @Bean
@@ -40,8 +40,12 @@ public class JpaConfig {
     public LocalContainerEntityManagerFactoryBean entityManagerFactory(EntityManagerFactoryBuilder builder) {
         Map<String, Object> properties = new HashMap<>();
         properties.put("hibernate.hbm2ddl.auto", ddlAuto);
+        properties.put("hibernate.dialect", databasePlatform);
         properties.put("hibernate.show_sql", showSql);
         properties.put("hibernate.format_sql", formatSql);
+        // The dialect is already fixed, so skip extra JDBC metadata work during startup.
+        properties.put("hibernate.temp.use_jdbc_metadata_defaults", false);
+        properties.put("hibernate.boot.allow_jdbc_metadata_access", false);
 
         LocalContainerEntityManagerFactoryBean factoryBean = new LocalContainerEntityManagerFactoryBean();
         factoryBean.setDataSource(dataSource);
@@ -60,11 +64,6 @@ public class JpaConfig {
     @Primary
     public PlatformTransactionManager transactionManager(EntityManagerFactory entityManagerFactory) {
         return new JpaTransactionManager(entityManagerFactory);
-    }
-
-    @Bean
-    public JPAQueryFactory jpaQueryFactory(EntityManager entityManager) {
-        return new JPAQueryFactory(entityManager);
     }
 
     @Bean

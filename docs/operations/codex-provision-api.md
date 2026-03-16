@@ -169,7 +169,7 @@ Environment="JAVA_OPTS="
 Environment="SECURITY_CODEX_ENABLED=true"
 Environment="SECURITY_CODEX_API_KEY=1c8d6b1f3b8d0a1f2b7c4d9e6a0f1c3e4b8d9a6f7c1e2d3a4b5c6d7e8f9a0b1"
 ExecStartPre=/bin/bash -lc 'for i in {1..30}; do ss -lnt | grep -q ":33000 " && exit 0; sleep 2; done; exit 1'
-ExecStart=/bin/bash -lc 'exec java $JAVA_OPTS -jar <PROJECT_ROOT>/target/carbonet.jar --server.port=18000 --spring.datasource.url=jdbc:cubrid:100.121.241.72:33000:carbonet:::?charset=UTF-8'
+ExecStart=/bin/bash -lc 'exec java $JAVA_OPTS -jar <PROJECT_ROOT>/target/carbonet.jar --server.port=18000 --spring.datasource.url=jdbc:cubrid:localhost:33000:carbonet:::?charset=UTF-8'
 Restart=always
 RestartSec=5
 SuccessExitStatus=143

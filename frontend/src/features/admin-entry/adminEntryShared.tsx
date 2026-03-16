@@ -1,5 +1,18 @@
-import { ReactNode } from "react";
+import { ReactNode, SyntheticEvent } from "react";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
+
+const GOV_SYMBOL = "/img/egovframework/kr_gov_symbol.png";
+const GOV_SYMBOL_FALLBACK = "/img/egovframework/kr_gov_symbol.svg";
+
+function handleGovSymbolError(event: SyntheticEvent<HTMLImageElement>) {
+  const image = event.currentTarget;
+  if (image.dataset.fallbackApplied === "1") {
+    image.style.display = "none";
+    return;
+  }
+  image.dataset.fallbackApplied = "1";
+  image.src = GOV_SYMBOL_FALLBACK;
+}
 
 export function AdminLoginFrame({ children }: { children: ReactNode }) {
   const en = isEnglish();
@@ -13,7 +26,9 @@ export function AdminLoginFrame({ children }: { children: ReactNode }) {
             <img
               alt={en ? "Government Symbol of the Republic of Korea" : "대한민국 정부 상징"}
               className="h-4"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8BPzqtzSLVGSrjt4mzhhVBy9SocCRDssk1F3XRVu7Xq9jHh7qzzt48wFi8qduCiJmB0LRQczPB7waPe3h0gkjn3OEDxt6UJSJjdXNf8P-4WlM2BEZrfg2SL91uSiZrFcCk9KYrsdg-biTS9dtJ_OIghDBEVoAzMc33XcCYR_UP0QQdoYzBe840YrtH40xGyB9MSr0QH4D0foqlvOhG0jX8CDayXNlDsSKlfClVd3K2aodlwg4xSxgXHB3vnnnA0L2yNBNihQQg0"
+              data-fallback-applied="0"
+              onError={handleGovSymbolError}
+              src={GOV_SYMBOL}
             />
             <span className="text-[13px] font-medium text-[var(--kr-gov-text-secondary)]">
               {en ? "Official Government Service of the Republic of Korea" : "대한민국 정부 공식 서비스"}

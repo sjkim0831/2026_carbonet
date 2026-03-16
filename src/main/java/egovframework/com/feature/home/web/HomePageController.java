@@ -104,6 +104,22 @@ public class HomePageController {
         return reactMigrationViewSupport.render(model, "mypage", true, false);
     }
 
+    @GetMapping("/api/mypage/context")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> mypageContextApi(HttpServletRequest request) {
+        Map<String, Object> payload = homeMypageService.buildMypageContext(false, request);
+        boolean authenticated = Boolean.TRUE.equals(payload.get("authenticated"));
+        return authenticated ? ResponseEntity.ok(payload) : ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).body(payload);
+    }
+
+    @GetMapping("/api/en/mypage/context")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> mypageContextApiEn(HttpServletRequest request) {
+        Map<String, Object> payload = homeMypageService.buildMypageContext(true, request);
+        boolean authenticated = Boolean.TRUE.equals(payload.get("authenticated"));
+        return authenticated ? ResponseEntity.ok(payload) : ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).body(payload);
+    }
+
     @GetMapping("/api/mypage")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> mypageApi(HttpServletRequest request) {

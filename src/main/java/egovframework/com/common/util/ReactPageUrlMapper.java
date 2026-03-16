@@ -89,177 +89,293 @@ public final class ReactPageUrlMapper {
         return "/en/" + path;
     }
 
+    private static String normalizeRouteToken(String route) {
+        if (route == null) {
+            return "";
+        }
+        return route.trim().replace('-', '_');
+    }
+
     private static String resolveAdminRoute(String path) {
+        if ("/admin".equals(path) || "/admin/".equals(path)) {
+            return "admin_home";
+        }
+        if ("/admin/login/loginView".equals(path)) {
+            return "admin_login";
+        }
         if ("/admin/member/approve".equals(path)) {
-            return "member-approve";
+            return "member_approve";
         }
         if ("/admin/member/company-approve".equals(path)) {
-            return "company-approve";
+            return "company_approve";
         }
         if ("/admin/member/edit".equals(path)) {
-            return "member-edit";
+            return "member_edit";
         }
         if ("/admin/member/detail".equals(path)) {
-            return "member-detail";
+            return "member_detail";
         }
         if ("/admin/member/reset_password".equals(path)) {
-            return "password-reset";
+            return "password_reset";
         }
         if ("/admin/member/list".equals(path)) {
-            return "member-list";
+            return "member_list";
         }
         if ("/admin/member/admin_list".equals(path) || "/admin/member/admin-list".equals(path)) {
-            return "admin-list";
+            return "admin_list";
         }
         if ("/admin/member/company_list".equals(path)) {
-            return "company-list";
+            return "company_list";
         }
         if ("/admin/member/company_detail".equals(path)) {
-            return "company-detail";
+            return "company_detail";
         }
         if ("/admin/member/company_account".equals(path)) {
-            return "company-account";
+            return "company_account";
         }
         if ("/admin/member/admin_account".equals(path)) {
-            return "admin-create";
+            return "admin_create";
         }
         if ("/admin/member/admin_account/permissions".equals(path)) {
-            return "admin-permission";
+            return "admin_permission";
+        }
+        if ("/admin/member/stats".equals(path)) {
+            return "member_stats";
+        }
+        if ("/admin/member/register".equals(path)) {
+            return "member_register";
         }
         if ("/admin/auth/group".equals(path) || "/admin/member/auth-group".equals(path) || "/admin/system/role".equals(path)) {
-            return "auth-group";
+            return "auth_group";
         }
         if ("/admin/member/auth-change".equals(path) || "/admin/system/auth-change".equals(path)) {
-            return "auth-change";
+            return "auth_change";
         }
         if ("/admin/member/dept-role-mapping".equals(path) || "/admin/system/dept-role-mapping".equals(path)) {
-            return "dept-role";
+            return "dept_role";
+        }
+        if ("/admin/emission/result_list".equals(path)) {
+            return "emission_result_list";
+        }
+        if ("/admin/system/code".equals(path)) {
+            return "system_code";
+        }
+        if ("/admin/system/page-management".equals(path)) {
+            return "page_management";
+        }
+        if ("/admin/system/feature-management".equals(path)) {
+            return "function_management";
+        }
+        if ("/admin/system/menu-management".equals(path)) {
+            return "menu_management";
+        }
+        if ("/admin/system/ip_whitelist".equals(path)) {
+            return "ip_whitelist";
+        }
+        if ("/admin/member/login_history".equals(path)) {
+            return "login_history";
+        }
+        if ("/admin/system/security".equals(path)) {
+            return "security_history";
+        }
+        if ("/admin/system/security-policy".equals(path)) {
+            return "security_policy";
+        }
+        if ("/admin/system/security-monitoring".equals(path)) {
+            return "security_monitoring";
+        }
+        if ("/admin/system/blocklist".equals(path)) {
+            return "blocklist";
+        }
+        if ("/admin/system/security-audit".equals(path)) {
+            return "security_audit";
+        }
+        if ("/admin/system/scheduler".equals(path)) {
+            return "scheduler_management";
+        }
+        if ("/admin/system/codex-request".equals(path)) {
+            return "codex_request";
         }
         if ("/admin/system/observability".equals(path)) {
             return "observability";
         }
         if ("/admin/system/help-management".equals(path)) {
-            return "help-management";
+            return "help_management";
         }
         if ("/admin/system/full-stack-management".equals(path)) {
-            return "full-stack-management";
+            return "full_stack_management";
         }
         if ("/admin/system/platform-studio".equals(path)) {
-            return "platform-studio";
+            return "platform_studio";
         }
         if ("/admin/system/screen-elements-management".equals(path)) {
-            return "screen-elements-management";
+            return "screen_elements_management";
         }
         if ("/admin/system/event-management-console".equals(path)) {
-            return "event-management-console";
+            return "event_management_console";
         }
         if ("/admin/system/function-management-console".equals(path)) {
-            return "function-management-console";
+            return "function_management_console";
         }
         if ("/admin/system/api-management-console".equals(path)) {
-            return "api-management-console";
+            return "api_management_console";
         }
         if ("/admin/system/controller-management-console".equals(path)) {
-            return "controller-management-console";
+            return "controller_management_console";
         }
         if ("/admin/system/db-table-management".equals(path)) {
-            return "db-table-management";
+            return "db_table_management";
         }
         if ("/admin/system/column-management-console".equals(path)) {
-            return "column-management-console";
+            return "column_management_console";
         }
         if ("/admin/system/automation-studio".equals(path)) {
-            return "automation-studio";
+            return "automation_studio";
         }
         if ("/admin/system/sr-workbench".equals(path)) {
-            return "sr-workbench";
+            return "sr_workbench";
         }
         return "";
     }
 
     private static String resolveAdminPath(String route) {
-        if ("member-approve".equals(route)) {
+        String normalizedRoute = normalizeRouteToken(route);
+        if ("admin_home".equals(normalizedRoute)) {
+            return "/admin/";
+        }
+        if ("admin_login".equals(normalizedRoute)) {
+            return "/admin/login/loginView";
+        }
+        if ("member_approve".equals(normalizedRoute)) {
             return "/admin/member/approve";
         }
-        if ("company-approve".equals(route)) {
+        if ("company_approve".equals(normalizedRoute)) {
             return "/admin/member/company-approve";
         }
-        if ("member-edit".equals(route)) {
+        if ("member_edit".equals(normalizedRoute)) {
             return "/admin/member/edit";
         }
-        if ("member-detail".equals(route)) {
+        if ("member_detail".equals(normalizedRoute)) {
             return "/admin/member/detail";
         }
-        if ("password-reset".equals(route)) {
+        if ("password_reset".equals(normalizedRoute)) {
             return "/admin/member/reset_password";
         }
-        if ("member-list".equals(route)) {
+        if ("member_list".equals(normalizedRoute)) {
             return "/admin/member/list";
         }
-        if ("admin-list".equals(route)) {
+        if ("admin_list".equals(normalizedRoute)) {
             return "/admin/member/admin_list";
         }
-        if ("company-list".equals(route)) {
+        if ("company_list".equals(normalizedRoute)) {
             return "/admin/member/company_list";
         }
-        if ("company-detail".equals(route)) {
+        if ("company_detail".equals(normalizedRoute)) {
             return "/admin/member/company_detail";
         }
-        if ("company-account".equals(route)) {
+        if ("company_account".equals(normalizedRoute)) {
             return "/admin/member/company_account";
         }
-        if ("admin-create".equals(route)) {
+        if ("admin_create".equals(normalizedRoute)) {
             return "/admin/member/admin_account";
         }
-        if ("admin-permission".equals(route)) {
+        if ("admin_permission".equals(normalizedRoute)) {
             return "/admin/member/admin_account/permissions";
         }
-        if ("auth-group".equals(route)) {
+        if ("member_stats".equals(normalizedRoute)) {
+            return "/admin/member/stats";
+        }
+        if ("member_register".equals(normalizedRoute)) {
+            return "/admin/member/register";
+        }
+        if ("auth_group".equals(normalizedRoute)) {
             return "/admin/auth/group";
         }
-        if ("auth-change".equals(route)) {
+        if ("auth_change".equals(normalizedRoute)) {
             return "/admin/member/auth-change";
         }
-        if ("dept-role".equals(route)) {
+        if ("dept_role".equals(normalizedRoute)) {
             return "/admin/member/dept-role-mapping";
         }
-        if ("observability".equals(route)) {
+        if ("emission_result_list".equals(normalizedRoute)) {
+            return "/admin/emission/result_list";
+        }
+        if ("system_code".equals(normalizedRoute)) {
+            return "/admin/system/code";
+        }
+        if ("page_management".equals(normalizedRoute)) {
+            return "/admin/system/page-management";
+        }
+        if ("function_management".equals(normalizedRoute)) {
+            return "/admin/system/feature-management";
+        }
+        if ("menu_management".equals(normalizedRoute)) {
+            return "/admin/system/menu-management";
+        }
+        if ("ip_whitelist".equals(normalizedRoute)) {
+            return "/admin/system/ip_whitelist";
+        }
+        if ("login_history".equals(normalizedRoute)) {
+            return "/admin/member/login_history";
+        }
+        if ("security_history".equals(normalizedRoute)) {
+            return "/admin/system/security";
+        }
+        if ("security_policy".equals(normalizedRoute)) {
+            return "/admin/system/security-policy";
+        }
+        if ("security_monitoring".equals(normalizedRoute)) {
+            return "/admin/system/security-monitoring";
+        }
+        if ("blocklist".equals(normalizedRoute)) {
+            return "/admin/system/blocklist";
+        }
+        if ("security_audit".equals(normalizedRoute)) {
+            return "/admin/system/security-audit";
+        }
+        if ("scheduler_management".equals(normalizedRoute)) {
+            return "/admin/system/scheduler";
+        }
+        if ("codex_request".equals(normalizedRoute)) {
+            return "/admin/system/codex-request";
+        }
+        if ("observability".equals(normalizedRoute)) {
             return "/admin/system/observability";
         }
-        if ("help-management".equals(route)) {
+        if ("help_management".equals(normalizedRoute)) {
             return "/admin/system/help-management";
         }
-        if ("full-stack-management".equals(route)) {
+        if ("full_stack_management".equals(normalizedRoute)) {
             return "/admin/system/full-stack-management";
         }
-        if ("platform-studio".equals(route)) {
+        if ("platform_studio".equals(normalizedRoute)) {
             return "/admin/system/platform-studio";
         }
-        if ("screen-elements-management".equals(route)) {
+        if ("screen_elements_management".equals(normalizedRoute)) {
             return "/admin/system/screen-elements-management";
         }
-        if ("event-management-console".equals(route)) {
+        if ("event_management_console".equals(normalizedRoute)) {
             return "/admin/system/event-management-console";
         }
-        if ("function-management-console".equals(route)) {
+        if ("function_management_console".equals(normalizedRoute)) {
             return "/admin/system/function-management-console";
         }
-        if ("api-management-console".equals(route)) {
+        if ("api_management_console".equals(normalizedRoute)) {
             return "/admin/system/api-management-console";
         }
-        if ("controller-management-console".equals(route)) {
+        if ("controller_management_console".equals(normalizedRoute)) {
             return "/admin/system/controller-management-console";
         }
-        if ("db-table-management".equals(route)) {
+        if ("db_table_management".equals(normalizedRoute)) {
             return "/admin/system/db-table-management";
         }
-        if ("column-management-console".equals(route)) {
+        if ("column_management_console".equals(normalizedRoute)) {
             return "/admin/system/column-management-console";
         }
-        if ("automation-studio".equals(route)) {
+        if ("automation_studio".equals(normalizedRoute)) {
             return "/admin/system/automation-studio";
         }
-        if ("sr-workbench".equals(route)) {
+        if ("sr_workbench".equals(normalizedRoute)) {
             return "/admin/system/sr-workbench";
         }
         return "";
@@ -270,64 +386,65 @@ public final class ReactPageUrlMapper {
             return "mypage";
         }
         if ("/join/step1".equals(path) || "/join/overseas/step1".equals(path)) {
-            return "join-wizard";
+            return "join_wizard";
         }
         if ("/join/step2".equals(path)) {
-            return "join-terms";
+            return "join_terms";
         }
         if ("/join/step3".equals(path)) {
-            return "join-auth";
+            return "join_auth";
         }
         if ("/join/step4".equals(path)) {
-            return "join-info";
+            return "join_info";
         }
         if ("/join/companyRegister".equals(path)) {
-            return "join-company-register";
+            return "join_company_register";
         }
         if ("/join/companyRegisterComplete".equals(path)) {
-            return "join-company-register-complete";
+            return "join_company_register_complete";
         }
         if ("/join/companyJoinStatusSearch".equals(path) || "/join/companyJoinStatusDetail".equals(path)) {
-            return "join-company-status";
+            return "join_company_status";
         }
         if ("/join/companyJoinStatusGuide".equals(path)) {
-            return "join-company-status-guide";
+            return "join_company_status_guide";
         }
         if ("/join/companyReapply".equals(path)) {
-            return "join-company-reapply";
+            return "join_company_reapply";
         }
         return "";
     }
 
     private static String resolveHomePath(String route) {
-        if ("mypage".equals(route)) {
+        String normalizedRoute = normalizeRouteToken(route);
+        if ("mypage".equals(normalizedRoute)) {
             return "/mypage";
         }
-        if ("join-wizard".equals(route)) {
+        if ("join_wizard".equals(normalizedRoute)) {
             return "/join/step1";
         }
-        if ("join-terms".equals(route)) {
+        if ("join_terms".equals(normalizedRoute)) {
             return "/join/step2";
         }
-        if ("join-auth".equals(route)) {
+        if ("join_auth".equals(normalizedRoute)) {
             return "/join/step3";
         }
-        if ("join-info".equals(route)) {
+        if ("join_info".equals(normalizedRoute)) {
             return "/join/step4";
         }
-        if ("join-company-register".equals(route)) {
+        if ("join_company_register".equals(normalizedRoute)) {
             return "/join/companyRegister";
         }
-        if ("join-company-register-complete".equals(route)) {
+        if ("join_company_register_complete".equals(normalizedRoute)) {
             return "/join/companyRegisterComplete";
         }
-        if ("join-company-status".equals(route)) {
+        if ("join_company_status".equals(normalizedRoute)) {
             return "/join/companyJoinStatusSearch";
         }
-        if ("join-company-status-guide".equals(route)) {
+        if ("join_company_status_guide".equals(normalizedRoute)) {
             return "/join/companyJoinStatusGuide";
         }
-        if ("join-company-reapply".equals(route)) {
+        if ("join_company_reapply".equals(normalizedRoute)) {
             return "/join/companyReapply";
         }
         return "";
@@ -378,7 +495,7 @@ public final class ReactPageUrlMapper {
         String query = value.substring(queryIndex + 1);
         for (String pair : query.split("&")) {
             if (pair.startsWith("route=")) {
-                return pair.substring(6).trim();
+                return normalizeRouteToken(pair.substring(6));
             }
         }
         return "";

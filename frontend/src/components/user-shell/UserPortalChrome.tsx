@@ -1,8 +1,19 @@
-import { ReactNode } from "react";
+import { ReactNode, SyntheticEvent } from "react";
 
-export const USER_GOV_MARK = "https://lh3.googleusercontent.com/aida-public/AB6AXuD8BPzqtzSLVGSrjt4mzhhVBy9SocCRDssk1F3XRVu7Xq9jHh7qzzt48wFi8qduCiJmB0LRQczPB7waPe3h0gkjn3jOEDxt6UJSJjdXNf8P-4WlM2BEZrfg2SL91uSiZrFcCk9KYrsdg-biTS9dtJ_OIghDBEVoAzMc33XcCYR_UP0QQdoYzBe840YrtH40xGyB9MSr0QH4D0foqlvOhG0jX8CDayXNlDsSKlfClVd3K2aodlwg4xSxgXHB3vnnnA0L2yNBNihQQg0";
-export const USER_GOV_FOOTER_MARK = "https://lh3.googleusercontent.com/aida-public/AB6AXuBUw404pm2QFmL61j73Dpfn72GnHGEg-KXTkLQ8WVJYUJ4iekrO0IvqJK8cd0cOSNSIh9Yq1LAodkSNj7oHtVAltdnnymj25ZzOI3l167qrrWmkEoYsZGu3ztT-YGo9se-fFR3NhBG3rZ8DYfs2vna0bxSzVG8VjryTnsz40LCDS2SN3-AeqXrbaPEva2ptmrQzO8iQSwbqSGyGKddlGf7FtnhHT25Cz5a5Xhk8MTve0BF4RWxN-ULiw64ZBbrTASIHQUaURqiZXyE";
+export const USER_GOV_MARK = "/img/egovframework/kr_gov_symbol.png";
+export const USER_GOV_FOOTER_MARK = "/img/egovframework/kr_gov_symbol.png";
+export const USER_GOV_MARK_FALLBACK = "/img/egovframework/kr_gov_symbol.svg";
 export const USER_WA_MARK = "https://lh3.googleusercontent.com/aida-public/AB6AXuAzkKwREcbsB7LV3B2b7fBK7y2M_9Exa0vlGVzxNy2qM0n1LFMRlBCIa_XiIBeCfvv3DkMb9Z0D05Y-RMuAytisqlCS8QTpbtebgKnMnWoefEx5uJOgRW5H_8Pw9jmaRvkiW6sVRrifgIhrWc5hi2PRUGHgXn-q8-veHvu9wSwDhtcvbHKYyokgnP-hqdR10ahEAdBe4vFFkR88N_By8pjpp34KH9TwHOouRLBwdfVCsRGmDCS6wnvQZDwf6s4HyScSMXyJJGQjl8Y";
+
+function handleGovMarkError(event: SyntheticEvent<HTMLImageElement>) {
+  const image = event.currentTarget;
+  if (image.dataset.fallbackApplied === "1") {
+    image.style.display = "none";
+    return;
+  }
+  image.dataset.fallbackApplied = "1";
+  image.src = USER_GOV_MARK_FALLBACK;
+}
 
 function resolveFooterHref(label: string) {
   if (label === "사이트맵") {
@@ -22,7 +33,7 @@ export function UserGovernmentBar(props: {
     <div className="bg-[var(--kr-gov-bg-gray)] border-b border-[var(--kr-gov-border-light)]">
       <div className="max-w-7xl mx-auto px-4 lg:px-8 py-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <img alt={props.governmentText} className="h-4" src={USER_GOV_MARK} />
+          <img alt={props.governmentText} className="h-4" data-fallback-applied="0" onError={handleGovMarkError} src={USER_GOV_MARK} />
           <span className="text-[13px] font-medium text-[var(--kr-gov-text-secondary)]">{props.governmentText}</span>
         </div>
         {props.guidelineText ? (
@@ -102,7 +113,7 @@ export function UserPortalFooter(props: {
         <div className="flex flex-col md:flex-row justify-between gap-10 pb-10 border-b border-[var(--kr-gov-border-light)]">
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <img alt={props.orgName} className="h-8 grayscale" src={USER_GOV_FOOTER_MARK} />
+              <img alt={props.orgName} className="h-8 grayscale" data-fallback-applied="0" onError={handleGovMarkError} src={USER_GOV_FOOTER_MARK} />
               <span className="text-xl font-black text-[var(--kr-gov-text-primary)]">{props.orgName}</span>
             </div>
             <address className="not-italic text-sm text-[var(--kr-gov-text-secondary)] leading-relaxed">

@@ -2,10 +2,12 @@ import { ComponentType, Suspense, lazy, useEffect, useState } from "react";
 import { getMissingInsttWarningEventName } from "./app/telemetry/fetch";
 import { usePageTelemetry } from "./app/telemetry/usePageTelemetry";
 import { useTelemetryTransport } from "./app/telemetry/useTelemetryTransport";
+import { useGlobalErrorHandler } from "./app/hooks/useGlobalErrorHandler";
 import { publishTelemetryEvent } from "./app/telemetry/events";
 import { fetchPageHelp, getPageHelp } from "./app/screen-registry/helpContent";
 import { getPageManifest } from "./app/screen-registry/pageManifests";
 import { HelpOverlay } from "./components/help/HelpOverlay";
+import { ErrorBoundary } from "./components/error/ErrorBoundary";
 import { getNavigationEventName, getRuntimeLocale, navigate, replace } from "./lib/navigation/runtime";
 
 type MigrationPageId =
@@ -153,6 +155,17 @@ const ROUTES: RouteDefinition[] = [
   { id: "mypage", label: "마이페이지", group: "home", koPath: "/mypage", enPath: "/en/mypage" }
 ];
 
+function normalizeRouteId(value: string | null | undefined): MigrationPageId | "" {
+  if (!value) {
+    return "";
+  }
+  const normalized = value.trim().replace(/_/g, "-");
+  if (normalized === "codex-provision") {
+    return "codex-request";
+  }
+  return ROUTES.some((entry) => entry.id === normalized) ? normalized as MigrationPageId : "";
+}
+
 function normalizeComparablePath(value: string): string {
   if (!value) {
     return "/";
@@ -260,16 +273,13 @@ function getInitialPage(): MigrationPageId {
   }
 
   if (isReactShellPath) {
-    const queryRoute = new URLSearchParams(window.location.search).get("route")?.trim();
-    if (queryRoute === "codex-provision") {
-      return "codex-request";
-    }
-    if (queryRoute && ROUTES.some((entry) => entry.id === queryRoute)) {
-      return queryRoute as MigrationPageId;
+    const queryRoute = normalizeRouteId(new URLSearchParams(window.location.search).get("route"));
+    if (queryRoute) {
+      return queryRoute;
     }
 
-    const runtimeRoute = window.__CARBONET_REACT_MIGRATION__?.route?.trim() as MigrationPageId | undefined;
-    if (runtimeRoute && ROUTES.some((entry) => entry.id === runtimeRoute)) {
+    const runtimeRoute = normalizeRouteId(window.__CARBONET_REACT_MIGRATION__?.route);
+    if (runtimeRoute) {
       return runtimeRoute;
     }
   }
@@ -295,7 +305,7 @@ function resolveCanonicalRuntimePath(): string {
   }
 
   const params = new URLSearchParams(window.location.search);
-  const route = (params.get("route") || window.__CARBONET_REACT_MIGRATION__?.route || "").trim() as MigrationPageId;
+  const route = normalizeRouteId(params.get("route") || window.__CARBONET_REACT_MIGRATION__?.route);
   if (!route) {
     return "";
   }
@@ -544,6 +554,7 @@ function resolvePageFromPath(pathname: string, search = ""): MigrationPageId {
 
 export default function App() {
   useTelemetryTransport();
+  useGlobalErrorHandler();
   const [locationState, setLocationState] = useState(() => `${window.location.pathname}${window.location.search}${window.location.hash}`);
   const page = getInitialPage();
   const locale = getRuntimeLocale();
@@ -722,9 +733,11 @@ export default function App() {
         </div>
       ) : null}
 
-      <Suspense fallback={<PageLoadingFallback />}>
-        <CurrentPage />
-      </Suspense>
+      <ErrorBoundary>
+        <Suspense fallback={<PageLoadingFallback />}>
+          <CurrentPage />
+        </Suspense>
+      </ErrorBoundary>
     </>
   );
 }

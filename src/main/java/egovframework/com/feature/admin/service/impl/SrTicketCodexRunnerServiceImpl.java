@@ -70,11 +70,34 @@ public class SrTicketCodexRunnerServiceImpl implements SrTicketCodexRunnerServic
     @Value("${security.codex.runner.deploy-command:}")
     private String deployCommand;
 
+    @Value("${security.codex.runner.health-check-url:}")
+    private String healthCheckUrl;
+
+    @Value("${security.codex.runner.health-check-timeout-seconds:60}")
+    private long healthCheckTimeoutSeconds;
+
+    @Value("${security.codex.runner.health-check-interval-seconds:5}")
+    private long healthCheckIntervalSeconds;
+
+    @Value("${security.codex.runner.rollback-command:}")
+    private String rollbackCommand;
+
+    @Value("${security.codex.runner.deploy-strategy:blue-green}")
+    private String deployStrategy;
+
     @Value("${security.codex.runner.command-timeout-seconds:1800}")
     private long commandTimeoutSeconds;
 
     @Value("${security.codex.runner.verify-timeout-seconds:1800}")
     private long verifyTimeoutSeconds;
+
+    @Value("${security.codex.runner.require-approval-token:true}")
+    private boolean requireApprovalToken;
+
+    private static final String DESTRUCTIVE_COMMAND_PATTERN = 
+        "^(rm|del|format|mkfs|dd|fdisk|sfdisk|parted|shred|chmod\\s+777|chown\\s+-R|chmod\\s+-R\\s+777|git\\s+push\\s+--force|git\\s+push\\s+-f|git\\s+reset\\s+--hard|git\\s+push\\s+--delete|kill\\s+-9|killall|reboot|shutdown|init\\s+6|init\\s+0|systemctl\\s+restart|sudo|su\\s|eval|exec\\s|bash\\s+-c|sh\\s+-c|powershell\\s+-c|cmd\\s+/c)";
+    private static final java.util.regex.Pattern DESTRUCTIVE_REGEX = 
+        java.util.regex.Pattern.compile(DESTRUCTIVE_COMMAND_PATTERN, java.util.regex.Pattern.CASE_INSENSITIVE);
 
     private final ReentrantLock historyLock = new ReentrantLock();
 
@@ -83,8 +106,9 @@ public class SrTicketCodexRunnerServiceImpl implements SrTicketCodexRunnerServic
     }
 
     @Override
-    public SrTicketRunnerExecutionVO execute(SrTicketRecordVO ticket, String actorId) throws Exception {
+    public SrTicketRunnerExecutionVO execute(SrTicketRecordVO ticket, String actorId, String approvalToken) throws Exception {
         validateRunnerConfiguration(ticket);
+        validateApprovalToken(approvalToken);
 
         SrTicketRunnerExecutionVO execution = new SrTicketRunnerExecutionVO();
         execution.setRunId(buildRunId());
@@ -177,6 +201,23 @@ public class SrTicketCodexRunnerServiceImpl implements SrTicketCodexRunnerServic
                     execution.setErrorMessage("Deploy hook failed with exit code " + deployResult.getExitCode());
                     return finalizeExecution(execution, worktreePath, diffFile, changedFilesFile);
                 }
+
+                if (!safe(healthCheckUrl).isEmpty()) {
+                    boolean healthCheckPassed = performHealthCheck(execution);
+                    if (!healthCheckPassed) {
+                        log.warn("Health check failed after deployment, initiating rollback");
+                        boolean rollbackSuccess = performRollback(execution);
+                        if (!rollbackSuccess) {
+                            execution.setStatus("DEPLOY_FAILED_WITH_ROLLBACK_FAILED");
+                            execution.setErrorMessage("Deployment failed and rollback also failed. Manual intervention required.");
+                        } else {
+                            execution.setStatus("DEPLOY_FAILED_ROLLED_BACK");
+                            execution.setErrorMessage("Deployment failed, rolled back successfully.");
+                        }
+                        return finalizeExecution(execution, worktreePath, diffFile, changedFilesFile);
+                    }
+                    execution.setHealthCheckStatus("PASSED");
+                }
             }
 
             execution.setStatus("COMPLETED");
@@ -203,6 +244,107 @@ public class SrTicketCodexRunnerServiceImpl implements SrTicketCodexRunnerServic
         }
         resolveRepositoryRoot();
         resolveWorkspaceRoot();
+    }
+
+    private void validateApprovalToken(String approvalToken) {
+        if (requireApprovalToken) {
+            if (approvalToken == null || approvalToken.isEmpty()) {
+                throw new IllegalArgumentException("Approval token is required for execution.");
+            }
+            if (!isValidApprovalToken(approvalToken)) {
+                throw new IllegalArgumentException("Invalid or expired approval token.");
+            }
+        }
+    }
+
+    private boolean isValidApprovalToken(String token) {
+        return token != null && token.length() >= 32 && token.matches("^[A-Za-z0-9_-]+$");
+    }
+
+    private boolean containsDestructiveCommand(String command) {
+        if (command == null || command.isEmpty()) {
+            return false;
+        }
+        return DESTRUCTIVE_REGEX.matcher(command).find();
+    }
+
+    private boolean performHealthCheck(SrTicketRunnerExecutionVO execution) {
+        if (safe(healthCheckUrl).isEmpty()) {
+            return true;
+        }
+        log.info("Starting health check for URL: {}", healthCheckUrl);
+        execution.setHealthCheckStatus("CHECKING");
+        
+        int maxAttempts = (int) (healthCheckTimeoutSeconds / healthCheckIntervalSeconds);
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                java.net.URL url = new java.net.URL(healthCheckUrl);
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(5000);
+                conn.setReadTimeout(5000);
+                int responseCode = conn.getResponseCode();
+                conn.disconnect();
+                
+                if (responseCode >= 200 && responseCode < 300) {
+                    log.info("Health check passed on attempt {}", attempt);
+                    return true;
+                }
+                log.debug("Health check attempt {} returned status {}", attempt, responseCode);
+            } catch (Exception e) {
+                log.debug("Health check attempt {} failed: {}", attempt, e.getMessage());
+            }
+            
+            if (attempt < maxAttempts) {
+                try {
+                    Thread.sleep(healthCheckIntervalSeconds * 1000);
+                } catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+        
+        log.warn("Health check failed after {} attempts", maxAttempts);
+        execution.setHealthCheckStatus("FAILED");
+        return false;
+    }
+
+    private boolean performRollback(SrTicketRunnerExecutionVO execution) {
+        if (safe(rollbackCommand).isEmpty()) {
+            log.warn("Rollback command not configured, cannot rollback");
+            execution.setRollbackStatus("NO_ROLLBACK_CONFIGURED");
+            return false;
+        }
+        
+        log.info("Executing rollback command: {}", rollbackCommand);
+        execution.setRollbackStatus("EXECUTING");
+        
+        try {
+            Path worktreePath = Paths.get(execution.getWorktreePath());
+            List<String> tokens = tokenize(rollbackCommand);
+            List<String> resolved = new ArrayList<String>();
+            for (String token : tokens) {
+                resolved.add(applyPlaceholders(token, execution));
+            }
+            CommandResult result = runCommand(resolved, worktreePath.getParent(), verifyTimeoutSeconds, null, null);
+            
+            if (result.getExitCode() == 0) {
+                execution.setRollbackStatus("COMPLETED");
+                log.info("Rollback completed successfully");
+                return true;
+            } else {
+                execution.setRollbackStatus("FAILED");
+                execution.setErrorMessage("Rollback command failed with exit code " + result.getExitCode());
+                log.error("Rollback failed with exit code {}", result.getExitCode());
+                return false;
+            }
+        } catch (Exception e) {
+            execution.setRollbackStatus("FAILED");
+            execution.setErrorMessage("Rollback execution failed: " + e.getMessage());
+            log.error("Rollback execution failed", e);
+            return false;
+        }
     }
 
     private SrTicketRunnerExecutionVO finalizeExecution(SrTicketRunnerExecutionVO execution, Path worktreePath, Path diffFile,

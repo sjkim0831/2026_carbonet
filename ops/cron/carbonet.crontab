@@ -18,3 +18,6 @@ PROJECT_ROOT=/opt/projects/carbonet-react-migration
 
 # Daily 02:00: nightly emissions aggregation check
 0 2 * * * /bin/bash ${PROJECT_ROOT}/ops/cron/jobs/nightly_emission_aggregation.sh >> ${PROJECT_ROOT}/var/logs/cron/nightly_emission_aggregation.log 2>&1
+
+# Every 15 minutes: self-healing pattern analysis
+*/15 * * * * /bin/bash ${PROJECT_ROOT}/ops/cron/jobs/self_healing_analysis.sh >> ${PROJECT_ROOT}/var/logs/cron/self_healing_analysis.log 2>&1

@@ -6,7 +6,7 @@ SQL_FILE="${1:-$ROOT_DIR/docs/sql/20260315_admin_full_stack_management_menu.sql}
 JAVA_FILE="/tmp/ApplyFullStackManagementSql.java"
 CLASS_FILE="/tmp/ApplyFullStackManagementSql.class"
 JDBC_JAR="${JDBC_JAR:-/root/.m2/repository/cubrid/cubrid-jdbc/11.2.0.0035/cubrid-jdbc-11.2.0.0035.jar}"
-DB_URL="${CARBONET_DB_URL:-jdbc:cubrid:100.121.241.72:33000:carbonet:::?charset=UTF-8}"
+DB_URL="${CARBONET_DB_URL:-jdbc:cubrid:localhost:33000:carbonet:::?charset=UTF-8}"
 DB_USER="${CARBONET_DB_USER:-dba}"
 DB_PASSWORD="${CARBONET_DB_PASSWORD:-}"
 
@@ -27,7 +27,7 @@ import java.util.*;
 
 public class ApplyFullStackManagementSql {
   public static void main(String[] args) throws Exception {
-    String url = System.getenv().getOrDefault("CARBONET_DB_URL", "jdbc:cubrid:100.121.241.72:33000:carbonet:::?charset=UTF-8");
+    String url = System.getenv().getOrDefault("CARBONET_DB_URL", "jdbc:cubrid:localhost:33000:carbonet:::?charset=UTF-8");
     String user = System.getenv().getOrDefault("CARBONET_DB_USER", "dba");
     String pass = System.getenv().getOrDefault("CARBONET_DB_PASSWORD", "");
     String sql = Files.readString(Path.of(args[0]));

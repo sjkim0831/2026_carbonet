@@ -1,11 +1,15 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+const buildTarget = process.env.VITE_BUILD_TARGET === "classes"
+  ? "../target/classes/static/react-migration"
+  : "../src/main/resources/static/react-migration";
+
 export default defineConfig({
   base: "/react-migration/",
   plugins: [react()],
   build: {
-    outDir: "../src/main/resources/static/react-migration",
+    outDir: buildTarget,
     emptyOutDir: true,
     manifest: true
   },

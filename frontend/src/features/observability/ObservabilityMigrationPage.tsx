@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
+import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { fetchAuditEvents, fetchTraceEvents, AuditEventSearchPayload, TraceEventSearchPayload } from "../../lib/api/client";
 
 type ObservabilityTab = "audit" | "trace";
 
 export function ObservabilityMigrationPage() {
+  const en = isEnglish();
   const [tab, setTab] = useState<ObservabilityTab>("audit");
   const [auditPage, setAuditPage] = useState<AuditEventSearchPayload | null>(null);
   const [tracePage, setTracePage] = useState<TraceEventSearchPayload | null>(null);
@@ -67,7 +70,16 @@ export function ObservabilityMigrationPage() {
   }
 
   return (
-    <main className="app-shell">
+    <AdminPageShell
+      breadcrumbs={[
+        { label: en ? "Home" : "홈", href: buildLocalizedPath("/admin/", "/en/admin/") },
+        { label: en ? "System" : "시스템" },
+        { label: en ? "Observability" : "추적 조회" }
+      ]}
+      title={en ? "Observability" : "추적 조회"}
+      subtitle={en ? "Search and view audit logs and trace events." : "감사 로그와 추적 이벤트를 조회합니다."}
+    >
+      <main className="app-shell">
       <section className="hero-card">
         <p className="eyebrow">Carbonet Observability</p>
         <h1>감사 로그 / 추적 이벤트 조회</h1>
@@ -224,6 +236,7 @@ export function ObservabilityMigrationPage() {
           </div>
         </section>
       )}
-    </main>
+      </main>
+    </AdminPageShell>
   );
 }

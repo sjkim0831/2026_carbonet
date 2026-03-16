@@ -12,43 +12,49 @@ import lombok.RequiredArgsConstructor;
 public class ReactMigrationPageController {
     private final ReactMigrationViewSupport reactMigrationViewSupport;
 
+    private String normalizeRoute(String route) {
+        return route == null ? "" : route.trim().replace('-', '_');
+    }
+
     @GetMapping("/react-migration")
     public Object reactMigration(
             @RequestParam(value = "route", required = false, defaultValue = "mypage") String route,
             Model model) {
-        if ("mypage".equals(route)) {
+        String normalizedRoute = normalizeRoute(route);
+        if ("mypage".equals(normalizedRoute)) {
             return new RedirectView("/mypage");
         }
-        if ("join-wizard".equals(route)) {
+        if ("join_wizard".equals(normalizedRoute)) {
             return new RedirectView("/join/step1");
         }
-        return reactMigrationViewSupport.render(model, route, false, false);
+        return reactMigrationViewSupport.render(model, normalizedRoute, false, false);
     }
 
     @GetMapping("/en/react-migration")
     public Object reactMigrationEn(
             @RequestParam(value = "route", required = false, defaultValue = "mypage") String route,
             Model model) {
-        if ("mypage".equals(route)) {
+        String normalizedRoute = normalizeRoute(route);
+        if ("mypage".equals(normalizedRoute)) {
             return new RedirectView("/en/mypage");
         }
-        if ("join-wizard".equals(route)) {
+        if ("join_wizard".equals(normalizedRoute)) {
             return new RedirectView("/join/en/step1");
         }
-        return reactMigrationViewSupport.render(model, route, true, false);
+        return reactMigrationViewSupport.render(model, normalizedRoute, true, false);
     }
 
     @GetMapping("/admin/react-migration")
     public String adminReactMigration(
-            @RequestParam(value = "route", required = false, defaultValue = "auth-group") String route,
+            @RequestParam(value = "route", required = false, defaultValue = "auth_group") String route,
             Model model) {
-        return reactMigrationViewSupport.render(model, route, false, true);
+        return reactMigrationViewSupport.render(model, normalizeRoute(route), false, true);
     }
 
     @GetMapping("/en/admin/react-migration")
     public String adminReactMigrationEn(
-            @RequestParam(value = "route", required = false, defaultValue = "auth-group") String route,
+            @RequestParam(value = "route", required = false, defaultValue = "auth_group") String route,
             Model model) {
-        return reactMigrationViewSupport.render(model, route, true, true);
+        return reactMigrationViewSupport.render(model, normalizeRoute(route), true, true);
     }
 }

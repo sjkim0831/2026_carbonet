@@ -3,7 +3,11 @@
 
 # Runtime logs
 /var/logs/
+/var/run/
 /${sys:LOG_PATH}/
+/var/logs/carbonet-18001.log
+/src/main/resources/static/react-migration/
+/src/main/resources/templates/egovframework/com/admin/sr_workbench*.html
 
 # Local SQL work files
 /sql/

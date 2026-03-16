@@ -17,6 +17,7 @@ import { isEnglish, navigate } from "../../lib/navigation/runtime";
 
 type MypageMember = Record<string, unknown> & {
   entrprsmberId?: string;
+  insttId?: string;
   applcntNm?: string;
   applcntEmailAdres?: string;
   cmpnyNm?: string;
@@ -264,7 +265,7 @@ export function MypageMigrationPage() {
     setError("");
     setMessage("");
     try {
-      await saveMypageEmail(session, email, en);
+      await saveMypageEmail(session, email, en, stringValue(member.insttId));
       await saveMypageStaff(
         session,
         {
@@ -274,7 +275,8 @@ export function MypageMigrationPage() {
           middleTelno,
           endTelno
         },
-        en
+        en,
+        stringValue(member.insttId)
       );
       await pageState.reload();
       setMessage(copy.saveSuccess);
@@ -294,7 +296,7 @@ export function MypageMigrationPage() {
     setError("");
     setMessage("");
     try {
-      await saveMypageEmail(session, email, en);
+      await saveMypageEmail(session, email, en, stringValue(member.insttId));
       await pageState.reload();
       setMessage(copy.emailSaved);
     } catch (nextError) {

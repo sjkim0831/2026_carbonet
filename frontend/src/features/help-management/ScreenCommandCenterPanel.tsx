@@ -42,43 +42,46 @@ function buildDirectionPreview(params: {
 
 function renderFieldSpecs(title: string, items: ScreenCommandFieldSpec[] | undefined) {
   return (
-    <div className="command-card">
-      <p className="caption">{title}</p>
+    <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4">
+      <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{title}</p>
       {items && items.length > 0 ? (
-        <div className="state-text">
+        <div className="mt-3 space-y-3 text-sm text-[var(--kr-gov-text-secondary)]">
           {items.map((item) => (
             <div key={`${title}-${item.fieldId}`}>
-              <strong>{item.fieldId}</strong> [{item.type}] {item.required ? "required" : "optional"} / {item.source}
-              <br />
-              {item.notes}
+              <p className="font-bold text-[var(--kr-gov-text-primary)]">
+                {item.fieldId} <span className="font-normal text-[var(--kr-gov-text-secondary)]">[{item.type}]</span>
+              </p>
+              <p className="mt-1 text-xs">{item.required ? "required" : "optional"} / {item.source}</p>
+              <p className="mt-1 text-xs">{item.notes}</p>
             </div>
           ))}
         </div>
       ) : (
-        <p className="state-text">-</p>
+        <p className="mt-3 text-sm text-[var(--kr-gov-text-secondary)]">-</p>
       )}
-    </div>
+    </article>
   );
 }
 
 function renderMaskRules(items: ScreenCommandMaskRule[] | undefined) {
   return (
-    <div className="command-card">
-      <p className="caption">Masking</p>
+    <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4">
+      <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">Masking</p>
       {items && items.length > 0 ? (
-        <div className="state-text">
+        <div className="mt-3 space-y-3 text-sm text-[var(--kr-gov-text-secondary)]">
           {items.map((item) => (
             <div key={`mask-${item.fieldId}`}>
-              <strong>{item.fieldId}</strong> [{item.strategy}]
-              <br />
-              {item.notes}
+              <p className="font-bold text-[var(--kr-gov-text-primary)]">
+                {item.fieldId} <span className="font-normal text-[var(--kr-gov-text-secondary)]">[{item.strategy}]</span>
+              </p>
+              <p className="mt-1 text-xs">{item.notes}</p>
             </div>
           ))}
         </div>
       ) : (
-        <p className="state-text">-</p>
+        <p className="mt-3 text-sm text-[var(--kr-gov-text-secondary)]">-</p>
       )}
-    </div>
+    </article>
   );
 }
 
@@ -178,24 +181,58 @@ export function ScreenCommandCenterPanel({ initialPageId }: ScreenCommandCenterP
   }
 
   return (
-    <div className="help-command-center" data-help-id="help-management-command-center">
-      {error ? <p className="error-text">{error}</p> : null}
-      <section className="panel panel-embedded">
-        <div className="section-head">
+    <div className="space-y-6" data-help-id="help-management-command-center">
+      {error ? (
+        <section className="rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </section>
+      ) : null}
+
+      <section className="grid grid-cols-1 gap-4 xl:grid-cols-4">
+        <article className="gov-card border-l-4 border-l-[var(--kr-gov-blue)]">
+          <p className="text-sm font-bold text-[var(--kr-gov-text-secondary)]">Target Screen</p>
+          <p className="mt-3 text-2xl font-black text-[var(--kr-gov-text-primary)]">{currentPage?.label || "-"}</p>
+          <p className="mt-2 break-all text-xs text-gray-500">{currentPage?.routePath || "-"}</p>
+        </article>
+        <article className="gov-card border-l-4 border-l-[var(--kr-gov-green)]">
+          <p className="text-sm font-bold text-[var(--kr-gov-text-secondary)]">Registry</p>
+          <p className="mt-3 text-2xl font-black text-[var(--kr-gov-text-primary)]">{currentPage?.manifestRegistry?.pageId || "-"}</p>
+          <p className="mt-2 text-xs text-gray-500">layout {currentPage?.manifestRegistry?.layoutVersion || "-"}</p>
+        </article>
+        <article className="gov-card border-l-4 border-l-amber-500">
+          <p className="text-sm font-bold text-[var(--kr-gov-text-secondary)]">View Feature</p>
+          <p className="mt-3 break-all text-lg font-black text-[var(--kr-gov-text-primary)]">{currentPage?.menuPermission?.requiredViewFeatureCode || "-"}</p>
+          <p className="mt-2 text-xs text-gray-500">{(currentPage?.menuPermission?.featureCodes || []).join(", ") || "-"}</p>
+        </article>
+        <article className="gov-card border-l-4 border-l-slate-500">
+          <p className="text-sm font-bold text-[var(--kr-gov-text-secondary)]">Components</p>
+          <p className="mt-3 text-2xl font-black text-[var(--kr-gov-text-primary)]">{String(currentPage?.manifestRegistry?.componentCount || 0)}</p>
+          <p className="mt-2 break-all text-xs text-gray-500">{currentPage?.menuLookupUrl || "-"}</p>
+        </article>
+      </section>
+
+      <section className="gov-card">
+        <div className="mb-6 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="caption">Screen Command Scope</p>
-            <h2>{currentPage?.label || "화면 메타데이터"}</h2>
+            <h3 className="text-xl font-black text-[var(--kr-gov-text-primary)]">수정 경로 선택</h3>
+            <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+              선택한 화면의 요소, 이벤트, API, 권한 메타데이터를 함께 묶어 수정 지시를 생성합니다.
+            </p>
           </div>
-          <div className="toolbar-actions">
-            <button className="primary-button" disabled={loading} onClick={() => load(pageId).catch(() => undefined)} type="button">
-              {loading ? "불러오는 중..." : "화면 연결 불러오기"}
-            </button>
-          </div>
+          <button
+            className="gov-btn gov-btn-secondary"
+            disabled={loading}
+            onClick={() => load(pageId).catch(() => undefined)}
+            type="button"
+          >
+            {loading ? "불러오는 중..." : "화면 연결 불러오기"}
+          </button>
         </div>
-        <div className="toolbar">
-          <label className="field field-wide">
-            <span>대상 화면</span>
-            <select value={pageId} onChange={(event) => setPageId(event.target.value)}>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-4">
+          <label className="block">
+            <span className="gov-label">대상 화면</span>
+            <select className="gov-select" value={pageId} onChange={(event) => setPageId(event.target.value)}>
               {(payload?.pages || []).map((option) => (
                 <option key={option.pageId} value={option.pageId}>
                   {option.label} ({option.routePath})
@@ -203,53 +240,9 @@ export function ScreenCommandCenterPanel({ initialPageId }: ScreenCommandCenterP
               ))}
             </select>
           </label>
-        </div>
-        <div className="meta-grid">
-          <div>
-            <dt>Route</dt>
-            <dd>{currentPage?.routePath || "-"}</dd>
-          </div>
-          <div>
-            <dt>Menu Code</dt>
-            <dd>{currentPage?.menuCode || "-"}</dd>
-          </div>
-          <div>
-            <dt>Menu URL</dt>
-            <dd>{currentPage?.menuLookupUrl || "-"}</dd>
-          </div>
-        </div>
-        <p className="state-text">{currentPage?.summary || "선택한 화면의 연결 메타데이터를 탐색합니다."}</p>
-        <div className="meta-grid">
-          <div>
-            <dt>Registry</dt>
-            <dd>{currentPage?.manifestRegistry?.pageId || "-"}</dd>
-          </div>
-          <div>
-            <dt>Layout</dt>
-            <dd>{currentPage?.manifestRegistry?.layoutVersion || "-"}</dd>
-          </div>
-          <div>
-            <dt>Design Token</dt>
-            <dd>{currentPage?.manifestRegistry?.designTokenVersion || "-"}</dd>
-          </div>
-          <div>
-            <dt>Components</dt>
-            <dd>{String(currentPage?.manifestRegistry?.componentCount || 0)}</dd>
-          </div>
-        </div>
-      </section>
-
-      <section className="panel panel-embedded">
-        <div className="section-head">
-          <div>
-            <p className="caption">Element / Event / API</p>
-            <h2>수정 경로 선택</h2>
-          </div>
-        </div>
-        <div className="create-grid help-editor-grid">
-          <label className="field">
-            <span>요소</span>
-            <select value={selectedSurface?.surfaceId || ""} onChange={(event) => setSurfaceId(event.target.value)}>
+          <label className="block">
+            <span className="gov-label">요소</span>
+            <select className="gov-select" value={selectedSurface?.surfaceId || ""} onChange={(event) => setSurfaceId(event.target.value)}>
               {(currentPage?.surfaces || []).map((item) => (
                 <option key={item.surfaceId} value={item.surfaceId}>
                   {item.label} ({item.componentId})
@@ -257,9 +250,9 @@ export function ScreenCommandCenterPanel({ initialPageId }: ScreenCommandCenterP
               ))}
             </select>
           </label>
-          <label className="field">
-            <span>이벤트</span>
-            <select value={selectedEvent?.eventId || ""} onChange={(event) => setEventId(event.target.value)}>
+          <label className="block">
+            <span className="gov-label">이벤트</span>
+            <select className="gov-select" value={selectedEvent?.eventId || ""} onChange={(event) => setEventId(event.target.value)}>
               {availableEvents.map((item) => (
                 <option key={item.eventId} value={item.eventId}>
                   {item.label} ({item.eventType})
@@ -267,9 +260,9 @@ export function ScreenCommandCenterPanel({ initialPageId }: ScreenCommandCenterP
               ))}
             </select>
           </label>
-          <label className="field">
-            <span>수정 레이어</span>
-            <select value={selectedTarget?.targetId || ""} onChange={(event) => setChangeTargetId(event.target.value)}>
+          <label className="block">
+            <span className="gov-label">수정 레이어</span>
+            <select className="gov-select" value={selectedTarget?.targetId || ""} onChange={(event) => setChangeTargetId(event.target.value)}>
               {(currentPage?.changeTargets || []).map((item) => (
                 <option key={item.targetId} value={item.targetId}>
                   {item.label}
@@ -277,136 +270,149 @@ export function ScreenCommandCenterPanel({ initialPageId }: ScreenCommandCenterP
               ))}
             </select>
           </label>
-          <label className="field field-wide">
-            <span>작업 지시</span>
-            <textarea
-              rows={4}
-              value={instruction}
-              onChange={(event) => setInstruction(event.target.value)}
-              placeholder="예: 회원목록 검색폼에 기관유형 필터를 추가하고 API 검색조건, 매퍼 조회조건, 권한 영향까지 함께 검토"
-            />
+        </div>
+
+        <label className="mt-6 block">
+          <span className="gov-label">작업 지시</span>
+          <textarea
+            className="gov-input min-h-[120px] py-3"
+            rows={4}
+            value={instruction}
+            onChange={(event) => setInstruction(event.target.value)}
+            placeholder="예: 회원목록 검색폼에 기관유형 필터를 추가하고 API 검색조건, 매퍼 조회조건, 권한 영향까지 함께 검토"
+          />
+        </label>
+
+        <div className="mt-6 flex flex-wrap gap-2">
+          <button className="gov-btn gov-btn-outline-blue" data-action="generate" onClick={handleGeneratePreview} type="button">
+            지시문 생성
+          </button>
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <article className="gov-card">
+          <div className="mb-4">
+            <h3 className="text-xl font-black text-[var(--kr-gov-text-primary)]">연결된 요소와 실행 경로</h3>
+            <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+              현재 선택 기준으로 화면, 이벤트, API, 스키마 연결 상태를 확인합니다.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4">
+              <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">선택 요소</p>
+              <p className="mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)]">{selectedSurface?.label || "-"}</p>
+              <p className="mt-2 break-all text-xs text-gray-500">{selectedSurface?.selector || "-"}</p>
+              <p className="mt-2 text-xs text-gray-500">{selectedSurface?.notes || "-"}</p>
+            </article>
+            <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4">
+              <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">이벤트</p>
+              <p className="mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)]">{selectedEvent?.label || "-"}</p>
+              <p className="mt-2 break-all text-xs text-gray-500">{selectedEvent?.frontendFunction || "-"}</p>
+              <p className="mt-2 text-xs text-gray-500">{selectedEvent?.notes || "-"}</p>
+            </article>
+            <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4">
+              <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">API / Controller</p>
+              <p className="mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)]">{selectedApi ? `${selectedApi.method} ${selectedApi.endpoint}` : "-"}</p>
+              <p className="mt-2 break-all text-xs text-gray-500">{selectedApi?.controllerAction || "-"}</p>
+              <p className="mt-1 break-all text-xs text-gray-500">{selectedApi?.serviceMethod || "-"}</p>
+            </article>
+            <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4">
+              <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">Schema</p>
+              <p className="mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)]">{selectedSchema?.tableName || "-"}</p>
+              <p className="mt-2 break-all text-xs text-gray-500">{selectedApi?.mapperQuery || "-"}</p>
+              <p className="mt-1 text-xs text-gray-500">{selectedSchema?.notes || "-"}</p>
+            </article>
+            {renderFieldSpecs("Function Inputs", selectedEvent?.functionInputs)}
+            {renderFieldSpecs("Function Outputs", selectedEvent?.functionOutputs)}
+            {renderFieldSpecs("API Request", selectedApi?.requestFields)}
+            {renderFieldSpecs("API Response", selectedApi?.responseFields)}
+            {renderMaskRules(selectedApi?.maskingRules)}
+            <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4">
+              <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">Guards / Side Effects</p>
+              <p className="mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)]">{selectedEvent?.eventId || "-"}</p>
+              <p className="mt-2 text-xs text-gray-500">{selectedEvent?.guardConditions?.join(", ") || "-"}</p>
+              <p className="mt-1 text-xs text-gray-500">{selectedEvent?.sideEffects?.join(", ") || "-"}</p>
+            </article>
+          </div>
+        </article>
+
+        <article className="gov-card">
+          <div className="mb-4">
+            <h3 className="text-xl font-black text-[var(--kr-gov-text-primary)]">AI 작업 지시 초안</h3>
+            <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+              선택된 연결 정보와 입력한 요구사항을 기반으로 바로 전달 가능한 지시문을 생성합니다.
+            </p>
+          </div>
+          <label className="block">
+            <span className="gov-label">생성된 지시문</span>
+            <textarea className="gov-input min-h-[320px] py-3 font-mono text-[12px]" readOnly rows={12} value={previewText || preview} />
           </label>
-        </div>
-        <div className="toolbar-actions">
-          <button className="primary-button" data-action="generate" onClick={handleGeneratePreview} type="button">지시문 생성</button>
-        </div>
+        </article>
       </section>
 
-      <section className="panel panel-embedded">
-        <div className="section-head">
-          <div>
-            <p className="caption">Connected Metadata</p>
-            <h2>연결된 요소와 실행 경로</h2>
-          </div>
+      <section className="gov-card">
+        <div className="mb-6">
+          <h3 className="text-xl font-black text-[var(--kr-gov-text-primary)]">메뉴, 기능 권한, 공통코드</h3>
+          <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+            메뉴 접근 권한과 연결된 기능 코드, 공통코드 그룹을 함께 검토합니다.
+          </p>
         </div>
-        <div className="command-grid">
-          <article className="command-card">
-            <p className="caption">선택 요소</p>
-            <h3>{selectedSurface?.label || "-"}</h3>
-            <p className="route-path">{selectedSurface?.selector || "-"}</p>
-            <p className="state-text">{selectedSurface?.notes || "-"}</p>
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+          <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4">
+            <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">VIEW 권한</p>
+            <p className="mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)]">{currentPage?.menuPermission?.requiredViewFeatureCode || "-"}</p>
+            <p className="mt-2 text-xs text-gray-500">{(currentPage?.menuPermission?.featureCodes || []).join(", ") || "기능 코드 없음"}</p>
           </article>
-          <article className="command-card">
-            <p className="caption">이벤트</p>
-            <h3>{selectedEvent?.label || "-"}</h3>
-            <p className="route-path">{selectedEvent?.frontendFunction || "-"}</p>
-            <p className="state-text">{selectedEvent?.notes || "-"}</p>
+          <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4">
+            <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">권한 해석 테이블</p>
+            <p className="mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)]">{(currentPage?.menuPermission?.relationTables || []).join(", ") || "-"}</p>
+            <p className="mt-2 text-xs text-gray-500">{(currentPage?.menuPermission?.resolverNotes || []).join(" ") || "-"}</p>
           </article>
-          <article className="command-card">
-            <p className="caption">API / Controller</p>
-            <h3>{selectedApi ? `${selectedApi.method} ${selectedApi.endpoint}` : "-"}</h3>
-            <p className="route-path">{selectedApi?.controllerAction || "-"}</p>
-            <p className="state-text">{selectedApi?.serviceMethod || "-"}</p>
-          </article>
-          <article className="command-card">
-            <p className="caption">Schema</p>
-            <h3>{selectedSchema?.tableName || "-"}</h3>
-            <p className="route-path">{selectedApi?.mapperQuery || "-"}</p>
-            <p className="state-text">{selectedSchema?.notes || "-"}</p>
-          </article>
-          {renderFieldSpecs("Function Inputs", selectedEvent?.functionInputs)}
-          {renderFieldSpecs("Function Outputs", selectedEvent?.functionOutputs)}
-          {renderFieldSpecs("API Request", selectedApi?.requestFields)}
-          {renderFieldSpecs("API Response", selectedApi?.responseFields)}
-          {renderMaskRules(selectedApi?.maskingRules)}
-          <article className="command-card">
-            <p className="caption">Guards / Side Effects</p>
-            <h3>{selectedEvent?.eventId || "-"}</h3>
-            <p className="route-path">{selectedEvent?.guardConditions?.join(", ") || "-"}</p>
-            <p className="state-text">{selectedEvent?.sideEffects?.join(", ") || "-"}</p>
-          </article>
-        </div>
-      </section>
-
-      <section className="panel panel-embedded">
-        <div className="section-head">
-          <div>
-            <p className="caption">Permission / Common Code</p>
-            <h2>메뉴, 기능 권한, 공통코드</h2>
-          </div>
-        </div>
-        <div className="command-grid">
-          <article className="command-card">
-            <p className="caption">VIEW 권한</p>
-            <h3>{currentPage?.menuPermission?.requiredViewFeatureCode || "-"}</h3>
-            <p className="state-text">{(currentPage?.menuPermission?.featureCodes || []).join(", ") || "기능 코드 없음"}</p>
-          </article>
-          <article className="command-card">
-            <p className="caption">권한 해석 테이블</p>
-            <h3>{(currentPage?.menuPermission?.relationTables || []).join(", ") || "-"}</h3>
-            <p className="state-text">{(currentPage?.menuPermission?.resolverNotes || []).join(" ") || "-"}</p>
-          </article>
-          <article className="command-card command-card-wide">
-            <p className="caption">공통코드 그룹</p>
-            <div className="code-chip-list">
+          <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4">
+            <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">공통코드 그룹</p>
+            <div className="mt-3 flex flex-wrap gap-2">
               {(currentPage?.commonCodeGroups || []).map((item) => (
-                <span className="stat-chip" key={item.codeGroupId}>{item.codeGroupId}: {item.label}</span>
+                <span className="inline-flex rounded-full border border-[var(--kr-gov-border-light)] bg-white px-3 py-1 text-xs font-bold text-[var(--kr-gov-text-primary)]" key={item.codeGroupId}>
+                  {item.codeGroupId}: {item.label}
+                </span>
               ))}
             </div>
-            <p className="state-text">
+            <p className="mt-3 text-xs text-gray-500">
               {(currentPage?.commonCodeGroups || [])
                 .map((item) => `${item.codeGroupId}[${item.values.join(", ")}]`)
                 .join(" / ") || "-"}
             </p>
           </article>
         </div>
-        <div className="table-wrap">
-          <table className="data-table">
+        <div className="mt-6 overflow-x-auto">
+          <table className="w-full border-collapse text-left text-sm">
             <thead>
-              <tr>
-                <th>featureCode</th>
-                <th>featureNm</th>
-                <th>menuCode</th>
-                <th>menuUrl</th>
+              <tr className="gov-table-header">
+                <th className="px-5 py-4">featureCode</th>
+                <th className="px-5 py-4">featureNm</th>
+                <th className="px-5 py-4">menuCode</th>
+                <th className="px-5 py-4">menuUrl</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-100">
               {(currentPage?.menuPermission?.featureRows || []).length === 0 ? (
-                <tr><td colSpan={4}>연결된 기능 코드가 없습니다.</td></tr>
+                <tr>
+                  <td className="px-5 py-10 text-center text-gray-500" colSpan={4}>
+                    연결된 기능 코드가 없습니다.
+                  </td>
+                </tr>
               ) : (currentPage?.menuPermission?.featureRows || []).map((item) => (
-                <tr key={item.featureCode}>
-                  <td>{item.featureCode}</td>
-                  <td>{item.featureNm}</td>
-                  <td>{item.menuCode}</td>
-                  <td>{item.menuUrl}</td>
+                <tr key={item.featureCode} className="hover:bg-gray-50/60">
+                  <td className="px-5 py-4 font-mono text-xs">{item.featureCode}</td>
+                  <td className="px-5 py-4 font-bold">{item.featureNm}</td>
+                  <td className="px-5 py-4">{item.menuCode}</td>
+                  <td className="px-5 py-4 break-all">{item.menuUrl}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </section>
-
-      <section className="panel panel-embedded">
-        <div className="section-head">
-          <div>
-            <p className="caption">Direction Preview</p>
-            <h2>AI 작업 지시 초안</h2>
-          </div>
-        </div>
-        <label className="field field-wide">
-          <span>생성된 지시문</span>
-          <textarea readOnly rows={9} value={previewText || preview} />
-        </label>
       </section>
     </div>
   );

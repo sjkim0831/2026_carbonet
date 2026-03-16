@@ -56,7 +56,7 @@ Design-driven tasks should also start from:
 
 - `<PROJECT_ROOT>` default is documented in `PROJECT_PATHS.md` and `ops/project-paths.sh`.
 - This app runs Carbonet directly without Eureka/Config/Gateway orchestration.
-- DB host example is `100.121.241.72` and can be overridden with `CUBRID_HOST`.
+- DB host default is `localhost` and can be overridden with `CUBRID_HOST`.
 - Runtime logs are written under `var/logs/`.
 - Local uploaded files are stored under `var/file/`.
 - Build output is written under `target/`.

@@ -9,6 +9,8 @@ public interface HomeMypageService {
 
     String resolveMypageView(boolean en, Model model, HttpServletRequest request);
 
+    Map<String, Object> buildMypageContext(boolean en, HttpServletRequest request);
+
     Map<String, Object> buildMypagePayload(boolean en, HttpServletRequest request);
 
     Map<String, Object> buildMypageSectionPayload(boolean en, String section, HttpServletRequest request);

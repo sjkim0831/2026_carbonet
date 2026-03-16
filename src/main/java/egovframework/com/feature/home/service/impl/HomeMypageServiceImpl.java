@@ -83,6 +83,34 @@ public class HomeMypageServiceImpl implements HomeMypageService {
     }
 
     @Override
+    public Map<String, Object> buildMypageContext(boolean en, HttpServletRequest request) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        String accessToken = jwtProvider.getCookie(request, "accessToken");
+        if (ObjectUtils.isEmpty(accessToken)) {
+            payload.put("authenticated", false);
+            payload.put("redirectUrl", en ? "/en/signin/loginView" : "/signin/loginView");
+            payload.put("insttId", "");
+            return payload;
+        }
+
+        String userId = extractUserId(accessToken);
+        if (ObjectUtils.isEmpty(userId)) {
+            payload.put("authenticated", false);
+            payload.put("redirectUrl", en ? "/en/signin/loginView" : "/signin/loginView");
+            payload.put("insttId", "");
+            return payload;
+        }
+
+        payload.put("authenticated", true);
+        payload.put("userId", userId);
+        payload.put("insttId", enterpriseMemberRepository.findById(userId)
+                .map(EntrprsMber::getInsttId)
+                .map(this::safeString)
+                .orElse(""));
+        return payload;
+    }
+
+    @Override
     public Map<String, Object> buildMypagePayload(boolean en, HttpServletRequest request) {
         Map<String, Object> payload = new LinkedHashMap<>();
         String accessToken = jwtProvider.getCookie(request, "accessToken");

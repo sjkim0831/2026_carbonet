@@ -15,5 +15,5 @@ public interface SrTicketWorkbenchService {
 
     Map<String, Object> prepareExecution(String ticketId, String actorId) throws Exception;
 
-    Map<String, Object> executeTicket(String ticketId, String actorId) throws Exception;
+    Map<String, Object> executeTicket(String ticketId, String actorId, String approvalToken) throws Exception;
 }

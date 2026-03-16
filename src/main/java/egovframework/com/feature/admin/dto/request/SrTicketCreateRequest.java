@@ -7,6 +7,7 @@ import lombok.Setter;
 @Setter
 public class SrTicketCreateRequest {
 
+    private String ticketId;
     private String pageId;
     private String pageLabel;
     private String routePath;

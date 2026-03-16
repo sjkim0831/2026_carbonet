@@ -56,15 +56,7 @@
     script.type = "module";
     script.src = useDevServer ? `${config.devUrl}/src/main.tsx` : config.prodJs;
     script.onerror = () => {
-        const root = document.getElementById("root");
-        if (root) {
-            root.innerHTML = `
-              <section class="react-shell-fallback">
-                <p>React bundle could not be loaded.</p>
-                <p>개발 모드는 <code>?dev=1</code>, 정적 배포는 <code>${config.prodJs}</code> 경로가 필요합니다.</p>
-              </section>
-            `;
-        }
+        console.error("React bundle could not be loaded.", config.prodJs);
     };
     document.body.appendChild(script);
 </script>

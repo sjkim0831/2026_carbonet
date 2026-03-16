@@ -5,5 +5,5 @@ import egovframework.com.feature.admin.model.vo.SrTicketRunnerExecutionVO;
 
 public interface SrTicketCodexRunnerService {
 
-    SrTicketRunnerExecutionVO execute(SrTicketRecordVO ticket, String actorId) throws Exception;
+    SrTicketRunnerExecutionVO execute(SrTicketRecordVO ticket, String actorId, String approvalToken) throws Exception;
 }

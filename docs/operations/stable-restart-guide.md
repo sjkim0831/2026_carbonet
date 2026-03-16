@@ -26,7 +26,7 @@ Environment="JAVA_OPTS="
 Environment="SECURITY_CODEX_ENABLED=true"
 Environment="SECURITY_CODEX_API_KEY=CHANGE_THIS_TO_A_RANDOM_SECRET"
 ExecStartPre=/bin/bash -lc 'for i in {1..30}; do ss -lnt | grep -q ":33000 " && exit 0; sleep 2; done; exit 1'
-ExecStart=/bin/bash -lc 'exec java $JAVA_OPTS -jar <PROJECT_ROOT>/target/carbonet.jar --server.port=18000 --spring.datasource.url=jdbc:cubrid:100.121.241.72:33000:carbonet:::?charset=UTF-8'
+ExecStart=/bin/bash -lc 'exec java $JAVA_OPTS -jar <PROJECT_ROOT>/target/carbonet.jar --server.port=18000 --spring.datasource.url=jdbc:cubrid:localhost:33000:carbonet:::?charset=UTF-8'
 Restart=always
 RestartSec=5
 SuccessExitStatus=143
@@ -63,7 +63,7 @@ openssl rand -hex 32
 ```bash
 cd <PROJECT_ROOT>
 pkill -f "carbonet.jar --server.port=18000" || true
-setsid sh -c 'nohup java -jar target/carbonet.jar --server.port=18000 --spring.datasource.url=jdbc:cubrid:100.121.241.72:33000:carbonet:::?charset=UTF-8 >> var/logs/carbonet-18000.log 2>&1 < /dev/null &'
+setsid sh -c 'nohup java -jar target/carbonet.jar --server.port=18000 --spring.datasource.url=jdbc:cubrid:localhost:33000:carbonet:::?charset=UTF-8 >> var/logs/carbonet-18000.log 2>&1 < /dev/null &'
 ```
 
 확인:
@@ -76,10 +76,10 @@ ss -lnt | grep ':18000 '
 ## 3) 트러블슈팅 포인트
 
 - 증상: 기동 직후 종료
-  - 로그에 `Cannot connect to a broker ... 100.121.241.72:33000` 가 보이면 DB 접속 실패입니다.
+  - 로그에 `Cannot connect to a broker ... localhost:33000` 가 보이면 DB 접속 실패입니다.
 - 점검:
   - `ss -lnt | grep ':33000 '` 로 CUBRID broker 리슨 여부 확인
-  - 실행 인자에 `--spring.datasource.url=jdbc:cubrid:100.121.241.72:33000:carbonet:::?charset=UTF-8` 사용
+  - 실행 인자에 `--spring.datasource.url=jdbc:cubrid:localhost:33000:carbonet:::?charset=UTF-8` 사용
 - 로그:
   - `<PROJECT_ROOT>/var/logs/carbonet-18000.log`
 

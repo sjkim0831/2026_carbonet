@@ -33,6 +33,8 @@ public class SrTicketRunnerExecutionVO {
     private String backendVerifyCommand;
     private String frontendVerifyCommand;
     private String deployCommand;
+    private String healthCheckStatus;
+    private String rollbackStatus;
     private String errorMessage;
     private List<String> changedFiles = new ArrayList<String>();
 }

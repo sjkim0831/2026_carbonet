@@ -1,7 +1,9 @@
 package egovframework.com.feature.auth.web;
 
 import egovframework.com.feature.admin.service.AuthGroupManageService;
+import egovframework.com.feature.auth.domain.entity.EntrprsMber;
 import egovframework.com.feature.auth.domain.entity.EmplyrInfo;
+import egovframework.com.feature.auth.domain.repository.EnterpriseMemberRepository;
 import egovframework.com.feature.auth.domain.repository.EmployeeMemberRepository;
 import egovframework.com.feature.auth.dto.response.FrontendSessionResponseDTO;
 import io.jsonwebtoken.Claims;
@@ -37,6 +39,7 @@ public class FrontendSessionApiController {
     private final JwtTokenProvider jwtProvider;
     private final AuthGroupManageService authGroupManageService;
     private final EmployeeMemberRepository employeeMemberRepository;
+    private final EnterpriseMemberRepository enterpriseMemberRepository;
 
     @GetMapping("/session")
     @ResponseBody
@@ -109,8 +112,17 @@ public class FrontendSessionApiController {
         if (userId.isEmpty() || isWebmaster(userId)) {
             return "";
         }
-        return employeeMemberRepository.findById(userId)
+
+        String employeeInsttId = employeeMemberRepository.findById(userId)
                 .map(EmplyrInfo::getInsttId)
+                .map(this::safeString)
+                .orElse("");
+        if (!employeeInsttId.isEmpty()) {
+            return employeeInsttId;
+        }
+
+        return enterpriseMemberRepository.findById(userId)
+                .map(EntrprsMber::getInsttId)
                 .map(this::safeString)
                 .orElse("");
     }

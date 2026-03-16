@@ -9,4 +9,5 @@ public class SrTicketApprovalRequest {
 
     private String decision;
     private String comment;
+    private String approvalToken;
 }

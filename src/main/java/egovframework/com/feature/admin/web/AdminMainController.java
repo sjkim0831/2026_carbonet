@@ -4695,7 +4695,7 @@ public class AdminMainController {
     private String redirectReactMigration(HttpServletRequest request, Locale locale, String route) {
         StringBuilder builder = new StringBuilder("forward:");
         builder.append(isEnglishRequest(request, locale) ? "/en/admin/react-migration?route=" : "/admin/react-migration?route=");
-        builder.append(route);
+        builder.append(route == null ? "" : route.replace('-', '_'));
         String query = request == null ? "" : safeString(request.getQueryString());
         if (!query.isEmpty()) {
             builder.append("&").append(query);

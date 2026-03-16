@@ -20,6 +20,13 @@ export type FrontendSession = {
   capabilityCodes: string[];
 };
 
+type MypageContext = {
+  authenticated: boolean;
+  userId?: string;
+  insttId: string;
+  redirectUrl?: string;
+};
+
 export type AdminMenuLink = {
   text: string;
   tEn: string;
@@ -853,6 +860,8 @@ let frontendSessionCache: FrontendSession | null = null;
 let frontendSessionPromise: Promise<FrontendSession> | null = null;
 let adminMenuTreeCache: AdminMenuTreePayload | null = null;
 let adminMenuTreePromise: Promise<AdminMenuTreePayload> | null = null;
+let mypageContextCache: MypageContext | null = null;
+let mypageContextPromise: Promise<MypageContext> | null = null;
 let joinSessionCache: JoinSessionPayload | null = null;
 let joinSessionPromise: Promise<JoinSessionPayload> | null = null;
 const SESSION_STORAGE_CACHE_PREFIX = "carbonet:api-cache:";
@@ -968,6 +977,8 @@ export function invalidateFrontendSessionCache() {
   frontendSessionPromise = null;
   adminMenuTreeCache = null;
   adminMenuTreePromise = null;
+  mypageContextCache = null;
+  mypageContextPromise = null;
   removeSessionStorageCache(FRONTEND_SESSION_STORAGE_KEY);
   removeSessionStorageCache(ADMIN_MENU_TREE_STORAGE_KEY);
 }
@@ -1010,6 +1021,46 @@ export async function fetchFrontendSession(): Promise<FrontendSession> {
   }
 
   return frontendSessionPromise;
+}
+
+async function fetchMypageContext(en = false): Promise<MypageContext> {
+  if (mypageContextCache) {
+    return mypageContextCache;
+  }
+
+  if (!mypageContextPromise) {
+    mypageContextPromise = fetch(en ? "/api/en/mypage/context" : "/api/mypage/context", {
+      credentials: "include"
+    })
+      .then((response) => readJsonResponse<MypageContext>(response))
+      .then((context) => {
+        mypageContextCache = context;
+        return context;
+      })
+      .finally(() => {
+        mypageContextPromise = null;
+      });
+  }
+
+  if (!mypageContextPromise) {
+    throw new Error("Mypage context promise was not initialized");
+  }
+
+  return mypageContextPromise;
+}
+
+function appendInsttId(search: URLSearchParams, insttId?: string) {
+  const normalizedInsttId = String(insttId || "").trim();
+  if (normalizedInsttId) {
+    search.set("instt_id", normalizedInsttId);
+  }
+  return search;
+}
+
+async function buildMypageUrl(path: string) {
+  const context = await fetchMypageContext(path.startsWith("/api/en/")).catch(() => null);
+  const search = appendInsttId(new URLSearchParams(), context?.insttId);
+  return search.toString() ? `${path}?${search.toString()}` : path;
 }
 
 export async function fetchAdminMenuTree(): Promise<AdminMenuTreePayload> {
@@ -1764,7 +1815,7 @@ export async function fetchJoinSession(): Promise<JoinSessionPayload> {
 }
 
 export async function fetchMypage(en = false) {
-  const response = await fetch(en ? "/api/en/mypage" : "/api/mypage", {
+  const response = await fetch(await buildMypageUrl(en ? "/api/en/mypage" : "/api/mypage"), {
     credentials: "include"
   });
   const body = await response.json();
@@ -1775,7 +1826,7 @@ export async function fetchMypage(en = false) {
 }
 
 export async function fetchMypageSection(section: string, en = false) {
-  const response = await fetch(en ? `/api/en/mypage/section/${encodeURIComponent(section)}` : `/api/mypage/section/${encodeURIComponent(section)}`, {
+  const response = await fetch(await buildMypageUrl(en ? `/api/en/mypage/section/${encodeURIComponent(section)}` : `/api/mypage/section/${encodeURIComponent(section)}`), {
     credentials: "include"
   });
   const body = await response.json();
@@ -1785,7 +1836,7 @@ export async function fetchMypageSection(section: string, en = false) {
   return body as MypageSectionPayload;
 }
 
-export async function saveMypageMarketing(session: FrontendSession, marketingYn: string, en = false) {
+export async function saveMypageMarketing(session: FrontendSession, marketingYn: string, en = false, insttId?: string) {
   const headers: Record<string, string> = {
     "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     "X-Requested-With": "XMLHttpRequest"
@@ -1797,7 +1848,7 @@ export async function saveMypageMarketing(session: FrontendSession, marketingYn:
     method: "POST",
     credentials: "include",
     headers,
-    body: new URLSearchParams({ marketingYn }).toString()
+    body: appendInsttId(new URLSearchParams({ marketingYn }), insttId || session.insttId).toString()
   });
   const body = await response.json();
   if (!response.ok && response.status !== 401) {
@@ -1809,7 +1860,8 @@ export async function saveMypageMarketing(session: FrontendSession, marketingYn:
 export async function saveMypageProfile(
   session: FrontendSession,
   payload: { zip: string; address: string; detailAddress: string },
-  en = false
+  en = false,
+  insttId?: string
 ) {
   const headers: Record<string, string> = {
     "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -1822,7 +1874,7 @@ export async function saveMypageProfile(
     method: "POST",
     credentials: "include",
     headers,
-    body: new URLSearchParams(payload).toString()
+    body: appendInsttId(new URLSearchParams(payload), insttId || session.insttId).toString()
   });
   const body = await response.json();
   if (!response.ok && response.status !== 401) {
@@ -1834,7 +1886,8 @@ export async function saveMypageProfile(
 export async function saveMypageCompany(
   session: FrontendSession,
   payload: { companyName: string; representativeName: string; zip: string; address: string; detailAddress: string },
-  en = false
+  en = false,
+  insttId?: string
 ) {
   const headers: Record<string, string> = {
     "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -1847,7 +1900,7 @@ export async function saveMypageCompany(
     method: "POST",
     credentials: "include",
     headers,
-    body: new URLSearchParams(payload).toString()
+    body: appendInsttId(new URLSearchParams(payload), insttId || session.insttId).toString()
   });
   const body = await response.json();
   if (!response.ok && response.status !== 401) {
@@ -1859,7 +1912,8 @@ export async function saveMypageCompany(
 export async function saveMypageStaff(
   session: FrontendSession,
   payload: { staffName: string; deptNm: string; areaNo: string; middleTelno: string; endTelno: string },
-  en = false
+  en = false,
+  insttId?: string
 ) {
   const headers: Record<string, string> = {
     "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -1872,7 +1926,7 @@ export async function saveMypageStaff(
     method: "POST",
     credentials: "include",
     headers,
-    body: new URLSearchParams(payload).toString()
+    body: appendInsttId(new URLSearchParams(payload), insttId || session.insttId).toString()
   });
   const body = await response.json();
   if (!response.ok && response.status !== 401) {
@@ -1881,7 +1935,7 @@ export async function saveMypageStaff(
   return body as MypageSectionPayload;
 }
 
-export async function saveMypageEmail(session: FrontendSession, email: string, en = false) {
+export async function saveMypageEmail(session: FrontendSession, email: string, en = false, insttId?: string) {
   const headers: Record<string, string> = {
     "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     "X-Requested-With": "XMLHttpRequest"
@@ -1893,7 +1947,7 @@ export async function saveMypageEmail(session: FrontendSession, email: string, e
     method: "POST",
     credentials: "include",
     headers,
-    body: new URLSearchParams({ email }).toString()
+    body: appendInsttId(new URLSearchParams({ email }), insttId || session.insttId).toString()
   });
   const body = await response.json();
   if (!response.ok && response.status !== 401) {
@@ -1902,7 +1956,7 @@ export async function saveMypageEmail(session: FrontendSession, email: string, e
   return body as MypageSectionPayload;
 }
 
-export async function saveMypagePassword(session: FrontendSession, currentPassword: string, newPassword: string, en = false) {
+export async function saveMypagePassword(session: FrontendSession, currentPassword: string, newPassword: string, en = false, insttId?: string) {
   const headers: Record<string, string> = {
     "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     "X-Requested-With": "XMLHttpRequest"
@@ -1914,7 +1968,7 @@ export async function saveMypagePassword(session: FrontendSession, currentPasswo
     method: "POST",
     credentials: "include",
     headers,
-    body: new URLSearchParams({ currentPassword, newPassword }).toString()
+    body: appendInsttId(new URLSearchParams({ currentPassword, newPassword }), insttId || session.insttId).toString()
   });
   const body = await response.json();
   if (!response.ok && response.status !== 401) {

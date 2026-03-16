@@ -1,8 +1,21 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, SyntheticEvent, useState } from "react";
 import { fetchFrontendSession } from "../../lib/api/client";
 import { buildLocalizedPath, navigate } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "./AdminPageShell";
 import { AdminLoginFrame } from "./adminEntryShared";
+
+const GOV_SYMBOL = "/img/egovframework/kr_gov_symbol.png";
+const GOV_SYMBOL_FALLBACK = "/img/egovframework/kr_gov_symbol.svg";
+
+function handleGovSymbolError(event: SyntheticEvent<HTMLImageElement>) {
+  const image = event.currentTarget;
+  if (image.dataset.fallbackApplied === "1") {
+    image.style.display = "none";
+    return;
+  }
+  image.dataset.fallbackApplied = "1";
+  image.src = GOV_SYMBOL_FALLBACK;
+}
 
 export function AdminLoginPage() {
   const en = window.location.pathname.startsWith("/en/");
@@ -111,7 +124,7 @@ export function AdminLoginPage() {
               </a>
             </div>
             <button className="w-full h-14 bg-[var(--kr-gov-blue)] text-white text-lg font-black rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)] transition-all shadow-md flex items-center justify-center gap-2" disabled={submitting} type="submit">
-              {submitting ? (en ? "Signing in..." : "로그인 중...") : (en ? "Log In" : "로그인")}
+              {en ? "Log In" : "로그인"}
               <span className="material-symbols-outlined">chevron_right</span>
             </button>
             <div className="relative py-4">
@@ -160,7 +173,7 @@ export function AdminLoginPage() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <img alt={en ? "Government Symbol of the Republic of Korea" : "대한민국 정부 상징"} className="h-8 grayscale" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBUw404pm2QFmL61j73Dpfn72GnHGEg-KXTkLQ8WVJYUJ4iekrO0IvqJK8cd0cOSNSIh9Yq1LAodkSNj7oHtVAltdnnymj25ZzOI3l167qrrWmkEoYsZGu3ztT-YGo9se-fFR3NhBG3rZ8DYfs2vna0bxSzVG8VjryTnsz40LCDS2SN3-AeqXrbaPEva2ptmrQzO8iQSwbqSGyGKddlGf7FtnhHT25Cz5a5Xhk8MTve0BF4RWxN-ULiw64ZBbrTASIHQUaURqiZXyE" />
+                <img alt={en ? "Government Symbol of the Republic of Korea" : "대한민국 정부 상징"} className="h-8 grayscale" data-fallback-applied="0" onError={handleGovSymbolError} src={GOV_SYMBOL} />
                 <span className="text-xl font-black text-[var(--kr-gov-text-primary)]">{en ? "Net Zero CCUS Integrated Management HQ" : "탄소중립 CCUS 통합관리본부"}</span>
               </div>
               <address className="not-italic text-sm text-[var(--kr-gov-text-secondary)] leading-relaxed">

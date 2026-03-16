@@ -268,7 +268,7 @@ export function PublicLoginPage() {
                 disabled={submitting}
                 type="submit"
               >
-                {submitting ? (en ? "Signing in..." : "로그인 중...") : (en ? "Log In" : "로그인")}
+                {en ? "Log In" : "로그인"}
               </button>
               <div className="flex items-center justify-center gap-4 text-sm text-[var(--kr-gov-text-secondary)] font-medium pt-2">
                 <a className="hover:underline" href={tabMeta.findIdPath} id="findIdLink">

@@ -125,15 +125,6 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<groupId>com.querydsl</groupId>
-			<artifactId>querydsl-jpa</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>com.querydsl</groupId>
-			<artifactId>querydsl-apt</artifactId>
-		</dependency>
-
-		<dependency>
 			<groupId>org.egovframe.rte</groupId>
 			<artifactId>org.egovframe.rte.fdl.idgnr</artifactId>
 		</dependency>
@@ -198,6 +189,12 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-devtools</artifactId>
+			<scope>runtime</scope>
+			<optional>true</optional>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -206,9 +203,17 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>repackage</id>
+						<goals>
+							<goal>repackage</goal>
+						</goals>
+					</execution>
+				</executions>
 				<configuration>
 					<mainClass>egovframework.com.CarbonetApplication</mainClass>
-					<fork>false</fork>
+					<fork>true</fork>
 					<useTestClasspath>false</useTestClasspath>
 					<excludes>
 						<exclude>
@@ -217,25 +222,6 @@
 						</exclude>
 					</excludes>
 				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>com.mysema.maven</groupId>
-				<artifactId>apt-maven-plugin</artifactId>
-				<version>${com.mysema.maven.plugin.version}</version>
-				<executions>
-					<execution>
-						<goals>
-							<goal>process</goal>
-						</goals>
-						<configuration>
-							<outputDirectory>target/generated-sources/java</outputDirectory>
-							<processor>com.querydsl.apt.jpa.JPAAnnotationProcessor</processor>
-							<options>
-								<querydsl.generatedAnnotationClass>javax.annotation.Generated</querydsl.generatedAnnotationClass>
-							</options>
-						</configuration>
-					</execution>
-				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>

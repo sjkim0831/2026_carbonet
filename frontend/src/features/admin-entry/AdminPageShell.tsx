@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useMemo, useState } from "react";
+import { ReactNode, SyntheticEvent, useEffect, useMemo, useState } from "react";
 import { invalidateFrontendSessionCache, fetchAdminMenuTree, type AdminMenuDomain, type AdminMenuGroup } from "../../lib/api/client";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { buildLocalizedPath, getCsrfMeta, isEnglish, navigate } from "../../lib/navigation/runtime";
@@ -26,12 +26,23 @@ type GnbItem = {
   domain: string;
 };
 
-const GOV_SYMBOL = "https://lh3.googleusercontent.com/aida-public/AB6AXuD8BPzqtzSLVGSrjt4mzhhVBy9SocCRDssk1F3XRVu7Xq9jHh7qzzt48wFi8qduCiJmB0LRQczPB7waPe3h0gkjn3OEDxt6UJSJjdXNf8P-4WlM2BEZrfg2SL91uSiZrFcCk9KYrsdg-biTS9dtJ_OIghDBEVoAzMc33XcCYR_UP0QQdoYzBe840YrtH40xGyB9MSr0QH4D0foqlvOhG0jX8CDayXNlDsSKlfClVd3K2aodlwg4xSxgXHB3vnnnA0L2yNBNihQQg0";
-const GOV_FOOTER_SYMBOL = "https://lh3.googleusercontent.com/aida-public/AB6AXuBUw404pm2QFmL61j73Dpfn72GnHGEg-KXTkLQ8WVJYUJ4iekrO0IvqJK8cd0cOSNSIh9Yq1LAodkSNj7oHtVAltdnnymj25ZzOI3l167qrrWmkEoYsZGu3ztT-YGo9se-fFR3NhBG3rZ8DYfs2vna0bxSzVG8VjryTnsz40LCDS2SN3-AeqXrbaPEva2ptmrQzO8iQSwbqSGyGKddlGf7FtnhHT25Cz5a5Xhk8MTve0BF4RWxN-ULiw64ZBbrTASIHQUaURqiZXyE";
+const GOV_SYMBOL = "/img/egovframework/kr_gov_symbol.png";
+const GOV_FOOTER_SYMBOL = "/img/egovframework/kr_gov_symbol.png";
+const GOV_SYMBOL_FALLBACK = "/img/egovframework/kr_gov_symbol.svg";
 const ADMIN_SESSION_STORAGE_KEY = "adminSessionExpireAt";
 const ADMIN_SESSION_DURATION_MS = 60 * 60 * 1000;
 const ADMIN_SESSION_WARNING_MS = 5 * 60 * 1000;
 const ADMIN_SESSION_DANGER_MS = 60 * 1000;
+
+function handleGovSymbolError(event: SyntheticEvent<HTMLImageElement>) {
+  const image = event.currentTarget;
+  if (image.dataset.fallbackApplied === "1") {
+    image.style.display = "none";
+    return;
+  }
+  image.dataset.fallbackApplied = "1";
+  image.src = GOV_SYMBOL_FALLBACK;
+}
 
 function readStoredAdminSessionExpireAt() {
   const stored = window.sessionStorage.getItem(ADMIN_SESSION_STORAGE_KEY) || "";
@@ -529,7 +540,7 @@ export function AdminPageShell({
       <div className="bg-[var(--kr-gov-bg-gray)] border-b border-[var(--kr-gov-border-light)]">
         <div className="max-w-full mx-auto px-6 py-1.5 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img alt={en ? "Government Symbol of the Republic of Korea" : "대한민국정부 상징"} className="h-3.5" src={GOV_SYMBOL} />
+            <img alt={en ? "Government Symbol of the Republic of Korea" : "대한민국정부 상징"} className="h-3.5" data-fallback-applied="0" onError={handleGovSymbolError} src={GOV_SYMBOL} />
             <span className="text-[12px] font-medium text-[var(--kr-gov-text-secondary)]">
               {en ? "Official Government Service of the Republic of Korea" : "대한민국정부 공식 누리집"}
             </span>
@@ -550,7 +561,14 @@ export function AdminPageShell({
         <div className="max-w-full mx-auto px-6">
           <div className="flex justify-between items-center h-20">
             <div className="flex items-center gap-4">
-              <a className="flex items-center gap-2" href={buildLocalizedPath("/admin/", "/en/admin/")}>
+              <a
+                className="flex items-center gap-2"
+                href={buildLocalizedPath("/admin/", "/en/admin/")}
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate(buildLocalizedPath("/admin/", "/en/admin/"));
+                }}
+              >
                 <span className="material-symbols-outlined text-[32px] text-[var(--kr-gov-blue)]">eco</span>
                 <div className="flex flex-col">
                   <h1 className="text-xl font-bold tracking-tight text-[var(--kr-gov-text-primary)]">
@@ -597,10 +615,26 @@ export function AdminPageShell({
                 </button>
               </div>
               <div className="hidden md:flex items-center gap-1 mr-1">
-                <a className={`px-3 py-1.5 text-[12px] font-bold rounded border border-[var(--kr-gov-border-light)] ${en ? "text-[var(--kr-gov-text-secondary)] hover:bg-gray-100" : "bg-[var(--kr-gov-blue)] text-white"}`} href="/admin/" id="admin-lang-ko">
+                <a
+                  className={`px-3 py-1.5 text-[12px] font-bold rounded border border-[var(--kr-gov-border-light)] ${en ? "text-[var(--kr-gov-text-secondary)] hover:bg-gray-100" : "bg-[var(--kr-gov-blue)] text-white"}`}
+                  href="/admin/"
+                  id="admin-lang-ko"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate("/admin/");
+                  }}
+                >
                   {en ? "KOR" : "한글"}
                 </a>
-                <a className={`px-3 py-1.5 text-[12px] font-bold rounded border border-[var(--kr-gov-border-light)] ${en ? "bg-[var(--kr-gov-blue)] text-white" : "text-[var(--kr-gov-text-secondary)] hover:bg-gray-100"}`} href="/en/admin/" id="admin-lang-en">
+                <a
+                  className={`px-3 py-1.5 text-[12px] font-bold rounded border border-[var(--kr-gov-border-light)] ${en ? "bg-[var(--kr-gov-blue)] text-white" : "text-[var(--kr-gov-text-secondary)] hover:bg-gray-100"}`}
+                  href="/en/admin/"
+                  id="admin-lang-en"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate("/en/admin/");
+                  }}
+                >
                   ENG
                 </a>
               </div>
@@ -641,7 +675,7 @@ export function AdminPageShell({
         </div>
       </header>
 
-      <div className="js-admin-layout-shell flex min-h-[calc(100vh-124px)]">
+      <div className="js-admin-layout-shell flex min-h-[calc(100dvh-var(--admin-shell-offset))]">
         <aside aria-label={en ? "Admin Side Menu" : "관리자 사이드 메뉴"} className="js-admin-lnb w-72 bg-white p-5 flex flex-col">
           <div className="mb-6">
             <div className="relative">
@@ -655,7 +689,7 @@ export function AdminPageShell({
             </div>
           </div>
 
-          <div className="space-y-5 overflow-y-auto" id="gnbTreeWrap">
+          <div className="js-admin-lnb-body space-y-5" id="gnbTreeWrap">
             {(selectedDomain?.groups || []).map((group: AdminMenuGroup, index) => {
               const groupKey = group.title || `group-${index}`;
               const activeLinkIndex = resolveActiveLinkIndex(group.links || [], currentPath);
@@ -676,11 +710,19 @@ export function AdminPageShell({
                     </span>
                     <span className={`material-symbols-outlined text-[18px] transition-transform ${expanded ? "" : "-rotate-90"}`}>expand_more</span>
                   </button>
-                  <div className={`gnb-tree-links space-y-1 ${expanded ? "" : "hidden"}`} id={`${groupKey}-links`}>
+                    <div className={`gnb-tree-links space-y-1 ${expanded ? "" : "hidden"}`} id={`${groupKey}-links`}>
                     {(group.links || []).map((link, linkIndex) => {
                       const active = linkIndex === activeLinkIndex;
                       return (
-                        <a className={`admin-sidebar-link ${active ? "active" : ""}`} href={link.u || "#"} key={`${groupKey}-${link.u}-${linkIndex}`}>
+                        <a
+                          className={`admin-sidebar-link ${active ? "active" : ""}`}
+                          href={link.u || "#"}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (link.u) navigate(link.u);
+                          }}
+                          key={`${groupKey}-${link.u}-${linkIndex}`}
+                        >
                           <span className="material-symbols-outlined text-[20px]">{link.icon || (active ? "check_circle" : "chevron_right")}</span>
                           {en ? (link.tEn || link.text) : link.text}
                         </a>
@@ -708,7 +750,7 @@ export function AdminPageShell({
           </div>
         </aside>
 
-        <main className="flex-1 p-8 overflow-y-auto" id="main-content">
+        <main className="min-w-0 flex-1 overflow-y-auto p-8" id="main-content">
           {breadcrumbs && breadcrumbs.length > 0 ? (
             <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-[var(--kr-gov-text-secondary)] mb-4">
               <span className="material-symbols-outlined text-[18px]">home</span>
@@ -736,7 +778,7 @@ export function AdminPageShell({
       <footer className="bg-white border-t border-[var(--kr-gov-border-light)] z-40 relative">
         <div className="max-w-full mx-auto px-6 py-6 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-4">
-            <img alt={en ? "Government Symbol of the Republic of Korea" : "대한민국정부 상징"} className="h-8 grayscale opacity-70" src={GOV_FOOTER_SYMBOL} />
+            <img alt={en ? "Government Symbol of the Republic of Korea" : "대한민국정부 상징"} className="h-8 grayscale opacity-70" data-fallback-applied="0" onError={handleGovSymbolError} src={GOV_FOOTER_SYMBOL} />
             <div className="text-[12px] text-[var(--kr-gov-text-secondary)] leading-tight border-l border-gray-200 pl-4">
               <p className="font-bold text-[13px] mb-0.5">{en ? "Net Zero CCUS Integrated Management HQ (Admin Console)" : "탄소중립 CCUS 통합관리본부 (Admin Console)"}</p>
               <p>© 2025 CCUS Integration Management Portal. All rights reserved.</p>
