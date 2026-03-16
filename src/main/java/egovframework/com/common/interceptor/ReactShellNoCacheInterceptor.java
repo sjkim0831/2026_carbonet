@@ -11,8 +11,8 @@ import javax.servlet.http.HttpServletResponse;
 @Component
 public class ReactShellNoCacheInterceptor implements HandlerInterceptor {
 
-    private static final String SHELL_VIEW_KO = "egovframework/com/home/react_migration_shell";
-    private static final String SHELL_VIEW_EN = "egovframework/com/home/react_migration_shell_en";
+    private static final String SHELL_VIEW_KO = "egovframework/com/home/react_app_shell";
+    private static final String SHELL_VIEW_EN = "egovframework/com/home/react_app_shell_en";
 
     @Override
     public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler,

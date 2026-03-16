@@ -36,7 +36,10 @@ export function toDisplayMenuUrl(rawUrl: string) {
 
   const english = parsed.pathname.startsWith("/en/");
   const pathname = english ? parsed.pathname.slice(3) || "/" : parsed.pathname;
-  if (pathname !== "/admin/react-migration" && pathname !== "/react-migration") {
+  if (
+    pathname !== "/admin/app"
+    && pathname !== "/app"
+  ) {
     return `${parsed.pathname}${parsed.search}`;
   }
 

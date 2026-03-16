@@ -3,11 +3,11 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 const buildTarget = process.env.VITE_BUILD_TARGET === "classes"
-  ? "../target/classes/static/react-migration"
-  : "../src/main/resources/static/react-migration";
+  ? "../target/classes/static/react-app"
+  : "../src/main/resources/static/react-app";
 
 export default defineConfig({
-  base: "/react-migration/",
+  base: "/assets/react/",
   plugins: [react()],
   resolve: {
     dedupe: ["react", "react-dom"],

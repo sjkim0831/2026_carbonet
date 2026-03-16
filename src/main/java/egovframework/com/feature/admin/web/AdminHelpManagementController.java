@@ -37,7 +37,7 @@ public class AdminHelpManagementController {
     @RequestMapping(value = "/system/help-management", method = RequestMethod.GET)
     public String helpManagementPage(HttpServletRequest request, Locale locale, Model model) {
         StringBuilder builder = new StringBuilder("forward:");
-        builder.append(isEnglishRequest(request, locale) ? "/en/admin/react-migration?route=" : "/admin/react-migration?route=");
+        builder.append(isEnglishRequest(request, locale) ? "/en/admin/app?route=" : "/admin/app?route=");
         builder.append("help-management");
         String query = request == null ? "" : safe(request.getQueryString());
         if (!query.isEmpty()) {

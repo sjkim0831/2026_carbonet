@@ -292,7 +292,7 @@
         function adminReactRouteToLegacy(url) {
             var normalized = normalizeUrl(url);
             var path = pathOnly(normalized);
-            if (path !== "/admin/react-migration" && path !== "/en/admin/react-migration") {
+            if (path !== "/admin/app" && path !== "/en/admin/app") {
                 return normalized;
             }
             var params = new URLSearchParams(normalized.split("?")[1] || "");

@@ -118,7 +118,7 @@
 <button type="button" th:if="${isLoggedIn}" class="hidden xl:inline-flex gov-btn bg-[var(--kr-gov-blue)] text-white hover:bg-[var(--kr-gov-blue-hover)]"
 onclick="performLogout('/en/signin/actionLogout', 'reload');">Logout</button>
 <a th:unless="${isLoggedIn}" class="hidden xl:inline-flex gov-btn bg-[var(--kr-gov-blue)] text-white hover:bg-[var(--kr-gov-blue-hover)] items-center" href="/en/signin/loginView">Login</a>
-<a th:unless="${isLoggedIn}" class="hidden xl:inline-flex gov-btn items-center border border-[var(--kr-gov-blue)] bg-white text-[var(--kr-gov-blue)] hover:bg-[var(--kr-gov-bg-gray)] whitespace-nowrap" href="/en/react-migration?route=join-wizard">Sign Up</a>
+<a th:unless="${isLoggedIn}" class="hidden xl:inline-flex gov-btn items-center border border-[var(--kr-gov-blue)] bg-white text-[var(--kr-gov-blue)] hover:bg-[var(--kr-gov-bg-gray)] whitespace-nowrap" href="/join/en/step1">Sign Up</a>
 <button id="mobile-menu-toggle" class="xl:hidden w-11 h-11 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] text-[var(--kr-gov-blue)] flex items-center justify-center hover:bg-[var(--kr-gov-bg-gray)] focus-visible" type="button" aria-controls="mobile-menu" aria-expanded="false" aria-label="Open all menu">
 <span class="material-symbols-outlined">menu</span>
 </button>
@@ -139,7 +139,7 @@ onclick="performLogout('/en/signin/actionLogout', 'reload');">Logout</button>
 <div class="flex items-center gap-2">
 <a th:if="${isLoggedIn}" class="gov-btn bg-[var(--kr-gov-blue)] text-white hover:bg-[var(--kr-gov-blue-hover)] inline-flex items-center justify-center flex-1" href="#" onclick="performLogout('/en/signin/actionLogout', 'reload'); return false;">Logout</a>
 <a th:unless="${isLoggedIn}" class="gov-btn bg-[var(--kr-gov-blue)] text-white hover:bg-[var(--kr-gov-blue-hover)] inline-flex items-center justify-center flex-1" href="/en/signin/loginView">Login</a>
-<a th:unless="${isLoggedIn}" class="gov-btn bg-white text-[var(--kr-gov-blue)] border border-[var(--kr-gov-blue)] hover:bg-[var(--kr-gov-bg-gray)] inline-flex items-center justify-center flex-1" href="/en/react-migration?route=join-wizard">Sign Up</a>
+<a th:unless="${isLoggedIn}" class="gov-btn bg-white text-[var(--kr-gov-blue)] border border-[var(--kr-gov-blue)] hover:bg-[var(--kr-gov-bg-gray)] inline-flex items-center justify-center flex-1" href="/join/en/step1">Sign Up</a>
 </div>
 <div class="grid grid-cols-2 gap-2 text-sm">
 <button type="button" class="px-3 py-2 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white text-[var(--kr-gov-text-secondary)] font-bold" onclick="location.href='/home'">KO</button>

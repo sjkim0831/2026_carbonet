@@ -55,15 +55,28 @@ public final class ReactPageUrlMapper {
             return "";
         }
         String path = stripEnglishPrefix(normalized);
-        if (path.startsWith("/admin/react-migration")) {
+        if (path.startsWith("/admin/app")) {
             String mapped = resolveAdminPath(extractRoute(path));
             return mapped.isEmpty() ? stripQuery(path) : mapped;
         }
-        if (path.startsWith("/react-migration")) {
+        if (path.startsWith("/app")) {
             String mapped = resolveHomePath(extractRoute(path));
             return mapped.isEmpty() ? stripQuery(path) : mapped;
         }
         return path;
+    }
+
+    public static String resolveRouteIdForPath(String requestUrl) {
+        String normalized = normalize(requestUrl);
+        if (normalized.isEmpty()) {
+            return "";
+        }
+        String path = stripEnglishPrefix(stripQuery(normalized));
+        String adminRoute = resolveAdminRoute(path);
+        if (!adminRoute.isEmpty()) {
+            return adminRoute;
+        }
+        return resolveHomeRoute(path);
     }
 
     private static String buildRuntimeUrl(String base, String route, String querySuffix) {

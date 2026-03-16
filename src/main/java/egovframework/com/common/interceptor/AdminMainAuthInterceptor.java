@@ -148,7 +148,7 @@ public class AdminMainAuthInterceptor implements HandlerInterceptor {
             return "";
         }
         String normalized = normalizeMenuUrl(request.getRequestURI());
-        if ("/admin/react-migration".equals(normalized)) {
+        if ("/admin/app".equals(normalized)) {
             String route = safeString(request.getParameter("route"));
             if (!route.isEmpty()) {
                 return normalized + "?route=" + route;

@@ -16,7 +16,7 @@ import java.util.Map;
 @Component
 public class ReactMigrationAssetResolver {
 
-    private static final String MANIFEST_RESOURCE = "classpath:/static/react-migration/.vite/manifest.json";
+    private static final String MANIFEST_RESOURCE = "classpath:/static/react-app/.vite/manifest.json";
     private static final String ENTRY_KEY = "src/main.tsx";
     private static final String FALLBACK_ENTRY_KEY = "index.html";
 
@@ -28,8 +28,8 @@ public class ReactMigrationAssetResolver {
     public ReactMigrationAssetResolver(
             ObjectMapper objectMapper,
             ResourceLoader resourceLoader,
-            @Value("${carbonet.react-migration.prod-js:/react-migration/assets/index.js}") String fallbackJs,
-            @Value("${carbonet.react-migration.prod-css:/react-migration/assets/index.css}") String fallbackCss) {
+            @Value("${carbonet.react-app.prod-js:/assets/react/assets/index.js}") String fallbackJs,
+            @Value("${carbonet.react-app.prod-css:/assets/react/assets/index.css}") String fallbackCss) {
         this.objectMapper = objectMapper;
         this.resourceLoader = resourceLoader;
         this.fallbackJs = fallbackJs;
@@ -76,7 +76,7 @@ public class ReactMigrationAssetResolver {
 
     private String toPublicAssetPath(String relativePath) {
         String normalized = relativePath.startsWith("/") ? relativePath.substring(1) : relativePath;
-        return "/react-migration/" + normalized;
+        return "/assets/react/" + normalized;
     }
 
     private String appendVersion(String path, String versionToken) {

@@ -98,7 +98,7 @@ public class CodexProvisionPageController {
 
     private String redirectReactMigration(HttpServletRequest request, Locale locale, String route) {
         StringBuilder builder = new StringBuilder("forward:");
-        builder.append(isEnglishRequest(request, locale) ? "/en/admin/react-migration?route=" : "/admin/react-migration?route=");
+        builder.append(isEnglishRequest(request, locale) ? "/en/admin/app?route=" : "/admin/app?route=");
         builder.append(route);
         if (request != null) {
             String query = request.getQueryString();

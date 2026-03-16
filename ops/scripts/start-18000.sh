@@ -5,7 +5,8 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PORT="${PORT:-18000}"
 LOG_DIR="${LOG_DIR:-$ROOT_DIR/var/logs}"
 RUN_DIR="${RUN_DIR:-$ROOT_DIR/var/run}"
-JAR_PATH="${JAR_PATH:-$ROOT_DIR/target/carbonet.jar}"
+SOURCE_JAR_PATH="${SOURCE_JAR_PATH:-$ROOT_DIR/target/carbonet.jar}"
+JAR_PATH="${JAR_PATH:-$RUN_DIR/carbonet-${PORT}.jar}"
 PID_FILE="$RUN_DIR/carbonet-${PORT}.pid"
 LOG_FILE="$LOG_DIR/carbonet-${PORT}.log"
 
@@ -21,10 +22,12 @@ RETRY_DELAY_SECONDS="${RETRY_DELAY_SECONDS:-5}"
 
 mkdir -p "$LOG_DIR" "$RUN_DIR"
 
-if [[ ! -f "$JAR_PATH" ]]; then
-  echo "[start-18000] missing jar: $JAR_PATH" >&2
+if [[ ! -f "$SOURCE_JAR_PATH" ]]; then
+  echo "[start-18000] missing source jar: $SOURCE_JAR_PATH" >&2
   exit 1
 fi
+
+cp "$SOURCE_JAR_PATH" "$JAR_PATH"
 
 LOG_START_LINE=1
 if [[ -f "$LOG_FILE" ]]; then

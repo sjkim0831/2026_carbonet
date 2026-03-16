@@ -116,7 +116,7 @@
 <button type="button" th:if="${isLoggedIn}" class="hidden xl:inline-flex gov-btn bg-[var(--kr-gov-blue)] text-white hover:bg-[var(--kr-gov-blue-hover)]"
 onclick="performLogout('/signin/actionLogout', 'reload');">로그아웃</button>
 <a th:unless="${isLoggedIn}" class="hidden xl:inline-flex gov-btn bg-[var(--kr-gov-blue)] text-white hover:bg-[var(--kr-gov-blue-hover)] items-center" href="/signin/loginView">로그인</a>
-<a th:unless="${isLoggedIn}" class="hidden xl:inline-flex gov-btn bg-white text-[var(--kr-gov-blue)] border border-[var(--kr-gov-blue)] hover:bg-[var(--kr-gov-bg-gray)] items-center" href="/react-migration?route=join-wizard">회원가입</a>
+<a th:unless="${isLoggedIn}" class="hidden xl:inline-flex gov-btn bg-white text-[var(--kr-gov-blue)] border border-[var(--kr-gov-blue)] hover:bg-[var(--kr-gov-bg-gray)] items-center" href="/join/step1">회원가입</a>
 <button id="mobile-menu-toggle" class="xl:hidden w-11 h-11 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] text-[var(--kr-gov-blue)] flex items-center justify-center hover:bg-[var(--kr-gov-bg-gray)] focus-visible" type="button" aria-controls="mobile-menu" aria-expanded="false" aria-label="전체메뉴 열기">
 <span class="material-symbols-outlined">menu</span>
 </button>
@@ -137,7 +137,7 @@ onclick="performLogout('/signin/actionLogout', 'reload');">로그아웃</button>
 <div class="flex items-center gap-2">
 <a th:if="${isLoggedIn}" class="gov-btn bg-[var(--kr-gov-blue)] text-white hover:bg-[var(--kr-gov-blue-hover)] inline-flex items-center justify-center flex-1" href="#" onclick="performLogout('/signin/actionLogout', 'reload'); return false;">로그아웃</a>
 <a th:unless="${isLoggedIn}" class="gov-btn bg-[var(--kr-gov-blue)] text-white hover:bg-[var(--kr-gov-blue-hover)] inline-flex items-center justify-center flex-1" href="/signin/loginView">로그인</a>
-<a th:unless="${isLoggedIn}" class="gov-btn bg-white text-[var(--kr-gov-blue)] border border-[var(--kr-gov-blue)] hover:bg-[var(--kr-gov-bg-gray)] inline-flex items-center justify-center flex-1" href="/react-migration?route=join-wizard">회원가입</a>
+<a th:unless="${isLoggedIn}" class="gov-btn bg-white text-[var(--kr-gov-blue)] border border-[var(--kr-gov-blue)] hover:bg-[var(--kr-gov-bg-gray)] inline-flex items-center justify-center flex-1" href="/join/step1">회원가입</a>
 </div>
 <div class="grid grid-cols-2 gap-2 text-sm">
 <button type="button" class="px-3 py-2 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-[var(--kr-gov-blue)] text-white font-bold" onclick="location.href='/home'">KO</button>

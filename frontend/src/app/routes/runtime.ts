@@ -11,10 +11,10 @@ export function normalizeComparablePath(value: string): string {
 export function isReactManagedPath(pathname: string): boolean {
   const normalizedPath = normalizeComparablePath(pathname);
   const koComparable = normalizeComparablePath(normalizedPath.replace(/^\/en/, "") || "/home");
-  const isReactShellPath = normalizedPath === "/react-migration"
-    || normalizedPath === "/en/react-migration"
-    || normalizedPath === "/admin/react-migration"
-    || normalizedPath === "/en/admin/react-migration";
+  const isReactShellPath = normalizedPath === "/app"
+    || normalizedPath === "/en/app"
+    || normalizedPath === "/admin/app"
+    || normalizedPath === "/en/admin/app";
 
   if (isReactShellPath) {
     return true;
@@ -27,10 +27,10 @@ export function isReactManagedPath(pathname: string): boolean {
 
 export function resolveCanonicalRuntimePath(): string {
   const pathname = window.location.pathname;
-  const isReactShellPath = pathname === "/react-migration"
-    || pathname === "/en/react-migration"
-    || pathname === "/admin/react-migration"
-    || pathname === "/en/admin/react-migration";
+  const isReactShellPath = pathname === "/app"
+    || pathname === "/en/app"
+    || pathname === "/admin/app"
+    || pathname === "/en/admin/app";
   if (!isReactShellPath) {
     return "";
   }

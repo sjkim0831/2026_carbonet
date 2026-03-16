@@ -7,8 +7,8 @@ import org.springframework.ui.Model;
 @Component
 public class ReactMigrationViewSupport {
 
-    @Value("${carbonet.react-migration.dev-url:http://127.0.0.1:5173}")
-    private String reactMigrationDevUrl;
+    @Value("${carbonet.react-app.dev-url:http://127.0.0.1:5173}")
+    private String reactAppDevUrl;
     private final ReactMigrationAssetResolver reactMigrationAssetResolver;
 
     public ReactMigrationViewSupport(ReactMigrationAssetResolver reactMigrationAssetResolver) {
@@ -21,15 +21,15 @@ public class ReactMigrationViewSupport {
         model.addAttribute("reactLocale", en ? "en" : "ko");
         model.addAttribute("reactAdmin", admin);
         model.addAttribute("reactShellTitle", admin
-                ? (en ? "Admin React Migration" : "관리자 React 마이그레이션")
-                : (en ? "Home React Migration" : "홈 React 마이그레이션"));
+                ? (en ? "Admin React App" : "관리자 React 앱")
+                : (en ? "Home React App" : "홈 React 앱"));
         model.addAttribute("reactShellDescription", en
-                ? "This page mounts the React migration shell."
-                : "이 페이지는 React 마이그레이션 셸을 마운트합니다.");
-        model.addAttribute("reactMigrationDevUrl", reactMigrationDevUrl);
-        model.addAttribute("reactMigrationProdJs", assets.getJsPath());
-        model.addAttribute("reactMigrationProdCss", assets.getCssPath());
-        return en ? "egovframework/com/home/react_migration_shell_en" : "egovframework/com/home/react_migration_shell";
+                ? "This page mounts the React app shell."
+                : "이 페이지는 React 앱 셸을 마운트합니다.");
+        model.addAttribute("reactAppDevUrl", reactAppDevUrl);
+        model.addAttribute("reactAppProdJs", assets.getJsPath());
+        model.addAttribute("reactAppProdCss", assets.getCssPath());
+        return en ? "egovframework/com/home/react_app_shell_en" : "egovframework/com/home/react_app_shell";
     }
 
     public void populate(Model model, String route, boolean en, boolean admin) {
@@ -38,14 +38,14 @@ public class ReactMigrationViewSupport {
         model.addAttribute("reactLocale", en ? "en" : "ko");
         model.addAttribute("reactAdmin", admin);
         model.addAttribute("reactShellTitle", admin
-                ? (en ? "Admin React Migration" : "관리자 React 마이그레이션")
-                : (en ? "Home React Migration" : "홈 React 마이그레이션"));
+                ? (en ? "Admin React App" : "관리자 React 앱")
+                : (en ? "Home React App" : "홈 React 앱"));
         model.addAttribute("reactShellDescription", en
-                ? "This page mounts the React migration shell."
-                : "이 페이지는 React 마이그레이션 셸을 마운트합니다.");
-        model.addAttribute("reactMigrationDevUrl", reactMigrationDevUrl);
-        model.addAttribute("reactMigrationProdJs", assets.getJsPath());
-        model.addAttribute("reactMigrationProdCss", assets.getCssPath());
+                ? "This page mounts the React app shell."
+                : "이 페이지는 React 앱 셸을 마운트합니다.");
+        model.addAttribute("reactAppDevUrl", reactAppDevUrl);
+        model.addAttribute("reactAppProdJs", assets.getJsPath());
+        model.addAttribute("reactAppProdCss", assets.getCssPath());
     }
 
     private String normalizeRoute(String route, boolean admin) {
