@@ -8,7 +8,7 @@ import {
   HelpManagementPagePayload,
   saveHelpManagementPage
 } from "../../lib/api/client";
-import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
+import { buildLocalizedPath, getSearchParam, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { ScreenCommandCenterPanel } from "./ScreenCommandCenterPanel";
 
@@ -18,7 +18,7 @@ function resolveInitialPageId() {
   if (typeof window === "undefined") {
     return "observability";
   }
-  return new URLSearchParams(window.location.search).get("pageId") || "observability";
+  return getSearchParam("pageId") || "observability";
 }
 
 function createEmptyItem(displayOrder: number): HelpManagementItem {

@@ -4,6 +4,13 @@ import { CanView } from "../../components/access/CanView";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import { fetchMemberListPage, MemberListPagePayload } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import {
+  MEMBER_STATUS_OPTIONS,
+  MEMBER_TYPE_OPTIONS,
+  resolveMemberStatusBadgeClass,
+  resolveMemberStatusLabel,
+  resolveMembershipTypeLabel
+} from "../member/shared";
 
 type SearchFilters = {
   searchKeyword: string;
@@ -18,76 +25,6 @@ const DEFAULT_FILTERS: SearchFilters = {
   status: "",
   pageIndex: 1
 };
-
-const MEMBER_TYPE_OPTIONS = [
-  { value: "", label: "전체" },
-  { value: "EMITTER", label: "CO2 배출 및 포집 기업" },
-  { value: "PERFORMER", label: "CCUS 사업 수행 기업" },
-  { value: "CENTER", label: "CCUS 진흥센터" },
-  { value: "GOV", label: "주무관청 / 행정기관" }
-];
-
-const STATUS_OPTIONS = [
-  { value: "", label: "전체" },
-  { value: "P", label: "활성" },
-  { value: "A", label: "승인 대기" },
-  { value: "R", label: "반려" },
-  { value: "D", label: "삭제" },
-  { value: "X", label: "차단" }
-];
-
-function resolveMembershipTypeLabel(rawValue: unknown) {
-  switch (String(rawValue || "").trim().toUpperCase()) {
-    case "E":
-    case "EMITTER":
-      return "CO2 배출 및 포집 기업";
-    case "P":
-    case "PERFORMER":
-      return "CCUS 사업 수행 기업";
-    case "C":
-    case "CENTER":
-      return "CCUS 진흥센터";
-    case "G":
-    case "GOV":
-      return "주무관청 / 행정기관";
-    default:
-      return String(rawValue || "기타");
-  }
-}
-
-function resolveStatusBadgeClass(rawValue: unknown) {
-  switch (String(rawValue || "").trim().toUpperCase()) {
-    case "P":
-      return "bg-emerald-100 text-emerald-700";
-    case "A":
-      return "bg-blue-100 text-blue-700";
-    case "R":
-      return "bg-amber-100 text-amber-700";
-    case "D":
-      return "bg-slate-200 text-slate-700";
-    case "X":
-      return "bg-red-100 text-red-700";
-    default:
-      return "bg-gray-100 text-gray-700";
-  }
-}
-
-function resolveStatusLabel(rawValue: unknown) {
-  switch (String(rawValue || "").trim().toUpperCase()) {
-    case "P":
-      return "활성";
-    case "A":
-      return "승인 대기";
-    case "R":
-      return "반려";
-    case "D":
-      return "삭제";
-    case "X":
-      return "차단";
-    default:
-      return String(rawValue || "기타");
-  }
-}
 
 function buildAdminPath(koPath: string, enPath: string, key?: string, value?: string) {
   const params = new URLSearchParams();
@@ -199,7 +136,7 @@ export function MemberListMigrationPage() {
             <label>
               <span className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">상태</span>
               <select className="w-full rounded-[var(--kr-gov-radius)] border-[var(--kr-gov-border-light)] text-sm focus:border-[var(--kr-gov-focus)] focus:ring-[var(--kr-gov-focus)]" value={draftFilters.status} onChange={(event) => updateDraft("status", event.target.value)}>
-                {STATUS_OPTIONS.map((option) => (
+                {MEMBER_STATUS_OPTIONS.map((option) => (
                   <option key={option.value || "all"} value={option.value}>{option.label}</option>
                 ))}
               </select>
@@ -266,8 +203,8 @@ export function MemberListMigrationPage() {
                       <td className="px-6 py-4 font-medium text-[var(--kr-gov-text-secondary)]">{String(row.cmpnyNm || "-")}</td>
                       <td className="px-6 py-4 text-gray-500">{String(row.sbscrbDe || "-")}</td>
                       <td className="px-6 py-4 text-center">
-                        <span className={`inline-flex px-2 py-0.5 text-[11px] font-bold rounded-full ${resolveStatusBadgeClass(row.entrprsMberSttus)}`}>
-                          {resolveStatusLabel(row.entrprsMberSttus)}
+                        <span className={`inline-flex px-2 py-0.5 text-[11px] font-bold rounded-full ${resolveMemberStatusBadgeClass(row.entrprsMberSttus)}`}>
+                          {resolveMemberStatusLabel(row.entrprsMberSttus)}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center space-x-1">

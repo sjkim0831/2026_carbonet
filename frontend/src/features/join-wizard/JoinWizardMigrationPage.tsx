@@ -7,7 +7,7 @@ import {
   UserPortalHeader
 } from "../../components/user-shell/UserPortalChrome";
 import { buildLocalizedPath, getSearchParam, isEnglish, navigate } from "../../lib/navigation/runtime";
-import { EN_MEMBERSHIP_CARDS, KO_MEMBERSHIP_CARDS } from "../join/sharedMembershipCards";
+import { EN_MEMBERSHIP_CARDS, KO_MEMBERSHIP_CARDS } from "../join/shared/membershipCards";
 
 export function JoinWizardMigrationPage() {
   const en = isEnglish();

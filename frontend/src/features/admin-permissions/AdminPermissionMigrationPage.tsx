@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { CanView } from "../../components/access/CanView";
 import { PermissionButton } from "../../components/access/CanUse";
-import { buildLocalizedPath } from "../../lib/navigation/runtime";
+import { buildLocalizedPath, getSearchParam } from "../../lib/navigation/runtime";
 import { AdminPermissionPagePayload, fetchAdminPermissionPage, fetchFrontendSession, FrontendSession, saveAdminPermission } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 
@@ -11,7 +11,7 @@ function text(page: AdminPermissionPagePayload | null, ko: string, en: string) {
 
 function resolveInitialEmplyrId() {
   if (typeof window === "undefined") return "webmaster";
-  return new URLSearchParams(window.location.search).get("emplyrId") || "webmaster";
+  return getSearchParam("emplyrId") || "webmaster";
 }
 
 export function AdminPermissionMigrationPage() {

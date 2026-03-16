@@ -3,7 +3,7 @@ import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { CanView } from "../../components/access/CanView";
 import { PermissionButton } from "../../components/access/CanUse";
-import { buildLocalizedPath } from "../../lib/navigation/runtime";
+import { buildLocalizedPath, getSearchParam } from "../../lib/navigation/runtime";
 import {
   CompanyAccountPagePayload,
   fetchCompanyAccountPage,
@@ -68,7 +68,7 @@ const MEMBERSHIP_CARD_OPTIONS = [
 
 function resolveInitialInsttId() {
   if (typeof window === "undefined") return "";
-  return new URLSearchParams(window.location.search).get("insttId") || "";
+  return getSearchParam("insttId");
 }
 
 export function CompanyAccountMigrationPage() {

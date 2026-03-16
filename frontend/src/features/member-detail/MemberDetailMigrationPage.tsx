@@ -1,12 +1,12 @@
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { CanView } from "../../components/access/CanView";
-import { buildLocalizedPath } from "../../lib/navigation/runtime";
+import { buildLocalizedPath, getSearchParam } from "../../lib/navigation/runtime";
 import { fetchMemberDetailPage, MemberDetailPagePayload } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 
 function resolveInitialMemberId() {
   if (typeof window === "undefined") return "TEST1";
-  return new URLSearchParams(window.location.search).get("memberId") || "TEST1";
+  return getSearchParam("memberId") || "TEST1";
 }
 
 export function MemberDetailMigrationPage() {

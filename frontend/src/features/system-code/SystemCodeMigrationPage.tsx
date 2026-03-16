@@ -1,12 +1,12 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
-import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
+import { buildLocalizedPath, getSearchParam, isEnglish } from "../../lib/navigation/runtime";
 import { fetchSystemCodePage, type SystemCodePagePayload } from "../../lib/api/client";
 import { stringOf, submitFormRequest } from "../admin-system/adminSystemShared";
 
 function useSystemCodePage() {
-  const [detailCodeId, setDetailCodeId] = useState(new URLSearchParams(window.location.search).get("detailCodeId") || "");
+  const [detailCodeId, setDetailCodeId] = useState(getSearchParam("detailCodeId"));
   const state = useAsyncValue<SystemCodePagePayload>(() => fetchSystemCodePage(detailCodeId || undefined), [detailCodeId], {
     onSuccess(payload) {
       setDetailCodeId(String(payload.detailCodeId || ""));

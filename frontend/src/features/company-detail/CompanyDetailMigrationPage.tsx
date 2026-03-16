@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { CanView } from "../../components/access/CanView";
-import { buildLocalizedPath } from "../../lib/navigation/runtime";
+import { buildLocalizedPath, getSearchParam } from "../../lib/navigation/runtime";
 import { CompanyDetailPagePayload, fetchCompanyDetailPage } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 
 function resolveInitialInsttId() {
   if (typeof window === "undefined") return "";
-  return new URLSearchParams(window.location.search).get("insttId") || "";
+  return getSearchParam("insttId");
 }
 
 function formatBytes(value: unknown) {

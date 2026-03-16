@@ -10,6 +10,7 @@ import {
   submitMemberApproveAction
 } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { MEMBER_APPROVAL_STATUS_OPTIONS, MEMBER_TYPE_OPTIONS } from "../member/shared";
 
 type SearchFilters = {
   searchKeyword: string;
@@ -24,21 +25,6 @@ const DEFAULT_FILTERS: SearchFilters = {
   status: "A",
   pageIndex: 1
 };
-
-const MEMBER_TYPE_OPTIONS = [
-  { value: "", label: "전체" },
-  { value: "EMITTER", label: "CO2 배출 및 포집 기업" },
-  { value: "PERFORMER", label: "CCUS 사업 수행 기업" },
-  { value: "CENTER", label: "CCUS 진흥센터" },
-  { value: "GOV", label: "주무관청 / 행정기관" }
-];
-
-const STATUS_OPTIONS = [
-  { value: "A", label: "승인 대기" },
-  { value: "P", label: "활성" },
-  { value: "R", label: "반려" },
-  { value: "X", label: "차단" }
-];
 
 export function MemberApproveMigrationPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -162,7 +148,7 @@ export function MemberApproveMigrationPage() {
             <label>
               <span className="block text-sm font-bold mb-2">상태</span>
               <select className="w-full rounded border-gray-300 text-sm" value={draftFilters.status} onChange={(e) => updateDraft("status", e.target.value)}>
-                {STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                {MEMBER_APPROVAL_STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             </label>
             <label>
