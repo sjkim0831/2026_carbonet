@@ -1,0 +1,8 @@
+.git
+.idea
+.mvn
+frontend/node_modules
+target/*
+!target/carbonet.jar
+var/logs
+var/run
