@@ -232,6 +232,9 @@ public final class ReactPageUrlMapper {
         if ("/admin/system/automation-studio".equals(path)) {
             return "automation_studio";
         }
+        if ("/admin/system/environment-management".equals(path)) {
+            return "environment_management";
+        }
         if ("/admin/system/sr-workbench".equals(path)) {
             return "sr_workbench";
         }
@@ -374,6 +377,9 @@ public final class ReactPageUrlMapper {
         }
         if ("automation_studio".equals(normalizedRoute)) {
             return "/admin/system/automation-studio";
+        }
+        if ("environment_management".equals(normalizedRoute)) {
+            return "/admin/system/environment-management";
         }
         if ("sr_workbench".equals(normalizedRoute)) {
             return "/admin/system/sr-workbench";

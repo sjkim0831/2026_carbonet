@@ -23,9 +23,11 @@ function buildDirectionPreview(params: {
   api?: ScreenCommandApi;
   target?: ScreenCommandChangeTarget;
   schema?: ScreenCommandSchema;
+  summary: string;
   instruction: string;
 }) {
   const lines = [
+    `[수정 요약] ${params.summary || "요약 없음"}`,
     `대상 화면: ${params.pageLabel} (${params.routePath})`,
     `대상 요소: ${params.surface ? `${params.surface.label} [${params.surface.selector}]` : "미선택"}`,
     `이벤트: ${params.event ? `${params.event.label} / ${params.event.frontendFunction}` : "미선택"}`,
@@ -91,6 +93,7 @@ export function ScreenCommandCenterPanel({ initialPageId }: ScreenCommandCenterP
   const [surfaceId, setSurfaceId] = useState("");
   const [eventId, setEventId] = useState("");
   const [changeTargetId, setChangeTargetId] = useState("");
+  const [summary, setSummary] = useState("");
   const [instruction, setInstruction] = useState("");
   const [previewText, setPreviewText] = useState("");
   const [error, setError] = useState("");
@@ -108,6 +111,7 @@ export function ScreenCommandCenterPanel({ initialPageId }: ScreenCommandCenterP
       setSurfaceId(firstSurfaceId);
       setEventId("");
       setChangeTargetId(firstTargetId);
+      setSummary("");
       setInstruction("");
       setPreviewText("");
     } catch (err) {
@@ -173,8 +177,9 @@ export function ScreenCommandCenterPanel({ initialPageId }: ScreenCommandCenterP
     api: selectedApi,
     target: selectedTarget,
     schema: selectedSchema,
+    summary,
     instruction
-  }), [currentPage, instruction, selectedApi, selectedEvent, selectedSchema, selectedSurface, selectedTarget]);
+  }), [currentPage, instruction, selectedApi, selectedEvent, selectedSchema, selectedSurface, selectedTarget, summary]);
 
   function handleGeneratePreview() {
     setPreviewText(preview);
@@ -272,16 +277,27 @@ export function ScreenCommandCenterPanel({ initialPageId }: ScreenCommandCenterP
           </label>
         </div>
 
-        <label className="mt-6 block">
-          <span className="gov-label">작업 지시</span>
-          <textarea
-            className="gov-input min-h-[120px] py-3"
-            rows={4}
-            value={instruction}
-            onChange={(event) => setInstruction(event.target.value)}
-            placeholder="예: 회원목록 검색폼에 기관유형 필터를 추가하고 API 검색조건, 매퍼 조회조건, 권한 영향까지 함께 검토"
-          />
-        </label>
+        <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <label className="block">
+            <span className="gov-label">수정 요약</span>
+            <input
+              className="gov-input"
+              value={summary}
+              onChange={(event) => setSummary(event.target.value)}
+              placeholder="예: 도움말 CTA 노출 기준과 권한 조건을 일치시키도록 정리"
+            />
+          </label>
+          <label className="block">
+            <span className="gov-label">작업 지시</span>
+            <textarea
+              className="gov-input min-h-[120px] py-3"
+              rows={4}
+              value={instruction}
+              onChange={(event) => setInstruction(event.target.value)}
+              placeholder="예: 선택 요소 기준으로 이벤트, API, 매퍼 조회조건, 권한 영향, 수정 레이어를 함께 검토"
+            />
+          </label>
+        </div>
 
         <div className="mt-6 flex flex-wrap gap-2">
           <button className="gov-btn gov-btn-outline-blue" data-action="generate" onClick={handleGeneratePreview} type="button">
@@ -341,7 +357,7 @@ export function ScreenCommandCenterPanel({ initialPageId }: ScreenCommandCenterP
           <div className="mb-4">
             <h3 className="text-xl font-black text-[var(--kr-gov-text-primary)]">AI 작업 지시 초안</h3>
             <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
-              선택된 연결 정보와 입력한 요구사항을 기반으로 바로 전달 가능한 지시문을 생성합니다.
+              선택한 요소, 이벤트, 수정 레이어와 입력한 요약/요구사항을 기반으로 바로 전달 가능한 지시문을 생성합니다.
             </p>
           </div>
           <label className="block">

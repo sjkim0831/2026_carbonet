@@ -16,6 +16,8 @@ import {
   SrTicketRow,
   SrWorkbenchPagePayload
 } from "../../lib/api/client";
+import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
+import { AdminPageShell } from "../admin-entry/AdminPageShell";
 
 function buildDirectionPreview(params: {
   pageLabel: string;
@@ -97,7 +99,9 @@ function executionBadgeClass(status: string) {
 }
 
 export function SrWorkbenchMigrationPage() {
-  const en = typeof window !== "undefined" && window.location.pathname.startsWith("/en/");
+  const en = isEnglish();
+  const embeddedInLegacyAdminShell = typeof document !== "undefined"
+    && document.getElementById("root")?.parentElement?.id === "main-content";
   const [selectedPageId, setSelectedPageId] = useState("member-list");
   
   const workbenchState = useAsyncValue<SrWorkbenchPagePayload>(() => fetchSrWorkbenchPage(selectedPageId), [selectedPageId], {
@@ -277,7 +281,7 @@ export function SrWorkbenchMigrationPage() {
     }
   }
 
-  return (
+  const content = (
     <div className="space-y-6">
       <section className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-white px-5 py-4 shadow-sm">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -569,5 +573,26 @@ export function SrWorkbenchMigrationPage() {
         </div>
       </section>
     </div>
+  );
+
+  if (embeddedInLegacyAdminShell) {
+    return content;
+  }
+
+  return (
+    <AdminPageShell
+      breadcrumbs={[
+        { label: en ? "Home" : "홈", href: buildLocalizedPath("/admin/", "/en/admin/") },
+        { label: en ? "Monitoring" : "모니터링" },
+        { label: en ? "Automation Ops" : "운영자동화" },
+        { label: en ? "SR Workbench" : "SR 워크벤치" }
+      ]}
+      title={en ? "SR Workbench" : "SR 워크벤치"}
+      subtitle={en
+        ? "Create SR tickets, review approvals, and prepare Codex execution from the shared admin workspace."
+        : "공통 관리자 작업공간에서 SR 티켓 발행, 승인 검토, Codex 실행 준비를 처리합니다."}
+    >
+      {content}
+    </AdminPageShell>
   );
 }

@@ -1,0 +1,52 @@
+import { PAGE_MANIFESTS } from "../../app/screen-registry/pageManifests";
+
+function isExternalUrl(value: string) {
+  return /^https?:\/\//i.test(value) || value === "#";
+}
+
+function normalizeRouteToken(value: string) {
+  return value.trim().toLowerCase().replace(/_/g, "-");
+}
+
+function findRoutePath(routeToken: string) {
+  const normalizedToken = normalizeRouteToken(routeToken);
+  const matched = Object.values(PAGE_MANIFESTS).find((manifest) => normalizeRouteToken(manifest.pageId) === normalizedToken);
+  return matched?.routePath || "";
+}
+
+function localizePath(path: string, english: boolean) {
+  if (!english || !path.startsWith("/")) {
+    return path;
+  }
+  return path.startsWith("/en/") ? path : `/en${path}`;
+}
+
+export function toDisplayMenuUrl(rawUrl: string) {
+  const value = rawUrl.trim();
+  if (!value || isExternalUrl(value)) {
+    return value;
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(value, "http://carbonet.local");
+  } catch {
+    return value;
+  }
+
+  const english = parsed.pathname.startsWith("/en/");
+  const pathname = english ? parsed.pathname.slice(3) || "/" : parsed.pathname;
+  if (pathname !== "/admin/react-migration" && pathname !== "/react-migration") {
+    return `${parsed.pathname}${parsed.search}`;
+  }
+
+  const routeToken = parsed.searchParams.get("route") || "";
+  const routePath = findRoutePath(routeToken);
+  if (!routePath) {
+    return `${parsed.pathname}${parsed.search}`;
+  }
+
+  parsed.searchParams.delete("route");
+  const query = parsed.searchParams.toString();
+  return `${localizePath(routePath, english)}${query ? `?${query}` : ""}`;
+}

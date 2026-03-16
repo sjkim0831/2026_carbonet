@@ -4,6 +4,7 @@ import { fetchMenuManagementPage, type MenuManagementPagePayload } from "../../l
 import { buildLocalizedPath, getCsrfMeta, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { numberOf, stringOf } from "../admin-system/adminSystemShared";
+import { toDisplayMenuUrl } from "./menuUrlDisplay";
 
 type MenuNode = {
   code: string;
@@ -31,7 +32,7 @@ function buildTree(rows: Array<Record<string, unknown>>) {
     nodes.set(code, {
       code,
       label: stringOf(row, "codeNm", "codeDc", "code"),
-      url: stringOf(row, "menuUrl"),
+      url: toDisplayMenuUrl(stringOf(row, "menuUrl")),
       icon: stringOf(row, "menuIcon") || "menu",
       useAt: stringOf(row, "useAt") || "Y",
       sortOrdr: numberOf(row, "sortOrdr"),

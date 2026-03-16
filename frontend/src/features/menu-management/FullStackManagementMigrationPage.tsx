@@ -13,6 +13,7 @@ import {
 import { buildLocalizedPath, getCsrfMeta, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { numberOf, stringOf } from "../admin-system/adminSystemShared";
+import { toDisplayMenuUrl } from "./menuUrlDisplay";
 
 type MenuNode = {
   code: string;
@@ -59,7 +60,7 @@ function buildTree(rows: Array<Record<string, unknown>>) {
     nodes.set(code, {
       code,
       label: stringOf(row, "codeNm", "codeDc", "code"),
-      url: stringOf(row, "menuUrl"),
+      url: toDisplayMenuUrl(stringOf(row, "menuUrl")),
       icon: stringOf(row, "menuIcon") || "menu",
       useAt: stringOf(row, "useAt") || "Y",
       sortOrdr: numberOf(row, "sortOrdr"),
@@ -244,6 +245,7 @@ export function FullStackManagementMigrationPage() {
   const [registryLoading, setRegistryLoading] = useState(false);
   const [registrySaving, setRegistrySaving] = useState(false);
   const [registryCollecting, setRegistryCollecting] = useState(false);
+  const [lastAutoCollectedKey, setLastAutoCollectedKey] = useState("");
 
   const rows = useMemo(() => (page?.menuRows || []) as Array<Record<string, unknown>>, [page?.menuRows]);
   const menuTypes = ((page?.menuTypes || []) as Array<Record<string, unknown>>);
@@ -361,6 +363,7 @@ export function FullStackManagementMigrationPage() {
     setMenuIcon(iconOptions[0] || "web");
     setUseAt(useAtOptions[0] || "Y");
     setParentCodeValue(stringOf(groupMenuOptions[0], "value"));
+    setLastAutoCollectedKey("");
   }, [menuType]); // reset form when switching scope
 
   useEffect(() => {
@@ -461,6 +464,66 @@ export function FullStackManagementMigrationPage() {
       cancelled = true;
     };
   }, [governanceDetail, governancePageId, selectedMenuCode, selectedMenuIsPage, selectedMenuRow]);
+
+  useEffect(() => {
+    const autoCollectKey = selectedMenuIsPage && governancePageId ? `${selectedMenuCode}:${governancePageId}` : "";
+    if (!autoCollectKey) {
+      return;
+    }
+    if (autoCollectKey === lastAutoCollectedKey || governanceLoading || registryLoading || registryCollecting || registrySaving) {
+      return;
+    }
+
+    let cancelled = false;
+    async function autoCollectOnSelection() {
+      setRegistryCollecting(true);
+      setActionError("");
+      try {
+        const response = await autoCollectFullStackGovernanceRegistry({
+          menuCode: selectedMenuCode,
+          pageId: governancePageId,
+          menuUrl: stringOf(selectedMenuRow, "menuUrl") || governanceDetail?.menuLookupUrl || "",
+          mergeExisting: true,
+          save: true
+        });
+        if (cancelled) {
+          return;
+        }
+        setRegistryEntry(response.entry);
+        setRegistryEditor(editorFromRegistry(response.entry));
+        setLastAutoCollectedKey(autoCollectKey);
+        setActionMessage(response.message || (en ? "Resources were collected automatically for the selected menu." : "선택한 메뉴 기준으로 자원을 자동 수집했습니다."));
+        await pageState.reload();
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+        setActionError(error instanceof Error ? error.message : (en ? "Failed to auto collect resources." : "자원 자동 수집에 실패했습니다."));
+      } finally {
+        if (!cancelled) {
+          setRegistryCollecting(false);
+        }
+      }
+    }
+
+    void autoCollectOnSelection();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    en,
+    governanceDetail?.menuLookupUrl,
+    governanceLoading,
+    governancePageId,
+    lastAutoCollectedKey,
+    pageState,
+    registryCollecting,
+    registryLoading,
+    registrySaving,
+    selectedMenuCode,
+    selectedMenuIsPage,
+    selectedMenuRow
+  ]);
 
   function moveNode(nodes: MenuNode[], index: number, direction: number) {
     const nextIndex = index + direction;
@@ -868,7 +931,7 @@ export function FullStackManagementMigrationPage() {
         <div className="mb-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 text-sm">
           <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[#f8fbff] px-4 py-3">
             <p className="font-bold text-[var(--kr-gov-blue)]">{en ? "Route / Page" : "라우트 / 페이지"}</p>
-            <p className="mt-1 break-all">{governanceDetail?.routePath || stringOf(selectedMenuRow, "menuUrl") || "-"}</p>
+            <p className="mt-1 break-all">{governanceDetail?.routePath || toDisplayMenuUrl(stringOf(selectedMenuRow, "menuUrl")) || "-"}</p>
             <p className="text-[var(--kr-gov-text-secondary)]">{governancePageId || "-"}</p>
           </div>
           <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[#fcfbf7] px-4 py-3">
@@ -1051,7 +1114,7 @@ export function FullStackManagementMigrationPage() {
                 <p className="text-sm text-[var(--kr-gov-text-secondary)]">{governanceDetail.summary || "-"}</p>
                 <dl className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                   <div><dt className="font-bold">Menu Code</dt><dd>{governanceDetail.menuCode || "-"}</dd></div>
-                  <div><dt className="font-bold">Menu URL</dt><dd>{governanceDetail.menuLookupUrl || "-"}</dd></div>
+                  <div><dt className="font-bold">Menu URL</dt><dd>{toDisplayMenuUrl(governanceDetail.menuLookupUrl || "") || "-"}</dd></div>
                   <div><dt className="font-bold">Page ID</dt><dd>{governanceDetail.manifestRegistry?.pageId || "-"}</dd></div>
                   <div><dt className="font-bold">Layout</dt><dd>{governanceDetail.manifestRegistry?.layoutVersion || "-"}</dd></div>
                   <div><dt className="font-bold">Design Token</dt><dd>{governanceDetail.manifestRegistry?.designTokenVersion || "-"}</dd></div>
@@ -1218,7 +1281,7 @@ export function FullStackManagementMigrationPage() {
                     <tr key={item.featureCode}>
                       <td>{item.featureCode}</td>
                       <td>{item.featureNm}</td>
-                      <td>{item.menuUrl}</td>
+                      <td>{toDisplayMenuUrl(item.menuUrl)}</td>
                       <td>{item.useAt}</td>
                     </tr>
                   ))}

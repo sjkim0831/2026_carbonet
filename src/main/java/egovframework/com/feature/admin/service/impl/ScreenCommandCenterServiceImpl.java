@@ -103,6 +103,7 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         pages.add(pageOption("db-table-management", "DB 테이블 관리", "/admin/system/db-table-management", "A0060115", "admin"));
         pages.add(pageOption("column-management-console", "컬럼 관리", "/admin/system/column-management-console", "A0060116", "admin"));
         pages.add(pageOption("automation-studio", "자동화 스튜디오", "/admin/system/automation-studio", "A0060117", "admin"));
+        pages.add(pageOption("environment-management", "메뉴 통합 관리", "/admin/system/environment-management", "A0060118", "admin"));
         pages.add(pageOption("sr-workbench", "SR 워크벤치", "/admin/system/sr-workbench", "AMENU_SYSTEM_SR_WORKBENCH", "admin"));
         Set<String> knownPageIds = new LinkedHashSet<>();
         for (Map<String, Object> page : pages) {
@@ -207,6 +208,8 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                 return buildPlatformStudioPage("column-management-console", "컬럼 관리", "/admin/system/column-management-console", "A0060116", "columns");
             case "automation-studio":
                 return buildPlatformStudioPage("automation-studio", "자동화 스튜디오", "/admin/system/automation-studio", "A0060117", "automation");
+            case "environment-management":
+                return buildEnvironmentManagementPage();
             case "sr-workbench":
                 return buildSrWorkbenchPage();
             case "member-list":
@@ -1996,6 +1999,28 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         page.put("commonCodeGroups", Arrays.asList(
                 codeGroup("AMENU1", "관리자 메뉴 코드", Arrays.asList("AMENU_SYSTEM_FULL_STACK_MANAGEMENT", "A1900101", "AMENU_SYSTEM_OBSERVABILITY"), "시스템 운영 메뉴 코드군입니다."),
                 codeGroup("CHANGE_LAYER", "수정 레이어", Arrays.asList("UI", "EVENT", "FUNCTION", "API", "SERVICE", "MAPPER", "SCHEMA", "DB_COLUMN", "MENU_AUTH"), "풀스택 관리 시 선택하는 변경 레이어입니다.")
+        ));
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
+    private Map<String, Object> buildEnvironmentManagementPage() {
+        Map<String, Object> page = pageOption("environment-management", "메뉴 통합 관리", "/admin/system/environment-management", "A0060118", "admin");
+        page.put("summary", "메뉴 검색, 메뉴 등록, 기본 권한 생성, 기능 추가를 한 화면에서 처리하는 관리자 화면입니다.");
+        page.put("source", "frontend/src/features/environment-management/EnvironmentManagementHubPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("environment-management-summary", "환경 관리 요약", "[data-help-id=\"environment-management-summary\"]", "EnvironmentManagementSummary", "actions",
+                        Collections.singletonList("environment-tool-open"), "선택한 환경 관리 도구의 메뉴코드, feature, 경로를 요약합니다."),
+                surface("environment-management-cards", "환경 관리 카드", "[data-help-id=\"environment-management-cards\"]", "EnvironmentManagementCards", "content",
+                        Collections.singletonList("environment-tool-open"), "공통코드, 페이지, 기능, 메뉴 관리 화면으로 이동합니다.")
+        ));
+        page.put("events", Collections.singletonList(
+                event("environment-tool-open", "환경 관리 화면 이동", "click", "navigate", "[data-help-id=\"environment-management-cards\"] button",
+                        Collections.emptyList(), "선택한 관리 도구 화면으로 이동합니다.")
+        ));
+        page.put("commonCodeGroups", Arrays.asList(
+                codeGroup("AMENU1", "관리자 메뉴 코드", Arrays.asList("A0060118", "AMENU_SYSTEM_CODE", "AMENU_SYSTEM_PAGE_MANAGEMENT", "AMENU_SYSTEM_FUNCTION_MANAGEMENT", "AMENU_SYSTEM_MENU_MANAGEMENT"),
+                        "메뉴 통합 관리 화면과 하위 관리 기능의 메뉴 코드 연결입니다.")
         ));
         page.put("changeTargets", defaultChangeTargets());
         return page;

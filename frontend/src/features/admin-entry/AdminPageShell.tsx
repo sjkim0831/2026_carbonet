@@ -151,6 +151,7 @@ function getFallbackMenuTree(): Record<string, AdminMenuDomain> {
             { text: "페이지 관리", tEn: "Page Management", u: buildLocalizedPath("/admin/system/page-management", "/en/admin/system/page-management"), icon: "web" },
             { text: "기능 관리", tEn: "Function Management", u: buildLocalizedPath("/admin/system/feature-management", "/en/admin/system/feature-management"), icon: "extension" },
             { text: "메뉴 관리", tEn: "Menu Management", u: buildLocalizedPath("/admin/system/menu-management", "/en/admin/system/menu-management"), icon: "account_tree" },
+            { text: "메뉴 통합 관리", tEn: "Menu Unified Management", u: buildLocalizedPath("/admin/system/environment-management", "/en/admin/system/environment-management"), icon: "tune" },
             { text: "풀스택 관리", tEn: "Full-Stack Management", u: buildLocalizedPath("/admin/system/full-stack-management", "/en/admin/system/full-stack-management"), icon: "hub" },
             { text: "플랫폼 스튜디오", tEn: "Platform Studio", u: buildLocalizedPath("/admin/system/platform-studio", "/en/admin/system/platform-studio"), icon: "dashboard_customize" },
             { text: "화면 요소 관리", tEn: "Screen Elements", u: buildLocalizedPath("/admin/system/screen-elements-management?focus=surfaces", "/en/admin/system/screen-elements-management?focus=surfaces"), icon: "crop_landscape" },

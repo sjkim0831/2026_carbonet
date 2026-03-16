@@ -314,13 +314,77 @@
                 "admin-permission": prefix + "/member/admin_account/permissions",
                 "auth-group": prefix + "/auth/group",
                 "auth-change": prefix + "/member/auth-change",
-                "dept-role": prefix + "/member/dept-role-mapping"
+                "dept-role": prefix + "/member/dept-role-mapping",
+                "system-code": prefix + "/system/code",
+                "page-management": prefix + "/system/page-management",
+                "function-management": prefix + "/system/feature-management",
+                "menu-management": prefix + "/system/menu-management",
+                "environment-management": prefix + "/system/environment-management",
+                "full-stack-management": prefix + "/system/full-stack-management",
+                "platform-studio": prefix + "/system/platform-studio",
+                "screen-elements-management": prefix + "/system/screen-elements-management",
+                "event-management-console": prefix + "/system/event-management-console",
+                "function-management-console": prefix + "/system/function-management-console",
+                "api-management-console": prefix + "/system/api-management-console",
+                "controller-management-console": prefix + "/system/controller-management-console",
+                "db-table-management": prefix + "/system/db-table-management",
+                "column-management-console": prefix + "/system/column-management-console",
+                "automation-studio": prefix + "/system/automation-studio",
+                "help-management": prefix + "/system/help-management",
+                "sr-workbench": prefix + "/system/sr-workbench",
+                "observability": prefix + "/system/observability",
+                "codex-request": prefix + "/system/codex-request",
+                "ip-whitelist": prefix + "/system/ip_whitelist",
+                "security-history": prefix + "/system/security",
+                "security-policy": prefix + "/system/security-policy",
+                "security-monitoring": prefix + "/system/security-monitoring",
+                "blocklist": prefix + "/system/blocklist",
+                "security-audit": prefix + "/system/security-audit",
+                "scheduler-management": prefix + "/system/scheduler",
+                "login-history": prefix + "/member/login_history",
+                "admin-home": prefix + "/"
             };
             return routeMap[route] || normalized;
         }
 
         function legacyAdminPathToReact(path) {
             return adminReactRouteToLegacy(path);
+        }
+
+        function isReactManagedAdminPath(pathname) {
+            var normalized = pathOnly(pathname || "");
+            return [
+                "/admin/system/environment-management",
+                "/en/admin/system/environment-management",
+                "/admin/system/full-stack-management",
+                "/en/admin/system/full-stack-management",
+                "/admin/system/platform-studio",
+                "/en/admin/system/platform-studio",
+                "/admin/system/screen-elements-management",
+                "/en/admin/system/screen-elements-management",
+                "/admin/system/event-management-console",
+                "/en/admin/system/event-management-console",
+                "/admin/system/function-management-console",
+                "/en/admin/system/function-management-console",
+                "/admin/system/api-management-console",
+                "/en/admin/system/api-management-console",
+                "/admin/system/controller-management-console",
+                "/en/admin/system/controller-management-console",
+                "/admin/system/db-table-management",
+                "/en/admin/system/db-table-management",
+                "/admin/system/column-management-console",
+                "/en/admin/system/column-management-console",
+                "/admin/system/automation-studio",
+                "/en/admin/system/automation-studio",
+                "/admin/system/help-management",
+                "/en/admin/system/help-management",
+                "/admin/system/sr-workbench",
+                "/en/admin/system/sr-workbench",
+                "/admin/system/observability",
+                "/en/admin/system/observability",
+                "/admin/system/codex-request",
+                "/en/admin/system/codex-request"
+            ].indexOf(normalized) >= 0;
         }
 
         var defaultDomainMenus = {
@@ -372,6 +436,7 @@
                             { text: "페이지 관리", tEn: "Page Management", u: "/admin/system/page-management", icon: "web" },
                             { text: "기능 관리", tEn: "Function Management", u: "/admin/system/feature-management", icon: "extension" },
                             { text: "메뉴 관리", tEn: "Menu Management", u: "/admin/system/menu-management", icon: "account_tree" },
+                            { text: "메뉴 통합 관리", tEn: "Menu Unified Management", u: "/admin/system/environment-management", icon: "tune" },
                             { text: "풀스택 관리", tEn: "Full-Stack Management", u: "/admin/system/full-stack-management", icon: "hub" },
                             { text: "플랫폼 스튜디오", tEn: "Platform Studio", u: "/admin/system/platform-studio", icon: "dashboard_customize" },
                             { text: "화면 요소 관리", tEn: "Screen Elements", u: "/admin/system/screen-elements-management?focus=surfaces", icon: "crop_landscape" },
@@ -842,6 +907,13 @@
                 var menuManagementLink = { text: "메뉴 관리", tEn: "Menu Management", u: "/admin/system/menu-management", icon: "account_tree" };
                 environmentGroup.links.push(menuManagementLink);
             }
+            var hasEnvironmentManagement = environmentGroup.links.some(function (link) {
+                return link && (link.u === "/admin/system/environment-management" || link.u === "/en/admin/system/environment-management");
+            });
+            if (!hasEnvironmentManagement) {
+                var environmentManagementLink = { text: "메뉴 통합 관리", tEn: "Menu Unified Management", u: "/admin/system/environment-management", icon: "tune" };
+                environmentGroup.links.push(environmentManagementLink);
+            }
             var hasFullStackManagement = environmentGroup.links.some(function (link) {
                 return link && (link.u === "/admin/system/full-stack-management" || link.u === "/en/admin/system/full-stack-management");
             });
@@ -1242,6 +1314,8 @@
                 "Function Management": "/admin/system/feature-management",
                 "메뉴 관리": "/admin/system/menu-management",
                 "Menu Management": "/admin/system/menu-management",
+                "메뉴 통합 관리": "/admin/system/environment-management",
+                "Menu Unified Management": "/admin/system/environment-management",
                 "풀스택 관리": "/admin/system/full-stack-management",
                 "Full-Stack Management": "/admin/system/full-stack-management",
                 "플랫폼 스튜디오": "/admin/system/platform-studio",
@@ -1478,6 +1552,10 @@
 
         function navigateAdminRoute(pathname, push) {
             var targetUrl = normalizeUrl(pathname);
+            if (isReactManagedAdminPath(targetUrl)) {
+                window.location.href = targetUrl;
+                return;
+            }
             var currentUrl = normalizeUrl(window.location.pathname + window.location.search);
             if (targetUrl === currentUrl) {
                 applyPathState(targetUrl, false);
@@ -1585,6 +1663,30 @@
             Array.prototype.forEach.call(
                 head.querySelectorAll("[data-admin-dynamic-head='true']"),
                 function (el) { el.remove(); }
+            );
+
+            Array.prototype.forEach.call(
+                doc.head.querySelectorAll("link[rel='stylesheet']"),
+                function (linkEl) {
+                    var href = (linkEl.getAttribute("href") || "").trim();
+                    if (!href) {
+                        return;
+                    }
+                    if (/^https?:\/\/fonts\.googleapis\.com/i.test(href)) {
+                        return;
+                    }
+                    if (/^https?:\/\//i.test(href) && href.indexOf(window.location.origin) !== 0) {
+                        return;
+                    }
+                    var linkClone = document.createElement("link");
+                    Array.prototype.forEach.call(linkEl.attributes, function (attr) {
+                        if (attr) {
+                            linkClone.setAttribute(attr.name, attr.value);
+                        }
+                    });
+                    linkClone.setAttribute("data-admin-dynamic-head", "true");
+                    head.appendChild(linkClone);
+                }
             );
 
             var nextStyle = doc.head.querySelector("style[type='text/tailwindcss']");

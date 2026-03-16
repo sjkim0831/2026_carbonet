@@ -575,6 +575,18 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "PlatformStudioAutomation", instanceKey: "platform-studio-automation", layoutZone: "content", propsSummary: ["summary", "instruction", "ticketCount"] }
     ]
   },
+  "environment-management": {
+    pageId: "environment-management",
+    routePath: "/admin/system/environment-management",
+    menuCode: "A0060118",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "EnvironmentManagementSummary", instanceKey: "environment-management-summary", layoutZone: "actions", propsSummary: ["menuCode", "featureCode"] },
+      { componentId: "EnvironmentManagementCards", instanceKey: "environment-management-cards", layoutZone: "content", propsSummary: ["system-code", "page-management", "function-management", "menu-management"] }
+    ]
+  },
   "sr-workbench": {
     pageId: "sr-workbench",
     routePath: "/admin/system/sr-workbench",

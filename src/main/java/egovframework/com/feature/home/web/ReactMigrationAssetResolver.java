@@ -39,7 +39,7 @@ public class ReactMigrationAssetResolver {
     public ReactMigrationAssets resolveAssets() {
         Resource manifestResource = resourceLoader.getResource(MANIFEST_RESOURCE);
         if (!manifestResource.exists()) {
-            return new ReactMigrationAssets(fallbackJs, fallbackCss);
+            return versionedAssets(fallbackJs, fallbackCss, "fallback");
         }
 
         try (InputStream inputStream = manifestResource.getInputStream()) {
@@ -50,15 +50,21 @@ public class ReactMigrationAssetResolver {
                 entry = manifest.get(FALLBACK_ENTRY_KEY);
             }
             if (entry == null || isBlank(entry.getFile())) {
-                return new ReactMigrationAssets(fallbackJs, fallbackCss);
+                return versionedAssets(fallbackJs, fallbackCss, "fallback");
             }
 
             String jsPath = toPublicAssetPath(entry.getFile());
             String cssPath = firstCssPath(entry.getCss());
-            return new ReactMigrationAssets(jsPath, cssPath == null ? fallbackCss : cssPath);
+            String resolvedCssPath = cssPath == null ? fallbackCss : cssPath;
+            String versionToken = buildVersionToken(entry.getFile(), resolvedCssPath);
+            return versionedAssets(jsPath, resolvedCssPath, versionToken);
         } catch (IOException ex) {
-            return new ReactMigrationAssets(fallbackJs, fallbackCss);
+            return versionedAssets(fallbackJs, fallbackCss, "fallback");
         }
+    }
+
+    private ReactMigrationAssets versionedAssets(String jsPath, String cssPath, String versionToken) {
+        return new ReactMigrationAssets(appendVersion(jsPath, versionToken), appendVersion(cssPath, versionToken));
     }
 
     private String firstCssPath(List<String> cssFiles) {
@@ -71,6 +77,21 @@ public class ReactMigrationAssetResolver {
     private String toPublicAssetPath(String relativePath) {
         String normalized = relativePath.startsWith("/") ? relativePath.substring(1) : relativePath;
         return "/react-migration/" + normalized;
+    }
+
+    private String appendVersion(String path, String versionToken) {
+        if (isBlank(path) || isBlank(versionToken) || path.contains("?v=")) {
+            return path;
+        }
+        return path + "?v=" + versionToken;
+    }
+
+    private String buildVersionToken(String jsFile, String cssPath) {
+        return Integer.toHexString((safeValue(jsFile) + "|" + safeValue(cssPath)).hashCode());
+    }
+
+    private String safeValue(String value) {
+        return value == null ? "" : value.trim();
     }
 
     private boolean isBlank(String value) {

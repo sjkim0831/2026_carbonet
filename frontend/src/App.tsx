@@ -53,6 +53,7 @@ type MigrationPageId =
   | "db-table-management"
   | "column-management-console"
   | "automation-studio"
+  | "environment-management"
   | "ip-whitelist"
   | "login-history"
   | "security-history"
@@ -129,6 +130,7 @@ const ROUTES: RouteDefinition[] = [
   { id: "db-table-management", label: "DB 테이블 관리", group: "admin", koPath: "/admin/system/db-table-management", enPath: "/en/admin/system/db-table-management" },
   { id: "column-management-console", label: "컬럼 관리", group: "admin", koPath: "/admin/system/column-management-console", enPath: "/en/admin/system/column-management-console" },
   { id: "automation-studio", label: "자동화 스튜디오", group: "admin", koPath: "/admin/system/automation-studio", enPath: "/en/admin/system/automation-studio" },
+  { id: "environment-management", label: "메뉴 통합 관리", group: "admin", koPath: "/admin/system/environment-management", enPath: "/en/admin/system/environment-management" },
   { id: "ip-whitelist", label: "IP 화이트리스트", group: "admin", koPath: "/admin/system/ip_whitelist", enPath: "/en/admin/system/ip_whitelist" },
   { id: "login-history", label: "로그인 이력", group: "admin", koPath: "/admin/member/login_history", enPath: "/en/admin/member/login_history" },
   { id: "security-history", label: "보안 이력", group: "admin", koPath: "/admin/system/security", enPath: "/en/admin/system/security" },
@@ -234,6 +236,7 @@ const FunctionManagementMigrationPage = lazyNamed(() => import("./features/funct
 const MenuManagementMigrationPage = lazyNamed(() => import("./features/menu-management/MenuManagementMigrationPage"), "MenuManagementMigrationPage");
 const FullStackManagementMigrationPage = lazyNamed(() => import("./features/menu-management/FullStackManagementMigrationPage"), "FullStackManagementMigrationPage");
 const PlatformStudioMigrationPage = lazyNamed(() => import("./features/platform-studio/PlatformStudioMigrationPage"), "PlatformStudioMigrationPage");
+const EnvironmentManagementHubPage = lazyNamed(() => import("./features/environment-management/EnvironmentManagementHubPage"), "EnvironmentManagementHubPage");
 const IpWhitelistMigrationPage = lazyNamed(() => import("./features/ip-whitelist/IpWhitelistMigrationPage"), "IpWhitelistMigrationPage");
 const LoginHistoryMigrationPage = lazyNamed(() => import("./features/login-history/LoginHistoryMigrationPage"), "LoginHistoryMigrationPage");
 const SecurityHistoryMigrationPage = lazyNamed(() => import("./features/security-history/SecurityHistoryMigrationPage"), "SecurityHistoryMigrationPage");
@@ -401,6 +404,8 @@ function getPageComponent(route: MigrationPageId): ComponentType {
     case "column-management-console":
     case "automation-studio":
       return PlatformStudioMigrationPage;
+    case "environment-management":
+      return EnvironmentManagementHubPage;
     case "ip-whitelist":
       return IpWhitelistMigrationPage;
     case "login-history":
@@ -515,6 +520,8 @@ function preloadPageModule(route: MigrationPageId) {
     case "column-management-console":
     case "automation-studio":
       return import("./features/platform-studio/PlatformStudioMigrationPage");
+    case "environment-management":
+      return import("./features/environment-management/EnvironmentManagementHubPage");
     case "ip-whitelist":
       return import("./features/ip-whitelist/IpWhitelistMigrationPage");
     case "login-history":

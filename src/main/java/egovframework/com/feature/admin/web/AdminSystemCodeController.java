@@ -2,6 +2,7 @@ package egovframework.com.feature.admin.web;
 
 import egovframework.com.common.audit.AuditTrailService;
 import egovframework.com.common.trace.UiManifestRegistryService;
+import egovframework.com.common.util.ReactPageUrlMapper;
 import egovframework.com.feature.admin.model.vo.ClassCodeVO;
 import egovframework.com.feature.admin.model.vo.CommonCodeVO;
 import egovframework.com.feature.admin.model.vo.DetailCodeVO;
@@ -233,6 +234,11 @@ public class AdminSystemCodeController {
         return redirectReactMigration(request, locale, "full-stack-management");
     }
 
+    @RequestMapping(value = "/environment-management", method = RequestMethod.GET)
+    public String environmentManagement(HttpServletRequest request, Locale locale) {
+        return redirectReactMigration(request, locale, "environment-management");
+    }
+
     @RequestMapping(value = {
             "/platform-studio",
             "/screen-elements-management",
@@ -412,7 +418,7 @@ public class AdminSystemCodeController {
         String normalizedParentCode = safeString(parentCode).toUpperCase(Locale.ROOT);
         String normalizedName = safeString(codeNm);
         String normalizedNameEn = safeString(codeDc);
-        String normalizedUrl = safeString(menuUrl);
+        String normalizedUrl = canonicalMenuUrl(menuUrl);
         String normalizedIcon = safeString(menuIcon);
         String normalizedUseAt = normalizeUseAt(useAt);
 
@@ -594,7 +600,7 @@ public class AdminSystemCodeController {
         String normalizedCode = safeString(code).toUpperCase(Locale.ROOT);
         String normalizedName = safeString(codeNm);
         String normalizedNameEn = safeString(codeDc);
-        String normalizedUrl = safeString(menuUrl);
+        String normalizedUrl = canonicalMenuUrl(menuUrl);
         String normalizedIcon = safeString(menuIcon);
         String normalizedDomainCode = safeString(domainCode).toUpperCase(Locale.ROOT);
         String normalizedUseAt = normalizeUseAt(useAt);
@@ -643,7 +649,7 @@ public class AdminSystemCodeController {
         String normalizedCode = safeString(code).toUpperCase(Locale.ROOT);
         String normalizedName = safeString(codeNm);
         String normalizedNameEn = safeString(codeDc);
-        String normalizedUrl = safeString(menuUrl);
+        String normalizedUrl = canonicalMenuUrl(menuUrl);
         String normalizedIcon = safeString(menuIcon);
         String normalizedUseAt = normalizeUseAt(useAt);
 
@@ -1500,7 +1506,11 @@ public class AdminSystemCodeController {
 
     private List<PageManagementVO> loadPageManagementRows(String codeId, String searchKeyword, String searchUrl) {
         try {
-            return adminCodeManageService.selectPageManagementList(codeId, searchKeyword, searchUrl);
+            List<PageManagementVO> rows = adminCodeManageService.selectPageManagementList(codeId, searchKeyword, searchUrl);
+            for (PageManagementVO row : rows) {
+                row.setMenuUrl(canonicalMenuUrl(row.getMenuUrl()));
+            }
+            return rows;
         } catch (Exception e) {
             log.error("Failed to load page management rows.", e);
             return Collections.emptyList();
@@ -1844,6 +1854,9 @@ public class AdminSystemCodeController {
     private List<MenuInfoDTO> loadMenuTreeRows(String codeId) {
         try {
             List<MenuInfoDTO> rows = new ArrayList<>(menuInfoService.selectMenuTreeList(codeId));
+            for (MenuInfoDTO row : rows) {
+                row.setMenuUrl(canonicalMenuUrl(row.getMenuUrl()));
+            }
             Map<String, Integer> sortOrderMap = new LinkedHashMap<>();
             for (MenuInfoDTO row : rows) {
                 sortOrderMap.put(safeString(row.getCode()).toUpperCase(Locale.ROOT), row.getSortOrdr());
@@ -1862,7 +1875,7 @@ public class AdminSystemCodeController {
     }
 
     private boolean hasExistingManagedPageUrl(String codeId, String menuUrl) {
-        String normalizedUrl = safeString(menuUrl);
+        String normalizedUrl = canonicalMenuUrl(menuUrl);
         if (normalizedUrl.isEmpty()) {
             return false;
         }
@@ -1961,6 +1974,15 @@ public class AdminSystemCodeController {
         } catch (NumberFormatException e) {
             return 0;
         }
+    }
+
+    private String canonicalMenuUrl(String value) {
+        String normalized = safeString(value);
+        if (normalized.isEmpty()) {
+            return "";
+        }
+        String canonical = ReactPageUrlMapper.toCanonicalMenuUrl(normalized);
+        return canonical.isEmpty() ? normalized : canonical;
     }
 
     private List<Map<String, String>> buildPageManagementBlockedFeatureLinks(
