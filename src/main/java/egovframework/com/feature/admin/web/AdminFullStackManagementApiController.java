@@ -7,6 +7,8 @@ import egovframework.com.feature.admin.dto.request.FullStackGovernanceAutoCollec
 import egovframework.com.feature.admin.dto.request.FullStackGovernanceSaveRequest;
 import egovframework.com.feature.admin.service.FullStackGovernanceRegistryService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,6 +30,8 @@ import java.util.Map;
         "/en/admin/api/admin/full-stack-management"
 })
 public class AdminFullStackManagementApiController {
+
+    private static final Logger log = LoggerFactory.getLogger(AdminFullStackManagementApiController.class);
 
     private final FullStackGovernanceRegistryService fullStackGovernanceRegistryService;
     private final AuditTrailService auditTrailService;
@@ -78,7 +82,6 @@ public class AdminFullStackManagementApiController {
     public ResponseEntity<Map<String, Object>> autoCollectRegistry(
             @RequestBody(required = false) FullStackGovernanceAutoCollectRequest request,
             HttpServletRequest httpServletRequest) throws Exception {
-        System.out.println("ENTERED autoCollectRegistry");
         Map<String, Object> response = new LinkedHashMap<>();
         try {
             Map<String, Object> beforeState = fullStackGovernanceRegistryService.getEntry(request == null ? "" : request.getMenuCode());
@@ -107,7 +110,10 @@ public class AdminFullStackManagementApiController {
             response.put("message", safe(e.getMessage()));
             return ResponseEntity.badRequest().body(response);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Failed to auto collect full-stack governance metadata. menuCode={}, pageId={}",
+                    safe(request == null ? null : request.getMenuCode()),
+                    safe(request == null ? null : request.getPageId()),
+                    e);
             response.put("success", false);
             response.put("message", "Error: " + safe(e.getMessage()));
             return ResponseEntity.status(500).body(response);

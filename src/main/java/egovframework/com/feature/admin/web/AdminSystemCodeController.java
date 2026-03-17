@@ -47,6 +47,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.LinkedHashSet;
+import java.util.function.Consumer;
 
 @Controller
 @RequestMapping({"/admin/system", "/en/admin/system"})
@@ -54,6 +55,7 @@ import java.util.LinkedHashSet;
 public class AdminSystemCodeController {
 
     private static final Logger log = LoggerFactory.getLogger(AdminSystemCodeController.class);
+    private static final Map<String, String> PLATFORM_STUDIO_ROUTE_BY_SUFFIX = buildPlatformStudioRouteMap();
 
     private final AdminCodeManageService adminCodeManageService;
     private final MenuInfoService menuInfoService;
@@ -80,10 +82,7 @@ public class AdminSystemCodeController {
             HttpServletRequest request,
             Locale locale) {
         boolean isEn = isEnglishRequest(request, locale);
-        primeCsrfToken(request);
-        ExtendedModelMap model = new ExtendedModelMap();
-        populateCodeManagementPage(detailCodeId, isEn, model);
-        return ResponseEntity.ok(new LinkedHashMap<>(model));
+        return buildPageDataResponse(request, model -> populateCodeManagementPage(detailCodeId, isEn, model));
     }
 
     @RequestMapping(value = "/page-management", method = RequestMethod.GET)
@@ -116,29 +115,12 @@ public class AdminSystemCodeController {
             HttpServletRequest request,
             Locale locale) {
         boolean isEn = isEnglishRequest(request, locale);
-        primeCsrfToken(request);
         String normalizedMenuType = normalizeMenuType(menuType);
         String codeId = resolveMenuCodeId(normalizedMenuType);
-        ExtendedModelMap model = new ExtendedModelMap();
-        populatePageManagementModel(model, isEn, normalizedMenuType, codeId, searchKeyword, searchUrl);
-        if ("Y".equalsIgnoreCase(safeString(autoFeature))) {
-            model.addAttribute("pageMgmtMessage", isEn
-                    ? "The page was saved and the default VIEW feature was generated."
-                    : "페이지를 저장했고 기본 VIEW 기능도 함께 생성했습니다.");
-        } else if ("Y".equalsIgnoreCase(safeString(updated))) {
-            model.addAttribute("pageMgmtMessage", isEn
-                    ? "The page was updated and the default VIEW feature metadata was synchronized."
-                    : "페이지를 수정했고 기본 VIEW 기능 메타데이터도 함께 동기화했습니다.");
-        } else if ("Y".equalsIgnoreCase(safeString(deleted))) {
-            int deletedRoleRefCount = safeParseInt(deletedRoleRefs);
-            int deletedUserOverrideCount = safeParseInt(deletedUserOverrides);
-            model.addAttribute("pageMgmtMessage", isEn
-                    ? "The page was deleted and default VIEW permission references were cleaned up. Role mappings: "
-                        + deletedRoleRefCount + ", user overrides: " + deletedUserOverrideCount + "."
-                    : "페이지를 삭제했고 기본 VIEW 권한 참조도 함께 정리했습니다. 권한그룹 매핑 "
-                        + deletedRoleRefCount + "건, 사용자 예외권한 " + deletedUserOverrideCount + "건.");
-        }
-        return ResponseEntity.ok(new LinkedHashMap<>(model));
+        return buildPageDataResponse(request, model -> {
+            populatePageManagementModel(model, isEn, normalizedMenuType, codeId, searchKeyword, searchUrl);
+            applyPageManagementMessage(model, isEn, autoFeature, updated, deleted, deletedRoleRefs, deletedUserOverrides);
+        });
     }
 
     @RequestMapping(value = "/ip_whitelist", method = RequestMethod.GET)
@@ -161,10 +143,7 @@ public class AdminSystemCodeController {
             HttpServletRequest request,
             Locale locale) {
         boolean isEn = isEnglishRequest(request, locale);
-        primeCsrfToken(request);
-        ExtendedModelMap model = new ExtendedModelMap();
-        populateIpWhitelistModel(model, isEn, searchIp, accessScope, status);
-        return ResponseEntity.ok(new LinkedHashMap<>(model));
+        return buildPageDataResponse(request, model -> populateIpWhitelistModel(model, isEn, searchIp, accessScope, status));
     }
 
     @RequestMapping(value = {"/function-management", "/feature-management"}, method = RequestMethod.GET)
@@ -187,12 +166,9 @@ public class AdminSystemCodeController {
             HttpServletRequest request,
             Locale locale) {
         boolean isEn = isEnglishRequest(request, locale);
-        primeCsrfToken(request);
         String normalizedMenuType = normalizeMenuType(menuType);
         String codeId = resolveMenuCodeId(normalizedMenuType);
-        ExtendedModelMap model = new ExtendedModelMap();
-        populateFunctionManagementModel(model, isEn, normalizedMenuType, codeId, searchMenuCode, searchKeyword);
-        return ResponseEntity.ok(new LinkedHashMap<>(model));
+        return buildPageDataResponse(request, model -> populateFunctionManagementModel(model, isEn, normalizedMenuType, codeId, searchMenuCode, searchKeyword));
     }
 
     @RequestMapping(value = "/menu-management", method = RequestMethod.GET)
@@ -213,15 +189,12 @@ public class AdminSystemCodeController {
             HttpServletRequest request,
             Locale locale) {
         boolean isEn = isEnglishRequest(request, locale);
-        primeCsrfToken(request);
         String normalizedMenuType = normalizeMenuType(menuType);
         String codeId = resolveMenuCodeId(normalizedMenuType);
-        ExtendedModelMap model = new ExtendedModelMap();
-        populateMenuManagementModel(model, isEn, normalizedMenuType, codeId);
-        if ("Y".equalsIgnoreCase(safeString(saved))) {
-            model.addAttribute("menuMgmtMessage", isEn ? "Menu order has been saved." : "메뉴 순서를 저장했습니다.");
-        }
-        return ResponseEntity.ok(new LinkedHashMap<>(model));
+        return buildPageDataResponse(request, model -> {
+            populateMenuManagementModel(model, isEn, normalizedMenuType, codeId);
+            applyMenuManagementMessage(model, isEn, saved, false);
+        });
     }
 
     @RequestMapping(value = "/full-stack-management", method = RequestMethod.GET)
@@ -251,26 +224,7 @@ public class AdminSystemCodeController {
             "/automation-studio"
     }, method = RequestMethod.GET)
     public String platformStudioPages(HttpServletRequest request, Locale locale) {
-        String requestUri = request == null ? "" : safeString(request.getRequestURI());
-        String route = "platform-studio";
-        if (requestUri.endsWith("/screen-elements-management")) {
-            route = "screen-elements-management";
-        } else if (requestUri.endsWith("/event-management-console")) {
-            route = "event-management-console";
-        } else if (requestUri.endsWith("/function-management-console")) {
-            route = "function-management-console";
-        } else if (requestUri.endsWith("/api-management-console")) {
-            route = "api-management-console";
-        } else if (requestUri.endsWith("/controller-management-console")) {
-            route = "controller-management-console";
-        } else if (requestUri.endsWith("/db-table-management")) {
-            route = "db-table-management";
-        } else if (requestUri.endsWith("/column-management-console")) {
-            route = "column-management-console";
-        } else if (requestUri.endsWith("/automation-studio")) {
-            route = "automation-studio";
-        }
-        return redirectReactMigration(request, locale, route);
+        return redirectReactMigration(request, locale, resolvePlatformStudioRoute(request));
     }
 
     @GetMapping("/full-stack-management/page-data")
@@ -281,16 +235,13 @@ public class AdminSystemCodeController {
             HttpServletRequest request,
             Locale locale) {
         boolean isEn = isEnglishRequest(request, locale);
-        primeCsrfToken(request);
         String normalizedMenuType = normalizeMenuType(menuType);
         String codeId = resolveMenuCodeId(normalizedMenuType);
-        ExtendedModelMap model = new ExtendedModelMap();
-        populateMenuManagementModel(model, isEn, normalizedMenuType, codeId);
-        model.addAttribute("fullStackSummaryRows", buildFullStackSummaryRows(codeId));
-        if ("Y".equalsIgnoreCase(safeString(saved))) {
-            model.addAttribute("menuMgmtMessage", isEn ? "Full-stack management data has been refreshed." : "풀스택 관리 데이터를 새로 불러왔습니다.");
-        }
-        return ResponseEntity.ok(new LinkedHashMap<>(model));
+        return buildPageDataResponse(request, model -> {
+            populateMenuManagementModel(model, isEn, normalizedMenuType, codeId);
+            model.addAttribute("fullStackSummaryRows", buildFullStackSummaryRows(codeId));
+            applyMenuManagementMessage(model, isEn, saved, true);
+        });
     }
 
     @PostMapping("/full-stack-management/menu-visibility")
@@ -2246,6 +2197,76 @@ public class AdminSystemCodeController {
         if (token instanceof CsrfToken) {
             ((CsrfToken) token).getToken();
         }
+    }
+
+    private ResponseEntity<Map<String, Object>> buildPageDataResponse(HttpServletRequest request,
+                                                                      Consumer<ExtendedModelMap> populator) {
+        primeCsrfToken(request);
+        ExtendedModelMap model = new ExtendedModelMap();
+        populator.accept(model);
+        return ResponseEntity.ok(new LinkedHashMap<>(model));
+    }
+
+    private void applyPageManagementMessage(ExtendedModelMap model,
+                                            boolean isEn,
+                                            String autoFeature,
+                                            String updated,
+                                            String deleted,
+                                            String deletedRoleRefs,
+                                            String deletedUserOverrides) {
+        if ("Y".equalsIgnoreCase(safeString(autoFeature))) {
+            model.addAttribute("pageMgmtMessage", isEn
+                    ? "The page was saved and the default VIEW feature was generated."
+                    : "페이지를 저장했고 기본 VIEW 기능도 함께 생성했습니다.");
+            return;
+        }
+        if ("Y".equalsIgnoreCase(safeString(updated))) {
+            model.addAttribute("pageMgmtMessage", isEn
+                    ? "The page was updated and the default VIEW feature metadata was synchronized."
+                    : "페이지를 수정했고 기본 VIEW 기능 메타데이터도 함께 동기화했습니다.");
+            return;
+        }
+        if ("Y".equalsIgnoreCase(safeString(deleted))) {
+            int deletedRoleRefCount = safeParseInt(deletedRoleRefs);
+            int deletedUserOverrideCount = safeParseInt(deletedUserOverrides);
+            model.addAttribute("pageMgmtMessage", isEn
+                    ? "The page was deleted and default VIEW permission references were cleaned up. Role mappings: "
+                    + deletedRoleRefCount + ", user overrides: " + deletedUserOverrideCount + "."
+                    : "페이지를 삭제했고 기본 VIEW 권한 참조도 함께 정리했습니다. 권한그룹 매핑 "
+                    + deletedRoleRefCount + "건, 사용자 예외권한 " + deletedUserOverrideCount + "건.");
+        }
+    }
+
+    private void applyMenuManagementMessage(ExtendedModelMap model, boolean isEn, String saved, boolean fullStack) {
+        if (!"Y".equalsIgnoreCase(safeString(saved))) {
+            return;
+        }
+        model.addAttribute("menuMgmtMessage", fullStack
+                ? (isEn ? "Full-stack management data has been refreshed." : "풀스택 관리 데이터를 새로 불러왔습니다.")
+                : (isEn ? "Menu order has been saved." : "메뉴 순서를 저장했습니다."));
+    }
+
+    private String resolvePlatformStudioRoute(HttpServletRequest request) {
+        String requestUri = request == null ? "" : safeString(request.getRequestURI());
+        for (Map.Entry<String, String> routeEntry : PLATFORM_STUDIO_ROUTE_BY_SUFFIX.entrySet()) {
+            if (requestUri.endsWith(routeEntry.getKey())) {
+                return routeEntry.getValue();
+            }
+        }
+        return "platform-studio";
+    }
+
+    private static Map<String, String> buildPlatformStudioRouteMap() {
+        Map<String, String> routeMap = new LinkedHashMap<>();
+        routeMap.put("/screen-elements-management", "screen-elements-management");
+        routeMap.put("/event-management-console", "event-management-console");
+        routeMap.put("/function-management-console", "function-management-console");
+        routeMap.put("/api-management-console", "api-management-console");
+        routeMap.put("/controller-management-console", "controller-management-console");
+        routeMap.put("/db-table-management", "db-table-management");
+        routeMap.put("/column-management-console", "column-management-console");
+        routeMap.put("/automation-studio", "automation-studio");
+        return Collections.unmodifiableMap(routeMap);
     }
 
     private String adminPrefix(HttpServletRequest request, Locale locale) {

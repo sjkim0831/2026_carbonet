@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { PAGE_MANIFESTS } from "../../app/screen-registry/pageManifests";
 import {
   autoCollectFullStackGovernanceRegistry,
   createSrTicket,
@@ -8,6 +9,7 @@ import {
   fetchScreenCommandPage,
   fetchSrWorkbenchPage,
   getScreenCommandChainText,
+  getScreenCommandChainValues,
   saveFullStackGovernanceRegistry,
   type FullStackGovernanceRegistryEntry,
   type MenuManagementPagePayload,
@@ -59,6 +61,84 @@ type TargetSelection = {
   changeTargetId: string;
 };
 
+type GovernanceOverview = {
+  summary: string;
+  pageId: string;
+  source: string;
+  tags: string[];
+  componentIds: string[];
+  eventIds: string[];
+  functionIds: string[];
+  parameterSpecs: string[];
+  resultSpecs: string[];
+  apiIds: string[];
+  controllerActions: string[];
+  serviceMethods: string[];
+  mapperQueries: string[];
+  schemaIds: string[];
+  tableNames: string[];
+  columnNames: string[];
+  featureCodes: string[];
+  commonCodeGroups: string[];
+};
+
+type GovernanceSurfaceChain = {
+  surfaceId: string;
+  label: string;
+  selector: string;
+  componentId: string;
+  layoutZone: string;
+  notes: string;
+  childElements: Array<{
+    instanceKey: string;
+    componentId: string;
+    componentName: string;
+    layoutZone: string;
+    designReference: string;
+    notes: string;
+  }>;
+  events: Array<{
+    eventId: string;
+    label: string;
+    eventType: string;
+    frontendFunction: string;
+    triggerSelector: string;
+    notes: string;
+    functionInputs: Array<{ fieldId: string; type: string; source: string; required: boolean; notes: string }>;
+    functionOutputs: Array<{ fieldId: string; type: string; source: string; required: boolean; notes: string }>;
+    apis: Array<{
+      apiId: string;
+      label: string;
+      method: string;
+      endpoint: string;
+      controllerActions: string[];
+      serviceMethods: string[];
+      mapperQueries: string[];
+      requestFields: Array<{ fieldId: string; type: string; source: string; required: boolean; notes: string }>;
+      responseFields: Array<{ fieldId: string; type: string; source: string; required: boolean; notes: string }>;
+      schemaIds: string[];
+      relatedTables: string[];
+      schemas: Array<{ schemaId: string; label: string; tableName: string; columns: string[]; notes: string }>;
+    }>;
+  }>;
+};
+
+type GovernanceSurfaceEventTableRow = {
+  surfaceLabel: string;
+  surfaceId: string;
+  childElements: string;
+  eventLabel: string;
+  eventId: string;
+  eventType: string;
+  frontendFunction: string;
+  parameters: string;
+  results: string;
+  apiLabels: string;
+  controllerActions: string;
+  serviceMethods: string;
+  mapperQueries: string;
+};
+
 const TAB_OPTIONS: Array<{ id: FocusTab; labelKo: string; labelEn: string }> = [
   { id: "overview", labelKo: "개요", labelEn: "Overview" },
   { id: "surfaces", labelKo: "화면 요소", labelEn: "Surfaces" },
@@ -89,6 +169,218 @@ function summaryListOf(row: Record<string, unknown> | null, key: string) {
     return [];
   }
   return value.map((item) => String(item || "").trim()).filter(Boolean);
+}
+
+function normalizeLookupPath(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "";
+  }
+  const withoutQuery = trimmed.split("?")[0] || "";
+  return withoutQuery.startsWith("/en/") ? withoutQuery.slice(3) : withoutQuery;
+}
+
+function resolveGovernancePageId(
+  selectedSummary: Record<string, unknown> | null,
+  pages: ScreenCommandPagePayload["pages"] | undefined
+) {
+  if (!selectedSummary) {
+    return "";
+  }
+  const summaryPageId = stringOf(selectedSummary, "pageId");
+  if (summaryPageId) {
+    return summaryPageId;
+  }
+  const menuCode = stringOf(selectedSummary, "menuCode").toUpperCase();
+  const menuPath = normalizeLookupPath(stringOf(selectedSummary, "menuUrl"));
+  const matchedCatalogPage = (pages || []).find((item) => (
+    String(item.menuCode || "").toUpperCase() === menuCode
+      || normalizeLookupPath(String(item.routePath || "")) === menuPath
+  ));
+  if (matchedCatalogPage?.pageId) {
+    return String(matchedCatalogPage.pageId);
+  }
+  const matchedManifest = Object.values(PAGE_MANIFESTS).find((manifest) => (
+    String(manifest.menuCode || "").toUpperCase() === menuCode
+      || normalizeLookupPath(String(manifest.routePath || "")) === menuPath
+  ));
+  return matchedManifest?.pageId || "";
+}
+
+function buildGovernanceOverview(
+  entry: FullStackGovernanceRegistryEntry | null,
+  page: ScreenCommandPagePayload["page"] | null
+): GovernanceOverview {
+  return {
+    summary: entry?.summary || page?.summary || "",
+    pageId: entry?.pageId || page?.pageId || "",
+    source: entry?.source || page?.source || "",
+    tags: entry?.tags || [],
+    componentIds: entry?.componentIds || Array.from(new Set([
+      ...((page?.surfaces || []).map((item) => item.componentId).filter(Boolean)),
+      ...((page?.manifestRegistry?.components || []).map((item) => String(item.componentId || "")).filter(Boolean))
+    ])),
+    eventIds: entry?.eventIds || (page?.events || []).map((item) => item.eventId).filter(Boolean),
+    functionIds: entry?.functionIds || Array.from(new Set((page?.events || []).map((item) => item.frontendFunction).filter(Boolean))),
+    parameterSpecs: entry?.parameterSpecs || (page?.events || []).flatMap((item) => (
+      item.functionInputs || []
+    ).map((field) => `${field.fieldId}:${field.type}:${field.source || "input"}`)),
+    resultSpecs: entry?.resultSpecs || (page?.events || []).flatMap((item) => (
+      item.functionOutputs || []
+    ).map((field) => `${field.fieldId}:${field.type}:${field.source || "output"}`)),
+    apiIds: entry?.apiIds || (page?.apis || []).map((item) => item.apiId).filter(Boolean),
+    controllerActions: entry?.controllerActions || Array.from(new Set((page?.apis || []).flatMap((item) => (
+      getScreenCommandChainValues(item.controllerActions, item.controllerAction)
+    )))),
+    serviceMethods: entry?.serviceMethods || Array.from(new Set((page?.apis || []).flatMap((item) => (
+      getScreenCommandChainValues(item.serviceMethods, item.serviceMethod)
+    )))),
+    mapperQueries: entry?.mapperQueries || Array.from(new Set((page?.apis || []).flatMap((item) => (
+      getScreenCommandChainValues(item.mapperQueries, item.mapperQuery)
+    )))),
+    schemaIds: entry?.schemaIds || (page?.schemas || []).map((item) => item.schemaId).filter(Boolean),
+    tableNames: entry?.tableNames || Array.from(new Set([
+      ...(page?.schemas || []).map((item) => item.tableName).filter(Boolean),
+      ...(page?.apis || []).flatMap((item) => item.relatedTables || []),
+      ...(page?.menuPermission?.relationTables || [])
+    ])),
+    columnNames: entry?.columnNames || Array.from(new Set((page?.schemas || []).flatMap((item) => item.columns || []).map((column) => String(column)))),
+    featureCodes: entry?.featureCodes || Array.from(new Set([
+      ...(page?.menuPermission?.featureCodes || []),
+      ...((page?.menuPermission?.featureRows || []).map((item) => item.featureCode))
+    ])),
+    commonCodeGroups: entry?.commonCodeGroups || (page?.commonCodeGroups || []).map((item) => item.codeGroupId).filter(Boolean)
+  };
+}
+
+function renderMetaList(items: string[], emptyLabel: string) {
+  if (items.length === 0) {
+    return <p className="text-sm text-[var(--kr-gov-text-secondary)]">{emptyLabel}</p>;
+  }
+  return (
+    <div className="flex flex-wrap gap-2">
+      {items.map((item) => (
+        <span key={item} className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-[12px] font-mono text-[var(--kr-gov-text-primary)]">
+          {item}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function buildSurfaceChains(page: ScreenCommandPagePayload["page"] | null): GovernanceSurfaceChain[] {
+  if (!page) {
+    return [];
+  }
+  const events = page.events || [];
+  const apis = page.apis || [];
+  const schemas = page.schemas || [];
+  const manifestComponents = (page.manifestRegistry?.components || []) as Array<Record<string, unknown>>;
+  return (page.surfaces || []).map((surface) => {
+    const surfaceEvents = events.filter((event) => (surface.eventIds || []).includes(event.eventId));
+    const childElements = manifestComponents
+      .filter((component) => {
+        const instanceKey = stringOf(component, "instanceKey");
+        const componentId = stringOf(component, "componentId");
+        const layoutZone = stringOf(component, "layoutZone");
+        return instanceKey === surface.surfaceId
+          || componentId === surface.componentId
+          || (!surface.componentId && layoutZone === surface.layoutZone)
+          || (layoutZone === surface.layoutZone && instanceKey.startsWith(surface.surfaceId));
+      })
+      .map((component) => ({
+        instanceKey: stringOf(component, "instanceKey"),
+        componentId: stringOf(component, "componentId"),
+        componentName: stringOf(component, "componentName"),
+        layoutZone: stringOf(component, "layoutZone"),
+        designReference: stringOf(component, "designReference"),
+        notes: stringOf(component, "conditionalRuleSummary")
+      }));
+    return {
+      surfaceId: surface.surfaceId,
+      label: surface.label,
+      selector: surface.selector,
+      componentId: surface.componentId,
+      layoutZone: surface.layoutZone,
+      notes: surface.notes,
+      childElements: childElements.filter((item, index, list) => (
+        list.findIndex((candidate) => `${candidate.instanceKey}-${candidate.componentId}` === `${item.instanceKey}-${item.componentId}`) === index
+      )),
+      events: surfaceEvents.map((event) => ({
+        eventId: event.eventId,
+        label: event.label,
+        eventType: event.eventType,
+        frontendFunction: event.frontendFunction,
+        triggerSelector: event.triggerSelector,
+        notes: event.notes,
+        functionInputs: event.functionInputs || [],
+        functionOutputs: event.functionOutputs || [],
+        apis: (event.apiIds || [])
+          .map((apiId) => apis.find((candidate) => candidate.apiId === apiId))
+          .filter(Boolean)
+          .map((api) => ({
+            apiId: api!.apiId,
+            label: api!.label,
+            method: api!.method,
+            endpoint: api!.endpoint,
+            controllerActions: getScreenCommandChainValues(api!.controllerActions, api!.controllerAction),
+            serviceMethods: getScreenCommandChainValues(api!.serviceMethods, api!.serviceMethod),
+            mapperQueries: getScreenCommandChainValues(api!.mapperQueries, api!.mapperQuery),
+            requestFields: api!.requestFields || [],
+            responseFields: api!.responseFields || [],
+            schemaIds: api!.schemaIds || [],
+            relatedTables: api!.relatedTables || [],
+            schemas: (api!.schemaIds || [])
+              .map((schemaId) => schemas.find((schema) => schema.schemaId === schemaId))
+              .filter(Boolean)
+              .map((schema) => ({
+                schemaId: schema!.schemaId,
+                label: schema!.label,
+                tableName: schema!.tableName,
+                columns: schema!.columns || [],
+                notes: schema!.notes
+              }))
+          }))
+      }))
+    };
+  });
+}
+
+function buildSurfaceEventTableRows(chains: GovernanceSurfaceChain[]): GovernanceSurfaceEventTableRow[] {
+  return chains.flatMap((surface) => {
+    if (surface.events.length === 0) {
+      return [{
+        surfaceLabel: surface.label,
+        surfaceId: surface.surfaceId,
+        childElements: surface.childElements.map((item) => item.componentName || item.instanceKey || item.componentId).filter(Boolean).join(", "),
+        eventLabel: "-",
+        eventId: "-",
+        eventType: "-",
+        frontendFunction: "-",
+        parameters: "-",
+        results: "-",
+        apiLabels: "-",
+        controllerActions: "-",
+        serviceMethods: "-",
+        mapperQueries: "-"
+      }];
+    }
+    return surface.events.map((event) => ({
+      surfaceLabel: surface.label,
+      surfaceId: surface.surfaceId,
+      childElements: surface.childElements.map((item) => item.componentName || item.instanceKey || item.componentId).filter(Boolean).join(", "),
+      eventLabel: event.label,
+      eventId: event.eventId,
+      eventType: event.eventType,
+      frontendFunction: event.frontendFunction,
+      parameters: event.functionInputs.map((field) => `${field.fieldId}:${field.type}`).join(", ") || "-",
+      results: event.functionOutputs.map((field) => `${field.fieldId}:${field.type}`).join(", ") || "-",
+      apiLabels: event.apis.map((api) => `${api.apiId} (${api.method} ${api.endpoint})`).join(", ") || "-",
+      controllerActions: event.apis.flatMap((api) => api.controllerActions).join(", ") || "-",
+      serviceMethods: event.apis.flatMap((api) => api.serviceMethods).join(", ") || "-",
+      mapperQueries: event.apis.flatMap((api) => api.mapperQueries).join(", ") || "-"
+    }));
+  });
 }
 
 function parseFocus(): FocusTab {
@@ -218,16 +510,20 @@ export function PlatformStudioMigrationPage() {
   const [savingRegistry, setSavingRegistry] = useState(false);
   const [collectingRegistry, setCollectingRegistry] = useState(false);
   const [targetSelection, setTargetSelection] = useState<TargetSelection>(emptyTargetSelection());
+  const [screenCatalog, setScreenCatalog] = useState<ScreenCommandPagePayload | null>(null);
   const pageState = useAsyncValue<MenuManagementPagePayload>(() => fetchFullStackManagementPage(menuType), [menuType]);
   const workbenchState = useAsyncValue<SrWorkbenchPagePayload>(() => fetchSrWorkbenchPage(""), []);
   const page = pageState.value;
   const workbench = workbenchState.value;
   const summaryRows = ((page?.fullStackSummaryRows || []) as Array<Record<string, unknown>>);
   const selectedSummary = useMemo(() => summaryRows.find((item) => stringOf(item, "menuCode") === selectedMenuCode) || null, [selectedMenuCode, summaryRows]);
-  const pageId = stringOf(selectedSummary, "pageId");
+  const pageId = useMemo(() => resolveGovernancePageId(selectedSummary, screenCatalog?.pages), [screenCatalog?.pages, selectedSummary]);
   const commandState = useAsyncValue<ScreenCommandPagePayload>(() => (pageId ? fetchScreenCommandPage(pageId) : Promise.resolve({ selectedPageId: "", pages: [], page: {} as ScreenCommandPagePayload["page"] })), [pageId]);
   const commandPage = pageId ? commandState.value : null;
   const commandDetail = commandPage?.page;
+  const governanceOverview = useMemo(() => buildGovernanceOverview(registryEntry, commandDetail || null), [commandDetail, registryEntry]);
+  const governanceSurfaceChains = useMemo(() => buildSurfaceChains(commandDetail || null), [commandDetail]);
+  const governanceSurfaceEventRows = useMemo(() => buildSurfaceEventTableRows(governanceSurfaceChains), [governanceSurfaceChains]);
   const selectedGaps = useMemo(() => summaryListOf(selectedSummary, "gaps"), [selectedSummary]);
   const qualityCards = useMemo(() => ([
     { label: en ? "Coverage" : "커버리지", value: String(numberOf(selectedSummary, "coverageScore")), tone: "text-[var(--kr-gov-blue)] bg-[#f8fbff]" },
@@ -298,6 +594,26 @@ export function PlatformStudioMigrationPage() {
       setSelectedMenuCode(stringOf(summaryRows[0], "menuCode"));
     }
   }, [selectedMenuCode, summaryRows]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadCatalog() {
+      try {
+        const payload = await fetchScreenCommandPage("");
+        if (!cancelled) {
+          setScreenCatalog(payload);
+        }
+      } catch {
+        if (!cancelled) {
+          setScreenCatalog(null);
+        }
+      }
+    }
+    void loadCatalog();
+    return () => {
+      cancelled = true;
+    };
+  }, [menuType]);
 
   useEffect(() => {
     let cancelled = false;
@@ -851,6 +1167,188 @@ export function PlatformStudioMigrationPage() {
                       <td>{row.type}</td>
                       <td><strong>{row.id}</strong><div className="text-[var(--kr-gov-text-secondary)]">{row.label}</div></td>
                       <td>{row.extra || "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section className="gov-card">
+            <div className="flex items-center justify-between gap-4 flex-wrap mb-4">
+              <div>
+                <h3 className="text-lg font-bold">{en ? "Collected Metadata Overview" : "수집 메타데이터 개요"}</h3>
+                <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+                  {pageId
+                    ? (en ? "Same governance resolution and auto-collect basis as environment management." : "환경 관리와 동일한 거버넌스 해석 및 자동 수집 기준으로 표시합니다.")
+                    : (en ? "This menu is not linked to a collectable governance page yet." : "이 메뉴는 아직 수집 가능한 거버넌스 페이지와 연결되지 않았습니다.")}
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+              <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[#f8fbff] px-4 py-3">
+                <p className="font-bold text-[var(--kr-gov-blue)]">Page ID</p>
+                <p className="mt-1 font-mono text-sm">{governanceOverview.pageId || "-"}</p>
+              </div>
+              <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[#f7fbf8] px-4 py-3">
+                <p className="font-bold text-[#196c2e]">{en ? "Source" : "소스"}</p>
+                <p className="mt-1 font-mono text-sm">{governanceOverview.source || "-"}</p>
+              </div>
+              <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[#fcfbf7] px-4 py-3">
+                <p className="font-bold text-[#8a5a00]">{en ? "Menu URL" : "메뉴 URL"}</p>
+                <p className="mt-1 break-all font-mono text-sm">{stringOf(selectedSummary, "menuUrl") || "-"}</p>
+              </div>
+              <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[#fff1f2] px-4 py-3">
+                <p className="font-bold text-[#be123c]">Summary</p>
+                <p className="mt-1 text-sm">{governanceOverview.summary || "-"}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-4">
+              <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] p-4">
+                <h4 className="font-bold mb-2">{en ? "Collected Entities" : "수집 항목"}</h4>
+                <div className="space-y-3 text-sm">
+                  <div><strong>{en ? "Components" : "컴포넌트"}</strong>{renderMetaList(governanceOverview.componentIds, en ? "No components collected yet." : "수집된 컴포넌트가 없습니다.")}</div>
+                  <div><strong>{en ? "Events" : "이벤트"}</strong>{renderMetaList(governanceOverview.eventIds, en ? "No events collected yet." : "수집된 이벤트가 없습니다.")}</div>
+                  <div><strong>{en ? "Functions" : "함수"}</strong>{renderMetaList(governanceOverview.functionIds, en ? "No functions collected yet." : "수집된 함수가 없습니다.")}</div>
+                  <div><strong>API</strong>{renderMetaList(governanceOverview.apiIds, en ? "No APIs collected yet." : "수집된 API가 없습니다.")}</div>
+                  <div><strong>Controller</strong>{renderMetaList(governanceOverview.controllerActions, en ? "No controller actions collected yet." : "수집된 Controller 액션이 없습니다.")}</div>
+                  <div><strong>Service</strong>{renderMetaList(governanceOverview.serviceMethods, en ? "No service methods collected yet." : "수집된 Service 메서드가 없습니다.")}</div>
+                  <div><strong>Mapper</strong>{renderMetaList(governanceOverview.mapperQueries, en ? "No mapper queries collected yet." : "수집된 Mapper 쿼리가 없습니다.")}</div>
+                </div>
+              </div>
+              <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] p-4">
+                <h4 className="font-bold mb-2">{en ? "Schema / Permission / Codes" : "스키마 / 권한 / 코드"}</h4>
+                <div className="space-y-3 text-sm">
+                  <div><strong>{en ? "Parameters" : "파라미터"}</strong>{renderMetaList(governanceOverview.parameterSpecs, en ? "No parameters collected yet." : "수집된 파라미터가 없습니다.")}</div>
+                  <div><strong>{en ? "Results" : "결과값"}</strong>{renderMetaList(governanceOverview.resultSpecs, en ? "No results collected yet." : "수집된 출력값이 없습니다.")}</div>
+                  <div><strong>{en ? "Schemas" : "스키마"}</strong>{renderMetaList(governanceOverview.schemaIds, en ? "No schemas collected yet." : "수집된 스키마가 없습니다.")}</div>
+                  <div><strong>{en ? "Tables" : "테이블"}</strong>{renderMetaList(governanceOverview.tableNames, en ? "No tables collected yet." : "수집된 테이블이 없습니다.")}</div>
+                  <div><strong>{en ? "Columns" : "컬럼"}</strong>{renderMetaList(governanceOverview.columnNames, en ? "No columns collected yet." : "수집된 컬럼이 없습니다.")}</div>
+                  <div><strong>{en ? "Feature Codes" : "기능 코드"}</strong>{renderMetaList(governanceOverview.featureCodes, en ? "No feature codes collected yet." : "수집된 기능 코드가 없습니다.")}</div>
+                  <div><strong>{en ? "Common Code Groups" : "공통코드 그룹"}</strong>{renderMetaList(governanceOverview.commonCodeGroups, en ? "No common code groups collected yet." : "수집된 공통코드가 없습니다.")}</div>
+                  <div><strong>Tags</strong>{renderMetaList(governanceOverview.tags, en ? "No tags collected yet." : "수집된 태그가 없습니다.")}</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="gov-card">
+            <div className="flex items-center justify-between gap-4 flex-wrap mb-4">
+              <div>
+                <h3 className="text-lg font-bold">{en ? "Surface-Centric Chain" : "화면 요소 기준 상세 체인"}</h3>
+                <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+                  {en ? "Surface -> child elements -> event -> function -> API -> backend chain" : "화면 요소 -> 작은 요소 -> 이벤트 -> 함수 -> API -> 백엔드 체인"}
+                </p>
+              </div>
+            </div>
+            <div className="space-y-4">
+              {governanceSurfaceChains.length === 0 ? (
+                <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "No surface chain collected yet." : "아직 수집된 화면 요소 체인이 없습니다."}</p>
+              ) : governanceSurfaceChains.map((surface) => (
+                <article key={surface.surfaceId} className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h4 className="font-bold">{surface.label}</h4>
+                      <p className="mt-1 font-mono text-xs text-[var(--kr-gov-text-secondary)]">{surface.surfaceId}</p>
+                      <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">{surface.selector || "-"}</p>
+                    </div>
+                    <div className="text-sm text-[var(--kr-gov-text-secondary)]">
+                      <div><strong>Component</strong>: {surface.componentId || "-"}</div>
+                      <div><strong>Zone</strong>: {surface.layoutZone || "-"}</div>
+                    </div>
+                  </div>
+                  {surface.childElements.length > 0 ? (
+                    <div className="mt-3">
+                      <p className="mb-2 text-sm font-semibold">{en ? "Child Elements" : "작은 요소"}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {surface.childElements.map((child) => (
+                          <span key={`${child.instanceKey}-${child.componentId}`} className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[12px]">
+                            {child.componentName || child.instanceKey || child.componentId}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  <div className="mt-4 space-y-3">
+                    {surface.events.length === 0 ? (
+                      <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "No linked event." : "연결된 이벤트가 없습니다."}</p>
+                    ) : surface.events.map((event) => (
+                      <div key={event.eventId} className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 p-3">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <p className="font-semibold">{event.label}</p>
+                            <p className="font-mono text-xs text-[var(--kr-gov-text-secondary)]">{event.eventId}</p>
+                          </div>
+                          <div className="text-sm text-[var(--kr-gov-text-secondary)]">
+                            <div><strong>Type</strong>: {event.eventType || "-"}</div>
+                            <div><strong>Function</strong>: {event.frontendFunction || "-"}</div>
+                          </div>
+                        </div>
+                        <div className="mt-3 grid grid-cols-1 xl:grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <strong>{en ? "Parameters" : "파라미터"}</strong>
+                            {renderMetaList(event.functionInputs.map((field) => `${field.fieldId}:${field.type}`), en ? "No parameters" : "파라미터 없음")}
+                          </div>
+                          <div>
+                            <strong>{en ? "Results" : "결과값"}</strong>
+                            {renderMetaList(event.functionOutputs.map((field) => `${field.fieldId}:${field.type}`), en ? "No results" : "결과값 없음")}
+                          </div>
+                        </div>
+                        <div className="mt-3 space-y-2">
+                          {event.apis.length === 0 ? (
+                            <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "No linked API." : "연결된 API가 없습니다."}</p>
+                          ) : event.apis.map((api) => (
+                            <div key={api.apiId} className="rounded-[var(--kr-gov-radius)] border border-white bg-white p-3 text-sm">
+                              <p className="font-semibold">{api.apiId} <span className="font-normal text-[var(--kr-gov-text-secondary)]">({api.method} {api.endpoint})</span></p>
+                              <div className="mt-2 grid grid-cols-1 xl:grid-cols-3 gap-3">
+                                <div><strong>Controller</strong>{renderMetaList(api.controllerActions, en ? "No controller" : "Controller 없음")}</div>
+                                <div><strong>Service</strong>{renderMetaList(api.serviceMethods, en ? "No service" : "Service 없음")}</div>
+                                <div><strong>Mapper</strong>{renderMetaList(api.mapperQueries, en ? "No mapper" : "Mapper 없음")}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="gov-card">
+            <div className="flex items-center justify-between gap-4 flex-wrap mb-4">
+              <div>
+                <h3 className="text-lg font-bold">{en ? "Surface-Event Mapping Table" : "화면 요소-이벤트 매핑 표"}</h3>
+              </div>
+            </div>
+            <div className="table-wrap max-w-full overflow-x-auto">
+              <table className="data-table min-w-[1200px]">
+                <thead>
+                  <tr>
+                    <th>{en ? "Surface" : "화면 요소"}</th>
+                    <th>{en ? "Child Elements" : "작은 요소"}</th>
+                    <th>{en ? "Event" : "이벤트"}</th>
+                    <th>{en ? "Function" : "함수"}</th>
+                    <th>{en ? "Parameters / Results" : "파라미터 / 결과값"}</th>
+                    <th>API</th>
+                    <th>Controller / Service / Mapper</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {governanceSurfaceEventRows.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="text-center text-[var(--kr-gov-text-secondary)]">{en ? "No mapping rows collected yet." : "아직 수집된 매핑 행이 없습니다."}</td>
+                    </tr>
+                  ) : governanceSurfaceEventRows.map((row, index) => (
+                    <tr key={`${row.surfaceId}-${row.eventId}-${index}`}>
+                      <td><strong>{row.surfaceLabel}</strong><br /><span className="text-[var(--kr-gov-text-secondary)]">{row.surfaceId}</span></td>
+                      <td>{row.childElements || "-"}</td>
+                      <td><strong>{row.eventLabel}</strong><br /><span className="text-[var(--kr-gov-text-secondary)]">{row.eventId} / {row.eventType}</span></td>
+                      <td>{row.frontendFunction || "-"}</td>
+                      <td><strong>P</strong>: {row.parameters}<br /><strong>R</strong>: {row.results}</td>
+                      <td>{row.apiLabels || "-"}</td>
+                      <td><strong>C</strong>: {row.controllerActions}<br /><strong>S</strong>: {row.serviceMethods}<br /><strong>M</strong>: {row.mapperQueries}</td>
                     </tr>
                   ))}
                 </tbody>
