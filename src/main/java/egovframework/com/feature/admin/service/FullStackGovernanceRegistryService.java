@@ -161,23 +161,24 @@ public class FullStackGovernanceRegistryService {
         List<Map<String, Object>> schemas = safeMapList(page.get("schemas"));
         List<Map<String, Object>> commonCodeGroups = safeMapList(page.get("commonCodeGroups"));
         Map<String, Object> menuPermission = safeMap(page.get("menuPermission"));
+        Map<String, Object> manifestRegistry = safeMap(page.get("manifestRegistry"));
 
         List<String> frontendSources = mergeLists(existing.get("frontendSources"), List.of(stringValue(page.get("source"))));
-        List<String> componentIds = mergeLists(existing.get("componentIds"), collectComponentIds(surfaces));
+        List<String> componentIds = mergeLists(existing.get("componentIds"), collectComponentIds(surfaces, manifestRegistry));
         List<String> eventIds = mergeLists(existing.get("eventIds"), collectSimpleValues(events, "eventId"));
         List<String> functionIds = mergeLists(existing.get("functionIds"), collectSimpleValues(events, "frontendFunction"));
         List<String> parameterSpecs = mergeFieldSpecs(existing.get("parameterSpecs"), collectFieldSpecs(events, apis, true));
         List<String> resultSpecs = mergeFieldSpecs(existing.get("resultSpecs"), collectFieldSpecs(events, apis, false));
         List<String> apiIds = mergeLists(existing.get("apiIds"), collectSimpleValues(apis, "apiId"));
-        List<String> controllerActions = mergeLists(existing.get("controllerActions"), collectSimpleValues(apis, "controllerAction"));
-        List<String> serviceMethods = mergeLists(existing.get("serviceMethods"), collectSimpleValues(apis, "serviceMethod"));
-        List<String> mapperQueries = mergeLists(existing.get("mapperQueries"), collectSimpleValues(apis, "mapperQuery"));
+        List<String> controllerActions = mergeLists(existing.get("controllerActions"), collectChainValues(apis, "controllerActions", "controllerAction"));
+        List<String> serviceMethods = mergeLists(existing.get("serviceMethods"), collectChainValues(apis, "serviceMethods", "serviceMethod"));
+        List<String> mapperQueries = mergeLists(existing.get("mapperQueries"), collectChainValues(apis, "mapperQueries", "mapperQuery"));
         List<String> schemaIds = mergeLists(existing.get("schemaIds"), collectSimpleValues(schemas, "schemaId"));
-        List<String> tableNames = mergeUpper(existing.get("tableNames"), collectTables(apis, schemas));
+        List<String> tableNames = mergeUpper(existing.get("tableNames"), collectTables(apis, schemas, menuPermission));
         List<String> columnNames = mergeUpper(existing.get("columnNames"), collectColumns(schemas));
-        List<String> featureCodes = mergeUpper(existing.get("featureCodes"), normalizeObjectList(menuPermission.get("featureCodes")));
+        List<String> featureCodes = mergeUpper(existing.get("featureCodes"), collectFeatureCodes(menuPermission));
         List<String> codeGroups = mergeUpper(existing.get("commonCodeGroups"), collectSimpleValues(commonCodeGroups, "codeGroupId"));
-        List<String> tags = mergeLists(existing.get("tags"), List.of("AUTO_COLLECTED", "SCREEN_COMMAND_SYNC"));
+        List<String> tags = mergeLists(existing.get("tags"), buildAutoTags(page, manifestRegistry, menuPermission, events, apis, schemas, componentIds, controllerActions, serviceMethods, mapperQueries));
 
         entry.put("menuCode", menuCode);
         entry.put("pageId", pageId);
@@ -210,13 +211,30 @@ public class FullStackGovernanceRegistryService {
         return normalizeEntry(entry);
     }
 
-    private List<String> collectComponentIds(List<Map<String, Object>> surfaces) {
+    private List<String> collectComponentIds(List<Map<String, Object>> surfaces, Map<String, Object> manifestRegistry) {
         LinkedHashSet<String> unique = new LinkedHashSet<>();
         for (Map<String, Object> surface : surfaces) {
             unique.add(normalize(stringValue(surface.get("componentId"))));
             unique.add(normalize(stringValue(surface.get("surfaceId"))));
         }
+        for (Map<String, Object> component : safeMapList(manifestRegistry.get("components"))) {
+            unique.add(normalize(stringValue(component.get("componentId"))));
+            unique.add(normalize(stringValue(component.get("componentName"))));
+            unique.add(normalize(stringValue(component.get("instanceKey"))));
+        }
         unique.remove("");
+        return new ArrayList<>(unique);
+    }
+
+    private List<String> collectChainValues(List<Map<String, Object>> rows, String arrayKey, String singleKey) {
+        LinkedHashSet<String> unique = new LinkedHashSet<>();
+        for (Map<String, Object> row : rows) {
+            unique.addAll(normalizeObjectList(row.get(arrayKey)));
+            String single = normalize(stringValue(row.get(singleKey)));
+            if (!single.isEmpty()) {
+                unique.add(single);
+            }
+        }
         return new ArrayList<>(unique);
     }
 
@@ -266,7 +284,7 @@ public class FullStackGovernanceRegistryService {
         return fieldId + ":" + type + ":" + firstNonBlank(source, defaultSource);
     }
 
-    private List<String> collectTables(List<Map<String, Object>> apis, List<Map<String, Object>> schemas) {
+    private List<String> collectTables(List<Map<String, Object>> apis, List<Map<String, Object>> schemas, Map<String, Object> menuPermission) {
         LinkedHashSet<String> tables = new LinkedHashSet<>();
         for (Map<String, Object> api : apis) {
             tables.addAll(normalizeUpperTokenList(normalizeObjectList(api.get("relatedTables")), DB_NAME_PATTERN));
@@ -277,7 +295,72 @@ public class FullStackGovernanceRegistryService {
                 tables.add(tableName);
             }
         }
+        tables.addAll(normalizeUpperTokenList(normalizeObjectList(menuPermission.get("relationTables")), DB_NAME_PATTERN));
         return new ArrayList<>(tables);
+    }
+
+    private List<String> collectFeatureCodes(Map<String, Object> menuPermission) {
+        LinkedHashSet<String> featureCodes = new LinkedHashSet<>(normalizeUpperTokens(normalizeObjectList(menuPermission.get("featureCodes"))));
+        String requiredViewFeatureCode = normalize(stringValue(menuPermission.get("requiredViewFeatureCode"))).toUpperCase(Locale.ROOT);
+        if (UPPER_TOKEN_PATTERN.matcher(requiredViewFeatureCode).matches()) {
+            featureCodes.add(requiredViewFeatureCode);
+        }
+        for (Map<String, Object> featureRow : safeMapList(menuPermission.get("featureRows"))) {
+            String featureCode = normalize(stringValue(featureRow.get("featureCode"))).toUpperCase(Locale.ROOT);
+            if (UPPER_TOKEN_PATTERN.matcher(featureCode).matches()) {
+                featureCodes.add(featureCode);
+            }
+        }
+        return featureCodes.isEmpty() ? Collections.emptyList() : new ArrayList<>(featureCodes);
+    }
+
+    private List<String> buildAutoTags(Map<String, Object> page,
+                                       Map<String, Object> manifestRegistry,
+                                       Map<String, Object> menuPermission,
+                                       List<Map<String, Object>> events,
+                                       List<Map<String, Object>> apis,
+                                       List<Map<String, Object>> schemas,
+                                       List<String> componentIds,
+                                       List<String> controllerActions,
+                                       List<String> serviceMethods,
+                                       List<String> mapperQueries) {
+        LinkedHashSet<String> tags = new LinkedHashSet<>();
+        tags.add("AUTO_COLLECTED");
+        tags.add("SCREEN_COMMAND_SYNC");
+        if (!normalize(stringValue(page.get("pageId"))).isEmpty()) {
+            tags.add("HAS_SCREEN_COMMAND");
+        }
+        if (!normalize(stringValue(manifestRegistry.get("pageId"))).isEmpty()) {
+            tags.add("HAS_MANIFEST");
+        }
+        if (!componentIds.isEmpty()) {
+            tags.add("HAS_COMPONENTS");
+        }
+        if (!events.isEmpty()) {
+            tags.add("HAS_EVENTS");
+        }
+        if (!apis.isEmpty()) {
+            tags.add("HAS_APIS");
+        }
+        if (!controllerActions.isEmpty()) {
+            tags.add("HAS_CONTROLLER_CHAIN");
+        }
+        if (!serviceMethods.isEmpty()) {
+            tags.add("HAS_SERVICE_CHAIN");
+        }
+        if (!mapperQueries.isEmpty()) {
+            tags.add("HAS_MAPPER_CHAIN");
+        }
+        if (!schemas.isEmpty()) {
+            tags.add("HAS_SCHEMAS");
+        }
+        if (!normalize(stringValue(menuPermission.get("requiredViewFeatureCode"))).isEmpty()) {
+            tags.add("HAS_VIEW_FEATURE");
+        }
+        if (!normalizeObjectList(menuPermission.get("relationTables")).isEmpty()) {
+            tags.add("HAS_RELATION_TABLES");
+        }
+        return new ArrayList<>(tags);
     }
 
     private List<String> collectColumns(List<Map<String, Object>> schemas) {

@@ -83,6 +83,14 @@ function unique(values: string[]) {
   return Array.from(new Set(values.map((item) => item.trim()).filter(Boolean)));
 }
 
+function summaryListOf(row: Record<string, unknown> | null, key: string) {
+  const value = row?.[key];
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.map((item) => String(item || "").trim()).filter(Boolean);
+}
+
 function parseFocus(): FocusTab {
   const params = new URLSearchParams(window.location.search);
   const requested = (params.get("focus") || "").trim() as FocusTab;
@@ -220,6 +228,15 @@ export function PlatformStudioMigrationPage() {
   const commandState = useAsyncValue<ScreenCommandPagePayload>(() => (pageId ? fetchScreenCommandPage(pageId) : Promise.resolve({ selectedPageId: "", pages: [], page: {} as ScreenCommandPagePayload["page"] })), [pageId]);
   const commandPage = pageId ? commandState.value : null;
   const commandDetail = commandPage?.page;
+  const selectedGaps = useMemo(() => summaryListOf(selectedSummary, "gaps"), [selectedSummary]);
+  const qualityCards = useMemo(() => ([
+    { label: en ? "Coverage" : "커버리지", value: String(numberOf(selectedSummary, "coverageScore")), tone: "text-[var(--kr-gov-blue)] bg-[#f8fbff]" },
+    { label: en ? "Components" : "컴포넌트", value: `${numberOf(selectedSummary, "componentCount")}`, tone: "text-[#0f4c81] bg-[#f5faff]" },
+    { label: en ? "Functions" : "함수", value: `${numberOf(selectedSummary, "functionCount")}`, tone: "text-[#196c2e] bg-[#f7fbf8]" },
+    { label: en ? "Controller / Service / Mapper" : "컨트롤러 / 서비스 / 매퍼", value: `${numberOf(selectedSummary, "controllerCount")} / ${numberOf(selectedSummary, "serviceCount")} / ${numberOf(selectedSummary, "mapperCount")}`, tone: "text-[#8a5a00] bg-[#fcfbf7]" },
+    { label: en ? "Parameters / Results" : "파라미터 / 결과값", value: `${numberOf(selectedSummary, "parameterCount")} / ${numberOf(selectedSummary, "resultCount")}`, tone: "text-[#6b21a8] bg-[#faf5ff]" },
+    { label: en ? "Schema / Table / Column" : "스키마 / 테이블 / 컬럼", value: `${numberOf(selectedSummary, "schemaCount")} / ${numberOf(selectedSummary, "tableCount")} / ${numberOf(selectedSummary, "columnCount")}`, tone: "text-[#be123c] bg-[#fff1f2]" }
+  ]), [en, selectedSummary]);
 
   const derivedSelection = useMemo(() => {
     const events = (commandDetail?.events || []).filter((item) => targetSelection.eventIds.includes(item.eventId));
@@ -475,6 +492,7 @@ export function PlatformStudioMigrationPage() {
     }
     setCollectingRegistry(true);
     setActionError("");
+    setActionMessage("");
     try {
       const result = await autoCollectFullStackGovernanceRegistry({
         menuCode: selectedMenuCode,
@@ -485,12 +503,16 @@ export function PlatformStudioMigrationPage() {
       });
       setRegistryEntry(result.entry);
       setRegistryEditor(toEditor(result.entry));
-      await pageState.reload();
       setActionMessage(result.message || (en ? "Resources collected and saved." : "자원을 자동 수집하고 저장했습니다."));
     } catch (error) {
       setActionError(error instanceof Error ? error.message : (en ? "Failed to auto collect resources." : "자원 자동 수집에 실패했습니다."));
     } finally {
       setCollectingRegistry(false);
+    }
+    try {
+      await pageState.reload();
+    } catch (error) {
+      setActionError((error instanceof Error ? error.message : (en ? "Failed to refresh summary after collection." : "수집 후 요약 새로고침에 실패했습니다.")));
     }
   }
 
@@ -607,6 +629,66 @@ export function PlatformStudioMigrationPage() {
                 <button className="gov-btn gov-btn-primary w-full" type="submit">{en ? "Create Page Menu" : "페이지 메뉴 생성"}</button>
               </div>
             </form>
+          </section>
+
+          <section className="gov-card">
+            <div className="flex items-center justify-between gap-4 flex-wrap mb-4">
+              <div>
+                <h3 className="text-lg font-bold">{en ? "Coverage / Governance Quality" : "커버리지 / 거버넌스 품질"}</h3>
+                <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+                  {en
+                    ? "Check how much of the selected menu is actually collected before editing by focus."
+                    : "포커스별 편집 전에 선택 메뉴가 실제로 얼마나 수집됐는지 먼저 확인합니다."}
+                </p>
+              </div>
+              <div className="text-sm text-[var(--kr-gov-text-secondary)]">
+                <div><strong>Page ID</strong>: {stringOf(selectedSummary, "pageId") || "-"}</div>
+                <div><strong>{en ? "Registry Source" : "레지스트리 소스"}</strong>: {registryEntry?.source || "-"}</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 mb-4">
+              {qualityCards.map((card) => (
+                <div key={card.label} className={`rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] px-4 py-3 ${card.tone}`}>
+                  <p className="font-bold">{card.label}</p>
+                  <p className="mt-1 text-base font-semibold">{card.value}</p>
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[#fcfdff] p-4">
+                <h4 className="font-bold mb-2">{en ? "Manifest / Permission" : "매니페스트 / 권한"}</h4>
+                <dl className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div><dt className="font-bold">Manifest</dt><dd>{stringOf(selectedSummary, "hasManifestRegistry") === "true" ? "OK" : "-"}</dd></div>
+                  <div><dt className="font-bold">Screen Command</dt><dd>{stringOf(selectedSummary, "hasScreenCommand") === "true" ? "OK" : "-"}</dd></div>
+                  <div><dt className="font-bold">Governance Registry</dt><dd>{stringOf(selectedSummary, "hasGovernanceRegistry") === "true" ? "OK" : "-"}</dd></div>
+                  <div><dt className="font-bold">VIEW Feature</dt><dd>{stringOf(selectedSummary, "requiredViewFeatureCode") || commandDetail?.menuPermission?.requiredViewFeatureCode || "-"}</dd></div>
+                  <div><dt className="font-bold">{en ? "Relation Tables" : "권한 해석 테이블"}</dt><dd>{numberOf(selectedSummary, "relationTableCount") || (commandDetail?.menuPermission?.relationTables || []).length || 0}</dd></div>
+                  <div><dt className="font-bold">{en ? "Resolver Notes" : "해석 노트"}</dt><dd>{numberOf(selectedSummary, "resolverNoteCount") || (commandDetail?.menuPermission?.resolverNotes || []).length || 0}</dd></div>
+                </dl>
+                <p className="mt-3 text-sm text-[var(--kr-gov-text-secondary)] break-words">
+                  {(commandDetail?.menuPermission?.resolverNotes || []).join(" ") || "-"}
+                </p>
+                <p className="mt-2 text-sm break-words">
+                  <strong>{en ? "Relation Tables" : "권한 해석 테이블"}:</strong> {(commandDetail?.menuPermission?.relationTables || []).join(", ") || "-"}
+                </p>
+              </div>
+              <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[#fffdf7] p-4">
+                <h4 className="font-bold mb-2">{en ? "Gaps / Tags" : "누락 항목 / 태그"}</h4>
+                <div className="flex flex-wrap gap-2">
+                  {selectedGaps.length === 0 ? (
+                    <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">{en ? "No major gaps" : "주요 누락 없음"}</span>
+                  ) : selectedGaps.map((gap) => (
+                    <span key={gap} className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">{gap}</span>
+                  ))}
+                </div>
+                <div className="mt-4">
+                  <p className="text-sm font-semibold">{en ? "Registry Tags" : "레지스트리 태그"}</p>
+                  <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)] break-words">
+                    {(registryEntry?.tags || []).join(", ") || "-"}
+                  </p>
+                </div>
+              </div>
+            </div>
           </section>
 
           <section className="gov-card">

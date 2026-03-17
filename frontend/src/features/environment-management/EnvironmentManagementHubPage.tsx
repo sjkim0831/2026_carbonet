@@ -41,6 +41,7 @@ type GovernanceOverview = {
   summary: string;
   pageId: string;
   source: string;
+  tags: string[];
   componentIds: string[];
   eventIds: string[];
   functionIds: string[];
@@ -228,6 +229,7 @@ function buildGovernanceOverview(
     summary: entry?.summary || page?.summary || "",
     pageId: entry?.pageId || page?.pageId || "",
     source: entry?.source || page?.source || "",
+    tags: entry?.tags || [],
     componentIds: entry?.componentIds || Array.from(new Set([
       ...((page?.surfaces || []).map((item) => item.componentId).filter(Boolean)),
       ...((page?.manifestRegistry?.components || []).map((item) => String(item.componentId || "")).filter(Boolean))
@@ -667,6 +669,12 @@ export function EnvironmentManagementHubPage() {
     } finally {
       setCollecting(false);
     }
+    try {
+      await menuPageState.reload();
+      await featurePageState.reload();
+    } catch (error) {
+      setGovernanceError(error instanceof Error ? error.message : (en ? "Failed to refresh metadata summary after collection." : "수집 후 메타데이터 요약 새로고침에 실패했습니다."));
+    }
   }
 
   return (
@@ -851,8 +859,8 @@ export function EnvironmentManagementHubPage() {
           </section>
         </div>
 
-        <div className="space-y-6">
-          <section className="gov-card">
+        <div className="min-w-0 space-y-6">
+          <section className="gov-card min-w-0">
             <div className="flex items-center gap-2 border-b pb-4 mb-4">
               <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">tune</span>
               <h3 className="text-lg font-bold">{en ? "Selected Menu" : "선택 메뉴"}</h3>
@@ -1030,7 +1038,7 @@ export function EnvironmentManagementHubPage() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-5">
+              <div className="min-w-0 space-y-5">
                 <div className="grid gap-4 md:grid-cols-3">
                   <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
                     <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">Page ID</p>
@@ -1050,6 +1058,71 @@ export function EnvironmentManagementHubPage() {
                   <p className="gov-label mb-2">{en ? "Summary" : "요약"}</p>
                   <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-[var(--kr-gov-text-primary)]">
                     {governanceOverview.summary || (en ? "No summary collected yet." : "아직 수집된 요약이 없습니다.")}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                  <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 p-4">
+                    <h4 className="font-bold mb-2">{en ? "Screen / Manifest" : "화면 / 매니페스트"}</h4>
+                    <p className="text-sm text-[var(--kr-gov-text-secondary)]">{governanceOverview.summary || "-"}</p>
+                    <dl className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                      <div><dt className="font-bold">Menu Code</dt><dd>{selectedMenu.code || "-"}</dd></div>
+                      <div><dt className="font-bold">Menu URL</dt><dd>{selectedMenu.menuUrl || "-"}</dd></div>
+                      <div><dt className="font-bold">Page ID</dt><dd>{governancePage?.page?.manifestRegistry?.pageId || governanceOverview.pageId || "-"}</dd></div>
+                      <div><dt className="font-bold">Layout</dt><dd>{String(governancePage?.page?.manifestRegistry?.layoutVersion || "-")}</dd></div>
+                      <div><dt className="font-bold">Design Token</dt><dd>{String(governancePage?.page?.manifestRegistry?.designTokenVersion || "-")}</dd></div>
+                      <div><dt className="font-bold">VIEW Feature</dt><dd>{String(governancePage?.page?.menuPermission?.requiredViewFeatureCode || "-")}</dd></div>
+                    </dl>
+                  </div>
+                  <div className="rounded-[var(--kr-gov-radius)] border-2 border-[rgba(28,100,242,0.18)] bg-[linear-gradient(180deg,rgba(239,246,255,0.95),rgba(248,250,252,0.98))] p-4 shadow-[0_12px_32px_rgba(28,100,242,0.08)]">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">policy</span>
+                      <h4 className="font-black text-[var(--kr-gov-text-primary)]">{en ? "Common Code / Permission" : "공통코드 / 권한"}</h4>
+                    </div>
+                    <p className="mt-3 text-sm text-[var(--kr-gov-text-secondary)]">
+                      {(governancePage?.page?.commonCodeGroups || []).map((item) => `${item.codeGroupId}[${item.values.join(", ")}]`).join(" / ") || "-"}
+                    </p>
+                    <div className="mt-4 rounded-[var(--kr-gov-radius)] border border-white/70 bg-white/80 px-4 py-3">
+                      <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-blue)]">Resolver Notes</p>
+                      <p className="mt-2 text-sm leading-6 text-[var(--kr-gov-text-primary)]">
+                        {(governancePage?.page?.menuPermission?.resolverNotes || []).join(" ") || "-"}
+                      </p>
+                    </div>
+                    <div className="mt-3 rounded-[var(--kr-gov-radius)] border border-white/70 bg-white/80 px-4 py-3">
+                      <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-blue)]">{en ? "Relation Tables" : "권한 해석 테이블"}</p>
+                      <div className="mt-2">
+                        {renderMetaList(governancePage?.page?.menuPermission?.relationTables || [], en ? "No relation tables collected yet." : "수집된 권한 해석 테이블이 없습니다.")}
+                      </div>
+                    </div>
+                    <div className="mt-3 rounded-[var(--kr-gov-radius)] border border-white/70 bg-white/80 px-4 py-3">
+                      <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-blue)]">{en ? "Tags" : "태그"}</p>
+                      <div className="mt-2">
+                      {renderMetaList(governanceOverview.tags, en ? "No tags collected yet." : "수집된 태그가 없습니다.")}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 text-sm">
+                  <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-[#f8fbff] px-4 py-3">
+                    <p className="font-bold text-[var(--kr-gov-blue)]">{en ? "Tables" : "테이블"}</p>
+                    <p className="mt-1">{governanceOverview.tableNames.length}</p>
+                    <p className="text-[var(--kr-gov-text-secondary)] break-all">{governanceOverview.tableNames.join(", ") || "-"}</p>
+                  </div>
+                  <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-[#fcfbf7] px-4 py-3">
+                    <p className="font-bold text-[#8a5a00]">{en ? "Columns" : "컬럼"}</p>
+                    <p className="mt-1">{governanceOverview.columnNames.length}</p>
+                    <p className="text-[var(--kr-gov-text-secondary)] break-all">{governanceOverview.columnNames.join(", ") || "-"}</p>
+                  </div>
+                  <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-[#f7fbf8] px-4 py-3">
+                    <p className="font-bold text-[#196c2e]">{en ? "Events / APIs" : "이벤트 / API"}</p>
+                    <p className="mt-1">{(governancePage?.page?.events || []).length} / {(governancePage?.page?.apis || []).length}</p>
+                    <p className="text-[var(--kr-gov-text-secondary)]">{en ? "Function and backend linkage count" : "함수 및 백엔드 연결 수"}</p>
+                  </div>
+                  <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-[#f9f7fb] px-4 py-3">
+                    <p className="font-bold text-[#6b3ea1]">{en ? "Permission Rows" : "권한 행"}</p>
+                    <p className="mt-1">{(governancePage?.page?.menuPermission?.featureRows || []).length}</p>
+                    <p className="text-[var(--kr-gov-text-secondary)]">{(governancePage?.page?.menuPermission?.featureCodes || []).join(", ") || "-"}</p>
                   </div>
                 </div>
 
@@ -1330,8 +1403,8 @@ export function EnvironmentManagementHubPage() {
                         : "화면 요소, 작은 요소, 이벤트, 함수, 백엔드 체인을 한 표에서 확인합니다."}
                     </p>
                   </div>
-                  <div className="table-wrap">
-                    <table className="data-table">
+                  <div className="table-wrap max-w-full">
+                    <table className="data-table min-w-[1200px]">
                       <thead>
                         <tr>
                           <th>{en ? "Surface" : "화면 요소"}</th>

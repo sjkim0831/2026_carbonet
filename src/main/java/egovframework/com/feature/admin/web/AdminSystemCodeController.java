@@ -1190,11 +1190,21 @@ public class AdminSystemCodeController {
             }
 
             int eventCount = 0;
+            int componentCount = 0;
+            int functionCount = 0;
+            int parameterCount = 0;
+            int resultCount = 0;
             int apiCount = 0;
+            int controllerCount = 0;
+            int serviceCount = 0;
+            int mapperCount = 0;
             int schemaCount = 0;
             int tableCount = 0;
             int columnCount = 0;
             int commonCodeGroupCount = 0;
+            int relationTableCount = 0;
+            int resolverNoteCount = 0;
+            int tagCount = 0;
             boolean hasManifestRegistry = false;
             boolean hasScreenCommand = false;
             boolean hasGovernanceRegistry = governanceRegistry != null && !"DEFAULT".equalsIgnoreCase(safeString(asString(governanceRegistry.get("source"))));
@@ -1209,11 +1219,20 @@ public class AdminSystemCodeController {
                     hasScreenCommand = !page.isEmpty();
                     Map<String, Object> manifestRegistry = safeMap(page.get("manifestRegistry"));
                     hasManifestRegistry = !safeString(asString(manifestRegistry.get("pageId"))).isEmpty();
+                    componentCount = safeMapList(page.get("surfaces")).size() + safeMapList(manifestRegistry.get("components")).size();
                     eventCount = safeMapList(page.get("events")).size();
+                    functionCount = countDistinctValues(safeMapList(page.get("events")), "frontendFunction");
                     apiCount = safeMapList(page.get("apis")).size();
                     List<Map<String, Object>> schemas = safeMapList(page.get("schemas"));
                     schemaCount = schemas.size();
                     commonCodeGroupCount = safeMapList(page.get("commonCodeGroups")).size();
+                    parameterCount = countFieldSpecRows(safeMapList(page.get("events")), safeMapList(page.get("apis")), true);
+                    resultCount = countFieldSpecRows(safeMapList(page.get("events")), safeMapList(page.get("apis")), false);
+                    controllerCount = countChainValues(safeMapList(page.get("apis")), "controllerActions", "controllerAction");
+                    serviceCount = countChainValues(safeMapList(page.get("apis")), "serviceMethods", "serviceMethod");
+                    mapperCount = countChainValues(safeMapList(page.get("apis")), "mapperQueries", "mapperQuery");
+                    relationTableCount = safeStringList(safeMap(page.get("menuPermission")).get("relationTables")).size();
+                    resolverNoteCount = safeStringList(safeMap(page.get("menuPermission")).get("resolverNotes")).size();
                     LinkedHashSet<String> tables = new LinkedHashSet<>();
                     int columns = 0;
                     for (Map<String, Object> schema : schemas) {
@@ -1232,6 +1251,21 @@ public class AdminSystemCodeController {
                     if (!hasManifestRegistry) {
                         gaps.add("manifest");
                     }
+                    if (componentCount == 0) {
+                        gaps.add("component");
+                    }
+                    if (functionCount == 0 && eventCount > 0) {
+                        gaps.add("function");
+                    }
+                    if (controllerCount == 0 && apiCount > 0) {
+                        gaps.add("controller");
+                    }
+                    if (serviceCount == 0 && apiCount > 0) {
+                        gaps.add("service");
+                    }
+                    if (mapperCount == 0 && apiCount > 0) {
+                        gaps.add("mapper");
+                    }
                     if (schemaCount == 0) {
                         gaps.add("schema");
                     }
@@ -1247,12 +1281,20 @@ public class AdminSystemCodeController {
                 }
             }
             if (governanceRegistry != null) {
+                componentCount = Math.max(componentCount, safeStringList(governanceRegistry.get("componentIds")).size());
                 eventCount = Math.max(eventCount, safeStringList(governanceRegistry.get("eventIds")).size());
+                functionCount = Math.max(functionCount, safeStringList(governanceRegistry.get("functionIds")).size());
+                parameterCount = Math.max(parameterCount, safeStringList(governanceRegistry.get("parameterSpecs")).size());
+                resultCount = Math.max(resultCount, safeStringList(governanceRegistry.get("resultSpecs")).size());
                 apiCount = Math.max(apiCount, safeStringList(governanceRegistry.get("apiIds")).size());
+                controllerCount = Math.max(controllerCount, safeStringList(governanceRegistry.get("controllerActions")).size());
+                serviceCount = Math.max(serviceCount, safeStringList(governanceRegistry.get("serviceMethods")).size());
+                mapperCount = Math.max(mapperCount, safeStringList(governanceRegistry.get("mapperQueries")).size());
                 schemaCount = Math.max(schemaCount, safeStringList(governanceRegistry.get("schemaIds")).size());
                 tableCount = Math.max(tableCount, safeStringList(governanceRegistry.get("tableNames")).size());
                 columnCount = Math.max(columnCount, safeStringList(governanceRegistry.get("columnNames")).size());
                 commonCodeGroupCount = Math.max(commonCodeGroupCount, safeStringList(governanceRegistry.get("commonCodeGroups")).size());
+                tagCount = Math.max(tagCount, safeStringList(governanceRegistry.get("tags")).size());
             }
 
             if (menuUrl.isEmpty()) {
@@ -1274,12 +1316,22 @@ public class AdminSystemCodeController {
             summary.put("hasGovernanceRegistry", hasGovernanceRegistry);
             summary.put("requiredViewFeatureCode", requiredViewFeatureCode);
             summary.put("featureCount", featureCodes.size());
+            summary.put("componentCount", componentCount);
             summary.put("eventCount", eventCount);
+            summary.put("functionCount", functionCount);
+            summary.put("parameterCount", parameterCount);
+            summary.put("resultCount", resultCount);
             summary.put("apiCount", apiCount);
+            summary.put("controllerCount", controllerCount);
+            summary.put("serviceCount", serviceCount);
+            summary.put("mapperCount", mapperCount);
             summary.put("schemaCount", schemaCount);
             summary.put("tableCount", tableCount);
             summary.put("columnCount", columnCount);
             summary.put("commonCodeGroupCount", commonCodeGroupCount);
+            summary.put("relationTableCount", relationTableCount);
+            summary.put("resolverNoteCount", resolverNoteCount);
+            summary.put("tagCount", tagCount);
             summary.put("gaps", gaps);
             summary.put("coverageScore", computeCoverageScore(summary));
             rows.add(summary);
@@ -1299,12 +1351,53 @@ public class AdminSystemCodeController {
         if (Boolean.TRUE.equals(summary.get("hasScreenCommand"))) score += 15;
         if (Boolean.TRUE.equals(summary.get("hasGovernanceRegistry"))) score += 10;
         if (safeParseInt(asString(summary.get("featureCount"))) > 0) score += 10;
+        if (safeParseInt(asString(summary.get("componentCount"))) > 0) score += 5;
         if (safeParseInt(asString(summary.get("eventCount"))) > 0) score += 10;
+        if (safeParseInt(asString(summary.get("functionCount"))) > 0) score += 5;
         if (safeParseInt(asString(summary.get("apiCount"))) > 0) score += 10;
+        if (safeParseInt(asString(summary.get("controllerCount"))) > 0) score += 5;
+        if (safeParseInt(asString(summary.get("serviceCount"))) > 0) score += 5;
+        if (safeParseInt(asString(summary.get("mapperCount"))) > 0) score += 5;
         if (safeParseInt(asString(summary.get("schemaCount"))) > 0) score += 5;
         if (safeParseInt(asString(summary.get("tableCount"))) > 0) score += 5;
         if (safeParseInt(asString(summary.get("columnCount"))) > 0) score += 5;
-        return score;
+        return Math.min(score, 100);
+    }
+
+    private int countDistinctValues(List<Map<String, Object>> rows, String key) {
+        Set<String> values = new LinkedHashSet<>();
+        for (Map<String, Object> row : rows) {
+            String value = safeString(asString(row.get(key)));
+            if (!value.isEmpty()) {
+                values.add(value);
+            }
+        }
+        return values.size();
+    }
+
+    private int countChainValues(List<Map<String, Object>> rows, String arrayKey, String singleKey) {
+        Set<String> values = new LinkedHashSet<>();
+        for (Map<String, Object> row : rows) {
+            values.addAll(safeStringList(row.get(arrayKey)));
+            String single = safeString(asString(row.get(singleKey)));
+            if (!single.isEmpty()) {
+                values.add(single);
+            }
+        }
+        return values.size();
+    }
+
+    private int countFieldSpecRows(List<Map<String, Object>> events,
+                                   List<Map<String, Object>> apis,
+                                   boolean input) {
+        int count = 0;
+        for (Map<String, Object> event : events) {
+            count += safeMapList(event.get(input ? "functionInputs" : "functionOutputs")).size();
+        }
+        for (Map<String, Object> api : apis) {
+            count += safeMapList(api.get(input ? "requestFields" : "responseFields")).size();
+        }
+        return count;
     }
 
     private Map<String, Object> safeMap(Object value) {

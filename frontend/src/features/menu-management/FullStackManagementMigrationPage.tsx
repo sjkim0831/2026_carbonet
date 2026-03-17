@@ -744,12 +744,16 @@ export function FullStackManagementMigrationPage() {
       });
       setRegistryEntry(response.entry);
       setRegistryEditor(editorFromRegistry(response.entry));
-      await pageState.reload();
       setActionMessage(response.message || (en ? "Resources collected and saved." : "자원을 자동 수집하고 저장했습니다."));
     } catch (error) {
       setActionError(error instanceof Error ? error.message : (en ? "Failed to auto collect resources." : "자원 자동 수집에 실패했습니다."));
     } finally {
       setRegistryCollecting(false);
+    }
+    try {
+      await pageState.reload();
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : (en ? "Failed to refresh summary after collection." : "수집 후 요약 새로고침에 실패했습니다."));
     }
   }
 
