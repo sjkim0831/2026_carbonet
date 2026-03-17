@@ -391,6 +391,16 @@ export function AdminPageShell({
   children
 }: AdminPageShellProps) {
   const en = isEnglish();
+  const embeddedInLegacyAdminShell = typeof document !== "undefined" && (() => {
+    const root = document.getElementById("root");
+    if (!root) {
+      return false;
+    }
+    if (root.closest("#main-content")) {
+      return true;
+    }
+    return !!root.closest(".js-admin-layout-shell");
+  })();
   const currentPath = `${window.location.pathname}${window.location.search}`;
   const menuState = useAsyncValue(fetchAdminMenuTree, []);
   const fallbackMenuTree = useMemo(
@@ -533,6 +543,34 @@ export function AdminPageShell({
       : (sessionRemainingMs <= ADMIN_SESSION_WARNING_MS ? "session-warning" : "")
   ].filter(Boolean).join(" ");
   const resolvedLoadingLabel = loadingLabel || (en ? "Loading page data." : "화면을 불러오는 중입니다.");
+
+  if (embeddedInLegacyAdminShell) {
+    return (
+      <>
+        {children}
+        {loading ? (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/25 px-4 backdrop-blur-[2px]">
+            <div className="min-w-[18rem] rounded-[calc(var(--kr-gov-radius)+6px)] border border-slate-200 bg-white/95 px-6 py-5 shadow-[0_24px_80px_rgba(15,23,42,0.18)]">
+              <div className="flex items-center gap-4">
+                <div className="relative h-10 w-10 shrink-0">
+                  <span className="absolute inset-0 rounded-full border-[3px] border-slate-200" />
+                  <span className="absolute inset-0 animate-spin rounded-full border-[3px] border-transparent border-t-[var(--kr-gov-blue)] border-r-[var(--kr-gov-blue)]" />
+                </div>
+                <div>
+                  <p className="text-sm font-black text-[var(--kr-gov-text-primary)]">
+                    {en ? "Preparing screen" : "화면 준비 중"}
+                  </p>
+                  <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+                    {resolvedLoadingLabel}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </>
+    );
+  }
 
   return (
     <div className="relative bg-[#f8f9fa] text-[var(--kr-gov-text-primary)] min-h-screen flex flex-col">

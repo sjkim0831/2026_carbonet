@@ -5,6 +5,12 @@ const fetch = tracedFetch;
 
 function buildAdminApiPath(path: string): string {
   const normalized = path.startsWith("/") ? path : `/${path}`;
+  if (normalized.startsWith("/api/admin/")) {
+    return buildLocalizedPath(`/admin${normalized}`, `/en/admin${normalized}`);
+  }
+  if (normalized.startsWith("/api/")) {
+    return buildLocalizedPath(normalized, `/en${normalized}`);
+  }
   return buildLocalizedPath(`/admin${normalized}`, `/en/admin${normalized}`);
 }
 
@@ -49,6 +55,33 @@ export type AdminMenuDomain = {
 };
 
 export type AdminMenuTreePayload = Record<string, AdminMenuDomain>;
+
+export type SitemapNode = {
+  code?: string;
+  label?: string;
+  url?: string;
+  icon?: string;
+  children?: SitemapNode[];
+};
+
+export type SitemapPagePayload = {
+  isEn?: boolean;
+  isLoggedIn?: boolean;
+  siteMapSections?: SitemapNode[];
+};
+
+export type HomeMenuPlaceholderPagePayload = {
+  placeholderTitle?: string;
+  placeholderTitleEn?: string;
+  placeholderCode?: string;
+  placeholderUrl?: string;
+  placeholderIcon?: string;
+  placeholderDescription?: string;
+  isLoggedIn?: boolean;
+  isEn?: boolean;
+};
+
+export type AdminMenuPlaceholderPagePayload = HomeMenuPlaceholderPagePayload;
 
 async function readJsonResponse<T>(response: Response): Promise<T> {
   const contentType = response.headers.get("content-type") || "";
@@ -1021,6 +1054,36 @@ export async function fetchFrontendSession(): Promise<FrontendSession> {
   }
 
   return frontendSessionPromise;
+}
+
+export async function fetchSitemapPage(): Promise<SitemapPagePayload> {
+  const response = await fetch(buildLocalizedPath("/api/sitemap", "/api/en/sitemap"), {
+    credentials: "include"
+  });
+  return readJsonResponse<SitemapPagePayload>(response);
+}
+
+export async function fetchAdminSitemapPage(): Promise<SitemapPagePayload> {
+  const response = await fetch(buildLocalizedPath("/admin/api/admin/content/sitemap", "/en/admin/api/admin/content/sitemap"), {
+    credentials: "include"
+  });
+  return readJsonResponse<SitemapPagePayload>(response);
+}
+
+export async function fetchHomeMenuPlaceholderPage(requestPath: string): Promise<HomeMenuPlaceholderPagePayload> {
+  const query = requestPath ? `?requestPath=${encodeURIComponent(requestPath)}` : "";
+  const response = await fetch(`${buildLocalizedPath("/api/home/menu-placeholder", "/api/en/home/menu-placeholder")}${query}`, {
+    credentials: "include"
+  });
+  return readJsonResponse<HomeMenuPlaceholderPagePayload>(response);
+}
+
+export async function fetchAdminMenuPlaceholderPage(requestPath: string): Promise<AdminMenuPlaceholderPagePayload> {
+  const query = requestPath ? `?requestPath=${encodeURIComponent(requestPath)}` : "";
+  const response = await fetch(`${buildLocalizedPath("/admin/api/admin/menu-placeholder", "/en/admin/api/admin/menu-placeholder")}${query}`, {
+    credentials: "include"
+  });
+  return readJsonResponse<AdminMenuPlaceholderPagePayload>(response);
 }
 
 async function fetchMypageContext(en = false): Promise<MypageContext> {

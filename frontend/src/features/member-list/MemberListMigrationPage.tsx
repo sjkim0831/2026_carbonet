@@ -110,6 +110,14 @@ export function MemberListMigrationPage() {
     setFilters((current) => ({ ...current, pageIndex: nextPageIndex }));
   }
 
+  function handleSearchSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    applyFilters(1);
+  }
+
+  const fieldClassName = "w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white text-sm focus:ring-[var(--kr-gov-focus)] focus:border-[var(--kr-gov-focus)]";
+  const pagerButtonClassName = "p-1 rounded hover:bg-white border border-transparent hover:border-gray-200 disabled:opacity-40";
+
   return (
     <AdminPageShell
       breadcrumbs={[
@@ -123,36 +131,36 @@ export function MemberListMigrationPage() {
     >
       {error ? <section className="border border-red-200 bg-red-50 rounded-[var(--kr-gov-radius)] px-4 py-3 mb-4"><p className="text-sm text-red-700">조회 중 오류: {error}</p></section> : null}
       <CanView allowed={!!page?.canViewMemberList} fallback={<section className="bg-white border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] px-6 py-8"><p className="text-sm text-[var(--kr-gov-text-secondary)]">회원 목록을 불러올 수 없습니다.</p></section>}>
-        <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm mb-8" data-help-id="member-search-form">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6" data-help-id="member-list-search">
-            <label>
+        <div className="gov-card mb-8" data-help-id="member-search-form">
+          <form className="grid grid-cols-1 md:grid-cols-4 gap-6" data-help-id="member-list-search" onSubmit={handleSearchSubmit}>
+            <div>
               <span className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">회원 유형</span>
-              <select className="w-full rounded-[var(--kr-gov-radius)] border-[var(--kr-gov-border-light)] text-sm focus:border-[var(--kr-gov-focus)] focus:ring-[var(--kr-gov-focus)]" value={draftFilters.membershipType} onChange={(event) => updateDraft("membershipType", event.target.value)}>
+              <select className={fieldClassName} id="member-type" value={draftFilters.membershipType} onChange={(event) => updateDraft("membershipType", event.target.value)}>
                 {MEMBER_TYPE_OPTIONS.map((option) => (
                   <option key={option.value || "all"} value={option.value}>{option.label}</option>
                 ))}
               </select>
-            </label>
-            <label>
+            </div>
+            <div>
               <span className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">상태</span>
-              <select className="w-full rounded-[var(--kr-gov-radius)] border-[var(--kr-gov-border-light)] text-sm focus:border-[var(--kr-gov-focus)] focus:ring-[var(--kr-gov-focus)]" value={draftFilters.status} onChange={(event) => updateDraft("status", event.target.value)}>
+              <select className={fieldClassName} id="status" value={draftFilters.status} onChange={(event) => updateDraft("status", event.target.value)}>
                 {MEMBER_STATUS_OPTIONS.map((option) => (
                   <option key={option.value || "all"} value={option.value}>{option.label}</option>
                 ))}
               </select>
-            </label>
-            <label className="md:col-span-2">
+            </div>
+            <div className="md:col-span-2">
               <span className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">검색어</span>
               <div className="flex gap-2">
-                <input className="flex-1 rounded-[var(--kr-gov-radius)] border-[var(--kr-gov-border-light)] text-sm focus:border-[var(--kr-gov-focus)] focus:ring-[var(--kr-gov-focus)]" placeholder="신청자명, 아이디, 회사명 검색" value={draftFilters.searchKeyword} onChange={(event) => updateDraft("searchKeyword", event.target.value)} />
-                <button className="px-6 py-2 bg-[var(--kr-gov-blue)] text-white font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)] transition-colors flex items-center gap-2" onClick={() => applyFilters(1)} type="button">
+                <input className={`flex-1 ${fieldClassName}`} id="keyword" placeholder="신청자명, 아이디, 회사명 검색" value={draftFilters.searchKeyword} onChange={(event) => updateDraft("searchKeyword", event.target.value)} />
+                <button className="px-6 py-2 bg-[var(--kr-gov-blue)] text-white font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)] transition-colors flex items-center gap-2" type="submit">
                   <span className="material-symbols-outlined text-[18px]">search</span>
                   검색
                 </button>
               </div>
-            </label>
-          </div>
-        </section>
+            </div>
+          </form>
+        </div>
 
         <div className="flex justify-between items-center mb-4">
           <div className="text-[14px]">
@@ -170,7 +178,7 @@ export function MemberListMigrationPage() {
           </div>
         </div>
 
-        <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm overflow-hidden" data-help-id="member-table">
+        <div className="gov-card p-0 overflow-hidden" data-help-id="member-table">
           <div className="overflow-x-auto" data-help-id="member-list-table">
             <table className="w-full text-sm text-left border-collapse">
               <thead>
@@ -224,10 +232,10 @@ export function MemberListMigrationPage() {
 
           <div className="px-6 py-4 border-t border-[var(--kr-gov-border-light)] bg-gray-50 flex justify-center">
             <nav className="flex items-center gap-1">
-              <button className="p-1 rounded hover:bg-white border border-transparent hover:border-gray-200 disabled:opacity-40" disabled={currentPage <= 1} onClick={() => movePage(1)} type="button">
+              <button className={pagerButtonClassName} disabled={currentPage <= 1} onClick={() => movePage(1)} type="button">
                 <span className="material-symbols-outlined">first_page</span>
               </button>
-              <button className="p-1 rounded hover:bg-white border border-transparent hover:border-gray-200 disabled:opacity-40" disabled={currentPage <= 1} onClick={() => movePage(Math.max(1, currentPage - 1))} type="button">
+              <button className={pagerButtonClassName} disabled={currentPage <= 1} onClick={() => movePage(Math.max(1, currentPage - 1))} type="button">
                 <span className="material-symbols-outlined">chevron_left</span>
               </button>
               <div className="flex items-center gap-1 mx-4">
@@ -242,15 +250,15 @@ export function MemberListMigrationPage() {
                   </button>
                 ))}
               </div>
-              <button className="p-1 rounded hover:bg-white border border-transparent hover:border-gray-200 disabled:opacity-40" disabled={currentPage >= totalPages} onClick={() => movePage(Math.min(totalPages, currentPage + 1))} type="button">
+              <button className={pagerButtonClassName} disabled={currentPage >= totalPages} onClick={() => movePage(Math.min(totalPages, currentPage + 1))} type="button">
                 <span className="material-symbols-outlined">chevron_right</span>
               </button>
-              <button className="p-1 rounded hover:bg-white border border-transparent hover:border-gray-200 disabled:opacity-40" disabled={currentPage >= totalPages} onClick={() => movePage(totalPages)} type="button">
+              <button className={pagerButtonClassName} disabled={currentPage >= totalPages} onClick={() => movePage(totalPages)} type="button">
                 <span className="material-symbols-outlined">last_page</span>
               </button>
             </nav>
           </div>
-        </section>
+        </div>
       </CanView>
     </AdminPageShell>
   );

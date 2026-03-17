@@ -73,16 +73,22 @@
             document.head.appendChild(csrfHeaderMeta);
         }
 
-        if (config.reactAppProdCss) {
+        if (config.reactAppProdCss && !document.querySelector(`link[data-carbonet-react-css="${config.reactAppProdCss}"]`)) {
             const style = document.createElement("link");
             style.rel = "stylesheet";
             style.href = config.reactAppProdCss;
+            style.dataset.carbonetReactCss = config.reactAppProdCss;
             document.head.appendChild(style);
+        }
+
+        if (document.querySelector('script[data-carbonet-react-app="1"]')) {
+            return;
         }
 
         const script = document.createElement("script");
         script.type = "module";
         script.src = useDevServer ? `${config.reactAppDevUrl}/src/main.tsx` : config.reactAppProdJs;
+        script.dataset.carbonetReactApp = "1";
         script.onerror = () => {
             console.error("React bundle could not be loaded.", config.reactAppProdJs);
         };

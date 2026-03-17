@@ -1,3 +1,5 @@
+import { cp, mkdir, rm } from "node:fs/promises";
+import path from "node:path";
 import { fileURLToPath, URL } from "node:url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
@@ -5,10 +7,27 @@ import react from "@vitejs/plugin-react";
 const buildTarget = process.env.VITE_BUILD_TARGET === "classes"
   ? "../target/classes/static/react-app"
   : "../src/main/resources/static/react-app";
+const mirrorTarget = process.env.VITE_BUILD_TARGET === "classes"
+  ? "../src/main/resources/static/react-app"
+  : "../target/classes/static/react-app";
+
+function syncBuildOutputPlugin() {
+  return {
+    name: "sync-build-output",
+    async closeBundle() {
+      const sourceDir = path.resolve(__dirname, buildTarget);
+      const targetDir = path.resolve(__dirname, mirrorTarget);
+
+      await rm(targetDir, { recursive: true, force: true });
+      await mkdir(path.dirname(targetDir), { recursive: true });
+      await cp(sourceDir, targetDir, { recursive: true });
+    }
+  };
+}
 
 export default defineConfig({
   base: "/assets/react/",
-  plugins: [react()],
+  plugins: [react(), syncBuildOutputPlugin()],
   resolve: {
     dedupe: ["react", "react-dom"],
     alias: {
@@ -22,7 +41,14 @@ export default defineConfig({
   build: {
     outDir: buildTarget,
     emptyOutDir: true,
-    manifest: true
+    manifest: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react/jsx-runtime']
+        }
+      }
+    }
   },
   server: {
     port: 5173,

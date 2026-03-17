@@ -50,9 +50,14 @@
     const search = new URLSearchParams(window.location.search);
     const useDevServer = search.get("dev") === "1";
 
+    if (document.querySelector('script[data-carbonet-react-app="1"]')) {
+        return;
+    }
+
     const script = document.createElement("script");
     script.type = "module";
     script.src = useDevServer ? `${config.devUrl}/src/main.tsx` : config.prodJs;
+    script.dataset.carbonetReactApp = "1";
     script.onerror = () => {
         console.error("React bundle could not be loaded.", config.prodJs);
     };

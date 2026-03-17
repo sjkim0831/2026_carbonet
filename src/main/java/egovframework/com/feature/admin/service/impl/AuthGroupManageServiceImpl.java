@@ -11,10 +11,13 @@ import egovframework.com.feature.admin.model.vo.UserAuthorityTargetVO;
 import egovframework.com.feature.admin.model.vo.UserFeatureOverrideVO;
 import egovframework.com.feature.admin.service.AuthGroupManageService;
 import org.egovframe.rte.fdl.cmmn.EgovAbstractServiceImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -22,6 +25,8 @@ import java.util.Map;
 
 @Service("authGroupManageService")
 public class AuthGroupManageServiceImpl extends EgovAbstractServiceImpl implements AuthGroupManageService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthGroupManageServiceImpl.class);
 
     private final AuthGroupManageMapper authGroupManageMapper;
 
@@ -110,7 +115,15 @@ public class AuthGroupManageServiceImpl extends EgovAbstractServiceImpl implemen
 
     @Override
     public int countUserFeatureOverridesByFeatureCode(String featureCode) {
-        return authGroupManageMapper.countUserFeatureOverridesByFeatureCode(featureCode);
+        try {
+            return authGroupManageMapper.countUserFeatureOverridesByFeatureCode(featureCode);
+        } catch (RuntimeException ex) {
+            if (isMissingUserFeatureOverrideTable(ex)) {
+                log.warn("Skipping user feature override count because COMTNUSERFEATUREOVERRIDE is unavailable.");
+                return 0;
+            }
+            throw ex;
+        }
     }
 
     @Override
@@ -120,7 +133,15 @@ public class AuthGroupManageServiceImpl extends EgovAbstractServiceImpl implemen
 
     @Override
     public List<FeatureReferenceCountVO> selectUserFeatureOverrideCounts(List<String> featureCodes) {
-        return authGroupManageMapper.selectUserFeatureOverrideCounts(featureCodes);
+        try {
+            return authGroupManageMapper.selectUserFeatureOverrideCounts(featureCodes);
+        } catch (RuntimeException ex) {
+            if (isMissingUserFeatureOverrideTable(ex)) {
+                log.warn("Skipping user feature override reference query because COMTNUSERFEATUREOVERRIDE is unavailable.");
+                return Collections.emptyList();
+            }
+            throw ex;
+        }
     }
 
     @Override
@@ -130,12 +151,28 @@ public class AuthGroupManageServiceImpl extends EgovAbstractServiceImpl implemen
 
     @Override
     public void deleteUserFeatureOverridesByFeatureCode(String featureCode) {
-        authGroupManageMapper.deleteUserFeatureOverridesByFeatureCode(featureCode);
+        try {
+            authGroupManageMapper.deleteUserFeatureOverridesByFeatureCode(featureCode);
+        } catch (RuntimeException ex) {
+            if (isMissingUserFeatureOverrideTable(ex)) {
+                log.warn("Skipping user feature override delete because COMTNUSERFEATUREOVERRIDE is unavailable.");
+                return;
+            }
+            throw ex;
+        }
     }
 
     @Override
     public List<UserFeatureOverrideVO> selectUserFeatureOverrides(String scrtyDtrmnTrgetId) {
-        return authGroupManageMapper.selectUserFeatureOverrides(scrtyDtrmnTrgetId);
+        try {
+            return authGroupManageMapper.selectUserFeatureOverrides(scrtyDtrmnTrgetId);
+        } catch (RuntimeException ex) {
+            if (isMissingUserFeatureOverrideTable(ex)) {
+                log.warn("Skipping user feature override lookup because COMTNUSERFEATUREOVERRIDE is unavailable.");
+                return Collections.emptyList();
+            }
+            throw ex;
+        }
     }
 
     @Override
@@ -229,9 +266,17 @@ public class AuthGroupManageServiceImpl extends EgovAbstractServiceImpl implemen
         if (normalizedTargetId.isEmpty()) {
             throw new IllegalArgumentException("Security target ID is required.");
         }
-        authGroupManageMapper.deleteUserFeatureOverrides(normalizedTargetId);
-        insertFeatureOverrides(normalizedTargetId, normalizedMemberType, allowFeatureCodes, "A", actorId);
-        insertFeatureOverrides(normalizedTargetId, normalizedMemberType, denyFeatureCodes, "D", actorId);
+        try {
+            authGroupManageMapper.deleteUserFeatureOverrides(normalizedTargetId);
+            insertFeatureOverrides(normalizedTargetId, normalizedMemberType, allowFeatureCodes, "A", actorId);
+            insertFeatureOverrides(normalizedTargetId, normalizedMemberType, denyFeatureCodes, "D", actorId);
+        } catch (RuntimeException ex) {
+            if (isMissingUserFeatureOverrideTable(ex)) {
+                log.warn("Skipping user feature override update because COMTNUSERFEATUREOVERRIDE is unavailable.");
+                return;
+            }
+            throw ex;
+        }
     }
 
     @Override
@@ -280,5 +325,20 @@ public class AuthGroupManageServiceImpl extends EgovAbstractServiceImpl implemen
             params.put("actorId", normalizedActorId);
             authGroupManageMapper.insertUserFeatureOverride(params);
         }
+    }
+
+    private boolean isMissingUserFeatureOverrideTable(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null) {
+                String normalized = message.toUpperCase(Locale.ROOT);
+                if (normalized.contains("COMTNUSERFEATUREOVERRIDE") && normalized.contains("UNKNOWN CLASS")) {
+                    return true;
+                }
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 }
