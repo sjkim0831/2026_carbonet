@@ -1,11 +1,13 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { PAGE_MANIFESTS } from "../../app/screen-registry/pageManifests";
 import {
   autoCollectFullStackGovernanceRegistry,
   fetchFullStackGovernanceRegistry,
   fetchFunctionManagementPage,
   fetchMenuManagementPage,
   fetchScreenCommandPage,
+  getScreenCommandChainValues,
   type FullStackGovernanceRegistryEntry,
   type FunctionManagementPagePayload,
   type MenuManagementPagePayload,
@@ -46,12 +48,26 @@ type GovernanceOverview = {
   resultSpecs: string[];
   apiIds: string[];
   controllerActions: string[];
+  serviceMethods: string[];
+  mapperQueries: string[];
   schemaIds: string[];
   tableNames: string[];
   columnNames: string[];
   featureCodes: string[];
   commonCodeGroups: string[];
 };
+
+const ENVIRONMENT_MANAGEMENT_MENU_CODE = "A0060118";
+const KNOWN_GOVERNANCE_PAGE_IDS: Record<string, string> = {
+  A0060118: "environment-management"
+};
+
+function resolveDefaultSelectedMenuCode(menuType: string, explicitMenuCode: string) {
+  if (explicitMenuCode) {
+    return explicitMenuCode;
+  }
+  return menuType === "ADMIN" ? ENVIRONMENT_MANAGEMENT_MENU_CODE : "";
+}
 
 function normalizeRows(rows: Array<Record<string, unknown>>): ManagedMenuRow[] {
   return rows
@@ -109,6 +125,42 @@ function createEmptyFeatureDraft(): FeatureDraft {
   };
 }
 
+function normalizeLookupPath(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "";
+  }
+  const withoutQuery = trimmed.split("?")[0] || "";
+  return withoutQuery.startsWith("/en/") ? withoutQuery.slice(3) : withoutQuery;
+}
+
+function resolveGovernancePageId(
+  selectedMenu: ManagedMenuRow | null,
+  pages: ScreenCommandPagePayload["pages"] | undefined
+) {
+  if (!selectedMenu) {
+    return "";
+  }
+  const menuCode = selectedMenu.code.toUpperCase();
+  const knownPageId = KNOWN_GOVERNANCE_PAGE_IDS[menuCode];
+  if (knownPageId) {
+    return knownPageId;
+  }
+  const menuPath = normalizeLookupPath(selectedMenu.menuUrl);
+  const matchedCatalogPage = (pages || []).find((item) => (
+    String(item.menuCode || "").toUpperCase() === menuCode
+      || normalizeLookupPath(String(item.routePath || "")) === menuPath
+  ));
+  if (matchedCatalogPage?.pageId) {
+    return String(matchedCatalogPage.pageId);
+  }
+  const matchedManifest = Object.values(PAGE_MANIFESTS).find((manifest) => (
+    String(manifest.menuCode || "").toUpperCase() === menuCode
+      || normalizeLookupPath(String(manifest.routePath || "")) === menuPath
+  ));
+  return matchedManifest?.pageId || "";
+}
+
 function buildGovernanceOverview(
   entry: FullStackGovernanceRegistryEntry | null,
   page: ScreenCommandPagePayload["page"] | null
@@ -130,7 +182,15 @@ function buildGovernanceOverview(
       item.functionOutputs || []
     ).map((field) => `${field.fieldId}:${field.type}:${field.source || "output"}`)),
     apiIds: entry?.apiIds || (page?.apis || []).map((item) => item.apiId).filter(Boolean),
-    controllerActions: (page?.apis || []).map((item) => item.controllerAction).filter(Boolean),
+    controllerActions: entry?.controllerActions || Array.from(new Set((page?.apis || []).flatMap((item) => (
+      getScreenCommandChainValues(item.controllerActions, item.controllerAction)
+    )))),
+    serviceMethods: entry?.serviceMethods || Array.from(new Set((page?.apis || []).flatMap((item) => (
+      getScreenCommandChainValues(item.serviceMethods, item.serviceMethod)
+    )))),
+    mapperQueries: entry?.mapperQueries || Array.from(new Set((page?.apis || []).flatMap((item) => (
+      getScreenCommandChainValues(item.mapperQueries, item.mapperQuery)
+    )))),
     schemaIds: entry?.schemaIds || (page?.schemas || []).map((item) => item.schemaId).filter(Boolean),
     tableNames: entry?.tableNames || Array.from(new Set([
       ...(page?.schemas || []).map((item) => item.tableName).filter(Boolean),
@@ -144,6 +204,16 @@ function buildGovernanceOverview(
     ])),
     commonCodeGroups: entry?.commonCodeGroups || (page?.commonCodeGroups || []).map((item) => item.codeGroupId).filter(Boolean)
   };
+}
+
+function isDraftOnlyGovernancePage(
+  entry: FullStackGovernanceRegistryEntry | null,
+  page: ScreenCommandPagePayload["page"] | null
+) {
+  if (entry && String(entry.source || "").trim()) {
+    return false;
+  }
+  return String(page?.source || "").trim() === "UI_PAGE_MANIFEST draft registry";
 }
 
 function renderMetaList(items: string[], emptyLabel: string) {
@@ -164,9 +234,12 @@ function renderMetaList(items: string[], emptyLabel: string) {
 export function EnvironmentManagementHubPage() {
   const en = isEnglish();
   const searchParams = new URLSearchParams(window.location.search);
-  const [menuType, setMenuType] = useState(searchParams.get("menuType") || "ADMIN");
+  const initialMenuType = searchParams.get("menuType") || "ADMIN";
+  const [menuType, setMenuType] = useState(initialMenuType);
   const [menuSearch, setMenuSearch] = useState(searchParams.get("keyword") || "");
-  const [selectedMenuCode, setSelectedMenuCode] = useState(searchParams.get("menuCode") || "");
+  const [selectedMenuCode, setSelectedMenuCode] = useState(
+    resolveDefaultSelectedMenuCode(initialMenuType, searchParams.get("menuCode") || "")
+  );
   const [actionError, setActionError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
   const [parentCodeValue, setParentCodeValue] = useState("");
@@ -221,14 +294,14 @@ export function EnvironmentManagementHubPage() {
   );
   const selectedMenuIsPage = selectedMenu?.code.length === 8;
   const governancePageId = useMemo(() => {
-    if (!selectedMenu) {
-      return "";
-    }
-    const matched = (screenCatalog?.pages || []).find((item) => item.menuCode === selectedMenu.code || item.routePath === selectedMenu.menuUrl);
-    return matched?.pageId || "";
+    return resolveGovernancePageId(selectedMenu, screenCatalog?.pages);
   }, [screenCatalog?.pages, selectedMenu]);
   const governanceOverview = useMemo(
     () => buildGovernanceOverview(registryEntry, governancePage?.page || null),
+    [governancePage?.page, registryEntry]
+  );
+  const governanceDraftOnly = useMemo(
+    () => isDraftOnlyGovernancePage(registryEntry, governancePage?.page || null),
     [governancePage?.page, registryEntry]
   );
 
@@ -242,7 +315,7 @@ export function EnvironmentManagementHubPage() {
     setActionError("");
     setActionMessage("");
     setMenuSearch("");
-    setSelectedMenuCode("");
+    setSelectedMenuCode(menuType === "ADMIN" ? ENVIRONMENT_MANAGEMENT_MENU_CODE : "");
     setParentCodeValue(stringOf(groupMenuOptions[0], "value"));
     setCodeNm("");
     setCodeDc("");
@@ -754,6 +827,29 @@ export function EnvironmentManagementHubPage() {
               <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Select a menu to inspect connected page metadata." : "연결된 페이지 메타데이터를 보려면 메뉴를 먼저 선택하세요."}</p>
             ) : !selectedMenuIsPage ? (
               <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Only 8-digit page menus can display collected metadata." : "수집 메타데이터는 8자리 페이지 메뉴에서만 표시됩니다."}</p>
+            ) : governanceDraftOnly ? (
+              <div className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
+                    <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">Page ID</p>
+                    <p className="mt-2 font-mono text-sm text-[var(--kr-gov-text-primary)]">{governanceOverview.pageId || "-"}</p>
+                  </div>
+                  <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
+                    <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">Source</p>
+                    <p className="mt-2 font-mono text-sm text-[var(--kr-gov-text-primary)]">{governanceOverview.source || "-"}</p>
+                  </div>
+                  <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
+                    <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">URL</p>
+                    <p className="mt-2 font-mono text-sm break-all text-[var(--kr-gov-text-primary)]">{selectedMenu.menuUrl || "-"}</p>
+                  </div>
+                </div>
+
+                <div className="rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">
+                  {en
+                    ? "This menu is connected through a draft registry entry only. Detailed components, events, APIs, and schema metadata will appear after the page implementation or an explicit registry save."
+                    : "이 메뉴는 현재 draft registry로만 연결된 상태입니다. 상세 컴포넌트, 이벤트, API, 스키마 메타데이터는 실제 페이지 구현 또는 명시적 registry 저장 이후에 표시됩니다."}
+                </div>
+              </div>
             ) : (
               <div className="space-y-5">
                 <div className="grid gap-4 md:grid-cols-3">
@@ -810,6 +906,14 @@ export function EnvironmentManagementHubPage() {
                   <div>
                     <p className="gov-label mb-2">Controller</p>
                     {renderMetaList(governanceOverview.controllerActions, en ? "No controller actions collected yet." : "수집된 Controller 액션이 없습니다.")}
+                  </div>
+                  <div>
+                    <p className="gov-label mb-2">Service</p>
+                    {renderMetaList(governanceOverview.serviceMethods, en ? "No service methods collected yet." : "수집된 Service 메서드가 없습니다.")}
+                  </div>
+                  <div>
+                    <p className="gov-label mb-2">Mapper</p>
+                    {renderMetaList(governanceOverview.mapperQueries, en ? "No mapper queries collected yet." : "수집된 Mapper 쿼리가 없습니다.")}
                   </div>
                   <div>
                     <p className="gov-label mb-2">{en ? "Schemas" : "스키마"}</p>

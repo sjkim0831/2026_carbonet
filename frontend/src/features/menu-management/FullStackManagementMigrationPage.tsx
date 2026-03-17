@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { PAGE_MANIFESTS } from "../../app/screen-registry/pageManifests";
 import {
   autoCollectFullStackGovernanceRegistry,
   fetchFullStackGovernanceRegistry,
   fetchFullStackManagementPage,
   fetchScreenCommandPage,
+  getScreenCommandChainText,
+  getScreenCommandChainValues,
   saveFullStackGovernanceRegistry,
   type FullStackGovernanceRegistryEntry,
   type MenuManagementPagePayload,
@@ -48,6 +51,38 @@ function parentCode(code: string) {
   if (code.length === 8) return code.slice(0, 6);
   if (code.length === 6) return code.slice(0, 4);
   return "";
+}
+
+function normalizeLookupPath(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "";
+  }
+  const withoutQuery = trimmed.split("?")[0] || "";
+  return withoutQuery.startsWith("/en/") ? withoutQuery.slice(3) : withoutQuery;
+}
+
+function resolveGovernancePageId(
+  selectedMenuRow: Record<string, unknown> | null,
+  pages: ScreenCommandPagePayload["pages"] | undefined
+) {
+  if (!selectedMenuRow) {
+    return "";
+  }
+  const menuCode = stringOf(selectedMenuRow, "code").toUpperCase();
+  const menuPath = normalizeLookupPath(stringOf(selectedMenuRow, "menuUrl"));
+  const matchedCatalogPage = (pages || []).find((item) => (
+    String(item.menuCode || "").toUpperCase() === menuCode
+      || normalizeLookupPath(String(item.routePath || "")) === menuPath
+  ));
+  if (matchedCatalogPage?.pageId) {
+    return String(matchedCatalogPage.pageId);
+  }
+  const matchedManifest = Object.values(PAGE_MANIFESTS).find((manifest) => (
+    String(manifest.menuCode || "").toUpperCase() === menuCode
+      || normalizeLookupPath(String(manifest.routePath || "")) === menuPath
+  ));
+  return matchedManifest?.pageId || "";
 }
 
 function buildTree(rows: Array<Record<string, unknown>>) {
@@ -202,6 +237,9 @@ function buildSeedRegistry(
     parameterSpecs: (governanceDetail?.events || []).flatMap((item) => (item.functionInputs || []).map((field) => `${field.fieldId}:${field.type}:${field.source || "input"}`)),
     resultSpecs: (governanceDetail?.events || []).flatMap((item) => (item.functionOutputs || []).map((field) => `${field.fieldId}:${field.type}:${field.source || "output"}`)),
     apiIds: (governanceDetail?.apis || []).map((item) => item.apiId),
+    controllerActions: [],
+    serviceMethods: [],
+    mapperQueries: [],
     schemaIds: (governanceDetail?.schemas || []).map((item) => item.schemaId),
     tableNames: Array.from(new Set([
       ...(governanceDetail?.schemas || []).map((item) => item.tableName).filter(Boolean),
@@ -268,13 +306,7 @@ export function FullStackManagementMigrationPage() {
   const selectedMenuLabel = stringOf(selectedMenuRow, "codeNm", "codeDc", "code");
   const governanceDetail = governancePage?.page;
   const governancePageId = useMemo(() => {
-    if (!selectedMenuRow) {
-      return "";
-    }
-    const menuCode = stringOf(selectedMenuRow, "code").toUpperCase();
-    const menuPath = stringOf(selectedMenuRow, "menuUrl");
-    const matched = (screenCatalog?.pages || []).find((item) => item.menuCode === menuCode || item.routePath === menuPath);
-    return matched?.pageId || "";
+    return resolveGovernancePageId(selectedMenuRow, screenCatalog?.pages);
   }, [screenCatalog?.pages, selectedMenuRow]);
   const governanceTables = useMemo(() => {
     if (!governanceDetail) {
@@ -666,6 +698,9 @@ export function FullStackManagementMigrationPage() {
         parameterSpecs: splitLines(registryEditor.parameterSpecs),
         resultSpecs: splitLines(registryEditor.resultSpecs),
         apiIds: splitLines(registryEditor.apiIds),
+        controllerActions: registryEntry?.controllerActions || [],
+        serviceMethods: registryEntry?.serviceMethods || [],
+        mapperQueries: registryEntry?.mapperQueries || [],
         schemaIds: splitLines(registryEditor.schemaIds),
         tableNames: splitLines(registryEditor.tableNames),
         columnNames: splitLines(registryEditor.columnNames),
@@ -1226,7 +1261,13 @@ export function FullStackManagementMigrationPage() {
                   ) : (governanceDetail.apis || []).map((item) => (
                     <tr key={item.apiId}>
                       <td>{item.method} {item.endpoint}</td>
-                      <td>{item.controllerAction}<br />{item.serviceMethod}<br />{item.mapperQuery}</td>
+                      <td>
+                        {getScreenCommandChainText(item.controllerActions, item.controllerAction)}
+                        <br />
+                        {getScreenCommandChainText(item.serviceMethods, item.serviceMethod)}
+                        <br />
+                        {getScreenCommandChainValues(item.mapperQueries, item.mapperQuery).join(", ") || "-"}
+                      </td>
                       <td>
                         <strong>REQ</strong> {summarizeFields(item.requestFields)}
                         <br />

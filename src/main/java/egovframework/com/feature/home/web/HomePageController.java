@@ -27,7 +27,7 @@ public class HomePageController {
 
     private final HomeMenuService homeMenuService;
     private final HomeMypageService homeMypageService;
-    private final ReactMigrationViewSupport reactMigrationViewSupport;
+    private final ReactAppViewSupport reactAppViewSupport;
 
     @RequestMapping(value = { "/" }, method = { RequestMethod.GET, RequestMethod.POST })
     public String root() {
@@ -36,7 +36,7 @@ public class HomePageController {
 
     @RequestMapping(value = { "/home" }, method = { RequestMethod.GET, RequestMethod.POST })
     public String index(HttpServletRequest request, Model model) {
-        return reactMigrationViewSupport.render(model, "home", false, false);
+        return reactAppViewSupport.render(model, "home", false, false);
     }
 
     @RequestMapping(value = { "/ko/home" }, method = { RequestMethod.GET, RequestMethod.POST })
@@ -51,7 +51,7 @@ public class HomePageController {
 
     @RequestMapping(value = { "/en/home" }, method = { RequestMethod.GET, RequestMethod.POST })
     public String indexEn(HttpServletRequest request, Model model) {
-        return reactMigrationViewSupport.render(model, "home", true, false);
+        return reactAppViewSupport.render(model, "home", true, false);
     }
 
     @GetMapping("/api/home")
@@ -76,7 +76,7 @@ public class HomePageController {
 
     @RequestMapping(value = { "/mypage" }, method = { RequestMethod.GET, RequestMethod.POST })
     public String mypage(HttpServletRequest request, Model model) {
-        return reactMigrationViewSupport.render(model, "mypage", false, false);
+        return reactAppViewSupport.render(model, "mypage", false, false);
     }
 
     @RequestMapping(value = { "/ko/mypage" }, method = { RequestMethod.GET, RequestMethod.POST })
@@ -101,7 +101,7 @@ public class HomePageController {
 
     @RequestMapping(value = { "/en/mypage" }, method = { RequestMethod.GET, RequestMethod.POST })
     public String mypageEn(HttpServletRequest request, Model model) {
-        return reactMigrationViewSupport.render(model, "mypage", true, false);
+        return reactAppViewSupport.render(model, "mypage", true, false);
     }
 
     @GetMapping("/api/mypage/context")

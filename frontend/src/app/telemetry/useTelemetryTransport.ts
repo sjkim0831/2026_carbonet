@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { getCsrfMeta } from "../../lib/navigation/runtime";
+import { fetchFrontendSession } from "../../lib/api/client";
 import type { TelemetryEvent } from "./events";
 
 type TransportEvent = TelemetryEvent & {
@@ -43,7 +44,16 @@ export function useTelemetryTransport() {
       sendingRef.current = true;
       clearTimer();
       const events = queueRef.current.splice(0, MAX_BATCH_SIZE);
-      const { token, headerName } = getCsrfMeta();
+      let { token, headerName } = getCsrfMeta();
+      if (!token) {
+        try {
+          const session = await fetchFrontendSession();
+          token = session.csrfToken || token;
+          headerName = session.csrfHeaderName || headerName;
+        } catch {
+          // Keep best-effort telemetry transport non-blocking.
+        }
+      }
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (token) {
         headers[headerName] = token;

@@ -1,8 +1,11 @@
 package egovframework.com.feature.admin.service.impl;
 
 import egovframework.com.common.trace.UiManifestRegistryService;
+import egovframework.com.common.util.ReactPageUrlMapper;
+import egovframework.com.feature.admin.dto.response.MenuInfoDTO;
 import egovframework.com.feature.admin.model.vo.FeatureCatalogItemVO;
 import egovframework.com.feature.admin.service.AuthGroupManageService;
+import egovframework.com.feature.admin.service.MenuInfoService;
 import egovframework.com.feature.admin.service.ScreenCommandCenterService;
 import org.springframework.stereotype.Service;
 
@@ -12,6 +15,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -19,17 +23,20 @@ import java.util.Set;
 public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterService {
 
     private final AuthGroupManageService authGroupManageService;
+    private final MenuInfoService menuInfoService;
     private final UiManifestRegistryService uiManifestRegistryService;
 
     public ScreenCommandCenterServiceImpl(AuthGroupManageService authGroupManageService,
+                                          MenuInfoService menuInfoService,
                                           UiManifestRegistryService uiManifestRegistryService) {
         this.authGroupManageService = authGroupManageService;
+        this.menuInfoService = menuInfoService;
         this.uiManifestRegistryService = uiManifestRegistryService;
     }
 
     @Override
     public Map<String, Object> getScreenCommandPage(String pageId) throws Exception {
-        String normalizedPageId = normalize(pageId);
+        String normalizedPageId = canonicalPageId(normalize(pageId));
         if (normalizedPageId.isEmpty()) {
             normalizedPageId = "member-list";
         }
@@ -58,61 +65,26 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
 
     private List<Map<String, Object>> buildPageOptions() {
         List<Map<String, Object>> pages = new ArrayList<>();
-        pages.add(pageOption("home", "홈", "/home", "HMENU_HOME", "home"));
-        pages.add(pageOption("admin-home", "관리자 홈", "/admin/", "AMENU_ADMIN_HOME", "admin"));
-        pages.add(pageOption("admin-login", "관리자 로그인", "/admin/login/loginView", "AMENU_ADMIN_LOGIN", "admin"));
-        pages.add(pageOption("auth-group", "권한 그룹", "/admin/auth/group", "AMENU_AUTH_GROUP", "admin"));
-        pages.add(pageOption("auth-change", "권한 변경", "/admin/member/auth-change", "AMENU_AUTH_CHANGE", "admin"));
-        pages.add(pageOption("dept-role", "부서 권한 맵핑", "/admin/member/dept-role-mapping", "AMENU_DEPT_ROLE", "admin"));
-        pages.add(pageOption("admin-list", "관리자 목록", "/admin/member/admin_list", "AMENU_ADMIN_LIST", "admin"));
-        pages.add(pageOption("company-approve", "회원사 승인", "/admin/member/company-approve", "AMENU_COMPANY_APPROVE", "admin"));
-        pages.add(pageOption("signin-login", "로그인", "/signin/loginView", "HMENU_SIGNIN_LOGIN", "home"));
-        pages.add(pageOption("signin-auth-choice", "인증 수단 선택", "/signin/authChoice", "HMENU_SIGNIN_AUTH_CHOICE", "home"));
-        pages.add(pageOption("signin-find-id", "아이디 찾기", "/signin/findId", "HMENU_SIGNIN_FIND_ID", "home"));
-        pages.add(pageOption("signin-find-id-result", "아이디 찾기 결과", "/signin/findId/result", "HMENU_SIGNIN_FIND_ID_RESULT", "home"));
-        pages.add(pageOption("signin-find-password", "비밀번호 찾기", "/signin/findPassword", "HMENU_SIGNIN_FIND_PASSWORD", "home"));
-        pages.add(pageOption("signin-find-password-result", "비밀번호 찾기 완료", "/signin/findPassword/result", "HMENU_SIGNIN_FINDPW_RESULT", "home"));
-        pages.add(pageOption("signin-forbidden", "접근 거부", "/signin/loginForbidden", "HMENU_SIGNIN_FORBIDDEN", "home"));
-        pages.add(pageOption("member-approve", "회원 승인", "/admin/member/approve", "AMENU_MEMBER_APPROVE", "admin"));
-        pages.add(pageOption("member-list", "회원 목록", "/admin/member/list", "AMENU_MEMBER_LIST", "admin"));
-        pages.add(pageOption("member-detail", "회원 상세", "/admin/member/detail", "AMENU_MEMBER_DETAIL", "admin"));
-        pages.add(pageOption("member-edit", "회원 수정", "/admin/member/edit", "AMENU_MEMBER_EDIT", "admin"));
-        pages.add(pageOption("company-detail", "기관 상세", "/admin/member/company_detail", "AMENU_COMPANY_DETAIL", "admin"));
-        pages.add(pageOption("company-account", "회원사 수정", "/admin/member/company_account", "AMENU_COMPANY_ACCOUNT", "admin"));
-        pages.add(pageOption("join-company-register", "회원사 등록", "/join/companyRegister", "HMENU_JOIN_COMPANY_REGISTER", "join"));
-        pages.add(pageOption("join-company-register-complete", "회원사 등록 완료", "/join/companyRegisterComplete", "HMENU_JOIN_COMP_REG_DONE", "join"));
-        pages.add(pageOption("join-company-status", "회원사 가입 현황 조회", "/join/companyJoinStatusSearch", "HMENU_JOIN_COMPANY_STATUS", "join"));
-        pages.add(pageOption("join-company-status-guide", "회원사 가입 현황 안내", "/join/companyJoinStatusGuide", "HMENU_JOIN_COMP_STAT_GUIDE", "join"));
-        pages.add(pageOption("join-company-status-detail", "회원사 가입 현황 상세", "/join/companyJoinStatusDetail", "HMENU_JOIN_COMP_STAT_DETAIL", "join"));
-        pages.add(pageOption("join-company-reapply", "회원사 재신청", "/join/companyReapply", "HMENU_JOIN_COMPANY_REAPPLY", "join"));
-        pages.add(pageOption("join-wizard", "가입 단계", "/join/step1", "HMENU_JOIN_STEP1", "join"));
-        pages.add(pageOption("join-terms", "약관 동의", "/join/step2", "HMENU_JOIN_STEP2", "join"));
-        pages.add(pageOption("join-auth", "본인 확인", "/join/step3", "HMENU_JOIN_STEP3", "join"));
-        pages.add(pageOption("join-info", "정보 입력", "/join/step4", "HMENU_JOIN_STEP4", "join"));
-        pages.add(pageOption("join-complete", "가입 완료", "/join/step5", "HMENU_JOIN_STEP5", "join"));
-        pages.add(pageOption("mypage", "마이페이지", "/mypage", "HMENU_MYPAGE", "home"));
-        pages.add(pageOption("observability", "감사/추적 조회", "/admin/system/observability", "AMENU_SYSTEM_OBSERVABILITY", "admin"));
-        pages.add(pageOption("help-management", "도움말 운영", "/admin/system/help-management", "AMENU_SYSTEM_HELP_MANAGEMENT", "admin"));
-        pages.add(pageOption("full-stack-management", "풀스택 관리", "/admin/system/full-stack-management", "A0060108", "admin"));
-        pages.add(pageOption("platform-studio", "플랫폼 스튜디오", "/admin/system/platform-studio", "A0060109", "admin"));
-        pages.add(pageOption("screen-elements-management", "화면 요소 관리", "/admin/system/screen-elements-management", "A0060110", "admin"));
-        pages.add(pageOption("event-management-console", "이벤트 관리", "/admin/system/event-management-console", "A0060111", "admin"));
-        pages.add(pageOption("function-management-console", "함수 콘솔", "/admin/system/function-management-console", "A0060112", "admin"));
-        pages.add(pageOption("api-management-console", "API 관리", "/admin/system/api-management-console", "A0060113", "admin"));
-        pages.add(pageOption("controller-management-console", "컨트롤러 관리", "/admin/system/controller-management-console", "A0060114", "admin"));
-        pages.add(pageOption("db-table-management", "DB 테이블 관리", "/admin/system/db-table-management", "A0060115", "admin"));
-        pages.add(pageOption("column-management-console", "컬럼 관리", "/admin/system/column-management-console", "A0060116", "admin"));
-        pages.add(pageOption("automation-studio", "자동화 스튜디오", "/admin/system/automation-studio", "A0060117", "admin"));
-        pages.add(pageOption("environment-management", "메뉴 통합 관리", "/admin/system/environment-management", "A0060118", "admin"));
-        pages.add(pageOption("sr-workbench", "SR 워크벤치", "/admin/system/sr-workbench", "AMENU_SYSTEM_SR_WORKBENCH", "admin"));
         Set<String> knownPageIds = new LinkedHashSet<>();
-        for (Map<String, Object> page : pages) {
-            knownPageIds.add(stringValue(page.get("pageId")));
-        }
+        addStaticPageOption(pages, knownPageIds, "home", "홈", "/home", "HMENU_HOME", "home");
+        addStaticPageOption(pages, knownPageIds, "admin-home", "관리자 홈", "/admin/", "AMENU_ADMIN_HOME", "admin");
+        addStaticPageOption(pages, knownPageIds, "admin-login", "관리자 로그인", "/admin/login/loginView", "AMENU_ADMIN_LOGIN", "admin");
+        addStaticPageOption(pages, knownPageIds, "signin-login", "로그인", "/signin/loginView", "HMENU_SIGNIN_LOGIN", "home");
+        addStaticPageOption(pages, knownPageIds, "signin-auth-choice", "인증 수단 선택", "/signin/authChoice", "HMENU_SIGNIN_AUTH_CHOICE", "home");
+        addStaticPageOption(pages, knownPageIds, "signin-find-id", "아이디 찾기", "/signin/findId", "HMENU_SIGNIN_FIND_ID", "home");
+        addStaticPageOption(pages, knownPageIds, "signin-find-id-result", "아이디 찾기 결과", "/signin/findId/result", "HMENU_SIGNIN_FIND_ID_RESULT", "home");
+        addStaticPageOption(pages, knownPageIds, "signin-find-password", "비밀번호 찾기", "/signin/findPassword", "HMENU_SIGNIN_FIND_PASSWORD", "home");
+        addStaticPageOption(pages, knownPageIds, "signin-find-password-result", "비밀번호 찾기 완료", "/signin/findPassword/result", "HMENU_SIGNIN_FINDPW_RESULT", "home");
+        addStaticPageOption(pages, knownPageIds, "signin-forbidden", "접근 거부", "/signin/loginForbidden", "HMENU_SIGNIN_FORBIDDEN", "home");
+        addStaticPageOption(pages, knownPageIds, "mypage", "마이페이지", "/mypage", "HMENU_MYPAGE", "home");
+        addManagedMenuPageOptions(pages, knownPageIds, "AMENU1");
+        addManagedMenuPageOptions(pages, knownPageIds, "HMENU1");
         for (Map<String, Object> registryPage : uiManifestRegistryService.selectActivePageOptions()) {
-            String pageId = stringValue(registryPage.get("pageId"));
+            String pageId = canonicalPageId(stringValue(registryPage.get("pageId")));
             if (!pageId.isEmpty() && !knownPageIds.contains(pageId)) {
+                registryPage.put("pageId", pageId);
                 pages.add(registryPage);
+                knownPageIds.add(pageId);
             }
         }
         return pages;
@@ -152,6 +124,8 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                 return buildSigninForbiddenPage();
             case "member-approve":
                 return buildMemberApprovePage();
+            case "company-list":
+                return buildCompanyListPage();
             case "member-detail":
                 return buildMemberDetailPage();
             case "member-edit":
@@ -220,12 +194,17 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
     }
 
     private Map<String, Object> buildRegistryDraftPage(String pageId) {
-        Map<String, Object> manifestRegistry = uiManifestRegistryService.getPageRegistry(pageId);
-        String routePath = stringValue(manifestRegistry.get("routePath"));
-        String menuCode = stringValue(manifestRegistry.get("menuCode"));
-        String domainCode = firstNonBlank(stringValue(manifestRegistry.get("domainCode")), "admin");
-        String pageName = firstNonBlank(stringValue(manifestRegistry.get("pageName")), pageId);
-        Map<String, Object> page = pageOption(pageId, pageName, routePath, menuCode, domainCode);
+        String normalizedPageId = canonicalPageId(pageId);
+        Map<String, Object> manifestRegistry = uiManifestRegistryService.getPageRegistry(normalizedPageId);
+        MenuInfoDTO menuInfo = findManagedMenuByPageId(normalizedPageId);
+        String routePath = firstNonBlank(stringValue(manifestRegistry.get("routePath")), menuInfo == null ? "" : stringValue(menuInfo.getMenuUrl()));
+        String menuCode = firstNonBlank(stringValue(manifestRegistry.get("menuCode")), menuInfo == null ? "" : stringValue(menuInfo.getCode()));
+        String domainCode = firstNonBlank(stringValue(manifestRegistry.get("domainCode")), inferDomainCode(routePath, menuCode));
+        String pageName = firstNonBlank(stringValue(manifestRegistry.get("pageName")), menuInfo == null ? "" : stringValue(menuInfo.getCodeNm()), normalizedPageId);
+        if (stringValue(manifestRegistry.get("pageId")).isEmpty()) {
+            manifestRegistry = uiManifestRegistryService.ensureManagedPageDraft(normalizedPageId, pageName, routePath, menuCode, domainCode);
+        }
+        Map<String, Object> page = pageOption(normalizedPageId, pageName, routePath, menuCode, domainCode);
         List<Map<String, Object>> events = buildDraftEvents(pageName, routePath, menuCode, domainCode);
         List<Map<String, Object>> apis = buildDraftApis(pageName, routePath, menuCode, domainCode);
         List<Map<String, Object>> schemas = buildDraftSchemas(pageName, routePath, menuCode, domainCode);
@@ -264,6 +243,108 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                     "자동 생성된 기본 draft content"));
         }
         return surfaces;
+    }
+
+    private void addStaticPageOption(List<Map<String, Object>> pages,
+                                     Set<String> knownPageIds,
+                                     String pageId,
+                                     String label,
+                                     String routePath,
+                                     String menuCode,
+                                     String domainCode) {
+        String normalizedPageId = canonicalPageId(pageId);
+        if (normalizedPageId.isEmpty() || knownPageIds.contains(normalizedPageId)) {
+            return;
+        }
+        pages.add(pageOption(normalizedPageId, label, routePath, menuCode, domainCode));
+        knownPageIds.add(normalizedPageId);
+    }
+
+    private void addManagedMenuPageOptions(List<Map<String, Object>> pages,
+                                           Set<String> knownPageIds,
+                                           String codeId) {
+        try {
+            for (MenuInfoDTO menu : menuInfoService.selectMenuTreeList(codeId)) {
+                if (menu == null) {
+                    continue;
+                }
+                String menuCode = normalize(stringValue(menu.getCode())).toUpperCase(Locale.ROOT);
+                String menuUrl = normalize(stringValue(menu.getMenuUrl()));
+                if (menuCode.length() != 8 || menuUrl.isEmpty() || "#".equals(menuUrl)) {
+                    continue;
+                }
+                String pageId = canonicalPageId(resolvePageIdForMenu(menuUrl, menuCode));
+                if (pageId.isEmpty() || knownPageIds.contains(pageId)) {
+                    continue;
+                }
+                pages.add(pageOption(
+                        pageId,
+                        firstNonBlank(stringValue(menu.getCodeNm()), pageId),
+                        menuUrl,
+                        menuCode,
+                        inferDomainCode(menuUrl, menuCode)
+                ));
+                knownPageIds.add(pageId);
+            }
+        } catch (Exception ignored) {
+            // Keep the screen-command catalog available even if menu metadata lookup fails.
+        }
+    }
+
+    private MenuInfoDTO findManagedMenuByPageId(String pageId) {
+        String normalizedPageId = canonicalPageId(pageId);
+        for (String codeId : List.of("AMENU1", "HMENU1")) {
+            try {
+                for (MenuInfoDTO menu : menuInfoService.selectMenuTreeList(codeId)) {
+                    if (menu == null) {
+                        continue;
+                    }
+                    String menuCode = normalize(stringValue(menu.getCode())).toUpperCase(Locale.ROOT);
+                    String menuUrl = normalize(stringValue(menu.getMenuUrl()));
+                    if (menuCode.length() != 8 || menuUrl.isEmpty() || "#".equals(menuUrl)) {
+                        continue;
+                    }
+                    if (normalizedPageId.equals(canonicalPageId(resolvePageIdForMenu(menuUrl, menuCode)))) {
+                        return menu;
+                    }
+                }
+            } catch (Exception ignored) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private String resolvePageIdForMenu(String menuUrl, String menuCode) {
+        String routeId = ReactPageUrlMapper.resolveRouteIdForPath(menuUrl);
+        if (!routeId.isEmpty()) {
+            return canonicalPageId(routeId);
+        }
+        if (!normalize(menuCode).isEmpty()) {
+            return canonicalPageId(menuCode);
+        }
+        return canonicalPageId(menuUrl);
+    }
+
+    private String canonicalPageId(String value) {
+        return normalize(value)
+                .toLowerCase(Locale.ROOT)
+                .replace('_', '-')
+                .replaceAll("[^a-z0-9\\-]", "-")
+                .replaceAll("-{2,}", "-")
+                .replaceAll("^-|-$", "");
+    }
+
+    private String inferDomainCode(String routePath, String menuCode) {
+        String normalizedRoutePath = normalize(routePath);
+        String normalizedMenuCode = normalize(menuCode).toUpperCase(Locale.ROOT);
+        if (normalizedRoutePath.startsWith("/admin/") || normalizedMenuCode.startsWith("A")) {
+            return "admin";
+        }
+        if (normalizedRoutePath.startsWith("/join/")) {
+            return "join";
+        }
+        return "home";
     }
 
     private List<String> buildDraftSurfaceEventIds(String layoutZone, String routePath, String domainCode) {
@@ -1563,7 +1644,8 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         ));
         page.put("apis", Arrays.asList(
                 api("admin.member.list.page", "회원 목록 조회", "GET", "/api/admin/member/list/page",
-                        "AdminMainController.memberListPageApi", "AdminMainController.populateMemberList",
+                        "AdminMainController.memberListPageApi / AdminMainController.populateMemberList",
+                        "EnterpriseMemberService.selectEntrprsMberListTotCnt / EnterpriseMemberService.selectEntrprsMberList",
                         "EntrprsManageMapper.selectEntrprsMberList / selectEntrprsMberListTotCnt",
                         Arrays.asList("COMTNENTRPRSMBER"), Arrays.asList("member-list-query"),
                         "검색조건에 따라 관리자 목록을 조회합니다."),
@@ -1580,6 +1662,48 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                         "메뉴/페이지 기능 권한 연결에 사용됩니다."),
                 codeGroup("MEMBER_STATUS", "회원 상태", Arrays.asList("신청", "승인", "반려", "재신청"),
                         "목록 필터와 상태 배지에 반영됩니다.")
+        ));
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
+    private Map<String, Object> buildCompanyListPage() {
+        Map<String, Object> page = pageOption("company-list", "회원사 목록", "/admin/member/company_list", "AMENU_COMPANY_LIST", "admin");
+        page.put("summary", "회원사 목록 검색, 상태 필터, 상세 이동이 집중되는 관리자 회원사 목록 화면입니다.");
+        page.put("source", "frontend/src/features/company-list/CompanyListMigrationPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("company-list-search-form", "회원사 검색 폼", "[data-help-id=\"company-list-search\"]", "CompanyListSearchForm", "actions",
+                        Collections.singletonList("company-list-search-submit"), "검색어와 상태 필터로 회원사 목록을 조회합니다."),
+                surface("company-list-table", "회원사 목록 테이블", "[data-help-id=\"company-list-table\"]", "CompanyListTable", "content",
+                        Arrays.asList("company-list-row-detail", "company-list-export"), "행 단위 상세 이동과 엑셀 내보내기를 제공합니다.")
+        ));
+        page.put("events", Arrays.asList(
+                event("company-list-search-submit", "회원사 목록 조회", "submit", "handleSearch", "[data-help-id=\"company-list-search\"] form",
+                        Arrays.asList("admin.member.company-list.page"), "검색 조건으로 회원사 목록을 다시 조회합니다."),
+                event("company-list-row-detail", "회원사 상세 이동", "click", "handleMoveDetail", "[data-help-id=\"company-list-table\"] [data-action=\"detail\"]",
+                        Arrays.asList("route.admin.member.company-detail"), "선택한 회원사 상세 화면으로 이동합니다."),
+                event("company-list-export", "회원사 엑셀 다운로드", "click", "handleExportExcel", "[data-help-id=\"company-list-search\"] a[href*=\"company_list/excel\"]",
+                        Arrays.asList("route.admin.member.company-list-excel"), "현재 조건으로 회원사 목록 엑셀을 내려받습니다.")
+        ));
+        page.put("apis", Arrays.asList(
+                api("admin.member.company-list.page", "회원사 목록 조회", "GET", "/api/admin/member/company-list/page",
+                        "AdminMainController.companyListPageApi", "AdminMainController.populateCompanyList",
+                        "EntrprsManageService.searchCompanyListPaged",
+                        Arrays.asList("COMTNINSTTINFO"), Arrays.asList("company-list-query"),
+                        "검색조건에 따라 회원사 목록을 조회합니다."),
+                routeApi("route.admin.member.company-detail", "회원사 상세 화면 이동", "/admin/member/company_detail", "AMENU_COMPANY_DETAIL"),
+                routeApi("route.admin.member.company-list-excel", "회원사 엑셀 다운로드", "/admin/member/company_list/excel", "AMENU_COMPANY_LIST")
+        ));
+        page.put("schemas", Arrays.asList(
+                schema("company-list-query", "회원사 목록 조회 모델", "COMTNINSTTINFO",
+                        Arrays.asList("INSTT_ID", "CMPNY_NM", "BIZRNO", "RPRSNTV_NM", "SBSCRB_STTUS"),
+                        Arrays.asList("SELECT"), "회원사 상태/기관명/대표자 조회에 사용됩니다.")
+        ));
+        page.put("commonCodeGroups", Arrays.asList(
+                codeGroup("AMENU1", "관리자 메뉴 코드", Arrays.asList("AMENU_COMPANY_LIST", "AMENU_COMPANY_DETAIL"),
+                        "회원사 목록/상세 메뉴 권한 연결에 사용됩니다."),
+                codeGroup("COMPANY_STATUS", "회원사 상태", Arrays.asList("P", "A", "R", "D", "X"),
+                        "회원사 목록 상태 필터와 상태 배지에 사용됩니다.")
         ));
         page.put("changeTargets", defaultChangeTargets());
         return page;
@@ -2304,14 +2428,27 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
     private Map<String, Object> api(String apiId, String label, String method, String endpoint,
                                     String controllerAction, String serviceMethod, String mapperQuery,
                                     List<String> relatedTables, List<String> schemaIds, String notes) {
+        return api(apiId, label, method, endpoint,
+                splitChainValues(controllerAction),
+                splitChainValues(serviceMethod),
+                splitChainValues(mapperQuery),
+                relatedTables, schemaIds, notes);
+    }
+
+    private Map<String, Object> api(String apiId, String label, String method, String endpoint,
+                                    List<String> controllerActions, List<String> serviceMethods, List<String> mapperQueries,
+                                    List<String> relatedTables, List<String> schemaIds, String notes) {
         Map<String, Object> api = new LinkedHashMap<>();
         api.put("apiId", apiId);
         api.put("label", label);
         api.put("method", method);
         api.put("endpoint", endpoint);
-        api.put("controllerAction", controllerAction);
-        api.put("serviceMethod", serviceMethod);
-        api.put("mapperQuery", mapperQuery);
+        api.put("controllerAction", joinChainValues(controllerActions));
+        api.put("serviceMethod", joinChainValues(serviceMethods));
+        api.put("mapperQuery", joinChainValues(mapperQueries));
+        api.put("controllerActions", controllerActions);
+        api.put("serviceMethods", serviceMethods);
+        api.put("mapperQueries", mapperQueries);
         api.put("relatedTables", relatedTables);
         api.put("schemaIds", schemaIds);
         api.put("notes", notes);
@@ -2322,8 +2459,29 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
     }
 
     private Map<String, Object> routeApi(String apiId, String label, String endpoint, String menuCode) {
-        return api(apiId, label, "GET", endpoint, "RouteForward", "React router / server forward", "N/A",
+        return api(apiId, label, "GET", endpoint,
+                Collections.singletonList("RouteForward"),
+                Collections.singletonList("React router / server forward"),
+                Collections.singletonList("N/A"),
                 Collections.singletonList(menuCode), Collections.emptyList(), "화면 이동 경로입니다.");
+    }
+
+    private List<String> splitChainValues(String value) {
+        if (value == null) {
+            return Collections.emptyList();
+        }
+        List<String> items = new ArrayList<>();
+        for (String token : value.split("\\r?\\n|\\s+/\\s+")) {
+            String normalized = normalize(token);
+            if (!normalized.isEmpty()) {
+                items.add(normalized);
+            }
+        }
+        return items;
+    }
+
+    private String joinChainValues(List<String> values) {
+        return String.join(" / ", values == null ? Collections.emptyList() : values);
     }
 
     private Map<String, Object> schema(String schemaId, String label, String tableName, List<String> columns,

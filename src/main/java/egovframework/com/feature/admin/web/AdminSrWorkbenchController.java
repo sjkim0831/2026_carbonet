@@ -4,7 +4,7 @@ import egovframework.com.feature.admin.dto.request.SrTicketApprovalRequest;
 import egovframework.com.feature.admin.dto.request.SrTicketCreateRequest;
 import egovframework.com.feature.admin.dto.request.SrTicketExecuteRequest;
 import egovframework.com.feature.admin.service.SrTicketWorkbenchService;
-import egovframework.com.feature.home.web.ReactMigrationViewSupport;
+import egovframework.com.feature.home.web.ReactAppViewSupport;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -29,12 +29,12 @@ import java.util.Map;
 public class AdminSrWorkbenchController {
 
     private final SrTicketWorkbenchService srTicketWorkbenchService;
-    private final ReactMigrationViewSupport reactMigrationViewSupport;
+    private final ReactAppViewSupport reactAppViewSupport;
 
     @RequestMapping(value = "/system/sr-workbench", method = RequestMethod.GET)
     public String srWorkbenchPage(HttpServletRequest request, Locale locale, Model model) {
         boolean en = isEnglishRequest(request, locale);
-        reactMigrationViewSupport.populate(model, "sr-workbench", en, true);
+        reactAppViewSupport.populate(model, "sr-workbench", en, true);
         model.addAttribute("pageTitle", en ? "SR Workbench" : "SR 워크벤치");
         model.addAttribute("pageSubtitle", en
                 ? "Issue SR tickets, review approvals, and prepare Codex execution in the shared admin workspace."

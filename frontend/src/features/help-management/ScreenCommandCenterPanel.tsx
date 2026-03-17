@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   fetchScreenCommandPage,
+  getScreenCommandChainText,
+  getScreenCommandChainValues,
   ScreenCommandApi,
   ScreenCommandChangeTarget,
   ScreenCommandEvent,
@@ -32,7 +34,11 @@ function buildDirectionPreview(params: {
     `대상 요소: ${params.surface ? `${params.surface.label} [${params.surface.selector}]` : "미선택"}`,
     `이벤트: ${params.event ? `${params.event.label} / ${params.event.frontendFunction}` : "미선택"}`,
     `API/라우트: ${params.api ? `${params.api.method} ${params.api.endpoint}` : "미선택"}`,
-    `백엔드 연결: ${params.api ? `${params.api.controllerAction} -> ${params.api.serviceMethod} -> ${params.api.mapperQuery}` : "미선택"}`,
+    `백엔드 연결: ${params.api ? [
+      getScreenCommandChainText(params.api.controllerActions, params.api.controllerAction),
+      getScreenCommandChainText(params.api.serviceMethods, params.api.serviceMethod),
+      getScreenCommandChainText(params.api.mapperQueries, params.api.mapperQuery)
+    ].join(" -> ") : "미선택"}`,
     `함수 입력: ${params.event?.functionInputs?.map((item) => `${item.fieldId}:${item.type}`).join(", ") || "미선택"}`,
     `API 요청: ${params.api?.requestFields?.map((item) => `${item.fieldId}:${item.type}`).join(", ") || "미선택"}`,
     `스키마: ${params.schema ? `${params.schema.tableName} (${params.schema.columns.join(", ")})` : "미선택"}`,
@@ -330,13 +336,17 @@ export function ScreenCommandCenterPanel({ initialPageId }: ScreenCommandCenterP
             <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4">
               <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">API / Controller</p>
               <p className="mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)]">{selectedApi ? `${selectedApi.method} ${selectedApi.endpoint}` : "-"}</p>
-              <p className="mt-2 break-all text-xs text-gray-500">{selectedApi?.controllerAction || "-"}</p>
-              <p className="mt-1 break-all text-xs text-gray-500">{selectedApi?.serviceMethod || "-"}</p>
+              <p className="mt-2 break-all text-xs text-gray-500">{getScreenCommandChainText(selectedApi?.controllerActions, selectedApi?.controllerAction || "")}</p>
+              <p className="mt-1 break-all text-xs text-gray-500">{getScreenCommandChainText(selectedApi?.serviceMethods, selectedApi?.serviceMethod || "")}</p>
             </article>
             <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4">
               <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">Schema</p>
               <p className="mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)]">{selectedSchema?.tableName || "-"}</p>
-              <p className="mt-2 break-all text-xs text-gray-500">{selectedApi?.mapperQuery || "-"}</p>
+              <div className="mt-2 space-y-1">
+                {getScreenCommandChainValues(selectedApi?.mapperQueries, selectedApi?.mapperQuery || "").length > 0 ? getScreenCommandChainValues(selectedApi?.mapperQueries, selectedApi?.mapperQuery || "").map((item) => (
+                  <p key={item} className="break-all text-xs text-gray-500">{item}</p>
+                )) : <p className="break-all text-xs text-gray-500">-</p>}
+              </div>
               <p className="mt-1 text-xs text-gray-500">{selectedSchema?.notes || "-"}</p>
             </article>
             {renderFieldSpecs("Function Inputs", selectedEvent?.functionInputs)}

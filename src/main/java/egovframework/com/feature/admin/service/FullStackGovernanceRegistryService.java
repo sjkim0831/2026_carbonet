@@ -133,6 +133,9 @@ public class FullStackGovernanceRegistryService {
         entry.put("parameterSpecs", normalizeFieldSpecs(request == null ? null : request.getParameterSpecs()));
         entry.put("resultSpecs", normalizeFieldSpecs(request == null ? null : request.getResultSpecs()));
         entry.put("apiIds", normalizeList(request == null ? null : request.getApiIds()));
+        entry.put("controllerActions", normalizeList(request == null ? null : request.getControllerActions()));
+        entry.put("serviceMethods", normalizeList(request == null ? null : request.getServiceMethods()));
+        entry.put("mapperQueries", normalizeList(request == null ? null : request.getMapperQueries()));
         entry.put("schemaIds", normalizeList(request == null ? null : request.getSchemaIds()));
         List<String> normalizedColumns = normalizeColumns(request == null ? null : request.getColumnNames());
         List<String> normalizedTables = normalizeTables(request == null ? null : request.getTableNames(), normalizedColumns);
@@ -166,6 +169,9 @@ public class FullStackGovernanceRegistryService {
         List<String> parameterSpecs = mergeFieldSpecs(existing.get("parameterSpecs"), collectFieldSpecs(events, apis, true));
         List<String> resultSpecs = mergeFieldSpecs(existing.get("resultSpecs"), collectFieldSpecs(events, apis, false));
         List<String> apiIds = mergeLists(existing.get("apiIds"), collectSimpleValues(apis, "apiId"));
+        List<String> controllerActions = mergeLists(existing.get("controllerActions"), collectSimpleValues(apis, "controllerAction"));
+        List<String> serviceMethods = mergeLists(existing.get("serviceMethods"), collectSimpleValues(apis, "serviceMethod"));
+        List<String> mapperQueries = mergeLists(existing.get("mapperQueries"), collectSimpleValues(apis, "mapperQuery"));
         List<String> schemaIds = mergeLists(existing.get("schemaIds"), collectSimpleValues(schemas, "schemaId"));
         List<String> tableNames = mergeUpper(existing.get("tableNames"), collectTables(apis, schemas));
         List<String> columnNames = mergeUpper(existing.get("columnNames"), collectColumns(schemas));
@@ -190,6 +196,9 @@ public class FullStackGovernanceRegistryService {
         entry.put("parameterSpecs", parameterSpecs);
         entry.put("resultSpecs", resultSpecs);
         entry.put("apiIds", apiIds);
+        entry.put("controllerActions", controllerActions);
+        entry.put("serviceMethods", serviceMethods);
+        entry.put("mapperQueries", mapperQueries);
         entry.put("schemaIds", schemaIds);
         entry.put("tableNames", normalizeTables(tableNames, normalizeColumns(columnNames)));
         entry.put("columnNames", normalizeColumns(columnNames));
@@ -502,6 +511,9 @@ public class FullStackGovernanceRegistryService {
         entry.put("parameterSpecs", Collections.emptyList());
         entry.put("resultSpecs", Collections.emptyList());
         entry.put("apiIds", Collections.emptyList());
+        entry.put("controllerActions", Collections.emptyList());
+        entry.put("serviceMethods", Collections.emptyList());
+        entry.put("mapperQueries", Collections.emptyList());
         entry.put("schemaIds", Collections.emptyList());
         entry.put("tableNames", Collections.emptyList());
         entry.put("columnNames", Collections.emptyList());
@@ -531,6 +543,9 @@ public class FullStackGovernanceRegistryService {
         base.put("parameterSpecs", normalizeFieldSpecs(normalizeObjectList(source.get("parameterSpecs"))));
         base.put("resultSpecs", normalizeFieldSpecs(normalizeObjectList(source.get("resultSpecs"))));
         base.put("apiIds", normalizeObjectList(source.get("apiIds")));
+        base.put("controllerActions", normalizeObjectList(source.get("controllerActions")));
+        base.put("serviceMethods", normalizeObjectList(source.get("serviceMethods")));
+        base.put("mapperQueries", normalizeObjectList(source.get("mapperQueries")));
         base.put("schemaIds", normalizeObjectList(source.get("schemaIds")));
         List<String> normalizedColumns = normalizeColumns(normalizeObjectList(source.get("columnNames")));
         base.put("tableNames", normalizeTables(normalizeObjectList(source.get("tableNames")), normalizedColumns));

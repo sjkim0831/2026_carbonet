@@ -6,6 +6,8 @@ import {
   executeSrTicket,
   fetchScreenCommandPage,
   fetchSrWorkbenchPage,
+  getScreenCommandChainText,
+  getScreenCommandChainValues,
   prepareSrExecution,
   ScreenCommandApi,
   ScreenCommandChangeTarget,
@@ -36,7 +38,11 @@ function buildDirectionPreview(params: {
     `대상 요소: ${params.surface ? `${params.surface.label} [${params.surface.selector}]` : "미선택"}`,
     `이벤트: ${params.event ? `${params.event.label} / ${params.event.frontendFunction}` : "미선택"}`,
     `API: ${params.api ? `${params.api.method} ${params.api.endpoint}` : "미선택"}`,
-    `백엔드: ${params.api ? `${params.api.controllerAction} -> ${params.api.serviceMethod} -> ${params.api.mapperQuery}` : "미선택"}`,
+    `백엔드: ${params.api ? [
+      getScreenCommandChainText(params.api.controllerActions, params.api.controllerAction),
+      getScreenCommandChainText(params.api.serviceMethods, params.api.serviceMethod),
+      getScreenCommandChainText(params.api.mapperQueries, params.api.mapperQuery)
+    ].join(" -> ") : "미선택"}`,
     `스키마: ${params.schema ? `${params.schema.tableName} (${params.schema.columns.join(", ")})` : "미선택"}`,
     `수정 레이어: ${params.target ? `${params.target.label} [${params.target.editableFields.join(", ")}]` : "미선택"}`,
     `실행 지시: ${params.instruction || "구체 지시 필요"}`
@@ -445,13 +451,17 @@ export function SrWorkbenchMigrationPage() {
             <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4">
               <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">API / Controller</p>
               <p className="mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)]">{selectedApi ? `${selectedApi.method} ${selectedApi.endpoint}` : "-"}</p>
-              <p className="mt-2 text-xs text-gray-500 break-all">{selectedApi?.controllerAction || "-"}</p>
-              <p className="mt-1 text-xs text-gray-500 break-all">{selectedApi?.serviceMethod || "-"}</p>
+              <p className="mt-2 text-xs text-gray-500 break-all">{getScreenCommandChainText(selectedApi?.controllerActions, selectedApi?.controllerAction || "")}</p>
+              <p className="mt-1 text-xs text-gray-500 break-all">{getScreenCommandChainText(selectedApi?.serviceMethods, selectedApi?.serviceMethod || "")}</p>
             </div>
             <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4">
               <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">Schema</p>
               <p className="mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)]">{selectedSchema?.tableName || "-"}</p>
-              <p className="mt-2 text-xs text-gray-500 break-all">{selectedApi?.mapperQuery || "-"}</p>
+              <div className="mt-2 space-y-1">
+                {getScreenCommandChainValues(selectedApi?.mapperQueries, selectedApi?.mapperQuery || "").length > 0 ? getScreenCommandChainValues(selectedApi?.mapperQueries, selectedApi?.mapperQuery || "").map((item) => (
+                  <p key={item} className="text-xs text-gray-500 break-all">{item}</p>
+                )) : <p className="text-xs text-gray-500 break-all">-</p>}
+              </div>
               <p className="mt-1 text-xs text-gray-500">{selectedSchema?.notes || "-"}</p>
             </div>
             <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4">

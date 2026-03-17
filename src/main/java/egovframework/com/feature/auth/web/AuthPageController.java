@@ -4,7 +4,7 @@ import egovframework.com.feature.auth.dto.request.LoginRequestDTO;
 import egovframework.com.feature.auth.util.JwtTokenProvider;
 import egovframework.com.feature.member.service.EnterpriseMemberService;
 import egovframework.com.feature.member.model.vo.EntrprsManageVO;
-import egovframework.com.feature.home.web.ReactMigrationViewSupport;
+import egovframework.com.feature.home.web.ReactAppViewSupport;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -30,7 +30,7 @@ public class AuthPageController {
 
     private final JwtTokenProvider jwtProvider;
     private final EnterpriseMemberService entrprsManageService;
-    private final ReactMigrationViewSupport reactMigrationViewSupport;
+    private final ReactAppViewSupport reactAppViewSupport;
 
     @GetMapping(value = "/index")
     public String login(LoginRequestDTO loginVO, Model model, HttpServletRequest request) {
@@ -54,7 +54,7 @@ public class AuthPageController {
         }
         String accessToken = jwtProvider.getCookie(request, "accessToken");
         if (ObjectUtils.isEmpty(accessToken)) {
-            return reactMigrationViewSupport.render(model, adminLoginRequest ? "admin-login" : "signin-login",
+            return reactAppViewSupport.render(model, adminLoginRequest ? "admin-login" : "signin-login",
                     "en".equals(resolvedLanguage), adminLoginRequest);
         } else {
             if (adminLoginRequest) {
@@ -104,7 +104,7 @@ public class AuthPageController {
         if (shouldRedirectToCanonicalPublicSignin(request, resolvedLanguage)) {
             return redirectToCanonicalSignin(request, resolvedLanguage, "/authChoice");
         }
-        return reactMigrationViewSupport.render(model, "signin-auth-choice", "en".equals(resolvedLanguage), false);
+        return reactAppViewSupport.render(model, "signin-auth-choice", "en".equals(resolvedLanguage), false);
     }
 
     @GetMapping("/findId")
@@ -114,7 +114,7 @@ public class AuthPageController {
         if (shouldRedirectToCanonicalPublicSignin(request, resolvedLanguage)) {
             return redirectToCanonicalSignin(request, resolvedLanguage, "/findId");
         }
-        return reactMigrationViewSupport.render(model, "signin-find-id", "en".equals(resolvedLanguage), false);
+        return reactAppViewSupport.render(model, "signin-find-id", "en".equals(resolvedLanguage), false);
     }
 
     @GetMapping("/findId/overseas")
@@ -124,7 +124,7 @@ public class AuthPageController {
         if (shouldRedirectToCanonicalPublicSignin(request, resolvedLanguage)) {
             return redirectToCanonicalSignin(request, resolvedLanguage, "/findId/overseas");
         }
-        return reactMigrationViewSupport.render(model, "signin-find-id", "en".equals(resolvedLanguage), false);
+        return reactAppViewSupport.render(model, "signin-find-id", "en".equals(resolvedLanguage), false);
     }
 
     @GetMapping("/findPassword")
@@ -134,7 +134,7 @@ public class AuthPageController {
         if (shouldRedirectToCanonicalPublicSignin(request, resolvedLanguage)) {
             return redirectToCanonicalSignin(request, resolvedLanguage, "/findPassword");
         }
-        return reactMigrationViewSupport.render(model, "signin-find-password", "en".equals(resolvedLanguage), false);
+        return reactAppViewSupport.render(model, "signin-find-password", "en".equals(resolvedLanguage), false);
     }
 
     @GetMapping("/findPassword/overseas")
@@ -144,7 +144,7 @@ public class AuthPageController {
         if (shouldRedirectToCanonicalPublicSignin(request, resolvedLanguage)) {
             return redirectToCanonicalSignin(request, resolvedLanguage, "/findPassword/overseas");
         }
-        return reactMigrationViewSupport.render(model, "signin-find-password", "en".equals(resolvedLanguage), false);
+        return reactAppViewSupport.render(model, "signin-find-password", "en".equals(resolvedLanguage), false);
     }
 
     @GetMapping("/findPassword/result")
@@ -154,7 +154,7 @@ public class AuthPageController {
         if (shouldRedirectToCanonicalPublicSignin(request, resolvedLanguage)) {
             return redirectToCanonicalSignin(request, resolvedLanguage, "/findPassword/result");
         }
-        return reactMigrationViewSupport.render(model, "signin-find-password-result", "en".equals(resolvedLanguage), false);
+        return reactAppViewSupport.render(model, "signin-find-password-result", "en".equals(resolvedLanguage), false);
     }
 
     @GetMapping("/findId/result")
@@ -167,7 +167,7 @@ public class AuthPageController {
         if (shouldRedirectToCanonicalPublicSignin(request, resolvedLanguage)) {
             return redirectToCanonicalSignin(request, resolvedLanguage, "/findId/result");
         }
-        return reactMigrationViewSupport.render(model, "signin-find-id-result", "en".equals(resolvedLanguage), false);
+        return reactAppViewSupport.render(model, "signin-find-id-result", "en".equals(resolvedLanguage), false);
     }
 
     @GetMapping("/api/findId/result")
@@ -312,7 +312,7 @@ public class AuthPageController {
             return redirectToCanonicalSignin(request, resolvedLanguage, "/loginForbidden");
         }
         model.addAttribute("pathCode", pathCode);
-        return reactMigrationViewSupport.render(model, "signin-forbidden", "en".equals(resolvedLanguage), false);
+        return reactAppViewSupport.render(model, "signin-forbidden", "en".equals(resolvedLanguage), false);
     }
 
 }

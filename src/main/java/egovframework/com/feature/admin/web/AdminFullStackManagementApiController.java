@@ -22,7 +22,11 @@ import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/admin/full-stack-management")
+@RequestMapping({
+        "/api/admin/full-stack-management",
+        "/admin/api/admin/full-stack-management",
+        "/en/admin/api/admin/full-stack-management"
+})
 public class AdminFullStackManagementApiController {
 
     private final FullStackGovernanceRegistryService fullStackGovernanceRegistryService;
@@ -74,6 +78,7 @@ public class AdminFullStackManagementApiController {
     public ResponseEntity<Map<String, Object>> autoCollectRegistry(
             @RequestBody(required = false) FullStackGovernanceAutoCollectRequest request,
             HttpServletRequest httpServletRequest) throws Exception {
+        System.out.println("ENTERED autoCollectRegistry");
         Map<String, Object> response = new LinkedHashMap<>();
         try {
             Map<String, Object> beforeState = fullStackGovernanceRegistryService.getEntry(request == null ? "" : request.getMenuCode());
@@ -101,6 +106,11 @@ public class AdminFullStackManagementApiController {
             response.put("success", false);
             response.put("message", safe(e.getMessage()));
             return ResponseEntity.badRequest().body(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.put("success", false);
+            response.put("message", "Error: " + safe(e.getMessage()));
+            return ResponseEntity.status(500).body(response);
         }
     }
 

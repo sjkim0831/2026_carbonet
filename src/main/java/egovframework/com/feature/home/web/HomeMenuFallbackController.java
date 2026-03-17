@@ -6,12 +6,18 @@ import egovframework.com.feature.home.service.HomeMenuService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.Cookie;
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 
 @Controller
 @RequiredArgsConstructor
@@ -19,7 +25,7 @@ public class HomeMenuFallbackController {
 
     private final MenuInfoService menuInfoService;
     private final HomeMenuService homeMenuService;
-    private final ReactMigrationViewSupport reactMigrationViewSupport;
+    private final ReactAppViewSupport reactAppViewSupport;
 
     @RequestMapping(
             value = {
@@ -32,26 +38,36 @@ public class HomeMenuFallbackController {
                     "/en/mypage/profile", "/en/mypage/company", "/en/mypage/staff", "/en/mypage/notification",
                     "/en/mypage/password", "/en/mypage/email", "/en/mypage/marketing"
             },
-            method = { RequestMethod.GET, RequestMethod.POST })
+            method = { RequestMethod.GET })
     public String homeMenuPlaceholder(HttpServletRequest request, Locale locale, Model model) {
         boolean isEn = isEnglishRequest(request, locale);
         String normalized = normalizeRequestUri(request);
         if (normalized.startsWith("/mypage/")) {
-            return reactMigrationViewSupport.render(model, "mypage", isEn, false);
+            return reactAppViewSupport.render(model, "mypage", isEn, false);
         }
         MenuInfoDTO menu = loadMenu(normalized);
         if (menu == null) {
             return isEn ? "redirect:/en/home" : "redirect:/home";
         }
+        return reactAppViewSupport.render(model, "home-menu-placeholder", isEn, false);
+    }
 
-        model.addAttribute("isLoggedIn", hasAccessToken(request));
-        model.addAttribute("homeMenu", homeMenuService.getHomeMenu(isEn));
-        model.addAttribute("placeholderTitle", isEn ? fallbackLabel(menu.getCodeDc(), menu.getCodeNm()) : fallbackLabel(menu.getCodeNm(), menu.getCodeDc()));
-        model.addAttribute("placeholderTitleEn", fallbackLabel(menu.getCodeDc(), menu.getCodeNm()));
-        model.addAttribute("placeholderCode", safeString(menu.getCode()));
-        model.addAttribute("placeholderUrl", request.getRequestURI());
-        model.addAttribute("placeholderIcon", safeString(menu.getMenuIcon()).isEmpty() ? "web" : safeString(menu.getMenuIcon()));
-        return isEn ? "egovframework/com/home/menu_placeholder_en" : "egovframework/com/home/menu_placeholder";
+    @GetMapping("/api/home/menu-placeholder")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> homeMenuPlaceholderApi(
+            @RequestParam(value = "requestPath", required = false) String requestPath,
+            HttpServletRequest request,
+            Locale locale) {
+        return ResponseEntity.ok(buildPlaceholderPayload(requestPath, request, locale, false));
+    }
+
+    @GetMapping("/api/en/home/menu-placeholder")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> homeMenuPlaceholderApiEn(
+            @RequestParam(value = "requestPath", required = false) String requestPath,
+            HttpServletRequest request,
+            Locale locale) {
+        return ResponseEntity.ok(buildPlaceholderPayload(requestPath, request, locale, true));
     }
 
     private MenuInfoDTO loadMenu(String normalizedUrl) {
@@ -60,6 +76,28 @@ public class HomeMenuFallbackController {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private Map<String, Object> buildPlaceholderPayload(
+            String requestPath,
+            HttpServletRequest request,
+            Locale locale,
+            boolean forceEn) {
+        boolean isEn = forceEn || isEnglishRequest(request, locale);
+        String normalized = normalizeRequestPath(requestPath, request);
+        MenuInfoDTO menu = loadMenu(normalized);
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("isLoggedIn", hasAccessToken(request));
+        payload.put("isEn", isEn);
+        payload.put("homeMenu", homeMenuService.getHomeMenu(isEn));
+        if (menu != null) {
+            payload.put("placeholderTitle", isEn ? fallbackLabel(menu.getCodeDc(), menu.getCodeNm()) : fallbackLabel(menu.getCodeNm(), menu.getCodeDc()));
+            payload.put("placeholderTitleEn", fallbackLabel(menu.getCodeDc(), menu.getCodeNm()));
+            payload.put("placeholderCode", safeString(menu.getCode()));
+            payload.put("placeholderUrl", safeString(requestPath).isEmpty() ? (request == null ? "" : request.getRequestURI()) : safeString(requestPath));
+            payload.put("placeholderIcon", safeString(menu.getMenuIcon()).isEmpty() ? "web" : safeString(menu.getMenuIcon()));
+        }
+        return payload;
     }
 
     private boolean isEnglishRequest(HttpServletRequest request, Locale locale) {
@@ -79,6 +117,18 @@ public class HomeMenuFallbackController {
     private String normalizeRequestUri(HttpServletRequest request) {
         String requestUri = request == null ? "" : safeString(request.getRequestURI());
         return requestUri.startsWith("/en/") ? requestUri.substring(3) : requestUri;
+    }
+
+    private String normalizeRequestPath(String requestPath, HttpServletRequest request) {
+        String value = safeString(requestPath);
+        if (value.isEmpty()) {
+            return normalizeRequestUri(request);
+        }
+        int queryIndex = value.indexOf('?');
+        if (queryIndex >= 0) {
+            value = value.substring(0, queryIndex);
+        }
+        return value.startsWith("/en/") ? value.substring(3) : value;
     }
 
     private String fallbackLabel(String primary, String fallback) {

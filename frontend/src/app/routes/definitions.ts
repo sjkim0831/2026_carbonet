@@ -54,6 +54,8 @@ export type MigrationPageId =
   | "observability"
   | "help-management"
   | "sr-workbench"
+  | "admin-sitemap"
+  | "admin-menu-placeholder"
   | "join-company-register"
   | "join-company-register-complete"
   | "join-company-status"
@@ -65,7 +67,9 @@ export type MigrationPageId =
   | "join-auth"
   | "join-info"
   | "join-complete"
-  | "mypage";
+  | "mypage"
+  | "sitemap"
+  | "home-menu-placeholder";
 
 export type RouteDefinition = {
   id: MigrationPageId;
@@ -131,6 +135,8 @@ export const ROUTES: RouteDefinition[] = [
   { id: "observability", label: "추적 조회", group: "admin", koPath: "/admin/system/observability", enPath: "/en/admin/system/observability" },
   { id: "help-management", label: "도움말 운영", group: "admin", koPath: "/admin/system/help-management", enPath: "/en/admin/system/help-management" },
   { id: "sr-workbench", label: "SR 워크벤치", group: "admin", koPath: "/admin/system/sr-workbench", enPath: "/en/admin/system/sr-workbench" },
+  { id: "admin-sitemap", label: "관리자 사이트맵", group: "admin", koPath: "/admin/content/sitemap", enPath: "/en/admin/content/sitemap" },
+  { id: "admin-menu-placeholder", label: "관리자 메뉴 플레이스홀더", group: "admin", koPath: "/admin/placeholder", enPath: "/en/admin/placeholder" },
   { id: "join-company-register", label: "공개 회원사 등록", group: "join", koPath: "/join/companyRegister", enPath: "/join/en/companyRegister" },
   { id: "join-company-register-complete", label: "회원사 등록 완료", group: "join", koPath: "/join/companyRegisterComplete", enPath: "/join/en/companyRegisterComplete" },
   { id: "join-company-status", label: "가입 현황 조회", group: "join", koPath: "/join/companyJoinStatusSearch", enPath: "/join/en/companyJoinStatusSearch" },
@@ -142,7 +148,9 @@ export const ROUTES: RouteDefinition[] = [
   { id: "join-auth", label: "회원가입 본인확인", group: "join", koPath: "/join/step3", enPath: "/join/en/step3" },
   { id: "join-info", label: "회원가입 정보입력", group: "join", koPath: "/join/step4", enPath: "/join/en/step4" },
   { id: "join-complete", label: "회원가입 완료", group: "join", koPath: "/join/step5", enPath: "/join/en/step5" },
-  { id: "mypage", label: "마이페이지", group: "home", koPath: "/mypage", enPath: "/en/mypage" }
+  { id: "mypage", label: "마이페이지", group: "home", koPath: "/mypage", enPath: "/en/mypage" },
+  { id: "sitemap", label: "사이트맵", group: "home", koPath: "/sitemap", enPath: "/en/sitemap" },
+  { id: "home-menu-placeholder", label: "사용자 메뉴 플레이스홀더", group: "home", koPath: "/placeholder", enPath: "/en/placeholder" }
 ];
 
 export function normalizeRouteId(value: string | null | undefined): MigrationPageId | "" {

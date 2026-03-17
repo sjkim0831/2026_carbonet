@@ -72,6 +72,8 @@ export const pageComponents: Record<MigrationPageId, ComponentType> = {
   "observability": lazyNamed(() => import("../../features/observability/ObservabilityMigrationPage"), "ObservabilityMigrationPage"),
   "help-management": lazyNamed(() => import("../../features/help-management/HelpManagementMigrationPage"), "HelpManagementMigrationPage"),
   "sr-workbench": lazyNamed(() => import("../../features/sr-workbench/SrWorkbenchMigrationPage"), "SrWorkbenchMigrationPage"),
+  "admin-sitemap": lazyNamed(() => import("../../features/admin-sitemap/AdminSitemapMigrationPage"), "AdminSitemapMigrationPage"),
+  "admin-menu-placeholder": lazyNamed(() => import("../../features/admin-placeholder/AdminMenuPlaceholderPage"), "AdminMenuPlaceholderPage"),
   "join-company-register": lazyNamed(() => import("../../features/join-company-register/JoinCompanyRegisterMigrationPage"), "JoinCompanyRegisterMigrationPage"),
   "join-company-register-complete": lazyNamed(() => import("../../features/join-company-register/JoinCompanyRegisterCompleteMigrationPage"), "JoinCompanyRegisterCompleteMigrationPage"),
   "join-company-status": lazyNamed(sharedJoinCompanyStatusLoader, "JoinCompanyStatusMigrationPage"),
@@ -83,7 +85,9 @@ export const pageComponents: Record<MigrationPageId, ComponentType> = {
   "join-auth": lazyNamed(() => import("../../features/join-wizard/JoinAuthMigrationPage"), "JoinAuthMigrationPage"),
   "join-info": lazyNamed(() => import("../../features/join-wizard/JoinInfoMigrationPage"), "JoinInfoMigrationPage"),
   "join-complete": lazyNamed(() => import("../../features/join-wizard/JoinCompleteMigrationPage"), "JoinCompleteMigrationPage"),
-  "mypage": lazyNamed(() => import("../../features/mypage/MypageMigrationPage"), "MypageMigrationPage")
+  "mypage": lazyNamed(() => import("../../features/mypage/MypageMigrationPage"), "MypageMigrationPage"),
+  "sitemap": lazyNamed(() => import("../../features/sitemap/SitemapMigrationPage"), "SitemapMigrationPage"),
+  "home-menu-placeholder": lazyNamed(() => import("../../features/home-placeholder/HomeMenuPlaceholderPage"), "HomeMenuPlaceholderPage")
 };
 
 const preloadedModules: Partial<Record<MigrationPageId, Promise<unknown>>> = {};
@@ -131,7 +135,11 @@ const pagePreloaders: Partial<Record<MigrationPageId, () => Promise<unknown>>> =
   "security-monitoring": () => import("../../features/security-monitoring/SecurityMonitoringMigrationPage"),
   "blocklist": () => import("../../features/blocklist/BlocklistMigrationPage"),
   "security-audit": () => import("../../features/security-audit/SecurityAuditMigrationPage"),
-  "scheduler-management": () => import("../../features/scheduler-management/SchedulerManagementMigrationPage")
+  "scheduler-management": () => import("../../features/scheduler-management/SchedulerManagementMigrationPage"),
+  "admin-sitemap": () => import("../../features/admin-sitemap/AdminSitemapMigrationPage"),
+  "admin-menu-placeholder": () => import("../../features/admin-placeholder/AdminMenuPlaceholderPage"),
+  "sitemap": () => import("../../features/sitemap/SitemapMigrationPage"),
+  "home-menu-placeholder": () => import("../../features/home-placeholder/HomeMenuPlaceholderPage")
 };
 
 export function getPageComponent(route: MigrationPageId): ComponentType {

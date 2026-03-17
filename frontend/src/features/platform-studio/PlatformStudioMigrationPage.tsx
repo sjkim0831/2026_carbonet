@@ -7,6 +7,7 @@ import {
   fetchFullStackManagementPage,
   fetchScreenCommandPage,
   fetchSrWorkbenchPage,
+  getScreenCommandChainText,
   saveFullStackGovernanceRegistry,
   type FullStackGovernanceRegistryEntry,
   type MenuManagementPagePayload,
@@ -147,6 +148,9 @@ function emptyEditor(): RegistryEditor {
     parameterSpecs: [],
     resultSpecs: [],
     apiIds: [],
+    controllerActions: [],
+    serviceMethods: [],
+    mapperQueries: [],
     schemaIds: [],
     tableNames: [],
     columnNames: [],
@@ -258,7 +262,7 @@ export function PlatformStudioMigrationPage() {
       rows.push({ layer: en ? "Function" : "함수", id: item, detail: en ? "Triggered from selected event" : "선택 이벤트에서 호출" });
     });
     (commandDetail.apis || []).filter((item) => derivedSelection.apis.includes(item.apiId)).forEach((item) => {
-      rows.push({ layer: "API", id: item.apiId, detail: `${item.method} ${item.endpoint} / ${item.controllerAction}` });
+      rows.push({ layer: "API", id: item.apiId, detail: `${item.method} ${item.endpoint} / ${getScreenCommandChainText(item.controllerActions, item.controllerAction, " / ")}` });
     });
     (commandDetail.schemas || []).filter((item) => derivedSelection.schemas.includes(item.schemaId)).forEach((item) => {
       rows.push({ layer: en ? "Schema" : "스키마", id: item.schemaId, detail: `${item.tableName} / ${(item.columns || []).length} ${en ? "columns" : "컬럼"}` });
@@ -406,6 +410,9 @@ export function PlatformStudioMigrationPage() {
         parameterSpecs: splitLines(registryEditor.parameterSpecs),
         resultSpecs: splitLines(registryEditor.resultSpecs),
         apiIds: splitLines(registryEditor.apiIds),
+        controllerActions: registryEntry?.controllerActions || [],
+        serviceMethods: registryEntry?.serviceMethods || [],
+        mapperQueries: registryEntry?.mapperQueries || [],
         schemaIds: splitLines(registryEditor.schemaIds),
         tableNames: splitLines(registryEditor.tableNames),
         columnNames: splitLines(registryEditor.columnNames),
@@ -650,7 +657,7 @@ export function PlatformStudioMigrationPage() {
                   {(commandDetail?.apis || []).map((item) => (
                     <label key={item.apiId} className="flex gap-2 text-sm">
                       <input type="checkbox" checked={targetSelection.apiIds.includes(item.apiId)} onChange={() => setTargetSelection((current) => ({ ...current, apiIds: toggleSelection(current.apiIds, item.apiId) }))} />
-                      <span><strong>{item.apiId}</strong><br />{item.method} {item.endpoint}<br /><span className="text-[var(--kr-gov-text-secondary)]">{item.controllerAction}</span></span>
+                      <span><strong>{item.apiId}</strong><br />{item.method} {item.endpoint}<br /><span className="text-[var(--kr-gov-text-secondary)]">{getScreenCommandChainText(item.controllerActions, item.controllerAction, " / ")}</span></span>
                     </label>
                   ))}
                   {(commandDetail?.schemas || []).map((item) => (
@@ -749,14 +756,14 @@ export function PlatformStudioMigrationPage() {
                 <tbody>
                   {(focus === "events" ? (commandDetail?.events || []).map((item) => ({ type: "event", id: item.eventId, label: item.label, extra: `${item.frontendFunction} / ${(item.apiIds || []).join(", ")}` })) :
                     focus === "functions" ? (commandDetail?.events || []).map((item) => ({ type: "function", id: item.frontendFunction, label: item.label, extra: `${(item.functionInputs || []).length} in / ${(item.functionOutputs || []).length} out` })) :
-                    focus === "apis" || focus === "controllers" ? (commandDetail?.apis || []).map((item) => ({ type: "api", id: item.apiId, label: `${item.method} ${item.endpoint}`, extra: `${item.controllerAction} -> ${item.serviceMethod}` })) :
+                    focus === "apis" || focus === "controllers" ? (commandDetail?.apis || []).map((item) => ({ type: "api", id: item.apiId, label: `${item.method} ${item.endpoint}`, extra: `${getScreenCommandChainText(item.controllerActions, item.controllerAction)} -> ${getScreenCommandChainText(item.serviceMethods, item.serviceMethod)}` })) :
                     focus === "db" ? splitLines(registryEditor.tableNames).map((item) => ({ type: "table", id: item, label: item, extra: splitLines(registryEditor.columnNames).filter((column) => column.startsWith(`${item}.`)).length + " columns" })) :
                     focus === "columns" ? splitLines(registryEditor.columnNames).map((item) => ({ type: "column", id: item, label: item, extra: splitLines(registryEditor.apiIds).join(", ") || "-" })) :
                     focus === "surfaces" ? (commandDetail?.surfaces || []).map((item) => ({ type: "surface", id: item.surfaceId, label: item.label, extra: `${item.selector} / ${item.componentId}` })) :
                     [
                       ...(commandDetail?.surfaces || []).map((item) => ({ type: "surface", id: item.surfaceId, label: item.label, extra: item.componentId })),
                       ...(commandDetail?.events || []).map((item) => ({ type: "event", id: item.eventId, label: item.label, extra: item.frontendFunction })),
-                      ...(commandDetail?.apis || []).map((item) => ({ type: "api", id: item.apiId, label: `${item.method} ${item.endpoint}`, extra: item.controllerAction }))
+                      ...(commandDetail?.apis || []).map((item) => ({ type: "api", id: item.apiId, label: `${item.method} ${item.endpoint}`, extra: getScreenCommandChainText(item.controllerActions, item.controllerAction, " / ") }))
                     ]).map((row) => (
                     <tr key={`${row.type}-${row.id}`}>
                       <td>{row.type}</td>

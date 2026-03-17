@@ -42,6 +42,7 @@ import egovframework.com.common.audit.AuditTrailService;
 import egovframework.com.common.util.ReactPageUrlMapper;
 import egovframework.com.common.logging.RequestExecutionLogService;
 import egovframework.com.common.logging.RequestExecutionLogVO;
+import egovframework.com.feature.home.web.ReactAppViewSupport;
 import io.jsonwebtoken.Claims;
 import egovframework.com.common.service.CmmnDetailCode;
 import egovframework.com.common.model.ComDefaultCodeVO;
@@ -127,6 +128,7 @@ public class AdminMainController {
     private final MenuInfoService menuInfoService;
     private final RequestExecutionLogService requestExecutionLogService;
     private final AuditTrailService auditTrailService;
+    private final ReactAppViewSupport reactAppViewSupport;
 
     @RequestMapping(value = { "", "/" }, method = { RequestMethod.GET, RequestMethod.POST })
     public String adminMainEntry(HttpServletRequest request, Locale locale) {
@@ -546,7 +548,7 @@ public class AdminMainController {
         }
 
         response.putAll(model);
-        response.put("canViewMemberEdit", !safeString((String) model.get("member_editError")).contains("본인 회사"));
+        response.put("canViewMemberEdit", model.get("member") != null && model.get("member_editError") == null);
         response.put("canUseMemberSave", ObjectUtils.isEmpty(model.get("member_editError")));
         return ResponseEntity.ok(response);
     }
@@ -900,7 +902,7 @@ public class AdminMainController {
         ExtendedModelMap model = new ExtendedModelMap();
         primeCsrfToken(request);
         String viewName = isEn ? "egovframework/com/admin/member_detail_en" : "egovframework/com/admin/member_detail";
-        member_detail(memberId, request, locale, model);
+        populateMemberDetailModel(memberId, request, model, isEn);
         Map<String, Object> response = new LinkedHashMap<>();
         response.putAll(model);
         response.put("viewName", viewName);
@@ -4503,7 +4505,23 @@ public class AdminMainController {
                 .body(content);
     }
 
-    @RequestMapping(value = "/**", method = { RequestMethod.GET, RequestMethod.POST })
+    @GetMapping("/api/admin/menu-placeholder")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> adminMenuPlaceholderApi(
+            @RequestParam(value = "requestPath", required = false) String requestPath,
+            HttpServletRequest request,
+            Locale locale) {
+        boolean isEn = isEnglishRequest(request, locale);
+        MenuInfoDTO menu = loadMenuByPath(requestPath);
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("isEn", isEn);
+        if (menu != null) {
+            populateAdminFallbackPayload(payload, requestPath, isEn, menu);
+        }
+        return ResponseEntity.ok(payload);
+    }
+
+    @RequestMapping(value = "/**", method = { RequestMethod.GET })
     public String adminFallback(HttpServletRequest request, Locale locale, Model model) {
         String accessToken = jwtProvider.getCookie(request, "accessToken");
         if (ObjectUtils.isEmpty(accessToken)) {
@@ -4511,16 +4529,9 @@ public class AdminMainController {
         }
         MenuInfoDTO menu = loadMenuByRequestPath(request);
         if (menu != null) {
-            populateAdminFallbackModel(model, request, locale, menu);
-            if (isEnglishRequest(request, locale)) {
-                return "egovframework/com/admin/menu_placeholder_en";
-            }
-            return "egovframework/com/admin/menu_placeholder";
+            return reactAppViewSupport.render(model, "admin-menu-placeholder", isEnglishRequest(request, locale), true);
         }
-        if (isEnglishRequest(request, locale)) {
-            return "egovframework/com/admin/index_en";
-        }
-        return "egovframework/com/admin/index";
+        return reactAppViewSupport.render(model, "admin-home", isEnglishRequest(request, locale), true);
     }
 
     private MenuInfoDTO loadMenuByRequestPath(HttpServletRequest request) {
@@ -4531,7 +4542,21 @@ public class AdminMainController {
         if (ObjectUtils.isEmpty(requestUri)) {
             return null;
         }
-        String normalized = requestUri.startsWith("/en/") ? requestUri.substring(3) : requestUri;
+        return loadMenuByPath(requestUri);
+    }
+
+    private MenuInfoDTO loadMenuByPath(String requestPath) {
+        String normalized = safeString(requestPath);
+        if (normalized.isEmpty()) {
+            return null;
+        }
+        int queryIndex = normalized.indexOf('?');
+        if (queryIndex >= 0) {
+            normalized = normalized.substring(0, queryIndex);
+        }
+        if (normalized.startsWith("/en/")) {
+            normalized = normalized.substring(3);
+        }
         try {
             MenuInfoDTO menu = menuInfoService.selectMenuDetailByUrl(normalized);
             if (menu == null || ObjectUtils.isEmpty(menu.getCode())) {
@@ -4546,11 +4571,15 @@ public class AdminMainController {
 
     private void populateAdminFallbackModel(Model model, HttpServletRequest request, Locale locale, MenuInfoDTO menu) {
         boolean isEn = isEnglishRequest(request, locale);
-        model.addAttribute("placeholderTitle", isEn ? fallbackLabel(menu.getCodeDc(), menu.getCodeNm()) : fallbackLabel(menu.getCodeNm(), menu.getCodeDc()));
-        model.addAttribute("placeholderTitleEn", fallbackLabel(menu.getCodeDc(), menu.getCodeNm()));
-        model.addAttribute("placeholderCode", safeString(menu.getCode()));
-        model.addAttribute("placeholderUrl", request.getRequestURI());
-        model.addAttribute("placeholderIcon", safeString(menu.getMenuIcon()).isEmpty() ? "web" : safeString(menu.getMenuIcon()));
+        populateAdminFallbackPayload(model.asMap(), request == null ? "" : request.getRequestURI(), isEn, menu);
+    }
+
+    private void populateAdminFallbackPayload(Map<String, Object> target, String requestPath, boolean isEn, MenuInfoDTO menu) {
+        target.put("placeholderTitle", isEn ? fallbackLabel(menu.getCodeDc(), menu.getCodeNm()) : fallbackLabel(menu.getCodeNm(), menu.getCodeDc()));
+        target.put("placeholderTitleEn", fallbackLabel(menu.getCodeDc(), menu.getCodeNm()));
+        target.put("placeholderCode", safeString(menu.getCode()));
+        target.put("placeholderUrl", safeString(requestPath));
+        target.put("placeholderIcon", safeString(menu.getMenuIcon()).isEmpty() ? "web" : safeString(menu.getMenuIcon()));
     }
 
     private String fallbackLabel(String primary, String fallback) {
@@ -6713,6 +6742,63 @@ public class AdminMainController {
                 currentUserId);
     }
 
+    private void populateMemberDetailModel(String memberId, HttpServletRequest request, Model model,
+                                           boolean isEn) {
+        ensureMemberDetailDefaults(model, isEn);
+        String normalizedMemberId = safeString(memberId);
+        model.addAttribute("memberId", normalizedMemberId);
+
+        if (normalizedMemberId.isEmpty()) {
+            model.addAttribute("member_detailError", isEn ? "Member ID was not provided." : "회원 ID가 전달되지 않았습니다.");
+            return;
+        }
+
+        try {
+            EntrprsManageVO member = entrprsManageService.selectEntrprsmberByMberId(normalizedMemberId);
+            if (member == null || safeString(member.getEntrprsmberId()).isEmpty()) {
+                model.addAttribute("member_detailError", isEn ? "Member information was not found." : "회원 정보를 찾을 수 없습니다.");
+                return;
+            }
+            if (!canCurrentAdminAccessMember(request, member)) {
+                model.addAttribute("member_detailError", isEn
+                        ? "You can only view members in your own company."
+                        : "본인 회사 소속 회원만 조회할 수 있습니다.");
+                return;
+            }
+
+            InstitutionStatusVO institutionInfo = loadInstitutionInfo(member);
+            EntrprsManageVO displayMember = mergeMemberWithInstitutionInfo(member, institutionInfo);
+            model.addAttribute("member", displayMember);
+            model.addAttribute("memberEvidenceFiles", loadEvidenceFiles(displayMember));
+            model.addAttribute("phoneNumber",
+                    formatPhoneNumber(displayMember.getAreaNo(), displayMember.getEntrprsMiddleTelno(), displayMember.getEntrprsEndTelno()));
+            model.addAttribute("membershipTypeLabel", isEn
+                    ? resolveMembershipTypeLabelEn(displayMember.getEntrprsSeCode())
+                    : resolveMembershipTypeLabel(displayMember.getEntrprsSeCode()));
+            model.addAttribute("statusLabel", isEn
+                    ? resolveStatusLabelEn(displayMember.getEntrprsMberSttus())
+                    : resolveStatusLabel(displayMember.getEntrprsMberSttus()));
+            model.addAttribute("statusBadgeClass", resolveStatusBadgeClass(displayMember.getEntrprsMberSttus()));
+
+            String selectedAuthorCode = safeString(authGroupManageService.selectEnterpriseAuthorCodeByUserId(displayMember.getEntrprsmberId()));
+            populatePermissionEditorModel(
+                    model,
+                    authGroupManageService.selectAuthorList(),
+                    selectedAuthorCode,
+                    safeString(displayMember.getUniqId()),
+                    null,
+                    isEn,
+                    extractCurrentUserId(request));
+
+            List<PasswordResetHistory> histories = authService.findRecentPasswordResetHistories(normalizedMemberId);
+            model.addAttribute("passwordResetHistoryRows", buildPasswordResetHistoryRows(histories));
+        } catch (Exception e) {
+            log.error("Failed to load member detail page api. memberId={}", normalizedMemberId, e);
+            model.addAttribute("member_detailError",
+                    isEn ? "An error occurred while retrieving member information." : "회원 정보 조회 중 오류가 발생했습니다.");
+        }
+    }
+
     private void ensureMemberEditDefaults(Model model, boolean isEn) {
         model.addAttribute("member", null);
         model.addAttribute("memberEvidenceFiles", Collections.emptyList());
@@ -6730,6 +6816,19 @@ public class AdminMainController {
         model.addAttribute("institutionStatusLabel", "-");
         model.addAttribute("institutionInsttId", "");
         model.addAttribute("documentStatusLabel", isEn ? "No document registered" : "등록 문서 없음");
+        ensurePermissionEditorDefaults(model, isEn);
+    }
+
+    private void ensureMemberDetailDefaults(Model model, boolean isEn) {
+        model.addAttribute("member", null);
+        model.addAttribute("memberId", "");
+        model.addAttribute("member_detailError", null);
+        model.addAttribute("memberEvidenceFiles", Collections.emptyList());
+        model.addAttribute("phoneNumber", "-");
+        model.addAttribute("membershipTypeLabel", isEn ? "Other" : "기타");
+        model.addAttribute("statusLabel", "-");
+        model.addAttribute("statusBadgeClass", resolveStatusBadgeClass(""));
+        model.addAttribute("passwordResetHistoryRows", Collections.emptyList());
         ensurePermissionEditorDefaults(model, isEn);
     }
 

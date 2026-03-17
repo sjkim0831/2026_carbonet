@@ -22,6 +22,9 @@ public class FullStackGovernanceSaveRequest {
     private List<String> parameterSpecs;
     private List<String> resultSpecs;
     private List<String> apiIds;
+    private List<String> controllerActions;
+    private List<String> serviceMethods;
+    private List<String> mapperQueries;
     private List<String> schemaIds;
     private List<String> tableNames;
     private List<String> columnNames;

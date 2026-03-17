@@ -105,6 +105,23 @@ function buildCsrfHeaders(extraHeaders?: Record<string, string>): Record<string,
   return headers;
 }
 
+async function buildResilientCsrfHeaders(extraHeaders?: Record<string, string>): Promise<Record<string, string>> {
+  const headers = buildCsrfHeaders(extraHeaders);
+  const { token } = getCsrfMeta();
+  if (token) {
+    return headers;
+  }
+  try {
+    const session = await fetchFrontendSession();
+    if (session.csrfHeaderName && session.csrfToken) {
+      headers[session.csrfHeaderName] = session.csrfToken;
+    }
+  } catch {
+    // Keep request handling deterministic. The server will still reject if no token is available.
+  }
+  return headers;
+}
+
 export type AuthGroupOption = {
   code: string;
   name: string;
@@ -364,8 +381,11 @@ export type ScreenCommandApi = {
   method: string;
   endpoint: string;
   controllerAction: string;
+  controllerActions?: string[];
   serviceMethod: string;
+  serviceMethods?: string[];
   mapperQuery: string;
+  mapperQueries?: string[];
   relatedTables: string[];
   schemaIds: string[];
   notes: string;
@@ -373,6 +393,30 @@ export type ScreenCommandApi = {
   responseFields: ScreenCommandFieldSpec[];
   maskingRules: ScreenCommandMaskRule[];
 };
+
+function normalizeChainValues(values: string[] | undefined, fallback: string) {
+  const normalized = (values || []).map((item) => item.trim()).filter(Boolean);
+  if (normalized.length > 0) {
+    return normalized;
+  }
+  return fallback.trim() ? [fallback.trim()] : [];
+}
+
+export function getScreenCommandChainValues(
+  values: string[] | undefined,
+  fallback: string
+) {
+  return normalizeChainValues(values, fallback);
+}
+
+export function getScreenCommandChainText(
+  values: string[] | undefined,
+  fallback: string,
+  separator = " -> "
+) {
+  const normalized = normalizeChainValues(values, fallback);
+  return normalized.length > 0 ? normalized.join(separator) : "-";
+}
 
 export type ScreenCommandFieldSpec = {
   fieldId: string;
@@ -478,6 +522,9 @@ export type FullStackGovernanceRegistryEntry = {
   parameterSpecs: string[];
   resultSpecs: string[];
   apiIds: string[];
+  controllerActions: string[];
+  serviceMethods: string[];
+  mapperQueries: string[];
   schemaIds: string[];
   tableNames: string[];
   columnNames: string[];
@@ -1738,7 +1785,7 @@ export async function fetchScreenCommandPage(pageId: string): Promise<ScreenComm
 
 export async function fetchFullStackGovernanceRegistry(menuCode: string): Promise<FullStackGovernanceRegistryEntry> {
   const query = menuCode ? `?menuCode=${encodeURIComponent(menuCode)}` : "";
-  const response = await fetch(`${buildAdminApiPath("/api/admin/full-stack-management/registry")}${query}`, {
+  const response = await fetch(`/api/admin/full-stack-management/registry${query}`, {
     credentials: "include",
     apiId: "admin.full-stack-management.registry"
   });
@@ -1746,11 +1793,11 @@ export async function fetchFullStackGovernanceRegistry(menuCode: string): Promis
 }
 
 export async function saveFullStackGovernanceRegistry(payload: FullStackGovernanceRegistryEntry) {
-  const response = await fetch(buildAdminApiPath("/api/admin/full-stack-management/registry"), {
+  const response = await fetch("/api/admin/full-stack-management/registry", {
     method: "POST",
     credentials: "include",
     apiId: "admin.full-stack-management.registry-save",
-    headers: buildCsrfHeaders({
+    headers: await buildResilientCsrfHeaders({
       "Content-Type": "application/json"
     }),
     body: JSON.stringify(payload)
@@ -1759,11 +1806,11 @@ export async function saveFullStackGovernanceRegistry(payload: FullStackGovernan
 }
 
 export async function autoCollectFullStackGovernanceRegistry(payload: FullStackGovernanceAutoCollectRequest) {
-  const response = await fetch(buildAdminApiPath("/api/admin/full-stack-management/registry/auto-collect"), {
+  const response = await fetch("/api/admin/full-stack-management/registry/auto-collect", {
     method: "POST",
     credentials: "include",
     apiId: "admin.full-stack-management.registry-auto-collect",
-    headers: buildCsrfHeaders({
+    headers: await buildResilientCsrfHeaders({
       "Content-Type": "application/json"
     }),
     body: JSON.stringify(payload)

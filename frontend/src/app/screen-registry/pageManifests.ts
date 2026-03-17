@@ -260,6 +260,19 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "CompanyApprovalTable", instanceKey: "company-approve-table", layoutZone: "content", propsSummary: ["rows", "pageIndex"] }
     ]
   },
+  "company-list": {
+    pageId: "company-list",
+    routePath: "/admin/member/company_list",
+    menuCode: "AMENU_COMPANY_LIST",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "CompanyListSearchForm", instanceKey: "company-list-search", layoutZone: "actions", propsSummary: ["searchKeyword", "sbscrbSttus", "pageIndex"] },
+      { componentId: "CompanyListTable", instanceKey: "company-list-table", layoutZone: "content", propsSummary: ["company_list", "totalCount", "pageIndex"] },
+      { componentId: "CompanyListPagination", instanceKey: "company-list-pagination", layoutZone: "actions", propsSummary: ["currentPage", "totalPages"] }
+    ]
+  },
   "company-account": {
     pageId: "company-account",
     routePath: "/admin/member/company_account",
@@ -536,7 +549,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     designTokenVersion: "krds-current",
     components: [
       { componentId: "PlatformStudioTabs", instanceKey: "platform-studio-tabs", layoutZone: "actions", propsSummary: ["focus=controllers"] },
-      { componentId: "PlatformStudioMetadataTable", instanceKey: "platform-studio-controllers", layoutZone: "content", propsSummary: ["controllerAction", "serviceMethod", "mapperQuery"] }
+      { componentId: "PlatformStudioMetadataTable", instanceKey: "platform-studio-controllers", layoutZone: "content", propsSummary: ["controllerActions", "serviceMethods", "mapperQueries"] }
     ]
   },
   "db-table-management": {

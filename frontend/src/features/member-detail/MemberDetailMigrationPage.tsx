@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { CanView } from "../../components/access/CanView";
+import { PermissionButton } from "../../components/access/CanUse";
 import { buildLocalizedPath, getSearchParam } from "../../lib/navigation/runtime";
-import { fetchMemberDetailPage, MemberDetailPagePayload } from "../../lib/api/client";
+import { fetchMemberDetailPage, MemberDetailPagePayload, resetMemberPasswordAction } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 
 function resolveInitialMemberId() {
@@ -11,6 +14,9 @@ function resolveInitialMemberId() {
 
 export function MemberDetailMigrationPage() {
   const initialMemberId = resolveInitialMemberId();
+  const [actionError, setActionError] = useState("");
+  const [message, setMessage] = useState("");
+  const sessionState = useFrontendSession();
   const pageState = useAsyncValue<MemberDetailPagePayload>(
     () => fetchMemberDetailPage(initialMemberId),
     [],
@@ -19,11 +25,29 @@ export function MemberDetailMigrationPage() {
     }
   );
   const page = pageState.value;
-  const error = pageState.error;
+  const error = actionError || sessionState.error || pageState.error;
   const member = (page?.member || {}) as Record<string, unknown>;
   const historyRows = (page?.passwordResetHistoryRows || []) as Array<Record<string, unknown>>;
   const authorGroups = (page?.permissionAuthorGroups || []) as Array<{ authorCode: string; authorNm: string }>;
   const effectiveFeatureCodes = (page?.permissionEffectiveFeatureCodes || []) as string[];
+  const memberEvidenceFiles = (page?.memberEvidenceFiles || []) as Array<Record<string, unknown>>;
+
+  async function handleResetPassword() {
+    const session = sessionState.value;
+    if (!session) {
+      setActionError("세션 정보가 없습니다.");
+      return;
+    }
+    setActionError("");
+    setMessage("");
+    try {
+      const result = await resetMemberPasswordAction(session, initialMemberId);
+      setMessage(`임시 비밀번호가 발급되었습니다: ${String(result.temporaryPassword || "-")}`);
+      await pageState.reload();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "비밀번호 초기화 중 오류가 발생했습니다.");
+    }
+  }
 
   return (
     <AdminPageShell
@@ -39,6 +63,7 @@ export function MemberDetailMigrationPage() {
       loadingLabel="회원 상세 정보를 불러오는 중입니다."
     >
       {error ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</section> : null}
+      {message ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</section> : null}
       <CanView allowed={!!page?.canViewMemberDetail} fallback={<section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm"><p className="text-sm text-[var(--kr-gov-text-secondary)]">회원 상세를 볼 권한이 없거나 대상이 없습니다.</p></section>}>
         <section className="mb-6 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-5 py-4 shadow-sm" data-help-id="member-detail-lookup">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -67,8 +92,21 @@ export function MemberDetailMigrationPage() {
                   <span className={`px-2.5 py-1 text-[12px] font-bold rounded border ${String(page?.statusBadgeClass || "bg-gray-100 text-gray-700 border-gray-200")}`}>{String(page?.statusLabel || "-")}</span>
                 </div>
                 <div className="w-full grid grid-cols-2 gap-2">
-                  <button className="py-2.5 bg-white border border-[var(--kr-gov-border-light)] text-[13px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-50" type="button">비밀번호 초기화</button>
-                  <button className="py-2.5 bg-white border border-[var(--kr-gov-border-light)] text-[13px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-50" type="button">상태 변경</button>
+                  <PermissionButton
+                    allowed={true}
+                    className="py-2.5 bg-white border border-[var(--kr-gov-border-light)] text-[13px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-50"
+                    onClick={handleResetPassword}
+                    reason=""
+                    type="button"
+                  >
+                    비밀번호 초기화
+                  </PermissionButton>
+                  <a
+                    className="inline-flex items-center justify-center py-2.5 bg-white border border-[var(--kr-gov-border-light)] text-[13px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-50"
+                    href={buildLocalizedPath(`/admin/member/edit?memberId=${encodeURIComponent(initialMemberId)}`, `/en/admin/member/edit?memberId=${encodeURIComponent(initialMemberId)}`)}
+                  >
+                    상태/정보 수정
+                  </a>
                 </div>
               </div>
             </section>
@@ -162,19 +200,23 @@ export function MemberDetailMigrationPage() {
                 <h3 className="font-bold text-lg">제출 증빙 서류</h3>
               </div>
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-100 rounded-[var(--kr-gov-radius)]">
-                  <div className="flex items-center gap-3">
-                    <span className="material-symbols-outlined text-gray-400">picture_as_pdf</span>
-                    <div>
-                      <p className="text-[14px] font-bold">사업자 등록증 사본</p>
-                      <p className="text-[12px] text-gray-500">{member.bizRegFilePath ? "첨부 문서가 등록되어 있습니다." : "등록된 파일이 없습니다."}</p>
+                {memberEvidenceFiles.length === 0 ? (
+                  <div className="rounded-[var(--kr-gov-radius)] border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-500">등록된 파일이 없습니다.</div>
+                ) : memberEvidenceFiles.map((file, index) => (
+                  <div className="flex items-center justify-between gap-3 p-4 bg-gray-50 border border-gray-100 rounded-[var(--kr-gov-radius)]" key={`${String(file.fileId || file.fileName || "file")}-${index}`}>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="material-symbols-outlined text-gray-400">picture_as_pdf</span>
+                      <div className="min-w-0">
+                        <p className="text-[14px] font-bold truncate">{String(file.fileName || "-")}</p>
+                        <p className="text-[12px] text-gray-500">등록일 {String(file.regDate || "-")}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      {file.previewUrl ? <a className="px-3 py-1.5 text-[12px] font-bold border border-[var(--kr-gov-border-light)] bg-white rounded hover:bg-gray-50" href={String(file.previewUrl)} target="_blank">미리보기</a> : null}
+                      {file.downloadUrl ? <a className="px-3 py-1.5 text-[12px] font-bold border border-[var(--kr-gov-border-light)] bg-white rounded hover:bg-gray-50" href={String(file.downloadUrl)}>다운로드</a> : null}
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <button className="px-3 py-1.5 text-[12px] font-bold border border-[var(--kr-gov-border-light)] bg-white rounded hover:bg-gray-50" type="button">미리보기</button>
-                    <button className="px-3 py-1.5 text-[12px] font-bold border border-[var(--kr-gov-border-light)] bg-white rounded hover:bg-gray-50" type="button">다운로드</button>
-                  </div>
-                </div>
+                ))}
               </div>
             </section>
 
@@ -196,10 +238,10 @@ export function MemberDetailMigrationPage() {
                     {historyRows.length === 0 ? (
                       <tr><td className="px-4 py-8 text-center text-gray-500" colSpan={3}>이력이 없습니다.</td></tr>
                     ) : historyRows.map((row, index) => (
-                      <tr key={`${String(row.resetPnttm || "reset")}-${index}`}>
-                        <td className="px-4 py-3">{String(row.resetPnttm || "-")}</td>
-                        <td className="px-4 py-3">{String(row.resetByUserId || "-")}</td>
-                        <td className="px-4 py-3">{String(row.resetReason || "-")}</td>
+                      <tr key={`${String(row.resetAt || "reset")}-${index}`}>
+                        <td className="px-4 py-3">{String(row.resetAt || "-")}</td>
+                        <td className="px-4 py-3">{String(row.resetBy || "-")}</td>
+                        <td className="px-4 py-3">{String(row.resetSource || row.resetIp || "-")}</td>
                       </tr>
                     ))}
                   </tbody>
