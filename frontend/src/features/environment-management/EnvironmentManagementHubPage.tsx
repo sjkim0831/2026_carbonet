@@ -57,6 +57,65 @@ type GovernanceOverview = {
   commonCodeGroups: string[];
 };
 
+type GovernanceChildElement = {
+  instanceKey: string;
+  componentId: string;
+  componentName: string;
+  layoutZone: string;
+  designReference: string;
+  notes: string;
+};
+
+type GovernanceSurfaceChain = {
+  surfaceId: string;
+  label: string;
+  selector: string;
+  componentId: string;
+  layoutZone: string;
+  notes: string;
+  childElements: GovernanceChildElement[];
+  events: Array<{
+    eventId: string;
+    label: string;
+    eventType: string;
+    frontendFunction: string;
+    triggerSelector: string;
+    notes: string;
+    functionInputs: Array<{ fieldId: string; type: string; source: string; required: boolean; notes: string }>;
+    functionOutputs: Array<{ fieldId: string; type: string; source: string; required: boolean; notes: string }>;
+    apis: Array<{
+      apiId: string;
+      label: string;
+      method: string;
+      endpoint: string;
+      controllerActions: string[];
+      serviceMethods: string[];
+      mapperQueries: string[];
+      requestFields: Array<{ fieldId: string; type: string; source: string; required: boolean; notes: string }>;
+      responseFields: Array<{ fieldId: string; type: string; source: string; required: boolean; notes: string }>;
+      schemaIds: string[];
+      relatedTables: string[];
+      schemas: Array<{ schemaId: string; label: string; tableName: string; columns: string[]; notes: string }>;
+    }>;
+  }>;
+};
+
+type GovernanceSurfaceEventTableRow = {
+  surfaceLabel: string;
+  surfaceId: string;
+  childElements: string;
+  eventLabel: string;
+  eventId: string;
+  eventType: string;
+  frontendFunction: string;
+  parameters: string;
+  results: string;
+  apiLabels: string;
+  controllerActions: string;
+  serviceMethods: string;
+  mapperQueries: string;
+};
+
 const ENVIRONMENT_MANAGEMENT_MENU_CODE = "A0060118";
 const KNOWN_GOVERNANCE_PAGE_IDS: Record<string, string> = {
   A0060118: "environment-management"
@@ -231,6 +290,118 @@ function renderMetaList(items: string[], emptyLabel: string) {
   );
 }
 
+function buildSurfaceChains(page: ScreenCommandPagePayload["page"] | null): GovernanceSurfaceChain[] {
+  if (!page) {
+    return [];
+  }
+  const events = page.events || [];
+  const apis = page.apis || [];
+  const schemas = page.schemas || [];
+  const manifestComponents = ((page.manifestRegistry?.components || []) as Array<Record<string, unknown>>);
+  return (page.surfaces || []).map((surface) => {
+    const surfaceEvents = events.filter((event) => (surface.eventIds || []).includes(event.eventId));
+    const childElements = manifestComponents
+      .filter((component) => {
+        const instanceKey = stringOf(component, "instanceKey");
+        const componentId = stringOf(component, "componentId");
+        const layoutZone = stringOf(component, "layoutZone");
+        return instanceKey === surface.surfaceId
+          || componentId === surface.componentId
+          || (!surface.componentId && layoutZone === surface.layoutZone)
+          || (layoutZone === surface.layoutZone && instanceKey.startsWith(surface.surfaceId));
+      })
+      .map((component) => ({
+        instanceKey: stringOf(component, "instanceKey"),
+        componentId: stringOf(component, "componentId"),
+        componentName: stringOf(component, "componentName"),
+        layoutZone: stringOf(component, "layoutZone"),
+        designReference: stringOf(component, "designReference"),
+        notes: stringOf(component, "conditionalRuleSummary")
+      }));
+    return {
+      surfaceId: surface.surfaceId,
+      label: surface.label,
+      selector: surface.selector,
+      componentId: surface.componentId,
+      layoutZone: surface.layoutZone,
+      notes: surface.notes,
+      childElements: childElements.filter((item, index, list) => (
+        list.findIndex((candidate) => `${candidate.instanceKey}-${candidate.componentId}` === `${item.instanceKey}-${item.componentId}`) === index
+      )),
+      events: surfaceEvents.map((event) => {
+        const connectedApis = (event.apiIds || []).map((apiId) => apis.find((candidate) => candidate.apiId === apiId)).filter(Boolean);
+        return {
+          eventId: event.eventId,
+          label: event.label,
+          eventType: event.eventType,
+          frontendFunction: event.frontendFunction,
+          triggerSelector: event.triggerSelector,
+          notes: event.notes,
+          functionInputs: event.functionInputs || [],
+          functionOutputs: event.functionOutputs || [],
+          apis: connectedApis.map((api) => ({
+            apiId: api!.apiId,
+            label: api!.label,
+            method: api!.method,
+            endpoint: api!.endpoint,
+            controllerActions: getScreenCommandChainValues(api!.controllerActions, api!.controllerAction),
+            serviceMethods: getScreenCommandChainValues(api!.serviceMethods, api!.serviceMethod),
+            mapperQueries: getScreenCommandChainValues(api!.mapperQueries, api!.mapperQuery),
+            requestFields: api!.requestFields || [],
+            responseFields: api!.responseFields || [],
+            schemaIds: api!.schemaIds || [],
+            relatedTables: api!.relatedTables || [],
+            schemas: (api!.schemaIds || []).map((schemaId) => schemas.find((schema) => schema.schemaId === schemaId)).filter(Boolean).map((schema) => ({
+              schemaId: schema!.schemaId,
+              label: schema!.label,
+              tableName: schema!.tableName,
+              columns: schema!.columns || [],
+              notes: schema!.notes
+            }))
+          }))
+        };
+      })
+    };
+  });
+}
+
+function buildSurfaceEventTableRows(chains: GovernanceSurfaceChain[]): GovernanceSurfaceEventTableRow[] {
+  return chains.flatMap((surface) => {
+    if (surface.events.length === 0) {
+      return [{
+        surfaceLabel: surface.label,
+        surfaceId: surface.surfaceId,
+        childElements: surface.childElements.map((item) => item.componentName || item.instanceKey || item.componentId).filter(Boolean).join(", "),
+        eventLabel: "-",
+        eventId: "-",
+        eventType: "-",
+        frontendFunction: "-",
+        parameters: "-",
+        results: "-",
+        apiLabels: "-",
+        controllerActions: "-",
+        serviceMethods: "-",
+        mapperQueries: "-"
+      }];
+    }
+    return surface.events.map((event) => ({
+      surfaceLabel: surface.label,
+      surfaceId: surface.surfaceId,
+      childElements: surface.childElements.map((item) => item.componentName || item.instanceKey || item.componentId).filter(Boolean).join(", "),
+      eventLabel: event.label,
+      eventId: event.eventId,
+      eventType: event.eventType,
+      frontendFunction: event.frontendFunction,
+      parameters: event.functionInputs.map((field) => `${field.fieldId}:${field.type}`).join(", ") || "-",
+      results: event.functionOutputs.map((field) => `${field.fieldId}:${field.type}`).join(", ") || "-",
+      apiLabels: event.apis.map((api) => `${api.apiId} (${api.method} ${api.endpoint})`).join(", ") || "-",
+      controllerActions: event.apis.flatMap((api) => api.controllerActions).join(", ") || "-",
+      serviceMethods: event.apis.flatMap((api) => api.serviceMethods).join(", ") || "-",
+      mapperQueries: event.apis.flatMap((api) => api.mapperQueries).join(", ") || "-"
+    }));
+  });
+}
+
 export function EnvironmentManagementHubPage() {
   const en = isEnglish();
   const searchParams = new URLSearchParams(window.location.search);
@@ -303,6 +474,14 @@ export function EnvironmentManagementHubPage() {
   const governanceDraftOnly = useMemo(
     () => isDraftOnlyGovernancePage(registryEntry, governancePage?.page || null),
     [governancePage?.page, registryEntry]
+  );
+  const governanceSurfaceChains = useMemo(
+    () => buildSurfaceChains(governancePage?.page || null),
+    [governancePage?.page]
+  );
+  const governanceSurfaceEventRows = useMemo(
+    () => buildSurfaceEventTableRows(governanceSurfaceChains),
+    [governanceSurfaceChains]
   );
 
   useEffect(() => {
@@ -930,6 +1109,274 @@ export function EnvironmentManagementHubPage() {
                   <div>
                     <p className="gov-label mb-2">{en ? "DB Columns" : "DB 컬럼"}</p>
                     {renderMetaList(governanceOverview.columnNames, en ? "No columns collected yet." : "수집된 컬럼이 없습니다.")}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <p className="gov-label mb-2">{en ? "Surface-Centric Detail" : "화면 요소 기준 상세 체인"}</p>
+                    <p className="text-sm text-[var(--kr-gov-text-secondary)]">
+                      {en
+                        ? "Each screen element shows child elements, events, functions, API/backend chains, schemas, DB resources, and related codes in one flow."
+                        : "각 화면 요소별로 작은 요소, 이벤트, 함수, API/백엔드 체인, 스키마, DB 자원, 코드 연결을 한 흐름으로 확인합니다."}
+                    </p>
+                  </div>
+                  {governanceSurfaceChains.length === 0 ? (
+                    <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[var(--kr-gov-text-secondary)]">
+                      {en ? "No screen elements collected yet." : "수집된 화면 요소가 없습니다."}
+                    </div>
+                  ) : governanceSurfaceChains.map((surface) => (
+                    <article key={surface.surfaceId} className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-white p-4 shadow-sm">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <h4 className="text-base font-black text-[var(--kr-gov-text-primary)]">{surface.label || surface.surfaceId}</h4>
+                          <p className="mt-1 text-xs font-mono text-[var(--kr-gov-text-secondary)]">{surface.surfaceId}</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-mono text-[var(--kr-gov-text-secondary)]">{surface.layoutZone || "-"}</span>
+                          <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-mono text-[var(--kr-gov-text-secondary)]">{surface.componentId || "-"}</span>
+                        </div>
+                      </div>
+                      <p className="mt-3 break-all text-xs text-[var(--kr-gov-text-secondary)]">{surface.selector || "-"}</p>
+                      {surface.notes ? <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">{surface.notes}</p> : null}
+
+                      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                        <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 p-3">
+                          <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Small Elements" : "작은 요소"}</p>
+                          <div className="mt-3 space-y-2">
+                            {surface.childElements.length === 0 ? (
+                              <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "No child elements mapped yet." : "연결된 작은 요소가 없습니다."}</p>
+                            ) : surface.childElements.map((child) => (
+                              <div key={`${surface.surfaceId}-${child.instanceKey}-${child.componentId}`} className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-white px-3 py-2">
+                                <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{child.componentName || child.instanceKey || child.componentId || "-"}</p>
+                                <p className="mt-1 text-[11px] font-mono text-[var(--kr-gov-text-secondary)]">{child.instanceKey || "-"}</p>
+                                <p className="mt-1 text-[11px] text-[var(--kr-gov-text-secondary)]">{child.componentId || "-"} / {child.layoutZone || "-"}</p>
+                                {child.designReference ? <p className="mt-1 break-all text-[11px] text-[var(--kr-gov-text-secondary)]">{child.designReference}</p> : null}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 p-3">
+                          <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Page-Level Codes" : "페이지 공통 코드"}</p>
+                          <div className="mt-3 space-y-3">
+                            <div>
+                              <p className="mb-2 text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Feature Codes" : "기능 코드"}</p>
+                              {renderMetaList(governanceOverview.featureCodes, en ? "No feature codes collected yet." : "수집된 기능 코드가 없습니다.")}
+                            </div>
+                            <div>
+                              <p className="mb-2 text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Common Codes" : "공통코드"}</p>
+                              {renderMetaList(governanceOverview.commonCodeGroups, en ? "No common code groups collected yet." : "수집된 공통코드가 없습니다.")}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 space-y-4">
+                        {surface.events.length === 0 ? (
+                          <div className="rounded-[var(--kr-gov-radius)] border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm text-[var(--kr-gov-text-secondary)]">
+                            {en ? "No events mapped to this screen element yet." : "이 화면 요소에 연결된 이벤트가 없습니다."}
+                          </div>
+                        ) : surface.events.map((event) => (
+                          <section key={event.eventId} className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 p-4">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div>
+                                <h5 className="text-sm font-black text-[var(--kr-gov-text-primary)]">{event.label || event.eventId}</h5>
+                                <p className="mt-1 text-[11px] font-mono text-[var(--kr-gov-text-secondary)]">{event.eventId}</p>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-mono text-[var(--kr-gov-text-secondary)]">{event.eventType || "-"}</span>
+                                <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-mono text-[var(--kr-gov-text-secondary)]">{event.frontendFunction || "-"}</span>
+                              </div>
+                            </div>
+                            <p className="mt-2 break-all text-xs text-[var(--kr-gov-text-secondary)]">{event.triggerSelector || "-"}</p>
+                            {event.notes ? <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">{event.notes}</p> : null}
+
+                            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                              <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-white p-3">
+                                <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Function Inputs" : "함수 파라미터"}</p>
+                                <div className="mt-3 space-y-2">
+                                  {event.functionInputs.length === 0 ? <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "No parameters collected yet." : "수집된 파라미터가 없습니다."}</p> : event.functionInputs.map((field) => (
+                                    <div key={`${event.eventId}-in-${field.fieldId}`} className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-3 py-2">
+                                      <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{field.fieldId}</p>
+                                      <p className="mt-1 text-[11px] text-[var(--kr-gov-text-secondary)]">{field.type} / {field.source || "-"} / {field.required ? "required" : "optional"}</p>
+                                      {field.notes ? <p className="mt-1 text-[11px] text-[var(--kr-gov-text-secondary)]">{field.notes}</p> : null}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                              <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-white p-3">
+                                <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Function Results" : "함수 결과값"}</p>
+                                <div className="mt-3 space-y-2">
+                                  {event.functionOutputs.length === 0 ? <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "No results collected yet." : "수집된 결과값이 없습니다."}</p> : event.functionOutputs.map((field) => (
+                                    <div key={`${event.eventId}-out-${field.fieldId}`} className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-3 py-2">
+                                      <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{field.fieldId}</p>
+                                      <p className="mt-1 text-[11px] text-[var(--kr-gov-text-secondary)]">{field.type} / {field.source || "-"} / {field.required ? "required" : "optional"}</p>
+                                      {field.notes ? <p className="mt-1 text-[11px] text-[var(--kr-gov-text-secondary)]">{field.notes}</p> : null}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="mt-4 space-y-3">
+                              {event.apis.length === 0 ? (
+                                <div className="rounded-[var(--kr-gov-radius)] border border-dashed border-slate-300 bg-white px-4 py-3 text-sm text-[var(--kr-gov-text-secondary)]">
+                                  {en ? "No API is linked to this event." : "이 이벤트에 연결된 API가 없습니다."}
+                                </div>
+                              ) : event.apis.map((api) => (
+                                <article key={`${event.eventId}-${api.apiId}`} className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-white p-4">
+                                  <div className="flex flex-wrap items-start justify-between gap-3">
+                                    <div>
+                                      <h6 className="text-sm font-black text-[var(--kr-gov-text-primary)]">{api.label || api.apiId}</h6>
+                                      <p className="mt-1 text-[11px] font-mono text-[var(--kr-gov-text-secondary)]">{api.apiId}</p>
+                                    </div>
+                                    <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-mono text-[var(--kr-gov-text-secondary)]">{api.method} {api.endpoint}</span>
+                                  </div>
+
+                                  <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                                    <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 p-3">
+                                      <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">Backend Chain</p>
+                                      <div className="mt-3 space-y-3">
+                                        <div>
+                                          <p className="mb-2 text-xs font-bold text-[var(--kr-gov-text-secondary)]">Controller</p>
+                                          {renderMetaList(api.controllerActions, en ? "No controller actions collected yet." : "수집된 Controller 액션이 없습니다.")}
+                                        </div>
+                                        <div>
+                                          <p className="mb-2 text-xs font-bold text-[var(--kr-gov-text-secondary)]">Service</p>
+                                          {renderMetaList(api.serviceMethods, en ? "No service methods collected yet." : "수집된 Service 메서드가 없습니다.")}
+                                        </div>
+                                        <div>
+                                          <p className="mb-2 text-xs font-bold text-[var(--kr-gov-text-secondary)]">Mapper</p>
+                                          {renderMetaList(api.mapperQueries, en ? "No mapper queries collected yet." : "수집된 Mapper 쿼리가 없습니다.")}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 p-3">
+                                      <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">API I/O</p>
+                                      <div className="mt-3 space-y-3">
+                                        <div>
+                                          <p className="mb-2 text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Request Fields" : "요청 필드"}</p>
+                                          {api.requestFields.length === 0 ? <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "No request fields collected yet." : "수집된 요청 필드가 없습니다."}</p> : api.requestFields.map((field) => (
+                                            <div key={`${api.apiId}-req-${field.fieldId}`} className="mb-2 rounded-[var(--kr-gov-radius)] border border-slate-200 bg-white px-3 py-2">
+                                              <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{field.fieldId}</p>
+                                              <p className="mt-1 text-[11px] text-[var(--kr-gov-text-secondary)]">{field.type} / {field.source || "-"} / {field.required ? "required" : "optional"}</p>
+                                            </div>
+                                          ))}
+                                        </div>
+                                        <div>
+                                          <p className="mb-2 text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Response Fields" : "응답 필드"}</p>
+                                          {api.responseFields.length === 0 ? <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "No response fields collected yet." : "수집된 응답 필드가 없습니다."}</p> : api.responseFields.map((field) => (
+                                            <div key={`${api.apiId}-res-${field.fieldId}`} className="mb-2 rounded-[var(--kr-gov-radius)] border border-slate-200 bg-white px-3 py-2">
+                                              <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{field.fieldId}</p>
+                                              <p className="mt-1 text-[11px] text-[var(--kr-gov-text-secondary)]">{field.type} / {field.source || "-"} / {field.required ? "required" : "optional"}</p>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                                    <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 p-3">
+                                      <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Schemas / Tables / Columns" : "스키마 / 테이블 / 컬럼"}</p>
+                                      <div className="mt-3 space-y-3">
+                                        <div>
+                                          <p className="mb-2 text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Schemas" : "스키마"}</p>
+                                          {api.schemas.length === 0 ? <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "No schemas linked yet." : "연결된 스키마가 없습니다."}</p> : api.schemas.map((schema) => (
+                                            <div key={`${api.apiId}-${schema.schemaId}`} className="mb-2 rounded-[var(--kr-gov-radius)] border border-slate-200 bg-white px-3 py-2">
+                                              <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{schema.label || schema.schemaId}</p>
+                                              <p className="mt-1 text-[11px] font-mono text-[var(--kr-gov-text-secondary)]">{schema.schemaId}</p>
+                                              <p className="mt-1 text-[11px] text-[var(--kr-gov-text-secondary)]">{schema.tableName || "-"}</p>
+                                              <div className="mt-2">{renderMetaList(schema.columns || [], en ? "No columns collected yet." : "수집된 컬럼이 없습니다.")}</div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                        <div>
+                                          <p className="mb-2 text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Related Tables" : "관련 테이블"}</p>
+                                          {renderMetaList(api.relatedTables, en ? "No tables collected yet." : "수집된 테이블이 없습니다.")}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 p-3">
+                                      <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Codes / Permissions" : "코드 / 권한"}</p>
+                                      <div className="mt-3 space-y-3">
+                                        <div>
+                                          <p className="mb-2 text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Feature Codes" : "기능 코드"}</p>
+                                          {renderMetaList(governanceOverview.featureCodes, en ? "No feature codes collected yet." : "수집된 기능 코드가 없습니다.")}
+                                        </div>
+                                        <div>
+                                          <p className="mb-2 text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Common Codes" : "공통코드"}</p>
+                                          {renderMetaList(governanceOverview.commonCodeGroups, en ? "No common code groups collected yet." : "수집된 공통코드가 없습니다.")}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </article>
+                              ))}
+                            </div>
+                          </section>
+                        ))}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <p className="gov-label mb-2">{en ? "Surface-Event Mapping Table" : "화면 요소-이벤트 매핑 표"}</p>
+                    <p className="text-sm text-[var(--kr-gov-text-secondary)]">
+                      {en
+                        ? "Review screen elements, child elements, events, functions, and backend chains in a single table."
+                        : "화면 요소, 작은 요소, 이벤트, 함수, 백엔드 체인을 한 표에서 확인합니다."}
+                    </p>
+                  </div>
+                  <div className="table-wrap">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>{en ? "Surface" : "화면 요소"}</th>
+                          <th>{en ? "Child Elements" : "작은 요소"}</th>
+                          <th>{en ? "Event" : "이벤트"}</th>
+                          <th>{en ? "Function" : "함수"}</th>
+                          <th>{en ? "Parameters / Results" : "파라미터 / 결과값"}</th>
+                          <th>API</th>
+                          <th>{en ? "Backend Chain" : "백엔드 체인"}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {governanceSurfaceEventRows.length === 0 ? (
+                          <tr><td colSpan={7}>{en ? "No surface-event mappings collected yet." : "수집된 화면 요소-이벤트 매핑이 없습니다."}</td></tr>
+                        ) : governanceSurfaceEventRows.map((row) => (
+                          <tr key={`${row.surfaceId}-${row.eventId}-${row.frontendFunction}`}>
+                            <td>
+                              <strong>{row.surfaceLabel || row.surfaceId}</strong>
+                              <br />
+                              <span className="text-[var(--kr-gov-text-secondary)]">{row.surfaceId}</span>
+                            </td>
+                            <td>{row.childElements || "-"}</td>
+                            <td>
+                              <strong>{row.eventLabel}</strong>
+                              <br />
+                              <span className="text-[var(--kr-gov-text-secondary)]">{row.eventId} / {row.eventType}</span>
+                            </td>
+                            <td>{row.frontendFunction || "-"}</td>
+                            <td>
+                              <strong>{en ? "IN" : "입력"}</strong> {row.parameters}
+                              <br />
+                              <strong>{en ? "OUT" : "출력"}</strong> {row.results}
+                            </td>
+                            <td>{row.apiLabels || "-"}</td>
+                            <td>
+                              <strong>Controller</strong> {row.controllerActions}
+                              <br />
+                              <strong>Service</strong> {row.serviceMethods}
+                              <br />
+                              <strong>Mapper</strong> {row.mapperQueries}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>
