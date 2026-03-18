@@ -204,7 +204,7 @@
     "featureCodes" : [ "A0060118_VIEW" ],
     "commonCodeGroups" : [ "AMENU1" ],
     "tags" : [ "AUTO_COLLECTED", "SCREEN_COMMAND_SYNC", "HAS_SCREEN_COMMAND", "HAS_MANIFEST", "HAS_COMPONENTS", "HAS_EVENTS", "HAS_VIEW_FEATURE", "HAS_RELATION_TABLES" ],
-    "updatedAt" : "2026-03-18T20:36:55.747276734+09:00",
+    "updatedAt" : "2026-03-18T23:24:03.533845555+09:00",
     "source" : "AUTO_DB"
   },
   "A0010201" : {

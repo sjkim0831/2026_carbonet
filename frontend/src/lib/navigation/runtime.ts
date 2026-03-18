@@ -10,6 +10,7 @@ declare global {
     __CARBONET_REACT_BOOTSTRAP__?: {
       frontendSession?: unknown;
       adminMenuTree?: unknown;
+      adminHomePageData?: unknown;
       homePayload?: unknown;
       mypagePayload?: unknown;
       mypageContext?: unknown;

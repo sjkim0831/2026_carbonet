@@ -16,4 +16,7 @@ fi
 
 TARGET_JAR="$REPO_ROOT/target/carbonet.jar"
 cp "$BACKUP_JAR_PATH" "$TARGET_JAR"
-bash "$REPO_ROOT/ops/scripts/restart-18000.sh"
+ROLLBACK_LOG_DIR="$REPO_ROOT/var/logs"
+mkdir -p "$ROLLBACK_LOG_DIR"
+nohup bash "$REPO_ROOT/ops/scripts/restart-18000.sh" > "$ROLLBACK_LOG_DIR/codex-rollback-18000.log" 2>&1 < /dev/null &
+echo "Restart scheduled in background."

@@ -14,6 +14,7 @@ import egovframework.com.feature.member.model.vo.InsttInfoVO;
 import egovframework.com.feature.member.model.vo.InstitutionStatusVO;
 import egovframework.com.feature.member.model.vo.UserManageVO;
 import egovframework.com.feature.admin.model.vo.AdminRoleAssignmentVO;
+import egovframework.com.feature.admin.model.vo.AuthorRoleProfileVO;
 import egovframework.com.feature.admin.model.vo.AuthorInfoVO;
 import egovframework.com.feature.admin.model.vo.DepartmentRoleMappingVO;
 import egovframework.com.feature.admin.model.vo.EmissionResultFilterSnapshot;
@@ -29,9 +30,11 @@ import egovframework.com.feature.admin.model.vo.UserAuthorityTargetVO;
 import egovframework.com.feature.admin.model.vo.UserFeatureOverrideVO;
 import egovframework.com.feature.admin.service.AdminLoginHistoryService;
 import egovframework.com.feature.admin.service.AdminSummaryService;
+import egovframework.com.feature.admin.service.AuthorRoleProfileService;
 import egovframework.com.feature.admin.service.AuthGroupManageService;
 import egovframework.com.feature.admin.service.MenuInfoService;
 import egovframework.com.feature.admin.dto.request.AdminAuthGroupCreateRequestDTO;
+import egovframework.com.feature.admin.dto.request.AdminAuthorRoleProfileSaveRequestDTO;
 import egovframework.com.feature.admin.dto.request.AdminAuthChangeSaveRequestDTO;
 import egovframework.com.feature.admin.dto.request.AdminAuthGroupFeatureSaveRequestDTO;
 import egovframework.com.feature.admin.dto.request.AdminDeptRoleMappingSaveRequestDTO;
@@ -138,6 +141,7 @@ public class AdminMainController {
     private final AuthService authService;
     private final MenuInfoService menuInfoService;
     private final AdminSummaryService adminSummaryService;
+    private final AuthorRoleProfileService authorRoleProfileService;
     private final AuditTrailService auditTrailService;
     private final ObservabilityQueryService observabilityQueryService;
     private final ObjectMapper objectMapper;
@@ -561,6 +565,8 @@ public class AdminMainController {
         }
 
         response.putAll(model);
+        response.put("assignedRoleProfile",
+                toAuthorRoleProfileMap(authorRoleProfileService.getProfile(String.valueOf(model.get("permissionSelectedAuthorCode")))));
         response.put("canViewMemberEdit", model.get("member") != null && model.get("member_editError") == null);
         response.put("canUseMemberSave", ObjectUtils.isEmpty(model.get("member_editError")));
         return ResponseEntity.ok(response);
@@ -1865,7 +1871,9 @@ public class AdminMainController {
             vo.setChargerEmail(normalizedChargerEmail);
             vo.setChargerTel(normalizedChargerTel);
             vo.setEntrprsSeCode(normalizedMembershipType);
-            vo.setInsttSttus("P");
+            vo.setInsttSttus(exists
+                    ? safeString(existingInstitution.getInsttSttus()).isEmpty() ? "A" : safeString(existingInstitution.getInsttSttus())
+                    : "A");
 
             int nextFileSn = hasExistingFiles ? existingFiles.size() + 1 : 1;
             List<InsttFileVO> newFiles = saveAdminInsttEvidenceFiles(targetInsttId, fileUploads, nextFileSn);
@@ -2006,7 +2014,9 @@ public class AdminMainController {
             vo.setChargerEmail(normalizedChargerEmail);
             vo.setChargerTel(normalizedChargerTel);
             vo.setEntrprsSeCode(normalizedMembershipType);
-            vo.setInsttSttus("P");
+            vo.setInsttSttus(exists
+                    ? safeString(existingInstitution.getInsttSttus()).isEmpty() ? "A" : safeString(existingInstitution.getInsttSttus())
+                    : "A");
 
             int nextFileSn = hasExistingFiles ? existingFiles.size() + 1 : 1;
             List<InsttFileVO> newFiles = saveAdminInsttEvidenceFiles(targetInsttId, fileUploads, nextFileSn);
@@ -3378,6 +3388,7 @@ public class AdminMainController {
         response.put("selectedRoleCategory", selectedRoleCategory);
         response.put("selectedAuthorCode", selectedAuthorCode);
         response.put("selectedAuthorName", selectedAuthorName);
+        response.put("selectedAuthorProfile", toAuthorRoleProfileMap(authorRoleProfileService.getProfile(selectedAuthorCode)));
         response.put("selectedFeatureCodes", selectedFeatureCodes);
         response.put("focusedMenuCode", safeString(menuCode).toUpperCase(Locale.ROOT));
         response.put("focusedFeatureCode", safeString(featureCode).toUpperCase(Locale.ROOT));
@@ -3395,6 +3406,84 @@ public class AdminMainController {
         response.put("userSearchKeyword", scopeContext.getUserSearchKeyword());
         response.put("authGroupError", authGroupError);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/api/admin/auth-groups/profile-save")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> saveAuthGroupProfileApi(
+            @RequestBody AdminAuthorRoleProfileSaveRequestDTO payload,
+            HttpServletRequest request, Locale locale) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        boolean isEn = isEnglishRequest(request, locale);
+        String currentUserId = extractCurrentUserId(request);
+        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+        boolean webmaster = isWebmaster(currentUserId);
+        boolean ownCompanyAccess = requiresOwnCompanyAccess(currentUserId, currentUserAuthorCode);
+        String selectedRoleCategory = resolveRoleCategory(payload == null ? null : payload.getRoleCategory());
+        String scopedInsttId = ownCompanyAccess ? resolveCurrentUserInsttId(currentUserId) : "";
+        String normalizedAuthorCode = safeString(payload == null ? null : payload.getAuthorCode()).toUpperCase(Locale.ROOT);
+
+        if (!webmaster && !ownCompanyAccess) {
+            response.put("success", false);
+            response.put("message", isEn
+                    ? "Only webmaster or company-scoped administrators can update role profiles."
+                    : "webmaster 또는 회사 범위 관리자만 권한 그룹 프로필을 수정할 수 있습니다.");
+            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
+        }
+        if (normalizedAuthorCode.isEmpty()) {
+            response.put("success", false);
+            response.put("message", isEn ? "Role code is required." : "Role 코드를 확인해 주세요.");
+            return ResponseEntity.badRequest().body(response);
+        }
+        if (!webmaster) {
+            if ("GENERAL".equals(selectedRoleCategory)) {
+                response.put("success", false);
+                response.put("message", isEn
+                        ? "Company-scoped administrators can only update department or user role profiles."
+                        : "회사 범위 관리자는 부서/사용자 권한 그룹 프로필만 수정할 수 있습니다.");
+                return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
+            }
+            if (!isCompanyScopedAuthorCodeForInstt(normalizedAuthorCode, selectedRoleCategory, scopedInsttId)) {
+                response.put("success", false);
+                response.put("message", isEn
+                        ? "You can only update role profiles created for your own company."
+                        : "본인 회사에 속한 권한 그룹 프로필만 수정할 수 있습니다.");
+                return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
+            }
+        }
+
+        try {
+            AuthorRoleProfileVO profile = new AuthorRoleProfileVO();
+            profile.setAuthorCode(normalizedAuthorCode);
+            profile.setDisplayTitle(safeString(payload == null ? null : payload.getDisplayTitle()));
+            profile.setPriorityWorks(payload == null ? Collections.emptyList() : payload.getPriorityWorks());
+            profile.setDescription(safeString(payload == null ? null : payload.getDescription()));
+            profile.setMemberEditVisibleYn(safeString(payload == null ? null : payload.getMemberEditVisibleYn()));
+            AuthorRoleProfileVO saved = authorRoleProfileService.saveProfile(profile);
+            response.put("success", true);
+            response.put("authorCode", normalizedAuthorCode);
+            response.put("profile", toAuthorRoleProfileMap(saved));
+            recordAdminActionAudit(request,
+                    currentUserId,
+                    currentUserAuthorCode,
+                    "AMENU_AUTH_GROUP",
+                    "auth-group",
+                    "AUTH_GROUP_PROFILE_SAVE",
+                    "AUTHOR_ROLE_PROFILE",
+                    normalizedAuthorCode,
+                    "{\"authorCode\":\"" + safeJson(normalizedAuthorCode) + "\"}",
+                    "{\"displayTitle\":\"" + safeJson(saved.getDisplayTitle()) + "\"}");
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        } catch (Exception e) {
+            log.error("Failed to save auth group profile api. authorCode={}", normalizedAuthorCode, e);
+            response.put("success", false);
+            response.put("message", isEn ? "Failed to save the role profile." : "권한 그룹 프로필 저장에 실패했습니다.");
+            return ResponseEntity.internalServerError().body(response);
+        }
     }
 
     @PostMapping("/api/admin/auth-groups")
@@ -3636,6 +3725,23 @@ public class AdminMainController {
                     : "webmaster 계정은 ROLE_SYSTEM_MASTER만 유지할 수 있습니다.");
             return ResponseEntity.badRequest().body(response);
         }
+        try {
+            List<AuthorInfoVO> generalAuthorGroups = filterAuthorGroups(authGroupManageService.selectAuthorList(), "GENERAL");
+            if (!containsAuthorCode(generalAuthorGroups, normalizedAuthorCode)) {
+                response.put("success", false);
+                response.put("message", isEn
+                        ? "Only valid general administrator roles can be assigned here."
+                        : "이 화면에서는 유효한 일반 관리자 권한 그룹만 지정할 수 있습니다.");
+                return ResponseEntity.badRequest().body(response);
+            }
+        } catch (Exception e) {
+            log.error("Failed to validate auth-change target role. authorCode={}", normalizedAuthorCode, e);
+            response.put("success", false);
+            response.put("message", isEn
+                    ? "Failed to validate the target role."
+                    : "대상 권한 그룹 검증에 실패했습니다.");
+            return ResponseEntity.internalServerError().body(response);
+        }
 
         try {
             Map<String, String> beforeRole = resolveAdminRoleSummary(normalizedEmplyrId);
@@ -3732,6 +3838,8 @@ public class AdminMainController {
     public ResponseEntity<Map<String, Object>> deptRoleMappingPageApi(
             @RequestParam(value = "updated", required = false) String updated,
             @RequestParam(value = "insttId", required = false) String insttId,
+            @RequestParam(value = "memberSearchKeyword", required = false) String memberSearchKeyword,
+            @RequestParam(value = "memberPageIndex", required = false) Integer memberPageIndex,
             @RequestParam(value = "error", required = false) String error,
             HttpServletRequest request, Locale locale) {
         Map<String, Object> response = new LinkedHashMap<>();
@@ -3750,6 +3858,9 @@ public class AdminMainController {
         String selectedInsttId;
         List<UserAuthorityTargetVO> companyMembers;
         int companyMemberCount;
+        int companyMemberPageIndex;
+        int companyMemberPageSize;
+        int companyMemberTotalPages;
         int mappingCount;
         try {
             List<DepartmentRoleMappingVO> mappings = authGroupManageService.selectDepartmentRoleMappings();
@@ -3775,11 +3886,22 @@ public class AdminMainController {
             authorGroups = filterScopedDepartmentAuthorGroups(
                     filterAuthorGroupsByScope(allAuthorGroups, "DEPARTMENT", authorScopeInsttId, globalDeptRoleAccess),
                     departmentRows);
-            companyMembers = selectedInsttId.isEmpty()
+            List<UserAuthorityTargetVO> allCompanyMembers = selectedInsttId.isEmpty()
                     ? Collections.emptyList()
-                    : authGroupManageService.selectUserAuthorityTargets(selectedInsttId, null);
+                    : authGroupManageService.selectUserAuthorityTargets(selectedInsttId, safeString(memberSearchKeyword));
             memberAssignableAuthorGroups = buildDeptMemberAssignableGroups(allAuthorGroups, authorScopeInsttId, globalDeptRoleAccess);
-            companyMemberCount = companyMembers.size();
+            companyMemberCount = allCompanyMembers.size();
+            companyMemberPageSize = 10;
+            companyMemberTotalPages = Math.max(1, (int) Math.ceil((double) companyMemberCount / (double) companyMemberPageSize));
+            companyMemberPageIndex = memberPageIndex == null ? 1 : Math.max(1, memberPageIndex.intValue());
+            if (companyMemberPageIndex > companyMemberTotalPages) {
+                companyMemberPageIndex = companyMemberTotalPages;
+            }
+            int memberFromIndex = Math.max(0, (companyMemberPageIndex - 1) * companyMemberPageSize);
+            int memberToIndex = Math.min(companyMemberCount, memberFromIndex + companyMemberPageSize);
+            companyMembers = memberFromIndex >= memberToIndex
+                    ? Collections.emptyList()
+                    : allCompanyMembers.subList(memberFromIndex, memberToIndex);
             mappingCount = departmentRows.size();
         } catch (Exception e) {
             log.error("Failed to load department role mapping page api.", e);
@@ -3793,6 +3915,9 @@ public class AdminMainController {
             selectedInsttId = "";
             companyMembers = Collections.emptyList();
             companyMemberCount = 0;
+            companyMemberPageIndex = 1;
+            companyMemberPageSize = 10;
+            companyMemberTotalPages = 1;
             mappingCount = 0;
         }
 
@@ -3808,10 +3933,17 @@ public class AdminMainController {
         response.put("departmentMappings", departmentRows);
         response.put("departmentAuthorGroups", authorGroups);
         response.put("memberAssignableAuthorGroups", memberAssignableAuthorGroups);
+        response.put("roleProfilesByAuthorCode",
+                toAuthorRoleProfileMapCollection(authorRoleProfileService.getProfiles(
+                        collectRoleProfileAuthorCodes(departmentRows, authorGroups, memberAssignableAuthorGroups, companyMembers))));
         response.put("departmentCompanyOptions", companyOptions);
         response.put("selectedInsttId", selectedInsttId);
         response.put("companyMembers", companyMembers);
         response.put("companyMemberCount", companyMemberCount);
+        response.put("companyMemberPageIndex", companyMemberPageIndex);
+        response.put("companyMemberPageSize", companyMemberPageSize);
+        response.put("companyMemberTotalPages", companyMemberTotalPages);
+        response.put("companyMemberSearchKeyword", safeString(memberSearchKeyword));
         response.put("mappingCount", mappingCount);
         return ResponseEntity.ok(response);
     }
@@ -4440,16 +4572,33 @@ public class AdminMainController {
                 .body(content);
     }
 
-    @RequestMapping(value = "/member/company_list/excel", method = { RequestMethod.GET, RequestMethod.POST })
+    @RequestMapping(value = { "/member/company_list/excel", "/member/company-list/excel" }, method = { RequestMethod.GET, RequestMethod.POST })
     public ResponseEntity<byte[]> company_listExcel(
             @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
-            @RequestParam(value = "sbscrbSttus", required = false) String sbscrbSttus) throws Exception {
+            @RequestParam(value = "sbscrbSttus", required = false) String sbscrbSttus,
+            HttpServletRequest request,
+            Locale locale) throws Exception {
         String keyword = safeString(searchKeyword);
         String status = safeString(sbscrbSttus).toUpperCase(Locale.ROOT);
+        String currentUserId = extractCurrentUserId(request);
+        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+        if (!hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).build();
+        }
 
-        int totalCount = entrprsManageService.searchCompanyListTotCnt(keyword, status);
+        Map<String, Object> searchParams = new LinkedHashMap<>();
+        searchParams.put("keyword", keyword);
+        searchParams.put("status", status);
+        String scopedInsttId = requiresOwnCompanyAccess(currentUserId, currentUserAuthorCode)
+                ? resolveCurrentUserInsttId(currentUserId)
+                : "";
+        searchParams.put("insttId", scopedInsttId);
+
+        int totalCount = entrprsManageService.searchCompanyListTotCnt(searchParams);
         int pageSize = Math.max(totalCount, 1);
-        List<CompanyListItemVO> company_list = entrprsManageService.searchCompanyListPaged(keyword, status, 0, pageSize);
+        searchParams.put("offset", 0);
+        searchParams.put("pageSize", pageSize);
+        List<?> company_list = entrprsManageService.searchCompanyListPaged(searchParams);
 
         byte[] content;
         try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
@@ -4473,13 +4622,36 @@ public class AdminMainController {
 
             int rowIdx = 1;
             int no = totalCount;
-            for (CompanyListItemVO company : company_list) {
+            for (Object company : company_list) {
+                String companyName;
+                String businessNumber;
+                String representativeName;
+                String joinStat;
+                if (company instanceof CompanyListItemVO) {
+                    CompanyListItemVO companyVO = (CompanyListItemVO) company;
+                    companyName = stringValue(companyVO.getCmpnyNm());
+                    businessNumber = stringValue(companyVO.getBizrno());
+                    representativeName = stringValue(companyVO.getCxfc());
+                    joinStat = stringValue(companyVO.getJoinStat());
+                } else if (company instanceof Map) {
+                    Map<?, ?> companyMap = (Map<?, ?>) company;
+                    companyName = stringValue(companyMap.get("cmpnyNm"));
+                    if (companyName.isEmpty()) companyName = stringValue(companyMap.get("CMPNY_NM"));
+                    businessNumber = stringValue(companyMap.get("bizrno"));
+                    if (businessNumber.isEmpty()) businessNumber = stringValue(companyMap.get("BIZRNO"));
+                    representativeName = stringValue(companyMap.get("cxfc"));
+                    if (representativeName.isEmpty()) representativeName = stringValue(companyMap.get("CXFC"));
+                    joinStat = stringValue(companyMap.get("joinStat"));
+                    if (joinStat.isEmpty()) joinStat = stringValue(companyMap.get("JOIN_STAT"));
+                } else {
+                    continue;
+                }
                 Row row = sheet.createRow(rowIdx++);
                 row.createCell(0).setCellValue(no--);
-                row.createCell(1).setCellValue(stringValue(company.getCmpnyNm()));
-                row.createCell(2).setCellValue(stringValue(company.getBizrno()));
-                row.createCell(3).setCellValue(stringValue(company.getCxfc()));
-                row.createCell(4).setCellValue(resolveInstitutionStatusLabel(stringValue(company.getJoinStat())));
+                row.createCell(1).setCellValue(companyName);
+                row.createCell(2).setCellValue(businessNumber);
+                row.createCell(3).setCellValue(representativeName);
+                row.createCell(4).setCellValue(resolveInstitutionStatusLabel(joinStat));
             }
 
             for (int i = 0; i < headers.length; i++) {
@@ -4988,6 +5160,66 @@ public class AdminMainController {
             log.warn("Failed to resolve author summary. authorCode={}", normalizedAuthorCode, e);
         }
         return summary;
+    }
+
+    private Map<String, Object> toAuthorRoleProfileMap(AuthorRoleProfileVO profile) {
+        if (profile == null || safeString(profile.getAuthorCode()).isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("authorCode", safeString(profile.getAuthorCode()).toUpperCase(Locale.ROOT));
+        row.put("displayTitle", safeString(profile.getDisplayTitle()));
+        row.put("priorityWorks", profile.getPriorityWorks() == null ? Collections.emptyList() : profile.getPriorityWorks());
+        row.put("description", safeString(profile.getDescription()));
+        row.put("memberEditVisibleYn", safeString(profile.getMemberEditVisibleYn()));
+        row.put("updatedAt", safeString(profile.getUpdatedAt()));
+        return row;
+    }
+
+    private Map<String, Map<String, Object>> toAuthorRoleProfileMapCollection(Map<String, AuthorRoleProfileVO> profiles) {
+        if (profiles == null || profiles.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<String, Map<String, Object>> rows = new LinkedHashMap<>();
+        for (Map.Entry<String, AuthorRoleProfileVO> entry : profiles.entrySet()) {
+            rows.put(safeString(entry.getKey()).toUpperCase(Locale.ROOT), toAuthorRoleProfileMap(entry.getValue()));
+        }
+        return rows;
+    }
+
+    private Set<String> collectRoleProfileAuthorCodes(List<Map<String, String>> departmentRows,
+                                                      List<AuthorInfoVO> departmentAuthorGroups,
+                                                      List<AuthorInfoVO> memberAssignableAuthorGroups,
+                                                      List<?> companyMembers) {
+        LinkedHashSet<String> authorCodes = new LinkedHashSet<>();
+        if (departmentRows != null) {
+            for (Map<String, String> row : departmentRows) {
+                authorCodes.add(safeString(row.get("authorCode")).toUpperCase(Locale.ROOT));
+                authorCodes.add(safeString(row.get("recommendedRoleCode")).toUpperCase(Locale.ROOT));
+            }
+        }
+        if (departmentAuthorGroups != null) {
+            for (AuthorInfoVO group : departmentAuthorGroups) {
+                authorCodes.add(safeString(group.getAuthorCode()).toUpperCase(Locale.ROOT));
+            }
+        }
+        if (memberAssignableAuthorGroups != null) {
+            for (AuthorInfoVO group : memberAssignableAuthorGroups) {
+                authorCodes.add(safeString(group.getAuthorCode()).toUpperCase(Locale.ROOT));
+            }
+        }
+        if (companyMembers != null) {
+            for (Object row : companyMembers) {
+                if (row instanceof UserAuthorityTargetVO) {
+                    authorCodes.add(safeString(((UserAuthorityTargetVO) row).getAuthorCode()).toUpperCase(Locale.ROOT));
+                } else if (row instanceof Map) {
+                    Object authorCode = ((Map<?, ?>) row).get("authorCode");
+                    authorCodes.add(safeString(authorCode == null ? null : String.valueOf(authorCode)).toUpperCase(Locale.ROOT));
+                }
+            }
+        }
+        authorCodes.remove("");
+        return authorCodes;
     }
 
     private List<Map<String, String>> buildRecentAdminRoleChangeHistory(boolean isEn) {

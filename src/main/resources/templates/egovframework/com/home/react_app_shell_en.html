@@ -42,7 +42,8 @@
         locale: [[${reactLocale}]],
         admin: [[${reactAdmin}]],
         devUrl: [[${reactAppDevUrl}]],
-        prodJs: [[${reactAppProdJs}]]
+        prodJs: [[${reactAppProdJs}]],
+        prodCss: [[${reactAppProdCss}]]
     };
     window.__CARBONET_REACT_BOOTSTRAP__ = /*[[${reactBootstrapPayload}]]*/ {};
 </script>
@@ -50,19 +51,56 @@
     const config = window.__CARBONET_REACT_APP__ || {};
     const search = new URLSearchParams(window.location.search);
     const useDevServer = search.get("dev") === "1";
+    const versionCheckIntervalMs = 15000;
 
-    if (document.querySelector('script[data-carbonet-react-app="1"]')) {
-        return;
+    function resolveBootstrapPath() {
+        return window.location.pathname.startsWith("/en/admin/")
+            ? "/en/api/admin/app/bootstrap"
+            : window.location.pathname.startsWith("/admin/")
+                ? "/api/admin/app/bootstrap"
+                : window.location.pathname.startsWith("/en/")
+                    ? "/en/api/app/bootstrap"
+                    : "/api/app/bootstrap";
     }
 
-    const script = document.createElement("script");
-    script.type = "module";
-    script.src = useDevServer ? `${config.devUrl}/src/main.tsx` : config.prodJs;
-    script.dataset.carbonetReactApp = "1";
-    script.onerror = () => {
-        console.error("React bundle could not be loaded.", config.prodJs);
-    };
-    document.body.appendChild(script);
+    async function reloadWhenAssetsChanged() {
+        if (useDevServer) {
+            return;
+        }
+        const params = new URLSearchParams(window.location.search);
+        params.set("path", window.location.pathname);
+        const response = await fetch(`${resolveBootstrapPath()}?${params.toString()}`, {
+            credentials: "same-origin",
+            cache: "no-store",
+            headers: {
+                "Cache-Control": "no-store"
+            }
+        });
+        if (!response.ok) {
+            return;
+        }
+        const latest = await response.json();
+        if (latest.reactAppProdJs !== config.prodJs || latest.reactAppProdCss !== config.prodCss) {
+            window.location.reload();
+        }
+    }
+
+    if (!document.querySelector('script[data-carbonet-react-app="1"]')) {
+        const script = document.createElement("script");
+        script.type = "module";
+        script.src = useDevServer ? `${config.devUrl}/src/main.tsx` : config.prodJs;
+        script.dataset.carbonetReactApp = "1";
+        script.onerror = () => {
+            console.error("React bundle could not be loaded.", config.prodJs);
+        };
+        document.body.appendChild(script);
+    }
+
+    window.setInterval(() => {
+        reloadWhenAssetsChanged().catch(() => {
+            // Keep the active page stable when the version probe fails transiently.
+        });
+    }, versionCheckIntervalMs);
 </script>
 </body>
 </html>

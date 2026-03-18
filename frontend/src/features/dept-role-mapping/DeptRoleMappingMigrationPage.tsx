@@ -16,10 +16,39 @@ function t(page: DeptRolePagePayload | null, ko: string, en: string) {
   return page?.isEn ? en : ko;
 }
 
+function renderRoleProfilePreview(
+  page: DeptRolePagePayload | null,
+  profile?: { displayTitle?: string; priorityWorks?: string[]; description?: string } | null
+) {
+  if (!profile || (!profile.displayTitle && !(profile.priorityWorks || []).length && !profile.description)) {
+    return (
+      <div className="mt-2 rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-[var(--kr-gov-text-secondary)]">
+        {t(page, "연결된 프로필 메타데이터가 없습니다.", "No linked role profile metadata.")}
+      </div>
+    );
+  }
+  return (
+    <div className="mt-2 rounded-[var(--kr-gov-radius)] border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-[var(--kr-gov-text-secondary)]" data-help-id="dept-role-role-profile">
+      <p className="font-bold text-[var(--kr-gov-blue)]">{profile.displayTitle || "-"}</p>
+      {(profile.priorityWorks || []).length > 0 ? (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {(profile.priorityWorks || []).map((item) => (
+            <span className="rounded-full bg-white px-2 py-0.5 font-bold text-[var(--kr-gov-blue)]" key={item}>{item}</span>
+          ))}
+        </div>
+      ) : null}
+      {profile.description ? <p className="mt-2">{profile.description}</p> : null}
+    </div>
+  );
+}
+
 export function DeptRoleMappingMigrationPage() {
   const [session, setSession] = useState<FrontendSession | null>(null);
   const [page, setPage] = useState<DeptRolePagePayload | null>(null);
   const [insttId, setInsttId] = useState("");
+  const [memberSearchKeyword, setMemberSearchKeyword] = useState("");
+  const [memberSearchDraft, setMemberSearchDraft] = useState("");
+  const [memberPageIndex, setMemberPageIndex] = useState(1);
   const [deptDrafts, setDeptDrafts] = useState<Record<string, string>>({});
   const [memberDrafts, setMemberDrafts] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
@@ -29,6 +58,9 @@ export function DeptRoleMappingMigrationPage() {
     setSession(sessionPayload);
     setPage(payload);
     setInsttId(payload.selectedInsttId || "");
+    setMemberSearchKeyword(String(payload.companyMemberSearchKeyword || ""));
+    setMemberSearchDraft(String(payload.companyMemberSearchKeyword || ""));
+    setMemberPageIndex(Math.max(1, Number(payload.companyMemberPageIndex || 1)));
     const nextDeptDrafts: Record<string, string> = {};
     payload.departmentMappings.forEach((row) => {
       nextDeptDrafts[`${row.insttId}:${row.deptNm}`] = row.recommendedRoleCode || row.authorCode || "";
@@ -41,11 +73,19 @@ export function DeptRoleMappingMigrationPage() {
     setMemberDrafts(nextMemberDrafts);
   }
 
-  function loadPage(nextInsttId?: string, existingSession?: FrontendSession | null) {
+  function loadPage(
+    nextInsttId?: string,
+    existingSession?: FrontendSession | null,
+    options?: { memberSearchKeyword?: string; memberPageIndex?: number }
+  ) {
     setError("");
     return Promise.all([
       existingSession ? Promise.resolve(existingSession) : fetchFrontendSession(),
-      fetchDeptRolePage(nextInsttId ?? insttId)
+      fetchDeptRolePage({
+        insttId: nextInsttId ?? insttId,
+        memberSearchKeyword: options?.memberSearchKeyword ?? memberSearchKeyword,
+        memberPageIndex: options?.memberPageIndex ?? memberPageIndex
+      })
     ]).then(([sessionPayload, payload]) => {
       applyPayload(sessionPayload, payload);
       return { sessionPayload, payload };
@@ -53,12 +93,27 @@ export function DeptRoleMappingMigrationPage() {
   }
 
   useEffect(() => {
-    loadPage(insttId).catch((err: Error) => setError(err.message));
-  }, [insttId]);
+    loadPage(insttId, undefined, { memberSearchKeyword, memberPageIndex }).catch((err: Error) => setError(err.message));
+  }, [insttId, memberSearchKeyword, memberPageIndex]);
 
   const canViewCompanySelector = !!page;
   const canUseAllCompanies = !!page?.canManageAllCompanies;
   const canUseOwnCompany = !!page?.canManageOwnCompany;
+  const roleProfilesByAuthorCode = page?.roleProfilesByAuthorCode || {};
+  const currentMemberPage = Math.max(1, Number(page?.companyMemberPageIndex || memberPageIndex || 1));
+  const totalMemberPages = Math.max(1, Number(page?.companyMemberTotalPages || 1));
+  const visibleMemberPages = Array.from({ length: totalMemberPages }, (_, index) => index + 1)
+    .filter((pageNumber) => Math.abs(pageNumber - currentMemberPage) <= 2 || pageNumber === 1 || pageNumber === totalMemberPages);
+
+  function handleMemberSearchSubmit() {
+    setMemberPageIndex(1);
+    setMemberSearchKeyword(memberSearchDraft.trim());
+  }
+
+  function handleCompanyChange(nextInsttId: string) {
+    setInsttId(nextInsttId);
+    setMemberPageIndex(1);
+  }
 
   function handleDeptSave(row: Record<string, string>) {
     if (!session) return;
@@ -70,7 +125,7 @@ export function DeptRoleMappingMigrationPage() {
       deptNm: row.deptNm || "",
       authorCode: deptDrafts[`${row.insttId}:${row.deptNm}`] || ""
     })
-      .then(() => loadPage(row.insttId || insttId, session))
+      .then(() => loadPage(row.insttId || insttId, session, { memberSearchKeyword, memberPageIndex }))
       .then(() =>
         setMessage(
           t(page, `${row.deptNm} 부서 권한을 저장했습니다.`, `Saved the department role for ${row.deptNm}.`)
@@ -88,7 +143,7 @@ export function DeptRoleMappingMigrationPage() {
       entrprsMberId: userId,
       authorCode: memberDrafts[userId] || ""
     })
-      .then(() => loadPage(insttId, session))
+      .then(() => loadPage(insttId, session, { memberSearchKeyword, memberPageIndex }))
       .then(() =>
         setMessage(
           t(page, `${userId} 회원 권한을 저장했습니다.`, `Saved the member role for ${userId}.`)
@@ -161,7 +216,7 @@ export function DeptRoleMappingMigrationPage() {
               className="max-w-md w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
               disabled={!canUseAllCompanies && !canUseOwnCompany}
               value={insttId}
-              onChange={(e) => setInsttId(e.target.value)}
+              onChange={(e) => handleCompanyChange(e.target.value)}
             >
               {(page?.departmentCompanyOptions || []).map((option) => (
                 <option key={option.insttId} value={option.insttId}>
@@ -228,6 +283,7 @@ export function DeptRoleMappingMigrationPage() {
                               {t(page, "저장", "Save")}
                             </PermissionButton>
                           </div>
+                          {renderRoleProfilePreview(page, roleProfilesByAuthorCode[deptDrafts[key] || row.authorCode || ""])}
                         </td>
                       </tr>
                     );
@@ -242,6 +298,32 @@ export function DeptRoleMappingMigrationPage() {
               <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-white text-[var(--kr-gov-text-secondary)]">
                 {page?.companyMemberCount ?? 0}{t(page, "명", " members")}
               </span>
+            </div>
+            <div className="flex flex-col gap-3 border-b border-[var(--kr-gov-border-light)] bg-white px-4 py-4 md:flex-row md:items-center md:justify-between">
+              <div className="flex w-full max-w-xl items-center gap-2">
+                <input
+                  className="h-10 flex-1 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] px-3 text-sm"
+                  placeholder={t(page, "회원 ID, 이름, 부서명 검색", "Search by member ID, name, or department")}
+                  value={memberSearchDraft}
+                  onChange={(e) => setMemberSearchDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleMemberSearchSubmit();
+                    }
+                  }}
+                />
+                <button
+                  className="inline-flex h-10 items-center rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-blue)] px-4 text-sm font-bold text-[var(--kr-gov-blue)] hover:bg-blue-50"
+                  onClick={handleMemberSearchSubmit}
+                  type="button"
+                >
+                  {t(page, "검색", "Search")}
+                </button>
+              </div>
+              <p className="text-xs text-[var(--kr-gov-text-secondary)]">
+                {t(page, `페이지 ${currentMemberPage} / ${totalMemberPages}`, `Page ${currentMemberPage} / ${totalMemberPages}`)}
+              </p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left border-collapse">
@@ -301,12 +383,57 @@ export function DeptRoleMappingMigrationPage() {
                               {t(page, "저장", "Save")}
                             </PermissionButton>
                           </div>
+                          {renderRoleProfilePreview(page, roleProfilesByAuthorCode[memberDrafts[row.userId] || row.authorCode || ""])}
                         </td>
                       </tr>
                     ))
                   )}
                 </tbody>
               </table>
+            </div>
+            <div className="flex items-center justify-center gap-1 border-t border-[var(--kr-gov-border-light)] bg-gray-50 px-4 py-3">
+              <button
+                className="rounded border border-transparent p-1 hover:border-gray-200 hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={currentMemberPage <= 1}
+                onClick={() => setMemberPageIndex(1)}
+                type="button"
+              >
+                <span className="material-symbols-outlined">first_page</span>
+              </button>
+              <button
+                className="rounded border border-transparent p-1 hover:border-gray-200 hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={currentMemberPage <= 1}
+                onClick={() => setMemberPageIndex(Math.max(1, currentMemberPage - 1))}
+                type="button"
+              >
+                <span className="material-symbols-outlined">chevron_left</span>
+              </button>
+              {visibleMemberPages.map((pageNumber) => (
+                <button
+                  className={`flex h-8 w-8 items-center justify-center rounded border text-sm ${pageNumber === currentMemberPage ? "border-[var(--kr-gov-blue)] bg-[var(--kr-gov-blue)] font-bold text-white" : "border-transparent hover:border-gray-200 hover:bg-white"}`}
+                  key={pageNumber}
+                  onClick={() => setMemberPageIndex(pageNumber)}
+                  type="button"
+                >
+                  {pageNumber}
+                </button>
+              ))}
+              <button
+                className="rounded border border-transparent p-1 hover:border-gray-200 hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={currentMemberPage >= totalMemberPages}
+                onClick={() => setMemberPageIndex(Math.min(totalMemberPages, currentMemberPage + 1))}
+                type="button"
+              >
+                <span className="material-symbols-outlined">chevron_right</span>
+              </button>
+              <button
+                className="rounded border border-transparent p-1 hover:border-gray-200 hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={currentMemberPage >= totalMemberPages}
+                onClick={() => setMemberPageIndex(totalMemberPages)}
+                type="button"
+              >
+                <span className="material-symbols-outlined">last_page</span>
+              </button>
             </div>
           </div>
         </section>

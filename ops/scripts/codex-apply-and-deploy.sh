@@ -5,6 +5,8 @@ REPO_ROOT="${1:?repo root is required}"
 DIFF_FILE="${2:?diff file is required}"
 ARTIFACTS_ROOT="$(cd "$(dirname "$DIFF_FILE")" && pwd)"
 BACKUP_INFO_FILE="$ARTIFACTS_ROOT/deploy-backup.env"
+DEFER_RESTART_SECONDS="${DEFER_RESTART_SECONDS:-3}"
+ASYNC_RESTART_LOG="$ARTIFACTS_ROOT/deploy-restart.log"
 
 if [[ ! -d "$REPO_ROOT" ]]; then
   echo "Repository root does not exist: $REPO_ROOT" >&2
@@ -61,8 +63,8 @@ copy_changed_files_from_worktree() {
     source_file="$worktree_root/$changed_file"
     target_file="$REPO_ROOT/$changed_file"
     if [[ ! -f "$source_file" ]]; then
-      echo "Changed file missing in worktree: $source_file" >&2
-      return 1
+      rm -f "$target_file"
+      continue
     fi
     mkdir -p "$(dirname "$target_file")"
     cp "$source_file" "$target_file"
@@ -82,4 +84,13 @@ if [[ -d "$REPO_ROOT/frontend" ]]; then
 fi
 
 mvn -q -DskipTests package
-bash "$REPO_ROOT/ops/scripts/restart-18000.sh"
+
+schedule_restart() {
+  local restart_command log_file
+  log_file="$ASYNC_RESTART_LOG"
+  restart_command="sleep $DEFER_RESTART_SECONDS && bash \"$REPO_ROOT/ops/scripts/restart-18000.sh\""
+  nohup bash -lc "$restart_command" >"$log_file" 2>&1 </dev/null &
+}
+
+schedule_restart
+echo "Restart scheduled asynchronously in ${DEFER_RESTART_SECONDS}s. log=$ASYNC_RESTART_LOG"

@@ -2525,14 +2525,10 @@ dd {
   margin-left: 0.5rem;
 }
 
-:root {
-  --admin-shell-offset: 124px;
-}
-
 .js-admin-layout-shell {
   position: relative;
   align-items: stretch;
-  min-height: calc(100dvh - var(--admin-shell-offset));
+  min-height: 0;
   background: linear-gradient(90deg, #fff 0, #fff 18rem, #f8f9fa 18rem, #f8f9fa 100%);
 }
 
@@ -2549,16 +2545,15 @@ dd {
 }
 
 .js-admin-lnb {
-  position: sticky;
-  top: var(--admin-shell-offset);
-  align-self: flex-start;
+  position: relative;
+  align-self: stretch;
   flex: 0 0 18rem;
   z-index: 10;
   background: #fff;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  height: calc(100dvh - var(--admin-shell-offset));
-  min-height: calc(100dvh - var(--admin-shell-offset));
-  max-height: calc(100dvh - var(--admin-shell-offset));
+  height: 100%;
+  min-height: 0;
+  max-height: none;
   overflow-y: auto;
 }
 

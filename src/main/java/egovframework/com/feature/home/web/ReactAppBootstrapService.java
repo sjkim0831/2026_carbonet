@@ -42,7 +42,9 @@ public class ReactAppBootstrapService {
         }
         if (admin) {
             payload.put("adminMenuTree", adminMenuTreeService.buildAdminMenuTree(en, request));
-            if ("member_stats".equals(normalizedRoute)) {
+            if ("admin_home".equals(normalizedRoute)) {
+                payload.put("adminHomePageData", adminShellBootstrapPageService.buildAdminHomePageData(en));
+            } else if ("member_stats".equals(normalizedRoute)) {
                 payload.put("memberStatsPageData", adminShellBootstrapPageService.buildMemberStatsPageData(en));
             } else if ("security_policy".equals(normalizedRoute)) {
                 payload.put("securityPolicyPageData", adminShellBootstrapPageService.buildSecurityPolicyPageData(en));

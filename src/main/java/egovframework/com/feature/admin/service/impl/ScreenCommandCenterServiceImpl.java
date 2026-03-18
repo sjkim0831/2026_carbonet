@@ -664,6 +664,8 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                         Arrays.asList("auth-group-page-load"), "권한 분류, 회사, 권한 그룹을 바꿔 조회 범위를 좁힙니다."),
                 surface("auth-group-create", "권한 그룹 생성", "[data-help-id=\"auth-group-create\"]", "AuthGroupCreateForm", "content",
                         Arrays.asList("auth-group-create-submit"), "신규 권한 그룹 코드와 설명을 생성합니다."),
+                surface("auth-group-profile", "권한 그룹 프로필", "[data-help-id=\"auth-group-profile\"]", "AuthGroupRoleProfile", "content",
+                        Arrays.asList("auth-group-profile-save"), "회원 수정 화면에 노출할 업무 역할명과 우선 제공 업무를 권한 그룹 메타데이터로 저장합니다."),
                 surface("auth-group-features", "기능 매핑", "[data-help-id=\"auth-group-features\"]", "AuthGroupFeatureMatrix", "content",
                         Arrays.asList("auth-group-feature-save"), "선택한 권한 그룹에 기능 코드를 저장합니다.")
         ));
@@ -672,6 +674,8 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                         Arrays.asList("admin.auth-groups.page"), "권한 분류와 회사 범위에 따라 권한 그룹/기능 목록을 다시 조회합니다."),
                 event("auth-group-create-submit", "권한 그룹 생성", "submit", "handleCreate", "[data-help-id=\"auth-group-create\"] form",
                         Arrays.asList("admin.auth-groups.create"), "신규 권한 그룹을 생성합니다."),
+                event("auth-group-profile-save", "권한 그룹 프로필 저장", "click", "handleSaveRoleProfile", "[data-help-id=\"auth-group-profile\"] .primary-button",
+                        Arrays.asList("admin.auth-groups.profile-save"), "권한 그룹에 연결된 업무 역할과 우선 제공 업무 메타데이터를 저장합니다."),
                 event("auth-group-feature-save", "기능 매핑 저장", "click", "handleSaveFeatures", "[data-help-id=\"auth-group-features\"] .primary-button",
                         Arrays.asList("admin.auth-groups.features.save"), "선택 기능과 권한 그룹 매핑을 저장합니다.")
         ));
@@ -687,6 +691,11 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                         "AuthGroupManageMapper.insertAuthorInfo",
                         Arrays.asList("COMTNAUTHORINFO", "AUDIT_EVENT"), Arrays.asList("author-group-schema"),
                         "신규 권한 그룹을 생성합니다."),
+                api("admin.auth-groups.profile-save", "권한 그룹 프로필 저장", "POST", "/api/admin/auth-groups/profile-save",
+                        "AdminMainController.saveAuthGroupProfileApi", "AuthorRoleProfileService.saveProfile",
+                        "author-role-profiles/profiles.json",
+                        Arrays.asList("DATA_AUTHOR_ROLE_PROFILES", "AUDIT_EVENT"), Arrays.asList("author-group-schema", "author-role-profile-schema", "audit-event-schema"),
+                        "권한 그룹별 업무 역할명, 우선 제공 업무, 회원 수정 화면 노출 여부를 저장합니다."),
                 api("admin.auth-groups.features.save", "권한 그룹 기능 저장", "POST", "/api/admin/auth-groups/features",
                         "AdminMainController.saveAuthGroupFeatures", "AuthGroupManageService.saveAuthorFeatureRelations",
                         "AuthGroupManageMapper.deleteAuthorFeatureRelations / insertAuthorFeatureRelation",
@@ -697,6 +706,10 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                 schema("author-group-schema", "권한 그룹 스키마", "COMTNAUTHORINFO",
                         Arrays.asList("AUTHOR_CODE", "AUTHOR_NM", "AUTHOR_DC"), Arrays.asList("SELECT", "INSERT"),
                         "권한 그룹 정의를 저장합니다."),
+                schema("author-role-profile-schema", "권한 그룹 프로필 스키마", "data/author-role-profiles/profiles.json",
+                        Arrays.asList("authorCode", "displayTitle", "priorityWorks", "description", "memberEditVisibleYn", "updatedAt"),
+                        Arrays.asList("SELECT", "UPSERT"),
+                        "권한 그룹에 연결된 업무 역할 프로필 메타데이터를 저장합니다."),
                 schema("menu-feature-schema", "메뉴/기능 권한 스키마", "COMTNMENUINFO / COMTNMENUFUNCTIONINFO / COMTNAUTHORFUNCTIONRELATE",
                         Arrays.asList("MENU_CODE", "FEATURE_CODE", "AUTHOR_CODE"), Arrays.asList("SELECT", "INSERT", "DELETE"),
                         "권한 그룹별 기능 코드 매핑을 저장합니다.")
@@ -1556,7 +1569,9 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                 surface("dept-role-departments", "부서 권한 목록", "[data-help-id=\"dept-role-departments\"]", "DeptRoleDepartmentTable", "content",
                         Arrays.asList("dept-role-dept-save"), "부서별 기본 권한 그룹을 저장합니다."),
                 surface("dept-role-members", "회원 권한 목록", "[data-help-id=\"dept-role-members\"]", "DeptRoleMemberTable", "content",
-                        Arrays.asList("dept-role-member-save"), "회사 소속 회원의 권한 그룹을 저장합니다.")
+                        Arrays.asList("dept-role-member-save"), "회사 소속 회원의 권한 그룹을 저장합니다."),
+                surface("dept-role-role-profile", "권한 그룹 프로필 미리보기", "[data-help-id=\"dept-role-role-profile\"]", "DeptRoleRoleProfilePreview", "content",
+                        Collections.emptyList(), "선택된 권한 그룹이 회원 수정 화면에서 어떤 업무 역할과 우선 제공 업무로 보일지 미리 확인합니다.")
         ));
         page.put("events", Arrays.asList(
                 event("dept-role-page-load", "부서 권한 화면 조회", "change", "fetchDeptRolePage", "[data-help-id=\"dept-role-company\"] select",
@@ -1589,7 +1604,11 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                         "회사별 부서 기본 권한 그룹을 저장합니다."),
                 schema("member-author-schema", "회원 권한 스키마", "COMTNENTRPRSMBERAUTHORRELATE",
                         Arrays.asList("ENTRPRS_MBER_ID", "AUTHOR_CODE", "INSTT_ID"), Arrays.asList("SELECT", "INSERT", "UPDATE"),
-                        "회사 회원 권한 그룹을 저장합니다.")
+                        "회사 회원 권한 그룹을 저장합니다."),
+                schema("author-role-profile-schema", "권한 그룹 프로필 스키마", "data/author-role-profiles/profiles.json",
+                        Arrays.asList("authorCode", "displayTitle", "priorityWorks", "description", "memberEditVisibleYn", "updatedAt"),
+                        Arrays.asList("SELECT"),
+                        "권한 그룹 프로필 미리보기 데이터에 사용됩니다.")
         ));
         page.put("commonCodeGroups", Arrays.asList(
                 codeGroup("COMPANY_SCOPE", "회사 관리 범위", Arrays.asList("ALL", "OWN"), "전체 회사 또는 자기 회사 관리 범위입니다.")
@@ -1868,6 +1887,8 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         page.put("surfaces", Arrays.asList(
                 surface("member-edit-summary", "회원 수정 요약", "[data-help-id=\"member-edit-summary\"]", "MemberEditSummaryCard", "content",
                         Arrays.asList("member-edit-page-load"), "회원 식별자, 상태, 업무 역할 요약을 보여줍니다."),
+                surface("member-edit-role-profile", "권한 그룹 프로필 요약", "[data-help-id=\"member-edit-role-profile\"]", "MemberEditRoleProfileSummary", "content",
+                        Arrays.asList("member-edit-page-load"), "기준 권한 그룹에 연결된 업무 역할과 우선 제공 업무 메타데이터를 보여줍니다."),
                 surface("member-edit-form", "회원 기본 정보 폼", "[data-help-id=\"member-edit-form\"]", "MemberEditForm", "content",
                         Arrays.asList("member-edit-save"), "이름, 이메일, 연락처, 상태를 수정합니다."),
                 surface("member-edit-permissions", "회원 권한 편집", "[data-help-id=\"member-edit-permissions\"]", "MemberEditPermissionMatrix", "content",
@@ -1910,7 +1931,11 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                         Arrays.asList("SELECT", "UPDATE"), "회원 기본 정보와 상태, 주소를 수정합니다."),
                 schema("member-permission-schema", "회원 개별 권한 스키마", "COMTNUSERFEATUREOVERRIDE / COMTNAUTHORFUNCTIONRELATE",
                         Arrays.asList("ENTRPRS_MBER_ID", "AUTHOR_CODE", "FEATURE_CODE", "OVERRIDE_TYPE"),
-                        Arrays.asList("SELECT", "INSERT", "DELETE"), "기준 롤과 회원별 기능 추가/제외 권한을 관리합니다.")
+                        Arrays.asList("SELECT", "INSERT", "DELETE"), "기준 롤과 회원별 기능 추가/제외 권한을 관리합니다."),
+                schema("author-role-profile-schema", "권한 그룹 프로필 스키마", "data/author-role-profiles/profiles.json",
+                        Arrays.asList("authorCode", "displayTitle", "priorityWorks", "description", "memberEditVisibleYn", "updatedAt"),
+                        Arrays.asList("SELECT"),
+                        "기준 권한 그룹의 업무 역할과 우선 제공 업무 표시에 사용됩니다.")
         ));
         page.put("commonCodeGroups", Arrays.asList(
                 codeGroup("MEMBER_STATUS", "회원 상태", Arrays.asList("신청", "승인", "반려", "휴면"), "회원 상태 드롭다운과 배지에 사용됩니다."),

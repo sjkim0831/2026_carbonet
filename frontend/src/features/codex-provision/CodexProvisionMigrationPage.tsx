@@ -86,6 +86,14 @@ function isExecutionRunning(status: string | undefined) {
   return normalized === "PLAN_RUNNING" || normalized === "RUNNING_CODEX";
 }
 
+function canStreamPlanArtifact(artifactType: string) {
+  return artifactType === "plan-log" || artifactType === "plan-stderr";
+}
+
+function canStreamBuildArtifact(artifactType: string) {
+  return artifactType === "build-log" || artifactType === "build-stderr";
+}
+
 function canBuildTicket(status: string | undefined) {
   const normalized = (status || "").toUpperCase();
   return normalized === "PLAN_COMPLETED";
@@ -129,6 +137,7 @@ function updateTicketRow(rows: SrTicketRow[], ticketId: string, updater: (ticket
 }
 
 export function CodexProvisionMigrationPage() {
+  const queuePageSize = 3;
   const en = isEnglish();
   const pageState = useAsyncValue<CodexProvisionPagePayload>(fetchCodexProvisionPage, []);
   const historyState = useAsyncValue<CodexHistoryPayload>(fetchCodexHistory, []);
@@ -149,6 +158,7 @@ export function CodexProvisionMigrationPage() {
   const [selectedPlanArtifactType, setSelectedPlanArtifactType] = useState("plan-result");
   const [selectedBuildArtifactType, setSelectedBuildArtifactType] = useState("build-result");
   const [ticketContextReloadKey, setTicketContextReloadKey] = useState(0);
+  const [queuePageIndex, setQueuePageIndex] = useState(0);
 
   const historyRows = historyState.value?.items || [];
   const historyCount = historyState.value?.totalCount ?? historyRows.length;
@@ -159,6 +169,9 @@ export function CodexProvisionMigrationPage() {
   const runtimeConfig = pageState.value?.codexRuntimeConfig || {};
   const srTickets = pageState.value?.srTickets || [];
   const srTicketCount = pageState.value?.srTicketCount ?? srTickets.length;
+  const queuePageCount = Math.max(1, Math.ceil(srTickets.length / queuePageSize));
+  const normalizedQueuePageIndex = Math.min(queuePageIndex, queuePageCount - 1);
+  const pagedTickets = srTickets.slice(normalizedQueuePageIndex * queuePageSize, (normalizedQueuePageIndex + 1) * queuePageSize);
 
   useEffect(() => {
     if (pageState.value?.codexSamplePayload) {
@@ -168,6 +181,7 @@ export function CodexProvisionMigrationPage() {
 
   useEffect(() => {
     if (srTickets.length === 0) {
+      setQueuePageIndex(0);
       setSelectedTicketId("");
       setSelectedTicketDetail(null);
       setPlanArtifact(null);
@@ -181,6 +195,26 @@ export function CodexProvisionMigrationPage() {
       setSelectedTicketId(srTickets[0].ticketId);
     }
   }, [selectedTicketId, srTickets]);
+
+  useEffect(() => {
+    if (queuePageIndex !== normalizedQueuePageIndex) {
+      setQueuePageIndex(normalizedQueuePageIndex);
+    }
+  }, [normalizedQueuePageIndex, queuePageIndex]);
+
+  useEffect(() => {
+    if (!selectedTicketId || srTickets.length === 0) {
+      return;
+    }
+    const selectedIndex = srTickets.findIndex((ticket) => ticket.ticketId === selectedTicketId);
+    if (selectedIndex < 0) {
+      return;
+    }
+    const nextPageIndex = Math.floor(selectedIndex / queuePageSize);
+    if (nextPageIndex !== normalizedQueuePageIndex) {
+      setQueuePageIndex(nextPageIndex);
+    }
+  }, [normalizedQueuePageIndex, selectedTicketId, srTickets]);
 
   useEffect(() => {
     if (!selectedTicketId || !codexReady) {
@@ -459,6 +493,47 @@ export function CodexProvisionMigrationPage() {
     };
   }, [pageState, selectedTicket, ticketContextReloadKey]);
 
+  useEffect(() => {
+    if (!selectedTicket || !isExecutionRunning(selectedTicket.executionStatus)) {
+      return;
+    }
+    const ticketId = selectedTicket.ticketId;
+    const executionStatus = selectedTicket.executionStatus;
+    const streamPlanArtifact = executionStatus === "PLAN_RUNNING" && canStreamPlanArtifact(selectedPlanArtifactType);
+    const streamBuildArtifact = executionStatus === "RUNNING_CODEX" && canStreamBuildArtifact(selectedBuildArtifactType);
+    if (!streamPlanArtifact && !streamBuildArtifact) {
+      return;
+    }
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      async function refreshArtifacts() {
+        try {
+          if (streamPlanArtifact) {
+            const nextPlanArtifact = await fetchCodexSrTicketArtifact(ticketId, selectedPlanArtifactType);
+            if (!cancelled) {
+              setPlanArtifact(nextPlanArtifact);
+            }
+          }
+          if (streamBuildArtifact) {
+            const nextBuildArtifact = await fetchCodexSrTicketArtifact(ticketId, selectedBuildArtifactType);
+            if (!cancelled) {
+              setBuildArtifact(nextBuildArtifact);
+            }
+          }
+        } catch {
+          if (!cancelled) {
+            setSelectedTicketError(en ? "Failed to refresh running artifact." : "실행 중 아티팩트를 새로고침하지 못했습니다.");
+          }
+        }
+      }
+      void refreshArtifacts();
+    }, 4000);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [en, selectedBuildArtifactType, selectedPlanArtifactType, selectedTicket]);
+
   return (
     <AdminPageShell
       breadcrumbs={[
@@ -547,7 +622,7 @@ export function CodexProvisionMigrationPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {srTickets.length === 0 ? <tr><td className="px-4 py-8 text-center text-gray-500" colSpan={4}>{en ? "No SR tickets loaded." : "불러온 SR 티켓이 없습니다."}</td></tr> : srTickets.map((ticket: SrTicketRow) => (
+              {srTickets.length === 0 ? <tr><td className="px-4 py-8 text-center text-gray-500" colSpan={4}>{en ? "No SR tickets loaded." : "불러온 SR 티켓이 없습니다."}</td></tr> : pagedTickets.map((ticket: SrTicketRow) => (
                 <tr className={`align-top cursor-pointer ${ticket.ticketId === selectedTicketId ? "bg-blue-50/70" : ""}`} key={ticket.ticketId} onClick={() => { setSelectedTicketId(ticket.ticketId); }}>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <div className="font-semibold">{ticket.ticketId}</div>
@@ -584,6 +659,22 @@ export function CodexProvisionMigrationPage() {
             </tbody>
           </table>
         </div>
+        {srTickets.length > queuePageSize ? (
+          <div className="mt-4 flex flex-col gap-3 border-t border-slate-200 pt-4 md:flex-row md:items-center md:justify-between">
+            <div className="text-xs text-[var(--kr-gov-text-secondary)]">
+              {en
+                ? `Showing ${normalizedQueuePageIndex * queuePageSize + 1}-${Math.min((normalizedQueuePageIndex + 1) * queuePageSize, srTicketCount)} of ${srTicketCount}`
+                : `${normalizedQueuePageIndex * queuePageSize + 1}-${Math.min((normalizedQueuePageIndex + 1) * queuePageSize, srTicketCount)} / 전체 ${srTicketCount}건`}
+            </div>
+            <div className="flex items-center gap-2">
+              <button className="gov-btn gov-btn-outline !px-3 !py-1.5 text-xs" disabled={normalizedQueuePageIndex === 0} onClick={() => { setQueuePageIndex((current) => Math.max(0, current - 1)); }} type="button">{en ? "Previous" : "이전"}</button>
+              <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-[var(--kr-gov-text-secondary)]">
+                {normalizedQueuePageIndex + 1} / {queuePageCount}
+              </div>
+              <button className="gov-btn gov-btn-outline !px-3 !py-1.5 text-xs" disabled={normalizedQueuePageIndex >= queuePageCount - 1} onClick={() => { setQueuePageIndex((current) => Math.min(queuePageCount - 1, current + 1)); }} type="button">{en ? "Next" : "다음"}</button>
+            </div>
+          </div>
+        ) : null}
       </section>
       <section className="grid grid-cols-1 xl:grid-cols-[0.9fr_1.1fr] gap-6 mt-6">
         <article className="gov-card" data-help-id="codex-request-ticket-detail">
@@ -713,6 +804,9 @@ export function CodexProvisionMigrationPage() {
             <div className="mb-3 text-xs text-[var(--kr-gov-text-secondary)]">
               {planArtifact?.label || (en ? "PLAN artifact preview" : "PLAN 아티팩트 미리보기")}
               {planArtifact?.filePath ? ` · ${planArtifact.filePath}` : ""}
+              {selectedTicket?.executionStatus === "PLAN_RUNNING" && canStreamPlanArtifact(selectedPlanArtifactType)
+                ? ` · ${en ? "live tail every 4s" : "4초마다 자동 새로고침"}`
+                : ""}
             </div>
             {selectedTicket ? (
               <div className="mb-3 flex flex-wrap gap-2">
@@ -723,7 +817,7 @@ export function CodexProvisionMigrationPage() {
             ) : null}
             <pre className="rounded-[var(--kr-gov-radius)] bg-slate-950 text-slate-100 p-4 text-xs md:text-sm font-mono whitespace-pre-wrap break-all leading-6 min-h-[16rem]">{artifactLoading
               ? (en ? "Loading plan artifact..." : "Plan 아티팩트를 불러오는 중입니다.")
-              : (selectedTicket && selectedTicket.executionStatus === "PLAN_RUNNING"
+              : (selectedTicket && selectedTicket.executionStatus === "PLAN_RUNNING" && !canStreamPlanArtifact(selectedPlanArtifactType)
                 ? (en ? "PLAN is still running. Artifact will appear when the run completes." : "PLAN 실행 중입니다. 실행이 끝나면 아티팩트가 표시됩니다.")
                 : artifactBody(planArtifact, en ? "No PLAN artifact yet." : "아직 PLAN 아티팩트가 없습니다."))}</pre>
           </article>
@@ -735,6 +829,9 @@ export function CodexProvisionMigrationPage() {
             <div className="mb-3 text-xs text-[var(--kr-gov-text-secondary)]">
               {buildArtifact?.label || (en ? "BUILD artifact preview" : "BUILD 아티팩트 미리보기")}
               {buildArtifact?.filePath ? ` · ${buildArtifact.filePath}` : ""}
+              {selectedTicket?.executionStatus === "RUNNING_CODEX" && canStreamBuildArtifact(selectedBuildArtifactType)
+                ? ` · ${en ? "live tail every 4s" : "4초마다 자동 새로고침"}`
+                : ""}
             </div>
             {selectedTicket ? (
               <div className="mb-3 flex flex-wrap gap-2">
@@ -753,7 +850,7 @@ export function CodexProvisionMigrationPage() {
             ) : null}
             <pre className="rounded-[var(--kr-gov-radius)] bg-slate-950 text-slate-100 p-4 text-xs md:text-sm font-mono whitespace-pre-wrap break-all leading-6 min-h-[16rem]">{artifactLoading
               ? (en ? "Loading build artifact..." : "Build 아티팩트를 불러오는 중입니다.")
-              : (selectedTicket && selectedTicket.executionStatus === "RUNNING_CODEX"
+              : (selectedTicket && selectedTicket.executionStatus === "RUNNING_CODEX" && !canStreamBuildArtifact(selectedBuildArtifactType)
                 ? (en ? "BUILD is still running. Artifact will appear when the run completes." : "BUILD 실행 중입니다. 실행이 끝나면 아티팩트가 표시됩니다.")
                 : artifactBody(buildArtifact, en ? "No BUILD artifact yet." : "아직 BUILD 아티팩트가 없습니다."))}</pre>
           </article>

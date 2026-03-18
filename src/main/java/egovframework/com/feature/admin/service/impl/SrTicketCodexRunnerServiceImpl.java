@@ -202,22 +202,6 @@ public class SrTicketCodexRunnerServiceImpl implements SrTicketCodexRunnerServic
                 return finalizeExecution(execution, worktreePath, diffFile, changedFilesFile);
             }
 
-            if ("BUILD".equals(mode) && !safe(backendVerifyCommand).isEmpty()) {
-                Path backendStdout = artifactsRoot.resolve("backend-verify.stdout.log");
-                Path backendStderr = artifactsRoot.resolve("backend-verify.stderr.log");
-                execution.setBackendVerifyCommand(safe(backendVerifyCommand));
-                execution.setBackendVerifyStdoutLogPath(backendStdout.toString());
-                execution.setBackendVerifyStderrLogPath(backendStderr.toString());
-                CommandResult backendResult = runConfiguredCommand(backendVerifyCommand, worktreePath, verifyTimeoutSeconds,
-                        backendStdout, backendStderr, execution);
-                execution.setBackendVerifyExitCode(backendResult.getExitCode());
-                if (backendResult.getExitCode() != 0) {
-                    execution.setStatus("BACKEND_VERIFY_FAILED");
-                    execution.setErrorMessage("Backend verification failed with exit code " + backendResult.getExitCode());
-                    return finalizeExecution(execution, worktreePath, diffFile, changedFilesFile);
-                }
-            }
-
             if ("BUILD".equals(mode) && !safe(frontendVerifyCommand).isEmpty()) {
                 Path frontendDir = resolveFrontendVerifyDirectory();
                 Path repositoryRootPath = resolveRepositoryRoot();
@@ -235,6 +219,22 @@ public class SrTicketCodexRunnerServiceImpl implements SrTicketCodexRunnerServic
                 if (frontendResult.getExitCode() != 0) {
                     execution.setStatus("FRONTEND_VERIFY_FAILED");
                     execution.setErrorMessage("Frontend verification failed with exit code " + frontendResult.getExitCode());
+                    return finalizeExecution(execution, worktreePath, diffFile, changedFilesFile);
+                }
+            }
+
+            if ("BUILD".equals(mode) && !safe(backendVerifyCommand).isEmpty()) {
+                Path backendStdout = artifactsRoot.resolve("backend-verify.stdout.log");
+                Path backendStderr = artifactsRoot.resolve("backend-verify.stderr.log");
+                execution.setBackendVerifyCommand(safe(backendVerifyCommand));
+                execution.setBackendVerifyStdoutLogPath(backendStdout.toString());
+                execution.setBackendVerifyStderrLogPath(backendStderr.toString());
+                CommandResult backendResult = runConfiguredCommand(backendVerifyCommand, worktreePath, verifyTimeoutSeconds,
+                        backendStdout, backendStderr, execution);
+                execution.setBackendVerifyExitCode(backendResult.getExitCode());
+                if (backendResult.getExitCode() != 0) {
+                    execution.setStatus("BACKEND_VERIFY_FAILED");
+                    execution.setErrorMessage("Backend verification failed with exit code " + backendResult.getExitCode());
                     return finalizeExecution(execution, worktreePath, diffFile, changedFilesFile);
                 }
             }

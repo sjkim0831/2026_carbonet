@@ -1,10 +1,11 @@
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { CanView } from "../../components/access/CanView";
 import { PermissionButton } from "../../components/access/CanUse";
 import { buildLocalizedPath, getSearchParam } from "../../lib/navigation/runtime";
 import {
+  checkCompanyNameDuplicate,
   CompanyAccountPagePayload,
   fetchCompanyAccountPage,
   saveCompanyAccount
@@ -25,6 +26,11 @@ type CompanyFormState = {
   chargerTel: string;
 };
 
+type UploadRow = {
+  id: number;
+  file: File | null;
+};
+
 const EMPTY_FORM: CompanyFormState = {
   insttId: "",
   membershipType: "E",
@@ -38,6 +44,14 @@ const EMPTY_FORM: CompanyFormState = {
   chargerEmail: "",
   chargerTel: ""
 };
+
+let uploadRowSequence = 1;
+
+function createUploadRow(): UploadRow {
+  const row = { id: uploadRowSequence, file: null };
+  uploadRowSequence += 1;
+  return row;
+}
 
 const MEMBERSHIP_CARD_OPTIONS = [
   {
@@ -74,11 +88,12 @@ function resolveInitialInsttId() {
 export function CompanyAccountMigrationPage() {
   const initialInsttId = resolveInitialInsttId();
   const [form, setForm] = useState<CompanyFormState>(EMPTY_FORM);
-  const [lookupInsttId, setLookupInsttId] = useState(initialInsttId);
   const [activeInsttId, setActiveInsttId] = useState(initialInsttId);
-  const [files, setFiles] = useState<File[]>([]);
+  const [uploadRows, setUploadRows] = useState<UploadRow[]>([createUploadRow()]);
   const [actionError, setActionError] = useState("");
   const [message, setMessage] = useState("");
+  const [nameCheckMessage, setNameCheckMessage] = useState("");
+  const [isNameChecked, setIsNameChecked] = useState(false);
   const sessionState = useFrontendSession();
   const pageState = useAsyncValue<CompanyAccountPagePayload>(
     () => fetchCompanyAccountPage(activeInsttId || undefined),
@@ -100,17 +115,89 @@ export function CompanyAccountMigrationPage() {
           chargerEmail: String(source.chargerEmail || ""),
           chargerTel: String(source.chargerTel || "")
         });
-        setLookupInsttId(String(source.insttId || lookupInsttId || ""));
-        setFiles([]);
+        setUploadRows([createUploadRow()]);
+        if (String(source.insttId || "").trim() && String(source.insttNm || "").trim()) {
+          setIsNameChecked(true);
+          setNameCheckMessage("");
+        } else {
+          setIsNameChecked(false);
+          setNameCheckMessage("");
+        }
       }
     }
   );
   const page = pageState.value;
   const error = actionError || sessionState.error || pageState.error;
   const fileRows = (page?.companyAccountFiles || []) as Array<Record<string, unknown>>;
+  const canUseSave = !!page?.canUseCompanyAccountSave;
+
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
+    script.async = true;
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
   function updateField<K extends keyof CompanyFormState>(key: K, value: CompanyFormState[K]) {
+    if (key === "agencyName") {
+      const nextName = String(value || "").trim();
+      const originalInsttId = String((page?.companyAccountForm as Record<string, unknown> | undefined)?.insttId || "").trim();
+      const originalName = String((page?.companyAccountForm as Record<string, unknown> | undefined)?.insttNm || "").trim();
+      if (originalInsttId && nextName && nextName === originalName) {
+        setIsNameChecked(true);
+        setNameCheckMessage("");
+      } else {
+        setIsNameChecked(false);
+        setNameCheckMessage("");
+      }
+    }
     setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  async function handleCheckDuplicate() {
+    const name = form.agencyName.trim();
+    const originalInsttId = String((page?.companyAccountForm as Record<string, unknown> | undefined)?.insttId || "").trim();
+    const originalName = String((page?.companyAccountForm as Record<string, unknown> | undefined)?.insttNm || "").trim();
+    if (!name) {
+      setActionError("기관/회사명을 입력해 주세요.");
+      return;
+    }
+    setActionError("");
+    try {
+      const duplicated = await checkCompanyNameDuplicate(name);
+      const isSameExisting = !!originalInsttId && name === originalName;
+      if (duplicated && !isSameExisting) {
+        setIsNameChecked(false);
+        setNameCheckMessage("이미 등록된 기관/회사명입니다.");
+        return;
+      }
+      setIsNameChecked(true);
+      setNameCheckMessage("사용 가능한 기관/회사명입니다.");
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "중복 확인 중 오류가 발생했습니다.");
+    }
+  }
+
+  function handleAddressSearch() {
+    if (typeof window === "undefined") return;
+    const daum = (window as Window & { daum?: { Postcode?: new (options: { oncomplete: (data: { zonecode?: string; roadAddress?: string; jibunAddress?: string; userSelectedType?: string; }) => void; }) => { open: () => void; }; }; }).daum;
+    if (!daum?.Postcode) {
+      setActionError("주소 검색 도구를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      return;
+    }
+    new daum.Postcode({
+      oncomplete(data) {
+        const address = data.userSelectedType === "R" ? (data.roadAddress || "") : (data.jibunAddress || "");
+        setForm((current) => ({
+          ...current,
+          zipCode: String(data.zonecode || ""),
+          companyAddress: String(address || "")
+        }));
+      }
+    }).open();
   }
 
   async function handleSave() {
@@ -118,6 +205,13 @@ export function CompanyAccountMigrationPage() {
     if (!session) return;
     setActionError("");
     setMessage("");
+    if (!isNameChecked) {
+      setActionError("기관/회사명 중복 확인이 필요합니다.");
+      return;
+    }
+    const uploadedFiles = uploadRows
+      .map((row) => row.file)
+      .filter((file): file is File => Boolean(file && file.size > 0));
     try {
       const result = await saveCompanyAccount(session, {
         insttId: form.insttId || undefined,
@@ -131,10 +225,9 @@ export function CompanyAccountMigrationPage() {
         chargerName: form.chargerName,
         chargerEmail: form.chargerEmail,
         chargerTel: form.chargerTel,
-        fileUploads: files
+        fileUploads: uploadedFiles
       });
       setMessage(`${result.insttId} 회원사 정보를 저장했습니다.`);
-      setLookupInsttId(result.insttId);
       if (result.insttId === activeInsttId) {
         await pageState.reload();
       } else {
@@ -145,20 +238,49 @@ export function CompanyAccountMigrationPage() {
     }
   }
 
-  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    setFiles(Array.from(event.target.files || []));
+  function formatBytes(bytes: number) {
+    if (bytes === 0) return "0 Bytes";
+    const units = ["Bytes", "KB", "MB", "GB"];
+    const index = Math.floor(Math.log(bytes) / Math.log(1024));
+    return `${parseFloat((bytes / 1024 ** index).toFixed(2))} ${units[index]}`;
   }
 
-  async function handleLoad() {
-    setActionError("");
-    const nextInsttId = lookupInsttId.trim();
-    if (nextInsttId === activeInsttId) {
-      if (!await pageState.reload()) {
-        setActionError("회원사 조회 실패");
-      }
+  function handleFileChange(index: number, event: ChangeEvent<HTMLInputElement>) {
+    const nextFile = event.target.files?.[0];
+    if (!nextFile) {
+      setUploadRows((current) => current.map((row, currentIndex) => (
+        currentIndex === index ? { ...row, file: null } : row
+      )));
       return;
     }
-    setActiveInsttId(nextInsttId);
+    const lower = nextFile.name.toLowerCase();
+    const okExt = [".pdf", ".jpg", ".jpeg", ".png"].some((ext) => lower.endsWith(ext));
+    if (!okExt) {
+      window.alert("PDF, JPG, PNG 파일만 업로드 가능합니다.");
+      event.target.value = "";
+      return;
+    }
+    if (nextFile.size > 10 * 1024 * 1024) {
+      window.alert("파일 크기는 10MB 이하만 가능합니다.");
+      event.target.value = "";
+      return;
+    }
+    setUploadRows((current) => current.map((row, currentIndex) => (
+      currentIndex === index ? { ...row, file: nextFile } : row
+    )));
+  }
+
+  function addFileRow() {
+    setUploadRows((current) => [...current, createUploadRow()]);
+  }
+
+  function removeFileRow(index: number) {
+    setUploadRows((current) => {
+      if (current.length <= 1) {
+        return [{ ...current[0], file: null }];
+      }
+      return current.filter((_, currentIndex) => currentIndex !== index);
+    });
   }
 
   return (
@@ -184,24 +306,18 @@ export function CompanyAccountMigrationPage() {
         allowed={!!page?.canViewCompanyAccount}
         fallback={<section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm"><p className="text-sm text-[var(--kr-gov-text-secondary)]">회원사 관리 화면을 볼 권한이 없습니다.</p></section>}
       >
-        <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm mb-6" data-help-id="company-account-lookup">
-          <div className="flex items-end gap-3">
-            <label className="min-w-[280px]">
-              <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">기관 ID 조회</span>
-              <input className="w-full h-11 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] text-[15px]" placeholder="INSTT_..." value={lookupInsttId} onChange={(e) => setLookupInsttId(e.target.value)} />
-            </label>
-            <PermissionButton allowed={true} className="min-w-[110px] rounded-[var(--kr-gov-radius)] bg-[var(--kr-gov-blue)] px-6 py-3 font-bold text-white hover:bg-[var(--kr-gov-blue-hover)]" data-action="load" onClick={() => void handleLoad()} type="button">조회</PermissionButton>
-          </div>
-        </section>
-
         <div className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-8 shadow-sm" data-help-id="company-account-page">
-          <div className="bg-blue-50 border border-blue-100 p-4 rounded-[var(--kr-gov-radius)] mb-8 flex items-start gap-3">
-            <span className="material-symbols-outlined text-blue-600">info</span>
-            <p className="text-sm text-blue-900 leading-relaxed">
-              `/join/companyRegister`와 같은 항목으로 등록합니다. 저장 시 `COMTNINSTTINFO`와 `COMTNINSTTFILE`에 반영되며, 첨부 파일 목록은 아래 테이블에서 다시 조회됩니다.
-            </p>
-          </div>
-
+          {form.insttId ? (
+            <div className="mb-8 flex items-center justify-between rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
+              <div>
+                <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">현재 수정 대상</p>
+                <p className="mt-1 text-sm font-bold text-[var(--kr-gov-text-primary)]">{form.agencyName || "회원사"}</p>
+              </div>
+              <span className="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-bold text-[var(--kr-gov-blue)]">
+                {form.insttId}
+              </span>
+            </div>
+          ) : null}
           <div className="space-y-8">
             <section data-help-id="company-account-membership">
               <label className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-4">회원 유형 선택 <span className="text-red-500">*</span></label>
@@ -232,8 +348,11 @@ export function CompanyAccountMigrationPage() {
                   <label className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2">기관/기업명 <span className="text-red-500">*</span></label>
                   <div className="flex gap-2">
                     <input className="w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!page?.canUseCompanyAccountSave} value={form.agencyName} onChange={(e) => updateField("agencyName", e.target.value)} />
-                    <button className="h-12 shrink-0 rounded-[var(--kr-gov-radius)] bg-gray-800 px-4 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-600" disabled type="button">중복확인</button>
+                    <button className="h-12 shrink-0 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-blue)] px-4 text-sm font-bold text-[var(--kr-gov-blue)] transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-100 disabled:text-slate-400" disabled={!canUseSave} onClick={() => void handleCheckDuplicate()} type="button">중복확인</button>
                   </div>
+                  {nameCheckMessage ? (
+                    <p className={`mt-2 text-xs font-bold ${isNameChecked ? "text-emerald-600" : "text-red-600"}`}>{nameCheckMessage}</p>
+                  ) : null}
                 </div>
                 <label>
                   <span className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2">대표자명 <span className="text-red-500">*</span></span>
@@ -246,10 +365,10 @@ export function CompanyAccountMigrationPage() {
                 <div className="md:col-span-2">
                   <label className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2">사업장 주소 <span className="text-red-500">*</span></label>
                   <div className="mb-2 flex gap-2">
-                    <input className="h-12 w-32 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-gray-50" disabled placeholder="우편번호" value={form.zipCode} />
-                    <button className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-blue)] px-5 text-sm font-bold text-[var(--kr-gov-blue)] hover:bg-blue-50" disabled type="button">주소 검색</button>
+                    <input className="h-12 w-32 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-gray-50" placeholder="우편번호" readOnly value={form.zipCode} />
+                    <button className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-blue)] px-5 text-sm font-bold text-[var(--kr-gov-blue)] hover:bg-blue-50 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-100 disabled:text-slate-400" disabled={!canUseSave} onClick={handleAddressSearch} type="button">주소 검색</button>
                   </div>
-                  <input className="w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] mb-2 bg-gray-50" disabled value={form.companyAddress} onChange={(e) => updateField("companyAddress", e.target.value)} />
+                  <input className="w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] mb-2 bg-gray-50" onClick={handleAddressSearch} readOnly value={form.companyAddress} />
                   <input className="w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!page?.canUseCompanyAccountSave} value={form.companyAddressDetail} onChange={(e) => updateField("companyAddressDetail", e.target.value)} />
                 </div>
               </div>
@@ -284,38 +403,48 @@ export function CompanyAccountMigrationPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <label className="block text-sm font-bold text-[var(--kr-gov-text-primary)]">사업자등록증 또는 법인 검증 서류 <span className="text-red-500">*</span></label>
-                  <label className="inline-flex items-center gap-1.5 rounded border border-gray-200 bg-gray-100 px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-200 cursor-pointer">
+                  <button className="inline-flex items-center gap-1.5 rounded border border-[var(--kr-gov-blue)] bg-white px-3 py-1.5 text-xs font-bold text-[var(--kr-gov-blue)] transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-100 disabled:text-slate-400" disabled={!canUseSave} onClick={addFileRow} type="button">
                     <span className="material-symbols-outlined text-[18px]">add</span>
                     파일 추가
-                    <input accept=".pdf,.jpg,.jpeg,.png" className="hidden" disabled={!page?.canUseCompanyAccountSave} multiple onChange={handleFileChange} type="file" />
-                  </label>
+                  </button>
                 </div>
 
                 <div className="space-y-2">
-                  {files.length === 0 ? (
-                    <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3 transition-all hover:border-[var(--kr-gov-blue)]">
-                      <span className="material-symbols-outlined text-gray-400">attach_file</span>
+                  {uploadRows.map((row, index) => (
+                    <label className={`flex cursor-pointer items-center gap-3 rounded-lg border bg-white p-3 transition-all ${row.file ? "border-[var(--kr-gov-blue)] bg-blue-50/30" : "border-gray-200 hover:border-[var(--kr-gov-blue)]"}`} key={row.id}>
+                      <span className={`material-symbols-outlined ${row.file ? "text-[var(--kr-gov-blue)]" : "text-gray-400"}`}>attach_file</span>
                       <div className="min-w-0 flex-grow">
-                        <div className="flex items-center justify-between">
-                          <span className="truncate text-sm text-gray-500">파일을 선택해 주세요.</span>
-                          <span className="text-xs text-gray-400"></span>
+                        <input accept=".pdf,.jpg,.jpeg,.png" className="hidden" disabled={!canUseSave} onChange={(event) => handleFileChange(index, event)} type="file" />
+                        <div className="flex items-center justify-between gap-3">
+                          <span className={`truncate text-sm ${row.file ? "font-bold text-[var(--kr-gov-blue)]" : "text-gray-500"}`}>
+                            {row.file ? row.file.name : "파일을 선택해 주세요."}
+                          </span>
+                          <span className="text-xs text-gray-400">
+                            {row.file ? formatBytes(row.file.size) : ""}
+                          </span>
                         </div>
                       </div>
-                    </div>
-                  ) : files.map((file, index) => (
-                    <div className="flex items-center gap-3 rounded-lg border border-[var(--kr-gov-blue)] bg-blue-50/30 p-3 transition-all" key={`${file.name}-${index}`}>
-                      <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">attach_file</span>
-                      <div className="min-w-0 flex-grow">
-                        <div className="flex items-center justify-between">
-                          <span className="truncate text-sm font-bold text-[var(--kr-gov-blue)]">{file.name}</span>
-                          <span className="text-xs text-gray-400">{Math.round(file.size / 1024)} KB</span>
-                        </div>
-                      </div>
-                    </div>
+                      <button className="text-gray-400 transition-colors hover:text-red-500 disabled:cursor-not-allowed disabled:text-gray-300" disabled={!canUseSave} onClick={(event) => { event.preventDefault(); event.stopPropagation(); removeFileRow(index); }} type="button">
+                        <span className="material-symbols-outlined">close</span>
+                      </button>
+                    </label>
                   ))}
                 </div>
 
                 <p className="text-xs text-gray-500">PDF, JPG, PNG 파일만 업로드 가능하며 파일당 최대 10MB까지 허용됩니다.</p>
+                {fileRows.length > 0 ? (
+                  <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
+                    <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">기존 첨부 파일</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {fileRows.map((file, index) => (
+                        <a className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-bold text-[var(--kr-gov-text-secondary)] hover:border-[var(--kr-gov-blue)] hover:text-[var(--kr-gov-blue)]" href={buildLocalizedPath(`/admin/member/company-file?fileId=${encodeURIComponent(String(file.fileId || ""))}&download=true`, `/en/admin/member/company-file?fileId=${encodeURIComponent(String(file.fileId || ""))}&download=true`)} key={`${String(file.fileId || "existing")}-${index}`}>
+                          <span className="material-symbols-outlined text-[16px]">download</span>
+                          {String(file.orignlFileNm || "첨부 파일")}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </section>
 
@@ -330,54 +459,6 @@ export function CompanyAccountMigrationPage() {
             </div>
           </div>
         </div>
-
-        <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-8 shadow-sm mt-8" data-help-id="company-account-file-table">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-bold">첨부 파일 목록</h3>
-              <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">`COMTNINSTTFILE` 기준으로 다시 조회한 현재 첨부 파일입니다.</p>
-            </div>
-            {form.insttId ? <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-blue-50 text-blue-700">{`신청번호 ${form.insttId}`}</span> : null}
-          </div>
-
-          <div className="overflow-x-auto rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)]">
-            <table className="w-full text-sm">
-              <thead className="bg-[#f8f9fa] text-left">
-                <tr>
-                  <th className="px-4 py-3">순번</th>
-                  <th className="px-4 py-3">파일명</th>
-                  <th className="px-4 py-3">확장자</th>
-                  <th className="px-4 py-3">크기</th>
-                  <th className="px-4 py-3">등록일시</th>
-                  <th className="px-4 py-3 text-center">다운로드</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {fileRows.length === 0 ? (
-                  <tr><td className="px-4 py-8 text-center text-gray-500" colSpan={6}>저장된 첨부 파일이 없습니다.</td></tr>
-                ) : fileRows.map((file, index) => {
-                  const originalName = String(file.orignlFileNm || "-");
-                  const fileExt = originalName.includes(".") ? originalName.slice(originalName.lastIndexOf(".")) : "-";
-                  return (
-                    <tr key={`${String(file.fileId || "file")}-${index}`}>
-                      <td className="px-4 py-3">{String(file.fileSn || index + 1)}</td>
-                      <td className="px-4 py-3 font-medium">{originalName}</td>
-                      <td className="px-4 py-3">{String(file.fileExtsn || fileExt)}</td>
-                      <td className="px-4 py-3">{typeof file.fileMg === "number" ? `${Number(file.fileMg).toLocaleString()} bytes` : "-"}</td>
-                      <td className="px-4 py-3">{String(file.regDate || "-")}</td>
-                      <td className="px-4 py-3 text-center">
-                        <button className="inline-flex items-center gap-1 rounded border border-[var(--kr-gov-border-light)] px-3 py-1.5 font-bold hover:bg-gray-50" type="button">
-                          <span className="material-symbols-outlined text-[18px]">download</span>
-                          다운로드
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
       </CanView>
     </AdminPageShell>
   );

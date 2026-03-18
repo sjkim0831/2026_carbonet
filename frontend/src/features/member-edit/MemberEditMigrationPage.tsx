@@ -95,9 +95,12 @@ export function MemberEditMigrationPage() {
   const page = pageState.value;
   const error = actionError || sessionState.error || pageState.error;
   const payload = (page || {}) as Record<string, unknown>;
-  const accessScopes = (payload.accessScopes as string[] | undefined) || [];
+  const assignedRoleProfile = (payload.assignedRoleProfile as Record<string, unknown> | undefined) || {};
+  const roleProfileVisible = String(assignedRoleProfile.memberEditVisibleYn || "Y") !== "N";
+  const profilePriorityWorks = roleProfileVisible ? ((assignedRoleProfile.priorityWorks as string[] | undefined) || []) : [];
+  const accessScopes = profilePriorityWorks.length > 0 ? profilePriorityWorks : ((payload.accessScopes as string[] | undefined) || []);
   const memberEvidenceFiles = (payload.memberEvidenceFiles as Array<Record<string, unknown>> | undefined) || [];
-  const businessRoleLabel = String(payload.businessRoleLabel || "-");
+  const businessRoleLabel = String((roleProfileVisible ? assignedRoleProfile.displayTitle : "") || payload.businessRoleLabel || "-");
   const membershipTypeLabel = String(payload.membershipTypeLabel || "-");
   const statusLabel = String(payload.statusLabel || "-");
   const memberDocumentStatusLabel = String(payload.memberDocumentStatusLabel || "-");
@@ -108,6 +111,10 @@ export function MemberEditMigrationPage() {
   const permissionPageCount = Number(payload.permissionPageCount || (page?.permissionFeatureSections || []).length || 0);
   const permissionSelectedAuthorName = String(payload.permissionSelectedAuthorName || "-");
   const validationErrors = (payload.member_editErrors as string[] | undefined) || [];
+  const businessRoleDescription = String(
+    (roleProfileVisible ? assignedRoleProfile.description : "")
+      || text(page, "회원 유형에 따라 연결되는 핵심 업무를 요약합니다.", "Summarizes the core work linked to the selected member type.")
+  );
 
   const canView = !!page?.canViewMemberEdit;
   const canUse = !!page?.canUseMemberSave;
@@ -234,11 +241,11 @@ export function MemberEditMigrationPage() {
               <label className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">가입일</label>
               <input className="w-full h-11 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-gray-50 text-gray-600" readOnly type="text" value={String((page?.member as Record<string, unknown> | undefined)?.sbscrbDe || "-")} />
             </div>
-            <div>
+            <div data-help-id="member-edit-role-profile">
               <label className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">업무 역할</label>
               <div className="rounded-[var(--kr-gov-radius)] bg-blue-50 border border-blue-100 px-4 py-3">
                 <p className="text-sm font-bold text-[var(--kr-gov-blue)]">{businessRoleLabel}</p>
-                <p className="mt-1 text-xs text-slate-600">{text(page, "회원 유형에 따라 연결되는 핵심 업무를 요약합니다.", "Summarizes the core work linked to the selected member type.")}</p>
+                <p className="mt-1 text-xs text-slate-600">{businessRoleDescription}</p>
               </div>
             </div>
             <div>
@@ -249,7 +256,7 @@ export function MemberEditMigrationPage() {
                 <p className="mt-1"><span className="font-bold">회원 제출 문서:</span> {memberDocumentStatusLabel}</p>
               </div>
             </div>
-            <div>
+            <div data-help-id="member-edit-role-profile">
               <label className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">우선 제공 업무</label>
               <div className="flex flex-wrap gap-2">
                 {accessScopes.length === 0 ? <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">-</span> : accessScopes.map((scope) => (

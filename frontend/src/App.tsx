@@ -16,6 +16,7 @@ import {
   addSrWorkbenchStackItem,
   fetchScreenCommandPage,
   getScreenCommandChainValues,
+  prefetchRoutePageData,
   quickExecuteSrTicket,
   ScreenCommandApi,
   ScreenCommandChangeTarget,
@@ -36,6 +37,7 @@ type ContextMenuState = {
   x: number;
   y: number;
   pageId: string;
+  routePath: string;
   pageData: ScreenCommandPagePayload | null;
   match: MatchedContext | null;
 };
@@ -96,6 +98,28 @@ function resolveMatchedContext(payload: ScreenCommandPagePayload | null, element
     surface,
     event,
     highlightElement
+  };
+}
+
+function resolveContextTargetFromElement(element: Element | null, fallbackPageId: string, fallbackRoutePath: string) {
+  if (!element) {
+    return { pageId: fallbackPageId, routePath: fallbackRoutePath };
+  }
+  const anchor = element.closest("a");
+  if (!(anchor instanceof HTMLAnchorElement)) {
+    return { pageId: fallbackPageId, routePath: fallbackRoutePath };
+  }
+  const href = anchor.getAttribute("href");
+  if (!href || href.startsWith("#")) {
+    return { pageId: fallbackPageId, routePath: fallbackRoutePath };
+  }
+  const nextUrl = new URL(anchor.href, window.location.origin);
+  if (nextUrl.origin !== window.location.origin || !isReactManagedPath(nextUrl.pathname)) {
+    return { pageId: fallbackPageId, routePath: fallbackRoutePath };
+  }
+  return {
+    pageId: resolvePageFromPath(nextUrl.pathname, nextUrl.search),
+    routePath: `${nextUrl.pathname}${nextUrl.search}`
   };
 }
 
@@ -265,7 +289,7 @@ export default function App() {
   const [helpContent, setHelpContent] = useState(getPageHelp(page));
   const [insttWarning, setInsttWarning] = useState("");
   const [routeLoading, setRouteLoading] = useState(false);
-  const [contextMenu, setContextMenu] = useState<ContextMenuState>({ open: false, x: 0, y: 0, pageId: "", pageData: null, match: null });
+  const [contextMenu, setContextMenu] = useState<ContextMenuState>({ open: false, x: 0, y: 0, pageId: "", routePath: "", pageData: null, match: null });
   const [highlightRect, setHighlightRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
   const [highlightLabel, setHighlightLabel] = useState("");
   const [contextComment, setContextComment] = useState("");
@@ -299,12 +323,28 @@ export default function App() {
   }, [page]);
 
   useEffect(() => {
-    setContextMenu({ open: false, x: 0, y: 0, pageId: "", pageData: null, match: null });
+    setContextMenu({ open: false, x: 0, y: 0, pageId: "", routePath: "", pageData: null, match: null });
     setHighlightRect(null);
     setHighlightLabel("");
   }, [page, locationState]);
 
   useEffect(() => {
+    const prefetchedHrefSet = new Set<string>();
+
+    function scheduleRoutePrefetch(url: URL) {
+      if (url.origin !== window.location.origin || !isReactManagedPath(url.pathname)) {
+        return;
+      }
+      const cacheKey = `${url.pathname}${url.search}`;
+      if (prefetchedHrefSet.has(cacheKey)) {
+        return;
+      }
+      prefetchedHrefSet.add(cacheKey);
+      const nextPage = resolvePageFromPath(url.pathname, url.search);
+      void preloadPageModule(nextPage);
+      void prefetchRoutePageData(nextPage, url.search).catch(() => undefined);
+    }
+
     function syncLocation() {
       setLocationState(`${window.location.pathname}${window.location.search}${window.location.hash}`);
       setHelpOpen(false);
@@ -316,10 +356,29 @@ export default function App() {
       setRouteLoading(true);
       try {
         const nextPage = resolvePageFromPath(nextUrl.pathname, nextUrl.search);
-        await preloadPageModule(nextPage);
+        await Promise.all([
+          preloadPageModule(nextPage),
+          prefetchRoutePageData(nextPage, nextUrl.search).catch(() => undefined)
+        ]);
       } finally {
         navigate(`${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`);
       }
+    }
+
+    function handleDocumentHover(event: Event) {
+      const target = event.target;
+      if (!(target instanceof Element)) {
+        return;
+      }
+      const anchor = target.closest("a");
+      if (!(anchor instanceof HTMLAnchorElement)) {
+        return;
+      }
+      const href = anchor.getAttribute("href");
+      if (!href || href.startsWith("#") || anchor.hasAttribute("download") || anchor.target === "_blank") {
+        return;
+      }
+      scheduleRoutePrefetch(new URL(anchor.href, window.location.origin));
     }
 
     function handleDocumentClick(event: MouseEvent) {
@@ -355,10 +414,14 @@ export default function App() {
     window.addEventListener("popstate", syncLocation);
     window.addEventListener(getNavigationEventName(), syncLocation);
     document.addEventListener("click", handleDocumentClick);
+    document.addEventListener("mouseover", handleDocumentHover);
+    document.addEventListener("focusin", handleDocumentHover);
     return () => {
       window.removeEventListener("popstate", syncLocation);
       window.removeEventListener(getNavigationEventName(), syncLocation);
       document.removeEventListener("click", handleDocumentClick);
+      document.removeEventListener("mouseover", handleDocumentHover);
+      document.removeEventListener("focusin", handleDocumentHover);
     };
   }, []);
 
@@ -433,7 +496,7 @@ export default function App() {
     }
 
     function closeContextMenu() {
-      setContextMenu({ open: false, x: 0, y: 0, pageId: "", pageData: null, match: null });
+      setContextMenu({ open: false, x: 0, y: 0, pageId: "", routePath: "", pageData: null, match: null });
       setHighlightRect(null);
       setHighlightLabel("");
       setContextComment("");
@@ -450,13 +513,15 @@ export default function App() {
         return;
       }
       event.preventDefault();
-      const payload = await ensureScreenCommandPage(page);
+      const targetContext = resolveContextTargetFromElement(target, page, routePath);
+      const payload = await ensureScreenCommandPage(targetContext.pageId);
       const match = resolveMatchedContext(payload, target);
       const defaultTarget = payload.page?.changeTargets?.[0]?.targetId || "";
       setContextMenu({
         open: true,
         ...clampContextMenuPosition(event.clientX, event.clientY),
-        pageId: page,
+        pageId: targetContext.pageId,
+        routePath: targetContext.routePath,
         pageData: payload,
         match
       });
@@ -547,11 +612,11 @@ export default function App() {
     try {
       const trace = getTraceContext();
       const summary = buildContextSummary(contextMenu.match, contextComment);
-      const technicalContext = buildTechnicalContext(contextMenu.match, contextMenu.pageData, selectedChangeTarget, routePath);
+      const technicalContext = buildTechnicalContext(contextMenu.match, contextMenu.pageData, selectedChangeTarget, contextMenu.routePath || routePath);
       await addSrWorkbenchStackItem({
-        pageId: contextMenu.match.page.pageId || page,
-        pageLabel: contextMenu.match.page.label || page,
-        routePath: contextMenu.match.page.routePath || routePath,
+        pageId: contextMenu.match.page.pageId || contextMenu.pageId || page,
+        pageLabel: contextMenu.match.page.label || contextMenu.pageId || page,
+        routePath: contextMenu.match.page.routePath || contextMenu.routePath || routePath,
         menuCode: contextMenu.match.page.menuCode || "",
         menuLookupUrl: contextMenu.match.page.menuLookupUrl || "",
         surfaceId: contextMenu.match.surface?.surfaceId || "",
@@ -572,7 +637,7 @@ export default function App() {
       if (openWorkbench) {
         navigate("/admin/system/sr-workbench");
       }
-      setContextMenu({ open: false, x: 0, y: 0, pageId: "", pageData: null, match: null });
+      setContextMenu({ open: false, x: 0, y: 0, pageId: "", routePath: "", pageData: null, match: null });
       setHighlightRect(null);
       setHighlightLabel("");
       setContextComment("");
@@ -591,10 +656,10 @@ export default function App() {
     try {
       const summary = buildContextSummary(contextMenu.match, contextComment);
       const instruction = contextComment.trim() || `${contextMenu.match.surface?.label || "선택 영역"} 기준으로 실제 수정이 필요한 파일만 반영합니다.`;
-      const technicalContext = buildTechnicalContext(contextMenu.match, contextMenu.pageData, selectedChangeTarget, routePath);
+      const technicalContext = buildTechnicalContext(contextMenu.match, contextMenu.pageData, selectedChangeTarget, contextMenu.routePath || routePath);
       const directionLines = [
         `[SR 요약] ${summary}`,
-        `대상 화면: ${contextMenu.match.page.label || page} (${contextMenu.match.page.routePath || routePath})`,
+        `대상 화면: ${contextMenu.match.page.label || contextMenu.pageId || page} (${contextMenu.match.page.routePath || contextMenu.routePath || routePath})`,
         `선택 요소: ${contextMenu.match.surface?.label || "-"}`,
         `이벤트: ${contextMenu.match.event?.label || "-"}`,
         `수정 레이어: ${selectedChangeTarget?.label || "-"}`,
@@ -605,9 +670,9 @@ export default function App() {
       ];
       const direction = directionLines.join("\n");
       await quickExecuteSrTicket({
-        pageId: contextMenu.match.page.pageId || page,
-        pageLabel: contextMenu.match.page.label || page,
-        routePath: contextMenu.match.page.routePath || routePath,
+        pageId: contextMenu.match.page.pageId || contextMenu.pageId || page,
+        pageLabel: contextMenu.match.page.label || contextMenu.pageId || page,
+        routePath: contextMenu.match.page.routePath || contextMenu.routePath || routePath,
         menuCode: contextMenu.match.page.menuCode || "",
         menuLookupUrl: contextMenu.match.page.menuLookupUrl || "",
         surfaceId: contextMenu.match.surface?.surfaceId || "",
@@ -622,9 +687,9 @@ export default function App() {
         generatedDirection: direction,
         commandPrompt: [
           "Carbonet SR ticket",
-          `pageId=${contextMenu.match.page.pageId || page}`,
-          `page=${contextMenu.match.page.label || page}`,
-          `route=${contextMenu.match.page.routePath || routePath}`,
+          `pageId=${contextMenu.match.page.pageId || contextMenu.pageId || page}`,
+          `page=${contextMenu.match.page.label || contextMenu.pageId || page}`,
+          `route=${contextMenu.match.page.routePath || contextMenu.routePath || routePath}`,
           `summary=${summary}`,
           "technicalContext=",
           technicalContext || "-",
@@ -633,7 +698,7 @@ export default function App() {
         ].join("\n")
       });
       setContextToast("선택 영역 즉시 수정 실행을 시작했습니다.");
-      setContextMenu({ open: false, x: 0, y: 0, pageId: "", pageData: null, match: null });
+      setContextMenu({ open: false, x: 0, y: 0, pageId: "", routePath: "", pageData: null, match: null });
       setHighlightRect(null);
       setHighlightLabel("");
       setContextComment("");
@@ -687,7 +752,7 @@ export default function App() {
               <p className="mt-1 text-sm font-bold text-slate-900">{highlightLabel || "선택 영역"}</p>
               <p className="mt-1 text-xs text-slate-500">{contextMenu.match?.surface?.selector || contextMenu.match?.event?.triggerSelector || routePath}</p>
             </div>
-            <button className="rounded-full border border-slate-200 px-2 py-1 text-xs font-bold text-slate-500" onClick={() => setContextMenu({ open: false, x: 0, y: 0, pageId: "", pageData: null, match: null })} type="button">닫기</button>
+            <button className="rounded-full border border-slate-200 px-2 py-1 text-xs font-bold text-slate-500" onClick={() => setContextMenu({ open: false, x: 0, y: 0, pageId: "", routePath: "", pageData: null, match: null })} type="button">닫기</button>
           </div>
 
           <label className="mt-4 block">

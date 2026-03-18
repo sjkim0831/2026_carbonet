@@ -51,6 +51,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     components: [
       { componentId: "AuthGroupFilters", instanceKey: "auth-group-filters", layoutZone: "actions", propsSummary: ["roleCategory", "insttId", "authorCode"] },
       { componentId: "AuthGroupCreateForm", instanceKey: "auth-group-create", layoutZone: "content", propsSummary: ["authorCode", "authorNm", "authorDc"] },
+      { componentId: "AuthGroupRoleProfile", instanceKey: "auth-group-profile", layoutZone: "content", propsSummary: ["selectedAuthorProfile", "displayTitle", "priorityWorks", "memberEditVisibleYn"] },
       { componentId: "AuthGroupFeatureMatrix", instanceKey: "auth-group-features", layoutZone: "content", propsSummary: ["selectedFeatures", "featureCount"] }
     ]
   },
@@ -75,8 +76,9 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     designTokenVersion: "krds-current",
     components: [
       { componentId: "DeptRoleCompanySelector", instanceKey: "dept-role-company", layoutZone: "actions", propsSummary: ["insttId", "departmentCompanyOptions"] },
-      { componentId: "DeptRoleDepartmentTable", instanceKey: "dept-role-departments", layoutZone: "content", propsSummary: ["departmentMappings", "departmentAuthorGroups"] },
-      { componentId: "DeptRoleMemberTable", instanceKey: "dept-role-members", layoutZone: "content", propsSummary: ["companyMembers", "memberAssignableAuthorGroups"] }
+      { componentId: "DeptRoleDepartmentTable", instanceKey: "dept-role-departments", layoutZone: "content", propsSummary: ["departmentMappings", "departmentAuthorGroups", "roleProfilesByAuthorCode"] },
+      { componentId: "DeptRoleMemberTable", instanceKey: "dept-role-members", layoutZone: "content", propsSummary: ["companyMembers", "memberAssignableAuthorGroups", "roleProfilesByAuthorCode"] },
+      { componentId: "DeptRoleRoleProfilePreview", instanceKey: "dept-role-role-profile", layoutZone: "content", propsSummary: ["roleProfilesByAuthorCode", "selectedAuthorCode"] }
     ]
   },
   "admin-list": {
@@ -214,6 +216,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     designTokenVersion: "krds-current",
     components: [
       { componentId: "MemberEditSummaryCard", instanceKey: "member-edit-summary", layoutZone: "content", propsSummary: ["memberId", "membershipTypeLabel", "statusLabel", "businessRoleLabel"] },
+      { componentId: "MemberEditRoleProfileSummary", instanceKey: "member-edit-role-profile", layoutZone: "content", propsSummary: ["assignedRoleProfile", "businessRoleLabel", "accessScopes"] },
       { componentId: "MemberEditForm", instanceKey: "member-edit-form", layoutZone: "content", propsSummary: ["applcntNm", "applcntEmailAdres", "phoneNumber", "deptNm", "entrprsSeCode", "entrprsMberSttus"] },
       { componentId: "MemberEditPermissionMatrix", instanceKey: "member-edit-permissions", layoutZone: "content", propsSummary: ["authorCode", "featureCodes", "permissionFeatureCount", "permissionPageCount"] },
       { componentId: "MemberEditAddressForm", instanceKey: "member-edit-address", layoutZone: "content", propsSummary: ["zip", "adres", "detailAdres"] },

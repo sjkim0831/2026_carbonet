@@ -394,6 +394,99 @@ function resolveActiveLinkIndex(links: Array<{ u?: string }>, currentPath: strin
   return links.findIndex((link) => pathOnly(link.u || "") === currentBase);
 }
 
+function normalizeMenuSearchText(value: string | undefined) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function scoreMenuSearchMatch(query: string, ...candidates: Array<string | undefined>) {
+  if (!query) {
+    return 0;
+  }
+
+  let bestScore = 0;
+  for (const candidate of candidates) {
+    const normalizedCandidate = normalizeMenuSearchText(candidate);
+    if (!normalizedCandidate) {
+      continue;
+    }
+    if (normalizedCandidate === query) {
+      bestScore = Math.max(bestScore, 3);
+      continue;
+    }
+    const tokens = normalizedCandidate.split(" ");
+    if (tokens.includes(query)) {
+      bestScore = Math.max(bestScore, 2);
+      continue;
+    }
+    if (normalizedCandidate.includes(query)) {
+      bestScore = Math.max(bestScore, 1);
+    }
+  }
+
+  return bestScore;
+}
+
+function filterMenuGroups(groups: AdminMenuGroup[] | undefined, rawQuery: string, en: boolean) {
+  const normalizedQuery = normalizeMenuSearchText(rawQuery);
+  const sourceGroups = groups || [];
+
+  if (!normalizedQuery) {
+    return {
+      groups: sourceGroups,
+      visibleLinkCount: sourceGroups.reduce((count, group) => count + (group.links || []).length, 0)
+    };
+  }
+
+  const evaluatedGroups = sourceGroups.map((group) => {
+    const linkEntries = (group.links || []).map((link) => ({
+      link,
+      score: scoreMenuSearchMatch(
+        normalizedQuery,
+        link.text,
+        link.tEn,
+        en ? link.tEn : link.text
+      )
+    }));
+
+    return {
+      group,
+      groupScore: scoreMenuSearchMatch(
+        normalizedQuery,
+        group.title,
+        group.titleEn,
+        en ? group.titleEn : group.title
+      ),
+      linkEntries
+    };
+  });
+
+  const hasStrongLinkMatch = evaluatedGroups.some((group) => group.linkEntries.some((entry) => entry.score >= 2));
+
+  const filteredGroups = evaluatedGroups.flatMap(({ group, groupScore, linkEntries }) => {
+    const matchedLinks = linkEntries
+      .filter((entry) => entry.score > 0 && (!hasStrongLinkMatch || entry.score >= 2))
+      .map((entry) => entry.link);
+
+    if (matchedLinks.length > 0) {
+      return [{ ...group, links: matchedLinks }];
+    }
+
+    if (groupScore > 0 && !hasStrongLinkMatch) {
+      return [{ ...group }];
+    }
+
+    return [];
+  });
+
+  return {
+    groups: filteredGroups,
+    visibleLinkCount: filteredGroups.reduce((count, group) => count + (group.links || []).length, 0)
+  };
+}
+
 async function handleAdminLogout() {
   try {
     await fetch(buildLocalizedPath("/admin/login/actionLogout", "/en/admin/login/actionLogout"), {
@@ -440,10 +533,15 @@ export function AdminPageShell({
     [menuTree, currentPath]
   );
   const [selectedDomainKey, setSelectedDomainKey] = useState(activeDomainKey);
+  const [menuFilter, setMenuFilter] = useState("");
   const selectedDomain = menuTree[selectedDomainKey] || menuTree[activeDomainKey];
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [sessionRemainingMs, setSessionRemainingMs] = useState(() => Math.max(0, ensureAdminSessionExpireAt() - Date.now()));
   const [sessionRefreshPending, setSessionRefreshPending] = useState(false);
+  const filteredSelectedDomain = useMemo(
+    () => filterMenuGroups(selectedDomain?.groups, menuFilter, en),
+    [selectedDomain?.groups, menuFilter, en]
+  );
 
   useEffect(() => {
     const eventName = getAdminMenuTreeRefreshEventName();
@@ -605,10 +703,10 @@ export function AdminPageShell({
   }
 
   return (
-    <div className="relative bg-[#f8f9fa] text-[var(--kr-gov-text-primary)] min-h-screen flex flex-col">
+    <div className="relative bg-[#f8f9fa] text-[var(--kr-gov-text-primary)] h-screen overflow-hidden flex flex-col">
       <a className="skip-link" href="#main-content">{en ? "Skip to content" : "본문 바로가기"}</a>
 
-      <div className="bg-[var(--kr-gov-bg-gray)] border-b border-[var(--kr-gov-border-light)]">
+      <div className="bg-[var(--kr-gov-bg-gray)] border-b border-[var(--kr-gov-border-light)] z-50 shrink-0">
         <div className="max-w-full mx-auto px-6 py-1.5 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img alt={en ? "Government Symbol of the Republic of Korea" : "대한민국정부 상징"} className="h-3.5" data-fallback-applied="0" onError={handleGovSymbolError} src={GOV_SYMBOL} />
@@ -628,7 +726,7 @@ export function AdminPageShell({
         </div>
       </div>
 
-      <header className="bg-white border-b border-[var(--kr-gov-border-light)] sticky top-0 z-40">
+      <header className="bg-white border-b border-[var(--kr-gov-border-light)] z-40 shrink-0">
         <div className="max-w-full mx-auto px-6">
           <div className="flex justify-between items-center h-20">
             <div className="flex items-center gap-4">
@@ -650,13 +748,13 @@ export function AdminPageShell({
               </a>
             </div>
 
-            <nav aria-label={en ? "Admin Main Menu" : "관리자 주 메뉴"} className="hidden xl:flex items-center space-x-2 h-full" id="adminGnbMenu">
+            <nav aria-label={en ? "Admin Main Menu" : "관리자 주 메뉴"} className="hidden xl:flex self-stretch items-start space-x-2 pt-2" id="adminGnbMenu">
               {gnbItems.map((item) => {
                 const active = item.domain === (selectedDomainKey || activeDomainKey);
                 return (
                   <a
                     data-domain={item.domain}
-                    className={`js-gnb-menu px-5 py-2 text-[16px] font-bold hover:text-[var(--kr-gov-blue)] ${active ? "text-[var(--kr-gov-blue)]" : "text-[var(--kr-gov-text-secondary)]"}`}
+                    className={`js-gnb-menu px-5 py-1.5 text-[16px] font-bold hover:text-[var(--kr-gov-blue)] ${active ? "text-[var(--kr-gov-blue)]" : "text-[var(--kr-gov-text-secondary)]"}`}
                     href={item.href}
                     key={item.label}
                     onClick={(event) => {
@@ -746,26 +844,28 @@ export function AdminPageShell({
         </div>
       </header>
 
-      <div className="js-admin-layout-shell flex min-h-[calc(100dvh-var(--admin-shell-offset))]">
+      <div className="js-admin-layout-shell flex flex-1 min-h-0">
         <aside aria-label={en ? "Admin Side Menu" : "관리자 사이드 메뉴"} className="js-admin-lnb w-72 bg-white p-5 flex flex-col">
           <div className="mb-6">
             <div className="relative">
               <input
                 className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-[var(--kr-gov-radius)] text-sm focus:ring-2 focus:ring-[var(--kr-gov-blue)] focus:border-[var(--kr-gov-blue)] outline-none"
                 id="gnbMenuFilter"
+                onChange={(event) => setMenuFilter(event.target.value)}
                 placeholder={en ? "Search menu (e.g. log, approval)" : "메뉴 검색 (예: 로그, 승인)"}
                 type="text"
+                value={menuFilter}
               />
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[20px]">search</span>
             </div>
           </div>
 
           <div className="js-admin-lnb-body space-y-5" id="gnbTreeWrap">
-            {(selectedDomain?.groups || []).map((group: AdminMenuGroup, index) => {
+            {filteredSelectedDomain.groups.map((group: AdminMenuGroup, index) => {
               const groupKey = group.title || `group-${index}`;
               const activeLinkIndex = resolveActiveLinkIndex(group.links || [], currentPath);
               const groupHasActive = activeLinkIndex >= 0;
-              const expanded = openGroups[groupKey] ?? groupHasActive ?? index === 0;
+              const expanded = menuFilter.trim() ? true : (openGroups[groupKey] ?? groupHasActive ?? index === 0);
               return (
                 <div className="gnb-tree-group" key={groupKey}>
                   <button
@@ -803,6 +903,11 @@ export function AdminPageShell({
                 </div>
               );
             })}
+            {menuFilter.trim() && filteredSelectedDomain.groups.length === 0 ? (
+              <div className="rounded-[var(--kr-gov-radius)] border border-dashed border-gray-300 bg-gray-50 px-4 py-5 text-center text-sm text-[var(--kr-gov-text-secondary)]">
+                {en ? "No menu matched the entered text." : "입력한 텍스트와 일치하는 메뉴가 없습니다."}
+              </div>
+            ) : null}
           </div>
 
           <div className="mt-auto border-t pt-4 border-[var(--kr-gov-border-light)]">
@@ -813,8 +918,8 @@ export function AdminPageShell({
               <p className="text-[var(--kr-gov-text-secondary)]">
                 {selectedDomain
                   ? (en
-                    ? `Currently displaying ${(selectedDomain.groups || []).reduce((acc, group) => acc + (group.links || []).length, 0)} menus`
-                    : `현재 전체 메뉴 ${(selectedDomain.groups || []).reduce((acc, group) => acc + (group.links || []).length, 0)}개 노출 중`)
+                    ? `Currently displaying ${filteredSelectedDomain.visibleLinkCount} menus${menuFilter.trim() ? " matching the search" : ""}`
+                    : `현재 ${menuFilter.trim() ? "검색 결과 " : "전체 메뉴 "}${filteredSelectedDomain.visibleLinkCount}개 노출 중`)
                   : (menuState.loading ? (en ? "Loading menus from server" : "서버 메뉴를 불러오는 중입니다") : (en ? "Fallback menu applied" : "기본 메뉴가 적용되었습니다"))}
               </p>
             </div>

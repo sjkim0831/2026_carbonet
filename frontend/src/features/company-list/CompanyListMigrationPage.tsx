@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { CanView } from "../../components/access/CanView";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
@@ -94,6 +94,15 @@ export function CompanyListMigrationPage() {
     () => Array.from({ length: endPage - normalizedStartPage + 1 }, (_, index) => normalizedStartPage + index),
     [endPage, normalizedStartPage]
   );
+  const exportQuery = useMemo(() => {
+    const params = new URLSearchParams();
+    const keyword = String(filters.searchKeyword || "").trim();
+    const status = String(filters.status || "").trim();
+    if (keyword) params.set("searchKeyword", keyword);
+    if (status) params.set("sbscrbSttus", status);
+    const query = params.toString();
+    return query ? `?${query}` : "";
+  }, [filters.searchKeyword, filters.status]);
 
   function updateDraft<K extends keyof SearchFilters>(key: K, value: SearchFilters[K]) {
     setDraftFilters((current) => ({ ...current, [key]: value }));
@@ -112,6 +121,13 @@ export function CompanyListMigrationPage() {
     setFilters((current) => ({ ...current, pageIndex: nextPageIndex }));
   }
 
+  function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    applyFilters(1);
+  }
+
+  const fieldClassName = "w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white text-sm focus:ring-[var(--kr-gov-focus)] focus:border-[var(--kr-gov-focus)]";
+
   return (
     <AdminPageShell
       breadcrumbs={[
@@ -126,24 +142,24 @@ export function CompanyListMigrationPage() {
       {error ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">조회 중 오류: {error}</section> : null}
       <CanView allowed={!!page?.canViewCompanyList} fallback={<section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm"><p className="text-sm text-[var(--kr-gov-text-secondary)]">회원사 목록을 볼 권한이 없습니다.</p></section>}>
         <section className="gov-card mb-8" data-help-id="company-list-search">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <form className="grid grid-cols-1 md:grid-cols-3 gap-6" onSubmit={handleSearchSubmit}>
             <label>
               <span className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">상태</span>
-              <select className="w-full border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] text-sm focus:ring-[var(--kr-gov-focus)] focus:border-[var(--kr-gov-focus)]" value={draftFilters.status} onChange={(e) => updateDraft("status", e.target.value)}>
+              <select className={fieldClassName} value={draftFilters.status} onChange={(e) => updateDraft("status", e.target.value)}>
                 {STATUS_OPTIONS.map((option) => <option key={option.value || "all"} value={option.value}>{option.label}</option>)}
               </select>
             </label>
             <label className="md:col-span-2">
               <span className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">검색어</span>
               <div className="flex gap-2">
-                <input className="flex-1 border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] text-sm focus:ring-[var(--kr-gov-focus)] focus:border-[var(--kr-gov-focus)]" placeholder="기관명, 사업자등록번호 검색" value={draftFilters.searchKeyword} onChange={(e) => updateDraft("searchKeyword", e.target.value)} />
-                <button className="px-6 py-2 bg-[var(--kr-gov-blue)] text-white font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)] transition-colors flex items-center gap-2" onClick={() => applyFilters(1)} type="button">
+                <input className={`flex-1 ${fieldClassName}`} placeholder="기관명, 사업자등록번호 검색" value={draftFilters.searchKeyword} onChange={(e) => updateDraft("searchKeyword", e.target.value)} />
+                <button className="px-6 py-2 bg-[var(--kr-gov-blue)] text-white font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)] transition-colors flex items-center gap-2" type="submit">
                   <span className="material-symbols-outlined text-[18px]">search</span>
                   검색
                 </button>
               </div>
             </label>
-          </div>
+          </form>
         </section>
 
         <div className="flex justify-between items-center mb-4">
@@ -151,7 +167,7 @@ export function CompanyListMigrationPage() {
             전체 <span className="font-bold text-[var(--kr-gov-blue)]">{Number(page?.totalCount || 0).toLocaleString()}</span>건
           </div>
           <div className="flex gap-2">
-            <a className="flex items-center gap-1.5 px-3 py-2 bg-white border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] text-[13px] font-bold hover:bg-gray-50" href={buildLocalizedPath("/admin/member/company_list/excel", "/en/admin/member/company_list/excel")}>
+            <a className="flex items-center gap-1.5 px-3 py-2 bg-white border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] text-[13px] font-bold hover:bg-gray-50" href={buildLocalizedPath(`/admin/member/company_list/excel${exportQuery}`, `/en/admin/member/company_list/excel${exportQuery}`)}>
               <span className="material-symbols-outlined text-[18px]">download</span>
               회원사 엑셀 다운로드
             </a>

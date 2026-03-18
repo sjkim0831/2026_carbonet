@@ -150,10 +150,11 @@ This document tracks repository-level algorithm and data-structure upgrades that
   - frontend then fetched `/api/frontend/session`
   - admin shell then fetched `/admin/system/menu-data`
   - home landing then fetched `/api/home`
-- Current pattern:
+  - Current pattern:
   - shell embeds a bootstrap payload with:
     - frontend session
     - admin menu tree for admin routes
+    - admin-home summary payload backed by shared summary snapshots and recent audit rows
     - home landing payload for the home route
     - mypage payload and context for the mypage route
     - selected admin `page-data` payloads for filterless summary screens
@@ -161,6 +162,7 @@ This document tracks repository-level algorithm and data-structure upgrades that
   - frontend consumes that payload once and seeds the existing session-storage caches before falling back to network fetches
 - Benefit:
   - removes 1 to 3 extra round trips on the first hard refresh, depending on route
+  - admin-home now renders real summary cards, review queue, safeguard status, and recent audit logs from the same shell bootstrap path
   - selected admin dashboards such as member stats and security summary screens can now render without a separate first `page-data` fetch
   - query-driven admin list screens can skip the first fetch as long as the bootstrap payload matches the current URL query
   - preserves existing API contracts and cache invalidation behavior for subsequent navigations

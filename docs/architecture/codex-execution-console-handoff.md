@@ -47,6 +47,7 @@ Behavior:
 - `BUILD` runs Codex in full-auto mode
 - plan and build use separate prompt/result/log files
 - build verification still runs backend/frontend verify commands
+- build verification now runs frontend build before backend package so refreshed `static/react-app` assets are included in the packaged jar
 - approval token requirement is now defaulted to `false` in config unless re-enabled
 - runner now accepts `PLAN_RUNNING` during the plan handoff so the ticket state transition does not self-block
 - configured runner commands now resolve relative executable paths against `security.codex.runner.repo-root`, which fixes `ops/scripts/codex-plan.sh` and `ops/scripts/codex-build.sh` when the working directory is the isolated worktree
@@ -319,6 +320,7 @@ Still missing:
 
 - stderr summary
 - richer rollout/deploy hook visibility
+- local self-deploy on `:18000` must not synchronously restart the same JVM before the runner persists final status and returns the HTTP response
 
 ## Files Most Likely To Need Further Edits
 

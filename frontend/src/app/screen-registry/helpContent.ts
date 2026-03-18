@@ -147,6 +147,7 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
     summary: "회원 기본정보, 권한, 주소, 증빙 문서를 수정하는 화면입니다.",
     items: [
       { id: "summary", title: "계정 요약", body: "회원 ID, 상태, 업무 역할과 기관 참조 정보를 확인합니다.", anchorSelector: '[data-help-id="member-edit-summary"]' },
+      { id: "role-profile", title: "권한 그룹 프로필", body: "기준 권한 그룹에 연결된 업무 역할명, 우선 제공 업무, 설명을 확인합니다.", anchorSelector: '[data-help-id="member-edit-role-profile"]' },
       { id: "form", title: "회원 기본 정보", body: "이름, 이메일, 연락처, 회원 유형과 상태를 수정합니다.", anchorSelector: '[data-help-id="member-edit-form"]' },
       { id: "permissions", title: "권한 편집", body: "기준 롤과 개별 기능 권한을 조정합니다.", anchorSelector: '[data-help-id="member-edit-permissions"]' },
       { id: "address", title: "연락 및 제출 주소", body: "회원 테이블 기준 연락처 주소와 제출 주소를 별도로 관리합니다.", anchorSelector: '[data-help-id="member-edit-address"]' },
@@ -327,11 +328,23 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
   "auth-group": {
     pageId: "auth-group",
     title: "권한 그룹 도움말",
-    summary: "권한 분류별 조회, 권한 그룹 생성, 기능 매핑 저장을 안내합니다.",
+    summary: "권한 분류별 조회, 권한 그룹 생성, 역할 프로필, 기능 매핑 저장을 안내합니다.",
     items: [
       { id: "filters", title: "권한 그룹 조회", body: "권한 분류, 회사, 권한 그룹을 선택해 조회 범위를 조정합니다.", anchorSelector: '[data-help-id="auth-group-filters"]' },
       { id: "create", title: "권한 그룹 생성", body: "새 권한 그룹 코드를 입력해 생성합니다.", anchorSelector: '[data-help-id="auth-group-create"]' },
+      { id: "profile", title: "권한 그룹 프로필", body: "회원 수정 화면에 노출할 업무 역할명, 우선 제공 업무, 설명을 권한 그룹 메타데이터로 저장합니다.", anchorSelector: '[data-help-id="auth-group-profile"]' },
       { id: "features", title: "기능 매핑", body: "선택한 권한 그룹에 연결할 기능 코드를 저장합니다.", anchorSelector: '[data-help-id="auth-group-features"]' }
+    ]
+  },
+  "dept-role": {
+    pageId: "dept-role",
+    title: "부서 권한 맵핑 도움말",
+    summary: "회사, 부서 기본 권한, 회원 예외 권한과 권한 그룹 프로필 미리보기를 함께 확인합니다.",
+    items: [
+      { id: "company", title: "회사 선택", body: "대상 회사 범위를 선택하면 부서와 회원 권한 매핑이 함께 갱신됩니다.", anchorSelector: '[data-help-id="dept-role-company"]' },
+      { id: "departments", title: "부서 기본 권한", body: "부서별 기본 권한 그룹을 배정하고 저장합니다.", anchorSelector: '[data-help-id="dept-role-departments"]' },
+      { id: "members", title: "회원 예외 권한", body: "회원별로 기본 권한에서 벗어난 예외 권한 그룹을 지정합니다.", anchorSelector: '[data-help-id="dept-role-members"]' },
+      { id: "profile-preview", title: "권한 그룹 프로필 미리보기", body: "선택한 권한 그룹이 회원 수정 화면에서 어떤 업무 역할과 우선 제공 업무로 표시될지 확인합니다.", anchorSelector: '[data-help-id="dept-role-role-profile"]' }
     ]
   },
   "join-auth": {

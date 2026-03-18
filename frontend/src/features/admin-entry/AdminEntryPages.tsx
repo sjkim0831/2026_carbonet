@@ -1,5 +1,5 @@
 import { FormEvent, SyntheticEvent, useState } from "react";
-import { fetchFrontendSession } from "../../lib/api/client";
+import { fetchFrontendSession, readBootstrappedAdminHomePageData } from "../../lib/api/client";
 import { buildLocalizedPath, navigate } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "./AdminPageShell";
 import { AdminLoginFrame } from "./adminEntryShared";
@@ -214,22 +214,67 @@ export function AdminLoginPage() {
 
 export function AdminHomePage() {
   const en = window.location.pathname.startsWith("/en/");
-  const reviewSteps = [
-    [en ? "Step 1: Application / Receipt" : "1단계: 신청/접수", "45", "85%", "bg-blue-400"],
-    [en ? "Step 2: Technical Verification" : "2단계: 기술 검증", "28", "55%", "bg-blue-500"],
-    [en ? "Step 3: Committee Review" : "3단계: 위원회 심의", "12", "25%", "bg-blue-700"],
-    [en ? "Step 4: Final Approval" : "4단계: 최종 승인", "8", "15%", "bg-[var(--kr-gov-green)]"]
-  ] as const;
-  const integrationStatuses = [
-    ["electric_bolt", "KEPCO 한국전력공사", "Latency 14ms", "bg-gray-50 border-gray-100", "text-gray-400", "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]", "text-gray-500"],
-    ["currency_exchange", "Carbon Exchange 탄소거래소", "Latency 42ms", "bg-gray-50 border-gray-100", "text-gray-400", "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]", "text-gray-500"],
-    ["fingerprint", "G-PIN 공공인증 서비스", "TIMEOUT", "bg-red-50 border-red-100", "text-red-500", "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]", "text-red-500 font-bold"]
-  ] as const;
-  const systemLogs = [
-    ["CRITICAL", "bg-red-100 text-red-700", en ? "No response from G-PIN integration module - automatic retry in progress" : "G-PIN 연계 모듈 응답 없음 - 자동 재시도 중", "2025.08.14 14:42:10"],
-    ["INFO", "bg-blue-100 text-blue-700", en ? "Applied new carbon emission calculation logic (v2.4)" : "신규 탄소 배출권 산정 로직(v2.4) 적용 완료", "2025.08.14 13:05:00"],
-    ["WARNING", "bg-orange-100 text-orange-700", en ? "Detected abnormal access attempt for administrator 'Hong Gil-dong' (IP: 192.168.0.42)" : "관리자 '홍길동' 비정상 접근 시도 탐지 (IP: 192.168.0.42)", "2025.08.14 12:45:22"]
-  ] as const;
+  const page = readBootstrappedAdminHomePageData();
+  const summaryCards = page?.summaryCards || [
+    {
+      title: en ? "Current RPS" : "현재 RPS",
+      value: "0",
+      description: en ? "Monitoring summary is not available yet." : "모니터링 요약 데이터를 아직 불러오지 못했습니다.",
+      icon: "monitoring",
+      iconClass: "text-[var(--kr-gov-green)]",
+      borderClass: "border-l-[var(--kr-gov-green)]"
+    },
+    {
+      title: en ? "Failed Today" : "오늘 실패",
+      value: "0",
+      description: en ? "Scheduler summary is not available yet." : "스케줄러 요약 데이터를 아직 불러오지 못했습니다.",
+      icon: "schedule",
+      iconClass: "text-orange-400",
+      borderClass: "border-l-orange-400"
+    },
+    {
+      title: en ? "Active Blocks" : "활성 차단",
+      value: "0",
+      description: en ? "Blocklist summary is not available yet." : "차단 요약 데이터를 아직 불러오지 못했습니다.",
+      icon: "gpp_bad",
+      iconClass: "text-[var(--kr-gov-blue)]",
+      borderClass: "border-l-[var(--kr-gov-blue)]"
+    }
+  ];
+  const reviewQueueRows = page?.reviewQueueRows || [];
+  const reviewProgressRows = page?.reviewProgressRows || [];
+  const operationalStatusRows = page?.operationalStatusRows || [];
+  const systemLogs = page?.systemLogs || [];
+
+  function statusBoxClass(status: string) {
+    if (status === "WARNING") return "bg-orange-50 border-orange-100";
+    if (status === "CRITICAL") return "bg-red-50 border-red-100";
+    return "bg-gray-50 border-gray-100";
+  }
+
+  function statusMetaClass(status: string) {
+    if (status === "WARNING") return "text-orange-600 font-bold";
+    if (status === "CRITICAL") return "text-red-500 font-bold";
+    return "text-gray-500";
+  }
+
+  function statusIconClass(status: string) {
+    if (status === "WARNING") return "text-orange-500";
+    if (status === "CRITICAL") return "text-red-500";
+    return "text-gray-400";
+  }
+
+  function statusDotClass(status: string) {
+    if (status === "WARNING") return "bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.45)]";
+    if (status === "CRITICAL") return "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]";
+    return "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]";
+  }
+
+  function logChipClass(level: string) {
+    if (level === "WARNING") return "bg-orange-100 text-orange-700";
+    if (level === "CRITICAL") return "bg-red-100 text-red-700";
+    return "bg-blue-100 text-blue-700";
+  }
 
   return (
     <AdminPageShell
@@ -248,70 +293,28 @@ export function AdminHomePage() {
       title={en ? "Operations Dashboard" : "운영 관리 대시보드"}
     >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8" data-help-id="admin-home-cards">
-        <article className="gov-card border-l-4 border-l-[var(--kr-gov-blue)]">
-          <div className="flex justify-between items-start">
-            <p className="font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Total Active Members" : "전체 활성 회원"}</p>
-            <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">group</span>
-          </div>
-          <div className="mt-4 flex items-baseline gap-3">
-            <span className="text-4xl font-black tracking-tight">1,422</span>
-            <span className="text-sm font-bold text-gray-400">{en ? "Users" : "명"}</span>
-          </div>
-          <div className="mt-4 flex gap-2">
-            <span className="px-2 py-0.5 bg-blue-50 text-[var(--kr-gov-blue)] text-[11px] font-bold rounded border border-blue-100">
-              {en ? "Enterprise 1,120" : "기업 1,120"}
-            </span>
-            <span className="px-2 py-0.5 bg-gray-50 text-gray-600 text-[11px] font-bold rounded border border-gray-100">
-              {en ? "Individual 302" : "개인 302"}
-            </span>
-          </div>
-        </article>
-
-        <article className="gov-card border-l-4 border-l-[var(--kr-gov-green)]">
-          <div className="flex justify-between items-start">
-            <p className="font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Monthly Emission Calculation Statistics" : "이달의 배출량 산정 통계"}</p>
-            <span className="material-symbols-outlined text-[var(--kr-gov-green)]">monitoring</span>
-          </div>
-          <div className="mt-4 flex items-baseline gap-2">
-            <span className="text-4xl font-black tracking-tight">85,240</span>
-            <span className="text-sm font-bold text-gray-400">tCO2e</span>
-          </div>
-          <p className="text-[12px] text-emerald-600 font-bold mt-4 flex items-center gap-1">
-            <span className="material-symbols-outlined text-[16px]">trending_up</span>
-            {en ? "Up 12.4% from previous month" : "전월 대비 12.4% 증가"}
-          </p>
-        </article>
-
-        <article className="gov-card border-l-4 border-l-orange-400">
-          <div className="flex justify-between items-start">
-            <p className="font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Certification Review Status" : "인증 심사 현황"}</p>
-            <span className="material-symbols-outlined text-orange-400">verified</span>
-          </div>
-          <div className="mt-4 flex justify-between items-center bg-gray-50 p-3 rounded-[var(--kr-gov-radius)]">
-            <div className="text-center px-2">
-              <p className="text-[11px] text-gray-500 font-bold mb-1">{en ? "Pending" : "대기"}</p>
-              <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-[12px] font-black rounded-full">12</span>
+        {summaryCards.map((card) => (
+          <article className={`gov-card border-l-4 ${String(card.borderClass || "border-l-[var(--kr-gov-blue)]")}`} key={`${card.title}-${card.value}`}>
+            <div className="flex justify-between items-start">
+              <p className="font-bold text-[var(--kr-gov-text-secondary)]">{String(card.title || "")}</p>
+              <span className={`material-symbols-outlined ${String(card.iconClass || "text-[var(--kr-gov-blue)]")}`}>{String(card.icon || "insights")}</span>
             </div>
-            <div className="text-center px-2">
-              <p className="text-[11px] text-gray-500 font-bold mb-1">{en ? "Reviewing" : "검토중"}</p>
-              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[12px] font-black rounded-full">28</span>
+            <div className="mt-4 flex items-baseline gap-2">
+              <span className="text-4xl font-black tracking-tight">{String(card.value || "0")}</span>
             </div>
-            <div className="text-center px-2">
-              <p className="text-[11px] text-gray-500 font-bold mb-1">{en ? "Completed" : "완료"}</p>
-              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[12px] font-black rounded-full">154</span>
-            </div>
-          </div>
-        </article>
+            <p className="mt-4 text-[12px] text-[var(--kr-gov-text-secondary)] font-medium leading-relaxed">{String(card.description || "")}</p>
+          </article>
+        ))}
       </div>
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         <article className="gov-card" data-help-id="admin-home-approvals">
           <div className="flex justify-between items-center mb-6">
             <h3 className="font-bold text-lg flex items-center gap-2">
-              <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">person_add</span>
-              {en ? "Pending Membership Approvals" : "회원가입 승인 대기"}
+              <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">fact_check</span>
+              {en ? "Priority Review Queue" : "우선 검토 대기열"}
             </h3>
-            <a className="text-xs font-bold text-[var(--kr-gov-blue)] hover:underline flex items-center gap-1" href={buildLocalizedPath("/admin/member/approve", "/en/admin/member/approve")}>
+            <a className="text-xs font-bold text-[var(--kr-gov-blue)] hover:underline flex items-center gap-1" href={buildLocalizedPath("/admin/emission/result_list?resultStatus=REVIEW", "/en/admin/emission/result_list?resultStatus=REVIEW")}>
               {en ? "View All" : "전체보기"} <span className="material-symbols-outlined text-[14px]">chevron_right</span>
             </a>
           </div>
@@ -319,29 +322,32 @@ export function AdminHomePage() {
             <table className="w-full text-sm text-left">
               <thead className="bg-gray-50 border-y border-[var(--kr-gov-border-light)]">
                 <tr>
-                  <th className="px-4 py-3 font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Name" : "이름"}</th>
-                  <th className="px-4 py-3 font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Type" : "유형"}</th>
-                  <th className="px-4 py-3 font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Applied On" : "신청일"}</th>
-                  <th className="px-4 py-3 font-bold text-center text-[var(--kr-gov-text-secondary)]">{en ? "Manage" : "관리"}</th>
+                  <th className="px-4 py-3 font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Project" : "대상"}</th>
+                  <th className="px-4 py-3 font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Company" : "기관"}</th>
+                  <th className="px-4 py-3 font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Calculated On" : "산정일"}</th>
+                  <th className="px-4 py-3 font-bold text-center text-[var(--kr-gov-text-secondary)]">{en ? "Status" : "상태"}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {[
-                  ["홍길동", en ? "General Enterprise" : "일반기업", "2025.08.14"],
-                  ["성춘향", en ? "Verification Agency" : "검증기관", "2025.08.14"],
-                  ["이몽룡", en ? "Research Institute" : "연구소", "2025.08.13"]
-                ].map(([name, type, date]) => (
-                  <tr className="hover:bg-gray-50/50 transition-colors" key={name}>
-                    <td className="px-4 py-4 font-medium">{name}</td>
-                    <td className="px-4 py-4 text-gray-600 text-xs">{type}</td>
-                    <td className="px-4 py-4 text-gray-500 text-xs">{date}</td>
-                    <td className="px-4 py-4 text-center space-x-1">
-                      <button className="px-3 py-1.5 bg-[var(--kr-gov-blue)] text-white text-[11px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)]" type="button">
-                        {en ? "Approve" : "Approve"}
-                      </button>
-                      <button className="px-3 py-1.5 border border-[var(--kr-gov-border-light)] text-gray-600 text-[11px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-100" type="button">
-                        {en ? "Detail" : "Detail"}
-                      </button>
+                {reviewQueueRows.length === 0 ? (
+                  <tr>
+                    <td className="px-4 py-6 text-center text-gray-500" colSpan={4}>
+                      {en ? "There are no queued review items." : "대기 중인 검토 항목이 없습니다."}
+                    </td>
+                  </tr>
+                ) : reviewQueueRows.map((row, index) => (
+                  <tr className="hover:bg-gray-50/50 transition-colors" key={`${row.title || "queue"}-${index}`}>
+                    <td className="px-4 py-4 font-medium">
+                      <a className="hover:underline" href={String(row.detailUrl || buildLocalizedPath("/admin/emission/result_list?resultStatus=REVIEW", "/en/admin/emission/result_list?resultStatus=REVIEW"))}>
+                        {String(row.title || "")}
+                      </a>
+                    </td>
+                    <td className="px-4 py-4 text-gray-600 text-xs">{String(row.type || "")}</td>
+                    <td className="px-4 py-4 text-gray-500 text-xs">{String(row.appliedOn || "")}</td>
+                    <td className="px-4 py-4 text-center">
+                      <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-[12px] font-black rounded-full">
+                        {String(row.statusLabel || (en ? "Pending" : "대기"))}
+                      </span>
                     </td>
                   </tr>
                 ))}
@@ -354,19 +360,19 @@ export function AdminHomePage() {
           <div className="flex justify-between items-center mb-6">
             <h3 className="font-bold text-lg flex items-center gap-2">
               <span className="material-symbols-outlined text-[var(--kr-gov-green)]">bar_chart</span>
-              {en ? "Review Progress Status" : "심사 진행 현황"}
+              {en ? "Emission Review Progress" : "배출 결과 진행 현황"}
             </h3>
-            <span className="text-[11px] font-bold text-gray-400 uppercase">Unit: Project Counts</span>
+            <span className="text-[11px] font-bold text-gray-400 uppercase">{en ? "Unit: result count" : "단위: 결과 건수"}</span>
           </div>
-          <div aria-label={en ? "Bar chart by review stage" : "심사 진행 단계별 막대 그래프"} className="space-y-5">
-            {reviewSteps.map(([label, value, width, barClass]) => (
-              <div key={label}>
+          <div aria-label={en ? "Bar chart by review stage" : "검토 진행 단계별 막대 그래프"} className="space-y-5">
+            {reviewProgressRows.map((row, index) => (
+              <div key={`${row.label || "progress"}-${index}`}>
                 <div className="flex justify-between items-center mb-1.5">
-                  <span className="text-[13px] font-bold text-[var(--kr-gov-text-secondary)]">{label}</span>
-                  <span className="text-[13px] font-black text-[var(--kr-gov-blue)]">{value}</span>
+                  <span className="text-[13px] font-bold text-[var(--kr-gov-text-secondary)]">{String(row.label || "")}</span>
+                  <span className="text-[13px] font-black text-[var(--kr-gov-blue)]">{String(row.value || "0")}</span>
                 </div>
                 <div className="h-5 bg-gray-100 rounded-full overflow-hidden">
-                  <div className={`h-full ${barClass}`} style={{ width }} />
+                  <div className={`h-full ${String(row.barClass || "bg-blue-400")}`} style={{ width: String(row.width || "0%") }} />
                 </div>
               </div>
             ))}
@@ -379,19 +385,19 @@ export function AdminHomePage() {
           <div className="flex justify-between items-center mb-6">
             <h3 className="font-bold text-lg flex items-center gap-2">
               <span className="material-symbols-outlined text-emerald-500">hub</span>
-              {en ? "Real-Time System Integration Status" : "실시간 시스템 연계 상태"}
+              {en ? "Operational Safeguard Status" : "운영 보호장치 상태"}
             </h3>
           </div>
           <div className="space-y-3">
-            {integrationStatuses.map(([icon, label, meta, boxClass, iconClass, dotClass, metaClass]) => (
-              <div className={`flex items-center justify-between p-4 rounded-[var(--kr-gov-radius)] border ${boxClass}`} key={label}>
+            {operationalStatusRows.map((row, index) => (
+              <div className={`flex items-center justify-between p-4 rounded-[var(--kr-gov-radius)] border ${statusBoxClass(String(row.status || ""))}`} key={`${row.label || "status"}-${index}`}>
                 <div className="flex items-center gap-3">
-                  <span className={`material-symbols-outlined ${iconClass}`}>{icon}</span>
-                  <span className={`text-sm font-bold ${label.includes("G-PIN") ? "text-red-700" : ""}`}>{label}</span>
+                  <span className={`material-symbols-outlined ${statusIconClass(String(row.status || ""))}`}>{String(row.icon || "radio_button_checked")}</span>
+                  <span className="text-sm font-bold">{String(row.label || "")}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`text-[11px] font-medium ${metaClass}`}>{meta}</span>
-                  <span className={`status-dot ${dotClass}`}></span>
+                  <span className={`text-[11px] font-medium ${statusMetaClass(String(row.status || ""))}`}>{String(row.meta || "")}</span>
+                  <span className={`status-dot ${statusDotClass(String(row.status || ""))}`}></span>
                 </div>
               </div>
             ))}
@@ -402,19 +408,19 @@ export function AdminHomePage() {
           <div className="flex justify-between items-center mb-6">
             <h3 className="font-bold text-lg flex items-center gap-2">
               <span className="material-symbols-outlined text-orange-500">history_edu</span>
-              {en ? "Recent System Logs" : "최근 시스템 로그"}
+              {en ? "Recent Security Audit Logs" : "최근 보안 감사 로그"}
             </h3>
-            <button className="text-xs font-bold text-gray-400 hover:text-[var(--kr-gov-blue)]" type="button">
-              {en ? "Analyze All Logs" : "로그 전체 분석"}
-            </button>
+            <a className="text-xs font-bold text-gray-400 hover:text-[var(--kr-gov-blue)]" href={buildLocalizedPath("/admin/security/audit", "/en/admin/security/audit")}>
+              {en ? "Open Audit Page" : "감사 화면 이동"}
+            </a>
           </div>
           <div className="space-y-4">
-            {systemLogs.map(([level, chipClass, message, timestamp], index) => (
-              <div className={`flex gap-4 items-start ${index < systemLogs.length - 1 ? "pb-3 border-b border-gray-100" : "pb-1"}`} key={`${level}-${timestamp}`}>
-                <span className={`px-2 py-0.5 text-[10px] font-black rounded ${chipClass}`}>{level}</span>
+            {systemLogs.map((row, index) => (
+              <div className={`flex gap-4 items-start ${index < systemLogs.length - 1 ? "pb-3 border-b border-gray-100" : "pb-1"}`} key={`${row.level || "INFO"}-${row.timestamp || index}`}>
+                <span className={`px-2 py-0.5 text-[10px] font-black rounded ${logChipClass(String(row.level || "INFO"))}`}>{String(row.level || "INFO")}</span>
                 <div className="flex-1">
-                  <p className="text-[13px] font-medium">{message}</p>
-                  <p className="text-[11px] text-gray-400 mt-1">{timestamp}</p>
+                  <p className="text-[13px] font-medium">{String(row.message || "")}</p>
+                  <p className="text-[11px] text-gray-400 mt-1">{String(row.timestamp || "")}</p>
                 </div>
               </div>
             ))}

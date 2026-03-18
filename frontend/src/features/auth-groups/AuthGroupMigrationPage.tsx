@@ -171,6 +171,7 @@ export function AuthGroupMigrationPage() {
   const [authorCode, setAuthorCode] = useState("");
   const [focusedMenuCode, setFocusedMenuCode] = useState(initialSearch.get("menuCode") || "");
   const [focusedFeatureCode, setFocusedFeatureCode] = useState(initialSearch.get("featureCode") || "");
+  const [menuSearchKeyword, setMenuSearchKeyword] = useState("");
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
   const [featureSearchKeyword, setFeatureSearchKeyword] = useState("");
   const [featureAssignmentFilter, setFeatureAssignmentFilter] = useState("ALL");
@@ -324,6 +325,10 @@ export function AuthGroupMigrationPage() {
     ))
   })).filter((section) => (
     (!focusedMenuCode || String(section.menuCode || "").toUpperCase() === focusedMenuCode.toUpperCase())
+    && (!menuSearchKeyword.trim()
+      || `${section.menuCode || ""} ${section.menuNm || ""} ${section.menuNmEn || ""} ${section.menuUrl || ""}`
+        .toUpperCase()
+        .includes(menuSearchKeyword.trim().toUpperCase()))
     && (section.features || []).length > 0
   ));
   const totalVisibleFeatureCount = visibleFeatureSections.reduce((sum, section) => sum + (section.features || []).length, 0);
@@ -1159,7 +1164,18 @@ export function AuthGroupMigrationPage() {
             </div>
           ) : null}
 
-          <div className="mb-4 grid grid-cols-1 gap-3 xl:grid-cols-[1.4fr_0.8fr]">
+          <div className="mb-4 grid grid-cols-1 gap-3 xl:grid-cols-[1.1fr_1.1fr_0.8fr]">
+            <label>
+              <span className="block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">
+                {text(page, "메뉴 검색", "Menu Search")}
+              </span>
+              <input
+                className="gov-input"
+                placeholder={text(page, "메뉴 코드, 메뉴명, URL 검색", "Search menu code, name, or URL")}
+                value={menuSearchKeyword}
+                onChange={(event) => setMenuSearchKeyword(event.target.value)}
+              />
+            </label>
             <label>
               <span className="block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">
                 {text(page, "기능 검색", "Feature Search")}

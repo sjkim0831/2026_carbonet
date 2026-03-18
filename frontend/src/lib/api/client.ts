@@ -1,4 +1,5 @@
 import { tracedFetch } from "../../app/telemetry/fetch";
+import type { MigrationPageId } from "../../app/routes/definitions";
 import { buildLocalizedPath, getCsrfMeta } from "../navigation/runtime";
 
 const fetch = tracedFetch;
@@ -138,6 +139,15 @@ export type AuthorGroup = {
   authorDc: string;
 };
 
+export type AuthorRoleProfile = {
+  authorCode: string;
+  displayTitle: string;
+  priorityWorks: string[];
+  description: string;
+  memberEditVisibleYn: string;
+  updatedAt?: string;
+};
+
 export type FeatureCatalogItem = {
   featureCode: string;
   featureNm: string;
@@ -186,6 +196,7 @@ export type AuthGroupPagePayload = {
   userSearchKeyword?: string;
   focusedMenuCode?: string;
   focusedFeatureCode?: string;
+  selectedAuthorProfile?: AuthorRoleProfile;
   authGroupError: string;
 };
 
@@ -243,7 +254,12 @@ export type DeptRolePagePayload = {
     authorCode: string;
     authorNm: string;
   }>;
+  roleProfilesByAuthorCode?: Record<string, AuthorRoleProfile>;
   companyMemberCount: number;
+  companyMemberPageIndex?: number;
+  companyMemberPageSize?: number;
+  companyMemberTotalPages?: number;
+  companyMemberSearchKeyword?: string;
   mappingCount: number;
 };
 
@@ -265,6 +281,7 @@ export type MemberEditPagePayload = Record<string, unknown> & {
   permissionFeatureSections?: FeatureCatalogSection[];
   permissionSelectedAuthorCode?: string;
   permissionEffectiveFeatureCodes?: string[];
+  assignedRoleProfile?: AuthorRoleProfile;
   member_editError?: string;
   member_editUpdated?: boolean;
   canViewMemberEdit?: boolean;
@@ -904,6 +921,15 @@ export type LoginHistoryPagePayload = Record<string, unknown> & {
   isEn?: boolean;
 };
 
+export type AdminHomePagePayload = Record<string, unknown> & {
+  summaryCards?: Array<Record<string, string>>;
+  reviewQueueRows?: Array<Record<string, string>>;
+  reviewProgressRows?: Array<Record<string, string>>;
+  operationalStatusRows?: Array<Record<string, string>>;
+  systemLogs?: Array<Record<string, string>>;
+  isEn?: boolean;
+};
+
 export type MemberStatsPagePayload = Record<string, unknown> & {
   totalMembers?: number;
   memberTypeStats?: Array<Record<string, string>>;
@@ -1135,7 +1161,7 @@ function buildPageCacheKey(path: string) {
   return `${SESSION_STORAGE_CACHE_PREFIX}${path}`;
 }
 
-function consumeRuntimeBootstrap<T>(key: "frontendSession" | "adminMenuTree" | "homePayload" | "mypagePayload" | "mypageContext" | "memberStatsPageData" | "securityPolicyPageData" | "securityMonitoringPageData" | "securityAuditPageData" | "schedulerManagementPageData" | "emissionResultListPageData"): T | null {
+function consumeRuntimeBootstrap<T>(key: "frontendSession" | "adminMenuTree" | "adminHomePageData" | "homePayload" | "mypagePayload" | "mypageContext" | "memberStatsPageData" | "securityPolicyPageData" | "securityMonitoringPageData" | "securityAuditPageData" | "schedulerManagementPageData" | "emissionResultListPageData"): T | null {
   if (typeof window === "undefined" || !window.__CARBONET_REACT_BOOTSTRAP__) {
     return null;
   }
@@ -1382,6 +1408,10 @@ export function readBootstrappedHomePayload(): BootstrappedHomePayload | null {
   return consumeRuntimeBootstrap<BootstrappedHomePayload>("homePayload");
 }
 
+export function readBootstrappedAdminHomePageData(): AdminHomePagePayload | null {
+  return consumeRuntimeBootstrap<AdminHomePagePayload>("adminHomePageData");
+}
+
 export function readBootstrappedMypagePayload(): MypagePayload | null {
   return consumeRuntimeBootstrap<MypagePayload>("mypagePayload");
 }
@@ -1441,8 +1471,16 @@ export async function fetchAuthChangePage(): Promise<AuthChangePagePayload> {
   });
 }
 
-export async function fetchDeptRolePage(insttId?: string): Promise<DeptRolePagePayload> {
-  const query = insttId ? `?insttId=${encodeURIComponent(insttId)}` : "";
+export async function fetchDeptRolePage(params?: {
+  insttId?: string;
+  memberSearchKeyword?: string;
+  memberPageIndex?: number;
+}): Promise<DeptRolePagePayload> {
+  const search = new URLSearchParams();
+  if (params?.insttId) search.set("insttId", params.insttId);
+  if (params?.memberSearchKeyword) search.set("memberSearchKeyword", params.memberSearchKeyword);
+  if (params?.memberPageIndex && params.memberPageIndex > 1) search.set("memberPageIndex", String(params.memberPageIndex));
+  const query = search.toString() ? `?${search.toString()}` : "";
   return fetchCachedJson<DeptRolePagePayload>({
     cacheKey: buildPageCacheKey(`dept-role/page${query}`),
     url: `${buildAdminApiPath("/api/admin/dept-role-mapping/page")}${query}`,
@@ -1451,13 +1489,60 @@ export async function fetchDeptRolePage(insttId?: string): Promise<DeptRolePageP
 }
 
 export async function fetchMemberEditPage(memberId: string): Promise<MemberEditPagePayload> {
-  const response = await fetch(`${buildAdminApiPath("/api/admin/member/edit")}?memberId=${encodeURIComponent(memberId)}`, {
-    credentials: "include"
+  return fetchCachedJson<MemberEditPagePayload>({
+    cacheKey: buildPageCacheKey(`member-edit/page?memberId=${encodeURIComponent(memberId)}`),
+    url: `${buildAdminApiPath("/api/admin/member/edit")}?memberId=${encodeURIComponent(memberId)}`,
+    mapError: (_body, status) => `Failed to load member edit page: ${status}`
   });
-  if (!response.ok) {
-    throw new Error(`Failed to load member edit page: ${response.status}`);
+}
+
+export function prefetchRoutePageData(route: MigrationPageId, search = ""): Promise<unknown> {
+  const params = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
+  switch (route) {
+    case "auth-group":
+      return fetchAuthGroupPage({
+        authorCode: params.get("authorCode") || "",
+        roleCategory: params.get("roleCategory") || "",
+        insttId: params.get("insttId") || "",
+        menuCode: params.get("menuCode") || "",
+        featureCode: params.get("featureCode") || "",
+        userSearchKeyword: params.get("userSearchKeyword") || ""
+      });
+    case "auth-change":
+      return fetchAuthChangePage();
+    case "dept-role":
+      return fetchDeptRolePage({
+        insttId: params.get("insttId") || "",
+        memberSearchKeyword: params.get("memberSearchKeyword") || "",
+        memberPageIndex: params.get("memberPageIndex") ? Number(params.get("memberPageIndex")) : undefined
+      });
+    case "member-edit": {
+      const memberId = params.get("memberId") || "";
+      return memberId ? fetchMemberEditPage(memberId) : Promise.resolve(null);
+    }
+    case "member-stats":
+      return fetchMemberStatsPageData();
+    case "security-policy":
+      return fetchSecurityPolicyPageData();
+    case "security-monitoring":
+      return fetchSecurityMonitoringPageData();
+    case "security-audit":
+      return fetchSecurityAuditPageData();
+    case "scheduler-management":
+      return fetchSchedulerManagementPageData({
+        jobStatus: params.get("jobStatus") || "",
+        executionType: params.get("executionType") || ""
+      });
+    case "emission-result-list":
+      return fetchEmissionResultListPageData({
+        pageIndex: params.get("pageIndex") ? Number(params.get("pageIndex")) : undefined,
+        searchKeyword: params.get("searchKeyword") || "",
+        resultStatus: params.get("resultStatus") || "",
+        verificationStatus: params.get("verificationStatus") || ""
+      });
+    default:
+      return Promise.resolve(null);
   }
-  return response.json();
 }
 
 export async function fetchPasswordResetPage(params?: { memberId?: string; pageIndex?: number; searchKeyword?: string; resetSource?: string; }) {
@@ -2790,6 +2875,31 @@ export async function saveAdminAuthChange(
   return body;
 }
 
+export async function saveAuthorRoleProfile(
+  session: FrontendSession,
+  payload: {
+    authorCode: string;
+    roleCategory: string;
+    displayTitle: string;
+    priorityWorks: string[];
+    description: string;
+    memberEditVisibleYn: string;
+  }
+) {
+  const response = await fetch(buildAdminApiPath("/api/admin/auth-groups/profile-save"), {
+    method: "POST",
+    credentials: "include",
+    headers: buildJsonHeaders(session),
+    body: JSON.stringify(payload)
+  });
+  const body = await response.json();
+  if (!response.ok || !body.success) {
+    throw new Error(body.message || `Failed to save author role profile: ${response.status}`);
+  }
+  invalidateAdminPageCaches();
+  return body as { success: boolean; authorCode: string; profile: AuthorRoleProfile };
+}
+
 export async function saveDeptRoleMapping(
   session: FrontendSession,
   payload: {
@@ -2933,7 +3043,7 @@ export async function createAdminAccount(
 }
 
 export async function saveCompanyAccount(
-  session: FrontendSession,
+  _session: FrontendSession,
   payload: {
     insttId?: string;
     membershipType: string;
@@ -2963,7 +3073,9 @@ export async function saveCompanyAccount(
   form.set("chargerTel", payload.chargerTel);
   payload.fileUploads.forEach((file) => form.append("fileUploads", file));
 
-  const headers = buildJsonHeaders(session);
+  const headers = await buildResilientCsrfHeaders({
+    "X-Requested-With": "XMLHttpRequest"
+  });
   delete headers["Content-Type"];
   const response = await fetch(buildAdminApiPath("/api/admin/member/company-account"), {
     method: "POST",
