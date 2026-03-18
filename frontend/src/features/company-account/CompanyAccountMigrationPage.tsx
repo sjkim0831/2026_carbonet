@@ -11,6 +11,7 @@ import {
   saveCompanyAccount
 } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { MemberActionBar } from "../member/common";
 
 type CompanyFormState = {
   insttId: string;
@@ -448,15 +449,19 @@ export function CompanyAccountMigrationPage() {
               </div>
             </section>
 
-            <div className="flex flex-col gap-4 border-t border-gray-100 pt-8 md:flex-row md:items-stretch" data-help-id="company-account-actions">
-              <a className="flex h-14 flex-1 items-center justify-center rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] text-lg font-bold text-[var(--kr-gov-text-primary)] hover:bg-gray-50" href={buildLocalizedPath("/admin/member/company_list", "/en/admin/member/company_list")}>목록</a>
-              <div className="flex-1 md:flex-[2]">
-                <PermissionButton allowed={!!page?.canUseCompanyAccountSave} className="flex h-14 w-full items-center justify-center gap-2 rounded-[var(--kr-gov-radius)] bg-[var(--kr-gov-blue)] px-6 text-lg font-bold text-white shadow-lg transition-colors hover:bg-[var(--kr-gov-blue-hover)] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 disabled:shadow-none" data-action="save" onClick={handleSave} reason="전체 관리자만 회원사 정보를 저장할 수 있습니다." type="button">
+            <MemberActionBar
+              dataHelpId="company-account-actions"
+              primary={(
+                <PermissionButton allowed={!!page?.canUseCompanyAccountSave} className="flex min-h-[56px] w-full max-w-[320px] items-center justify-center gap-2 rounded-[var(--kr-gov-radius)] bg-[var(--kr-gov-blue)] px-6 text-base font-bold text-white shadow-lg transition-colors hover:bg-[var(--kr-gov-blue-hover)] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 disabled:shadow-none" data-action="save" onClick={handleSave} reason="전체 관리자만 회원사 정보를 저장할 수 있습니다." type="button">
                   <span>{page?.isEditMode ? "회원사 수정 저장" : "회원사 저장"}</span>
                   <span className="material-symbols-outlined">arrow_forward</span>
                 </PermissionButton>
-              </div>
-            </div>
+              )}
+              secondary={{
+                href: buildLocalizedPath("/admin/member/company_list", "/en/admin/member/company_list"),
+                label: "목록"
+              }}
+            />
           </div>
         </div>
       </CanView>

@@ -380,7 +380,7 @@
         SELECT * FROM (
             SELECT ROWNUM AS RN, T.* FROM (
                 SELECT
-                    INSTT_ID    AS INSTT_ID,
+                    TRIM(INSTT_ID) AS INSTT_ID,
                     INSTT_NM   AS CMPNY_NM,
                     ENTRPRS_SE_CODE AS ENTRPRS_SE_CODE,
                     BIZRNO     AS BIZRNO,
@@ -389,7 +389,7 @@
                 FROM COMTNINSTTINFO I
                 WHERE (#{keyword} = '' OR INSTT_NM LIKE '%' || #{keyword} || '%' OR BIZRNO LIKE '%' || #{keyword} || '%')
         <if test="insttId != null and insttId != ''">
-                      AND INSTT_ID = #{insttId}
+                      AND TRIM(INSTT_ID) = TRIM(#{insttId})
         </if>
         <if test="entrprsSeCode != null and entrprsSeCode != ''">
                       AND ENTRPRS_SE_CODE = #{entrprsSeCode}
@@ -409,7 +409,7 @@
     <select id="selectInsttFiles" parameterType="string" resultType="egovframework.com.feature.member.model.vo.InsttFileVO">
         SELECT
             FILE_ID        AS fileId,
-            INSTT_ID       AS insttId,
+            TRIM(INSTT_ID) AS insttId,
             FILE_SN        AS fileSn,
             STRE_FILE_NM   AS streFileNm,
             ORIGNL_FILE_NM AS orignlFileNm,
@@ -419,7 +419,7 @@
             FILE_CN        AS fileCn,
             TO_CHAR(REGIST_PNTTM, 'YYYY.MM.DD HH24:MI:SS') AS regDate
         FROM COMTNINSTTFILE
-        WHERE INSTT_ID = #{value}
+        WHERE TRIM(INSTT_ID) = TRIM(#{value})
         ORDER BY FILE_SN ASC, REGIST_PNTTM ASC
     </select>
 
@@ -606,7 +606,7 @@
 
     <select id="selectInsttInfoForStatus" resultType="egovframework.com.feature.member.model.vo.InstitutionStatusVO">
         SELECT
-            INSTT_ID AS insttId,
+            TRIM(INSTT_ID) AS insttId,
             INSTT_NM AS insttNm,
             ENTRPRS_SE_CODE AS entrprsSeCode,
             REPRSNT_NM AS reprsntNm,
@@ -626,7 +626,7 @@
         FROM COMTNINSTTINFO
         <choose>
             <when test="insttId != null and insttId != ''">
-                WHERE INSTT_ID = #{insttId}
+                WHERE TRIM(INSTT_ID) = TRIM(#{insttId})
             </when>
             <otherwise>
                 WHERE REPRSNT_NM = #{reprsntNm}

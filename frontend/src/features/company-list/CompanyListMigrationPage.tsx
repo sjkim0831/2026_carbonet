@@ -4,6 +4,7 @@ import { CanView } from "../../components/access/CanView";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import { CompanyListPagePayload, fetchCompanyListPage } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { MemberPagination } from "../member/common";
 
 type SearchFilters = {
   searchKeyword: string;
@@ -87,13 +88,6 @@ export function CompanyListMigrationPage() {
   const error = actionError || pageState.error;
   const totalPages = Math.max(1, Number(page?.totalPages || 1));
   const currentPage = Math.max(1, Number(page?.pageIndex || filters.pageIndex || 1));
-  const startPage = Math.max(1, currentPage - 4);
-  const endPage = Math.min(totalPages, startPage + 9);
-  const normalizedStartPage = Math.max(1, endPage - 9);
-  const pageNumbers = useMemo(
-    () => Array.from({ length: endPage - normalizedStartPage + 1 }, (_, index) => normalizedStartPage + index),
-    [endPage, normalizedStartPage]
-  );
   const exportQuery = useMemo(() => {
     const params = new URLSearchParams();
     const keyword = String(filters.searchKeyword || "").trim();
@@ -220,29 +214,7 @@ export function CompanyListMigrationPage() {
               </tbody>
             </table>
           </div>
-          <div className="px-6 py-4 border-t border-[var(--kr-gov-border-light)] bg-gray-50 flex justify-center" data-help-id="company-list-pagination">
-            <nav className="flex items-center gap-1">
-              <button className="p-1 rounded hover:bg-white border border-transparent hover:border-gray-200 disabled:opacity-40" disabled={currentPage <= 1} onClick={() => movePage(1)} type="button">
-                <span className="material-symbols-outlined">first_page</span>
-              </button>
-              <button className="p-1 rounded hover:bg-white border border-transparent hover:border-gray-200 disabled:opacity-40" disabled={currentPage <= 1} onClick={() => movePage(Math.max(1, currentPage - 1))} type="button">
-                <span className="material-symbols-outlined">chevron_left</span>
-              </button>
-              <div className="flex items-center gap-1 mx-4">
-                {pageNumbers.map((pageNumber) => (
-                  <button className={`w-8 h-8 rounded border border-transparent text-sm flex items-center justify-center ${pageNumber === currentPage ? "bg-[var(--kr-gov-blue)] text-white font-bold" : "hover:bg-white hover:border-gray-200"}`} key={pageNumber} onClick={() => movePage(pageNumber)} type="button">
-                    {pageNumber}
-                  </button>
-                ))}
-              </div>
-              <button className="p-1 rounded hover:bg-white border border-transparent hover:border-gray-200 disabled:opacity-40" disabled={currentPage >= totalPages} onClick={() => movePage(Math.min(totalPages, currentPage + 1))} type="button">
-                <span className="material-symbols-outlined">chevron_right</span>
-              </button>
-              <button className="p-1 rounded hover:bg-white border border-transparent hover:border-gray-200 disabled:opacity-40" disabled={currentPage >= totalPages} onClick={() => movePage(totalPages)} type="button">
-                <span className="material-symbols-outlined">last_page</span>
-              </button>
-            </nav>
-          </div>
+          <MemberPagination currentPage={currentPage} dataHelpId="company-list-pagination" onPageChange={movePage} totalPages={totalPages} />
         </section>
       </CanView>
     </AdminPageShell>

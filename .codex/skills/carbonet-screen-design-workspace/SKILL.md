@@ -7,6 +7,8 @@ description: Use when a request is driven by `/home/imaneya/workspace/화면설�
 
 Use this skill when the request references the local design workspace at `/home/imaneya/workspace/화면설계`.
 
+This skill resolves source-of-truth design inputs. After the canonical design artifacts and workflow meaning are clear, move implementation work to `carbonet-feature-builder`.
+
 Keep the workflow lightweight. Read only the files needed for the current task.
 
 ## Source of truth

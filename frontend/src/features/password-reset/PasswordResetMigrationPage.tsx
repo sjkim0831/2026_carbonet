@@ -5,6 +5,7 @@ import { CanView } from "../../components/access/CanView";
 import { PermissionButton } from "../../components/access/CanUse";
 import { fetchPasswordResetPage, resetMemberPasswordAction, type PasswordResetPagePayload } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { MemberPagination } from "../member/common";
 
 type PasswordResetHistoryRow = {
   resetAt?: string;
@@ -71,12 +72,6 @@ export function PasswordResetMigrationPage() {
   const totalCount = Number(page?.totalCount || 0);
   const currentPage = Number(page?.pageIndex || pageIndex || 1);
   const totalPages = Number(page?.totalPages || 1);
-  const startPage = Number(page?.startPage || 1);
-  const endPage = Number(page?.endPage || 1);
-  const pageNumbers = Array.from(
-    { length: Math.max(0, endPage - startPage + 1) },
-    (_, index) => startPage + index
-  );
 
   async function reload() {
     setActionError("");
@@ -263,34 +258,7 @@ export function PasswordResetMigrationPage() {
             </table>
           </div>
 
-          <div className="flex justify-center border-t border-[var(--kr-gov-border-light)] bg-gray-50 px-6 py-4">
-            <nav className="flex items-center gap-1">
-              <button className="rounded border border-transparent p-1 hover:border-gray-200 hover:bg-white disabled:opacity-40" disabled={currentPage <= 1} onClick={() => movePage(1)} type="button">
-                <span className="material-symbols-outlined">first_page</span>
-              </button>
-              <button className="rounded border border-transparent p-1 hover:border-gray-200 hover:bg-white disabled:opacity-40" disabled={currentPage <= 1} onClick={() => movePage(currentPage - 1)} type="button">
-                <span className="material-symbols-outlined">chevron_left</span>
-              </button>
-              <div className="mx-4 flex items-center gap-1">
-                {pageNumbers.map((pageNumber) => (
-                  <button
-                    key={pageNumber}
-                    className={`flex h-8 w-8 items-center justify-center rounded border text-sm ${pageNumber === currentPage ? "border-[var(--kr-gov-blue)] bg-[var(--kr-gov-blue)] font-bold text-white" : "border-transparent hover:border-gray-200 hover:bg-white"}`}
-                    onClick={() => movePage(pageNumber)}
-                    type="button"
-                  >
-                    {pageNumber}
-                  </button>
-                ))}
-              </div>
-              <button className="rounded border border-transparent p-1 hover:border-gray-200 hover:bg-white disabled:opacity-40" disabled={currentPage >= totalPages} onClick={() => movePage(currentPage + 1)} type="button">
-                <span className="material-symbols-outlined">chevron_right</span>
-              </button>
-              <button className="rounded border border-transparent p-1 hover:border-gray-200 hover:bg-white disabled:opacity-40" disabled={currentPage >= totalPages} onClick={() => movePage(totalPages)} type="button">
-                <span className="material-symbols-outlined">last_page</span>
-              </button>
-            </nav>
-          </div>
+          <MemberPagination currentPage={currentPage} onPageChange={movePage} totalPages={totalPages} />
         </section>
       </CanView>
     </AdminPageShell>

@@ -3,9 +3,10 @@ import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { CanView } from "../../components/access/CanView";
 import { PermissionButton } from "../../components/access/CanUse";
-import { fetchMemberEditPage, MemberEditPagePayload, saveMemberEdit } from "../../lib/api/client";
+import { fetchMemberEditPage, MemberEditPagePayload, readBootstrappedMemberEditPageData, saveMemberEdit } from "../../lib/api/client";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { MemberActionBar } from "../member/common";
 
 function text(page: MemberEditPagePayload | null, ko: string, en: string) {
   return page?.isEn ? en : ko;
@@ -47,8 +48,9 @@ function renderPermissionChip(type: "add" | "remove" | "base" | null) {
 
 export function MemberEditMigrationPage() {
   const initialMemberId = resolveInitialMemberId();
+  const bootstrappedPage = readBootstrappedMemberEditPageData();
   const memberIdInput = initialMemberId;
-  const [featureCodes, setFeatureCodes] = useState<string[]>([]);
+  const [featureCodes, setFeatureCodes] = useState<string[]>((bootstrappedPage?.permissionEffectiveFeatureCodes as string[] | undefined) || []);
   const [form, setForm] = useState({
     memberId: initialMemberId,
     applcntNm: "",
@@ -71,7 +73,8 @@ export function MemberEditMigrationPage() {
     [],
     {
       enabled: Boolean(memberIdInput.trim()),
-      initialValue: null,
+      initialValue: bootstrappedPage,
+      skipInitialLoad: Boolean(bootstrappedPage),
       onSuccess(pagePayload) {
         const member = pagePayload.member;
         setForm({
@@ -461,14 +464,18 @@ export function MemberEditMigrationPage() {
           </div>
         </div>
 
-        <div className="mt-8 flex justify-center gap-3 border-t pt-6" data-help-id="member-edit-actions">
-          <button className="min-w-[140px] rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-8 py-3 font-bold text-[var(--kr-gov-text-secondary)] hover:bg-gray-50" data-action="detail" onClick={() => { window.location.href = buildLocalizedPath(`/admin/member/detail?memberId=${encodeURIComponent(form.memberId)}`, `/en/admin/member/detail?memberId=${encodeURIComponent(form.memberId)}`); }} type="button">
-            {text(page, "상세로 이동", "Go to detail")}
-          </button>
-          <PermissionButton allowed={canUse} className="min-w-[140px] rounded-[var(--kr-gov-radius)] bg-[var(--kr-gov-blue)] px-8 py-3 font-bold text-white hover:bg-[var(--kr-gov-blue-hover)]" data-action="save" onClick={handleSave} reason={text(page, "현재 관리자 권한으로 수정 가능한 회원만 저장할 수 있습니다.", "Only members editable by the current administrator can be saved.")} type="button">
-            {text(page, "저장", "Save")}
-          </PermissionButton>
-        </div>
+        <MemberActionBar
+          dataHelpId="member-edit-actions"
+          primary={(
+            <PermissionButton allowed={canUse} className="flex min-h-[56px] w-full max-w-[280px] items-center justify-center rounded-[var(--kr-gov-radius)] bg-[var(--kr-gov-blue)] px-8 py-3 font-bold text-white hover:bg-[var(--kr-gov-blue-hover)]" data-action="save" onClick={handleSave} reason={text(page, "현재 관리자 권한으로 수정 가능한 회원만 저장할 수 있습니다.", "Only members editable by the current administrator can be saved.")} type="button">
+              {text(page, "저장", "Save")}
+            </PermissionButton>
+          )}
+          secondary={{
+            label: text(page, "상세로 이동", "Go to detail"),
+            onClick: () => { window.location.href = buildLocalizedPath(`/admin/member/detail?memberId=${encodeURIComponent(form.memberId)}`, `/en/admin/member/detail?memberId=${encodeURIComponent(form.memberId)}`); }
+          }}
+        />
       </CanView>
     </AdminPageShell>
   );

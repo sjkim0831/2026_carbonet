@@ -11,6 +11,9 @@ declare global {
       frontendSession?: unknown;
       adminMenuTree?: unknown;
       adminHomePageData?: unknown;
+      authGroupPageData?: unknown;
+      deptRolePageData?: unknown;
+      memberEditPageData?: unknown;
       homePayload?: unknown;
       mypagePayload?: unknown;
       mypageContext?: unknown;

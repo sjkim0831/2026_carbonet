@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { CanView } from "../../components/access/CanView";
@@ -10,6 +10,7 @@ import {
   submitCompanyApproveAction
 } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { MemberPagination } from "../member/common";
 
 type SearchFilters = {
   searchKeyword: string;
@@ -63,13 +64,6 @@ export function CompanyApproveMigrationPage() {
   const error = actionError || sessionState.error || pageState.error;
   const totalPages = Math.max(1, Number(page?.totalPages || 1));
   const currentPage = Math.max(1, Number(page?.pageIndex || filters.pageIndex || 1));
-  const startPage = Math.max(1, currentPage - 4);
-  const endPage = Math.min(totalPages, startPage + 9);
-  const normalizedStartPage = Math.max(1, endPage - 9);
-  const pageNumbers = useMemo(
-    () => Array.from({ length: endPage - normalizedStartPage + 1 }, (_, index) => normalizedStartPage + index),
-    [endPage, normalizedStartPage]
-  );
   const approvalRows = (page?.approvalRows || []) as Array<Record<string, unknown>>;
   const reviewRow = approvalRows.find((row) => String(row.insttId || "") === reviewInsttId) || null;
 
@@ -246,15 +240,7 @@ export function CompanyApproveMigrationPage() {
             </table>
           </div>
 
-          <div className="flex items-center justify-center gap-1 border-t border-[var(--kr-gov-border-light)] px-6 py-4 bg-white">
-            <button className="rounded px-3 py-2 text-sm text-gray-500 hover:bg-gray-100 disabled:opacity-40" disabled={currentPage <= 1} onClick={() => movePage(Math.max(1, currentPage - 1))} type="button">이전</button>
-            {pageNumbers.map((pageNumber) => (
-              <button className={`rounded px-3 py-2 text-sm ${pageNumber === currentPage ? "bg-[var(--kr-gov-blue)] text-white font-bold" : "text-gray-600 hover:bg-gray-100"}`} key={pageNumber} onClick={() => movePage(pageNumber)} type="button">
-                {pageNumber}
-              </button>
-            ))}
-            <button className="rounded px-3 py-2 text-sm text-gray-500 hover:bg-gray-100 disabled:opacity-40" disabled={currentPage >= totalPages} onClick={() => movePage(Math.min(totalPages, currentPage + 1))} type="button">다음</button>
-          </div>
+          <MemberPagination currentPage={currentPage} onPageChange={movePage} totalPages={totalPages} />
         </section>
 
         {reviewRow ? (

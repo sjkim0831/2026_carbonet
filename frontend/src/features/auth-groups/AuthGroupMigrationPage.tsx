@@ -6,6 +6,7 @@ import {
   fetchAuthGroupPage,
   fetchAuditEvents,
   fetchFrontendSession,
+  readBootstrappedAuthGroupPageData,
   saveAuthGroupFeatures
 } from "../../lib/api/client";
 import { CanView } from "../../components/access/CanView";
@@ -164,15 +165,16 @@ function summarizeAuthAuditDiff(page: AuthGroupPagePayload | null, row: Record<s
 
 export function AuthGroupMigrationPage() {
   const initialSearch = new URLSearchParams(window.location.search);
+  const bootstrappedPage = readBootstrappedAuthGroupPageData();
   const [session, setSession] = useState<FrontendSession | null>(null);
-  const [page, setPage] = useState<AuthGroupPagePayload | null>(null);
-  const [roleCategory, setRoleCategory] = useState("GENERAL");
-  const [insttId, setInsttId] = useState("");
-  const [authorCode, setAuthorCode] = useState("");
-  const [focusedMenuCode, setFocusedMenuCode] = useState(initialSearch.get("menuCode") || "");
-  const [focusedFeatureCode, setFocusedFeatureCode] = useState(initialSearch.get("featureCode") || "");
+  const [page, setPage] = useState<AuthGroupPagePayload | null>(bootstrappedPage);
+  const [roleCategory, setRoleCategory] = useState(bootstrappedPage?.selectedRoleCategory || "GENERAL");
+  const [insttId, setInsttId] = useState(bootstrappedPage?.authGroupSelectedInsttId || "");
+  const [authorCode, setAuthorCode] = useState(bootstrappedPage?.selectedAuthorCode || "");
+  const [focusedMenuCode, setFocusedMenuCode] = useState(bootstrappedPage?.focusedMenuCode || initialSearch.get("menuCode") || "");
+  const [focusedFeatureCode, setFocusedFeatureCode] = useState(bootstrappedPage?.focusedFeatureCode || initialSearch.get("featureCode") || "");
   const [menuSearchKeyword, setMenuSearchKeyword] = useState("");
-  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
+  const [selectedFeatures, setSelectedFeatures] = useState<string[]>(bootstrappedPage?.selectedFeatureCodes || []);
   const [featureSearchKeyword, setFeatureSearchKeyword] = useState("");
   const [featureAssignmentFilter, setFeatureAssignmentFilter] = useState("ALL");
   const [createForm, setCreateForm] = useState<CreateFormState>({
@@ -180,9 +182,10 @@ export function AuthGroupMigrationPage() {
     authorNm: "",
     authorDc: ""
   });
-  const [userSearchInput, setUserSearchInput] = useState("");
-  const [submittedUserSearchKeyword, setSubmittedUserSearchKeyword] = useState("");
-  const [loading, setLoading] = useState(true);
+  const initialUserSearchKeyword = String((bootstrappedPage as Record<string, unknown> | null)?.userSearchKeyword || "");
+  const [userSearchInput, setUserSearchInput] = useState(initialUserSearchKeyword);
+  const [submittedUserSearchKeyword, setSubmittedUserSearchKeyword] = useState(initialUserSearchKeyword);
+  const [loading, setLoading] = useState(!bootstrappedPage);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [auditRows, setAuditRows] = useState<Array<Record<string, unknown>>>([]);
@@ -191,6 +194,7 @@ export function AuthGroupMigrationPage() {
   const [expandedAuditIds, setExpandedAuditIds] = useState<string[]>([]);
   const [pinnedAuthorCodes, setPinnedAuthorCodes] = useState<string[]>(() => parsePinnedAuthorCodes());
   const [restoreTarget, setRestoreTarget] = useState<RestoreTarget | null>(null);
+  const [skipInitialFetch, setSkipInitialFetch] = useState(Boolean(bootstrappedPage));
 
   const payload = (page || {}) as Record<string, unknown>;
   const permissions = deriveUiPermissions(session, page);
@@ -219,6 +223,16 @@ export function AuthGroupMigrationPage() {
   const removedFeatureCodes = baselineSelectedFeatures.filter((code) => !selectedFeatureSet.has(code));
 
   useEffect(() => {
+    if (skipInitialFetch && page) {
+      setSkipInitialFetch(false);
+      setLoading(true);
+      setError("");
+      fetchFrontendSession()
+        .then((sessionPayload) => setSession(sessionPayload))
+        .catch((err: Error) => setError(err.message))
+        .finally(() => setLoading(false));
+      return;
+    }
     setLoading(true);
     setError("");
     Promise.all([

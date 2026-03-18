@@ -1,6 +1,6 @@
 {
-  "_AdminPageShell-CKBd-OQA.js": {
-    "file": "assets/AdminPageShell-CKBd-OQA.js",
+  "_AdminPageShell-BSc59vPc.js": {
+    "file": "assets/AdminPageShell-BSc59vPc.js",
     "name": "AdminPageShell",
     "imports": [
       "_vendor-react-Ap5sJVW9.js",
@@ -22,15 +22,15 @@
       "_vendor-react-Ap5sJVW9.js"
     ]
   },
-  "_LoginHistorySharedPage-DkV7jlQr.js": {
-    "file": "assets/LoginHistorySharedPage-DkV7jlQr.js",
+  "_LoginHistorySharedPage-ehJRgONw.js": {
+    "file": "assets/LoginHistorySharedPage-ehJRgONw.js",
     "name": "LoginHistorySharedPage",
     "imports": [
       "_vendor-react-Ap5sJVW9.js",
       "_useAsyncValue-CBLYfvEg.js",
-      "_AdminPageShell-CKBd-OQA.js",
+      "_AdminPageShell-BSc59vPc.js",
       "index.html",
-      "_adminSystemShared-Dj_wQJzQ.js"
+      "_adminSystemShared-ta0upnpd.js"
     ]
   },
   "_UserPortalChrome-CI2rq7IZ.js": {
@@ -40,26 +40,33 @@
       "_vendor-react-Ap5sJVW9.js"
     ]
   },
-  "_adminSystemShared-Dj_wQJzQ.js": {
-    "file": "assets/adminSystemShared-Dj_wQJzQ.js",
+  "_adminSystemShared-ta0upnpd.js": {
+    "file": "assets/adminSystemShared-ta0upnpd.js",
     "name": "adminSystemShared",
     "imports": [
       "index.html"
+    ]
+  },
+  "_common-DTDTarNK.js": {
+    "file": "assets/common-DTDTarNK.js",
+    "name": "common",
+    "imports": [
+      "_vendor-react-Ap5sJVW9.js"
     ]
   },
   "_membershipCards-iwytMZjn.js": {
     "file": "assets/membershipCards-iwytMZjn.js",
     "name": "membershipCards"
   },
-  "_menuUrlDisplay-CskKYroh.js": {
-    "file": "assets/menuUrlDisplay-CskKYroh.js",
+  "_menuUrlDisplay-w3Gcxuh9.js": {
+    "file": "assets/menuUrlDisplay-w3Gcxuh9.js",
     "name": "menuUrlDisplay",
     "imports": [
-      "_pageManifestIndex-B7EkX0WB.js"
+      "_pageManifestIndex-Bw7aF0q9.js"
     ]
   },
-  "_pageManifestIndex-B7EkX0WB.js": {
-    "file": "assets/pageManifestIndex-B7EkX0WB.js",
+  "_pageManifestIndex-Bw7aF0q9.js": {
+    "file": "assets/pageManifestIndex-Bw7aF0q9.js",
     "name": "pageManifestIndex",
     "imports": [
       "index.html"
@@ -83,8 +90,8 @@
       "_vendor-react-Ap5sJVW9.js"
     ]
   },
-  "_useFrontendSession-C11VW9KK.js": {
-    "file": "assets/useFrontendSession-C11VW9KK.js",
+  "_useFrontendSession-CKAvu8rr.js": {
+    "file": "assets/useFrontendSession-CKAvu8rr.js",
     "name": "useFrontendSession",
     "imports": [
       "_vendor-react-Ap5sJVW9.js",
@@ -92,8 +99,8 @@
       "_useAsyncValue-CBLYfvEg.js"
     ]
   },
-  "_useJoinSession-CEpAjEMI.js": {
-    "file": "assets/useJoinSession-CEpAjEMI.js",
+  "_useJoinSession-a5IHyN3Y.js": {
+    "file": "assets/useJoinSession-a5IHyN3Y.js",
     "name": "useJoinSession",
     "imports": [
       "index.html",
@@ -105,7 +112,7 @@
     "name": "vendor-react"
   },
   "index.html": {
-    "file": "assets/index-05ZGnmTA.js",
+    "file": "assets/index-CcyVPz0Q.js",
     "name": "index",
     "src": "index.html",
     "isEntry": true,
@@ -207,11 +214,11 @@
       "src/features/home-placeholder/HomeMenuPlaceholderPage.tsx"
     ],
     "css": [
-      "assets/index-feJxeJm_.css"
+      "assets/index-Gy-yT8Nj.css"
     ]
   },
   "src/features/admin-account-create/AdminAccountCreateMigrationPage.tsx": {
-    "file": "assets/AdminAccountCreateMigrationPage-_cXk-Kiu.js",
+    "file": "assets/AdminAccountCreateMigrationPage-DCRs1QJG.js",
     "name": "AdminAccountCreateMigrationPage",
     "src": "src/features/admin-account-create/AdminAccountCreateMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -220,24 +227,24 @@
       "_CanView-BIzOlWIm.js",
       "_CanUse-BHfTGsXx.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js",
+      "_AdminPageShell-BSc59vPc.js",
       "_useAsyncValue-CBLYfvEg.js"
     ]
   },
   "src/features/admin-entry/AdminEntryPages.tsx": {
-    "file": "assets/AdminEntryPages-CbCz5O1Y.js",
+    "file": "assets/AdminEntryPages-Ccaq9IHB.js",
     "name": "AdminEntryPages",
     "src": "src/features/admin-entry/AdminEntryPages.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-react-Ap5sJVW9.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js",
+      "_AdminPageShell-BSc59vPc.js",
       "_useAsyncValue-CBLYfvEg.js"
     ]
   },
   "src/features/admin-list/AdminListMigrationPage.tsx": {
-    "file": "assets/AdminListMigrationPage-CaFcgh5O.js",
+    "file": "assets/AdminListMigrationPage-CbZ6l7lr.js",
     "name": "AdminListMigrationPage",
     "src": "src/features/admin-list/AdminListMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -245,12 +252,12 @@
       "_vendor-react-Ap5sJVW9.js",
       "_CanView-BIzOlWIm.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js",
+      "_AdminPageShell-BSc59vPc.js",
       "_useAsyncValue-CBLYfvEg.js"
     ]
   },
   "src/features/admin-permissions/AdminPermissionMigrationPage.tsx": {
-    "file": "assets/AdminPermissionMigrationPage-k_3c3Tw8.js",
+    "file": "assets/AdminPermissionMigrationPage-F9TMqBEe.js",
     "name": "AdminPermissionMigrationPage",
     "src": "src/features/admin-permissions/AdminPermissionMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -259,12 +266,12 @@
       "_CanView-BIzOlWIm.js",
       "_CanUse-BHfTGsXx.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js",
+      "_AdminPageShell-BSc59vPc.js",
       "_useAsyncValue-CBLYfvEg.js"
     ]
   },
   "src/features/admin-placeholder/AdminMenuPlaceholderPage.tsx": {
-    "file": "assets/AdminMenuPlaceholderPage-CXlOpN7q.js",
+    "file": "assets/AdminMenuPlaceholderPage-209c0dAi.js",
     "name": "AdminMenuPlaceholderPage",
     "src": "src/features/admin-placeholder/AdminMenuPlaceholderPage.tsx",
     "isDynamicEntry": true,
@@ -272,23 +279,23 @@
       "_vendor-react-Ap5sJVW9.js",
       "_useAsyncValue-CBLYfvEg.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js"
+      "_AdminPageShell-BSc59vPc.js"
     ]
   },
   "src/features/admin-sitemap/AdminSitemapMigrationPage.tsx": {
-    "file": "assets/AdminSitemapMigrationPage-CW--gi1b.js",
+    "file": "assets/AdminSitemapMigrationPage-gnPVACz3.js",
     "name": "AdminSitemapMigrationPage",
     "src": "src/features/admin-sitemap/AdminSitemapMigrationPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-react-Ap5sJVW9.js",
       "_useAsyncValue-CBLYfvEg.js",
-      "_AdminPageShell-CKBd-OQA.js",
+      "_AdminPageShell-BSc59vPc.js",
       "index.html"
     ]
   },
   "src/features/auth-change/AuthChangeMigrationPage.tsx": {
-    "file": "assets/AuthChangeMigrationPage-Df2uEsHl.js",
+    "file": "assets/AuthChangeMigrationPage-D1jv34ft.js",
     "name": "AuthChangeMigrationPage",
     "src": "src/features/auth-change/AuthChangeMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -297,12 +304,13 @@
       "_CanView-BIzOlWIm.js",
       "_CanUse-BHfTGsXx.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js",
+      "_AdminPageShell-BSc59vPc.js",
+      "_common-DTDTarNK.js",
       "_useAsyncValue-CBLYfvEg.js"
     ]
   },
   "src/features/auth-groups/AuthGroupMigrationPage.tsx": {
-    "file": "assets/AuthGroupMigrationPage-BF_6EZxb.js",
+    "file": "assets/AuthGroupMigrationPage-s3krgK3Q.js",
     "name": "AuthGroupMigrationPage",
     "src": "src/features/auth-groups/AuthGroupMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -311,12 +319,12 @@
       "index.html",
       "_CanView-BIzOlWIm.js",
       "_CanUse-BHfTGsXx.js",
-      "_AdminPageShell-CKBd-OQA.js",
+      "_AdminPageShell-BSc59vPc.js",
       "_useAsyncValue-CBLYfvEg.js"
     ]
   },
   "src/features/blocklist/BlocklistMigrationPage.tsx": {
-    "file": "assets/BlocklistMigrationPage-Dj6i8B0E.js",
+    "file": "assets/BlocklistMigrationPage-DIMoZZc4.js",
     "name": "BlocklistMigrationPage",
     "src": "src/features/blocklist/BlocklistMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -324,12 +332,12 @@
       "_vendor-react-Ap5sJVW9.js",
       "_useAsyncValue-CBLYfvEg.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js",
-      "_adminSystemShared-Dj_wQJzQ.js"
+      "_AdminPageShell-BSc59vPc.js",
+      "_adminSystemShared-ta0upnpd.js"
     ]
   },
   "src/features/codex-provision/CodexProvisionMigrationPage.tsx": {
-    "file": "assets/CodexProvisionMigrationPage-CyYRR1ck.js",
+    "file": "assets/CodexProvisionMigrationPage-B89lGAPT.js",
     "name": "CodexProvisionMigrationPage",
     "src": "src/features/codex-provision/CodexProvisionMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -337,42 +345,44 @@
       "_vendor-react-Ap5sJVW9.js",
       "_useAsyncValue-CBLYfvEg.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js",
-      "_adminSystemShared-Dj_wQJzQ.js"
+      "_AdminPageShell-BSc59vPc.js",
+      "_adminSystemShared-ta0upnpd.js"
     ]
   },
   "src/features/company-account/CompanyAccountMigrationPage.tsx": {
-    "file": "assets/CompanyAccountMigrationPage-hjlFU2W0.js",
+    "file": "assets/CompanyAccountMigrationPage-CcEeXyY3.js",
     "name": "CompanyAccountMigrationPage",
     "src": "src/features/company-account/CompanyAccountMigrationPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-react-Ap5sJVW9.js",
       "_useAsyncValue-CBLYfvEg.js",
-      "_useFrontendSession-C11VW9KK.js",
+      "_useFrontendSession-CKAvu8rr.js",
       "_CanView-BIzOlWIm.js",
       "_CanUse-BHfTGsXx.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js"
+      "_AdminPageShell-BSc59vPc.js",
+      "_common-DTDTarNK.js"
     ]
   },
   "src/features/company-approve/CompanyApproveMigrationPage.tsx": {
-    "file": "assets/CompanyApproveMigrationPage-DrwSY60I.js",
+    "file": "assets/CompanyApproveMigrationPage-MUdPArJS.js",
     "name": "CompanyApproveMigrationPage",
     "src": "src/features/company-approve/CompanyApproveMigrationPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-react-Ap5sJVW9.js",
       "_useAsyncValue-CBLYfvEg.js",
-      "_useFrontendSession-C11VW9KK.js",
+      "_useFrontendSession-CKAvu8rr.js",
       "_CanView-BIzOlWIm.js",
       "_CanUse-BHfTGsXx.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js"
+      "_AdminPageShell-BSc59vPc.js",
+      "_common-DTDTarNK.js"
     ]
   },
   "src/features/company-detail/CompanyDetailMigrationPage.tsx": {
-    "file": "assets/CompanyDetailMigrationPage-D4-Yu9ru.js",
+    "file": "assets/CompanyDetailMigrationPage-BejV0JUW.js",
     "name": "CompanyDetailMigrationPage",
     "src": "src/features/company-detail/CompanyDetailMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -380,12 +390,12 @@
       "_vendor-react-Ap5sJVW9.js",
       "_CanView-BIzOlWIm.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js",
+      "_AdminPageShell-BSc59vPc.js",
       "_useAsyncValue-CBLYfvEg.js"
     ]
   },
   "src/features/company-list/CompanyListMigrationPage.tsx": {
-    "file": "assets/CompanyListMigrationPage-DuarBW00.js",
+    "file": "assets/CompanyListMigrationPage-BVzOzxkq.js",
     "name": "CompanyListMigrationPage",
     "src": "src/features/company-list/CompanyListMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -394,11 +404,12 @@
       "_useAsyncValue-CBLYfvEg.js",
       "_CanView-BIzOlWIm.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js"
+      "_AdminPageShell-BSc59vPc.js",
+      "_common-DTDTarNK.js"
     ]
   },
   "src/features/dept-role-mapping/DeptRoleMappingMigrationPage.tsx": {
-    "file": "assets/DeptRoleMappingMigrationPage-tjcBMdTD.js",
+    "file": "assets/DeptRoleMappingMigrationPage-ktTw8GjV.js",
     "name": "DeptRoleMappingMigrationPage",
     "src": "src/features/dept-role-mapping/DeptRoleMappingMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -407,12 +418,13 @@
       "_CanView-BIzOlWIm.js",
       "_CanUse-BHfTGsXx.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js",
+      "_AdminPageShell-BSc59vPc.js",
+      "_common-DTDTarNK.js",
       "_useAsyncValue-CBLYfvEg.js"
     ]
   },
   "src/features/emission-result-list/EmissionResultListMigrationPage.tsx": {
-    "file": "assets/EmissionResultListMigrationPage-Co8Kgjfi.js",
+    "file": "assets/EmissionResultListMigrationPage-Ca1e9930.js",
     "name": "EmissionResultListMigrationPage",
     "src": "src/features/emission-result-list/EmissionResultListMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -420,27 +432,27 @@
       "_vendor-react-Ap5sJVW9.js",
       "_useAsyncValue-CBLYfvEg.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js",
-      "_adminSystemShared-Dj_wQJzQ.js"
+      "_AdminPageShell-BSc59vPc.js",
+      "_adminSystemShared-ta0upnpd.js"
     ]
   },
   "src/features/environment-management/EnvironmentManagementHubPage.tsx": {
-    "file": "assets/EnvironmentManagementHubPage-GBN7Ey2k.js",
+    "file": "assets/EnvironmentManagementHubPage-CCkmiGxN.js",
     "name": "EnvironmentManagementHubPage",
     "src": "src/features/environment-management/EnvironmentManagementHubPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-react-Ap5sJVW9.js",
       "_useAsyncValue-CBLYfvEg.js",
-      "_pageManifestIndex-B7EkX0WB.js",
+      "_pageManifestIndex-Bw7aF0q9.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js",
-      "_adminSystemShared-Dj_wQJzQ.js",
-      "_menuUrlDisplay-CskKYroh.js"
+      "_AdminPageShell-BSc59vPc.js",
+      "_adminSystemShared-ta0upnpd.js",
+      "_menuUrlDisplay-w3Gcxuh9.js"
     ]
   },
   "src/features/function-management/FunctionManagementMigrationPage.tsx": {
-    "file": "assets/FunctionManagementMigrationPage-LyjvIwSb.js",
+    "file": "assets/FunctionManagementMigrationPage-RCk2Kw1K.js",
     "name": "FunctionManagementMigrationPage",
     "src": "src/features/function-management/FunctionManagementMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -448,37 +460,37 @@
       "_vendor-react-Ap5sJVW9.js",
       "_useAsyncValue-CBLYfvEg.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js",
-      "_adminSystemShared-Dj_wQJzQ.js"
+      "_AdminPageShell-BSc59vPc.js",
+      "_adminSystemShared-ta0upnpd.js"
     ]
   },
   "src/features/help-management/HelpManagementMigrationPage.tsx": {
-    "file": "assets/HelpManagementMigrationPage-3zxzb-Dc.js",
+    "file": "assets/HelpManagementMigrationPage-DPuiqDOy.js",
     "name": "HelpManagementMigrationPage",
     "src": "src/features/help-management/HelpManagementMigrationPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-react-Ap5sJVW9.js",
-      "_pageManifestIndex-B7EkX0WB.js",
+      "_pageManifestIndex-Bw7aF0q9.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js",
+      "_AdminPageShell-BSc59vPc.js",
       "_useAsyncValue-CBLYfvEg.js"
     ]
   },
   "src/features/home-entry/HomeEntryPages.tsx": {
-    "file": "assets/HomeEntryPages-BEqwazn9.js",
+    "file": "assets/HomeEntryPages-DKH4PUun.js",
     "name": "HomeEntryPages",
     "src": "src/features/home-entry/HomeEntryPages.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-react-Ap5sJVW9.js",
-      "_useFrontendSession-C11VW9KK.js",
+      "_useFrontendSession-CKAvu8rr.js",
       "_useAsyncValue-CBLYfvEg.js",
       "index.html"
     ]
   },
   "src/features/home-placeholder/HomeMenuPlaceholderPage.tsx": {
-    "file": "assets/HomeMenuPlaceholderPage-fX2IvFX3.js",
+    "file": "assets/HomeMenuPlaceholderPage-fNSXJdmM.js",
     "name": "HomeMenuPlaceholderPage",
     "src": "src/features/home-placeholder/HomeMenuPlaceholderPage.tsx",
     "isDynamicEntry": true,
@@ -490,7 +502,7 @@
     ]
   },
   "src/features/ip-whitelist/IpWhitelistMigrationPage.tsx": {
-    "file": "assets/IpWhitelistMigrationPage-GPnMqVXt.js",
+    "file": "assets/IpWhitelistMigrationPage-D3oK3nL8.js",
     "name": "IpWhitelistMigrationPage",
     "src": "src/features/ip-whitelist/IpWhitelistMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -498,12 +510,12 @@
       "_vendor-react-Ap5sJVW9.js",
       "_useAsyncValue-CBLYfvEg.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js",
-      "_adminSystemShared-Dj_wQJzQ.js"
+      "_AdminPageShell-BSc59vPc.js",
+      "_adminSystemShared-ta0upnpd.js"
     ]
   },
   "src/features/join-company-reapply/JoinCompanyReapplyMigrationPage.tsx": {
-    "file": "assets/JoinCompanyReapplyMigrationPage-7yOf1e-h.js",
+    "file": "assets/JoinCompanyReapplyMigrationPage-mHcODavB.js",
     "name": "JoinCompanyReapplyMigrationPage",
     "src": "src/features/join-company-reapply/JoinCompanyReapplyMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -515,7 +527,7 @@
     ]
   },
   "src/features/join-company-register/JoinCompanyRegisterCompleteMigrationPage.tsx": {
-    "file": "assets/JoinCompanyRegisterCompleteMigrationPage-P5w_zR_n.js",
+    "file": "assets/JoinCompanyRegisterCompleteMigrationPage-DZDnmmhu.js",
     "name": "JoinCompanyRegisterCompleteMigrationPage",
     "src": "src/features/join-company-register/JoinCompanyRegisterCompleteMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -525,7 +537,7 @@
     ]
   },
   "src/features/join-company-register/JoinCompanyRegisterMigrationPage.tsx": {
-    "file": "assets/JoinCompanyRegisterMigrationPage-Cze-8lFl.js",
+    "file": "assets/JoinCompanyRegisterMigrationPage--ptvAD6a.js",
     "name": "JoinCompanyRegisterMigrationPage",
     "src": "src/features/join-company-register/JoinCompanyRegisterMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -539,7 +551,7 @@
     ]
   },
   "src/features/join-company-status/JoinCompanyStatusMigrationPage.tsx": {
-    "file": "assets/JoinCompanyStatusMigrationPage-jhuAmgoK.js",
+    "file": "assets/JoinCompanyStatusMigrationPage-Ct9QB4SJ.js",
     "name": "JoinCompanyStatusMigrationPage",
     "src": "src/features/join-company-status/JoinCompanyStatusMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -550,7 +562,7 @@
     ]
   },
   "src/features/join-wizard/JoinAuthMigrationPage.tsx": {
-    "file": "assets/JoinAuthMigrationPage-Uum810mo.js",
+    "file": "assets/JoinAuthMigrationPage-D-m5DkHx.js",
     "name": "JoinAuthMigrationPage",
     "src": "src/features/join-wizard/JoinAuthMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -560,7 +572,7 @@
     ]
   },
   "src/features/join-wizard/JoinCompleteMigrationPage.tsx": {
-    "file": "assets/JoinCompleteMigrationPage-Dy1qKtUn.js",
+    "file": "assets/JoinCompleteMigrationPage-0mnqAQyn.js",
     "name": "JoinCompleteMigrationPage",
     "src": "src/features/join-wizard/JoinCompleteMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -570,106 +582,108 @@
     ]
   },
   "src/features/join-wizard/JoinInfoMigrationPage.tsx": {
-    "file": "assets/JoinInfoMigrationPage-Dy-ztkv1.js",
+    "file": "assets/JoinInfoMigrationPage-B5xu7sWo.js",
     "name": "JoinInfoMigrationPage",
     "src": "src/features/join-wizard/JoinInfoMigrationPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-react-Ap5sJVW9.js",
       "_useAsyncValue-CBLYfvEg.js",
-      "_useJoinSession-CEpAjEMI.js",
+      "_useJoinSession-a5IHyN3Y.js",
       "_UserPortalChrome-CI2rq7IZ.js",
       "index.html"
     ]
   },
   "src/features/join-wizard/JoinTermsMigrationPage.tsx": {
-    "file": "assets/JoinTermsMigrationPage-CVHQkoiN.js",
+    "file": "assets/JoinTermsMigrationPage-csplA58v.js",
     "name": "JoinTermsMigrationPage",
     "src": "src/features/join-wizard/JoinTermsMigrationPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-react-Ap5sJVW9.js",
       "index.html",
-      "_useJoinSession-CEpAjEMI.js",
+      "_useJoinSession-a5IHyN3Y.js",
       "_useAsyncValue-CBLYfvEg.js"
     ]
   },
   "src/features/join-wizard/JoinWizardMigrationPage.tsx": {
-    "file": "assets/JoinWizardMigrationPage-CHaN2GnQ.js",
+    "file": "assets/JoinWizardMigrationPage-CRCWNjS5.js",
     "name": "JoinWizardMigrationPage",
     "src": "src/features/join-wizard/JoinWizardMigrationPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-react-Ap5sJVW9.js",
       "index.html",
-      "_useJoinSession-CEpAjEMI.js",
+      "_useJoinSession-a5IHyN3Y.js",
       "_UserPortalChrome-CI2rq7IZ.js",
       "_membershipCards-iwytMZjn.js",
       "_useAsyncValue-CBLYfvEg.js"
     ]
   },
   "src/features/login-history/LoginHistoryMigrationPage.tsx": {
-    "file": "assets/LoginHistoryMigrationPage-9mRxJ9YO.js",
+    "file": "assets/LoginHistoryMigrationPage-D7aqewZ5.js",
     "name": "LoginHistoryMigrationPage",
     "src": "src/features/login-history/LoginHistoryMigrationPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-react-Ap5sJVW9.js",
       "index.html",
-      "_LoginHistorySharedPage-DkV7jlQr.js",
+      "_LoginHistorySharedPage-ehJRgONw.js",
       "_useAsyncValue-CBLYfvEg.js",
-      "_AdminPageShell-CKBd-OQA.js",
-      "_adminSystemShared-Dj_wQJzQ.js"
+      "_AdminPageShell-BSc59vPc.js",
+      "_adminSystemShared-ta0upnpd.js"
     ]
   },
   "src/features/member-approve/MemberApproveMigrationPage.tsx": {
-    "file": "assets/MemberApproveMigrationPage-CSOEnri2.js",
+    "file": "assets/MemberApproveMigrationPage-B_uTr4e_.js",
     "name": "MemberApproveMigrationPage",
     "src": "src/features/member-approve/MemberApproveMigrationPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-react-Ap5sJVW9.js",
       "_useAsyncValue-CBLYfvEg.js",
-      "_useFrontendSession-C11VW9KK.js",
+      "_useFrontendSession-CKAvu8rr.js",
       "_CanView-BIzOlWIm.js",
       "_CanUse-BHfTGsXx.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js",
+      "_AdminPageShell-BSc59vPc.js",
       "_shared-euy5uWZS.js"
     ]
   },
   "src/features/member-detail/MemberDetailMigrationPage.tsx": {
-    "file": "assets/MemberDetailMigrationPage-BkRNP0xJ.js",
+    "file": "assets/MemberDetailMigrationPage-CbmQlVmU.js",
     "name": "MemberDetailMigrationPage",
     "src": "src/features/member-detail/MemberDetailMigrationPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-react-Ap5sJVW9.js",
       "_useAsyncValue-CBLYfvEg.js",
-      "_useFrontendSession-C11VW9KK.js",
+      "_useFrontendSession-CKAvu8rr.js",
       "_CanView-BIzOlWIm.js",
       "_CanUse-BHfTGsXx.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js"
+      "_AdminPageShell-BSc59vPc.js",
+      "_common-DTDTarNK.js"
     ]
   },
   "src/features/member-edit/MemberEditMigrationPage.tsx": {
-    "file": "assets/MemberEditMigrationPage-MgYM19V_.js",
+    "file": "assets/MemberEditMigrationPage-CKkhUHms.js",
     "name": "MemberEditMigrationPage",
     "src": "src/features/member-edit/MemberEditMigrationPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-react-Ap5sJVW9.js",
       "_useAsyncValue-CBLYfvEg.js",
-      "_useFrontendSession-C11VW9KK.js",
+      "_useFrontendSession-CKAvu8rr.js",
       "_CanView-BIzOlWIm.js",
       "_CanUse-BHfTGsXx.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js"
+      "_AdminPageShell-BSc59vPc.js",
+      "_common-DTDTarNK.js"
     ]
   },
   "src/features/member-list/MemberListMigrationPage.tsx": {
-    "file": "assets/MemberListMigrationPage-D4sFZf7c.js",
+    "file": "assets/MemberListMigrationPage-s0pUzY7m.js",
     "name": "MemberListMigrationPage",
     "src": "src/features/member-list/MemberListMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -678,12 +692,13 @@
       "_useAsyncValue-CBLYfvEg.js",
       "_CanView-BIzOlWIm.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js",
-      "_shared-euy5uWZS.js"
+      "_AdminPageShell-BSc59vPc.js",
+      "_shared-euy5uWZS.js",
+      "_common-DTDTarNK.js"
     ]
   },
   "src/features/member-register/MemberRegisterMigrationPage.tsx": {
-    "file": "assets/MemberRegisterMigrationPage-CcVeLEBc.js",
+    "file": "assets/MemberRegisterMigrationPage-CkGCHGi5.js",
     "name": "MemberRegisterMigrationPage",
     "src": "src/features/member-register/MemberRegisterMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -691,12 +706,12 @@
       "_vendor-react-Ap5sJVW9.js",
       "_useAsyncValue-CBLYfvEg.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js",
-      "_adminSystemShared-Dj_wQJzQ.js"
+      "_AdminPageShell-BSc59vPc.js",
+      "_adminSystemShared-ta0upnpd.js"
     ]
   },
   "src/features/member-stats/MemberStatsMigrationPage.tsx": {
-    "file": "assets/MemberStatsMigrationPage-CNFSA-x9.js",
+    "file": "assets/MemberStatsMigrationPage-ByKo2eAT.js",
     "name": "MemberStatsMigrationPage",
     "src": "src/features/member-stats/MemberStatsMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -704,27 +719,27 @@
       "_vendor-react-Ap5sJVW9.js",
       "_useAsyncValue-CBLYfvEg.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js",
-      "_adminSystemShared-Dj_wQJzQ.js"
+      "_AdminPageShell-BSc59vPc.js",
+      "_adminSystemShared-ta0upnpd.js"
     ]
   },
   "src/features/menu-management/FullStackManagementMigrationPage.tsx": {
-    "file": "assets/FullStackManagementMigrationPage-BHEI5-iM.js",
+    "file": "assets/FullStackManagementMigrationPage-BzbtaSFZ.js",
     "name": "FullStackManagementMigrationPage",
     "src": "src/features/menu-management/FullStackManagementMigrationPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-react-Ap5sJVW9.js",
       "_useAsyncValue-CBLYfvEg.js",
-      "_pageManifestIndex-B7EkX0WB.js",
+      "_pageManifestIndex-Bw7aF0q9.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js",
-      "_adminSystemShared-Dj_wQJzQ.js",
-      "_menuUrlDisplay-CskKYroh.js"
+      "_AdminPageShell-BSc59vPc.js",
+      "_adminSystemShared-ta0upnpd.js",
+      "_menuUrlDisplay-w3Gcxuh9.js"
     ]
   },
   "src/features/menu-management/MenuManagementMigrationPage.tsx": {
-    "file": "assets/MenuManagementMigrationPage-DXZu01XU.js",
+    "file": "assets/MenuManagementMigrationPage-CcIlqgXx.js",
     "name": "MenuManagementMigrationPage",
     "src": "src/features/menu-management/MenuManagementMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -732,39 +747,39 @@
       "_vendor-react-Ap5sJVW9.js",
       "_useAsyncValue-CBLYfvEg.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js",
-      "_adminSystemShared-Dj_wQJzQ.js",
-      "_menuUrlDisplay-CskKYroh.js",
-      "_pageManifestIndex-B7EkX0WB.js"
+      "_AdminPageShell-BSc59vPc.js",
+      "_adminSystemShared-ta0upnpd.js",
+      "_menuUrlDisplay-w3Gcxuh9.js",
+      "_pageManifestIndex-Bw7aF0q9.js"
     ]
   },
   "src/features/mypage/MypageMigrationPage.tsx": {
-    "file": "assets/MypageMigrationPage-DFWqSfuX.js",
+    "file": "assets/MypageMigrationPage-DNaPh8E3.js",
     "name": "MypageMigrationPage",
     "src": "src/features/mypage/MypageMigrationPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-react-Ap5sJVW9.js",
       "_useAsyncValue-CBLYfvEg.js",
-      "_useFrontendSession-C11VW9KK.js",
+      "_useFrontendSession-CKAvu8rr.js",
       "_UserPortalChrome-CI2rq7IZ.js",
       "index.html"
     ]
   },
   "src/features/observability/ObservabilityMigrationPage.tsx": {
-    "file": "assets/ObservabilityMigrationPage-Cpf_LQ40.js",
+    "file": "assets/ObservabilityMigrationPage-DpuvMFw9.js",
     "name": "ObservabilityMigrationPage",
     "src": "src/features/observability/ObservabilityMigrationPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-react-Ap5sJVW9.js",
-      "_AdminPageShell-CKBd-OQA.js",
+      "_AdminPageShell-BSc59vPc.js",
       "index.html",
       "_useAsyncValue-CBLYfvEg.js"
     ]
   },
   "src/features/page-management/PageManagementMigrationPage.tsx": {
-    "file": "assets/PageManagementMigrationPage-BJYSZF6_.js",
+    "file": "assets/PageManagementMigrationPage-Df_bw02F.js",
     "name": "PageManagementMigrationPage",
     "src": "src/features/page-management/PageManagementMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -772,41 +787,42 @@
       "_vendor-react-Ap5sJVW9.js",
       "_useAsyncValue-CBLYfvEg.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js",
-      "_adminSystemShared-Dj_wQJzQ.js"
+      "_AdminPageShell-BSc59vPc.js",
+      "_adminSystemShared-ta0upnpd.js"
     ]
   },
   "src/features/password-reset/PasswordResetMigrationPage.tsx": {
-    "file": "assets/PasswordResetMigrationPage-COxfTbIH.js",
+    "file": "assets/PasswordResetMigrationPage-DYkxKZBs.js",
     "name": "PasswordResetMigrationPage",
     "src": "src/features/password-reset/PasswordResetMigrationPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-react-Ap5sJVW9.js",
       "_useAsyncValue-CBLYfvEg.js",
-      "_useFrontendSession-C11VW9KK.js",
+      "_useFrontendSession-CKAvu8rr.js",
       "_CanView-BIzOlWIm.js",
       "_CanUse-BHfTGsXx.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js"
+      "_AdminPageShell-BSc59vPc.js",
+      "_common-DTDTarNK.js"
     ]
   },
   "src/features/platform-studio/PlatformStudioMigrationPage.tsx": {
-    "file": "assets/PlatformStudioMigrationPage-DLM3qJay.js",
+    "file": "assets/PlatformStudioMigrationPage-qWJeaU09.js",
     "name": "PlatformStudioMigrationPage",
     "src": "src/features/platform-studio/PlatformStudioMigrationPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-react-Ap5sJVW9.js",
       "_useAsyncValue-CBLYfvEg.js",
-      "_pageManifestIndex-B7EkX0WB.js",
+      "_pageManifestIndex-Bw7aF0q9.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js",
-      "_adminSystemShared-Dj_wQJzQ.js"
+      "_AdminPageShell-BSc59vPc.js",
+      "_adminSystemShared-ta0upnpd.js"
     ]
   },
   "src/features/public-entry/PublicEntryPages.tsx": {
-    "file": "assets/PublicEntryPages-3g4PIrIN.js",
+    "file": "assets/PublicEntryPages-ByVNCinE.js",
     "name": "PublicEntryPages",
     "src": "src/features/public-entry/PublicEntryPages.tsx",
     "isDynamicEntry": true,
@@ -817,7 +833,7 @@
     ]
   },
   "src/features/scheduler-management/SchedulerManagementMigrationPage.tsx": {
-    "file": "assets/SchedulerManagementMigrationPage-BltngeCm.js",
+    "file": "assets/SchedulerManagementMigrationPage-7tOnezzZ.js",
     "name": "SchedulerManagementMigrationPage",
     "src": "src/features/scheduler-management/SchedulerManagementMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -825,12 +841,12 @@
       "_vendor-react-Ap5sJVW9.js",
       "_useAsyncValue-CBLYfvEg.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js",
-      "_adminSystemShared-Dj_wQJzQ.js"
+      "_AdminPageShell-BSc59vPc.js",
+      "_adminSystemShared-ta0upnpd.js"
     ]
   },
   "src/features/security-audit/SecurityAuditMigrationPage.tsx": {
-    "file": "assets/SecurityAuditMigrationPage-Bk5bGc9k.js",
+    "file": "assets/SecurityAuditMigrationPage-D05tttMo.js",
     "name": "SecurityAuditMigrationPage",
     "src": "src/features/security-audit/SecurityAuditMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -838,26 +854,26 @@
       "_vendor-react-Ap5sJVW9.js",
       "_useAsyncValue-CBLYfvEg.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js",
-      "_adminSystemShared-Dj_wQJzQ.js"
+      "_AdminPageShell-BSc59vPc.js",
+      "_adminSystemShared-ta0upnpd.js"
     ]
   },
   "src/features/security-history/SecurityHistoryMigrationPage.tsx": {
-    "file": "assets/SecurityHistoryMigrationPage-D8rSt3fu.js",
+    "file": "assets/SecurityHistoryMigrationPage-CoaWGldw.js",
     "name": "SecurityHistoryMigrationPage",
     "src": "src/features/security-history/SecurityHistoryMigrationPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-react-Ap5sJVW9.js",
       "index.html",
-      "_LoginHistorySharedPage-DkV7jlQr.js",
+      "_LoginHistorySharedPage-ehJRgONw.js",
       "_useAsyncValue-CBLYfvEg.js",
-      "_AdminPageShell-CKBd-OQA.js",
-      "_adminSystemShared-Dj_wQJzQ.js"
+      "_AdminPageShell-BSc59vPc.js",
+      "_adminSystemShared-ta0upnpd.js"
     ]
   },
   "src/features/security-monitoring/SecurityMonitoringMigrationPage.tsx": {
-    "file": "assets/SecurityMonitoringMigrationPage-CcQtPBQb.js",
+    "file": "assets/SecurityMonitoringMigrationPage-DyXfThnW.js",
     "name": "SecurityMonitoringMigrationPage",
     "src": "src/features/security-monitoring/SecurityMonitoringMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -865,12 +881,12 @@
       "_vendor-react-Ap5sJVW9.js",
       "_useAsyncValue-CBLYfvEg.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js",
-      "_adminSystemShared-Dj_wQJzQ.js"
+      "_AdminPageShell-BSc59vPc.js",
+      "_adminSystemShared-ta0upnpd.js"
     ]
   },
   "src/features/security-policy/SecurityPolicyMigrationPage.tsx": {
-    "file": "assets/SecurityPolicyMigrationPage-CSotaMPe.js",
+    "file": "assets/SecurityPolicyMigrationPage-C71wNp-G.js",
     "name": "SecurityPolicyMigrationPage",
     "src": "src/features/security-policy/SecurityPolicyMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -878,12 +894,12 @@
       "_vendor-react-Ap5sJVW9.js",
       "_useAsyncValue-CBLYfvEg.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js",
-      "_adminSystemShared-Dj_wQJzQ.js"
+      "_AdminPageShell-BSc59vPc.js",
+      "_adminSystemShared-ta0upnpd.js"
     ]
   },
   "src/features/sitemap/SitemapMigrationPage.tsx": {
-    "file": "assets/SitemapMigrationPage-gQZMAWSa.js",
+    "file": "assets/SitemapMigrationPage-DExrvA1C.js",
     "name": "SitemapMigrationPage",
     "src": "src/features/sitemap/SitemapMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -895,7 +911,7 @@
     ]
   },
   "src/features/sr-workbench/SrWorkbenchMigrationPage.tsx": {
-    "file": "assets/SrWorkbenchMigrationPage-ZZoWUK4P.js",
+    "file": "assets/SrWorkbenchMigrationPage-C0NIpHxN.js",
     "name": "SrWorkbenchMigrationPage",
     "src": "src/features/sr-workbench/SrWorkbenchMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -903,24 +919,24 @@
       "_vendor-react-Ap5sJVW9.js",
       "_useAsyncValue-CBLYfvEg.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js"
+      "_AdminPageShell-BSc59vPc.js"
     ]
   },
   "src/features/system-code/SystemCodeMigrationPage.tsx": {
-    "file": "assets/SystemCodeMigrationPage-wsP8td0w.js",
+    "file": "assets/SystemCodeMigrationPage-BxdqfqTE.js",
     "name": "SystemCodeMigrationPage",
     "src": "src/features/system-code/SystemCodeMigrationPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-react-Ap5sJVW9.js",
       "_useAsyncValue-CBLYfvEg.js",
-      "_AdminPageShell-CKBd-OQA.js",
+      "_AdminPageShell-BSc59vPc.js",
       "index.html",
-      "_adminSystemShared-Dj_wQJzQ.js"
+      "_adminSystemShared-ta0upnpd.js"
     ]
   },
   "src/features/wbs-management/WbsManagementMigrationPage.tsx": {
-    "file": "assets/WbsManagementMigrationPage-Bq7kfmd3.js",
+    "file": "assets/WbsManagementMigrationPage-Dwcbo91g.js",
     "name": "WbsManagementMigrationPage",
     "src": "src/features/wbs-management/WbsManagementMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -928,8 +944,8 @@
       "_vendor-react-Ap5sJVW9.js",
       "_useAsyncValue-CBLYfvEg.js",
       "index.html",
-      "_AdminPageShell-CKBd-OQA.js",
-      "_adminSystemShared-Dj_wQJzQ.js"
+      "_AdminPageShell-BSc59vPc.js",
+      "_adminSystemShared-ta0upnpd.js"
     ]
   }
 }

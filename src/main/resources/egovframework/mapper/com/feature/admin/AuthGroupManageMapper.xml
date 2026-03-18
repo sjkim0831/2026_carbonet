@@ -371,9 +371,10 @@
                 E.ENTRPRS_MBER_ID LIKE '%' || #{searchKeyword} || '%'
                 OR E.APPLCNT_NM LIKE '%' || #{searchKeyword} || '%'
                 OR E.CMPNY_NM LIKE '%' || #{searchKeyword} || '%'
+                OR E.DEPT_NM LIKE '%' || #{searchKeyword} || '%'
             )
         </if>
-        ORDER BY E.APPLCNT_NM, E.ENTRPRS_MBER_ID
+        ORDER BY E.SBSCRB_DE DESC, E.ENTRPRS_MBER_ID DESC
     </select>
 
     <select id="selectEssentialIdByEmplyrId" parameterType="string" resultType="string">

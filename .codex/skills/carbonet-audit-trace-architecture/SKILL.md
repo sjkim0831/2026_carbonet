@@ -7,6 +7,8 @@ description: Design or extend Carbonet-wide audit logging, trace correlation, UI
 
 Use this skill when the task is system-wide observability, audit, or governance rather than one feature screen.
 
+If the request becomes a concrete menu/page/service implementation after the audit or registry rules are decided, hand the implementation portion to `carbonet-feature-builder`.
+
 Read only what you need:
 
 - Read [`/opt/projects/carbonet-react-migration/STRUCTURE.md`](/opt/projects/carbonet-react-migration/STRUCTURE.md) first for package and template layout.

@@ -141,22 +141,22 @@ export function MemberApproveMigrationPage() {
           <div className="grid gap-4 lg:grid-cols-[220px_220px_minmax(0,1fr)_auto_auto] lg:items-end">
             <label>
               <span className="block text-sm font-bold mb-2">회원구분</span>
-              <select className="w-full rounded border-gray-300 text-sm" value={draftFilters.membershipType} onChange={(e) => updateDraft("membershipType", e.target.value)}>
+              <select className="gov-select h-10" value={draftFilters.membershipType} onChange={(e) => updateDraft("membershipType", e.target.value)}>
                 {MEMBER_TYPE_OPTIONS.map((option) => <option key={option.value || "all"} value={option.value}>{option.label}</option>)}
               </select>
             </label>
             <label>
               <span className="block text-sm font-bold mb-2">상태</span>
-              <select className="w-full rounded border-gray-300 text-sm" value={draftFilters.status} onChange={(e) => updateDraft("status", e.target.value)}>
+              <select className="gov-select h-10" value={draftFilters.status} onChange={(e) => updateDraft("status", e.target.value)}>
                 {MEMBER_APPROVAL_STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             </label>
             <label>
               <span className="block text-sm font-bold mb-2">검색어</span>
-              <input className="w-full rounded border-gray-300 text-sm" placeholder="신청자명, 회원 ID, 기관명 검색" value={draftFilters.searchKeyword} onChange={(e) => updateDraft("searchKeyword", e.target.value)} />
+              <input className="gov-input h-10" placeholder="신청자명, 회원 ID, 기관명 검색" value={draftFilters.searchKeyword} onChange={(e) => updateDraft("searchKeyword", e.target.value)} />
             </label>
-            <button className="px-4 py-2 bg-[var(--kr-gov-blue)] text-white text-sm font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)]" onClick={() => applyFilters(1)} type="button">검색</button>
-            <button className="px-4 py-2 border border-[var(--kr-gov-border-light)] bg-white text-[var(--kr-gov-text-secondary)] text-sm font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-50" onClick={() => { setDraftFilters(DEFAULT_FILTERS); setFilters(DEFAULT_FILTERS); }} type="button">초기화</button>
+            <button className="h-10 px-4 py-2 bg-[var(--kr-gov-blue)] text-white text-sm font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)]" onClick={() => applyFilters(1)} type="button">검색</button>
+            <button className="h-10 px-4 py-2 border border-[var(--kr-gov-border-light)] bg-white text-[var(--kr-gov-text-secondary)] text-sm font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-50" onClick={() => { setDraftFilters(DEFAULT_FILTERS); setFilters(DEFAULT_FILTERS); }} type="button">초기화</button>
           </div>
         </section>
 

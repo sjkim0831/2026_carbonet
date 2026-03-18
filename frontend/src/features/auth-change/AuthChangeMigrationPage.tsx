@@ -10,6 +10,7 @@ import {
 } from "../../lib/api/client";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { MemberPagination } from "../member/common";
 
 function t(page: AuthChangePagePayload | null, ko: string, en: string) {
   return page?.isEn ? en : ko;
@@ -37,6 +38,7 @@ export function AuthChangeMigrationPage() {
   const [restoreEmplyrId, setRestoreEmplyrId] = useState("");
   const [searchKeyword, setSearchKeyword] = useState("");
   const [assignmentFilter, setAssignmentFilter] = useState("ALL");
+  const [pageIndex, setPageIndex] = useState(1);
 
   function applyPayload(sessionPayload: FrontendSession, payload: AuthChangePagePayload) {
     setSession(sessionPayload);
@@ -92,6 +94,10 @@ export function AuthChangeMigrationPage() {
       || (assignmentFilter === "UNCHANGED" && !pending);
     return matchesKeyword && matchesFilter;
   });
+  const pageSize = 10;
+  const totalPages = Math.max(1, Math.ceil(visibleAssignments.length / pageSize));
+  const currentPage = Math.min(pageIndex, totalPages);
+  const pagedAssignments = visibleAssignments.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const selectedAssignment = (page?.roleAssignments || []).find((row) => row.emplyrId === selectedAdminId) || null;
   const selectedDraftAuthorCode = selectedAssignment ? (drafts[selectedAssignment.emplyrId] || "") : "";
   const selectedDraftAuthor = (page?.authorGroups || []).find((group) => group.authorCode === selectedDraftAuthorCode) || null;
@@ -103,6 +109,16 @@ export function AuthChangeMigrationPage() {
     const matched = rows.filter((row) => row.targetUserId === selectedAdminId);
     return matched.length > 0 ? matched : rows;
   }, [page?.recentRoleChangeHistory, selectedAdminId]);
+
+  useEffect(() => {
+    setPageIndex(1);
+  }, [searchKeyword, assignmentFilter]);
+
+  useEffect(() => {
+    if (pageIndex > totalPages) {
+      setPageIndex(totalPages);
+    }
+  }, [pageIndex, totalPages]);
 
   function handleSave(emplyrId: string) {
     if (!session) {
@@ -357,6 +373,9 @@ export function AuthChangeMigrationPage() {
             <span className="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold bg-amber-100 text-amber-800">
               {t(page, "변경 대기", "Pending")}: {pendingChanges.length}
             </span>
+            <span className="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold bg-white text-[var(--kr-gov-text-secondary)] border border-[var(--kr-gov-border-light)]">
+              {t(page, "페이지", "Page")}: {currentPage} / {totalPages}
+            </span>
           </div>
           <div className="overflow-x-auto" data-help-id="auth-change-table">
             <table className="w-full text-sm text-left border-collapse">
@@ -378,7 +397,7 @@ export function AuthChangeMigrationPage() {
                     </td>
                   </tr>
                 ) : (
-                  visibleAssignments.map((row) => {
+                  pagedAssignments.map((row) => {
                     const pending = (drafts[row.emplyrId] || "") !== (row.authorCode || "");
                     const rowSelected = row.emplyrId === selectedAdminId;
                     const nextAuthor = (page?.authorGroups || []).find((group) => group.authorCode === (drafts[row.emplyrId] || ""));
@@ -522,6 +541,7 @@ export function AuthChangeMigrationPage() {
               </tbody>
             </table>
           </div>
+          <MemberPagination currentPage={currentPage} onPageChange={setPageIndex} totalPages={totalPages} />
         </section>
       </CanView>
     </AdminPageShell>

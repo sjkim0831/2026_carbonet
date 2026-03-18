@@ -7,6 +7,8 @@ description: Build or extend Carbonet menus, pages, services, mappers, templates
 
 Implement new Carbonet features by matching the existing project structure first, then mapping the requested menu or screen to menu codes, DB metadata, templates, services, and permissions.
 
+Use this as the default implementation skill for normal Carbonet features. If the main problem is design-source selection, Codex runner lifecycle, refresh/cache delivery, or system-wide audit architecture, switch to the specialized skill first and return here only for repository implementation.
+
 Keep `SKILL.md` procedural. Load the reference files only when needed:
 
 - If the task is primarily about interpreting `/home/imaneya/workspace/화면설계` itself, use `carbonet-screen-design-workspace` first to determine the canonical design sources and workflow scope, then return here for implementation.
@@ -81,6 +83,10 @@ Keep `SKILL.md` procedural. Load the reference files only when needed:
    - planned start/end
    - actual start/end
    - derived metrics such as variance days, overdue, on-time completion rate, and missing-plan count should be computed from those fields rather than manually entered
+23. When the request adds or revises admin shell bootstrap behavior, keep the shell page contract and feature page contract aligned:
+   - page bootstrap data should be composed in backend services before the React screen starts rendering
+   - React shell fallback behavior should not silently replace missing authority or page metadata
+   - if a new admin capability introduces reusable profile or preset data, store that profile data separately from the menu tree and document which service owns it
 
 ## Build Rules
 

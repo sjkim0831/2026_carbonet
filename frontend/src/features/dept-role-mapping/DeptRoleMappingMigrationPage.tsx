@@ -6,11 +6,13 @@ import {
   FrontendSession,
   fetchDeptRolePage,
   fetchFrontendSession,
+  readBootstrappedDeptRolePageData,
   saveDeptRoleMapping,
   saveDeptRoleMember
 } from "../../lib/api/client";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { MemberPagination } from "../member/common";
 
 function t(page: DeptRolePagePayload | null, ko: string, en: string) {
   return page?.isEn ? en : ko;
@@ -43,16 +45,18 @@ function renderRoleProfilePreview(
 }
 
 export function DeptRoleMappingMigrationPage() {
+  const bootstrappedPage = readBootstrappedDeptRolePageData();
   const [session, setSession] = useState<FrontendSession | null>(null);
-  const [page, setPage] = useState<DeptRolePagePayload | null>(null);
-  const [insttId, setInsttId] = useState("");
-  const [memberSearchKeyword, setMemberSearchKeyword] = useState("");
-  const [memberSearchDraft, setMemberSearchDraft] = useState("");
-  const [memberPageIndex, setMemberPageIndex] = useState(1);
+  const [page, setPage] = useState<DeptRolePagePayload | null>(bootstrappedPage);
+  const [insttId, setInsttId] = useState(bootstrappedPage?.selectedInsttId || "");
+  const [memberSearchKeyword, setMemberSearchKeyword] = useState(String(bootstrappedPage?.companyMemberSearchKeyword || ""));
+  const [memberSearchDraft, setMemberSearchDraft] = useState(String(bootstrappedPage?.companyMemberSearchKeyword || ""));
+  const [memberPageIndex, setMemberPageIndex] = useState(Math.max(1, Number(bootstrappedPage?.companyMemberPageIndex || 1)));
   const [deptDrafts, setDeptDrafts] = useState<Record<string, string>>({});
   const [memberDrafts, setMemberDrafts] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [skipInitialFetch, setSkipInitialFetch] = useState(Boolean(bootstrappedPage));
 
   function applyPayload(sessionPayload: FrontendSession, payload: DeptRolePagePayload) {
     setSession(sessionPayload);
@@ -93,6 +97,16 @@ export function DeptRoleMappingMigrationPage() {
   }
 
   useEffect(() => {
+    if (skipInitialFetch && page) {
+      setSkipInitialFetch(false);
+      fetchFrontendSession()
+        .then((sessionPayload) => {
+          setSession(sessionPayload);
+          applyPayload(sessionPayload, page);
+        })
+        .catch((err: Error) => setError(err.message));
+      return;
+    }
     loadPage(insttId, undefined, { memberSearchKeyword, memberPageIndex }).catch((err: Error) => setError(err.message));
   }, [insttId, memberSearchKeyword, memberPageIndex]);
 
@@ -102,8 +116,6 @@ export function DeptRoleMappingMigrationPage() {
   const roleProfilesByAuthorCode = page?.roleProfilesByAuthorCode || {};
   const currentMemberPage = Math.max(1, Number(page?.companyMemberPageIndex || memberPageIndex || 1));
   const totalMemberPages = Math.max(1, Number(page?.companyMemberTotalPages || 1));
-  const visibleMemberPages = Array.from({ length: totalMemberPages }, (_, index) => index + 1)
-    .filter((pageNumber) => Math.abs(pageNumber - currentMemberPage) <= 2 || pageNumber === 1 || pageNumber === totalMemberPages);
 
   function handleMemberSearchSubmit() {
     setMemberPageIndex(1);
@@ -391,50 +403,7 @@ export function DeptRoleMappingMigrationPage() {
                 </tbody>
               </table>
             </div>
-            <div className="flex items-center justify-center gap-1 border-t border-[var(--kr-gov-border-light)] bg-gray-50 px-4 py-3">
-              <button
-                className="rounded border border-transparent p-1 hover:border-gray-200 hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
-                disabled={currentMemberPage <= 1}
-                onClick={() => setMemberPageIndex(1)}
-                type="button"
-              >
-                <span className="material-symbols-outlined">first_page</span>
-              </button>
-              <button
-                className="rounded border border-transparent p-1 hover:border-gray-200 hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
-                disabled={currentMemberPage <= 1}
-                onClick={() => setMemberPageIndex(Math.max(1, currentMemberPage - 1))}
-                type="button"
-              >
-                <span className="material-symbols-outlined">chevron_left</span>
-              </button>
-              {visibleMemberPages.map((pageNumber) => (
-                <button
-                  className={`flex h-8 w-8 items-center justify-center rounded border text-sm ${pageNumber === currentMemberPage ? "border-[var(--kr-gov-blue)] bg-[var(--kr-gov-blue)] font-bold text-white" : "border-transparent hover:border-gray-200 hover:bg-white"}`}
-                  key={pageNumber}
-                  onClick={() => setMemberPageIndex(pageNumber)}
-                  type="button"
-                >
-                  {pageNumber}
-                </button>
-              ))}
-              <button
-                className="rounded border border-transparent p-1 hover:border-gray-200 hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
-                disabled={currentMemberPage >= totalMemberPages}
-                onClick={() => setMemberPageIndex(Math.min(totalMemberPages, currentMemberPage + 1))}
-                type="button"
-              >
-                <span className="material-symbols-outlined">chevron_right</span>
-              </button>
-              <button
-                className="rounded border border-transparent p-1 hover:border-gray-200 hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
-                disabled={currentMemberPage >= totalMemberPages}
-                onClick={() => setMemberPageIndex(totalMemberPages)}
-                type="button"
-              >
-                <span className="material-symbols-outlined">last_page</span>
-              </button>
-            </div>
+            <MemberPagination className="px-4 py-3" currentPage={currentMemberPage} onPageChange={setMemberPageIndex} totalPages={totalMemberPages} />
           </div>
         </section>
       </CanView>

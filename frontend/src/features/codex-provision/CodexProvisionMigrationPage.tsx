@@ -91,7 +91,11 @@ function canStreamPlanArtifact(artifactType: string) {
 }
 
 function canStreamBuildArtifact(artifactType: string) {
-  return artifactType === "build-log" || artifactType === "build-stderr";
+  return artifactType === "build-log" || artifactType === "build-stderr" || artifactType === "rollback-log" || artifactType === "rollback-stderr";
+}
+
+function isRollbackRunning(status: string | undefined) {
+  return (status || "").toUpperCase() === "MANUAL_ROLLBACK_RUNNING";
 }
 
 function canBuildTicket(status: string | undefined) {
@@ -332,6 +336,10 @@ export function CodexProvisionMigrationPage() {
       rollbackStatus: "MANUAL_ROLLBACK_RUNNING",
       executionComment: en ? "Manual rollback is running." : "수동 롤백 실행 중입니다."
     }));
+    if (selectedTicketId === ticket.ticketId) {
+      setSelectedBuildArtifactType("rollback-log");
+      setBuildArtifact(null);
+    }
     try {
       await withTicketAction(ticket.ticketId, () => rollbackCodexSrTicket(ticket.ticketId));
     } catch (nextError) {
@@ -494,13 +502,13 @@ export function CodexProvisionMigrationPage() {
   }, [pageState, selectedTicket, ticketContextReloadKey]);
 
   useEffect(() => {
-    if (!selectedTicket || !isExecutionRunning(selectedTicket.executionStatus)) {
+    if (!selectedTicket) {
       return;
     }
     const ticketId = selectedTicket.ticketId;
     const executionStatus = selectedTicket.executionStatus;
     const streamPlanArtifact = executionStatus === "PLAN_RUNNING" && canStreamPlanArtifact(selectedPlanArtifactType);
-    const streamBuildArtifact = executionStatus === "RUNNING_CODEX" && canStreamBuildArtifact(selectedBuildArtifactType);
+    const streamBuildArtifact = (executionStatus === "RUNNING_CODEX" || isRollbackRunning(selectedTicket.rollbackStatus)) && canStreamBuildArtifact(selectedBuildArtifactType);
     if (!streamPlanArtifact && !streamBuildArtifact) {
       return;
     }
@@ -533,6 +541,14 @@ export function CodexProvisionMigrationPage() {
       window.clearTimeout(timer);
     };
   }, [en, selectedBuildArtifactType, selectedPlanArtifactType, selectedTicket]);
+
+  const buildArtifactPreviewText = artifactLoading
+    ? (en ? "Loading build artifact..." : "Build 아티팩트를 불러오는 중입니다.")
+    : (selectedTicket && selectedTicket.executionStatus === "RUNNING_CODEX" && !canStreamBuildArtifact(selectedBuildArtifactType)
+      ? (en ? "BUILD is still running. Artifact will appear when the run completes." : "BUILD 실행 중입니다. 실행이 끝나면 아티팩트가 표시됩니다.")
+      : (selectedTicket && isRollbackRunning(selectedTicket.rollbackStatus) && !canStreamBuildArtifact(selectedBuildArtifactType)
+        ? (en ? "Rollback is still running. Select rollback-log or rollback-stderr to follow progress." : "롤백 실행 중입니다. 진행 상황은 rollback-log 또는 rollback-stderr를 선택해 확인하세요.")
+        : artifactBody(buildArtifact, en ? "No BUILD artifact yet." : "아직 BUILD 아티팩트가 없습니다.")));
 
   return (
     <AdminPageShell
@@ -757,12 +773,15 @@ export function CodexProvisionMigrationPage() {
               <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 px-4 py-3">
                 <div className="text-xs text-[var(--kr-gov-text-secondary)]">{en ? "Deployment" : "배포"}</div>
                 <div className="mt-1 font-semibold whitespace-pre-wrap break-all">{selectedTicket.deployCommand || (en ? "Automatic deploy disabled" : "자동 배포 비활성화")}</div>
-                <div className="mt-2 text-xs text-gray-500">health-check: {selectedTicket.healthCheckStatus || "-"}</div>
-                <div className="mt-1 text-xs text-gray-500">rollback: {selectedTicket.rollbackStatus || "-"}</div>
-                <div className="mt-3">
-                  <button className="gov-btn gov-btn-outline !px-3 !py-1.5 text-xs" disabled={!codexReady || !selectedTicket.deployLogPath || isExecutionRunning(selectedTicket.executionStatus)} onClick={() => { void handleRollbackTicket(selectedTicket); }} type="button">{en ? "Rollback to Previous Deploy" : "이전 배포로 롤백"}</button>
-                </div>
+              <div className="mt-2 text-xs text-gray-500">health-check: {selectedTicket.healthCheckStatus || "-"}</div>
+              <div className="mt-1 text-xs text-gray-500">rollback: {selectedTicket.rollbackStatus || "-"}</div>
+              <div className="mt-3">
+                <button className="gov-btn gov-btn-outline !px-3 !py-1.5 text-xs" disabled={!codexReady || !selectedTicket.deployLogPath || isExecutionRunning(selectedTicket.executionStatus)} onClick={() => { void handleRollbackTicket(selectedTicket); }} type="button">{en ? "Rollback to Previous Deploy" : "이전 배포로 롤백"}</button>
+                {isRollbackRunning(selectedTicket.rollbackStatus) ? (
+                  <div className="mt-2 text-[11px] text-amber-700">{en ? "Rollback is running. Open rollback-log or rollback-stderr below." : "롤백 실행 중입니다. 아래 rollback-log 또는 rollback-stderr를 확인하세요."}</div>
+                ) : null}
               </div>
+            </div>
               <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 px-4 py-3">
                 <div className="text-xs text-[var(--kr-gov-text-secondary)]">{en ? "Review Summary" : "리뷰 요약"}</div>
                 <div className="mt-3 grid grid-cols-1 gap-3">
@@ -829,7 +848,7 @@ export function CodexProvisionMigrationPage() {
             <div className="mb-3 text-xs text-[var(--kr-gov-text-secondary)]">
               {buildArtifact?.label || (en ? "BUILD artifact preview" : "BUILD 아티팩트 미리보기")}
               {buildArtifact?.filePath ? ` · ${buildArtifact.filePath}` : ""}
-              {selectedTicket?.executionStatus === "RUNNING_CODEX" && canStreamBuildArtifact(selectedBuildArtifactType)
+              {(selectedTicket?.executionStatus === "RUNNING_CODEX" || isRollbackRunning(selectedTicket?.rollbackStatus)) && canStreamBuildArtifact(selectedBuildArtifactType)
                 ? ` · ${en ? "live tail every 4s" : "4초마다 자동 새로고침"}`
                 : ""}
             </div>
@@ -844,15 +863,13 @@ export function CodexProvisionMigrationPage() {
                 <button className={`gov-btn !px-3 !py-1.5 text-xs ${selectedBuildArtifactType === "frontend-verify-stderr" ? "gov-btn-primary" : "gov-btn-outline"}`} disabled={artifactLoading} onClick={() => { void loadArtifact(selectedTicket.ticketId, "frontend-verify-stderr", "build"); }} type="button">frontend-stderr</button>
                 <button className={`gov-btn !px-3 !py-1.5 text-xs ${selectedBuildArtifactType === "deploy-log" ? "gov-btn-primary" : "gov-btn-outline"}`} disabled={artifactLoading} onClick={() => { void loadArtifact(selectedTicket.ticketId, "deploy-log", "build"); }} type="button">deploy-log</button>
                 <button className={`gov-btn !px-3 !py-1.5 text-xs ${selectedBuildArtifactType === "deploy-stderr" ? "gov-btn-primary" : "gov-btn-outline"}`} disabled={artifactLoading} onClick={() => { void loadArtifact(selectedTicket.ticketId, "deploy-stderr", "build"); }} type="button">deploy-stderr</button>
+                <button className={`gov-btn !px-3 !py-1.5 text-xs ${selectedBuildArtifactType === "rollback-log" ? "gov-btn-primary" : "gov-btn-outline"}`} disabled={artifactLoading} onClick={() => { void loadArtifact(selectedTicket.ticketId, "rollback-log", "build"); }} type="button">rollback-log</button>
+                <button className={`gov-btn !px-3 !py-1.5 text-xs ${selectedBuildArtifactType === "rollback-stderr" ? "gov-btn-primary" : "gov-btn-outline"}`} disabled={artifactLoading} onClick={() => { void loadArtifact(selectedTicket.ticketId, "rollback-stderr", "build"); }} type="button">rollback-stderr</button>
                 <button className={`gov-btn !px-3 !py-1.5 text-xs ${selectedBuildArtifactType === "build-diff" ? "gov-btn-primary" : "gov-btn-outline"}`} disabled={artifactLoading} onClick={() => { void loadArtifact(selectedTicket.ticketId, "build-diff", "build"); }} type="button">diff</button>
                 <button className={`gov-btn !px-3 !py-1.5 text-xs ${selectedBuildArtifactType === "build-changed-summary" ? "gov-btn-primary" : "gov-btn-outline"}`} disabled={artifactLoading} onClick={() => { void loadArtifact(selectedTicket.ticketId, "build-changed-summary", "build"); }} type="button">changed-files</button>
               </div>
             ) : null}
-            <pre className="rounded-[var(--kr-gov-radius)] bg-slate-950 text-slate-100 p-4 text-xs md:text-sm font-mono whitespace-pre-wrap break-all leading-6 min-h-[16rem]">{artifactLoading
-              ? (en ? "Loading build artifact..." : "Build 아티팩트를 불러오는 중입니다.")
-              : (selectedTicket && selectedTicket.executionStatus === "RUNNING_CODEX" && !canStreamBuildArtifact(selectedBuildArtifactType)
-                ? (en ? "BUILD is still running. Artifact will appear when the run completes." : "BUILD 실행 중입니다. 실행이 끝나면 아티팩트가 표시됩니다.")
-                : artifactBody(buildArtifact, en ? "No BUILD artifact yet." : "아직 BUILD 아티팩트가 없습니다."))}</pre>
+            <pre className="rounded-[var(--kr-gov-radius)] bg-slate-950 text-slate-100 p-4 text-xs md:text-sm font-mono whitespace-pre-wrap break-all leading-6 min-h-[16rem]">{buildArtifactPreviewText}</pre>
           </article>
         </div>
       </section>

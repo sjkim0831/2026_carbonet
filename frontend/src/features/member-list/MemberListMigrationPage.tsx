@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { CanView } from "../../components/access/CanView";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
@@ -11,6 +11,7 @@ import {
   resolveMemberStatusLabel,
   resolveMembershipTypeLabel
 } from "../member/shared";
+import { MemberPagination } from "../member/common";
 
 type SearchFilters = {
   searchKeyword: string;
@@ -85,13 +86,6 @@ export function MemberListMigrationPage() {
   const error = actionError || pageState.error;
   const totalPages = Math.max(1, Number(page?.totalPages || 1));
   const currentPage = Math.max(1, Number(page?.pageIndex || filters.pageIndex || 1));
-  const startPage = Math.max(1, currentPage - 4);
-  const endPage = Math.min(totalPages, startPage + 9);
-  const normalizedStartPage = Math.max(1, endPage - 9);
-  const pageNumbers = useMemo(
-    () => Array.from({ length: endPage - normalizedStartPage + 1 }, (_, index) => normalizedStartPage + index),
-    [endPage, normalizedStartPage]
-  );
 
   function updateDraft<K extends keyof SearchFilters>(key: K, value: SearchFilters[K]) {
     setDraftFilters((current) => ({ ...current, [key]: value }));
@@ -116,7 +110,6 @@ export function MemberListMigrationPage() {
   }
 
   const fieldClassName = "w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white text-sm focus:ring-[var(--kr-gov-focus)] focus:border-[var(--kr-gov-focus)]";
-  const pagerButtonClassName = "p-1 rounded hover:bg-white border border-transparent hover:border-gray-200 disabled:opacity-40";
 
   return (
     <AdminPageShell
@@ -230,34 +223,7 @@ export function MemberListMigrationPage() {
             </table>
           </div>
 
-          <div className="px-6 py-4 border-t border-[var(--kr-gov-border-light)] bg-gray-50 flex justify-center">
-            <nav className="flex items-center gap-1">
-              <button className={pagerButtonClassName} disabled={currentPage <= 1} onClick={() => movePage(1)} type="button">
-                <span className="material-symbols-outlined">first_page</span>
-              </button>
-              <button className={pagerButtonClassName} disabled={currentPage <= 1} onClick={() => movePage(Math.max(1, currentPage - 1))} type="button">
-                <span className="material-symbols-outlined">chevron_left</span>
-              </button>
-              <div className="flex items-center gap-1 mx-4">
-                {pageNumbers.map((pageNumber) => (
-                  <button
-                    className={`min-w-9 px-3 py-1.5 rounded text-sm border ${pageNumber === currentPage ? "bg-[var(--kr-gov-blue)] text-white border-[var(--kr-gov-blue)] font-bold" : "bg-white text-[var(--kr-gov-text-secondary)] border-transparent hover:border-gray-200"}`}
-                    key={pageNumber}
-                    onClick={() => movePage(pageNumber)}
-                    type="button"
-                  >
-                    {pageNumber}
-                  </button>
-                ))}
-              </div>
-              <button className={pagerButtonClassName} disabled={currentPage >= totalPages} onClick={() => movePage(Math.min(totalPages, currentPage + 1))} type="button">
-                <span className="material-symbols-outlined">chevron_right</span>
-              </button>
-              <button className={pagerButtonClassName} disabled={currentPage >= totalPages} onClick={() => movePage(totalPages)} type="button">
-                <span className="material-symbols-outlined">last_page</span>
-              </button>
-            </nav>
-          </div>
+          <MemberPagination currentPage={currentPage} onPageChange={movePage} totalPages={totalPages} />
         </div>
       </CanView>
     </AdminPageShell>

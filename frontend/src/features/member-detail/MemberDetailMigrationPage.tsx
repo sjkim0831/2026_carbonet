@@ -6,6 +6,7 @@ import { PermissionButton } from "../../components/access/CanUse";
 import { buildLocalizedPath, getSearchParam } from "../../lib/navigation/runtime";
 import { fetchMemberDetailPage, MemberDetailPagePayload, resetMemberPasswordAction } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { MemberActionBar } from "../member/common";
 
 function resolveInitialMemberId() {
   if (typeof window === "undefined") return "TEST1";
@@ -251,18 +252,21 @@ export function MemberDetailMigrationPage() {
           </div>
         </div>
 
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[var(--kr-gov-border-light)] shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-50" data-help-id="member-action-bar">
-          <div className="max-w-full mx-auto px-10 py-5 flex justify-between items-center">
-            <button className="px-8 py-3 bg-white border border-[var(--kr-gov-border-light)] text-[var(--kr-gov-text-primary)] font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-50 transition-all flex items-center gap-2" onClick={() => { window.location.href = buildLocalizedPath("/admin/member/list", "/en/admin/member/list"); }} type="button">
-              <span className="material-symbols-outlined text-[20px]">arrow_back</span>
-              목록으로
-            </button>
-            <div className="flex gap-2">
-              <button className="px-5 py-2.5 border border-red-200 bg-red-50 text-red-700 text-[13px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-red-100" type="button">반려</button>
-              <button className="px-5 py-2.5 bg-[var(--kr-gov-green)] text-white text-[13px] font-bold rounded-[var(--kr-gov-radius)] hover:opacity-90" type="button">승인</button>
+        <MemberActionBar
+          className="mt-10"
+          dataHelpId="member-action-bar"
+          primary={(
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <button className="inline-flex min-h-[56px] min-w-[160px] items-center justify-center gap-2 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-6 py-3 text-base font-bold text-red-700 hover:bg-red-100" type="button">반려</button>
+              <button className="inline-flex min-h-[56px] min-w-[160px] items-center justify-center gap-2 rounded-[var(--kr-gov-radius)] bg-[var(--kr-gov-green)] px-6 py-3 text-base font-bold text-white hover:opacity-90" type="button">승인</button>
             </div>
-          </div>
-        </div>
+          )}
+          secondary={{
+            icon: "arrow_back",
+            label: "목록으로",
+            onClick: () => { window.location.href = buildLocalizedPath("/admin/member/list", "/en/admin/member/list"); }
+          }}
+        />
       </CanView>
     </AdminPageShell>
   );

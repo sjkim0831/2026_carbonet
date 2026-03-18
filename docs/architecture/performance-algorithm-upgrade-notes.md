@@ -155,6 +155,7 @@ This document tracks repository-level algorithm and data-structure upgrades that
     - frontend session
     - admin menu tree for admin routes
     - admin-home summary payload backed by shared summary snapshots and recent audit rows
+    - auth-group, dept-role, and member-edit payloads for high-frequency admin work screens
     - home landing payload for the home route
     - mypage payload and context for the mypage route
     - selected admin `page-data` payloads for filterless summary screens
@@ -165,8 +166,25 @@ This document tracks repository-level algorithm and data-structure upgrades that
   - admin-home now renders real summary cards, review queue, safeguard status, and recent audit logs from the same shell bootstrap path
   - selected admin dashboards such as member stats and security summary screens can now render without a separate first `page-data` fetch
   - query-driven admin list screens can skip the first fetch as long as the bootstrap payload matches the current URL query
+  - high-frequency admin work screens such as auth-group, dept-role, and member-edit can also skip their first hard-refresh fetch
   - preserves existing API contracts and cache invalidation behavior for subsequent navigations
   - keeps shell HTML as the single fast-path handoff point for initial React hydration
+
+### 13. React admin navigation now prefetches heavy route modules and cached page-data on hover
+
+- Previous pattern:
+  - admin route changes preloaded the JS module only after click
+  - heavy screens such as `auth-group`, `dept-role`, `member-edit`, and query-driven dashboards still started their first page-data request only after navigation
+- Current pattern:
+  - internal React-managed links now trigger route prefetch on hover and focus
+  - prefetch warms both:
+    - the lazy route module
+    - the existing session-storage-backed page-data cache for selected hot routes
+  - click navigation also awaits the same warm-up path before switching route
+- Benefit:
+  - repeated admin navigation cost shifts earlier into hover or focus idle time
+  - hot routes can render from warmed cache instead of starting a cold request after click
+  - `member-edit` now uses the same cache path as other admin page-data requests, so prefetched member payloads are reused directly
 
 ## High-value backlog
 

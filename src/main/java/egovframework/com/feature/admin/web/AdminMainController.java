@@ -72,6 +72,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -145,7 +146,7 @@ public class AdminMainController {
     private final AuditTrailService auditTrailService;
     private final ObservabilityQueryService observabilityQueryService;
     private final ObjectMapper objectMapper;
-    private final ReactAppViewSupport reactAppViewSupport;
+    private final ObjectProvider<ReactAppViewSupport> reactAppViewSupportProvider;
 
     @RequestMapping(value = { "", "/" }, method = { RequestMethod.GET, RequestMethod.POST })
     public String adminMainEntry(HttpServletRequest request, Locale locale) {
@@ -1722,15 +1723,29 @@ public class AdminMainController {
             HttpServletRequest request,
             Locale locale) {
         boolean isEn = isEnglishRequest(request, locale);
+        String currentUserId = extractCurrentUserId(request);
+        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
         ExtendedModelMap model = new ExtendedModelMap();
         primeCsrfToken(request);
-        company_detail(insttId, request, locale, model);
+        if (!hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+            model.addAttribute("companyDetailError",
+                    isEn ? "Only global administrators can view company details." : "회원사 상세는 전체 관리자만 조회할 수 있습니다.");
+            Map<String, Object> forbiddenResponse = new LinkedHashMap<>();
+            forbiddenResponse.putAll(model);
+            forbiddenResponse.put("canViewCompanyDetail", false);
+            forbiddenResponse.put("canUseCompanyEditLink", false);
+            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(forbiddenResponse);
+        }
+        populateCompanyDetailModel(safeString(insttId), isEn, request, locale, model);
         Map<String, Object> response = new LinkedHashMap<>();
         response.putAll(model);
         boolean canView = model.getAttribute("company") != null && model.getAttribute("companyDetailError") == null;
         response.put("canViewCompanyDetail", canView);
         response.put("canUseCompanyEditLink", canView);
-        return canView ? ResponseEntity.ok(response) : ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
+        if (canView) {
+            return ResponseEntity.ok(response);
+        }
+        return ResponseEntity.status(HttpServletResponse.SC_NOT_FOUND).body(response);
     }
 
     @RequestMapping(value = "/member/company_account", method = RequestMethod.GET)
@@ -4700,9 +4715,9 @@ public class AdminMainController {
         }
         MenuInfoDTO menu = loadMenuByRequestPath(request);
         if (menu != null) {
-            return reactAppViewSupport.render(model, "admin-menu-placeholder", isEnglishRequest(request, locale), true);
+            return reactAppViewSupportProvider.getObject().render(model, "admin-menu-placeholder", isEnglishRequest(request, locale), true);
         }
-        return reactAppViewSupport.render(model, "admin-home", isEnglishRequest(request, locale), true);
+        return reactAppViewSupportProvider.getObject().render(model, "admin-home", isEnglishRequest(request, locale), true);
     }
 
     private MenuInfoDTO loadMenuByRequestPath(HttpServletRequest request) {
@@ -6166,6 +6181,36 @@ public class AdminMainController {
             log.warn("Failed to load institution file list. insttId={}", insttId, e);
             return Collections.emptyList();
         }
+    }
+
+    private void populateCompanyDetailModel(String insttId, boolean isEn, HttpServletRequest request, Locale locale, Model model) {
+        String normalizedInsttId = safeString(insttId);
+        model.addAttribute("companyFiles", Collections.emptyList());
+        model.addAttribute("companyTypeLabel", "-");
+        model.addAttribute("companyStatusLabel", "-");
+        model.addAttribute("companyStatusBadgeClass", resolveInstitutionStatusBadgeClass(""));
+        if (normalizedInsttId.isEmpty()) {
+            model.addAttribute("companyDetailError", isEn ? "Company ID is required." : "기관 ID가 필요합니다.");
+            return;
+        }
+        InstitutionStatusVO company = loadInstitutionInfoByInsttId(normalizedInsttId);
+        if (company == null || safeString(company.getInsttId()).isEmpty()) {
+            model.addAttribute("companyDetailError", isEn ? "The company could not be found." : "대상 회원사를 찾을 수 없습니다.");
+            return;
+        }
+        List<InsttFileVO> companyFiles = loadInsttFilesByInsttId(normalizedInsttId);
+        model.addAttribute("company", company);
+        model.addAttribute("companyFiles", companyFiles);
+        model.addAttribute("companyTypeLabel", isEn
+                ? resolveMembershipTypeLabelEn(company.getEntrprsSeCode())
+                : resolveMembershipTypeLabel(company.getEntrprsSeCode()));
+        model.addAttribute("companyStatusLabel", isEn
+                ? resolveInstitutionStatusLabelEn(company.getInsttSttus())
+                : resolveInstitutionStatusLabel(company.getInsttSttus()));
+        model.addAttribute("companyStatusBadgeClass", resolveInstitutionStatusBadgeClass(company.getInsttSttus()));
+        model.addAttribute("companyEditUrl",
+                adminPrefix(request, locale) + "/member/company_account?insttId=" + urlEncode(normalizedInsttId));
+        model.addAttribute("companyListUrl", adminPrefix(request, locale) + "/member/company_list");
     }
 
     private boolean hasValidInsttEvidenceFiles(List<MultipartFile> fileUploads) {

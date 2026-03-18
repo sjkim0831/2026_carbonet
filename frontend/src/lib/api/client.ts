@@ -1161,7 +1161,7 @@ function buildPageCacheKey(path: string) {
   return `${SESSION_STORAGE_CACHE_PREFIX}${path}`;
 }
 
-function consumeRuntimeBootstrap<T>(key: "frontendSession" | "adminMenuTree" | "adminHomePageData" | "homePayload" | "mypagePayload" | "mypageContext" | "memberStatsPageData" | "securityPolicyPageData" | "securityMonitoringPageData" | "securityAuditPageData" | "schedulerManagementPageData" | "emissionResultListPageData"): T | null {
+function consumeRuntimeBootstrap<T>(key: "frontendSession" | "adminMenuTree" | "adminHomePageData" | "authGroupPageData" | "deptRolePageData" | "memberEditPageData" | "homePayload" | "mypagePayload" | "mypageContext" | "memberStatsPageData" | "securityPolicyPageData" | "securityMonitoringPageData" | "securityAuditPageData" | "schedulerManagementPageData" | "emissionResultListPageData"): T | null {
   if (typeof window === "undefined" || !window.__CARBONET_REACT_BOOTSTRAP__) {
     return null;
   }
@@ -1412,6 +1412,18 @@ export function readBootstrappedAdminHomePageData(): AdminHomePagePayload | null
   return consumeRuntimeBootstrap<AdminHomePagePayload>("adminHomePageData");
 }
 
+export function readBootstrappedAuthGroupPageData(): AuthGroupPagePayload | null {
+  return consumeRuntimeBootstrap<AuthGroupPagePayload>("authGroupPageData");
+}
+
+export function readBootstrappedDeptRolePageData(): DeptRolePagePayload | null {
+  return consumeRuntimeBootstrap<DeptRolePagePayload>("deptRolePageData");
+}
+
+export function readBootstrappedMemberEditPageData(): MemberEditPagePayload | null {
+  return consumeRuntimeBootstrap<MemberEditPagePayload>("memberEditPageData");
+}
+
 export function readBootstrappedMypagePayload(): MypagePayload | null {
   return consumeRuntimeBootstrap<MypagePayload>("mypagePayload");
 }
@@ -1521,20 +1533,20 @@ export function prefetchRoutePageData(route: MigrationPageId, search = ""): Prom
       return memberId ? fetchMemberEditPage(memberId) : Promise.resolve(null);
     }
     case "member-stats":
-      return fetchMemberStatsPageData();
+      return fetchMemberStatsPage();
     case "security-policy":
-      return fetchSecurityPolicyPageData();
+      return fetchSecurityPolicyPage();
     case "security-monitoring":
-      return fetchSecurityMonitoringPageData();
+      return fetchSecurityMonitoringPage();
     case "security-audit":
-      return fetchSecurityAuditPageData();
+      return fetchSecurityAuditPage();
     case "scheduler-management":
-      return fetchSchedulerManagementPageData({
+      return fetchSchedulerManagementPage({
         jobStatus: params.get("jobStatus") || "",
         executionType: params.get("executionType") || ""
       });
     case "emission-result-list":
-      return fetchEmissionResultListPageData({
+      return fetchEmissionResultListPage({
         pageIndex: params.get("pageIndex") ? Number(params.get("pageIndex")) : undefined,
         searchKeyword: params.get("searchKeyword") || "",
         resultStatus: params.get("resultStatus") || "",

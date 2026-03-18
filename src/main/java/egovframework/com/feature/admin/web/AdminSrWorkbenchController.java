@@ -7,6 +7,7 @@ import egovframework.com.feature.admin.dto.request.SrWorkbenchStackItemCreateReq
 import egovframework.com.feature.admin.service.SrTicketWorkbenchService;
 import egovframework.com.feature.home.web.ReactAppViewSupport;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -30,12 +31,12 @@ import java.util.Map;
 public class AdminSrWorkbenchController {
 
     private final SrTicketWorkbenchService srTicketWorkbenchService;
-    private final ReactAppViewSupport reactAppViewSupport;
+    private final ObjectProvider<ReactAppViewSupport> reactAppViewSupportProvider;
 
     @RequestMapping(value = "/system/sr-workbench", method = RequestMethod.GET)
     public String srWorkbenchPage(HttpServletRequest request, Locale locale, Model model) {
         boolean en = isEnglishRequest(request, locale);
-        reactAppViewSupport.populate(model, "sr-workbench", en, true);
+        reactAppViewSupportProvider.getObject().populate(model, "sr-workbench", en, true);
         model.addAttribute("pageTitle", en ? "SR Workbench" : "SR 워크벤치");
         model.addAttribute("pageSubtitle", en
                 ? "Issue SR tickets, review approvals, and prepare Codex execution in the shared admin workspace."

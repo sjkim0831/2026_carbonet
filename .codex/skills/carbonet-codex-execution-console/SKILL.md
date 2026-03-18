@@ -11,8 +11,11 @@ Use this skill when the task is about:
 - SR Workbench Codex execution flow
 - Spring Boot to Codex CLI integration
 - plan/build runner behavior
+- admin shell bootstrap data for Codex console pages
 - wrapper scripts under `ops/scripts`
 - handoff documentation for another AI account
+
+Use this as the primary skill only when Codex execution lifecycle or console ownership is the main problem. If the work is a normal admin feature outside runner semantics, prefer `carbonet-feature-builder`.
 
 Read only what you need:
 
@@ -22,6 +25,7 @@ Read only what you need:
 - Read [`/opt/projects/carbonet/src/main/java/egovframework/com/feature/admin/web/CodexProvisionAdminController.java`](/opt/projects/carbonet/src/main/java/egovframework/com/feature/admin/web/CodexProvisionAdminController.java) and [`/opt/projects/carbonet/src/main/java/egovframework/com/feature/admin/web/CodexProvisionPageController.java`](/opt/projects/carbonet/src/main/java/egovframework/com/feature/admin/web/CodexProvisionPageController.java) when changing central console APIs or page-data.
 - Read [`/opt/projects/carbonet/frontend/src/features/codex-provision/CodexProvisionMigrationPage.tsx`](/opt/projects/carbonet/frontend/src/features/codex-provision/CodexProvisionMigrationPage.tsx) for console UI changes.
 - Read [`/opt/projects/carbonet/frontend/src/features/sr-workbench/SrWorkbenchMigrationPage.tsx`](/opt/projects/carbonet/frontend/src/features/sr-workbench/SrWorkbenchMigrationPage.tsx) for SR Workbench execution flow changes.
+- Read [`/opt/projects/carbonet/src/main/java/egovframework/com/feature/admin/service/AdminShellBootstrapPageService.java`](/opt/projects/carbonet/src/main/java/egovframework/com/feature/admin/service/AdminShellBootstrapPageService.java) and [`/opt/projects/carbonet/src/main/java/egovframework/com/feature/home/web/ReactAppBootstrapService.java`](/opt/projects/carbonet/src/main/java/egovframework/com/feature/home/web/ReactAppBootstrapService.java) when the execution console depends on shared shell bootstrap/page-data composition.
 - Read [`/opt/projects/carbonet/frontend/src/lib/api/client.ts`](/opt/projects/carbonet/frontend/src/lib/api/client.ts) for frontend API contracts.
 - Read [`/opt/projects/carbonet/ops/scripts/codex-plan.sh`](/opt/projects/carbonet/ops/scripts/codex-plan.sh) and [`/opt/projects/carbonet/ops/scripts/codex-build.sh`](/opt/projects/carbonet/ops/scripts/codex-build.sh) before changing runner command behavior.
 
@@ -43,6 +47,7 @@ Read only what you need:
 4. Keep `PLAN` and `BUILD` behavior separate.
 5. Treat `codex-request` as the central console and `sr-workbench` as the ticket/approval side unless the user explicitly wants to redesign both.
 6. If implementing multi-screen grouping, do not overload SR ticket JSON further; move toward standalone stack persistence.
+7. If a console change also touches shell bootstrap or page manifest routing, keep the console page-data owner explicit and update the handoff doc in the same turn.
 7. After changes, run:
    - `mvn -q -DskipTests package`
    - `npm run build` in `frontend`
