@@ -6,6 +6,8 @@ import { AdminLoginFrame } from "./adminEntryShared";
 
 const GOV_SYMBOL = "/img/egovframework/kr_gov_symbol.png";
 const GOV_SYMBOL_FALLBACK = "/img/egovframework/kr_gov_symbol.svg";
+const ADMIN_SESSION_STORAGE_KEY = "adminSessionExpireAt";
+const ADMIN_SESSION_DURATION_MS = 60 * 60 * 1000;
 
 function handleGovSymbolError(event: SyntheticEvent<HTMLImageElement>) {
   const image = event.currentTarget;
@@ -15,6 +17,10 @@ function handleGovSymbolError(event: SyntheticEvent<HTMLImageElement>) {
   }
   image.dataset.fallbackApplied = "1";
   image.src = GOV_SYMBOL_FALLBACK;
+}
+
+function sanitizeEnglishPassword(value: string) {
+  return value.replace(/[^A-Za-z0-9`~!@#$%^&*()\-_=+\[\]{}\\|;:'",.<>/?]/g, "");
 }
 
 export function AdminLoginPage() {
@@ -51,6 +57,7 @@ export function AdminLoginPage() {
         window.alert(body.errors || (en ? "Login failed." : "로그인에 실패했습니다."));
         return;
       }
+      window.sessionStorage.setItem(ADMIN_SESSION_STORAGE_KEY, String(Date.now() + ADMIN_SESSION_DURATION_MS));
       navigate(buildLocalizedPath("/admin/", "/en/admin/"));
     } catch (error) {
       window.alert(error instanceof Error ? error.message : (en ? "An error occurred during administrator login." : "관리자 로그인 중 오류가 발생했습니다."));
@@ -105,11 +112,15 @@ export function AdminLoginPage() {
                   </span>
                   <input
                     className="w-full h-14 pl-12 pr-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] focus:ring-2 focus:ring-[var(--kr-gov-focus)] focus:border-transparent transition-all"
+                    autoCapitalize="off"
+                    autoCorrect="off"
                     id="password"
+                    inputMode="text"
+                    lang="en"
                     placeholder={en ? "Enter password" : "비밀번호를 입력하세요"}
                     type="password"
                     value={userPw}
-                    onChange={(event) => setUserPw(event.target.value)}
+                    onChange={(event) => setUserPw(sanitizeEnglishPassword(event.target.value))}
                   />
                 </div>
               </div>

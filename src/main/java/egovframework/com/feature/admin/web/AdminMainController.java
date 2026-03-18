@@ -1,5 +1,9 @@
 package egovframework.com.feature.admin.web;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import egovframework.com.common.audit.AuditEventRecordVO;
+import egovframework.com.common.audit.AuditEventSearchVO;
 import egovframework.com.feature.member.service.EnterpriseMemberService;
 import egovframework.com.feature.member.service.EmployeeMemberService;
 import egovframework.com.feature.member.model.vo.CompanyListItemVO;
@@ -12,14 +16,19 @@ import egovframework.com.feature.member.model.vo.UserManageVO;
 import egovframework.com.feature.admin.model.vo.AdminRoleAssignmentVO;
 import egovframework.com.feature.admin.model.vo.AuthorInfoVO;
 import egovframework.com.feature.admin.model.vo.DepartmentRoleMappingVO;
+import egovframework.com.feature.admin.model.vo.EmissionResultFilterSnapshot;
+import egovframework.com.feature.admin.model.vo.EmissionResultSummaryView;
 import egovframework.com.feature.admin.model.vo.FeatureAssignmentStatVO;
 import egovframework.com.feature.admin.model.vo.FeatureCatalogItemVO;
 import egovframework.com.feature.admin.model.vo.FeatureCatalogSectionVO;
+import egovframework.com.feature.admin.model.vo.FeatureCatalogSummarySnapshot;
 import egovframework.com.feature.admin.model.vo.LoginHistorySearchVO;
 import egovframework.com.feature.admin.model.vo.LoginHistoryVO;
+import egovframework.com.feature.admin.model.vo.SecurityAuditSnapshot;
 import egovframework.com.feature.admin.model.vo.UserAuthorityTargetVO;
 import egovframework.com.feature.admin.model.vo.UserFeatureOverrideVO;
 import egovframework.com.feature.admin.service.AdminLoginHistoryService;
+import egovframework.com.feature.admin.service.AdminSummaryService;
 import egovframework.com.feature.admin.service.AuthGroupManageService;
 import egovframework.com.feature.admin.service.MenuInfoService;
 import egovframework.com.feature.admin.dto.request.AdminAuthGroupCreateRequestDTO;
@@ -39,9 +48,9 @@ import egovframework.com.feature.auth.service.AuthService;
 import egovframework.com.feature.auth.util.JwtTokenProvider;
 import egovframework.com.feature.auth.util.ClientIpUtil;
 import egovframework.com.common.audit.AuditTrailService;
+import egovframework.com.common.service.ObservabilityQueryService;
+import egovframework.com.common.util.FeatureCodeBitmap;
 import egovframework.com.common.util.ReactPageUrlMapper;
-import egovframework.com.common.logging.RequestExecutionLogService;
-import egovframework.com.common.logging.RequestExecutionLogVO;
 import egovframework.com.feature.home.web.ReactAppViewSupport;
 import io.jsonwebtoken.Claims;
 import egovframework.com.common.service.CmmnDetailCode;
@@ -102,6 +111,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.Collection;
+import java.util.BitSet;
 import java.util.stream.Collectors;
 
 @Controller
@@ -126,8 +137,10 @@ public class AdminMainController {
     private final AdminLoginHistoryService adminLoginHistoryService;
     private final AuthService authService;
     private final MenuInfoService menuInfoService;
-    private final RequestExecutionLogService requestExecutionLogService;
+    private final AdminSummaryService adminSummaryService;
     private final AuditTrailService auditTrailService;
+    private final ObservabilityQueryService observabilityQueryService;
+    private final ObjectMapper objectMapper;
     private final ReactAppViewSupport reactAppViewSupport;
 
     @RequestMapping(value = { "", "/" }, method = { RequestMethod.GET, RequestMethod.POST })
@@ -2988,26 +3001,22 @@ public class AdminMainController {
         String normalizedResultStatus = safeString(resultStatus).toUpperCase(Locale.ROOT);
         String normalizedVerificationStatus = safeString(verificationStatus).toUpperCase(Locale.ROOT);
 
-        List<EmissionResultSummaryView> allItems = buildEmissionResultSummaryViews(isEn);
-        List<EmissionResultSummaryView> filteredItems = allItems.stream()
-                .filter(item -> keyword.isEmpty()
-                        || item.getProjectName().toLowerCase(Locale.ROOT).contains(keyword)
-                        || item.getCompanyName().toLowerCase(Locale.ROOT).contains(keyword)
-                        || item.getResultId().toLowerCase(Locale.ROOT).contains(keyword))
-                .filter(item -> normalizedResultStatus.isEmpty() || normalizedResultStatus.equals(item.getResultStatusCode()))
-                .filter(item -> normalizedVerificationStatus.isEmpty()
-                        || normalizedVerificationStatus.equals(item.getVerificationStatusCode()))
-                .collect(Collectors.toList());
+        EmissionResultFilterSnapshot filterSnapshot = adminSummaryService.buildEmissionResultFilterSnapshot(
+                isEn,
+                keyword,
+                normalizedResultStatus,
+                normalizedVerificationStatus);
+        List<EmissionResultSummaryView> filteredItems = filterSnapshot.getItems();
 
         int pageSize = 10;
-        int totalCount = filteredItems.size();
+        int totalCount = filterSnapshot.getTotalCount();
         int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
         int currentPage = Math.max(1, Math.min(pageIndex, totalPages));
         int fromIndex = Math.min((currentPage - 1) * pageSize, totalCount);
         int toIndex = Math.min(fromIndex + pageSize, totalCount);
         List<EmissionResultSummaryView> pageItems = filteredItems.subList(fromIndex, toIndex);
-        long reviewCount = filteredItems.stream().filter(item -> "REVIEW".equals(item.getResultStatusCode())).count();
-        long verifiedCount = filteredItems.stream().filter(item -> "VERIFIED".equals(item.getVerificationStatusCode())).count();
+        long reviewCount = filterSnapshot.getReviewCount();
+        long verifiedCount = filterSnapshot.getVerifiedCount();
 
         int startPage = Math.max(1, currentPage - 4);
         int endPage = Math.min(totalPages, startPage + 9);
@@ -3030,36 +3039,6 @@ public class AdminMainController {
         model.addAttribute("resultStatus", normalizedResultStatus);
         model.addAttribute("verificationStatus", normalizedVerificationStatus);
         return viewName;
-    }
-
-    private List<EmissionResultSummaryView> buildEmissionResultSummaryViews(boolean isEn) {
-        String prefix = isEn ? "/en/admin" : "/admin";
-        List<EmissionResultSummaryView> items = new ArrayList<>();
-        items.add(new EmissionResultSummaryView("ER-2026-001", "2026 Q1 Capture Plant Baseline",
-                "Korea CCUS Plant", "2026-03-04", "125,440 tCO2e", "COMPLETED",
-                isEn ? "Completed" : "산정 완료", "VERIFIED", isEn ? "Verified" : "검증 완료",
-                prefix + "/emission/result_detail?resultId=ER-2026-001"));
-        items.add(new EmissionResultSummaryView("ER-2026-002", "Blue Hydrogen Process Review",
-                "Hanbit Energy", "2026-03-03", "84,210 tCO2e", "REVIEW",
-                isEn ? "Under Review" : "검토 중", "PENDING", isEn ? "Pending" : "검증 대기",
-                prefix + "/emission/result_detail?resultId=ER-2026-002"));
-        items.add(new EmissionResultSummaryView("ER-2026-003", "Transport Network Simulation",
-                "East Carbon Hub", "2026-02-28", "56,980 tCO2e", "DRAFT",
-                isEn ? "Draft" : "임시 저장", "NOT_REQUIRED", isEn ? "Not Required" : "검증 제외",
-                prefix + "/emission/result_detail?resultId=ER-2026-003"));
-        items.add(new EmissionResultSummaryView("ER-2026-004", "Storage Integrity Monitoring",
-                "Seohae Storage", "2026-02-26", "142,300 tCO2e", "COMPLETED",
-                isEn ? "Completed" : "산정 완료", "FAILED", isEn ? "Recheck Needed" : "재검토 필요",
-                prefix + "/emission/result_detail?resultId=ER-2026-004"));
-        items.add(new EmissionResultSummaryView("ER-2026-005", "Methanol Conversion Project",
-                "Green Synthesis", "2026-02-21", "39,870 tCO2e", "REVIEW",
-                isEn ? "Under Review" : "검토 중", "IN_PROGRESS", isEn ? "In Progress" : "검증 진행중",
-                prefix + "/emission/result_detail?resultId=ER-2026-005"));
-        items.add(new EmissionResultSummaryView("ER-2026-006", "Regional Capture Efficiency Audit",
-                "Daehan Capture", "2026-02-18", "73,120 tCO2e", "COMPLETED",
-                isEn ? "Completed" : "산정 완료", "VERIFIED", isEn ? "Verified" : "검증 완료",
-                prefix + "/emission/result_detail?resultId=ER-2026-006"));
-        return items;
     }
 
     private String populateLoginHistory(
@@ -3236,32 +3215,38 @@ public class AdminMainController {
 
         int currentPage = Math.max(pageIndex, 1);
         int pageSize = 10;
-        String keyword = safeString(searchKeyword).toLowerCase(Locale.ROOT);
+        String keyword = safeString(searchKeyword);
         String normalizedSource = safeString(resetSource).toUpperCase(Locale.ROOT);
 
-        List<PasswordResetHistory> filteredItems;
+        Page<PasswordResetHistory> historyPage;
         try {
-            filteredItems = authService.findAllPasswordResetHistories().stream()
-                    .filter(history -> normalizedSource.isEmpty()
-                            || normalizedSource.equalsIgnoreCase(safeString(history.getResetSource())))
-                    .filter(history -> keyword.isEmpty() || containsPasswordResetKeyword(history, keyword))
-                    .collect(Collectors.toList());
+            historyPage = authService.searchPasswordResetHistories(
+                    keyword,
+                    normalizedSource,
+                    PageRequest.of(Math.max(currentPage - 1, 0), pageSize, Sort.by(Sort.Direction.DESC, "resetPnttm")));
         } catch (Exception e) {
             log.error("Failed to load password reset history.", e);
-            filteredItems = Collections.emptyList();
+            historyPage = Page.empty(PageRequest.of(0, pageSize));
             model.addAttribute("member_resetPasswordError",
                     isEn ? "Failed to load password reset history." : "비밀번호 초기화 이력을 불러오지 못했습니다.");
         }
 
-        int totalCount = filteredItems.size();
-        int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
+        int totalCount = Math.toIntExact(historyPage.getTotalElements());
+        int totalPages = Math.max(historyPage.getTotalPages(), 1);
         if (currentPage > totalPages) {
             currentPage = totalPages;
+            try {
+                historyPage = authService.searchPasswordResetHistories(
+                        keyword,
+                        normalizedSource,
+                        PageRequest.of(Math.max(currentPage - 1, 0), pageSize, Sort.by(Sort.Direction.DESC, "resetPnttm")));
+            } catch (Exception e) {
+                log.error("Failed to reload password reset history for corrected page.", e);
+                historyPage = Page.empty(PageRequest.of(Math.max(currentPage - 1, 0), pageSize));
+            }
         }
 
-        int fromIndex = Math.min((currentPage - 1) * pageSize, totalCount);
-        int toIndex = Math.min(fromIndex + pageSize, totalCount);
-        List<PasswordResetHistory> pageItems = filteredItems.subList(fromIndex, toIndex);
+        List<PasswordResetHistory> pageItems = historyPage.getContent();
 
         int startPage = Math.max(1, currentPage - 4);
         int endPage = Math.min(totalPages, startPage + 9);
@@ -3301,6 +3286,8 @@ public class AdminMainController {
             @RequestParam(value = "authorCode", required = false) String authorCode,
             @RequestParam(value = "roleCategory", required = false) String roleCategory,
             @RequestParam(value = "insttId", required = false) String insttId,
+            @RequestParam(value = "menuCode", required = false) String menuCode,
+            @RequestParam(value = "featureCode", required = false) String featureCode,
             @RequestParam(value = "userSearchKeyword", required = false) String userSearchKeyword,
             HttpServletRequest request, Locale locale) {
         Map<String, Object> response = new LinkedHashMap<>();
@@ -3377,12 +3364,13 @@ public class AdminMainController {
         response.put("filteredAuthorGroups", filteredAuthorGroups);
         response.put("referenceAuthorGroups", filteredAuthorGroups);
         response.put("generalAuthorGroups", filterAuthorGroups(authorGroups, "GENERAL"));
+        FeatureCatalogSummarySnapshot featureCatalogSummary = adminSummaryService.summarizeFeatureCatalog(featureSections);
         response.put("featureSections", featureSections);
         response.put("authorGroupCount", filteredAuthorGroups.size());
         response.put("featureCount", selectedFeatureCodes.size());
-        response.put("catalogFeatureCount", countTotalFeatureCount(featureSections));
+        response.put("catalogFeatureCount", featureCatalogSummary.getTotalFeatureCount());
         response.put("pageCount", countSelectedPageCount(featureSections, selectedFeatureCodes));
-        response.put("unassignedFeatureCount", countUnassignedFeatureCount(featureSections));
+        response.put("unassignedFeatureCount", featureCatalogSummary.getUnassignedFeatureCount());
         response.put("recommendedRoleSections", filterRecommendedRoleSections(buildRecommendedRoleSections(authorGroups, isEn), selectedRoleCategory));
         response.put("assignmentAuthorities", buildAssignmentAuthorities(isEn));
         response.put("roleCategories", buildRoleCategories(isEn));
@@ -3391,6 +3379,8 @@ public class AdminMainController {
         response.put("selectedAuthorCode", selectedAuthorCode);
         response.put("selectedAuthorName", selectedAuthorName);
         response.put("selectedFeatureCodes", selectedFeatureCodes);
+        response.put("focusedMenuCode", safeString(menuCode).toUpperCase(Locale.ROOT));
+        response.put("focusedFeatureCode", safeString(featureCode).toUpperCase(Locale.ROOT));
         response.put("featureCatalogDeferred", featureCatalogDeferred);
         response.put("canViewGeneralAuthorityGroups", canViewGeneralAuthorityGroups);
         response.put("canManageScopedAuthorityGroups", canManageScopedAuthorityGroups);
@@ -3610,6 +3600,7 @@ public class AdminMainController {
         response.put("authChangeTargetUserId", safeString(targetUserId));
         response.put("authChangeMessage", resolveAuthChangeMessage(error, isEn));
         response.put("authChangeError", authChangeError);
+        response.put("recentRoleChangeHistory", buildRecentAdminRoleChangeHistory(isEn));
         return ResponseEntity.ok(response);
     }
 
@@ -3647,7 +3638,16 @@ public class AdminMainController {
         }
 
         try {
+            Map<String, String> beforeRole = resolveAdminRoleSummary(normalizedEmplyrId);
             authGroupManageService.updateAdminRoleAssignment(normalizedEmplyrId, normalizedAuthorCode);
+            recordAdminRoleAssignmentAudit(
+                    request,
+                    currentUserId,
+                    resolveCurrentUserAuthorCode(currentUserId),
+                    normalizedEmplyrId,
+                    beforeRole,
+                    buildAuthorSummary(normalizedAuthorCode)
+            );
         } catch (IllegalArgumentException e) {
             response.put("success", false);
             response.put("message", e.getMessage());
@@ -3664,16 +3664,6 @@ public class AdminMainController {
         response.put("success", true);
         response.put("emplyrId", normalizedEmplyrId);
         response.put("authorCode", normalizedAuthorCode);
-        recordAdminActionAudit(request,
-                currentUserId,
-                resolveCurrentUserAuthorCode(currentUserId),
-                "AMENU_AUTH_CHANGE",
-                "auth-change",
-                "ADMIN_ROLE_ASSIGNMENT_SAVE",
-                "ADMIN",
-                normalizedEmplyrId,
-                "{\"emplyrId\":\"" + safeJson(normalizedEmplyrId) + "\",\"authorCode\":\"" + safeJson(normalizedAuthorCode) + "\"}",
-                "{\"status\":\"SUCCESS\"}");
         return ResponseEntity.ok(response);
     }
 
@@ -3707,7 +3697,16 @@ public class AdminMainController {
         }
 
         try {
+            Map<String, String> beforeRole = resolveAdminRoleSummary(normalizedEmplyrId);
             authGroupManageService.updateAdminRoleAssignment(normalizedEmplyrId, normalizedAuthorCode);
+            recordAdminRoleAssignmentAudit(
+                    request,
+                    currentUserId,
+                    resolveCurrentUserAuthorCode(currentUserId),
+                    normalizedEmplyrId,
+                    beforeRole,
+                    buildAuthorSummary(normalizedAuthorCode)
+            );
         } catch (IllegalArgumentException e) {
             model.addAttribute("authChangeError", e.getMessage());
             return auth_change(null, null, null, request, locale, model);
@@ -4666,30 +4665,78 @@ public class AdminMainController {
         if (featureSections == null || featureSections.isEmpty() || selectedFeatureCodes == null || selectedFeatureCodes.isEmpty()) {
             return 0;
         }
-        java.util.Set<String> selectedCodes = new java.util.HashSet<>(selectedFeatureCodes);
-        return (int) featureSections.stream()
-                .filter(section -> section.getFeatures().stream()
-                .anyMatch(feature -> selectedCodes.contains(feature.getFeatureCode())))
-                .count();
+        FeatureCodeBitmap.Index featureBitmapIndex = buildFeatureBitmapIndex(featureSections, selectedFeatureCodes);
+        return countSelectedPageCount(featureSections, featureBitmapIndex, featureBitmapIndex.encode(selectedFeatureCodes));
     }
 
-    private int countTotalFeatureCount(List<FeatureCatalogSectionVO> featureSections) {
-        if (featureSections == null || featureSections.isEmpty()) {
+    private int countSelectedPageCount(List<FeatureCatalogSectionVO> featureSections,
+                                       FeatureCodeBitmap.Index featureBitmapIndex,
+                                       BitSet selectedFeatureBitmap) {
+        if (featureSections == null || featureSections.isEmpty() || featureBitmapIndex == null
+                || selectedFeatureBitmap == null || selectedFeatureBitmap.isEmpty()) {
             return 0;
         }
-        return featureSections.stream()
-                .mapToInt(section -> section.getFeatures() == null ? 0 : section.getFeatures().size())
-                .sum();
+        int selectedPageCount = 0;
+        for (FeatureCatalogSectionVO section : featureSections) {
+            BitSet sectionFeatureBitmap = featureBitmapIndex.encode(extractSectionFeatureCodes(section));
+            if (featureBitmapIndex.intersects(sectionFeatureBitmap, selectedFeatureBitmap)) {
+                selectedPageCount++;
+            }
+        }
+        return selectedPageCount;
     }
 
-    private int countUnassignedFeatureCount(List<FeatureCatalogSectionVO> featureSections) {
-        if (featureSections == null || featureSections.isEmpty()) {
-            return 0;
+    private List<String> extractSectionFeatureCodes(FeatureCatalogSectionVO section) {
+        if (section == null || section.getFeatures() == null || section.getFeatures().isEmpty()) {
+            return Collections.emptyList();
         }
-        return (int) featureSections.stream()
-                .flatMap(section -> section.getFeatures().stream())
-                .filter(FeatureCatalogItemVO::isUnassignedToRole)
-                .count();
+        List<String> featureCodes = new ArrayList<>(section.getFeatures().size());
+        for (FeatureCatalogItemVO feature : section.getFeatures()) {
+            String featureCode = safeString(feature == null ? null : feature.getFeatureCode()).toUpperCase(Locale.ROOT);
+            if (!featureCode.isEmpty()) {
+                featureCodes.add(featureCode);
+            }
+        }
+        return featureCodes;
+    }
+
+    private Set<String> buildAuthorCodeSet(List<AuthorInfoVO> authorGroups) {
+        if (authorGroups == null || authorGroups.isEmpty()) {
+            return Collections.emptySet();
+        }
+        Set<String> authorCodes = new LinkedHashSet<>();
+        for (AuthorInfoVO authorGroup : authorGroups) {
+            String authorCode = safeString(authorGroup == null ? null : authorGroup.getAuthorCode()).toUpperCase(Locale.ROOT);
+            if (!authorCode.isEmpty()) {
+                authorCodes.add(authorCode);
+            }
+        }
+        return authorCodes;
+    }
+
+    @SafeVarargs
+    private final FeatureCodeBitmap.Index buildFeatureBitmapIndex(List<FeatureCatalogSectionVO> featureSections,
+                                                                  Collection<String>... extraFeatureCollections) {
+        Set<String> indexedFeatureCodes = new LinkedHashSet<>();
+        if (featureSections != null) {
+            for (FeatureCatalogSectionVO section : featureSections) {
+                indexedFeatureCodes.addAll(extractSectionFeatureCodes(section));
+            }
+        }
+        if (extraFeatureCollections != null) {
+            for (Collection<String> featureCollection : extraFeatureCollections) {
+                if (featureCollection == null) {
+                    continue;
+                }
+                for (String featureCode : featureCollection) {
+                    String normalizedFeatureCode = safeString(featureCode).toUpperCase(Locale.ROOT);
+                    if (!normalizedFeatureCode.isEmpty()) {
+                        indexedFeatureCodes.add(normalizedFeatureCode);
+                    }
+                }
+            }
+        }
+        return FeatureCodeBitmap.index(indexedFeatureCodes);
     }
 
     private String extractCurrentUserId(HttpServletRequest request) {
@@ -4730,14 +4777,6 @@ public class AdminMainController {
             builder.append("&").append(query);
         }
         return builder.toString();
-    }
-
-    private boolean containsPasswordResetKeyword(PasswordResetHistory history, String keyword) {
-        return safeString(history.getTargetUserId()).toLowerCase(Locale.ROOT).contains(keyword)
-                || safeString(history.getResetByUserId()).toLowerCase(Locale.ROOT).contains(keyword)
-                || safeString(history.getResetIp()).toLowerCase(Locale.ROOT).contains(keyword)
-                || safeString(history.getResetSource()).toLowerCase(Locale.ROOT).contains(keyword)
-                || safeString(history.getTargetUserSe()).toLowerCase(Locale.ROOT).contains(keyword);
     }
 
     private List<Map<String, String>> buildPasswordResetHistoryListRows(List<PasswordResetHistory> histories, boolean isEn) {
@@ -4881,6 +4920,147 @@ public class AdminMainController {
 
     private String safeJson(String value) {
         return safeString(value).replace("\"", "'");
+    }
+
+    private void recordAdminRoleAssignmentAudit(HttpServletRequest request,
+                                                String actorId,
+                                                String actorRole,
+                                                String emplyrId,
+                                                Map<String, String> beforeRole,
+                                                Map<String, String> afterRole) {
+        Map<String, Object> beforeSummary = new LinkedHashMap<>();
+        beforeSummary.put("emplyrId", emplyrId);
+        beforeSummary.put("beforeAuthorCode", safeString(beforeRole.get("authorCode")));
+        beforeSummary.put("beforeAuthorName", safeString(beforeRole.get("authorNm")));
+        Map<String, Object> afterSummary = new LinkedHashMap<>();
+        afterSummary.put("emplyrId", emplyrId);
+        afterSummary.put("afterAuthorCode", safeString(afterRole.get("authorCode")));
+        afterSummary.put("afterAuthorName", safeString(afterRole.get("authorNm")));
+        afterSummary.put("status", "SUCCESS");
+        recordAdminActionAudit(request,
+                actorId,
+                actorRole,
+                "AMENU_AUTH_CHANGE",
+                "auth-change",
+                "ADMIN_ROLE_ASSIGNMENT_SAVE",
+                "ADMIN",
+                emplyrId,
+                toJsonSummary(beforeSummary),
+                toJsonSummary(afterSummary));
+    }
+
+    private Map<String, String> resolveAdminRoleSummary(String emplyrId) {
+        String normalizedEmplyrId = safeString(emplyrId);
+        if (normalizedEmplyrId.isEmpty()) {
+            return buildAuthorSummary("");
+        }
+        try {
+            return authGroupManageService.selectAdminRoleAssignments().stream()
+                    .filter(item -> normalizedEmplyrId.equalsIgnoreCase(safeString(item.getEmplyrId())))
+                    .findFirst()
+                    .map(item -> {
+                        Map<String, String> summary = new LinkedHashMap<>();
+                        summary.put("authorCode", safeString(item.getAuthorCode()));
+                        summary.put("authorNm", safeString(item.getAuthorNm()));
+                        return summary;
+                    })
+                    .orElseGet(() -> buildAuthorSummary(""));
+        } catch (Exception e) {
+            log.warn("Failed to resolve current admin role summary. emplyrId={}", normalizedEmplyrId, e);
+            return buildAuthorSummary("");
+        }
+    }
+
+    private Map<String, String> buildAuthorSummary(String authorCode) {
+        String normalizedAuthorCode = safeString(authorCode).toUpperCase(Locale.ROOT);
+        Map<String, String> summary = new LinkedHashMap<>();
+        summary.put("authorCode", normalizedAuthorCode);
+        summary.put("authorNm", "");
+        if (normalizedAuthorCode.isEmpty()) {
+            return summary;
+        }
+        try {
+            authGroupManageService.selectAuthorList().stream()
+                    .filter(item -> normalizedAuthorCode.equalsIgnoreCase(safeString(item.getAuthorCode())))
+                    .findFirst()
+                    .ifPresent(item -> summary.put("authorNm", safeString(item.getAuthorNm())));
+        } catch (Exception e) {
+            log.warn("Failed to resolve author summary. authorCode={}", normalizedAuthorCode, e);
+        }
+        return summary;
+    }
+
+    private List<Map<String, String>> buildRecentAdminRoleChangeHistory(boolean isEn) {
+        AuditEventSearchVO searchVO = new AuditEventSearchVO();
+        searchVO.setFirstIndex(0);
+        searchVO.setRecordCountPerPage(10);
+        searchVO.setPageId("auth-change");
+        searchVO.setActionCode("ADMIN_ROLE_ASSIGNMENT_SAVE");
+        List<AuditEventRecordVO> items;
+        try {
+            items = observabilityQueryService.selectAuditEventList(searchVO);
+        } catch (Exception e) {
+            log.warn("Failed to load recent admin role change history.", e);
+            return Collections.emptyList();
+        }
+        return items.stream()
+                .map(item -> buildAdminRoleChangeHistoryRow(item, isEn))
+                .collect(Collectors.toList());
+    }
+
+    private Map<String, String> buildAdminRoleChangeHistoryRow(AuditEventRecordVO item, boolean isEn) {
+        Map<String, Object> beforeMap = parseAuditJson(item.getBeforeSummaryJson());
+        Map<String, Object> afterMap = parseAuditJson(item.getAfterSummaryJson());
+        Map<String, String> row = new LinkedHashMap<>();
+        row.put("changedAt", safeString(item.getCreatedAt()));
+        row.put("changedBy", safeString(item.getActorId()));
+        row.put("targetUserId", firstNonEmpty(
+                safeString((String) afterMap.get("emplyrId")),
+                safeString((String) beforeMap.get("emplyrId")),
+                safeString(item.getEntityId())));
+        row.put("beforeAuthorCode", safeString((String) beforeMap.get("beforeAuthorCode")));
+        row.put("beforeAuthorName", safeString((String) beforeMap.get("beforeAuthorName")));
+        row.put("afterAuthorCode", safeString((String) afterMap.get("afterAuthorCode")));
+        row.put("afterAuthorName", safeString((String) afterMap.get("afterAuthorName")));
+        row.put("resultStatus", safeString(item.getResultStatus()).isEmpty()
+                ? (isEn ? "SUCCESS" : "성공")
+                : safeString(item.getResultStatus()));
+        return row;
+    }
+
+    private Map<String, Object> parseAuditJson(String json) {
+        String normalized = safeString(json);
+        if (normalized.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        try {
+            return objectMapper.readValue(normalized, new TypeReference<Map<String, Object>>() {});
+        } catch (Exception e) {
+            log.warn("Failed to parse audit summary json.", e);
+            return Collections.emptyMap();
+        }
+    }
+
+    private String toJsonSummary(Map<String, Object> value) {
+        try {
+            return objectMapper.writeValueAsString(value == null ? Collections.emptyMap() : value);
+        } catch (Exception e) {
+            log.warn("Failed to serialize audit summary json.", e);
+            return "{}";
+        }
+    }
+
+    private String firstNonEmpty(String... values) {
+        if (values == null) {
+            return "";
+        }
+        for (String value : values) {
+            String normalized = safeString(value);
+            if (!normalized.isEmpty()) {
+                return normalized;
+            }
+        }
+        return "";
     }
 
     private String resolveRequestIp(HttpServletRequest request) {
@@ -6191,21 +6371,21 @@ public class AdminMainController {
         model.addAttribute("searchIp", safeString(searchIp));
         model.addAttribute("accessScope", safeString(accessScope).toUpperCase(Locale.ROOT));
         model.addAttribute("status", safeString(status).toUpperCase(Locale.ROOT));
-        model.addAttribute("ipWhitelistSummary", buildIpWhitelistSummary(isEn));
+        model.addAttribute("ipWhitelistSummary", adminSummaryService.getIpWhitelistSummary(isEn));
         model.addAttribute("ipWhitelistRows", buildIpWhitelistRows(isEn));
         model.addAttribute("ipWhitelistRequestRows", buildIpWhitelistRequestRows(isEn));
         return viewName;
     }
 
     private String populateSecurityPolicyPage(Model model, String viewName, boolean isEn) {
-        model.addAttribute("securityPolicySummary", buildSecurityPolicySummary(isEn));
+        model.addAttribute("securityPolicySummary", adminSummaryService.getSecurityPolicySummary(isEn));
         model.addAttribute("securityPolicyRows", buildSecurityPolicyRows(isEn));
         model.addAttribute("securityPolicyPlaybooks", buildSecurityPolicyPlaybooks(isEn));
         return viewName;
     }
 
     private String populateSecurityMonitoringPage(Model model, String viewName, boolean isEn) {
-        model.addAttribute("securityMonitoringCards", buildSecurityMonitoringCards(isEn));
+        model.addAttribute("securityMonitoringCards", adminSummaryService.getSecurityMonitoringCards(isEn));
         model.addAttribute("securityMonitoringTargets", buildSecurityMonitoringTargets(isEn));
         model.addAttribute("securityMonitoringIps", buildSecurityMonitoringIps(isEn));
         model.addAttribute("securityMonitoringEvents", buildSecurityMonitoringEvents(isEn));
@@ -6222,16 +6402,16 @@ public class AdminMainController {
         model.addAttribute("searchKeyword", safeString(searchKeyword));
         model.addAttribute("blockType", safeString(blockType).toUpperCase(Locale.ROOT));
         model.addAttribute("status", safeString(status).toUpperCase(Locale.ROOT));
-        model.addAttribute("blocklistSummary", buildBlocklistSummary(isEn));
+        model.addAttribute("blocklistSummary", adminSummaryService.getBlocklistSummary(isEn));
         model.addAttribute("blocklistRows", buildBlocklistRows(isEn));
         model.addAttribute("blocklistReleaseQueue", buildBlocklistReleaseQueue(isEn));
         return viewName;
     }
 
     private String populateSecurityAuditPage(Model model, String viewName, boolean isEn) {
-        List<RequestExecutionLogVO> auditLogs = loadSecurityAuditLogs();
-        model.addAttribute("securityAuditSummary", buildSecurityAuditSummary(auditLogs, isEn));
-        model.addAttribute("securityAuditRows", buildSecurityAuditRows(auditLogs, isEn));
+        SecurityAuditSnapshot auditSnapshot = adminSummaryService.loadSecurityAuditSnapshot();
+        model.addAttribute("securityAuditSummary", adminSummaryService.getSecurityAuditSummary(auditSnapshot, isEn));
+        model.addAttribute("securityAuditRows", adminSummaryService.buildSecurityAuditRows(auditSnapshot.getAuditLogs(), isEn));
         return viewName;
     }
 
@@ -6256,7 +6436,7 @@ public class AdminMainController {
         }
         model.addAttribute("jobStatus", normalizedJobStatus);
         model.addAttribute("executionType", normalizedExecutionType);
-        model.addAttribute("schedulerSummary", buildSchedulerSummary(isEn));
+        model.addAttribute("schedulerSummary", adminSummaryService.getSchedulerSummary(isEn));
         model.addAttribute("schedulerJobRows", filteredRows);
         model.addAttribute("schedulerNodeRows", buildSchedulerNodeRows(isEn));
         model.addAttribute("schedulerExecutionRows", buildSchedulerExecutionRows(isEn));
@@ -6464,119 +6644,6 @@ public class AdminMainController {
         rows.add(mapOf("target", "198.51.100.42", "releaseAt", "2026-03-12 10:00", "condition", isEn ? "Auto release if no re-hit for 30 min" : "30분 재탐지 없으면 자동 해제"));
         rows.add(mapOf("target", "203.0.113.0/24", "releaseAt", "2026-03-12 18:00", "condition", isEn ? "Operator approval required" : "운영자 승인 후 해제"));
         return rows;
-    }
-
-    private List<RequestExecutionLogVO> loadSecurityAuditLogs() {
-        try {
-            return requestExecutionLogService.readRecent(300).stream()
-                    .filter(this::isSecurityAuditTarget)
-                    .collect(Collectors.toList());
-        } catch (Exception e) {
-            log.warn("Failed to load request execution logs for security audit.", e);
-            return Collections.emptyList();
-        }
-    }
-
-    private boolean isSecurityAuditTarget(RequestExecutionLogVO item) {
-        if (item == null) {
-            return false;
-        }
-        String decision = safeString(item.getCompanyScopeDecision()).toUpperCase(Locale.ROOT);
-        return !decision.isEmpty()
-                && ("DENY_MISSING_COMPANY_CONTEXT".equals(decision)
-                || "DENY_COMPANY_MISMATCH".equals(decision)
-                || "DENY_NO_ACTOR_COMPANY".equals(decision)
-                || "ALLOW_GLOBAL_NO_CONTEXT".equals(decision)
-                || "ALLOW_IMPLICIT_SELF".equals(decision)
-                || "DENY_GLOBAL_ONLY_ROUTE".equals(decision)
-                || "DENY_NO_COMPANY_SCOPE_PERMISSION".equals(decision));
-    }
-
-    private List<Map<String, String>> buildSecurityAuditSummary(List<RequestExecutionLogVO> auditLogs, boolean isEn) {
-        long deniedCount = auditLogs.stream()
-                .filter(item -> safeString(item.getCompanyScopeDecision()).startsWith("DENY_"))
-                .count();
-        long globalBypassCount = auditLogs.stream()
-                .filter(item -> "ALLOW_GLOBAL_NO_CONTEXT".equalsIgnoreCase(safeString(item.getCompanyScopeDecision())))
-                .count();
-        long implicitSelfCount = auditLogs.stream()
-                .filter(item -> "ALLOW_IMPLICIT_SELF".equalsIgnoreCase(safeString(item.getCompanyScopeDecision())))
-                .count();
-        long mismatchCount = auditLogs.stream()
-                .filter(item -> "DENY_COMPANY_MISMATCH".equalsIgnoreCase(safeString(item.getCompanyScopeDecision())))
-                .count();
-        List<Map<String, String>> rows = new ArrayList<>();
-        rows.add(summaryCard(isEn ? "Company Scope Denies" : "회사 스코프 차단", String.valueOf(deniedCount),
-                isEn ? "Blocked requests due to missing or mismatched company scope." : "회사 컨텍스트 누락 또는 불일치로 차단된 요청"));
-        rows.add(summaryCard(isEn ? "Global No-Context" : "전역 예외 허용", String.valueOf(globalBypassCount),
-                isEn ? "Global admin executions without an explicit company context." : "명시적 회사 ID 없이 허용된 전역 관리자 실행"));
-        rows.add(summaryCard(isEn ? "Implicit Self Scope" : "자기회사 암묵 적용", String.valueOf(implicitSelfCount),
-                isEn ? "Requests resolved to the actor company without an explicit company parameter." : "회사 ID 파라미터 없이 계정 회사로 해석된 요청"));
-        rows.add(summaryCard(isEn ? "Company Mismatch" : "회사 불일치", String.valueOf(mismatchCount),
-                isEn ? "Requests blocked because the target company did not match the actor company." : "대상 회사와 계정 회사가 달라 차단된 요청"));
-        return rows;
-    }
-
-    private List<Map<String, String>> buildSecurityAuditRows(List<RequestExecutionLogVO> auditLogs, boolean isEn) {
-        return auditLogs.stream()
-                .limit(50)
-                .map(item -> mapOf(
-                        "auditAt", safeString(item.getExecutedAt()),
-                        "actor", resolveSecurityAuditActor(item),
-                        "action", resolveSecurityAuditAction(item, isEn),
-                        "target", safeString(item.getRequestUri()),
-                        "detail", resolveSecurityAuditDetail(item, isEn)))
-                .collect(Collectors.toList());
-    }
-
-    private String resolveSecurityAuditActor(RequestExecutionLogVO item) {
-        String actor = safeString(item.getActorUserId());
-        String actorType = safeString(item.getActorType());
-        String insttId = safeString(item.getActorInsttId());
-        StringBuilder builder = new StringBuilder(actor.isEmpty() ? "-" : actor);
-        if (!actorType.isEmpty()) {
-            builder.append(" (").append(actorType).append(")");
-        }
-        if (!insttId.isEmpty()) {
-            builder.append(" / ").append(insttId);
-        }
-        return builder.toString();
-    }
-
-    private String resolveSecurityAuditAction(RequestExecutionLogVO item, boolean isEn) {
-        String decision = safeString(item.getCompanyScopeDecision()).toUpperCase(Locale.ROOT);
-        if ("DENY_MISSING_COMPANY_CONTEXT".equals(decision)) {
-            return isEn ? "Blocked missing company context" : "회사 컨텍스트 누락 차단";
-        }
-        if ("DENY_COMPANY_MISMATCH".equals(decision)) {
-            return isEn ? "Blocked company mismatch" : "회사 불일치 차단";
-        }
-        if ("DENY_NO_ACTOR_COMPANY".equals(decision)) {
-            return isEn ? "Blocked missing actor company" : "계정 회사 정보 누락 차단";
-        }
-        if ("ALLOW_GLOBAL_NO_CONTEXT".equals(decision)) {
-            return isEn ? "Allowed global execution without company context" : "회사 컨텍스트 없는 전역 관리자 허용";
-        }
-        if ("ALLOW_IMPLICIT_SELF".equals(decision)) {
-            return isEn ? "Allowed implicit self-company resolution" : "자기회사 암묵 해석 허용";
-        }
-        if ("DENY_GLOBAL_ONLY_ROUTE".equals(decision)) {
-            return isEn ? "Blocked global-only route" : "전체 관리자 전용 경로 차단";
-        }
-        return decision.isEmpty() ? (isEn ? "Request audit" : "요청 감사") : decision;
-    }
-
-    private String resolveSecurityAuditDetail(RequestExecutionLogVO item, boolean isEn) {
-        String actorInsttId = safeString(item.getActorInsttId());
-        String targetInsttId = safeString(item.getTargetCompanyContextId());
-        String explicit = item.isCompanyContextExplicit()
-                ? (isEn ? "Explicit context" : "명시적 컨텍스트")
-                : (isEn ? "Implicit/no parameter" : "암묵/파라미터 없음");
-        String reason = safeString(item.getCompanyScopeReason());
-        return (isEn ? "actor=" : "계정=") + (actorInsttId.isEmpty() ? "-" : actorInsttId)
-                + ", " + (isEn ? "target=" : "대상=") + (targetInsttId.isEmpty() ? "-" : targetInsttId)
-                + ", " + explicit
-                + (reason.isEmpty() ? "" : ", " + reason);
     }
 
     private List<Map<String, String>> buildSchedulerSummary(boolean isEn) {
@@ -6924,10 +6991,15 @@ public class AdminMainController {
         baselineFeatureCodes = filterFeatureCodeSetByGrantable(baselineFeatureCodes, grantableFeatureCodes);
         effectiveCodeSet = filterFeatureCodeSetByGrantable(effectiveCodeSet, grantableFeatureCodes);
 
-        Set<String> addedFeatureCodes = new LinkedHashSet<>(effectiveCodeSet);
-        addedFeatureCodes.removeAll(baselineFeatureCodes);
-        Set<String> removedFeatureCodes = new LinkedHashSet<>(baselineFeatureCodes);
-        removedFeatureCodes.removeAll(effectiveCodeSet);
+        FeatureCodeBitmap.Index featureBitmapIndex = buildFeatureBitmapIndex(
+                featureSections,
+                baselineFeatureCodes,
+                effectiveCodeSet,
+                grantableFeatureCodes);
+        BitSet baselineBitmap = featureBitmapIndex.encode(baselineFeatureCodes);
+        BitSet effectiveBitmap = featureBitmapIndex.encode(effectiveCodeSet);
+        Set<String> addedFeatureCodes = featureBitmapIndex.decode(featureBitmapIndex.difference(effectiveBitmap, baselineBitmap));
+        Set<String> removedFeatureCodes = featureBitmapIndex.decode(featureBitmapIndex.difference(baselineBitmap, effectiveBitmap));
 
         model.addAttribute("permissionAuthorGroups", safeAuthorGroups);
         model.addAttribute("permissionSelectedAuthorCode", normalizedAuthorCode);
@@ -6938,7 +7010,7 @@ public class AdminMainController {
         model.addAttribute("permissionAddedFeatureCodes", addedFeatureCodes);
         model.addAttribute("permissionRemovedFeatureCodes", removedFeatureCodes);
         model.addAttribute("permissionFeatureCount", effectiveCodeSet.size());
-        model.addAttribute("permissionPageCount", countSelectedPageCount(featureSections, new ArrayList<>(effectiveCodeSet)));
+        model.addAttribute("permissionPageCount", countSelectedPageCount(featureSections, featureBitmapIndex, effectiveBitmap));
     }
 
     private void populateAdminAccountCreatePageModel(Model model, boolean isEn) {
@@ -6981,11 +7053,7 @@ public class AdminMainController {
 
     private boolean containsAuthorCode(List<AuthorInfoVO> authorGroups, String authorCode) {
         String normalizedAuthorCode = safeString(authorCode).toUpperCase(Locale.ROOT);
-        return authorGroups != null && authorGroups.stream()
-                .map(AuthorInfoVO::getAuthorCode)
-                .map(this::safeString)
-                .map(value -> value.toUpperCase(Locale.ROOT))
-                .anyMatch(normalizedAuthorCode::equals);
+        return !normalizedAuthorCode.isEmpty() && buildAuthorCodeSet(authorGroups).contains(normalizedAuthorCode);
     }
 
     private String normalizeSelectedAuthorCode(String authorCode, List<AuthorInfoVO> authorGroups) {
@@ -6997,21 +7065,21 @@ public class AdminMainController {
     }
 
     private List<String> extractPayloadIds(Object selectedIds, String singleId) {
-        List<String> ids = new ArrayList<>();
+        Set<String> ids = new LinkedHashSet<>();
         String normalizedSingleId = safeString(singleId);
         if (!normalizedSingleId.isEmpty()) {
             ids.add(normalizedSingleId);
         }
         if (!(selectedIds instanceof List<?>)) {
-            return ids;
+            return new ArrayList<>(ids);
         }
         for (Object item : (List<?>) selectedIds) {
             String value = safeString(item == null ? null : item.toString());
-            if (!value.isEmpty() && !ids.contains(value)) {
+            if (!value.isEmpty()) {
                 ids.add(value);
             }
         }
-        return ids;
+        return new ArrayList<>(ids);
     }
 
     private List<String> normalizeFeatureCodes(List<String> featureCodes) {
@@ -7229,29 +7297,30 @@ public class AdminMainController {
                                                      Set<String> requestedManagedFeatureCodes,
                                                      Set<String> grantableFeatureCodes) {
         if (grantableFeatureCodes == null) {
-            return new LinkedHashSet<>(requestedManagedFeatureCodes);
+            return requestedManagedFeatureCodes == null ? new LinkedHashSet<>() : new LinkedHashSet<>(requestedManagedFeatureCodes);
         }
-        Set<String> merged = new LinkedHashSet<>(baselineFeatureCodes == null ? Collections.emptySet() : baselineFeatureCodes);
-        Set<String> currentEffective = currentEffectiveFeatureCodes == null ? Collections.emptySet() : currentEffectiveFeatureCodes;
-        for (String featureCode : currentEffective) {
-            if (!grantableFeatureCodes.contains(featureCode)) {
-                merged.add(featureCode);
-            }
-        }
-        if (baselineFeatureCodes != null) {
-            for (String featureCode : baselineFeatureCodes) {
-                if (!grantableFeatureCodes.contains(featureCode) && !currentEffective.contains(featureCode)) {
-                    merged.remove(featureCode);
-                }
-            }
-        }
-        merged.removeIf(grantableFeatureCodes::contains);
-        if (requestedManagedFeatureCodes != null) {
-            merged.addAll(requestedManagedFeatureCodes.stream()
-                    .filter(grantableFeatureCodes::contains)
-                    .collect(Collectors.toCollection(LinkedHashSet::new)));
-        }
-        return merged;
+        FeatureCodeBitmap.Index featureBitmapIndex = buildFeatureBitmapIndex(
+                null,
+                baselineFeatureCodes,
+                currentEffectiveFeatureCodes,
+                requestedManagedFeatureCodes,
+                grantableFeatureCodes);
+        BitSet mergedBitmap = featureBitmapIndex.encode(baselineFeatureCodes);
+        BitSet currentEffectiveBitmap = featureBitmapIndex.encode(currentEffectiveFeatureCodes);
+        BitSet grantableBitmap = featureBitmapIndex.encode(grantableFeatureCodes);
+
+        mergedBitmap.or(featureBitmapIndex.difference(currentEffectiveBitmap, grantableBitmap));
+
+        BitSet baselineBitmap = featureBitmapIndex.encode(baselineFeatureCodes);
+        BitSet unmanagedBaselineRemoved = featureBitmapIndex.difference(baselineBitmap, grantableBitmap);
+        unmanagedBaselineRemoved.andNot(currentEffectiveBitmap);
+        mergedBitmap.andNot(unmanagedBaselineRemoved);
+
+        mergedBitmap.andNot(grantableBitmap);
+        mergedBitmap.or(featureBitmapIndex.intersect(
+                featureBitmapIndex.encode(requestedManagedFeatureCodes),
+                grantableBitmap));
+        return featureBitmapIndex.decode(mergedBitmap);
     }
 
     private List<Map<String, String>> defaultMemberTypeOptions(boolean isEn) {
@@ -7613,71 +7682,4 @@ public class AdminMainController {
         return false;
     }
 
-    private static class EmissionResultSummaryView {
-        private final String resultId;
-        private final String projectName;
-        private final String companyName;
-        private final String calculatedAt;
-        private final String totalEmission;
-        private final String resultStatusCode;
-        private final String resultStatusLabel;
-        private final String verificationStatusCode;
-        private final String verificationStatusLabel;
-        private final String detailUrl;
-
-        private EmissionResultSummaryView(String resultId, String projectName, String companyName,
-                String calculatedAt, String totalEmission, String resultStatusCode, String resultStatusLabel,
-                String verificationStatusCode, String verificationStatusLabel, String detailUrl) {
-            this.resultId = resultId;
-            this.projectName = projectName;
-            this.companyName = companyName;
-            this.calculatedAt = calculatedAt;
-            this.totalEmission = totalEmission;
-            this.resultStatusCode = resultStatusCode;
-            this.resultStatusLabel = resultStatusLabel;
-            this.verificationStatusCode = verificationStatusCode;
-            this.verificationStatusLabel = verificationStatusLabel;
-            this.detailUrl = detailUrl;
-        }
-
-        public String getResultId() {
-            return resultId;
-        }
-
-        public String getProjectName() {
-            return projectName;
-        }
-
-        public String getCompanyName() {
-            return companyName;
-        }
-
-        public String getCalculatedAt() {
-            return calculatedAt;
-        }
-
-        public String getTotalEmission() {
-            return totalEmission;
-        }
-
-        public String getResultStatusCode() {
-            return resultStatusCode;
-        }
-
-        public String getResultStatusLabel() {
-            return resultStatusLabel;
-        }
-
-        public String getVerificationStatusCode() {
-            return verificationStatusCode;
-        }
-
-        public String getVerificationStatusLabel() {
-            return verificationStatusLabel;
-        }
-
-        public String getDetailUrl() {
-            return detailUrl;
-        }
-    }
 }

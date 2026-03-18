@@ -24,6 +24,7 @@ public class ReactAppAssetResolver {
     private final ResourceLoader resourceLoader;
     private final String fallbackJs;
     private final String fallbackCss;
+    private volatile CachedAssets cachedAssets;
 
     public ReactAppAssetResolver(
             ObjectMapper objectMapper,
@@ -42,24 +43,19 @@ public class ReactAppAssetResolver {
             return versionedAssets(fallbackJs, fallbackCss, "fallback");
         }
 
-        try (InputStream inputStream = manifestResource.getInputStream()) {
-            Map<String, ManifestEntry> manifest = objectMapper.readValue(inputStream, new TypeReference<Map<String, ManifestEntry>>() {
-            });
-            ManifestEntry entry = manifest.get(ENTRY_KEY);
-            if (entry == null) {
-                entry = manifest.get(FALLBACK_ENTRY_KEY);
+        long lastModified = readLastModified(manifestResource);
+        CachedAssets snapshot = cachedAssets;
+        if (snapshot != null && snapshot.matches(lastModified)) {
+            return snapshot.getAssets();
+        }
+        synchronized (this) {
+            snapshot = cachedAssets;
+            if (snapshot != null && snapshot.matches(lastModified)) {
+                return snapshot.getAssets();
             }
-            if (entry == null || isBlank(entry.getFile())) {
-                return versionedAssets(fallbackJs, fallbackCss, "fallback");
-            }
-
-            String jsPath = toPublicAssetPath(entry.getFile());
-            String cssPath = firstCssPath(entry.getCss());
-            String resolvedCssPath = cssPath == null ? fallbackCss : cssPath;
-            String versionToken = buildVersionToken(entry.getFile(), resolvedCssPath);
-            return versionedAssets(jsPath, resolvedCssPath, versionToken);
-        } catch (IOException ex) {
-            return versionedAssets(fallbackJs, fallbackCss, "fallback");
+            ReactAppAssets assets = loadAssets(manifestResource);
+            cachedAssets = new CachedAssets(lastModified, assets);
+            return assets;
         }
     }
 
@@ -88,6 +84,36 @@ public class ReactAppAssetResolver {
 
     private String buildVersionToken(String jsFile, String cssPath) {
         return Integer.toHexString((safeValue(jsFile) + "|" + safeValue(cssPath)).hashCode());
+    }
+
+    private ReactAppAssets loadAssets(Resource manifestResource) {
+        try (InputStream inputStream = manifestResource.getInputStream()) {
+            Map<String, ManifestEntry> manifest = objectMapper.readValue(inputStream, new TypeReference<Map<String, ManifestEntry>>() {
+            });
+            ManifestEntry entry = manifest.get(ENTRY_KEY);
+            if (entry == null) {
+                entry = manifest.get(FALLBACK_ENTRY_KEY);
+            }
+            if (entry == null || isBlank(entry.getFile())) {
+                return versionedAssets(fallbackJs, fallbackCss, "fallback");
+            }
+
+            String jsPath = toPublicAssetPath(entry.getFile());
+            String cssPath = firstCssPath(entry.getCss());
+            String resolvedCssPath = cssPath == null ? fallbackCss : cssPath;
+            String versionToken = buildVersionToken(entry.getFile(), resolvedCssPath);
+            return versionedAssets(jsPath, resolvedCssPath, versionToken);
+        } catch (IOException ex) {
+            return versionedAssets(fallbackJs, fallbackCss, "fallback");
+        }
+    }
+
+    private long readLastModified(Resource manifestResource) {
+        try {
+            return manifestResource.lastModified();
+        } catch (IOException ignored) {
+            return -1L;
+        }
     }
 
     private String safeValue(String value) {
@@ -134,6 +160,24 @@ public class ReactAppAssetResolver {
 
         public void setCss(List<String> css) {
             this.css = css;
+        }
+    }
+
+    private static final class CachedAssets {
+        private final long lastModified;
+        private final ReactAppAssets assets;
+
+        private CachedAssets(long lastModified, ReactAppAssets assets) {
+            this.lastModified = lastModified;
+            this.assets = assets;
+        }
+
+        private boolean matches(long otherLastModified) {
+            return lastModified == otherLastModified;
+        }
+
+        private ReactAppAssets getAssets() {
+            return assets;
         }
     }
 }

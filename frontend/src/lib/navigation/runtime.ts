@@ -7,6 +7,19 @@ declare global {
       devUrl?: string;
       prodJs?: string;
     };
+    __CARBONET_REACT_BOOTSTRAP__?: {
+      frontendSession?: unknown;
+      adminMenuTree?: unknown;
+      homePayload?: unknown;
+      mypagePayload?: unknown;
+      mypageContext?: unknown;
+      memberStatsPageData?: unknown;
+      securityPolicyPageData?: unknown;
+      securityMonitoringPageData?: unknown;
+      securityAuditPageData?: unknown;
+      schedulerManagementPageData?: unknown;
+      emissionResultListPageData?: unknown;
+    };
   }
 }
 
@@ -65,7 +78,11 @@ export function getNavigationEventName() {
 }
 
 export function getCsrfMeta() {
-  const token = document.querySelector('meta[name="_csrf"]')?.getAttribute("content") || "";
-  const headerName = document.querySelector('meta[name="_csrf_header"]')?.getAttribute("content") || "X-CSRF-TOKEN";
+  const token = document.querySelector('meta[name="_csrf"]')?.getAttribute("content")
+    || (document.getElementById("admin-csrf-token") as HTMLInputElement | null)?.value
+    || "";
+  const headerName = document.querySelector('meta[name="_csrf_header"]')?.getAttribute("content")
+    || (document.getElementById("admin-csrf-header") as HTMLInputElement | null)?.value
+    || "X-CSRF-TOKEN";
   return { token, headerName };
 }

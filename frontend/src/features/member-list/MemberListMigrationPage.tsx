@@ -115,7 +115,7 @@ export function MemberListMigrationPage() {
     applyFilters(1);
   }
 
-  const fieldClassName = "w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white text-sm focus:ring-[var(--kr-gov-focus)] focus:border-[var(--kr-gov-focus)]";
+  const fieldClassName = "w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white text-sm focus:ring-[var(--kr-gov-focus)] focus:border-[var(--kr-gov-focus)]";
   const pagerButtonClassName = "p-1 rounded hover:bg-white border border-transparent hover:border-gray-200 disabled:opacity-40";
 
   return (

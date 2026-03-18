@@ -216,7 +216,7 @@ export function PageManagementMigrationPage() {
       ) : null}
       {page?.pageMgmtMessage ? <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{String(page.pageMgmtMessage)}</div> : null}
 
-      <section className="gov-card mb-8">
+      <section className="gov-card mb-8" data-help-id="page-management-register">
         <div className="mb-4 flex items-center gap-2 border-b pb-4">
           <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">web</span>
           <h3 className="text-lg font-bold">{en ? "Register Page" : "페이지 등록"}</h3>
@@ -271,7 +271,7 @@ export function PageManagementMigrationPage() {
         </form>
       </section>
 
-      <section className="gov-card">
+      <section className="gov-card" data-help-id="page-management-list">
         <div className="mb-4 flex items-center gap-2 border-b pb-4">
           <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">travel_explore</span>
           <h3 className="text-lg font-bold">{en ? "Registered Pages" : "등록 페이지 목록"}</h3>

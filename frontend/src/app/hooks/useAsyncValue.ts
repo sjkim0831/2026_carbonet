@@ -5,6 +5,7 @@ type UseAsyncValueOptions<T> = {
   onSuccess?: (value: T) => void;
   onError?: (error: Error) => void;
   initialValue?: T | null;
+  skipInitialLoad?: boolean;
 };
 
 export function useAsyncValue<T>(
@@ -12,11 +13,12 @@ export function useAsyncValue<T>(
   deps: DependencyList,
   options: UseAsyncValueOptions<T> = {}
 ) {
-  const { enabled = true, onSuccess, onError, initialValue = null } = options;
+  const { enabled = true, onSuccess, onError, initialValue = null, skipInitialLoad = false } = options;
   const [value, setValue] = useState<T | null>(initialValue);
-  const [loading, setLoading] = useState(enabled);
+  const [loading, setLoading] = useState(enabled && !(skipInitialLoad && initialValue !== null));
   const [error, setError] = useState("");
   const requestIdRef = useRef(0);
+  const initialLoadSkippedRef = useRef(false);
 
   async function reload() {
     if (!enabled) {
@@ -53,8 +55,13 @@ export function useAsyncValue<T>(
   }
 
   useEffect(() => {
+    if (skipInitialLoad && initialValue !== null && !initialLoadSkippedRef.current) {
+      initialLoadSkippedRef.current = true;
+      setLoading(false);
+      return;
+    }
     void reload();
-  }, [enabled, ...deps]);
+  }, [enabled, initialValue, skipInitialLoad, ...deps]);
 
   return {
     value,

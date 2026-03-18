@@ -89,7 +89,7 @@ export function AdminPermissionMigrationPage() {
       {page?.adminPermissionUpdated ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{text(page, "관리자 권한이 저장되었습니다.", "Administrator permissions have been saved.")}</section> : null}
       {message ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{message}</section> : null}
       <CanView allowed={!!page?.canViewAdminPermissionEdit} fallback={<section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm"><p className="text-sm text-[var(--kr-gov-text-secondary)]">{text(page, "편집 대상 관리자를 조회하세요.", "Look up an administrator to edit.")}</p></section>}>
-        <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm mb-6">
+        <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm mb-6" data-help-id="admin-permission-summary">
           <div className="flex items-center gap-2 px-6 py-4 border-b border-[var(--kr-gov-border-light)]">
             <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">admin_panel_settings</span>
             <div>
@@ -110,7 +110,7 @@ export function AdminPermissionMigrationPage() {
             </div>
           </div>
         </section>
-        <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm">
+        <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm" data-help-id="admin-permission-features">
           <div className="flex items-center gap-2 px-6 py-4 border-b border-[var(--kr-gov-border-light)]">
             <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">shield</span>
             <div>

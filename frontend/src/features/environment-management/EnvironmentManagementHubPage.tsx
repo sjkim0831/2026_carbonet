@@ -1,17 +1,25 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
-import { PAGE_MANIFESTS } from "../../app/screen-registry/pageManifests";
+import { findManifestByMenuCodeOrRoutePath, normalizeManifestLookupPath } from "../../app/screen-registry/pageManifestIndex";
 import {
   autoCollectFullStackGovernanceRegistry,
+  deleteEnvironmentManagedPage,
+  deleteEnvironmentFeature,
+  fetchAuditEvents,
+  fetchEnvironmentManagedPageImpact,
   fetchFullStackGovernanceRegistry,
+  fetchEnvironmentFeatureImpact,
   fetchFunctionManagementPage,
   fetchMenuManagementPage,
   fetchScreenCommandPage,
+  fetchTraceEvents,
   getScreenCommandChainValues,
   type FullStackGovernanceRegistryEntry,
   type FunctionManagementPagePayload,
   type MenuManagementPagePayload,
-  type ScreenCommandPagePayload
+  type ScreenCommandPagePayload,
+  updateEnvironmentFeature,
+  updateEnvironmentManagedPage
 } from "../../lib/api/client";
 import { buildLocalizedPath, getCsrfMeta, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
@@ -35,6 +43,43 @@ type FeatureDraft = {
   featureNmEn: string;
   featureDc: string;
   useAt: string;
+};
+
+type SelectedMenuDraft = {
+  codeNm: string;
+  codeDc: string;
+  menuUrl: string;
+  menuIcon: string;
+  useAt: string;
+};
+
+type FeatureDeleteImpact = {
+  featureCode: string;
+  assignedRoleCount: number;
+  userOverrideCount: number;
+};
+
+type PageDeleteImpact = {
+  code: string;
+  defaultViewFeatureCode: string;
+  linkedFeatureCodes: string[];
+  nonDefaultFeatureCodes: string[];
+  defaultViewRoleRefCount: number;
+  defaultViewUserOverrideCount: number;
+  blocked: boolean;
+};
+
+type UrlValidation = {
+  tone: "neutral" | "success" | "warning";
+  message: string;
+};
+
+type GovernanceRemediationItem = {
+  title: string;
+  description: string;
+  href?: string;
+  actionLabel: string;
+  actionKind: "link" | "autoCollect" | "permissions";
 };
 
 type GovernanceOverview = {
@@ -185,13 +230,100 @@ function createEmptyFeatureDraft(): FeatureDraft {
   };
 }
 
-function normalizeLookupPath(value: string) {
+function createEmptySelectedMenuDraft(): SelectedMenuDraft {
+  return {
+    codeNm: "",
+    codeDc: "",
+    menuUrl: "",
+    menuIcon: "web",
+    useAt: "Y"
+  };
+}
+
+function validateManagedUrl(
+  value: string,
+  menuType: string,
+  rows: ManagedMenuRow[],
+  currentCode?: string,
+  en?: boolean
+): UrlValidation {
   const trimmed = value.trim();
   if (!trimmed) {
-    return "";
+    return {
+      tone: "warning",
+      message: en ? "URL is required." : "URL은 필수입니다."
+    };
   }
-  const withoutQuery = trimmed.split("?")[0] || "";
-  return withoutQuery.startsWith("/en/") ? withoutQuery.slice(3) : withoutQuery;
+  const normalized = toDisplayMenuUrl(trimmed);
+  const validPrefix = menuType === "USER"
+    ? (normalized.startsWith("/home") || normalized.startsWith("/en/home"))
+    : (normalized.startsWith("/admin/") || normalized.startsWith("/en/admin/"));
+  if (!validPrefix) {
+    return {
+      tone: "warning",
+      message: en
+        ? (menuType === "USER" ? "Home URLs must start with /home or /en/home." : "Admin URLs must start with /admin/ or /en/admin/.")
+        : (menuType === "USER" ? "홈 URL은 /home 또는 /en/home 으로 시작해야 합니다." : "관리자 URL은 /admin/ 또는 /en/admin/ 으로 시작해야 합니다.")
+    };
+  }
+  const duplicated = rows.find((row) => row.menuUrl === normalized && row.code !== (currentCode || ""));
+  if (duplicated) {
+    return {
+      tone: "warning",
+      message: en ? `URL is already used by ${duplicated.code}.` : `이미 ${duplicated.code} 메뉴가 사용하는 URL입니다.`
+    };
+  }
+  return {
+    tone: "success",
+    message: en ? "Available URL pattern." : "사용 가능한 URL 패턴입니다."
+  };
+}
+
+function parseAuditSnapshot(value: unknown): Record<string, unknown> | null {
+  if (!value) {
+    return null;
+  }
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : null;
+    } catch {
+      return null;
+    }
+  }
+  return typeof value === "object" ? value as Record<string, unknown> : null;
+}
+
+function summarizeMenuAuditDiff(row: Record<string, unknown>, en: boolean) {
+  const changedFields = Array.isArray(row.changedFields) ? row.changedFields as Array<Record<string, unknown>> : [];
+  if (changedFields.length > 0) {
+    return changedFields.slice(0, 3).map((field) => {
+      const label = String(field.field || "-");
+      const beforeValue = String(field.before || "-");
+      const afterValue = String(field.after || "-");
+      return `${label} ${beforeValue} -> ${afterValue}`;
+    }).join(" / ");
+  }
+  const before = parseAuditSnapshot(row.beforeSummaryJson || row.beforeData || row.beforeSummary);
+  const after = parseAuditSnapshot(row.afterSummaryJson || row.afterData || row.afterSummary);
+  if (!before || !after) {
+    return en ? "No interpreted diff available." : "해석 가능한 diff가 없습니다.";
+  }
+  const labels: Array<[string, string, string]> = [
+    ["codeNm", en ? "Name" : "메뉴명", ""],
+    ["codeDc", en ? "English name" : "영문명", ""],
+    ["menuUrl", "URL", ""],
+    ["menuIcon", en ? "Icon" : "아이콘", ""],
+    ["useAt", en ? "Use" : "사용 여부", ""]
+  ];
+  const changes = labels.flatMap(([key, label]) => {
+    const beforeValue = String(before[key] || "");
+    const afterValue = String(after[key] || "");
+    return beforeValue && afterValue && beforeValue !== afterValue
+      ? [`${label} ${beforeValue} -> ${afterValue}`]
+      : [];
+  });
+  return changes.length > 0 ? changes.join(" / ") : (en ? "No interpreted diff available." : "해석 가능한 diff가 없습니다.");
 }
 
 function resolveGovernancePageId(
@@ -206,18 +338,15 @@ function resolveGovernancePageId(
   if (knownPageId) {
     return knownPageId;
   }
-  const menuPath = normalizeLookupPath(selectedMenu.menuUrl);
+  const menuPath = normalizeManifestLookupPath(selectedMenu.menuUrl);
   const matchedCatalogPage = (pages || []).find((item) => (
     String(item.menuCode || "").toUpperCase() === menuCode
-      || normalizeLookupPath(String(item.routePath || "")) === menuPath
+      || normalizeManifestLookupPath(String(item.routePath || "")) === menuPath
   ));
   if (matchedCatalogPage?.pageId) {
     return String(matchedCatalogPage.pageId);
   }
-  const matchedManifest = Object.values(PAGE_MANIFESTS).find((manifest) => (
-    String(manifest.menuCode || "").toUpperCase() === menuCode
-      || normalizeLookupPath(String(manifest.routePath || "")) === menuPath
-  ));
+  const matchedManifest = findManifestByMenuCodeOrRoutePath(menuCode, menuPath);
   return matchedManifest?.pageId || "";
 }
 
@@ -410,6 +539,8 @@ export function EnvironmentManagementHubPage() {
   const initialMenuType = searchParams.get("menuType") || "ADMIN";
   const [menuType, setMenuType] = useState(initialMenuType);
   const [menuSearch, setMenuSearch] = useState(searchParams.get("keyword") || "");
+  const [featureSearch, setFeatureSearch] = useState("");
+  const [featureLinkFilter, setFeatureLinkFilter] = useState<"ALL" | "UNASSIGNED" | "LINKED">("ALL");
   const [selectedMenuCode, setSelectedMenuCode] = useState(
     resolveDefaultSelectedMenuCode(initialMenuType, searchParams.get("menuCode") || "")
   );
@@ -422,6 +553,20 @@ export function EnvironmentManagementHubPage() {
   const [menuIcon, setMenuIcon] = useState("web");
   const [useAt, setUseAt] = useState("Y");
   const [featureDraft, setFeatureDraft] = useState<FeatureDraft>(createEmptyFeatureDraft);
+  const [selectedMenuDraft, setSelectedMenuDraft] = useState<SelectedMenuDraft>(createEmptySelectedMenuDraft);
+  const [menuSaving, setMenuSaving] = useState(false);
+  const [pageDeleteImpactLoading, setPageDeleteImpactLoading] = useState(false);
+  const [pendingPageDeleteImpact, setPendingPageDeleteImpact] = useState<PageDeleteImpact | null>(null);
+  const [pageDeleting, setPageDeleting] = useState(false);
+  const [menuAuditRows, setMenuAuditRows] = useState<Array<Record<string, unknown>>>([]);
+  const [menuAuditLoading, setMenuAuditLoading] = useState(false);
+  const [editingFeatureCode, setEditingFeatureCode] = useState("");
+  const [editingFeatureDraft, setEditingFeatureDraft] = useState<FeatureDraft>(createEmptyFeatureDraft);
+  const [featureSaving, setFeatureSaving] = useState(false);
+  const [deleteImpactLoading, setDeleteImpactLoading] = useState(false);
+  const [deleteImpactFeatureCode, setDeleteImpactFeatureCode] = useState("");
+  const [pendingDeleteImpact, setPendingDeleteImpact] = useState<FeatureDeleteImpact | null>(null);
+  const [featureDeleting, setFeatureDeleting] = useState(false);
   const [governanceMessage, setGovernanceMessage] = useState("");
   const [governanceError, setGovernanceError] = useState("");
   const [screenCatalog, setScreenCatalog] = useState<ScreenCommandPagePayload | null>(null);
@@ -429,6 +574,10 @@ export function EnvironmentManagementHubPage() {
   const [registryEntry, setRegistryEntry] = useState<FullStackGovernanceRegistryEntry | null>(null);
   const [governanceLoading, setGovernanceLoading] = useState(false);
   const [collecting, setCollecting] = useState(false);
+  const [metadataExpanded, setMetadataExpanded] = useState(false);
+  const [postCollectAuditRows, setPostCollectAuditRows] = useState<Array<Record<string, unknown>>>([]);
+  const [postCollectTraceRows, setPostCollectTraceRows] = useState<Array<Record<string, unknown>>>([]);
+  const [lastAutoCollectAt, setLastAutoCollectAt] = useState("");
 
   const menuPageState = useAsyncValue<MenuManagementPagePayload>(() => fetchMenuManagementPage(menuType), [menuType]);
   const menuPage = menuPageState.value;
@@ -465,6 +614,29 @@ export function EnvironmentManagementHubPage() {
     () => menuRows.find((row) => row.code === selectedMenuCode) || null,
     [menuRows, selectedMenuCode]
   );
+  const filteredFeatureRows = useMemo(() => {
+    const keyword = featureSearch.trim().toLowerCase();
+    return featureRows.filter((row) => {
+      const featureCode = stringOf(row, "featureCode");
+      const featureNm = stringOf(row, "featureNm");
+      const featureDc = stringOf(row, "featureDc");
+      const unassigned = Boolean(row.unassignedToRole);
+      if (featureLinkFilter === "UNASSIGNED" && !unassigned) {
+        return false;
+      }
+      if (featureLinkFilter === "LINKED" && unassigned) {
+        return false;
+      }
+      if (!keyword) {
+        return true;
+      }
+      return (
+        featureCode.toLowerCase().includes(keyword)
+        || featureNm.toLowerCase().includes(keyword)
+        || featureDc.toLowerCase().includes(keyword)
+      );
+    });
+  }, [featureLinkFilter, featureRows, featureSearch]);
   const selectedMenuIsPage = selectedMenu?.code.length === 8;
   const governancePageId = useMemo(() => {
     return resolveGovernancePageId(selectedMenu, screenCatalog?.pages);
@@ -473,10 +645,126 @@ export function EnvironmentManagementHubPage() {
     () => buildGovernanceOverview(registryEntry, governancePage?.page || null),
     [governancePage?.page, registryEntry]
   );
+  const createUrlValidation = useMemo(
+    () => validateManagedUrl(menuUrl, menuType, menuRows, undefined, en),
+    [en, menuRows, menuType, menuUrl]
+  );
+  const selectedUrlValidation = useMemo(
+    () => validateManagedUrl(selectedMenuDraft.menuUrl, menuType, menuRows, selectedMenu?.code, en),
+    [en, menuRows, menuType, selectedMenu?.code, selectedMenuDraft.menuUrl]
+  );
   const governanceDraftOnly = useMemo(
     () => isDraftOnlyGovernancePage(registryEntry, governancePage?.page || null),
     [governancePage?.page, registryEntry]
   );
+  const governanceWarnings = useMemo(() => {
+    if (!selectedMenu || !selectedMenuIsPage) {
+      return [];
+    }
+    const warnings: string[] = [];
+    if (!governanceOverview.pageId) {
+      warnings.push(en ? "Screen-command registry is not linked yet." : "screen-command registry 연결이 아직 없습니다.");
+    }
+    if (governanceDraftOnly) {
+      warnings.push(en ? "Only draft registry is connected." : "draft registry만 연결된 상태입니다.");
+    }
+    if (governanceOverview.apiIds.length === 0) {
+      warnings.push(en ? "No backend API linkage collected." : "연결된 백엔드 API가 수집되지 않았습니다.");
+    }
+    if (governanceOverview.tableNames.length === 0) {
+      warnings.push(en ? "No DB table metadata collected." : "DB 테이블 메타데이터가 수집되지 않았습니다.");
+    }
+    if (featureRows.some((row) => Boolean(row.unassignedToRole))) {
+      warnings.push(en ? "Some features are still unassigned to permission groups." : "일부 기능이 아직 권한 그룹에 연결되지 않았습니다.");
+    }
+    return warnings;
+  }, [en, featureRows, governanceDraftOnly, governanceOverview.apiIds.length, governanceOverview.pageId, governanceOverview.tableNames.length, selectedMenu, selectedMenuIsPage]);
+  const permissionSummary = useMemo(() => {
+    const featureCount = featureRows.length;
+    const linkedFeatureCount = featureRows.filter((row) => !Boolean(row.unassignedToRole)).length;
+    const unassignedFeatureCount = featureRows.filter((row) => Boolean(row.unassignedToRole)).length;
+    const assignedRoleTotal = featureRows.reduce((sum, row) => sum + numberOf(row, "assignedRoleCount"), 0);
+    return {
+      featureCount,
+      linkedFeatureCount,
+      unassignedFeatureCount,
+      assignedRoleTotal
+    };
+  }, [featureRows]);
+  const governanceRemediationItems = useMemo<GovernanceRemediationItem[]>(() => {
+    const items: GovernanceRemediationItem[] = [];
+    if (!selectedMenu || !selectedMenuIsPage) {
+      return items;
+    }
+    if (!governanceOverview.pageId) {
+      items.push({
+        title: en ? "Link this menu to registry" : "이 메뉴를 registry에 연결",
+        description: en
+          ? "Create or save the page manifest so the menu is traceable from route to implementation."
+          : "페이지 manifest를 생성하거나 저장해 메뉴를 route와 구현 정보에 연결하세요.",
+        href: buildLocalizedPath("/admin/system/full-stack-management", "/en/admin/system/full-stack-management"),
+        actionLabel: en ? "Open Full-Stack Management" : "풀스택 관리 열기",
+        actionKind: "link"
+      });
+    }
+    if (governanceDraftOnly) {
+      items.push({
+        title: en ? "Promote draft metadata" : "draft 메타데이터 승격",
+        description: en
+          ? "Run auto-collection or save the screen registry so draft-only linkage becomes operational metadata."
+          : "자동 수집 또는 화면 registry 저장으로 draft 연결을 운영 메타데이터로 승격하세요.",
+        href: governancePageId ? undefined : buildLocalizedPath("/admin/system/platform-studio", "/en/admin/system/platform-studio"),
+        actionLabel: governancePageId ? (en ? "Run Auto Collect" : "자동 수집 실행") : (en ? "Open Platform Studio" : "플랫폼 스튜디오 열기"),
+        actionKind: governancePageId ? "autoCollect" : "link"
+      });
+    }
+    if (governanceOverview.apiIds.length === 0) {
+      items.push({
+        title: en ? "Collect backend API chain" : "백엔드 API 체인 수집",
+        description: en
+          ? "Review event-to-API mappings and persist controller/service/mapper linkage."
+          : "이벤트-API 매핑을 검토하고 controller/service/mapper 연결을 저장하세요.",
+        href: governancePageId ? undefined : buildLocalizedPath("/admin/system/platform-studio", "/en/admin/system/platform-studio"),
+        actionLabel: governancePageId ? (en ? "Run Auto Collect" : "자동 수집 실행") : (en ? "Review In Platform Studio" : "플랫폼 스튜디오에서 검토"),
+        actionKind: governancePageId ? "autoCollect" : "link"
+      });
+    }
+    if (governanceOverview.tableNames.length === 0) {
+      items.push({
+        title: en ? "Add DB metadata coverage" : "DB 메타데이터 보강",
+        description: en
+          ? "Register related schema and table metadata so operational impact can be traced before change."
+          : "관련 스키마와 테이블 메타데이터를 등록해 변경 전 영향도를 추적 가능하게 하세요.",
+        href: governancePageId ? undefined : buildLocalizedPath("/admin/system/full-stack-management", "/en/admin/system/full-stack-management"),
+        actionLabel: governancePageId ? (en ? "Run Auto Collect" : "자동 수집 실행") : (en ? "Review In Full-Stack Management" : "풀스택 관리에서 검토"),
+        actionKind: governancePageId ? "autoCollect" : "link"
+      });
+    }
+    if (permissionSummary.unassignedFeatureCount > 0) {
+      items.push({
+        title: en ? "Assign unlinked features to roles" : "미연결 기능을 권한 그룹에 할당",
+        description: en
+          ? "Open permission groups with the current menu scope and assign the remaining features."
+          : "현재 메뉴 범위로 권한 그룹 화면을 열어 남은 기능을 연결하세요.",
+        href: buildLocalizedPath(`/admin/auth/group?menuCode=${selectedMenu.code}`, `/en/admin/auth/group?menuCode=${selectedMenu.code}`),
+        actionLabel: en ? "Open Permission Groups" : "권한 그룹 열기",
+        actionKind: "permissions"
+      });
+    }
+    return items;
+  }, [en, governanceDraftOnly, governanceOverview.apiIds.length, governanceOverview.pageId, governanceOverview.tableNames.length, governancePageId, permissionSummary.unassignedFeatureCount, selectedMenu, selectedMenuIsPage]);
+  const selectedMenuDiff = useMemo(() => {
+    if (!selectedMenu) {
+      return [];
+    }
+    const changes: string[] = [];
+    if (selectedMenu.label !== selectedMenuDraft.codeNm) changes.push(`${en ? "Name" : "메뉴명"}: ${selectedMenu.label} -> ${selectedMenuDraft.codeNm}`);
+    if (selectedMenu.labelEn !== selectedMenuDraft.codeDc) changes.push(`${en ? "English name" : "영문명"}: ${selectedMenu.labelEn} -> ${selectedMenuDraft.codeDc}`);
+    if (selectedMenu.menuUrl !== selectedMenuDraft.menuUrl) changes.push(`URL: ${selectedMenu.menuUrl} -> ${selectedMenuDraft.menuUrl}`);
+    if (selectedMenu.menuIcon !== selectedMenuDraft.menuIcon) changes.push(`${en ? "Icon" : "아이콘"}: ${selectedMenu.menuIcon} -> ${selectedMenuDraft.menuIcon}`);
+    if (selectedMenu.useAt !== selectedMenuDraft.useAt) changes.push(`${en ? "Use" : "사용 여부"}: ${selectedMenu.useAt} -> ${selectedMenuDraft.useAt}`);
+    return changes;
+  }, [en, selectedMenu, selectedMenuDraft.codeDc, selectedMenuDraft.codeNm, selectedMenuDraft.menuIcon, selectedMenuDraft.menuUrl, selectedMenuDraft.useAt]);
   const governanceSurfaceChains = useMemo(
     () => buildSurfaceChains(governancePage?.page || null),
     [governancePage?.page]
@@ -496,6 +784,8 @@ export function EnvironmentManagementHubPage() {
     setActionError("");
     setActionMessage("");
     setMenuSearch("");
+    setFeatureSearch("");
+    setFeatureLinkFilter("ALL");
     setSelectedMenuCode(menuType === "ADMIN" ? ENVIRONMENT_MANAGEMENT_MENU_CODE : "");
     setParentCodeValue(stringOf(groupMenuOptions[0], "value"));
     setCodeNm("");
@@ -504,11 +794,104 @@ export function EnvironmentManagementHubPage() {
     setMenuIcon(iconOptions[0] || "web");
     setUseAt(useAtOptions[0] || "Y");
     setFeatureDraft(createEmptyFeatureDraft());
+    setSelectedMenuDraft(createEmptySelectedMenuDraft());
+    setMenuSaving(false);
+    setPageDeleteImpactLoading(false);
+    setPendingPageDeleteImpact(null);
+    setPageDeleting(false);
+    setEditingFeatureCode("");
+    setEditingFeatureDraft(createEmptyFeatureDraft());
+    setFeatureSaving(false);
+    setDeleteImpactLoading(false);
+    setDeleteImpactFeatureCode("");
+    setPendingDeleteImpact(null);
+    setFeatureDeleting(false);
     setGovernanceMessage("");
     setGovernanceError("");
     setGovernancePage(null);
     setRegistryEntry(null);
+    setMetadataExpanded(false);
+    setPostCollectAuditRows([]);
+    setPostCollectTraceRows([]);
+    setLastAutoCollectAt("");
   }, [menuType]);
+
+  useEffect(() => {
+    setMetadataExpanded(false);
+  }, [selectedMenuCode]);
+
+  useEffect(() => {
+    setPostCollectAuditRows([]);
+    setPostCollectTraceRows([]);
+    setLastAutoCollectAt("");
+  }, [selectedMenuCode]);
+
+  useEffect(() => {
+    setPendingPageDeleteImpact(null);
+  }, [selectedMenuCode]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadMenuAudit() {
+      if (!selectedMenu || !selectedMenuIsPage) {
+        setMenuAuditRows([]);
+        return;
+      }
+      setMenuAuditLoading(true);
+      try {
+        const response = await fetchAuditEvents({ menuCode: selectedMenu.code, pageSize: 5 });
+        if (!cancelled) {
+          setMenuAuditRows(Array.isArray(response.items) ? response.items : []);
+        }
+      } catch {
+        if (!cancelled) {
+          setMenuAuditRows([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setMenuAuditLoading(false);
+        }
+      }
+    }
+    void loadMenuAudit();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedMenu, selectedMenuIsPage]);
+
+  useEffect(() => {
+    if (!selectedMenu) {
+      setSelectedMenuDraft(createEmptySelectedMenuDraft());
+      return;
+    }
+    setSelectedMenuDraft({
+      codeNm: selectedMenu.label,
+      codeDc: selectedMenu.labelEn,
+      menuUrl: selectedMenu.menuUrl,
+      menuIcon: selectedMenu.menuIcon || (iconOptions[0] || "web"),
+      useAt: selectedMenu.useAt || (useAtOptions[0] || "Y")
+    });
+  }, [iconOptions, selectedMenu, useAtOptions]);
+
+  useEffect(() => {
+    if (!editingFeatureCode) {
+      setEditingFeatureDraft(createEmptyFeatureDraft());
+      setPendingDeleteImpact(null);
+      return;
+    }
+    const row = featureRows.find((item) => stringOf(item, "featureCode") === editingFeatureCode);
+    if (!row) {
+      setEditingFeatureDraft(createEmptyFeatureDraft());
+      return;
+    }
+    setEditingFeatureDraft({
+      featureCode: stringOf(row, "featureCode"),
+      featureNm: stringOf(row, "featureNm"),
+      featureNmEn: stringOf(row, "featureNmEn"),
+      featureDc: stringOf(row, "featureDc"),
+      useAt: stringOf(row, "useAt") || "Y"
+    });
+  }, [editingFeatureCode, featureRows]);
 
   useEffect(() => {
     if (!selectedMenuCode && menuRows.length > 0) {
@@ -629,16 +1012,148 @@ export function EnvironmentManagementHubPage() {
     }
   }
 
-  async function handleFeatureDelete(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleSelectedMenuSave() {
+    if (!selectedMenu) {
+      return;
+    }
     setActionError("");
     setActionMessage("");
+    setMenuSaving(true);
     try {
-      await submitFormRequest(event.currentTarget);
+      const response = await updateEnvironmentManagedPage({
+        menuType,
+        code: selectedMenu.code,
+        codeNm: selectedMenuDraft.codeNm,
+        codeDc: selectedMenuDraft.codeDc,
+        menuUrl: selectedMenuDraft.menuUrl,
+        menuIcon: selectedMenuDraft.menuIcon,
+        useAt: selectedMenuDraft.useAt
+      });
+      await menuPageState.reload();
       await featurePageState.reload();
-      setActionMessage(en ? "Feature has been deleted." : "기능을 삭제했습니다.");
+      setActionMessage(String(response.message || (en ? "The selected menu has been updated." : "선택한 메뉴를 수정했습니다.")));
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : (en ? "Failed to delete feature." : "기능 삭제에 실패했습니다."));
+      setActionError(error instanceof Error ? error.message : (en ? "Failed to update the selected menu." : "선택한 메뉴 수정에 실패했습니다."));
+    } finally {
+      setMenuSaving(false);
+    }
+  }
+
+  async function prepareFeatureDelete(featureCode: string) {
+    setActionError("");
+    setActionMessage("");
+    setDeleteImpactLoading(true);
+    setDeleteImpactFeatureCode(featureCode);
+    setPendingDeleteImpact(null);
+    try {
+      const response = await fetchEnvironmentFeatureImpact(featureCode);
+      setPendingDeleteImpact({
+        featureCode,
+        assignedRoleCount: numberOf(response, "assignedRoleCount"),
+        userOverrideCount: numberOf(response, "userOverrideCount")
+      });
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : (en ? "Failed to load delete impact." : "삭제 영향도를 불러오지 못했습니다."));
+    } finally {
+      setDeleteImpactLoading(false);
+    }
+  }
+
+  async function preparePageDelete() {
+    if (!selectedMenu) {
+      return;
+    }
+    setActionError("");
+    setActionMessage("");
+    setPageDeleteImpactLoading(true);
+    setPendingPageDeleteImpact(null);
+    try {
+      const response = await fetchEnvironmentManagedPageImpact(menuType, selectedMenu.code);
+      setPendingPageDeleteImpact({
+        code: String(response.code || selectedMenu.code),
+        defaultViewFeatureCode: String(response.defaultViewFeatureCode || `${selectedMenu.code}_VIEW`),
+        linkedFeatureCodes: Array.isArray(response.linkedFeatureCodes) ? response.linkedFeatureCodes.map(String) : [],
+        nonDefaultFeatureCodes: Array.isArray(response.nonDefaultFeatureCodes) ? response.nonDefaultFeatureCodes.map(String) : [],
+        defaultViewRoleRefCount: numberOf(response, "defaultViewRoleRefCount"),
+        defaultViewUserOverrideCount: numberOf(response, "defaultViewUserOverrideCount"),
+        blocked: Boolean(response.blocked)
+      });
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : (en ? "Failed to load page delete impact." : "페이지 삭제 영향도를 불러오지 못했습니다."));
+    } finally {
+      setPageDeleteImpactLoading(false);
+    }
+  }
+
+  async function confirmPageDelete() {
+    if (!selectedMenu || !pendingPageDeleteImpact || pendingPageDeleteImpact.blocked) {
+      return;
+    }
+    setActionError("");
+    setActionMessage("");
+    setPageDeleting(true);
+    try {
+      const response = await deleteEnvironmentManagedPage(menuType, selectedMenu.code);
+      await menuPageState.reload();
+      await featurePageState.reload();
+      setPendingPageDeleteImpact(null);
+      setEditingFeatureCode("");
+      setSelectedMenuCode("");
+      setActionMessage(String(response.message || (en ? "The page menu has been deleted." : "페이지 메뉴를 삭제했습니다.")));
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : (en ? "Failed to delete the selected page menu." : "선택한 페이지 메뉴 삭제에 실패했습니다."));
+    } finally {
+      setPageDeleting(false);
+    }
+  }
+
+  async function confirmFeatureDelete() {
+    if (!pendingDeleteImpact) {
+      return;
+    }
+    setActionError("");
+    setActionMessage("");
+    setFeatureDeleting(true);
+    try {
+      const response = await deleteEnvironmentFeature(pendingDeleteImpact.featureCode);
+      await featurePageState.reload();
+      setPendingDeleteImpact(null);
+      setDeleteImpactFeatureCode("");
+      if (editingFeatureCode === pendingDeleteImpact.featureCode) {
+        setEditingFeatureCode("");
+      }
+      setActionMessage(String(response.message || (en ? "The feature has been deleted." : "기능을 삭제했습니다.")));
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : (en ? "Failed to delete the feature." : "기능 삭제에 실패했습니다."));
+    } finally {
+      setFeatureDeleting(false);
+    }
+  }
+
+  async function handleFeatureUpdate() {
+    if (!selectedMenu || !editingFeatureCode) {
+      return;
+    }
+    setActionError("");
+    setActionMessage("");
+    setFeatureSaving(true);
+    try {
+      const response = await updateEnvironmentFeature({
+        menuType,
+        menuCode: selectedMenu.code,
+        featureCode: editingFeatureDraft.featureCode,
+        featureNm: editingFeatureDraft.featureNm,
+        featureNmEn: editingFeatureDraft.featureNmEn,
+        featureDc: editingFeatureDraft.featureDc,
+        useAt: editingFeatureDraft.useAt
+      });
+      await featurePageState.reload();
+      setActionMessage(String(response.message || (en ? "The feature has been updated." : "기능을 수정했습니다.")));
+      setPendingDeleteImpact(null);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : (en ? "Failed to update the feature." : "기능 수정에 실패했습니다."));
+    } finally {
+      setFeatureSaving(false);
     }
   }
 
@@ -663,7 +1178,15 @@ export function EnvironmentManagementHubPage() {
         save: true
       });
       setRegistryEntry(response.entry);
+      setMetadataExpanded(true);
       setGovernanceMessage(response.message || (en ? "Metadata collected and saved." : "메타데이터를 자동 수집하고 저장했습니다."));
+      setLastAutoCollectAt(new Date().toISOString());
+      const [auditResponse, traceResponse] = await Promise.all([
+        fetchAuditEvents({ menuCode: selectedMenu.code, pageId: governancePageId, pageSize: 3 }).catch(() => ({ items: [] })),
+        fetchTraceEvents({ pageId: governancePageId, pageSize: 3 }).catch(() => ({ items: [] }))
+      ]);
+      setPostCollectAuditRows(Array.isArray(auditResponse.items) ? auditResponse.items : []);
+      setPostCollectTraceRows(Array.isArray(traceResponse.items) ? traceResponse.items : []);
     } catch (error) {
       setGovernanceError(error instanceof Error ? error.message : (en ? "Failed to collect metadata." : "메타데이터 수집에 실패했습니다."));
     } finally {
@@ -674,6 +1197,31 @@ export function EnvironmentManagementHubPage() {
       await featurePageState.reload();
     } catch (error) {
       setGovernanceError(error instanceof Error ? error.message : (en ? "Failed to refresh metadata summary after collection." : "수집 후 메타데이터 요약 새로고침에 실패했습니다."));
+    }
+  }
+
+  function scrollToSection(sectionId: string) {
+    const target = document.getElementById(sectionId);
+    if (!target) {
+      return;
+    }
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function runGovernanceAction(item: GovernanceRemediationItem) {
+    if (item.actionKind === "autoCollect") {
+      setMetadataExpanded(true);
+      void handleAutoCollect();
+      return;
+    }
+    if (item.actionKind === "permissions") {
+      if (item.href) {
+        window.location.href = item.href;
+      }
+      return;
+    }
+    if (item.href) {
+      window.location.href = item.href;
     }
   }
 
@@ -715,6 +1263,20 @@ export function EnvironmentManagementHubPage() {
                 ? "Register the target menu under a group code, assign the runtime URL, let the default VIEW permission be created automatically, and then add page-specific feature codes without switching to multiple screens."
                 : "그룹 메뉴 아래에 대상 메뉴를 등록하고 URL을 할당하면 기본 VIEW 권한이 함께 생성됩니다. 이후 선택 메뉴 기준으로 기능 코드를 바로 추가해 여러 화면을 오가지 않도록 구성했습니다."}
             </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button className="gov-btn gov-btn-outline-blue" onClick={() => scrollToSection("environment-register-menu")} type="button">
+                {en ? "Register Menu" : "메뉴 등록"}
+              </button>
+              <button className="gov-btn gov-btn-outline-blue" onClick={() => scrollToSection("environment-search-menu")} type="button">
+                {en ? "Search Menu" : "메뉴 검색"}
+              </button>
+              <button className="gov-btn gov-btn-outline-blue" onClick={() => scrollToSection("environment-feature-management")} type="button">
+                {en ? "Manage Features" : "기능 관리"}
+              </button>
+              <button className="gov-btn gov-btn-outline-blue" onClick={() => scrollToSection("environment-metadata")} type="button">
+                {en ? "Metadata" : "메타데이터"}
+              </button>
+            </div>
           </div>
           <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 p-5">
             <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
@@ -726,13 +1288,23 @@ export function EnvironmentManagementHubPage() {
               <li className="rounded-lg border border-slate-200 bg-white px-3 py-2">{en ? "Default PAGE_CODE_VIEW feature" : "기본 PAGE_CODE_VIEW 기능"}</li>
               <li className="rounded-lg border border-slate-200 bg-white px-3 py-2">{en ? "Initial sort order under the same parent" : "같은 부모 메뉴 기준 초기 정렬 순서"}</li>
             </ul>
+            <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+              <div className="rounded-lg border border-slate-200 bg-white px-3 py-3">
+                <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Menus" : "메뉴 수"}</p>
+                <p className="mt-1 text-lg font-black text-[var(--kr-gov-text-primary)]">{filteredMenus.length}</p>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-white px-3 py-3">
+                <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Features" : "기능 수"}</p>
+                <p className="mt-1 text-lg font-black text-[var(--kr-gov-text-primary)]">{featureRows.length}</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+      <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]" data-help-id="environment-management-cards">
         <div className="space-y-6">
-          <section className="gov-card">
+          <section className="gov-card" id="environment-register-menu">
             <div className="flex items-center gap-2 border-b pb-4 mb-4">
               <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">add_circle</span>
               <h3 className="text-lg font-bold">{en ? "Register New Menu" : "신규 메뉴 등록"}</h3>
@@ -761,6 +1333,7 @@ export function EnvironmentManagementHubPage() {
               <div className="md:col-span-2">
                 <label className="gov-label" htmlFor="menuUrl">{en ? "Runtime URL" : "연결 URL"}</label>
                 <input className="gov-input" id="menuUrl" placeholder={menuType === "USER" ? "/home/..." : "/admin/system/..."} value={menuUrl} onChange={(event) => setMenuUrl(event.target.value)} />
+                <p className={`mt-2 text-xs ${createUrlValidation.tone === "success" ? "text-emerald-700" : "text-amber-700"}`}>{createUrlValidation.message}</p>
               </div>
               <div>
                 <label className="gov-label" htmlFor="menuIcon">{en ? "Icon" : "아이콘"}</label>
@@ -780,13 +1353,13 @@ export function EnvironmentManagementHubPage() {
               </div>
             </div>
             <div className="mt-4 flex justify-end">
-              <button className="gov-btn gov-btn-primary" onClick={() => { void createPageMenu().catch((error: Error) => setActionError(error.message)); }} type="button">
+              <button className="gov-btn gov-btn-primary" disabled={createUrlValidation.tone !== "success"} onClick={() => { void createPageMenu().catch((error: Error) => setActionError(error.message)); }} type="button">
                 {en ? "Create Menu + Default Permission" : "메뉴 등록 + 기본 권한 생성"}
               </button>
             </div>
           </section>
 
-          <section className="gov-card">
+          <section className="gov-card" id="environment-search-menu">
             <div className="flex items-center gap-2 border-b pb-4 mb-4">
               <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">search</span>
               <h3 className="text-lg font-bold">{en ? "Search Menu" : "메뉴 검색"}</h3>
@@ -812,13 +1385,29 @@ export function EnvironmentManagementHubPage() {
               </div>
             </div>
 
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex rounded-full bg-white px-3 py-1 font-bold text-[var(--kr-gov-text-primary)]">
+                  {en ? `Results ${filteredMenus.length}` : `검색 결과 ${filteredMenus.length}건`}
+                </span>
+                {selectedMenu ? (
+                  <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-[var(--kr-gov-text-secondary)]">
+                    {en ? "Selected" : "선택 메뉴"}: {selectedMenu.label} ({selectedMenu.code})
+                  </span>
+                ) : null}
+              </div>
+              <p className="text-[var(--kr-gov-text-secondary)]">
+                {en ? "Search by code, label, or runtime URL." : "코드, 메뉴명, URL 기준으로 바로 찾을 수 있습니다."}
+              </p>
+            </div>
+
             <div className="mt-4 overflow-x-auto">
               <table className="w-full text-sm text-left border-collapse">
                 <thead>
                   <tr className="gov-table-header">
                     <th className="px-4 py-3">{en ? "Menu" : "메뉴"}</th>
                     <th className="px-4 py-3">URL</th>
-                    <th className="px-4 py-3 text-center">{en ? "Default Permission" : "기본 권한"}</th>
+                    <th className="px-4 py-3 text-center">{en ? "Type" : "유형"}</th>
                     <th className="px-4 py-3 text-center">{en ? "Use" : "사용"}</th>
                     <th className="px-4 py-3 text-center">{en ? "Select" : "선택"}</th>
                   </tr>
@@ -839,7 +1428,11 @@ export function EnvironmentManagementHubPage() {
                           <p className="text-xs text-[var(--kr-gov-text-secondary)]">{row.code} / {row.parentCode}</p>
                         </td>
                         <td className="px-4 py-3 break-all text-[var(--kr-gov-text-secondary)]">{row.menuUrl}</td>
-                        <td className="px-4 py-3 text-center font-mono text-[13px]">{row.code}_VIEW</td>
+                        <td className="px-4 py-3 text-center">
+                          <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${row.code.length === 8 ? "bg-sky-100 text-sky-800" : "bg-slate-100 text-slate-700"}`}>
+                            {row.code.length === 8 ? (en ? "Page" : "페이지") : (en ? "Group" : "그룹")}
+                          </span>
+                        </td>
                         <td className="px-4 py-3 text-center">{row.useAt}</td>
                         <td className="px-4 py-3 text-center">
                           <button
@@ -863,10 +1456,10 @@ export function EnvironmentManagementHubPage() {
           <section className="gov-card min-w-0">
             <div className="flex items-center gap-2 border-b pb-4 mb-4">
               <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">tune</span>
-              <h3 className="text-lg font-bold">{en ? "Selected Menu" : "선택 메뉴"}</h3>
+              <h3 className="text-lg font-bold">{en ? "Selected Menu / Edit" : "선택 메뉴 / 수정"}</h3>
             </div>
             {selectedMenu ? (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
                   <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">Menu</p>
                   <p className="mt-1 text-lg font-black text-[var(--kr-gov-text-primary)]">{selectedMenu.label}</p>
@@ -886,18 +1479,201 @@ export function EnvironmentManagementHubPage() {
                     <dd className="font-mono text-[13px] text-[var(--kr-gov-text-primary)]">{selectedMenu.code}_VIEW</dd>
                   </div>
                 </dl>
+                <div className="rounded-[var(--kr-gov-radius)] border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-[var(--kr-gov-text-secondary)]">
+                  {en
+                    ? "This panel updates the selected page menu in place without leaving the screen."
+                    : "이 패널에서 화면 이동 없이 선택한 페이지 메뉴의 이름, URL, 아이콘, 사용 여부를 바로 수정합니다."}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <a className="gov-btn gov-btn-outline-blue" href={buildLocalizedPath("/admin/auth/group", "/en/admin/auth/group")}>
+                    {en ? "Open Permission Groups" : "권한 그룹 바로가기"}
+                  </a>
+                  <a className="gov-btn gov-btn-outline-blue" href={buildLocalizedPath(`/admin/system/feature-management?menuType=${encodeURIComponent(menuType)}&searchMenuCode=${encodeURIComponent(selectedMenu.code)}`, `/en/admin/system/feature-management?menuType=${encodeURIComponent(menuType)}&searchMenuCode=${encodeURIComponent(selectedMenu.code)}`)}>
+                    {en ? "Open Feature Management" : "기능 관리 바로가기"}
+                  </a>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
+                    <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Linked Features" : "연결 기능"}</p>
+                    <p className="mt-1 text-lg font-black text-[var(--kr-gov-text-primary)]">{permissionSummary.linkedFeatureCount} / {permissionSummary.featureCount}</p>
+                    <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">
+                      {en ? "Features already connected to at least one role group" : "권한 그룹에 1개 이상 연결된 기능 수"}
+                    </p>
+                  </div>
+                  <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
+                    <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Role Links" : "권한 연결 수"}</p>
+                    <p className="mt-1 text-lg font-black text-[var(--kr-gov-text-primary)]">{permissionSummary.assignedRoleTotal}</p>
+                    <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">
+                      {permissionSummary.unassignedFeatureCount > 0
+                        ? (en ? `${permissionSummary.unassignedFeatureCount} features still need review` : `${permissionSummary.unassignedFeatureCount}개 기능 추가 검토 필요`)
+                        : (en ? "All registered features are mapped" : "등록 기능이 모두 매핑됨")}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="gov-label" htmlFor="selectedMenuName">{en ? "Menu Name" : "메뉴명"}</label>
+                    <input className="gov-input" id="selectedMenuName" value={selectedMenuDraft.codeNm} onChange={(event) => setSelectedMenuDraft((current) => ({ ...current, codeNm: event.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="gov-label" htmlFor="selectedMenuNameEn">{en ? "Menu Name (EN)" : "영문 메뉴명"}</label>
+                    <input className="gov-input" id="selectedMenuNameEn" value={selectedMenuDraft.codeDc} onChange={(event) => setSelectedMenuDraft((current) => ({ ...current, codeDc: event.target.value }))} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="gov-label" htmlFor="selectedMenuUrl">{en ? "Runtime URL" : "연결 URL"}</label>
+                    <input className="gov-input" id="selectedMenuUrl" value={selectedMenuDraft.menuUrl} onChange={(event) => setSelectedMenuDraft((current) => ({ ...current, menuUrl: event.target.value }))} />
+                    <p className={`mt-2 text-xs ${selectedUrlValidation.tone === "success" ? "text-emerald-700" : "text-amber-700"}`}>{selectedUrlValidation.message}</p>
+                  </div>
+                  <div>
+                    <label className="gov-label" htmlFor="selectedMenuIcon">{en ? "Icon" : "아이콘"}</label>
+                    <select className="gov-select" id="selectedMenuIcon" value={selectedMenuDraft.menuIcon} onChange={(event) => setSelectedMenuDraft((current) => ({ ...current, menuIcon: event.target.value }))}>
+                      {iconOptions.map((icon) => (
+                        <option key={icon} value={icon}>{icon}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="gov-label" htmlFor="selectedMenuUseAt">{en ? "Use" : "사용 여부"}</label>
+                    <select className="gov-select" id="selectedMenuUseAt" value={selectedMenuDraft.useAt} onChange={(event) => setSelectedMenuDraft((current) => ({ ...current, useAt: event.target.value }))}>
+                      {useAtOptions.map((option) => (
+                        <option key={option} value={option}>{option}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-4">
+                  <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Change Diff" : "변경 Diff"}</p>
+                  {selectedMenuDiff.length === 0 ? (
+                    <p className="mt-2 text-sm text-emerald-700">{en ? "No pending menu changes." : "저장 전 메뉴 변경 사항이 없습니다."}</p>
+                  ) : (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {selectedMenuDiff.map((item) => (
+                        <span className="inline-flex rounded-full border border-blue-200 bg-white px-3 py-1 text-[11px] text-[var(--kr-gov-text-primary)]" key={item}>{item}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="flex justify-end">
+                  <button className="gov-btn gov-btn-primary" disabled={menuSaving || selectedUrlValidation.tone !== "success"} onClick={() => { void handleSelectedMenuSave(); }} type="button">
+                    {menuSaving ? (en ? "Saving..." : "저장 중...") : (en ? "Save Menu Changes" : "메뉴 변경 저장")}
+                  </button>
+                </div>
+                {selectedMenuIsPage ? (
+                  <div className="rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-[0.08em] text-red-700">{en ? "Delete Page Menu" : "페이지 메뉴 삭제"}</p>
+                        <p className="mt-2 text-sm leading-6 text-red-900">
+                          {en
+                            ? "Review feature dependencies and VIEW permission cleanup impact before deleting the selected page menu."
+                            : "선택한 페이지 메뉴를 삭제하기 전에 연결 기능과 기본 VIEW 권한 정리 영향을 먼저 확인합니다."}
+                        </p>
+                      </div>
+                      <button className="gov-btn gov-btn-danger" disabled={pageDeleteImpactLoading || pageDeleting} onClick={() => { void preparePageDelete(); }} type="button">
+                        {pageDeleteImpactLoading ? (en ? "Checking..." : "확인 중...") : (en ? "Review Delete Impact" : "삭제 영향 확인")}
+                      </button>
+                    </div>
+                    {pendingPageDeleteImpact ? (
+                      <div className="mt-4 space-y-3 rounded-[var(--kr-gov-radius)] border border-white/80 bg-white/70 px-4 py-4 text-sm">
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <div>
+                            <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Default VIEW" : "기본 VIEW"}</p>
+                            <p className="mt-1 font-mono text-[13px] text-[var(--kr-gov-text-primary)]">{pendingPageDeleteImpact.defaultViewFeatureCode}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Cleanup Impact" : "정리 영향"}</p>
+                            <p className="mt-1 text-[var(--kr-gov-text-primary)]">
+                              {en
+                                ? `Role mappings ${pendingPageDeleteImpact.defaultViewRoleRefCount}, user overrides ${pendingPageDeleteImpact.defaultViewUserOverrideCount}`
+                                : `권한그룹 매핑 ${pendingPageDeleteImpact.defaultViewRoleRefCount}건, 사용자 예외권한 ${pendingPageDeleteImpact.defaultViewUserOverrideCount}건`}
+                            </p>
+                          </div>
+                        </div>
+                        {pendingPageDeleteImpact.nonDefaultFeatureCodes.length > 0 ? (
+                          <div className="rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
+                            <p className="font-bold">{en ? "Delete blocked" : "삭제 차단"}</p>
+                            <p className="mt-2">
+                              {en
+                                ? "Delete the page-specific action features first. Remaining features:"
+                                : "페이지 전용 액션 기능을 먼저 삭제해 주세요. 남아 있는 기능:"}
+                            </p>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {pendingPageDeleteImpact.nonDefaultFeatureCodes.map((featureCode) => (
+                                <button
+                                  key={featureCode}
+                                  className="inline-flex rounded-full border border-amber-300 bg-white px-3 py-1 text-[12px] font-mono text-amber-900"
+                                  onClick={() => {
+                                    setEditingFeatureCode(featureCode);
+                                    scrollToSection("environment-feature-management");
+                                  }}
+                                  type="button"
+                                >
+                                  {featureCode}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-900">
+                            {en
+                              ? "No page-specific action features remain. You can delete this page menu."
+                              : "남아 있는 페이지 전용 액션 기능이 없습니다. 이 페이지 메뉴를 삭제할 수 있습니다."}
+                          </div>
+                        )}
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <button className="gov-btn gov-btn-outline-blue" onClick={() => setPendingPageDeleteImpact(null)} type="button">
+                            {en ? "Close" : "닫기"}
+                          </button>
+                          <button className="gov-btn gov-btn-danger" disabled={pageDeleting || pendingPageDeleteImpact.blocked} onClick={() => { void confirmPageDelete(); }} type="button">
+                            {pageDeleting ? (en ? "Deleting..." : "삭제 중...") : (en ? "Delete Page Menu" : "페이지 메뉴 삭제")}
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+                {selectedMenuIsPage ? (
+                  <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-4">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">history</span>
+                      <p className="font-bold text-[var(--kr-gov-text-primary)]">{en ? "Recent Changes" : "최근 변경 이력"}</p>
+                    </div>
+                    {menuAuditLoading ? (
+                      <p className="mt-3 text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Loading recent audit events..." : "최근 감사 이력을 불러오는 중입니다..."}</p>
+                    ) : menuAuditRows.length === 0 ? (
+                      <p className="mt-3 text-sm text-[var(--kr-gov-text-secondary)]">{en ? "No recent audit events for this menu." : "이 메뉴의 최근 감사 이력이 없습니다."}</p>
+                    ) : (
+                      <div className="mt-3 space-y-3">
+                        {menuAuditRows.map((row, index) => (
+                          <div key={`${stringOf(row, "auditId") || "audit"}-${index}`} className="rounded-[var(--kr-gov-radius)] border border-white bg-white px-4 py-3 text-sm">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <p className="font-bold text-[var(--kr-gov-text-primary)]">{stringOf(row, "actionCode") || "-"}</p>
+                              <span className="text-xs text-[var(--kr-gov-text-secondary)]">{stringOf(row, "createdAt") || "-"}</span>
+                            </div>
+                            <p className="mt-1 text-[var(--kr-gov-text-secondary)]">{en ? "Actor" : "작업자"}: {stringOf(row, "actorId") || "-"}</p>
+                            <p className="mt-1 text-[var(--kr-gov-text-secondary)]">{en ? "Result" : "결과"}: {stringOf(row, "resultStatus") || "-"}</p>
+                            {stringOf(row, "reasonSummary") ? <p className="mt-1 text-[var(--kr-gov-text-secondary)]">{stringOf(row, "reasonSummary")}</p> : null}
+                            <p className="mt-2 rounded-[var(--kr-gov-radius)] border border-blue-100 bg-blue-50 px-3 py-2 text-[12px] font-bold text-[var(--kr-gov-blue)]">
+                              {summarizeMenuAuditDiff(row, en)}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : null}
               </div>
             ) : (
               <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Select a menu to continue." : "작업할 메뉴를 먼저 선택하세요."}</p>
             )}
           </section>
 
-          <section className="gov-card">
+          <section className="gov-card" id="environment-feature-management">
             <div className="flex items-center gap-2 border-b pb-4 mb-4">
               <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">extension</span>
               <h3 className="text-lg font-bold">{en ? "Feature Add / Edit" : "기능 추가 / 편집"}</h3>
             </div>
-            {selectedMenu ? (
+            {selectedMenu && selectedMenuIsPage ? (
               <>
                 <form action={buildLocalizedPath("/admin/system/feature-management/create", "/en/admin/system/feature-management/create")} className="grid gap-4" method="post" onSubmit={handleFeatureSubmit}>
                   <input name="menuType" type="hidden" value={menuType} />
@@ -931,6 +1707,97 @@ export function EnvironmentManagementHubPage() {
                   </div>
                 </form>
 
+                {pendingDeleteImpact ? (
+                  <div className="mt-5 rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
+                    <p className="font-bold">
+                      {en ? "Delete Impact Review" : "삭제 영향 검토"}: {pendingDeleteImpact.featureCode}
+                    </p>
+                    <p className="mt-2">
+                      {en
+                        ? `Role mappings ${pendingDeleteImpact.assignedRoleCount}, user overrides ${pendingDeleteImpact.userOverrideCount} will be removed together.`
+                        : `권한그룹 매핑 ${pendingDeleteImpact.assignedRoleCount}건, 사용자 예외권한 ${pendingDeleteImpact.userOverrideCount}건이 함께 삭제됩니다.`}
+                    </p>
+                    <div className="mt-3 flex flex-wrap justify-end gap-2">
+                      <a className="gov-btn gov-btn-outline-blue" href={buildLocalizedPath("/admin/auth/group", "/en/admin/auth/group")}>
+                        {en ? "Review In Permission Groups" : "권한 그룹에서 검토"}
+                      </a>
+                      <button className="gov-btn gov-btn-outline-blue" onClick={() => { setPendingDeleteImpact(null); setDeleteImpactFeatureCode(""); }} type="button">
+                        {en ? "Cancel" : "취소"}
+                      </button>
+                      <button className="gov-btn gov-btn-danger" disabled={featureDeleting} onClick={() => { void confirmFeatureDelete(); }} type="button">
+                        {featureDeleting ? (en ? "Deleting..." : "삭제 중...") : (en ? "Confirm Delete" : "영향 확인 후 삭제")}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
+                {editingFeatureCode ? (
+                  <div className="mt-5 rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Editing Feature" : "수정 중 기능"}</p>
+                        <p className="mt-1 font-mono text-sm text-[var(--kr-gov-text-primary)]">{editingFeatureDraft.featureCode}</p>
+                      </div>
+                      <button className="gov-btn gov-btn-outline-blue" onClick={() => setEditingFeatureCode("")} type="button">
+                        {en ? "Close" : "닫기"}
+                      </button>
+                    </div>
+                    <div className="mt-4 grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="gov-label" htmlFor="editingFeatureNm">{en ? "Feature Name" : "기능명"}</label>
+                        <input className="gov-input" id="editingFeatureNm" value={editingFeatureDraft.featureNm} onChange={(event) => setEditingFeatureDraft((current) => ({ ...current, featureNm: event.target.value }))} />
+                      </div>
+                      <div>
+                        <label className="gov-label" htmlFor="editingFeatureNmEn">{en ? "Feature Name (EN)" : "영문 기능명"}</label>
+                        <input className="gov-input" id="editingFeatureNmEn" value={editingFeatureDraft.featureNmEn} onChange={(event) => setEditingFeatureDraft((current) => ({ ...current, featureNmEn: event.target.value }))} />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="gov-label" htmlFor="editingFeatureDc">{en ? "Description" : "설명"}</label>
+                        <input className="gov-input" id="editingFeatureDc" value={editingFeatureDraft.featureDc} onChange={(event) => setEditingFeatureDraft((current) => ({ ...current, featureDc: event.target.value }))} />
+                      </div>
+                      <div>
+                        <label className="gov-label" htmlFor="editingFeatureUseAt">{en ? "Use" : "사용 여부"}</label>
+                        <select className="gov-select" id="editingFeatureUseAt" value={editingFeatureDraft.useAt} onChange={(event) => setEditingFeatureDraft((current) => ({ ...current, useAt: event.target.value }))}>
+                          {((featurePage?.useAtOptions || ["Y", "N"]) as string[]).map((option) => (
+                            <option key={option} value={option}>{option}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex justify-end">
+                      <button className="gov-btn gov-btn-primary" disabled={featureSaving} onClick={() => { void handleFeatureUpdate(); }} type="button">
+                        {featureSaving ? (en ? "Saving..." : "저장 중...") : (en ? "Save Feature Changes" : "기능 변경 저장")}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="mt-5 grid gap-4 md:grid-cols-[1fr_12rem]">
+                  <div>
+                    <label className="gov-label" htmlFor="featureSearch">{en ? "Feature Search" : "기능 검색"}</label>
+                    <input
+                      className="gov-input"
+                      id="featureSearch"
+                      placeholder={en ? "Feature code, name, or description" : "기능 코드, 이름, 설명"}
+                      value={featureSearch}
+                      onChange={(event) => setFeatureSearch(event.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="gov-label" htmlFor="featureLinkFilter">{en ? "Link Status" : "연계 상태"}</label>
+                    <select
+                      className="gov-select"
+                      id="featureLinkFilter"
+                      value={featureLinkFilter}
+                      onChange={(event) => setFeatureLinkFilter(event.target.value as "ALL" | "UNASSIGNED" | "LINKED")}
+                    >
+                      <option value="ALL">{en ? "All" : "전체"}</option>
+                      <option value="UNASSIGNED">{en ? "Unassigned" : "미할당"}</option>
+                      <option value="LINKED">{en ? "Linked" : "연결됨"}</option>
+                    </select>
+                  </div>
+                </div>
+
                 <div className="mt-5 overflow-x-auto">
                   <table className="w-full text-sm text-left border-collapse">
                     <thead>
@@ -939,17 +1806,20 @@ export function EnvironmentManagementHubPage() {
                         <th className="px-4 py-3">{en ? "Feature Name" : "기능명"}</th>
                         <th className="px-4 py-3">{en ? "Description" : "설명"}</th>
                         <th className="px-4 py-3 text-center">{en ? "Authority" : "권한 연계"}</th>
+                        <th className="px-4 py-3 text-center">{en ? "Manage" : "관리"}</th>
                         <th className="px-4 py-3 text-center">{en ? "Delete" : "삭제"}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {featureRows.length === 0 ? (
+                      {filteredFeatureRows.length === 0 ? (
                         <tr>
-                          <td className="px-4 py-6 text-center text-gray-500" colSpan={5}>
-                            {en ? "No additional features have been registered yet." : "추가 등록된 기능이 아직 없습니다."}
+                          <td className="px-4 py-6 text-center text-gray-500" colSpan={6}>
+                            {featureRows.length === 0
+                              ? (en ? "No additional features have been registered yet." : "추가 등록된 기능이 아직 없습니다.")
+                              : (en ? "No features matched the current filter." : "현재 필터 조건에 맞는 기능이 없습니다.")}
                           </td>
                         </tr>
-                      ) : featureRows.map((row) => {
+                      ) : filteredFeatureRows.map((row) => {
                         const featureCode = stringOf(row, "featureCode");
                         const unassigned = Boolean(row.unassignedToRole);
                         return (
@@ -959,17 +1829,18 @@ export function EnvironmentManagementHubPage() {
                             <td className="px-4 py-3 text-[var(--kr-gov-text-secondary)]">{stringOf(row, "featureDc")}</td>
                             <td className="px-4 py-3 text-center">
                               <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ${unassigned ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"}`}>
-                                {unassigned ? (en ? "Unassigned" : "미할당") : (en ? "Linked" : "연결됨")}
+                                {unassigned ? (en ? "Unassigned" : "미할당") : `${en ? "Roles" : "Role"} ${numberOf(row, "assignedRoleCount")}`}
                               </span>
                             </td>
                             <td className="px-4 py-3 text-center">
-                              <form action={buildLocalizedPath("/admin/system/feature-management/delete", "/en/admin/system/feature-management/delete")} method="post" onSubmit={handleFeatureDelete}>
-                                <input name="featureCode" type="hidden" value={featureCode} />
-                                <input name="menuType" type="hidden" value={menuType} />
-                                <input name="searchMenuCode" type="hidden" value={selectedMenu.code} />
-                                <input name="searchKeyword" type="hidden" value="" />
-                                <button className="gov-btn gov-btn-danger" type="submit">{en ? "Delete" : "삭제"}</button>
-                              </form>
+                              <button className={editingFeatureCode === featureCode ? "gov-btn gov-btn-primary" : "gov-btn gov-btn-outline-blue"} onClick={() => setEditingFeatureCode(featureCode)} type="button">
+                                {editingFeatureCode === featureCode ? (en ? "Editing" : "수정 중") : (en ? "Edit" : "수정")}
+                              </button>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <button className="gov-btn gov-btn-danger" disabled={deleteImpactLoading && deleteImpactFeatureCode === featureCode} onClick={() => { void prepareFeatureDelete(featureCode); }} type="button">
+                                {deleteImpactLoading && deleteImpactFeatureCode === featureCode ? (en ? "Checking..." : "확인 중...") : (en ? "Delete" : "삭제")}
+                              </button>
                             </td>
                           </tr>
                         );
@@ -978,30 +1849,89 @@ export function EnvironmentManagementHubPage() {
                   </table>
                 </div>
               </>
+            ) : selectedMenu ? (
+              <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Only 8-digit page menus can own feature codes." : "기능 코드는 8자리 페이지 메뉴에서만 관리할 수 있습니다."}</p>
             ) : (
               <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "After selecting a menu, you can add and delete page-specific feature codes here." : "메뉴를 선택하면 여기서 페이지 전용 기능 코드를 추가하고 삭제할 수 있습니다."}</p>
             )}
           </section>
 
-          <section className="gov-card">
+          <section className="gov-card" id="environment-metadata">
             <div className="flex items-center justify-between gap-3 border-b pb-4 mb-4 flex-wrap">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">dataset</span>
                 <h3 className="text-lg font-bold">{en ? "Collected Metadata" : "수집 메타데이터"}</h3>
               </div>
-              <button
-                className="gov-btn gov-btn-primary"
-                disabled={!selectedMenuIsPage || collecting || governanceLoading}
-                onClick={() => { void handleAutoCollect(); }}
-                type="button"
-              >
-                {collecting ? (en ? "Collecting..." : "수집 중...") : (en ? "Auto Collect" : "자동 수집")}
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  className="gov-btn gov-btn-outline-blue"
+                  disabled={!selectedMenuIsPage && !governanceOverview.pageId}
+                  onClick={() => setMetadataExpanded((current) => !current)}
+                  type="button"
+                >
+                  {metadataExpanded ? (en ? "Collapse" : "접기") : (en ? "Expand" : "펼치기")}
+                </button>
+                <button
+                  className="gov-btn gov-btn-primary"
+                  disabled={!selectedMenuIsPage || collecting || governanceLoading}
+                  onClick={() => { void handleAutoCollect(); }}
+                  type="button"
+                >
+                  {collecting ? (en ? "Collecting..." : "수집 중...") : (en ? "Auto Collect" : "자동 수집")}
+                </button>
+              </div>
             </div>
 
             {governanceMessage ? (
               <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
                 {governanceMessage}
+              </div>
+            ) : null}
+            {lastAutoCollectAt && (postCollectAuditRows.length > 0 || postCollectTraceRows.length > 0) ? (
+              <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-blue-200 bg-blue-50 px-4 py-4 text-sm text-[var(--kr-gov-text-primary)]">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">task_alt</span>
+                  <p className="font-bold">{en ? "Latest Auto-Collect Result" : "최근 자동 수집 결과"}</p>
+                </div>
+                <p className="mt-2 text-[var(--kr-gov-text-secondary)]">
+                  {en ? "Collected metadata and linked the newest observability records." : "메타데이터 수집 직후 연결된 최신 observability 기록입니다."}
+                </p>
+                <div className="mt-3 grid gap-3 xl:grid-cols-2">
+                  <div className="rounded-[var(--kr-gov-radius)] border border-white bg-white px-4 py-3">
+                    <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">Audit</p>
+                    {postCollectAuditRows.length === 0 ? (
+                      <p className="mt-2 text-[var(--kr-gov-text-secondary)]">{en ? "No audit event was found yet." : "아직 연결된 감사 이력이 없습니다."}</p>
+                    ) : (
+                      <div className="mt-2 space-y-2">
+                        {postCollectAuditRows.map((row, index) => (
+                          <div className="rounded-[var(--kr-gov-radius)] border border-slate-100 bg-slate-50 px-3 py-2" key={`${stringOf(row, "auditId") || "audit"}-${index}`}>
+                            <p className="font-bold">{stringOf(row, "actionCode") || "-"}</p>
+                            <p className="mt-1 text-[12px] text-[var(--kr-gov-text-secondary)]">{stringOf(row, "createdAt") || "-"}</p>
+                            <p className="mt-1 text-[12px] text-[var(--kr-gov-blue)]">{summarizeMenuAuditDiff(row, en)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="rounded-[var(--kr-gov-radius)] border border-white bg-white px-4 py-3">
+                    <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">Trace</p>
+                    {postCollectTraceRows.length === 0 ? (
+                      <p className="mt-2 text-[var(--kr-gov-text-secondary)]">{en ? "No trace event was found yet." : "아직 연결된 trace 이벤트가 없습니다."}</p>
+                    ) : (
+                      <div className="mt-2 space-y-2">
+                        {postCollectTraceRows.map((row, index) => (
+                          <div className="rounded-[var(--kr-gov-radius)] border border-slate-100 bg-slate-50 px-3 py-2" key={`${stringOf(row, "traceId") || "trace"}-${index}`}>
+                            <p className="font-bold">{stringOf(row, "eventType") || stringOf(row, "functionId") || "-"}</p>
+                            <p className="mt-1 text-[12px] text-[var(--kr-gov-text-secondary)]">
+                              {[stringOf(row, "pageId"), stringOf(row, "apiId"), stringOf(row, "resultCode")].filter(Boolean).join(" / ") || "-"}
+                            </p>
+                            <p className="mt-1 text-[12px] text-[var(--kr-gov-text-secondary)]">{stringOf(row, "createdAt") || stringOf(row, "occurredAt") || "-"}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             ) : null}
             {governanceError ? (
@@ -1010,10 +1940,90 @@ export function EnvironmentManagementHubPage() {
               </div>
             ) : null}
 
+            <div className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
+              <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">Page</p>
+                <p className="mt-1 text-sm font-black text-[var(--kr-gov-text-primary)]">{governanceOverview.pageId || "-"}</p>
+              </div>
+              <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Events / APIs" : "이벤트 / API"}</p>
+                <p className="mt-1 text-sm font-black text-[var(--kr-gov-text-primary)]">{governanceOverview.eventIds.length} / {governanceOverview.apiIds.length}</p>
+              </div>
+              <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "DB Assets" : "DB 자원"}</p>
+                <p className="mt-1 text-sm font-black text-[var(--kr-gov-text-primary)]">{governanceOverview.tableNames.length} / {governanceOverview.columnNames.length}</p>
+              </div>
+              <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Feature Codes" : "기능 코드"}</p>
+                <p className="mt-1 text-sm font-black text-[var(--kr-gov-text-primary)]">{governanceOverview.featureCodes.length}</p>
+              </div>
+            </div>
+            {selectedMenu && selectedMenuIsPage ? (
+              <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <div className={`rounded-[var(--kr-gov-radius)] border px-4 py-3 ${governanceOverview.pageId ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
+                  <p className="text-xs font-black uppercase tracking-[0.08em]">{en ? "Registry" : "레지스트리"}</p>
+                  <p className="mt-1 text-sm font-bold">{governanceOverview.pageId ? (en ? "Linked" : "연결됨") : (en ? "Missing" : "누락")}</p>
+                </div>
+                <div className={`rounded-[var(--kr-gov-radius)] border px-4 py-3 ${featureRows.some((row) => Boolean(row.unassignedToRole)) ? "border-amber-200 bg-amber-50" : "border-emerald-200 bg-emerald-50"}`}>
+                  <p className="text-xs font-black uppercase tracking-[0.08em]">{en ? "Permissions" : "권한"}</p>
+                  <p className="mt-1 text-sm font-bold">{featureRows.some((row) => Boolean(row.unassignedToRole)) ? (en ? "Review required" : "검토 필요") : (en ? "Aligned" : "정상")}</p>
+                </div>
+                <div className={`rounded-[var(--kr-gov-radius)] border px-4 py-3 ${governanceOverview.apiIds.length > 0 ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
+                  <p className="text-xs font-black uppercase tracking-[0.08em]">API</p>
+                  <p className="mt-1 text-sm font-bold">{governanceOverview.apiIds.length > 0 ? (en ? "Collected" : "수집됨") : (en ? "Not collected" : "미수집")}</p>
+                </div>
+                <div className={`rounded-[var(--kr-gov-radius)] border px-4 py-3 ${governanceOverview.tableNames.length > 0 ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
+                  <p className="text-xs font-black uppercase tracking-[0.08em]">DB</p>
+                  <p className="mt-1 text-sm font-bold">{governanceOverview.tableNames.length > 0 ? (en ? "Collected" : "수집됨") : (en ? "Not collected" : "미수집")}</p>
+                </div>
+              </div>
+            ) : null}
+            {governanceWarnings.length > 0 ? (
+              <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <p className="font-bold">{en ? "Operational warnings" : "운영 경고"}</p>
+                <ul className="mt-2 space-y-1">
+                  {governanceWarnings.map((warning) => (
+                    <li key={warning}>- {warning}</li>
+                  ))}
+                </ul>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <a className="gov-btn gov-btn-outline-blue" href={buildLocalizedPath("/admin/system/full-stack-management", "/en/admin/system/full-stack-management")}>
+                    {en ? "Open Full-Stack Management" : "풀스택 관리 바로가기"}
+                  </a>
+                  <a className="gov-btn gov-btn-outline-blue" href={buildLocalizedPath("/admin/system/platform-studio", "/en/admin/system/platform-studio")}>
+                    {en ? "Open Platform Studio" : "플랫폼 스튜디오 바로가기"}
+                  </a>
+                </div>
+                {governanceRemediationItems.length > 0 ? (
+                  <div className="mt-4 grid gap-3 xl:grid-cols-2">
+                    {governanceRemediationItems.map((item) => (
+                      <article className="rounded-[var(--kr-gov-radius)] border border-white bg-white px-4 py-4 text-[13px] text-[var(--kr-gov-text-secondary)]" key={`${item.title}-${item.href || item.actionKind}`}>
+                        <p className="font-bold text-[var(--kr-gov-text-primary)]">{item.title}</p>
+                        <p className="mt-2 leading-6">{item.description}</p>
+                        <button
+                          className="mt-3 inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-[var(--kr-gov-blue)]"
+                          onClick={() => runGovernanceAction(item)}
+                          type="button"
+                        >
+                          {item.actionLabel}
+                        </button>
+                      </article>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
             {!selectedMenu ? (
               <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Select a menu to inspect connected page metadata." : "연결된 페이지 메타데이터를 보려면 메뉴를 먼저 선택하세요."}</p>
             ) : !selectedMenuIsPage ? (
               <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Only 8-digit page menus can display collected metadata." : "수집 메타데이터는 8자리 페이지 메뉴에서만 표시됩니다."}</p>
+            ) : !metadataExpanded ? (
+              <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-[var(--kr-gov-text-secondary)]">
+                {en
+                  ? "Detailed metadata is folded by default so the daily menu and feature workflow stays visible. Expand this area when you need the full governance chain."
+                  : "일상적인 메뉴/기능 작업이 먼저 보이도록 상세 메타데이터는 기본 접힘 상태입니다. 전체 거버넌스 체인이 필요할 때 펼쳐서 확인하세요."}
+              </div>
             ) : governanceDraftOnly ? (
               <div className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-3">

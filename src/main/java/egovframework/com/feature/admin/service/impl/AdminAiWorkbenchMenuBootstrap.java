@@ -3,7 +3,9 @@ package egovframework.com.feature.admin.service.impl;
 import egovframework.com.feature.admin.dto.request.CodexProvisionRequest;
 import egovframework.com.feature.admin.dto.response.CodexProvisionResponse;
 import egovframework.com.feature.admin.mapper.AuthGroupManageMapper;
+import egovframework.com.feature.admin.service.AdminCodeManageService;
 import egovframework.com.feature.admin.service.CodexProvisioningService;
+import egovframework.com.feature.admin.service.MenuFeatureManageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -32,6 +34,8 @@ public class AdminAiWorkbenchMenuBootstrap {
     private static final String GROUP_NAME_EN = "AI Workbench";
     private static final String HELP_MENU_CODE = "A1900101";
     private static final String SR_MENU_CODE = "A1900102";
+    private static final String CODEX_MENU_CODE = "A1900103";
+    private static final String WBS_MENU_CODE = "A1900104";
     private static final String ACTOR_ID = "SYSTEM_BOOTSTRAP";
     private static final List<String> STANDARD_ADMIN_ROLES = Arrays.asList(
             "ROLE_SYSTEM_MASTER",
@@ -42,11 +46,16 @@ public class AdminAiWorkbenchMenuBootstrap {
 
     private final CodexProvisioningService codexProvisioningService;
     private final AuthGroupManageMapper authGroupManageMapper;
+    private final AdminCodeManageService adminCodeManageService;
+    private final MenuFeatureManageService menuFeatureManageService;
 
     @EventListener(ApplicationReadyEvent.class)
     public void ensureAdminAiWorkbenchMenus() {
         provision("help-management", buildHelpManagementRequest());
         provision("sr-workbench", buildSrWorkbenchRequest());
+        provision("codex-request", buildCodexRequest());
+        provision("wbs-management", buildWbsManagementRequest());
+        cleanupLegacyMenus();
     }
 
     private void provision(String registrationId, CodexProvisionRequest request) {
@@ -108,6 +117,48 @@ public class AdminAiWorkbenchMenuBootstrap {
         return request;
     }
 
+    private CodexProvisionRequest buildCodexRequest() {
+        CodexProvisionRequest request = baseRequest("BOOTSTRAP-CODEX-REQUEST", "/admin/system/codex-request");
+        request.setPage(pageRequest(
+                CODEX_MENU_CODE,
+                "Codex 요청",
+                "Codex Request",
+                "/admin/system/codex-request",
+                "smart_toy"
+        ));
+        request.setFeatures(Arrays.asList(
+                featureRequest(CODEX_MENU_CODE, CODEX_MENU_CODE + "_VIEW", "Codex 요청 조회", "View Codex Request", "Codex request page access"),
+                featureRequest(CODEX_MENU_CODE, CODEX_MENU_CODE + "_EXECUTE", "Codex 요청 실행", "Execute Codex Request", "Codex request execution permission")
+        ));
+        request.setAuthors(Arrays.asList(
+                authorRequest("ROLE_SYSTEM_MASTER", "시스템 마스터", "System Master", CODEX_MENU_CODE + "_VIEW", CODEX_MENU_CODE + "_EXECUTE"),
+                authorRequest("ROLE_SYSTEM_ADMIN", "시스템 관리자", "System Administrator", CODEX_MENU_CODE + "_VIEW", CODEX_MENU_CODE + "_EXECUTE"),
+                authorRequest("ROLE_ADMIN", "일반 관리자", "General Administrator", CODEX_MENU_CODE + "_VIEW", CODEX_MENU_CODE + "_EXECUTE")
+        ));
+        return request;
+    }
+
+    private CodexProvisionRequest buildWbsManagementRequest() {
+        CodexProvisionRequest request = baseRequest("BOOTSTRAP-WBS-MANAGEMENT-AI", "/admin/system/wbs-management");
+        request.setPage(pageRequest(
+                WBS_MENU_CODE,
+                "WBS 관리",
+                "WBS Management",
+                "/admin/system/wbs-management",
+                "calendar_month"
+        ));
+        request.setFeatures(Arrays.asList(
+                featureRequest(WBS_MENU_CODE, WBS_MENU_CODE + "_VIEW", "WBS 관리 조회", "View WBS Management", "WBS management page access"),
+                featureRequest(WBS_MENU_CODE, WBS_MENU_CODE + "_EDIT", "WBS 관리 편집", "Edit WBS Management", "WBS schedule save permission")
+        ));
+        request.setAuthors(Arrays.asList(
+                authorRequest("ROLE_SYSTEM_MASTER", "시스템 마스터", "System Master", WBS_MENU_CODE + "_VIEW", WBS_MENU_CODE + "_EDIT"),
+                authorRequest("ROLE_SYSTEM_ADMIN", "시스템 관리자", "System Administrator", WBS_MENU_CODE + "_VIEW", WBS_MENU_CODE + "_EDIT"),
+                authorRequest("ROLE_ADMIN", "일반 관리자", "General Administrator", WBS_MENU_CODE + "_VIEW", WBS_MENU_CODE + "_EDIT")
+        ));
+        return request;
+    }
+
     private void reconcileStandardRoleAssignments(String registrationId) {
         Map<String, Set<String>> desiredByRole = buildDesiredFeatureCodesByRole();
         Set<String> targetFeatureCodes = new LinkedHashSet<>();
@@ -148,7 +199,11 @@ public class AdminAiWorkbenchMenuBootstrap {
                 SR_MENU_CODE + "_CREATE",
                 SR_MENU_CODE + "_APPROVE",
                 SR_MENU_CODE + "_PREPARE",
-                SR_MENU_CODE + "_EXECUTE"
+                SR_MENU_CODE + "_EXECUTE",
+                CODEX_MENU_CODE + "_VIEW",
+                CODEX_MENU_CODE + "_EXECUTE",
+                WBS_MENU_CODE + "_VIEW",
+                WBS_MENU_CODE + "_EDIT"
         ));
         desired.put("ROLE_SYSTEM_ADMIN", linkedSet(
                 HELP_MENU_CODE + "_VIEW",
@@ -157,16 +212,42 @@ public class AdminAiWorkbenchMenuBootstrap {
                 SR_MENU_CODE + "_CREATE",
                 SR_MENU_CODE + "_APPROVE",
                 SR_MENU_CODE + "_PREPARE",
-                SR_MENU_CODE + "_EXECUTE"
+                SR_MENU_CODE + "_EXECUTE",
+                CODEX_MENU_CODE + "_VIEW",
+                CODEX_MENU_CODE + "_EXECUTE",
+                WBS_MENU_CODE + "_VIEW",
+                WBS_MENU_CODE + "_EDIT"
         ));
         desired.put("ROLE_ADMIN", linkedSet(
                 HELP_MENU_CODE + "_VIEW",
                 HELP_MENU_CODE + "_EDIT",
                 SR_MENU_CODE + "_VIEW",
-                SR_MENU_CODE + "_CREATE"
+                SR_MENU_CODE + "_CREATE",
+                CODEX_MENU_CODE + "_VIEW",
+                CODEX_MENU_CODE + "_EXECUTE",
+                WBS_MENU_CODE + "_VIEW",
+                WBS_MENU_CODE + "_EDIT"
         ));
         desired.put("ROLE_OPERATION_ADMIN", Collections.emptySet());
         return desired;
+    }
+
+    private void cleanupLegacyMenus() {
+        cleanupLegacyMenu("A006", "A0060119", "A0060119_VIEW", "A0060119_EDIT");
+        cleanupLegacyMenu("A101", "A1010201", "A1010201_VIEW");
+    }
+
+    private void cleanupLegacyMenu(String codeId, String menuCode, String... featureCodes) {
+        try {
+            for (String featureCode : featureCodes) {
+                authGroupManageMapper.deleteAuthorFeatureRelationsByFeatureCode(featureCode);
+                menuFeatureManageService.deleteMenuFeature(featureCode);
+            }
+            adminCodeManageService.deletePageManagement(codeId, menuCode);
+            log.info("Legacy AI/system menu cleaned up. codeId={}, menuCode={}, featureCount={}", codeId, menuCode, featureCodes == null ? 0 : featureCodes.length);
+        } catch (Exception e) {
+            log.warn("Failed to clean up legacy AI/system menu. codeId={}, menuCode={}", codeId, menuCode, e);
+        }
     }
 
     private Set<String> linkedSet(String... values) {

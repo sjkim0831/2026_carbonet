@@ -1,17 +1,11 @@
-import { PAGE_MANIFESTS } from "../../app/screen-registry/pageManifests";
+import { findManifestByPageId } from "../../app/screen-registry/pageManifestIndex";
 
 function isExternalUrl(value: string) {
   return /^https?:\/\//i.test(value) || value === "#";
 }
 
-function normalizeRouteToken(value: string) {
-  return value.trim().toLowerCase().replace(/_/g, "-");
-}
-
 function findRoutePath(routeToken: string) {
-  const normalizedToken = normalizeRouteToken(routeToken);
-  const matched = Object.values(PAGE_MANIFESTS).find((manifest) => normalizeRouteToken(manifest.pageId) === normalizedToken);
-  return matched?.routePath || "";
+  return findManifestByPageId(routeToken)?.routePath || "";
 }
 
 function localizePath(path: string, english: boolean) {

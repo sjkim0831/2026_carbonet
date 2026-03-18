@@ -57,7 +57,7 @@ export function SystemCodeMigrationPage() {
         </section>
       ) : null}
 
-      <section className="gov-card mb-8">
+      <section className="gov-card mb-8" data-help-id="system-code-class">
         <div className="flex items-center gap-2 border-b pb-4 mb-4">
           <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">category</span>
           <h3 className="text-lg font-bold">{en ? "Class Codes" : "분류 코드"}</h3>
@@ -136,7 +136,7 @@ export function SystemCodeMigrationPage() {
         </div>
       </section>
 
-      <section className="gov-card mb-8">
+      <section className="gov-card mb-8" data-help-id="system-code-group">
         <div className="flex items-center gap-2 border-b pb-4 mb-4">
           <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">list_alt</span>
           <h3 className="text-lg font-bold">{en ? "Code IDs" : "코드 ID"}</h3>
@@ -234,7 +234,7 @@ export function SystemCodeMigrationPage() {
         </div>
       </section>
 
-      <section className="gov-card">
+      <section className="gov-card" data-help-id="system-code-detail">
         <div className="flex items-center gap-2 border-b pb-4 mb-4">
           <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">fact_check</span>
           <h3 className="text-lg font-bold">{en ? "Detail Codes" : "상세 코드"}</h3>

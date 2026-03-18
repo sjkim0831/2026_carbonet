@@ -86,7 +86,7 @@ export function LoginHistorySharedPage(props: Props) {
         <div />
         <div className="text-sm">{en ? "Total" : "전체"} <span className="font-bold text-[var(--kr-gov-blue)]">{Number(page?.totalCount || 0).toLocaleString()}</span>{en ? "" : "건"}</div>
       </div>
-      <section className="gov-card mb-6">
+      <section className="gov-card mb-6" data-help-id="login-history-search">
         <form className="grid grid-cols-1 md:grid-cols-4 gap-4" onSubmit={(event) => {
           event.preventDefault();
           setFilters({ ...draft, pageIndex: 1 });
@@ -119,7 +119,7 @@ export function LoginHistorySharedPage(props: Props) {
           </div>
         </form>
       </section>
-      <section className="gov-card p-0 overflow-hidden">
+      <section className="gov-card p-0 overflow-hidden" data-help-id="login-history-table">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left border-collapse">
             <thead>

@@ -104,12 +104,19 @@ security:
       history-file: ${SECURITY_CODEX_RUNNER_HISTORY_FILE:/tmp/carbonet-sr-codex-runner-history.jsonl}
       allowed-path-prefixes: ${SECURITY_CODEX_RUNNER_ALLOWED_PATH_PREFIXES:src/main/java,src/main/resources,frontend/src,docs/ai,ops/scripts}
       codex-command: ${SECURITY_CODEX_RUNNER_CODEX_COMMAND:}
+      plan-command: ${SECURITY_CODEX_RUNNER_PLAN_COMMAND:}
+      build-command: ${SECURITY_CODEX_RUNNER_BUILD_COMMAND:}
       backend-verify-command: ${SECURITY_CODEX_RUNNER_BACKEND_VERIFY_COMMAND:mvn -q -DskipTests package}
-      frontend-verify-command: ${SECURITY_CODEX_RUNNER_FRONTEND_VERIFY_COMMAND:npm run build}
+      frontend-verify-command: ${SECURITY_CODEX_RUNNER_FRONTEND_VERIFY_COMMAND:bash {repoRoot}/ops/scripts/codex-frontend-verify.sh {repoRoot} {diffFile}}
       frontend-verify-workdir: ${SECURITY_CODEX_RUNNER_FRONTEND_VERIFY_WORKDIR:frontend}
-      deploy-command: ${SECURITY_CODEX_RUNNER_DEPLOY_COMMAND:}
+      deploy-command: ${SECURITY_CODEX_RUNNER_DEPLOY_COMMAND:bash {repoRoot}/ops/scripts/codex-apply-and-deploy.sh {repoRoot} {diffFile}}
+      health-check-url: ${SECURITY_CODEX_RUNNER_HEALTH_CHECK_URL:http://127.0.0.1:18000/actuator/health}
+      health-check-timeout-seconds: ${SECURITY_CODEX_RUNNER_HEALTH_CHECK_TIMEOUT_SECONDS:60}
+      health-check-interval-seconds: ${SECURITY_CODEX_RUNNER_HEALTH_CHECK_INTERVAL_SECONDS:5}
+      rollback-command: ${SECURITY_CODEX_RUNNER_ROLLBACK_COMMAND:}
       command-timeout-seconds: ${SECURITY_CODEX_RUNNER_COMMAND_TIMEOUT_SECONDS:1800}
       verify-timeout-seconds: ${SECURITY_CODEX_RUNNER_VERIFY_TIMEOUT_SECONDS:1800}
+      require-approval-token: ${SECURITY_CODEX_RUNNER_REQUIRE_APPROVAL_TOKEN:false}
   request-log:
     enabled: ${SECURITY_REQUEST_LOG_ENABLED:true}
     file: ${SECURITY_REQUEST_LOG_FILE:/tmp/carbonet-request-execution-history.jsonl}

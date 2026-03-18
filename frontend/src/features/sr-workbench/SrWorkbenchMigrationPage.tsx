@@ -1,14 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import {
+  clearSrWorkbenchStack,
   approveSrTicket,
+  removeSrWorkbenchStackItem,
   createSrTicket,
+  directExecuteSrTicket,
   executeSrTicket,
   fetchScreenCommandPage,
   fetchSrWorkbenchPage,
   getScreenCommandChainText,
   getScreenCommandChainValues,
   prepareSrExecution,
+  planSrTicket,
+  quickExecuteSrTicket,
+  skipPlanExecuteSrTicket,
   ScreenCommandApi,
   ScreenCommandChangeTarget,
   ScreenCommandEvent,
@@ -16,6 +22,7 @@ import {
   ScreenCommandSchema,
   ScreenCommandSurface,
   SrTicketRow,
+  SrWorkbenchStackItem,
   SrWorkbenchPagePayload
 } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
@@ -104,6 +111,14 @@ function executionBadgeClass(status: string) {
   }
 }
 
+function canApprovedShortcut(ticket: SrTicketRow) {
+  return (ticket.status || "").toUpperCase() === "APPROVED";
+}
+
+function canExecuteTicket(ticket: SrTicketRow) {
+  return (ticket.executionStatus || "").toUpperCase() === "PLAN_COMPLETED";
+}
+
 export function SrWorkbenchMigrationPage() {
   const en = isEnglish();
   const embeddedInLegacyAdminShell = typeof document !== "undefined"
@@ -128,6 +143,7 @@ export function SrWorkbenchMigrationPage() {
   const [instruction, setInstruction] = useState("");
   const [approvalComment, setApprovalComment] = useState("");
   const [generatedDirection, setGeneratedDirection] = useState("");
+  const [selectedStackItemIds, setSelectedStackItemIds] = useState<string[]>([]);
   const [errorMessage, setError] = useState("");
   const [message, setMessage] = useState("");
   
@@ -145,6 +161,11 @@ export function SrWorkbenchMigrationPage() {
       setTargetId(commandPage.page.changeTargets[0].targetId || "");
     }
   }, [commandPage, surfaceId, targetId]);
+
+  useEffect(() => {
+    const validIds = new Set((workbench?.stackItems || []).map((item) => item.stackItemId));
+    setSelectedStackItemIds((current) => current.filter((item) => validIds.has(item)));
+  }, [workbench?.stackItems]);
 
   const page = commandPage?.page;
   const selectedSurface = useMemo(
@@ -250,6 +271,101 @@ export function SrWorkbenchMigrationPage() {
     }
   }
 
+  async function handleQuickExecuteDraft() {
+    setError("");
+    setMessage("");
+    try {
+      const response = await quickExecuteSrTicket({
+        pageId: page?.pageId || "",
+        pageLabel: page?.label || "",
+        routePath: page?.routePath || "",
+        menuCode: page?.menuCode || "",
+        menuLookupUrl: page?.menuLookupUrl || "",
+        surfaceId: selectedSurface?.surfaceId || "",
+        surfaceLabel: selectedSurface?.label || "",
+        eventId: selectedEvent?.eventId || "",
+        eventLabel: selectedEvent?.label || "",
+        targetId: selectedTarget?.targetId || "",
+        targetLabel: selectedTarget?.label || "",
+        summary,
+        instruction,
+        generatedDirection: generatedDirection || preview,
+        commandPrompt
+      });
+      setMessage(response.message);
+      setSummary("");
+      setInstruction("");
+      setGeneratedDirection("");
+      await refreshTickets();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : (en ? "Failed to quick execute SR ticket." : "바로 실행 티켓 처리 중 오류가 발생했습니다."));
+    }
+  }
+
+  async function handleCreateTicketFromStack() {
+    const stackItemIds = selectedStackItemIds.length > 0
+      ? selectedStackItemIds
+      : (workbench?.stackItems || []).map((item) => item.stackItemId);
+    if (stackItemIds.length === 0) {
+      setError(en ? "No stack items selected." : "선택된 스택 항목이 없습니다.");
+      return;
+    }
+    setError("");
+    setMessage("");
+    try {
+      const response = await createSrTicket({
+        pageId: "",
+        pageLabel: "",
+        routePath: "",
+        menuCode: "",
+        menuLookupUrl: "",
+        surfaceId: "",
+        surfaceLabel: "",
+        eventId: "",
+        eventLabel: "",
+        targetId: selectedTarget?.targetId || "",
+        targetLabel: selectedTarget?.label || "",
+        summary,
+        instruction,
+        generatedDirection: "",
+        commandPrompt: "",
+        stackItemIds
+      });
+      setMessage(response.message);
+      setSelectedStackItemIds([]);
+      setSummary("");
+      setInstruction("");
+      await refreshTickets();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : (en ? "Failed to create SR ticket from stack." : "스택 기반 SR 티켓 발행 중 오류가 발생했습니다."));
+    }
+  }
+
+  async function handleRemoveStackItem(stackItemId: string) {
+    setError("");
+    setMessage("");
+    try {
+      const response = await removeSrWorkbenchStackItem(stackItemId);
+      setMessage(response.message);
+      await refreshTickets();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : (en ? "Failed to remove stack item." : "스택 항목 제거 중 오류가 발생했습니다."));
+    }
+  }
+
+  async function handleClearStack() {
+    setError("");
+    setMessage("");
+    try {
+      const response = await clearSrWorkbenchStack();
+      setMessage(response.message);
+      setSelectedStackItemIds([]);
+      await refreshTickets();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : (en ? "Failed to clear stack." : "스택 비우기 중 오류가 발생했습니다."));
+    }
+  }
+
   async function handleApprove(ticketId: string, decision: "APPROVE" | "REJECT") {
     setError("");
     setMessage("");
@@ -287,6 +403,42 @@ export function SrWorkbenchMigrationPage() {
     }
   }
 
+  async function handleDirectExecute(ticketId: string) {
+    setError("");
+    setMessage("");
+    try {
+      const response = await directExecuteSrTicket(ticketId);
+      setMessage(response.message);
+      await refreshTickets();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : (en ? "Failed to direct execute Codex runner." : "Codex 바로 실행 중 오류가 발생했습니다."));
+    }
+  }
+
+  async function handleSkipPlanExecute(ticketId: string) {
+    setError("");
+    setMessage("");
+    try {
+      const response = await skipPlanExecuteSrTicket(ticketId);
+      setMessage(response.message);
+      await refreshTickets();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : (en ? "Failed to skip PLAN and execute Codex runner." : "계획 없이 Codex 실행 중 오류가 발생했습니다."));
+    }
+  }
+
+  async function handlePlan(ticketId: string) {
+    setError("");
+    setMessage("");
+    try {
+      const response = await planSrTicket(ticketId);
+      setMessage(response.message);
+      await refreshTickets();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : (en ? "Failed to generate Codex plan." : "Codex 계획 수립 중 오류가 발생했습니다."));
+    }
+  }
+
   const content = (
     <div className="space-y-6">
       <section className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-white px-5 py-4 shadow-sm">
@@ -311,7 +463,7 @@ export function SrWorkbenchMigrationPage() {
             </div>
             <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
               <p className="font-bold text-[var(--kr-gov-text-primary)]">{en ? "Ticket lifecycle" : "티켓 처리 흐름"}</p>
-              <p className="mt-1">{en ? "Draft -> Approval -> Prepare -> Execute" : "초안 -> 승인 -> 준비 -> 실행"}</p>
+              <p className="mt-1">{en ? "Draft -> Approval -> Prepare -> Plan -> Execute" : "초안 -> 승인 -> 준비 -> 계획 -> 실행"}</p>
             </div>
           </div>
         </div>
@@ -352,7 +504,7 @@ export function SrWorkbenchMigrationPage() {
         </article>
       </section>
 
-      <section className="gov-card">
+      <section className="gov-card" data-help-id="sr-ticket-draft">
         <div className="mb-6 flex flex-col gap-2 border-b border-[var(--kr-gov-border-light)] pb-4 md:flex-row md:items-end md:justify-between">
           <div>
             <h3 className="text-xl font-black text-[var(--kr-gov-text-primary)]">{en ? "SR Draft" : "SR 초안 작성"}</h3>
@@ -436,11 +588,70 @@ export function SrWorkbenchMigrationPage() {
           <button className="gov-btn gov-btn-primary" onClick={() => handleCreateTicket().catch(() => undefined)} type="button">
             {en ? "Create Ticket" : "SR 티켓 발행"}
           </button>
+          <button className="gov-btn gov-btn-outline-blue" onClick={() => handleQuickExecuteDraft().catch(() => undefined)} type="button">
+            {en ? "Create + Run Now" : "티켓 발행 후 바로 실행"}
+          </button>
+          <button className="gov-btn gov-btn-secondary" onClick={() => handleCreateTicketFromStack().catch(() => undefined)} type="button">
+            {en ? "Create From Stack" : "스택으로 티켓 발행"}
+          </button>
         </div>
       </section>
 
+      <section className="gov-card">
+        <div className="mb-6 flex flex-col gap-3 border-b border-[var(--kr-gov-border-light)] pb-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h3 className="text-xl font-black text-[var(--kr-gov-text-primary)]">{en ? "Workbench Stack" : "워크벤치 스택"}</h3>
+            <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+              {en ? "Right-click selections accumulate here and can be converted into one SR ticket." : "우클릭으로 모은 컨텍스트를 여기서 확인하고 하나의 SR 티켓으로 발행할 수 있습니다."}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button className="gov-btn gov-btn-outline" onClick={() => handleClearStack().catch(() => undefined)} type="button">
+              {en ? "Clear Stack" : "스택 비우기"}
+            </button>
+          </div>
+        </div>
+
+        {(workbench?.stackItems || []).length === 0 ? (
+          <div className="rounded-[var(--kr-gov-radius)] border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-sm text-[var(--kr-gov-text-secondary)]">
+            {en ? "No stacked context yet. Use right-click on a page element to collect it." : "아직 쌓인 컨텍스트가 없습니다. 페이지 요소에서 우클릭으로 스택에 추가하세요."}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {(workbench?.stackItems || []).map((item: SrWorkbenchStackItem) => (
+              <label key={item.stackItemId} className="flex gap-3 rounded-[var(--kr-gov-radius)] border border-slate-200 bg-white px-4 py-4 shadow-sm">
+                <input
+                  checked={selectedStackItemIds.includes(item.stackItemId)}
+                  onChange={() => setSelectedStackItemIds((current) => current.includes(item.stackItemId)
+                    ? current.filter((value) => value !== item.stackItemId)
+                    : [...current, item.stackItemId])}
+                  type="checkbox"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <div className="text-sm font-black text-[var(--kr-gov-text-primary)]">{item.summary || item.surfaceLabel || item.pageLabel || item.stackItemId}</div>
+                      <div className="mt-1 text-xs text-gray-500 break-all">{item.pageLabel || item.pageId} / {item.routePath || "-"}</div>
+                      <div className="mt-1 text-xs text-gray-500 break-all">{item.surfaceLabel || "-"} / {item.eventLabel || "-"} / {item.targetLabel || "-"}</div>
+                      <div className="mt-1 text-xs text-gray-500 break-all">{item.selector || item.componentId || "-"}</div>
+                      {item.instruction ? <div className="mt-2 text-sm text-[var(--kr-gov-text-primary)] whitespace-pre-wrap">{item.instruction}</div> : null}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-700">{item.createdAt || "-"}</span>
+                      <button className="gov-btn gov-btn-outline !h-[34px] !px-3 !text-[12px]" onClick={() => handleRemoveStackItem(item.stackItemId).catch(() => undefined)} type="button">
+                        {en ? "Remove" : "제거"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </label>
+            ))}
+          </div>
+        )}
+      </section>
+
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <article className="gov-card">
+        <article className="gov-card" data-help-id="sr-direction-preview">
           <div className="mb-4 border-b border-[var(--kr-gov-border-light)] pb-4">
             <h3 className="text-xl font-black text-[var(--kr-gov-text-primary)]">{en ? "Execution Context" : "실행 컨텍스트"}</h3>
             <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
@@ -495,7 +706,7 @@ export function SrWorkbenchMigrationPage() {
         </article>
       </section>
 
-      <section className="gov-card">
+      <section className="gov-card" data-help-id="sr-ticket-table">
         <div className="mb-6 flex flex-col gap-2 border-b border-[var(--kr-gov-border-light)] pb-4 md:flex-row md:items-end md:justify-between">
           <div>
             <h3 className="text-xl font-black text-[var(--kr-gov-text-primary)]">{en ? "Ticket Queue" : "티켓 대기열"}</h3>
@@ -555,6 +766,8 @@ export function SrWorkbenchMigrationPage() {
                     </span>
                     <div className="mt-2 space-y-1 text-xs text-gray-500">
                       <p>{ticket.executionComment || "-"}</p>
+                      {ticket.planRunId ? <p>planRunId: {ticket.planRunId}</p> : null}
+                      {ticket.planCompletedAt ? <p>plan completed: {ticket.planCompletedAt}</p> : null}
                       {ticket.executionRunId ? <p>runId: {ticket.executionRunId}</p> : null}
                       {ticket.executionCompletedAt ? <p>completed: {ticket.executionCompletedAt}</p> : null}
                       {ticket.executionChangedFiles ? <p>changed: {ticket.executionChangedFiles}</p> : null}
@@ -571,7 +784,16 @@ export function SrWorkbenchMigrationPage() {
                       <button className="gov-btn gov-btn-outline-blue !h-[38px] !px-4 !text-[13px]" onClick={() => handlePrepareExecution(ticket.ticketId).catch(() => undefined)} type="button">
                         {en ? "Prepare" : "실행 준비"}
                       </button>
-                      <button className="gov-btn gov-btn-primary !h-[38px] !px-4 !text-[13px]" onClick={() => handleExecute(ticket.ticketId).catch(() => undefined)} type="button">
+                      <button className="gov-btn gov-btn-outline-blue !h-[38px] !px-4 !text-[13px]" onClick={() => handlePlan(ticket.ticketId).catch(() => undefined)} type="button">
+                        {en ? "Plan" : "계획 수립"}
+                      </button>
+                      <button className="gov-btn gov-btn-outline-blue !h-[38px] !px-4 !text-[13px]" disabled={!canApprovedShortcut(ticket)} onClick={() => handleDirectExecute(ticket.ticketId).catch(() => undefined)} type="button">
+                        {en ? "Run Now" : "바로 실행"}
+                      </button>
+                      <button className="gov-btn gov-btn-outline-blue !h-[38px] !px-4 !text-[13px]" disabled={!canApprovedShortcut(ticket)} onClick={() => handleSkipPlanExecute(ticket.ticketId).catch(() => undefined)} type="button">
+                        {en ? "Skip Plan" : "계획 없이 실행"}
+                      </button>
+                      <button className="gov-btn gov-btn-primary !h-[38px] !px-4 !text-[13px]" disabled={!canExecuteTicket(ticket)} onClick={() => handleExecute(ticket.ticketId).catch(() => undefined)} type="button">
                         {en ? "Execute" : "Codex 실행"}
                       </button>
                     </div>

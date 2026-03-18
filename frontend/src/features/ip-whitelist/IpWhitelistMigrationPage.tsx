@@ -58,7 +58,7 @@ export function IpWhitelistMigrationPage() {
     >
       {pageState.error ? <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{pageState.error}</div> : null}
 
-      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6" data-help-id="ip-whitelist-summary">
         {summary.map((card, index) => (
           <article className="gov-card" key={`${card.title || card.value}-${index}`}>
             <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{card.title}</p>
@@ -68,7 +68,7 @@ export function IpWhitelistMigrationPage() {
         ))}
       </section>
 
-      <section className="gov-card mb-6">
+      <section className="gov-card mb-6" data-help-id="ip-whitelist-search">
         <div className="flex items-center gap-2 border-b pb-4 mb-4">
           <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">shield_with_house</span>
           <h3 className="text-lg font-bold">{en ? "Allowlist Search" : "허용 정책 조회"}</h3>
@@ -111,7 +111,7 @@ export function IpWhitelistMigrationPage() {
         </form>
       </section>
 
-      <section className="gov-card mb-6">
+      <section className="gov-card mb-6" data-help-id="ip-whitelist-table">
         <div className="flex items-center justify-between border-b pb-4 mb-4">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">vpn_lock</span>
@@ -157,7 +157,7 @@ export function IpWhitelistMigrationPage() {
       </section>
 
       <section className="grid grid-cols-1 xl:grid-cols-[1.3fr_0.9fr] gap-6">
-        <article className="gov-card">
+        <article className="gov-card" data-help-id="ip-whitelist-requests">
           <div className="flex items-center gap-2 border-b pb-4 mb-4">
             <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">approval</span>
             <h3 className="text-lg font-bold">{en ? "Approval Requests" : "승인 요청 현황"}</h3>

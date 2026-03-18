@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { buildLocalizedPath, getNavigationEventName, isEnglish, navigate } from "../../lib/navigation/runtime";
@@ -15,10 +15,12 @@ import {
   SummarySection
 } from "./HomeEntrySections";
 import { HomePayload } from "./homeEntryTypes";
+import { readBootstrappedHomePayload } from "../../lib/api/client";
 
 export function HomeLandingPage() {
   const en = isEnglish();
   const content = en ? LOCALIZED_CONTENT.en : LOCALIZED_CONTENT.ko;
+  const initialPayload = useMemo(() => readBootstrappedHomePayload() as HomePayload | null, []);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const payloadState = useAsyncValue<HomePayload>(
     async () => {
@@ -27,7 +29,8 @@ export function HomeLandingPage() {
     },
     [en],
     {
-      initialValue: { isLoggedIn: false, isEn: en, homeMenu: [] },
+      initialValue: initialPayload || { isLoggedIn: false, isEn: en, homeMenu: [] },
+      skipInitialLoad: Boolean(initialPayload),
       onError: () => undefined
     }
   );

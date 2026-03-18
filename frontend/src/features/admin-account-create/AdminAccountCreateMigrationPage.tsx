@@ -215,7 +215,7 @@ export function AdminAccountCreateMigrationPage() {
             void handleSave();
           }}
         >
-          <section className="section-shell border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm">
+          <section className="section-shell border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm" data-help-id="admin-create-role">
             <div className="flex items-center gap-2 px-6 py-4 border-b border-[var(--kr-gov-border-light)]">
               <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">shield_person</span>
               <div>
@@ -240,7 +240,7 @@ export function AdminAccountCreateMigrationPage() {
             </div>
           </section>
 
-          <section className="section-shell border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm">
+          <section className="section-shell border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm" data-help-id="admin-create-account">
             <div className="flex items-center gap-2 px-6 py-4 border-b border-[var(--kr-gov-border-light)]">
               <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">manage_accounts</span>
               <h3 className="text-lg font-bold text-[var(--kr-gov-text-primary)]">계정 정보</h3>
@@ -348,7 +348,7 @@ export function AdminAccountCreateMigrationPage() {
             ) : null}
           </div>
 
-          <section className="section-shell border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm">
+          <section className="section-shell border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm" data-help-id="admin-create-permissions">
             <div className="flex items-center gap-2 px-6 py-4 border-b border-[var(--kr-gov-border-light)]">
               <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">tune</span>
               <h3 className="text-lg font-bold text-[var(--kr-gov-text-primary)]">권한 부여</h3>

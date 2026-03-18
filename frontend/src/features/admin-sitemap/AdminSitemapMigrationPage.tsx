@@ -29,7 +29,7 @@ export function AdminSitemapMigrationPage() {
         ? "This sitemap shows the administrator menus available to the current role."
         : "현재 권한으로 접근 가능한 관리자 메뉴를 실시간 트리로 보여줍니다."}
     >
-      <section className="rounded-2xl bg-gradient-to-r from-[var(--kr-gov-blue)] to-[#0c6fc0] text-white px-8 py-8 shadow-lg">
+      <section className="rounded-2xl bg-gradient-to-r from-[var(--kr-gov-blue)] to-[#0c6fc0] text-white px-8 py-8 shadow-lg" data-help-id="admin-sitemap-hero">
         <p className="text-sm font-bold tracking-[0.2em] uppercase opacity-80">Admin Content</p>
         <h2 className="text-3xl font-black mt-3">{en ? "Admin Sitemap" : "관리자 사이트맵"}</h2>
         <p className="text-sm text-blue-50 mt-3 leading-relaxed max-w-4xl">
@@ -51,7 +51,7 @@ export function AdminSitemapMigrationPage() {
         </div>
       ) : null}
 
-      <section className="mt-8 grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <section className="mt-8 grid grid-cols-1 xl:grid-cols-2 gap-6" data-help-id="admin-sitemap-tree">
         {sections.map((top) => (
           <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white shadow-sm" key={top.code || top.label}>
             <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">

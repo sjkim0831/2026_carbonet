@@ -13,7 +13,7 @@ Current project-relevant skills:
 - `carbonet-audit-trace-architecture`
   - Purpose: design and extend audit, trace, UI manifest, and operational metadata.
   - Use for: observability, parameter tracing, component registry, rollout governance.
-  - Key references: `docs/architecture/system-observability-audit-trace-design.md`, `docs/ai/60-operations/audit-log-fields.md`
+  - Key references: `docs/architecture/system-observability-audit-trace-design.md`, `docs/architecture/performance-algorithm-upgrade-notes.md`, `docs/ai/60-operations/performance-handoff-prompt-20260318.md`, `docs/ai/60-operations/audit-log-fields.md`
 - `carbonet-react-refresh-consistency`
   - Purpose: keep React migration changes visible after refresh while preserving sane cache behavior.
   - Use for: React shell/static asset/resource caching changes.

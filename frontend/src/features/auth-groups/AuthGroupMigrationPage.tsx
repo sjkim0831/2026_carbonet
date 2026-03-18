@@ -4,6 +4,7 @@ import {
   FrontendSession,
   createAuthGroup,
   fetchAuthGroupPage,
+  fetchAuditEvents,
   fetchFrontendSession,
   saveAuthGroupFeatures
 } from "../../lib/api/client";
@@ -12,6 +13,8 @@ import { PermissionButton } from "../../components/access/CanUse";
 import { deriveUiPermissions } from "../../lib/auth/permissions";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
+
+const PINNED_AUTH_GROUPS_STORAGE_KEY = "carbonet:pinned-auth-groups";
 
 type CreateFormState = {
   authorCode: string;
@@ -48,17 +51,129 @@ type AuthorityInfoRow = {
   description?: string;
 };
 
+type RestoreTarget = {
+  menuCode: string;
+  featureCode: string;
+};
+
 function text(page: AuthGroupPagePayload | null, ko: string, en: string) {
   return page?.isEn ? en : ko;
 }
 
+function parsePinnedAuthorCodes() {
+  if (typeof window === "undefined") {
+    return [];
+  }
+  try {
+    const raw = window.localStorage.getItem(PINNED_AUTH_GROUPS_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.map((item) => String(item || "")).filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
+function formatAuditSnapshot(value: unknown) {
+  if (!value) {
+    return "";
+  }
+  if (typeof value === "string") {
+    try {
+      return JSON.stringify(JSON.parse(value), null, 2);
+    } catch {
+      return value;
+    }
+  }
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
+function parseAuditSnapshot(value: unknown): Record<string, unknown> | null {
+  if (!value) {
+    return null;
+  }
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : null;
+    } catch {
+      return null;
+    }
+  }
+  return typeof value === "object" ? value as Record<string, unknown> : null;
+}
+
+function extractFeatureCodes(value: unknown): string[] {
+  if (!value) {
+    return [];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => extractFeatureCodes(item));
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed && (trimmed.startsWith("ROLE_") || trimmed.includes("_")) ? [trimmed] : [];
+  }
+  if (typeof value !== "object") {
+    return [];
+  }
+  const record = value as Record<string, unknown>;
+  return Object.entries(record).flatMap(([key, nested]) => (
+    ["selectedFeatureCodes", "featureCodes", "features", "grantedFeatures", "mappedFeatures"].includes(key)
+      ? extractFeatureCodes(nested)
+      : []
+  ));
+}
+
+function summarizeAuthAuditDiff(page: AuthGroupPagePayload | null, row: Record<string, unknown>) {
+  const addedFromServer = Array.isArray(row.addedFeatureCodes) ? row.addedFeatureCodes.map((item) => String(item || "")) : [];
+  const removedFromServer = Array.isArray(row.removedFeatureCodes) ? row.removedFeatureCodes.map((item) => String(item || "")) : [];
+  if (addedFromServer.length > 0 || removedFromServer.length > 0) {
+    const parts: string[] = [];
+    if (addedFromServer.length > 0) {
+      parts.push(`${text(page, "추가", "Added")} ${addedFromServer.slice(0, 3).join(", ")}${addedFromServer.length > 3 ? ` +${addedFromServer.length - 3}` : ""}`);
+    }
+    if (removedFromServer.length > 0) {
+      parts.push(`${text(page, "해제", "Removed")} ${removedFromServer.slice(0, 3).join(", ")}${removedFromServer.length > 3 ? ` +${removedFromServer.length - 3}` : ""}`);
+    }
+    return parts.join(" / ");
+  }
+  const before = parseAuditSnapshot(row.beforeSummaryJson || row.beforeData || row.beforeSummary);
+  const after = parseAuditSnapshot(row.afterSummaryJson || row.afterData || row.afterSummary);
+  const beforeCodes = Array.from(new Set(extractFeatureCodes(before)));
+  const afterCodes = Array.from(new Set(extractFeatureCodes(after)));
+  const beforeSet = new Set(beforeCodes);
+  const afterSet = new Set(afterCodes);
+  const added = afterCodes.filter((code) => !beforeSet.has(code));
+  const removed = beforeCodes.filter((code) => !afterSet.has(code));
+  if (added.length === 0 && removed.length === 0) {
+    return text(page, "해석 가능한 diff가 없습니다.", "No interpreted diff available.");
+  }
+  const parts: string[] = [];
+  if (added.length > 0) {
+    parts.push(`${text(page, "추가", "Added")} ${added.slice(0, 3).join(", ")}${added.length > 3 ? ` +${added.length - 3}` : ""}`);
+  }
+  if (removed.length > 0) {
+    parts.push(`${text(page, "해제", "Removed")} ${removed.slice(0, 3).join(", ")}${removed.length > 3 ? ` +${removed.length - 3}` : ""}`);
+  }
+  return parts.join(" / ");
+}
+
 export function AuthGroupMigrationPage() {
+  const initialSearch = new URLSearchParams(window.location.search);
   const [session, setSession] = useState<FrontendSession | null>(null);
   const [page, setPage] = useState<AuthGroupPagePayload | null>(null);
   const [roleCategory, setRoleCategory] = useState("GENERAL");
   const [insttId, setInsttId] = useState("");
   const [authorCode, setAuthorCode] = useState("");
+  const [focusedMenuCode, setFocusedMenuCode] = useState(initialSearch.get("menuCode") || "");
+  const [focusedFeatureCode, setFocusedFeatureCode] = useState(initialSearch.get("featureCode") || "");
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
+  const [featureSearchKeyword, setFeatureSearchKeyword] = useState("");
+  const [featureAssignmentFilter, setFeatureAssignmentFilter] = useState("ALL");
   const [createForm, setCreateForm] = useState<CreateFormState>({
     authorCode: "",
     authorNm: "",
@@ -69,6 +184,12 @@ export function AuthGroupMigrationPage() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [auditRows, setAuditRows] = useState<Array<Record<string, unknown>>>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [collapsedMenuCodes, setCollapsedMenuCodes] = useState<string[]>([]);
+  const [expandedAuditIds, setExpandedAuditIds] = useState<string[]>([]);
+  const [pinnedAuthorCodes, setPinnedAuthorCodes] = useState<string[]>(() => parsePinnedAuthorCodes());
+  const [restoreTarget, setRestoreTarget] = useState<RestoreTarget | null>(null);
 
   const payload = (page || {}) as Record<string, unknown>;
   const permissions = deriveUiPermissions(session, page);
@@ -89,6 +210,12 @@ export function AuthGroupMigrationPage() {
     (payload.referenceAuthorGroups as Array<Record<string, string>> | undefined) || [];
   const selectedAuthorName =
     page?.selectedAuthorName || text(page, "권한 그룹을 선택하세요", "Select a role group");
+  const pinnedReferenceGroups = referenceAuthorGroups.filter((group) => pinnedAuthorCodes.includes(String(group.authorCode || "")));
+  const baselineSelectedFeatures = page?.selectedFeatureCodes || [];
+  const baselineFeatureSet = new Set(baselineSelectedFeatures);
+  const selectedFeatureSet = new Set(selectedFeatures);
+  const addedFeatureCodes = selectedFeatures.filter((code) => !baselineFeatureSet.has(code));
+  const removedFeatureCodes = baselineSelectedFeatures.filter((code) => !selectedFeatureSet.has(code));
 
   useEffect(() => {
     setLoading(true);
@@ -99,6 +226,8 @@ export function AuthGroupMigrationPage() {
         authorCode,
         roleCategory,
         insttId,
+        menuCode: focusedMenuCode,
+        featureCode: focusedFeatureCode,
         userSearchKeyword: submittedUserSearchKeyword
       })
     ])
@@ -108,6 +237,8 @@ export function AuthGroupMigrationPage() {
         setRoleCategory(nextPage.selectedRoleCategory || "GENERAL");
         setInsttId(nextPage.authGroupSelectedInsttId || "");
         setAuthorCode(nextPage.selectedAuthorCode || "");
+        setFocusedMenuCode(nextPage.focusedMenuCode || "");
+        setFocusedFeatureCode(nextPage.focusedFeatureCode || "");
         setSelectedFeatures(nextPage.selectedFeatureCodes || []);
         const nextKeyword = String((nextPage as Record<string, unknown>).userSearchKeyword || "");
         setUserSearchInput(nextKeyword);
@@ -115,7 +246,94 @@ export function AuthGroupMigrationPage() {
       })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [authorCode, roleCategory, insttId, submittedUserSearchKeyword]);
+  }, [authorCode, roleCategory, insttId, submittedUserSearchKeyword, focusedMenuCode, focusedFeatureCode]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    window.localStorage.setItem(PINNED_AUTH_GROUPS_STORAGE_KEY, JSON.stringify(pinnedAuthorCodes));
+  }, [pinnedAuthorCodes]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadAuditRows() {
+      if (!authorCode) {
+        setAuditRows([]);
+        return;
+      }
+      setAuditLoading(true);
+      try {
+        const response = await fetchAuditEvents({
+          pageId: "auth-group",
+          searchKeyword: authorCode,
+          pageSize: 5
+        });
+        if (!cancelled) {
+          setAuditRows(Array.isArray(response.items) ? response.items : []);
+        }
+      } catch {
+        if (!cancelled) {
+          setAuditRows([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setAuditLoading(false);
+        }
+      }
+    }
+    void loadAuditRows();
+    return () => {
+      cancelled = true;
+    };
+  }, [authorCode]);
+
+  useEffect(() => {
+    setExpandedAuditIds([]);
+  }, [authorCode]);
+
+  useEffect(() => {
+    if (!restoreTarget) {
+      return;
+    }
+    const featureElement = restoreTarget.featureCode
+      ? document.getElementById(`auth-feature-${restoreTarget.featureCode}`)
+      : null;
+    const menuElement = restoreTarget.menuCode
+      ? document.getElementById(`auth-section-${restoreTarget.menuCode}`)
+      : null;
+    const target = featureElement || menuElement;
+    if (!target) {
+      return;
+    }
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    setRestoreTarget(null);
+  }, [page, restoreTarget, selectedFeatures]);
+
+  const visibleFeatureSections = (page?.featureSections || []).map((section) => ({
+    ...section,
+    features: (section.features || []).filter((feature) => (
+      (!focusedFeatureCode || String(feature.featureCode || "").toUpperCase() === focusedFeatureCode.toUpperCase())
+      && (!featureSearchKeyword.trim()
+        || `${feature.featureCode || ""} ${feature.featureNm || ""} ${feature.featureNmEn || ""} ${feature.featureDc || ""}`
+          .toUpperCase()
+          .includes(featureSearchKeyword.trim().toUpperCase()))
+      && (featureAssignmentFilter === "ALL"
+        || (featureAssignmentFilter === "ASSIGNED" && selectedFeatures.includes(feature.featureCode))
+        || (featureAssignmentFilter === "UNASSIGNED" && !selectedFeatures.includes(feature.featureCode)))
+    ))
+  })).filter((section) => (
+    (!focusedMenuCode || String(section.menuCode || "").toUpperCase() === focusedMenuCode.toUpperCase())
+    && (section.features || []).length > 0
+  ));
+  const totalVisibleFeatureCount = visibleFeatureSections.reduce((sum, section) => sum + (section.features || []).length, 0);
+  const visibleFeatureCodes = visibleFeatureSections.flatMap((section) => (section.features || []).map((feature) => feature.featureCode));
+  const riskFlags = [
+    addedFeatureCodes.length > 10 ? text(page, "대량 추가 변경", "Large add change") : "",
+    removedFeatureCodes.length > 0 ? text(page, "권한 제거 변경 포함", "Contains permission removals") : "",
+    !authorCode ? text(page, "기준 권한 그룹 미선택", "Reference role not selected") : "",
+    focusedFeatureCode ? text(page, "특정 기능 포커스 적용 중", "Specific feature focus active") : ""
+  ].filter(Boolean);
 
   function handleCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -152,9 +370,23 @@ export function AuthGroupMigrationPage() {
       roleCategory,
       featureCodes: selectedFeatures
     })
-      .then(() =>
-        setMessage(text(page, "Role-기능 매핑을 저장했습니다.", "Role-feature mapping saved."))
-      )
+      .then(async () => {
+        setRestoreTarget({
+          menuCode: focusedMenuCode || visibleFeatureSections[0]?.menuCode || "",
+          featureCode: focusedFeatureCode || selectedFeatures[selectedFeatures.length - 1] || ""
+        });
+        const nextPage = await fetchAuthGroupPage({
+          authorCode,
+          roleCategory,
+          insttId,
+          menuCode: focusedMenuCode,
+          featureCode: focusedFeatureCode,
+          userSearchKeyword: submittedUserSearchKeyword
+        });
+        setPage(nextPage);
+        setSelectedFeatures(nextPage.selectedFeatureCodes || []);
+        setMessage(text(page, "Role-기능 매핑을 저장했습니다.", "Role-feature mapping saved."));
+      })
       .catch((err: Error) => setError(err.message));
   }
 
@@ -164,6 +396,45 @@ export function AuthGroupMigrationPage() {
         ? current.filter((code) => code !== featureCode)
         : [...current, featureCode]
     );
+  }
+
+  function setVisibleFeatures(checked: boolean) {
+    setSelectedFeatures((current) => {
+      const currentSet = new Set(current);
+      if (checked) {
+        visibleFeatureCodes.forEach((code) => currentSet.add(code));
+      } else {
+        visibleFeatureCodes.forEach((code) => currentSet.delete(code));
+      }
+      return Array.from(currentSet);
+    });
+  }
+
+  function toggleSectionCollapse(menuCode: string) {
+    setCollapsedMenuCodes((current) => (
+      current.includes(menuCode)
+        ? current.filter((code) => code !== menuCode)
+        : [...current, menuCode]
+    ));
+  }
+
+  function toggleAuditExpansion(auditId: string) {
+    setExpandedAuditIds((current) => (
+      current.includes(auditId)
+        ? current.filter((id) => id !== auditId)
+        : [...current, auditId]
+    ));
+  }
+
+  function togglePinnedAuthorCode(nextAuthorCode: string) {
+    if (!nextAuthorCode) {
+      return;
+    }
+    setPinnedAuthorCodes((current) => (
+      current.includes(nextAuthorCode)
+        ? current.filter((code) => code !== nextAuthorCode)
+        : [...current, nextAuthorCode]
+    ));
   }
 
   function handleUserSearch(event: FormEvent<HTMLFormElement>) {
@@ -257,6 +528,14 @@ export function AuthGroupMigrationPage() {
     );
   }
 
+  function renderEmptyState(messageKo: string, messageEn: string) {
+    return (
+      <div className="rounded-[var(--kr-gov-radius)] border border-dashed border-[var(--kr-gov-border-light)] px-4 py-6 text-center text-sm text-[var(--kr-gov-text-secondary)]">
+        {text(page, messageKo, messageEn)}
+      </div>
+    );
+  }
+
   function renderRecommendedTable(rows: SummaryRow[]) {
     return (
       <div className="overflow-x-auto">
@@ -329,6 +608,14 @@ export function AuthGroupMigrationPage() {
       {message ? (
         <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
           {message}
+        </section>
+      ) : null}
+      {focusedMenuCode || focusedFeatureCode ? (
+        <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+          {text(page, "환경관리 화면에서 선택한 범위만 표시 중입니다.", "Showing only the scope selected in environment management.")}
+          <span className="ml-2 font-mono">
+            {[focusedMenuCode ? `menu:${focusedMenuCode}` : "", focusedFeatureCode ? `feature:${focusedFeatureCode}` : ""].filter(Boolean).join(" / ")}
+          </span>
         </section>
       ) : null}
 
@@ -530,17 +817,22 @@ export function AuthGroupMigrationPage() {
           <h3 className="text-lg font-bold">{text(page, "권한 모델 구조", "Authority Model")}</h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {roleCategories.map((category, index) => (
-            <article
-              className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] p-4"
-              key={`${category.title || "category"}-${index}`}
-            >
-              <h4 className="font-black">{category.title || "-"}</h4>
-              <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">
-                {category.description || "-"}
-              </p>
-            </article>
-          ))}
+          {roleCategories.length === 0
+            ? renderEmptyState(
+                "권한 모델 설명이 아직 준비되지 않았습니다.",
+                "Authority model details are not available yet."
+              )
+            : roleCategories.map((category, index) => (
+                <article
+                  className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] p-4"
+                  key={`${category.title || "category"}-${index}`}
+                >
+                  <h4 className="font-black">{category.title || "-"}</h4>
+                  <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">
+                    {category.description || "-"}
+                  </p>
+                </article>
+              ))}
         </div>
       </section>
 
@@ -772,17 +1064,22 @@ export function AuthGroupMigrationPage() {
           <h3 className="text-lg font-bold">{text(page, "권한 할당 / 부여 권한 구조", "Assignment and Grant Authority")}</h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {assignmentAuthorities.map((item, index) => (
-            <article
-              className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] p-4 bg-gray-50"
-              key={`${item.title || "assign"}-${index}`}
-            >
-              <h4 className="font-black">{item.title || "-"}</h4>
-              <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">
-                {item.description || "-"}
-              </p>
-            </article>
-          ))}
+          {assignmentAuthorities.length === 0
+            ? renderEmptyState(
+                "권한 할당 구조 안내가 아직 준비되지 않았습니다.",
+                "Assignment guidance is not available yet."
+              )
+            : assignmentAuthorities.map((item, index) => (
+                <article
+                  className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] p-4 bg-gray-50"
+                  key={`${item.title || "assign"}-${index}`}
+                >
+                  <h4 className="font-black">{item.title || "-"}</h4>
+                  <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">
+                    {item.description || "-"}
+                  </p>
+                </article>
+              ))}
         </div>
         <div className="mt-4 rounded-[var(--kr-gov-radius)] border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-[var(--kr-gov-text-secondary)]">
           {text(
@@ -823,73 +1120,369 @@ export function AuthGroupMigrationPage() {
                 </option>
               ))}
             </select>
+            <button
+              className="gov-btn gov-btn-outline-blue"
+              disabled={!authorCode}
+              onClick={() => togglePinnedAuthorCode(authorCode)}
+              type="button"
+            >
+              {pinnedAuthorCodes.includes(authorCode)
+                ? text(page, "핀 해제", "Unpin")
+                : text(page, "핀 고정", "Pin")}
+            </button>
+          </div>
+
+          {pinnedReferenceGroups.length > 0 ? (
+            <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-blue-100 bg-blue-50 px-4 py-3">
+              <p className="text-xs font-bold uppercase text-[var(--kr-gov-blue)]">
+                {text(page, "고정 권한 그룹", "Pinned Role Groups")}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {pinnedReferenceGroups.map((group) => {
+                  const groupCode = String(group.authorCode || "");
+                  return (
+                    <button
+                      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold ${
+                        groupCode === authorCode
+                          ? "border-blue-300 bg-white text-[var(--kr-gov-blue)]"
+                          : "border-blue-100 bg-white text-[var(--kr-gov-text-secondary)]"
+                      }`}
+                      key={groupCode}
+                      onClick={() => setAuthorCode(groupCode)}
+                      type="button"
+                    >
+                      {`${group.authorNm || groupCode} (${groupCode})`}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="mb-4 grid grid-cols-1 gap-3 xl:grid-cols-[1.4fr_0.8fr]">
+            <label>
+              <span className="block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">
+                {text(page, "기능 검색", "Feature Search")}
+              </span>
+              <input
+                className="gov-input"
+                placeholder={text(page, "기능 코드, 기능명, 설명 검색", "Search feature code, name, or description")}
+                value={featureSearchKeyword}
+                onChange={(event) => setFeatureSearchKeyword(event.target.value)}
+              />
+            </label>
+            <label>
+              <span className="block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">
+                {text(page, "할당 상태", "Assignment Status")}
+              </span>
+              <select
+                className="gov-select"
+                value={featureAssignmentFilter}
+                onChange={(event) => setFeatureAssignmentFilter(event.target.value)}
+              >
+                <option value="ALL">{text(page, "전체", "All")}</option>
+                <option value="ASSIGNED">{text(page, "할당됨", "Assigned")}</option>
+                <option value="UNASSIGNED">{text(page, "미할당", "Unassigned")}</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 px-4 py-3">
+              <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)] uppercase">
+                {text(page, "선택 권한", "Selected Role")}
+              </p>
+              <div className="mt-2 flex items-center gap-2">
+                <p className="text-sm font-black">{selectedAuthorName}</p>
+                {pinnedAuthorCodes.includes(authorCode) ? (
+                  <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-[var(--kr-gov-blue)]">
+                    {text(page, "핀 고정됨", "Pinned")}
+                  </span>
+                ) : null}
+              </div>
+              <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{authorCode || "-"}</p>
+            </div>
+            <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 px-4 py-3">
+              <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)] uppercase">
+                {text(page, "선택 기능", "Selected Features")}
+              </p>
+              <p className="mt-2 text-2xl font-black">{selectedFeatures.length}</p>
+              <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">
+                {text(page, "현재 체크된 기능 수", "Currently checked features")}
+              </p>
+            </div>
+            <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 px-4 py-3">
+              <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)] uppercase">
+                {text(page, "미할당 기능", "Unassigned Features")}
+              </p>
+              <p className="mt-2 text-2xl font-black">{page?.unassignedFeatureCount ?? 0}</p>
+              <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">
+                {`${page?.catalogFeatureCount ?? page?.featureCount ?? 0}${text(page, "개 전체 기능 기준", " in catalog")}`}
+              </p>
+            </div>
+          </div>
+
+          <div className="mb-4 grid grid-cols-1 gap-4 xl:grid-cols-4">
+            <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-3">
+              <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)] uppercase">
+                {text(page, "현재 표시 기능", "Visible Features")}
+              </p>
+              <p className="mt-2 text-2xl font-black">{totalVisibleFeatureCount}</p>
+            </div>
+            <div className="rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3">
+              <p className="text-xs font-bold uppercase text-emerald-700">
+                {text(page, "추가 예정", "To Add")}
+              </p>
+              <p className="mt-2 text-2xl font-black text-emerald-700">{addedFeatureCodes.length}</p>
+            </div>
+            <div className="rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-3">
+              <p className="text-xs font-bold uppercase text-amber-700">
+                {text(page, "해제 예정", "To Remove")}
+              </p>
+              <p className="mt-2 text-2xl font-black text-amber-700">{removedFeatureCodes.length}</p>
+            </div>
+            <div className="rounded-[var(--kr-gov-radius)] border border-blue-200 bg-blue-50 px-4 py-3">
+              <p className="text-xs font-bold uppercase text-[var(--kr-gov-blue)]">
+                {text(page, "변경 건수", "Pending Changes")}
+              </p>
+              <p className="mt-2 text-2xl font-black text-[var(--kr-gov-blue)]">{addedFeatureCodes.length + removedFeatureCodes.length}</p>
+            </div>
+          </div>
+
+          <div className="mb-4 grid grid-cols-1 gap-4 xl:grid-cols-[1fr_1fr]">
+            <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-4">
+              <p className="text-xs font-bold uppercase text-[var(--kr-gov-text-secondary)]">
+                {text(page, "변경 Diff", "Change Diff")}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {addedFeatureCodes.slice(0, 8).map((code) => (
+                  <span className="inline-flex rounded-full border border-emerald-200 bg-white px-3 py-1 text-[11px] font-mono text-emerald-700" key={`add-${code}`}>+ {code}</span>
+                ))}
+                {removedFeatureCodes.slice(0, 8).map((code) => (
+                  <span className="inline-flex rounded-full border border-amber-200 bg-white px-3 py-1 text-[11px] font-mono text-amber-700" key={`remove-${code}`}>- {code}</span>
+                ))}
+                {addedFeatureCodes.length === 0 && removedFeatureCodes.length === 0 ? (
+                  <span className="text-sm text-emerald-700">{text(page, "저장 전 변경 사항이 없습니다.", "No pending changes before save.")}</span>
+                ) : null}
+              </div>
+            </div>
+            <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-4">
+              <p className="text-xs font-bold uppercase text-[var(--kr-gov-text-secondary)]">
+                {text(page, "위험도 요약", "Risk Summary")}
+              </p>
+              {riskFlags.length === 0 ? (
+                <p className="mt-3 text-sm text-emerald-700">{text(page, "현재 눈에 띄는 위험 신호는 없습니다.", "No obvious risk signals in the current selection.")}</p>
+              ) : (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {riskFlags.map((flag) => (
+                    <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[12px] font-bold text-amber-800" key={flag}>{flag}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-4">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">history</span>
+              <p className="font-bold text-[var(--kr-gov-text-primary)]">{text(page, "최근 변경 이력", "Recent Changes")}</p>
+            </div>
+            {!authorCode ? (
+              <p className="mt-3 text-sm text-[var(--kr-gov-text-secondary)]">{text(page, "권한 그룹을 선택하면 최근 변경 이력이 표시됩니다.", "Select a role group to view recent changes.")}</p>
+            ) : auditLoading ? (
+              <p className="mt-3 text-sm text-[var(--kr-gov-text-secondary)]">{text(page, "감사 이력을 불러오는 중입니다.", "Loading audit history.")}</p>
+            ) : auditRows.length === 0 ? (
+              <p className="mt-3 text-sm text-[var(--kr-gov-text-secondary)]">{text(page, "최근 감사 이력이 없습니다.", "No recent audit events.")}</p>
+            ) : (
+              <div className="mt-3 space-y-3">
+                {auditRows.map((row, index) => (
+                  <div className="rounded-[var(--kr-gov-radius)] border border-white bg-white px-4 py-3 text-sm" key={`${String(row.auditId || "audit")}-${index}`}>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="font-bold text-[var(--kr-gov-text-primary)]">{String(row.actionCode || "-")}</p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-[var(--kr-gov-text-secondary)]"
+                          onClick={() => toggleAuditExpansion(String(row.auditId || index))}
+                          type="button"
+                        >
+                          {expandedAuditIds.includes(String(row.auditId || index))
+                            ? text(page, "상세 접기", "Hide Details")
+                            : text(page, "상세 보기", "View Details")}
+                        </button>
+                        <span className="text-xs text-[var(--kr-gov-text-secondary)]">{String(row.createdAt || "-")}</span>
+                      </div>
+                    </div>
+                    <p className="mt-1 text-[var(--kr-gov-text-secondary)]">{text(page, "작업자", "Actor")}: {String(row.actorId || "-")}</p>
+                    <p className="mt-1 text-[var(--kr-gov-text-secondary)]">{text(page, "결과", "Result")}: {String(row.resultStatus || "-")}</p>
+                    {row.reasonSummary ? <p className="mt-1 text-[var(--kr-gov-text-secondary)]">{String(row.reasonSummary)}</p> : null}
+                    <p className="mt-2 rounded-[var(--kr-gov-radius)] border border-blue-100 bg-blue-50 px-3 py-2 text-[12px] font-bold text-[var(--kr-gov-blue)]">
+                      {summarizeAuthAuditDiff(page, row)}
+                    </p>
+                    {expandedAuditIds.includes(String(row.auditId || index)) ? (
+                      <div className="mt-3 grid gap-3 xl:grid-cols-2">
+                        <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-3 py-3">
+                          <p className="text-xs font-bold uppercase text-[var(--kr-gov-text-secondary)]">
+                            {text(page, "변경 전", "Before")}
+                          </p>
+                          <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words text-[11px] leading-5 text-[var(--kr-gov-text-secondary)]">
+                            {formatAuditSnapshot(row.beforeSummaryJson || row.beforeData || row.beforeSummary) || text(page, "기록 없음", "No snapshot")}
+                          </pre>
+                        </div>
+                        <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-3 py-3">
+                          <p className="text-xs font-bold uppercase text-[var(--kr-gov-text-secondary)]">
+                            {text(page, "변경 후", "After")}
+                          </p>
+                          <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words text-[11px] leading-5 text-[var(--kr-gov-text-secondary)]">
+                            {formatAuditSnapshot(row.afterSummaryJson || row.afterData || row.afterSummary) || text(page, "기록 없음", "No snapshot")}
+                          </pre>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="mb-4 flex flex-wrap gap-2">
+            <button className="gov-btn gov-btn-outline-blue" onClick={() => setVisibleFeatures(true)} type="button">
+              {text(page, "현재 표시 기능 전체 선택", "Select All Visible Features")}
+            </button>
+            <button className="gov-btn gov-btn-outline-blue" onClick={() => setVisibleFeatures(false)} type="button">
+              {text(page, "현재 표시 기능 전체 해제", "Clear All Visible Features")}
+            </button>
+            <button className="gov-btn gov-btn-outline-blue" onClick={() => setCollapsedMenuCodes([])} type="button">
+              {text(page, "페이지 전체 펼치기", "Expand All Pages")}
+            </button>
+            <button className="gov-btn gov-btn-outline-blue" onClick={() => setCollapsedMenuCodes(visibleFeatureSections.map((section) => section.menuCode))} type="button">
+              {text(page, "페이지 전체 접기", "Collapse All Pages")}
+            </button>
           </div>
 
           <div className="space-y-6">
-            {(page?.featureSections || []).map((section) => (
-              <section
-                className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] overflow-hidden"
-                key={section.menuCode}
-              >
-                <div className="flex flex-col gap-1 bg-gray-50 px-4 py-4 border-b border-[var(--kr-gov-border-light)]">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <h4 className="font-black">
-                        {page?.isEn ? section.menuNmEn || section.menuNm || section.menuCode : section.menuNm || section.menuNmEn || section.menuCode}
-                      </h4>
-                      <p className="text-xs text-[var(--kr-gov-text-secondary)]">
-                        {section.menuCode}
-                        {section.menuUrl ? ` | ${section.menuUrl}` : ""}
-                      </p>
-                    </div>
-                    <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-blue-50 text-[var(--kr-gov-blue)]">
-                      {`${section.features.length}${text(page, "개 기능", " features")}`}
-                    </span>
-                  </div>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-left border-collapse">
-                    <thead>
-                      <tr className="bg-gray-50 border-y border-[var(--kr-gov-border-light)] text-[13px] font-bold text-[var(--kr-gov-text-secondary)]">
-                        <th className="px-4 py-3">{text(page, "기능 코드", "Feature Code")}</th>
-                        <th className="px-4 py-3">{text(page, "기능명", "Feature Name")}</th>
-                        <th className="px-4 py-3">{text(page, "영문 기능명", "English Name")}</th>
-                        <th className="px-4 py-3">{text(page, "기능 설명", "Description")}</th>
-                        <th className="px-4 py-3 text-center">{text(page, "사용", "Use")}</th>
-                        <th className="px-4 py-3 text-center">{text(page, "할당", "Assigned")}</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {section.features.map((feature) => (
-                        <tr key={feature.featureCode}>
-                          <td className="px-4 py-3 font-bold whitespace-nowrap">{feature.featureCode}</td>
-                          <td className="px-4 py-3">{feature.featureNm || "-"}</td>
-                          <td className="px-4 py-3">{feature.featureNmEn || "-"}</td>
-                          <td className="px-4 py-3 text-[var(--kr-gov-text-secondary)]">{feature.featureDc || "-"}</td>
-                          <td className="px-4 py-3 text-center font-semibold">{feature.useAt || "-"}</td>
-                          <td className="px-4 py-3 text-center">
-                            <input
-                              checked={selectedFeatures.includes(feature.featureCode)}
-                              className="h-4 w-4"
-                              disabled={
-                                roleCategory === "GENERAL"
-                                  ? !permissions.canUseGeneralFeatureSave
-                                  : !permissions.canUseScopedFeatureSave
-                              }
-                              onChange={() => toggleFeature(feature.featureCode)}
-                              type="checkbox"
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            ))}
+            {!authorCode
+              ? renderEmptyState(
+                  "기능 할당을 검토하려면 기준 권한 그룹을 먼저 선택하세요.",
+                  "Select a reference role group to review feature assignments."
+                )
+              : visibleFeatureSections.length === 0
+                ? renderEmptyState(
+                    "선택한 권한 그룹에 표시할 기능 카탈로그가 없습니다.",
+                    "There is no feature catalog available for the selected role group."
+                  )
+                : visibleFeatureSections.map((section) => {
+                    const sectionFocused = !!focusedMenuCode && String(section.menuCode || "").toUpperCase() === focusedMenuCode.toUpperCase();
+                    const collapsed = collapsedMenuCodes.includes(section.menuCode);
+                    return (
+                      <section
+                        id={`auth-section-${section.menuCode}`}
+                        className={`rounded-[var(--kr-gov-radius)] border overflow-hidden ${sectionFocused ? "border-blue-300 shadow-[0_0_0_2px_rgba(28,100,242,0.12)]" : "border-[var(--kr-gov-border-light)]"}`}
+                        key={section.menuCode}
+                      >
+                        <div className={`flex flex-col gap-1 px-4 py-4 border-b border-[var(--kr-gov-border-light)] ${sectionFocused ? "bg-blue-50" : "bg-gray-50"}`}>
+                          <div className="flex items-center justify-between gap-4">
+                            <div>
+                              <h4 className="font-black">
+                                {page?.isEn ? section.menuNmEn || section.menuNm || section.menuCode : section.menuNm || section.menuNmEn || section.menuCode}
+                              </h4>
+                              <p className="text-xs text-[var(--kr-gov-text-secondary)]">
+                                {section.menuCode}
+                                {section.menuUrl ? ` | ${section.menuUrl}` : ""}
+                              </p>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <button className="gov-btn gov-btn-outline-blue" onClick={() => toggleSectionCollapse(section.menuCode)} type="button">
+                                {collapsed ? text(page, "펼치기", "Expand") : text(page, "접기", "Collapse")}
+                              </button>
+                              {sectionFocused ? (
+                                <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-[var(--kr-gov-blue)] text-white">
+                                  {text(page, "포커스 메뉴", "Focused menu")}
+                                </span>
+                              ) : null}
+                              <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-blue-50 text-[var(--kr-gov-blue)]">
+                                {`${section.features.length}${text(page, "개 기능", " features")}`}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        {!collapsed ? (
+                        <div className="overflow-x-auto">
+                          <table className="w-full table-fixed text-sm text-left border-collapse">
+                            <colgroup>
+                              <col className="w-[18%]" />
+                              <col className="w-[18%]" />
+                              <col className="w-[18%]" />
+                              <col className="w-[28%]" />
+                              <col className="w-[9%]" />
+                              <col className="w-[9%]" />
+                            </colgroup>
+                            <thead>
+                              <tr className="bg-gray-50 border-y border-[var(--kr-gov-border-light)] text-[13px] font-bold text-[var(--kr-gov-text-secondary)]">
+                                <th className="px-4 py-3">{text(page, "기능 코드", "Feature Code")}</th>
+                                <th className="px-4 py-3">{text(page, "기능명", "Feature Name")}</th>
+                                <th className="px-4 py-3">{text(page, "영문 기능명", "English Name")}</th>
+                                <th className="px-4 py-3">{text(page, "기능 설명", "Description")}</th>
+                                <th className="px-4 py-3 text-center">{text(page, "사용", "Use")}</th>
+                                <th className="px-4 py-3 text-center">{text(page, "할당", "Assigned")}</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {section.features.map((feature) => {
+                                const featureFocused = !!focusedFeatureCode && String(feature.featureCode || "").toUpperCase() === focusedFeatureCode.toUpperCase();
+                                return (
+                                  <tr className={featureFocused ? "bg-[rgba(28,100,242,0.06)]" : ""} id={`auth-feature-${feature.featureCode}`} key={feature.featureCode}>
+                                    <td className="px-4 py-3 font-bold break-all">{feature.featureCode}</td>
+                                    <td className="px-4 py-3 break-words">
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <span>{feature.featureNm || "-"}</span>
+                                        {featureFocused ? (
+                                          <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-bold bg-[var(--kr-gov-blue)] text-white">
+                                            {text(page, "포커스 기능", "Focused feature")}
+                                          </span>
+                                        ) : null}
+                                      </div>
+                                    </td>
+                                    <td className="px-4 py-3 break-words">{feature.featureNmEn || "-"}</td>
+                                    <td className="px-4 py-3 break-words text-[var(--kr-gov-text-secondary)]">{feature.featureDc || "-"}</td>
+                                    <td className="px-4 py-3 text-center font-semibold">{feature.useAt || "-"}</td>
+                                    <td className="px-4 py-3 text-center">
+                                      <input
+                                        checked={selectedFeatures.includes(feature.featureCode)}
+                                        className="h-4 w-4"
+                                        disabled={
+                                          roleCategory === "GENERAL"
+                                            ? !permissions.canUseGeneralFeatureSave
+                                            : !permissions.canUseScopedFeatureSave
+                                        }
+                                        onChange={() => toggleFeature(feature.featureCode)}
+                                        type="checkbox"
+                                      />
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                        ) : null}
+                      </section>
+                    );
+                  })}
           </div>
 
-          <div className="mt-6 flex justify-end">
+          <div className="mt-6 flex flex-col gap-3 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-4 md:flex-row md:items-center md:justify-between">
+            <div className="text-sm text-[var(--kr-gov-text-secondary)]">
+              <div className="font-semibold text-[var(--kr-gov-text-primary)]">
+                {text(page, "저장 대상", "Saving Target")}: {selectedAuthorName} ({authorCode || "-"})
+              </div>
+              <div className="mt-1">
+                {text(page, "추가", "Add")} {addedFeatureCodes.length}
+                {" · "}
+                {text(page, "해제", "Remove")} {removedFeatureCodes.length}
+                {" · "}
+                {text(page, "표시 중", "Visible")} {totalVisibleFeatureCount}
+              </div>
+            </div>
             <PermissionButton
               allowed={
                 !!authorCode &&

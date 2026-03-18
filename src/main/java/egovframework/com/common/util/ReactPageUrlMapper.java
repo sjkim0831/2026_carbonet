@@ -1,6 +1,90 @@
 package egovframework.com.common.util;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 public final class ReactPageUrlMapper {
+
+    private static final Map<String, String> ADMIN_PATH_TO_ROUTE;
+    private static final Map<String, String> ADMIN_ROUTE_TO_PATH;
+    private static final Map<String, String> HOME_PATH_TO_ROUTE;
+    private static final Map<String, String> HOME_ROUTE_TO_PATH;
+    private static final Map<String, String> HOME_LOCALIZED_PATHS;
+
+    static {
+        Map<String, String> adminPathToRoute = new LinkedHashMap<>();
+        Map<String, String> adminRouteToPath = new LinkedHashMap<>();
+        Map<String, String> homePathToRoute = new LinkedHashMap<>();
+        Map<String, String> homeRouteToPath = new LinkedHashMap<>();
+        Map<String, String> homeLocalizedPaths = new LinkedHashMap<>();
+
+        registerAdmin(adminPathToRoute, adminRouteToPath, "admin_home", "/admin/", "/admin", "/admin/");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "admin_login", "/admin/login/loginView", "/admin/login/loginView");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "member_approve", "/admin/member/approve", "/admin/member/approve");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "company_approve", "/admin/member/company-approve", "/admin/member/company-approve");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "member_edit", "/admin/member/edit", "/admin/member/edit");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "member_detail", "/admin/member/detail", "/admin/member/detail");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "password_reset", "/admin/member/reset_password", "/admin/member/reset_password");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "member_list", "/admin/member/list", "/admin/member/list");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "admin_list", "/admin/member/admin_list", "/admin/member/admin_list", "/admin/member/admin-list");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "company_list", "/admin/member/company_list", "/admin/member/company_list");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "company_detail", "/admin/member/company_detail", "/admin/member/company_detail");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "company_account", "/admin/member/company_account", "/admin/member/company_account");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "admin_create", "/admin/member/admin_account", "/admin/member/admin_account");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "admin_permission", "/admin/member/admin_account/permissions", "/admin/member/admin_account/permissions");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "member_stats", "/admin/member/stats", "/admin/member/stats");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "member_register", "/admin/member/register", "/admin/member/register");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "auth_group", "/admin/auth/group", "/admin/auth/group", "/admin/member/auth-group", "/admin/system/role");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "auth_change", "/admin/member/auth-change", "/admin/member/auth-change", "/admin/system/auth-change");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "dept_role", "/admin/member/dept-role-mapping", "/admin/member/dept-role-mapping", "/admin/system/dept-role-mapping");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "emission_result_list", "/admin/emission/result_list", "/admin/emission/result_list");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "system_code", "/admin/system/code", "/admin/system/code");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "page_management", "/admin/system/page-management", "/admin/system/page-management");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "function_management", "/admin/system/feature-management", "/admin/system/feature-management");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "menu_management", "/admin/system/menu-management", "/admin/system/menu-management");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "ip_whitelist", "/admin/system/ip_whitelist", "/admin/system/ip_whitelist");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "login_history", "/admin/member/login_history", "/admin/member/login_history");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "security_history", "/admin/system/security", "/admin/system/security");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "security_policy", "/admin/system/security-policy", "/admin/system/security-policy");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "security_monitoring", "/admin/system/security-monitoring", "/admin/system/security-monitoring");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "blocklist", "/admin/system/blocklist", "/admin/system/blocklist");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "security_audit", "/admin/system/security-audit", "/admin/system/security-audit");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "scheduler_management", "/admin/system/scheduler", "/admin/system/scheduler");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "codex_request", "/admin/system/codex-request", "/admin/system/codex-request");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "observability", "/admin/system/observability", "/admin/system/observability");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "help_management", "/admin/system/help-management", "/admin/system/help-management");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "full_stack_management", "/admin/system/full-stack-management", "/admin/system/full-stack-management");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "platform_studio", "/admin/system/platform-studio", "/admin/system/platform-studio");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "screen_elements_management", "/admin/system/screen-elements-management", "/admin/system/screen-elements-management");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "event_management_console", "/admin/system/event-management-console", "/admin/system/event-management-console");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "function_management_console", "/admin/system/function-management-console", "/admin/system/function-management-console");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "api_management_console", "/admin/system/api-management-console", "/admin/system/api-management-console");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "controller_management_console", "/admin/system/controller-management-console", "/admin/system/controller-management-console");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "db_table_management", "/admin/system/db-table-management", "/admin/system/db-table-management");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "column_management_console", "/admin/system/column-management-console", "/admin/system/column-management-console");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "automation_studio", "/admin/system/automation-studio", "/admin/system/automation-studio");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "environment_management", "/admin/system/environment-management", "/admin/system/environment-management");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "wbs_management", "/admin/system/wbs-management", "/admin/system/wbs-management");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "sr_workbench", "/admin/system/sr-workbench", "/admin/system/sr-workbench");
+
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "mypage", "/mypage", "/en/mypage", "/mypage");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "join_wizard", "/join/step1", "/join/en/step1", "/join/step1", "/join/overseas/step1");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "join_terms", "/join/step2", "/join/en/step2", "/join/step2");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "join_auth", "/join/step3", "/join/en/step3", "/join/step3");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "join_info", "/join/step4", "/join/en/step4", "/join/step4");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "join_company_register", "/join/companyRegister", "/join/en/companyRegister", "/join/companyRegister");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "join_company_register_complete", "/join/companyRegisterComplete", "/join/en/companyRegisterComplete", "/join/companyRegisterComplete");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "join_company_status", "/join/companyJoinStatusSearch", "/join/en/companyJoinStatusSearch", "/join/companyJoinStatusSearch", "/join/companyJoinStatusDetail");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "join_company_status_guide", "/join/companyJoinStatusGuide", "/join/en/companyJoinStatusGuide", "/join/companyJoinStatusGuide");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "join_company_reapply", "/join/companyReapply", "/join/en/companyReapply", "/join/companyReapply");
+
+        ADMIN_PATH_TO_ROUTE = Collections.unmodifiableMap(adminPathToRoute);
+        ADMIN_ROUTE_TO_PATH = Collections.unmodifiableMap(adminRouteToPath);
+        HOME_PATH_TO_ROUTE = Collections.unmodifiableMap(homePathToRoute);
+        HOME_ROUTE_TO_PATH = Collections.unmodifiableMap(homeRouteToPath);
+        HOME_LOCALIZED_PATHS = Collections.unmodifiableMap(homeLocalizedPaths);
+    }
 
     private ReactPageUrlMapper() {
     }
@@ -22,28 +106,22 @@ public final class ReactPageUrlMapper {
         }
         String path = stripEnglishPrefix(normalized);
 
-        String route = resolveAdminRoute(path);
-        if (!route.isEmpty()) {
-            String localizedPath = english ? localizeAdminPath(resolveAdminPath(route)) : resolveAdminPath(route);
+        String route = ADMIN_PATH_TO_ROUTE.get(path);
+        if (route != null) {
+            String localizedPath = english ? localizeAdminPath(ADMIN_ROUTE_TO_PATH.get(route)) : ADMIN_ROUTE_TO_PATH.get(route);
             if (localizedPath.isEmpty()) {
                 return "";
             }
-            if (querySuffix == null || querySuffix.isEmpty()) {
-                return localizedPath;
-            }
-            return localizedPath + "?" + querySuffix;
+            return querySuffix.isEmpty() ? localizedPath : localizedPath + "?" + querySuffix;
         }
 
         route = resolveHomeRoute(path);
         if (!route.isEmpty()) {
-            String localizedPath = english ? localizeHomePath(resolveHomePath(route)) : resolveHomePath(route);
-            if (localizedPath.isEmpty()) {
+            String localizedPath = english ? localizeHomePath(HOME_ROUTE_TO_PATH.get(route)) : HOME_ROUTE_TO_PATH.get(route);
+            if (localizedPath == null || localizedPath.isEmpty()) {
                 return "";
             }
-            if (querySuffix == null || querySuffix.isEmpty()) {
-                return localizedPath;
-            }
-            return localizedPath + "?" + querySuffix;
+            return querySuffix.isEmpty() ? localizedPath : localizedPath + "?" + querySuffix;
         }
 
         return "";
@@ -56,12 +134,12 @@ public final class ReactPageUrlMapper {
         }
         String path = stripEnglishPrefix(normalized);
         if (path.startsWith("/admin/app")) {
-            String mapped = resolveAdminPath(extractRoute(path));
-            return mapped.isEmpty() ? stripQuery(path) : mapped;
+            String mapped = ADMIN_ROUTE_TO_PATH.get(extractRoute(path));
+            return mapped == null || mapped.isEmpty() ? stripQuery(path) : mapped;
         }
         if (path.startsWith("/app")) {
-            String mapped = resolveHomePath(extractRoute(path));
-            return mapped.isEmpty() ? stripQuery(path) : mapped;
+            String mapped = HOME_ROUTE_TO_PATH.get(extractRoute(path));
+            return mapped == null || mapped.isEmpty() ? stripQuery(path) : mapped;
         }
         return path;
     }
@@ -72,21 +150,11 @@ public final class ReactPageUrlMapper {
             return "";
         }
         String path = stripEnglishPrefix(stripQuery(normalized));
-        String adminRoute = resolveAdminRoute(path);
-        if (!adminRoute.isEmpty()) {
+        String adminRoute = ADMIN_PATH_TO_ROUTE.get(path);
+        if (adminRoute != null && !adminRoute.isEmpty()) {
             return adminRoute;
         }
         return resolveHomeRoute(path);
-    }
-
-    private static String buildRuntimeUrl(String base, String route, String querySuffix) {
-        if (route.isEmpty()) {
-            return "";
-        }
-        if (querySuffix == null || querySuffix.isEmpty()) {
-            return base + route;
-        }
-        return base + route + "&" + querySuffix;
     }
 
     private static String localizeAdminPath(String path) {
@@ -109,364 +177,15 @@ public final class ReactPageUrlMapper {
         return route.trim().replace('-', '_');
     }
 
-    private static String resolveAdminRoute(String path) {
-        if ("/admin".equals(path) || "/admin/".equals(path)) {
-            return "admin_home";
-        }
-        if ("/admin/login/loginView".equals(path)) {
-            return "admin_login";
-        }
-        if ("/admin/member/approve".equals(path)) {
-            return "member_approve";
-        }
-        if ("/admin/member/company-approve".equals(path)) {
-            return "company_approve";
-        }
-        if ("/admin/member/edit".equals(path)) {
-            return "member_edit";
-        }
-        if ("/admin/member/detail".equals(path)) {
-            return "member_detail";
-        }
-        if ("/admin/member/reset_password".equals(path)) {
-            return "password_reset";
-        }
-        if ("/admin/member/list".equals(path)) {
-            return "member_list";
-        }
-        if ("/admin/member/admin_list".equals(path) || "/admin/member/admin-list".equals(path)) {
-            return "admin_list";
-        }
-        if ("/admin/member/company_list".equals(path)) {
-            return "company_list";
-        }
-        if ("/admin/member/company_detail".equals(path)) {
-            return "company_detail";
-        }
-        if ("/admin/member/company_account".equals(path)) {
-            return "company_account";
-        }
-        if ("/admin/member/admin_account".equals(path)) {
-            return "admin_create";
-        }
-        if ("/admin/member/admin_account/permissions".equals(path)) {
-            return "admin_permission";
-        }
-        if ("/admin/member/stats".equals(path)) {
-            return "member_stats";
-        }
-        if ("/admin/member/register".equals(path)) {
-            return "member_register";
-        }
-        if ("/admin/auth/group".equals(path) || "/admin/member/auth-group".equals(path) || "/admin/system/role".equals(path)) {
-            return "auth_group";
-        }
-        if ("/admin/member/auth-change".equals(path) || "/admin/system/auth-change".equals(path)) {
-            return "auth_change";
-        }
-        if ("/admin/member/dept-role-mapping".equals(path) || "/admin/system/dept-role-mapping".equals(path)) {
-            return "dept_role";
-        }
-        if ("/admin/emission/result_list".equals(path)) {
-            return "emission_result_list";
-        }
-        if ("/admin/system/code".equals(path)) {
-            return "system_code";
-        }
-        if ("/admin/system/page-management".equals(path)) {
-            return "page_management";
-        }
-        if ("/admin/system/feature-management".equals(path)) {
-            return "function_management";
-        }
-        if ("/admin/system/menu-management".equals(path)) {
-            return "menu_management";
-        }
-        if ("/admin/system/ip_whitelist".equals(path)) {
-            return "ip_whitelist";
-        }
-        if ("/admin/member/login_history".equals(path)) {
-            return "login_history";
-        }
-        if ("/admin/system/security".equals(path)) {
-            return "security_history";
-        }
-        if ("/admin/system/security-policy".equals(path)) {
-            return "security_policy";
-        }
-        if ("/admin/system/security-monitoring".equals(path)) {
-            return "security_monitoring";
-        }
-        if ("/admin/system/blocklist".equals(path)) {
-            return "blocklist";
-        }
-        if ("/admin/system/security-audit".equals(path)) {
-            return "security_audit";
-        }
-        if ("/admin/system/scheduler".equals(path)) {
-            return "scheduler_management";
-        }
-        if ("/admin/system/codex-request".equals(path)) {
-            return "codex_request";
-        }
-        if ("/admin/system/observability".equals(path)) {
-            return "observability";
-        }
-        if ("/admin/system/help-management".equals(path)) {
-            return "help_management";
-        }
-        if ("/admin/system/full-stack-management".equals(path)) {
-            return "full_stack_management";
-        }
-        if ("/admin/system/platform-studio".equals(path)) {
-            return "platform_studio";
-        }
-        if ("/admin/system/screen-elements-management".equals(path)) {
-            return "screen_elements_management";
-        }
-        if ("/admin/system/event-management-console".equals(path)) {
-            return "event_management_console";
-        }
-        if ("/admin/system/function-management-console".equals(path)) {
-            return "function_management_console";
-        }
-        if ("/admin/system/api-management-console".equals(path)) {
-            return "api_management_console";
-        }
-        if ("/admin/system/controller-management-console".equals(path)) {
-            return "controller_management_console";
-        }
-        if ("/admin/system/db-table-management".equals(path)) {
-            return "db_table_management";
-        }
-        if ("/admin/system/column-management-console".equals(path)) {
-            return "column_management_console";
-        }
-        if ("/admin/system/automation-studio".equals(path)) {
-            return "automation_studio";
-        }
-        if ("/admin/system/environment-management".equals(path)) {
-            return "environment_management";
-        }
-        if ("/admin/system/sr-workbench".equals(path)) {
-            return "sr_workbench";
-        }
-        return "";
-    }
-
-    private static String resolveAdminPath(String route) {
-        String normalizedRoute = normalizeRouteToken(route);
-        if ("admin_home".equals(normalizedRoute)) {
-            return "/admin/";
-        }
-        if ("admin_login".equals(normalizedRoute)) {
-            return "/admin/login/loginView";
-        }
-        if ("member_approve".equals(normalizedRoute)) {
-            return "/admin/member/approve";
-        }
-        if ("company_approve".equals(normalizedRoute)) {
-            return "/admin/member/company-approve";
-        }
-        if ("member_edit".equals(normalizedRoute)) {
-            return "/admin/member/edit";
-        }
-        if ("member_detail".equals(normalizedRoute)) {
-            return "/admin/member/detail";
-        }
-        if ("password_reset".equals(normalizedRoute)) {
-            return "/admin/member/reset_password";
-        }
-        if ("member_list".equals(normalizedRoute)) {
-            return "/admin/member/list";
-        }
-        if ("admin_list".equals(normalizedRoute)) {
-            return "/admin/member/admin_list";
-        }
-        if ("company_list".equals(normalizedRoute)) {
-            return "/admin/member/company_list";
-        }
-        if ("company_detail".equals(normalizedRoute)) {
-            return "/admin/member/company_detail";
-        }
-        if ("company_account".equals(normalizedRoute)) {
-            return "/admin/member/company_account";
-        }
-        if ("admin_create".equals(normalizedRoute)) {
-            return "/admin/member/admin_account";
-        }
-        if ("admin_permission".equals(normalizedRoute)) {
-            return "/admin/member/admin_account/permissions";
-        }
-        if ("member_stats".equals(normalizedRoute)) {
-            return "/admin/member/stats";
-        }
-        if ("member_register".equals(normalizedRoute)) {
-            return "/admin/member/register";
-        }
-        if ("auth_group".equals(normalizedRoute)) {
-            return "/admin/auth/group";
-        }
-        if ("auth_change".equals(normalizedRoute)) {
-            return "/admin/member/auth-change";
-        }
-        if ("dept_role".equals(normalizedRoute)) {
-            return "/admin/member/dept-role-mapping";
-        }
-        if ("emission_result_list".equals(normalizedRoute)) {
-            return "/admin/emission/result_list";
-        }
-        if ("system_code".equals(normalizedRoute)) {
-            return "/admin/system/code";
-        }
-        if ("page_management".equals(normalizedRoute)) {
-            return "/admin/system/page-management";
-        }
-        if ("function_management".equals(normalizedRoute)) {
-            return "/admin/system/feature-management";
-        }
-        if ("menu_management".equals(normalizedRoute)) {
-            return "/admin/system/menu-management";
-        }
-        if ("ip_whitelist".equals(normalizedRoute)) {
-            return "/admin/system/ip_whitelist";
-        }
-        if ("login_history".equals(normalizedRoute)) {
-            return "/admin/member/login_history";
-        }
-        if ("security_history".equals(normalizedRoute)) {
-            return "/admin/system/security";
-        }
-        if ("security_policy".equals(normalizedRoute)) {
-            return "/admin/system/security-policy";
-        }
-        if ("security_monitoring".equals(normalizedRoute)) {
-            return "/admin/system/security-monitoring";
-        }
-        if ("blocklist".equals(normalizedRoute)) {
-            return "/admin/system/blocklist";
-        }
-        if ("security_audit".equals(normalizedRoute)) {
-            return "/admin/system/security-audit";
-        }
-        if ("scheduler_management".equals(normalizedRoute)) {
-            return "/admin/system/scheduler";
-        }
-        if ("codex_request".equals(normalizedRoute)) {
-            return "/admin/system/codex-request";
-        }
-        if ("observability".equals(normalizedRoute)) {
-            return "/admin/system/observability";
-        }
-        if ("help_management".equals(normalizedRoute)) {
-            return "/admin/system/help-management";
-        }
-        if ("full_stack_management".equals(normalizedRoute)) {
-            return "/admin/system/full-stack-management";
-        }
-        if ("platform_studio".equals(normalizedRoute)) {
-            return "/admin/system/platform-studio";
-        }
-        if ("screen_elements_management".equals(normalizedRoute)) {
-            return "/admin/system/screen-elements-management";
-        }
-        if ("event_management_console".equals(normalizedRoute)) {
-            return "/admin/system/event-management-console";
-        }
-        if ("function_management_console".equals(normalizedRoute)) {
-            return "/admin/system/function-management-console";
-        }
-        if ("api_management_console".equals(normalizedRoute)) {
-            return "/admin/system/api-management-console";
-        }
-        if ("controller_management_console".equals(normalizedRoute)) {
-            return "/admin/system/controller-management-console";
-        }
-        if ("db_table_management".equals(normalizedRoute)) {
-            return "/admin/system/db-table-management";
-        }
-        if ("column_management_console".equals(normalizedRoute)) {
-            return "/admin/system/column-management-console";
-        }
-        if ("automation_studio".equals(normalizedRoute)) {
-            return "/admin/system/automation-studio";
-        }
-        if ("environment_management".equals(normalizedRoute)) {
-            return "/admin/system/environment-management";
-        }
-        if ("sr_workbench".equals(normalizedRoute)) {
-            return "/admin/system/sr-workbench";
-        }
-        return "";
-    }
-
     private static String resolveHomeRoute(String path) {
+        if (path == null || path.isEmpty()) {
+            return "";
+        }
         if ("/mypage".equals(path) || path.startsWith("/mypage/")) {
             return "mypage";
         }
-        if ("/join/step1".equals(path) || "/join/overseas/step1".equals(path)) {
-            return "join_wizard";
-        }
-        if ("/join/step2".equals(path)) {
-            return "join_terms";
-        }
-        if ("/join/step3".equals(path)) {
-            return "join_auth";
-        }
-        if ("/join/step4".equals(path)) {
-            return "join_info";
-        }
-        if ("/join/companyRegister".equals(path)) {
-            return "join_company_register";
-        }
-        if ("/join/companyRegisterComplete".equals(path)) {
-            return "join_company_register_complete";
-        }
-        if ("/join/companyJoinStatusSearch".equals(path) || "/join/companyJoinStatusDetail".equals(path)) {
-            return "join_company_status";
-        }
-        if ("/join/companyJoinStatusGuide".equals(path)) {
-            return "join_company_status_guide";
-        }
-        if ("/join/companyReapply".equals(path)) {
-            return "join_company_reapply";
-        }
-        return "";
-    }
-
-    private static String resolveHomePath(String route) {
-        String normalizedRoute = normalizeRouteToken(route);
-        if ("mypage".equals(normalizedRoute)) {
-            return "/mypage";
-        }
-        if ("join_wizard".equals(normalizedRoute)) {
-            return "/join/step1";
-        }
-        if ("join_terms".equals(normalizedRoute)) {
-            return "/join/step2";
-        }
-        if ("join_auth".equals(normalizedRoute)) {
-            return "/join/step3";
-        }
-        if ("join_info".equals(normalizedRoute)) {
-            return "/join/step4";
-        }
-        if ("join_company_register".equals(normalizedRoute)) {
-            return "/join/companyRegister";
-        }
-        if ("join_company_register_complete".equals(normalizedRoute)) {
-            return "/join/companyRegisterComplete";
-        }
-        if ("join_company_status".equals(normalizedRoute)) {
-            return "/join/companyJoinStatusSearch";
-        }
-        if ("join_company_status_guide".equals(normalizedRoute)) {
-            return "/join/companyJoinStatusGuide";
-        }
-        if ("join_company_reapply".equals(normalizedRoute)) {
-            return "/join/companyReapply";
-        }
-        return "";
+        String route = HOME_PATH_TO_ROUTE.get(path);
+        return route == null ? "" : route;
     }
 
     private static String localizeHomePath(String path) {
@@ -476,34 +195,8 @@ public final class ReactPageUrlMapper {
         if ("/mypage".equals(path) || path.startsWith("/mypage/")) {
             return "/en" + path;
         }
-        if ("/join/step1".equals(path)) {
-            return "/join/en/step1";
-        }
-        if ("/join/step2".equals(path)) {
-            return "/join/en/step2";
-        }
-        if ("/join/step3".equals(path)) {
-            return "/join/en/step3";
-        }
-        if ("/join/step4".equals(path)) {
-            return "/join/en/step4";
-        }
-        if ("/join/companyRegister".equals(path)) {
-            return "/join/en/companyRegister";
-        }
-        if ("/join/companyRegisterComplete".equals(path)) {
-            return "/join/en/companyRegisterComplete";
-        }
-        if ("/join/companyJoinStatusSearch".equals(path)) {
-            return "/join/en/companyJoinStatusSearch";
-        }
-        if ("/join/companyJoinStatusGuide".equals(path)) {
-            return "/join/en/companyJoinStatusGuide";
-        }
-        if ("/join/companyReapply".equals(path)) {
-            return "/join/en/companyReapply";
-        }
-        return path;
+        String localized = HOME_LOCALIZED_PATHS.get(path);
+        return localized == null ? path : localized;
     }
 
     private static String extractRoute(String value) {
@@ -542,5 +235,32 @@ public final class ReactPageUrlMapper {
             return "/" + normalized;
         }
         return normalized;
+    }
+
+    private static void registerAdmin(Map<String, String> pathToRoute,
+                                      Map<String, String> routeToPath,
+                                      String route,
+                                      String canonicalPath,
+                                      String... aliasPaths) {
+        String normalizedRoute = normalizeRouteToken(route);
+        routeToPath.put(normalizedRoute, canonicalPath);
+        for (String aliasPath : aliasPaths) {
+            pathToRoute.put(aliasPath, normalizedRoute);
+        }
+    }
+
+    private static void registerHome(Map<String, String> pathToRoute,
+                                     Map<String, String> routeToPath,
+                                     Map<String, String> localizedPaths,
+                                     String route,
+                                     String canonicalPath,
+                                     String localizedPath,
+                                     String... aliasPaths) {
+        String normalizedRoute = normalizeRouteToken(route);
+        routeToPath.put(normalizedRoute, canonicalPath);
+        localizedPaths.put(canonicalPath, localizedPath);
+        for (String aliasPath : aliasPaths) {
+            pathToRoute.put(aliasPath, normalizedRoute);
+        }
     }
 }

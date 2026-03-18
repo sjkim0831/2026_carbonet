@@ -156,7 +156,7 @@ export function PasswordResetMigrationPage() {
           </section>
         )}
       >
-        <section className="mb-6 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-6 shadow-sm">
+        <section className="mb-6 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-6 shadow-sm" data-help-id="password-reset-search">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
             <label className="block text-sm font-bold text-[var(--kr-gov-text-secondary)]">
               <span className="mb-2 block">{en ? "Reset Type" : "유형"}</span>
@@ -214,7 +214,7 @@ export function PasswordResetMigrationPage() {
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white shadow-sm">
+        <section className="overflow-hidden rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white shadow-sm" data-help-id="password-reset-history">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left text-sm">
               <thead>

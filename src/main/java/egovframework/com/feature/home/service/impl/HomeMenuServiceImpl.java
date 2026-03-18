@@ -23,14 +23,39 @@ import java.util.Map;
 public class HomeMenuServiceImpl implements HomeMenuService {
 
     private final MenuInfoService menuInfoService;
+    private final Object snapshotMonitor = new Object();
+    private volatile CachedHomeMenuSnapshot koreanSnapshot;
+    private volatile CachedHomeMenuSnapshot englishSnapshot;
 
     @Override
     public List<HomeMenuNode> getHomeMenu(boolean isEn) {
         try {
-            return buildHomeMenu(isEn);
+            return resolveSnapshot(isEn);
         } catch (Exception e) {
             log.error("Failed to build home menu. isEn={}", isEn, e);
             return Collections.emptyList();
+        }
+    }
+
+    private List<HomeMenuNode> resolveSnapshot(boolean isEn) {
+        long version = menuInfoService.getMenuTreeVersion();
+        CachedHomeMenuSnapshot cached = isEn ? englishSnapshot : koreanSnapshot;
+        if (cached != null && cached.version == version) {
+            return cloneMenuNodes(cached.nodes);
+        }
+        synchronized (snapshotMonitor) {
+            cached = isEn ? englishSnapshot : koreanSnapshot;
+            if (cached != null && cached.version == version) {
+                return cloneMenuNodes(cached.nodes);
+            }
+            List<HomeMenuNode> snapshot = buildHomeMenu(isEn);
+            CachedHomeMenuSnapshot refreshed = new CachedHomeMenuSnapshot(version, cloneMenuNodes(snapshot));
+            if (isEn) {
+                englishSnapshot = refreshed;
+            } else {
+                koreanSnapshot = refreshed;
+            }
+            return cloneMenuNodes(refreshed.nodes);
         }
     }
 
@@ -223,5 +248,39 @@ public class HomeMenuServiceImpl implements HomeMenuService {
 
     private String safeString(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private List<HomeMenuNode> cloneMenuNodes(List<HomeMenuNode> nodes) {
+        if (nodes == null || nodes.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<HomeMenuNode> clones = new ArrayList<>(nodes.size());
+        for (HomeMenuNode node : nodes) {
+            clones.add(cloneMenuNode(node));
+        }
+        return clones;
+    }
+
+    private HomeMenuNode cloneMenuNode(HomeMenuNode node) {
+        HomeMenuNode clone = new HomeMenuNode();
+        if (node == null) {
+            return clone;
+        }
+        clone.setCode(node.getCode());
+        clone.setLabel(node.getLabel());
+        clone.setUrl(node.getUrl());
+        clone.setSections(cloneMenuNodes(node.getSections()));
+        clone.setItems(cloneMenuNodes(node.getItems()));
+        return clone;
+    }
+
+    private static final class CachedHomeMenuSnapshot {
+        private final long version;
+        private final List<HomeMenuNode> nodes;
+
+        private CachedHomeMenuSnapshot(long version, List<HomeMenuNode> nodes) {
+            this.version = version;
+            this.nodes = nodes;
+        }
     }
 }

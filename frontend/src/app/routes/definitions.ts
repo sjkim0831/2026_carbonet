@@ -42,6 +42,7 @@ export type MigrationPageId =
   | "column-management-console"
   | "automation-studio"
   | "environment-management"
+  | "wbs-management"
   | "ip-whitelist"
   | "login-history"
   | "security-history"
@@ -123,6 +124,7 @@ export const ROUTES: RouteDefinition[] = [
   { id: "column-management-console", label: "컬럼 관리", group: "admin", koPath: "/admin/system/column-management-console", enPath: "/en/admin/system/column-management-console" },
   { id: "automation-studio", label: "자동화 스튜디오", group: "admin", koPath: "/admin/system/automation-studio", enPath: "/en/admin/system/automation-studio" },
   { id: "environment-management", label: "메뉴 통합 관리", group: "admin", koPath: "/admin/system/environment-management", enPath: "/en/admin/system/environment-management" },
+  { id: "wbs-management", label: "WBS 관리", group: "admin", koPath: "/admin/system/wbs-management", enPath: "/en/admin/system/wbs-management" },
   { id: "ip-whitelist", label: "IP 화이트리스트", group: "admin", koPath: "/admin/system/ip_whitelist", enPath: "/en/admin/system/ip_whitelist" },
   { id: "login-history", label: "로그인 이력", group: "admin", koPath: "/admin/member/login_history", enPath: "/en/admin/member/login_history" },
   { id: "security-history", label: "보안 이력", group: "admin", koPath: "/admin/system/security", enPath: "/en/admin/system/security" },
@@ -131,7 +133,7 @@ export const ROUTES: RouteDefinition[] = [
   { id: "blocklist", label: "차단 목록", group: "admin", koPath: "/admin/system/blocklist", enPath: "/en/admin/system/blocklist" },
   { id: "security-audit", label: "보안 감사", group: "admin", koPath: "/admin/system/security-audit", enPath: "/en/admin/system/security-audit" },
   { id: "scheduler-management", label: "스케줄러 관리", group: "admin", koPath: "/admin/system/scheduler", enPath: "/en/admin/system/scheduler" },
-  { id: "codex-request", label: "Codex Request", group: "admin", koPath: "/admin/system/codex-request", enPath: "/en/admin/system/codex-request" },
+  { id: "codex-request", label: "Codex Execution Console", group: "admin", koPath: "/admin/system/codex-request", enPath: "/en/admin/system/codex-request" },
   { id: "observability", label: "추적 조회", group: "admin", koPath: "/admin/system/observability", enPath: "/en/admin/system/observability" },
   { id: "help-management", label: "도움말 운영", group: "admin", koPath: "/admin/system/help-management", enPath: "/en/admin/system/help-management" },
   { id: "sr-workbench", label: "SR 워크벤치", group: "admin", koPath: "/admin/system/sr-workbench", enPath: "/en/admin/system/sr-workbench" },

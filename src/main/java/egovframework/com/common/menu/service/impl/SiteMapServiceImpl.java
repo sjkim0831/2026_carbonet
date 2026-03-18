@@ -18,9 +18,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -38,18 +40,68 @@ public class SiteMapServiceImpl implements SiteMapService {
     private final MenuInfoService menuInfoService;
     private final AuthGroupManageService authGroupManageService;
     private final JwtTokenProvider jwtTokenProvider;
+    private final Object snapshotMonitor = new Object();
+    private volatile CachedSiteMapSnapshot userKoreanSnapshot;
+    private volatile CachedSiteMapSnapshot userEnglishSnapshot;
+    private volatile CachedCompiledAdminSnapshot adminKoreanSnapshot;
+    private volatile CachedCompiledAdminSnapshot adminEnglishSnapshot;
 
     @Override
     public List<SiteMapNode> getUserSiteMap(boolean isEn) {
-        return appendUserPublicFlows(buildSiteMap("HMENU1", isEn, false, ""));
+        return resolveUserSnapshot(isEn);
     }
 
     @Override
     public List<SiteMapNode> getAdminSiteMap(boolean isEn, HttpServletRequest request) {
-        return buildSiteMap("AMENU1", isEn, true, resolveAuthorCode(request));
+        CompiledAdminSiteMapSnapshot snapshot = resolveAdminSnapshot(isEn);
+        return filterAdminSnapshot(snapshot, buildAuthorPermissionContext(resolveAuthorCode(request)));
     }
 
-    private List<SiteMapNode> buildSiteMap(String codeId, boolean isEn, boolean admin, String authorCode) {
+    private List<SiteMapNode> resolveUserSnapshot(boolean isEn) {
+        long version = menuInfoService.getMenuTreeVersion();
+        CachedSiteMapSnapshot cached = isEn ? userEnglishSnapshot : userKoreanSnapshot;
+        if (cached != null && cached.version == version) {
+            return cloneSiteMapNodes(cached.nodes);
+        }
+        synchronized (snapshotMonitor) {
+            cached = isEn ? userEnglishSnapshot : userKoreanSnapshot;
+            if (cached != null && cached.version == version) {
+                return cloneSiteMapNodes(cached.nodes);
+            }
+            List<SiteMapNode> snapshot = appendUserPublicFlows(buildSiteMap("HMENU1", isEn));
+            CachedSiteMapSnapshot refreshed = new CachedSiteMapSnapshot(version, cloneSiteMapNodes(snapshot));
+            if (isEn) {
+                userEnglishSnapshot = refreshed;
+            } else {
+                userKoreanSnapshot = refreshed;
+            }
+            return cloneSiteMapNodes(refreshed.nodes);
+        }
+    }
+
+    private CompiledAdminSiteMapSnapshot resolveAdminSnapshot(boolean isEn) {
+        long version = menuInfoService.getMenuTreeVersion();
+        CachedCompiledAdminSnapshot cached = isEn ? adminEnglishSnapshot : adminKoreanSnapshot;
+        if (cached != null && cached.version == version) {
+            return cached.snapshot;
+        }
+        synchronized (snapshotMonitor) {
+            cached = isEn ? adminEnglishSnapshot : adminKoreanSnapshot;
+            if (cached != null && cached.version == version) {
+                return cached.snapshot;
+            }
+            CompiledAdminSiteMapSnapshot snapshot = buildCompiledAdminSiteMap("AMENU1", isEn);
+            CachedCompiledAdminSnapshot refreshed = new CachedCompiledAdminSnapshot(version, snapshot);
+            if (isEn) {
+                adminEnglishSnapshot = refreshed;
+            } else {
+                adminKoreanSnapshot = refreshed;
+            }
+            return snapshot;
+        }
+    }
+
+    private List<SiteMapNode> buildSiteMap(String codeId, boolean isEn) {
         List<MenuInfoDTO> rows = loadMenuTreeRows(codeId);
         if (rows.isEmpty()) {
             return Collections.emptyList();
@@ -84,9 +136,6 @@ public class SiteMapServiceImpl implements SiteMapService {
                 top.getChildren().add(mid);
                 midMap.put(code, mid);
             } else if (code.length() == 8) {
-                if (admin && !shouldExposeAdminMenu(authorCode, rawUrl)) {
-                    continue;
-                }
                 String parentCode = code.substring(0, 6);
                 SiteMapNode mid = midMap.get(parentCode);
                 if (mid == null) {
@@ -103,6 +152,65 @@ public class SiteMapServiceImpl implements SiteMapService {
         List<SiteMapNode> topNodes = new ArrayList<>(topMap.values());
         sortNodes(topNodes, sortOrderMap);
         return pruneEmptyNodes(topNodes);
+    }
+
+    private CompiledAdminSiteMapSnapshot buildCompiledAdminSiteMap(String codeId, boolean isEn) {
+        List<MenuInfoDTO> rows = loadMenuTreeRows(codeId);
+        if (rows.isEmpty()) {
+            return new CompiledAdminSiteMapSnapshot(Collections.emptyList());
+        }
+
+        Map<String, Integer> sortOrderMap = new LinkedHashMap<>();
+        Map<String, CompiledSiteMapNode> topMap = new LinkedHashMap<>();
+        Map<String, CompiledSiteMapNode> midMap = new LinkedHashMap<>();
+
+        for (MenuInfoDTO row : rows) {
+            String code = safeString(row.getCode()).toUpperCase(Locale.ROOT);
+            if (code.isEmpty() || !"Y".equalsIgnoreCase(safeString(row.getUseAt()))) {
+                continue;
+            }
+            sortOrderMap.put(code, row.getSortOrdr());
+            String label = resolveLabel(row, isEn);
+            String rawUrl = normalizeMenuUrl(row.getMenuUrl());
+            String url = mapMenuUrl(rawUrl, isEn);
+            String icon = safeString(row.getMenuIcon());
+
+            if (code.length() == 4) {
+                CompiledSiteMapNode top = topMap.computeIfAbsent(code, key -> createCompiledNode(key, label, url, icon, "", false));
+                top.label = label;
+                top.url = url;
+                if (!icon.isEmpty()) {
+                    top.icon = icon;
+                }
+            } else if (code.length() == 6) {
+                String parentCode = code.substring(0, 4);
+                CompiledSiteMapNode top = topMap.computeIfAbsent(parentCode, key -> createCompiledNode(key, parentCode, "#", "", "", false));
+                CompiledSiteMapNode mid = createCompiledNode(code, label, url, icon, "", false);
+                top.children.add(mid);
+                midMap.put(code, mid);
+            } else if (code.length() == 8) {
+                String parentCode = code.substring(0, 6);
+                CompiledSiteMapNode mid = midMap.get(parentCode);
+                if (mid == null) {
+                    String topCode = code.substring(0, 4);
+                    CompiledSiteMapNode top = topMap.computeIfAbsent(topCode, key -> createCompiledNode(key, topCode, "#", "", "", false));
+                    mid = createCompiledNode(parentCode, parentCode, "#", "", "", false);
+                    top.children.add(mid);
+                    midMap.put(parentCode, mid);
+                }
+                mid.children.add(createCompiledNode(
+                        code,
+                        label,
+                        url,
+                        icon,
+                        resolveRequiredViewFeatureCode(rawUrl),
+                        isGlobalOnlyRoute(ReactPageUrlMapper.toCanonicalMenuUrl(rawUrl))));
+            }
+        }
+
+        List<CompiledSiteMapNode> topNodes = new ArrayList<>(topMap.values());
+        sortCompiledNodes(topNodes, sortOrderMap);
+        return new CompiledAdminSiteMapSnapshot(pruneEmptyCompiledNodes(topNodes));
     }
 
     private List<SiteMapNode> pruneEmptyNodes(List<SiteMapNode> topNodes) {
@@ -219,6 +327,97 @@ public class SiteMapServiceImpl implements SiteMapService {
         }
     }
 
+    private List<SiteMapNode> filterAdminSnapshot(CompiledAdminSiteMapSnapshot snapshot, AuthorPermissionContext permissionContext) {
+        if (snapshot == null || snapshot.nodes.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<SiteMapNode> filtered = new ArrayList<>();
+        for (CompiledSiteMapNode top : snapshot.nodes) {
+            SiteMapNode filteredTop = filterCompiledNode(top, permissionContext);
+            if (filteredTop != null) {
+                filtered.add(filteredTop);
+            }
+        }
+        refreshDerivedUrls(filtered);
+        return pruneEmptyNodes(filtered);
+    }
+
+    private SiteMapNode filterCompiledNode(CompiledSiteMapNode source, AuthorPermissionContext permissionContext) {
+        if (source == null) {
+            return null;
+        }
+        if (source.children.isEmpty()) {
+            return canExposeAdminLeaf(source, permissionContext)
+                    ? createNode(source.code, source.label, source.url, source.icon)
+                    : null;
+        }
+        SiteMapNode node = createNode(source.code, source.label, source.url, source.icon);
+        List<SiteMapNode> children = new ArrayList<>();
+        for (CompiledSiteMapNode child : source.children) {
+            SiteMapNode filteredChild = filterCompiledNode(child, permissionContext);
+            if (filteredChild != null) {
+                children.add(filteredChild);
+            }
+        }
+        node.setChildren(children);
+        return children.isEmpty() ? null : node;
+    }
+
+    private boolean canExposeAdminLeaf(CompiledSiteMapNode node, AuthorPermissionContext permissionContext) {
+        if (node == null || permissionContext == null) {
+            return false;
+        }
+        if (permissionContext.systemMaster) {
+            return true;
+        }
+        if (node.globalOnlyRoute && permissionContext.operationAdmin) {
+            return false;
+        }
+        if (safeString(node.requiredFeatureCode).isEmpty()) {
+            return !permissionContext.authorCode.isEmpty();
+        }
+        return permissionContext.authorFeatureCodes.contains(node.requiredFeatureCode);
+    }
+
+    private AuthorPermissionContext buildAuthorPermissionContext(String authorCode) {
+        String normalizedAuthorCode = safeString(authorCode).toUpperCase(Locale.ROOT);
+        if (normalizedAuthorCode.isEmpty()) {
+            return new AuthorPermissionContext("", Collections.emptySet(), false, false);
+        }
+        if (ROLE_SYSTEM_MASTER.equals(normalizedAuthorCode)) {
+            return new AuthorPermissionContext(normalizedAuthorCode, Collections.emptySet(), true, false);
+        }
+        Set<String> featureCodes = new LinkedHashSet<>();
+        try {
+            List<String> authorFeatureCodes = authGroupManageService.selectAuthorFeatureCodes(normalizedAuthorCode);
+            if (authorFeatureCodes != null) {
+                for (String featureCode : authorFeatureCodes) {
+                    String normalizedFeatureCode = safeString(featureCode).toUpperCase(Locale.ROOT);
+                    if (!normalizedFeatureCode.isEmpty()) {
+                        featureCodes.add(normalizedFeatureCode);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to load author feature codes for sitemap. authorCode={}", normalizedAuthorCode, e);
+        }
+        return new AuthorPermissionContext(
+                normalizedAuthorCode,
+                featureCodes,
+                false,
+                ROLE_OPERATION_ADMIN.equals(normalizedAuthorCode));
+    }
+
+    private String resolveRequiredViewFeatureCode(String menuUrl) {
+        try {
+            return safeString(authGroupManageService.selectRequiredViewFeatureCodeByMenuUrl(
+                    ReactPageUrlMapper.toCanonicalMenuUrl(normalizeMenuUrl(menuUrl)))).toUpperCase(Locale.ROOT);
+        } catch (Exception e) {
+            log.warn("Failed to resolve sitemap menu feature code. menuUrl={}", menuUrl, e);
+            return "";
+        }
+    }
+
     private String mapMenuUrl(String value, boolean isEn) {
         String url = normalizeMenuUrl(value);
         if (url.isEmpty()) {
@@ -249,32 +448,6 @@ public class SiteMapServiceImpl implements SiteMapService {
             return "/" + url;
         }
         return url;
-    }
-
-    private boolean shouldExposeAdminMenu(String authorCode, String menuUrl) {
-        String normalizedAuthorCode = safeString(authorCode).toUpperCase(Locale.ROOT);
-        String normalizedMenuUrl = ReactPageUrlMapper.toCanonicalMenuUrl(normalizeMenuUrl(menuUrl));
-        if (normalizedMenuUrl.isEmpty() || "#".equals(normalizedMenuUrl)) {
-            return false;
-        }
-        if (ROLE_SYSTEM_MASTER.equals(normalizedAuthorCode)) {
-            return true;
-        }
-        if (ROLE_OPERATION_ADMIN.equals(normalizedAuthorCode) && isGlobalOnlyRoute(normalizedMenuUrl)) {
-            return false;
-        }
-        try {
-            String featureCode = safeString(authGroupManageService.selectRequiredViewFeatureCodeByMenuUrl(normalizedMenuUrl))
-                    .toUpperCase(Locale.ROOT);
-            if (featureCode.isEmpty()) {
-                return !normalizedAuthorCode.isEmpty();
-            }
-            return authGroupManageService.hasAuthorFeaturePermission(normalizedAuthorCode, featureCode);
-        } catch (Exception e) {
-            log.warn("Failed to evaluate sitemap menu permission. authorCode={}, menuUrl={}",
-                    normalizedAuthorCode, normalizedMenuUrl, e);
-            return false;
-        }
     }
 
     private boolean isGlobalOnlyRoute(String normalizedUri) {
@@ -358,5 +531,152 @@ public class SiteMapServiceImpl implements SiteMapService {
 
     private String safeString(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private void sortCompiledNodes(List<CompiledSiteMapNode> nodes, Map<String, Integer> sortOrderMap) {
+        nodes.sort(Comparator
+                .comparingInt((CompiledSiteMapNode node) -> effectiveSort(node.code, sortOrderMap))
+                .thenComparing(node -> node.code, Comparator.nullsLast(String::compareTo)));
+        for (CompiledSiteMapNode node : nodes) {
+            sortCompiledNodes(node.children, sortOrderMap);
+            if ("#".equals(safeString(node.url))) {
+                String firstChildUrl = firstCompiledChildUrl(node.children);
+                if (!firstChildUrl.isEmpty()) {
+                    node.url = firstChildUrl;
+                }
+            }
+        }
+    }
+
+    private String firstCompiledChildUrl(List<CompiledSiteMapNode> children) {
+        for (CompiledSiteMapNode child : children) {
+            String url = safeString(child.url);
+            if (!url.isEmpty() && !"#".equals(url)) {
+                return url;
+            }
+            String nestedUrl = firstCompiledChildUrl(child.children);
+            if (!nestedUrl.isEmpty()) {
+                return nestedUrl;
+            }
+        }
+        return "";
+    }
+
+    private List<CompiledSiteMapNode> pruneEmptyCompiledNodes(List<CompiledSiteMapNode> topNodes) {
+        List<CompiledSiteMapNode> result = new ArrayList<>();
+        for (CompiledSiteMapNode top : topNodes) {
+            List<CompiledSiteMapNode> sections = new ArrayList<>();
+            for (CompiledSiteMapNode section : top.children) {
+                if (!section.children.isEmpty()) {
+                    sections.add(section);
+                }
+            }
+            top.children = sections;
+            if (!top.children.isEmpty()) {
+                result.add(top);
+            }
+        }
+        return result;
+    }
+
+    private void refreshDerivedUrls(List<SiteMapNode> nodes) {
+        for (SiteMapNode node : nodes) {
+            refreshDerivedUrls(node.getChildren());
+            if ("#".equals(safeString(node.getUrl()))) {
+                String firstChildUrl = firstChildUrl(node.getChildren());
+                if (!firstChildUrl.isEmpty()) {
+                    node.setUrl(firstChildUrl);
+                }
+            }
+        }
+    }
+
+    private List<SiteMapNode> cloneSiteMapNodes(List<SiteMapNode> nodes) {
+        if (nodes == null || nodes.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<SiteMapNode> clones = new ArrayList<>(nodes.size());
+        for (SiteMapNode node : nodes) {
+            clones.add(cloneSiteMapNode(node));
+        }
+        return clones;
+    }
+
+    private SiteMapNode cloneSiteMapNode(SiteMapNode node) {
+        SiteMapNode clone = new SiteMapNode();
+        if (node == null) {
+            return clone;
+        }
+        clone.setCode(node.getCode());
+        clone.setLabel(node.getLabel());
+        clone.setUrl(node.getUrl());
+        clone.setIcon(node.getIcon());
+        clone.setChildren(cloneSiteMapNodes(node.getChildren()));
+        return clone;
+    }
+
+    private CompiledSiteMapNode createCompiledNode(String code, String label, String url, String icon,
+                                                   String requiredFeatureCode, boolean globalOnlyRoute) {
+        CompiledSiteMapNode node = new CompiledSiteMapNode();
+        node.code = code;
+        node.label = label;
+        node.url = url.isEmpty() ? "#" : url;
+        node.icon = icon;
+        node.requiredFeatureCode = requiredFeatureCode;
+        node.globalOnlyRoute = globalOnlyRoute;
+        return node;
+    }
+
+    private static final class CachedSiteMapSnapshot {
+        private final long version;
+        private final List<SiteMapNode> nodes;
+
+        private CachedSiteMapSnapshot(long version, List<SiteMapNode> nodes) {
+            this.version = version;
+            this.nodes = nodes;
+        }
+    }
+
+    private static final class CachedCompiledAdminSnapshot {
+        private final long version;
+        private final CompiledAdminSiteMapSnapshot snapshot;
+
+        private CachedCompiledAdminSnapshot(long version, CompiledAdminSiteMapSnapshot snapshot) {
+            this.version = version;
+            this.snapshot = snapshot;
+        }
+    }
+
+    private static final class CompiledAdminSiteMapSnapshot {
+        private final List<CompiledSiteMapNode> nodes;
+
+        private CompiledAdminSiteMapSnapshot(List<CompiledSiteMapNode> nodes) {
+            this.nodes = nodes;
+        }
+    }
+
+    private static final class CompiledSiteMapNode {
+        private String code;
+        private String label;
+        private String url;
+        private String icon;
+        private String requiredFeatureCode;
+        private boolean globalOnlyRoute;
+        private List<CompiledSiteMapNode> children = new ArrayList<>();
+    }
+
+    private static final class AuthorPermissionContext {
+        private final String authorCode;
+        private final Set<String> authorFeatureCodes;
+        private final boolean systemMaster;
+        private final boolean operationAdmin;
+
+        private AuthorPermissionContext(String authorCode, Set<String> authorFeatureCodes,
+                                        boolean systemMaster, boolean operationAdmin) {
+            this.authorCode = authorCode;
+            this.authorFeatureCodes = authorFeatureCodes;
+            this.systemMaster = systemMaster;
+            this.operationAdmin = operationAdmin;
+        }
     }
 }

@@ -15,4 +15,6 @@ public interface MenuInfoService {
     MenuInfoDTO selectMenuDetailByUrl(String menuUrl) throws Exception;
 
     void saveMenuOrder(String menuCode, int sortOrdr) throws Exception;
+
+    long getMenuTreeVersion();
 }

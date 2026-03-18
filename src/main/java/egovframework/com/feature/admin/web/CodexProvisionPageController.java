@@ -1,6 +1,8 @@
 package egovframework.com.feature.admin.web;
 
 import lombok.RequiredArgsConstructor;
+import egovframework.com.feature.admin.service.SrTicketWorkbenchService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.security.web.csrf.CsrfToken;
@@ -20,6 +22,38 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class CodexProvisionPageController {
 
+    private final SrTicketWorkbenchService srTicketWorkbenchService;
+
+    @Value("${security.codex.enabled:false}")
+    private boolean codexEnabled;
+
+    @Value("${security.codex.api-key:}")
+    private String configuredApiKey;
+
+    @Value("${security.codex.runner.enabled:false}")
+    private boolean codexRunnerEnabled;
+
+    @Value("${security.codex.runner.repo-root:}")
+    private String codexRunnerRepoRoot;
+
+    @Value("${security.codex.runner.workspace-root:/tmp/carbonet-sr-codex-runner}")
+    private String codexRunnerWorkspaceRoot;
+
+    @Value("${security.codex.runner.history-file:/tmp/carbonet-sr-codex-runner-history.jsonl}")
+    private String codexRunnerHistoryFile;
+
+    @Value("${security.codex.runner.plan-command:}")
+    private String codexRunnerPlanCommand;
+
+    @Value("${security.codex.runner.build-command:}")
+    private String codexRunnerBuildCommand;
+
+    @Value("${security.codex.runner.deploy-command:}")
+    private String codexRunnerDeployCommand;
+
+    @Value("${security.codex.runner.health-check-url:}")
+    private String codexRunnerHealthCheckUrl;
+
     @GetMapping({"/codex-request", "/codex-provision"})
     public String codexProvisionPage(HttpServletRequest request, Locale locale, Model model) {
         return redirectReactMigration(request, locale, "codex-request");
@@ -31,10 +65,49 @@ public class CodexProvisionPageController {
         boolean isEn = isEnglishRequest(request, locale);
         primeCsrfToken(request);
         ExtendedModelMap model = new ExtendedModelMap();
-        model.addAttribute("codexEnabled", true);
+        boolean apiKeyConfigured = configuredApiKey != null && !configuredApiKey.trim().isEmpty();
+        model.addAttribute("codexEnabled", codexEnabled);
+        model.addAttribute("codexApiKeyConfigured", apiKeyConfigured);
+        model.addAttribute("codexRunnerEnabled", codexRunnerEnabled);
+        model.addAttribute("codexAvailabilityMessage", resolveAvailabilityMessage(isEn, codexEnabled, apiKeyConfigured));
         model.addAttribute("codexSamplePayload", samplePayload());
+        model.addAttribute("codexRuntimeConfig", runtimeConfig());
         model.addAttribute("isEn", isEn);
+        try {
+            Map<String, Object> ticketPage = srTicketWorkbenchService.getPage("");
+            model.addAttribute("srTicketCount", ticketPage.get("ticketCount"));
+            model.addAttribute("srTickets", ticketPage.get("tickets"));
+        } catch (Exception ignored) {
+            model.addAttribute("srTicketCount", 0);
+            model.addAttribute("srTickets", java.util.Collections.emptyList());
+        }
         return ResponseEntity.ok(new LinkedHashMap<>(model));
+    }
+
+    private Map<String, Object> runtimeConfig() {
+        Map<String, Object> config = new LinkedHashMap<>();
+        config.put("runnerEnabled", codexRunnerEnabled);
+        config.put("repoRoot", safe(codexRunnerRepoRoot));
+        config.put("workspaceRoot", safe(codexRunnerWorkspaceRoot));
+        config.put("runnerHistoryFile", safe(codexRunnerHistoryFile));
+        config.put("planCommandConfigured", !safe(codexRunnerPlanCommand).isEmpty());
+        config.put("buildCommandConfigured", !safe(codexRunnerBuildCommand).isEmpty());
+        config.put("deployCommandConfigured", !safe(codexRunnerDeployCommand).isEmpty());
+        config.put("planCommand", safe(codexRunnerPlanCommand));
+        config.put("buildCommand", safe(codexRunnerBuildCommand));
+        config.put("deployCommand", safe(codexRunnerDeployCommand));
+        config.put("healthCheckUrl", safe(codexRunnerHealthCheckUrl));
+        return config;
+    }
+
+    private String resolveAvailabilityMessage(boolean isEn, boolean enabled, boolean apiKeyConfigured) {
+        if (!enabled) {
+            return isEn ? "Codex execution is disabled in this environment." : "이 환경에서는 Codex 실행이 비활성화되어 있습니다.";
+        }
+        if (!apiKeyConfigured) {
+            return isEn ? "Codex API key is not configured." : "Codex API 키가 설정되지 않았습니다.";
+        }
+        return isEn ? "Codex execution is available." : "Codex 실행이 가능합니다.";
     }
 
     private boolean isEnglishRequest(HttpServletRequest request, Locale locale) {
@@ -60,13 +133,13 @@ public class CodexProvisionPageController {
                 + "  \"menuType\": \"ADMIN\",\n"
                 + "  \"reloadSecurityMetadata\": true,\n"
                 + "  \"page\": {\n"
-                + "    \"domainCode\": \"A101\",\n"
-                + "    \"domainName\": \"시스템관리\",\n"
-                + "    \"domainNameEn\": \"System Management\",\n"
-                + "    \"groupCode\": \"A10102\",\n"
-                + "    \"groupName\": \"Codex 관리\",\n"
-                + "    \"groupNameEn\": \"Codex Management\",\n"
-                + "    \"code\": \"A1010201\",\n"
+                + "    \"domainCode\": \"A190\",\n"
+                + "    \"domainName\": \"AI 운영\",\n"
+                + "    \"domainNameEn\": \"AI Operations\",\n"
+                + "    \"groupCode\": \"A19001\",\n"
+                + "    \"groupName\": \"AI 작업센터\",\n"
+                + "    \"groupNameEn\": \"AI Workbench\",\n"
+                + "    \"code\": \"A1900103\",\n"
                 + "    \"codeNm\": \"Codex 요청 관리\",\n"
                 + "    \"codeDc\": \"Codex Request Management\",\n"
                 + "    \"menuUrl\": \"/admin/system/codex-request\",\n"
@@ -75,8 +148,8 @@ public class CodexProvisionPageController {
                 + "  },\n"
                 + "  \"features\": [\n"
                 + "    {\n"
-                + "      \"menuCode\": \"A1010201\",\n"
-                + "      \"featureCode\": \"A1010201_VIEW\",\n"
+                + "      \"menuCode\": \"A1900103\",\n"
+                + "      \"featureCode\": \"A1900103_VIEW\",\n"
                 + "      \"featureNm\": \"Codex 요청 조회\",\n"
                 + "      \"featureNmEn\": \"View Codex Requests\",\n"
                 + "      \"featureDc\": \"Codex request list view\",\n"
@@ -107,5 +180,9 @@ public class CodexProvisionPageController {
             }
         }
         return builder.toString();
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value.trim();
     }
 }

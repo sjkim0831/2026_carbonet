@@ -1,7 +1,13 @@
 import { ReactNode, SyntheticEvent, useEffect, useMemo, useState } from "react";
-import { invalidateFrontendSessionCache, fetchAdminMenuTree, type AdminMenuDomain, type AdminMenuGroup } from "../../lib/api/client";
+import {
+  invalidateFrontendSessionCache,
+  fetchAdminMenuTree,
+  getAdminMenuTreeRefreshEventName,
+  type AdminMenuDomain,
+  type AdminMenuGroup
+} from "../../lib/api/client";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
-import { buildLocalizedPath, getCsrfMeta, isEnglish, navigate } from "../../lib/navigation/runtime";
+import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
 
 type BreadcrumbItem = {
   label: string;
@@ -50,8 +56,27 @@ function readStoredAdminSessionExpireAt() {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function isFreshAdminLoginNavigation() {
+  if (!document.referrer) {
+    return false;
+  }
+  try {
+    const referrer = new URL(document.referrer, window.location.origin);
+    return referrer.origin === window.location.origin
+      && (referrer.pathname === "/admin/login/loginView"
+        || referrer.pathname === "/en/admin/login/loginView");
+  } catch {
+    return false;
+  }
+}
+
 function ensureAdminSessionExpireAt() {
   const now = Date.now();
+  if (isFreshAdminLoginNavigation()) {
+    const next = now + ADMIN_SESSION_DURATION_MS;
+    window.sessionStorage.setItem(ADMIN_SESSION_STORAGE_KEY, String(next));
+    return next;
+  }
   const stored = readStoredAdminSessionExpireAt();
   if (stored > now) {
     return stored;
@@ -163,6 +188,17 @@ function getFallbackMenuTree(): Record<string, AdminMenuDomain> {
             { text: "컬럼 관리", tEn: "Column Management", u: buildLocalizedPath("/admin/system/column-management-console?focus=columns", "/en/admin/system/column-management-console?focus=columns"), icon: "view_column" },
             { text: "자동화 스튜디오", tEn: "Automation Studio", u: buildLocalizedPath("/admin/system/automation-studio?focus=automation", "/en/admin/system/automation-studio?focus=automation"), icon: "smart_toy" }
           ]
+        },
+        {
+          title: "AI 운영",
+          titleEn: "AI Operations",
+          icon: "smart_toy",
+          links: [
+            { text: "도움말 운영", tEn: "Help Management", u: buildLocalizedPath("/admin/system/help-management", "/en/admin/system/help-management"), icon: "help_center" },
+            { text: "SR 워크벤치", tEn: "SR Workbench", u: buildLocalizedPath("/admin/system/sr-workbench", "/en/admin/system/sr-workbench"), icon: "assignment" },
+            { text: "Codex 요청", tEn: "Codex Request", u: buildLocalizedPath("/admin/system/codex-request", "/en/admin/system/codex-request"), icon: "smart_toy" },
+            { text: "WBS 관리", tEn: "WBS Management", u: buildLocalizedPath("/admin/system/wbs-management", "/en/admin/system/wbs-management"), icon: "calendar_month" }
+          ]
         }
       ]
     },
@@ -196,16 +232,6 @@ function getFallbackMenuTree(): Record<string, AdminMenuDomain> {
             { text: "보안 정책", tEn: "Security Policy", u: buildLocalizedPath("/admin/system/security-policy", "/en/admin/system/security-policy"), icon: "shield" }
           ]
         },
-        {
-          title: "운영자동화",
-          titleEn: "Automation Ops",
-          icon: "smart_toy",
-          links: [
-            { text: "도움말 운영", tEn: "Help Management", u: buildLocalizedPath("/admin/system/help-management", "/en/admin/system/help-management"), icon: "help_center" },
-            { text: "SR 워크벤치", tEn: "SR Workbench", u: buildLocalizedPath("/admin/system/sr-workbench", "/en/admin/system/sr-workbench"), icon: "assignment" },
-            { text: "Codex 요청", tEn: "Codex Request", u: buildLocalizedPath("/admin/system/codex-request", "/en/admin/system/codex-request"), icon: "smart_toy" }
-          ]
-        }
       ]
     }
   };
@@ -420,6 +446,17 @@ export function AdminPageShell({
   const [sessionRefreshPending, setSessionRefreshPending] = useState(false);
 
   useEffect(() => {
+    const eventName = getAdminMenuTreeRefreshEventName();
+    const handleMenuTreeRefresh = () => {
+      void menuState.reload();
+    };
+    window.addEventListener(eventName, handleMenuTreeRefresh);
+    return () => {
+      window.removeEventListener(eventName, handleMenuTreeRefresh);
+    };
+  }, [menuState]);
+
+  useEffect(() => {
     if (activeDomainKey) {
       setSelectedDomainKey(activeDomainKey);
     }
@@ -505,15 +542,10 @@ export function AdminPageShell({
 
     setSessionRefreshPending(true);
     try {
-      const headers: Record<string, string> = { "X-Requested-With": "XMLHttpRequest" };
-      const csrf = getCsrfMeta();
-      if (csrf.token) {
-        headers[csrf.headerName] = csrf.token;
-      }
       const response = await fetch(buildLocalizedPath("/admin/login/refreshSession", "/en/admin/login/refreshSession"), {
-        method: "POST",
+        method: "GET",
         credentials: "same-origin",
-        headers
+        headers: { "X-Requested-With": "XMLHttpRequest" }
       });
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);

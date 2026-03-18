@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedWriter;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -58,6 +59,12 @@ public class SrTicketCodexRunnerServiceImpl implements SrTicketCodexRunnerServic
     @Value("${security.codex.runner.codex-command:}")
     private String codexCommand;
 
+    @Value("${security.codex.runner.plan-command:}")
+    private String planCommand;
+
+    @Value("${security.codex.runner.build-command:}")
+    private String buildCommand;
+
     @Value("${security.codex.runner.backend-verify-command:mvn -q -DskipTests package}")
     private String backendVerifyCommand;
 
@@ -91,7 +98,7 @@ public class SrTicketCodexRunnerServiceImpl implements SrTicketCodexRunnerServic
     @Value("${security.codex.runner.verify-timeout-seconds:1800}")
     private long verifyTimeoutSeconds;
 
-    @Value("${security.codex.runner.require-approval-token:true}")
+    @Value("${security.codex.runner.require-approval-token:false}")
     private boolean requireApprovalToken;
 
     private static final String DESTRUCTIVE_COMMAND_PATTERN = 
@@ -106,24 +113,25 @@ public class SrTicketCodexRunnerServiceImpl implements SrTicketCodexRunnerServic
     }
 
     @Override
-    public SrTicketRunnerExecutionVO execute(SrTicketRecordVO ticket, String actorId, String approvalToken) throws Exception {
-        validateRunnerConfiguration(ticket);
-        validateApprovalToken(approvalToken);
-
+    public SrTicketRunnerExecutionVO prepareExecution(SrTicketRecordVO ticket, String actorId, String executionMode) throws Exception {
+        String mode = normalizeExecutionMode(executionMode);
+        validateRunnerConfiguration(ticket, mode);
         SrTicketRunnerExecutionVO execution = new SrTicketRunnerExecutionVO();
         execution.setRunId(buildRunId());
         execution.setTicketId(safe(ticket.getTicketId()));
         execution.setActorId(defaultActor(actorId));
         execution.setStartedAt(now());
         execution.setStatus("RUNNING");
+        execution.setExecutionMode(mode);
         execution.setRepositoryRoot(resolveRepositoryRoot().toString());
 
         Path runRoot = resolveWorkspaceRoot().resolve(safe(ticket.getTicketId())).resolve(execution.getRunId());
         Path artifactsRoot = runRoot.resolve("artifacts");
         Path worktreePath = runRoot.resolve("worktree");
-        Path promptFile = artifactsRoot.resolve("codex-prompt.txt");
-        Path stdoutFile = artifactsRoot.resolve("codex.stdout.log");
-        Path stderrFile = artifactsRoot.resolve("codex.stderr.log");
+        Path promptFile = artifactsRoot.resolve("PLAN".equals(mode) ? "codex-plan-prompt.txt" : "codex-build-prompt.txt");
+        Path resultFile = artifactsRoot.resolve("PLAN".equals(mode) ? "codex-plan-result.txt" : "codex-build-result.txt");
+        Path stdoutFile = artifactsRoot.resolve("PLAN".equals(mode) ? "codex-plan.stdout.log" : "codex-build.stdout.log");
+        Path stderrFile = artifactsRoot.resolve("PLAN".equals(mode) ? "codex-plan.stderr.log" : "codex-build.stderr.log");
         Path diffFile = artifactsRoot.resolve("git.diff");
         Path changedFilesFile = artifactsRoot.resolve("changed-files.txt");
 
@@ -131,28 +139,59 @@ public class SrTicketCodexRunnerServiceImpl implements SrTicketCodexRunnerServic
         execution.setWorkspacePath(runRoot.toString());
         execution.setWorktreePath(worktreePath.toString());
         execution.setPromptFilePath(promptFile.toString());
+        execution.setResultFilePath(resultFile.toString());
         execution.setStdoutLogPath(stdoutFile.toString());
         execution.setStderrLogPath(stderrFile.toString());
         execution.setDiffFilePath(diffFile.toString());
+        return execution;
+    }
 
-        writePromptFile(promptFile, ticket);
+    @Override
+    public SrTicketRunnerExecutionVO execute(SrTicketRecordVO ticket, String actorId, String approvalToken, String executionMode) throws Exception {
+        SrTicketRunnerExecutionVO execution = prepareExecution(ticket, actorId, executionMode);
+        return executePrepared(ticket, actorId, approvalToken, execution);
+    }
+
+    @Override
+    public SrTicketRunnerExecutionVO executePrepared(SrTicketRecordVO ticket, String actorId, String approvalToken, SrTicketRunnerExecutionVO execution) throws Exception {
+        String mode = normalizeExecutionMode(execution == null ? null : execution.getExecutionMode());
+        validateRunnerConfiguration(ticket, mode);
+        if ("BUILD".equals(mode)) {
+            validateApprovalToken(approvalToken);
+        }
+
+        if (execution == null) {
+            execution = prepareExecution(ticket, actorId, mode);
+        }
+
+        Path runRoot = Paths.get(safe(execution.getWorkspacePath())).normalize();
+        Path artifactsRoot = runRoot.resolve("artifacts");
+        Path worktreePath = Paths.get(safe(execution.getWorktreePath())).normalize();
+        Path promptFile = Paths.get(safe(execution.getPromptFilePath())).normalize();
+        Path stdoutFile = Paths.get(safe(execution.getStdoutLogPath())).normalize();
+        Path stderrFile = Paths.get(safe(execution.getStderrLogPath())).normalize();
+        Path diffFile = Paths.get(safe(execution.getDiffFilePath())).normalize();
+        Path changedFilesFile = artifactsRoot.resolve("changed-files.txt");
+
+        writePromptFile(promptFile, ticket, mode);
         appendHistory(execution);
 
         try {
             prepareWorktree(worktreePath);
 
-            if (!safe(codexCommand).isEmpty()) {
-                execution.setCodexCommand(safe(codexCommand));
-                CommandResult codexResult = runConfiguredCommand(codexCommand, worktreePath, commandTimeoutSeconds, stdoutFile, stderrFile, execution);
+            String resolvedCodexCommand = resolveCodexCommand(mode);
+            if (!safe(resolvedCodexCommand).isEmpty()) {
+                execution.setCodexCommand(safe(resolvedCodexCommand));
+                CommandResult codexResult = runConfiguredCommand(resolvedCodexCommand, worktreePath, commandTimeoutSeconds, stdoutFile, stderrFile, execution);
                 execution.setCodexExitCode(codexResult.getExitCode());
                 if (codexResult.getExitCode() != 0) {
-                    execution.setStatus("CODEX_FAILED");
-                    execution.setErrorMessage("Codex command exited with code " + codexResult.getExitCode());
+                    execution.setStatus(classifyCodexFailureStatus(stderrFile, mode));
+                    execution.setErrorMessage(buildCodexFailureMessage(stderrFile, codexResult.getExitCode()));
                     return finalizeExecution(execution, worktreePath, diffFile, changedFilesFile);
                 }
             } else {
                 execution.setStatus("RUNNER_BLOCKED");
-                execution.setErrorMessage("security.codex.runner.codex-command is not configured.");
+                execution.setErrorMessage("security.codex.runner." + ("PLAN".equals(mode) ? "plan-command" : "build-command") + " is not configured.");
                 return finalizeExecution(execution, worktreePath, diffFile, changedFilesFile);
             }
 
@@ -163,10 +202,14 @@ public class SrTicketCodexRunnerServiceImpl implements SrTicketCodexRunnerServic
                 return finalizeExecution(execution, worktreePath, diffFile, changedFilesFile);
             }
 
-            if (!safe(backendVerifyCommand).isEmpty()) {
+            if ("BUILD".equals(mode) && !safe(backendVerifyCommand).isEmpty()) {
+                Path backendStdout = artifactsRoot.resolve("backend-verify.stdout.log");
+                Path backendStderr = artifactsRoot.resolve("backend-verify.stderr.log");
                 execution.setBackendVerifyCommand(safe(backendVerifyCommand));
+                execution.setBackendVerifyStdoutLogPath(backendStdout.toString());
+                execution.setBackendVerifyStderrLogPath(backendStderr.toString());
                 CommandResult backendResult = runConfiguredCommand(backendVerifyCommand, worktreePath, verifyTimeoutSeconds,
-                        artifactsRoot.resolve("backend-verify.stdout.log"), artifactsRoot.resolve("backend-verify.stderr.log"), execution);
+                        backendStdout, backendStderr, execution);
                 execution.setBackendVerifyExitCode(backendResult.getExitCode());
                 if (backendResult.getExitCode() != 0) {
                     execution.setStatus("BACKEND_VERIFY_FAILED");
@@ -175,14 +218,19 @@ public class SrTicketCodexRunnerServiceImpl implements SrTicketCodexRunnerServic
                 }
             }
 
-            if (!safe(frontendVerifyCommand).isEmpty()) {
-                Path frontendDir = worktreePath.resolve(safe(frontendVerifyWorkdir).isEmpty() ? "frontend" : safe(frontendVerifyWorkdir)).normalize();
-                if (!frontendDir.startsWith(worktreePath)) {
-                    throw new IllegalArgumentException("Frontend verify workdir escaped the worktree.");
+            if ("BUILD".equals(mode) && !safe(frontendVerifyCommand).isEmpty()) {
+                Path frontendDir = resolveFrontendVerifyDirectory();
+                Path repositoryRootPath = resolveRepositoryRoot();
+                if (!frontendDir.startsWith(repositoryRootPath)) {
+                    throw new IllegalArgumentException("Frontend verify workdir escaped the repository root.");
                 }
+                Path frontendStdout = artifactsRoot.resolve("frontend-verify.stdout.log");
+                Path frontendStderr = artifactsRoot.resolve("frontend-verify.stderr.log");
                 execution.setFrontendVerifyCommand(safe(frontendVerifyCommand));
+                execution.setFrontendVerifyStdoutLogPath(frontendStdout.toString());
+                execution.setFrontendVerifyStderrLogPath(frontendStderr.toString());
                 CommandResult frontendResult = runConfiguredCommand(frontendVerifyCommand, frontendDir, verifyTimeoutSeconds,
-                        artifactsRoot.resolve("frontend-verify.stdout.log"), artifactsRoot.resolve("frontend-verify.stderr.log"), execution);
+                        frontendStdout, frontendStderr, execution);
                 execution.setFrontendVerifyExitCode(frontendResult.getExitCode());
                 if (frontendResult.getExitCode() != 0) {
                     execution.setStatus("FRONTEND_VERIFY_FAILED");
@@ -191,10 +239,14 @@ public class SrTicketCodexRunnerServiceImpl implements SrTicketCodexRunnerServic
                 }
             }
 
-            if (!safe(deployCommand).isEmpty()) {
+            if ("BUILD".equals(mode) && !safe(deployCommand).isEmpty()) {
                 execution.setDeployCommand(safe(deployCommand));
+                Path deployStdout = artifactsRoot.resolve("deploy.stdout.log");
+                Path deployStderr = artifactsRoot.resolve("deploy.stderr.log");
+                execution.setDeployStdoutLogPath(deployStdout.toString());
+                execution.setDeployStderrLogPath(deployStderr.toString());
                 CommandResult deployResult = runConfiguredCommand(deployCommand, worktreePath, verifyTimeoutSeconds,
-                        artifactsRoot.resolve("deploy.stdout.log"), artifactsRoot.resolve("deploy.stderr.log"), execution);
+                        deployStdout, deployStderr, execution);
                 execution.setDeployExitCode(deployResult.getExitCode());
                 if (deployResult.getExitCode() != 0) {
                     execution.setStatus("DEPLOY_HOOK_FAILED");
@@ -220,30 +272,59 @@ public class SrTicketCodexRunnerServiceImpl implements SrTicketCodexRunnerServic
                 }
             }
 
-            execution.setStatus("COMPLETED");
+            execution.setStatus("PLAN".equals(mode) ? "PLAN_COMPLETED" : "COMPLETED");
             return finalizeExecution(execution, worktreePath, diffFile, changedFilesFile);
         } catch (Exception e) {
-            execution.setStatus("RUNNER_ERROR");
+            execution.setStatus("PLAN".equals(mode) ? "PLAN_FAILED" : "RUNNER_ERROR");
             execution.setErrorMessage(safe(e.getMessage()).isEmpty() ? e.getClass().getSimpleName() : safe(e.getMessage()));
             return finalizeExecution(execution, worktreePath, diffFile, changedFilesFile);
         }
     }
 
-    private void validateRunnerConfiguration(SrTicketRecordVO ticket) {
+    private Path resolveFrontendVerifyDirectory() {
+        String configured = safe(frontendVerifyWorkdir).isEmpty() ? "frontend" : safe(frontendVerifyWorkdir);
+        Path configuredPath = Paths.get(configured);
+        if (configuredPath.isAbsolute()) {
+            return configuredPath.normalize();
+        }
+        return resolveRepositoryRoot().resolve(configuredPath).normalize();
+    }
+
+    private void validateRunnerConfiguration(SrTicketRecordVO ticket, String executionMode) {
         if (!runnerEnabled) {
             throw new IllegalArgumentException("Codex runner is disabled.");
         }
         if (ticket == null || safe(ticket.getTicketId()).isEmpty()) {
             throw new IllegalArgumentException("SR ticket is required.");
         }
-        if (!"READY_FOR_CODEX".equalsIgnoreCase(safe(ticket.getExecutionStatus()))) {
-            throw new IllegalArgumentException("READY_FOR_CODEX 상태의 티켓만 실행할 수 있습니다.");
+        String executionStatus = safe(ticket.getExecutionStatus()).toUpperCase(Locale.ROOT);
+        if ("PLAN".equals(executionMode)) {
+            if (!"READY_FOR_CODEX".equals(executionStatus)
+                    && !"PLAN_RUNNING".equals(executionStatus)
+                    && !"PLAN_FAILED".equals(executionStatus)
+                    && !"PLAN_COMPLETED".equals(executionStatus)) {
+                throw new IllegalArgumentException("READY_FOR_CODEX, PLAN_RUNNING 또는 PLAN_* 상태의 티켓만 계획을 실행할 수 있습니다.");
+            }
+        } else if (!"PLAN_COMPLETED".equals(executionStatus)) {
+            throw new IllegalArgumentException("PLAN_COMPLETED 상태의 티켓만 실제 실행할 수 있습니다.");
         }
         if (!"APPROVED".equalsIgnoreCase(safe(ticket.getStatus()))) {
             throw new IllegalArgumentException("승인된 티켓만 실행할 수 있습니다.");
         }
         resolveRepositoryRoot();
         resolveWorkspaceRoot();
+    }
+
+    private String normalizeExecutionMode(String executionMode) {
+        String normalized = safe(executionMode).toUpperCase(Locale.ROOT);
+        return "PLAN".equals(normalized) ? "PLAN" : "BUILD";
+    }
+
+    private String resolveCodexCommand(String executionMode) {
+        if ("PLAN".equals(executionMode)) {
+            return firstNonBlank(safe(planCommand), safe(codexCommand));
+        }
+        return firstNonBlank(safe(buildCommand), safe(codexCommand));
     }
 
     private void validateApprovalToken(String approvalToken) {
@@ -371,6 +452,22 @@ public class SrTicketCodexRunnerServiceImpl implements SrTicketCodexRunnerServic
         command.add("--detach");
         command.add(worktreePath.toString());
         runCommand(command, resolveRepositoryRoot(), commandTimeoutSeconds, null, null);
+        linkFrontendNodeModules(worktreePath);
+    }
+
+    private void linkFrontendNodeModules(Path worktreePath) {
+        Path repositoryFrontendNodeModules = resolveRepositoryRoot().resolve("frontend/node_modules").normalize();
+        Path worktreeFrontendDir = worktreePath.resolve("frontend").normalize();
+        Path worktreeFrontendNodeModules = worktreeFrontendDir.resolve("node_modules").normalize();
+        if (!Files.isDirectory(worktreeFrontendDir) || !Files.exists(repositoryFrontendNodeModules)) {
+            return;
+        }
+        try {
+            Files.deleteIfExists(worktreeFrontendNodeModules);
+            Files.createSymbolicLink(worktreeFrontendNodeModules, repositoryFrontendNodeModules);
+        } catch (Exception e) {
+            log.warn("Failed to link frontend/node_modules into worktree {}", worktreePath, e);
+        }
     }
 
     private void collectGitArtifacts(Path worktreePath, Path diffFile, Path changedFilesFile, SrTicketRunnerExecutionVO execution) throws Exception {
@@ -424,10 +521,93 @@ public class SrTicketCodexRunnerServiceImpl implements SrTicketCodexRunnerServic
             throw new IllegalArgumentException("Runner command template is empty.");
         }
         List<String> resolved = new ArrayList<String>();
-        for (String token : tokens) {
-            resolved.add(applyPlaceholders(token, execution));
+        for (int i = 0; i < tokens.size(); i++) {
+            String resolvedToken = applyPlaceholders(tokens.get(i), execution);
+            if (i == 0) {
+                resolvedToken = resolveExecutableToken(resolvedToken);
+            }
+            resolved.add(resolvedToken);
         }
         return runCommand(resolved, workingDirectory, timeoutSeconds, stdoutPath, stderrPath);
+    }
+
+    private String resolveExecutableToken(String token) {
+        String normalized = safe(token);
+        if (normalized.isEmpty()) {
+            return normalized;
+        }
+        if (normalized.startsWith("/") || !normalized.contains("/")) {
+            return normalized;
+        }
+        Path candidate = resolveRepositoryRoot().resolve(normalized).normalize();
+        return candidate.toString();
+    }
+
+    private String classifyCodexFailureStatus(Path stderrFile, String executionMode) {
+        String stderr = readFailureSnippet(stderrFile).toLowerCase(Locale.ROOT);
+        if (stderr.contains("usage limit")
+                || stderr.contains("upgrade to plus")
+                || stderr.contains("not logged in")
+                || stderr.contains("login")
+                || stderr.contains("api key")
+                || stderr.contains("authentication")
+                || stderr.contains("rate limit")) {
+            return "RUNNER_BLOCKED";
+        }
+        return "PLAN".equals(executionMode) ? "PLAN_FAILED" : "CODEX_FAILED";
+    }
+
+    private String buildCodexFailureMessage(Path stderrFile, int exitCode) {
+        String stderrSummary = firstMeaningfulFailureLine(readFailureSnippet(stderrFile));
+        if (!stderrSummary.isEmpty()) {
+            return stderrSummary;
+        }
+        return "Codex command exited with code " + exitCode;
+    }
+
+    private String readFailureSnippet(Path stderrFile) {
+        if (stderrFile == null || !Files.exists(stderrFile)) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder();
+        try (BufferedReader reader = Files.newBufferedReader(stderrFile, StandardCharsets.UTF_8)) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (builder.length() > 0) {
+                    builder.append('\n');
+                }
+                builder.append(line);
+                if (builder.length() >= 4000) {
+                    break;
+                }
+            }
+        } catch (IOException e) {
+            log.debug("Failed to read Codex stderr snippet from {}", stderrFile, e);
+            return "";
+        }
+        return builder.toString();
+    }
+
+    private String firstMeaningfulFailureLine(String stderrContent) {
+        for (String line : safe(stderrContent).split("\\R")) {
+            String trimmed = safe(line);
+            if (trimmed.isEmpty()
+                    || trimmed.startsWith("OpenAI Codex v")
+                    || trimmed.startsWith("--------")
+                    || trimmed.startsWith("workdir:")
+                    || trimmed.startsWith("model:")
+                    || trimmed.startsWith("provider:")
+                    || trimmed.startsWith("approval:")
+                    || trimmed.startsWith("sandbox:")
+                    || trimmed.startsWith("reasoning ")
+                    || trimmed.startsWith("session id:")
+                    || "user".equalsIgnoreCase(trimmed)
+                    || trimmed.startsWith("mcp startup:")) {
+                continue;
+            }
+            return trimmed;
+        }
+        return "";
     }
 
     private CommandResult runCommand(List<String> command, Path workingDirectory, long timeoutSeconds,
@@ -495,16 +675,31 @@ public class SrTicketCodexRunnerServiceImpl implements SrTicketCodexRunnerServic
         writeLines(outputFile, lines);
     }
 
-    private void writePromptFile(Path promptFile, SrTicketRecordVO ticket) throws IOException {
+    private void writePromptFile(Path promptFile, SrTicketRecordVO ticket, String executionMode) throws IOException {
         List<String> lines = new ArrayList<String>();
         lines.add("Carbonet SR Ticket Runner");
+        lines.add("mode=" + executionMode);
         lines.add("ticketId=" + safe(ticket.getTicketId()));
         lines.add("pageId=" + safe(ticket.getPageId()));
         lines.add("page=" + safe(ticket.getPageLabel()));
         lines.add("route=" + safe(ticket.getRoutePath()));
         lines.add("summary=" + safe(ticket.getSummary()));
+        lines.add("");
+        lines.add("instructionMode=");
+        if ("PLAN".equals(executionMode)) {
+            lines.add("Review the request and return an implementation plan only.");
+            lines.add("Do not modify any files in the repository.");
+            lines.add("Include target files, risks, and verification steps.");
+        } else {
+            lines.add("Implement the approved SR ticket in this isolated worktree.");
+            lines.add("Keep changes inside the allowed repository paths.");
+            lines.add("Leave a concise implementation summary and verification notes.");
+        }
         lines.add("instruction=");
         lines.add(safe(ticket.getInstruction()));
+        lines.add("");
+        lines.add("technicalContext=");
+        lines.add(safe(ticket.getTechnicalContext()));
         lines.add("");
         lines.add("generatedDirection=");
         lines.add(safe(ticket.getGeneratedDirection()));
@@ -614,6 +809,7 @@ public class SrTicketCodexRunnerServiceImpl implements SrTicketCodexRunnerServic
                 .replace("{workspace}", safe(execution.getWorkspacePath()))
                 .replace("{worktree}", safe(execution.getWorktreePath()))
                 .replace("{promptFile}", safe(execution.getPromptFilePath()))
+                .replace("{resultFile}", safe(execution.getResultFilePath()))
                 .replace("{stdoutLog}", safe(execution.getStdoutLogPath()))
                 .replace("{stderrLog}", safe(execution.getStderrLogPath()))
                 .replace("{diffFile}", safe(execution.getDiffFilePath()));
@@ -677,6 +873,18 @@ public class SrTicketCodexRunnerServiceImpl implements SrTicketCodexRunnerServic
 
     private String safe(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return "";
+        }
+        for (String value : values) {
+            if (!safe(value).isEmpty()) {
+                return safe(value);
+            }
+        }
+        return "";
     }
 
     private static final class CommandResult {

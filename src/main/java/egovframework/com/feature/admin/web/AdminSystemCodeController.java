@@ -17,6 +17,7 @@ import egovframework.com.feature.admin.service.FullStackGovernanceRegistryServic
 import egovframework.com.feature.admin.service.MenuFeatureManageService;
 import egovframework.com.feature.admin.service.MenuInfoService;
 import egovframework.com.feature.admin.service.ScreenCommandCenterService;
+import egovframework.com.feature.admin.service.WbsManagementService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,6 +66,7 @@ public class AdminSystemCodeController {
     private final UiManifestRegistryService uiManifestRegistryService;
     private final ScreenCommandCenterService screenCommandCenterService;
     private final FullStackGovernanceRegistryService fullStackGovernanceRegistryService;
+    private final WbsManagementService wbsManagementService;
 
     @RequestMapping(value = "/code", method = { RequestMethod.GET, RequestMethod.POST })
     public String system_codeManagement(
@@ -210,6 +212,21 @@ public class AdminSystemCodeController {
     @RequestMapping(value = "/environment-management", method = RequestMethod.GET)
     public String environmentManagement(HttpServletRequest request, Locale locale) {
         return redirectReactMigration(request, locale, "environment-management");
+    }
+
+    @RequestMapping(value = "/wbs-management", method = RequestMethod.GET)
+    public String wbsManagement(HttpServletRequest request, Locale locale) {
+        return redirectReactMigration(request, locale, "wbs-management");
+    }
+
+    @GetMapping("/wbs-management/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> wbsManagementPageApi(
+            @RequestParam(value = "menuType", defaultValue = "ADMIN") String menuType,
+            HttpServletRequest request,
+            Locale locale) {
+        String normalizedMenuType = normalizeMenuType(menuType);
+        return buildPageDataResponse(request, model -> model.addAllAttributes(wbsManagementService.buildPagePayload(normalizedMenuType)));
     }
 
     @RequestMapping(value = {
@@ -448,6 +465,179 @@ public class AdminSystemCodeController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/environment-management/page/update")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> updateEnvironmentManagedPageApi(
+            @RequestParam(value = "menuType", defaultValue = "ADMIN") String menuType,
+            @RequestParam(value = "code", required = false) String code,
+            @RequestParam(value = "codeNm", required = false) String codeNm,
+            @RequestParam(value = "codeDc", required = false) String codeDc,
+            @RequestParam(value = "menuUrl", required = false) String menuUrl,
+            @RequestParam(value = "menuIcon", required = false) String menuIcon,
+            @RequestParam(value = "useAt", required = false) String useAt,
+            HttpServletRequest request,
+            Locale locale) {
+        boolean isEn = isEnglishRequest(request, locale);
+        String normalizedMenuType = normalizeMenuType(menuType);
+        String codeId = resolveMenuCodeId(normalizedMenuType);
+        String normalizedCode = safeString(code).toUpperCase(Locale.ROOT);
+        String normalizedName = safeString(codeNm);
+        String normalizedNameEn = safeString(codeDc);
+        String normalizedUrl = canonicalMenuUrl(menuUrl);
+        String normalizedIcon = safeString(menuIcon);
+        String normalizedUseAt = normalizeUseAt(useAt);
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        String error = validateEnvironmentManagedPageUpdateInput(
+                normalizedCode,
+                normalizedName,
+                normalizedNameEn,
+                normalizedUrl,
+                normalizedMenuType,
+                codeId,
+                isEn);
+        if (!error.isEmpty()) {
+            response.put("success", false);
+            response.put("message", error);
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        try {
+            String actorId = resolveActorId(request);
+            adminCodeManageService.updatePageManagement(
+                    normalizedCode,
+                    normalizedName,
+                    normalizedNameEn,
+                    normalizedUrl,
+                    normalizedIcon,
+                    normalizedUseAt,
+                    actorId.isEmpty() ? "admin" : actorId);
+            syncDefaultViewFeatureMetadata(normalizedCode, normalizedUseAt, normalizedMenuType);
+        } catch (Exception e) {
+            log.error("Failed to update environment managed page. code={}", normalizedCode, e);
+            response.put("success", false);
+            response.put("message", isEn ? "Failed to update the selected menu." : "선택한 메뉴를 수정하지 못했습니다.");
+            return ResponseEntity.internalServerError().body(response);
+        }
+
+        response.put("success", true);
+        response.put("code", normalizedCode);
+        response.put("message", isEn ? "The selected menu has been updated." : "선택한 메뉴를 수정했습니다.");
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/environment-management/page-impact")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> environmentManagedPageImpactApi(
+            @RequestParam(value = "menuType", defaultValue = "ADMIN") String menuType,
+            @RequestParam(value = "code", required = false) String code,
+            HttpServletRequest request,
+            Locale locale) {
+        boolean isEn = isEnglishRequest(request, locale);
+        String normalizedMenuType = normalizeMenuType(menuType);
+        String codeId = resolveMenuCodeId(normalizedMenuType);
+        String normalizedCode = safeString(code).toUpperCase(Locale.ROOT);
+        Map<String, Object> response = new LinkedHashMap<>();
+
+        String error = validateEnvironmentManagedPageDeleteTarget(normalizedCode, codeId, isEn);
+        if (!error.isEmpty()) {
+            response.put("success", false);
+            response.put("message", error);
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        try {
+            String defaultViewFeatureCode = buildDefaultViewFeatureCode(normalizedCode);
+            List<String> linkedFeatureCodes = authGroupManageService.selectFeatureCodesByMenuCode(normalizedCode);
+            List<String> nonDefaultFeatureCodes = new ArrayList<>();
+            for (String featureCode : linkedFeatureCodes) {
+                String normalizedFeatureCode = safeString(featureCode).toUpperCase(Locale.ROOT);
+                if (!normalizedFeatureCode.isEmpty() && !normalizedFeatureCode.equals(defaultViewFeatureCode)) {
+                    nonDefaultFeatureCodes.add(normalizedFeatureCode);
+                }
+            }
+            response.put("success", true);
+            response.put("code", normalizedCode);
+            response.put("defaultViewFeatureCode", defaultViewFeatureCode);
+            response.put("linkedFeatureCodes", linkedFeatureCodes);
+            response.put("nonDefaultFeatureCodes", nonDefaultFeatureCodes);
+            response.put("defaultViewRoleRefCount", authGroupManageService.countAuthorFeatureRelationsByFeatureCode(defaultViewFeatureCode));
+            response.put("defaultViewUserOverrideCount", authGroupManageService.countUserFeatureOverridesByFeatureCode(defaultViewFeatureCode));
+            response.put("blocked", !nonDefaultFeatureCodes.isEmpty());
+        } catch (Exception e) {
+            log.error("Failed to load environment managed page impact. code={}", normalizedCode, e);
+            response.put("success", false);
+            response.put("message", isEn ? "Failed to load page delete impact." : "페이지 삭제 영향도를 불러오지 못했습니다.");
+            return ResponseEntity.internalServerError().body(response);
+        }
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/environment-management/page/delete")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> deleteEnvironmentManagedPageApi(
+            @RequestParam(value = "menuType", defaultValue = "ADMIN") String menuType,
+            @RequestParam(value = "code", required = false) String code,
+            HttpServletRequest request,
+            Locale locale) {
+        boolean isEn = isEnglishRequest(request, locale);
+        String normalizedMenuType = normalizeMenuType(menuType);
+        String codeId = resolveMenuCodeId(normalizedMenuType);
+        String normalizedCode = safeString(code).toUpperCase(Locale.ROOT);
+        Map<String, Object> response = new LinkedHashMap<>();
+
+        String error = validateEnvironmentManagedPageDeleteTarget(normalizedCode, codeId, isEn);
+        if (!error.isEmpty()) {
+            response.put("success", false);
+            response.put("message", error);
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        int defaultViewRoleRefCount = 0;
+        int defaultViewUserOverrideCount = 0;
+        try {
+            List<String> linkedFeatureCodes = authGroupManageService.selectFeatureCodesByMenuCode(normalizedCode);
+            String defaultViewFeatureCode = buildDefaultViewFeatureCode(normalizedCode);
+            defaultViewRoleRefCount = authGroupManageService.countAuthorFeatureRelationsByFeatureCode(defaultViewFeatureCode);
+            defaultViewUserOverrideCount = authGroupManageService.countUserFeatureOverridesByFeatureCode(defaultViewFeatureCode);
+            List<String> nonDefaultFeatureCodes = new ArrayList<>();
+            for (String featureCode : linkedFeatureCodes) {
+                String normalizedFeatureCode = safeString(featureCode).toUpperCase(Locale.ROOT);
+                if (!normalizedFeatureCode.isEmpty() && !normalizedFeatureCode.equals(defaultViewFeatureCode)) {
+                    nonDefaultFeatureCodes.add(normalizedFeatureCode);
+                }
+            }
+            if (!nonDefaultFeatureCodes.isEmpty()) {
+                response.put("success", false);
+                response.put("message", isEn
+                        ? "Delete the page-specific action features first."
+                        : "페이지 전용 액션 기능을 먼저 삭제해 주세요.");
+                response.put("nonDefaultFeatureCodes", nonDefaultFeatureCodes);
+                response.put("defaultViewRoleRefCount", defaultViewRoleRefCount);
+                response.put("defaultViewUserOverrideCount", defaultViewUserOverrideCount);
+                return ResponseEntity.badRequest().body(response);
+            }
+            if (linkedFeatureCodes.stream().anyMatch(featureCode -> defaultViewFeatureCode.equalsIgnoreCase(safeString(featureCode)))) {
+                deleteFeatureWithAssignments(defaultViewFeatureCode);
+            }
+            adminCodeManageService.deletePageManagement(codeId, normalizedCode);
+        } catch (Exception e) {
+            log.error("Failed to delete environment managed page. code={}", normalizedCode, e);
+            response.put("success", false);
+            response.put("message", isEn ? "Failed to delete the selected page menu." : "선택한 페이지 메뉴 삭제에 실패했습니다.");
+            return ResponseEntity.internalServerError().body(response);
+        }
+
+        response.put("success", true);
+        response.put("code", normalizedCode);
+        response.put("defaultViewRoleRefCount", defaultViewRoleRefCount);
+        response.put("defaultViewUserOverrideCount", defaultViewUserOverrideCount);
+        response.put("message", isEn
+                ? "The page menu and default VIEW permission have been deleted."
+                : "페이지 메뉴와 기본 VIEW 권한을 삭제했습니다.");
+        return ResponseEntity.ok(response);
+    }
+
     @RequestMapping(value = "/feature-management/create", method = RequestMethod.POST)
     public String createFeatureManagement(
             @RequestParam(value = "menuType", defaultValue = "ADMIN") String menuType,
@@ -494,6 +684,95 @@ public class AdminSystemCodeController {
         return "redirect:" + adminPrefix(request, locale) + "/system/feature-management?menuType=" + normalizedMenuType + "&searchMenuCode=" + urlEncode(normalizedMenuCode);
     }
 
+    @PostMapping("/environment-management/feature/update")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> updateEnvironmentFeatureApi(
+            @RequestParam(value = "menuType", defaultValue = "ADMIN") String menuType,
+            @RequestParam(value = "menuCode", required = false) String menuCode,
+            @RequestParam(value = "featureCode", required = false) String featureCode,
+            @RequestParam(value = "featureNm", required = false) String featureNm,
+            @RequestParam(value = "featureNmEn", required = false) String featureNmEn,
+            @RequestParam(value = "featureDc", required = false) String featureDc,
+            @RequestParam(value = "useAt", required = false) String useAt,
+            HttpServletRequest request,
+            Locale locale) {
+        boolean isEn = isEnglishRequest(request, locale);
+        String normalizedMenuType = normalizeMenuType(menuType);
+        String normalizedMenuCode = safeString(menuCode).toUpperCase(Locale.ROOT);
+        String normalizedFeatureCode = safeString(featureCode).toUpperCase(Locale.ROOT);
+        String normalizedFeatureNm = safeString(featureNm);
+        String normalizedFeatureNmEn = safeString(featureNmEn);
+        String normalizedFeatureDc = safeString(featureDc);
+        String normalizedUseAt = normalizeUseAt(useAt);
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        String error = validateFeatureManagementInput(
+                normalizedMenuCode,
+                normalizedFeatureCode,
+                normalizedFeatureNm,
+                normalizedFeatureNmEn,
+                normalizedMenuType,
+                isEn);
+        if (!error.isEmpty()) {
+            response.put("success", false);
+            response.put("message", error);
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        try {
+            if (menuFeatureManageService.countFeatureCode(normalizedFeatureCode) == 0) {
+                response.put("success", false);
+                response.put("message", isEn ? "The feature code does not exist." : "등록된 기능 코드를 찾지 못했습니다.");
+                return ResponseEntity.badRequest().body(response);
+            }
+            menuFeatureManageService.updateMenuFeatureMetadata(
+                    normalizedFeatureCode,
+                    normalizedFeatureNm,
+                    normalizedFeatureNmEn,
+                    normalizedFeatureDc,
+                    normalizedUseAt);
+        } catch (Exception e) {
+            log.error("Failed to update environment feature. featureCode={}", normalizedFeatureCode, e);
+            response.put("success", false);
+            response.put("message", isEn ? "Failed to update the feature." : "기능을 수정하지 못했습니다.");
+            return ResponseEntity.internalServerError().body(response);
+        }
+
+        response.put("success", true);
+        response.put("featureCode", normalizedFeatureCode);
+        response.put("message", isEn ? "The feature has been updated." : "기능을 수정했습니다.");
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/environment-management/feature-impact")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> environmentFeatureImpactApi(
+            @RequestParam(value = "featureCode", required = false) String featureCode,
+            HttpServletRequest request,
+            Locale locale) {
+        boolean isEn = isEnglishRequest(request, locale);
+        String normalizedFeatureCode = safeString(featureCode).toUpperCase(Locale.ROOT);
+        Map<String, Object> response = new LinkedHashMap<>();
+        if (normalizedFeatureCode.isEmpty()) {
+            response.put("success", false);
+            response.put("message", isEn ? "Feature code is required." : "기능 코드를 확인해 주세요.");
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        try {
+            response.put("success", true);
+            response.put("featureCode", normalizedFeatureCode);
+            response.put("assignedRoleCount", authGroupManageService.countAuthorFeatureRelationsByFeatureCode(normalizedFeatureCode));
+            response.put("userOverrideCount", authGroupManageService.countUserFeatureOverridesByFeatureCode(normalizedFeatureCode));
+        } catch (Exception e) {
+            log.error("Failed to load feature impact. featureCode={}", normalizedFeatureCode, e);
+            response.put("success", false);
+            response.put("message", isEn ? "Failed to load feature impact." : "기능 영향도를 불러오지 못했습니다.");
+            return ResponseEntity.internalServerError().body(response);
+        }
+        return ResponseEntity.ok(response);
+    }
+
     @RequestMapping(value = "/feature-management/delete", method = RequestMethod.POST)
     public String deleteFeatureManagement(
             @RequestParam(value = "menuType", defaultValue = "ADMIN") String menuType,
@@ -524,6 +803,42 @@ public class AdminSystemCodeController {
         }
 
         return "redirect:" + adminPrefix(request, locale) + "/system/feature-management?menuType=" + normalizedMenuType + "&searchMenuCode=" + urlEncode(searchMenuCode) + "&searchKeyword=" + urlEncode(searchKeyword);
+    }
+
+    @PostMapping("/environment-management/feature/delete")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> deleteEnvironmentFeatureApi(
+            @RequestParam(value = "featureCode", required = false) String featureCode,
+            HttpServletRequest request,
+            Locale locale) {
+        boolean isEn = isEnglishRequest(request, locale);
+        String normalizedFeatureCode = safeString(featureCode).toUpperCase(Locale.ROOT);
+        Map<String, Object> response = new LinkedHashMap<>();
+
+        if (normalizedFeatureCode.isEmpty()) {
+            response.put("success", false);
+            response.put("message", isEn ? "Feature code is required." : "기능 코드를 확인해 주세요.");
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        try {
+            int assignedRoleCount = authGroupManageService.countAuthorFeatureRelationsByFeatureCode(normalizedFeatureCode);
+            int userOverrideCount = authGroupManageService.countUserFeatureOverridesByFeatureCode(normalizedFeatureCode);
+            deleteFeatureWithAssignments(normalizedFeatureCode);
+            response.put("success", true);
+            response.put("featureCode", normalizedFeatureCode);
+            response.put("assignedRoleCount", assignedRoleCount);
+            response.put("userOverrideCount", userOverrideCount);
+            response.put("message", isEn
+                    ? "The feature and linked permissions have been deleted."
+                    : "기능과 연결된 권한 정보를 함께 삭제했습니다.");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Failed to delete environment feature. featureCode={}", normalizedFeatureCode, e);
+            response.put("success", false);
+            response.put("message", isEn ? "Failed to delete the feature." : "기능 삭제에 실패했습니다.");
+            return ResponseEntity.internalServerError().body(response);
+        }
     }
 
     private String resolveMenuCodeId(String menuType) {
@@ -1758,16 +2073,77 @@ public class AdminSystemCodeController {
                     ? "Page, feature code, feature name, and English feature name are required."
                     : "페이지, 기능 코드, 기능명, 영문 기능명은 필수입니다.";
         }
+        if (menuCode.length() != 8) {
+            return isEn ? "Features can only be linked to 8-digit page menus." : "기능은 8자리 페이지 메뉴에만 연결할 수 있습니다.";
+        }
         if ("USER".equals(menuType) && !menuCode.startsWith("H")) {
             return isEn ? "Home screen features must be mapped to home pages." : "홈 화면 기능은 홈 페이지에만 연결할 수 있습니다.";
         }
         if ("ADMIN".equals(menuType) && !menuCode.startsWith("A")) {
             return isEn ? "Admin screen features must be mapped to admin pages." : "관리자 화면 기능은 관리자 페이지에만 연결할 수 있습니다.";
         }
+        try {
+            String codeId = resolveMenuCodeId(menuType);
+            if (adminCodeManageService.countPageManagementByCode(codeId, menuCode) == 0) {
+                return isEn ? "The selected page menu does not exist." : "선택한 페이지 메뉴가 존재하지 않습니다.";
+            }
+        } catch (Exception e) {
+            log.error("Failed to validate feature management page menu. menuCode={}", menuCode, e);
+            return isEn ? "Failed to validate the selected page menu." : "선택한 페이지 메뉴 검증에 실패했습니다.";
+        }
         if (!featureCode.matches("^[A-Z0-9_\\-]{2,30}$")) {
             return isEn
                     ? "Feature codes must be 2-30 characters using uppercase letters, numbers, underscores, or hyphens."
                     : "기능 코드는 2~30자의 영문 대문자, 숫자, 밑줄(_), 하이픈(-)만 사용할 수 있습니다.";
+        }
+        return "";
+    }
+
+    private String validateEnvironmentManagedPageUpdateInput(
+            String code,
+            String codeNm,
+            String codeDc,
+            String menuUrl,
+            String menuType,
+            String codeId,
+            boolean isEn) {
+        if (code.length() != 8) {
+            return isEn ? "Select a valid 8-digit page menu." : "유효한 8자리 페이지 메뉴를 선택해 주세요.";
+        }
+        if (codeNm.isEmpty() || codeDc.isEmpty() || menuUrl.isEmpty()) {
+            return isEn ? "Page names and URL are required." : "페이지명, 영문 페이지명, URL은 필수입니다.";
+        }
+        if (!isValidPageManagementUrl(menuUrl, menuType)) {
+            return isEn
+                    ? ("USER".equals(menuType)
+                        ? "Home page URLs must start with /home or /en/home."
+                        : "Admin page URLs must start with /admin/ or /en/admin/.")
+                    : ("USER".equals(menuType)
+                        ? "홈 화면 URL은 /home 또는 /en/home 으로 시작해야 합니다."
+                        : "관리자 화면 URL은 /admin/ 또는 /en/admin/ 으로 시작해야 합니다.");
+        }
+        try {
+            if (adminCodeManageService.countPageManagementByCode(codeId, code) == 0) {
+                return isEn ? "The selected page menu does not exist." : "선택한 페이지 메뉴가 존재하지 않습니다.";
+            }
+        } catch (Exception e) {
+            log.error("Failed to validate environment managed page. code={}", code, e);
+            return isEn ? "Failed to validate the selected page menu." : "선택한 페이지 메뉴 검증에 실패했습니다.";
+        }
+        return "";
+    }
+
+    private String validateEnvironmentManagedPageDeleteTarget(String code, String codeId, boolean isEn) {
+        if (code.length() != 8) {
+            return isEn ? "Only 8-digit page menus can be deleted here." : "이 화면에서는 8자리 페이지 메뉴만 삭제할 수 있습니다.";
+        }
+        try {
+            if (adminCodeManageService.countPageManagementByCode(codeId, code) == 0) {
+                return isEn ? "The selected page menu does not exist." : "선택한 페이지 메뉴가 존재하지 않습니다.";
+            }
+        } catch (Exception e) {
+            log.error("Failed to validate environment managed page delete target. code={}", code, e);
+            return isEn ? "Failed to validate the selected page menu." : "선택한 페이지 메뉴 검증에 실패했습니다.";
         }
         return "";
     }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
-import { PAGE_MANIFESTS } from "../../app/screen-registry/pageManifests";
+import { findManifestByMenuCodeOrRoutePath, normalizeManifestLookupPath } from "../../app/screen-registry/pageManifestIndex";
 import {
   autoCollectFullStackGovernanceRegistry,
   createSrTicket,
@@ -171,15 +171,6 @@ function summaryListOf(row: Record<string, unknown> | null, key: string) {
   return value.map((item) => String(item || "").trim()).filter(Boolean);
 }
 
-function normalizeLookupPath(value: string) {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return "";
-  }
-  const withoutQuery = trimmed.split("?")[0] || "";
-  return withoutQuery.startsWith("/en/") ? withoutQuery.slice(3) : withoutQuery;
-}
-
 function resolveGovernancePageId(
   selectedSummary: Record<string, unknown> | null,
   pages: ScreenCommandPagePayload["pages"] | undefined
@@ -192,18 +183,15 @@ function resolveGovernancePageId(
     return summaryPageId;
   }
   const menuCode = stringOf(selectedSummary, "menuCode").toUpperCase();
-  const menuPath = normalizeLookupPath(stringOf(selectedSummary, "menuUrl"));
+  const menuPath = normalizeManifestLookupPath(stringOf(selectedSummary, "menuUrl"));
   const matchedCatalogPage = (pages || []).find((item) => (
     String(item.menuCode || "").toUpperCase() === menuCode
-      || normalizeLookupPath(String(item.routePath || "")) === menuPath
+      || normalizeManifestLookupPath(String(item.routePath || "")) === menuPath
   ));
   if (matchedCatalogPage?.pageId) {
     return String(matchedCatalogPage.pageId);
   }
-  const matchedManifest = Object.values(PAGE_MANIFESTS).find((manifest) => (
-    String(manifest.menuCode || "").toUpperCase() === menuCode
-      || normalizeLookupPath(String(manifest.routePath || "")) === menuPath
-  ));
+  const matchedManifest = findManifestByMenuCodeOrRoutePath(menuCode, menuPath);
   return matchedManifest?.pageId || "";
 }
 
@@ -861,7 +849,7 @@ export function PlatformStudioMigrationPage() {
       {actionMessage ? <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{actionMessage}</div> : null}
       {actionError ? <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{actionError}</div> : null}
 
-      <section className="gov-card mb-6">
+      <section className="gov-card mb-6" data-help-id="platform-studio-tabs">
         <div className="flex flex-wrap gap-2">
           {TAB_OPTIONS.map((tab) => (
             <button
@@ -878,7 +866,7 @@ export function PlatformStudioMigrationPage() {
       </section>
 
       <section className="grid grid-cols-1 xl:grid-cols-[20rem_1fr] gap-6">
-        <aside className="gov-card">
+        <aside className="gov-card" data-help-id="platform-studio-menus">
           <div className="flex items-center justify-between gap-3 mb-4">
             <h3 className="text-lg font-bold">{en ? "Managed Menus" : "관리 대상 메뉴"}</h3>
             <select className="gov-select max-w-[8rem]" value={menuType} onChange={(event) => setMenuType(event.target.value)}>
@@ -902,7 +890,7 @@ export function PlatformStudioMigrationPage() {
         </aside>
 
         <div className="space-y-6">
-          <section className="gov-card">
+          <section className="gov-card" data-help-id="platform-studio-controllers">
             <div className="flex items-center justify-between gap-4 flex-wrap mb-4">
               <div>
                 <h3 className="text-lg font-bold">{en ? "Menu / Page Control" : "메뉴 / 페이지 제어"}</h3>
@@ -947,7 +935,7 @@ export function PlatformStudioMigrationPage() {
             </form>
           </section>
 
-          <section className="gov-card">
+          <section className="gov-card" data-help-id="platform-studio-registry">
             <div className="flex items-center justify-between gap-4 flex-wrap mb-4">
               <div>
                 <h3 className="text-lg font-bold">{en ? "Coverage / Governance Quality" : "커버리지 / 거버넌스 품질"}</h3>
@@ -1007,7 +995,7 @@ export function PlatformStudioMigrationPage() {
             </div>
           </section>
 
-          <section className="gov-card">
+          <section className="gov-card" data-help-id="platform-studio-automation">
             <div className="flex items-center justify-between gap-4 flex-wrap mb-4">
               <div>
                 <h3 className="text-lg font-bold">{en ? "Target Picker" : "수정 대상 선택"}</h3>

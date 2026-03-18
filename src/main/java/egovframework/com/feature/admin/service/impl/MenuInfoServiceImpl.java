@@ -9,15 +9,20 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.LinkedHashMap;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Service("menuInfoService")
 public class MenuInfoServiceImpl extends EgovAbstractServiceImpl implements MenuInfoService {
 
     private final MenuInfoMapper menuInfoMapper;
+    private final Map<String, CachedMenuRows> menuTreeCache = new ConcurrentHashMap<>();
+    private final AtomicLong menuTreeVersion = new AtomicLong();
 
     public MenuInfoServiceImpl(MenuInfoMapper menuInfoMapper) {
         this.menuInfoMapper = menuInfoMapper;
@@ -35,7 +40,17 @@ public class MenuInfoServiceImpl extends EgovAbstractServiceImpl implements Menu
 
     @Override
     public List<MenuInfoDTO> selectMenuTreeList(String codeId) {
-        return sortMenuRows(menuInfoMapper.selectMenuTreeList(codeId));
+        String normalizedCodeId = safeString(codeId).toUpperCase(Locale.ROOT);
+        long version = menuTreeVersion.get();
+        CachedMenuRows cached = menuTreeCache.get(normalizedCodeId);
+        if (cached != null && cached.version == version) {
+            return cloneMenuRows(cached.rows);
+        }
+
+        List<MenuInfoDTO> sortedRows = sortMenuRows(menuInfoMapper.selectMenuTreeList(codeId));
+        List<MenuInfoDTO> cachedRows = cloneMenuRows(sortedRows);
+        menuTreeCache.put(normalizedCodeId, new CachedMenuRows(version, cachedRows));
+        return cloneMenuRows(cachedRows);
     }
 
     @Override
@@ -48,14 +63,20 @@ public class MenuInfoServiceImpl extends EgovAbstractServiceImpl implements Menu
     public void saveMenuOrder(String menuCode, int sortOrdr) {
         if (menuInfoMapper.countMenuOrder(menuCode) > 0) {
             menuInfoMapper.updateMenuOrder(menuCode, sortOrdr);
-            return;
+        } else {
+            menuInfoMapper.insertMenuOrder(menuCode, sortOrdr);
         }
-        menuInfoMapper.insertMenuOrder(menuCode, sortOrdr);
+        invalidateMenuTreeCache();
+    }
+
+    @Override
+    public long getMenuTreeVersion() {
+        return menuTreeVersion.get();
     }
 
     private List<MenuInfoDTO> sortMenuRows(List<MenuInfoDTO> rows) {
         if (rows == null || rows.isEmpty()) {
-            return rows;
+            return Collections.emptyList();
         }
         List<MenuInfoDTO> sorted = new ArrayList<>(rows);
         Map<String, Integer> sortOrderMap = new LinkedHashMap<>();
@@ -130,5 +151,47 @@ public class MenuInfoServiceImpl extends EgovAbstractServiceImpl implements Menu
 
     private String safeString(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private List<MenuInfoDTO> cloneMenuRows(List<MenuInfoDTO> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<MenuInfoDTO> clones = new ArrayList<>(rows.size());
+        for (MenuInfoDTO row : rows) {
+            clones.add(cloneMenuRow(row));
+        }
+        return clones;
+    }
+
+    private MenuInfoDTO cloneMenuRow(MenuInfoDTO row) {
+        MenuInfoDTO clone = new MenuInfoDTO();
+        if (row == null) {
+            return clone;
+        }
+        clone.setMenuCode(row.getMenuCode());
+        clone.setMenuUrl(row.getMenuUrl());
+        clone.setCode(row.getCode());
+        clone.setCodeNm(row.getCodeNm());
+        clone.setCodeDc(row.getCodeDc());
+        clone.setMenuIcon(row.getMenuIcon());
+        clone.setUseAt(row.getUseAt());
+        clone.setSortOrdr(row.getSortOrdr());
+        return clone;
+    }
+
+    private void invalidateMenuTreeCache() {
+        menuTreeVersion.incrementAndGet();
+        menuTreeCache.clear();
+    }
+
+    private static final class CachedMenuRows {
+        private final long version;
+        private final List<MenuInfoDTO> rows;
+
+        private CachedMenuRows(long version, List<MenuInfoDTO> rows) {
+            this.version = version;
+            this.rows = rows;
+        }
     }
 }

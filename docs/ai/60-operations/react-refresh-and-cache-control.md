@@ -41,6 +41,7 @@ This avoids the common failure mode where `index.js` or `index.css` keeps an old
 ### Backend shell rendering
 
 - resolve production JS and CSS from the Vite manifest
+- cache the parsed manifest in memory and only reload when the manifest timestamp changes
 - do not hardcode one static file name as the primary production asset path
 - keep a fallback path only for recovery when the manifest is missing
 
@@ -58,12 +59,22 @@ When changing React migration code:
 3. verify a hard refresh loads new hashed asset names
 4. verify unchanged assets remain browser-cacheable
 
+For local port `18000`, use the repository sequence instead of `restart-18000.sh` alone:
+
+- `bash ops/scripts/build-restart-18000.sh`
+
+Reason:
+
+- `restart-18000.sh` only restarts `var/run/carbonet-18000.jar`
+- if `mvn package` was not run after the frontend build, the runtime jar can still contain older React assets
+
 ## Verification Checklist
 
 - shell response includes `Cache-Control: no-store`
 - built assets under `/react-migration/assets/` use hashed filenames
 - `.vite/manifest.json` exists in the built output
 - shell template resolves JS and CSS from the manifest, not a fixed filename
+- repeated shell requests do not re-parse the same unchanged manifest on every request
 - after a rebuild, the asset filename changes when the bundle changes
 - a hard refresh loads the new bundle without a stale-script issue
 

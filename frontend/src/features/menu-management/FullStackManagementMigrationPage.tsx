@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
-import { PAGE_MANIFESTS } from "../../app/screen-registry/pageManifests";
+import { findManifestByMenuCodeOrRoutePath, normalizeManifestLookupPath } from "../../app/screen-registry/pageManifestIndex";
 import {
   autoCollectFullStackGovernanceRegistry,
   fetchFullStackGovernanceRegistry,
@@ -53,15 +53,6 @@ function parentCode(code: string) {
   return "";
 }
 
-function normalizeLookupPath(value: string) {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return "";
-  }
-  const withoutQuery = trimmed.split("?")[0] || "";
-  return withoutQuery.startsWith("/en/") ? withoutQuery.slice(3) : withoutQuery;
-}
-
 function resolveGovernancePageId(
   selectedMenuRow: Record<string, unknown> | null,
   pages: ScreenCommandPagePayload["pages"] | undefined
@@ -70,18 +61,15 @@ function resolveGovernancePageId(
     return "";
   }
   const menuCode = stringOf(selectedMenuRow, "code").toUpperCase();
-  const menuPath = normalizeLookupPath(stringOf(selectedMenuRow, "menuUrl"));
+  const menuPath = normalizeManifestLookupPath(stringOf(selectedMenuRow, "menuUrl"));
   const matchedCatalogPage = (pages || []).find((item) => (
     String(item.menuCode || "").toUpperCase() === menuCode
-      || normalizeLookupPath(String(item.routePath || "")) === menuPath
+      || normalizeManifestLookupPath(String(item.routePath || "")) === menuPath
   ));
   if (matchedCatalogPage?.pageId) {
     return String(matchedCatalogPage.pageId);
   }
-  const matchedManifest = Object.values(PAGE_MANIFESTS).find((manifest) => (
-    String(manifest.menuCode || "").toUpperCase() === menuCode
-      || normalizeLookupPath(String(manifest.routePath || "")) === menuPath
-  ));
+  const matchedManifest = findManifestByMenuCodeOrRoutePath(menuCode, menuPath);
   return matchedManifest?.pageId || "";
 }
 

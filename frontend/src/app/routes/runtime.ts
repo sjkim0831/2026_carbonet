@@ -1,6 +1,14 @@
 import { getRuntimeLocale } from "../../lib/navigation/runtime";
 import { MigrationPageId, ROUTES, normalizeRouteId } from "./definitions";
 
+const routeById = new Map(ROUTES.map((entry) => [entry.id, entry] as const));
+const routeByComparablePath = new Map<string, MigrationPageId>();
+
+ROUTES.forEach((entry) => {
+  routeByComparablePath.set(normalizeComparablePath(entry.koPath), entry.id);
+  routeByComparablePath.set(normalizeComparablePath(entry.enPath), entry.id);
+});
+
 export function normalizeComparablePath(value: string): string {
   if (!value) {
     return "/";
@@ -20,9 +28,7 @@ export function isReactManagedPath(pathname: string): boolean {
     return true;
   }
 
-  return ROUTES.some((entry) =>
-    normalizeComparablePath(entry.koPath) === koComparable || normalizeComparablePath(entry.enPath) === normalizedPath
-  );
+  return routeByComparablePath.has(koComparable) || routeByComparablePath.has(normalizedPath);
 }
 
 export function resolveCanonicalRuntimePath(): string {
@@ -40,7 +46,7 @@ export function resolveCanonicalRuntimePath(): string {
   if (!route) {
     return "";
   }
-  const matched = ROUTES.find((entry) => entry.id === route);
+  const matched = routeById.get(route);
   if (!matched) {
     return "";
   }
@@ -57,11 +63,9 @@ export function resolveCanonicalRuntimePath(): string {
 export function resolvePageFromPath(pathname: string, search = ""): MigrationPageId {
   const normalizedCurrentPath = normalizeComparablePath(pathname);
   const normalizedKoPath = normalizeComparablePath(pathname.replace(/^\/en/, "") || "/home");
-  const matched = ROUTES.find((entry) =>
-    normalizeComparablePath(entry.koPath) === normalizedKoPath || normalizeComparablePath(entry.enPath) === normalizedCurrentPath
-  );
+  const matched = routeByComparablePath.get(normalizedKoPath) || routeByComparablePath.get(normalizedCurrentPath);
   if (matched) {
-    return matched.id;
+    return matched;
   }
   const nextUrl = `${pathname}${search}`;
   if (nextUrl.startsWith("/admin") || nextUrl.startsWith("/en/admin")) {

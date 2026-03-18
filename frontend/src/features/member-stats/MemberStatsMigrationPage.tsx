@@ -1,12 +1,17 @@
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
-import { fetchMemberStatsPage, type MemberStatsPagePayload } from "../../lib/api/client";
+import { fetchMemberStatsPage, readBootstrappedMemberStatsPageData, type MemberStatsPagePayload } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { stringOf } from "../admin-system/adminSystemShared";
+import { useMemo } from "react";
 
 export function MemberStatsMigrationPage() {
   const en = isEnglish();
-  const pageState = useAsyncValue<MemberStatsPagePayload>(fetchMemberStatsPage, []);
+  const initialPayload = useMemo(() => readBootstrappedMemberStatsPageData(), []);
+  const pageState = useAsyncValue<MemberStatsPagePayload>(fetchMemberStatsPage, [], {
+    initialValue: initialPayload,
+    skipInitialLoad: Boolean(initialPayload)
+  });
   const page = pageState.value;
   const memberTypeStats = (page?.memberTypeStats || []) as Array<Record<string, string>>;
   const monthlySignupStats = (page?.monthlySignupStats || []) as Array<Record<string, string>>;
@@ -36,7 +41,7 @@ export function MemberStatsMigrationPage() {
         </button>
       </div>
 
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-10">
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-10" data-help-id="member-stats-summary">
         <article className="gov-card">
           <h3 className="font-bold text-lg mb-8 flex items-center justify-between">
             <span className="flex items-center gap-2"><span className="material-symbols-outlined text-blue-600">pie_chart</span>{en ? "Member Type Ratio" : "회원 유형 비율"}</span>
@@ -66,7 +71,7 @@ export function MemberStatsMigrationPage() {
           </div>
         </article>
 
-        <article className="gov-card col-span-1 lg:col-span-2">
+        <article className="gov-card col-span-1 lg:col-span-2" data-help-id="member-stats-trend">
           <h3 className="font-bold text-lg mb-8 flex items-center justify-between">
             <span className="flex items-center gap-2"><span className="material-symbols-outlined text-emerald-600">bar_chart</span>{en ? "Monthly New Signup Trend" : "월별 신규 가입 추이"}</span>
             <div className="flex gap-2 text-[10px] font-bold">
@@ -94,7 +99,7 @@ export function MemberStatsMigrationPage() {
         </article>
       </section>
 
-      <section className="gov-card">
+      <section className="gov-card" data-help-id="member-stats-region">
         <div className="flex justify-between items-center mb-8">
           <div>
             <h3 className="font-bold text-lg flex items-center gap-2"><span className="material-symbols-outlined text-orange-500">map</span>{en ? "Regional Distribution of Enterprise Members" : "기업 회원 지역별 분포 현황"}</h3>

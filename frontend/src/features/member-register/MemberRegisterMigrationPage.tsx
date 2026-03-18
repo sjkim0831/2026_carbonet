@@ -92,7 +92,7 @@ export function MemberRegisterMigrationPage() {
 
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-          <section className="gov-card">
+          <section className="gov-card" data-help-id="member-register-basic">
             <h3 className="text-lg font-bold mb-6 flex items-center gap-2 text-[var(--kr-gov-blue)]"><span className="material-symbols-outlined">account_circle</span>{en ? "Basic Information" : "기본 정보"}</h3>
             <div className="space-y-6">
               <div>
@@ -128,7 +128,7 @@ export function MemberRegisterMigrationPage() {
             </div>
           </section>
 
-          <section className="gov-card">
+          <section className="gov-card" data-help-id="member-register-affiliation">
             <h3 className="text-lg font-bold mb-6 flex items-center gap-2 text-[var(--kr-gov-blue)]"><span className="material-symbols-outlined">badge</span>{en ? "Affiliation & Permissions" : "소속 및 권한 정보"}</h3>
             <div className="space-y-6">
               <div>

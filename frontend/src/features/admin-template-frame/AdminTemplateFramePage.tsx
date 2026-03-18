@@ -110,6 +110,12 @@ const ADMIN_TEMPLATE_FRAME_CONFIG: Record<string, TemplateFrameConfig> = {
     koPath: "/admin/system/automation-studio",
     enPath: "/en/admin/system/automation-studio"
   },
+  "wbs-management": {
+    titleKo: "WBS 관리",
+    titleEn: "WBS Management",
+    koPath: "/admin/system/wbs-management",
+    enPath: "/en/admin/system/wbs-management"
+  },
   "ip-whitelist": {
     titleKo: "IP 화이트리스트",
     titleEn: "IP Whitelist",

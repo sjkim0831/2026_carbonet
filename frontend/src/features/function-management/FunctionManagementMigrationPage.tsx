@@ -73,7 +73,7 @@ export function FunctionManagementMigrationPage() {
         </div>
       ) : null}
 
-      <section className="gov-card mb-8">
+      <section className="gov-card mb-8" data-help-id="function-management-register">
         <div className="flex items-center gap-2 border-b pb-4 mb-4">
           <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">extension</span>
           <h3 className="text-lg font-bold">{en ? "Register Feature" : "기능 등록"}</h3>
@@ -135,7 +135,7 @@ export function FunctionManagementMigrationPage() {
         </form>
       </section>
 
-      <section className="gov-card">
+      <section className="gov-card" data-help-id="function-management-list">
         <div className="flex items-center gap-2 border-b pb-4 mb-4">
           <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">view_list</span>
           <h3 className="text-lg font-bold">{en ? "Registered Features" : "등록 기능 목록"}</h3>

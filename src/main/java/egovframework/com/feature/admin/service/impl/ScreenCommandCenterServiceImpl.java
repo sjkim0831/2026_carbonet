@@ -77,6 +77,16 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         addStaticPageOption(pages, knownPageIds, "signin-find-password-result", "비밀번호 찾기 완료", "/signin/findPassword/result", "HMENU_SIGNIN_FINDPW_RESULT", "home");
         addStaticPageOption(pages, knownPageIds, "signin-forbidden", "접근 거부", "/signin/loginForbidden", "HMENU_SIGNIN_FORBIDDEN", "home");
         addStaticPageOption(pages, knownPageIds, "mypage", "마이페이지", "/mypage", "HMENU_MYPAGE", "home");
+        addStaticPageOption(pages, knownPageIds, "platform-studio", "플랫폼 스튜디오", "/admin/system/platform-studio", "A0060109", "admin");
+        addStaticPageOption(pages, knownPageIds, "screen-elements-management", "화면 요소 관리", "/admin/system/screen-elements-management", "A0060110", "admin");
+        addStaticPageOption(pages, knownPageIds, "event-management-console", "이벤트 관리", "/admin/system/event-management-console", "A0060111", "admin");
+        addStaticPageOption(pages, knownPageIds, "function-management-console", "함수 콘솔", "/admin/system/function-management-console", "A0060112", "admin");
+        addStaticPageOption(pages, knownPageIds, "api-management-console", "API 관리", "/admin/system/api-management-console", "A0060113", "admin");
+        addStaticPageOption(pages, knownPageIds, "controller-management-console", "컨트롤러 관리", "/admin/system/controller-management-console", "A0060114", "admin");
+        addStaticPageOption(pages, knownPageIds, "db-table-management", "DB 테이블 관리", "/admin/system/db-table-management", "A0060115", "admin");
+        addStaticPageOption(pages, knownPageIds, "column-management-console", "컬럼 관리", "/admin/system/column-management-console", "A0060116", "admin");
+        addStaticPageOption(pages, knownPageIds, "automation-studio", "자동화 스튜디오", "/admin/system/automation-studio", "A0060117", "admin");
+        addStaticPageOption(pages, knownPageIds, "wbs-management", "WBS 관리", "/admin/system/wbs-management", "A1900104", "admin");
         addManagedMenuPageOptions(pages, knownPageIds, "AMENU1");
         addManagedMenuPageOptions(pages, knownPageIds, "HMENU1");
         for (Map<String, Object> registryPage : uiManifestRegistryService.selectActivePageOptions()) {
@@ -162,6 +172,8 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                 return buildObservabilityPage();
             case "help-management":
                 return buildHelpManagementPage();
+            case "codex-request":
+                return buildCodexRequestPage();
             case "full-stack-management":
                 return buildFullStackManagementPage();
             case "platform-studio":
@@ -184,6 +196,8 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                 return buildPlatformStudioPage("automation-studio", "자동화 스튜디오", "/admin/system/automation-studio", "A0060117", "automation");
             case "environment-management":
                 return buildEnvironmentManagementPage();
+            case "wbs-management":
+                return buildWbsManagementPage();
             case "sr-workbench":
                 return buildSrWorkbenchPage();
             case "member-list":
@@ -1627,19 +1641,19 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         page.put("summary", "회원 목록 검색, 상태 필터, 상세 이동, 승인 연계가 집중되는 관리자 목록 화면입니다.");
         page.put("source", "frontend/src/features/member-list/MemberListMigrationPage.tsx");
         page.put("surfaces", Arrays.asList(
-                surface("member-search-form", "검색 폼", "[data-help-id=\"member-list-filters\"]", "MemberSearchForm", "actions",
+                surface("member-search-form", "검색 폼", "[data-help-id=\"member-search-form\"]", "MemberSearchForm", "actions",
                         Arrays.asList("member-search-submit", "member-search-reset"), "검색어, 회원유형, 상태 필터를 조합합니다."),
-                surface("member-table", "회원 목록 테이블", "[data-help-id=\"member-list-table\"]", "MemberTable", "content",
+                surface("member-table", "회원 목록 테이블", "[data-help-id=\"member-table\"]", "MemberTable", "content",
                         Arrays.asList("member-row-detail", "member-row-approve"), "행 단위 상세 진입과 승인 화면 연결을 제공합니다.")
         ));
         page.put("events", Arrays.asList(
-                event("member-search-submit", "목록 조회", "submit", "handleSearch", "[data-help-id=\"member-list-filters\"] form",
+                event("member-search-submit", "목록 조회", "submit", "handleSearch", "[data-help-id=\"member-list-search\"]",
                         Arrays.asList("admin.member.list.page"), "검색 조건으로 회원 목록을 다시 조회합니다."),
-                event("member-search-reset", "검색 초기화", "click", "handleResetFilters", "[data-help-id=\"member-list-filters\"] button[type=\"reset\"]",
+                event("member-search-reset", "검색 초기화", "click", "handleResetFilters", "[data-help-id=\"member-list-search\"] button[type=\"reset\"]",
                         Collections.emptyList(), "입력값을 초기화한 뒤 기본 조건으로 복귀합니다."),
-                event("member-row-detail", "상세 보기", "click", "handleMoveDetail", "[data-help-id=\"member-list-table\"] [data-action=\"detail\"]",
+                event("member-row-detail", "상세 보기", "click", "handleMoveDetail", "[data-help-id=\"member-table\"] [data-action=\"detail\"]",
                         Arrays.asList("route.admin.member.detail"), "선택한 회원 상세 화면으로 이동합니다."),
-                event("member-row-approve", "승인 화면 이동", "click", "handleMoveApprove", "[data-help-id=\"member-list-table\"] [data-action=\"approve\"]",
+                event("member-row-approve", "승인 화면 이동", "click", "handleMoveApprove", "[data-help-id=\"member-table\"] [data-action=\"approve\"]",
                         Arrays.asList("route.admin.member.approve"), "회원 승인/반려 흐름으로 이어집니다.")
         ));
         page.put("apis", Arrays.asList(
@@ -2250,9 +2264,131 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                         Arrays.asList("SELECT"), "페이지 기능 권한과 메뉴 연결을 해석합니다.")
         ));
         page.put("commonCodeGroups", Arrays.asList(
-                codeGroup("AMENU1", "관리자 메뉴 코드", Arrays.asList("A1900101", "A1900102", "AMENU_SYSTEM_OBSERVABILITY"), "관리자 시스템 탭/메뉴 분류입니다."),
+                codeGroup("AMENU1", "관리자 메뉴 코드", Arrays.asList("A1900101", "A1900102", "A1900103", "A1900104", "AMENU_SYSTEM_OBSERVABILITY"), "관리자 AI 운영 메뉴 분류입니다."),
                 codeGroup("CHANGE_LAYER", "수정 레이어", Arrays.asList("UI", "CSS", "EVENT", "API", "CONTROLLER", "SERVICE", "MAPPER", "SCHEMA", "MENU_AUTH"),
                         "수정 지시 생성 시 선택하는 레이어 그룹입니다.")
+        ));
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
+    private Map<String, Object> buildCodexRequestPage() {
+        Map<String, Object> page = pageOption("codex-request", "Codex 실행 콘솔", "/admin/system/codex-request", "A1900103", "admin");
+        page.put("summary", "SR 티켓 기반 중앙 실행 큐에서 runtime config, plan/build 결과, 레거시 provision 프록시를 함께 운영하는 AI 실행 콘솔입니다.");
+        page.put("source", "frontend/src/features/codex-provision/CodexProvisionMigrationPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("codex-request-runtime", "런타임 설정", "[data-help-id=\"codex-request-runtime\"]", "CodexRuntimeConfigPanel", "actions",
+                        Arrays.asList("codex-ticket-refresh"), "현재 Codex/runner 설정과 command 구성을 확인합니다."),
+                surface("codex-history-table", "SR 실행 큐", "[data-help-id=\"codex-history-table\"]", "CodexQueueTable", "content",
+                        Arrays.asList("codex-ticket-select", "codex-ticket-prepare", "codex-ticket-plan", "codex-ticket-build", "codex-ticket-delete"), "SR 티켓을 준비, 계획 수립, 빌드 실행, 삭제합니다."),
+                surface("codex-request-ticket-detail", "선택 티켓 상세", "[data-help-id=\"codex-request-ticket-detail\"]", "CodexTicketDetailPanel", "content",
+                        Arrays.asList("codex-ticket-detail-load"), "선택한 티켓의 상태, 지시문, artifact path를 확인합니다."),
+                surface("codex-request-plan-result", "Plan 결과", "[data-help-id=\"codex-request-plan-result\"]", "CodexPlanArtifactPanel", "content",
+                        Arrays.asList("codex-ticket-artifact-plan"), "선택 티켓의 plan result 또는 plan stdout 아티팩트를 미리봅니다."),
+                surface("codex-request-build-result", "Build 결과", "[data-help-id=\"codex-request-build-result\"]", "CodexBuildArtifactPanel", "content",
+                        Arrays.asList("codex-ticket-artifact-build"), "선택 티켓의 build stdout, diff, changed files를 미리봅니다."),
+                surface("codex-request-setup", "레거시 Provision 프록시", "#payload", "CodexRequestSetup", "actions",
+                        Arrays.asList("codex-login-check", "codex-run-provision", "codex-format-payload"), "기존 payload 기반 등록 프록시를 필요 시 함께 사용합니다."),
+                surface("codex-response-panel", "Codex 응답 결과", ".gov-card", "CodexResponsePanel", "content",
+                        Collections.emptyList(), "HTTP 상태와 created/existing/skipped 결과를 확인합니다."),
+                surface("codex-request-history-review", "Codex 실행 이력", "table", "CodexHistoryTable", "content",
+                        Arrays.asList("codex-history-refresh", "codex-history-inspect", "codex-history-remediate"), "최근 실행 이력과 조치 결과를 다시 확인합니다.")
+        ));
+        page.put("events", Arrays.asList(
+                event("codex-ticket-refresh", "티켓 큐 새로고침", "load", "fetchCodexProvisionPage", "[data-help-id=\"codex-request-runtime\"]",
+                        Arrays.asList("admin.codex-request.tickets"), "SR 실행 큐와 runtime config를 다시 불러옵니다."),
+                event("codex-ticket-select", "SR 티켓 선택", "click", "setSelectedTicketId", "[data-help-id=\"codex-history-table\"] tr",
+                        Arrays.asList("admin.codex-request.ticket-detail", "admin.codex-request.ticket-artifact"), "선택한 티켓의 상세와 아티팩트를 조회합니다."),
+                event("codex-ticket-detail-load", "선택 티켓 상세 조회", "load", "fetchCodexSrTicketDetail", "[data-help-id=\"codex-request-ticket-detail\"]",
+                        Arrays.asList("admin.codex-request.ticket-detail"), "선택 티켓의 요약, instruction, runner comment를 조회합니다."),
+                event("codex-ticket-artifact-plan", "Plan 아티팩트 조회", "load", "fetchCodexSrTicketArtifact", "[data-help-id=\"codex-request-plan-result\"]",
+                        Arrays.asList("admin.codex-request.ticket-artifact"), "plan result 또는 plan stdout 파일을 미리 조회합니다."),
+                event("codex-ticket-artifact-build", "Build 아티팩트 조회", "load", "fetchCodexSrTicketArtifact", "[data-help-id=\"codex-request-build-result\"]",
+                        Arrays.asList("admin.codex-request.ticket-artifact"), "build stdout, diff, changed files를 미리 조회합니다."),
+                event("codex-ticket-prepare", "SR 티켓 준비", "click", "prepareCodexSrTicket", "[data-help-id=\"codex-history-table\"] .gov-btn-outline",
+                        Arrays.asList("admin.codex-request.ticket-prepare"), "선택 티켓을 READY_FOR_CODEX 상태로 전환합니다."),
+                event("codex-ticket-plan", "SR 티켓 계획 수립", "click", "planCodexSrTicket", "[data-help-id=\"codex-history-table\"] .gov-btn-outline",
+                        Arrays.asList("admin.codex-request.ticket-plan"), "선택 티켓에 대해 read-only Codex plan 을 실행합니다."),
+                event("codex-ticket-build", "SR 티켓 빌드 실행", "click", "executeCodexSrTicket", "[data-help-id=\"codex-history-table\"] .gov-btn-primary",
+                        Arrays.asList("admin.codex-request.ticket-build"), "PLAN_COMPLETED 티켓에 대해 build 실행을 시작합니다."),
+                event("codex-ticket-delete", "SR 티켓 삭제", "click", "deleteCodexSrTicket", "[data-help-id=\"codex-history-table\"] .gov-btn-outline",
+                        Arrays.asList("admin.codex-request.ticket-delete"), "중앙 실행 큐에서 SR 티켓을 제거합니다."),
+                event("codex-login-check", "Codex 인증 확인", "click", "runCodexLoginCheck", ".gov-btn",
+                        Arrays.asList("admin.codex-request.login"), "내부 프록시와 API 키 구성을 확인합니다."),
+                event("codex-run-provision", "Codex 등록 실행", "click", "executeCodexProvision", ".gov-btn",
+                        Arrays.asList("admin.codex-request.execute"), "입력한 payload로 메뉴/기능/권한 등록을 실행합니다."),
+                event("codex-format-payload", "Payload 정렬", "click", "JSON.parse", ".gov-btn",
+                        Collections.emptyList(), "JSON payload를 보기 좋은 형태로 정렬합니다."),
+                event("codex-history-refresh", "이력 새로고침", "click", "historyState.reload", ".gov-btn",
+                        Arrays.asList("admin.codex-request.history"), "최근 실행 이력을 다시 불러옵니다."),
+                event("codex-history-inspect", "실행 이력 재점검", "click", "inspectCodexHistory", "table .gov-btn-outline",
+                        Arrays.asList("admin.codex-request.inspect"), "선택한 요청의 회사/페이지/메뉴/기능 매핑 상태를 재점검합니다."),
+                event("codex-history-remediate", "실행 이력 조치", "click", "remediateCodexHistory", "table .gov-btn-primary",
+                        Arrays.asList("admin.codex-request.remediate"), "선택한 요청을 기준으로 다시 조치 실행합니다.")
+        ));
+        page.put("apis", Arrays.asList(
+                api("admin.codex-request.login", "Codex 인증 확인", "POST", "/admin/system/codex-request/login",
+                        "CodexProvisionAdminController.login", "CodexExecutionAdminService.validateInternalAvailability",
+                        "Metadata-only", Arrays.asList("CODEX_API_CONFIG"), Arrays.asList("codex-request-schema"),
+                        "Codex API 활성화와 내부 프록시 가능 여부를 확인합니다."),
+                api("admin.codex-request.execute", "Codex 등록 실행", "POST", "/admin/system/codex-request/execute",
+                        "CodexProvisionAdminController.execute", "CodexExecutionAdminService.execute",
+                        "CodexExecutionLogMapper.insert / CodexProvisioningService.provision", Arrays.asList("COMTNMENUINFO", "COMTNMENUFUNCTIONINFO", "COMTNAUTHORFUNCTIONRELATE", "COMTNDETAILCODE", "COMTCCMMNDETAILCODE"),
+                        Arrays.asList("codex-request-schema", "menu-feature-schema"), "메뉴/기능/권한 등록을 실행하고 로그를 남깁니다."),
+                api("admin.codex-request.history", "Codex 실행 이력", "GET", "/admin/system/codex-request/history",
+                        "CodexProvisionAdminController.history", "CodexExecutionAdminService.getRecentHistory",
+                        "CodexExecutionLogMapper.selectRecentHistory", Arrays.asList("CODEX_EXECUTION_LOG"), Arrays.asList("codex-request-schema"),
+                        "최근 실행 이력을 조회합니다."),
+                api("admin.codex-request.tickets", "SR 실행 큐 조회", "GET", "/admin/system/codex-request/tickets",
+                        "CodexProvisionAdminController.tickets", "SrTicketWorkbenchService.getPage",
+                        "security.codex.sr-ticket-file JSONL", Arrays.asList("SR_TICKET_JSONL"), Arrays.asList("sr-ticket-runner-schema"),
+                        "SR 기반 중앙 실행 큐와 상태를 조회합니다."),
+                api("admin.codex-request.ticket-detail", "SR 티켓 상세 조회", "GET", "/admin/system/codex-request/tickets/{ticketId}",
+                        "CodexProvisionAdminController.ticketDetail", "SrTicketWorkbenchService.getTicketDetail",
+                        "security.codex.sr-ticket-file JSONL", Arrays.asList("SR_TICKET_JSONL"), Arrays.asList("sr-ticket-runner-schema"),
+                        "선택한 SR 티켓의 상세와 조회 가능한 artifact 목록을 확인합니다."),
+                api("admin.codex-request.ticket-artifact", "SR 티켓 아티팩트 조회", "GET", "/admin/system/codex-request/tickets/{ticketId}/artifacts/{artifactType}",
+                        "CodexProvisionAdminController.ticketArtifact", "SrTicketWorkbenchService.getTicketArtifact",
+                        "runner artifact files", Arrays.asList("SR_RUNNER_ARTIFACTS"), Arrays.asList("sr-ticket-runner-schema"),
+                        "선택한 SR 티켓의 plan/build artifact 내용을 미리 조회합니다."),
+                api("admin.codex-request.ticket-prepare", "SR 티켓 준비", "POST", "/admin/system/codex-request/tickets/{ticketId}/prepare",
+                        "CodexProvisionAdminController.prepareTicket", "SrTicketWorkbenchService.prepareExecution",
+                        "security.codex.sr-ticket-file JSONL", Arrays.asList("SR_TICKET_JSONL"), Arrays.asList("sr-ticket-runner-schema"),
+                        "승인된 티켓을 Codex 실행 준비 상태로 전환합니다."),
+                api("admin.codex-request.ticket-plan", "SR 티켓 계획 수립", "POST", "/admin/system/codex-request/tickets/{ticketId}/plan",
+                        "CodexProvisionAdminController.planTicket", "SrTicketWorkbenchService.planTicket",
+                        "SR runner workspace + history", Arrays.asList("SR_TICKET_JSONL", "SR_RUNNER_ARTIFACTS"), Arrays.asList("sr-ticket-runner-schema"),
+                        "선택 티켓에 대해 read-only plan 실행과 artifact 생성을 수행합니다."),
+                api("admin.codex-request.ticket-build", "SR 티켓 빌드 실행", "POST", "/admin/system/codex-request/tickets/{ticketId}/execute",
+                        "CodexProvisionAdminController.executeTicket", "SrTicketWorkbenchService.executeTicket",
+                        "SR runner workspace + history", Arrays.asList("SR_TICKET_JSONL", "SR_RUNNER_ARTIFACTS"), Arrays.asList("sr-ticket-runner-schema"),
+                        "PLAN_COMPLETED 티켓에 대해 build 실행과 verify를 수행합니다."),
+                api("admin.codex-request.ticket-delete", "SR 티켓 삭제", "POST", "/admin/system/codex-request/tickets/{ticketId}/delete",
+                        "CodexProvisionAdminController.deleteTicket", "SrTicketWorkbenchService.deleteTicket",
+                        "security.codex.sr-ticket-file JSONL", Arrays.asList("SR_TICKET_JSONL"), Arrays.asList("sr-ticket-runner-schema"),
+                        "중앙 실행 큐에서 선택한 SR 티켓을 제거합니다."),
+                api("admin.codex-request.inspect", "Codex 실행 이력 점검", "POST", "/admin/system/codex-request/history/{logId}/inspect",
+                        "CodexProvisionAdminController.inspect", "CodexExecutionAdminService.inspect",
+                        "CodexExecutionLogMapper.select / Menu-feature inspection", Arrays.asList("CODEX_EXECUTION_LOG", "COMTNMENUINFO", "COMTNMENUFUNCTIONINFO"),
+                        Arrays.asList("codex-request-schema", "menu-feature-schema"), "실행 이력의 매핑 상태를 재점검합니다."),
+                api("admin.codex-request.remediate", "Codex 실행 이력 조치", "POST", "/admin/system/codex-request/history/{logId}/remediate",
+                        "CodexProvisionAdminController.remediate", "CodexExecutionAdminService.remediate",
+                        "CodexExecutionLogMapper.select / CodexProvisioningService.provision", Arrays.asList("CODEX_EXECUTION_LOG", "COMTNMENUINFO", "COMTNMENUFUNCTIONINFO", "COMTNAUTHORFUNCTIONRELATE"),
+                        Arrays.asList("codex-request-schema", "menu-feature-schema"), "실행 이력을 바탕으로 다시 조치 실행합니다.")
+        ));
+        page.put("schemas", Arrays.asList(
+                schema("codex-request-schema", "Codex 요청/이력 모델", "CODEX_EXECUTION_LOG / requestJson",
+                        Arrays.asList("requestId", "targetApiPath", "companyId", "actorUserId", "executionStatus", "httpStatus", "issueSummary"),
+                        Arrays.asList("SELECT", "INSERT", "UPDATE"), "Codex 요청 원문과 실행 이력 저장 모델입니다."),
+                schema("sr-ticket-runner-schema", "SR 티켓 실행 모델", "security.codex.sr-ticket-file / security.codex.runner.history-file",
+                        Arrays.asList("ticketId", "executionStatus", "planRunId", "planResultPath", "executionRunId", "executionLogPath", "executionDiffPath"),
+                        Arrays.asList("SELECT", "INSERT", "UPDATE", "DELETE"), "SR 티켓 상태와 runner artifact 경로를 기록하는 임시 JSONL 기반 실행 모델입니다."),
+                schema("menu-feature-schema", "메뉴/기능 권한 스키마", "COMTNMENUINFO / COMTNMENUFUNCTIONINFO / COMTNAUTHORFUNCTIONRELATE",
+                        Arrays.asList("MENU_CODE", "MENU_URL", "FEATURE_CODE", "AUTHOR_CODE"),
+                        Arrays.asList("SELECT", "INSERT", "UPDATE"), "Codex 요청 대상 메뉴와 기능/권한 상태를 해석합니다.")
+        ));
+        page.put("commonCodeGroups", Arrays.asList(
+                codeGroup("AMENU1", "관리자 메뉴 코드", Arrays.asList("A1900101", "A1900102", "A1900103", "A1900104"), "관리자 AI 운영 메뉴 분류입니다.")
         ));
         page.put("changeTargets", defaultChangeTargets());
         return page;
@@ -2314,6 +2450,63 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                 codeGroup("SR_TICKET_STATUS", "SR 티켓 상태", Arrays.asList("OPEN", "APPROVED", "REJECTED", "READY_FOR_CODEX"), "티켓 상태 전이에 사용됩니다."),
                 codeGroup("CHANGE_LAYER", "수정 레이어", Arrays.asList("UI", "CSS", "EVENT", "API", "CONTROLLER", "SERVICE", "MAPPER", "SCHEMA", "MENU_AUTH"),
                         "SR 지시 생성 시 선택하는 레이어 그룹입니다.")
+        ));
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
+    private Map<String, Object> buildWbsManagementPage() {
+        Map<String, Object> page = pageOption("wbs-management", "WBS 관리", "/admin/system/wbs-management", "A1900104", "admin");
+        page.put("summary", "메뉴별 예상일정과 실적일정, 담당자, 진행률, Codex 작업 지시문을 함께 운영하는 관리자 화면입니다.");
+        page.put("source", "frontend/src/features/wbs-management/WbsManagementMigrationPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("wbs-summary-cards", "WBS 요약 카드", "[data-help-id=\"wbs-summary-cards\"]", "WbsSummaryCards", "actions",
+                        Collections.emptyList(), "범위, 진행 메뉴 수, 지연 건수, 평균 편차를 한 번에 보여줍니다."),
+                surface("wbs-menu-tree", "메뉴 트리", "[data-help-id=\"wbs-menu-tree\"]", "WbsMenuTree", "content",
+                        Arrays.asList("wbs-menu-scope-change", "wbs-menu-select"), "HOME/ADMIN 트리에서 대상 메뉴를 선택합니다."),
+                surface("wbs-execution-table", "실행용 WBS 표", "[data-help-id=\"wbs-execution-table\"]", "WbsExecutionTable", "content",
+                        Arrays.asList("wbs-row-select", "wbs-excel-download"), "예상/실적 일정과 상태, 편차를 표로 비교합니다."),
+                surface("wbs-editor-panel", "선택 메뉴 계획 편집", "[data-help-id=\"wbs-editor-panel\"]", "WbsEditorPanel", "content",
+                        Arrays.asList("wbs-entry-save"), "선택 메뉴의 일정, 담당자, 메모, 추가 지시를 저장합니다."),
+                surface("wbs-codex-prompt", "Codex 작업 지시문", "[data-help-id=\"wbs-codex-prompt\"]", "WbsCodexPrompt", "content",
+                        Collections.singletonList("wbs-open-codex-request"), "저장된 계획을 기준으로 Codex 지시문을 복사하고 Codex 요청 화면으로 이동합니다.")
+        ));
+        page.put("events", Arrays.asList(
+                event("wbs-menu-scope-change", "WBS 범위 전환", "click", "setMenuType", "[data-help-id=\"wbs-menu-tree\"] .gov-btn",
+                        Arrays.asList("admin.wbs-management.page"), "HOME/ADMIN 범위를 바꿔 해당 메뉴 집합을 다시 불러옵니다."),
+                event("wbs-menu-select", "WBS 메뉴 선택", "click", "setSelectedMenuCode", "[data-help-id=\"wbs-menu-tree\"] button",
+                        Collections.emptyList(), "선택한 메뉴 기준으로 계획 편집기와 Codex 지시문을 동기화합니다."),
+                event("wbs-row-select", "WBS 실행 행 선택", "click", "setSelectedMenuCode", "[data-help-id=\"wbs-execution-table\"] tr",
+                        Collections.emptyList(), "실행 표에서 메뉴 행을 클릭해 상세 계획을 편집합니다."),
+                event("wbs-excel-download", "WBS 엑셀 다운로드", "click", "excelDownloadHref", "[data-help-id=\"wbs-execution-table\"] a",
+                        Arrays.asList("admin.wbs-management.excel"), "현재 범위와 필터 기준으로 WBS 엑셀을 내려받습니다."),
+                event("wbs-entry-save", "WBS 항목 저장", "click", "handleSave", "[data-help-id=\"wbs-editor-panel\"] .gov-btn-primary",
+                        Arrays.asList("admin.wbs-management.entry-save"), "선택 메뉴의 일정/담당/메모/Codex 지시를 저장합니다."),
+                event("wbs-open-codex-request", "Codex 요청 화면 열기", "click", "buildLocalizedPath", "[data-help-id=\"wbs-codex-prompt\"] a",
+                        Collections.emptyList(), "현재 작성한 지시문을 이어서 Codex 요청 화면에서 실행합니다.")
+        ));
+        page.put("apis", Arrays.asList(
+                api("admin.wbs-management.page", "WBS 화면 데이터", "GET", "/admin/system/wbs-management/page-data",
+                        "AdminSystemCodeController.getWbsManagementPageData", "WbsManagementService.getPageData",
+                        "File-backed read", Arrays.asList("COMTNMENUINFO", "data/wbs-management/entries.json"), Arrays.asList("wbs-management-schema"),
+                        "메뉴 트리, WBS 행, 요약 카드, 일정표 데이터를 조회합니다."),
+                api("admin.wbs-management.entry-save", "WBS 항목 저장", "POST", "/api/admin/wbs-management/entry",
+                        "AdminWbsManagementApiController.saveEntry", "WbsManagementService.saveEntry",
+                        "File-backed upsert", Arrays.asList("data/wbs-management/entries.json"), Arrays.asList("wbs-management-schema"),
+                        "선택 메뉴의 일정, 상태, 메모, Codex 추가 지시를 저장합니다."),
+                api("admin.wbs-management.excel", "WBS 엑셀 다운로드", "GET", "/api/admin/wbs-management/excel",
+                        "AdminWbsManagementApiController.downloadExcel", "WbsManagementService.buildExcel",
+                        "Workbook export", Arrays.asList("data/wbs-management/entries.json", "COMTNMENUINFO"), Arrays.asList("wbs-management-schema"),
+                        "현재 범위와 필터 기준 WBS 엑셀 파일을 생성합니다.")
+        ));
+        page.put("schemas", Arrays.asList(
+                schema("wbs-management-schema", "WBS 관리 모델", "data/wbs-management/entries.json / COMTNMENUINFO",
+                        Arrays.asList("menuCode", "owner", "status", "progress", "plannedStartDate", "plannedEndDate", "actualStartDate", "actualEndDate", "codexInstruction"),
+                        Arrays.asList("SELECT", "UPSERT", "EXPORT"), "메뉴별 일정 계획과 실행 메모, Codex 지시문 저장소입니다.")
+        ));
+        page.put("commonCodeGroups", Arrays.asList(
+                codeGroup("AMENU1", "관리자 메뉴 코드", Arrays.asList("A1900104"), "WBS 관리 메뉴 분류입니다."),
+                codeGroup("WBS_STATUS", "WBS 상태", Arrays.asList("NOT_STARTED", "IN_PROGRESS", "DONE", "BLOCKED"), "WBS 진행 상태 분류입니다.")
         ));
         page.put("changeTargets", defaultChangeTargets());
         return page;

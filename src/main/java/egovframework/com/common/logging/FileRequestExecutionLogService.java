@@ -8,16 +8,18 @@ import org.springframework.stereotype.Service;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.BufferedReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
+import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.Collectors;
 
 @Service("requestExecutionLogService")
 @RequiredArgsConstructor
@@ -74,14 +76,27 @@ public class FileRequestExecutionLogService implements RequestExecutionLogServic
         }
         lock.lock();
         try {
-            return Files.readAllLines(file, StandardCharsets.UTF_8).stream()
-                    .filter(line -> line != null && !line.trim().isEmpty())
-                    .map(this::parseLine)
-                    .filter(item -> item != null)
-                    .sorted(Comparator.comparing(RequestExecutionLogVO::getExecutedAt,
-                            Comparator.nullsLast(Comparator.naturalOrder())).reversed())
-                    .limit(limit)
-                    .collect(Collectors.toList());
+            Deque<String> recentLines = new ArrayDeque<>(limit);
+            try (BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (line.trim().isEmpty()) {
+                        continue;
+                    }
+                    if (recentLines.size() == limit) {
+                        recentLines.removeFirst();
+                    }
+                    recentLines.addLast(line);
+                }
+            }
+            List<RequestExecutionLogVO> items = new ArrayList<>(recentLines.size());
+            while (!recentLines.isEmpty()) {
+                RequestExecutionLogVO item = parseLine(recentLines.removeLast());
+                if (item != null) {
+                    items.add(item);
+                }
+            }
+            return items;
         } catch (IOException e) {
             log.error("Failed to read request execution log.", e);
             return Collections.emptyList();

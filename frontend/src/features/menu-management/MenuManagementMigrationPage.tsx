@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
-import { fetchMenuManagementPage, type MenuManagementPagePayload } from "../../lib/api/client";
+import { fetchMenuManagementPage, refreshAdminMenuTree, type MenuManagementPagePayload } from "../../lib/api/client";
 import { buildLocalizedPath, getCsrfMeta, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { numberOf, stringOf } from "../admin-system/adminSystemShared";
@@ -178,6 +178,7 @@ export function MenuManagementMigrationPage() {
     if (!response.ok) {
       throw new Error(`Failed to save menu order: ${response.status}`);
     }
+    refreshAdminMenuTree();
     await pageState.reload();
     setActionMessage(en ? "Menu order has been saved." : "메뉴 순서를 저장했습니다.");
   }
@@ -229,6 +230,7 @@ export function MenuManagementMigrationPage() {
     if (!response.ok || !responseBody.success) {
       throw new Error(responseBody.message || `Failed to create page menu: ${response.status}`);
     }
+    refreshAdminMenuTree();
     await pageState.reload();
     setActionMessage(responseBody.message || (en ? "The page has been created." : "페이지를 생성했습니다."));
     setCodeNm("");
@@ -284,7 +286,7 @@ export function MenuManagementMigrationPage() {
       {page?.menuMgmtMessage || actionMessage ? <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{actionMessage || String(page?.menuMgmtMessage)}</div> : null}
       {pageState.error || actionError || page?.menuMgmtError ? <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{actionError || page?.menuMgmtError || pageState.error}</div> : null}
 
-      <section className="gov-card mb-6">
+      <section className="gov-card mb-6" data-help-id="menu-management-scope">
         <div className="grid grid-cols-1 md:grid-cols-[16rem_1fr] gap-4 items-end">
           <div>
             <label className="gov-label" htmlFor="menuType">{en ? "Page Scope" : "화면 구분"}</label>
@@ -300,7 +302,7 @@ export function MenuManagementMigrationPage() {
         </div>
       </section>
 
-      <section className="gov-card mb-6">
+      <section className="gov-card mb-6" data-help-id="menu-management-register">
         <div className="flex items-center justify-between gap-4 border-b pb-4 mb-4 flex-wrap">
           <div>
             <h3 className="text-lg font-bold">{en ? "Quick Page Registration" : "빠른 페이지 등록"}</h3>
@@ -372,7 +374,7 @@ export function MenuManagementMigrationPage() {
         </div>
       </section>
 
-      <section className="gov-card">
+      <section className="gov-card" data-help-id="menu-management-tree">
         <div className="flex items-center justify-between gap-4 border-b pb-4 mb-4 flex-wrap">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">account_tree</span>

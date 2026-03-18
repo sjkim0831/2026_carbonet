@@ -1159,8 +1159,11 @@
             var DANGER_MS = 60 * 1000;
             var storageKey = "adminSessionExpireAt";
             var now = Date.now();
+            var referrer = document.referrer || "";
+            var isFreshLoginNavigation = referrer.indexOf("/admin/login/loginView") >= 0
+                || referrer.indexOf("/en/admin/login/loginView") >= 0;
             var expireAt = parseInt(window.sessionStorage.getItem(storageKey) || "", 10);
-            if (!expireAt || Number.isNaN(expireAt) || expireAt <= now) {
+            if (isFreshLoginNavigation || !expireAt || Number.isNaN(expireAt) || expireAt <= now) {
                 expireAt = now + SESSION_DURATION_MS;
                 window.sessionStorage.setItem(storageKey, String(expireAt));
             }
@@ -1202,12 +1205,10 @@
                     return;
                 }
                 var refreshUrl = withLanguage("/admin/login/refreshSession");
-                var headers = getCsrfHeaders();
-                headers["X-Requested-With"] = "XMLHttpRequest";
                 fetch(refreshUrl, {
-                    method: "POST",
+                    method: "GET",
                     credentials: "same-origin",
-                    headers: headers
+                    headers: { "X-Requested-With": "XMLHttpRequest" }
                 }).then(function (response) {
                     if (!response.ok) {
                         throw new Error("HTTP " + response.status);

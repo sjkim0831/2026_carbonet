@@ -3,6 +3,8 @@ package egovframework.com.feature.admin.dto.request;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+
 @Getter
 @Setter
 public class SrTicketCreateRequest {
@@ -21,6 +23,8 @@ public class SrTicketCreateRequest {
     private String targetLabel;
     private String summary;
     private String instruction;
+    private String technicalContext;
     private String generatedDirection;
     private String commandPrompt;
+    private List<String> stackItemIds;
 }

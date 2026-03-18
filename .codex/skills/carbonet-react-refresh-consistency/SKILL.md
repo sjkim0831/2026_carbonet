@@ -30,21 +30,35 @@ Read only what you need:
    - built JS or CSS
    - Spring resource delivery
    - deployment verification
-2. Keep the repository standard:
+2. Confirm the actual delivery chain in this repository before declaring success:
+   - `frontend` build output under `src/main/resources/static/react-app`
+   - copied classpath output under `target/classes/static/react-app`
+   - packaged jar under `target/carbonet.jar`
+   - runtime jar under `var/run/carbonet-18000.jar` when local service scripts are used
+3. Keep packaging and restart in sequence, not in parallel:
+   - finish `npm run build`
+   - finish `mvn package -DskipTests`
+   - only then run `bash ops/scripts/restart-18000.sh`
+   - if `mvn package` and restart run in parallel, `var/run` can copy an older jar and serve stale bundles even though `src/main/resources` and `target/classes` are already fresh
+4. Keep the repository standard:
    - shell HTML no-store
    - hashed assets immutable
-3. If production assets are fixed filenames, replace that strategy with manifest-resolved hashed assets.
-4. Ensure the backend resolves production asset paths from the Vite manifest.
-5. Ensure the shell route returns no-cache headers.
-6. Verify a rebuild changes bundle filenames when source changes.
-7. Verify the frontend build and the backend build still pass.
+5. If production assets are fixed filenames, replace that strategy with manifest-resolved hashed assets.
+6. Ensure the backend resolves production asset paths from the Vite manifest.
+7. Cache parsed manifest metadata in memory and invalidate it only when the manifest changes.
+8. Ensure the shell route returns no-cache headers.
+9. Verify a rebuild changes bundle filenames when source changes.
+10. When local deployment is involved, verify the running jar contains the same manifest entries as `target/carbonet.jar`.
+11. Verify the frontend build and the backend build still pass.
 
 ## Delivery Rules
 
 - Do not reintroduce fixed production names like `assets/index.js` for React bundles.
 - Do not set long-lived cache headers on the shell HTML.
 - Keep fallback behavior for missing manifest cases, but do not treat fallback as the normal path.
+- Do not re-parse an unchanged Vite manifest on every request when simple in-memory caching is sufficient.
 - Document the cache strategy whenever this area changes.
+- When using local start/restart scripts, never assume a successful restart means the newest frontend assets were deployed; confirm the runtime jar manifest or asset hash.
 
 ## Response Shape
 

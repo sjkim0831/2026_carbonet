@@ -24,6 +24,8 @@ startup.log
 /wsl$/
 /var/file/
 /sql/
+/ops/config/*.env
+!/ops/config/*.env.example
 
 # Frontend local artifacts
 /frontend/node_modules/

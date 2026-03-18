@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { PAGE_MANIFESTS } from "../../app/screen-registry/pageManifests";
+import { findManifestByPageId, listPageManifestOptions } from "../../app/screen-registry/pageManifestIndex";
 import {
   AuditEventSearchPayload,
   fetchAuditEvents,
@@ -40,12 +40,11 @@ function createEmptyItem(displayOrder: number): HelpManagementItem {
 
 export function HelpManagementMigrationPage() {
   const en = isEnglish();
-  const manifestOptions = useMemo(() => Object.values(PAGE_MANIFESTS)
-    .slice()
-    .sort((left, right) => left.pageId.localeCompare(right.pageId)), []);
+  const manifestOptions = useMemo(() => listPageManifestOptions(), []);
   const initialPageId = resolveInitialPageId();
   const [tab, setTab] = useState<HelpManagementTab>("help");
   const [selectedPageId, setSelectedPageId] = useState(initialPageId);
+  const selectedManifest = useMemo(() => findManifestByPageId(selectedPageId), [selectedPageId]);
   const [payload, setPayload] = useState<HelpManagementPagePayload | null>(null);
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
@@ -230,11 +229,11 @@ export function HelpManagementMigrationPage() {
                 </div>
                 <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4">
                   <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">Route</p>
-                  <p className="mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)] break-all">{PAGE_MANIFESTS[selectedPageId]?.routePath || "-"}</p>
+                  <p className="mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)] break-all">{selectedManifest?.routePath || "-"}</p>
                 </div>
                 <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4">
                   <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">Menu Code</p>
-                  <p className="mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)] break-all">{PAGE_MANIFESTS[selectedPageId]?.menuCode || "-"}</p>
+                  <p className="mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)] break-all">{selectedManifest?.menuCode || "-"}</p>
                 </div>
               </div>
             </div>

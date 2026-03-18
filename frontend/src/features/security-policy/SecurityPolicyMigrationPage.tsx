@@ -1,12 +1,17 @@
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
-import { fetchSecurityPolicyPage, type SecurityPolicyPagePayload } from "../../lib/api/client";
+import { fetchSecurityPolicyPage, readBootstrappedSecurityPolicyPageData, type SecurityPolicyPagePayload } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { stringOf } from "../admin-system/adminSystemShared";
+import { useMemo } from "react";
 
 export function SecurityPolicyMigrationPage() {
   const en = isEnglish();
-  const pageState = useAsyncValue<SecurityPolicyPagePayload>(fetchSecurityPolicyPage, []);
+  const initialPayload = useMemo(() => readBootstrappedSecurityPolicyPageData(), []);
+  const pageState = useAsyncValue<SecurityPolicyPagePayload>(fetchSecurityPolicyPage, [], {
+    initialValue: initialPayload,
+    skipInitialLoad: Boolean(initialPayload)
+  });
   const page = pageState.value;
   const cards = (page?.securityPolicySummary || []) as Array<Record<string, string>>;
   const rows = (page?.securityPolicyRows || []) as Array<Record<string, string>>;
@@ -22,10 +27,10 @@ export function SecurityPolicyMigrationPage() {
       subtitle={en ? "Manage thresholds and automatic response rules for login, APIs, and admin access." : "로그인, 검색 API, 관리자 접근에 대한 임계치와 자동 대응 규칙을 관리합니다."}
     >
       {pageState.error ? <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{pageState.error}</div> : null}
-      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6" data-help-id="security-policy-summary">
         {cards.map((card, idx) => <article className="gov-card" key={idx}><p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{card.title}</p><p className="mt-3 text-2xl font-black">{card.value}</p><p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">{card.description}</p></article>)}
       </section>
-      <section className="gov-card mb-6 p-0 overflow-hidden">
+      <section className="gov-card mb-6 p-0 overflow-hidden" data-help-id="security-policy-table">
         <div className="px-6 py-5 border-b border-[var(--kr-gov-border-light)] flex items-center justify-between">
           <h3 className="text-lg font-bold">{en ? "Applied Policy List" : "적용 정책 목록"}</h3>
           <span className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Total" : "총"} <strong>{rows.length}</strong>{en ? "" : "건"}</span>
@@ -39,7 +44,7 @@ export function SecurityPolicyMigrationPage() {
           </table>
         </div>
       </section>
-      <section className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <section className="grid grid-cols-1 xl:grid-cols-3 gap-6" data-help-id="security-policy-playbooks">
         {playbooks.map((item, idx) => <article className="gov-card" key={idx}><h3 className="text-lg font-bold">{stringOf(item, "title")}</h3><p className="mt-3 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">{stringOf(item, "body")}</p></article>)}
       </section>
     </AdminPageShell>

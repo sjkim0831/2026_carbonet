@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
-import { fetchEmissionResultListPage, type EmissionResultListPagePayload } from "../../lib/api/client";
+import { fetchEmissionResultListPage, readBootstrappedEmissionResultListPageData, type EmissionResultListPagePayload } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { stringOf } from "../admin-system/adminSystemShared";
@@ -23,9 +23,12 @@ export function EmissionResultListMigrationPage() {
       verificationStatus: search.get("verificationStatus") || ""
     };
   }, []);
+  const initialPayload = useMemo(() => readBootstrappedEmissionResultListPageData(), []);
   const [filters, setFilters] = useState(initial);
   const [draft, setDraft] = useState(initial);
   const pageState = useAsyncValue<EmissionResultListPagePayload>(() => fetchEmissionResultListPage(filters), [filters.pageIndex, filters.searchKeyword, filters.resultStatus, filters.verificationStatus], {
+    initialValue: initialPayload,
+    skipInitialLoad: Boolean(initialPayload),
     onSuccess(payload) {
       setDraft({
         pageIndex: Number(payload.pageIndex || 1),
@@ -72,13 +75,13 @@ export function EmissionResultListMigrationPage() {
     >
       {pageState.error ? <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{pageState.error}</div> : null}
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-6" data-help-id="emission-result-summary">
         <div className="gov-card"><p className="text-xs font-bold text-[var(--kr-gov-text-secondary)] mb-2">{en ? "Total Results" : "전체 결과"}</p><p className="text-3xl font-black text-[var(--kr-gov-blue)]">{Number(page?.totalCount || 0).toLocaleString()}</p></div>
         <div className="gov-card"><p className="text-xs font-bold text-[var(--kr-gov-text-secondary)] mb-2">{en ? "Under Review" : "검토 진행"}</p><p className="text-3xl font-black text-amber-600">{Number(page?.reviewCount || 0).toLocaleString()}</p></div>
         <div className="gov-card"><p className="text-xs font-bold text-[var(--kr-gov-text-secondary)] mb-2">{en ? "Verified" : "검증 완료"}</p><p className="text-3xl font-black text-emerald-600">{Number(page?.verifiedCount || 0).toLocaleString()}</p></div>
       </div>
 
-      <section className="gov-card mb-8">
+      <section className="gov-card mb-8" data-help-id="emission-result-search">
         <form className="grid grid-cols-1 md:grid-cols-4 gap-6" onSubmit={(event) => {
           event.preventDefault();
           setFilters({ ...draft, pageIndex: 1 });
@@ -113,7 +116,7 @@ export function EmissionResultListMigrationPage() {
         </form>
       </section>
 
-      <section className="gov-card p-0 overflow-hidden">
+      <section className="gov-card p-0 overflow-hidden" data-help-id="emission-result-table">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left border-collapse">
             <thead>

@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import {
@@ -10,6 +10,7 @@ import {
 import {
   fetchMypage,
   MypagePayload,
+  readBootstrappedMypagePayload,
   saveMypageEmail,
   saveMypageStaff
 } from "../../lib/api/client";
@@ -223,6 +224,7 @@ function parsePhone(value: string) {
 export function MypageMigrationPage() {
   const en = isEnglish();
   const copy = COPY[en ? "en" : "ko"];
+  const initialPayload = useMemo(() => readBootstrappedMypagePayload(), []);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [jobTitle, setJobTitle] = useState("");
@@ -236,15 +238,8 @@ export function MypageMigrationPage() {
     () => fetchMypage(en),
     [en],
     {
-      onSuccess: (loadedPage) => {
-        const member = (loadedPage.member || {}) as MypageMember;
-        setFullName(stringValue(member.applcntNm));
-        setEmail(stringValue(member.applcntEmailAdres));
-        setJobTitle(stringValue(member.deptNm));
-        setAreaNo(stringValue(member.areaNo));
-        setMiddleTelno(stringValue(member.entrprsMiddleTelno));
-        setEndTelno(stringValue(member.entrprsEndTelno));
-      }
+      initialValue: initialPayload,
+      skipInitialLoad: Boolean(initialPayload)
     }
   );
   const page = pageState.value;
@@ -253,6 +248,16 @@ export function MypageMigrationPage() {
   useEffect(() => {
     setError(pageState.error);
   }, [pageState.error]);
+
+  useEffect(() => {
+    const member = (page?.member || {}) as MypageMember;
+    setFullName(stringValue(member.applcntNm));
+    setEmail(stringValue(member.applcntEmailAdres));
+    setJobTitle(stringValue(member.deptNm));
+    setAreaNo(stringValue(member.areaNo));
+    setMiddleTelno(stringValue(member.entrprsMiddleTelno));
+    setEndTelno(stringValue(member.entrprsEndTelno));
+  }, [page]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

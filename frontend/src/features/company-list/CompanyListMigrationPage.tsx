@@ -125,7 +125,7 @@ export function CompanyListMigrationPage() {
     >
       {error ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">조회 중 오류: {error}</section> : null}
       <CanView allowed={!!page?.canViewCompanyList} fallback={<section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm"><p className="text-sm text-[var(--kr-gov-text-secondary)]">회원사 목록을 볼 권한이 없습니다.</p></section>}>
-        <section className="gov-card mb-8">
+        <section className="gov-card mb-8" data-help-id="company-list-search">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <label>
               <span className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">상태</span>
@@ -162,7 +162,7 @@ export function CompanyListMigrationPage() {
           </div>
         </div>
 
-        <section className="gov-card p-0 overflow-hidden">
+        <section className="gov-card p-0 overflow-hidden" data-help-id="company-list-table">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left border-collapse">
               <thead>
@@ -204,7 +204,7 @@ export function CompanyListMigrationPage() {
               </tbody>
             </table>
           </div>
-          <div className="px-6 py-4 border-t border-[var(--kr-gov-border-light)] bg-gray-50 flex justify-center">
+          <div className="px-6 py-4 border-t border-[var(--kr-gov-border-light)] bg-gray-50 flex justify-center" data-help-id="company-list-pagination">
             <nav className="flex items-center gap-1">
               <button className="p-1 rounded hover:bg-white border border-transparent hover:border-gray-200 disabled:opacity-40" disabled={currentPage <= 1} onClick={() => movePage(1)} type="button">
                 <span className="material-symbols-outlined">first_page</span>

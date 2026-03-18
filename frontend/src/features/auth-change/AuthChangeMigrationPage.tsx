@@ -15,6 +15,17 @@ function t(page: AuthChangePagePayload | null, ko: string, en: string) {
   return page?.isEn ? en : ko;
 }
 
+function formatResultStatus(page: AuthChangePagePayload | null, status: string) {
+  const normalized = status.trim().toUpperCase();
+  if (normalized === "SUCCESS") {
+    return t(page, "성공", "Success");
+  }
+  if (normalized === "FAIL" || normalized === "FAILED" || normalized === "ERROR") {
+    return t(page, "실패", "Failed");
+  }
+  return status || t(page, "성공", "Success");
+}
+
 export function AuthChangeMigrationPage() {
   const [session, setSession] = useState<FrontendSession | null>(null);
   const [page, setPage] = useState<AuthChangePagePayload | null>(null);
@@ -22,18 +33,29 @@ export function AuthChangeMigrationPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
+  function applyPayload(sessionPayload: FrontendSession, payload: AuthChangePagePayload) {
+    setSession(sessionPayload);
+    setPage(payload);
+    const nextDrafts: Record<string, string> = {};
+    payload.roleAssignments.forEach((row) => {
+      nextDrafts[row.emplyrId] = row.authorCode || "";
+    });
+    setDrafts(nextDrafts);
+  }
+
+  function loadPage(existingSession?: FrontendSession | null) {
+    setError("");
+    return Promise.all([
+      existingSession ? Promise.resolve(existingSession) : fetchFrontendSession(),
+      fetchAuthChangePage()
+    ]).then(([sessionPayload, payload]) => {
+      applyPayload(sessionPayload, payload);
+      return { sessionPayload, payload };
+    });
+  }
+
   useEffect(() => {
-    Promise.all([fetchFrontendSession(), fetchAuthChangePage()])
-      .then(([sessionPayload, payload]) => {
-        setSession(sessionPayload);
-        setPage(payload);
-        const nextDrafts: Record<string, string> = {};
-        payload.roleAssignments.forEach((row) => {
-          nextDrafts[row.emplyrId] = row.authorCode || "";
-        });
-        setDrafts(nextDrafts);
-      })
-      .catch((err: Error) => setError(err.message));
+    loadPage().catch((err: Error) => setError(err.message));
   }, []);
 
   const canView = !!page;
@@ -50,6 +72,7 @@ export function AuthChangeMigrationPage() {
       emplyrId,
       authorCode: drafts[emplyrId] || ""
     })
+      .then(() => loadPage(session))
       .then(() => {
         setMessage(t(page, "권한 변경을 저장했습니다.", "Authority change has been saved."));
       })
@@ -221,6 +244,67 @@ export function AuthChangeMigrationPage() {
                     </td>
                   </tr>
                 )))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+        <section className="gov-card mt-8">
+          <div className="flex items-center justify-between gap-3 border-b pb-4 mb-4">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">history</span>
+              <h3 className="text-lg font-bold">{t(page, "최근 권한 변경 이력", "Recent authority change history")}</h3>
+            </div>
+            <a
+              className="inline-flex items-center rounded-full border border-[var(--kr-gov-border-light)] bg-white px-3 py-1.5 text-xs font-bold text-[var(--kr-gov-text-primary)]"
+              href={buildLocalizedPath(
+                "/admin/system/observability?pageId=auth-change&actionCode=ADMIN_ROLE_ASSIGNMENT_SAVE",
+                "/en/admin/system/observability?pageId=auth-change&actionCode=ADMIN_ROLE_ASSIGNMENT_SAVE"
+              )}
+            >
+              {t(page, "감사 화면 열기", "Open audit view")}
+            </a>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50 border-y border-[var(--kr-gov-border-light)] text-[13px] font-bold text-[var(--kr-gov-text-secondary)]">
+                  <th className="px-4 py-3">{t(page, "변경 시각", "Changed at")}</th>
+                  <th className="px-4 py-3">{t(page, "수행자", "Changed by")}</th>
+                  <th className="px-4 py-3">{t(page, "대상 관리자", "Target admin")}</th>
+                  <th className="px-4 py-3">{t(page, "이전 권한", "Before")}</th>
+                  <th className="px-4 py-3">{t(page, "변경 권한", "After")}</th>
+                  <th className="px-4 py-3">{t(page, "결과", "Result")}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {(page?.recentRoleChangeHistory || []).length === 0 ? (
+                  <tr>
+                    <td className="px-4 py-6 text-center text-[var(--kr-gov-text-secondary)]" colSpan={6}>
+                      {t(page, "최근 권한 변경 이력이 없습니다.", "No recent authority changes were found.")}
+                    </td>
+                  </tr>
+                ) : (
+                  (page?.recentRoleChangeHistory || []).map((row, index) => (
+                    <tr key={`${row.changedAt}-${row.targetUserId}-${index}`}>
+                      <td className="px-4 py-3 whitespace-nowrap">{row.changedAt || "-"}</td>
+                      <td className="px-4 py-3 font-semibold">{row.changedBy || "-"}</td>
+                      <td className="px-4 py-3">{row.targetUserId || "-"}</td>
+                      <td className="px-4 py-3">
+                        <div className="font-semibold">{row.beforeAuthorName || t(page, "미지정", "Unassigned")}</div>
+                        <div className="text-xs text-[var(--kr-gov-text-secondary)]">{row.beforeAuthorCode || "-"}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="font-semibold">{row.afterAuthorName || t(page, "미지정", "Unassigned")}</div>
+                        <div className="text-xs text-[var(--kr-gov-text-secondary)]">{row.afterAuthorCode || "-"}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-emerald-50 text-emerald-700">
+                          {formatResultStatus(page, row.resultStatus || "")}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

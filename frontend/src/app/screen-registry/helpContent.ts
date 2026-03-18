@@ -123,8 +123,10 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
     title: "회원 목록 도움말",
     summary: "회원 검색과 목록 확인 방법을 안내합니다.",
     items: [
+      { id: "search-card", title: "검색 카드", body: "회원 유형, 상태, 검색어를 한 카드에서 조합해 조회 조건을 설정합니다.", anchorSelector: '[data-help-id="member-search-form"]' },
       { id: "search", title: "검색 영역", body: "검색어, 회원유형, 상태를 조합해 회원 목록을 필터링합니다.", anchorSelector: '[data-help-id="member-list-search"]' },
-      { id: "table", title: "회원 목록", body: "회원 ID, 이름, 회사명, 이메일, 유형, 상태를 한 번에 확인합니다.", anchorSelector: '[data-help-id="member-list-table"]' }
+      { id: "table", title: "회원 목록", body: "회원 ID, 이름, 회사명, 이메일, 유형, 상태를 한 번에 확인합니다.", anchorSelector: '[data-help-id="member-list-table"]' },
+      { id: "table-card", title: "목록 카드", body: "조회 건수, 엑셀 다운로드, 신규 회원 등록 진입과 목록 테이블을 함께 확인합니다.", anchorSelector: '[data-help-id="member-table"]' }
     ]
   },
   "member-detail": {
@@ -134,7 +136,9 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
     items: [
       { id: "lookup", title: "회원 조회", body: "상단 입력창에 회원 ID를 넣고 조회하면 상세 정보를 불러옵니다.", anchorSelector: '[data-help-id="member-detail-lookup"]' },
       { id: "summary", title: "기본 정보", body: "회원 상태, 유형, 연락처 등 핵심 속성을 확인합니다.", anchorSelector: '[data-help-id="member-detail-summary"]' },
-      { id: "history", title: "초기화 이력", body: "비밀번호 초기화 시간, 처리자, 사유를 확인합니다.", anchorSelector: '[data-help-id="member-detail-history"]' }
+      { id: "permissions", title: "권한 및 접근 정책", body: "배정 권한 그룹과 주요 기능 코드를 요약해 현재 접근 범위를 확인합니다.", anchorSelector: '[data-help-id="member-profile-card"]' },
+      { id: "history", title: "기본 정보 패널", body: "기본 프로필, 가입일, 최근 로그인 일시 등 상세 속성을 읽기 전용으로 확인합니다.", anchorSelector: '[data-help-id="member-detail-history"]' },
+      { id: "actions", title: "하단 작업 바", body: "목록 이동과 함께 승인 또는 반려 같은 후속 조치를 실행합니다.", anchorSelector: '[data-help-id="member-action-bar"]' }
     ]
   },
   "member-edit": {
@@ -145,6 +149,9 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
       { id: "summary", title: "계정 요약", body: "회원 ID, 상태, 업무 역할과 기관 참조 정보를 확인합니다.", anchorSelector: '[data-help-id="member-edit-summary"]' },
       { id: "form", title: "회원 기본 정보", body: "이름, 이메일, 연락처, 회원 유형과 상태를 수정합니다.", anchorSelector: '[data-help-id="member-edit-form"]' },
       { id: "permissions", title: "권한 편집", body: "기준 롤과 개별 기능 권한을 조정합니다.", anchorSelector: '[data-help-id="member-edit-permissions"]' },
+      { id: "address", title: "연락 및 제출 주소", body: "회원 테이블 기준 연락처 주소와 제출 주소를 별도로 관리합니다.", anchorSelector: '[data-help-id="member-edit-address"]' },
+      { id: "evidence", title: "증빙 문서", body: "회원 레코드에 연결된 증빙 문서의 파일명, 파일 ID, 다운로드 링크를 확인합니다.", anchorSelector: '[data-help-id="member-edit-evidence"]' },
+      { id: "company-ref", title: "회원사 참조 정보", body: "기관명, 대표자명, 사업자등록번호 등 회원사 기준 참조 정보를 읽기 전용으로 확인합니다.", anchorSelector: '[data-help-id="member-edit-company-ref"]' },
       { id: "actions", title: "저장 및 상세 이동", body: "회원 상세로 이동하거나 수정 내용을 저장합니다.", anchorSelector: '[data-help-id="member-edit-actions"]' }
     ]
   },
@@ -154,6 +161,7 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
     summary: "감사 로그와 요청 추적 이벤트를 같은 화면에서 조회합니다.",
     items: [
       { id: "filters", title: "공통 필터", body: "traceId와 pageId로 흐름을 좁힌 뒤 audit 또는 trace 탭을 선택합니다.", anchorSelector: '[data-help-id="observability-filters"]' },
+      { id: "search-panel", title: "검색 입력 영역", body: "탭에 따라 actorId, actionCode 또는 componentId, apiId 같은 조건을 입력합니다.", anchorSelector: '[data-help-id="observability-search-panel"]' },
       {
         id: "audit",
         title: "감사 로그",
@@ -166,6 +174,15 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
         ctaUrl: "/admin/system/observability"
       },
       {
+        id: "audit-detail",
+        title: "감사 로그 테이블 본문",
+        body: "감사 이벤트의 createdAt, actorId, entityId, result 상태를 행 단위로 검토합니다.",
+        anchorSelector: '[data-help-id="audit-event-table"]',
+        placement: "right",
+        iconName: "table_rows",
+        highlightStyle: "neutral"
+      },
+      {
         id: "trace",
         title: "추적 이벤트",
         body: "apiId, resultCode 기준으로 요청 흐름을 확인하고 durationMs로 지연을 점검합니다.",
@@ -173,6 +190,15 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
         placement: "left",
         iconName: "account_tree",
         highlightStyle: "success"
+      },
+      {
+        id: "trace-detail",
+        title: "추적 이벤트 테이블 본문",
+        body: "pageId, componentId, functionId, durationMs를 함께 보면서 병목 구간을 확인합니다.",
+        anchorSelector: '[data-help-id="trace-event-table"]',
+        placement: "left",
+        iconName: "table_view",
+        highlightStyle: "neutral"
       }
     ]
   },
@@ -208,6 +234,15 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
         placement: "left",
         iconName: "view_carousel",
         highlightStyle: "warning"
+      },
+      {
+        id: "command",
+        title: "수정 디렉션 패널",
+        body: "선택한 화면의 요소, 이벤트, API, 권한 메타데이터를 묶어 수정 지시와 preview를 생성합니다.",
+        anchorSelector: '[data-help-id="help-management-command-center"]',
+        placement: "left",
+        iconName: "route",
+        highlightStyle: "success"
       }
     ]
   },
@@ -226,9 +261,23 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
     title: "회원가입 시작 도움말",
     summary: "회원가입 유형을 선택하고 다음 단계로 이동하는 화면입니다.",
     items: [
+      { id: "hero", title: "가입 안내 헤더", body: "회원가입 단계와 현재 진행 위치를 상단에서 먼저 확인합니다.", anchorSelector: '[data-help-id="join-hero"]' },
       { id: "type", title: "회원유형 선택", body: "업무 유형에 맞는 카드형 항목을 선택하면 이후 입력 단계가 달라질 수 있습니다.", anchorSelector: '[data-help-id="join-step1-cards"]' },
+      { id: "card-grid", title: "유형 카드 그리드", body: "회원 유형별 설명과 선택 상태를 카드 묶음으로 비교합니다.", anchorSelector: '[data-help-id="membership-type-card-group"]' },
       { id: "actions", title: "단계 이동", body: "홈으로 돌아가거나 다음 단계로 이동할 수 있습니다.", anchorSelector: '[data-help-id="join-step1-actions"]' },
+      { id: "action-buttons", title: "이동 버튼 그룹", body: "홈 이동과 다음 단계 버튼을 같은 영역에서 바로 실행합니다.", anchorSelector: '[data-help-id="join-wizard-actions"]' },
       { id: "guide", title: "가입 안내", body: "회원 유형별 유의사항을 확인한 뒤 진행합니다.", anchorSelector: '[data-help-id="join-step1-guide"]' }
+    ]
+  },
+  "join-company-status-detail": {
+    pageId: "join-company-status-detail",
+    title: "가입 현황 상세 도움말",
+    summary: "회원사 신청 상세 정보, 심사 진행 상태, 첨부 파일과 후속 행동을 안내합니다.",
+    items: [
+      { id: "summary", title: "신청 요약", body: "신청번호, 회사명, 사업자번호, 대표자명과 접수 일시를 상단 요약 카드에서 확인합니다.", anchorSelector: '[data-help-id="join-company-status-detail-summary"]' },
+      { id: "timeline", title: "심사 진행 상태", body: "접수, 검토, 승인 또는 반려 단계와 반려 사유를 타임라인으로 확인합니다.", anchorSelector: '[data-help-id="join-company-status-detail-timeline"]' },
+      { id: "files", title: "첨부 파일", body: "제출한 파일 목록과 다운로드 가능 여부를 확인합니다.", anchorSelector: '[data-help-id="join-company-status-detail-files"]' },
+      { id: "actions", title: "후속 행동", body: "이전 화면으로 이동하거나 반려 상태일 때 재신청을 진행합니다.", anchorSelector: '[data-help-id="join-company-status-detail-actions"]' }
     ]
   },
   "join-terms": {
@@ -270,7 +319,9 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
       { id: "membership", title: "회원 유형 선택", body: "회원사 유형 카드를 선택해 이후 정보 구성을 맞춥니다.", anchorSelector: '[data-help-id="company-account-membership"]' },
       { id: "business", title: "회원사 정보 입력", body: "회원 유형, 기업명, 대표자, 사업자번호와 주소를 입력합니다.", anchorSelector: '[data-help-id="company-account-business"]' },
       { id: "contact", title: "담당자 정보", body: "담당자 이름, 이메일, 연락처를 입력합니다.", anchorSelector: '[data-help-id="company-account-contact"]' },
-      { id: "files", title: "첨부 파일", body: "기존 첨부 문서를 확인하고 신규 파일을 추가할 수 있습니다.", anchorSelector: '[data-help-id="company-account-files"]' }
+      { id: "files", title: "첨부 파일 업로드", body: "신규 증빙 파일을 추가하고 업로드 가능한 형식과 용량 제한을 확인합니다.", anchorSelector: '[data-help-id="company-account-files"]' },
+      { id: "actions", title: "저장 및 목록 이동", body: "회원사 저장과 목록 이동을 하단 액션 영역에서 실행합니다.", anchorSelector: '[data-help-id="company-account-actions"]' },
+      { id: "file-table", title: "첨부 파일 조회 테이블", body: "저장 후 `COMTNINSTTFILE` 기준으로 다시 조회된 실제 첨부 파일 목록을 확인합니다.", anchorSelector: '[data-help-id="company-account-file-table"]' }
     ]
   },
   "auth-group": {
@@ -308,6 +359,213 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
     items: [
       { id: "summary", title: "신청 완료 정보", body: "이름, 아이디, 소속 기관과 승인 안내를 확인합니다.", anchorSelector: '[data-help-id="join-step5-summary"]' },
       { id: "actions", title: "다음 이동", body: "홈으로 돌아가거나 이후 승인 안내를 기다립니다.", anchorSelector: '[data-help-id="join-step5-actions"]' }
+    ]
+  },
+  "password-reset": {
+    pageId: "password-reset",
+    title: "비밀번호 초기화 이력 도움말",
+    summary: "회원 비밀번호 초기화 대상 조회와 관리자 실행 이력을 확인합니다.",
+    items: [
+      { id: "search", title: "초기화 대상 검색", body: "회원 ID, 유형, 키워드, 초기화 유형으로 조회 범위를 줄입니다.", anchorSelector: '[data-help-id="password-reset-search"]' },
+      { id: "history", title: "초기화 이력 목록", body: "누가 언제 어떤 회원의 비밀번호를 초기화했는지 행 단위로 확인합니다.", anchorSelector: '[data-help-id="password-reset-history"]' }
+    ]
+  },
+  "admin-permission": {
+    pageId: "admin-permission",
+    title: "관리자 권한 편집 도움말",
+    summary: "관리자 계정 요약과 기준 롤, 개별 기능 권한을 함께 조정합니다.",
+    items: [
+      { id: "summary", title: "관리자 계정 요약", body: "대상 관리자 ID, 상태, 기관, 가입 정보를 먼저 확인합니다.", anchorSelector: '[data-help-id="admin-permission-summary"]' },
+      { id: "features", title: "권한 기능 매트릭스", body: "기준 롤을 고른 뒤 메뉴별 기능 체크를 추가 또는 제거합니다.", anchorSelector: '[data-help-id="admin-permission-features"]' }
+    ]
+  },
+  "admin-create": {
+    pageId: "admin-create",
+    title: "관리자 생성 도움말",
+    summary: "관리자 역할 프리셋, 계정 정보, 소속 및 권한을 입력합니다.",
+    items: [
+      { id: "role", title: "관리자 역할 선택", body: "마스터, 시스템, 운영, 일반 관리자 프리셋으로 기본 권한 묶음을 고릅니다.", anchorSelector: '[data-help-id="admin-create-role"]' },
+      { id: "account", title: "계정 정보 입력", body: "아이디 중복 확인, 이름, 비밀번호, 연락처 등 기본 계정 정보를 입력합니다.", anchorSelector: '[data-help-id="admin-create-account"]' },
+      { id: "permissions", title: "소속 및 권한", body: "회사 검색과 기능 선택으로 최종 관리자 권한 범위를 확정합니다.", anchorSelector: '[data-help-id="admin-create-permissions"]' }
+    ]
+  },
+  "member-stats": {
+    pageId: "member-stats",
+    title: "회원 통계 도움말",
+    summary: "회원 구성비, 월별 가입 추이, 지역 분포를 한 화면에서 확인합니다.",
+    items: [
+      { id: "summary", title: "요약 카드와 비율", body: "전체 회원 수와 유형별 비율을 원형 차트로 보여줍니다.", anchorSelector: '[data-help-id="member-stats-summary"]' },
+      { id: "trend", title: "월별 가입 추이", body: "전년 대비 월별 신규 가입 흐름을 막대형으로 비교합니다.", anchorSelector: '[data-help-id="member-stats-trend"]' },
+      { id: "region", title: "지역 분포", body: "기업 회원의 지역별 수와 비중을 카드형으로 확인합니다.", anchorSelector: '[data-help-id="member-stats-region"]' }
+    ]
+  },
+  "member-register": {
+    pageId: "member-register",
+    title: "회원 등록 도움말",
+    summary: "신규 회원 기본 정보와 소속/권한을 입력하는 등록 화면입니다.",
+    items: [
+      { id: "basic", title: "기본 정보", body: "성명, 아이디, 이메일, 연락처, 회원 유형을 입력합니다.", anchorSelector: '[data-help-id="member-register-basic"]' },
+      { id: "affiliation", title: "소속 및 권한", body: "기관명, 부서, 직함과 시스템 접근 권한을 설정합니다.", anchorSelector: '[data-help-id="member-register-affiliation"]' }
+    ]
+  },
+  "emission-result-list": {
+    pageId: "emission-result-list",
+    title: "산정 결과 목록 도움말",
+    summary: "배출량 산정 결과를 상태별로 조회하고 상세 화면으로 이동합니다.",
+    items: [
+      { id: "summary", title: "결과 요약", body: "전체 결과, 검토 진행, 검증 완료 건수를 상단 카드로 보여줍니다.", anchorSelector: '[data-help-id="emission-result-summary"]' },
+      { id: "search", title: "조회 조건", body: "산정 상태, 검증 상태, 키워드로 결과 범위를 좁힙니다.", anchorSelector: '[data-help-id="emission-result-search"]' },
+      { id: "table", title: "결과 테이블", body: "프로젝트, 기관, 총 배출량, 산정/검증 상태를 확인하고 상세로 이동합니다.", anchorSelector: '[data-help-id="emission-result-table"]' }
+    ]
+  },
+  "system-code": {
+    pageId: "system-code",
+    title: "코드 관리 도움말",
+    summary: "분류 코드, 코드 ID, 상세 코드를 단계별로 등록하고 수정합니다.",
+    items: [
+      { id: "class", title: "분류 코드", body: "상위 분류 코드를 추가하고 이름, 설명, 사용 여부를 관리합니다.", anchorSelector: '[data-help-id="system-code-class"]' },
+      { id: "group", title: "코드 ID", body: "분류 코드 아래에 코드 ID 그룹을 만들고 편집합니다.", anchorSelector: '[data-help-id="system-code-group"]' },
+      { id: "detail", title: "상세 코드", body: "선택한 코드 ID 기준 상세 항목과 정렬 순서를 관리합니다.", anchorSelector: '[data-help-id="system-code-detail"]' }
+    ]
+  },
+  "page-management": {
+    pageId: "page-management",
+    title: "페이지 관리 도움말",
+    summary: "페이지 공통코드와 URL, 아이콘, 사용 여부를 관리합니다.",
+    items: [
+      { id: "register", title: "페이지 등록", body: "도메인, 페이지 코드, 이름, URL, 아이콘을 입력해 새 페이지를 등록합니다.", anchorSelector: '[data-help-id="page-management-register"]' },
+      { id: "list", title: "등록 페이지 목록", body: "기존 페이지를 검색하고 URL, 아이콘, 사용 여부를 수정합니다.", anchorSelector: '[data-help-id="page-management-list"]' }
+    ]
+  },
+  "function-management": {
+    pageId: "function-management",
+    title: "기능 관리 도움말",
+    summary: "페이지별 기능 코드를 등록하고 권한 연계 상태를 점검합니다.",
+    items: [
+      { id: "register", title: "기능 등록", body: "대상 페이지를 선택하고 기능 코드, 이름, 설명을 등록합니다.", anchorSelector: '[data-help-id="function-management-register"]' },
+      { id: "list", title: "등록 기능 목록", body: "페이지별 기능과 권한 연계 상태를 조회하고 삭제할 수 있습니다.", anchorSelector: '[data-help-id="function-management-list"]' }
+    ]
+  },
+  "menu-management": {
+    pageId: "menu-management",
+    title: "메뉴 관리 도움말",
+    summary: "메뉴 계층을 정렬하고 빠른 페이지 등록까지 같은 화면에서 처리합니다.",
+    items: [
+      { id: "scope", title: "화면 구분 선택", body: "홈 또는 관리자 메뉴 트리 중 작업 대상을 선택합니다.", anchorSelector: '[data-help-id="menu-management-scope"]' },
+      { id: "register", title: "빠른 페이지 등록", body: "그룹 메뉴 아래 새 페이지 메뉴와 URL, 아이콘을 바로 생성합니다.", anchorSelector: '[data-help-id="menu-management-register"]' },
+      { id: "tree", title: "메뉴 트리", body: "현재 메뉴 계층과 정렬 순서를 확인하고 저장합니다.", anchorSelector: '[data-help-id="menu-management-tree"]' }
+    ]
+  },
+  "ip-whitelist": {
+    pageId: "ip-whitelist",
+    title: "IP 화이트리스트 도움말",
+    summary: "허용 정책과 승인 요청을 함께 조회하는 운영 화면입니다.",
+    items: [
+      { id: "summary", title: "허용 정책 요약", body: "활성 정책, 검토 건수, 범위별 허용 현황을 카드로 보여줍니다.", anchorSelector: '[data-help-id="ip-whitelist-summary"]' },
+      { id: "search", title: "허용 정책 검색", body: "IP, 접근 범위, 상태 기준으로 화이트리스트 정책을 조회합니다.", anchorSelector: '[data-help-id="ip-whitelist-search"]' },
+      { id: "table", title: "적용 화이트리스트", body: "적용 중인 허용 정책, 상태, 최근 반영 시점을 확인합니다.", anchorSelector: '[data-help-id="ip-whitelist-table"]' },
+      { id: "requests", title: "승인 요청 현황", body: "새로운 허용 요청과 요청 사유, 상태를 검토합니다.", anchorSelector: '[data-help-id="ip-whitelist-requests"]' }
+    ]
+  },
+  "login-history": {
+    pageId: "login-history",
+    title: "로그인 이력 도움말",
+    summary: "관리자 로그인 성공/실패 이력을 사용자 구분과 키워드로 조회합니다.",
+    items: [
+      { id: "search", title: "로그인 이력 검색", body: "사용자 구분, 결과, 키워드로 조회 범위를 조정합니다.", anchorSelector: '[data-help-id="login-history-search"]' },
+      { id: "table", title: "로그인 이력 목록", body: "로그인 시각, 결과, 사용자, IP, 비고를 표로 확인합니다.", anchorSelector: '[data-help-id="login-history-table"]' }
+    ]
+  },
+  "security-history": {
+    pageId: "security-history",
+    title: "접근 차단 이력 도움말",
+    summary: "차단된 접근 이벤트만 필터링해서 조회하는 화면입니다.",
+    items: [
+      { id: "search", title: "차단 이력 검색", body: "사용자 구분과 키워드로 차단 이력을 조회합니다.", anchorSelector: '[data-help-id="login-history-search"]' },
+      { id: "table", title: "차단 이력 목록", body: "차단 시각, 사용자, IP, 차단 사유를 표로 검토합니다.", anchorSelector: '[data-help-id="login-history-table"]' }
+    ]
+  },
+  "security-policy": {
+    pageId: "security-policy",
+    title: "보안 정책 도움말",
+    summary: "보안 임계치와 적용 규칙, 운영 플레이북을 함께 확인합니다.",
+    items: [
+      { id: "summary", title: "정책 요약", body: "현재 적용 중인 정책 상태와 핵심 지표를 카드로 보여줍니다.", anchorSelector: '[data-help-id="security-policy-summary"]' },
+      { id: "table", title: "적용 정책 목록", body: "정책 ID, 대상 URL, 임계치, 조치, 수정 시각을 확인합니다.", anchorSelector: '[data-help-id="security-policy-table"]' },
+      { id: "playbooks", title: "운영 플레이북", body: "정책 적용과 예외 대응 시 참고할 운영 메모를 제공합니다.", anchorSelector: '[data-help-id="security-policy-playbooks"]' }
+    ]
+  },
+  "security-monitoring": {
+    pageId: "security-monitoring",
+    title: "보안 모니터링 도움말",
+    summary: "실시간 공격 대상과 상위 IP, 탐지 이벤트를 한 화면에서 확인합니다.",
+    items: [
+      { id: "summary", title: "공격 지표 요약", body: "실시간 차단 룰과 탐지 건수를 카드로 확인합니다.", anchorSelector: '[data-help-id="security-monitoring-summary"]' },
+      { id: "targets", title: "대상 URL 및 상위 IP", body: "가장 많이 공격받는 URL과 상위 공격 IP를 동시에 확인합니다.", anchorSelector: '[data-help-id="security-monitoring-targets"]' },
+      { id: "events", title: "탐지 이벤트", body: "최근 탐지된 이벤트의 상세 내용과 심각도를 검토합니다.", anchorSelector: '[data-help-id="security-monitoring-events"]' }
+    ]
+  },
+  "blocklist": {
+    pageId: "blocklist",
+    title: "차단 목록 도움말",
+    summary: "차단 대상 조회와 해제 대기열을 운영하는 화면입니다.",
+    items: [
+      { id: "search", title: "차단 정책 검색", body: "키워드, 차단 유형, 상태 기준으로 차단 정책을 조회합니다.", anchorSelector: '[data-help-id="blocklist-search"]' },
+      { id: "table", title: "차단 대상 목록", body: "적용 중인 차단 대상과 만료, 등록 주체를 표로 확인합니다.", anchorSelector: '[data-help-id="blocklist-table"]' },
+      { id: "release", title: "해제 대기열", body: "조건 충족 후 해제될 예정인 대상을 별도로 검토합니다.", anchorSelector: '[data-help-id="blocklist-release-queue"]' }
+    ]
+  },
+  "security-audit": {
+    pageId: "security-audit",
+    title: "보안 감사 로그 도움말",
+    summary: "보안 운영 행위와 정책 변경 내역을 추적하는 화면입니다.",
+    items: [
+      { id: "summary", title: "감사 지표 요약", body: "최근 감사 이벤트 수와 유형별 분포를 상단 카드로 봅니다.", anchorSelector: '[data-help-id="security-audit-summary"]' },
+      { id: "table", title: "감사 로그 목록", body: "수행자, 행위, 대상, 상세 내역을 시간순으로 확인합니다.", anchorSelector: '[data-help-id="security-audit-table"]' }
+    ]
+  },
+  "scheduler-management": {
+    pageId: "scheduler-management",
+    title: "스케줄러 관리 도움말",
+    summary: "배치 잡 상태와 실행 이력, 워커 노드 상태를 함께 점검합니다.",
+    items: [
+      { id: "search", title: "잡 상태 필터", body: "잡 상태와 실행 유형으로 조회 범위를 먼저 정합니다.", anchorSelector: '[data-help-id="scheduler-management-search"]' },
+      { id: "jobs", title: "잡 목록", body: "Cron, 최근 실행, 다음 실행 시점과 담당자를 한 표에서 봅니다.", anchorSelector: '[data-help-id="scheduler-management-jobs"]' },
+      { id: "executions", title: "최근 실행 이력", body: "잡별 최근 실행 결과와 소요 시간을 검토합니다.", anchorSelector: '[data-help-id="scheduler-management-executions"]' }
+    ]
+  },
+  "admin-sitemap": {
+    pageId: "admin-sitemap",
+    title: "관리자 사이트맵 도움말",
+    summary: "현재 권한 기준 관리자 메뉴 전체 구조를 안내합니다.",
+    items: [
+      { id: "hero", title: "사이트맵 소개", body: "현재 권한과 메뉴 정렬 기준으로 관리자 사이트맵이 구성되는 방식을 설명합니다.", anchorSelector: '[data-help-id="admin-sitemap-hero"]' },
+      { id: "tree", title: "관리자 메뉴 트리", body: "상위 메뉴와 하위 페이지 구조를 카드형으로 탐색합니다.", anchorSelector: '[data-help-id="admin-sitemap-tree"]' }
+    ]
+  },
+  "admin-menu-placeholder": {
+    pageId: "admin-menu-placeholder",
+    title: "관리자 메뉴 플레이스홀더 도움말",
+    summary: "아직 완전 이관되지 않은 관리자 메뉴의 연결 상태를 보여줍니다.",
+    items: [
+      { id: "card", title: "연결 메뉴 정보", body: "메뉴 코드, URL, 설명을 통해 현재 placeholder 연결 상태를 확인합니다.", anchorSelector: '[data-help-id="admin-menu-placeholder-card"]' }
+    ]
+  },
+  "sitemap": {
+    pageId: "sitemap",
+    title: "사이트맵 도움말",
+    summary: "사용자 포털 전체 메뉴 구조를 탐색하는 화면입니다.",
+    items: [
+      { id: "hero", title: "사이트맵 소개", body: "홈 메뉴 트리 기준으로 전체 사용자 메뉴가 생성되는 방식을 안내합니다.", anchorSelector: '[data-help-id="sitemap-hero"]' },
+      { id: "tree", title: "사용자 메뉴 트리", body: "상위 섹션과 하위 메뉴를 카드 단위로 탐색합니다.", anchorSelector: '[data-help-id="sitemap-tree"]' }
+    ]
+  },
+  "home-menu-placeholder": {
+    pageId: "home-menu-placeholder",
+    title: "사용자 메뉴 플레이스홀더 도움말",
+    summary: "아직 상세 이관이 끝나지 않은 사용자 메뉴의 연결 정보를 보여줍니다.",
+    items: [
+      { id: "card", title: "플레이스홀더 카드", body: "현재 메뉴 코드, 연결 URL, 안내 설명을 확인합니다.", anchorSelector: '[data-help-id="home-menu-placeholder-card"]' }
     ]
   },
   mypage: {

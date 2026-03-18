@@ -5,6 +5,8 @@ import egovframework.com.feature.auth.dto.internal.LoginIncorrectDTO;
 import egovframework.com.feature.auth.dto.internal.LoginPolicyDTO;
 import egovframework.com.feature.auth.dto.request.LoginRequestDTO;
 import egovframework.com.feature.auth.dto.response.LoginResponseDTO;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -26,6 +28,6 @@ public interface AuthService {
 
     List<PasswordResetHistory> findRecentPasswordResetHistories(String userId);
 
-    List<PasswordResetHistory> findAllPasswordResetHistories();
+    Page<PasswordResetHistory> searchPasswordResetHistories(String searchKeyword, String resetSource, Pageable pageable);
 
 }

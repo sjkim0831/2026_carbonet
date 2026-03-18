@@ -73,6 +73,14 @@ Keep `SKILL.md` procedural. Load the reference files only when needed:
    - menu creation should also seed draft UI manifest metadata so `screen command`, `full-stack management`, and `sr-workbench` can inspect the new page immediately
    - page position changes should be driven by menu order, not ad hoc code edits
    - do not couple site-map exposure directly to menu visibility; prefer a dedicated site-map management surface
+21. When adding admin planning or governance tools such as `WBS 관리`, prefer this ownership model:
+   - DB menu tree remains the source of truth for menu inventory
+   - planning fields such as owner, status, planned schedule, actual schedule, notes, and AI work instruction are stored as an overlay, not as a replacement for menu metadata
+   - menu-based tools should still resolve menu URL, page ID, feature codes, and related governance metadata from existing services before inventing new registries
+22. For schedule-oriented admin tools, separate planned dates and actual dates in both storage and UI:
+   - planned start/end
+   - actual start/end
+   - derived metrics such as variance days, overdue, on-time completion rate, and missing-plan count should be computed from those fields rather than manually entered
 
 ## Build Rules
 
@@ -95,6 +103,7 @@ Keep `SKILL.md` procedural. Load the reference files only when needed:
 - Use `설계/00_Master_UCS.csv` or `설계/00_Master_UCS_상세.csv` when the request needs UC IDs, coverage tracking, or proposal linkage beyond the narrative text files.
 - Use `행정안전부_공공데이터 공통표준용어_20251101.csv` as a naming sanity check for new Korean labels, columns, and code names; adapt to the existing project conventions rather than copying blindly.
 - When the request is ambiguous, infer structure from the nearest implemented menu, but do not infer hidden business policy. Surface that gap in the final response.
+- If the feature introduces a new admin tool page and local deployment is needed for verification, package first and restart second. Do not run `mvn package` and restart in parallel because the runtime jar can copy a stale artifact.
 
 ## Required Checks
 

@@ -465,6 +465,24 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "HelpItemsEditor", instanceKey: "help-management-items", layoutZone: "content", propsSummary: ["items", "anchorSelector", "displayOrder"] }
     ]
   },
+  "codex-request": {
+    pageId: "codex-request",
+    routePath: "/admin/system/codex-request",
+    menuCode: "A1900103",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "CodexRuntimeConfigPanel", instanceKey: "codex-request-runtime", layoutZone: "actions", propsSummary: ["runnerEnabled", "repoRoot", "workspaceRoot", "planCommandConfigured", "buildCommandConfigured"] },
+      { componentId: "CodexResponsePanel", instanceKey: "codex-response-panel", layoutZone: "actions", propsSummary: ["httpStatus", "createdCount", "existingCount", "skippedCount"] },
+      { componentId: "CodexQueueTable", instanceKey: "codex-history-table", layoutZone: "content", propsSummary: ["tickets", "selectedTicketId", "ticketCount"] },
+      { componentId: "CodexTicketDetailPanel", instanceKey: "codex-request-ticket-detail", layoutZone: "content", propsSummary: ["ticketId", "executionStatus", "summary", "instruction"] },
+      { componentId: "CodexPlanArtifactPanel", instanceKey: "codex-request-plan-result", layoutZone: "content", propsSummary: ["artifactType", "filePath", "content"] },
+      { componentId: "CodexBuildArtifactPanel", instanceKey: "codex-request-build-result", layoutZone: "content", propsSummary: ["artifactType", "filePath", "content"] },
+      { componentId: "CodexRequestSetup", instanceKey: "codex-request-setup", layoutZone: "content", propsSummary: ["payload", "proxyMode"] },
+      { componentId: "CodexHistoryTable", instanceKey: "codex-request-history-review", layoutZone: "content", propsSummary: ["items", "totalCount"] }
+    ]
+  },
   "full-stack-management": {
     pageId: "full-stack-management",
     routePath: "/admin/system/full-stack-management",
@@ -588,6 +606,279 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "PlatformStudioAutomation", instanceKey: "platform-studio-automation", layoutZone: "content", propsSummary: ["summary", "instruction", "ticketCount"] }
     ]
   },
+  "password-reset": {
+    pageId: "password-reset",
+    routePath: "/admin/member/reset_password",
+    menuCode: "AMENU_PASSWORD_RESET",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "PasswordResetSearch", instanceKey: "password-reset-search", layoutZone: "actions", propsSummary: ["memberId", "searchKeyword", "resetSource"] },
+      { componentId: "PasswordResetHistory", instanceKey: "password-reset-history", layoutZone: "content", propsSummary: ["passwordResetHistoryList", "pageIndex"] }
+    ]
+  },
+  "admin-permission": {
+    pageId: "admin-permission",
+    routePath: "/admin/member/admin_account/permissions",
+    menuCode: "AMENU_ADMIN_PERMISSION",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "AdminPermissionSummary", instanceKey: "admin-permission-summary", layoutZone: "actions", propsSummary: ["emplyrId", "statusLabel"] },
+      { componentId: "AdminPermissionFeatures", instanceKey: "admin-permission-features", layoutZone: "content", propsSummary: ["authorCode", "featureCodes"] }
+    ]
+  },
+  "admin-create": {
+    pageId: "admin-create",
+    routePath: "/admin/member/admin_account",
+    menuCode: "AMENU_ADMIN_CREATE",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "AdminCreateRolePreset", instanceKey: "admin-create-role", layoutZone: "actions", propsSummary: ["rolePreset"] },
+      { componentId: "AdminCreateAccountForm", instanceKey: "admin-create-account", layoutZone: "content", propsSummary: ["adminId", "adminName", "adminEmail"] },
+      { componentId: "AdminCreatePermissions", instanceKey: "admin-create-permissions", layoutZone: "content", propsSummary: ["featureCodes", "insttId"] }
+    ]
+  },
+  "member-stats": {
+    pageId: "member-stats",
+    routePath: "/admin/member/stats",
+    menuCode: "AMENU_MEMBER_STATS",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "MemberStatsSummary", instanceKey: "member-stats-summary", layoutZone: "actions", propsSummary: ["totalMembers", "memberTypeStats"] },
+      { componentId: "MemberStatsTrend", instanceKey: "member-stats-trend", layoutZone: "content", propsSummary: ["monthlySignupStats"] },
+      { componentId: "MemberStatsRegion", instanceKey: "member-stats-region", layoutZone: "content", propsSummary: ["regionalDistribution"] }
+    ]
+  },
+  "member-register": {
+    pageId: "member-register",
+    routePath: "/admin/member/register",
+    menuCode: "AMENU_MEMBER_REGISTER",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "MemberRegisterBasic", instanceKey: "member-register-basic", layoutZone: "content", propsSummary: ["userName", "userId", "userType"] },
+      { componentId: "MemberRegisterAffiliation", instanceKey: "member-register-affiliation", layoutZone: "content", propsSummary: ["orgName", "permissions"] }
+    ]
+  },
+  "emission-result-list": {
+    pageId: "emission-result-list",
+    routePath: "/admin/emission/result_list",
+    menuCode: "AMENU_EMISSION_RESULT_LIST",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "EmissionResultSummary", instanceKey: "emission-result-summary", layoutZone: "actions", propsSummary: ["totalCount", "reviewCount", "verifiedCount"] },
+      { componentId: "EmissionResultSearch", instanceKey: "emission-result-search", layoutZone: "actions", propsSummary: ["searchKeyword", "resultStatus", "verificationStatus"] },
+      { componentId: "EmissionResultTable", instanceKey: "emission-result-table", layoutZone: "content", propsSummary: ["emissionResultList", "pageIndex"] }
+    ]
+  },
+  "system-code": {
+    pageId: "system-code",
+    routePath: "/admin/system/code",
+    menuCode: "AMENU_SYSTEM_CODE",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "SystemCodeClass", instanceKey: "system-code-class", layoutZone: "content", propsSummary: ["clCodeList"] },
+      { componentId: "SystemCodeGroup", instanceKey: "system-code-group", layoutZone: "content", propsSummary: ["codeList"] },
+      { componentId: "SystemCodeDetail", instanceKey: "system-code-detail", layoutZone: "content", propsSummary: ["detailCodeList", "detailCodeId"] }
+    ]
+  },
+  "page-management": {
+    pageId: "page-management",
+    routePath: "/admin/system/page-management",
+    menuCode: "AMENU_PAGE_MANAGEMENT",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "PageManagementRegister", instanceKey: "page-management-register", layoutZone: "actions", propsSummary: ["domainCode", "code", "menuUrl"] },
+      { componentId: "PageManagementList", instanceKey: "page-management-list", layoutZone: "content", propsSummary: ["pageRows", "searchKeyword", "searchUrl"] }
+    ]
+  },
+  "function-management": {
+    pageId: "function-management",
+    routePath: "/admin/system/feature-management",
+    menuCode: "AMENU_FUNCTION_MANAGEMENT",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "FunctionManagementRegister", instanceKey: "function-management-register", layoutZone: "actions", propsSummary: ["menuCode", "featureCode", "featureNm"] },
+      { componentId: "FunctionManagementList", instanceKey: "function-management-list", layoutZone: "content", propsSummary: ["featureRows", "searchMenuCode", "searchKeyword"] }
+    ]
+  },
+  "menu-management": {
+    pageId: "menu-management",
+    routePath: "/admin/system/menu-management",
+    menuCode: "AMENU_MENU_MANAGEMENT",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "MenuManagementScope", instanceKey: "menu-management-scope", layoutZone: "actions", propsSummary: ["menuType"] },
+      { componentId: "MenuManagementRegister", instanceKey: "menu-management-register", layoutZone: "content", propsSummary: ["parentCode", "menuUrl", "menuIcon"] },
+      { componentId: "MenuManagementTree", instanceKey: "menu-management-tree", layoutZone: "content", propsSummary: ["treeData"] }
+    ]
+  },
+  "ip-whitelist": {
+    pageId: "ip-whitelist",
+    routePath: "/admin/system/ip_whitelist",
+    menuCode: "AMENU_IP_WHITELIST",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "IpWhitelistSummary", instanceKey: "ip-whitelist-summary", layoutZone: "actions", propsSummary: ["ipWhitelistSummary"] },
+      { componentId: "IpWhitelistSearch", instanceKey: "ip-whitelist-search", layoutZone: "actions", propsSummary: ["searchIp", "accessScope", "status"] },
+      { componentId: "IpWhitelistTable", instanceKey: "ip-whitelist-table", layoutZone: "content", propsSummary: ["ipWhitelistRows"] },
+      { componentId: "IpWhitelistRequests", instanceKey: "ip-whitelist-requests", layoutZone: "content", propsSummary: ["ipWhitelistRequestRows"] }
+    ]
+  },
+  "login-history": {
+    pageId: "login-history",
+    routePath: "/admin/member/login_history",
+    menuCode: "AMENU_LOGIN_HISTORY",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "LoginHistorySearch", instanceKey: "login-history-search", layoutZone: "actions", propsSummary: ["searchKeyword", "userSe", "loginResult"] },
+      { componentId: "LoginHistoryTable", instanceKey: "login-history-table", layoutZone: "content", propsSummary: ["loginHistoryList", "pageIndex"] }
+    ]
+  },
+  "security-history": {
+    pageId: "security-history",
+    routePath: "/admin/system/security",
+    menuCode: "AMENU_SECURITY_HISTORY",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "SecurityHistorySearch", instanceKey: "login-history-search", layoutZone: "actions", propsSummary: ["searchKeyword", "userSe", "loginResult=FAIL"] },
+      { componentId: "SecurityHistoryTable", instanceKey: "login-history-table", layoutZone: "content", propsSummary: ["loginHistoryList", "pageIndex"] }
+    ]
+  },
+  "security-policy": {
+    pageId: "security-policy",
+    routePath: "/admin/system/security-policy",
+    menuCode: "AMENU_SECURITY_POLICY",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "SecurityPolicySummary", instanceKey: "security-policy-summary", layoutZone: "actions", propsSummary: ["securityPolicySummary"] },
+      { componentId: "SecurityPolicyTable", instanceKey: "security-policy-table", layoutZone: "content", propsSummary: ["securityPolicyRows"] },
+      { componentId: "SecurityPolicyPlaybooks", instanceKey: "security-policy-playbooks", layoutZone: "content", propsSummary: ["securityPolicyPlaybooks"] }
+    ]
+  },
+  "security-monitoring": {
+    pageId: "security-monitoring",
+    routePath: "/admin/system/security-monitoring",
+    menuCode: "AMENU_SECURITY_MONITORING",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "SecurityMonitoringSummary", instanceKey: "security-monitoring-summary", layoutZone: "actions", propsSummary: ["securityMonitoringCards"] },
+      { componentId: "SecurityMonitoringTargets", instanceKey: "security-monitoring-targets", layoutZone: "content", propsSummary: ["securityMonitoringTargets", "securityMonitoringIps"] },
+      { componentId: "SecurityMonitoringEvents", instanceKey: "security-monitoring-events", layoutZone: "content", propsSummary: ["securityMonitoringEvents"] }
+    ]
+  },
+  "blocklist": {
+    pageId: "blocklist",
+    routePath: "/admin/system/blocklist",
+    menuCode: "AMENU_BLOCKLIST",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "BlocklistSearch", instanceKey: "blocklist-search", layoutZone: "actions", propsSummary: ["searchKeyword", "blockType", "status"] },
+      { componentId: "BlocklistTable", instanceKey: "blocklist-table", layoutZone: "content", propsSummary: ["blocklistRows"] },
+      { componentId: "BlocklistReleaseQueue", instanceKey: "blocklist-release-queue", layoutZone: "content", propsSummary: ["blocklistReleaseQueue"] }
+    ]
+  },
+  "security-audit": {
+    pageId: "security-audit",
+    routePath: "/admin/system/security-audit",
+    menuCode: "AMENU_SECURITY_AUDIT",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "SecurityAuditSummary", instanceKey: "security-audit-summary", layoutZone: "actions", propsSummary: ["securityAuditSummary"] },
+      { componentId: "SecurityAuditTable", instanceKey: "security-audit-table", layoutZone: "content", propsSummary: ["securityAuditRows"] }
+    ]
+  },
+  "scheduler-management": {
+    pageId: "scheduler-management",
+    routePath: "/admin/system/scheduler",
+    menuCode: "AMENU_SCHEDULER_MANAGEMENT",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "SchedulerManagementSearch", instanceKey: "scheduler-management-search", layoutZone: "actions", propsSummary: ["jobStatus", "executionType"] },
+      { componentId: "SchedulerManagementJobs", instanceKey: "scheduler-management-jobs", layoutZone: "content", propsSummary: ["schedulerJobRows", "schedulerNodeRows"] },
+      { componentId: "SchedulerManagementExecutions", instanceKey: "scheduler-management-executions", layoutZone: "content", propsSummary: ["schedulerExecutionRows"] }
+    ]
+  },
+  "admin-sitemap": {
+    pageId: "admin-sitemap",
+    routePath: "/admin/content/sitemap",
+    menuCode: "AMENU_ADMIN_SITEMAP",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "AdminSitemapHero", instanceKey: "admin-sitemap-hero", layoutZone: "header" },
+      { componentId: "AdminSitemapTree", instanceKey: "admin-sitemap-tree", layoutZone: "content", propsSummary: ["siteMapSections"] }
+    ]
+  },
+  "admin-menu-placeholder": {
+    pageId: "admin-menu-placeholder",
+    routePath: "/admin/placeholder",
+    menuCode: "AMENU_ADMIN_PLACEHOLDER",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "AdminMenuPlaceholderCard", instanceKey: "admin-menu-placeholder-card", layoutZone: "content", propsSummary: ["placeholderTitle", "placeholderUrl"] }
+    ]
+  },
+  "sitemap": {
+    pageId: "sitemap",
+    routePath: "/sitemap",
+    menuCode: "HMENU_SITEMAP",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "SitemapHero", instanceKey: "sitemap-hero", layoutZone: "header" },
+      { componentId: "SitemapTree", instanceKey: "sitemap-tree", layoutZone: "content", propsSummary: ["siteMapSections"] }
+    ]
+  },
+  "home-menu-placeholder": {
+    pageId: "home-menu-placeholder",
+    routePath: "/placeholder",
+    menuCode: "HMENU_PLACEHOLDER",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "HomeMenuPlaceholderCard", instanceKey: "home-menu-placeholder-card", layoutZone: "content", propsSummary: ["placeholderTitle", "placeholderUrl"] }
+    ]
+  },
   "environment-management": {
     pageId: "environment-management",
     routePath: "/admin/system/environment-management",
@@ -598,6 +889,21 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     components: [
       { componentId: "EnvironmentManagementSummary", instanceKey: "environment-management-summary", layoutZone: "actions", propsSummary: ["menuCode", "featureCode"] },
       { componentId: "EnvironmentManagementCards", instanceKey: "environment-management-cards", layoutZone: "content", propsSummary: ["system-code", "page-management", "function-management", "menu-management"] }
+    ]
+  },
+  "wbs-management": {
+    pageId: "wbs-management",
+    routePath: "/admin/system/wbs-management",
+    menuCode: "A1900104",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "WbsSummaryCards", instanceKey: "wbs-summary-cards", layoutZone: "actions", propsSummary: ["scope", "totalMenus", "averageProgress"] },
+      { componentId: "WbsMenuTree", instanceKey: "wbs-menu-tree", layoutZone: "content", propsSummary: ["menuType", "selectedMenuCode"] },
+      { componentId: "WbsExecutionTable", instanceKey: "wbs-execution-table", layoutZone: "content", propsSummary: ["wbsRows", "waveSummary"] },
+      { componentId: "WbsEditorPanel", instanceKey: "wbs-editor-panel", layoutZone: "content", propsSummary: ["owner", "status", "startDate", "endDate"] },
+      { componentId: "WbsCodexPrompt", instanceKey: "wbs-codex-prompt", layoutZone: "content", propsSummary: ["codexPrompt", "codexInstruction"] }
     ]
   },
   "sr-workbench": {

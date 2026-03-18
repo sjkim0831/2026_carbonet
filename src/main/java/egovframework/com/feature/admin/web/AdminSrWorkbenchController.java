@@ -3,6 +3,7 @@ package egovframework.com.feature.admin.web;
 import egovframework.com.feature.admin.dto.request.SrTicketApprovalRequest;
 import egovframework.com.feature.admin.dto.request.SrTicketCreateRequest;
 import egovframework.com.feature.admin.dto.request.SrTicketExecuteRequest;
+import egovframework.com.feature.admin.dto.request.SrWorkbenchStackItemCreateRequest;
 import egovframework.com.feature.admin.service.SrTicketWorkbenchService;
 import egovframework.com.feature.home.web.ReactAppViewSupport;
 import lombok.RequiredArgsConstructor;
@@ -57,6 +58,37 @@ public class AdminSrWorkbenchController {
         return ResponseEntity.ok(srTicketWorkbenchService.createTicket(request, resolveActorId(httpServletRequest)));
     }
 
+    @PostMapping("/api/admin/sr-workbench/quick-execute")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> quickExecuteTicket(
+            @RequestBody(required = false) SrTicketCreateRequest request,
+            HttpServletRequest httpServletRequest) throws Exception {
+        return ResponseEntity.ok(srTicketWorkbenchService.quickExecuteTicket(request, resolveActorId(httpServletRequest)));
+    }
+
+    @PostMapping("/api/admin/sr-workbench/stack-items")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> addStackItem(
+            @RequestBody(required = false) SrWorkbenchStackItemCreateRequest request,
+            HttpServletRequest httpServletRequest) throws Exception {
+        return ResponseEntity.ok(srTicketWorkbenchService.addStackItem(request, resolveActorId(httpServletRequest)));
+    }
+
+    @PostMapping("/api/admin/sr-workbench/stack-items/{stackItemId}/delete")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> removeStackItem(
+            @PathVariable("stackItemId") String stackItemId,
+            HttpServletRequest httpServletRequest) throws Exception {
+        return ResponseEntity.ok(srTicketWorkbenchService.removeStackItem(stackItemId, resolveActorId(httpServletRequest)));
+    }
+
+    @PostMapping("/api/admin/sr-workbench/stack-items/clear")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> clearStack(
+            HttpServletRequest httpServletRequest) throws Exception {
+        return ResponseEntity.ok(srTicketWorkbenchService.clearStack(resolveActorId(httpServletRequest)));
+    }
+
     @PostMapping("/api/admin/sr-workbench/tickets/{ticketId}/approve")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> approveTicket(
@@ -74,6 +106,14 @@ public class AdminSrWorkbenchController {
         return ResponseEntity.ok(srTicketWorkbenchService.prepareExecution(ticketId, resolveActorId(httpServletRequest)));
     }
 
+    @PostMapping("/api/admin/sr-workbench/tickets/{ticketId}/plan")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> planTicket(
+            @PathVariable("ticketId") String ticketId,
+            HttpServletRequest httpServletRequest) throws Exception {
+        return ResponseEntity.ok(srTicketWorkbenchService.planTicket(ticketId, resolveActorId(httpServletRequest)));
+    }
+
     @PostMapping("/api/admin/sr-workbench/tickets/{ticketId}/execute")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> executeTicket(
@@ -82,6 +122,26 @@ public class AdminSrWorkbenchController {
             HttpServletRequest httpServletRequest) throws Exception {
         String approvalToken = request != null ? request.getApprovalToken() : null;
         return ResponseEntity.ok(srTicketWorkbenchService.executeTicket(ticketId, resolveActorId(httpServletRequest), approvalToken));
+    }
+
+    @PostMapping("/api/admin/sr-workbench/tickets/{ticketId}/direct-execute")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> directExecuteTicket(
+            @PathVariable("ticketId") String ticketId,
+            @RequestBody(required = false) SrTicketExecuteRequest request,
+            HttpServletRequest httpServletRequest) throws Exception {
+        String approvalToken = request != null ? request.getApprovalToken() : null;
+        return ResponseEntity.ok(srTicketWorkbenchService.directExecuteTicket(ticketId, resolveActorId(httpServletRequest), approvalToken));
+    }
+
+    @PostMapping("/api/admin/sr-workbench/tickets/{ticketId}/skip-plan-execute")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> skipPlanExecuteTicket(
+            @PathVariable("ticketId") String ticketId,
+            @RequestBody(required = false) SrTicketExecuteRequest request,
+            HttpServletRequest httpServletRequest) throws Exception {
+        String approvalToken = request != null ? request.getApprovalToken() : null;
+        return ResponseEntity.ok(srTicketWorkbenchService.skipPlanExecuteTicket(ticketId, resolveActorId(httpServletRequest), approvalToken));
     }
 
     private String resolveActorId(HttpServletRequest request) {

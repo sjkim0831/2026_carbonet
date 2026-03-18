@@ -39,7 +39,7 @@ export function AdminMenuPlaceholderPage() {
           {pageState.error}
         </div>
       ) : null}
-      <section className="gov-card max-w-5xl">
+      <section className="gov-card max-w-5xl" data-help-id="admin-menu-placeholder-card">
         <div className="flex items-start gap-4">
           <span className="material-symbols-outlined text-[42px] text-[var(--kr-gov-blue)]">{icon}</span>
           <div>

@@ -21,6 +21,8 @@ Read only what you need:
 - Read [`/opt/projects/carbonet-react-migration/docs/architecture/react-observability-blind-spots.md`](/opt/projects/carbonet-react-migration/docs/architecture/react-observability-blind-spots.md) before extending telemetry into browser-owned, third-party, file, or session-storage driven flows.
 - Read [`/opt/projects/carbonet-react-migration/docs/audit/non-admin-react-migration-audit.md`](/opt/projects/carbonet-react-migration/docs/audit/non-admin-react-migration-audit.md) when deciding rollout priority for migrated public flows.
 - Read [`/opt/projects/carbonet-react-migration/docs/sql/system_observability_schema.sql`](/opt/projects/carbonet-react-migration/docs/sql/system_observability_schema.sql) before changing UI registry, trace, or audit persistence.
+- Read [`/opt/projects/carbonet/docs/architecture/performance-algorithm-upgrade-notes.md`](/opt/projects/carbonet/docs/architecture/performance-algorithm-upgrade-notes.md) when the request is performance-sensitive or asks for algorithm/data-structure upgrades.
+- Read [`/opt/projects/carbonet/docs/ai/60-operations/performance-handoff-prompt-20260318.md`](/opt/projects/carbonet/docs/ai/60-operations/performance-handoff-prompt-20260318.md) when another AI session must continue the performance upgrade track.
 
 ## Use Cases
 
@@ -58,15 +60,17 @@ Read only what you need:
    - install ownership is the authority for delete, copy, and drift decisions
 6. Prefer manifest-based UI management over raw DOM capture.
 7. If the user asks to track parameters or outputs, define masking rules before defining payload schemas.
-8. If the user asks for rollout timing, provide phased estimates with assumptions and a lower-risk MVP path.
-9. For implementation work, start with common infrastructure before instrumenting feature pages.
-10. For permission or role-assignment work, require authoritative backend audit on:
+8. For history or audit search screens, push filtering, sorting, and pagination to the DB or persistence layer before considering in-memory post-processing.
+9. For file-backed audit or request logs, prefer bounded recent-log reads over full-file load and sort.
+10. If the user asks for rollout timing, provide phased estimates with assumptions and a lower-risk MVP path.
+11. For implementation work, start with common infrastructure before instrumenting feature pages.
+12. For permission or role-assignment work, require authoritative backend audit on:
    - authority-group create/update
    - department-role mapping save
    - member/admin role assignment save
    - user feature override save
-11. For non-master actors, treat `instt_id` or company scope as part of the audit context and review it at the same time as the permission model.
-12. If the user wants common code reused across split projects, steer toward:
+13. For non-master actors, treat `instt_id` or company scope as part of the audit context and review it at the same time as the permission model.
+14. If the user wants common code reused across split projects, steer toward:
    - versioned jars or modules
    - facade or adapter layers
    - compatibility contracts
@@ -102,6 +106,7 @@ Use these default locations unless the codebase shows a stronger existing patter
 - Always distinguish audit records from technical trace events.
 - Never recommend raw production logging of passwords, tokens, or full sensitive payloads.
 - Prefer storing payload summaries, hashes, masks, and status transitions.
+- Prefer persistence-native pagination for large history views and bounded-memory reads for file-backed recent-event views.
 - If screen composition must be queryable, define page manifests and component registry records rather than full runtime DOM capture.
 - If runtime component inspection is requested, scope it to debug or sampled mode unless the user explicitly accepts the cost.
 - Do not sacrifice baseline screen behavior to improve observability. Metadata and telemetry must remain non-blocking and behavior-preserving.
@@ -114,6 +119,11 @@ Use these default locations unless the codebase shows a stronger existing patter
 - `TRACE_EVENT`, `AUDIT_EVENT`, `UI_PAGE_MANIFEST`, `UI_COMPONENT_REGISTRY`, and `UI_PAGE_COMPONENT_MAP` are already wired and in use.
 - Frontend telemetry transport to `/api/telemetry/events` is implemented; backend persistence lives under `src/main/java/egovframework/com/common/trace`.
 - Admin observability and help-management root APIs are exposed under `/api/admin/...`.
+- Performance-sensitive governance paths already upgraded in this repo include:
+  - route and manifest lookup indexes
+  - bounded recent request-log reads
+  - bitmap-backed permission feature evaluation in `AdminMainController`
+  - versioned menu and sitemap snapshots in `MenuInfoServiceImpl`, `HomeMenuServiceImpl`, and `SiteMapServiceImpl`
 - `ScreenCommandCenterServiceImpl` is the authoritative metadata builder for page-level governance:
   - UI surfaces
   - events and frontend functions
@@ -149,6 +159,7 @@ Use these default locations unless the codebase shows a stronger existing patter
   - `docs/architecture/`
   - `docs/audit/`
   - `docs/sql/`
+- If you extend admin dashboard cards or audit summary APIs, prefer incremental/materialized summary writes before adding more request-time list scans.
 - When handing off, leave absolute file references and verification commands in the architecture doc so another account or session can continue without chat history.
 
 ## Continuation Checklist

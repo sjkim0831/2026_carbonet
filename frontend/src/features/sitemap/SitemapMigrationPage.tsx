@@ -45,7 +45,7 @@ export function SitemapMigrationPage() {
         )}
       />
       <main className="max-w-7xl mx-auto w-full px-4 lg:px-8 py-12 flex-1" id="main-content">
-        <section className="rounded-2xl bg-gradient-to-r from-[var(--kr-gov-blue)] to-[#0b5fb8] text-white px-8 py-10 shadow-lg">
+        <section className="rounded-2xl bg-gradient-to-r from-[var(--kr-gov-blue)] to-[#0b5fb8] text-white px-8 py-10 shadow-lg" data-help-id="sitemap-hero">
           <p className="text-sm font-bold tracking-[0.2em] uppercase opacity-80">Site Navigation</p>
           <h2 className="text-4xl font-black mt-3">{en ? "Sitemap" : "사이트맵"}</h2>
           <p className="text-base text-blue-50 mt-4 max-w-3xl leading-relaxed">
@@ -67,7 +67,7 @@ export function SitemapMigrationPage() {
           </div>
         ) : null}
 
-        <section className="mt-10 grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <section className="mt-10 grid grid-cols-1 xl:grid-cols-2 gap-6" data-help-id="sitemap-tree">
           {sections.map((top) => (
             <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white shadow-sm" key={top.code || top.label}>
               <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">

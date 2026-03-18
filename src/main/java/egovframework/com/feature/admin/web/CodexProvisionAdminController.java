@@ -6,6 +6,7 @@ import egovframework.com.feature.admin.dto.response.CodexProvisionResponse;
 import egovframework.com.feature.admin.model.vo.CodexAdminActorContextVO;
 import egovframework.com.feature.admin.service.AuthGroupManageService;
 import egovframework.com.feature.admin.service.CodexExecutionAdminService;
+import egovframework.com.feature.admin.service.SrTicketWorkbenchService;
 import egovframework.com.feature.auth.domain.entity.EmplyrInfo;
 import egovframework.com.feature.auth.domain.repository.EmployeeMemberRepository;
 import egovframework.com.feature.auth.util.JwtTokenProvider;
@@ -46,6 +47,7 @@ public class CodexProvisionAdminController {
     private String configuredApiKey;
 
     private final CodexExecutionAdminService codexExecutionAdminService;
+    private final SrTicketWorkbenchService srTicketWorkbenchService;
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthGroupManageService authGroupManageService;
     private final EmployeeMemberRepository employeeMemberRepository;
@@ -128,6 +130,192 @@ public class CodexProvisionAdminController {
         } catch (Exception e) {
             log.error("Failed to remediate Codex history. logId={}", logId, e);
             return ResponseEntity.internalServerError().body(errorBody("error", "Remediation failed."));
+        }
+    }
+
+    @GetMapping("/tickets")
+    @ResponseBody
+    public ResponseEntity<?> tickets() {
+        ResponseEntity<?> availability = validateInternalAvailability();
+        if (!availability.getStatusCode().is2xxSuccessful()) {
+            return availability;
+        }
+        try {
+            return ResponseEntity.ok(srTicketWorkbenchService.getPage(""));
+        } catch (Exception e) {
+            log.error("Failed to load SR tickets for Codex request console.", e);
+            return ResponseEntity.internalServerError().body(errorBody("error", "Failed to load SR tickets."));
+        }
+    }
+
+    @GetMapping("/tickets/{ticketId}")
+    @ResponseBody
+    public ResponseEntity<?> ticketDetail(@PathVariable("ticketId") String ticketId) {
+        ResponseEntity<?> availability = validateInternalAvailability();
+        if (!availability.getStatusCode().is2xxSuccessful()) {
+            return availability;
+        }
+        try {
+            return ResponseEntity.ok(srTicketWorkbenchService.getTicketDetail(ticketId));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(errorBody("fail", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Failed to load SR ticket detail. ticketId={}", ticketId, e);
+            return ResponseEntity.internalServerError().body(errorBody("error", "Failed to load SR ticket detail."));
+        }
+    }
+
+    @GetMapping("/tickets/{ticketId}/artifacts/{artifactType}")
+    @ResponseBody
+    public ResponseEntity<?> ticketArtifact(@PathVariable("ticketId") String ticketId,
+                                            @PathVariable("artifactType") String artifactType) {
+        ResponseEntity<?> availability = validateInternalAvailability();
+        if (!availability.getStatusCode().is2xxSuccessful()) {
+            return availability;
+        }
+        try {
+            return ResponseEntity.ok(srTicketWorkbenchService.getTicketArtifact(ticketId, artifactType));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(errorBody("fail", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Failed to load SR ticket artifact. ticketId={} artifactType={}", ticketId, artifactType, e);
+            return ResponseEntity.internalServerError().body(errorBody("error", "Failed to load SR ticket artifact."));
+        }
+    }
+
+    @PostMapping("/tickets/{ticketId}/prepare")
+    @ResponseBody
+    public ResponseEntity<?> prepareTicket(HttpServletRequest request, @PathVariable("ticketId") String ticketId) {
+        ResponseEntity<?> availability = validateInternalAvailability();
+        if (!availability.getStatusCode().is2xxSuccessful()) {
+            return availability;
+        }
+        try {
+            return ResponseEntity.ok(srTicketWorkbenchService.prepareExecution(ticketId, resolveActorContext(request).getActorUserId()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(errorBody("fail", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Failed to prepare SR ticket. ticketId={}", ticketId, e);
+            return ResponseEntity.internalServerError().body(errorBody("error", "Failed to prepare SR ticket."));
+        }
+    }
+
+    @PostMapping("/tickets/{ticketId}/plan")
+    @ResponseBody
+    public ResponseEntity<?> planTicket(HttpServletRequest request, @PathVariable("ticketId") String ticketId) {
+        ResponseEntity<?> availability = validateInternalAvailability();
+        if (!availability.getStatusCode().is2xxSuccessful()) {
+            return availability;
+        }
+        try {
+            return ResponseEntity.ok(srTicketWorkbenchService.planTicket(ticketId, resolveActorContext(request).getActorUserId()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(errorBody("fail", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Failed to plan SR ticket. ticketId={}", ticketId, e);
+            return ResponseEntity.internalServerError().body(errorBody("error", "Failed to plan SR ticket."));
+        }
+    }
+
+    @PostMapping("/tickets/{ticketId}/execute")
+    @ResponseBody
+    public ResponseEntity<?> executeTicket(HttpServletRequest request, @PathVariable("ticketId") String ticketId) {
+        ResponseEntity<?> availability = validateInternalAvailability();
+        if (!availability.getStatusCode().is2xxSuccessful()) {
+            return availability;
+        }
+        try {
+            return ResponseEntity.ok(srTicketWorkbenchService.executeTicket(ticketId, resolveActorContext(request).getActorUserId(), null));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(errorBody("fail", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Failed to execute SR ticket. ticketId={}", ticketId, e);
+            return ResponseEntity.internalServerError().body(errorBody("error", "Failed to execute SR ticket."));
+        }
+    }
+
+    @PostMapping("/tickets/{ticketId}/direct-execute")
+    @ResponseBody
+    public ResponseEntity<?> directExecuteTicket(HttpServletRequest request, @PathVariable("ticketId") String ticketId) {
+        ResponseEntity<?> availability = validateInternalAvailability();
+        if (!availability.getStatusCode().is2xxSuccessful()) {
+            return availability;
+        }
+        try {
+            return ResponseEntity.ok(srTicketWorkbenchService.directExecuteTicket(ticketId, resolveActorContext(request).getActorUserId(), null));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(errorBody("fail", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Failed to direct execute SR ticket. ticketId={}", ticketId, e);
+            return ResponseEntity.internalServerError().body(errorBody("error", "Failed to direct execute SR ticket."));
+        }
+    }
+
+    @PostMapping("/tickets/{ticketId}/skip-plan-execute")
+    @ResponseBody
+    public ResponseEntity<?> skipPlanExecuteTicket(HttpServletRequest request, @PathVariable("ticketId") String ticketId) {
+        ResponseEntity<?> availability = validateInternalAvailability();
+        if (!availability.getStatusCode().is2xxSuccessful()) {
+            return availability;
+        }
+        try {
+            return ResponseEntity.ok(srTicketWorkbenchService.skipPlanExecuteTicket(ticketId, resolveActorContext(request).getActorUserId(), null));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(errorBody("fail", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Failed to skip-plan execute SR ticket. ticketId={}", ticketId, e);
+            return ResponseEntity.internalServerError().body(errorBody("error", "Failed to skip-plan execute SR ticket."));
+        }
+    }
+
+    @PostMapping("/tickets/{ticketId}/rollback")
+    @ResponseBody
+    public ResponseEntity<?> rollbackTicket(HttpServletRequest request, @PathVariable("ticketId") String ticketId) {
+        ResponseEntity<?> availability = validateInternalAvailability();
+        if (!availability.getStatusCode().is2xxSuccessful()) {
+            return availability;
+        }
+        try {
+            return ResponseEntity.ok(srTicketWorkbenchService.rollbackTicket(ticketId, resolveActorContext(request).getActorUserId()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(errorBody("fail", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Failed to rollback SR ticket. ticketId={}", ticketId, e);
+            return ResponseEntity.internalServerError().body(errorBody("error", "Failed to rollback SR ticket."));
+        }
+    }
+
+    @PostMapping("/tickets/{ticketId}/reissue")
+    @ResponseBody
+    public ResponseEntity<?> reissueTicket(HttpServletRequest request, @PathVariable("ticketId") String ticketId) {
+        ResponseEntity<?> availability = validateInternalAvailability();
+        if (!availability.getStatusCode().is2xxSuccessful()) {
+            return availability;
+        }
+        try {
+            return ResponseEntity.ok(srTicketWorkbenchService.reissueTicket(ticketId, resolveActorContext(request).getActorUserId()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(errorBody("fail", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Failed to reissue SR ticket. ticketId={}", ticketId, e);
+            return ResponseEntity.internalServerError().body(errorBody("error", "Failed to reissue SR ticket."));
+        }
+    }
+
+    @PostMapping("/tickets/{ticketId}/delete")
+    @ResponseBody
+    public ResponseEntity<?> deleteTicket(HttpServletRequest request, @PathVariable("ticketId") String ticketId) {
+        ResponseEntity<?> availability = validateInternalAvailability();
+        if (!availability.getStatusCode().is2xxSuccessful()) {
+            return availability;
+        }
+        try {
+            return ResponseEntity.ok(srTicketWorkbenchService.deleteTicket(ticketId, resolveActorContext(request).getActorUserId()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(errorBody("fail", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Failed to delete SR ticket. ticketId={}", ticketId, e);
+            return ResponseEntity.internalServerError().body(errorBody("error", "Failed to delete SR ticket."));
         }
     }
 

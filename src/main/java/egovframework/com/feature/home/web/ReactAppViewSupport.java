@@ -3,6 +3,11 @@ package egovframework.com.feature.home.web;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.ui.Model;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+import javax.servlet.http.HttpServletRequest;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -12,17 +17,24 @@ public class ReactAppViewSupport {
     @Value("${carbonet.react-app.dev-url:http://127.0.0.1:5173}")
     private String reactAppDevUrl;
     private final ReactAppAssetResolver reactAppAssetResolver;
+    private final ReactAppBootstrapService reactAppBootstrapService;
 
-    public ReactAppViewSupport(ReactAppAssetResolver reactAppAssetResolver) {
+    public ReactAppViewSupport(ReactAppAssetResolver reactAppAssetResolver,
+            ReactAppBootstrapService reactAppBootstrapService) {
         this.reactAppAssetResolver = reactAppAssetResolver;
+        this.reactAppBootstrapService = reactAppBootstrapService;
     }
 
     public String render(Model model, String route, boolean en, boolean admin) {
-        populate(model, route, en, admin);
+        populate(model, route, en, admin, currentRequest());
         return "forward:/react-shell/index.html";
     }
 
     public void populate(Model model, String route, boolean en, boolean admin) {
+        populate(model, route, en, admin, currentRequest());
+    }
+
+    public void populate(Model model, String route, boolean en, boolean admin, HttpServletRequest request) {
         ReactAppAssetResolver.ReactAppAssets assets = reactAppAssetResolver.resolveAssets();
         model.addAttribute("reactRoute", normalizeRoute(route, admin));
         model.addAttribute("reactLocale", en ? "en" : "ko");
@@ -36,6 +48,7 @@ public class ReactAppViewSupport {
         model.addAttribute("reactAppDevUrl", reactAppDevUrl);
         model.addAttribute("reactAppProdJs", assets.getJsPath());
         model.addAttribute("reactAppProdCss", assets.getCssPath());
+        model.addAttribute("reactBootstrapPayload", reactAppBootstrapService.buildBootstrapPayload(route, en, admin, request));
     }
 
     public Map<String, Object> createBootstrapPayload(String route, boolean en, boolean admin) {
@@ -62,5 +75,13 @@ public class ReactAppViewSupport {
             return admin ? "auth_group" : "mypage";
         }
         return normalized.replace('-', '_');
+    }
+
+    private HttpServletRequest currentRequest() {
+        RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
+        if (requestAttributes instanceof ServletRequestAttributes) {
+            return ((ServletRequestAttributes) requestAttributes).getRequest();
+        }
+        return null;
     }
 }

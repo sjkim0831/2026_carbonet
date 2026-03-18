@@ -14,6 +14,8 @@ import egovframework.com.feature.auth.mapper.AuthLoginMapper;
 import egovframework.com.feature.auth.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.apache.commons.codec.binary.Base64;
 import org.egovframe.rte.fdl.cmmn.EgovAbstractServiceImpl;
 import org.springframework.stereotype.Service;
@@ -340,8 +342,10 @@ public class AuthServiceImpl extends EgovAbstractServiceImpl implements AuthServ
     }
 
     @Override
-    public List<PasswordResetHistory> findAllPasswordResetHistories() {
-        return passwordResetHistoryRepository.findAllByOrderByResetPnttmDesc();
+    public Page<PasswordResetHistory> searchPasswordResetHistories(String searchKeyword, String resetSource, Pageable pageable) {
+        String normalizedKeyword = searchKeyword == null ? "" : searchKeyword.trim();
+        String normalizedSource = resetSource == null ? "" : resetSource.trim();
+        return passwordResetHistoryRepository.searchPasswordResetHistories(normalizedSource, normalizedKeyword, pageable);
     }
 
     private void savePasswordResetHistory(String userId, String userSe, String resetByUserId, String resetIp,
