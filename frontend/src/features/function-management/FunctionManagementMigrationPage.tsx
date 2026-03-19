@@ -4,6 +4,9 @@ import { type FunctionManagementPagePayload, fetchFunctionManagementPage } from 
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { stringOf, submitFormRequest } from "../admin-system/adminSystemShared";
+import { ADMIN_BUTTON_LABELS } from "../admin-ui/labels";
+import { GridToolbar, MemberButton } from "../admin-ui/common";
+import { AdminEditPageFrame } from "../admin-ui/pageFrames";
 
 type Filters = {
   menuType: string;
@@ -73,11 +76,13 @@ export function FunctionManagementMigrationPage() {
         </div>
       ) : null}
 
-      <section className="gov-card mb-8" data-help-id="function-management-register">
-        <div className="flex items-center gap-2 border-b pb-4 mb-4">
-          <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">extension</span>
-          <h3 className="text-lg font-bold">{en ? "Register Feature" : "기능 등록"}</h3>
-        </div>
+      <AdminEditPageFrame>
+      <section className="gov-card" data-help-id="function-management-register">
+        <GridToolbar
+          actions={<span className="material-symbols-outlined text-[var(--kr-gov-blue)]">extension</span>}
+          className="mb-4"
+          title={en ? "Register Feature" : "기능 등록"}
+        />
 
         <form action={buildLocalizedPath("/admin/system/feature-management/create", "/en/admin/system/feature-management/create")} className="grid grid-cols-1 xl:grid-cols-6 gap-4" method="post" onSubmit={handleSubmit}>
           <input name="menuType" type="hidden" value={draft.menuType} />
@@ -130,16 +135,17 @@ export function FunctionManagementMigrationPage() {
             {en ? "Feature codes are stored as globally unique values and reused in the member permission editor." : "기능 코드는 전역 고유값으로 저장됩니다. 이후 회원 수정 화면에서 회원별 기능 권한 테이블을 연결할 때 이 코드를 기준 키로 사용할 수 있습니다."}
           </div>
           <div className="xl:col-span-6 flex justify-end gap-2">
-            <button className="gov-btn gov-btn-primary" type="submit">{en ? "Add Feature" : "기능 추가"}</button>
+            <MemberButton type="submit" variant="primary">{en ? "Add Feature" : ADMIN_BUTTON_LABELS.create}</MemberButton>
           </div>
         </form>
       </section>
 
       <section className="gov-card" data-help-id="function-management-list">
-        <div className="flex items-center gap-2 border-b pb-4 mb-4">
-          <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">view_list</span>
-          <h3 className="text-lg font-bold">{en ? "Registered Features" : "등록 기능 목록"}</h3>
-        </div>
+        <GridToolbar
+          actions={<span className="material-symbols-outlined text-[var(--kr-gov-blue)]">view_list</span>}
+          className="mb-4"
+          title={en ? "Registered Features" : "등록 기능 목록"}
+        />
 
         <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 px-4 py-3">
@@ -179,12 +185,12 @@ export function FunctionManagementMigrationPage() {
             <input className="gov-input" id="searchKeyword" placeholder={en ? "Feature code or name" : "기능 코드 또는 기능명"} value={draft.searchKeyword} onChange={(event) => setDraft((current) => ({ ...current, searchKeyword: event.target.value }))} />
           </div>
           <div className="flex items-end gap-2">
-            <button className="gov-btn gov-btn-outline w-full" type="submit">{en ? "Search" : "조회"}</button>
-            <button className="gov-btn gov-btn-outline w-full" onClick={() => {
+            <MemberButton className="w-full" type="submit">{en ? "Search" : ADMIN_BUTTON_LABELS.search}</MemberButton>
+            <MemberButton className="w-full" onClick={() => {
               const reset = { menuType: draft.menuType, searchMenuCode: "", searchKeyword: "" };
               setDraft(reset);
               setFilters(reset);
-            }} type="button">{en ? "Reset" : "초기화"}</button>
+            }} type="button">{en ? "Reset" : ADMIN_BUTTON_LABELS.reset}</MemberButton>
           </div>
         </form>
 
@@ -233,7 +239,7 @@ export function FunctionManagementMigrationPage() {
                         <input name="menuType" type="hidden" value={filters.menuType} />
                         <input name="searchMenuCode" type="hidden" value={filters.searchMenuCode} />
                         <input name="searchKeyword" type="hidden" value={filters.searchKeyword} />
-                        <button className="gov-btn gov-btn-danger" type="submit">{en ? "Delete" : "삭제"}</button>
+                        <MemberButton type="submit" variant="danger">{en ? "Delete" : "삭제"}</MemberButton>
                       </form>
                     </td>
                   </tr>
@@ -243,6 +249,7 @@ export function FunctionManagementMigrationPage() {
           </table>
         </div>
       </section>
+      </AdminEditPageFrame>
     </AdminPageShell>
   );
 }

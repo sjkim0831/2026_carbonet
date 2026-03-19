@@ -242,11 +242,18 @@ export function MemberEditMigrationPage() {
 
         <MemberActionBar
           dataHelpId="member-edit-actions"
+          description={text(
+            page,
+            "목록으로 돌아가거나 현재 회원의 상세 화면을 다시 확인한 뒤 저장할 수 있습니다.",
+            "Return to the list, review the member detail page again, or save the current edits."
+          )}
+          eyebrow={text(page, "작업 흐름", "Action Flow")}
           primary={(
             <MemberPermissionButton
               allowed={canUse}
-              className="w-full max-w-[280px]"
+              className="w-full max-w-[320px] shadow-lg shadow-blue-900/10"
               data-action="save"
+              icon="save"
               onClick={handleSave}
               reason={text(page, "현재 관리자 권한으로 수정 가능한 회원만 저장할 수 있습니다.", "Only members editable by the current administrator can be saved.")}
               size="lg"
@@ -257,9 +264,20 @@ export function MemberEditMigrationPage() {
             </MemberPermissionButton>
           )}
           secondary={{
-            label: text(page, MEMBER_BUTTON_LABELS.detail, "Detail"),
-            onClick: () => { window.location.href = buildLocalizedPath(`/admin/member/detail?memberId=${encodeURIComponent(form.memberId)}`, `/en/admin/member/detail?memberId=${encodeURIComponent(form.memberId)}`); }
+            href: buildLocalizedPath("/admin/member/list", "/en/admin/member/list"),
+            icon: "list",
+            label: text(page, MEMBER_BUTTON_LABELS.list, "List")
           }}
+          tertiary={{
+            href: buildLocalizedPath(`/admin/member/detail?memberId=${encodeURIComponent(form.memberId)}`, `/en/admin/member/detail?memberId=${encodeURIComponent(form.memberId)}`),
+            icon: "preview",
+            label: text(page, MEMBER_BUTTON_LABELS.detail, "Detail"),
+          }}
+          title={text(
+            page,
+            "수정 내용을 검토한 뒤 저장하세요.",
+            "Review the changes, then save them."
+          )}
         />
       </CanView>
     </AdminPageShell>

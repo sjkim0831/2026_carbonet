@@ -263,6 +263,137 @@ export type DeptRolePagePayload = {
   mappingCount: number;
 };
 
+export type ScreenBuilderNode = {
+  nodeId: string;
+  componentId?: string;
+  parentNodeId?: string;
+  componentType: string;
+  slotName?: string;
+  sortOrder: number;
+  props: Record<string, unknown>;
+};
+
+export type ScreenBuilderEventBinding = {
+  eventBindingId: string;
+  nodeId: string;
+  eventName: string;
+  actionType: string;
+  actionConfig: Record<string, unknown>;
+};
+
+export type ScreenBuilderPaletteItem = {
+  componentType: string;
+  label: string;
+  labelEn?: string;
+  description?: string;
+};
+
+export type ScreenBuilderComponentRegistryItem = {
+  componentId: string;
+  componentType: string;
+  label: string;
+  labelEn?: string;
+  description?: string;
+  status?: string;
+  replacementComponentId?: string;
+  sourceType?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  propsTemplate?: Record<string, unknown>;
+};
+
+export type ScreenBuilderRegistryIssue = {
+  nodeId: string;
+  componentId?: string;
+  componentType: string;
+  label: string;
+  reason: string;
+  replacementComponentId?: string;
+};
+
+export type ScreenBuilderComponentPromptSurface = {
+  componentId: string;
+  componentType: string;
+  status?: string;
+  replacementComponentId?: string;
+  label: string;
+  description?: string;
+  allowedPropKeys: string[];
+  propsTemplate: Record<string, unknown>;
+};
+
+export type ScreenBuilderRegistryScanItem = {
+  menuCode: string;
+  pageId: string;
+  menuTitle: string;
+  unregisteredCount: number;
+  missingCount: number;
+  deprecatedCount: number;
+};
+
+export type ScreenBuilderAutoReplacePreviewItem = {
+  nodeId: string;
+  fromComponentId: string;
+  toComponentId: string;
+  label: string;
+};
+
+export type ScreenBuilderVersionSummary = {
+  versionId: string;
+  versionStatus: string;
+  menuCode: string;
+  pageId: string;
+  templateType: string;
+  savedAt: string;
+  nodeCount: number;
+  eventCount: number;
+};
+
+export type ScreenBuilderPagePayload = {
+  isEn: boolean;
+  menuCode: string;
+  pageId: string;
+  menuTitle: string;
+  menuUrl: string;
+  builderId: string;
+  versionId: string;
+  versionStatus: string;
+  templateType: string;
+  componentPalette: ScreenBuilderPaletteItem[];
+  componentRegistry: ScreenBuilderComponentRegistryItem[];
+  registryDiagnostics?: {
+    unregisteredNodes?: ScreenBuilderRegistryIssue[];
+    missingNodes?: ScreenBuilderRegistryIssue[];
+    deprecatedNodes?: ScreenBuilderRegistryIssue[];
+    componentPromptSurface?: ScreenBuilderComponentPromptSurface[];
+  };
+  nodes: ScreenBuilderNode[];
+  events: ScreenBuilderEventBinding[];
+  versionHistory?: ScreenBuilderVersionSummary[];
+  publishedVersionId?: string;
+  publishedSavedAt?: string;
+  previewAvailable: boolean;
+  screenBuilderMessage?: string;
+};
+
+export type ScreenBuilderPreviewPayload = {
+  isEn: boolean;
+  menuCode: string;
+  pageId: string;
+  menuTitle: string;
+  menuUrl: string;
+  templateType: string;
+  versionStatus?: string;
+  registryDiagnostics?: {
+    unregisteredNodes?: ScreenBuilderRegistryIssue[];
+    missingNodes?: ScreenBuilderRegistryIssue[];
+    deprecatedNodes?: ScreenBuilderRegistryIssue[];
+    componentPromptSurface?: ScreenBuilderComponentPromptSurface[];
+  };
+  nodes: ScreenBuilderNode[];
+  events: ScreenBuilderEventBinding[];
+};
+
 export type MemberEditPagePayload = Record<string, unknown> & {
   member?: {
     entrprsmberId: string;
@@ -1173,7 +1304,7 @@ function buildPageCacheKey(path: string) {
   return `${SESSION_STORAGE_CACHE_PREFIX}${path}`;
 }
 
-function consumeRuntimeBootstrap<T>(key: "frontendSession" | "adminMenuTree" | "adminHomePageData" | "authGroupPageData" | "deptRolePageData" | "memberEditPageData" | "homePayload" | "mypagePayload" | "mypageContext" | "memberStatsPageData" | "securityPolicyPageData" | "securityMonitoringPageData" | "securityAuditPageData" | "schedulerManagementPageData" | "emissionResultListPageData"): T | null {
+function consumeRuntimeBootstrap<T>(key: "frontendSession" | "adminMenuTree" | "adminHomePageData" | "authGroupPageData" | "deptRolePageData" | "memberEditPageData" | "homePayload" | "mypagePayload" | "mypageContext" | "memberStatsPageData" | "securityPolicyPageData" | "securityMonitoringPageData" | "securityAuditPageData" | "schedulerManagementPageData" | "emissionResultListPageData" | "screenBuilderPageData"): T | null {
   if (typeof window === "undefined" || !window.__CARBONET_REACT_BOOTSTRAP__) {
     return null;
   }
@@ -1462,6 +1593,10 @@ export function readBootstrappedSchedulerManagementPageData(): SchedulerManageme
 
 export function readBootstrappedEmissionResultListPageData(): EmissionResultListPagePayload | null {
   return consumeRuntimeBootstrap<EmissionResultListPagePayload>("emissionResultListPageData");
+}
+
+export function readBootstrappedScreenBuilderPageData(): ScreenBuilderPagePayload | null {
+  return consumeRuntimeBootstrap<ScreenBuilderPagePayload>("screenBuilderPageData");
 }
 
 export async function fetchAuthGroupPage(params: {
@@ -1809,6 +1944,259 @@ export async function fetchMenuManagementPage(menuType?: string, saved?: string)
   const body = await response.json();
   if (!response.ok) throw new Error(body.menuMgmtError || `Failed to load menu management page: ${response.status}`);
   return body as MenuManagementPagePayload;
+}
+
+export async function fetchScreenBuilderPage(params?: {
+  menuCode?: string;
+  pageId?: string;
+  menuTitle?: string;
+  menuUrl?: string;
+}) {
+  const search = new URLSearchParams();
+  if (params?.menuCode) search.set("menuCode", params.menuCode);
+  if (params?.pageId) search.set("pageId", params.pageId);
+  if (params?.menuTitle) search.set("menuTitle", params.menuTitle);
+  if (params?.menuUrl) search.set("menuUrl", params.menuUrl);
+  const query = search.toString();
+  return fetchCachedJson<ScreenBuilderPagePayload>({
+    cacheKey: buildPageCacheKey(`screen-builder/page?${query}`),
+    url: `${buildAdminApiPath("/api/admin/screen-builder/page")}${query ? `?${query}` : ""}`,
+    mapError: (body, status) => body.screenBuilderMessage || `Failed to load screen builder page: ${status}`
+  });
+}
+
+export async function fetchScreenBuilderPreview(params?: {
+  menuCode?: string;
+  pageId?: string;
+  menuTitle?: string;
+  menuUrl?: string;
+  versionStatus?: string;
+}) {
+  const search = new URLSearchParams();
+  if (params?.menuCode) search.set("menuCode", params.menuCode);
+  if (params?.pageId) search.set("pageId", params.pageId);
+  if (params?.menuTitle) search.set("menuTitle", params.menuTitle);
+  if (params?.menuUrl) search.set("menuUrl", params.menuUrl);
+  if (params?.versionStatus) search.set("versionStatus", params.versionStatus);
+  const query = search.toString();
+  const response = await fetch(`${buildAdminApiPath("/api/admin/screen-builder/preview")}${query ? `?${query}` : ""}`, {
+    credentials: "include"
+  });
+  const body = await readJsonResponse<ScreenBuilderPreviewPayload & Record<string, unknown>>(response);
+  if (!response.ok) {
+    throw new Error(String(body.message || `Failed to load screen builder preview: ${response.status}`));
+  }
+  return body as ScreenBuilderPreviewPayload;
+}
+
+export async function saveScreenBuilderDraft(payload: {
+  menuCode: string;
+  pageId: string;
+  menuTitle: string;
+  menuUrl: string;
+  templateType: string;
+  nodes: ScreenBuilderNode[];
+  events: ScreenBuilderEventBinding[];
+}) {
+  const response = await fetch(buildAdminApiPath("/api/admin/screen-builder/draft"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload)
+  });
+  const body = await readJsonResponse<{ success?: boolean; message?: string } & Record<string, unknown>>(response);
+  if (!response.ok || !body.success) {
+    throw new Error(String(body.message || `Failed to save screen builder draft: ${response.status}`));
+  }
+  return body;
+}
+
+export async function restoreScreenBuilderDraft(payload: {
+  menuCode: string;
+  versionId: string;
+}) {
+  const response = await fetch(buildAdminApiPath("/api/admin/screen-builder/restore"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload)
+  });
+  const body = await readJsonResponse<{ success?: boolean; message?: string } & Record<string, unknown>>(response);
+  if (!response.ok || !body.success) {
+    throw new Error(String(body.message || `Failed to restore screen builder draft: ${response.status}`));
+  }
+  return body;
+}
+
+export async function publishScreenBuilderDraft(payload: {
+  menuCode: string;
+}) {
+  const response = await fetch(buildAdminApiPath("/api/admin/screen-builder/publish"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload)
+  });
+  const body = await readJsonResponse<{ success?: boolean; message?: string } & Record<string, unknown>>(response);
+  if (!response.ok || !body.success) {
+    throw new Error(String(body.message || `Failed to publish screen builder draft: ${response.status}`));
+  }
+  return body;
+}
+
+export async function registerScreenBuilderComponent(payload: {
+  menuCode: string;
+  pageId: string;
+  nodeId: string;
+  componentId?: string;
+  componentType: string;
+  label: string;
+  labelEn?: string;
+  description?: string;
+  propsTemplate?: Record<string, unknown>;
+}) {
+  const response = await fetch(buildAdminApiPath("/api/admin/screen-builder/component-registry"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload)
+  });
+  const body = await readJsonResponse<{ success?: boolean; message?: string; item?: ScreenBuilderComponentRegistryItem } & Record<string, unknown>>(response);
+  if (!response.ok || !body.success || !body.item) {
+    throw new Error(String(body.message || `Failed to register screen builder component: ${response.status}`));
+  }
+  return body as { success: boolean; message?: string; item: ScreenBuilderComponentRegistryItem };
+}
+
+export async function updateScreenBuilderComponentRegistry(payload: {
+  componentId: string;
+  status?: string;
+  replacementComponentId?: string;
+  menuCode?: string;
+}) {
+  const response = await fetch(buildAdminApiPath("/api/admin/screen-builder/component-registry/update"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload)
+  });
+  const body = await readJsonResponse<{ success?: boolean; message?: string; item?: ScreenBuilderComponentRegistryItem } & Record<string, unknown>>(response);
+  if (!response.ok || !body.success || !body.item) {
+    throw new Error(String(body.message || `Failed to update screen builder component registry: ${response.status}`));
+  }
+  return body as { success: boolean; message?: string; item: ScreenBuilderComponentRegistryItem };
+}
+
+export async function autoReplaceDeprecatedScreenBuilderComponents(payload: {
+  menuCode: string;
+}) {
+  const response = await fetch(buildAdminApiPath("/api/admin/screen-builder/component-registry/auto-replace"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload)
+  });
+  const body = await readJsonResponse<{ success?: boolean; message?: string; replacedCount?: number } & Record<string, unknown>>(response);
+  if (!response.ok || !body.success) {
+    throw new Error(String(body.message || `Failed to auto replace deprecated components: ${response.status}`));
+  }
+  return body as { success: boolean; message?: string; replacedCount?: number };
+}
+
+export async function previewAutoReplaceDeprecatedScreenBuilderComponents(payload: {
+  menuCode: string;
+}) {
+  const response = await fetch(buildAdminApiPath("/api/admin/screen-builder/component-registry/auto-replace-preview"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload)
+  });
+  const body = await readJsonResponse<{ replacedCount?: number; items?: ScreenBuilderAutoReplacePreviewItem[] } & Record<string, unknown>>(response);
+  if (!response.ok) {
+    throw new Error(String(body.message || `Failed to preview deprecated component replacement: ${response.status}`));
+  }
+  return body as { replacedCount: number; items: ScreenBuilderAutoReplacePreviewItem[] };
+}
+
+export async function scanScreenBuilderRegistryDiagnostics() {
+  const response = await fetch(buildAdminApiPath("/api/admin/screen-builder/component-registry/scan"), {
+    credentials: "include"
+  });
+  const body = await readJsonResponse<{ items?: ScreenBuilderRegistryScanItem[]; totalCount?: number } & Record<string, unknown>>(response);
+  if (!response.ok) {
+    throw new Error(String(body.message || `Failed to scan screen builder registry diagnostics: ${response.status}`));
+  }
+  return body as { items: ScreenBuilderRegistryScanItem[]; totalCount: number };
+}
+
+export async function addScreenBuilderNodeFromComponent(payload: {
+  menuCode: string;
+  componentId: string;
+  parentNodeId?: string;
+  props?: Record<string, unknown>;
+}) {
+  const response = await fetch(buildAdminApiPath("/api/admin/screen-builder/component-registry/add-node"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload)
+  });
+  const body = await readJsonResponse<{ success?: boolean; message?: string; nodeId?: string; componentId?: string } & Record<string, unknown>>(response);
+  if (!response.ok || !body.success) {
+    throw new Error(String(body.message || `Failed to add node from registered component: ${response.status}`));
+  }
+  return body as { success: boolean; message?: string; nodeId?: string; componentId?: string };
+}
+
+export async function addScreenBuilderNodeTreeFromComponents(payload: {
+  menuCode: string;
+  items: Array<{
+    componentId: string;
+    alias?: string;
+    parentAlias?: string;
+    parentNodeId?: string;
+    props?: Record<string, unknown>;
+  }>;
+}) {
+  const response = await fetch(buildAdminApiPath("/api/admin/screen-builder/component-registry/add-node-tree"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload)
+  });
+  const body = await readJsonResponse<{ success?: boolean; message?: string; addedCount?: number; items?: Array<Record<string, unknown>> } & Record<string, unknown>>(response);
+  if (!response.ok || !body.success) {
+    throw new Error(String(body.message || `Failed to add node tree from components: ${response.status}`));
+  }
+  return body as { success: boolean; message?: string; addedCount?: number; items?: Array<Record<string, unknown>> };
 }
 
 export async function updateEnvironmentManagedPage(payload: {

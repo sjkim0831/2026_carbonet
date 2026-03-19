@@ -35,6 +35,7 @@ public class AdminAuthorityPagePayloadService {
     private final AuthGroupManageService authGroupManageService;
     private final AdminSummaryService adminSummaryService;
     private final AuthorRoleProfileService authorRoleProfileService;
+    private final AdminAuthorityPagePayloadSupport authorityPagePayloadSupport;
 
     private AdminMainController adminMainController() {
         return adminMainControllerProvider.getObject();
@@ -55,23 +56,25 @@ public class AdminAuthorityPagePayloadService {
         controller.primeCsrfToken(request);
         String currentUserId = controller.extractCurrentUserId(request);
         boolean webmaster = "webmaster".equalsIgnoreCase(currentUserId);
-        String currentUserAuthorCode = controller.resolveCurrentUserAuthorCode(currentUserId);
+        String currentUserAuthorCode = authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
         boolean canManageScopedAuthorityGroups = webmaster
-                || controller.requiresOwnCompanyAccess(currentUserId, currentUserAuthorCode);
+                || authorityPagePayloadSupport.requiresOwnCompanyAccess(currentUserId, currentUserAuthorCode);
         boolean canViewGeneralAuthorityGroups = false;
-        String selectedRoleCategory = controller.resolveRoleCategory(roleCategory);
+        String selectedRoleCategory = authorityPagePayloadSupport.resolveRoleCategory(roleCategory);
+        String currentUserInsttId = authorityPagePayloadSupport.resolveCurrentUserInsttId(currentUserId);
+        boolean globalAccess = authorityPagePayloadSupport.hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode);
 
         List<AuthorInfoVO> authorGroups;
         List<AuthorInfoVO> filteredAuthorGroups;
         List<FeatureCatalogSectionVO> featureSections;
         List<String> selectedFeatureCodes;
-        AdminMainController.AuthGroupScopeContext scopeContext;
+        AdminAuthorityPagePayloadSupport.AuthGroupScopeContext scopeContext;
         String selectedAuthorCode = "";
         String selectedAuthorName = "";
         String authGroupError = "";
         boolean featureCatalogDeferred = false;
         try {
-            canViewGeneralAuthorityGroups = controller.hasGeneralAuthorityGroupAccess(currentUserId, webmaster);
+            canViewGeneralAuthorityGroups = authorityPagePayloadSupport.hasGeneralAuthorityGroupAccess(currentUserId, webmaster);
             if (!canViewGeneralAuthorityGroups && "GENERAL".equals(selectedRoleCategory)) {
                 selectedRoleCategory = "DEPARTMENT";
                 authGroupError = isEn
@@ -79,28 +82,37 @@ public class AdminAuthorityPagePayloadService {
                         : "일반 권한 그룹은 마스터 권한이 있을 때만 조회할 수 있습니다.";
             }
             authorGroups = authGroupManageService.selectAuthorList();
-            scopeContext = controller.buildAuthGroupScopeContext(insttId, userSearchKeyword, selectedRoleCategory,
-                    currentUserId, webmaster, authorGroups, isEn);
+            scopeContext = authorityPagePayloadSupport.buildAuthGroupScopeContext(
+                    insttId,
+                    userSearchKeyword,
+                    selectedRoleCategory,
+                    currentUserInsttId,
+                    webmaster,
+                    globalAccess,
+                    authorGroups,
+                    isEn);
             filteredAuthorGroups = scopeContext.getReferenceAuthorGroups();
-            selectedAuthorCode = controller.resolveSelectedAuthorCode(authorCode, filteredAuthorGroups);
+            selectedAuthorCode = authorityPagePayloadSupport.resolveSelectedAuthorCode(authorCode, filteredAuthorGroups);
             if (selectedAuthorCode.isEmpty()) {
                 featureSections = Collections.emptyList();
                 selectedFeatureCodes = Collections.emptyList();
                 featureCatalogDeferred = true;
             } else {
-                Map<String, Integer> featureAssignmentCounts = controller.toFeatureAssignmentCountMap(
+                Map<String, Integer> featureAssignmentCounts = authorityPagePayloadSupport.toFeatureAssignmentCountMap(
                         authGroupManageService.selectFeatureAssignmentStats());
-                Set<String> grantableFeatureCodes = controller.resolveGrantableFeatureCodeSet(currentUserId, webmaster);
-                featureSections = controller.filterFeatureCatalogSectionsByGrantable(
-                        controller.buildFeatureCatalogSections(
-                                controller.applyFeatureAssignmentStats(authGroupManageService.selectFeatureCatalog(), featureAssignmentCounts),
+                Set<String> grantableFeatureCodes = authorityPagePayloadSupport.resolveGrantableFeatureCodeSet(currentUserId, webmaster);
+                featureSections = authorityPagePayloadSupport.filterFeatureCatalogSectionsByGrantable(
+                        authorityPagePayloadSupport.buildFeatureCatalogSections(
+                                authorityPagePayloadSupport.applyFeatureAssignmentStats(
+                                        authGroupManageService.selectFeatureCatalog(),
+                                        featureAssignmentCounts),
                                 isEn),
                         grantableFeatureCodes);
-                selectedFeatureCodes = controller.filterFeatureCodesByGrantable(
+                selectedFeatureCodes = authorityPagePayloadSupport.filterFeatureCodesByGrantable(
                         authGroupManageService.selectAuthorFeatureCodes(selectedAuthorCode),
                         grantableFeatureCodes);
             }
-            selectedAuthorName = controller.resolveSelectedAuthorName(selectedAuthorCode, filteredAuthorGroups);
+            selectedAuthorName = authorityPagePayloadSupport.resolveSelectedAuthorName(selectedAuthorCode, filteredAuthorGroups);
             if (authGroupError.isEmpty()) {
                 authGroupError = controller.safeString(scopeContext.getErrorMessage());
             }
@@ -110,7 +122,7 @@ public class AdminAuthorityPagePayloadService {
             filteredAuthorGroups = Collections.emptyList();
             featureSections = Collections.emptyList();
             selectedFeatureCodes = Collections.emptyList();
-            scopeContext = AdminMainController.AuthGroupScopeContext.empty();
+            scopeContext = AdminAuthorityPagePayloadSupport.AuthGroupScopeContext.empty();
             authGroupError = isEn
                     ? "Failed to load permission groups and feature catalog."
                     : "권한 그룹 및 기능 목록을 불러오지 못했습니다.";
@@ -123,19 +135,21 @@ public class AdminAuthorityPagePayloadService {
         response.put("authorGroups", authorGroups);
         response.put("filteredAuthorGroups", filteredAuthorGroups);
         response.put("referenceAuthorGroups", filteredAuthorGroups);
-        response.put("generalAuthorGroups", controller.filterAuthorGroups(authorGroups, "GENERAL"));
+        response.put("generalAuthorGroups", authorityPagePayloadSupport.filterAuthorGroups(authorGroups, "GENERAL"));
         FeatureCatalogSummarySnapshot featureCatalogSummary = adminSummaryService.summarizeFeatureCatalog(featureSections);
         response.put("featureSections", featureSections);
         response.put("authorGroupCount", filteredAuthorGroups.size());
         response.put("featureCount", selectedFeatureCodes.size());
         response.put("catalogFeatureCount", featureCatalogSummary.getTotalFeatureCount());
-        response.put("pageCount", controller.countSelectedPageCount(featureSections, selectedFeatureCodes));
+        response.put("pageCount", authorityPagePayloadSupport.countSelectedPageCount(featureSections, selectedFeatureCodes));
         response.put("unassignedFeatureCount", featureCatalogSummary.getUnassignedFeatureCount());
         response.put("recommendedRoleSections",
-                controller.filterRecommendedRoleSections(controller.buildRecommendedRoleSections(authorGroups, isEn), selectedRoleCategory));
-        response.put("assignmentAuthorities", controller.buildAssignmentAuthorities(isEn));
-        response.put("roleCategories", controller.buildRoleCategories(isEn));
-        response.put("roleCategoryOptions", controller.buildRoleCategoryOptions(isEn, canViewGeneralAuthorityGroups));
+                authorityPagePayloadSupport.filterRecommendedRoleSections(
+                        authorityPagePayloadSupport.buildRecommendedRoleSections(authorGroups, isEn),
+                        selectedRoleCategory));
+        response.put("assignmentAuthorities", authorityPagePayloadSupport.buildAssignmentAuthorities(isEn));
+        response.put("roleCategories", authorityPagePayloadSupport.buildRoleCategories(isEn));
+        response.put("roleCategoryOptions", authorityPagePayloadSupport.buildRoleCategoryOptions(isEn, canViewGeneralAuthorityGroups));
         response.put("selectedRoleCategory", selectedRoleCategory);
         response.put("selectedAuthorCode", selectedAuthorCode);
         response.put("selectedAuthorName", selectedAuthorName);
@@ -172,9 +186,9 @@ public class AdminAuthorityPagePayloadService {
         boolean isEn = controller.isEnglishRequest(request, locale);
         controller.primeCsrfToken(request);
         String currentUserId = controller.extractCurrentUserId(request);
-        String currentUserAuthorCode = controller.resolveCurrentUserAuthorCode(currentUserId);
-        boolean globalDeptRoleAccess = controller.hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode);
-        boolean ownCompanyDeptRoleAccess = controller.hasOwnCompanyDeptRoleAccess(currentUserId, currentUserAuthorCode);
+        String currentUserAuthorCode = authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
+        boolean globalDeptRoleAccess = authorityPagePayloadSupport.hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode);
+        boolean ownCompanyDeptRoleAccess = authorityPagePayloadSupport.hasOwnCompanyDeptRoleAccess(currentUserId, currentUserAuthorCode);
         String deptRoleError = "";
 
         List<Map<String, String>> departmentRows;
@@ -191,17 +205,17 @@ public class AdminAuthorityPagePayloadService {
         try {
             List<DepartmentRoleMappingVO> mappings = authGroupManageService.selectDepartmentRoleMappings();
             List<AuthorInfoVO> allAuthorGroups = authGroupManageService.selectAuthorList();
-            String currentUserInsttId = controller.resolveCurrentUserInsttId(currentUserId);
+            String currentUserInsttId = authorityPagePayloadSupport.resolveCurrentUserInsttId(currentUserId);
             String scopedInsttId = globalDeptRoleAccess ? controller.safeString(insttId) : currentUserInsttId;
-            departmentRows = controller.buildDepartmentRoleRows(mappings, isEn);
-            companyOptions = controller.buildDepartmentCompanyOptions(departmentRows);
+            departmentRows = authorityPagePayloadSupport.buildDepartmentRoleRows(mappings, isEn);
+            companyOptions = authorityPagePayloadSupport.buildDepartmentCompanyOptions(departmentRows);
             if (!globalDeptRoleAccess) {
                 companyOptions = companyOptions.stream()
                         .filter(option -> currentUserInsttId.equals(option.get("insttId")))
                         .collect(Collectors.toList());
             }
             String requestedInsttId = globalDeptRoleAccess ? insttId : currentUserInsttId;
-            selectedInsttId = controller.resolveSelectedInsttId(requestedInsttId, companyOptions);
+            selectedInsttId = authorityPagePayloadSupport.resolveSelectedInsttId(requestedInsttId, companyOptions);
             if (!selectedInsttId.isEmpty()) {
                 final String selectedInsttIdValue = selectedInsttId;
                 departmentRows = departmentRows.stream()
@@ -209,13 +223,13 @@ public class AdminAuthorityPagePayloadService {
                         .collect(Collectors.toList());
             }
             String authorScopeInsttId = !selectedInsttId.isEmpty() ? selectedInsttId : scopedInsttId;
-            authorGroups = controller.filterScopedDepartmentAuthorGroups(
-                    controller.filterAuthorGroupsByScope(allAuthorGroups, "DEPARTMENT", authorScopeInsttId, globalDeptRoleAccess),
+            authorGroups = authorityPagePayloadSupport.filterScopedDepartmentAuthorGroups(
+                    authorityPagePayloadSupport.filterAuthorGroupsByScope(allAuthorGroups, "DEPARTMENT", authorScopeInsttId, globalDeptRoleAccess),
                     departmentRows);
             List<UserAuthorityTargetVO> allCompanyMembers = selectedInsttId.isEmpty()
                     ? Collections.emptyList()
                     : authGroupManageService.selectUserAuthorityTargets(selectedInsttId, controller.safeString(memberSearchKeyword));
-            memberAssignableAuthorGroups = controller.buildDeptMemberAssignableGroups(
+            memberAssignableAuthorGroups = authorityPagePayloadSupport.buildDeptMemberAssignableGroups(
                     allAuthorGroups, authorScopeInsttId, globalDeptRoleAccess);
             companyMemberCount = allCompanyMembers.size();
             companyMemberPageSize = 10;
@@ -251,7 +265,7 @@ public class AdminAuthorityPagePayloadService {
         response.put("isEn", isEn);
         response.put("deptRoleUpdated", "true".equalsIgnoreCase(controller.safeString(updated)));
         response.put("deptRoleTargetInsttId", controller.safeString(insttId));
-        response.put("deptRoleMessage", controller.resolveDeptRoleMessage(error, isEn));
+        response.put("deptRoleMessage", authorityPagePayloadSupport.resolveDeptRoleMessage(error, isEn));
         response.put("deptRoleError", deptRoleError);
         response.put("currentUserId", currentUserId);
         response.put("isWebmaster", "webmaster".equalsIgnoreCase(currentUserId));
@@ -316,7 +330,7 @@ public class AdminAuthorityPagePayloadService {
         response.put("authChangeTargetUserId", controller.safeString(targetUserId));
         response.put("authChangeMessage", controller.resolveAuthChangeMessage(error, isEn));
         response.put("authChangeError", authChangeError);
-        response.put("recentRoleChangeHistory", controller.buildRecentAdminRoleChangeHistory(isEn));
+        response.put("recentRoleChangeHistory", authorityPagePayloadSupport.buildRecentAdminRoleChangeHistory(isEn));
         return response;
     }
 }

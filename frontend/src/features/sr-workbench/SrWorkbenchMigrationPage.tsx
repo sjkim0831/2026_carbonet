@@ -27,6 +27,8 @@ import {
 } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { DiagnosticCard, GridToolbar, MemberButton } from "../admin-ui/common";
+import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 
 function buildDirectionPreview(params: {
   pageLabel: string;
@@ -440,7 +442,7 @@ export function SrWorkbenchMigrationPage() {
   }
 
   const content = (
-    <div className="space-y-6">
+    <AdminWorkspacePageFrame>
       <section className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-white px-5 py-4 shadow-sm">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
@@ -582,35 +584,19 @@ export function SrWorkbenchMigrationPage() {
         </div>
 
         <div className="mt-6 flex flex-wrap gap-2">
-          <button className="gov-btn gov-btn-outline-blue" onClick={handleGenerate} type="button">
-            {en ? "Generate Direction" : "해결 지시 생성"}
-          </button>
-          <button className="gov-btn gov-btn-primary" onClick={() => handleCreateTicket().catch(() => undefined)} type="button">
-            {en ? "Create Ticket" : "SR 티켓 발행"}
-          </button>
-          <button className="gov-btn gov-btn-outline-blue" onClick={() => handleQuickExecuteDraft().catch(() => undefined)} type="button">
-            {en ? "Create + Run Now" : "티켓 발행 후 바로 실행"}
-          </button>
-          <button className="gov-btn gov-btn-secondary" onClick={() => handleCreateTicketFromStack().catch(() => undefined)} type="button">
-            {en ? "Create From Stack" : "스택으로 티켓 발행"}
-          </button>
+          <MemberButton onClick={handleGenerate} type="button" variant="secondary">{en ? "Generate Direction" : "해결 지시 생성"}</MemberButton>
+          <MemberButton onClick={() => handleCreateTicket().catch(() => undefined)} type="button" variant="primary">{en ? "Create Ticket" : "SR 티켓 발행"}</MemberButton>
+          <MemberButton onClick={() => handleQuickExecuteDraft().catch(() => undefined)} type="button" variant="secondary">{en ? "Create + Run Now" : "티켓 발행 후 바로 실행"}</MemberButton>
+          <MemberButton onClick={() => handleCreateTicketFromStack().catch(() => undefined)} type="button" variant="info">{en ? "Create From Stack" : "스택으로 티켓 발행"}</MemberButton>
         </div>
       </section>
 
       <section className="gov-card">
-        <div className="mb-6 flex flex-col gap-3 border-b border-[var(--kr-gov-border-light)] pb-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h3 className="text-xl font-black text-[var(--kr-gov-text-primary)]">{en ? "Workbench Stack" : "워크벤치 스택"}</h3>
-            <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
-              {en ? "Right-click selections accumulate here and can be converted into one SR ticket." : "우클릭으로 모은 컨텍스트를 여기서 확인하고 하나의 SR 티켓으로 발행할 수 있습니다."}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button className="gov-btn gov-btn-outline" onClick={() => handleClearStack().catch(() => undefined)} type="button">
-              {en ? "Clear Stack" : "스택 비우기"}
-            </button>
-          </div>
-        </div>
+        <GridToolbar
+          actions={<MemberButton onClick={() => handleClearStack().catch(() => undefined)} type="button" variant="secondary">{en ? "Clear Stack" : "스택 비우기"}</MemberButton>}
+          meta={en ? "Right-click selections accumulate here and can be converted into one SR ticket." : "우클릭으로 모은 컨텍스트를 여기서 확인하고 하나의 SR 티켓으로 발행할 수 있습니다."}
+          title={en ? "Workbench Stack" : "워크벤치 스택"}
+        />
 
         {(workbench?.stackItems || []).length === 0 ? (
           <div className="rounded-[var(--kr-gov-radius)] border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-sm text-[var(--kr-gov-text-secondary)]">
@@ -651,13 +637,11 @@ export function SrWorkbenchMigrationPage() {
       </section>
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <article className="gov-card" data-help-id="sr-direction-preview">
-          <div className="mb-4 border-b border-[var(--kr-gov-border-light)] pb-4">
-            <h3 className="text-xl font-black text-[var(--kr-gov-text-primary)]">{en ? "Execution Context" : "실행 컨텍스트"}</h3>
-            <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
-              {en ? "Review API, schema, and permission metadata before approval." : "승인 전에 API, 스키마, 권한 메타데이터를 검토합니다."}
-            </p>
-          </div>
+        <DiagnosticCard
+          className="p-0 overflow-hidden"
+          description={en ? "Review API, schema, and permission metadata before approval." : "승인 전에 API, 스키마, 권한 메타데이터를 검토합니다."}
+          title={en ? "Execution Context" : "실행 컨텍스트"}
+        >
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4">
               <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">API / Controller</p>
@@ -686,15 +670,12 @@ export function SrWorkbenchMigrationPage() {
               <p className="mt-2 text-xs text-gray-500">{selectedTarget?.label || "-"}</p>
             </div>
           </div>
-        </article>
+        </DiagnosticCard>
 
-        <article className="gov-card">
-          <div className="mb-4 border-b border-[var(--kr-gov-border-light)] pb-4">
-            <h3 className="text-xl font-black text-[var(--kr-gov-text-primary)]">{en ? "Generated Direction" : "생성된 해결 지시"}</h3>
-            <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
-              {en ? "Use the generated SR direction and Codex prompt for approval and execution." : "생성된 SR 지시와 Codex 프롬프트를 승인 및 실행에 사용합니다."}
-            </p>
-          </div>
+        <DiagnosticCard
+          description={en ? "Use the generated SR direction and Codex prompt for approval and execution." : "생성된 SR 지시와 Codex 프롬프트를 승인 및 실행에 사용합니다."}
+          title={en ? "Generated Direction" : "생성된 해결 지시"}
+        >
           <label className="block">
             <span className="gov-label">{en ? "Direction" : "Direction"}</span>
             <textarea className="gov-input min-h-[220px] py-3 font-mono text-[12px]" readOnly rows={10} value={generatedDirection || preview} />
@@ -703,21 +684,15 @@ export function SrWorkbenchMigrationPage() {
             <span className="gov-label">{en ? "Codex Command Prompt" : "Codex Command Prompt"}</span>
             <textarea className="gov-input min-h-[220px] py-3 font-mono text-[12px]" readOnly rows={10} value={commandPrompt} />
           </label>
-        </article>
+        </DiagnosticCard>
       </section>
 
       <section className="gov-card" data-help-id="sr-ticket-table">
-        <div className="mb-6 flex flex-col gap-2 border-b border-[var(--kr-gov-border-light)] pb-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h3 className="text-xl font-black text-[var(--kr-gov-text-primary)]">{en ? "Ticket Queue" : "티켓 대기열"}</h3>
-            <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
-              {en ? "Handle approval, preparation, and execution from the same queue." : "승인, 실행 준비, 실행을 같은 대기열에서 처리합니다."}
-            </p>
-          </div>
-          <div className="text-sm text-[var(--kr-gov-text-secondary)]">
-            {en ? "Total" : "전체"} <span className="font-bold text-[var(--kr-gov-blue)]">{workbench?.ticketCount || 0}</span>{en ? " tickets" : "건"}
-          </div>
-        </div>
+        <GridToolbar
+          actions={<div className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Total" : "전체"} <span className="font-bold text-[var(--kr-gov-blue)]">{workbench?.ticketCount || 0}</span>{en ? " tickets" : "건"}</div>}
+          meta={en ? "Handle approval, preparation, and execution from the same queue." : "승인, 실행 준비, 실행을 같은 대기열에서 처리합니다."}
+          title={en ? "Ticket Queue" : "티켓 대기열"}
+        />
 
         <label className="mb-6 block">
           <span className="gov-label">{en ? "Approval Comment" : "승인 코멘트"}</span>
@@ -804,7 +779,7 @@ export function SrWorkbenchMigrationPage() {
           </table>
         </div>
       </section>
-    </div>
+    </AdminWorkspacePageFrame>
   );
 
   if (embeddedInLegacyAdminShell) {

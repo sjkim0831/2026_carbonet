@@ -14,6 +14,8 @@ import { PermissionButton } from "../../components/access/CanUse";
 import { deriveUiPermissions } from "../../lib/auth/permissions";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { GridToolbar, MemberButton } from "../admin-ui/common";
+import { AdminAuthorityPageFrame } from "../admin-ui/pageFrames";
 
 const PINNED_AUTH_GROUPS_STORAGE_KEY = "carbonet:pinned-auth-groups";
 
@@ -638,6 +640,7 @@ export function AuthGroupMigrationPage() {
         </section>
       ) : null}
 
+      <AdminAuthorityPageFrame>
       <section className="gov-card border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm mb-8" data-help-id="auth-group-filters">
         <div className="flex items-center gap-2 border-b pb-4 mb-4">
           <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">tune</span>
@@ -1118,10 +1121,8 @@ export function AuthGroupMigrationPage() {
         fallback={null}
       >
         <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm" data-help-id="auth-group-features">
-          <div className="flex items-center gap-2 border-b pb-4 mb-4">
-            <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">rule_settings</span>
-            <h3 className="text-lg font-bold">{text(page, "페이지별 기능 카탈로그", "Feature Catalog by Page")}</h3>
-          </div>
+          <GridToolbar title={text(page, "페이지별 기능 카탈로그", "Feature Catalog by Page")} />
+          <div className="p-6">
 
           <div className="mb-4 flex items-center gap-3">
             <label className="block text-[13px] font-bold text-[var(--kr-gov-text-secondary)]">
@@ -1139,16 +1140,17 @@ export function AuthGroupMigrationPage() {
                 </option>
               ))}
             </select>
-            <button
-              className="gov-btn gov-btn-outline-blue"
+            <MemberButton
               disabled={!authorCode}
               onClick={() => togglePinnedAuthorCode(authorCode)}
+              size="sm"
               type="button"
+              variant="secondary"
             >
               {pinnedAuthorCodes.includes(authorCode)
                 ? text(page, "핀 해제", "Unpin")
                 : text(page, "핀 고정", "Pin")}
-            </button>
+            </MemberButton>
           </div>
 
           {pinnedReferenceGroups.length > 0 ? (
@@ -1312,11 +1314,9 @@ export function AuthGroupMigrationPage() {
             </div>
           </div>
 
-          <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-4">
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">history</span>
-              <p className="font-bold text-[var(--kr-gov-text-primary)]">{text(page, "최근 변경 이력", "Recent Changes")}</p>
-            </div>
+          <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 overflow-hidden">
+            <GridToolbar title={text(page, "최근 변경 이력", "Recent Changes")} />
+            <div className="px-4 py-4">
             {!authorCode ? (
               <p className="mt-3 text-sm text-[var(--kr-gov-text-secondary)]">{text(page, "권한 그룹을 선택하면 최근 변경 이력이 표시됩니다.", "Select a role group to view recent changes.")}</p>
             ) : auditLoading ? (
@@ -1372,21 +1372,22 @@ export function AuthGroupMigrationPage() {
                 ))}
               </div>
             )}
+            </div>
           </div>
 
           <div className="mb-4 flex flex-wrap gap-2">
-            <button className="gov-btn gov-btn-outline-blue" onClick={() => setVisibleFeatures(true)} type="button">
+            <MemberButton onClick={() => setVisibleFeatures(true)} size="sm" type="button" variant="secondary">
               {text(page, "현재 표시 기능 전체 선택", "Select All Visible Features")}
-            </button>
-            <button className="gov-btn gov-btn-outline-blue" onClick={() => setVisibleFeatures(false)} type="button">
+            </MemberButton>
+            <MemberButton onClick={() => setVisibleFeatures(false)} size="sm" type="button" variant="secondary">
               {text(page, "현재 표시 기능 전체 해제", "Clear All Visible Features")}
-            </button>
-            <button className="gov-btn gov-btn-outline-blue" onClick={() => setCollapsedMenuCodes([])} type="button">
+            </MemberButton>
+            <MemberButton onClick={() => setCollapsedMenuCodes([])} size="sm" type="button" variant="secondary">
               {text(page, "페이지 전체 펼치기", "Expand All Pages")}
-            </button>
-            <button className="gov-btn gov-btn-outline-blue" onClick={() => setCollapsedMenuCodes(visibleFeatureSections.map((section) => section.menuCode))} type="button">
+            </MemberButton>
+            <MemberButton onClick={() => setCollapsedMenuCodes(visibleFeatureSections.map((section) => section.menuCode))} size="sm" type="button" variant="secondary">
               {text(page, "페이지 전체 접기", "Collapse All Pages")}
-            </button>
+            </MemberButton>
           </div>
 
           <div className="space-y-6">
@@ -1534,8 +1535,10 @@ export function AuthGroupMigrationPage() {
                 : text(page, "webmaster 전용", "Webmaster only")}
             </PermissionButton>
           </div>
+        </div>
         </section>
       </CanView>
+      </AdminAuthorityPageFrame>
     </AdminPageShell>
   );
 }

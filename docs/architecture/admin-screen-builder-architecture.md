@@ -1,0 +1,405 @@
+# Admin Screen Builder Architecture
+
+## Goal
+
+Extend Carbonet from fixed admin pages into a controlled screen-builder platform where operators can:
+
+- create a page from a menu entry
+- compose layout with drag and drop
+- configure component properties
+- wire user events to approved actions
+- bind data to fields and tables
+- publish a runtime-rendered screen
+
+This is not a simple extension of `/admin/system/environment-management`. It is a new platform layer that must integrate with:
+
+- menu inventory
+- feature and authority chain
+- screen registry
+- observability and audit
+- runtime page rendering
+
+## Non-Goals
+
+The first version should not attempt:
+
+- arbitrary custom React code editing
+- unrestricted script execution
+- unconstrained component creation
+- every possible page archetype
+- replacing all legacy pages at once
+
+The correct first target is a template-limited builder for a small number of admin page types.
+
+## Required Module Set
+
+### 1. Builder Canvas
+
+Responsibilities:
+
+- drag-and-drop layout editing
+- section and container hierarchy
+- component reorder, duplicate, delete
+- selection state
+- responsive preview
+
+Core primitives:
+
+- page
+- section
+- grid row
+- grid column
+- card
+- form block
+- table block
+- modal block
+
+### 2. Component Palette
+
+Responsibilities:
+
+- provide approved component library
+- show only components valid for current template and context
+
+Initial component catalog:
+
+- heading
+- text
+- button
+- input
+- textarea
+- select
+- checkbox
+- radio
+- table
+- badge
+- card
+- modal
+- tabs
+- file upload
+
+### 3. Property Panel
+
+Responsibilities:
+
+- edit component props
+- edit validation and display rules
+- edit style variant within approved tokens
+
+Examples:
+
+- label
+- placeholder
+- required
+- readonly
+- width
+- variant
+- empty state text
+- section title
+
+### 4. Event Binding Panel
+
+Responsibilities:
+
+- connect approved UI events to approved actions
+
+Initial supported events:
+
+- `onClick`
+- `onChange`
+- `onSubmit`
+- `onRowSelect`
+
+Initial supported actions:
+
+- navigate
+- open modal
+- close modal
+- set state
+- call API
+- reload query
+- toggle section
+
+### 5. Data Binding Modeler
+
+Responsibilities:
+
+- define screen state
+- map component props to state or API fields
+- map tables to collection responses
+- define form submission payloads
+
+Initial data sources:
+
+- local state
+- page bootstrap payload
+- one query result
+- one mutation result
+
+### 6. Schema Persistence
+
+Responsibilities:
+
+- store draft schema
+- version schema
+- publish schema
+- rollback schema
+- keep change history
+
+Recommended persistence units:
+
+- `screen_definition`
+- `screen_definition_version`
+- `screen_component_tree`
+- `screen_event_binding`
+- `screen_data_binding`
+- `screen_publish_history`
+
+### 7. Runtime Renderer
+
+Responsibilities:
+
+- resolve saved schema to actual React runtime
+- enforce approved component registry
+- enforce approved event action registry
+- reject invalid draft at publish time rather than degrade silently
+
+Rendering approach:
+
+- menu route resolves `pageId`
+- `pageId` resolves published builder schema
+- runtime renderer maps schema node type to approved React component
+
+### 8. Governance and Validation
+
+Responsibilities:
+
+- schema validation
+- authority linkage validation
+- audit logging
+- trace correlation
+- metadata registry sync
+
+Validation examples:
+
+- missing required component props
+- unknown event action
+- API id missing from registry
+- feature code missing
+- unpublished route
+- invalid menu linkage
+
+## Integration With Existing Carbonet Surfaces
+
+### Environment Management
+
+`/admin/system/environment-management` remains:
+
+- menu inventory hub
+- page registration hub
+- feature creation hub
+
+New role:
+
+- link a menu/page to a screen-builder definition
+- launch builder for a selected page
+- show builder publish status
+
+### Auth Group
+
+Builder-generated pages still need:
+
+- page VIEW feature
+- action feature definitions
+- role mapping
+
+The builder must not bypass the existing authority chain.
+
+### Screen Command / Full Stack Management
+
+Builder pages must still appear in:
+
+- screen registry
+- audit/trace
+- metadata overview
+- remediation flows
+
+The builder schema should feed those registries rather than create a separate hidden metadata source.
+
+## Recommended Data Model
+
+This is an architectural shape, not a final SQL contract.
+
+### Screen Definition
+
+- `builder_id`
+- `page_id`
+- `menu_code`
+- `template_type`
+- `status`
+- `owner_id`
+- `current_version_id`
+
+### Screen Definition Version
+
+- `version_id`
+- `builder_id`
+- `version_no`
+- `draft_json`
+- `validation_status`
+- `published_yn`
+- `created_by`
+- `created_at`
+
+### Component Tree Node
+
+- `node_id`
+- `version_id`
+- `parent_node_id`
+- `component_type`
+- `slot_name`
+- `sort_order`
+- `props_json`
+
+### Event Binding
+
+- `binding_id`
+- `version_id`
+- `node_id`
+- `event_name`
+- `action_type`
+- `action_config_json`
+
+### Data Binding
+
+- `binding_id`
+- `version_id`
+- `node_id`
+- `binding_kind`
+- `source_type`
+- `source_path`
+- `target_prop`
+
+## Page Types for MVP
+
+Only these four should be builder-managed at first:
+
+### List Page
+
+- filter area
+- toolbar
+- table
+- pagination
+
+### Detail Page
+
+- summary card
+- read-only sections
+- bottom action bar
+
+### Edit Page
+
+- form sections
+- validation
+- bottom save actions
+
+### Review Page
+
+- list
+- detail modal
+- approve / reject actions
+
+## Phased Rollout
+
+### Phase 1: Builder Skeleton
+
+Scope:
+
+- page-template selection
+- layout canvas
+- component palette
+- property editing
+- draft save
+
+Not yet:
+
+- runtime publish
+- advanced events
+- data binding complexity
+
+### Phase 2: Event and Data Binding
+
+Scope:
+
+- approved actions
+- approved API bindings
+- form payload mapping
+- table data mapping
+
+### Phase 3: Runtime Publish
+
+Scope:
+
+- published schema resolution
+- runtime renderer
+- route-to-schema linkage
+- menu integration
+
+### Phase 4: Governance
+
+Scope:
+
+- audit and trace
+- version compare
+- rollback
+- release approvals
+- metadata synchronization
+
+## Estimated Build Size
+
+### Minimal MVP
+
+- 4 to 6 weeks
+- template-limited
+- draft save only
+
+### Operational First Release
+
+- 2 to 3 months
+- publishable
+- validated event bindings
+- menu integration
+
+### Broad Internal Platform
+
+- 4 to 6 months+
+- runtime maturity
+- rollback and history
+- stronger governance
+
+## Delivery Order
+
+1. schema types and persistence contract
+2. validator
+3. minimal runtime renderer
+4. builder authoring UI
+5. menu/environment integration
+6. audit/trace integration
+7. publish and rollback
+
+## Recommended First Implementation Boundary
+
+If implementation starts immediately, the safest first slice is:
+
+- add `builder managed` metadata to selected page in environment management
+- create builder draft editor for one template type: `EditPage`
+- support only:
+  - section
+  - input
+  - select
+  - button
+  - submit API
+- save draft schema
+- preview runtime in a controlled sandbox route
+
+This is small enough to prove the contract without overcommitting to a universal builder.

@@ -23,6 +23,7 @@ declare global {
       securityAuditPageData?: unknown;
       schedulerManagementPageData?: unknown;
       emissionResultListPageData?: unknown;
+      screenBuilderPageData?: unknown;
     };
   }
 }

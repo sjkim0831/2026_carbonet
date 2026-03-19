@@ -10,6 +10,8 @@ import {
 } from "../../lib/api/client";
 import { buildLocalizedPath, getSearchParam, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { DiagnosticCard, GridToolbar, MemberButton } from "../admin-ui/common";
+import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 import { ScreenCommandCenterPanel } from "./ScreenCommandCenterPanel";
 
 type HelpManagementTab = "help" | "command";
@@ -164,52 +166,39 @@ export function HelpManagementMigrationPage() {
         </section>
       ) : null}
 
-      <section className="gov-card mb-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h3 className="text-xl font-black text-[var(--kr-gov-text-primary)]">{en ? "Workspace" : "운영 작업공간"}</h3>
-            <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
-              {en ? "Switch between overlay help editing and screen command guidance." : "overlay 도움말 편집과 화면 수정 디렉션 탐색을 한 화면에서 전환합니다."}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              className={tab === "help" ? "gov-btn gov-btn-primary" : "gov-btn gov-btn-outline-blue"}
-              onClick={() => setTab("help")}
-              type="button"
-            >
+      <AdminWorkspacePageFrame>
+      <DiagnosticCard
+        actions={(
+          <>
+            <MemberButton onClick={() => setTab("help")} type="button" variant={tab === "help" ? "primary" : "secondary"}>
               {en ? "Help Editor" : "도움말 운영"}
-            </button>
-            <button
-              className={tab === "command" ? "gov-btn gov-btn-primary" : "gov-btn gov-btn-outline-blue"}
-              onClick={() => setTab("command")}
-              type="button"
-            >
+            </MemberButton>
+            <MemberButton onClick={() => setTab("command")} type="button" variant={tab === "command" ? "primary" : "secondary"}>
               {en ? "Command Guide" : "수정 디렉션"}
-            </button>
-          </div>
-        </div>
-      </section>
+            </MemberButton>
+          </>
+        )}
+        description={en ? "Switch between overlay help editing and screen command guidance." : "overlay 도움말 편집과 화면 수정 디렉션 탐색을 한 화면에서 전환합니다."}
+        title={en ? "Workspace" : "운영 작업공간"}
+      />
 
       {tab === "help" ? (
         <div className="space-y-6">
           <section className="gov-card" data-help-id="help-management-select">
-            <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
-                  {en ? "Target Page" : "대상 화면"}
-                </p>
-                <h3 className="mt-2 text-xl font-black text-[var(--kr-gov-text-primary)]">{selectedPageId}</h3>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button className="gov-btn gov-btn-secondary" onClick={handleLoad} type="button">
-                  {en ? "Reload" : "불러오기"}
-                </button>
-                <button className="gov-btn gov-btn-primary" disabled={saving} onClick={handleSave} type="button">
-                  {saving ? (en ? "Saving..." : "저장 중...") : (en ? "Save Help" : "저장")}
-                </button>
-              </div>
-            </div>
+            <GridToolbar
+              actions={(
+                <>
+                  <MemberButton onClick={handleLoad} type="button" variant="secondary">
+                    {en ? "Reload" : "불러오기"}
+                  </MemberButton>
+                  <MemberButton disabled={saving} onClick={handleSave} type="button" variant="primary">
+                    {saving ? (en ? "Saving..." : "저장 중...") : (en ? "Save Help" : "저장")}
+                  </MemberButton>
+                </>
+              )}
+              meta={selectedPageId}
+              title={en ? "Target Page" : "대상 화면"}
+            />
 
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
               <label className="block xl:col-span-2">
@@ -240,12 +229,7 @@ export function HelpManagementMigrationPage() {
           </section>
 
           <section className="gov-card" data-help-id="help-management-page-form">
-            <div className="mb-6">
-              <h3 className="text-xl font-black text-[var(--kr-gov-text-primary)]">{en ? "Page Metadata" : "기본 도움말 정보"}</h3>
-              <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
-                {en ? "Set default title, summary, and active version for the selected page." : "선택한 페이지의 기본 title, summary, 활성 버전을 설정합니다."}
-              </p>
-            </div>
+            <GridToolbar meta={en ? "Set default title, summary, and active version for the selected page." : "선택한 페이지의 기본 title, summary, 활성 버전을 설정합니다."} title={en ? "Page Metadata" : "기본 도움말 정보"} />
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
               <label className="block">
                 <span className="gov-label">Title</span>
@@ -270,17 +254,11 @@ export function HelpManagementMigrationPage() {
           </section>
 
           <section className="gov-card" data-help-id="help-management-items">
-            <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-              <div>
-                <h3 className="text-xl font-black text-[var(--kr-gov-text-primary)]">{en ? "Help Steps" : "도움말 단계"}</h3>
-                <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
-                  {en ? `${items.length} steps configured for the current page.` : `현재 페이지에 ${items.length}개 단계가 설정되어 있습니다.`}
-                </p>
-              </div>
-              <button className="gov-btn gov-btn-secondary" onClick={addItem} type="button">
-                {en ? "Add Step" : "단계 추가"}
-              </button>
-            </div>
+            <GridToolbar
+              actions={<MemberButton onClick={addItem} type="button" variant="secondary">{en ? "Add Step" : "단계 추가"}</MemberButton>}
+              meta={en ? `${items.length} steps configured for the current page.` : `현재 페이지에 ${items.length}개 단계가 설정되어 있습니다.`}
+              title={en ? "Help Steps" : "도움말 단계"}
+            />
 
             {items.length === 0 ? (
               <div className="rounded-[var(--kr-gov-radius)] border border-dashed border-[var(--kr-gov-border-light)] bg-gray-50 px-5 py-10 text-center text-sm text-[var(--kr-gov-text-secondary)]">
@@ -440,6 +418,7 @@ export function HelpManagementMigrationPage() {
       ) : (
         <ScreenCommandCenterPanel initialPageId={selectedPageId} />
       )}
+      </AdminWorkspacePageFrame>
     </AdminPageShell>
   );
 }

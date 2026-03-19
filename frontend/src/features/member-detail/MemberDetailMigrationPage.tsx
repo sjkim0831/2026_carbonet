@@ -224,17 +224,25 @@ export function MemberDetailMigrationPage() {
         <MemberActionBar
           className="mt-10"
           dataHelpId="member-action-bar"
+          description="목록으로 돌아가거나 수정 화면으로 이동한 뒤, 검토 결과에 따라 승인 또는 반려를 진행합니다."
+          eyebrow="검토 작업"
           primary={(
             <div className="flex flex-col gap-3 sm:flex-row">
-              <MemberPermissionButton allowed={true} size="lg" type="button" variant="dangerSecondary">{MEMBER_BUTTON_LABELS.reject}</MemberPermissionButton>
-              <MemberPermissionButton allowed={true} size="lg" type="button" variant="success">{MEMBER_BUTTON_LABELS.approve}</MemberPermissionButton>
+              <MemberPermissionButton allowed={true} className="w-full min-w-[160px]" size="lg" type="button" variant="dangerSecondary">{MEMBER_BUTTON_LABELS.reject}</MemberPermissionButton>
+              <MemberPermissionButton allowed={true} className="w-full min-w-[160px] shadow-lg shadow-emerald-900/10" size="lg" type="button" variant="success">{MEMBER_BUTTON_LABELS.approve}</MemberPermissionButton>
             </div>
           )}
           secondary={{
-            icon: "arrow_back",
+            href: buildLocalizedPath("/admin/member/list", "/en/admin/member/list"),
+            icon: "list",
             label: MEMBER_BUTTON_LABELS.list,
-            onClick: () => { window.location.href = buildLocalizedPath("/admin/member/list", "/en/admin/member/list"); }
           }}
+          tertiary={{
+            href: buildLocalizedPath(`/admin/member/edit?memberId=${encodeURIComponent(initialMemberId)}`, `/en/admin/member/edit?memberId=${encodeURIComponent(initialMemberId)}`),
+            icon: "edit_square",
+            label: MEMBER_BUTTON_LABELS.edit
+          }}
+          title="회원 상태를 최종 검토한 뒤 다음 작업을 선택하세요."
         />
       </CanView>
     </AdminPageShell>

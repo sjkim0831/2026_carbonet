@@ -4,6 +4,9 @@ import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { buildLocalizedPath, getSearchParam, isEnglish } from "../../lib/navigation/runtime";
 import { fetchSystemCodePage, type SystemCodePagePayload } from "../../lib/api/client";
 import { stringOf, submitFormRequest } from "../admin-system/adminSystemShared";
+import { ADMIN_BUTTON_LABELS } from "../admin-ui/labels";
+import { GridToolbar, MemberButton } from "../admin-ui/common";
+import { AdminEditPageFrame } from "../admin-ui/pageFrames";
 
 function useSystemCodePage() {
   const [detailCodeId, setDetailCodeId] = useState(getSearchParam("detailCodeId"));
@@ -57,11 +60,13 @@ export function SystemCodeMigrationPage() {
         </section>
       ) : null}
 
-      <section className="gov-card mb-8" data-help-id="system-code-class">
-        <div className="flex items-center gap-2 border-b pb-4 mb-4">
-          <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">category</span>
-          <h3 className="text-lg font-bold">{en ? "Class Codes" : "분류 코드"}</h3>
-        </div>
+      <AdminEditPageFrame>
+      <section className="gov-card" data-help-id="system-code-class">
+        <GridToolbar
+          actions={<span className="material-symbols-outlined text-[var(--kr-gov-blue)]">category</span>}
+          className="mb-4"
+          title={en ? "Class Codes" : "분류 코드"}
+        />
         <form action={buildLocalizedPath("/admin/system/code/class/create", "/en/admin/system/code/class/create")} className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4" method="post" onSubmit={handleSubmit}>
           <div>
             <label className="gov-label" htmlFor="clCode">{en ? "Class Code" : "분류 코드"}</label>
@@ -83,7 +88,7 @@ export function SystemCodeMigrationPage() {
             </select>
           </div>
           <div className="md:col-span-5 flex justify-end gap-2">
-            <button className="gov-btn gov-btn-primary" type="submit">{en ? "Add Class Code" : "분류 코드 추가"}</button>
+            <MemberButton type="submit" variant="primary">{en ? "Add Class Code" : ADMIN_BUTTON_LABELS.create}</MemberButton>
           </div>
         </form>
 
@@ -116,7 +121,7 @@ export function SystemCodeMigrationPage() {
                           <option value="N">N</option>
                         </select>
                         <div className="flex gap-2 justify-end">
-                          <button className="gov-btn gov-btn-outline" type="submit">{en ? "Update" : "수정"}</button>
+                          <MemberButton type="submit">{en ? "Update" : ADMIN_BUTTON_LABELS.save}</MemberButton>
                         </div>
                       </form>
                     </td>
@@ -125,7 +130,7 @@ export function SystemCodeMigrationPage() {
                     <td className="px-4 py-3 text-center">
                       <form action={buildLocalizedPath("/admin/system/code/class/delete", "/en/admin/system/code/class/delete")} method="post" onSubmit={handleSubmit}>
                         <input name="clCode" type="hidden" value={clCode} />
-                        <button className="gov-btn gov-btn-danger" type="submit">{en ? "Delete" : "삭제"}</button>
+                        <MemberButton type="submit" variant="danger">{en ? "Delete" : "삭제"}</MemberButton>
                       </form>
                     </td>
                   </tr>
@@ -136,11 +141,12 @@ export function SystemCodeMigrationPage() {
         </div>
       </section>
 
-      <section className="gov-card mb-8" data-help-id="system-code-group">
-        <div className="flex items-center gap-2 border-b pb-4 mb-4">
-          <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">list_alt</span>
-          <h3 className="text-lg font-bold">{en ? "Code IDs" : "코드 ID"}</h3>
-        </div>
+      <section className="gov-card" data-help-id="system-code-group">
+        <GridToolbar
+          actions={<span className="material-symbols-outlined text-[var(--kr-gov-blue)]">list_alt</span>}
+          className="mb-4"
+          title={en ? "Code IDs" : "코드 ID"}
+        />
         <form action={buildLocalizedPath("/admin/system/code/group/create", "/en/admin/system/code/group/create")} className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-4" method="post" onSubmit={handleSubmit}>
           <div>
             <label className="gov-label" htmlFor="codeId">{en ? "Code ID" : "코드 ID"}</label>
@@ -172,7 +178,7 @@ export function SystemCodeMigrationPage() {
             </select>
           </div>
           <div className="md:col-span-6 flex justify-end gap-2">
-            <button className="gov-btn gov-btn-primary" type="submit">{en ? "Add Code ID" : "코드 ID 추가"}</button>
+            <MemberButton type="submit" variant="primary">{en ? "Add Code ID" : ADMIN_BUTTON_LABELS.create}</MemberButton>
           </div>
         </form>
 
@@ -213,7 +219,7 @@ export function SystemCodeMigrationPage() {
                           <option value="N">N</option>
                         </select>
                         <div className="flex gap-2 justify-end">
-                          <button className="gov-btn gov-btn-outline" type="submit">{en ? "Update" : "수정"}</button>
+                          <MemberButton type="submit">{en ? "Update" : ADMIN_BUTTON_LABELS.save}</MemberButton>
                         </div>
                       </form>
                     </td>
@@ -223,7 +229,7 @@ export function SystemCodeMigrationPage() {
                     <td className="px-4 py-3 text-center">
                       <form action={buildLocalizedPath("/admin/system/code/group/delete", "/en/admin/system/code/group/delete")} method="post" onSubmit={handleSubmit}>
                         <input name="codeId" type="hidden" value={codeId} />
-                        <button className="gov-btn gov-btn-danger" type="submit">{en ? "Delete" : "삭제"}</button>
+                        <MemberButton type="submit" variant="danger">{en ? "Delete" : "삭제"}</MemberButton>
                       </form>
                     </td>
                   </tr>
@@ -235,10 +241,11 @@ export function SystemCodeMigrationPage() {
       </section>
 
       <section className="gov-card" data-help-id="system-code-detail">
-        <div className="flex items-center gap-2 border-b pb-4 mb-4">
-          <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">fact_check</span>
-          <h3 className="text-lg font-bold">{en ? "Detail Codes" : "상세 코드"}</h3>
-        </div>
+        <GridToolbar
+          actions={<span className="material-symbols-outlined text-[var(--kr-gov-blue)]">fact_check</span>}
+          className="mb-4"
+          title={en ? "Detail Codes" : "상세 코드"}
+        />
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
           <div className="md:col-span-2">
             <label className="gov-label" htmlFor="detailCodeId">{en ? "Select Code ID" : "코드 ID 선택"}</label>
@@ -282,7 +289,7 @@ export function SystemCodeMigrationPage() {
             </select>
           </div>
           <div className="md:col-span-6 flex justify-end gap-2">
-            <button className="gov-btn gov-btn-primary" type="submit">{en ? "Add Detail Code" : "상세 코드 추가"}</button>
+            <MemberButton type="submit" variant="primary">{en ? "Add Detail Code" : ADMIN_BUTTON_LABELS.create}</MemberButton>
           </div>
         </form>
 
@@ -319,7 +326,7 @@ export function SystemCodeMigrationPage() {
                           <option value="N">N</option>
                         </select>
                         <div className="flex gap-2 justify-end">
-                          <button className="gov-btn gov-btn-outline" type="submit">{en ? "Update" : "수정"}</button>
+                          <MemberButton type="submit">{en ? "Update" : ADMIN_BUTTON_LABELS.save}</MemberButton>
                         </div>
                       </form>
                     </td>
@@ -329,7 +336,7 @@ export function SystemCodeMigrationPage() {
                       <form action={buildLocalizedPath("/admin/system/code/detail/delete", "/en/admin/system/code/detail/delete")} method="post" onSubmit={handleSubmit}>
                         <input name="codeId" type="hidden" value={codeId} />
                         <input name="code" type="hidden" value={code} />
-                        <button className="gov-btn gov-btn-danger" type="submit">{en ? "Delete" : "삭제"}</button>
+                        <MemberButton type="submit" variant="danger">{en ? "Delete" : "삭제"}</MemberButton>
                       </form>
                     </td>
                   </tr>
@@ -339,6 +346,7 @@ export function SystemCodeMigrationPage() {
           </table>
         </div>
       </section>
+      </AdminEditPageFrame>
     </AdminPageShell>
   );
 }

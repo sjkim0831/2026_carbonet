@@ -42,6 +42,8 @@ export type MigrationPageId =
   | "column-management-console"
   | "automation-studio"
   | "environment-management"
+  | "screen-builder"
+  | "screen-runtime"
   | "wbs-management"
   | "ip-whitelist"
   | "login-history"
@@ -124,6 +126,8 @@ export const ROUTES: RouteDefinition[] = [
   { id: "column-management-console", label: "컬럼 관리", group: "admin", koPath: "/admin/system/column-management-console", enPath: "/en/admin/system/column-management-console" },
   { id: "automation-studio", label: "자동화 스튜디오", group: "admin", koPath: "/admin/system/automation-studio", enPath: "/en/admin/system/automation-studio" },
   { id: "environment-management", label: "메뉴 통합 관리", group: "admin", koPath: "/admin/system/environment-management", enPath: "/en/admin/system/environment-management" },
+  { id: "screen-builder", label: "화면 빌더", group: "admin", koPath: "/admin/system/screen-builder", enPath: "/en/admin/system/screen-builder" },
+  { id: "screen-runtime", label: "발행 화면 런타임", group: "admin", koPath: "/admin/system/screen-runtime", enPath: "/en/admin/system/screen-runtime" },
   { id: "wbs-management", label: "WBS 관리", group: "admin", koPath: "/admin/system/wbs-management", enPath: "/en/admin/system/wbs-management" },
   { id: "ip-whitelist", label: "IP 화이트리스트", group: "admin", koPath: "/admin/system/ip_whitelist", enPath: "/en/admin/system/ip_whitelist" },
   { id: "login-history", label: "로그인 이력", group: "admin", koPath: "/admin/member/login_history", enPath: "/en/admin/member/login_history" },

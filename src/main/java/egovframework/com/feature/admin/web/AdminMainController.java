@@ -145,6 +145,7 @@ public class AdminMainController {
     private final MenuInfoService menuInfoService;
     private final AdminSummaryService adminSummaryService;
     private final AuthorRoleProfileService authorRoleProfileService;
+    private final AdminAuthorityPagePayloadSupport adminAuthorityPagePayloadSupport;
     private final AuditTrailService auditTrailService;
     private final ObservabilityQueryService observabilityQueryService;
     private final ObjectMapper objectMapper;
@@ -4464,82 +4465,29 @@ public class AdminMainController {
     }
 
     List<FeatureCatalogSectionVO> buildFeatureCatalogSections(List<FeatureCatalogItemVO> featureRows, boolean isEn) {
-        Map<String, FeatureCatalogSectionVO> sectionMap = new java.util.LinkedHashMap<>();
-        for (FeatureCatalogItemVO row : featureRows) {
-            String mappedMenuUrl = ReactPageUrlMapper.toRuntimeUrl(row.getMenuUrl(), isEn);
-            row.setMenuUrl(mappedMenuUrl.isEmpty() ? row.getMenuUrl() : mappedMenuUrl);
-            FeatureCatalogSectionVO section = sectionMap.computeIfAbsent(row.getMenuCode(), key -> {
-                FeatureCatalogSectionVO value = new FeatureCatalogSectionVO();
-                value.setMenuCode(row.getMenuCode());
-                value.setMenuNm(row.getMenuNm());
-                value.setMenuNmEn(row.getMenuNmEn());
-                value.setMenuUrl(row.getMenuUrl());
-                return value;
-            });
-            section.getFeatures().add(row);
-        }
-        return new ArrayList<>(sectionMap.values());
+        return adminAuthorityPagePayloadSupport.buildFeatureCatalogSections(featureRows, isEn);
     }
 
     List<FeatureCatalogItemVO> applyFeatureAssignmentStats(
             List<FeatureCatalogItemVO> featureRows,
             Map<String, Integer> featureAssignmentCounts) {
-        if (featureRows == null || featureRows.isEmpty()) {
-            return Collections.emptyList();
-        }
-        for (FeatureCatalogItemVO row : featureRows) {
-            String featureCode = safeString(row.getFeatureCode()).toUpperCase(Locale.ROOT);
-            int assignedRoleCount = featureAssignmentCounts.getOrDefault(featureCode, 0);
-            row.setAssignedRoleCount(assignedRoleCount);
-            row.setUnassignedToRole(assignedRoleCount == 0);
-        }
-        return featureRows;
+        return adminAuthorityPagePayloadSupport.applyFeatureAssignmentStats(featureRows, featureAssignmentCounts);
     }
 
     Map<String, Integer> toFeatureAssignmentCountMap(List<FeatureAssignmentStatVO> stats) {
-        if (stats == null || stats.isEmpty()) {
-            return Collections.emptyMap();
-        }
-        Map<String, Integer> result = new LinkedHashMap<>();
-        for (FeatureAssignmentStatVO stat : stats) {
-            String featureCode = safeString(stat.getFeatureCode()).toUpperCase(Locale.ROOT);
-            if (!featureCode.isEmpty()) {
-                result.put(featureCode, stat.getAssignedRoleCount());
-            }
-        }
-        return result;
+        return adminAuthorityPagePayloadSupport.toFeatureAssignmentCountMap(stats);
     }
 
     String resolveSelectedAuthorCode(String authorCode, List<AuthorInfoVO> authorGroups) {
-        String normalized = safeString(authorCode).toUpperCase(Locale.ROOT);
-        if (!normalized.isEmpty()) {
-            return normalized;
-        }
-        if (authorGroups == null || authorGroups.isEmpty()) {
-            return "";
-        }
-        return safeString(authorGroups.get(0).getAuthorCode()).toUpperCase(Locale.ROOT);
+        return adminAuthorityPagePayloadSupport.resolveSelectedAuthorCode(authorCode, authorGroups);
     }
 
     String resolveSelectedAuthorName(String authorCode, List<AuthorInfoVO> authorGroups) {
-        String normalized = safeString(authorCode).toUpperCase(Locale.ROOT);
-        if (normalized.isEmpty() || authorGroups == null || authorGroups.isEmpty()) {
-            return "";
-        }
-        return authorGroups.stream()
-                .filter(group -> normalized.equalsIgnoreCase(safeString(group.getAuthorCode())))
-                .map(AuthorInfoVO::getAuthorNm)
-                .filter(name -> !safeString(name).isEmpty())
-                .findFirst()
-                .orElse("");
+        return adminAuthorityPagePayloadSupport.resolveSelectedAuthorName(authorCode, authorGroups);
     }
 
     int countSelectedPageCount(List<FeatureCatalogSectionVO> featureSections, List<String> selectedFeatureCodes) {
-        if (featureSections == null || featureSections.isEmpty() || selectedFeatureCodes == null || selectedFeatureCodes.isEmpty()) {
-            return 0;
-        }
-        FeatureCodeBitmap.Index featureBitmapIndex = buildFeatureBitmapIndex(featureSections, selectedFeatureCodes);
-        return countSelectedPageCount(featureSections, featureBitmapIndex, featureBitmapIndex.encode(selectedFeatureCodes));
+        return adminAuthorityPagePayloadSupport.countSelectedPageCount(featureSections, selectedFeatureCodes);
     }
 
     int countSelectedPageCount(List<FeatureCatalogSectionVO> featureSections,
@@ -4717,15 +4665,7 @@ public class AdminMainController {
     }
 
     String resolveCurrentUserAuthorCode(String currentUserId) {
-        if (isWebmaster(currentUserId)) {
-            return ROLE_SYSTEM_MASTER;
-        }
-        try {
-            return safeString(authGroupManageService.selectAuthorCodeByUserId(currentUserId)).toUpperCase(Locale.ROOT);
-        } catch (Exception e) {
-            log.error("Failed to resolve current admin role. userId={}", safeString(currentUserId), e);
-            return "";
-        }
+        return adminAuthorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
     }
 
     private void recordApprovalAuditSafely(HttpServletRequest request,
@@ -4823,44 +4763,11 @@ public class AdminMainController {
     }
 
     private Map<String, String> resolveAdminRoleSummary(String emplyrId) {
-        String normalizedEmplyrId = safeString(emplyrId);
-        if (normalizedEmplyrId.isEmpty()) {
-            return buildAuthorSummary("");
-        }
-        try {
-            return authGroupManageService.selectAdminRoleAssignments().stream()
-                    .filter(item -> normalizedEmplyrId.equalsIgnoreCase(safeString(item.getEmplyrId())))
-                    .findFirst()
-                    .map(item -> {
-                        Map<String, String> summary = new LinkedHashMap<>();
-                        summary.put("authorCode", safeString(item.getAuthorCode()));
-                        summary.put("authorNm", safeString(item.getAuthorNm()));
-                        return summary;
-                    })
-                    .orElseGet(() -> buildAuthorSummary(""));
-        } catch (Exception e) {
-            log.warn("Failed to resolve current admin role summary. emplyrId={}", normalizedEmplyrId, e);
-            return buildAuthorSummary("");
-        }
+        return adminAuthorityPagePayloadSupport.resolveAdminRoleSummary(emplyrId);
     }
 
     private Map<String, String> buildAuthorSummary(String authorCode) {
-        String normalizedAuthorCode = safeString(authorCode).toUpperCase(Locale.ROOT);
-        Map<String, String> summary = new LinkedHashMap<>();
-        summary.put("authorCode", normalizedAuthorCode);
-        summary.put("authorNm", "");
-        if (normalizedAuthorCode.isEmpty()) {
-            return summary;
-        }
-        try {
-            authGroupManageService.selectAuthorList().stream()
-                    .filter(item -> normalizedAuthorCode.equalsIgnoreCase(safeString(item.getAuthorCode())))
-                    .findFirst()
-                    .ifPresent(item -> summary.put("authorNm", safeString(item.getAuthorNm())));
-        } catch (Exception e) {
-            log.warn("Failed to resolve author summary. authorCode={}", normalizedAuthorCode, e);
-        }
-        return summary;
+        return adminAuthorityPagePayloadSupport.buildAuthorSummary(authorCode);
     }
 
     Map<String, Object> toAuthorRoleProfileMap(AuthorRoleProfileVO profile) {
@@ -4924,21 +4831,7 @@ public class AdminMainController {
     }
 
     List<Map<String, String>> buildRecentAdminRoleChangeHistory(boolean isEn) {
-        AuditEventSearchVO searchVO = new AuditEventSearchVO();
-        searchVO.setFirstIndex(0);
-        searchVO.setRecordCountPerPage(10);
-        searchVO.setPageId("auth-change");
-        searchVO.setActionCode("ADMIN_ROLE_ASSIGNMENT_SAVE");
-        List<AuditEventRecordVO> items;
-        try {
-            items = observabilityQueryService.selectAuditEventList(searchVO);
-        } catch (Exception e) {
-            log.warn("Failed to load recent admin role change history.", e);
-            return Collections.emptyList();
-        }
-        return items.stream()
-                .map(item -> buildAdminRoleChangeHistoryRow(item, isEn))
-                .collect(Collectors.toList());
+        return adminAuthorityPagePayloadSupport.buildRecentAdminRoleChangeHistory(isEn);
     }
 
     private Map<String, String> buildAdminRoleChangeHistoryRow(AuditEventRecordVO item, boolean isEn) {
@@ -5014,111 +4907,15 @@ public class AdminMainController {
     }
 
     boolean hasGlobalDeptRoleAccess(String currentUserId, String authorCode) {
-        if (isWebmaster(currentUserId)) {
-            return true;
-        }
-        String normalizedAuthorCode = safeString(authorCode).toUpperCase(Locale.ROOT);
-        return ROLE_SYSTEM_MASTER.equals(normalizedAuthorCode)
-                || ROLE_SYSTEM_ADMIN.equals(normalizedAuthorCode)
-                || ROLE_ADMIN.equals(normalizedAuthorCode);
+        return adminAuthorityPagePayloadSupport.hasGlobalDeptRoleAccess(currentUserId, authorCode);
     }
 
     boolean hasOwnCompanyDeptRoleAccess(String currentUserId, String authorCode) {
-        if (hasGlobalDeptRoleAccess(currentUserId, authorCode)) {
-            return true;
-        }
-        return ROLE_OPERATION_ADMIN.equals(safeString(authorCode).toUpperCase(Locale.ROOT));
+        return adminAuthorityPagePayloadSupport.hasOwnCompanyDeptRoleAccess(currentUserId, authorCode);
     }
 
     List<Map<String, Object>> buildRecommendedRoleSections(List<AuthorInfoVO> authorGroups, boolean isEn) {
-        java.util.Set<String> existingCodes = authorGroups.stream()
-                .map(AuthorInfoVO::getAuthorCode)
-                .filter(code -> !ObjectUtils.isEmpty(code))
-                .collect(Collectors.toSet());
-
-        List<Map<String, Object>> sections = new ArrayList<>();
-
-        List<Map<String, String>> generalRoles = new ArrayList<>();
-        generalRoles.add(recommendedRole("ROLE_ADMIN",
-                isEn ? "Administrator" : "관리자",
-                isEn ? "Baseline administrator role assigned to privileged user accounts." : "운영 관리자 계정에 기본 부여하는 기준 관리자 Role입니다.",
-                existingCodes));
-        generalRoles.add(recommendedRole("ROLE_USER",
-                isEn ? "General User" : "일반 사용자",
-                isEn ? "Baseline end-user role assigned to standard accounts." : "일반 사용자 계정에 기본 부여하는 기준 사용자 Role입니다.",
-                existingCodes));
-        generalRoles.add(recommendedRole("ROLE_SYSTEM_MASTER",
-                isEn ? "System Master" : "시스템 마스터",
-                isEn ? "Full access for webmaster only" : "webmaster 전용 전체 권한",
-                existingCodes));
-        generalRoles.add(recommendedRole("ROLE_SYSTEM_ADMIN",
-                isEn ? "System Admin" : "시스템 관리자",
-                isEn ? "Code, page, feature and role administration" : "코드/페이지/기능/권한 운영 관리",
-                existingCodes));
-        generalRoles.add(recommendedRole("ROLE_OPERATION_ADMIN",
-                isEn ? "Operation Admin" : "운영 관리자",
-                isEn ? "Operational processing across service domains" : "서비스 운영 전반 처리 권한",
-                existingCodes));
-        generalRoles.add(recommendedRole("ROLE_COMPANY_ADMIN",
-                isEn ? "Company Admin" : "회원사 관리자",
-                isEn ? "Company-scoped authority management for one institution" : "단일 회원사 범위의 권한/회원 운영 기준 롤",
-                existingCodes));
-        generalRoles.add(recommendedRole("ROLE_CS_ADMIN",
-                isEn ? "CS Admin" : "CS 관리자",
-                isEn ? "Customer support and member response authority" : "고객 지원 및 회원 응대 권한",
-                existingCodes));
-        sections.add(recommendedRoleSection(
-                "GENERAL",
-                isEn ? "General authority groups" : "일반 권한 그룹",
-                isEn ? "Baseline authority groups used as common execution roles across the system." : "시스템 전반에서 기준 권한으로 사용하는 공통 실행 Role입니다.",
-                generalRoles
-        ));
-
-        List<Map<String, String>> departmentRoles = new ArrayList<>();
-        departmentRoles.add(recommendedRole("ROLE_DEPT_OPERATION",
-                isEn ? "Department Operation" : "부서 운영 기본권한",
-                isEn ? "Default department-level operational baseline" : "운영부서 기본 권한 베이스라인",
-                existingCodes));
-        departmentRoles.add(recommendedRole("ROLE_DEPT_CS",
-                isEn ? "Department CS" : "부서 CS 기본권한",
-                isEn ? "Default department-level customer support baseline" : "CS부서 기본 권한 베이스라인",
-                existingCodes));
-        departmentRoles.add(recommendedRole("ROLE_DEPT_SUSTAINABILITY",
-                isEn ? "Department Sustainability" : "부서 탄소/ESG 기본권한",
-                isEn ? "Baseline role for carbon, ESG, and sustainability departments" : "탄소/ESG/지속가능경영 부서 기준 권한",
-                existingCodes));
-        departmentRoles.add(recommendedRole("ROLE_DEPT_PRODUCTION",
-                isEn ? "Department Production" : "부서 생산 기본권한",
-                isEn ? "Baseline role for production and manufacturing departments" : "생산/공정 부서 기준 권한",
-                existingCodes));
-        departmentRoles.add(recommendedRole("ROLE_DEPT_PROCUREMENT",
-                isEn ? "Department Procurement" : "부서 구매 기본권한",
-                isEn ? "Baseline role for procurement and SCM departments" : "구매/SCM 부서 기준 권한",
-                existingCodes));
-        departmentRoles.add(recommendedRole("ROLE_DEPT_QUALITY",
-                isEn ? "Department Quality" : "부서 품질 기본권한",
-                isEn ? "Baseline role for quality, certification, and audit departments" : "품질/인증/심사 부서 기준 권한",
-                existingCodes));
-        departmentRoles.add(recommendedRole("ROLE_DEPT_SALES",
-                isEn ? "Department Sales" : "부서 영업 기본권한",
-                isEn ? "Baseline role for sales and account management departments" : "영업/고객사 관리 부서 기준 권한",
-                existingCodes));
-        sections.add(recommendedRoleSection(
-                "DEPARTMENT",
-                isEn ? "Department authority groups" : "부서 권한 그룹",
-                isEn ? "Baseline roles assigned automatically by department." : "부서 기준으로 기본 부여하는 베이스라인 Role입니다.",
-                departmentRoles
-        ));
-
-        List<Map<String, String>> userRoles = new ArrayList<>();
-        sections.add(recommendedRoleSection(
-                "USER",
-                isEn ? "User authority groups" : "사용자 권한 그룹",
-                isEn ? "No user-specific role groups have been prepared yet. Add these later for direct assignment exceptions." : "아직 별도로 준비된 사용자 전용 Role은 없습니다. 직접 부여 예외가 필요할 때 추가합니다.",
-                userRoles
-        ));
-
-        return sections;
+        return adminAuthorityPagePayloadSupport.buildRecommendedRoleSections(authorGroups, isEn);
     }
 
     private Map<String, String> recommendedRole(String code, String name, String description, java.util.Set<String> existingCodes) {
@@ -5140,39 +4937,20 @@ public class AdminMainController {
     }
 
     List<Map<String, Object>> filterRecommendedRoleSections(List<Map<String, Object>> sections, String selectedRoleCategory) {
-        return sections.stream()
-                .filter(section -> selectedRoleCategory.equals(section.get("category")))
-                .collect(Collectors.toList());
+        return adminAuthorityPagePayloadSupport.filterRecommendedRoleSections(sections, selectedRoleCategory);
     }
 
     List<AuthorInfoVO> filterAuthorGroups(List<AuthorInfoVO> authorGroups, String selectedRoleCategory) {
-        return authorGroups.stream()
-                .filter(group -> matchesRoleCategory(group.getAuthorCode(), selectedRoleCategory))
-                .collect(Collectors.toList());
+        return adminAuthorityPagePayloadSupport.filterAuthorGroups(authorGroups, selectedRoleCategory);
     }
 
     List<AuthorInfoVO> filterAuthorGroupsByScope(List<AuthorInfoVO> authorGroups, String selectedRoleCategory,
                                                          String insttId, boolean globalAccess) {
-        return authorGroups.stream()
-                .filter(group -> matchesRoleCategory(group.getAuthorCode(), selectedRoleCategory))
-                .filter(group -> globalAccess || isVisibleScopedAuthorCode(group.getAuthorCode(), selectedRoleCategory, insttId))
-                .collect(Collectors.toList());
+        return adminAuthorityPagePayloadSupport.filterAuthorGroupsByScope(authorGroups, selectedRoleCategory, insttId, globalAccess);
     }
 
     List<AuthorInfoVO> buildDeptMemberAssignableGroups(List<AuthorInfoVO> authorGroups, String insttId, boolean globalAccess) {
-        return authorGroups.stream()
-                .filter(group -> {
-                    String normalizedCode = safeString(group.getAuthorCode()).toUpperCase(Locale.ROOT);
-                    return "ROLE_USER".equals(normalizedCode)
-                            || normalizedCode.startsWith("ROLE_DEPT_")
-                            || normalizedCode.startsWith("ROLE_USER_")
-                            || normalizedCode.startsWith("ROLE_MEMBER_")
-                            || normalizedCode.startsWith("ROLE_ACCOUNT_");
-                })
-                .filter(group -> globalAccess
-                        || isVisibleScopedAuthorCode(group.getAuthorCode(), "DEPARTMENT", insttId)
-                        || isVisibleScopedAuthorCode(group.getAuthorCode(), "USER", insttId))
-                .collect(Collectors.toList());
+        return adminAuthorityPagePayloadSupport.buildDeptMemberAssignableGroups(authorGroups, insttId, globalAccess);
     }
 
     private boolean matchesRoleCategory(String authorCode, String selectedRoleCategory) {
@@ -5192,80 +4970,23 @@ public class AdminMainController {
     }
 
     String resolveRoleCategory(String roleCategory) {
-        String normalized = safeString(roleCategory).toUpperCase(Locale.ROOT);
-        if ("GENERAL".equals(normalized) || "DEPARTMENT".equals(normalized) || "USER".equals(normalized)) {
-            return normalized;
-        }
-        return "GENERAL";
+        return adminAuthorityPagePayloadSupport.resolveRoleCategory(roleCategory);
     }
 
     List<Map<String, String>> buildRoleCategoryOptions(boolean isEn, boolean canViewGeneralAuthorityGroups) {
-        List<Map<String, String>> rows = new ArrayList<>();
-        if (canViewGeneralAuthorityGroups) {
-            rows.add(roleCategoryOption("GENERAL", isEn ? "General groups" : "일반 권한 그룹"));
-        }
-        rows.add(roleCategoryOption("DEPARTMENT", isEn ? "Department groups" : "부서 권한 그룹"));
-        rows.add(roleCategoryOption("USER", isEn ? "User groups" : "사용자 권한 그룹"));
-        return rows;
+        return adminAuthorityPagePayloadSupport.buildRoleCategoryOptions(isEn, canViewGeneralAuthorityGroups);
     }
 
     boolean hasGeneralAuthorityGroupAccess(String currentUserId, boolean webmaster) throws Exception {
-        if (webmaster) {
-            return true;
-        }
-        String authorCode = safeString(authGroupManageService.selectAuthorCodeByUserId(currentUserId));
-        if (authorCode.isEmpty()) {
-            return false;
-        }
-        return authGroupManageService.hasAuthorFeaturePermission(authorCode, AUTH_GROUP_GENERAL_VIEW_FEATURE_CODE);
+        return adminAuthorityPagePayloadSupport.hasGeneralAuthorityGroupAccess(currentUserId, webmaster);
     }
 
     List<Map<String, String>> buildDepartmentRoleRows(List<DepartmentRoleMappingVO> mappings, boolean isEn) {
-        List<Map<String, String>> rows = new ArrayList<>();
-        for (DepartmentRoleMappingVO mapping : mappings) {
-            Map<String, String> row = new java.util.LinkedHashMap<>();
-            String deptName = safeString(mapping.getDeptNm());
-            String mappedAuthorCode = safeString(mapping.getAuthorCode());
-            String companyName = safeString(mapping.getCmpnyNm());
-            String insttId = safeString(mapping.getInsttId());
-            row.put("cmpnyNm", companyName);
-            row.put("insttId", insttId);
-            row.put("deptNm", deptName.isEmpty() ? (isEn ? "Unassigned" : "미지정") : deptName);
-            row.put("memberCount", String.valueOf(mapping.getMemberCount()));
-            String recommendedRoleCode = mappedAuthorCode.isEmpty()
-                    ? resolveDepartmentRoleCode(insttId, companyName, deptName)
-                    : mappedAuthorCode;
-            row.put("recommendedRoleCode", recommendedRoleCode);
-            row.put("recommendedRoleName",
-                    safeString(mapping.getAuthorNm()).isEmpty()
-                            ? resolveDepartmentRoleName(recommendedRoleCode, isEn)
-                            : safeString(mapping.getAuthorNm()));
-            row.put("status",
-                    mappedAuthorCode.isEmpty()
-                            ? (isUnknownDepartmentRole(recommendedRoleCode) ? "review" : "ready")
-                            : "mapped");
-            rows.add(row);
-        }
-        return rows;
+        return adminAuthorityPagePayloadSupport.buildDepartmentRoleRows(mappings, isEn);
     }
 
     List<Map<String, String>> buildDepartmentCompanyOptions(List<Map<String, String>> departmentRows) {
-        Map<String, String> dedup = new LinkedHashMap<>();
-        for (Map<String, String> row : departmentRows) {
-            String insttId = safeString(row.get("insttId"));
-            if (insttId.isEmpty() || dedup.containsKey(insttId)) {
-                continue;
-            }
-            dedup.put(insttId, safeString(row.get("cmpnyNm")));
-        }
-        List<Map<String, String>> options = new ArrayList<>();
-        for (Map.Entry<String, String> entry : dedup.entrySet()) {
-            Map<String, String> option = new LinkedHashMap<>();
-            option.put("insttId", entry.getKey());
-            option.put("cmpnyNm", entry.getValue());
-            options.add(option);
-        }
-        return options;
+        return adminAuthorityPagePayloadSupport.buildDepartmentCompanyOptions(departmentRows);
     }
 
     private List<Map<String, String>> buildDepartmentRoleSummaries(List<Map<String, String>> departmentRows, boolean isEn) {
@@ -5286,16 +5007,7 @@ public class AdminMainController {
     }
 
     List<AuthorInfoVO> filterScopedDepartmentAuthorGroups(List<AuthorInfoVO> authorGroups, List<Map<String, String>> departmentRows) {
-        if (departmentRows == null || departmentRows.isEmpty()) {
-            return Collections.emptyList();
-        }
-        java.util.Set<String> allowedCodes = departmentRows.stream()
-                .map(row -> safeString(row.get("recommendedRoleCode")).toUpperCase(Locale.ROOT))
-                .filter(code -> !code.isEmpty())
-                .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
-        return authorGroups.stream()
-                .filter(group -> allowedCodes.contains(safeString(group.getAuthorCode()).toUpperCase(Locale.ROOT)))
-                .collect(Collectors.toList());
+        return adminAuthorityPagePayloadSupport.filterScopedDepartmentAuthorGroups(authorGroups, departmentRows);
     }
 
     private boolean canAssignDepartmentAuthorCode(String authorCode, String insttId, boolean globalAccess) {
@@ -5394,69 +5106,35 @@ public class AdminMainController {
     }
 
     String resolveSelectedInsttId(String insttId, List<Map<String, String>> companyOptions) {
-        return resolveSelectedInsttId(insttId, companyOptions, false);
+        return adminAuthorityPagePayloadSupport.resolveSelectedInsttId(insttId, companyOptions);
     }
 
     String resolveSelectedInsttId(String insttId, List<Map<String, String>> companyOptions, boolean allowEmptySelection) {
-        String normalized = safeString(insttId);
-        if (allowEmptySelection && normalized.isEmpty()) {
-            return "";
-        }
-        if (normalized.isEmpty()) {
-            return companyOptions.isEmpty() ? "" : safeString(companyOptions.get(0).get("insttId"));
-        }
-        boolean exists = companyOptions.stream()
-                .anyMatch(option -> normalized.equals(option.get("insttId")));
-        return exists ? normalized : (companyOptions.isEmpty() ? "" : safeString(companyOptions.get(0).get("insttId")));
+        return adminAuthorityPagePayloadSupport.resolveSelectedInsttId(insttId, companyOptions, allowEmptySelection);
     }
 
     AuthGroupScopeContext buildAuthGroupScopeContext(String insttId, String userSearchKeyword, String selectedRoleCategory,
                                                              String currentUserId, boolean webmaster, List<AuthorInfoVO> authorGroups,
                                                              boolean isEn) {
+        AdminAuthorityPagePayloadSupport.AuthGroupScopeContext supported =
+                adminAuthorityPagePayloadSupport.buildAuthGroupScopeContext(
+                        insttId,
+                        userSearchKeyword,
+                        selectedRoleCategory,
+                        resolveCurrentUserInsttId(currentUserId),
+                        webmaster,
+                        webmaster || hasGlobalDeptRoleAccess(currentUserId, resolveCurrentUserAuthorCode(currentUserId)),
+                        authorGroups,
+                        isEn);
         AuthGroupScopeContext context = AuthGroupScopeContext.empty();
-        context.setUserSearchKeyword(safeString(userSearchKeyword));
-        context.setReferenceAuthorGroups(filterAuthorGroups(authorGroups, selectedRoleCategory));
-        if (!"DEPARTMENT".equals(selectedRoleCategory) && !"USER".equals(selectedRoleCategory)) {
-            return context;
-        }
-        try {
-            List<Map<String, String>> departmentRows = buildDepartmentRoleRows(authGroupManageService.selectDepartmentRoleMappings(), isEn);
-            List<Map<String, String>> companyOptions = buildDepartmentCompanyOptions(departmentRows);
-            String currentUserInsttId = resolveCurrentUserInsttId(currentUserId);
-            if (!webmaster) {
-                companyOptions = companyOptions.stream()
-                        .filter(option -> currentUserInsttId.equals(option.get("insttId")))
-                        .collect(Collectors.toList());
-            }
-            String selectedInsttId = resolveSelectedInsttId(webmaster ? insttId : currentUserInsttId, companyOptions, webmaster);
-            context.setCompanyOptions(companyOptions);
-            context.setSelectedInsttId(selectedInsttId);
-            boolean globalAccess = webmaster || hasGlobalDeptRoleAccess(currentUserId, resolveCurrentUserAuthorCode(currentUserId));
-
-            if ("DEPARTMENT".equals(selectedRoleCategory)) {
-                List<Map<String, String>> filteredRows = departmentRows;
-                if (!selectedInsttId.isEmpty()) {
-                    filteredRows = departmentRows.stream()
-                            .filter(row -> selectedInsttId.equals(row.get("insttId")))
-                            .collect(Collectors.toList());
-                }
-                context.setDepartmentRows(filteredRows);
-                context.setDepartmentRoleSummaries(buildDepartmentRoleSummaries(filteredRows, isEn));
-                context.setReferenceAuthorGroups(filterScopedDepartmentAuthorGroups(
-                        filterAuthorGroupsByScope(authorGroups, "DEPARTMENT", selectedInsttId, globalAccess), filteredRows));
-                return context;
-            }
-
-            if ("USER".equals(selectedRoleCategory) && !selectedInsttId.isEmpty()) {
-                context.setReferenceAuthorGroups(filterAuthorGroupsByScope(authorGroups, "USER", selectedInsttId, globalAccess));
-                context.setUserAuthorityTargets(authGroupManageService.selectUserAuthorityTargets(selectedInsttId, userSearchKeyword));
-            }
-        } catch (Exception e) {
-            log.error("Failed to load scoped authority targets. roleCategory={}, insttId={}", selectedRoleCategory, insttId, e);
-            context.setErrorMessage(isEn
-                    ? "Failed to load company-specific authority data."
-                    : "회사별 권한 데이터를 불러오지 못했습니다.");
-        }
+        context.setCompanyOptions(supported.getCompanyOptions());
+        context.setSelectedInsttId(supported.getSelectedInsttId());
+        context.setDepartmentRows(supported.getDepartmentRows());
+        context.setDepartmentRoleSummaries(supported.getDepartmentRoleSummaries());
+        context.setUserAuthorityTargets(supported.getUserAuthorityTargets());
+        context.setReferenceAuthorGroups(supported.getReferenceAuthorGroups());
+        context.setUserSearchKeyword(supported.getUserSearchKeyword());
+        context.setErrorMessage(supported.getErrorMessage());
         return context;
     }
 
@@ -5473,23 +5151,11 @@ public class AdminMainController {
     }
 
     String resolveCurrentUserInsttId(String currentUserId) {
-        String normalizedUserId = safeString(currentUserId);
-        if (normalizedUserId.isEmpty() || isWebmaster(normalizedUserId)) {
-            return "";
-        }
-        try {
-            return employMemberRepository.findById(normalizedUserId)
-                    .map(EmplyrInfo::getInsttId)
-                    .map(this::safeString)
-                    .orElse("");
-        } catch (Exception e) {
-            log.error("Failed to resolve current admin institution. userId={}", normalizedUserId, e);
-            return "";
-        }
+        return adminAuthorityPagePayloadSupport.resolveCurrentUserInsttId(currentUserId);
     }
 
     boolean requiresOwnCompanyAccess(String currentUserId, String authorCode) {
-        return !hasGlobalDeptRoleAccess(currentUserId, authorCode) && hasOwnCompanyDeptRoleAccess(currentUserId, authorCode);
+        return adminAuthorityPagePayloadSupport.requiresOwnCompanyAccess(currentUserId, authorCode);
     }
 
     boolean canCurrentAdminAccessMember(HttpServletRequest request, EntrprsManageVO member) {
@@ -5745,20 +5411,7 @@ public class AdminMainController {
     }
 
     List<Map<String, String>> buildAssignmentAuthorities(boolean isEn) {
-        List<Map<String, String>> items = new ArrayList<>();
-        items.add(assignmentAuthority(
-                isEn ? "Role assignment authority" : "권한 할당 권한",
-                isEn ? "Controls which role groups the current administrator can assign on the member edit page." : "회원 수정 화면에서 현재 관리자가 어떤 Role을 부여할 수 있는지 제어합니다."
-        ));
-        items.add(assignmentAuthority(
-                isEn ? "Grant authority" : "권한 부여 권한",
-                isEn ? "Separates execution authority from authority to delegate that execution authority to others." : "실행 권한과 타인에게 그 권한을 위임할 수 있는 권한을 분리합니다."
-        ));
-        items.add(assignmentAuthority(
-                isEn ? "Department baseline authority" : "부서 기본 권한",
-                isEn ? "Provides default roles by department, then merges them with user-specific roles." : "부서별 기본 Role을 부여하고 사용자별 직접 권한과 합산합니다."
-        ));
-        return items;
+        return adminAuthorityPagePayloadSupport.buildAssignmentAuthorities(isEn);
     }
 
     private Map<String, String> assignmentAuthority(String title, String description) {
@@ -5769,20 +5422,7 @@ public class AdminMainController {
     }
 
     List<Map<String, String>> buildRoleCategories(boolean isEn) {
-        List<Map<String, String>> rows = new ArrayList<>();
-        rows.add(roleCategory(
-                isEn ? "General authority list" : "일반 권한 목록",
-                isEn ? "Master feature catalog. All VIEW and action permissions are defined here." : "기능 마스터 카탈로그입니다. 모든 VIEW 및 액션 권한의 원본입니다."
-        ));
-        rows.add(roleCategory(
-                isEn ? "Department authority list" : "부서 권한 목록",
-                isEn ? "Department-level baseline roles for operation, CS, audit and similar teams." : "운영, CS, 감사 등 부서 단위 기본 Role 목록입니다."
-        ));
-        rows.add(roleCategory(
-                isEn ? "User authority list" : "사용자 권한 목록",
-                isEn ? "Direct user-specific role assignments and exceptions managed from member edit." : "회원 수정 화면에서 관리하는 사용자 직접 Role 및 예외 권한입니다."
-        ));
-        return rows;
+        return adminAuthorityPagePayloadSupport.buildRoleCategories(isEn);
     }
 
     private Map<String, String> roleCategory(String title, String description) {
@@ -6009,14 +5649,7 @@ public class AdminMainController {
     }
 
     String resolveDeptRoleMessage(String error, boolean isEn) {
-        String normalized = safeString(error).toLowerCase(Locale.ROOT);
-        if (normalized.isEmpty()) {
-            return "";
-        }
-        if ("save_failed".equals(normalized)) {
-            return isEn ? "Failed to save the department role mapping." : "부서 권한 맵핑 저장에 실패했습니다.";
-        }
-        return isEn ? "Failed to process the department role mapping." : "부서 권한 맵핑 처리에 실패했습니다.";
+        return adminAuthorityPagePayloadSupport.resolveDeptRoleMessage(error, isEn);
     }
 
     private String resolveInstitutionStatusLabel(String statusCode, boolean isEn) {
@@ -6986,19 +6619,7 @@ public class AdminMainController {
     }
 
     Set<String> resolveGrantableFeatureCodeSet(String currentUserId, boolean webmaster) throws Exception {
-        if (webmaster) {
-            return null;
-        }
-        Set<String> grantable = new LinkedHashSet<>();
-        String currentAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        if (!currentAuthorCode.isEmpty()) {
-            grantable.addAll(normalizeFeatureCodes(authGroupManageService.selectAuthorFeatureCodes(currentAuthorCode)));
-        }
-        String actorEsntlId = safeString(authGroupManageService.selectAdminEssentialIdByUserId(currentUserId));
-        if (!actorEsntlId.isEmpty()) {
-            applyUserFeatureOverrides(grantable, authGroupManageService.selectUserFeatureOverrides(actorEsntlId));
-        }
-        return grantable;
+        return adminAuthorityPagePayloadSupport.resolveGrantableFeatureCodeSet(currentUserId, webmaster);
     }
 
     private void applyUserFeatureOverrides(Set<String> featureCodes, List<UserFeatureOverrideVO> overrides) {
@@ -7020,41 +6641,11 @@ public class AdminMainController {
 
     List<FeatureCatalogSectionVO> filterFeatureCatalogSectionsByGrantable(List<FeatureCatalogSectionVO> featureSections,
                                                                                   Set<String> grantableFeatureCodes) {
-        if (grantableFeatureCodes == null) {
-            return featureSections == null ? Collections.emptyList() : featureSections;
-        }
-        if (featureSections == null || featureSections.isEmpty() || grantableFeatureCodes.isEmpty()) {
-            return Collections.emptyList();
-        }
-        List<FeatureCatalogSectionVO> filteredSections = new ArrayList<>();
-        for (FeatureCatalogSectionVO section : featureSections) {
-            List<FeatureCatalogItemVO> filteredFeatures = section.getFeatures().stream()
-                    .filter(feature -> grantableFeatureCodes.contains(safeString(feature.getFeatureCode()).toUpperCase(Locale.ROOT)))
-                    .collect(Collectors.toList());
-            if (filteredFeatures.isEmpty()) {
-                continue;
-            }
-            FeatureCatalogSectionVO filteredSection = new FeatureCatalogSectionVO();
-            filteredSection.setMenuCode(section.getMenuCode());
-            filteredSection.setMenuNm(section.getMenuNm());
-            filteredSection.setMenuNmEn(section.getMenuNmEn());
-            filteredSection.setMenuUrl(section.getMenuUrl());
-            filteredSection.setFeatures(filteredFeatures);
-            filteredSections.add(filteredSection);
-        }
-        return filteredSections;
+        return adminAuthorityPagePayloadSupport.filterFeatureCatalogSectionsByGrantable(featureSections, grantableFeatureCodes);
     }
 
     List<String> filterFeatureCodesByGrantable(List<String> featureCodes, Set<String> grantableFeatureCodes) {
-        if (grantableFeatureCodes == null) {
-            return normalizeFeatureCodes(featureCodes);
-        }
-        if (featureCodes == null || featureCodes.isEmpty() || grantableFeatureCodes.isEmpty()) {
-            return Collections.emptyList();
-        }
-        return normalizeFeatureCodes(featureCodes).stream()
-                .filter(grantableFeatureCodes::contains)
-                .collect(Collectors.toList());
+        return adminAuthorityPagePayloadSupport.filterFeatureCodesByGrantable(featureCodes, grantableFeatureCodes);
     }
 
     private Set<String> filterFeatureCodeSetByGrantable(Set<String> featureCodes, Set<String> grantableFeatureCodes) {

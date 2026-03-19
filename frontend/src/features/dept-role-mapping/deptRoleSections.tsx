@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { DeptRolePagePayload } from "../../lib/api/client";
-import { MemberButton, MemberPagination, MemberPermissionButton } from "../member/common";
+import { GridToolbar, MemberButton, MemberPagination, MemberPermissionButton } from "../admin-ui/common";
 
 function t(page: DeptRolePagePayload | null, ko: string, en: string) {
   return page?.isEn ? en : ko;
@@ -22,11 +22,8 @@ export function renderRoleProfilePreview(page: DeptRolePagePayload | null, profi
 export function DeptRoleCompanySection({ page, insttId, canUseAllCompanies, canUseOwnCompany, onCompanyChange }: { page: DeptRolePagePayload | null; insttId: string; canUseAllCompanies: boolean; canUseOwnCompany: boolean; onCompanyChange: (value: string) => void; }) {
   return (
     <section className="gov-card" data-help-id="dept-role-company">
-      <div className="flex items-center gap-2 border-b pb-4 mb-4">
-        <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">account_tree</span>
-        <h3 className="text-lg font-bold">{t(page, "선택 회사의 부서 권한 목록", "Department roles for the selected company")}</h3>
-      </div>
-      <div className="mb-4 flex flex-wrap items-center gap-3">
+      <GridToolbar title={t(page, "선택 회사의 부서 권한 목록", "Department roles for the selected company")} />
+      <div className="mb-4 flex flex-wrap items-center gap-3 p-6 pb-0">
         <label className="text-sm font-bold text-[var(--kr-gov-text-secondary)]">{t(page, "회사명", "Company")}</label>
         <select className="max-w-md w-full rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] h-10 px-3 text-sm" disabled={!canUseAllCompanies && !canUseOwnCompany} value={insttId} onChange={(e) => onCompanyChange(e.target.value)}>
           {(page?.departmentCompanyOptions || []).map((option) => <option key={option.insttId} value={option.insttId}>{option.cmpnyNm}</option>)}
@@ -39,10 +36,7 @@ export function DeptRoleCompanySection({ page, insttId, canUseAllCompanies, canU
 export function DeptRoleDepartmentTable({ page, canUseAllCompanies, canUseOwnCompany, deptDrafts, setDeptDrafts, roleProfilesByAuthorCode, onDeptSave }: { page: DeptRolePagePayload | null; canUseAllCompanies: boolean; canUseOwnCompany: boolean; deptDrafts: Record<string, string>; setDeptDrafts: Dispatch<SetStateAction<Record<string, string>>>; roleProfilesByAuthorCode: Record<string, { displayTitle?: string; priorityWorks?: string[]; description?: string }>; onDeptSave: (row: Record<string, string>) => void; }) {
   return (
     <div className="mb-6 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] overflow-hidden" data-help-id="dept-role-departments">
-      <div className="flex items-center justify-between gap-3 bg-gray-50 border-b border-[var(--kr-gov-border-light)] px-4 py-4">
-        <h4 className="font-black">{t(page, "선택 회사 부서 기본 권한", "Default department roles for the selected company")}</h4>
-        <span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 text-xs font-bold text-[var(--kr-gov-text-secondary)]">{page?.mappingCount ?? 0}{t(page, "개 부서", " departments")}</span>
-      </div>
+      <GridToolbar actions={<span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 text-xs font-bold text-[var(--kr-gov-text-secondary)]">{page?.mappingCount ?? 0}{t(page, "개 부서", " departments")}</span>} title={t(page, "선택 회사 부서 기본 권한", "Default department roles for the selected company")} />
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-left text-sm">
           <thead>
@@ -83,10 +77,7 @@ export function DeptRoleDepartmentTable({ page, canUseAllCompanies, canUseOwnCom
 export function DeptRoleMemberTable({ page, canUseAllCompanies, canUseOwnCompany, memberSearchDraft, setMemberSearchDraft, onMemberSearchSubmit, currentMemberPage, totalMemberPages, memberDrafts, setMemberDrafts, roleProfilesByAuthorCode, onMemberSave, setMemberPageIndex }: { page: DeptRolePagePayload | null; canUseAllCompanies: boolean; canUseOwnCompany: boolean; memberSearchDraft: string; setMemberSearchDraft: (value: string) => void; onMemberSearchSubmit: () => void; currentMemberPage: number; totalMemberPages: number; memberDrafts: Record<string, string>; setMemberDrafts: Dispatch<SetStateAction<Record<string, string>>>; roleProfilesByAuthorCode: Record<string, { displayTitle?: string; priorityWorks?: string[]; description?: string }>; onMemberSave: (userId: string) => void; setMemberPageIndex: (value: number) => void; }) {
   return (
     <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] overflow-hidden" data-help-id="dept-role-members">
-      <div className="flex items-center justify-between gap-3 bg-gray-50 border-b border-[var(--kr-gov-border-light)] px-4 py-4">
-        <h4 className="font-black">{t(page, "선택 회사 회원 권한 목록", "Member roles for the selected company")}</h4>
-        <span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 text-xs font-bold text-[var(--kr-gov-text-secondary)]">{page?.companyMemberCount ?? 0}{t(page, "명", " members")}</span>
-      </div>
+      <GridToolbar actions={<span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 text-xs font-bold text-[var(--kr-gov-text-secondary)]">{page?.companyMemberCount ?? 0}{t(page, "명", " members")}</span>} title={t(page, "선택 회사 회원 권한 목록", "Member roles for the selected company")} />
       <div className="flex flex-col gap-3 border-b border-[var(--kr-gov-border-light)] bg-white px-4 py-4 md:flex-row md:items-center md:justify-between">
         <div className="flex w-full max-w-xl items-center gap-2">
           <input className="h-10 flex-1 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] px-3 text-sm" placeholder={t(page, "회원 ID, 이름, 부서명 검색", "Search by member ID, name, or department")} value={memberSearchDraft} onChange={(e) => setMemberSearchDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onMemberSearchSubmit(); } }} />

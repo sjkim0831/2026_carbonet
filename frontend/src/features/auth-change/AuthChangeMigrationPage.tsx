@@ -3,6 +3,7 @@ import { CanView } from "../../components/access/CanView";
 import { AuthChangePagePayload, FrontendSession, fetchAuthChangePage, fetchFrontendSession, saveAdminAuthChange } from "../../lib/api/client";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { AdminAuthorityPageFrame } from "../admin-ui/pageFrames";
 import { AuthChangeHistorySection, AuthChangeOverview, AuthChangeSelectedCard, AuthChangeTableSection } from "./authChangeSections";
 
 function t(page: AuthChangePagePayload | null, ko: string, en: string) {
@@ -154,6 +155,7 @@ export function AuthChangeMigrationPage() {
       {(page?.authChangeError || error) ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{page?.authChangeError || error}</section> : null}
       {(message || page?.authChangeMessage) ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message || page?.authChangeMessage}</section> : null}
       <CanView allowed={canView} fallback={<section className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-6 shadow-sm"><p className="text-sm text-[var(--kr-gov-text-secondary)]">{t(page, "권한 변경 화면을 불러올 수 없습니다.", "Unable to load the authority change page.")}</p></section>}>
+        <AdminAuthorityPageFrame>
         <AuthChangeOverview page={page} pendingCount={pendingChanges.length} />
         <AuthChangeSelectedCard page={page} selectedAssignment={selectedAssignment} selectedDraftAuthorCode={selectedDraftAuthorCode} selectedDraftAuthorName={selectedDraftAuthorName} />
         <AuthChangeTableSection
@@ -177,6 +179,7 @@ export function AuthChangeMigrationPage() {
           totalPages={totalPages}
         />
         <AuthChangeHistorySection page={page} rows={filteredHistory} />
+        </AdminAuthorityPageFrame>
       </CanView>
     </AdminPageShell>
   );

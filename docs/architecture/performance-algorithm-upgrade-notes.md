@@ -168,6 +168,9 @@ This document tracks repository-level algorithm and data-structure upgrades that
   - query-driven admin list screens can skip the first fetch as long as the bootstrap payload matches the current URL query
   - high-frequency admin work screens such as auth-group, dept-role, and member-edit can also skip their first hard-refresh fetch
   - auth-group, dept-role, and member-edit payload assembly now lives in `AdminHotPathPagePayloadService`, so API and shell bootstrap reuse the same concrete builder path
+  - authority-specific helper logic used by `auth-group` and `dept-role` has been split into `AdminAuthorityPagePayloadSupport`, reducing direct helper ownership inside `AdminMainController`
+  - `AdminMainController` authority helper methods now mostly delegate to `AdminAuthorityPagePayloadSupport`, keeping the controller as a thin compatibility layer while the extracted support class becomes the main implementation path
+  - `auth-change` role summary lookup and recent role change history generation now also run through `AdminAuthorityPagePayloadSupport`, so authority pages share the same support layer for both payloads and supporting audit summaries
   - preserves existing API contracts and cache invalidation behavior for subsequent navigations
   - keeps shell HTML as the single fast-path handoff point for initial React hydration
 

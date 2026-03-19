@@ -3,11 +3,14 @@ import { fetchSecurityPolicyPage, readBootstrappedSecurityPolicyPageData, type S
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { stringOf } from "../admin-system/adminSystemShared";
-import { useMemo } from "react";
+import { CopyableCodeBlock, DiagnosticCard, GridToolbar, MemberLinkButton } from "../admin-ui/common";
+import { AdminPolicyPageFrame, AdminSummaryStrip } from "../admin-ui/pageFrames";
+import { useMemo, useState } from "react";
 
 export function SecurityPolicyMigrationPage() {
   const en = isEnglish();
   const initialPayload = useMemo(() => readBootstrappedSecurityPolicyPageData(), []);
+  const [copiedSqlKey, setCopiedSqlKey] = useState("");
   const pageState = useAsyncValue<SecurityPolicyPagePayload>(fetchSecurityPolicyPage, [], {
     initialValue: initialPayload,
     skipInitialLoad: Boolean(initialPayload)
@@ -35,6 +38,20 @@ export function SecurityPolicyMigrationPage() {
     const query = search.toString() ? `?${search.toString()}` : "";
     return buildLocalizedPath(`/admin/auth/group${query}`, `/en/admin/auth/group${query}`);
   }
+  async function copySqlPreview(copyKey: string, sql: string) {
+    if (!sql.trim()) {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(sql);
+      setCopiedSqlKey(copyKey);
+      window.setTimeout(() => {
+        setCopiedSqlKey((current) => (current === copyKey ? "" : current));
+      }, 1800);
+    } catch {
+      setCopiedSqlKey("");
+    }
+  }
   return (
     <AdminPageShell
       breadcrumbs={[
@@ -46,14 +63,15 @@ export function SecurityPolicyMigrationPage() {
       subtitle={en ? "Manage thresholds and automatic response rules for login, APIs, and admin access." : "로그인, 검색 API, 관리자 접근에 대한 임계치와 자동 대응 규칙을 관리합니다."}
     >
       {pageState.error ? <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{pageState.error}</div> : null}
-      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6" data-help-id="security-policy-summary">
+      <AdminPolicyPageFrame>
+      <AdminSummaryStrip data-help-id="security-policy-summary">
         {cards.map((card, idx) => <article className="gov-card" key={idx}><p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{card.title}</p><p className="mt-3 text-2xl font-black">{card.value}</p><p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">{card.description}</p></article>)}
-      </section>
-      <section className="gov-card mb-6 p-0 overflow-hidden" data-help-id="security-policy-table">
-        <div className="px-6 py-5 border-b border-[var(--kr-gov-border-light)] flex items-center justify-between">
-          <h3 className="text-lg font-bold">{en ? "Applied Policy List" : "적용 정책 목록"}</h3>
-          <span className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Total" : "총"} <strong>{rows.length}</strong>{en ? "" : "건"}</span>
-        </div>
+      </AdminSummaryStrip>
+      <section className="gov-card p-0 overflow-hidden" data-help-id="security-policy-table">
+        <GridToolbar
+          actions={<span className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Total" : "총"} <strong>{rows.length}</strong>{en ? "" : "건"}</span>}
+          title={en ? "Applied Policy List" : "적용 정책 목록"}
+        />
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left border-collapse">
             <thead><tr className="gov-table-header"><th className="px-4 py-3">{en ? "Policy ID" : "정책 ID"}</th><th className="px-4 py-3">{en ? "Target URL" : "대상 URL"}</th><th className="px-4 py-3">{en ? "Policy Name" : "정책명"}</th><th className="px-4 py-3">{en ? "Threshold" : "기본 임계치"}</th><th className="px-4 py-3">Burst</th><th className="px-4 py-3">{en ? "Action" : "조치"}</th><th className="px-4 py-3">{en ? "Status" : "상태"}</th><th className="px-4 py-3">{en ? "Updated At" : "수정일시"}</th></tr></thead>
@@ -63,62 +81,52 @@ export function SecurityPolicyMigrationPage() {
           </table>
         </div>
       </section>
-      <section className="grid grid-cols-1 xl:grid-cols-[0.9fr_1.1fr] gap-6 mb-6" data-help-id="security-policy-diagnostics">
-        <article className="gov-card">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Menu Permission Diagnostics" : "메뉴 권한 진단"}</p>
-              <h3 className="mt-2 text-lg font-bold">{en ? "Duplicate URL / VIEW Mapping Check" : "중복 URL / VIEW 매핑 점검"}</h3>
-            </div>
-            <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${duplicatedMenuUrls.length || duplicatedViewMappings.length ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
-              {duplicatedMenuUrls.length || duplicatedViewMappings.length ? (en ? "Needs Cleanup" : "정리 필요") : (en ? "Healthy" : "정상")}
-            </span>
-          </div>
-          <p className="mt-4 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">{stringOf(diagnostics, "message") || (en ? "No diagnostic message." : "진단 메시지가 없습니다.")}</p>
-          <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-4">
-              <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Duplicated Menu URLs" : "중복 메뉴 URL"}</p>
-              <p className="mt-2 text-2xl font-black">{stringOf(diagnostics, "menuUrlDuplicateCount") || "0"}</p>
-            </div>
-            <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-4">
-              <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Duplicated VIEW Mappings" : "중복 VIEW 매핑"}</p>
-              <p className="mt-2 text-2xl font-black">{stringOf(diagnostics, "viewFeatureDuplicateCount") || "0"}</p>
-            </div>
-          </div>
-          <div className="mt-4 rounded-lg border border-dashed border-amber-300 bg-amber-50 px-4 py-4">
-            <p className="text-xs font-bold text-amber-700">{en ? "Cleanup Recommendations" : "정리 추천"}</p>
-            <p className="mt-2 text-sm leading-6 text-amber-900">
-              {en
-                ? `Review ${stringOf(diagnostics, "cleanupRecommendationCount") || "0"} duplicated targets and keep one canonical menu / VIEW feature per route.`
-                : `${stringOf(diagnostics, "cleanupRecommendationCount") || "0"}건의 중복 대상을 검토하고, 라우트별로 대표 메뉴 1건과 대표 VIEW 기능 1건만 유지하는 것을 권장합니다.`}
-            </p>
-          </div>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <a
-              className="inline-flex items-center rounded-lg border border-[var(--kr-gov-blue)] px-3 py-2 text-sm font-bold text-[var(--kr-gov-blue)] hover:bg-blue-50"
-              href={stringOf(page, "menuPermissionDiagnosticSqlDownloadUrl")}
-            >
-              {en ? "Download SQL" : "진단 SQL 다운로드"}
-            </a>
-            <a
-              className="inline-flex items-center rounded-lg border border-[var(--kr-gov-border-light)] px-3 py-2 text-sm font-bold text-[var(--kr-gov-text-primary)] hover:bg-[var(--kr-gov-surface-subtle)]"
-              href={stringOf(page, "menuPermissionAuthGroupUrl")}
-            >
-              {en ? "Open Auth Group" : "권한 그룹 열기"}
-            </a>
-            <a
-              className="inline-flex items-center rounded-lg border border-[var(--kr-gov-border-light)] px-3 py-2 text-sm font-bold text-[var(--kr-gov-text-primary)] hover:bg-[var(--kr-gov-surface-subtle)]"
-              href={stringOf(page, "menuPermissionEnvironmentUrl")}
-            >
-              {en ? "Open Environment Management" : "환경관리 열기"}
-            </a>
-          </div>
-          <p className="mt-4 text-xs text-gray-400">{en ? "Generated At" : "생성 시각"}: {stringOf(diagnostics, "generatedAt") || "-"}</p>
-        </article>
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[0.9fr_1.1fr]" data-help-id="security-policy-diagnostics">
+        <DiagnosticCard
+          actions={(
+            <>
+              <MemberLinkButton href={stringOf(page, "menuPermissionDiagnosticSqlDownloadUrl")} variant="info">
+                {en ? "Download SQL" : "진단 SQL 다운로드"}
+              </MemberLinkButton>
+              <MemberLinkButton href={stringOf(page, "menuPermissionAuthGroupUrl")} variant="secondary">
+                {en ? "Open Auth Group" : "권한 그룹 열기"}
+              </MemberLinkButton>
+              <MemberLinkButton href={stringOf(page, "menuPermissionEnvironmentUrl")} variant="secondary">
+                {en ? "Open Environment Management" : "환경관리 열기"}
+              </MemberLinkButton>
+            </>
+          )}
+          description={stringOf(diagnostics, "message") || (en ? "No diagnostic message." : "진단 메시지가 없습니다.")}
+          eyebrow={en ? "Menu Permission Diagnostics" : "메뉴 권한 진단"}
+          status={duplicatedMenuUrls.length || duplicatedViewMappings.length ? (en ? "Needs Cleanup" : "정리 필요") : (en ? "Healthy" : "정상")}
+          statusTone={duplicatedMenuUrls.length || duplicatedViewMappings.length ? "warning" : "healthy"}
+          summary={(
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-4">
+                  <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Duplicated Menu URLs" : "중복 메뉴 URL"}</p>
+                  <p className="mt-2 text-2xl font-black">{stringOf(diagnostics, "menuUrlDuplicateCount") || "0"}</p>
+                </div>
+                <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-4">
+                  <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Duplicated VIEW Mappings" : "중복 VIEW 매핑"}</p>
+                  <p className="mt-2 text-2xl font-black">{stringOf(diagnostics, "viewFeatureDuplicateCount") || "0"}</p>
+                </div>
+              </div>
+              <div className="mt-4 rounded-lg border border-dashed border-amber-300 bg-amber-50 px-4 py-4">
+                <p className="text-xs font-bold text-amber-700">{en ? "Cleanup Recommendations" : "정리 추천"}</p>
+                <p className="mt-2 text-sm leading-6 text-amber-900">
+                  {en
+                    ? `Review ${stringOf(diagnostics, "cleanupRecommendationCount") || "0"} duplicated targets and keep one canonical menu / VIEW feature per route.`
+                    : `${stringOf(diagnostics, "cleanupRecommendationCount") || "0"}건의 중복 대상을 검토하고, 라우트별로 대표 메뉴 1건과 대표 VIEW 기능 1건만 유지하는 것을 권장합니다.`}
+                </p>
+              </div>
+              <p className="mt-4 text-xs text-gray-400">{en ? "Generated At" : "생성 시각"}: {stringOf(diagnostics, "generatedAt") || "-"}</p>
+            </>
+          )}
+          title={en ? "Duplicate URL / VIEW Mapping Check" : "중복 URL / VIEW 매핑 점검"}
+        />
         <article className="gov-card p-0 overflow-hidden">
-          <div className="px-6 py-5 border-b border-[var(--kr-gov-border-light)]">
-            <h3 className="text-lg font-bold">{en ? "Detected Duplicate Targets" : "감지된 중복 대상"}</h3>
-          </div>
+          <GridToolbar title={en ? "Detected Duplicate Targets" : "감지된 중복 대상"} />
           <div className="max-h-[420px] overflow-auto">
             {duplicatedMenuUrls.length === 0 && duplicatedViewMappings.length === 0 ? (
               <div className="px-6 py-10 text-sm text-[var(--kr-gov-text-secondary)]">{en ? "No duplicate active menu URL or VIEW feature mapping was found." : "활성 메뉴 URL 또는 VIEW 기능 중복 매핑이 없습니다."}</div>
@@ -134,23 +142,21 @@ export function SecurityPolicyMigrationPage() {
                       <p className="mt-1 text-amber-900">{en ? "Primary Menu" : "대표 유지 메뉴"}: <span className="font-mono">{stringOf(row, "recommendedPrimaryMenuCode")}</span></p>
                       <p className="mt-1 text-amber-900">{en ? "Disable Candidates" : "비활성 후보"}: <span className="font-mono">{stringOf(row, "recommendedDisableMenuCodes") || "-"}</span></p>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        <a
-                          className="inline-flex items-center rounded-lg border border-[var(--kr-gov-border-light)] bg-white px-3 py-2 text-xs font-bold text-[var(--kr-gov-text-primary)] hover:bg-[var(--kr-gov-surface-subtle)]"
-                          href={buildEnvironmentUrl(stringOf(row, "recommendedPrimaryMenuCode"))}
-                        >
+                        <MemberLinkButton href={buildEnvironmentUrl(stringOf(row, "recommendedPrimaryMenuCode"))} size="xs" variant="secondary">
                           {en ? "Open Environment" : "환경관리 열기"}
-                        </a>
-                        <a
-                          className="inline-flex items-center rounded-lg border border-[var(--kr-gov-border-light)] bg-white px-3 py-2 text-xs font-bold text-[var(--kr-gov-text-primary)] hover:bg-[var(--kr-gov-surface-subtle)]"
-                          href={buildAuthGroupUrl(stringOf(row, "recommendedPrimaryMenuCode"))}
-                        >
+                        </MemberLinkButton>
+                        <MemberLinkButton href={buildAuthGroupUrl(stringOf(row, "recommendedPrimaryMenuCode"))} size="xs" variant="secondary">
                           {en ? "Open Auth Group" : "권한 그룹 열기"}
-                        </a>
+                        </MemberLinkButton>
                       </div>
-                      <div className="mt-3 rounded border border-[var(--kr-gov-border-light)] bg-white p-3">
-                        <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">SQL Preview</p>
-                        <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-all text-[11px] leading-5 text-[var(--kr-gov-text-primary)]">{stringOf(row, "recommendedSqlPreview")}</pre>
-                      </div>
+                      <CopyableCodeBlock
+                        copiedLabel={en ? "Copied" : "복사됨"}
+                        copied={copiedSqlKey === `menu-${idx}`}
+                        copyLabel={en ? "Copy SQL" : "SQL 복사"}
+                        onCopy={() => { void copySqlPreview(`menu-${idx}`, stringOf(row, "recommendedSqlPreview")); }}
+                        title="SQL Preview"
+                        value={stringOf(row, "recommendedSqlPreview")}
+                      />
                     </div>
                   </div>
                 ))}
@@ -166,23 +172,21 @@ export function SecurityPolicyMigrationPage() {
                       <p className="mt-1 text-red-900">{en ? "Primary VIEW Feature" : "대표 VIEW 기능"}: <span className="font-mono">{stringOf(row, "recommendedPrimaryFeatureCode")}</span></p>
                       <p className="mt-1 text-red-900">{en ? "Remove Candidates" : "정리 후보 기능"}: <span className="font-mono">{stringOf(row, "recommendedRemoveFeatureCodes") || "-"}</span></p>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        <a
-                          className="inline-flex items-center rounded-lg border border-[var(--kr-gov-border-light)] bg-white px-3 py-2 text-xs font-bold text-[var(--kr-gov-text-primary)] hover:bg-[var(--kr-gov-surface-subtle)]"
-                          href={buildEnvironmentUrl(stringOf(row, "recommendedPrimaryMenuCode"))}
-                        >
+                        <MemberLinkButton href={buildEnvironmentUrl(stringOf(row, "recommendedPrimaryMenuCode"))} size="xs" variant="secondary">
                           {en ? "Open Environment" : "환경관리 열기"}
-                        </a>
-                        <a
-                          className="inline-flex items-center rounded-lg border border-[var(--kr-gov-border-light)] bg-white px-3 py-2 text-xs font-bold text-[var(--kr-gov-text-primary)] hover:bg-[var(--kr-gov-surface-subtle)]"
-                          href={buildAuthGroupUrl(stringOf(row, "recommendedPrimaryMenuCode"), stringOf(row, "recommendedPrimaryFeatureCode"))}
-                        >
+                        </MemberLinkButton>
+                        <MemberLinkButton href={buildAuthGroupUrl(stringOf(row, "recommendedPrimaryMenuCode"), stringOf(row, "recommendedPrimaryFeatureCode"))} size="xs" variant="secondary">
                           {en ? "Open Focused Auth Group" : "포커스 권한 그룹 열기"}
-                        </a>
+                        </MemberLinkButton>
                       </div>
-                      <div className="mt-3 rounded border border-[var(--kr-gov-border-light)] bg-white p-3">
-                        <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">SQL Preview</p>
-                        <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-all text-[11px] leading-5 text-[var(--kr-gov-text-primary)]">{stringOf(row, "recommendedSqlPreview")}</pre>
-                      </div>
+                      <CopyableCodeBlock
+                        copiedLabel={en ? "Copied" : "복사됨"}
+                        copied={copiedSqlKey === `view-${idx}`}
+                        copyLabel={en ? "Copy SQL" : "SQL 복사"}
+                        onCopy={() => { void copySqlPreview(`view-${idx}`, stringOf(row, "recommendedSqlPreview")); }}
+                        title="SQL Preview"
+                        value={stringOf(row, "recommendedSqlPreview")}
+                      />
                     </div>
                   </div>
                 ))}
@@ -191,9 +195,10 @@ export function SecurityPolicyMigrationPage() {
           </div>
         </article>
       </section>
-      <section className="grid grid-cols-1 xl:grid-cols-3 gap-6" data-help-id="security-policy-playbooks">
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-3" data-help-id="security-policy-playbooks">
         {playbooks.map((item, idx) => <article className="gov-card" key={idx}><h3 className="text-lg font-bold">{stringOf(item, "title")}</h3><p className="mt-3 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">{stringOf(item, "body")}</p></article>)}
       </section>
+      </AdminPolicyPageFrame>
     </AdminPageShell>
   );
 }

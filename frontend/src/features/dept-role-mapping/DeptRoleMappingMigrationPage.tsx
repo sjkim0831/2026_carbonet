@@ -3,6 +3,7 @@ import { CanView } from "../../components/access/CanView";
 import { DeptRolePagePayload, FrontendSession, fetchDeptRolePage, fetchFrontendSession, readBootstrappedDeptRolePageData, saveDeptRoleMapping, saveDeptRoleMember } from "../../lib/api/client";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { AdminAuthorityPageFrame } from "../admin-ui/pageFrames";
 import { DeptRoleCompanySection, DeptRoleDepartmentTable, DeptRoleMemberTable } from "./deptRoleSections";
 
 function t(page: DeptRolePagePayload | null, ko: string, en: string) {
@@ -119,9 +120,11 @@ export function DeptRoleMappingMigrationPage() {
       {page?.deptRoleUpdated || message ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message || (page?.deptRoleTargetInsttId ? t(page, `${page.deptRoleTargetInsttId} 부서 권한 맵핑이 저장되었습니다.`, `Saved department role mappings for ${page.deptRoleTargetInsttId}.`) : t(page, "부서 권한 맵핑이 저장되었습니다.", "Department role mappings have been saved."))}</section> : null}
       {page?.deptRoleMessage && !message ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">{page.deptRoleMessage}</section> : null}
       <CanView allowed={canViewCompanySelector} fallback={<section className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-6 shadow-sm"><p className="text-sm text-[var(--kr-gov-text-secondary)]">{t(page, "부서 권한 화면을 불러올 수 없습니다.", "Unable to load the department role page.")}</p></section>}>
+        <AdminAuthorityPageFrame>
         <DeptRoleCompanySection canUseAllCompanies={canUseAllCompanies} canUseOwnCompany={canUseOwnCompany} insttId={insttId} onCompanyChange={handleCompanyChange} page={page} />
         <DeptRoleDepartmentTable canUseAllCompanies={canUseAllCompanies} canUseOwnCompany={canUseOwnCompany} deptDrafts={deptDrafts} onDeptSave={handleDeptSave} page={page} roleProfilesByAuthorCode={roleProfilesByAuthorCode} setDeptDrafts={setDeptDrafts} />
         <DeptRoleMemberTable canUseAllCompanies={canUseAllCompanies} canUseOwnCompany={canUseOwnCompany} currentMemberPage={currentMemberPage} memberDrafts={memberDrafts} memberSearchDraft={memberSearchDraft} onMemberSave={handleMemberSave} onMemberSearchSubmit={handleMemberSearchSubmit} page={page} roleProfilesByAuthorCode={roleProfilesByAuthorCode} setMemberDrafts={setMemberDrafts} setMemberPageIndex={setMemberPageIndex} setMemberSearchDraft={setMemberSearchDraft} totalMemberPages={totalMemberPages} />
+        </AdminAuthorityPageFrame>
       </CanView>
     </AdminPageShell>
   );

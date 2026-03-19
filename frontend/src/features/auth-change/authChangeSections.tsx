@@ -1,7 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { AuthChangePagePayload } from "../../lib/api/client";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
-import { MemberButton, MemberPagination, MemberPermissionButton } from "../member/common";
+import { DiagnosticCard, GridToolbar, MemberButton, MemberPagination, MemberPermissionButton } from "../admin-ui/common";
 
 function t(page: AuthChangePagePayload | null, ko: string, en: string) {
   return page?.isEn ? en : ko;
@@ -22,34 +22,33 @@ export function AuthChangeOverview({
   pendingCount: number;
 }) {
   return (
-    <section className="mb-8">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-        <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4">
+    <section className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-4">
+      <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4">
           <h3 className="font-black">{t(page, "이 화면의 역할", "Purpose of this page")}</h3>
           <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">
             {t(page, "사용자 단위로 현재 Role을 확인하고, 회원 수정 화면과 연계할 권한 변경 기준을 검토합니다.", "Review the current role per user and check the authority-change baseline used with member editing.")}
           </p>
-        </article>
-        <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4">
+      </article>
+      <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4">
           <h3 className="font-black">{t(page, "권장 운영", "Recommended operation")}</h3>
           <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">
             {t(page, "기본 권한은 권한 그룹/부서 권한에서 정하고, 여기서는 개인 예외와 직접 변경만 다룹니다.", "Keep baseline authority in role groups and department roles, and use this page only for direct exceptions.")}
           </p>
-        </article>
-        <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4">
+      </article>
+      <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4">
           <h3 className="font-black">{t(page, "다음 단계", "Next step")}</h3>
           <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">
             {t(page, "저장 기능은 사용자-Role 변경 이력과 함께 붙이는 것이 안전합니다.", "Saving should be paired with user-role change history for safer operations.")}
           </p>
-        </article>
-        <article className="rounded-[var(--kr-gov-radius)] border border-blue-200 bg-blue-50 p-4">
-          <h3 className="font-black text-[var(--kr-gov-blue)]">{t(page, "저장 전 변경", "Pending changes")}</h3>
-          <p className="mt-2 text-2xl font-black text-[var(--kr-gov-blue)]">{pendingCount}</p>
-          <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">
-            {pendingCount > 0 ? t(page, "저장되지 않은 관리자 권한 변경이 있습니다.", "There are unsaved administrator role changes.") : t(page, "현재 저장 대기 중인 변경이 없습니다.", "There are no unsaved administrator role changes.")}
-          </p>
-        </article>
-      </div>
+      </article>
+      <DiagnosticCard
+        className="bg-blue-50"
+        description={pendingCount > 0 ? t(page, "저장되지 않은 관리자 권한 변경이 있습니다.", "There are unsaved administrator role changes.") : t(page, "현재 저장 대기 중인 변경이 없습니다.", "There are no unsaved administrator role changes.")}
+        status={pendingCount > 0 ? t(page, "저장 필요", "Pending save") : t(page, "정상", "Clean")}
+        statusTone={pendingCount > 0 ? "warning" : "healthy"}
+        summary={<p className="text-2xl font-black text-[var(--kr-gov-blue)]">{pendingCount}</p>}
+        title={t(page, "저장 전 변경", "Pending changes")}
+      />
     </section>
   );
 }
@@ -139,10 +138,15 @@ export function AuthChangeTableSection({
 }) {
   return (
     <section className="gov-card" data-help-id="auth-change-summary">
-      <div className="flex items-center gap-2 border-b pb-4 mb-4">
-        <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">manage_accounts</span>
-        <h3 className="text-lg font-bold">{t(page, "관리자 권한 변경 대상", "Administrator Authority Targets")}</h3>
-      </div>
+      <GridToolbar
+        actions={(
+          <MemberButton className="w-full sm:w-auto" disabled={!canEdit || pendingCount === 0 || savingEmplyrId === "__bulk__"} onClick={onBulkSave} type="button" variant="primary">
+            {t(page, "변경 일괄 저장", "Save pending changes")}
+          </MemberButton>
+        )}
+        title={t(page, "관리자 권한 변경 대상", "Administrator Authority Targets")}
+      />
+      <div className="p-6">
       <div className="mb-4 grid grid-cols-1 gap-3 xl:grid-cols-[1.3fr_0.7fr_auto]">
         <label>
           <span className="mb-2 block text-[13px] font-bold text-[var(--kr-gov-text-secondary)]">{t(page, "관리자 검색", "Admin Search")}</span>
@@ -156,11 +160,7 @@ export function AuthChangeTableSection({
             <option value="UNCHANGED">{t(page, "변경 없음", "Unchanged")}</option>
           </select>
         </label>
-        <div className="flex items-end">
-          <MemberButton className="w-full" disabled={!canEdit || pendingCount === 0 || savingEmplyrId === "__bulk__"} onClick={onBulkSave} type="button" variant="primary">
-            {t(page, "변경 일괄 저장", "Save pending changes")}
-          </MemberButton>
-        </div>
+        <div className="flex items-end" />
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[960px] text-sm">
@@ -213,6 +213,7 @@ export function AuthChangeTableSection({
         </table>
       </div>
       <MemberPagination className="px-4 py-3" currentPage={currentPage} onPageChange={setPageIndex} totalPages={totalPages} />
+      </div>
     </section>
   );
 }
@@ -226,11 +227,8 @@ export function AuthChangeHistorySection({
 }) {
   return (
     <section className="mt-8 gov-card" data-help-id="auth-change-history">
-      <div className="flex items-center gap-2 border-b pb-4 mb-4">
-        <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">history</span>
-        <h3 className="text-lg font-bold">{t(page, "최근 권한 변경 이력", "Recent role change history")}</h3>
-      </div>
-      <div className="space-y-3">
+      <GridToolbar title={t(page, "최근 권한 변경 이력", "Recent role change history")} />
+      <div className="space-y-3 p-6">
         {rows.length === 0 ? (
           <div className="rounded-[var(--kr-gov-radius)] border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">{t(page, "표시할 이력이 없습니다.", "No history to show.")}</div>
         ) : rows.map((row, index) => (

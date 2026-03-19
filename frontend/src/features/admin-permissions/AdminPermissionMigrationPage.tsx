@@ -4,6 +4,9 @@ import { PermissionButton } from "../../components/access/CanUse";
 import { buildLocalizedPath, getSearchParam } from "../../lib/navigation/runtime";
 import { AdminPermissionPagePayload, fetchAdminPermissionPage, fetchFrontendSession, FrontendSession, saveAdminPermission } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { ADMIN_BUTTON_LABELS } from "../admin-ui/labels";
+import { GridToolbar, MemberActionBar } from "../admin-ui/common";
+import { AdminEditPageFrame } from "../admin-ui/pageFrames";
 
 function text(page: AdminPermissionPagePayload | null, ko: string, en: string) {
   return page?.isEn ? en : ko;
@@ -89,14 +92,13 @@ export function AdminPermissionMigrationPage() {
       {page?.adminPermissionUpdated ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{text(page, "관리자 권한이 저장되었습니다.", "Administrator permissions have been saved.")}</section> : null}
       {message ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{message}</section> : null}
       <CanView allowed={!!page?.canViewAdminPermissionEdit} fallback={<section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm"><p className="text-sm text-[var(--kr-gov-text-secondary)]">{text(page, "편집 대상 관리자를 조회하세요.", "Look up an administrator to edit.")}</p></section>}>
+        <AdminEditPageFrame>
         <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm mb-6" data-help-id="admin-permission-summary">
-          <div className="flex items-center gap-2 px-6 py-4 border-b border-[var(--kr-gov-border-light)]">
-            <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">admin_panel_settings</span>
-            <div>
-              <h3 className="text-lg font-bold text-[var(--kr-gov-text-primary)]">{text(page, "관리자 계정 요약", "Administrator Account Summary")}</h3>
-              <p className="text-sm text-[var(--kr-gov-text-secondary)]">{text(page, "현재 관리자 계정과 롤 기준 권한, 개별 예외 권한을 함께 관리합니다.", "Manage the current admin account together with role-based permissions and account-specific overrides.")}</p>
-            </div>
-          </div>
+          <GridToolbar
+            actions={<span className="material-symbols-outlined text-[var(--kr-gov-blue)]">admin_panel_settings</span>}
+            meta={text(page, "현재 관리자 계정과 롤 기준 권한, 개별 예외 권한을 함께 관리합니다.", "Manage the current admin account together with role-based permissions and account-specific overrides.")}
+            title={text(page, "관리자 계정 요약", "Administrator Account Summary")}
+          />
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4">
               <p><span className="font-bold">관리자 ID:</span> {page?.adminPermissionTarget?.emplyrId || "-"}</p>
@@ -111,13 +113,11 @@ export function AdminPermissionMigrationPage() {
           </div>
         </section>
         <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm" data-help-id="admin-permission-features">
-          <div className="flex items-center gap-2 px-6 py-4 border-b border-[var(--kr-gov-border-light)]">
-            <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">shield</span>
-            <div>
-              <h3 className="text-lg font-bold text-[var(--kr-gov-text-primary)]">{text(page, "권한 롤 및 개별 권한", "Role and Individual Permissions")}</h3>
-              <p className="text-sm text-[var(--kr-gov-text-secondary)]">{text(page, "관리자 롤을 기준으로 체크를 맞춘 뒤, 계정별 추가 허용 또는 제외 권한을 직접 조정합니다.", "Align the baseline to the administrator role, then adjust account-specific additions or removals directly.")}</p>
-            </div>
-          </div>
+          <GridToolbar
+            actions={<span className="material-symbols-outlined text-[var(--kr-gov-blue)]">shield</span>}
+            meta={text(page, "관리자 롤을 기준으로 체크를 맞춘 뒤, 계정별 추가 허용 또는 제외 권한을 직접 조정합니다.", "Align the baseline to the administrator role, then adjust account-specific additions or removals directly.")}
+            title={text(page, "권한 롤 및 개별 권한", "Role and Individual Permissions")}
+          />
           <div className="p-6 space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="md:col-span-2">
@@ -171,10 +171,22 @@ export function AdminPermissionMigrationPage() {
             </div>
           </div>
         </section>
-        <div className="pt-2 flex justify-center gap-4">
-          <a className="min-w-[180px] h-14 border border-[var(--kr-gov-border-light)] text-[var(--kr-gov-text-primary)] text-lg font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-50 transition-colors flex items-center justify-center" href={buildLocalizedPath("/admin/member/admin_list", "/en/admin/member/admin_list")}>{text(page, "목록으로", "Back to list")}</a>
-          <PermissionButton allowed={!!page?.canUseAdminPermissionSave && !readOnly} className="min-w-[220px] h-14 bg-[var(--kr-gov-blue)] text-white text-lg font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)] transition-colors shadow-lg" onClick={handleSave} reason={readOnly ? text(page, "상세 모드에서는 저장할 수 없습니다.", "Save is unavailable in detail mode.") : text(page, "webmaster만 관리자 권한을 저장할 수 있습니다.", "Only webmaster can save administrator permissions.")} type="button">{readOnly ? text(page, "상세 모드", "Detail mode") : text(page, "권한 저장", "Save permissions")}</PermissionButton>
-        </div>
+        <MemberActionBar
+          dataHelpId="admin-permission-actions"
+          primary={(
+            <PermissionButton
+              allowed={!!page?.canUseAdminPermissionSave && !readOnly}
+              className="inline-flex min-w-[220px] items-center justify-center gap-1.5 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-blue)] bg-[var(--kr-gov-blue)] px-6 py-3 text-base font-bold text-white transition-colors hover:border-[var(--kr-gov-blue-hover)] hover:bg-[var(--kr-gov-blue-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={handleSave}
+              reason={readOnly ? text(page, "상세 모드에서는 저장할 수 없습니다.", "Save is unavailable in detail mode.") : text(page, "webmaster만 관리자 권한을 저장할 수 있습니다.", "Only webmaster can save administrator permissions.")}
+              type="button"
+            >
+              {readOnly ? text(page, "상세 모드", "Detail mode") : text(page, "권한 저장", "Save permissions")}
+            </PermissionButton>
+          )}
+          secondary={{ href: buildLocalizedPath("/admin/member/admin_list", "/en/admin/member/admin_list"), label: text(page, ADMIN_BUTTON_LABELS.list, "Back to list") }}
+        />
+        </AdminEditPageFrame>
       </CanView>
     </AdminPageShell>
   );
