@@ -31,6 +31,36 @@ This is the smallest unit that should support:
 - delete
 - rollback
 
+## Chain Management Model
+
+Resource chains should be modeled as a governed dependency graph, not as a flat file list and not as a menu-only tree.
+
+The practical chain shape in this repository is:
+
+- `project -> install unit -> menu -> page -> function -> api -> backend chain -> db objects`
+- `page -> help anchors -> telemetry metadata -> audit identifiers`
+- `install unit -> common modules`
+
+The platform should treat this as one authoritative graph with three different meanings:
+
+- ownership chain
+- execution chain
+- delete-order chain
+
+These meanings can overlap, but they should not be collapsed into one ambiguous relation type.
+
+Recommended dependency categories:
+
+- `OWNS`
+- `USES`
+- `CALLS`
+- `EMITS`
+- `STORES_IN`
+- `REFERENCES`
+- `BLOCKS_DELETE`
+
+If a relationship matters for copy, upgrade, delete, drift detection, or audit search, it belongs in the registry.
+
 ## Ownership Scopes
 
 Every managed resource must belong to exactly one scope:
@@ -104,6 +134,37 @@ Automatic deletion is allowed only for `EXCLUSIVE` assets with valid ownership a
 Assets marked `SHARED` or `REFERENCE_ONLY` must not be auto-deleted unless reference count and approval rules allow it.
 
 Selected common modules are normally `REFERENCE_ONLY` from the perspective of an install unit and should not be deleted with the menu package.
+
+## Complexity Management Rules
+
+Resource-chain complexity grows quickly when one registry tries to answer ownership, runtime tracing, UI composition, and deletion with the same abstraction.
+
+To keep complexity under control, use these rules:
+
+1. keep one primary lifecycle owner
+   every resource must have exactly one owning scope even if many units reference it
+2. separate ownership from usage
+   `ownerScope` answers who controls deletion, while `usageMode` answers how others consume it
+3. keep the install unit as the operational boundary
+   do not let controllers, source files, or individual tables become first-class lifecycle units
+4. classify shared assets early
+   common tables, templates, code groups, and modules must be marked `SHARED` or `REFERENCE_ONLY` before delete automation is attempted
+5. split graph concerns by question
+   ownership graph for authority, execution graph for tracing, delete graph for uninstall order
+6. allow summaries in the admin UI
+   operators should browse package-level dependency summaries first and expand to file or table detail only on demand
+7. enforce non-blocking metadata collection
+   missing enrichment may reduce visibility, but it must not break screen behavior or installs
+8. favor append-and-verify rollout
+   register resources first, verify ownership and dependency quality next, automate delete or clone only after coverage is stable
+
+The platform should reject these anti-patterns:
+
+- inferring ownership from package names alone
+- deleting by route or menu without a generated delete plan
+- treating low traffic as garbage
+- copying full source trees instead of regenerating identities and declared references
+- merging common-module dependency records with install-unit-owned assets
 
 ## Garbage Definition
 
@@ -185,6 +246,23 @@ The platform registry remains authoritative.
 4. extend the command-center UI to show package and dependency views
 5. add export, copy, delete-plan, orphan-scan, and drift-scan actions
 6. only after that, split common platform and project modules further
+
+## Admin UI Shape
+
+The management UI should expose the chain in layers rather than dumping raw registry rows.
+
+Recommended operator views:
+
+- package summary
+  install unit identity, owner scope, selected common modules, status
+- chain view
+  page, function, API, backend, DB, and attachment links for one install unit
+- dependency impact
+  inbound references, outbound references, delete blockers, and shared-resource reasons
+- quality view
+  orphan results, drift results, unverified resources, and missing ownership classifications
+- action view
+  install, copy, export, delete-plan, approve delete, rollback
 
 ## Minimum Metadata Keys
 

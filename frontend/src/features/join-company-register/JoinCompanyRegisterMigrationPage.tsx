@@ -14,6 +14,14 @@ import {
   submitJoinCompanyRegister
 } from "../../lib/api/client";
 import { buildLocalizedPath, getSearchParam, isEnglish, navigate } from "../../lib/navigation/runtime";
+import {
+  HomeButton,
+  HomeIconButton,
+  HomeInput,
+  HomeLinkButton,
+  HomeRadio,
+  HomeTable
+} from "../home-ui/common";
 import { EN_MEMBERSHIP_CARDS, KO_MEMBERSHIP_CARDS } from "../join/shared/membershipCards";
 
 type CompanyForm = {
@@ -419,9 +427,9 @@ export function JoinCompanyRegisterMigrationPage() {
           <div className="bg-white border border-[var(--kr-gov-border-light)] rounded-lg shadow-sm overflow-hidden p-8 md:p-12">
             <div className="mb-8 flex items-center justify-between">
               <h3 className="text-2xl font-bold text-[var(--kr-gov-text-primary)]">{copy.registerTitle}</h3>
-              <button className="flex items-center gap-1.5 px-4 py-2 bg-white border border-[var(--kr-gov-blue)] text-[var(--kr-gov-blue)] text-sm font-bold rounded-[var(--kr-gov-radius)] hover:bg-blue-50 transition-colors" onClick={() => navigate(buildLocalizedPath("/join/companyJoinStatusSearch", "/join/en/companyJoinStatusSearch"))} type="button">
+              <HomeButton className="px-4 text-sm" onClick={() => navigate(buildLocalizedPath("/join/companyJoinStatusSearch", "/join/en/companyJoinStatusSearch"))} type="button">
                 <span className="material-symbols-outlined text-[20px]">search</span>{copy.statusLink}
-              </button>
+              </HomeButton>
             </div>
 
             {error ? (
@@ -453,13 +461,12 @@ export function JoinCompanyRegisterMigrationPage() {
                     const active = form.membershipType === card.value;
                     return (
                       <label className={`type-card group${active ? " active" : ""}`} key={card.value}>
-                        <input
+                        <HomeRadio
                           checked={active}
                           className="sr-only"
                           name="membership_type"
                           onChange={() => updateField("membershipType", card.value)}
                           required
-                          type="radio"
                           value={card.value}
                         />
                         <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 transition-colors ${card.iconWrapClass} ${card.hoverIconWrapClass}`}>
@@ -486,15 +493,15 @@ export function JoinCompanyRegisterMigrationPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
                 <div className="space-y-1">
                   <label className="form-label" htmlFor="charger-name">{copy.chargerName} <span className="text-red-500">*</span></label>
-                  <input className="form-input" id="charger-name" onChange={(event) => updateField("chargerName", event.target.value)} placeholder={copy.placeholderChargerName} required type="text" value={form.chargerName} />
+                  <HomeInput id="charger-name" onChange={(event) => updateField("chargerName", event.target.value)} placeholder={copy.placeholderChargerName} required type="text" value={form.chargerName} />
                 </div>
                 <div className="space-y-1">
                   <label className="form-label" htmlFor="charger-email">{copy.chargerEmail} <span className="text-red-500">*</span></label>
-                  <input className="form-input" id="charger-email" inputMode="email" onChange={(event) => updateField("chargerEmail", event.target.value)} placeholder={copy.placeholderEmail} required type="text" value={form.chargerEmail} />
+                  <HomeInput id="charger-email" inputMode="email" onChange={(event) => updateField("chargerEmail", event.target.value)} placeholder={copy.placeholderEmail} required type="text" value={form.chargerEmail} />
                 </div>
                 <div className="space-y-1">
                   <label className="form-label" htmlFor="charger-tel">{copy.chargerTel} <span className="text-red-500">*</span></label>
-                  <input className="form-input" id="charger-tel" inputMode="tel" onChange={(event) => updateField("chargerTel", event.target.value)} placeholder={copy.placeholderTel} required type="text" value={form.chargerTel} />
+                  <HomeInput id="charger-tel" inputMode="tel" onChange={(event) => updateField("chargerTel", event.target.value)} placeholder={copy.placeholderTel} required type="text" value={form.chargerTel} />
                 </div>
               </div>
             </section>
@@ -508,31 +515,31 @@ export function JoinCompanyRegisterMigrationPage() {
                   <label className="form-label" htmlFor="agency-name">{copy.agencyName} <span className="text-red-500">*</span></label>
                   <div className="flex gap-2">
                     <div className="relative flex-grow">
-                      <input className="form-input pr-20" id="agency-name" onChange={(event) => updateField("agencyName", event.target.value)} placeholder={copy.placeholderAgency} required type="text" value={form.agencyName} />
-                      <button className="absolute right-2 top-2 bottom-2 px-3 bg-[var(--kr-gov-blue)] text-white text-xs font-bold rounded-[var(--kr-gov-radius)] flex items-center gap-1" onClick={openCompanySearchModal} type="button">
+                      <HomeInput className="pr-20" id="agency-name" onChange={(event) => updateField("agencyName", event.target.value)} placeholder={copy.placeholderAgency} required type="text" value={form.agencyName} />
+                      <HomeButton className="absolute right-2 top-2 bottom-2 min-h-0 px-3 text-xs" onClick={openCompanySearchModal} size="xs" type="button" variant="primary">
                         <span className="material-symbols-outlined text-[18px]">search</span>{copy.search}
-                      </button>
+                      </HomeButton>
                     </div>
-                    <button className="px-4 bg-gray-800 text-white text-sm font-bold rounded-[var(--kr-gov-radius)] whitespace-nowrap" onClick={() => void handleDuplicateCheck()} type="button">{copy.duplicateCheck}</button>
+                    <HomeButton onClick={() => void handleDuplicateCheck()} type="button" variant="primary">{copy.duplicateCheck}</HomeButton>
                   </div>
                   {duplicateMessage ? <p className={`mt-1 text-xs ${duplicateAvailable ? "text-green-600 font-bold" : "text-red-500"}`}>{duplicateMessage}</p> : null}
                 </div>
                 <div className="space-y-1">
                   <label className="form-label" htmlFor="representative-name">{copy.representativeName} <span className="text-red-500">*</span></label>
-                  <input className="form-input" id="representative-name" onChange={(event) => updateField("representativeName", event.target.value)} placeholder={copy.placeholderRep} required type="text" value={form.representativeName} />
+                  <HomeInput id="representative-name" onChange={(event) => updateField("representativeName", event.target.value)} placeholder={copy.placeholderRep} required type="text" value={form.representativeName} />
                 </div>
                 <div className="space-y-1">
                   <label className="form-label" htmlFor="biz-registration-number">{copy.bizRegistrationNumber} <span className="text-red-500">*</span></label>
-                  <input className="form-input" id="biz-registration-number" onChange={(event) => updateField("bizRegistrationNumber", event.target.value.replace(/\D/g, ""))} placeholder={copy.placeholderBiz} required type="text" value={form.bizRegistrationNumber} />
+                  <HomeInput id="biz-registration-number" onChange={(event) => updateField("bizRegistrationNumber", event.target.value.replace(/\D/g, ""))} placeholder={copy.placeholderBiz} required type="text" value={form.bizRegistrationNumber} />
                 </div>
                 <div className="md:col-span-2 space-y-1">
                   <label className="form-label" htmlFor="company-address">{copy.companyAddress} <span className="text-red-500">*</span></label>
                   <div className="flex gap-2 mb-2">
-                    <input className="form-input w-32 bg-gray-50 cursor-pointer" id="zip-code" onClick={openAddressSearch} placeholder={copy.placeholderZip} readOnly required type="text" value={form.zipCode} />
-                    <button className="px-5 border border-[var(--kr-gov-blue)] text-[var(--kr-gov-blue)] text-sm font-bold rounded-[var(--kr-gov-radius)] hover:bg-blue-50 transition-colors" onClick={openAddressSearch} type="button">{copy.searchAddress}</button>
+                    <HomeInput className="w-32 bg-gray-50 cursor-pointer" id="zip-code" onClick={openAddressSearch} placeholder={copy.placeholderZip} readOnly required type="text" value={form.zipCode} />
+                    <HomeButton onClick={openAddressSearch} type="button">{copy.searchAddress}</HomeButton>
                   </div>
-                  <input className="form-input mb-2 bg-gray-50 cursor-pointer" id="company-address" onClick={openAddressSearch} placeholder={copy.placeholderAddress} readOnly required type="text" value={form.companyAddress} />
-                  <input className="form-input" id="company-address-detail" onChange={(event) => updateField("companyAddressDetail", event.target.value)} placeholder={copy.placeholderAddressDetail} type="text" value={form.companyAddressDetail} />
+                  <HomeInput className="mb-2 bg-gray-50 cursor-pointer" id="company-address" onClick={openAddressSearch} placeholder={copy.placeholderAddress} readOnly required type="text" value={form.companyAddress} />
+                  <HomeInput id="company-address-detail" onChange={(event) => updateField("companyAddressDetail", event.target.value)} placeholder={copy.placeholderAddressDetail} type="text" value={form.companyAddressDetail} />
                 </div>
               </div>
             </section>
@@ -544,16 +551,16 @@ export function JoinCompanyRegisterMigrationPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <label className="form-label mb-0">{copy.fileDesc} <span className="text-red-500">*</span></label>
-                  <button className="join-upload-add-btn" onClick={addFileRow} type="button">
+                  <HomeButton className="join-upload-add-btn" onClick={addFileRow} size="sm" type="button">
                     <span className="material-symbols-outlined text-[18px]">add</span>{copy.addFile}
-                  </button>
+                  </HomeButton>
                 </div>
                 <div className="space-y-2">
                   {uploadRows.map((row, index) => (
                     <div className={`join-upload-row ${row.file && row.file.size > 0 ? "is-selected" : ""}`} key={row.id}>
                       <span className="material-symbols-outlined join-upload-icon">attach_file</span>
                       <div className="flex-grow min-w-0">
-                        <input accept=".pdf,.jpg,.jpeg,.png" className="hidden" id={`company-file-${row.id}`} onChange={(event) => handleFileChange(index, event)} type="file" />
+                        <HomeInput accept=".pdf,.jpg,.jpeg,.png" className="hidden" id={`company-file-${row.id}`} onChange={(event) => handleFileChange(index, event)} type="file" />
                         <label className="join-upload-label" htmlFor={`company-file-${row.id}`}>
                           <div className="file-info flex items-center justify-between">
                             <span className={`join-upload-name ${row.file && row.file.size > 0 ? "is-selected" : ""}`}>{row.file && row.file.size > 0 ? row.file.name : copy.emptyFile}</span>
@@ -562,9 +569,9 @@ export function JoinCompanyRegisterMigrationPage() {
                         </label>
                       </div>
                       {uploadRows.length > 1 || (row.file && row.file.size > 0) ? (
-                        <button className="join-upload-remove-btn" onClick={() => removeFileRow(index)} type="button">
+                        <HomeIconButton className="join-upload-remove-btn" onClick={() => removeFileRow(index)} type="button">
                           <span className="material-symbols-outlined">close</span>
-                        </button>
+                        </HomeIconButton>
                       ) : null}
                     </div>
                   ))}
@@ -574,16 +581,16 @@ export function JoinCompanyRegisterMigrationPage() {
             </section>
 
             <div className="pt-8 border-t border-gray-100 flex flex-col md:flex-row gap-4">
-              <button className="flex-1 h-14 border border-[var(--kr-gov-border-light)] text-[var(--kr-gov-text-primary)] text-lg font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-50 transition-colors" onClick={() => window.history.back()} type="button">{copy.prev}</button>
-              <button className="flex-[2] h-14 bg-[var(--kr-gov-blue)] text-white text-lg font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)] transition-colors shadow-lg flex items-center justify-center gap-2" type="submit">
+              <HomeButton className="flex-1 text-lg" onClick={() => window.history.back()} size="lg" type="button">{copy.prev}</HomeButton>
+              <HomeButton className="flex-[2] text-lg shadow-lg" size="lg" type="submit" variant="primary">
                 {copy.submit} <span className="material-symbols-outlined">arrow_forward</span>
-              </button>
+              </HomeButton>
             </div>
           </form>
 
           <div className="mt-8 text-center">
             <p className="text-sm text-[var(--kr-gov-text-secondary)]">
-              {copy.support} <a className="text-[var(--kr-gov-blue)] font-bold hover:underline" href="#">{copy.supportLink}</a>{copy.supportTail}
+              {copy.support} <HomeLinkButton className="min-h-0 border-0 bg-transparent px-0 py-0 font-bold text-[var(--kr-gov-blue)] hover:bg-transparent hover:underline" href="#" variant="ghost">{copy.supportLink}</HomeLinkButton>{copy.supportTail}
             </p>
           </div>
         </div>
@@ -597,9 +604,9 @@ export function JoinCompanyRegisterMigrationPage() {
               <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">corporate_fare</span>
               {copy.modalTitle}
             </h2>
-            <button className="text-gray-400 hover:text-gray-600 rounded-full p-1" onClick={() => setModalOpen(false)} type="button">
+            <HomeIconButton className="text-gray-400 hover:text-gray-600" onClick={() => setModalOpen(false)} type="button">
               <span className="material-symbols-outlined">close</span>
-            </button>
+            </HomeIconButton>
           </div>
           <div className="p-6 overflow-y-auto flex-grow">
             <div className="mb-6">
@@ -608,14 +615,14 @@ export function JoinCompanyRegisterMigrationPage() {
                 <div className="flex gap-2">
                   <div className="relative flex-grow">
                     <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">search</span>
-                    <input className="form-input pl-11" id="modal-search" onChange={(event) => setSearchKeyword(event.target.value)} onKeyDown={handleModalSearchKeyDown} placeholder={copy.modalPlaceholder} type="text" value={searchKeyword} />
+                    <HomeInput className="pl-11" id="modal-search" onChange={(event) => setSearchKeyword(event.target.value)} onKeyDown={handleModalSearchKeyDown} placeholder={copy.modalPlaceholder} type="text" value={searchKeyword} />
                   </div>
-                  <button className="px-8 bg-[var(--kr-gov-blue)] text-white font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)] transition-colors" onClick={() => void runCompanySearch(1)} type="button">{copy.search}</button>
+                  <HomeButton onClick={() => void runCompanySearch(1)} type="button" variant="primary">{copy.search}</HomeButton>
                 </div>
               </div>
             </div>
             <div className="border border-[var(--kr-gov-border-light)] rounded-lg overflow-hidden mb-4">
-              <table className="w-full text-sm text-left">
+              <HomeTable>
                 <thead className="bg-[#f8f9fa] border-b border-[var(--kr-gov-border-light)] text-[var(--kr-gov-text-primary)]">
                   <tr>
                     <th className="px-4 py-3 font-bold text-center w-12" scope="col">{copy.no}</th>
@@ -647,24 +654,25 @@ export function JoinCompanyRegisterMigrationPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </HomeTable>
             </div>
             {pagination.length > 0 ? (
               <nav aria-label="pagination" className="flex justify-center items-center gap-1 my-4">
-                <button className="w-9 h-9 flex items-center justify-center border border-gray-200 rounded text-gray-400 hover:bg-gray-50" disabled={searchPage === 1} onClick={() => void runCompanySearch(1)} type="button"><span className="material-symbols-outlined text-xl">first_page</span></button>
-                <button className="w-9 h-9 flex items-center justify-center border border-gray-200 rounded text-gray-400 hover:bg-gray-50" disabled={searchPage === 1} onClick={() => void runCompanySearch(Math.max(1, searchPage - 1))} type="button"><span className="material-symbols-outlined text-xl">chevron_left</span></button>
+                <HomeButton className="w-9 px-0 text-gray-400" disabled={searchPage === 1} onClick={() => void runCompanySearch(1)} type="button" variant="ghost"><span className="material-symbols-outlined text-xl">first_page</span></HomeButton>
+                <HomeButton className="w-9 px-0 text-gray-400" disabled={searchPage === 1} onClick={() => void runCompanySearch(Math.max(1, searchPage - 1))} type="button" variant="ghost"><span className="material-symbols-outlined text-xl">chevron_left</span></HomeButton>
                 {pagination.map((pageNo) => (
-                  <button
-                    className={pageNo === searchPage ? "w-9 h-9 flex items-center justify-center rounded text-white font-bold text-sm bg-[var(--kr-gov-blue)]" : "w-9 h-9 flex items-center justify-center border border-gray-200 rounded text-gray-600 hover:bg-gray-50 font-medium text-sm"}
+                  <HomeButton
+                    className={pageNo === searchPage ? "w-9 px-0 text-white bg-[var(--kr-gov-blue)] border-[var(--kr-gov-blue)]" : "w-9 px-0 text-gray-600"}
                     key={pageNo}
                     onClick={() => void runCompanySearch(pageNo)}
                     type="button"
+                    variant={pageNo === searchPage ? "primary" : "ghost"}
                   >
                     {pageNo}
-                  </button>
+                  </HomeButton>
                 ))}
-                <button className="w-9 h-9 flex items-center justify-center border border-gray-200 rounded text-gray-400 hover:bg-gray-50" disabled={searchPage === searchTotalPages} onClick={() => void runCompanySearch(Math.min(searchTotalPages, searchPage + 1))} type="button"><span className="material-symbols-outlined text-xl">chevron_right</span></button>
-                <button className="w-9 h-9 flex items-center justify-center border border-gray-200 rounded text-gray-400 hover:bg-gray-50" disabled={searchPage === searchTotalPages} onClick={() => void runCompanySearch(searchTotalPages)} type="button"><span className="material-symbols-outlined text-xl">last_page</span></button>
+                <HomeButton className="w-9 px-0 text-gray-400" disabled={searchPage === searchTotalPages} onClick={() => void runCompanySearch(Math.min(searchTotalPages, searchPage + 1))} type="button" variant="ghost"><span className="material-symbols-outlined text-xl">chevron_right</span></HomeButton>
+                <HomeButton className="w-9 px-0 text-gray-400" disabled={searchPage === searchTotalPages} onClick={() => void runCompanySearch(searchTotalPages)} type="button" variant="ghost"><span className="material-symbols-outlined text-xl">last_page</span></HomeButton>
               </nav>
             ) : null}
             <div className="bg-gray-50 border-t border-b border-gray-200 p-4 rounded-md">
@@ -677,7 +685,7 @@ export function JoinCompanyRegisterMigrationPage() {
             </div>
           </div>
           <div className="px-6 py-4 bg-gray-50 flex justify-end gap-2 border-t border-gray-100 flex-shrink-0">
-            <button className="px-6 py-2.5 bg-white border border-[var(--kr-gov-border-light)] text-[var(--kr-gov-text-primary)] font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-50" onClick={() => setModalOpen(false)} type="button">{copy.modalCancel}</button>
+            <HomeButton onClick={() => setModalOpen(false)} type="button">{copy.modalCancel}</HomeButton>
           </div>
         </div>
       </div>

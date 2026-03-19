@@ -18,6 +18,7 @@ This is not a simple extension of `/admin/system/environment-management`. It is 
 - screen registry
 - observability and audit
 - runtime page rendering
+- component registry governance
 
 ## Non-Goals
 
@@ -77,6 +78,29 @@ Initial component catalog:
 - modal
 - tabs
 - file upload
+- pagination
+
+Registry governance requirements:
+
+- every reusable component must be registered in DB
+- operators must be able to filter by component type
+- operators must be able to inspect every page using a component
+- operators must be able to deprecate, delete, or remap a component
+- deletion must be blocked while usage remains
+
+Primitive governance requirements:
+
+- define one shared primitive layer for cross-surface UI atoms
+- let admin/member and home/join wrappers stay as thin adapters, not separate duplicated implementations
+- builder/component catalog detection should target primitive JSX names first
+- raw `button`, `a`, `input`, `select`, `textarea`, `table` usage should be reduced over time after primitives exist
+- prefer variants and tokens over cloned near-identical components
+- preserve one canonical DOM depth and base class token family so visual inconsistencies can be detected quickly:
+  - buttons: `app-btn`, `app-btn--{variant}`, `app-btn--{size}`
+  - fields: `app-field`, `app-field--input|select|textarea`
+  - tables: `app-table`
+  - choices: `app-choice`, `app-choice--checkbox|radio`
+- keep admin and home wrappers separate by import path, not by duplicated markup
 
 ### 3. Property Panel
 
@@ -188,6 +212,8 @@ Validation examples:
 - feature code missing
 - unpublished route
 - invalid menu linkage
+- component deleted while still referenced by draft/published pages
+- component standardization audit should report remaining raw tags and legacy class names by admin/home surface
 
 ## Integration With Existing Carbonet Surfaces
 
@@ -204,6 +230,7 @@ New role:
 - link a menu/page to a screen-builder definition
 - launch builder for a selected page
 - show builder publish status
+- show builder registry issue status
 
 ### Auth Group
 
@@ -225,6 +252,20 @@ Builder pages must still appear in:
 - remediation flows
 
 The builder schema should feed those registries rather than create a separate hidden metadata source.
+
+### UI Component Registry
+
+Use the existing observability registry tables first:
+
+- `UI_COMPONENT_REGISTRY`
+- `UI_PAGE_COMPONENT_MAP`
+
+Recommended pattern:
+
+- keep reusable component lifecycle in `UI_COMPONENT_REGISTRY`
+- keep manifest usage in `UI_PAGE_COMPONENT_MAP`
+- calculate extra usage from builder draft/published schema at query time
+- keep builder-specific metadata in JSON envelope fields until a dedicated normalized model is justified
 
 ## Recommended Data Model
 
@@ -258,6 +299,26 @@ This is an architectural shape, not a final SQL contract.
 - `parent_node_id`
 - `component_type`
 - `slot_name`
+- `props_json`
+
+### Component Registry Governance
+
+- `component_id`
+- `component_name`
+- `component_type`
+- `owner_domain`
+- `props_schema_json`
+- `design_reference`
+- `active_yn`
+
+Builder metadata envelope should additionally track:
+
+- `status`
+- `replacementComponentId`
+- `sourceType`
+- `propsTemplate`
+- `labelEn`
+- `description`
 - `sort_order`
 - `props_json`
 
@@ -386,6 +447,25 @@ Scope:
 5. menu/environment integration
 6. audit/trace integration
 7. publish and rollback
+
+## Pilot Adoption Path
+
+Do not claim builder readiness for all admin pages until a pilot proves the component set.
+
+Recommended pilot order:
+
+1. `/admin/member/list`
+2. `/admin/member/company_list`
+3. `/admin/member/approve`
+4. `/admin/member/auth-change`
+
+`/admin/member/list` is the correct first proof because it forces:
+
+- search form reuse
+- table block reuse
+- pagination block reuse
+- row action button reuse
+- list query parameter mapping
 
 ## Recommended First Implementation Boundary
 

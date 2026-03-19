@@ -35,6 +35,7 @@ public class AdminMemberPageModelAssembler {
     private final EnterpriseMemberService entrprsManageService;
     private final AuthService authService;
     private final AuthGroupManageService authGroupManageService;
+    private final AdminAuthorityPagePayloadSupport authorityPagePayloadSupport;
 
     private AdminMainController adminMainController() {
         return adminMainControllerProvider.getObject();
@@ -275,7 +276,7 @@ public class AdminMemberPageModelAssembler {
         model.addAttribute("adminAccountReadOnly", "detail".equalsIgnoreCase(adminAccountMode == null ? "" : adminAccountMode.toString()));
         controller.populatePermissionEditorModel(
                 model,
-                controller.filterAuthorGroups(authGroupManageService.selectAuthorList(), "GENERAL"),
+                authorityPagePayloadSupport.filterAuthorGroups(authGroupManageService.selectAuthorList(), "GENERAL"),
                 controller.safeString(authGroupManageService.selectAuthorCodeByUserId(adminMember.getEmplyrId())),
                 controller.safeString(adminMember.getEsntlId()),
                 effectiveFeatureCodes,
@@ -284,9 +285,10 @@ public class AdminMemberPageModelAssembler {
     }
 
     public void populateAdminAccountCreatePageModel(Model model, boolean isEn) {
-        AdminMainController controller = adminMainController();
         try {
-            List<FeatureCatalogSectionVO> featureSections = controller.buildFeatureCatalogSections(authGroupManageService.selectFeatureCatalog(), isEn);
+            List<FeatureCatalogSectionVO> featureSections =
+                    authorityPagePayloadSupport.buildFeatureCatalogSections(authGroupManageService.selectFeatureCatalog(), isEn);
+            AdminMainController controller = adminMainController();
             java.util.Map<String, String> presetAuthorCodes = controller.defaultAdminPresetAuthorCodes();
             java.util.Map<String, java.util.List<String>> presetFeatureCodes = new java.util.LinkedHashMap<>();
             for (java.util.Map.Entry<String, String> entry : presetAuthorCodes.entrySet()) {
@@ -296,7 +298,8 @@ public class AdminMemberPageModelAssembler {
             model.addAttribute("adminAccountCreatePresetAuthorCodes", presetAuthorCodes);
             model.addAttribute("adminAccountCreatePresetFeatureCodes", presetFeatureCodes);
             model.addAttribute("permissionFeatureCount", presetFeatureCodes.get("MASTER") == null ? 0 : presetFeatureCodes.get("MASTER").size());
-            model.addAttribute("permissionPageCount", controller.countSelectedPageCount(featureSections, presetFeatureCodes.get("MASTER")));
+            model.addAttribute("permissionPageCount",
+                    authorityPagePayloadSupport.countSelectedPageCount(featureSections, presetFeatureCodes.get("MASTER")));
         } catch (Exception e) {
             log.error("Failed to populate admin account create page model.", e);
             model.addAttribute("adminAccountCreateError", isEn

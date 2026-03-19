@@ -4,18 +4,22 @@ import {
   fetchScreenCommandPage,
   fetchScreenBuilderPage,
   fetchScreenBuilderPreview,
+  fetchScreenBuilderComponentRegistryUsage,
   scanScreenBuilderRegistryDiagnostics,
   publishScreenBuilderDraft,
   readBootstrappedScreenBuilderPageData,
   addScreenBuilderNodeFromComponent,
   addScreenBuilderNodeTreeFromComponents,
   autoReplaceDeprecatedScreenBuilderComponents,
+  deleteScreenBuilderComponentRegistryItem,
+  remapScreenBuilderComponentRegistryUsage,
   registerScreenBuilderComponent,
   restoreScreenBuilderDraft,
   saveScreenBuilderDraft,
   updateScreenBuilderComponentRegistry,
   previewAutoReplaceDeprecatedScreenBuilderComponents,
   type ScreenBuilderAutoReplacePreviewItem,
+  type ScreenBuilderComponentUsage,
   type ScreenBuilderComponentPromptSurface,
   type ScreenBuilderComponentRegistryItem,
   type ScreenBuilderRegistryScanItem,
@@ -30,6 +34,7 @@ import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { DiagnosticCard, GridToolbar, MemberButton, MemberButtonGroup, MemberIconButton, MemberLinkButton } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 import { renderScreenBuilderNodePreview, resolveScreenBuilderQuery, sortScreenBuilderNodes } from "./screenBuilderRenderer";
+import { buildSystemComponentCatalog, type SystemComponentCatalogType } from "./buttonCatalog";
 
 function blankPropsFor(type: string): Record<string, unknown> {
   switch (type) {
@@ -49,6 +54,10 @@ function blankPropsFor(type: string): Record<string, unknown> {
       return { label: "동의 항목", required: false };
     case "button":
       return { label: "버튼", variant: "primary" };
+    case "table":
+      return { title: "목록 테이블", columns: "번호|이름|상태", emptyText: "조회된 데이터가 없습니다." };
+    case "pagination":
+      return { summary: "1 / 1 페이지" };
     default:
       return {};
   }
@@ -108,6 +117,133 @@ type AiNodeTreeInputRow = {
   propsJson: string;
 };
 
+type BuilderTemplateType = "EDIT_PAGE" | "LIST_PAGE" | "DETAIL_PAGE" | "REVIEW_PAGE";
+
+const supportedSystemCatalogTypes: SystemComponentCatalogType[] = ["button", "input", "select", "textarea", "table", "pagination"];
+
+type TemplateOption = {
+  value: BuilderTemplateType;
+  label: string;
+  labelEn: string;
+  description: string;
+};
+
+const TEMPLATE_OPTIONS: TemplateOption[] = [
+  { value: "LIST_PAGE", label: "목록형", labelEn: "List", description: "검색, 그리드, 페이지네이션, 행 액션 중심" },
+  { value: "DETAIL_PAGE", label: "상세형", labelEn: "Detail", description: "요약, 상세 섹션, 상단/하단 이동 액션 중심" },
+  { value: "EDIT_PAGE", label: "수정형", labelEn: "Edit", description: "입력 폼, 저장, 하단 액션바 중심" },
+  { value: "REVIEW_PAGE", label: "검토형", labelEn: "Review", description: "검토 요약, 승인/반려, 하단 결정 액션 중심" }
+];
+
+const TEMPLATE_SLOT_RULES: Record<BuilderTemplateType, Record<string, string[]>> = {
+  LIST_PAGE: {
+    section: ["search_filters", "grid_toolbar", "content"],
+    heading: ["search_filters", "grid_toolbar", "content"],
+    text: ["grid_toolbar", "content"],
+    input: ["search_filters", "content"],
+    textarea: ["search_filters", "content"],
+    select: ["search_filters", "content"],
+    checkbox: ["search_filters", "content"],
+    button: ["header_actions", "grid_toolbar_left", "grid_toolbar_right", "row_actions", "bottom_left_actions", "bottom_right_actions"],
+    table: ["content"],
+    pagination: ["pagination"]
+  },
+  DETAIL_PAGE: {
+    section: ["summary", "content"],
+    heading: ["summary", "content"],
+    text: ["summary", "content"],
+    input: ["content"],
+    textarea: ["content"],
+    select: ["content"],
+    checkbox: ["content"],
+    button: ["header_actions", "top_actions", "bottom_left_actions", "bottom_right_actions"],
+    table: ["content"],
+    pagination: ["bottom_right_actions"]
+  },
+  EDIT_PAGE: {
+    section: ["summary", "content"],
+    heading: ["summary", "content"],
+    text: ["summary", "content"],
+    input: ["content"],
+    textarea: ["content"],
+    select: ["content"],
+    checkbox: ["content"],
+    button: ["header_actions", "top_actions", "bottom_left_actions", "bottom_right_actions"],
+    table: ["content"],
+    pagination: ["bottom_right_actions"]
+  },
+  REVIEW_PAGE: {
+    section: ["review_summary", "content"],
+    heading: ["review_summary", "content"],
+    text: ["review_summary", "content"],
+    input: ["content"],
+    textarea: ["content"],
+    select: ["content"],
+    checkbox: ["content"],
+    button: ["header_actions", "review_actions", "bottom_left_actions", "bottom_right_actions"],
+    table: ["content"],
+    pagination: ["bottom_right_actions"]
+  }
+};
+
+function resolveTemplateSlots(templateType: BuilderTemplateType, componentType: string) {
+  return TEMPLATE_SLOT_RULES[templateType]?.[componentType] || ["content"];
+}
+
+function filterPaletteByTemplate(items: ScreenBuilderPaletteItem[], templateType: BuilderTemplateType) {
+  return items.filter((item) => {
+    if (templateType === "LIST_PAGE") {
+      return true;
+    }
+    return item.componentType !== "table" && item.componentType !== "pagination";
+  });
+}
+
+function buildTemplatePresetNodes(templateType: BuilderTemplateType, pageTitle: string): ScreenBuilderNode[] {
+  const rootTitle = pageTitle || "Builder Page";
+  if (templateType === "LIST_PAGE") {
+    return sortScreenBuilderNodes([
+      { nodeId: "root", parentNodeId: "", componentId: "", componentType: "page", slotName: "root", sortOrder: 0, props: { title: rootTitle } },
+      { nodeId: "search-section", parentNodeId: "root", componentId: "", componentType: "section", slotName: "search_filters", sortOrder: 1, props: { title: "검색 조건" } },
+      { nodeId: "search-heading", parentNodeId: "search-section", componentId: "", componentType: "heading", slotName: "search_filters", sortOrder: 2, props: { text: "검색" } },
+      { nodeId: "search-input", parentNodeId: "search-section", componentId: "", componentType: "input", slotName: "search_filters", sortOrder: 3, props: { label: "검색어", placeholder: "검색어 입력" } },
+      { nodeId: "search-button", parentNodeId: "search-section", componentId: "", componentType: "button", slotName: "grid_toolbar_right", sortOrder: 4, props: { label: "검색", variant: "primary" } },
+      { nodeId: "toolbar-note", parentNodeId: "root", componentId: "", componentType: "text", slotName: "grid_toolbar_left", sortOrder: 5, props: { text: "총 건수 및 공통 목록 액션" } },
+      { nodeId: "result-table", parentNodeId: "root", componentId: "", componentType: "table", slotName: "content", sortOrder: 6, props: { title: "목록", columns: "번호|이름|상태|관리", emptyText: "조회된 데이터가 없습니다." } },
+      { nodeId: "result-pagination", parentNodeId: "root", componentId: "", componentType: "pagination", slotName: "pagination", sortOrder: 7, props: { summary: "1 / 1 페이지" } }
+    ]);
+  }
+  if (templateType === "DETAIL_PAGE") {
+    return sortScreenBuilderNodes([
+      { nodeId: "root", parentNodeId: "", componentId: "", componentType: "page", slotName: "root", sortOrder: 0, props: { title: rootTitle } },
+      { nodeId: "summary", parentNodeId: "root", componentId: "", componentType: "section", slotName: "summary", sortOrder: 1, props: { title: "요약" } },
+      { nodeId: "summary-text", parentNodeId: "summary", componentId: "", componentType: "text", slotName: "summary", sortOrder: 2, props: { text: "상세 요약 정보" } },
+      { nodeId: "detail-section", parentNodeId: "root", componentId: "", componentType: "section", slotName: "content", sortOrder: 3, props: { title: "상세 정보" } },
+      { nodeId: "detail-heading", parentNodeId: "detail-section", componentId: "", componentType: "heading", slotName: "content", sortOrder: 4, props: { text: "상세 정보" } },
+      { nodeId: "detail-actions", parentNodeId: "root", componentId: "", componentType: "button", slotName: "bottom_left_actions", sortOrder: 5, props: { label: "목록", variant: "secondary" } }
+    ]);
+  }
+  if (templateType === "REVIEW_PAGE") {
+    return sortScreenBuilderNodes([
+      { nodeId: "root", parentNodeId: "", componentId: "", componentType: "page", slotName: "root", sortOrder: 0, props: { title: rootTitle } },
+      { nodeId: "review-summary", parentNodeId: "root", componentId: "", componentType: "section", slotName: "review_summary", sortOrder: 1, props: { title: "검토 요약" } },
+      { nodeId: "review-text", parentNodeId: "review-summary", componentId: "", componentType: "text", slotName: "review_summary", sortOrder: 2, props: { text: "검토 대상과 영향 요약" } },
+      { nodeId: "review-section", parentNodeId: "root", componentId: "", componentType: "section", slotName: "content", sortOrder: 3, props: { title: "검토 내용" } },
+      { nodeId: "approve-button", parentNodeId: "root", componentId: "", componentType: "button", slotName: "bottom_right_actions", sortOrder: 4, props: { label: "승인", variant: "primary" } },
+      { nodeId: "reject-button", parentNodeId: "root", componentId: "", componentType: "button", slotName: "bottom_left_actions", sortOrder: 5, props: { label: "반려", variant: "secondary" } }
+    ]);
+  }
+  return sortScreenBuilderNodes([
+    { nodeId: "root", parentNodeId: "", componentId: "", componentType: "page", slotName: "root", sortOrder: 0, props: { title: rootTitle } },
+    { nodeId: "summary", parentNodeId: "root", componentId: "", componentType: "section", slotName: "summary", sortOrder: 1, props: { title: "요약" } },
+    { nodeId: "content-section", parentNodeId: "root", componentId: "", componentType: "section", slotName: "content", sortOrder: 2, props: { title: "기본 정보" } },
+    { nodeId: "content-heading", parentNodeId: "content-section", componentId: "", componentType: "heading", slotName: "content", sortOrder: 3, props: { text: "기본 정보" } },
+    { nodeId: "content-input", parentNodeId: "content-section", componentId: "", componentType: "input", slotName: "content", sortOrder: 4, props: { label: "필드명", placeholder: "값 입력" } },
+    { nodeId: "save-button", parentNodeId: "root", componentId: "", componentType: "button", slotName: "bottom_right_actions", sortOrder: 5, props: { label: "저장", variant: "primary" } },
+    { nodeId: "list-button", parentNodeId: "root", componentId: "", componentType: "button", slotName: "bottom_left_actions", sortOrder: 6, props: { label: "목록", variant: "secondary" } }
+  ]);
+}
+
 function createAiNodeTreeInputRow(partial?: Partial<AiNodeTreeInputRow>): AiNodeTreeInputRow {
   return {
     componentId: partial?.componentId || "",
@@ -115,6 +251,130 @@ function createAiNodeTreeInputRow(partial?: Partial<AiNodeTreeInputRow>): AiNode
     parentAlias: partial?.parentAlias || "",
     propsJson: partial?.propsJson || "{}"
   };
+}
+
+function resolveButtonVariant(value: unknown): "primary" | "secondary" | "success" | "danger" | "dangerSecondary" | "info" | "ghost" {
+  const variant = String(value || "secondary");
+  if (variant === "primary" || variant === "secondary" || variant === "success" || variant === "danger" || variant === "dangerSecondary" || variant === "info" || variant === "ghost") {
+    return variant;
+  }
+  return "secondary";
+}
+
+function resolveCatalogTitle(type: string, en: boolean) {
+  switch (type) {
+    case "button":
+      return en ? "System Button Design Catalog" : "시스템 버튼 디자인 카탈로그";
+    case "input":
+      return en ? "System Input Catalog" : "시스템 입력 컴포넌트 카탈로그";
+    case "select":
+      return en ? "System Select Catalog" : "시스템 셀렉트 컴포넌트 카탈로그";
+    case "textarea":
+      return en ? "System Textarea Catalog" : "시스템 텍스트영역 카탈로그";
+    case "table":
+      return en ? "System Table Catalog" : "시스템 테이블 카탈로그";
+    case "pagination":
+      return en ? "System Pagination Catalog" : "시스템 페이지네이션 카탈로그";
+    default:
+      return en ? "System Component Catalog" : "시스템 컴포넌트 카탈로그";
+  }
+}
+
+function resolveCatalogInventoryTitle(type: string, en: boolean) {
+  switch (type) {
+    case "button":
+      return en ? "Button inventory" : "버튼 인벤토리";
+    case "input":
+      return en ? "Input inventory" : "입력 인벤토리";
+    case "select":
+      return en ? "Select inventory" : "셀렉트 인벤토리";
+    case "textarea":
+      return en ? "Textarea inventory" : "텍스트영역 인벤토리";
+    case "table":
+      return en ? "Table inventory" : "테이블 인벤토리";
+    case "pagination":
+      return en ? "Pagination inventory" : "페이지네이션 인벤토리";
+    default:
+      return en ? "Component inventory" : "컴포넌트 인벤토리";
+  }
+}
+
+function renderSystemCatalogPreview(
+  item: {
+    componentType: string;
+    componentName: string;
+    variant?: string;
+    size?: string;
+    icon?: string;
+    className?: string;
+    label?: string;
+    placeholder?: string;
+  },
+  en: boolean
+) {
+  if (item.componentType === "button") {
+    if (item.componentName === "MemberLinkButton") {
+      return (
+        <MemberLinkButton href="#" onClick={(event) => event.preventDefault()} size={(item.size || "md") as "xs" | "sm" | "md" | "lg" | "icon"} variant={resolveButtonVariant(item.variant)}>
+          {item.label || (en ? "Link" : "링크")}
+        </MemberLinkButton>
+      );
+    }
+    if (item.componentName === "MemberIconButton") {
+      return <MemberIconButton icon={item.icon || "bolt"} size={(item.size || "icon") as "xs" | "sm" | "md" | "lg" | "icon"} variant={resolveButtonVariant(item.variant)} />;
+    }
+    return (
+      <MemberButton size={(item.size || "md") as "xs" | "sm" | "md" | "lg" | "icon"} type="button" variant={resolveButtonVariant(item.variant)}>
+        {item.label || (en ? "Button" : "버튼")}
+      </MemberButton>
+    );
+  }
+  if (item.componentType === "input") {
+    return <input className={`gov-input w-full ${item.className || ""}`.trim()} placeholder={item.placeholder || (en ? "Input value" : "값 입력")} readOnly value="" />;
+  }
+  if (item.componentType === "select") {
+    return (
+      <select className={`gov-select w-full ${item.className || ""}`.trim()} defaultValue="">
+        <option value="">{item.placeholder || (en ? "Select option" : "옵션 선택")}</option>
+      </select>
+    );
+  }
+  if (item.componentType === "textarea") {
+    return <textarea className={`gov-textarea w-full ${item.className || ""}`.trim()} placeholder={item.placeholder || (en ? "Enter details" : "상세 내용을 입력하세요.")} readOnly rows={3} />;
+  }
+  if (item.componentType === "table") {
+    return (
+      <div className="overflow-hidden rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)]">
+        <table className={`w-full text-sm ${item.className || ""}`.trim()}>
+          <thead>
+            <tr className="gov-table-header">
+              <th className="px-3 py-2">#</th>
+              <th className="px-3 py-2">{en ? "Name" : "이름"}</th>
+              <th className="px-3 py-2">{en ? "Status" : "상태"}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="px-3 py-2">1</td>
+              <td className="px-3 py-2">{en ? "Sample row" : "샘플 행"}</td>
+              <td className="px-3 py-2">{en ? "Ready" : "준비"}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+  if (item.componentType === "pagination") {
+    return (
+      <div className="inline-flex items-center gap-2 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-3 py-2 text-sm text-[var(--kr-gov-text-secondary)]">
+        <span>{en ? "Prev" : "이전"}</span>
+        <span className="rounded bg-[var(--kr-gov-bg-muted)] px-2 py-0.5 font-bold text-[var(--kr-gov-text-primary)]">1</span>
+        <span>/ 5</span>
+        <span>{en ? "Next" : "다음"}</span>
+      </div>
+    );
+  }
+  return <span className="text-sm text-[var(--kr-gov-text-secondary)]">{item.componentName}</span>;
 }
 
 export function ScreenBuilderMigrationPage() {
@@ -147,11 +407,24 @@ export function ScreenBuilderMigrationPage() {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewMessage, setPreviewMessage] = useState("");
   const [previewMode, setPreviewMode] = useState<"DRAFT" | "PUBLISHED">("DRAFT");
+  const [selectedTemplateType, setSelectedTemplateType] = useState<BuilderTemplateType>("EDIT_PAGE");
   const [componentRegistry, setComponentRegistry] = useState<ScreenBuilderComponentRegistryItem[]>([]);
+  const [selectedRegistryComponentId, setSelectedRegistryComponentId] = useState("");
   const [componentLabel, setComponentLabel] = useState("");
   const [componentDescription, setComponentDescription] = useState("");
   const [replacementComponentId, setReplacementComponentId] = useState("");
   const [registryStatusFilter, setRegistryStatusFilter] = useState<"ALL" | "ACTIVE" | "DEPRECATED">("ALL");
+  const [registryTypeFilter, setRegistryTypeFilter] = useState("ALL");
+  const [registryUsageRows, setRegistryUsageRows] = useState<ScreenBuilderComponentUsage[]>([]);
+  const [registryUsagePreviewMap, setRegistryUsagePreviewMap] = useState<Record<string, ScreenBuilderComponentUsage[]>>({});
+  const [registryUsageLoading, setRegistryUsageLoading] = useState(false);
+  const [copiedButtonStyleId, setCopiedButtonStyleId] = useState("");
+  const [registryEditorType, setRegistryEditorType] = useState("");
+  const [registryEditorLabel, setRegistryEditorLabel] = useState("");
+  const [registryEditorDescription, setRegistryEditorDescription] = useState("");
+  const [registryEditorStatus, setRegistryEditorStatus] = useState("ACTIVE");
+  const [registryEditorReplacementId, setRegistryEditorReplacementId] = useState("");
+  const [registryEditorPropsJson, setRegistryEditorPropsJson] = useState("{}");
   const [registryScanRows, setRegistryScanRows] = useState<ScreenBuilderRegistryScanItem[]>([]);
   const [autoReplacePreviewItems, setAutoReplacePreviewItems] = useState<ScreenBuilderAutoReplacePreviewItem[]>([]);
   const [aiNodeTreeRows, setAiNodeTreeRows] = useState<AiNodeTreeInputRow[]>([
@@ -181,7 +454,9 @@ export function ScreenBuilderMigrationPage() {
       return (page.nodes || [])[1]?.nodeId || (page.nodes || [])[0]?.nodeId || "";
     });
     setComponentRegistry(page.componentRegistry || []);
+    setSelectedRegistryComponentId((current) => current || (page.componentRegistry || [])[0]?.componentId || "");
     setPreviewNodes(sortScreenBuilderNodes(page.nodes || []));
+    setSelectedTemplateType(((page.templateType || "EDIT_PAGE") as BuilderTemplateType));
   }, [page]);
 
   const selectedNode = useMemo(
@@ -196,16 +471,75 @@ export function ScreenBuilderMigrationPage() {
     () => componentRegistry.find((item) => item.componentId === replacementComponentId) || null,
     [componentRegistry, replacementComponentId]
   );
+  const selectedRegistryInventoryItem = useMemo(
+    () => componentRegistry.find((item) => item.componentId === selectedRegistryComponentId) || null,
+    [componentRegistry, selectedRegistryComponentId]
+  );
   const backendUnregisteredNodes = page?.registryDiagnostics?.unregisteredNodes || [];
   const backendMissingNodes = page?.registryDiagnostics?.missingNodes || [];
   const backendDeprecatedNodes = page?.registryDiagnostics?.deprecatedNodes || [];
   const componentPromptSurface = page?.registryDiagnostics?.componentPromptSurface || [];
+  const componentTypeOptions = useMemo(
+    () => Array.from(new Set((page?.componentTypeOptions || componentRegistry.map((item) => item.componentType)).filter(Boolean))).sort((left, right) => String(left).localeCompare(String(right))),
+    [componentRegistry, page?.componentTypeOptions]
+  );
   const filteredComponentRegistry = useMemo(
-    () => componentRegistry.filter((item) => registryStatusFilter === "ALL" ? true : String(item.status || "ACTIVE") === registryStatusFilter),
-    [componentRegistry, registryStatusFilter]
+    () => componentRegistry.filter((item) => {
+      const matchesStatus = registryStatusFilter === "ALL" ? true : String(item.status || "ACTIVE") === registryStatusFilter;
+      const matchesType = registryTypeFilter === "ALL" ? true : String(item.componentType || "") === registryTypeFilter;
+      return matchesStatus && matchesType;
+    }),
+    [componentRegistry, registryStatusFilter, registryTypeFilter]
+  );
+  const systemComponentCatalog = useMemo(() => buildSystemComponentCatalog(), []);
+  const selectedCatalogType = useMemo<SystemComponentCatalogType | "ALL" | "">(
+    () => supportedSystemCatalogTypes.includes(registryTypeFilter as SystemComponentCatalogType)
+      ? (registryTypeFilter as SystemComponentCatalogType)
+      : registryTypeFilter === "ALL"
+        ? "ALL"
+        : "",
+    [registryTypeFilter]
+  );
+  const filteredSystemCatalog = useMemo(
+    () => selectedCatalogType === "ALL"
+      ? systemComponentCatalog
+      : selectedCatalogType
+        ? systemComponentCatalog.filter((item) => item.componentType === selectedCatalogType)
+        : [],
+    [selectedCatalogType, systemComponentCatalog]
+  );
+  const systemCatalogInstances = useMemo(
+    () => filteredSystemCatalog.flatMap((item) => item.instances.map((instance, index) => ({
+      key: `${item.key}-${instance.route.routeId}-${instance.label || index}`,
+      styleGroupId: item.styleGroupId,
+      componentType: item.componentType,
+      componentName: instance.componentName,
+      variant: instance.variant,
+      size: instance.size,
+      className: instance.className,
+      icon: instance.icon,
+      label: instance.label,
+      placeholder: instance.placeholder,
+      summary: instance.summary,
+      route: instance.route
+    }))),
+    [filteredSystemCatalog]
+  );
+  const uniqueUsageUrlsByComponent = useMemo(
+    () => Object.fromEntries(
+      Object.entries(registryUsagePreviewMap).map(([componentId, rows]) => [
+        componentId,
+        Array.from(new Set((rows || []).map((row) => String(row.menuUrl || "").trim()).filter(Boolean)))
+      ])
+    ),
+    [registryUsagePreviewMap]
   );
   const publishIssueCount = backendUnregisteredNodes.length + backendMissingNodes.length + backendDeprecatedNodes.length;
   const publishReady = publishIssueCount === 0;
+  const filteredPalette = useMemo(
+    () => filterPaletteByTemplate(page?.componentPalette || [], selectedTemplateType),
+    [page?.componentPalette, selectedTemplateType]
+  );
 
   useEffect(() => {
     if (!selectedNode) {
@@ -219,6 +553,90 @@ export function ScreenBuilderMigrationPage() {
     setComponentDescription(String(linked?.description || ""));
     setReplacementComponentId(String(selectedNode.componentId || ""));
   }, [registryMap, selectedNode]);
+
+  useEffect(() => {
+    if (!selectedRegistryInventoryItem) {
+      setRegistryEditorType("");
+      setRegistryEditorLabel("");
+      setRegistryEditorDescription("");
+      setRegistryEditorStatus("ACTIVE");
+      setRegistryEditorReplacementId("");
+      setRegistryEditorPropsJson("{}");
+      setRegistryUsageRows([]);
+      return;
+    }
+    setRegistryEditorType(String(selectedRegistryInventoryItem.componentType || ""));
+    setRegistryEditorLabel(String(selectedRegistryInventoryItem.label || ""));
+    setRegistryEditorDescription(String(selectedRegistryInventoryItem.description || ""));
+    setRegistryEditorStatus(String(selectedRegistryInventoryItem.status || "ACTIVE"));
+    setRegistryEditorReplacementId(String(selectedRegistryInventoryItem.replacementComponentId || ""));
+    setRegistryEditorPropsJson(JSON.stringify(selectedRegistryInventoryItem.propsTemplate || {}, null, 2));
+  }, [selectedRegistryInventoryItem]);
+
+  useEffect(() => {
+    if (!selectedRegistryComponentId) {
+      setRegistryUsageRows([]);
+      return;
+    }
+    let cancelled = false;
+    setRegistryUsageLoading(true);
+    fetchScreenBuilderComponentRegistryUsage(selectedRegistryComponentId)
+      .then((response) => {
+        if (cancelled) {
+          return;
+        }
+        setRegistryUsageRows(response.items || []);
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+        setSaveError(error instanceof Error ? error.message : (en ? "Failed to load component usage." : "컴포넌트 사용 화면을 불러오지 못했습니다."));
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setRegistryUsageLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [en, selectedRegistryComponentId]);
+
+  useEffect(() => {
+    if (registryTypeFilter !== "button") {
+      return;
+    }
+    const targetIds = filteredComponentRegistry
+      .filter((item) => item.componentType === "button")
+      .slice(0, 24)
+      .map((item) => item.componentId)
+      .filter(Boolean);
+    const missingIds = targetIds.filter((componentId) => !registryUsagePreviewMap[componentId]);
+    if (!missingIds.length) {
+      return;
+    }
+    let cancelled = false;
+    Promise.all(missingIds.map((componentId) => fetchScreenBuilderComponentRegistryUsage(componentId)))
+      .then((responses) => {
+        if (cancelled) {
+          return;
+        }
+        setRegistryUsagePreviewMap((current) => {
+          const next = { ...current };
+          missingIds.forEach((componentId, index) => {
+            next[componentId] = responses[index]?.items || [];
+          });
+          return next;
+        });
+      })
+      .catch(() => {
+        // Keep the gallery usable even if one preview lookup fails.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [filteredComponentRegistry, registryTypeFilter, registryUsagePreviewMap]);
 
   function updateNodeProps(nextProps: Record<string, unknown>) {
     if (!selectedNode) {
@@ -426,6 +844,26 @@ export function ScreenBuilderMigrationPage() {
     setCollapsedNodeIds((current) => current.includes(nodeId) ? current.filter((item) => item !== nodeId) : [...current, nodeId]);
   }
 
+  async function copyButtonStyleId(styleGroupId: string) {
+    try {
+      await navigator.clipboard.writeText(styleGroupId);
+      setCopiedButtonStyleId(styleGroupId);
+      window.setTimeout(() => {
+        setCopiedButtonStyleId((current) => current === styleGroupId ? "" : current);
+      }, 1500);
+    } catch {
+      setSaveError(en ? "Failed to copy button style id." : "버튼 스타일 ID를 복사하지 못했습니다.");
+    }
+  }
+
+  function handleApplyTemplatePreset() {
+    const nextNodes = buildTemplatePresetNodes(selectedTemplateType, page?.menuTitle || "");
+    setNodes(nextNodes);
+    setEvents([]);
+    setSelectedNodeId(nextNodes[1]?.nodeId || nextNodes[0]?.nodeId || "");
+    setMessage(en ? "Applied template preset." : "템플릿 프리셋을 적용했습니다.");
+  }
+
   async function handleSave() {
     if (!page) {
       return;
@@ -439,7 +877,7 @@ export function ScreenBuilderMigrationPage() {
         pageId: page.pageId,
         menuTitle: page.menuTitle,
         menuUrl: page.menuUrl,
-        templateType: page.templateType,
+        templateType: selectedTemplateType,
         nodes,
         events
       });
@@ -586,6 +1024,78 @@ export function ScreenBuilderMigrationPage() {
       setMessage(String(response.message || (en ? "Component deprecated." : "컴포넌트를 deprecated 처리했습니다.")));
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : (en ? "Failed to update component." : "컴포넌트 수정 중 오류가 발생했습니다."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleSaveRegistryItem() {
+    if (!selectedRegistryInventoryItem?.componentId) {
+      return;
+    }
+    setSaving(true);
+    setSaveError("");
+    try {
+      const parsedProps = registryEditorPropsJson.trim() ? JSON.parse(registryEditorPropsJson) as Record<string, unknown> : {};
+      const response = await updateScreenBuilderComponentRegistry({
+        componentId: selectedRegistryInventoryItem.componentId,
+        componentType: registryEditorType,
+        label: registryEditorLabel,
+        description: registryEditorDescription,
+        status: registryEditorStatus,
+        replacementComponentId: registryEditorReplacementId,
+        propsTemplate: parsedProps,
+        menuCode: page?.menuCode || ""
+      });
+      setComponentRegistry((current) => current.map((row) => row.componentId === response.item.componentId ? response.item : row));
+      setMessage(String(response.message || (en ? "Component updated." : "컴포넌트를 수정했습니다.")));
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : (en ? "Failed to save component." : "컴포넌트 저장 중 오류가 발생했습니다."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDeleteRegistryItem() {
+    if (!selectedRegistryInventoryItem?.componentId) {
+      return;
+    }
+    setSaving(true);
+    setSaveError("");
+    try {
+      const response = await deleteScreenBuilderComponentRegistryItem({
+        componentId: selectedRegistryInventoryItem.componentId
+      });
+      setComponentRegistry((current) => current.filter((row) => row.componentId !== selectedRegistryInventoryItem.componentId));
+      setSelectedRegistryComponentId((current) => current === selectedRegistryInventoryItem.componentId ? "" : current);
+      setRegistryUsageRows([]);
+      setMessage(String(response.message || (en ? "Component deleted." : "컴포넌트를 삭제했습니다.")));
+      await pageState.reload();
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : (en ? "Failed to delete component." : "컴포넌트 삭제 중 오류가 발생했습니다."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleRemapRegistryUsage() {
+    if (!selectedRegistryInventoryItem?.componentId || !registryEditorReplacementId) {
+      return;
+    }
+    setSaving(true);
+    setSaveError("");
+    try {
+      const response = await remapScreenBuilderComponentRegistryUsage({
+        fromComponentId: selectedRegistryInventoryItem.componentId,
+        toComponentId: registryEditorReplacementId
+      });
+      setMessage(String(response.message || (en ? "Component usage remapped." : "컴포넌트 사용처를 재매핑했습니다.")));
+      const usageResponse = await fetchScreenBuilderComponentRegistryUsage(selectedRegistryInventoryItem.componentId);
+      setRegistryUsageRows(usageResponse.items || []);
+      await pageState.reload();
+      await handlePreviewRefresh(true);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : (en ? "Failed to remap component usage." : "컴포넌트 사용처 재매핑 중 오류가 발생했습니다."));
     } finally {
       setSaving(false);
     }
@@ -804,6 +1314,36 @@ export function ScreenBuilderMigrationPage() {
             {page.publishedSavedAt ? ` / ${page.publishedSavedAt}` : ""}
           </section>
         ) : null}
+        <section className="gov-card p-0 overflow-hidden">
+          <GridToolbar
+            actions={(
+              <MemberButtonGroup>
+                <MemberButton disabled={saving} onClick={handleApplyTemplatePreset} size="xs" type="button" variant="secondary">
+                  {en ? "Apply template preset" : "템플릿 프리셋 적용"}
+                </MemberButton>
+              </MemberButtonGroup>
+            )}
+            meta={en ? "Choose a page type first so palette, slot positions, and AI component usage stay consistent." : "먼저 페이지 타입을 선택해 팔레트, 버튼 위치, AI 컴포넌트 사용 규칙을 일관되게 맞춥니다."}
+            title={en ? "Template Type" : "템플릿 타입"}
+          />
+          <div className="grid grid-cols-1 gap-4 p-6 xl:grid-cols-4">
+            {TEMPLATE_OPTIONS.map((option) => {
+              const active = selectedTemplateType === option.value;
+              return (
+                <button
+                  key={option.value}
+                  className={`rounded-[var(--kr-gov-radius)] border px-4 py-4 text-left ${active ? "border-[var(--kr-gov-blue)] bg-blue-50" : "border-[var(--kr-gov-border-light)] bg-white hover:bg-gray-50"}`}
+                  onClick={() => setSelectedTemplateType(option.value)}
+                  type="button"
+                >
+                  <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{option.value}</p>
+                  <p className="mt-2 text-sm font-black text-[var(--kr-gov-text-primary)]">{en ? option.labelEn : option.label}</p>
+                  <p className="mt-2 text-[12px] leading-5 text-[var(--kr-gov-text-secondary)]">{option.description}</p>
+                </button>
+              );
+            })}
+          </div>
+        </section>
         <section className="grid grid-cols-1 gap-4 xl:grid-cols-3">
           <DiagnosticCard
             description={en ? "Nodes without a linked componentId can be registered as reusable components or replaced with an existing one." : "componentId가 없는 노드는 재사용 컴포넌트로 등록하거나 기존 컴포넌트로 대체할 수 있습니다."}
@@ -824,6 +1364,116 @@ export function ScreenBuilderMigrationPage() {
             title={en ? "Registered components" : "등록 컴포넌트 수"}
           />
         </section>
+
+        {filteredSystemCatalog.length ? (
+          <section className="gov-card p-0 overflow-hidden">
+            <GridToolbar
+              meta={en
+                ? `${filteredSystemCatalog.length} detected styles / ${systemCatalogInstances.length} total component uses across React pages.`
+                : `React 화면 기준 감지 스타일 ${filteredSystemCatalog.length}종 / 전체 사용 ${systemCatalogInstances.length}건입니다.`}
+              title={resolveCatalogTitle(selectedCatalogType || "button", en)}
+            />
+            <div className="border-t border-[var(--kr-gov-border-light)]">
+              <GridToolbar
+                meta={en ? `Every detected component use is listed below first. ${systemCatalogInstances.length} raw source-based instances.` : `아래에 감지된 컴포넌트 사용 인스턴스를 먼저 모두 나열합니다. 원본 기준 ${systemCatalogInstances.length}건입니다.`}
+                title={en ? "All Component Usage Instances" : "전체 컴포넌트 사용 인스턴스"}
+              />
+              <div className="max-h-[520px] overflow-auto">
+                <table className="w-full text-sm text-left border-collapse">
+                  <thead>
+                    <tr className="gov-table-header">
+                      <th className="px-4 py-3">styleGroupId</th>
+                      <th className="px-4 py-3">{en ? "Preview" : "프리뷰"}</th>
+                      <th className="px-4 py-3">{en ? "Component" : "컴포넌트"}</th>
+                      <th className="px-4 py-3">{en ? "Label" : "라벨"}</th>
+                      <th className="px-4 py-3">URL</th>
+                      <th className="px-4 py-3">{en ? "Open" : "열기"}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {systemCatalogInstances.map((item) => (
+                      <tr key={item.key}>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-col gap-2">
+                            <span className="font-mono text-[11px] text-[var(--kr-gov-text-secondary)]">{item.styleGroupId}</span>
+                            <MemberButton onClick={() => { void copyButtonStyleId(item.styleGroupId); }} size="xs" type="button" variant="secondary">
+                              {copiedButtonStyleId === item.styleGroupId ? (en ? "Copied" : "복사됨") : (en ? "Copy" : "복사")}
+                            </MemberButton>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          {renderSystemCatalogPreview(item, en)}
+                        </td>
+                        <td className="px-4 py-3 text-[12px]">
+                          <div className="font-semibold text-[var(--kr-gov-text-primary)]">{item.componentName}</div>
+                          <div className="font-mono text-[11px] text-[var(--kr-gov-text-secondary)]">
+                            {item.componentType}
+                            {item.variant ? ` / ${item.variant}` : ""}
+                            {item.size ? ` / ${item.size}` : ""}
+                            {item.className ? ` / class=${item.className}` : ""}
+                            {item.icon ? ` / icon=${item.icon}` : ""}
+                            {item.placeholder ? ` / placeholder=${item.placeholder}` : ""}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">{item.label || item.placeholder || "-"}</td>
+                        <td className="px-4 py-3 font-mono text-[11px] text-[var(--kr-gov-text-secondary)]">{item.route.koPath}</td>
+                        <td className="px-4 py-3">
+                          <MemberLinkButton href={buildLocalizedPath(item.route.koPath, item.route.enPath)} size="xs" variant="secondary">
+                            {en ? "Open" : "열기"}
+                          </MemberLinkButton>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="border-t border-[var(--kr-gov-border-light)]">
+              <GridToolbar
+                meta={en ? "Grouped styles are summarized below. Same variant with different className, icon, or placeholder is separated." : "아래는 묶어서 본 스타일 요약입니다. 같은 variant여도 className, icon, placeholder가 다르면 별도 스타일로 분리합니다."}
+                title={en ? "Grouped Component Styles" : "그룹형 컴포넌트 스타일 요약"}
+              />
+              <div className="grid grid-cols-1 gap-4 p-6 xl:grid-cols-2">
+                {filteredSystemCatalog.map((item) => (
+                  <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4" key={item.key}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-mono text-[11px] text-[var(--kr-gov-text-secondary)]">{item.componentType}</p>
+                        <p className="mt-1 text-sm font-black text-[var(--kr-gov-text-primary)]">{item.componentName}</p>
+                        <p className="mt-1 text-[12px] text-[var(--kr-gov-text-secondary)]">
+                          {[item.variant, item.size, item.placeholder].filter(Boolean).join(" / ") || (en ? "base style" : "기본 스타일")}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center justify-end gap-1">
+                        <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-700">
+                          {en ? `${item.instanceCount} uses` : `${item.instanceCount}회 사용`}
+                        </span>
+                        <span className="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-bold text-blue-700">
+                          {en ? `${item.routeCount} screens` : `${item.routeCount}개 화면`}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-3 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-bg-muted)] px-3 py-4">
+                      {renderSystemCatalogPreview(item, en)}
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+                      <span className="rounded-full bg-indigo-50 px-2 py-1 font-mono text-indigo-800">{item.styleGroupId}</span>
+                      <span className="rounded-full bg-slate-100 px-2 py-1 font-mono text-slate-700">{item.componentName}</span>
+                      {item.className ? <span className="rounded-full bg-amber-50 px-2 py-1 font-mono text-amber-800">class: {item.className}</span> : null}
+                      {item.icon ? <span className="rounded-full bg-emerald-50 px-2 py-1 font-mono text-emerald-800">icon: {item.icon}</span> : null}
+                      {item.placeholder ? <span className="rounded-full bg-cyan-50 px-2 py-1 font-mono text-cyan-800">placeholder: {item.placeholder}</span> : null}
+                    </div>
+                    <div className="mt-3">
+                      <MemberButton onClick={() => { void copyButtonStyleId(item.styleGroupId); }} size="xs" type="button" variant="secondary">
+                        {copiedButtonStyleId === item.styleGroupId ? (en ? "Copied" : "복사됨") : (en ? "Copy styleGroupId" : "styleGroupId 복사")}
+                      </MemberButton>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         <section className="gov-card p-0 overflow-hidden">
           <GridToolbar
@@ -861,6 +1511,15 @@ export function ScreenBuilderMigrationPage() {
                 <MemberButton disabled={saving} onClick={() => { void handleScanRegistryDiagnostics(); }} size="xs" type="button" variant="secondary">
                   {en ? "Scan all drafts" : "전체 draft 스캔"}
                 </MemberButton>
+                <label className="inline-flex items-center gap-2 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-2 py-1 text-xs text-[var(--kr-gov-text-secondary)]">
+                  <span>{en ? "Type" : "종류"}</span>
+                  <select className="bg-transparent text-xs outline-none" value={registryTypeFilter} onChange={(event) => setRegistryTypeFilter(event.target.value)}>
+                    <option value="ALL">{en ? "All" : "전체"}</option>
+                    {componentTypeOptions.map((item) => (
+                      <option key={`registry-type-${item}`} value={item}>{item}</option>
+                    ))}
+                  </select>
+                </label>
                 <MemberButton onClick={() => setRegistryStatusFilter("ALL")} size="xs" type="button" variant={registryStatusFilter === "ALL" ? "primary" : "secondary"}>
                   {en ? "All" : "전체"}
                 </MemberButton>
@@ -915,13 +1574,92 @@ export function ScreenBuilderMigrationPage() {
               </div>
             </article>
             <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4">
-              <p className="text-sm font-black text-[var(--kr-gov-text-primary)]">{en ? "Registered components" : "등록 컴포넌트"}</p>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-black text-[var(--kr-gov-text-primary)]">
+                  {selectedCatalogType && selectedCatalogType !== "ALL"
+                    ? resolveCatalogInventoryTitle(selectedCatalogType, en)
+                    : (en ? "Registered components" : "등록 컴포넌트")}
+                </p>
+                {selectedCatalogType && selectedCatalogType !== "ALL" ? (
+                  <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-bold text-indigo-700">
+                    {en ? `${systemCatalogInstances.length} detected` : `${systemCatalogInstances.length}건 감지`}
+                  </span>
+                ) : null}
+              </div>
+              {selectedCatalogType && selectedCatalogType !== "ALL" ? (
+                <div className="mt-3 rounded-[var(--kr-gov-radius)] border border-blue-100 bg-blue-50 px-3 py-3 text-xs text-blue-900">
+                  {en
+                    ? "This area shows all detected component usage instances in the current system first. Registered components are listed below as a secondary section."
+                    : "이 영역은 현재 시스템에서 감지된 전체 컴포넌트 사용 인스턴스를 먼저 보여주고, 등록된 컴포넌트는 아래 보조 섹션으로 보여줍니다."}
+                </div>
+              ) : null}
+              {selectedCatalogType && selectedCatalogType !== "ALL" ? (
+                <div className="mt-3 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-bg-muted)] p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
+                      {en ? "All Component Usage Instances" : "전체 컴포넌트 사용 인스턴스"}
+                    </p>
+                    <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-[var(--kr-gov-text-secondary)]">
+                      {en ? `${systemCatalogInstances.length} items` : `${systemCatalogInstances.length}건`}
+                    </span>
+                  </div>
+                  <div className="mt-3 max-h-[260px] space-y-2 overflow-auto">
+                    {systemCatalogInstances.length ? systemCatalogInstances.slice(0, 80).map((item) => (
+                      <div className="rounded border border-[var(--kr-gov-border-light)] bg-white px-3 py-3" key={item.key}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate font-semibold text-[var(--kr-gov-text-primary)]">
+                              {item.label || (en ? "Button" : "버튼")} · {item.route.label}
+                            </p>
+                            <p className="truncate font-mono text-[11px] text-[var(--kr-gov-text-secondary)]">{item.route.koPath}</p>
+                          </div>
+                          <MemberLinkButton href={buildLocalizedPath(item.route.koPath, item.route.enPath)} size="xs" variant="secondary">
+                            {en ? "Open" : "열기"}
+                          </MemberLinkButton>
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          {renderSystemCatalogPreview(item, en)}
+                          <span className="rounded-full bg-indigo-50 px-2 py-0.5 font-mono text-[10px] text-indigo-800">{item.styleGroupId}</span>
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 font-mono text-[10px] text-slate-700">{item.componentName}</span>
+                        </div>
+                      </div>
+                    )) : (
+                      <p className="rounded border border-dashed border-[var(--kr-gov-border-light)] bg-white px-3 py-4 text-sm text-[var(--kr-gov-text-secondary)]">
+                        {en ? "No component usage instances were detected." : "감지된 컴포넌트 사용 인스턴스가 없습니다."}
+                      </p>
+                    )}
+                    {systemCatalogInstances.length > 80 ? (
+                      <p className="text-[11px] text-[var(--kr-gov-text-secondary)]">
+                        {en ? `+ ${systemCatalogInstances.length - 80} more component instances are listed in the catalog section below.` : `외 ${systemCatalogInstances.length - 80}건은 아래 카탈로그 섹션에서 계속 볼 수 있습니다.`}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+              {selectedCatalogType && selectedCatalogType !== "ALL" ? (
+                <div className="mt-3 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-3 py-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
+                      {en ? "Registered components" : "등록된 컴포넌트"}
+                    </p>
+                    <span className="rounded-full bg-[var(--kr-gov-bg-muted)] px-2 py-0.5 text-[10px] font-bold text-[var(--kr-gov-text-secondary)]">
+                      {filteredComponentRegistry.length}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-[11px] text-[var(--kr-gov-text-secondary)]">
+                    {en
+                      ? "This list is the DB-backed registry. It can be smaller than the detected system component inventory above."
+                      : "이 목록은 DB 기반 레지스트리라서, 위의 시스템 컴포넌트 인벤토리보다 항목 수가 적을 수 있습니다."}
+                  </p>
+                </div>
+              ) : null}
               <div className="mt-3 max-h-[280px] space-y-2 overflow-auto">
                 {filteredComponentRegistry.map((item) => (
                   <div className="w-full rounded border border-[var(--kr-gov-border-light)] px-3 py-2 text-left text-sm" key={item.componentId}>
                     <button
                       className="w-full text-left hover:bg-gray-50"
                       onClick={() => {
+                        setSelectedRegistryComponentId(item.componentId);
                         setReplacementComponentId(item.componentId);
                         if (selectedNode) {
                           setSelectedNodeId(selectedNode.nodeId);
@@ -942,6 +1680,32 @@ export function ScreenBuilderMigrationPage() {
                       </div>
                       <p className="mt-1 font-semibold text-[var(--kr-gov-text-primary)]">{en ? (item.labelEn || item.label) : item.label}</p>
                       {item.description ? <p className="mt-1 text-[12px] text-[var(--kr-gov-text-secondary)]">{item.description}</p> : null}
+                      {item.componentType === "button" ? (
+                        <div className="mt-3 space-y-2 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-bg-muted)] px-3 py-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <MemberButton size="xs" type="button" variant={resolveButtonVariant(item.propsTemplate?.variant)}>
+                              {String(item.propsTemplate?.label || item.label || (en ? "Button" : "버튼"))}
+                            </MemberButton>
+                            <span className="rounded-full bg-white px-2 py-0.5 font-mono text-[10px] text-[var(--kr-gov-text-secondary)]">
+                              variant: {String(item.propsTemplate?.variant || "secondary")}
+                            </span>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-[11px] font-bold text-[var(--kr-gov-text-primary)]">{en ? "Included URLs" : "포함 URL"}</p>
+                            {uniqueUsageUrlsByComponent[item.componentId]?.length ? uniqueUsageUrlsByComponent[item.componentId].slice(0, 4).map((menuUrl) => (
+                              <p className="truncate font-mono text-[11px] text-[var(--kr-gov-text-secondary)]" key={`${item.componentId}-${menuUrl}`}>{menuUrl}</p>
+                            )) : (
+                              <p className="text-[11px] text-[var(--kr-gov-text-secondary)]">{en ? "No linked screen URLs yet." : "연결된 화면 URL이 아직 없습니다."}</p>
+                            )}
+                            {(uniqueUsageUrlsByComponent[item.componentId]?.length || 0) > 4 ? (
+                              <p className="text-[11px] text-[var(--kr-gov-text-secondary)]">
+                                {en ? `+ ${(uniqueUsageUrlsByComponent[item.componentId]?.length || 0) - 4} more URLs` : `외 ${(uniqueUsageUrlsByComponent[item.componentId]?.length || 0) - 4}건`}
+                              </p>
+                            ) : null}
+                          </div>
+                        </div>
+                      ) : null}
+                      <p className="mt-1 text-[11px] text-[var(--kr-gov-text-secondary)]">{en ? "Usage screens" : "사용 화면"}: {item.usageCount ?? 0}</p>
                       {item.replacementComponentId ? (
                         <p className="mt-1 font-mono text-[11px] text-[var(--kr-gov-text-secondary)]">replacement: {item.replacementComponentId}</p>
                       ) : null}
@@ -953,6 +1717,145 @@ export function ScreenBuilderMigrationPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section className="gov-card p-0 overflow-hidden">
+          <GridToolbar
+            meta={selectedRegistryInventoryItem
+              ? `${selectedRegistryInventoryItem.componentId} / ${registryUsageRows.length}${en ? " usage rows" : "개 사용처"}`
+              : (en ? "Select a registry component to inspect usage and replace mappings." : "레지스트리 컴포넌트를 선택하면 사용 화면과 대체 매핑을 확인할 수 있습니다.")}
+            title={en ? "Registry Component Management" : "레지스트리 컴포넌트 관리"}
+          />
+          <div className="grid grid-cols-1 gap-6 p-6 xl:grid-cols-[0.92fr_1.08fr]">
+            <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4">
+              {selectedRegistryInventoryItem ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-mono text-[11px] text-[var(--kr-gov-text-secondary)]">{selectedRegistryInventoryItem.componentId}</p>
+                      <p className="mt-1 text-sm font-black text-[var(--kr-gov-text-primary)]">{en ? (selectedRegistryInventoryItem.labelEn || selectedRegistryInventoryItem.label) : selectedRegistryInventoryItem.label}</p>
+                    </div>
+                    <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${registryEditorStatus === "DEPRECATED" ? "bg-amber-100 text-amber-800" : registryEditorStatus === "INACTIVE" ? "bg-slate-200 text-slate-700" : "bg-emerald-100 text-emerald-700"}`}>
+                      {registryEditorStatus}
+                    </span>
+                  </div>
+                  <label className="block">
+                    <span className="gov-label">{en ? "Component Type" : "컴포넌트 종류"}</span>
+                    <select className="gov-select" value={registryEditorType} onChange={(event) => setRegistryEditorType(event.target.value)}>
+                      {componentTypeOptions.map((item) => (
+                        <option key={`registry-editor-type-${item}`} value={item}>{item}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="gov-label">{en ? "Label" : "이름"}</span>
+                    <input className="gov-input" value={registryEditorLabel} onChange={(event) => setRegistryEditorLabel(event.target.value)} />
+                  </label>
+                  <label className="block">
+                    <span className="gov-label">{en ? "Description" : "설명"}</span>
+                    <textarea className="gov-input min-h-[90px] py-3" rows={4} value={registryEditorDescription} onChange={(event) => setRegistryEditorDescription(event.target.value)} />
+                  </label>
+                  <label className="block">
+                    <span className="gov-label">{en ? "Status" : "상태"}</span>
+                    <select className="gov-select" value={registryEditorStatus} onChange={(event) => setRegistryEditorStatus(event.target.value)}>
+                      <option value="ACTIVE">ACTIVE</option>
+                      <option value="DEPRECATED">DEPRECATED</option>
+                      <option value="INACTIVE">INACTIVE</option>
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="gov-label">{en ? "Replacement Component" : "대체 컴포넌트"}</span>
+                    <select className="gov-select" value={registryEditorReplacementId} onChange={(event) => setRegistryEditorReplacementId(event.target.value)}>
+                      <option value="">{en ? "Select component" : "컴포넌트 선택"}</option>
+                      {componentRegistry.filter((item) => item.componentId !== selectedRegistryInventoryItem.componentId).map((item) => (
+                        <option key={`registry-replacement-${item.componentId}`} value={item.componentId}>
+                          {item.componentId} / {en ? (item.labelEn || item.label) : item.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="gov-label">{en ? "Props Template JSON" : "Props 템플릿 JSON"}</span>
+                    <textarea className="gov-input min-h-[180px] py-3 font-mono text-[12px]" rows={8} value={registryEditorPropsJson} onChange={(event) => setRegistryEditorPropsJson(event.target.value)} />
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    <MemberButton disabled={saving} onClick={() => { void handleSaveRegistryItem(); }} size="xs" type="button" variant="primary">
+                      {en ? "Save component" : "컴포넌트 저장"}
+                    </MemberButton>
+                    <MemberButton disabled={saving || !registryEditorReplacementId} onClick={() => { void handleRemapRegistryUsage(); }} size="xs" type="button" variant="secondary">
+                      {en ? "Remap usages" : "사용처 재매핑"}
+                    </MemberButton>
+                    <MemberButton disabled={saving || selectedRegistryInventoryItem.sourceType === "SYSTEM"} onClick={() => { void handleDeleteRegistryItem(); }} size="xs" type="button" variant="dangerSecondary">
+                      {en ? "Delete if unused" : "미사용 시 삭제"}
+                    </MemberButton>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Select a registry component from the inventory first." : "먼저 인벤토리에서 레지스트리 컴포넌트를 선택하세요."}</p>
+              )}
+            </article>
+            <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white">
+              <GridToolbar
+                meta={registryUsageLoading ? (en ? "Loading usage..." : "사용 화면을 불러오는 중...") : (en ? `${registryUsageRows.length} usage rows` : `사용 화면 ${registryUsageRows.length}건`)}
+                title={en ? "Screens Using This Component" : "이 컴포넌트를 사용하는 화면"}
+              />
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left border-collapse">
+                  <thead>
+                    <tr className="gov-table-header">
+                      <th className="px-4 py-3">{en ? "Source" : "출처"}</th>
+                      <th className="px-4 py-3">menuCode</th>
+                      <th className="px-4 py-3">pageId</th>
+                      <th className="px-4 py-3">{en ? "Title" : "메뉴명"}</th>
+                      <th className="px-4 py-3">URL</th>
+                      <th className="px-4 py-3">{en ? "Zone / Node" : "영역 / 노드"}</th>
+                      <th className="px-4 py-3">{en ? "Open" : "바로가기"}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {registryUsageRows.length ? registryUsageRows.map((row, index) => (
+                      <tr key={`registry-usage-${row.usageSource}-${row.menuCode}-${row.pageId}-${row.nodeId || index}`}>
+                        <td className="px-4 py-3">
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${row.usageSource === "PUBLISHED" ? "bg-blue-100 text-blue-800" : row.usageSource === "DRAFT" ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-700"}`}>
+                            {row.usageSource}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 font-mono text-[12px]">{row.menuCode || "-"}</td>
+                        <td className="px-4 py-3">{row.pageId || "-"}</td>
+                        <td className="px-4 py-3">{row.menuTitle || "-"}</td>
+                        <td className="px-4 py-3 font-mono text-[11px] text-[var(--kr-gov-text-secondary)]">{row.menuUrl || "-"}</td>
+                        <td className="px-4 py-3 text-[12px] text-[var(--kr-gov-text-secondary)]">{row.layoutZone || row.nodeId || row.instanceKey || "-"}</td>
+                        <td className="px-4 py-3">
+                          {row.menuCode ? (
+                            <div className="flex flex-wrap gap-2">
+                              <MemberLinkButton href={buildLocalizedPath(`/admin/system/screen-builder?menuCode=${encodeURIComponent(row.menuCode)}&pageId=${encodeURIComponent(row.pageId || "")}&menuTitle=${encodeURIComponent(row.menuTitle || "")}&menuUrl=${encodeURIComponent(row.menuUrl || "")}`, `/en/admin/system/screen-builder?menuCode=${encodeURIComponent(row.menuCode)}&pageId=${encodeURIComponent(row.pageId || "")}&menuTitle=${encodeURIComponent(row.menuTitle || "")}&menuUrl=${encodeURIComponent(row.menuUrl || "")}`)} variant="secondary">
+                                {en ? "Builder" : "빌더"}
+                              </MemberLinkButton>
+                              {row.usageSource === "PUBLISHED" ? (
+                                <MemberLinkButton href={buildLocalizedPath(`/admin/system/screen-runtime?menuCode=${encodeURIComponent(row.menuCode)}&pageId=${encodeURIComponent(row.pageId || "")}&menuTitle=${encodeURIComponent(row.menuTitle || "")}&menuUrl=${encodeURIComponent(row.menuUrl || "")}`, `/en/admin/system/screen-runtime?menuCode=${encodeURIComponent(row.menuCode)}&pageId=${encodeURIComponent(row.pageId || "")}&menuTitle=${encodeURIComponent(row.menuTitle || "")}&menuUrl=${encodeURIComponent(row.menuUrl || "")}`)} variant="secondary">
+                                  {en ? "Runtime" : "런타임"}
+                                </MemberLinkButton>
+                              ) : null}
+                            </div>
+                          ) : (
+                            "-"
+                          )}
+                        </td>
+                      </tr>
+                    )) : (
+                      <tr>
+                        <td className="px-4 py-8 text-center text-[var(--kr-gov-text-secondary)]" colSpan={7}>
+                          {selectedRegistryInventoryItem
+                            ? (en ? "No screen currently uses this component." : "현재 이 컴포넌트를 사용하는 화면이 없습니다.")
+                            : (en ? "Select a registry component first." : "먼저 레지스트리 컴포넌트를 선택하세요.")}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </article>
           </div>
@@ -1131,12 +2034,12 @@ export function ScreenBuilderMigrationPage() {
 
         <section className="gov-card p-0 overflow-hidden">
           <GridToolbar
-            actions={<MemberButtonGroup>{(page?.componentPalette || []).map((item) => (
+            actions={<MemberButtonGroup>{filteredPalette.map((item) => (
               <MemberButton key={item.componentType} onClick={() => addNode(item)} size="xs" type="button" variant="secondary">
                 {en ? (item.labelEn || item.label) : item.label}
               </MemberButton>
             ))}</MemberButtonGroup>}
-            meta={en ? "Append reusable blocks to the current draft. The Phase 1 MVP uses list-based composition before full drag-and-drop." : "재사용 블록을 현재 초안에 추가합니다. 1차 MVP는 완전한 drag-and-drop 전에 리스트 기반 조합으로 시작합니다."}
+            meta={en ? `${selectedTemplateType} palette. Append standardized blocks that match the selected page type.` : `${selectedTemplateType} 팔레트입니다. 선택한 페이지 타입에 맞는 표준 블록만 추가합니다.`}
             title={en ? "Component Palette" : "컴포넌트 팔레트"}
           />
           <div className="grid grid-cols-1 gap-6 p-6 xl:grid-cols-[0.95fr_0.95fr_1.1fr]">
@@ -1261,10 +2164,48 @@ export function ScreenBuilderMigrationPage() {
                         </select>
                       </label>
                     ) : null}
+                    {selectedNode.componentType === "table" ? (
+                      <>
+                        <label className="block">
+                          <span className="gov-label">{en ? "Table Title" : "테이블 제목"}</span>
+                          <input className="gov-input" value={String(selectedNodeProps.title || "")} onChange={(event) => updateSelectedNodeField("title", event.target.value)} />
+                        </label>
+                        <label className="block">
+                          <span className="gov-label">{en ? "Columns" : "컬럼"}</span>
+                          <input className="gov-input" value={String(selectedNodeProps.columns || "")} onChange={(event) => updateSelectedNodeField("columns", event.target.value)} />
+                        </label>
+                        <label className="block">
+                          <span className="gov-label">{en ? "Empty Text" : "빈 상태 문구"}</span>
+                          <input className="gov-input" value={String(selectedNodeProps.emptyText || "")} onChange={(event) => updateSelectedNodeField("emptyText", event.target.value)} />
+                        </label>
+                      </>
+                    ) : null}
+                    {selectedNode.componentType === "pagination" ? (
+                      <label className="block">
+                        <span className="gov-label">{en ? "Summary" : "요약 문구"}</span>
+                        <input className="gov-input" value={String(selectedNodeProps.summary || "")} onChange={(event) => updateSelectedNodeField("summary", event.target.value)} />
+                      </label>
+                    ) : null}
+                    {selectedNode.componentType !== "page" ? (
+                      <label className="block">
+                        <span className="gov-label">{en ? "Layout Slot" : "레이아웃 슬롯"}</span>
+                        <select
+                          className="gov-select"
+                          value={String(selectedNode.slotName || resolveTemplateSlots(selectedTemplateType, selectedNode.componentType)[0] || "content")}
+                          onChange={(event) => {
+                            setNodes((current) => current.map((node) => node.nodeId === selectedNode.nodeId ? { ...node, slotName: event.target.value } : node));
+                          }}
+                        >
+                          {resolveTemplateSlots(selectedTemplateType, selectedNode.componentType).map((slot) => (
+                            <option key={`${selectedNode.nodeId}-${slot}`} value={slot}>{slot}</option>
+                          ))}
+                        </select>
+                      </label>
+                    ) : null}
                     {["input", "textarea", "select", "checkbox"].includes(selectedNode.componentType) ? (
                       <label className="flex items-center gap-3 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 px-4 py-3 text-sm font-medium text-[var(--kr-gov-text-primary)]">
                         <input checked={Boolean(selectedNodeProps.required)} onChange={(event) => updateSelectedNodeField("required", event.target.checked)} type="checkbox" />
-                        <span>{en ? "Required field" : "필수 입력"}</span>
+                          <span>{en ? "Required field" : "필수 입력"}</span>
                       </label>
                     ) : null}
 

@@ -1,4 +1,10 @@
 export {
+  AdminInput,
+  AdminCheckbox,
+  AdminRadio,
+  AdminSelect,
+  AdminTable,
+  AdminTextarea,
   ADMIN_BUTTON_LABELS,
   CopyableCodeBlock,
   DiagnosticCard,

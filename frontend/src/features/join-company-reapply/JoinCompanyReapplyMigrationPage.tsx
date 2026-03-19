@@ -7,6 +7,7 @@ import {
   resetJoinSession,
   submitJoinCompanyReapply
 } from "../../lib/api/client";
+import { HomeButton, HomeIconButton, HomeInput, HomeLinkButton } from "../home-ui/common";
 
 type UploadRow = {
   id: string;
@@ -253,10 +254,10 @@ export function JoinCompanyReapplyMigrationPage() {
         <div className="max-w-7xl mx-auto px-4 lg:px-8">
           <div className="flex justify-between items-center h-20">
             <div className="flex items-center gap-3 shrink-0">
-              <a className="flex items-center gap-2 focus-visible" href="#" onClick={(event) => {
+              <HomeLinkButton className="min-h-0 border-0 bg-transparent px-0 py-0 hover:bg-transparent" href="#" onClick={(event) => {
                 event.preventDefault();
                 void handleHome();
-              }}>
+              }} variant="ghost">
                 <span className="material-symbols-outlined text-[32px] text-[var(--kr-gov-blue)]" style={{ fontVariationSettings: "'wght' 600" }}>eco</span>
                 <div className="flex flex-col">
                   <h1 className="text-lg font-bold tracking-tight text-[var(--kr-gov-text-primary)] leading-none">
@@ -264,7 +265,7 @@ export function JoinCompanyReapplyMigrationPage() {
                   </h1>
                   <p className="text-[9px] text-[var(--kr-gov-text-secondary)] font-bold uppercase tracking-wider mt-1">Carbon Capture, Utilization and Storage</p>
                 </div>
-              </a>
+              </HomeLinkButton>
             </div>
           </div>
         </div>
@@ -287,22 +288,23 @@ export function JoinCompanyReapplyMigrationPage() {
               <label className="text-sm font-bold text-[var(--kr-gov-text-secondary)]" htmlFor="lookup-bizNo">
                 {en ? "Business Registration Number" : "사업자등록번호"}
               </label>
-              <input className="input-field" id="lookup-bizNo" onChange={(event) => setBizNo(event.target.value)} value={bizNo} />
+              <HomeInput className="home-field home-field--lookup" id="lookup-bizNo" onChange={(event) => setBizNo(event.target.value)} value={bizNo} />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-bold text-[var(--kr-gov-text-secondary)]" htmlFor="lookup-repName">
                 {en ? "Representative Name" : "대표자명"}
               </label>
-              <input className="input-field" id="lookup-repName" onChange={(event) => setRepName(event.target.value)} value={repName} />
+              <HomeInput className="home-field home-field--lookup" id="lookup-repName" onChange={(event) => setRepName(event.target.value)} value={repName} />
             </div>
-            <button
-              className="h-12 px-6 bg-[var(--kr-gov-blue)] text-white font-bold rounded-[var(--kr-gov-radius)]"
+            <HomeButton
+              className="px-6"
               disabled={loading}
               onClick={() => void handleLookup()}
               type="button"
+              variant="primary"
             >
               {loading ? "..." : en ? "Load" : "재신청 대상 조회"}
-            </button>
+            </HomeButton>
           </div>
         </section>
         ) : null}
@@ -350,15 +352,15 @@ export function JoinCompanyReapplyMigrationPage() {
                     <label className="text-sm font-bold text-[var(--kr-gov-text-secondary)]" htmlFor="charger-name">
                       {en ? "Manager Name" : "담당자 성명"} <span className="text-[var(--kr-gov-error)]">*</span>
                     </label>
-                    <input autoComplete="name" className="input-field" id="charger-name" onChange={(event) => updateField("chargerName", event.target.value)} value={form.chargerName} />
+                    <HomeInput autoComplete="name" className="home-field home-field--reapply" id="charger-name" onChange={(event) => updateField("chargerName", event.target.value)} value={form.chargerName} />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-sm font-bold text-[var(--kr-gov-text-secondary)]" htmlFor="charger-email">
                       {en ? "Email Address" : "이메일 주소"} <span className="text-[var(--kr-gov-error)]">*</span>
                     </label>
-                    <input
+                    <HomeInput
                       autoComplete="email"
-                      className="input-field"
+                      className="home-field home-field--reapply"
                       id="charger-email"
                       inputMode="email"
                       onChange={(event) => updateField("chargerEmail", event.target.value)}
@@ -371,9 +373,9 @@ export function JoinCompanyReapplyMigrationPage() {
                     <label className="text-sm font-bold text-[var(--kr-gov-text-secondary)]" htmlFor="charger-tel">
                       {en ? "Contact Number" : "연락처"} <span className="text-[var(--kr-gov-error)]">*</span>
                     </label>
-                    <input
+                    <HomeInput
                       autoComplete="tel-national"
-                      className="input-field"
+                      className="home-field home-field--reapply"
                       id="charger-tel"
                       inputMode="numeric"
                       onChange={(event) => updateField("chargerTel", event.target.value)}
@@ -392,37 +394,33 @@ export function JoinCompanyReapplyMigrationPage() {
                     <label className="text-sm font-bold text-[var(--kr-gov-text-secondary)]" htmlFor="company-name">
                       {en ? "Company Name" : "업체명"} <span className="text-[var(--kr-gov-error)]">*</span>
                     </label>
-                    <input autoComplete="organization" className="input-field" id="company-name" onChange={(event) => updateField("agencyName", event.target.value)} value={form.agencyName} />
+                    <HomeInput autoComplete="organization" className="home-field home-field--reapply" id="company-name" onChange={(event) => updateField("agencyName", event.target.value)} value={form.agencyName} />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-sm font-bold text-[var(--kr-gov-text-secondary)]" htmlFor="biz-number">
                       {en ? "Business Registration Number" : "사업자등록번호"}
                     </label>
-                    <input className="input-field readonly-field" id="biz-number" readOnly type="text" value={form.bizRegistrationNumber} />
+                    <HomeInput className="home-field home-field--reapply home-field--readonly" id="biz-number" readOnly type="text" value={form.bizRegistrationNumber} />
                     <p className="text-xs text-[var(--kr-gov-text-secondary)]">{en ? "Business registration number cannot be changed." : "사업자등록번호는 수정할 수 없습니다."}</p>
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-sm font-bold text-[var(--kr-gov-text-secondary)]" htmlFor="rep-name">
                       {en ? "Representative Name" : "대표자 성명"} <span className="text-[var(--kr-gov-error)]">*</span>
                     </label>
-                    <input autoComplete="name" className="input-field" id="rep-name" onChange={(event) => updateField("representativeName", event.target.value)} value={form.representativeName} />
+                    <HomeInput autoComplete="name" className="home-field home-field--reapply" id="rep-name" onChange={(event) => updateField("representativeName", event.target.value)} value={form.representativeName} />
                   </div>
                   <div className="md:col-span-2 space-y-1.5">
                     <label className="text-sm font-bold text-[var(--kr-gov-text-secondary)]" htmlFor="company-address">
                       {en ? "Business Address" : "사업장 주소"} <span className="text-[var(--kr-gov-error)]">*</span>
                     </label>
                     <div className="flex gap-2 mb-2">
-                      <input className="input-field max-w-[200px] readonly-field" id="zip-code" onClick={openAddressSearch} placeholder={en ? "Zip Code" : "우편번호"} readOnly type="text" value={form.zipCode} />
-                      <button
-                        className="px-6 h-12 bg-gray-800 text-white font-bold rounded-[var(--kr-gov-radius)] text-sm whitespace-nowrap"
-                        onClick={openAddressSearch}
-                        type="button"
-                      >
+                      <HomeInput className="home-field home-field--reapply home-field--readonly max-w-[200px]" id="zip-code" onClick={openAddressSearch} placeholder={en ? "Zip Code" : "우편번호"} readOnly type="text" value={form.zipCode} />
+                      <HomeButton className="px-6 text-sm whitespace-nowrap" onClick={openAddressSearch} type="button" variant="primary">
                         {en ? "Find Address" : "주소 검색"}
-                      </button>
+                      </HomeButton>
                     </div>
-                    <input className="input-field mb-2 bg-gray-50 cursor-pointer" id="company-address" onClick={openAddressSearch} readOnly type="text" value={form.companyAddress} />
-                    <input className="input-field" id="company-address-detail" onChange={(event) => updateField("companyAddressDetail", event.target.value)} placeholder={en ? "Enter detailed address" : "상세주소를 입력하세요"} type="text" value={form.companyAddressDetail} />
+                    <HomeInput className="home-field home-field--reapply home-field--readonly mb-2 bg-gray-50 cursor-pointer" id="company-address" onClick={openAddressSearch} readOnly type="text" value={form.companyAddress} />
+                    <HomeInput className="home-field home-field--reapply" id="company-address-detail" onChange={(event) => updateField("companyAddressDetail", event.target.value)} placeholder={en ? "Enter detailed address" : "상세주소를 입력하세요"} type="text" value={form.companyAddressDetail} />
                   </div>
                 </div>
               </section>
@@ -434,14 +432,10 @@ export function JoinCompanyReapplyMigrationPage() {
                     <label className="block text-sm font-bold text-[var(--kr-gov-text-secondary)]">
                       {en ? "Re-upload Business Registration Certificate" : "사업자등록증 재업로드"} <span className="text-[var(--kr-gov-error)]">*</span>
                     </label>
-                    <button
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded transition-colors border border-gray-200"
-                      onClick={addFileRow}
-                      type="button"
-                    >
+                    <HomeButton className="px-3 py-1.5 text-xs" onClick={addFileRow} size="xs" type="button">
                       <span className="material-symbols-outlined text-[18px]">add</span>
                       {en ? "Add File" : "파일 추가"}
-                    </button>
+                    </HomeButton>
                   </div>
 
                   <div id="file-list-container" className="space-y-3">
@@ -489,7 +483,7 @@ export function JoinCompanyReapplyMigrationPage() {
                           {index === 0 ? (row.file ? "check_circle" : "cloud_upload") : (row.file ? "check_circle" : "attach_file")}
                         </span>
                         <div className="flex-grow min-w-0">
-                          <input
+                          <HomeInput
                             accept={ACCEPTED_FILE_TYPES.join(",")}
                             className="hidden file-input"
                             id={`${fileInputPrefix}-${row.id}`}
@@ -512,7 +506,7 @@ export function JoinCompanyReapplyMigrationPage() {
                             <span className="file-size text-xs text-gray-400">{row.file ? fileSizeLabel(row.file.size) : ""}</span>
                           </div>
                         </div>
-                        <button
+                        <HomeIconButton
                           className={`${row.file || uploadRows.length > 1 ? "" : "hidden "}remove-file-btn text-gray-400 hover:text-red-500 transition-colors`}
                           onClick={(event) => {
                             event.preventDefault();
@@ -522,7 +516,7 @@ export function JoinCompanyReapplyMigrationPage() {
                           type="button"
                         >
                           <span className="material-symbols-outlined">close</span>
-                        </button>
+                        </HomeIconButton>
                       </label>
                     ))}
                   </div>
@@ -530,21 +524,24 @@ export function JoinCompanyReapplyMigrationPage() {
               </section>
 
               <div className="flex justify-center items-center gap-4 pt-8 border-t border-[var(--kr-gov-border-light)]">
-                <button
-                  className="min-w-[160px] h-14 border border-[var(--kr-gov-border-light)] bg-white text-[var(--kr-gov-text-primary)] text-lg font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-50 transition-colors"
+                <HomeButton
+                  className="min-w-[160px] text-lg"
                   onClick={() => window.history.back()}
+                  size="lg"
                   type="button"
                 >
                   {en ? "Cancel" : "취소"}
-                </button>
-                <button
-                  className="min-w-[160px] h-14 bg-[var(--kr-gov-blue)] text-white text-lg font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)] transition-colors focus-visible shadow-lg shadow-blue-900/10"
+                </HomeButton>
+                <HomeButton
+                  className="min-w-[160px] text-lg shadow-lg shadow-blue-900/10"
                   disabled={submitting}
                   onClick={() => void handleSubmit()}
+                  size="lg"
                   type="button"
+                  variant="primary"
                 >
                   {submitting ? "..." : en ? "Complete Reapplication" : "재신청 완료"}
-                </button>
+                </HomeButton>
               </div>
             </div>
           </>

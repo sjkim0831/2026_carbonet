@@ -308,7 +308,7 @@ public class AdminAuthorityPagePayloadService {
         int assignmentCount;
         try {
             assignments = authGroupManageService.selectAdminRoleAssignments();
-            authorGroups = controller.filterAuthorGroups(authGroupManageService.selectAuthorList(), "GENERAL");
+            authorGroups = authorityPagePayloadSupport.filterAuthorGroups(authGroupManageService.selectAuthorList(), "GENERAL");
             assignmentCount = assignments.size();
         } catch (Exception e) {
             log.error("Failed to load auth change page api.", e);

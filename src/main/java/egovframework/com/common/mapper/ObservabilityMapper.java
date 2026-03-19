@@ -7,6 +7,7 @@ import egovframework.com.common.mapper.support.BaseMapperSupport;
 import egovframework.com.common.trace.TraceEventRecordVO;
 import egovframework.com.common.trace.TraceEventSearchVO;
 import egovframework.com.common.trace.UiComponentRegistryVO;
+import egovframework.com.common.trace.UiComponentUsageVO;
 import egovframework.com.common.trace.UiPageComponentDetailVO;
 import egovframework.com.common.trace.UiPageComponentMapVO;
 import egovframework.com.common.trace.UiPageManifestVO;
@@ -76,6 +77,26 @@ public class ObservabilityMapper extends BaseMapperSupport {
 
     public void updateUiComponentRegistry(UiComponentRegistryVO component) {
         update("ObservabilityMapper.updateUiComponentRegistry", component);
+    }
+
+    public UiComponentRegistryVO selectUiComponentRegistry(String componentId) {
+        return selectOne("ObservabilityMapper.selectUiComponentRegistry", componentId);
+    }
+
+    public List<UiComponentRegistryVO> selectUiComponentRegistryList() {
+        return selectList("ObservabilityMapper.selectUiComponentRegistryList");
+    }
+
+    public void deleteUiComponentRegistry(String componentId) {
+        delete("ObservabilityMapper.deleteUiComponentRegistry", componentId);
+    }
+
+    public List<UiComponentUsageVO> selectUiComponentUsageList(String componentId) {
+        return selectList("ObservabilityMapper.selectUiComponentUsageList", componentId);
+    }
+
+    public void updateUiPageComponentMapComponentId(Map<String, String> payload) {
+        update("ObservabilityMapper.updateUiPageComponentMapComponentId", payload);
     }
 
     public void deleteUiPageComponentMaps(String pageId) {

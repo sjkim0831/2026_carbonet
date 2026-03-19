@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { MemberEditPagePayload } from "../../lib/api/client";
+import { AdminCheckbox, AdminInput, AdminSelect, AdminTextarea } from "../admin-ui/common";
 import { MemberLinkButton, MEMBER_BUTTON_LABELS } from "../member/common";
 import { MemberInsetNotice, MemberSectionCard } from "../member/sections";
 
@@ -64,11 +65,11 @@ export function MemberEditSummarySection({
       </div>
       <div>
         <label className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">회원 ID</label>
-        <input className="w-full h-11 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-gray-50 text-gray-600" readOnly type="text" value={form.memberId} />
+        <AdminInput className="h-11 bg-gray-50 text-gray-600" readOnly type="text" value={form.memberId} />
       </div>
       <div>
         <label className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">가입일</label>
-        <input className="w-full h-11 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-gray-50 text-gray-600" readOnly type="text" value={String((page?.member as Record<string, unknown> | undefined)?.sbscrbDe || "-")} />
+        <AdminInput className="h-11 bg-gray-50 text-gray-600" readOnly type="text" value={String((page?.member as Record<string, unknown> | undefined)?.sbscrbDe || "-")} />
       </div>
       <div data-help-id="member-edit-role-profile">
         <label className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">업무 역할</label>
@@ -140,34 +141,34 @@ export function MemberEditMainSections({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <label>
             <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">회원명 <span className="text-[var(--kr-gov-error)]">*</span></span>
-            <input className="w-full h-11 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUse} value={form.applcntNm} onChange={(e) => setForm({ ...form, applcntNm: e.target.value })} />
+            <AdminInput className="h-11" disabled={!canUse} value={form.applcntNm} onChange={(e) => setForm({ ...form, applcntNm: e.target.value })} />
           </label>
           <label>
             <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">이메일 <span className="text-[var(--kr-gov-error)]">*</span></span>
-            <input className="w-full h-11 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUse} value={form.applcntEmailAdres} onChange={(e) => setForm({ ...form, applcntEmailAdres: e.target.value })} />
+            <AdminInput className="h-11" disabled={!canUse} value={form.applcntEmailAdres} onChange={(e) => setForm({ ...form, applcntEmailAdres: e.target.value })} />
           </label>
           <label>
             <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">연락처 <span className="text-[var(--kr-gov-error)]">*</span></span>
-            <input className="w-full h-11 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUse} value={form.phoneNumber} onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })} />
+            <AdminInput className="h-11" disabled={!canUse} value={form.phoneNumber} onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })} />
           </label>
           <label>
             <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">부서명</span>
-            <input className="w-full h-11 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUse} value={form.deptNm} onChange={(e) => setForm({ ...form, deptNm: e.target.value })} />
+            <AdminInput className="h-11" disabled={!canUse} value={form.deptNm} onChange={(e) => setForm({ ...form, deptNm: e.target.value })} />
           </label>
           <label>
             <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">회원 유형 <span className="text-[var(--kr-gov-error)]">*</span></span>
-            <select className="w-full h-11 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUse} value={form.entrprsSeCode} onChange={(e) => setForm({ ...form, entrprsSeCode: e.target.value })}>
+            <AdminSelect className="h-11" disabled={!canUse} value={form.entrprsSeCode} onChange={(e) => setForm({ ...form, entrprsSeCode: e.target.value })}>
               {((page?.memberTypeOptions as Array<{ code: string; label: string }>) || []).map((opt) => <option key={opt.code} value={opt.code}>{opt.label}</option>)}
-            </select>
+            </AdminSelect>
           </label>
           <label>
             <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">회원 상태 <span className="text-[var(--kr-gov-error)]">*</span></span>
-            <select className="w-full h-11 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUse} value={form.entrprsMberSttus} onChange={(e) => setForm({ ...form, entrprsMberSttus: e.target.value })}>
+            <AdminSelect className="h-11" disabled={!canUse} value={form.entrprsMberSttus} onChange={(e) => setForm({ ...form, entrprsMberSttus: e.target.value })}>
               {((page?.memberStatusOptions as Array<{ code: string; label: string }>) || []).map((opt) => <option key={opt.code} value={opt.code}>{opt.label}</option>)}
-            </select>
+            </AdminSelect>
           </label>
           <label className="md:col-span-2 inline-flex items-center gap-3 text-sm font-medium cursor-pointer">
-            <input checked={form.marketingYn === "Y"} className="h-4 w-4 rounded border-gray-300 text-[var(--kr-gov-blue)]" disabled={!canUse} onChange={(e) => setForm({ ...form, marketingYn: e.target.checked ? "Y" : "N" })} type="checkbox" />
+            <AdminCheckbox checked={form.marketingYn === "Y"} className="h-4 w-4 border-gray-300" disabled={!canUse} onChange={(e) => setForm({ ...form, marketingYn: e.target.checked ? "Y" : "N" })} />
             마케팅 정보 수신 동의
           </label>
         </div>
@@ -179,12 +180,12 @@ export function MemberEditMainSections({
             <div className="md:col-span-2">
               <label>
                 <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">기준 권한 롤 <span className="text-[var(--kr-gov-error)]">*</span></span>
-                <select className="w-full h-11 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUse} value={form.authorCode} onChange={(e) => setForm({ ...form, authorCode: e.target.value })}>
+                <AdminSelect className="h-11" disabled={!canUse} value={form.authorCode} onChange={(e) => setForm({ ...form, authorCode: e.target.value })}>
                   <option value="">권한 롤 선택</option>
                   {(page?.permissionAuthorGroups || []).map((group) => (
                     <option key={group.authorCode} value={group.authorCode}>{group.authorNm} ({group.authorCode})</option>
                   ))}
-                </select>
+                </AdminSelect>
               </label>
               <p className="mt-2 text-xs text-slate-500">{text(page, "롤 기본 권한을 기준으로 체크가 구성되며, 아래에서 회원별 추가/제외 권한을 직접 조정할 수 있습니다.", "Checkboxes start from the role baseline, and member-specific additions or removals can be adjusted below.")}</p>
             </div>
@@ -216,7 +217,7 @@ export function MemberEditMainSections({
                     const chipType = resolvePermissionChipType(feature.featureCode, page);
                     return (
                       <label className="flex items-start gap-3 rounded-[var(--kr-gov-radius)] border border-slate-200 bg-white px-4 py-3" key={feature.featureCode}>
-                        <input checked={featureCodes.includes(feature.featureCode)} className="mt-1 h-4 w-4 rounded border-gray-300 text-[var(--kr-gov-blue)]" disabled={!canUse} onChange={() => toggleFeature(feature.featureCode)} type="checkbox" />
+                        <AdminCheckbox checked={featureCodes.includes(feature.featureCode)} className="mt-1 h-4 w-4 border-gray-300" disabled={!canUse} onChange={() => toggleFeature(feature.featureCode)} />
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{feature.featureNm || feature.featureCode}</span>
@@ -238,15 +239,15 @@ export function MemberEditMainSections({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <label>
             <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">우편번호</span>
-            <input className="w-full h-11 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUse} value={form.zip} onChange={(e) => setForm({ ...form, zip: e.target.value })} />
+            <AdminInput className="h-11" disabled={!canUse} value={form.zip} onChange={(e) => setForm({ ...form, zip: e.target.value })} />
           </label>
           <label>
             <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">상세주소</span>
-            <input className="w-full h-11 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUse} value={form.detailAdres} onChange={(e) => setForm({ ...form, detailAdres: e.target.value })} />
+            <AdminInput className="h-11" disabled={!canUse} value={form.detailAdres} onChange={(e) => setForm({ ...form, detailAdres: e.target.value })} />
           </label>
           <label className="md:col-span-2">
             <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">기본주소</span>
-            <textarea className="w-full min-h-[96px] px-4 py-3 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUse} value={form.adres} onChange={(e) => setForm({ ...form, adres: e.target.value })} />
+            <AdminTextarea className="min-h-[96px]" disabled={!canUse} value={form.adres} onChange={(e) => setForm({ ...form, adres: e.target.value })} />
           </label>
           <MemberInsetNotice className="md:col-span-2">{text(page, "이 영역은 회원 테이블의 연락/제출 주소입니다. 회원사 주소와 별도로 관리됩니다.", "This area stores contact and submission addresses on the member record, separate from company addresses.")}</MemberInsetNotice>
         </div>
@@ -284,15 +285,15 @@ export function MemberEditMainSections({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="md:col-span-2">
             <label className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">기관명</label>
-            <input className="w-full h-11 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-gray-50 text-gray-600" readOnly type="text" value={String((page?.member as Record<string, unknown> | undefined)?.cmpnyNm || "-")} />
+            <AdminInput className="h-11 bg-gray-50 text-gray-600" readOnly type="text" value={String((page?.member as Record<string, unknown> | undefined)?.cmpnyNm || "-")} />
           </div>
           <div>
             <label className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">대표자명</label>
-            <input className="w-full h-11 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-gray-50 text-gray-600" readOnly type="text" value={String((page?.member as Record<string, unknown> | undefined)?.cxfc || "-")} />
+            <AdminInput className="h-11 bg-gray-50 text-gray-600" readOnly type="text" value={String((page?.member as Record<string, unknown> | undefined)?.cxfc || "-")} />
           </div>
           <div>
             <label className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">사업자등록번호</label>
-            <input className="w-full h-11 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-gray-50 text-gray-600" readOnly type="text" value={String((page?.member as Record<string, unknown> | undefined)?.bizrno || "-")} />
+            <AdminInput className="h-11 bg-gray-50 text-gray-600" readOnly type="text" value={String((page?.member as Record<string, unknown> | undefined)?.bizrno || "-")} />
           </div>
           <MemberInsetNotice className="md:col-span-2">{text(page, "이 영역은 회원사 기준 참조 정보입니다. 수정은 기관 관리 또는 승인 화면에서 진행해 주세요.", "This area is company reference data only. Edit it from company management or approval screens.")}</MemberInsetNotice>
         </div>

@@ -12,6 +12,7 @@ Use this file as the default starting point for AI-assisted work in this reposit
 6. `docs/ai/00-governance/ai-session-partitioning.md` before planning or implementation so session ownership is decided early
 7. `docs/ai/60-operations/session-orchestration/README.md` when the task needs durable plan, contract, or handoff artifacts
 8. `docs/ai/60-operations/react-refresh-and-cache-control.md` when frontend delivery, React shell behavior, or cache freshness matters
+9. `docs/operations/backup-db-fast-workflow.md` when the task touches the backup DB server, CUBRID runtime operations, or remote DB inspection/update work
 
 If the task comes from local design assets, read these external files first:
 

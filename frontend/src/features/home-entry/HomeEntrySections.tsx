@@ -1,5 +1,6 @@
 import { buildLocalizedPath, navigate } from "../../lib/navigation/runtime";
 import { useMemo, useState } from "react";
+import { HomeButton, HomeInput, HomeLinkButton } from "../home-ui/common";
 import { HOME_ENTRY_ASSETS, LOCALIZED_CONTENT, LocalizedHomeContent } from "./homeEntryContent";
 import { HomeMenuItem, HomeQuickLink } from "./homeEntryTypes";
 
@@ -81,13 +82,13 @@ export function HomeInlineStyles({ en }: { en: boolean }) {
 export function HeaderBrand({ content, en }: { content: LocalizedHomeContent; en: boolean }) {
   return (
     <div className="absolute left-1/2 -translate-x-1/2 xl:static xl:translate-x-0 flex items-center gap-3 shrink-0">
-      <a className="flex items-center gap-2 focus-visible max-w-[78vw] xl:max-w-none" href={buildLocalizedPath("/home", "/en/home")}>
+      <HomeLinkButton className="max-w-[78vw] xl:max-w-none !min-h-0 !border-0 !bg-transparent !p-0 !text-inherit !font-inherit hover:!bg-transparent focus-visible flex items-center gap-2" href={buildLocalizedPath("/home", "/en/home")} variant="ghost">
         <span className="material-symbols-outlined text-[32px] text-[var(--kr-gov-blue)]" style={{ fontVariationSettings: "'wght' 600" }}>eco</span>
         <div className="home-brand-copy flex flex-col">
           <h1 className="home-brand-title text-base sm:text-xl font-bold tracking-tight text-[var(--kr-gov-text-primary)] leading-tight">{content.logoTitle}</h1>
           <p className={`home-brand-subtitle ${en ? "hidden 2xl:block" : "hidden sm:block"} text-[10px] text-[var(--kr-gov-text-secondary)] font-bold uppercase tracking-wider`}>{content.logoSubtitle}</p>
         </div>
-      </a>
+      </HomeLinkButton>
     </div>
   );
 }
@@ -141,24 +142,24 @@ export function HeaderMobileMenu({
     <aside className="absolute top-0 right-0 h-full w-[90%] max-w-[380px] bg-white shadow-2xl border-l border-[var(--kr-gov-border-light)] overflow-y-auto">
       <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-4 border-b border-[var(--kr-gov-border-light)] bg-white">
         <strong className="text-lg font-bold text-[var(--kr-gov-text-primary)]">{content.allMenu}</strong>
-        <button id="mobile-menu-close" className="w-10 h-10 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] text-[var(--kr-gov-text-secondary)] flex items-center justify-center hover:bg-[var(--kr-gov-bg-gray)]" type="button" aria-label={content.closeAllMenu} onClick={onClose}>
+        <HomeButton id="mobile-menu-close" className="w-10 h-10 !p-0 text-[var(--kr-gov-text-secondary)]" type="button" aria-label={content.closeAllMenu} onClick={onClose}>
           <span className="material-symbols-outlined">close</span>
-        </button>
+        </HomeButton>
       </div>
       <div className="p-4 space-y-4">
         <div className="flex items-center gap-2">
           {isLoggedIn ? (
-            <button className="px-5 py-2.5 font-bold rounded-[var(--kr-gov-radius)] transition-colors focus-visible outline-none bg-[var(--kr-gov-blue)] text-white hover:bg-[var(--kr-gov-blue-hover)] inline-flex items-center justify-center flex-1" type="button" onClick={() => void onLogout()}>{content.logout}</button>
+            <HomeButton className="flex-1" type="button" onClick={() => void onLogout()} variant="primary">{content.logout}</HomeButton>
           ) : (
             <>
-              <a className="px-5 py-2.5 font-bold rounded-[var(--kr-gov-radius)] transition-colors focus-visible outline-none bg-[var(--kr-gov-blue)] text-white hover:bg-[var(--kr-gov-blue-hover)] inline-flex items-center justify-center flex-1" href={buildLocalizedPath("/signin/loginView", "/en/signin/loginView")}>{content.login}</a>
-              <a className="px-5 py-2.5 font-bold rounded-[var(--kr-gov-radius)] transition-colors focus-visible outline-none bg-white text-[var(--kr-gov-blue)] border border-[var(--kr-gov-blue)] hover:bg-[var(--kr-gov-bg-gray)] inline-flex items-center justify-center flex-1" href={buildLocalizedPath("/join/step1", "/join/en/step1")}>{content.signup}</a>
+              <HomeLinkButton className="flex-1" href={buildLocalizedPath("/signin/loginView", "/en/signin/loginView")} variant="primary">{content.login}</HomeLinkButton>
+              <HomeLinkButton className="flex-1" href={buildLocalizedPath("/join/step1", "/join/en/step1")} variant="secondary">{content.signup}</HomeLinkButton>
             </>
           )}
         </div>
         <div className="grid grid-cols-2 gap-2 text-sm">
-          <button type="button" className={`px-3 py-2 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] font-bold ${en ? "bg-white text-[var(--kr-gov-text-secondary)]" : "bg-[var(--kr-gov-blue)] text-white"}`} onClick={() => navigate("/home")}>KO</button>
-          <button type="button" className={`px-3 py-2 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] font-bold ${en ? "bg-[var(--kr-gov-blue)] text-white" : "bg-white text-[var(--kr-gov-text-secondary)]"}`} onClick={() => navigate("/en/home")}>EN</button>
+          <HomeButton type="button" className={en ? "!text-[var(--kr-gov-text-secondary)]" : ""} onClick={() => navigate("/home")} variant={en ? "secondary" : "primary"}>KO</HomeButton>
+          <HomeButton type="button" className={en ? "" : "!text-[var(--kr-gov-text-secondary)]"} onClick={() => navigate("/en/home")} variant={en ? "primary" : "secondary"}>EN</HomeButton>
         </div>
         <div className="space-y-3">
           {homeMenu.map((top, index) => (
@@ -196,13 +197,13 @@ export function HeroSection({ content }: { content: LocalizedHomeContent }) {
         <h2 className="text-5xl font-extrabold mb-4 leading-tight">{content.heroTitle.split("\n").map((line, index) => (<span key={`${line}-${index}`}>{line}{index === 0 ? <br /> : null}</span>))}</h2>
         <p className="text-xl text-blue-50/90 mb-10 max-w-2xl font-medium leading-relaxed">{content.heroDescription}</p>
         <div className="flex gap-4">
-          <button type="button" className="px-5 py-2.5 font-bold rounded-[var(--kr-gov-radius)] transition-colors focus-visible outline-none bg-white text-[var(--kr-gov-blue)] px-8 py-4 text-lg hover:bg-gray-100 flex items-center gap-2">
+          <HomeButton type="button" className="px-8 py-4 text-lg" variant="secondary">
             {content.heroButton} <span className="material-symbols-outlined">arrow_forward</span>
-          </button>
+          </HomeButton>
           <div className="flex items-center gap-2 mt-auto self-end pb-4 ml-8">
-            <button type="button" className="w-10 h-10 rounded-full border border-white/30 flex items-center justify-center hover:bg-white/10"><span className="material-symbols-outlined">chevron_left</span></button>
+            <HomeButton type="button" className="w-10 h-10 rounded-full border-white/30 !bg-transparent !p-0 !text-white hover:!bg-white/10" variant="ghost"><span className="material-symbols-outlined">chevron_left</span></HomeButton>
             <span className="text-sm font-bold tracking-widest">1 / 4</span>
-            <button type="button" className="w-10 h-10 rounded-full border border-white/30 flex items-center justify-center hover:bg-white/10"><span className="material-symbols-outlined">chevron_right</span></button>
+            <HomeButton type="button" className="w-10 h-10 rounded-full border-white/30 !bg-transparent !p-0 !text-white hover:!bg-white/10" variant="ghost"><span className="material-symbols-outlined">chevron_right</span></HomeButton>
           </div>
         </div>
       </div>
@@ -275,17 +276,17 @@ export function SearchSection({ content, homeMenu }: SearchSectionProps) {
       <div className="max-w-4xl mx-auto px-4 text-center">
         <h3 className="text-2xl font-bold mb-8 text-[var(--kr-gov-text-primary)]">{content.searchTitle}</h3>
         <div className="relative group max-w-3xl mx-auto">
-          <input className="w-full h-16 pl-8 pr-20 text-lg border-2 border-[var(--kr-gov-blue)] rounded-[var(--kr-gov-radius)] focus:ring-4 focus:ring-[var(--kr-gov-blue)]/10 focus:border-[var(--kr-gov-blue)] transition-all focus-visible shadow-sm placeholder-gray-500" placeholder={content.searchPlaceholder} type="text" aria-label={content.searchAria} autoComplete="off" value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { executeSearch(); } }} />
-          <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 bg-[var(--kr-gov-blue)] text-white rounded-[var(--kr-gov-radius)] flex items-center justify-center hover:bg-[var(--kr-gov-blue-hover)] focus-visible" onClick={() => executeSearch()}>
+          <HomeInput className="h-16 border-2 border-[var(--kr-gov-blue)] pl-8 pr-20 text-lg shadow-sm placeholder-gray-500 focus:border-[var(--kr-gov-blue)] focus:ring-4 focus:ring-[var(--kr-gov-blue)]/10" placeholder={content.searchPlaceholder} type="text" aria-label={content.searchAria} autoComplete="off" value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { executeSearch(); } }} />
+          <HomeButton type="button" className="absolute right-2 top-1/2 h-12 w-12 -translate-y-1/2 !p-0" onClick={() => executeSearch()} variant="primary">
             <span className="material-symbols-outlined text-[28px]">search</span>
-          </button>
+          </HomeButton>
           {suggestions.length > 0 ? (
             <div className="absolute left-0 right-0 mt-3 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white text-left shadow-xl overflow-hidden">
               {suggestions.map((candidate) => (
-                <button key={`${candidate.label}-${candidate.href}`} type="button" className="flex w-full items-center justify-between gap-3 px-5 py-4 text-sm hover:bg-slate-50 focus-visible" onClick={() => navigate(candidate.href)}>
+                <HomeButton key={`${candidate.label}-${candidate.href}`} type="button" className="flex w-full items-center justify-between gap-3 !border-0 !bg-transparent px-5 py-4 text-sm hover:!bg-slate-50" onClick={() => navigate(candidate.href)} variant="ghost">
                   <span className="font-bold text-[var(--kr-gov-text-primary)]">{candidate.label}</span>
                   <span className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-blue)]">{candidate.tone}</span>
-                </button>
+                </HomeButton>
               ))}
             </div>
           ) : null}
@@ -293,7 +294,7 @@ export function SearchSection({ content, homeMenu }: SearchSectionProps) {
         <div className="mt-6 flex flex-wrap justify-center items-center gap-3 text-sm">
           <span className="font-bold text-[var(--kr-gov-text-secondary)]">{content.popularSearches}</span>
           {content.popularTags.map((tag) => (
-            <button type="button" className="px-3 py-1 bg-white border border-[var(--kr-gov-border-light)] rounded-full hover:border-[var(--kr-gov-blue)] hover:text-[var(--kr-gov-blue)] transition-colors" key={tag.label} onClick={() => { setQuery(tag.query || tag.label); executeSearch(tag.query || tag.label, tag); }}>{tag.label}</button>
+            <HomeButton type="button" className="rounded-full px-3 py-1 text-[13px]" key={tag.label} onClick={() => { setQuery(tag.query || tag.label); executeSearch(tag.query || tag.label, tag); }} variant="secondary">{tag.label}</HomeButton>
           ))}
         </div>
       </div>

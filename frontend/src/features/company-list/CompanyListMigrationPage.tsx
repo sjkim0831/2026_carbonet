@@ -4,7 +4,7 @@ import { CanView } from "../../components/access/CanView";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import { CompanyListPagePayload, fetchCompanyListPage } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
-import { MemberButton, MemberLinkButton, MemberPagination } from "../member/common";
+import { AdminInput, AdminSelect, AdminTable, MemberButton, MemberLinkButton, MemberPagination } from "../member/common";
 import { MEMBER_BUTTON_LABELS, MEMBER_LIST_LABELS } from "../member/labels";
 import { resolveMemberStatusBadgeClass, resolveMemberStatusLabel } from "../member/status";
 import { MemberListEmptyRow, MemberListToolbar } from "../member/toolbar";
@@ -89,8 +89,6 @@ export function CompanyListMigrationPage() {
     applyFilters(1);
   }
 
-  const fieldClassName = "w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white text-sm focus:ring-[var(--kr-gov-focus)] focus:border-[var(--kr-gov-focus)]";
-
   return (
     <AdminPageShell
       breadcrumbs={[
@@ -108,14 +106,14 @@ export function CompanyListMigrationPage() {
           <form className="grid grid-cols-1 md:grid-cols-3 gap-6" onSubmit={handleSearchSubmit}>
             <label>
               <span className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">상태</span>
-              <select className={fieldClassName} value={draftFilters.status} onChange={(e) => updateDraft("status", e.target.value)}>
+              <AdminSelect value={draftFilters.status} onChange={(e) => updateDraft("status", e.target.value)}>
                 {STATUS_OPTIONS.map((option) => <option key={option.value || "all"} value={option.value}>{option.label}</option>)}
-              </select>
+              </AdminSelect>
             </label>
             <label className="md:col-span-2">
               <span className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">검색어</span>
               <div className="flex gap-2">
-                <input className={`flex-1 ${fieldClassName}`} placeholder="기관명, 사업자등록번호 검색" value={draftFilters.searchKeyword} onChange={(e) => updateDraft("searchKeyword", e.target.value)} />
+                <AdminInput className="flex-1" placeholder="기관명, 사업자등록번호 검색" value={draftFilters.searchKeyword} onChange={(e) => updateDraft("searchKeyword", e.target.value)} />
                 <MemberButton icon="search" type="submit" variant="primary">
                   {MEMBER_BUTTON_LABELS.search}
                 </MemberButton>
@@ -133,7 +131,7 @@ export function CompanyListMigrationPage() {
 
         <section className="gov-card p-0 overflow-hidden" data-help-id="company-list-table">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left border-collapse">
+            <AdminTable>
               <thead>
                 <tr className="bg-gray-50 border-y border-[var(--kr-gov-border-light)] text-[14px] font-bold text-[var(--kr-gov-text-secondary)]">
                   <th className="px-6 py-4 text-center w-16">번호</th>
@@ -171,7 +169,7 @@ export function CompanyListMigrationPage() {
                   );
                 })}
               </tbody>
-            </table>
+            </AdminTable>
           </div>
           <MemberPagination currentPage={currentPage} dataHelpId="company-list-pagination" onPageChange={movePage} totalPages={totalPages} />
         </section>

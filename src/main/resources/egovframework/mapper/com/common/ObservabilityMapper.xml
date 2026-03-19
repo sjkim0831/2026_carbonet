@@ -305,6 +305,36 @@
         )
     </insert>
 
+    <select id="selectUiComponentRegistry" parameterType="string" resultType="egovframework.com.common.trace.UiComponentRegistryVO">
+        SELECT
+            COMPONENT_ID AS componentId,
+            COMPONENT_NAME AS componentName,
+            COMPONENT_TYPE AS componentType,
+            OWNER_DOMAIN AS ownerDomain,
+            PROPS_SCHEMA_JSON AS propsSchemaJson,
+            DESIGN_REFERENCE AS designReference,
+            ACTIVE_YN AS activeYn,
+            TO_CHAR(CREATED_AT, 'YYYYMMDDHH24MISS') AS createdAt,
+            TO_CHAR(UPDATED_AT, 'YYYYMMDDHH24MISS') AS updatedAt
+        FROM UI_COMPONENT_REGISTRY
+        WHERE COMPONENT_ID = #{value}
+    </select>
+
+    <select id="selectUiComponentRegistryList" resultType="egovframework.com.common.trace.UiComponentRegistryVO">
+        SELECT
+            COMPONENT_ID AS componentId,
+            COMPONENT_NAME AS componentName,
+            COMPONENT_TYPE AS componentType,
+            OWNER_DOMAIN AS ownerDomain,
+            PROPS_SCHEMA_JSON AS propsSchemaJson,
+            DESIGN_REFERENCE AS designReference,
+            ACTIVE_YN AS activeYn,
+            TO_CHAR(CREATED_AT, 'YYYYMMDDHH24MISS') AS createdAt,
+            TO_CHAR(UPDATED_AT, 'YYYYMMDDHH24MISS') AS updatedAt
+        FROM UI_COMPONENT_REGISTRY
+        ORDER BY COMPONENT_TYPE ASC, COMPONENT_ID ASC
+    </select>
+
     <update id="updateUiComponentRegistry" parameterType="egovframework.com.common.trace.UiComponentRegistryVO">
         UPDATE UI_COMPONENT_REGISTRY
         SET
@@ -318,10 +348,23 @@
         WHERE COMPONENT_ID = #{componentId}
     </update>
 
+    <delete id="deleteUiComponentRegistry" parameterType="string">
+        DELETE FROM UI_COMPONENT_REGISTRY
+        WHERE COMPONENT_ID = #{value}
+    </delete>
+
     <delete id="deleteUiPageComponentMaps" parameterType="string">
         DELETE FROM UI_PAGE_COMPONENT_MAP
         WHERE PAGE_ID = #{value}
     </delete>
+
+    <update id="updateUiPageComponentMapComponentId" parameterType="map">
+        UPDATE UI_PAGE_COMPONENT_MAP
+        SET
+            COMPONENT_ID = #{toComponentId},
+            UPDATED_AT = CURRENT_DATETIME
+        WHERE COMPONENT_ID = #{fromComponentId}
+    </update>
 
     <insert id="insertUiPageComponentMap" parameterType="egovframework.com.common.trace.UiPageComponentMapVO">
         INSERT INTO UI_PAGE_COMPONENT_MAP (
@@ -366,6 +409,24 @@
           ON MAP.COMPONENT_ID = REG.COMPONENT_ID
         WHERE MAP.PAGE_ID = #{value}
         ORDER BY MAP.DISPLAY_ORDER ASC, MAP.INSTANCE_KEY ASC
+    </select>
+
+    <select id="selectUiComponentUsageList" parameterType="string" resultType="egovframework.com.common.trace.UiComponentUsageVO">
+        SELECT
+            MAN.PAGE_ID AS pageId,
+            MAN.PAGE_NAME AS pageName,
+            MAN.ROUTE_PATH AS routePath,
+            MAN.MENU_CODE AS menuCode,
+            MAP.LAYOUT_ZONE AS layoutZone,
+            MAP.COMPONENT_ID AS componentId,
+            MAP.INSTANCE_KEY AS instanceKey,
+            MAP.DISPLAY_ORDER AS displayOrder,
+            MAP.CONDITIONAL_RULE_SUMMARY AS conditionalRuleSummary
+        FROM UI_PAGE_COMPONENT_MAP MAP
+        INNER JOIN UI_PAGE_MANIFEST MAN
+          ON MAP.PAGE_ID = MAN.PAGE_ID
+        WHERE MAP.COMPONENT_ID = #{value}
+        ORDER BY MAN.PAGE_ID ASC, MAP.DISPLAY_ORDER ASC, MAP.INSTANCE_KEY ASC
     </select>
 
 </mapper>

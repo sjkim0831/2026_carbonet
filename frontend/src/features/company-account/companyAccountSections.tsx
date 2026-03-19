@@ -1,5 +1,6 @@
 import type { ChangeEvent } from "react";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
+import { AdminInput, AdminRadio } from "../admin-ui/common";
 import { MemberButton, MemberIconButton, MemberLinkButton, MEMBER_BUTTON_LABELS } from "../member/common";
 import { MemberSectionCard } from "../member/sections";
 
@@ -68,7 +69,7 @@ export function CompanyMembershipSection({
             <label className={`border rounded-[var(--kr-gov-radius)] bg-white p-5 transition-all cursor-pointer ${selected ? "border-[var(--kr-gov-blue)] bg-blue-50 shadow-sm" : "border-[var(--kr-gov-border-light)]"}`} key={option.value}>
               <div className="mb-2 flex items-start justify-between">
                 <span className={`material-symbols-outlined ${selected ? "text-[var(--kr-gov-blue)]" : ""}`}>{option.icon}</span>
-                <input checked={selected} className="w-4 h-4 text-[var(--kr-gov-blue)]" disabled={!canUse} name="membershipType" onChange={() => updateField("membershipType", option.value)} type="radio" />
+                <AdminRadio checked={selected} className="w-4 h-4" disabled={!canUse} name="membershipType" onChange={() => updateField("membershipType", option.value)} />
               </div>
               <span className="block font-bold text-[15px] mb-1">{option.title}</span>
               <p className="text-[12px] text-gray-500 leading-snug">{option.description}</p>
@@ -103,7 +104,7 @@ export function CompanyBusinessSection({
         <div className="md:col-span-2">
           <label className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2">기관/기업명 <span className="text-red-500">*</span></label>
           <div className="flex gap-2">
-            <input className="w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseSave} value={form.agencyName} onChange={(e) => updateField("agencyName", e.target.value)} />
+            <AdminInput disabled={!canUseSave} value={form.agencyName} onChange={(e) => updateField("agencyName", e.target.value)} />
             <MemberButton disabled={!canUseSave} onClick={() => void handleCheckDuplicate()} type="button" variant="info">
               {MEMBER_BUTTON_LABELS.duplicateCheck}
             </MemberButton>
@@ -114,22 +115,22 @@ export function CompanyBusinessSection({
         </div>
         <label>
           <span className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2">대표자명 <span className="text-red-500">*</span></span>
-          <input className="w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseSave} value={form.representativeName} onChange={(e) => updateField("representativeName", e.target.value)} />
+          <AdminInput disabled={!canUseSave} value={form.representativeName} onChange={(e) => updateField("representativeName", e.target.value)} />
         </label>
         <label>
           <span className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2">사업자등록번호 <span className="text-red-500">*</span></span>
-          <input className="w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseSave} inputMode="numeric" value={form.bizRegistrationNumber} onChange={(e) => updateField("bizRegistrationNumber", e.target.value)} />
+          <AdminInput disabled={!canUseSave} inputMode="numeric" value={form.bizRegistrationNumber} onChange={(e) => updateField("bizRegistrationNumber", e.target.value)} />
         </label>
         <div className="md:col-span-2">
           <label className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2">사업장 주소 <span className="text-red-500">*</span></label>
           <div className="mb-2 flex gap-2">
-            <input className="h-12 w-32 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-gray-50" placeholder="우편번호" readOnly value={form.zipCode} />
+            <AdminInput className="w-32 bg-gray-50" placeholder="우편번호" readOnly value={form.zipCode} />
             <MemberButton disabled={!canUseSave} onClick={handleAddressSearch} type="button" variant="info">
               {MEMBER_BUTTON_LABELS.addressSearch}
             </MemberButton>
           </div>
-          <input className="w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] mb-2 bg-gray-50" onClick={handleAddressSearch} readOnly value={form.companyAddress} />
-          <input className="w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseSave} value={form.companyAddressDetail} onChange={(e) => updateField("companyAddressDetail", e.target.value)} />
+          <AdminInput className="mb-2 bg-gray-50" onClick={handleAddressSearch} readOnly value={form.companyAddress} />
+          <AdminInput disabled={!canUseSave} value={form.companyAddressDetail} onChange={(e) => updateField("companyAddressDetail", e.target.value)} />
         </div>
       </div>
     </MemberSectionCard>
@@ -150,15 +151,15 @@ export function CompanyContactSection({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
         <label>
           <span className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2">담당자 성명 <span className="text-red-500">*</span></span>
-          <input className="w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseSave} value={form.chargerName} onChange={(e) => updateField("chargerName", e.target.value)} />
+          <AdminInput disabled={!canUseSave} value={form.chargerName} onChange={(e) => updateField("chargerName", e.target.value)} />
         </label>
         <label>
           <span className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2">이메일 주소 <span className="text-red-500">*</span></span>
-          <input className="w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseSave} type="text" value={form.chargerEmail} onChange={(e) => updateField("chargerEmail", e.target.value)} />
+          <AdminInput disabled={!canUseSave} type="text" value={form.chargerEmail} onChange={(e) => updateField("chargerEmail", e.target.value)} />
         </label>
         <label className="md:col-span-2">
           <span className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2">연락처 <span className="text-red-500">*</span></span>
-          <input className="w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseSave} type="text" value={form.chargerTel} onChange={(e) => updateField("chargerTel", e.target.value)} />
+          <AdminInput disabled={!canUseSave} type="text" value={form.chargerTel} onChange={(e) => updateField("chargerTel", e.target.value)} />
         </label>
       </div>
     </MemberSectionCard>

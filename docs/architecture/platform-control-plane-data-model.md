@@ -132,6 +132,21 @@ Key fields:
 - `requiredYn`
 - `deleteOrder`
 - `sharedBlockReason`
+- `dependencyScope`
+- `chainType`
+
+Recommended `chainType` values:
+
+- `OWNERSHIP`
+- `EXECUTION`
+- `DELETE`
+
+Recommended `dependencyScope` values:
+
+- `PACKAGE_INTERNAL`
+- `PROJECT_SHARED`
+- `COMMON_PLATFORM`
+- `EXTERNAL`
 
 ### `PROJECT_DB_MIGRATION_STATUS`
 
@@ -183,11 +198,33 @@ Recommended supporting tables:
 - `DRIFT_SCAN_RESULT`
   stores drift between registry and actual project DB or code state
 
+## Complexity Control Notes
+
+Do not try to make one table answer every governance question without classification.
+
+The control plane stays manageable when it separates:
+
+- package identity from resource identity
+- ownership from runtime usage
+- dependency semantics from UI presentation
+- authoritative records from derived summaries
+
+Recommended derived or materialized views:
+
+- package dependency summary
+- delete blocker summary
+- shared common-module usage summary
+- unverified resource summary
+- orphan and drift trend summary
+
+These should be generated from authoritative tables instead of becoming a second source of truth.
+
 ## Relationship Summary
 
 - one `PROJECT_REGISTRY` row owns many `INSTALL_UNIT` rows
 - one `INSTALL_UNIT` row owns many `RESOURCE_REGISTRY` rows
 - one `INSTALL_UNIT` row may reference many `COMMON_MODULE_REGISTRY` rows
+- one `RESOURCE_REGISTRY` row may participate in many `RESOURCE_DEPENDENCY` rows across different `chainType` values
 - one `PROJECT_REGISTRY` row owns many `PROJECT_DB_MIGRATION_STATUS` rows by environment
 - one `RELEASE_UNIT` row points to one approved combination of platform, app, and DB versions
 

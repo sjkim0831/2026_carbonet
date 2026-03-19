@@ -253,6 +253,95 @@ public class AdminScreenBuilderController {
         }
     }
 
+    @GetMapping("/api/admin/screen-builder/component-registry/usage")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getScreenBuilderComponentRegistryUsage(
+            @RequestParam(value = "componentId", required = false) String componentId,
+            HttpServletRequest request,
+            Locale locale) throws Exception {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("componentId", safe(componentId));
+        response.put("items", screenBuilderDraftService.getComponentRegistryUsage(componentId, isEnglishRequest(request, locale)));
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/api/admin/screen-builder/component-registry/delete")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> deleteScreenBuilderComponentRegistry(
+            @RequestBody Map<String, String> request,
+            HttpServletRequest httpServletRequest,
+            Locale locale) {
+        try {
+            String componentId = safe(request == null ? null : request.get("componentId"));
+            Map<String, Object> response = screenBuilderDraftService.deleteComponentRegistryItem(componentId, isEnglishRequest(httpServletRequest, locale));
+            auditTrailService.record(
+                    resolveActorId(httpServletRequest),
+                    resolveActorRole(httpServletRequest),
+                    "",
+                    "screen-builder",
+                    "SCREEN_BUILDER_COMPONENT_DELETE",
+                    "SCREEN_BUILDER_COMPONENT",
+                    componentId,
+                    "SUCCESS",
+                    "Screen builder component deleted",
+                    "",
+                    safeJson(response),
+                    resolveRequestIp(httpServletRequest),
+                    httpServletRequest == null ? "" : safe(httpServletRequest.getHeader("User-Agent"))
+            );
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            Map<String, Object> error = new LinkedHashMap<>();
+            error.put("success", false);
+            error.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (Exception e) {
+            Map<String, Object> error = new LinkedHashMap<>();
+            error.put("success", false);
+            error.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+
+    @PostMapping("/api/admin/screen-builder/component-registry/remap")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> remapScreenBuilderComponentRegistryUsage(
+            @RequestBody Map<String, String> request,
+            HttpServletRequest httpServletRequest,
+            Locale locale) {
+        try {
+            String fromComponentId = safe(request == null ? null : request.get("fromComponentId"));
+            String toComponentId = safe(request == null ? null : request.get("toComponentId"));
+            Map<String, Object> response = screenBuilderDraftService.replaceComponentRegistryUsage(fromComponentId, toComponentId, isEnglishRequest(httpServletRequest, locale));
+            auditTrailService.record(
+                    resolveActorId(httpServletRequest),
+                    resolveActorRole(httpServletRequest),
+                    "",
+                    "screen-builder",
+                    "SCREEN_BUILDER_COMPONENT_REMAP",
+                    "SCREEN_BUILDER_COMPONENT",
+                    fromComponentId,
+                    "SUCCESS",
+                    "Screen builder component usages remapped",
+                    "",
+                    safeJson(response),
+                    resolveRequestIp(httpServletRequest),
+                    httpServletRequest == null ? "" : safe(httpServletRequest.getHeader("User-Agent"))
+            );
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            Map<String, Object> error = new LinkedHashMap<>();
+            error.put("success", false);
+            error.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (Exception e) {
+            Map<String, Object> error = new LinkedHashMap<>();
+            error.put("success", false);
+            error.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+
     @PostMapping("/api/admin/screen-builder/component-registry/auto-replace")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> autoReplaceDeprecatedScreenBuilderComponents(

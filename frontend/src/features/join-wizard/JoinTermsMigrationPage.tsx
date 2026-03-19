@@ -2,6 +2,7 @@ import { useState } from "react";
 import { resetJoinSession, saveJoinStep2 } from "../../lib/api/client";
 import { useJoinSession } from "../../app/hooks/useJoinSession";
 import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
+import { AppButton, AppCheckbox } from "../app-ui/primitives";
 
 const TERMS_KO = {
   title: "회원가입",
@@ -137,8 +138,8 @@ export function JoinTermsMigrationPage() {
             </div>
             <div className="flex items-center gap-4">
               <div className="flex border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] overflow-hidden">
-                <button className={`px-3 py-1 text-xs font-bold ${en ? "bg-white text-[var(--kr-gov-text-secondary)] hover:bg-gray-100" : "bg-[var(--kr-gov-blue)] text-white"}`} id="langKoBtn" onClick={() => void handleLanguageChange(false)} type="button">KO</button>
-                <button className={`px-3 py-1 text-xs font-bold border-l border-[var(--kr-gov-border-light)] ${en ? "bg-[var(--kr-gov-blue)] text-white" : "bg-white text-[var(--kr-gov-text-secondary)] hover:bg-gray-100"}`} id="langEnBtn" onClick={() => void handleLanguageChange(true)} type="button">EN</button>
+                <AppButton className={en ? "rounded-none border-0 bg-white text-[var(--kr-gov-text-secondary)] hover:bg-gray-100" : "rounded-none border-0 bg-[var(--kr-gov-blue)] text-white"} id="langKoBtn" onClick={() => void handleLanguageChange(false)} size="xs" type="button" variant="ghost">KO</AppButton>
+                <AppButton className={`rounded-none border-l border-[var(--kr-gov-border-light)] ${en ? "border-0 bg-[var(--kr-gov-blue)] text-white" : "bg-white text-[var(--kr-gov-text-secondary)] hover:bg-gray-100"}`} id="langEnBtn" onClick={() => void handleLanguageChange(true)} size="xs" type="button" variant="ghost">EN</AppButton>
               </div>
             </div>
           </div>
@@ -178,15 +179,14 @@ export function JoinTermsMigrationPage() {
             </h3>
             <div className="mb-10 bg-blue-50 border border-blue-100 p-5 rounded-[var(--kr-gov-radius)]" data-help-id="join-step2-all-agree">
               <label className="flex items-center cursor-pointer">
-                <input
+                <AppCheckbox
                   checked={allChecked}
-                  className="w-6 h-6 rounded border-[var(--kr-gov-border-light)] text-[var(--kr-gov-blue)] focus:ring-[var(--kr-gov-focus)]"
+                  className="h-6 w-6"
                   id="all-check"
                   onChange={(event) => {
                     setAgreeTerms(event.target.checked);
                     setAgreePrivacy(event.target.checked);
                   }}
-                  type="checkbox"
                 />
                 <span className="ml-3 text-lg font-bold text-[var(--kr-gov-blue)]">{copy.allAgree}</span>
               </label>
@@ -206,7 +206,7 @@ export function JoinTermsMigrationPage() {
                 <div aria-label={copy.termsTitle} className="terms-scroll whitespace-pre-line" role="region" tabIndex={0}>{copy.termsBody}</div>
                 <div className="flex justify-end">
                   <label className="flex items-center cursor-pointer">
-                    <input checked={agreeTerms} className="term-check w-5 h-5 rounded border-[var(--kr-gov-border-light)] text-[var(--kr-gov-blue)] focus:ring-[var(--kr-gov-focus)]" id="agree-terms" name="agreeTerms" onChange={(event) => setAgreeTerms(event.target.checked)} required type="checkbox" />
+                    <AppCheckbox checked={agreeTerms} className="term-check" id="agree-terms" name="agreeTerms" onChange={(event) => setAgreeTerms(event.target.checked)} required />
                     <span className="ml-2 text-[15px] font-medium text-[var(--kr-gov-text-secondary)]">{copy.termsAgree}</span>
                   </label>
                 </div>
@@ -222,7 +222,7 @@ export function JoinTermsMigrationPage() {
                 <div aria-label={copy.privacyTitle} className="terms-scroll whitespace-pre-line" role="region" tabIndex={0}>{copy.privacyBody}</div>
                 <div className="flex justify-end">
                   <label className="flex items-center cursor-pointer">
-                    <input checked={agreePrivacy} className="term-check w-5 h-5 rounded border-[var(--kr-gov-border-light)] text-[var(--kr-gov-blue)] focus:ring-[var(--kr-gov-focus)]" id="agree-privacy" name="agreePrivacy" onChange={(event) => setAgreePrivacy(event.target.checked)} required type="checkbox" />
+                    <AppCheckbox checked={agreePrivacy} className="term-check" id="agree-privacy" name="agreePrivacy" onChange={(event) => setAgreePrivacy(event.target.checked)} required />
                     <span className="ml-2 text-[15px] font-medium text-[var(--kr-gov-text-secondary)]">{copy.privacyAgree}</span>
                   </label>
                 </div>
@@ -238,19 +238,19 @@ export function JoinTermsMigrationPage() {
                 <div className="p-5 bg-gray-50 border border-[var(--kr-gov-border-light)] text-sm text-[var(--kr-gov-text-secondary)]">{copy.marketingBody}</div>
                 <div className="flex justify-end">
                   <label className="flex items-center cursor-pointer">
-                    <input checked={marketingAgree} className="w-5 h-5 rounded border-[var(--kr-gov-border-light)] text-[var(--kr-gov-blue)] focus:ring-[var(--kr-gov-focus)]" id="marketing_agree" onChange={(event) => void handleMarketingChange(event.target.checked)} type="checkbox" />
+                    <AppCheckbox checked={marketingAgree} id="marketing_agree" onChange={(event) => void handleMarketingChange(event.target.checked)} />
                     <span className="ml-2 text-[15px] font-medium text-[var(--kr-gov-text-secondary)]">{copy.marketingAgree}</span>
                   </label>
                 </div>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <button className="flex-1 h-14 bg-white border border-[var(--kr-gov-border-light)] text-[var(--kr-gov-text-primary)] text-lg font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-50 transition-colors focus-visible" onClick={() => navigate(buildLocalizedPath("/join/step1", "/join/en/step1"))} type="button">
+                <AppButton className="flex-1 text-lg" onClick={() => navigate(buildLocalizedPath("/join/step1", "/join/en/step1"))} size="lg" type="button">
                   {copy.back}
-                </button>
-                <button className="flex-[2] h-14 bg-[var(--kr-gov-blue)] text-white text-lg font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)] transition-colors focus-visible" disabled={submitting || !session?.canViewStep2} type="submit">
+                </AppButton>
+                <AppButton className="flex-[2] text-lg" disabled={submitting || !session?.canViewStep2} size="lg" type="submit" variant="primary">
                   {submitting ? "..." : copy.next}
-                </button>
+                </AppButton>
               </div>
             </form>
           </div>

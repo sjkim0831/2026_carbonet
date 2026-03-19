@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { fetchJoinCompanyStatusDetail } from "../../lib/api/client";
 import { buildLocalizedPath, getSearchParam, isEnglish, navigate } from "../../lib/navigation/runtime";
+import { HomeButton, HomeCheckbox, HomeInput, HomeLinkButton } from "../home-ui/common";
 
 function getInitialQuery() {
   const params = new URLSearchParams(window.location.search);
@@ -389,14 +390,15 @@ export function JoinCompanyStatusMigrationPage() {
                         <span className="text-sm font-medium text-[var(--kr-gov-text-primary)]">{fileName}</span>
                       </div>
                       {fileId ? (
-                        <button
-                          className="flex items-center gap-1 text-[var(--kr-gov-blue)] font-bold text-xs hover:underline"
+                        <HomeButton
+                          className="!min-h-0 !border-0 !bg-transparent !p-0 text-[var(--kr-gov-blue)] font-bold text-xs hover:underline hover:!bg-transparent"
                           onClick={() => navigate(`/join/downloadInsttFile?fileId=${encodeURIComponent(fileId)}`)}
                           type="button"
+                          variant="ghost"
                         >
                           <span className="material-symbols-outlined text-[18px]">download</span>
                           {copy.download}
-                        </button>
+                        </HomeButton>
                       ) : null}
                     </li>
                   );
@@ -409,32 +411,35 @@ export function JoinCompanyStatusMigrationPage() {
         ) : null}
 
         <div className="flex items-center justify-center gap-4" data-help-id="join-company-status-detail-actions">
-          <button
+          <HomeButton
             className="px-8 h-14 border border-[var(--kr-gov-border-light)] text-[var(--kr-gov-text-primary)] font-bold rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
             onClick={() => window.history.back()}
             type="button"
+            variant="secondary"
           >
             <span className="material-symbols-outlined">arrow_back</span>
             {copy.back}
-          </button>
+          </HomeButton>
           {status === "R" ? (
-            <button
+            <HomeButton
               className="px-10 h-14 bg-[var(--kr-gov-blue)] text-white font-bold rounded-lg hover:bg-[var(--kr-gov-blue-hover)] transition-colors flex items-center gap-2 shadow-lg shadow-blue-100"
               onClick={() => navigate(`${buildLocalizedPath("/join/companyReapply", "/join/en/companyReapply")}?bizNo=${encodeURIComponent(toStringValue(result.bizrno, ""))}&repName=${encodeURIComponent(toStringValue(result.reprsntNm, ""))}`)}
               type="button"
+              variant="primary"
             >
               <span className="material-symbols-outlined">edit_note</span>
               {copy.reapply}
-            </button>
+            </HomeButton>
           ) : (
-            <button
+            <HomeButton
               className="px-8 h-14 bg-[var(--kr-gov-blue)] text-white font-bold rounded-lg hover:bg-[var(--kr-gov-blue-hover)] transition-colors flex items-center gap-2"
               onClick={goHome}
               type="button"
+              variant="primary"
             >
               <span className="material-symbols-outlined">home</span>
               {copy.home}
-            </button>
+            </HomeButton>
           )}
         </div>
       </main>
@@ -545,13 +550,14 @@ export function JoinCompanyStatusMigrationPage() {
         </div>
 
         <div className="flex justify-center">
-          <button
+          <HomeButton
             className="px-8 py-3 bg-gray-800 text-white font-bold rounded-lg hover:bg-gray-700 transition-colors"
             onClick={() => window.close()}
             type="button"
+            variant="secondary"
           >
             {en ? "Close Window" : "창 닫기"}
-          </button>
+          </HomeButton>
         </div>
       </main>
     );
@@ -602,7 +608,7 @@ export function JoinCompanyStatusMigrationPage() {
                         {copy.bizNo} <span className="text-red-500">*</span>
                       </label>
                       <div className="flex gap-2">
-                        <input
+                        <HomeInput
                           autoComplete="off"
                           className="flex-1 h-14 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] focus:ring-2 focus:ring-[var(--kr-gov-focus)] focus:border-transparent"
                           id="biz-no"
@@ -622,7 +628,7 @@ export function JoinCompanyStatusMigrationPage() {
                         {copy.appNo} <span className="text-red-500">*</span>
                       </label>
                       <div className="flex gap-2">
-                        <input
+                        <HomeInput
                           autoComplete="off"
                           className="flex-1 h-14 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] focus:ring-2 focus:ring-[var(--kr-gov-focus)] focus:border-transparent"
                           id="app-no"
@@ -638,7 +644,7 @@ export function JoinCompanyStatusMigrationPage() {
                     <label className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="rep-name">
                       {copy.repName} <span className="text-red-500">*</span>
                     </label>
-                    <input
+                    <HomeInput
                       autoComplete="name"
                       className="w-full h-14 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] focus:ring-2 focus:ring-[var(--kr-gov-focus)] focus:border-transparent"
                       id="rep-name"
@@ -657,34 +663,36 @@ export function JoinCompanyStatusMigrationPage() {
                     <div className="flex-1">
                       <h4 className="font-bold text-sm mb-1">{copy.verifyTitle}</h4>
                       <p className="text-xs text-[var(--kr-gov-text-secondary)] mb-4">{copy.verifyDesc}</p>
-                      <button
+                      <HomeButton
                         className="flex items-center gap-2 px-4 py-3 bg-white border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] hover:bg-gray-50 transition-colors w-full justify-center font-bold text-sm"
                         onClick={() => window.alert(copy.verifyAlert)}
                         type="button"
+                        variant="secondary"
                       >
                         <span className="material-symbols-outlined text-[18px]">smartphone</span>
                         {copy.verifyButton}
-                      </button>
+                      </HomeButton>
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <label className="inline-flex items-start cursor-pointer group">
-                    <input
+                    <HomeCheckbox
                       checked={agreed}
                       className="mt-1 w-5 h-5 rounded border-[var(--kr-gov-border-light)] text-[var(--kr-gov-blue)] focus:ring-[var(--kr-gov-focus)]"
                       onChange={(event) => setAgreed(event.target.checked)}
-                      type="checkbox"
                     />
                     <span className="ml-3 text-sm text-[var(--kr-gov-text-secondary)] leading-relaxed">{copy.agree}</span>
                   </label>
                 </div>
-                <button
+                <HomeButton
                   className="w-full h-16 bg-[var(--kr-gov-blue)] text-white text-xl font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)] transition-colors shadow-lg"
                   type="submit"
+                  size="lg"
+                  variant="primary"
                 >
                   {copy.search}
-                </button>
+                </HomeButton>
               </form>
             </div>
           </div>
@@ -695,7 +703,7 @@ export function JoinCompanyStatusMigrationPage() {
 
   return (
     <div className="bg-[var(--kr-gov-bg-gray)] text-[var(--kr-gov-text-primary)] min-h-screen flex flex-col">
-      <a className="skip-link" href="#main-content">{copy.skip}</a>
+      <HomeLinkButton className="skip-link !min-h-0 !border-0 !bg-[var(--kr-gov-blue)] !p-3 !text-white hover:!bg-[var(--kr-gov-blue)]" href="#main-content" variant="ghost">{copy.skip}</HomeLinkButton>
 
       <div className="bg-white border-b border-[var(--kr-gov-border-light)]">
         <div className="max-w-7xl mx-auto px-4 lg:px-8 py-2 flex items-center justify-between">
@@ -710,18 +718,18 @@ export function JoinCompanyStatusMigrationPage() {
         <div className="max-w-7xl mx-auto px-4 lg:px-8">
           <div className="flex justify-between items-center h-20">
             <div className="flex items-center gap-3 shrink-0">
-              <a className="flex items-center gap-2 focus-visible" href="#" onClick={(event) => { event.preventDefault(); goHome(); }}>
+              <HomeButton className="!min-h-0 !border-0 !bg-transparent !p-0 !text-inherit hover:!bg-transparent flex items-center gap-2 focus-visible" onClick={goHome} type="button" variant="ghost">
                 <span className="material-symbols-outlined text-[32px] text-[var(--kr-gov-blue)]" style={{ fontVariationSettings: "'wght' 600" }}>eco</span>
                 <div className="flex flex-col">
                   <h1 className="text-lg font-bold tracking-tight text-[var(--kr-gov-text-primary)] leading-none">{copy.logoTitle}</h1>
                   <p className="text-[9px] text-[var(--kr-gov-text-secondary)] font-bold uppercase tracking-wider mt-1">{copy.logoSub}</p>
                 </div>
-              </a>
+              </HomeButton>
             </div>
             <div className="flex items-center gap-4">
               <div className="flex border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] overflow-hidden">
-                <button className={`px-3 py-1 text-xs font-bold ${en ? "bg-white text-[var(--kr-gov-text-secondary)] hover:bg-gray-100" : "bg-[var(--kr-gov-blue)] text-white"}`} onClick={goSearchPage} type="button">KO</button>
-                <button className={`px-3 py-1 text-xs font-bold border-l border-[var(--kr-gov-border-light)] ${en ? "bg-[var(--kr-gov-blue)] text-white" : "bg-white text-[var(--kr-gov-text-secondary)] hover:bg-gray-100"}`} onClick={() => navigate("/join/en/companyJoinStatusSearch")} type="button">EN</button>
+                <HomeButton className={`px-3 py-1 text-xs font-bold ${en ? "!bg-white !text-[var(--kr-gov-text-secondary)] hover:!bg-gray-100" : "!bg-[var(--kr-gov-blue)] !text-white"}`} onClick={goSearchPage} size="xs" type="button" variant="ghost">KO</HomeButton>
+                <HomeButton className={`px-3 py-1 text-xs font-bold border-l border-[var(--kr-gov-border-light)] ${en ? "!bg-[var(--kr-gov-blue)] !text-white" : "!bg-white !text-[var(--kr-gov-text-secondary)] hover:!bg-gray-100"}`} onClick={() => navigate("/join/en/companyJoinStatusSearch")} size="xs" type="button" variant="ghost">EN</HomeButton>
               </div>
             </div>
           </div>

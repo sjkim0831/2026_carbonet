@@ -20,5 +20,6 @@ public class ScreenBuilderComponentRegistryItemVO {
     private String sourceType;
     private String createdAt;
     private String updatedAt;
+    private Integer usageCount;
     private Map<String, Object> propsTemplate = new LinkedHashMap<>();
 }

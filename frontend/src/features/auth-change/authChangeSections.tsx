@@ -1,7 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { AuthChangePagePayload } from "../../lib/api/client";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
-import { DiagnosticCard, GridToolbar, MemberButton, MemberPagination, MemberPermissionButton } from "../admin-ui/common";
+import { AdminInput, AdminSelect, AdminTable, DiagnosticCard, GridToolbar, MemberButton, MemberPagination, MemberPermissionButton } from "../admin-ui/common";
 
 function t(page: AuthChangePagePayload | null, ko: string, en: string) {
   return page?.isEn ? en : ko;
@@ -150,20 +150,20 @@ export function AuthChangeTableSection({
       <div className="mb-4 grid grid-cols-1 gap-3 xl:grid-cols-[1.3fr_0.7fr_auto]">
         <label>
           <span className="mb-2 block text-[13px] font-bold text-[var(--kr-gov-text-secondary)]">{t(page, "관리자 검색", "Admin Search")}</span>
-          <input className="gov-input" placeholder={t(page, "ID, 이름, 현재 권한 검색", "Search by ID, name, or current role")} value={searchKeyword} onChange={(event) => setSearchKeyword(event.target.value)} />
+          <AdminInput placeholder={t(page, "ID, 이름, 현재 권한 검색", "Search by ID, name, or current role")} value={searchKeyword} onChange={(event) => setSearchKeyword(event.target.value)} />
         </label>
         <label>
           <span className="mb-2 block text-[13px] font-bold text-[var(--kr-gov-text-secondary)]">{t(page, "변경 상태", "Change State")}</span>
-          <select className="gov-select" value={assignmentFilter} onChange={(event) => setAssignmentFilter(event.target.value)}>
+          <AdminSelect value={assignmentFilter} onChange={(event) => setAssignmentFilter(event.target.value)}>
             <option value="ALL">{t(page, "전체", "All")}</option>
             <option value="PENDING">{t(page, "변경 대기만", "Pending only")}</option>
             <option value="UNCHANGED">{t(page, "변경 없음", "Unchanged")}</option>
-          </select>
+          </AdminSelect>
         </label>
         <div className="flex items-end" />
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[960px] text-sm">
+        <AdminTable className="min-w-[960px]">
           <thead className="bg-gray-50 border-y border-[var(--kr-gov-border-light)] text-[13px] font-bold text-[var(--kr-gov-text-secondary)]">
             <tr>
               <th className="px-4 py-3">{t(page, "관리자", "Administrator")}</th>
@@ -188,11 +188,11 @@ export function AuthChangeTableSection({
                     <div className="text-xs text-[var(--kr-gov-text-secondary)]">{row.authorCode || "-"}</div>
                   </td>
                   <td className="px-4 py-3">
-                    <select className="min-w-[16rem] rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] h-10 px-3 text-sm" disabled={!canEdit} value={draftCode} onChange={(event) => setDrafts((current) => ({ ...current, [row.emplyrId]: event.target.value }))}>
+                    <AdminSelect className="min-w-[16rem] h-10 px-3 text-sm" disabled={!canEdit} value={draftCode} onChange={(event) => setDrafts((current) => ({ ...current, [row.emplyrId]: event.target.value }))}>
                       {(page?.authorGroups || []).map((group) => (
                         <option key={group.authorCode} value={group.authorCode}>{group.authorNm} ({group.authorCode})</option>
                       ))}
-                    </select>
+                    </AdminSelect>
                   </td>
                   <td className="px-4 py-3">
                     {changed ? (
@@ -210,7 +210,7 @@ export function AuthChangeTableSection({
               );
             })}
           </tbody>
-        </table>
+        </AdminTable>
       </div>
       <MemberPagination className="px-4 py-3" currentPage={currentPage} onPageChange={setPageIndex} totalPages={totalPages} />
       </div>

@@ -10,7 +10,7 @@ import {
   resolveMembershipTypeLabel
 } from "../member/shared";
 import { resolveMemberStatusBadgeClass, resolveMemberStatusLabel } from "../member/status";
-import { MemberButton, MemberLinkButton, MemberPagination } from "../member/common";
+import { AdminInput, AdminSelect, AdminTable, MemberButton, MemberLinkButton, MemberPagination } from "../member/common";
 import { MEMBER_BUTTON_LABELS, MEMBER_LIST_LABELS } from "../member/labels";
 import { MemberListEmptyRow, MemberListToolbar } from "../member/toolbar";
 
@@ -110,8 +110,6 @@ export function MemberListMigrationPage() {
     applyFilters(1);
   }
 
-  const fieldClassName = "w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white text-sm focus:ring-[var(--kr-gov-focus)] focus:border-[var(--kr-gov-focus)]";
-
   return (
     <AdminPageShell
       breadcrumbs={[
@@ -129,24 +127,24 @@ export function MemberListMigrationPage() {
           <form className="grid grid-cols-1 md:grid-cols-4 gap-6" data-help-id="member-list-search" onSubmit={handleSearchSubmit}>
             <div>
               <span className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">회원 유형</span>
-              <select className={fieldClassName} id="member-type" value={draftFilters.membershipType} onChange={(event) => updateDraft("membershipType", event.target.value)}>
+              <AdminSelect id="member-type" value={draftFilters.membershipType} onChange={(event) => updateDraft("membershipType", event.target.value)}>
                 {MEMBER_TYPE_OPTIONS.map((option) => (
                   <option key={option.value || "all"} value={option.value}>{option.label}</option>
                 ))}
-              </select>
+              </AdminSelect>
             </div>
             <div>
               <span className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">상태</span>
-              <select className={fieldClassName} id="status" value={draftFilters.status} onChange={(event) => updateDraft("status", event.target.value)}>
+              <AdminSelect id="status" value={draftFilters.status} onChange={(event) => updateDraft("status", event.target.value)}>
                 {MEMBER_STATUS_OPTIONS.map((option) => (
                   <option key={option.value || "all"} value={option.value}>{option.label}</option>
                 ))}
-              </select>
+              </AdminSelect>
             </div>
             <div className="md:col-span-2">
               <span className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">검색어</span>
               <div className="flex gap-2">
-                <input className={`flex-1 ${fieldClassName}`} id="keyword" placeholder="신청자명, 아이디, 회사명 검색" value={draftFilters.searchKeyword} onChange={(event) => updateDraft("searchKeyword", event.target.value)} />
+                <AdminInput className="flex-1" id="keyword" placeholder="신청자명, 아이디, 회사명 검색" value={draftFilters.searchKeyword} onChange={(event) => updateDraft("searchKeyword", event.target.value)} />
                 <MemberButton icon="search" type="submit" variant="primary">
                   {MEMBER_BUTTON_LABELS.search}
                 </MemberButton>
@@ -164,7 +162,7 @@ export function MemberListMigrationPage() {
 
         <div className="gov-card p-0 overflow-hidden" data-help-id="member-table">
           <div className="overflow-x-auto" data-help-id="member-list-table">
-            <table className="w-full text-sm text-left border-collapse">
+            <AdminTable>
               <thead>
                 <tr className="bg-gray-50 border-y border-[var(--kr-gov-border-light)] text-[14px] font-bold text-[var(--kr-gov-text-secondary)]">
                   <th className="px-6 py-4 text-center w-16">번호</th>
@@ -209,7 +207,7 @@ export function MemberListMigrationPage() {
                   );
                 })}
               </tbody>
-            </table>
+            </AdminTable>
           </div>
 
           <MemberPagination currentPage={currentPage} onPageChange={movePage} totalPages={totalPages} />

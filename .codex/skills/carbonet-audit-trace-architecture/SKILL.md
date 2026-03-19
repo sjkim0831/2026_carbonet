@@ -11,18 +11,18 @@ If the request becomes a concrete menu/page/service implementation after the aud
 
 Read only what you need:
 
-- Read [`/opt/projects/carbonet-react-migration/STRUCTURE.md`](/opt/projects/carbonet-react-migration/STRUCTURE.md) first for package and template layout.
-- Read [`/opt/projects/carbonet-react-migration/docs/architecture/system-observability-audit-trace-design.md`](/opt/projects/carbonet-react-migration/docs/architecture/system-observability-audit-trace-design.md) when you need the repository-specific target architecture, rollout sequence, or the latest AI handoff state.
-- Read [`/opt/projects/carbonet-react-migration/docs/architecture/platform-common-module-versioning.md`](/opt/projects/carbonet-react-migration/docs/architecture/platform-common-module-versioning.md) when the user asks how split projects should consume shared backend code, version common modules, or avoid runtime source sharing.
-- Read [`/opt/projects/carbonet-react-migration/docs/architecture/common-module-taxonomy.md`](/opt/projects/carbonet-react-migration/docs/architecture/common-module-taxonomy.md) when the user asks what kinds of common modules should exist, how `SI_COMMON` differs from `OPS_COMMON`, or how install units should select shared common capabilities.
-- Read [`/opt/projects/carbonet-react-migration/docs/architecture/common-db-and-project-db-splitting.md`](/opt/projects/carbonet-react-migration/docs/architecture/common-db-and-project-db-splitting.md) when the user asks how project DBs should split while keeping a common governance DB for scaffolding, installs, and migration control.
-- Read [`/opt/projects/carbonet-react-migration/docs/architecture/install-unit-lifecycle-and-resource-governance.md`](/opt/projects/carbonet-react-migration/docs/architecture/install-unit-lifecycle-and-resource-governance.md) when the user asks about menu-centered install packages, delete safety, garbage classification, copy behavior, or resource ownership.
-- Read [`/opt/projects/carbonet-react-migration/docs/architecture/platform-console-information-architecture.md`](/opt/projects/carbonet-react-migration/docs/architecture/platform-console-information-architecture.md) when the user asks how the main system should act as the top-level platform console, what the super-master manages, or how project/menu/resource governance should appear in one admin surface.
-- Read [`/opt/projects/carbonet-react-migration/docs/architecture/db-migration-and-upgrade-operations.md`](/opt/projects/carbonet-react-migration/docs/architecture/db-migration-and-upgrade-operations.md) when the user asks when real upgrades happen, how DB migrations and app deployment should align, or whether a second DB server cutover is appropriate.
-- Read [`/opt/projects/carbonet-react-migration/docs/architecture/platform-control-plane-data-model.md`](/opt/projects/carbonet-react-migration/docs/architecture/platform-control-plane-data-model.md) and [`/opt/projects/carbonet-react-migration/docs/sql/platform_control_plane_schema.sql`](/opt/projects/carbonet-react-migration/docs/sql/platform_control_plane_schema.sql) when the user asks for the common-DB table design behind project registry, install units, common modules, resources, and migration status.
-- Read [`/opt/projects/carbonet-react-migration/docs/architecture/react-observability-blind-spots.md`](/opt/projects/carbonet-react-migration/docs/architecture/react-observability-blind-spots.md) before extending telemetry into browser-owned, third-party, file, or session-storage driven flows.
-- Read [`/opt/projects/carbonet-react-migration/docs/audit/non-admin-react-migration-audit.md`](/opt/projects/carbonet-react-migration/docs/audit/non-admin-react-migration-audit.md) when deciding rollout priority for migrated public flows.
-- Read [`/opt/projects/carbonet-react-migration/docs/sql/system_observability_schema.sql`](/opt/projects/carbonet-react-migration/docs/sql/system_observability_schema.sql) before changing UI registry, trace, or audit persistence.
+- Read the matching docs under `/opt/projects/carbonet/docs/...` first. Older `carbonet-react-migration` paths may appear in historic handoff notes, but the canonical docs for this repository live under `/opt/projects/carbonet/docs/`.
+- Read [`/opt/projects/carbonet/docs/architecture/system-observability-audit-trace-design.md`](/opt/projects/carbonet/docs/architecture/system-observability-audit-trace-design.md) when you need the repository-specific target architecture, rollout sequence, or the latest AI handoff state.
+- Read [`/opt/projects/carbonet/docs/architecture/platform-common-module-versioning.md`](/opt/projects/carbonet/docs/architecture/platform-common-module-versioning.md) when the user asks how split projects should consume shared backend code, version common modules, or avoid runtime source sharing.
+- Read [`/opt/projects/carbonet/docs/architecture/common-module-taxonomy.md`](/opt/projects/carbonet/docs/architecture/common-module-taxonomy.md) when the user asks what kinds of common modules should exist, how `SI_COMMON` differs from `OPS_COMMON`, or how install units should select shared common capabilities.
+- Read [`/opt/projects/carbonet/docs/architecture/common-db-and-project-db-splitting.md`](/opt/projects/carbonet/docs/architecture/common-db-and-project-db-splitting.md) when the user asks how project DBs should split while keeping a common governance DB for scaffolding, installs, and migration control.
+- Read [`/opt/projects/carbonet/docs/architecture/install-unit-lifecycle-and-resource-governance.md`](/opt/projects/carbonet/docs/architecture/install-unit-lifecycle-and-resource-governance.md) when the user asks about menu-centered install packages, delete safety, garbage classification, copy behavior, resource ownership, or chain management.
+- Read [`/opt/projects/carbonet/docs/architecture/platform-console-information-architecture.md`](/opt/projects/carbonet/docs/architecture/platform-console-information-architecture.md) when the user asks how the main system should act as the top-level platform console, what the super-master manages, or how project/menu/resource governance should appear in one admin surface.
+- Read [`/opt/projects/carbonet/docs/architecture/db-migration-and-upgrade-operations.md`](/opt/projects/carbonet/docs/architecture/db-migration-and-upgrade-operations.md) when the user asks when real upgrades happen, how DB migrations and app deployment should align, or whether a second DB server cutover is appropriate.
+- Read [`/opt/projects/carbonet/docs/architecture/platform-control-plane-data-model.md`](/opt/projects/carbonet/docs/architecture/platform-control-plane-data-model.md) and [`/opt/projects/carbonet/docs/sql/platform_control_plane_schema.sql`](/opt/projects/carbonet/docs/sql/platform_control_plane_schema.sql) when the user asks for the common-DB table design behind project registry, install units, common modules, resources, and migration status.
+- Read [`/opt/projects/carbonet/docs/architecture/react-observability-blind-spots.md`](/opt/projects/carbonet/docs/architecture/react-observability-blind-spots.md) before extending telemetry into browser-owned, third-party, file, or session-storage driven flows.
+- Read [`/opt/projects/carbonet/docs/audit/non-admin-react-migration-audit.md`](/opt/projects/carbonet/docs/audit/non-admin-react-migration-audit.md) when deciding rollout priority for migrated public flows.
+- Read [`/opt/projects/carbonet/docs/sql/system_observability_schema.sql`](/opt/projects/carbonet/docs/sql/system_observability_schema.sql) before changing UI registry, trace, or audit persistence.
 - Read [`/opt/projects/carbonet/docs/architecture/performance-algorithm-upgrade-notes.md`](/opt/projects/carbonet/docs/architecture/performance-algorithm-upgrade-notes.md) when the request is performance-sensitive or asks for algorithm/data-structure upgrades.
 - Read [`/opt/projects/carbonet/docs/ai/60-operations/performance-handoff-prompt-20260318.md`](/opt/projects/carbonet/docs/ai/60-operations/performance-handoff-prompt-20260318.md) when another AI session must continue the performance upgrade track.
 
@@ -55,28 +55,38 @@ Read only what you need:
    - page manifest and component registry
 4. If the request is really about installable modules or platform governance, add a fifth track:
    - resource registry, package lifecycle, and ownership enforcement
-5. Keep trust boundaries explicit:
+5. When the request asks for resource chains, package lifecycle, or delete safety, model the problem in three explicit graphs:
+   - ownership graph
+   - execution graph
+   - delete graph
+   Do not collapse them into one vague dependency list.
+6. Keep trust boundaries explicit:
    - frontend logs are diagnostic
    - backend audit is authoritative
    - UI metadata is governance data
    - install ownership is the authority for delete, copy, and drift decisions
-6. Prefer manifest-based UI management over raw DOM capture.
-7. If the user asks to track parameters or outputs, define masking rules before defining payload schemas.
-8. For history or audit search screens, push filtering, sorting, and pagination to the DB or persistence layer before considering in-memory post-processing.
-9. For file-backed audit or request logs, prefer bounded recent-log reads over full-file load and sort.
-10. If the user asks for rollout timing, provide phased estimates with assumptions and a lower-risk MVP path.
-11. For implementation work, start with common infrastructure before instrumenting feature pages.
-12. For permission or role-assignment work, require authoritative backend audit on:
+7. Prefer manifest-based UI management over raw DOM capture.
+8. If the user asks to track parameters or outputs, define masking rules before defining payload schemas.
+9. For history or audit search screens, push filtering, sorting, and pagination to the DB or persistence layer before considering in-memory post-processing.
+10. For file-backed audit or request logs, prefer bounded recent-log reads over full-file load and sort.
+11. If the user asks for rollout timing, provide phased estimates with assumptions and a lower-risk MVP path.
+12. For implementation work, start with common infrastructure before instrumenting feature pages.
+13. For permission or role-assignment work, require authoritative backend audit on:
    - authority-group create/update
    - department-role mapping save
    - member/admin role assignment save
    - user feature override save
-13. For non-master actors, treat `instt_id` or company scope as part of the audit context and review it at the same time as the permission model.
-14. If the user wants common code reused across split projects, steer toward:
+14. For non-master actors, treat `instt_id` or company scope as part of the audit context and review it at the same time as the permission model.
+15. If the user wants common code reused across split projects, steer toward:
    - versioned jars or modules
    - facade or adapter layers
    - compatibility contracts
    and away from deployed systems fetching live backend source from the main system at runtime.
+16. Control complexity explicitly:
+   - keep one lifecycle owner per resource
+   - separate `ownerScope` from `usageMode`
+   - keep package summaries and derived views out of the authoritative source tables
+   - automate delete only after ownership coverage and dependency verification are stable
 
 ## Repository Mapping
 
@@ -104,6 +114,7 @@ Use these default locations unless the codebase shows a stronger existing patter
 
 - Always define `traceId`, `requestId`, `pageId`, `actionId`, `functionId`, and `apiId`.
 - When the page is intended to be installable, also define `projectId`, `packageId`, `resourceId`, and ownership scope.
+- When resource chains are part of the request, also define whether each relation belongs to `OWNERSHIP`, `EXECUTION`, or `DELETE`.
 - Treat `data-help-id` as mandatory for every governed UI surface, form block, table, tab, button group, and other business-significant component instance.
 - Always distinguish audit records from technical trace events.
 - Never recommend raw production logging of passwords, tokens, or full sensitive payloads.
@@ -115,6 +126,7 @@ Use these default locations unless the codebase shows a stronger existing patter
 - When admin screens are being restored from original templates, prefer backend audit and scope enforcement changes that survive the later UI restoration.
 - Do not call low-frequency assets garbage unless ownership, dependency, and delete safety have already been checked.
 - Do not recommend dynamic runtime source sharing between deployed projects and the main platform. Use versioned, reproducible artifacts instead.
+- Prefer package-level drill-down views in admin UI instead of dumping raw dependency rows as the default operator experience.
 
 ## Current Repository State
 

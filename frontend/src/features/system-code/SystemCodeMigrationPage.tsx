@@ -5,7 +5,7 @@ import { buildLocalizedPath, getSearchParam, isEnglish } from "../../lib/navigat
 import { fetchSystemCodePage, type SystemCodePagePayload } from "../../lib/api/client";
 import { stringOf, submitFormRequest } from "../admin-system/adminSystemShared";
 import { ADMIN_BUTTON_LABELS } from "../admin-ui/labels";
-import { GridToolbar, MemberButton } from "../admin-ui/common";
+import { AdminInput, AdminSelect, AdminTable, GridToolbar, MemberButton } from "../admin-ui/common";
 import { AdminEditPageFrame } from "../admin-ui/pageFrames";
 
 function useSystemCodePage() {
@@ -70,22 +70,22 @@ export function SystemCodeMigrationPage() {
         <form action={buildLocalizedPath("/admin/system/code/class/create", "/en/admin/system/code/class/create")} className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4" method="post" onSubmit={handleSubmit}>
           <div>
             <label className="gov-label" htmlFor="clCode">{en ? "Class Code" : "분류 코드"}</label>
-            <input className="gov-input" id="clCode" name="clCode" placeholder={en ? "e.g., HME" : "예: HME"} />
+            <AdminInput id="clCode" name="clCode" placeholder={en ? "e.g., HME" : "예: HME"} />
           </div>
           <div className="md:col-span-2">
             <label className="gov-label" htmlFor="clCodeNm">{en ? "Class Name" : "분류명"}</label>
-            <input className="gov-input" id="clCodeNm" name="clCodeNm" placeholder={en ? "e.g., Home Menu" : "예: 홈 메뉴"} />
+            <AdminInput id="clCodeNm" name="clCodeNm" placeholder={en ? "e.g., Home Menu" : "예: 홈 메뉴"} />
           </div>
           <div>
             <label className="gov-label" htmlFor="clCodeDc">{en ? "Description (EN)" : "설명"}</label>
-            <input className="gov-input" id="clCodeDc" name="clCodeDc" placeholder={en ? "Description" : "분류 설명"} />
+            <AdminInput id="clCodeDc" name="clCodeDc" placeholder={en ? "Description" : "분류 설명"} />
           </div>
           <div>
             <label className="gov-label" htmlFor="clUseAt">{en ? "Use" : "사용여부"}</label>
-            <select className="gov-select" id="clUseAt" name="useAt" defaultValue="Y">
+            <AdminSelect id="clUseAt" name="useAt" defaultValue="Y">
               <option value="Y">Y</option>
               <option value="N">N</option>
-            </select>
+            </AdminSelect>
           </div>
           <div className="md:col-span-5 flex justify-end gap-2">
             <MemberButton type="submit" variant="primary">{en ? "Add Class Code" : ADMIN_BUTTON_LABELS.create}</MemberButton>
@@ -93,7 +93,7 @@ export function SystemCodeMigrationPage() {
         </form>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left border-collapse">
+          <AdminTable>
             <thead>
               <tr className="gov-table-header">
                 <th className="px-4 py-3">{en ? "Class Code" : "분류 코드"}</th>
@@ -114,12 +114,12 @@ export function SystemCodeMigrationPage() {
                     <td className="px-4 py-3">
                       <form action={buildLocalizedPath("/admin/system/code/class/update", "/en/admin/system/code/class/update")} className="grid grid-cols-1 md:grid-cols-4 gap-2 items-center" method="post" onSubmit={handleSubmit}>
                         <input name="clCode" type="hidden" value={clCode} />
-                        <input className="gov-input" defaultValue={stringOf(row, "clCodeNm", "CL_CODE_NM")} name="clCodeNm" />
-                        <input className="gov-input" defaultValue={stringOf(row, "clCodeDc", "CL_CODE_DC")} name="clCodeDc" />
-                        <select className="gov-select" defaultValue={stringOf(row, "useAt", "USE_AT") || "Y"} name="useAt">
+                        <AdminInput defaultValue={stringOf(row, "clCodeNm", "CL_CODE_NM")} name="clCodeNm" />
+                        <AdminInput defaultValue={stringOf(row, "clCodeDc", "CL_CODE_DC")} name="clCodeDc" />
+                        <AdminSelect defaultValue={stringOf(row, "useAt", "USE_AT") || "Y"} name="useAt">
                           <option value="Y">Y</option>
                           <option value="N">N</option>
-                        </select>
+                        </AdminSelect>
                         <div className="flex gap-2 justify-end">
                           <MemberButton type="submit">{en ? "Update" : ADMIN_BUTTON_LABELS.save}</MemberButton>
                         </div>
@@ -137,7 +137,7 @@ export function SystemCodeMigrationPage() {
                 );
               })}
             </tbody>
-          </table>
+          </AdminTable>
         </div>
       </section>
 
@@ -150,32 +150,32 @@ export function SystemCodeMigrationPage() {
         <form action={buildLocalizedPath("/admin/system/code/group/create", "/en/admin/system/code/group/create")} className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-4" method="post" onSubmit={handleSubmit}>
           <div>
             <label className="gov-label" htmlFor="codeId">{en ? "Code ID" : "코드 ID"}</label>
-            <input className="gov-input" id="codeId" name="codeId" placeholder="HMENU1" />
+            <AdminInput id="codeId" name="codeId" placeholder="HMENU1" />
           </div>
           <div className="md:col-span-2">
             <label className="gov-label" htmlFor="codeIdNm">{en ? "Code Name" : "코드명"}</label>
-            <input className="gov-input" id="codeIdNm" name="codeIdNm" placeholder={en ? "Home Menu" : "예: 홈 메뉴"} />
+            <AdminInput id="codeIdNm" name="codeIdNm" placeholder={en ? "Home Menu" : "예: 홈 메뉴"} />
           </div>
           <div>
             <label className="gov-label" htmlFor="codeIdDc">{en ? "Description (EN)" : "설명(영문)"}</label>
-            <input className="gov-input" id="codeIdDc" name="codeIdDc" />
+            <AdminInput id="codeIdDc" name="codeIdDc" />
           </div>
           <div>
             <label className="gov-label" htmlFor="clCode">{en ? "Class Code" : "분류 코드"}</label>
-            <select className="gov-select" id="clCode" name="clCode">
+            <AdminSelect id="clCode" name="clCode">
               {clCodeList.map((row) => (
                 <option key={stringOf(row, "clCode", "CL_CODE")} value={stringOf(row, "clCode", "CL_CODE")}>
                   {`${stringOf(row, "clCode", "CL_CODE")} - ${stringOf(row, "clCodeNm", "CL_CODE_NM")}`}
                 </option>
               ))}
-            </select>
+            </AdminSelect>
           </div>
           <div>
             <label className="gov-label" htmlFor="codeUseAt">{en ? "Use" : "사용여부"}</label>
-            <select className="gov-select" id="codeUseAt" name="useAt" defaultValue="Y">
+            <AdminSelect id="codeUseAt" name="useAt" defaultValue="Y">
               <option value="Y">Y</option>
               <option value="N">N</option>
-            </select>
+            </AdminSelect>
           </div>
           <div className="md:col-span-6 flex justify-end gap-2">
             <MemberButton type="submit" variant="primary">{en ? "Add Code ID" : ADMIN_BUTTON_LABELS.create}</MemberButton>
@@ -183,7 +183,7 @@ export function SystemCodeMigrationPage() {
         </form>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left border-collapse">
+          <AdminTable>
             <thead>
               <tr className="gov-table-header">
                 <th className="px-4 py-3">{en ? "Code ID" : "코드 ID"}</th>
@@ -205,19 +205,19 @@ export function SystemCodeMigrationPage() {
                     <td className="px-4 py-3">
                       <form action={buildLocalizedPath("/admin/system/code/group/update", "/en/admin/system/code/group/update")} className="grid grid-cols-1 md:grid-cols-5 gap-2 items-center" method="post" onSubmit={handleSubmit}>
                         <input name="codeId" type="hidden" value={codeId} />
-                        <input className="gov-input" defaultValue={stringOf(row, "codeIdNm", "CODE_ID_NM")} name="codeIdNm" />
-                        <input className="gov-input" defaultValue={stringOf(row, "codeIdDc", "CODE_ID_DC")} name="codeIdDc" />
-                        <select className="gov-select" defaultValue={stringOf(row, "clCode", "CL_CODE")} name="clCode">
+                        <AdminInput defaultValue={stringOf(row, "codeIdNm", "CODE_ID_NM")} name="codeIdNm" />
+                        <AdminInput defaultValue={stringOf(row, "codeIdDc", "CODE_ID_DC")} name="codeIdDc" />
+                        <AdminSelect defaultValue={stringOf(row, "clCode", "CL_CODE")} name="clCode">
                           {clCodeList.map((classRow) => (
                             <option key={stringOf(classRow, "clCode", "CL_CODE")} value={stringOf(classRow, "clCode", "CL_CODE")}>
                               {`${stringOf(classRow, "clCode", "CL_CODE")} - ${stringOf(classRow, "clCodeNm", "CL_CODE_NM")}`}
                             </option>
                           ))}
-                        </select>
-                        <select className="gov-select" defaultValue={stringOf(row, "useAt", "USE_AT") || "Y"} name="useAt">
+                        </AdminSelect>
+                        <AdminSelect defaultValue={stringOf(row, "useAt", "USE_AT") || "Y"} name="useAt">
                           <option value="Y">Y</option>
                           <option value="N">N</option>
-                        </select>
+                        </AdminSelect>
                         <div className="flex gap-2 justify-end">
                           <MemberButton type="submit">{en ? "Update" : ADMIN_BUTTON_LABELS.save}</MemberButton>
                         </div>
@@ -236,7 +236,7 @@ export function SystemCodeMigrationPage() {
                 );
               })}
             </tbody>
-          </table>
+          </AdminTable>
         </div>
       </section>
 
@@ -249,44 +249,44 @@ export function SystemCodeMigrationPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
           <div className="md:col-span-2">
             <label className="gov-label" htmlFor="detailCodeId">{en ? "Select Code ID" : "코드 ID 선택"}</label>
-            <select className="gov-select" id="detailCodeId" value={detailCodeId} onChange={(event) => setDetailCodeId(event.target.value)}>
+            <AdminSelect id="detailCodeId" value={detailCodeId} onChange={(event) => setDetailCodeId(event.target.value)}>
               {codeList.map((row) => (
                 <option key={stringOf(row, "codeId", "CODE_ID")} value={stringOf(row, "codeId", "CODE_ID")}>
                   {`${stringOf(row, "codeId", "CODE_ID")} - ${stringOf(row, "codeIdNm", "CODE_ID_NM")}`}
                 </option>
               ))}
-            </select>
+            </AdminSelect>
           </div>
         </div>
         <form action={buildLocalizedPath("/admin/system/code/detail/create", "/en/admin/system/code/detail/create")} className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-4" method="post" onSubmit={handleSubmit}>
           <div>
             <label className="gov-label" htmlFor="detailCodeIdInput">{en ? "Code ID" : "코드 ID"}</label>
-            <select className="gov-select" id="detailCodeIdInput" name="codeId" value={detailCodeId} onChange={(event) => setDetailCodeId(event.target.value)}>
+            <AdminSelect id="detailCodeIdInput" name="codeId" value={detailCodeId} onChange={(event) => setDetailCodeId(event.target.value)}>
               {codeList.map((row) => (
                 <option key={stringOf(row, "codeId", "CODE_ID")} value={stringOf(row, "codeId", "CODE_ID")}>
                   {stringOf(row, "codeId", "CODE_ID")}
                 </option>
               ))}
-            </select>
+            </AdminSelect>
           </div>
           <div>
             <label className="gov-label" htmlFor="detailCode">{en ? "Code Value" : "코드값"}</label>
-            <input className="gov-input" id="detailCode" name="code" placeholder={en ? "e.g., H001" : "예: H001"} />
+            <AdminInput id="detailCode" name="code" placeholder={en ? "e.g., H001" : "예: H001"} />
           </div>
           <div className="md:col-span-2">
             <label className="gov-label" htmlFor="detailCodeNm">{en ? "Code Name" : "코드명"}</label>
-            <input className="gov-input" id="detailCodeNm" name="codeNm" placeholder={en ? "Menu Name" : "메뉴명"} />
+            <AdminInput id="detailCodeNm" name="codeNm" placeholder={en ? "Menu Name" : "메뉴명"} />
           </div>
           <div>
             <label className="gov-label" htmlFor="detailCodeDc">{en ? "Description (EN)" : "설명(영문)"}</label>
-            <input className="gov-input" id="detailCodeDc" name="codeDc" />
+            <AdminInput id="detailCodeDc" name="codeDc" />
           </div>
           <div>
             <label className="gov-label" htmlFor="detailUseAt">{en ? "Use" : "사용여부"}</label>
-            <select className="gov-select" defaultValue="Y" id="detailUseAt" name="useAt">
+            <AdminSelect defaultValue="Y" id="detailUseAt" name="useAt">
               <option value="Y">Y</option>
               <option value="N">N</option>
-            </select>
+            </AdminSelect>
           </div>
           <div className="md:col-span-6 flex justify-end gap-2">
             <MemberButton type="submit" variant="primary">{en ? "Add Detail Code" : ADMIN_BUTTON_LABELS.create}</MemberButton>
@@ -294,7 +294,7 @@ export function SystemCodeMigrationPage() {
         </form>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left border-collapse">
+          <AdminTable>
             <thead>
               <tr className="gov-table-header">
                 <th className="px-4 py-3">{en ? "Code ID" : "코드 ID"}</th>
@@ -319,12 +319,12 @@ export function SystemCodeMigrationPage() {
                       <form action={buildLocalizedPath("/admin/system/code/detail/update", "/en/admin/system/code/detail/update")} className="grid grid-cols-1 md:grid-cols-4 gap-2 items-center" method="post" onSubmit={handleSubmit}>
                         <input name="codeId" type="hidden" value={codeId} />
                         <input name="code" type="hidden" value={code} />
-                        <input className="gov-input" defaultValue={stringOf(row, "codeNm", "CODE_NM")} name="codeNm" />
-                        <input className="gov-input" defaultValue={stringOf(row, "codeDc", "CODE_DC")} name="codeDc" />
-                        <select className="gov-select" defaultValue={stringOf(row, "useAt", "USE_AT") || "Y"} name="useAt">
+                        <AdminInput defaultValue={stringOf(row, "codeNm", "CODE_NM")} name="codeNm" />
+                        <AdminInput defaultValue={stringOf(row, "codeDc", "CODE_DC")} name="codeDc" />
+                        <AdminSelect defaultValue={stringOf(row, "useAt", "USE_AT") || "Y"} name="useAt">
                           <option value="Y">Y</option>
                           <option value="N">N</option>
-                        </select>
+                        </AdminSelect>
                         <div className="flex gap-2 justify-end">
                           <MemberButton type="submit">{en ? "Update" : ADMIN_BUTTON_LABELS.save}</MemberButton>
                         </div>
@@ -343,7 +343,7 @@ export function SystemCodeMigrationPage() {
                 );
               })}
             </tbody>
-          </table>
+          </AdminTable>
         </div>
       </section>
       </AdminEditPageFrame>

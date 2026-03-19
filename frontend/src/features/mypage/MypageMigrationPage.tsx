@@ -15,6 +15,7 @@ import {
   saveMypageStaff
 } from "../../lib/api/client";
 import { isEnglish, navigate } from "../../lib/navigation/runtime";
+import { HomeButton, HomeInput, HomeLinkButton } from "../home-ui/common";
 
 type MypageMember = Record<string, unknown> & {
   entrprsmberId?: string;
@@ -432,12 +433,12 @@ export function MypageMigrationPage() {
               </div>
             ) : null}
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <a className="min-w-[160px] h-12 flex items-center justify-center bg-[var(--kr-gov-blue)] text-white font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)] transition-colors focus-visible" href={copy.homePath}>
+              <HomeLinkButton className="min-w-[160px]" href={copy.homePath} variant="primary">
                 {en ? "Go to Home" : "홈으로 이동"}
-              </a>
-              <button className="min-w-[160px] h-12 flex items-center justify-center border border-[var(--kr-gov-border-light)] text-[var(--kr-gov-text-primary)] font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-50 transition-colors focus-visible" onClick={() => void sessionState.logout()} type="button">
+              </HomeLinkButton>
+              <HomeButton className="min-w-[160px]" onClick={() => void sessionState.logout()} type="button">
                 {copy.logout}
-              </button>
+              </HomeButton>
             </div>
           </div>
           <div className="mt-8 text-center">
@@ -494,12 +495,12 @@ export function MypageMigrationPage() {
                 : <>계정 상태가 <strong>정상</strong>으로 변경된 뒤에만 접근할 수 있습니다. 운영자에게 문의해 주세요.</>}
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <a className="min-w-[160px] h-12 flex items-center justify-center bg-[var(--kr-gov-blue)] text-white font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)] transition-colors" href={copy.homePath}>
+              <HomeLinkButton className="min-w-[160px]" href={copy.homePath} variant="primary">
                 {en ? "Go to Home" : "홈으로 이동"}
-              </a>
-              <button className="min-w-[160px] h-12 flex items-center justify-center border border-[var(--kr-gov-border-light)] font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-50 transition-colors" onClick={() => void sessionState.logout()} type="button">
+              </HomeLinkButton>
+              <HomeButton className="min-w-[160px]" onClick={() => void sessionState.logout()} type="button">
                 {copy.logout}
-              </button>
+              </HomeButton>
             </div>
           </div>
         </main>
@@ -524,26 +525,27 @@ export function MypageMigrationPage() {
             <nav className="hidden xl:flex items-center space-x-1 h-full ml-8 flex-1 justify-center">
               {copy.homeNavItems.map((item) => (
                 <div className="gnb-item h-full relative group" key={item}>
-                  <a
+                  <HomeLinkButton
                     className={`h-full flex items-center px-4 font-bold text-[var(--kr-gov-text-primary)] border-b-4 border-transparent hover:text-[var(--kr-gov-blue)] hover:border-[var(--kr-gov-blue)] transition-all focus-visible ${en ? "text-[15px]" : "text-[16px]"}`}
                     href="#"
                     onClick={(event) => event.preventDefault()}
+                    variant="ghost"
                   >
                     {item}
-                  </a>
+                  </HomeLinkButton>
                 </div>
               ))}
             </nav>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold">{en ? (fullName || userId) : `${fullName || userId} 님`}</span>
-                <button className="text-xs text-[var(--kr-gov-text-secondary)] hover:underline" onClick={() => void sessionState.logout()} type="button">
+                <HomeButton className="min-h-0 border-0 bg-transparent px-0 py-0 text-xs text-[var(--kr-gov-text-secondary)] hover:bg-transparent hover:underline" onClick={() => void sessionState.logout()} type="button" variant="ghost">
                   {copy.logout}
-                </button>
+                </HomeButton>
               </div>
-              <a className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors" href="#" onClick={(event) => event.preventDefault()}>
+              <HomeLinkButton className="h-10 w-10 rounded-full bg-gray-100 p-0 hover:bg-gray-200" href="#" onClick={(event) => event.preventDefault()} variant="ghost">
                 <span className="material-symbols-outlined text-gray-600">person</span>
-              </a>
+              </HomeLinkButton>
             </div>
           </>
         }
@@ -555,17 +557,18 @@ export function MypageMigrationPage() {
             <h2 className="text-2xl font-black mb-8">{copy.mypage}</h2>
             <nav className="space-y-1">
               {copy.menuItems.map((item, index) => (
-                <a
+                <HomeLinkButton
                   className={index === 0
                     ? "flex items-center justify-between px-4 py-3 bg-[var(--kr-gov-blue)] text-white rounded-[var(--kr-gov-radius)] font-bold"
                     : "flex items-center justify-between px-4 py-3 hover:bg-gray-100 text-[var(--kr-gov-text-secondary)] font-bold transition-colors"}
                   href="#"
                   key={item}
                   onClick={(event) => event.preventDefault()}
+                  variant="ghost"
                 >
                   {item}
                   <span className="material-symbols-outlined text-[18px]">chevron_right</span>
-                </a>
+                </HomeLinkButton>
               ))}
             </nav>
           </aside>
@@ -597,40 +600,40 @@ export function MypageMigrationPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                   <div className="space-y-2">
                     <label className="form-label" htmlFor="user-name">{copy.fullName} <span className="text-[var(--kr-gov-error)]">*</span></label>
-                    <input className="form-input mypage-form-input" id="user-name" onChange={(event) => setFullName(event.target.value)} type="text" value={fullName} />
+                    <HomeInput className="home-field home-field--mypage" id="user-name" onChange={(event) => setFullName(event.target.value)} type="text" value={fullName} />
                   </div>
 
                   <div className="space-y-2">
                     <label className="form-label" htmlFor="user-id">{copy.userId}</label>
-                    <input className="form-input form-input-readonly mypage-form-input" id="user-id" readOnly type="text" value={userId} />
+                    <HomeInput className="home-field home-field--mypage home-field--readonly" id="user-id" readOnly type="text" value={userId} />
                     <p className="text-[11px] text-[var(--kr-gov-text-secondary)] mt-1">{copy.readonlyId}</p>
                   </div>
 
                   <div className="space-y-2">
                     <label className="form-label" htmlFor="user-email">{copy.email} <span className="text-[var(--kr-gov-error)]">*</span></label>
                     <div className="flex gap-2">
-                      <input
-                        className="form-input mypage-form-input"
+                      <HomeInput
+                        className="home-field home-field--mypage"
                         id="user-email"
                         inputMode="email"
                         onChange={(event) => setEmail(event.target.value)}
                         type="text"
                         value={email}
                       />
-                      <button
-                        className="gov-btn gov-btn-secondary mypage-action-btn secondary shrink-0 px-4 text-sm"
+                      <HomeButton
+                        className="mypage-action-btn secondary shrink-0 px-4 text-sm"
                         onClick={() => void handleEmailVerify()}
                         type="button"
                       >
                         {copy.verifyChange}
-                      </button>
+                      </HomeButton>
                     </div>
                   </div>
 
                   <div className="space-y-2">
                     <label className="form-label" htmlFor="user-phone">{copy.phone} <span className="text-[var(--kr-gov-error)]">*</span></label>
-                    <input
-                      className="form-input mypage-form-input"
+                    <HomeInput
+                      className="home-field home-field--mypage"
                       id="user-phone"
                       inputMode="tel"
                       onChange={(event) => {
@@ -660,15 +663,15 @@ export function MypageMigrationPage() {
                 <div className="bg-gray-50 p-6 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                   <div className="space-y-2">
                     <label className="form-label" htmlFor="org-name">{copy.companyName}</label>
-                    <input className="form-input form-input-readonly mypage-form-input" id="org-name" readOnly type="text" value={companyName} />
+                    <HomeInput className="home-field home-field--mypage home-field--readonly" id="org-name" readOnly type="text" value={companyName} />
                   </div>
                   <div className="space-y-2">
                     <label className="form-label" htmlFor="org-code">{copy.businessNo}</label>
-                    <input className="form-input form-input-readonly mypage-form-input" id="org-code" readOnly type="text" value={businessNumber} />
+                    <HomeInput className="home-field home-field--mypage home-field--readonly" id="org-code" readOnly type="text" value={businessNumber} />
                   </div>
                   <div className="space-y-2 md:col-span-2">
                     <label className="form-label" htmlFor="user-title">{copy.jobTitle} <span className="text-[var(--kr-gov-error)]">*</span></label>
-                    <input className="form-input mypage-form-input max-w-md" id="user-title" onChange={(event) => setJobTitle(event.target.value)} type="text" value={jobTitle} />
+                    <HomeInput className="home-field home-field--mypage max-w-md" id="user-title" onChange={(event) => setJobTitle(event.target.value)} type="text" value={jobTitle} />
                   </div>
                 </div>
               </section>
@@ -694,9 +697,9 @@ export function MypageMigrationPage() {
                         <span className="material-symbols-outlined text-[14px]">link</span>
                         {copy.connected}
                       </span>
-                      <button className="text-sm font-bold text-[var(--kr-gov-text-secondary)] hover:underline" type="button">
+                      <HomeButton className="min-h-0 border-0 bg-transparent px-0 py-0 text-sm font-bold text-[var(--kr-gov-text-secondary)] hover:bg-transparent hover:underline" type="button" variant="ghost">
                         {copy.disconnect}
-                      </button>
+                      </HomeButton>
                     </div>
                   </div>
 
@@ -710,28 +713,29 @@ export function MypageMigrationPage() {
                         <p className="text-sm text-[var(--kr-gov-text-secondary)] mt-0.5">{copy.auth2Desc}</p>
                       </div>
                     </div>
-                    <button className="gov-btn gov-btn-outline-blue px-6 py-2 text-sm" type="button">
+                    <HomeButton className="px-6 py-2 text-sm" type="button">
                       {copy.connect}
-                    </button>
+                    </HomeButton>
                   </div>
                 </div>
               </section>
 
               <div className="pt-10 flex justify-center gap-3 border-t border-[var(--kr-gov-border-light)]" data-help-id="mypage-actions">
-                <button
-                  className="gov-btn gov-btn-secondary mypage-action-btn secondary min-w-[160px]"
+                <HomeButton
+                  className="mypage-action-btn secondary min-w-[160px]"
                   onClick={handleCancel}
                   type="button"
                 >
                   {copy.cancel}
-                </button>
-                <button
-                  className="gov-btn gov-btn-primary mypage-action-btn primary min-w-[160px]"
+                </HomeButton>
+                <HomeButton
+                  className="mypage-action-btn primary min-w-[160px]"
                   disabled={submitting}
                   type="submit"
+                  variant="primary"
                 >
                   {submitting ? "..." : copy.submit}
-                </button>
+                </HomeButton>
               </div>
             </form>
           </div>

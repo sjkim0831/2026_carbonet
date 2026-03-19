@@ -299,7 +299,22 @@ export type ScreenBuilderComponentRegistryItem = {
   sourceType?: string;
   createdAt?: string;
   updatedAt?: string;
+  usageCount?: number;
   propsTemplate?: Record<string, unknown>;
+};
+
+export type ScreenBuilderComponentUsage = {
+  usageSource: string;
+  usageStatus?: string;
+  menuCode: string;
+  pageId: string;
+  menuTitle: string;
+  menuUrl: string;
+  layoutZone?: string;
+  instanceKey?: string;
+  nodeId?: string;
+  componentId: string;
+  versionId?: string;
 };
 
 export type ScreenBuilderRegistryIssue = {
@@ -361,6 +376,7 @@ export type ScreenBuilderPagePayload = {
   templateType: string;
   componentPalette: ScreenBuilderPaletteItem[];
   componentRegistry: ScreenBuilderComponentRegistryItem[];
+  componentTypeOptions?: string[];
   registryDiagnostics?: {
     unregisteredNodes?: ScreenBuilderRegistryIssue[];
     missingNodes?: ScreenBuilderRegistryIssue[];
@@ -2082,8 +2098,13 @@ export async function registerScreenBuilderComponent(payload: {
 
 export async function updateScreenBuilderComponentRegistry(payload: {
   componentId: string;
+  componentType?: string;
+  label?: string;
+  labelEn?: string;
+  description?: string;
   status?: string;
   replacementComponentId?: string;
+  propsTemplate?: Record<string, unknown>;
   menuCode?: string;
 }) {
   const response = await fetch(buildAdminApiPath("/api/admin/screen-builder/component-registry/update"), {
@@ -2100,6 +2121,56 @@ export async function updateScreenBuilderComponentRegistry(payload: {
     throw new Error(String(body.message || `Failed to update screen builder component registry: ${response.status}`));
   }
   return body as { success: boolean; message?: string; item: ScreenBuilderComponentRegistryItem };
+}
+
+export async function fetchScreenBuilderComponentRegistryUsage(componentId: string) {
+  const response = await fetch(buildAdminApiPath(`/api/admin/screen-builder/component-registry/usage?componentId=${encodeURIComponent(componentId)}`), {
+    credentials: "include"
+  });
+  const body = await readJsonResponse<{ componentId?: string; items?: ScreenBuilderComponentUsage[] } & Record<string, unknown>>(response);
+  if (!response.ok) {
+    throw new Error(String(body.message || `Failed to load component usage: ${response.status}`));
+  }
+  return body as { componentId: string; items: ScreenBuilderComponentUsage[] };
+}
+
+export async function deleteScreenBuilderComponentRegistryItem(payload: {
+  componentId: string;
+}) {
+  const response = await fetch(buildAdminApiPath("/api/admin/screen-builder/component-registry/delete"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload)
+  });
+  const body = await readJsonResponse<{ success?: boolean; message?: string } & Record<string, unknown>>(response);
+  if (!response.ok || !body.success) {
+    throw new Error(String(body.message || `Failed to delete screen builder component: ${response.status}`));
+  }
+  return body as { success: boolean; message?: string };
+}
+
+export async function remapScreenBuilderComponentRegistryUsage(payload: {
+  fromComponentId: string;
+  toComponentId: string;
+}) {
+  const response = await fetch(buildAdminApiPath("/api/admin/screen-builder/component-registry/remap"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload)
+  });
+  const body = await readJsonResponse<{ success?: boolean; message?: string; updatedDraftCount?: number; updatedPublishedCount?: number } & Record<string, unknown>>(response);
+  if (!response.ok || !body.success) {
+    throw new Error(String(body.message || `Failed to remap screen builder component usage: ${response.status}`));
+  }
+  return body as { success: boolean; message?: string; updatedDraftCount?: number; updatedPublishedCount?: number };
 }
 
 export async function autoReplaceDeprecatedScreenBuilderComponents(payload: {

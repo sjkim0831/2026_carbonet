@@ -14,4 +14,6 @@ public class UiComponentRegistryVO {
     private String propsSchemaJson;
     private String designReference;
     private String activeYn;
+    private String createdAt;
+    private String updatedAt;
 }

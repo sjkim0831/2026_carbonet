@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { CanView } from "../../components/access/CanView";
-import { PermissionButton } from "../../components/access/CanUse";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import {
   AdminAccountCreatePagePayload,
@@ -14,7 +13,17 @@ import {
 } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { ADMIN_BUTTON_LABELS } from "../admin-ui/labels";
-import { GridToolbar, MemberActionBar, MemberButton, MemberModalFooter } from "../admin-ui/common";
+import {
+  AdminInput,
+  AdminSelect,
+  AdminTable,
+  GridToolbar,
+  MemberActionBar,
+  MemberButton,
+  MemberIconButton,
+  MemberModalFooter,
+  MemberPermissionButton
+} from "../admin-ui/common";
 import { AdminEditPageFrame } from "../admin-ui/pageFrames";
 
 const ROLE_PRESETS = [
@@ -228,15 +237,16 @@ export function AdminAccountCreateMigrationPage() {
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 {ROLE_PRESETS.map((preset) => (
-                  <button
+                  <MemberButton
                     className={roleChipClass(rolePreset === preset.code)}
                     disabled={!canUseCreate}
                     key={preset.code}
                     onClick={() => setRolePreset(preset.code)}
+                    variant="ghost"
                     type="button"
                   >
                     {preset.label}
-                  </button>
+                  </MemberButton>
                 ))}
               </div>
             </div>
@@ -251,22 +261,22 @@ export function AdminAccountCreateMigrationPage() {
               <div className="space-y-1">
                 <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="admin-id">아이디 <span className="text-red-500">*</span></label>
                 <div className="flex gap-2">
-                  <input className="form-input w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} id="admin-id" placeholder="6~16자 영문, 숫자" spellCheck={false} value={adminId} onChange={(e) => setAdminId(e.target.value)} />
-                  <PermissionButton allowed={canUseCreate} className="inline-flex items-center justify-center gap-1.5 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-blue)] bg-[var(--kr-gov-blue)] px-4 py-2 text-sm font-bold whitespace-nowrap text-white transition-colors hover:border-[var(--kr-gov-blue-hover)] hover:bg-[var(--kr-gov-blue-hover)] disabled:cursor-not-allowed disabled:opacity-50" onClick={handleCheckId} reason="생성 권한이 있어야 중복 확인을 사용할 수 있습니다." type="button">중복확인</PermissionButton>
+                  <AdminInput disabled={!canUseCreate} id="admin-id" placeholder="6~16자 영문, 숫자" spellCheck={false} value={adminId} onChange={(e) => setAdminId(e.target.value)} />
+                  <MemberPermissionButton allowed={canUseCreate} onClick={handleCheckId} reason="생성 권한이 있어야 중복 확인을 사용할 수 있습니다." type="button" variant="primary">중복확인</MemberPermissionButton>
                 </div>
                 {idCheckMessage ? <div className="text-sm text-[var(--kr-gov-blue)]">{idCheckMessage}</div> : null}
               </div>
               <div className="space-y-1">
                 <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="user-name-top">이름 <span className="text-red-500">*</span></label>
-                <input className="form-input w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} id="user-name-top" value={adminName} onChange={(e) => setAdminName(e.target.value)} />
+                <AdminInput disabled={!canUseCreate} id="user-name-top" value={adminName} onChange={(e) => setAdminName(e.target.value)} />
               </div>
               <div className="space-y-1">
                 <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="password">비밀번호 <span className="text-red-500">*</span></label>
-                <input className="form-input w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} id="password" placeholder="영문, 숫자, 특수문자 조합 8자 이상" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                <AdminInput disabled={!canUseCreate} id="password" placeholder="영문, 숫자, 특수문자 조합 8자 이상" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
               </div>
               <div className="space-y-1">
                 <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="password-confirm">비밀번호 확인 <span className="text-red-500">*</span></label>
-                <input className="form-input w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} id="password-confirm" placeholder="비밀번호를 다시 입력하세요" type="password" value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} />
+                <AdminInput disabled={!canUseCreate} id="password-confirm" placeholder="비밀번호를 다시 입력하세요" type="password" value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} />
                 {passwordConfirm ? (
                   <div className={`text-sm ${password === passwordConfirm ? "text-[var(--kr-gov-success)]" : "text-[var(--kr-gov-error)]"}`}>
                     {password === passwordConfirm ? "비밀번호가 일치합니다." : "비밀번호가 일치하지 않습니다."}
@@ -285,24 +295,24 @@ export function AdminAccountCreateMigrationPage() {
               <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="md:col-span-2 space-y-1">
                   <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="user-name">성명 <span className="text-red-500">*</span></label>
-                  <input className="form-input w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} id="user-name" placeholder="사용자 성함을 입력하세요" value={adminName} onChange={(e) => setAdminName(e.target.value)} />
+                  <AdminInput disabled={!canUseCreate} id="user-name" placeholder="사용자 성함을 입력하세요" value={adminName} onChange={(e) => setAdminName(e.target.value)} />
                 </div>
                 <div className="space-y-1">
                   <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="email">공식 이메일 <span className="text-red-500">*</span></label>
-                  <input className="form-input w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} id="email" placeholder="example@korea.kr / domain.com" type="email" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} />
+                  <AdminInput disabled={!canUseCreate} id="email" placeholder="example@korea.kr / domain.com" type="email" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} />
                 </div>
                 <div className="space-y-1">
                   <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="contact-mid">연락처 <span className="text-red-500">*</span></label>
                   <div className="flex gap-2">
-                    <select className="form-input w-24 h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} value={phone1} onChange={(e) => setPhone1(e.target.value)}>
+                    <AdminSelect className="w-24" disabled={!canUseCreate} value={phone1} onChange={(e) => setPhone1(e.target.value)}>
                       <option value="010">010</option>
                       <option value="011">011</option>
                       <option value="02">02</option>
-                    </select>
+                    </AdminSelect>
                     <span className="flex items-center">-</span>
-                    <input className="form-input flex-1 h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} id="contact-mid" inputMode="numeric" value={phone2} onChange={(e) => setPhone2(e.target.value)} />
+                    <AdminInput className="flex-1" disabled={!canUseCreate} id="contact-mid" inputMode="numeric" value={phone2} onChange={(e) => setPhone2(e.target.value)} />
                     <span className="flex items-center">-</span>
-                    <input className="form-input flex-1 h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} inputMode="numeric" value={phone3} onChange={(e) => setPhone3(e.target.value)} />
+                    <AdminInput className="flex-1" disabled={!canUseCreate} inputMode="numeric" value={phone3} onChange={(e) => setPhone3(e.target.value)} />
                   </div>
                 </div>
               </div>
@@ -317,33 +327,33 @@ export function AdminAccountCreateMigrationPage() {
                 <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="md:col-span-2 space-y-1">
                     <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="affiliation-type">회원 유형</label>
-                    <select className="form-input w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} id="affiliation-type" value={membershipType} onChange={(e) => setMembershipType(e.target.value)}>
+                    <AdminSelect disabled={!canUseCreate} id="affiliation-type" value={membershipType} onChange={(e) => setMembershipType(e.target.value)}>
                       <option value="">유형을 선택하세요</option>
                       <option value="enterprise">기업회원</option>
                       <option value="agency">기관회원</option>
-                    </select>
+                    </AdminSelect>
                   </div>
                   <div className="space-y-1">
                     <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="department">부서명</label>
-                    <input className="form-input w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} id="department" placeholder="부서명을 입력하세요" value={deptNm} onChange={(e) => setDeptNm(e.target.value)} />
+                    <AdminInput disabled={!canUseCreate} id="department" placeholder="부서명을 입력하세요" value={deptNm} onChange={(e) => setDeptNm(e.target.value)} />
                   </div>
                   <div className="space-y-1">
                     <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="company-search">소속 기관 / 기업명 <span className="text-red-500">*</span></label>
                     <div className="flex gap-2">
                       <input type="hidden" value={insttId} />
-                      <input className="form-input w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-gray-50" id="company-search" placeholder="기업명을 검색해 주세요" readOnly value={companyName} />
-                      <PermissionButton allowed={canUseCreate} className="inline-flex items-center justify-center gap-1.5 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-blue)] bg-[var(--kr-gov-blue)] px-5 py-2 text-sm font-bold whitespace-nowrap text-white transition-colors hover:border-[var(--kr-gov-blue-hover)] hover:bg-[var(--kr-gov-blue-hover)] disabled:cursor-not-allowed disabled:opacity-50" onClick={() => setCompanySearchOpen(true)} reason="생성 권한이 있어야 기관 검색을 사용할 수 있습니다." type="button">
+                      <AdminInput className="bg-gray-50" id="company-search" placeholder="기업명을 검색해 주세요" readOnly value={companyName} />
+                      <MemberPermissionButton allowed={canUseCreate} onClick={() => setCompanySearchOpen(true)} reason="생성 권한이 있어야 기관 검색을 사용할 수 있습니다." type="button" variant="primary">
                         <span className="material-symbols-outlined text-[18px]">search</span> 기관 검색
-                      </PermissionButton>
+                      </MemberPermissionButton>
                     </div>
                   </div>
                   <div className="space-y-1">
                     <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="biz-number">사업자등록번호</label>
-                    <input className="form-input w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-gray-50" id="biz-number" readOnly value={bizrno} />
+                    <AdminInput className="bg-gray-50" id="biz-number" readOnly value={bizrno} />
                   </div>
                   <div className="space-y-1">
                     <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="representative-name">대표자명</label>
-                    <input className="form-input w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-gray-50" id="representative-name" readOnly value={representativeName} />
+                    <AdminInput className="bg-gray-50" id="representative-name" readOnly value={representativeName} />
                   </div>
                 </div>
               </section>
@@ -360,15 +370,16 @@ export function AdminAccountCreateMigrationPage() {
                 <p className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2">권한 프리셋 (Preset Role) <span className="text-red-500">*</span></p>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                   {ROLE_PRESETS.map((preset) => (
-                    <button
+                    <MemberButton
                       className={roleChipClass(rolePreset === preset.code)}
                       disabled={!canUseCreate}
                       key={`bottom-${preset.code}`}
                       onClick={() => setRolePreset(preset.code)}
+                      variant="ghost"
                       type="button"
                     >
                       {preset.label}
-                    </button>
+                    </MemberButton>
                   ))}
                 </div>
               </div>
@@ -384,15 +395,16 @@ export function AdminAccountCreateMigrationPage() {
                     return (
                       <label className="flex items-center justify-between rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-3" key={section.menuCode}>
                         <span className="text-sm font-medium text-[var(--kr-gov-text-primary)]">{normalizeText(section.menuNm || section.menuNmEn || section.menuCode)}</span>
-                        <button
+                        <MemberButton
                           aria-label={`${normalizeText(section.menuNm || section.menuNmEn || section.menuCode)} 권한 토글`}
                           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${checked ? "bg-[var(--kr-gov-blue)]" : "bg-gray-300"}`}
                           disabled={!canUseCreate}
                           onClick={() => toggleSection(sectionFeatureCodes, !checked)}
+                          variant="ghost"
                           type="button"
                         >
                           <span className={`absolute left-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${checked ? "translate-x-5" : ""}`} />
-                        </button>
+                        </MemberButton>
                       </label>
                     );
                   })}
@@ -404,9 +416,9 @@ export function AdminAccountCreateMigrationPage() {
           <MemberActionBar
             dataHelpId="admin-create-actions"
             primary={(
-              <PermissionButton allowed={canUseCreate} className="inline-flex min-w-[220px] items-center justify-center gap-1.5 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-blue)] bg-[var(--kr-gov-blue)] px-6 py-3 text-base font-bold text-white transition-colors hover:border-[var(--kr-gov-blue-hover)] hover:bg-[var(--kr-gov-blue-hover)] disabled:cursor-not-allowed disabled:opacity-50" onClick={handleSave} reason="webmaster만 관리자 계정을 생성할 수 있습니다." type="button">
+              <MemberPermissionButton allowed={canUseCreate} className="min-w-[220px]" onClick={handleSave} reason="webmaster만 관리자 계정을 생성할 수 있습니다." size="lg" type="button" variant="primary">
                 {ADMIN_BUTTON_LABELS.create}
-              </PermissionButton>
+              </MemberPermissionButton>
             )}
             secondary={{ label: ADMIN_BUTTON_LABELS.reset, onClick: resetForm }}
           />
@@ -420,9 +432,9 @@ export function AdminAccountCreateMigrationPage() {
                 <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">corporate_fare</span>
                 기관/기업 검색
               </h2>
-              <button aria-label="닫기" className="text-gray-400 hover:text-gray-600 rounded-full p-1" onClick={() => setCompanySearchOpen(false)} type="button">
+              <MemberIconButton aria-label="닫기" onClick={() => setCompanySearchOpen(false)} type="button">
                 <span className="material-symbols-outlined">close</span>
-              </button>
+              </MemberIconButton>
             </div>
             <div className="p-6 overflow-y-auto">
               <div className="mb-8">
@@ -431,14 +443,14 @@ export function AdminAccountCreateMigrationPage() {
                   <div className="flex gap-2">
                     <div className="relative flex-grow">
                       <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">search</span>
-                      <input aria-label="기관명 또는 사업자등록번호 입력" className="w-full h-12 pl-11 pr-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" id="modal-search" placeholder="기관명 또는 사업자등록번호를 입력하세요" value={companyKeyword} onChange={(e) => setCompanyKeyword(e.target.value)} />
+                      <AdminInput aria-label="기관명 또는 사업자등록번호 입력" className="pl-11 pr-4" id="modal-search" placeholder="기관명 또는 사업자등록번호를 입력하세요" value={companyKeyword} onChange={(e) => setCompanyKeyword(e.target.value)} />
                     </div>
                     <MemberButton onClick={() => handleCompanySearch(1)} type="button" variant="primary">{ADMIN_BUTTON_LABELS.search}</MemberButton>
                   </div>
                 </div>
               </div>
               <div className="border border-[var(--kr-gov-border-light)] rounded-lg overflow-hidden mb-4">
-                <table className="w-full text-sm text-left">
+                <AdminTable>
                   <thead className="bg-[var(--kr-gov-bg-gray)] border-b border-[var(--kr-gov-border-light)] text-[var(--kr-gov-text-primary)]">
                     <tr>
                       <th className="px-4 py-3 font-bold text-center w-12" scope="col">No</th>
@@ -467,18 +479,19 @@ export function AdminAccountCreateMigrationPage() {
                       ))
                     )}
                   </tbody>
-                </table>
+                </AdminTable>
               </div>
               <nav aria-label="검색 결과 페이지" className={`${(companySearch?.totalPages || 0) > 1 ? "flex" : "hidden"} justify-center items-center gap-1 my-4`}>
                 {Array.from({ length: Number(companySearch?.totalPages || 0) }, (_, idx) => idx + 1).map((pageIndex) => (
-                  <button
+                  <MemberButton
                     className={`min-w-[36px] h-9 rounded border px-3 ${pageIndex === Number(companySearch?.page || 1) ? "border-[var(--kr-gov-blue)] bg-[var(--kr-gov-blue)] text-white" : "border-[var(--kr-gov-border-light)] bg-white text-[var(--kr-gov-text-secondary)]"}`}
                     key={pageIndex}
                     onClick={() => handleCompanySearch(pageIndex)}
+                    variant="ghost"
                     type="button"
                   >
                     {pageIndex}
-                  </button>
+                  </MemberButton>
                 ))}
               </nav>
               <div className="bg-gray-50 border-t border-b border-gray-200 p-4 rounded-md">

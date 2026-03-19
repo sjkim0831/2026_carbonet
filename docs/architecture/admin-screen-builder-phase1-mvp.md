@@ -31,6 +31,12 @@ An operator can:
 - list/detail/review templates
 - authority auto-generation beyond existing menu/feature chain
 
+This document started from `EditPage` only. The current implementation already extends beyond that in three areas:
+
+- publish/runtime snapshot path
+- DB-backed component registry governance
+- component usage lookup and replacement mapping
+
 ## Recommended First Template
 
 `EditPage`
@@ -41,6 +47,18 @@ Reason:
 - easier than table-heavy list builder
 - simpler event model
 - good proof for property panel and submit wiring
+
+## Current Pilot Extension
+
+The next practical pilot is `ListPage` for `/admin/member/list`.
+
+Required reusable blocks:
+
+- search form block
+- table block
+- pagination block
+- top action toolbar
+- row action button group
 
 ## Approved Components for Phase 1
 
@@ -62,6 +80,11 @@ Content nodes:
 - `button`
 
 No tables, tabs, modal, upload, chart in Phase 1.
+
+For the member-list pilot, extend Phase 1 enough to allow:
+
+- `table`
+- `pagination`
 
 ## Approved Actions for Phase 1
 
@@ -141,6 +164,21 @@ Extend environment-management page data with:
 
 Do not store builder schema inside existing menu tables.
 
+### 6. Component registry governance
+
+Use these existing tables first:
+
+1. `UI_COMPONENT_REGISTRY`
+2. `UI_PAGE_COMPONENT_MAP`
+
+Required API additions:
+
+- component registry list
+- component usage list
+- component update
+- component delete-if-unused
+- component usage remap
+
 ## Frontend Implementation Units
 
 ### 1. New feature folder
@@ -158,6 +196,21 @@ Minimum set:
 - `screenBuilderProperties.tsx`
 - `screenBuilderPreview.tsx`
 - `screenBuilderState.ts`
+
+Additional management surface:
+
+- registry inventory with type combo filter
+- selected component edit panel
+- selected component usage table
+- replacement/remap action flow
+
+Primitive standardization follow-up:
+
+- add one shared primitive file for `button/link/input/select/textarea/table/pagination/checkbox/radio`
+- keep admin and home/join wrappers as presentation adapters over the same primitive base
+- use the primitive names as the primary regex catalog target so screen-builder inventory stays predictable
+- add an explicit audit command for remaining raw tags and legacy class names
+- standardize canonical class tokens and wrapper depth so design drift can be detected quickly
 
 ### 3. Shared/admin-ui dependencies
 
@@ -186,6 +239,7 @@ Preview behavior:
 - reject unknown node types visibly
 - reject unsupported actions visibly
 - do not silently degrade
+- block published runtime when component registry references are missing or deprecated
 
 ## Builder State Shape
 
@@ -240,6 +294,8 @@ Add fields and actions:
 - builder-managed badge
 - open builder action
 - builder draft status
+- registry issue status
+- publish readiness status
 
 ### Function/Authority
 
@@ -258,6 +314,12 @@ Continue to rely on:
 - add SQL schema draft
 - create mapper and VO contract
 
+### Step 1.5
+
+- move component registry to DB-backed governance
+- import legacy file-backed registry rows
+- add usage lookup and remap APIs
+
 ### Step 2
 
 - create page-data API
@@ -274,6 +336,12 @@ Continue to rely on:
 ### Step 5
 
 - connect environment-management launch/linkage
+
+### Step 6
+
+- add `ListPage` preset for `/admin/member/list`
+- support `table` and `pagination` preview blocks
+- prove query/list/pagination structure can start from builder draft
 
 ## Suggested Work Breakdown
 

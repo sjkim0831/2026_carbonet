@@ -15,6 +15,7 @@ import java.util.Map;
 public class AdminApprovalPagePayloadService {
 
     private final ObjectProvider<AdminMainController> adminMainControllerProvider;
+    private final AdminAuthorityPagePayloadSupport authorityPagePayloadSupport;
 
     private AdminMainController adminMainController() {
         return adminMainControllerProvider.getObject();
@@ -46,8 +47,8 @@ public class AdminApprovalPagePayloadService {
         Map<String, Object> response = new LinkedHashMap<>();
         response.putAll(model);
         String currentUserId = controller.extractCurrentUserId(request);
-        String currentUserAuthorCode = controller.resolveCurrentUserAuthorCode(currentUserId);
-        boolean canManage = controller.hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode);
+        String currentUserAuthorCode = authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
+        boolean canManage = authorityPagePayloadSupport.hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode);
         response.put("canViewMemberApprove", canManage);
         response.put("canUseMemberApproveAction", canManage);
         return response;
@@ -77,8 +78,8 @@ public class AdminApprovalPagePayloadService {
         Map<String, Object> response = new LinkedHashMap<>();
         response.putAll(model);
         String currentUserId = controller.extractCurrentUserId(request);
-        String currentUserAuthorCode = controller.resolveCurrentUserAuthorCode(currentUserId);
-        boolean canManage = controller.hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode);
+        String currentUserAuthorCode = authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
+        boolean canManage = authorityPagePayloadSupport.hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode);
         response.put("canViewCompanyApprove", canManage);
         response.put("canUseCompanyApproveAction", canManage);
         return response;

@@ -26,6 +26,7 @@ Read only what you need:
 - menu integration for generated pages
 - schema versioning, publish, preview, rollback
 - builder-backed page templates such as list/detail/edit/review
+- DB-backed component registry governance, usage lookup, and replacement mapping
 
 ## Default Scope Rules
 
@@ -42,6 +43,13 @@ Do not jump straight to “build every screen”. Start from the narrowest viabl
 - detail
 - edit
 - review
+
+When standardization is the goal, prefer this order:
+
+1. DB-backed component registry
+2. usage lookup and delete/remap controls
+3. one pilot page such as `/admin/member/list`
+4. then wider member/admin page migration
 
 ## Workflow
 
@@ -85,6 +93,51 @@ Do not jump straight to “build every screen”. Start from the narrowest viabl
    - authoring UI
    - menu/environment integration
    - audit and publish history
+   - component registry governance
+   - pilot page preset
+
+## Registry Rules
+
+- Use `UI_COMPONENT_REGISTRY` and `UI_PAGE_COMPONENT_MAP` as the first storage layer when possible.
+- File-backed registry rows may exist temporarily, but import them into DB and continue from DB.
+- Never allow delete while a component is still used by manifest pages, builder drafts, or published builder snapshots.
+- Support replacement mapping before delete.
+
+## Primitive Standardization Rules
+
+- Prefer one shared primitive layer for reusable UI atoms before creating admin-only or home/join-only wrappers.
+- Keep route-group wrappers thin:
+  - admin/member wrappers may set labels, layout slots, or policy defaults
+  - home/join wrappers may set visual tone or accessibility defaults
+  - but both should render the same primitive where possible
+- Standardize detection around primitive names first. For regex-based cataloging, prefer explicit JSX tags such as:
+  - `AppButton`
+  - `AppLinkButton`
+  - `AppPermissionButton`
+  - `AppInput`
+  - `AppSelect`
+  - `AppTextarea`
+  - `AppTable`
+  - `AppPagination`
+  - `AppCheckbox`
+  - `AppRadio`
+- Avoid mixing many raw `button`, `a`, `input`, `select`, `textarea`, `table` patterns once a primitive exists.
+- When exact visual parity is needed across admin and home/join, add variant props to the primitive rather than cloning a new component.
+- Keep DOM depth and base class tokens predictable so differences are easy to diff:
+  - prefer one primitive wrapper element per atom
+  - preserve canonical classes such as `app-btn`, `app-field`, `app-table`, `app-choice`
+  - keep admin/member and home/join wrappers thin re-exports or prop adapters
+- Maintain a repeatable audit:
+  - run `npm run audit:component-standardization`
+  - reduce remaining raw tags and legacy class names from the top hotspot files first
+
+## Pilot Rules
+
+For “can this rebuild member management pages?” requests:
+
+- answer with staged adoption, not one-shot replacement
+- start from `/admin/member/list`
+- require reusable search form, table, pagination, and row action blocks before claiming broader coverage
 
 ## Delivery Rules
 

@@ -1,9 +1,13 @@
 package egovframework.com.feature.admin.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import egovframework.com.common.mapper.ObservabilityMapper;
+import egovframework.com.common.trace.UiComponentRegistryVO;
+import egovframework.com.common.trace.UiComponentUsageVO;
 import egovframework.com.feature.admin.dto.response.MenuInfoDTO;
 import egovframework.com.feature.admin.model.ScreenBuilderComponentRegistryItemVO;
 import egovframework.com.feature.admin.model.ScreenBuilderComponentRegistrySaveRequestVO;
+import egovframework.com.feature.admin.model.ScreenBuilderComponentUsageVO;
 import egovframework.com.feature.admin.model.ScreenBuilderComponentRegistryUpdateRequestVO;
 import egovframework.com.feature.admin.model.ScreenBuilderDraftDocumentVO;
 import egovframework.com.feature.admin.model.ScreenBuilderEventBindingVO;
@@ -17,6 +21,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -49,11 +54,14 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
             palette("textarea", "Textarea", "긴 입력", "Multi-line text input"),
             palette("select", "Select", "선택", "Option selector"),
             palette("checkbox", "Checkbox", "체크박스", "Boolean toggle"),
-            palette("button", "Button", "버튼", "Submit or utility button")
+            palette("button", "Button", "버튼", "Submit or utility button"),
+            palette("table", "Table", "테이블", "List or grid result block"),
+            palette("pagination", "Pagination", "페이지네이션", "Paged list navigation")
     );
 
     private final ObjectMapper objectMapper;
     private final MenuInfoService menuInfoService;
+    private final ObservabilityMapper observabilityMapper;
 
     @Override
     public Map<String, Object> getPagePayload(String menuCode, String pageId, String menuTitle, String menuUrl, boolean isEn) throws Exception {
@@ -70,6 +78,12 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
         payload.put("templateType", safe(draft.getTemplateType().isEmpty() ? DEFAULT_TEMPLATE_TYPE : draft.getTemplateType()));
         payload.put("componentPalette", COMPONENT_PALETTE);
         payload.put("componentRegistry", getComponentRegistry(isEn));
+        payload.put("componentTypeOptions", getComponentRegistry(isEn).stream()
+                .map(ScreenBuilderComponentRegistryItemVO::getComponentType)
+                .filter(value -> !safe(value).isEmpty())
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList()));
         payload.put("registryDiagnostics", getRegistryDiagnostics(draft, isEn));
         payload.put("nodes", draft.getNodes());
         payload.put("events", draft.getEvents());
@@ -289,8 +303,7 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
         item.setPropsTemplate(request == null || request.getPropsTemplate() == null
                 ? new LinkedHashMap<>()
                 : new LinkedHashMap<>(request.getPropsTemplate()));
-        items.add(item);
-        writeComponentRegistry(items);
+        upsertComponentRegistryItem(item);
         return item;
     }
 
@@ -301,21 +314,112 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
             throw new IllegalArgumentException("componentId is required");
         }
         List<ScreenBuilderComponentRegistryItemVO> items = readComponentRegistry(isEn);
-        ScreenBuilderComponentRegistryItemVO matched = null;
-        for (ScreenBuilderComponentRegistryItemVO item : items) {
-            if (componentId.equalsIgnoreCase(safe(item.getComponentId()))) {
-                matched = item;
-                break;
-            }
-        }
+        ScreenBuilderComponentRegistryItemVO matched = findRegistryItem(items, componentId);
         if (matched == null) {
             throw new IllegalArgumentException(isEn ? "Component does not exist." : "컴포넌트를 찾을 수 없습니다.");
         }
+        matched.setComponentType(firstNonBlank(request == null ? "" : request.getComponentType(), matched.getComponentType()));
+        matched.setLabel(firstNonBlank(request == null ? "" : request.getLabel(), matched.getLabel()));
+        matched.setLabelEn(firstNonBlank(request == null ? "" : request.getLabelEn(), matched.getLabelEn()));
+        matched.setDescription(firstNonBlank(request == null ? "" : request.getDescription(), matched.getDescription()));
         matched.setStatus(firstNonBlank(request == null ? "" : request.getStatus(), matched.getStatus(), ACTIVE_STATUS));
         matched.setReplacementComponentId(safe(request == null ? null : request.getReplacementComponentId()));
+        if (request != null && request.getPropsTemplate() != null) {
+            matched.setPropsTemplate(new LinkedHashMap<>(request.getPropsTemplate()));
+        }
         matched.setUpdatedAt(LocalDateTime.now().format(TIMESTAMP_FORMAT));
-        writeComponentRegistry(items);
+        upsertComponentRegistryItem(matched);
         return matched;
+    }
+
+    @Override
+    public List<ScreenBuilderComponentUsageVO> getComponentRegistryUsage(String componentId, boolean isEn) throws Exception {
+        String normalizedComponentId = safe(componentId);
+        List<ScreenBuilderComponentUsageVO> usages = new ArrayList<>();
+        if (normalizedComponentId.isEmpty()) {
+            return usages;
+        }
+        for (UiComponentUsageVO usage : observabilityMapper.selectUiComponentUsageList(normalizedComponentId)) {
+            ScreenBuilderComponentUsageVO row = new ScreenBuilderComponentUsageVO();
+            row.setUsageSource("MANIFEST");
+            row.setUsageStatus("ACTIVE");
+            row.setMenuCode(safe(usage.getMenuCode()));
+            row.setPageId(safe(usage.getPageId()));
+            row.setMenuTitle(firstNonBlank(usage.getPageName(), usage.getPageId()));
+            row.setMenuUrl(safe(usage.getRoutePath()));
+            row.setLayoutZone(safe(usage.getLayoutZone()));
+            row.setInstanceKey(safe(usage.getInstanceKey()));
+            row.setComponentId(normalizedComponentId);
+            usages.add(row);
+        }
+        usages.addAll(scanBuilderDraftUsage(normalizedComponentId, false));
+        usages.addAll(scanBuilderDraftUsage(normalizedComponentId, true));
+        usages.sort(Comparator.comparing(ScreenBuilderComponentUsageVO::getUsageSource, Comparator.nullsLast(String::compareTo))
+                .thenComparing(ScreenBuilderComponentUsageVO::getMenuCode, Comparator.nullsLast(String::compareTo))
+                .thenComparing(ScreenBuilderComponentUsageVO::getPageId, Comparator.nullsLast(String::compareTo))
+                .thenComparing(ScreenBuilderComponentUsageVO::getNodeId, Comparator.nullsLast(String::compareTo)));
+        return usages;
+    }
+
+    @Override
+    public Map<String, Object> replaceComponentRegistryUsage(String fromComponentId, String toComponentId, boolean isEn) throws Exception {
+        String normalizedFromComponentId = safe(fromComponentId);
+        String normalizedToComponentId = safe(toComponentId);
+        if (normalizedFromComponentId.isEmpty() || normalizedToComponentId.isEmpty()) {
+            throw new IllegalArgumentException(isEn ? "Both source and replacement componentId are required." : "기존/대체 componentId는 모두 필요합니다.");
+        }
+        if (normalizedFromComponentId.equalsIgnoreCase(normalizedToComponentId)) {
+            throw new IllegalArgumentException(isEn ? "Replacement component must be different." : "대체 컴포넌트는 달라야 합니다.");
+        }
+        List<ScreenBuilderComponentRegistryItemVO> registry = getComponentRegistry(isEn);
+        ScreenBuilderComponentRegistryItemVO fromItem = findRegistryItem(registry, normalizedFromComponentId);
+        ScreenBuilderComponentRegistryItemVO toItem = findRegistryItem(registry, normalizedToComponentId);
+        if (fromItem == null || toItem == null) {
+            throw new IllegalArgumentException(isEn ? "Selected component does not exist in registry." : "선택한 컴포넌트가 레지스트리에 없습니다.");
+        }
+        Map<String, String> mapPayload = new LinkedHashMap<>();
+        mapPayload.put("fromComponentId", normalizedFromComponentId);
+        mapPayload.put("toComponentId", normalizedToComponentId);
+        observabilityMapper.updateUiPageComponentMapComponentId(mapPayload);
+
+        int updatedDraftCount = replaceComponentIdAcrossDrafts(normalizedFromComponentId, normalizedToComponentId, false);
+        int updatedPublishedCount = 0;
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("success", true);
+        response.put("fromComponentId", normalizedFromComponentId);
+        response.put("toComponentId", normalizedToComponentId);
+        response.put("updatedDraftCount", updatedDraftCount);
+        response.put("updatedPublishedCount", updatedPublishedCount);
+        response.put("message", isEn ? "Component usages remapped." : "컴포넌트 사용처를 재매핑했습니다.");
+        return response;
+    }
+
+    @Override
+    public Map<String, Object> deleteComponentRegistryItem(String componentId, boolean isEn) throws Exception {
+        String normalizedComponentId = safe(componentId);
+        if (normalizedComponentId.isEmpty()) {
+            throw new IllegalArgumentException("componentId is required");
+        }
+        List<ScreenBuilderComponentRegistryItemVO> registry = getComponentRegistry(isEn);
+        ScreenBuilderComponentRegistryItemVO item = findRegistryItem(registry, normalizedComponentId);
+        if (item == null) {
+            throw new IllegalArgumentException(isEn ? "Component does not exist." : "컴포넌트를 찾을 수 없습니다.");
+        }
+        if ("SYSTEM".equalsIgnoreCase(safe(item.getSourceType()))) {
+            throw new IllegalArgumentException(isEn ? "System components cannot be deleted." : "시스템 컴포넌트는 삭제할 수 없습니다.");
+        }
+        List<ScreenBuilderComponentUsageVO> usages = getComponentRegistryUsage(normalizedComponentId, isEn);
+        if (!usages.isEmpty()) {
+            throw new IllegalArgumentException(isEn
+                    ? String.format("Component is still used by %d screens. Remap usages first.", usages.size())
+                    : String.format("이 컴포넌트는 아직 %d개 화면에서 사용 중입니다. 먼저 사용처를 재매핑하세요.", usages.size()));
+        }
+        observabilityMapper.deleteUiComponentRegistry(normalizedComponentId);
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("success", true);
+        response.put("componentId", normalizedComponentId);
+        response.put("message", isEn ? "Component deleted from registry." : "레지스트리에서 컴포넌트를 삭제했습니다.");
+        return response;
     }
 
     @Override
@@ -549,7 +653,7 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
 
     private List<ScreenBuilderNodeVO> normalizeNodes(List<ScreenBuilderNodeVO> source) {
         if (source == null || source.isEmpty()) {
-            return createDefaultNodes();
+            return createEditPageNodes("Edit Page");
         }
         List<ScreenBuilderNodeVO> nodes = new ArrayList<>();
         int index = 0;
@@ -596,20 +700,43 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
         draft.setMenuCode(safe(menuCode));
         draft.setMenuTitle(firstNonBlank(menuTitle, menu == null ? "" : menu.getCodeNm()));
         draft.setMenuUrl(firstNonBlank(menuUrl, menu == null ? "" : menu.getMenuUrl()));
-        draft.setTemplateType(DEFAULT_TEMPLATE_TYPE);
+        draft.setTemplateType(resolveDefaultTemplateType(draft.getPageId(), draft.getMenuUrl()));
         draft.setVersionStatus("DRAFT");
-        draft.setNodes(createDefaultNodes());
+        draft.setNodes(createDefaultNodes(draft.getTemplateType(), draft.getPageId(), draft.getMenuTitle()));
         draft.setEvents(new ArrayList<>());
         return draft;
     }
 
-    private List<ScreenBuilderNodeVO> createDefaultNodes() {
+    private List<ScreenBuilderNodeVO> createDefaultNodes(String templateType, String pageId, String menuTitle) {
+        if ("LIST_PAGE".equalsIgnoreCase(safe(templateType)) || isListPageCandidate(pageId)) {
+            return createListPageNodes(menuTitle);
+        }
+        return createEditPageNodes(menuTitle);
+    }
+
+    private List<ScreenBuilderNodeVO> createEditPageNodes(String menuTitle) {
         List<ScreenBuilderNodeVO> nodes = new ArrayList<>();
-        nodes.add(node("root", "", "page", "root", 0, mapOf("title", "Edit Page")));
+        nodes.add(node("root", "", "page", "root", 0, mapOf("title", firstNonBlank(menuTitle, "Edit Page"))));
         nodes.add(node("section-1", "root", "section", "content", 1, mapOf("title", "기본 섹션")));
         nodes.add(node("heading-1", "section-1", "heading", "content", 2, mapOf("text", "기본 정보")));
         nodes.add(node("input-1", "section-1", "input", "content", 3, mapOf("label", "필드명", "placeholder", "값 입력")));
         nodes.add(node("button-1", "section-1", "button", "actions", 4, mapOf("label", "저장", "variant", "primary")));
+        return nodes;
+    }
+
+    private List<ScreenBuilderNodeVO> createListPageNodes(String menuTitle) {
+        List<ScreenBuilderNodeVO> nodes = new ArrayList<>();
+        nodes.add(node("root", "", "page", "root", 0, mapOf("title", firstNonBlank(menuTitle, "List Page"))));
+        nodes.add(node("search-section", "root", "section", "content", 1, mapOf("title", "검색 조건")));
+        nodes.add(node("search-heading", "search-section", "heading", "content", 2, mapOf("text", "회원 검색")));
+        nodes.add(node("search-type", "search-section", "select", "content", 3, mapOf("label", "회원 유형", "placeholder", "회원 유형 선택")));
+        nodes.add(node("search-status", "search-section", "select", "content", 4, mapOf("label", "상태", "placeholder", "상태 선택")));
+        nodes.add(node("search-keyword", "search-section", "input", "content", 5, mapOf("label", "검색어", "placeholder", "신청자명, 아이디, 회사명 검색")));
+        nodes.add(node("search-button", "search-section", "button", "actions", 6, mapOf("label", "검색", "variant", "primary")));
+        nodes.add(node("toolbar-section", "root", "section", "content", 7, mapOf("title", "목록 액션")));
+        nodes.add(node("toolbar-text", "toolbar-section", "text", "content", 8, mapOf("text", "총 건수, 엑셀 다운로드, 신규 등록 액션")));
+        nodes.add(node("result-table", "root", "table", "content", 9, mapOf("title", "회원 목록", "columns", "번호|성명 (아이디)|회원 유형|소속 기관|가입일|상태|관리", "emptyText", "조회된 회원이 없습니다.")));
+        nodes.add(node("result-pagination", "root", "pagination", "actions", 10, mapOf("summary", "페이지 이동 영역")));
         return nodes;
     }
 
@@ -640,6 +767,18 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
             map.put(String.valueOf(values[index]), values[index + 1]);
         }
         return map;
+    }
+
+    private String resolveDefaultTemplateType(String pageId, String menuUrl) {
+        if (isListPageCandidate(pageId) || safe(menuUrl).endsWith("/list")) {
+            return "LIST_PAGE";
+        }
+        return DEFAULT_TEMPLATE_TYPE;
+    }
+
+    private boolean isListPageCandidate(String pageId) {
+        String normalized = safe(pageId).toLowerCase(Locale.ROOT);
+        return normalized.endsWith("list") || normalized.contains("member-list") || normalized.contains("company-list");
     }
 
     private MenuInfoDTO findMenu(String menuCode) throws Exception {
@@ -681,43 +820,14 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
         return Paths.get("data", "screen-builder", "history", safe(menuCode));
     }
 
-    private Path resolveComponentRegistryPath() {
-        return Paths.get("data", "screen-builder", "component-registry.json");
-    }
-
     private List<ScreenBuilderComponentRegistryItemVO> readComponentRegistry(boolean isEn) throws Exception {
-        Map<String, ScreenBuilderComponentRegistryItemVO> merged = new LinkedHashMap<>();
-        for (ScreenBuilderComponentRegistryItemVO item : createDefaultComponentRegistry(isEn)) {
-            merged.put(safe(item.getComponentId()), item);
-        }
-        Path path = resolveComponentRegistryPath();
-        if (!Files.exists(path)) {
-            return new ArrayList<>(merged.values());
-        }
-        try (InputStream inputStream = Files.newInputStream(path)) {
-            ScreenBuilderComponentRegistryItemVO[] rows = objectMapper.readValue(inputStream, ScreenBuilderComponentRegistryItemVO[].class);
-            if (rows != null) {
-                for (ScreenBuilderComponentRegistryItemVO row : rows) {
-                    if (row == null || safe(row.getComponentId()).isEmpty()) {
-                        continue;
-                    }
-                    if (safe(row.getStatus()).isEmpty()) {
-                        row.setStatus(ACTIVE_STATUS);
-                    }
-                    merged.put(safe(row.getComponentId()), row);
-                }
-            }
-        }
-        return merged.values().stream()
+        seedDefaultRegistryItems(isEn);
+        importLegacyComponentRegistryIfPresent(isEn);
+        return observabilityMapper.selectUiComponentRegistryList().stream()
+                .map(this::mapRegistryRow)
                 .sorted(Comparator.comparing(ScreenBuilderComponentRegistryItemVO::getSourceType, Comparator.nullsLast(String::compareTo))
                         .thenComparing(ScreenBuilderComponentRegistryItemVO::getComponentId, Comparator.nullsLast(String::compareTo)))
                 .collect(Collectors.toList());
-    }
-
-    private void writeComponentRegistry(List<ScreenBuilderComponentRegistryItemVO> items) throws IOException {
-        Path path = resolveComponentRegistryPath();
-        Files.createDirectories(path.getParent());
-        objectMapper.writerWithDefaultPrettyPrinter().writeValue(path.toFile(), items);
     }
 
     private boolean containsComponentId(List<ScreenBuilderComponentRegistryItemVO> items, String componentId) {
@@ -748,6 +858,8 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
         rows.add(defaultRegistryItem("core.select", "select", isEn ? "Select" : "선택", "Selectable option input", mapOf("label", isEn ? "Select" : "선택", "placeholder", isEn ? "Choose one" : "옵션 선택")));
         rows.add(defaultRegistryItem("core.checkbox", "checkbox", isEn ? "Checkbox" : "체크박스", "Boolean agreement field", mapOf("label", isEn ? "Checkbox" : "체크박스", "required", false)));
         rows.add(defaultRegistryItem("core.button", "button", isEn ? "Button" : "버튼", "Action button", mapOf("label", isEn ? "Submit" : "저장", "variant", "primary")));
+        rows.add(defaultRegistryItem("core.table", "table", isEn ? "Table" : "테이블", "List result block", mapOf("title", isEn ? "Result Table" : "목록 테이블", "columns", isEn ? "No.|Name|Type|Company|Joined|Status|Actions" : "번호|성명|회원 유형|소속 기관|가입일|상태|관리", "emptyText", isEn ? "No rows found." : "조회된 데이터가 없습니다.")));
+        rows.add(defaultRegistryItem("core.pagination", "pagination", isEn ? "Pagination" : "페이지네이션", "Paged result navigator", mapOf("summary", isEn ? "Page 1 of 1" : "1 / 1 페이지")));
         return rows;
     }
 
@@ -764,6 +876,234 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
         item.setUpdatedAt("SYSTEM");
         item.setPropsTemplate(propsTemplate == null ? new LinkedHashMap<>() : new LinkedHashMap<>(propsTemplate));
         return item;
+    }
+
+    private ScreenBuilderComponentRegistryItemVO findRegistryItem(List<ScreenBuilderComponentRegistryItemVO> items, String componentId) {
+        for (ScreenBuilderComponentRegistryItemVO item : items) {
+            if (safe(componentId).equalsIgnoreCase(safe(item.getComponentId()))) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    private void seedDefaultRegistryItems(boolean isEn) throws Exception {
+        for (ScreenBuilderComponentRegistryItemVO item : createDefaultComponentRegistry(isEn)) {
+            if (observabilityMapper.countUiComponentRegistry(item.getComponentId()) > 0) {
+                continue;
+            }
+            upsertComponentRegistryItem(item);
+        }
+    }
+
+    private void importLegacyComponentRegistryIfPresent(boolean isEn) throws Exception {
+        Path path = Paths.get("data", "screen-builder", "component-registry.json");
+        if (!Files.exists(path)) {
+            return;
+        }
+        try (InputStream inputStream = Files.newInputStream(path)) {
+            ScreenBuilderComponentRegistryItemVO[] rows = objectMapper.readValue(inputStream, ScreenBuilderComponentRegistryItemVO[].class);
+            if (rows == null) {
+                return;
+            }
+            for (ScreenBuilderComponentRegistryItemVO row : rows) {
+                if (row == null || safe(row.getComponentId()).isEmpty()) {
+                    continue;
+                }
+                if (observabilityMapper.countUiComponentRegistry(row.getComponentId()) > 0) {
+                    continue;
+                }
+                if (safe(row.getStatus()).isEmpty()) {
+                    row.setStatus(ACTIVE_STATUS);
+                }
+                if (safe(row.getSourceType()).isEmpty()) {
+                    row.setSourceType("CUSTOM");
+                }
+                upsertComponentRegistryItem(row);
+            }
+        }
+    }
+
+    private void upsertComponentRegistryItem(ScreenBuilderComponentRegistryItemVO item) throws Exception {
+        UiComponentRegistryVO row = new UiComponentRegistryVO();
+        row.setComponentId(safe(item.getComponentId()));
+        row.setComponentName(firstNonBlank(item.getLabel(), item.getComponentId()));
+        row.setComponentType(firstNonBlank(item.getComponentType(), "button"));
+        row.setOwnerDomain(firstNonBlank(item.getSourceType(), "CUSTOM"));
+        row.setPropsSchemaJson(buildRegistryMetadataJson(item));
+        row.setDesignReference(safe(item.getDescription()));
+        row.setActiveYn("INACTIVE".equalsIgnoreCase(safe(item.getStatus())) ? "N" : "Y");
+        if (observabilityMapper.countUiComponentRegistry(row.getComponentId()) > 0) {
+            observabilityMapper.updateUiComponentRegistry(row);
+        } else {
+            observabilityMapper.insertUiComponentRegistry(row);
+        }
+    }
+
+    private String buildRegistryMetadataJson(ScreenBuilderComponentRegistryItemVO item) throws Exception {
+        Map<String, Object> metadata = new LinkedHashMap<>();
+        metadata.put("propsTemplate", item.getPropsTemplate() == null ? new LinkedHashMap<>() : new LinkedHashMap<>(item.getPropsTemplate()));
+        metadata.put("labelEn", safe(item.getLabelEn()));
+        metadata.put("description", safe(item.getDescription()));
+        metadata.put("status", firstNonBlank(item.getStatus(), ACTIVE_STATUS));
+        metadata.put("replacementComponentId", safe(item.getReplacementComponentId()));
+        metadata.put("sourceType", firstNonBlank(item.getSourceType(), "CUSTOM"));
+        return objectMapper.writeValueAsString(metadata);
+    }
+
+    private ScreenBuilderComponentRegistryItemVO mapRegistryRow(UiComponentRegistryVO row) {
+        ScreenBuilderComponentRegistryItemVO item = new ScreenBuilderComponentRegistryItemVO();
+        item.setComponentId(safe(row.getComponentId()));
+        item.setComponentType(safe(row.getComponentType()));
+        item.setLabel(firstNonBlank(row.getComponentName(), row.getComponentId()));
+        item.setLabelEn("");
+        item.setDescription(safe(row.getDesignReference()));
+        item.setStatus("Y".equalsIgnoreCase(safe(row.getActiveYn())) ? ACTIVE_STATUS : "INACTIVE");
+        item.setReplacementComponentId("");
+        item.setSourceType(firstNonBlank(row.getOwnerDomain(), "CUSTOM"));
+        item.setCreatedAt(safe(row.getCreatedAt()));
+        item.setUpdatedAt(safe(row.getUpdatedAt()));
+        item.setPropsTemplate(new LinkedHashMap<>());
+        Map<String, Object> metadata = parseRegistryMetadata(row.getPropsSchemaJson());
+        item.setLabelEn(safe(asString(metadata.get("labelEn"))));
+        item.setDescription(firstNonBlank(asString(metadata.get("description")), item.getDescription()));
+        item.setStatus(firstNonBlank(asString(metadata.get("status")), item.getStatus()));
+        item.setReplacementComponentId(safe(asString(metadata.get("replacementComponentId"))));
+        item.setSourceType(firstNonBlank(asString(metadata.get("sourceType")), item.getSourceType()));
+        Object propsTemplate = metadata.get("propsTemplate");
+        if (propsTemplate instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> casted = new LinkedHashMap<>((Map<String, Object>) propsTemplate);
+            item.setPropsTemplate(casted);
+        }
+        item.setUsageCount(getComponentUsageCount(item.getComponentId()));
+        return item;
+    }
+
+    private Map<String, Object> parseRegistryMetadata(String json) {
+        String normalized = safe(json);
+        if (normalized.isEmpty()) {
+            return new LinkedHashMap<>();
+        }
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> metadata = objectMapper.readValue(normalized.getBytes(StandardCharsets.UTF_8), LinkedHashMap.class);
+            return metadata == null ? new LinkedHashMap<>() : metadata;
+        } catch (IOException ignored) {
+            return new LinkedHashMap<>();
+        }
+    }
+
+    private int getComponentUsageCount(String componentId) {
+        try {
+            return observabilityMapper.selectUiComponentUsageList(componentId).size()
+                    + scanBuilderDraftUsage(componentId, false).size()
+                    + scanBuilderDraftUsage(componentId, true).size();
+        } catch (Exception ignored) {
+            return 0;
+        }
+    }
+
+    private List<ScreenBuilderComponentUsageVO> scanBuilderDraftUsage(String componentId, boolean publishedOnly) throws Exception {
+        List<ScreenBuilderComponentUsageVO> usages = new ArrayList<>();
+        Path draftRoot = Paths.get("data", "screen-builder");
+        if (!Files.exists(draftRoot)) {
+            return usages;
+        }
+        if (publishedOnly) {
+            Path historyRoot = draftRoot.resolve("history");
+            if (!Files.exists(historyRoot)) {
+                return usages;
+            }
+            try (Stream<Path> menuDirs = Files.list(historyRoot)) {
+                for (Path menuDir : menuDirs.filter(Files::isDirectory).collect(Collectors.toList())) {
+                    ScreenBuilderDraftDocumentVO published = getLatestPublishedDraft(menuDir.getFileName().toString());
+                    if (published != null) {
+                        usages.addAll(collectDocumentComponentUsage(published, componentId, "PUBLISHED"));
+                    }
+                }
+            }
+            return usages;
+        }
+        try (Stream<Path> stream = Files.list(draftRoot)) {
+            for (Path file : stream.filter(Files::isRegularFile)
+                    .filter(path -> path.getFileName().toString().endsWith(".json"))
+                    .filter(path -> !"component-registry.json".equals(path.getFileName().toString()))
+                    .collect(Collectors.toList())) {
+                try (InputStream inputStream = Files.newInputStream(file)) {
+                    ScreenBuilderDraftDocumentVO draft = objectMapper.readValue(inputStream, ScreenBuilderDraftDocumentVO.class);
+                    usages.addAll(collectDocumentComponentUsage(draft, componentId, "DRAFT"));
+                }
+            }
+        }
+        return usages;
+    }
+
+    private List<ScreenBuilderComponentUsageVO> collectDocumentComponentUsage(ScreenBuilderDraftDocumentVO document, String componentId, String usageSource) {
+        List<ScreenBuilderComponentUsageVO> usages = new ArrayList<>();
+        if (document == null || document.getNodes() == null) {
+            return usages;
+        }
+        for (ScreenBuilderNodeVO node : document.getNodes()) {
+            if (!safe(componentId).equalsIgnoreCase(safe(node.getComponentId()))) {
+                continue;
+            }
+            ScreenBuilderComponentUsageVO row = new ScreenBuilderComponentUsageVO();
+            row.setUsageSource(usageSource);
+            row.setUsageStatus(firstNonBlank(document.getVersionStatus(), usageSource));
+            row.setMenuCode(safe(document.getMenuCode()));
+            row.setPageId(safe(document.getPageId()));
+            row.setMenuTitle(firstNonBlank(document.getMenuTitle(), document.getPageId()));
+            row.setMenuUrl(safe(document.getMenuUrl()));
+            row.setLayoutZone(safe(node.getSlotName()));
+            row.setInstanceKey(firstNonBlank(asString(node.getProps().get("label")), asString(node.getProps().get("title")), asString(node.getProps().get("text")), node.getNodeId()));
+            row.setNodeId(safe(node.getNodeId()));
+            row.setComponentId(safe(node.getComponentId()));
+            row.setVersionId(safe(document.getVersionId()));
+            usages.add(row);
+        }
+        return usages;
+    }
+
+    private int replaceComponentIdAcrossDrafts(String fromComponentId, String toComponentId, boolean publishedOnly) throws Exception {
+        int updatedDraftCount = 0;
+        if (publishedOnly) {
+            return 0;
+        }
+        Path draftRoot = Paths.get("data", "screen-builder");
+        if (!Files.exists(draftRoot)) {
+            return updatedDraftCount;
+        }
+        try (Stream<Path> stream = Files.list(draftRoot)) {
+            for (Path file : stream.filter(Files::isRegularFile)
+                    .filter(path -> path.getFileName().toString().endsWith(".json"))
+                    .filter(path -> !"component-registry.json".equals(path.getFileName().toString()))
+                    .collect(Collectors.toList())) {
+                boolean changed = false;
+                ScreenBuilderDraftDocumentVO draft;
+                try (InputStream inputStream = Files.newInputStream(file)) {
+                    draft = objectMapper.readValue(inputStream, ScreenBuilderDraftDocumentVO.class);
+                }
+                for (ScreenBuilderNodeVO node : draft.getNodes()) {
+                    if (safe(fromComponentId).equalsIgnoreCase(safe(node.getComponentId()))) {
+                        node.setComponentId(toComponentId);
+                        changed = true;
+                    }
+                }
+                if (changed) {
+                    draft.setVersionId(UUID.randomUUID().toString());
+                    draft.setVersionStatus("DRAFT");
+                    objectMapper.writerWithDefaultPrettyPrinter().writeValue(file.toFile(), draft);
+                    writeHistorySnapshot(draft);
+                    updatedDraftCount++;
+                }
+            }
+        }
+        return updatedDraftCount;
+    }
+
+    private String asString(Object value) {
+        return value == null ? "" : String.valueOf(value).trim();
     }
 
     private Map<String, Object> buildRegistryDiagnostics(ScreenBuilderDraftDocumentVO draft, List<ScreenBuilderComponentRegistryItemVO> registry) {

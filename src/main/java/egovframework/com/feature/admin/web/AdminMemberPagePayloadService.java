@@ -26,6 +26,7 @@ public class AdminMemberPagePayloadService {
     private final ObjectProvider<AdminMainController> adminMainControllerProvider;
     private final EnterpriseMemberService entrprsManageService;
     private final AuthorRoleProfileService authorRoleProfileService;
+    private final AdminAuthorityPagePayloadSupport authorityPagePayloadSupport;
 
     private AdminMainController adminMainController() {
         return adminMainControllerProvider.getObject();
@@ -114,8 +115,8 @@ public class AdminMemberPagePayloadService {
         ExtendedModelMap model = new ExtendedModelMap();
         controller.primeCsrfToken(request);
         String currentUserId = controller.extractCurrentUserId(request);
-        String currentUserAuthorCode = controller.resolveCurrentUserAuthorCode(currentUserId);
-        boolean canView = controller.hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode);
+        String currentUserAuthorCode = authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
+        boolean canView = authorityPagePayloadSupport.hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode);
         if (canView) {
             controller.populateCompanyList(
                     pageIndexParam,
@@ -143,10 +144,10 @@ public class AdminMemberPagePayloadService {
         AdminMainController controller = adminMainController();
         boolean isEn = controller.isEnglishRequest(request, locale);
         String currentUserId = controller.extractCurrentUserId(request);
-        String currentUserAuthorCode = controller.resolveCurrentUserAuthorCode(currentUserId);
+        String currentUserAuthorCode = authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
         ExtendedModelMap model = new ExtendedModelMap();
         controller.primeCsrfToken(request);
-        if (!controller.hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        if (!authorityPagePayloadSupport.hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
             model.addAttribute("companyDetailError", isEn ? "Only global administrators can view company details." : "회원사 상세는 전체 관리자만 조회할 수 있습니다.");
             Map<String, Object> forbiddenResponse = new LinkedHashMap<>();
             forbiddenResponse.putAll(model);
@@ -173,9 +174,9 @@ public class AdminMemberPagePayloadService {
         AdminMainController controller = adminMainController();
         boolean isEn = controller.isEnglishRequest(request, locale);
         String currentUserId = controller.extractCurrentUserId(request);
-        String currentUserAuthorCode = controller.resolveCurrentUserAuthorCode(currentUserId);
+        String currentUserAuthorCode = authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
         Map<String, Object> response = new LinkedHashMap<>();
-        if (!controller.hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        if (!authorityPagePayloadSupport.hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
             response.put("companyAccountErrors", Collections.singletonList(
                     isEn ? "Only global administrators can manage company accounts." : "회원사 관리는 전체 관리자만 처리할 수 있습니다."));
             response.put("canViewCompanyAccount", false);
@@ -264,8 +265,9 @@ public class AdminMemberPagePayloadService {
         ExtendedModelMap model = new ExtendedModelMap();
         controller.primeCsrfToken(request);
         String currentUserId = controller.extractCurrentUserId(request);
-        String currentUserAuthorCode = controller.resolveCurrentUserAuthorCode(currentUserId);
-        if (controller.requiresOwnCompanyAccess(currentUserId, currentUserAuthorCode) && controller.safeString(memberId).isEmpty()) {
+        String currentUserAuthorCode = authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
+        boolean requiresOwnCompanyAccess = authorityPagePayloadSupport.requiresOwnCompanyAccess(currentUserId, currentUserAuthorCode);
+        if (requiresOwnCompanyAccess && controller.safeString(memberId).isEmpty()) {
             model.addAttribute("passwordResetError", isEn
                     ? "Member ID is required for company-scoped administrators."
                     : "회사 범위 관리자에게는 회원 ID가 필요합니다.");
@@ -281,8 +283,7 @@ public class AdminMemberPagePayloadService {
         Map<String, Object> response = new LinkedHashMap<>();
         response.putAll(model);
         response.put("canViewResetHistory", true);
-        response.put("canUseResetPassword", !controller.requiresOwnCompanyAccess(currentUserId, currentUserAuthorCode)
-                || !controller.safeString(memberId).isEmpty());
+        response.put("canUseResetPassword", !requiresOwnCompanyAccess || !controller.safeString(memberId).isEmpty());
         return response;
     }
 

@@ -10,11 +10,10 @@ import {
   saveAuthGroupFeatures
 } from "../../lib/api/client";
 import { CanView } from "../../components/access/CanView";
-import { PermissionButton } from "../../components/access/CanUse";
 import { deriveUiPermissions } from "../../lib/auth/permissions";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
-import { GridToolbar, MemberButton } from "../admin-ui/common";
+import { AdminInput, AdminSelect, AdminTable, GridToolbar, MemberButton, MemberPermissionButton } from "../admin-ui/common";
 import { AdminAuthorityPageFrame } from "../admin-ui/pageFrames";
 
 const PINNED_AUTH_GROUPS_STORAGE_KEY = "carbonet:pinned-auth-groups";
@@ -560,7 +559,7 @@ export function AuthGroupMigrationPage() {
   function renderRecommendedTable(rows: SummaryRow[]) {
     return (
       <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left border-collapse">
+        <AdminTable>
           <thead>
             <tr className="bg-gray-50 border-y border-[var(--kr-gov-border-light)] text-[13px] font-bold text-[var(--kr-gov-text-secondary)]">
               <th className="px-4 py-3">{text(page, "Role 코드", "Role Code")}</th>
@@ -589,7 +588,7 @@ export function AuthGroupMigrationPage() {
               ))
             )}
           </tbody>
-        </table>
+        </AdminTable>
       </div>
     );
   }
@@ -650,7 +649,7 @@ export function AuthGroupMigrationPage() {
           <label className="gov-label block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] !mb-0">
             {text(page, "권한 분류", "Role category")}
           </label>
-          <select
+          <AdminSelect
             className="gov-select w-[18rem] border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
             value={roleCategory}
             onChange={(event) => {
@@ -663,13 +662,13 @@ export function AuthGroupMigrationPage() {
                 {option.name}
               </option>
             ))}
-          </select>
+          </AdminSelect>
           {(roleCategory === "DEPARTMENT" || roleCategory === "USER") && (
             <>
               <label className="block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] shrink-0 whitespace-nowrap">
                 {text(page, "회사명", "Company")}
               </label>
-              <select
+              <AdminSelect
                 className="gov-select min-w-[28rem] w-[28rem] border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
                 value={insttId}
                 onChange={(event) => setInsttId(event.target.value)}
@@ -679,7 +678,7 @@ export function AuthGroupMigrationPage() {
                     {option.cmpnyNm}
                   </option>
                 ))}
-              </select>
+              </AdminSelect>
             </>
           )}
         </div>
@@ -703,7 +702,7 @@ export function AuthGroupMigrationPage() {
               <span className="gov-label block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">
                 {text(page, "Role 코드", "Role Code")}
               </span>
-              <input
+              <AdminInput
                 className="gov-select w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
                 placeholder={
                   roleCategory === "GENERAL"
@@ -722,7 +721,7 @@ export function AuthGroupMigrationPage() {
               <span className="gov-label block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">
                 {text(page, "Role 명", "Role Name")}
               </span>
-              <input
+              <AdminInput
                 className="gov-select w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
                 placeholder={
                   roleCategory === "GENERAL"
@@ -741,7 +740,7 @@ export function AuthGroupMigrationPage() {
               <span className="gov-label block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">
                 {text(page, "설명", "Description")}
               </span>
-              <input
+              <AdminInput
                 className="gov-select w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
                 placeholder={
                   roleCategory === "GENERAL"
@@ -761,7 +760,7 @@ export function AuthGroupMigrationPage() {
                 <span className="gov-label block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">
                   {text(page, "회사 범위", "Company Scope")}
                 </span>
-                <select
+                <AdminSelect
                   className="gov-select w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
                   value={insttId}
                   onChange={(event) => setInsttId(event.target.value)}
@@ -774,7 +773,7 @@ export function AuthGroupMigrationPage() {
                       {option.cmpnyNm}
                     </option>
                   ))}
-                </select>
+                </AdminSelect>
                 <p className="mt-2 text-xs text-[var(--kr-gov-text-secondary)]">
                   {page?.isWebmaster
                     ? text(
@@ -791,7 +790,7 @@ export function AuthGroupMigrationPage() {
               </label>
             )}
             <div className="md:col-span-4 flex justify-end">
-              <PermissionButton
+              <MemberPermissionButton
                 allowed={
                   roleCategory === "GENERAL"
                     ? permissions.canUseGeneralAuthGroupCreate
@@ -806,7 +805,7 @@ export function AuthGroupMigrationPage() {
                 type="submit"
               >
                 {createButtonLabel()}
-              </PermissionButton>
+              </MemberPermissionButton>
             </div>
           </form>
         </section>
@@ -952,7 +951,7 @@ export function AuthGroupMigrationPage() {
             <h3 className="text-lg font-bold">{text(page, "부서 권한 그룹", "Department Authority Groups")}</h3>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left border-collapse">
+            <AdminTable>
               <thead>
                 <tr className="bg-gray-50 border-y border-[var(--kr-gov-border-light)] text-[13px] font-bold text-[var(--kr-gov-text-secondary)]">
                   <th className="px-4 py-3">{text(page, "회사명", "Company")}</th>
@@ -986,7 +985,7 @@ export function AuthGroupMigrationPage() {
                   ))
                 )}
               </tbody>
-            </table>
+            </AdminTable>
           </div>
         </section>
       ) : null}
@@ -1002,7 +1001,7 @@ export function AuthGroupMigrationPage() {
               <span className="block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">
                 {text(page, "회사명", "Company")}
               </span>
-              <select
+              <AdminSelect
                 className="w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
                 value={insttId}
                 onChange={(event) => setInsttId(event.target.value)}
@@ -1012,25 +1011,25 @@ export function AuthGroupMigrationPage() {
                     {`${option.insttId} / ${option.cmpnyNm}`}
                   </option>
                 ))}
-              </select>
+              </AdminSelect>
             </label>
             <label className="min-w-[18rem]">
               <span className="block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">
                 {text(page, "사용자 검색", "User search")}
               </span>
-              <input
+              <AdminInput
                 className="w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
                 placeholder={text(page, "사용자 ID / 이름 / 회사명", "User ID / name / company")}
                 value={userSearchInput}
                 onChange={(event) => setUserSearchInput(event.target.value)}
               />
             </label>
-            <button className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-[var(--kr-gov-blue)] text-white h-10" type="submit">
+            <MemberButton className="h-10" size="xs" type="submit" variant="primary">
               {text(page, "검색", "Search")}
-            </button>
+            </MemberButton>
           </form>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left border-collapse">
+            <AdminTable>
               <thead>
                 <tr className="bg-gray-50 border-y border-[var(--kr-gov-border-light)] text-[13px] font-bold text-[var(--kr-gov-text-secondary)]">
                   <th className="px-4 py-3">{text(page, "사용자 ID", "User ID")}</th>
@@ -1075,7 +1074,7 @@ export function AuthGroupMigrationPage() {
                   ))
                 )}
               </tbody>
-            </table>
+            </AdminTable>
           </div>
         </section>
       ) : null}
@@ -1514,7 +1513,7 @@ export function AuthGroupMigrationPage() {
                 {text(page, "표시 중", "Visible")} {totalVisibleFeatureCount}
               </div>
             </div>
-            <PermissionButton
+            <MemberPermissionButton
               allowed={
                 !!authorCode &&
                 (roleCategory === "GENERAL"
@@ -1533,7 +1532,7 @@ export function AuthGroupMigrationPage() {
               {page?.isWebmaster || roleCategory !== "GENERAL"
                 ? text(page, "Role 기능 저장", "Save Role Features")
                 : text(page, "webmaster 전용", "Webmaster only")}
-            </PermissionButton>
+            </MemberPermissionButton>
           </div>
         </div>
         </section>

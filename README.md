@@ -39,6 +39,7 @@ Read these first before making structural changes:
 Operational and history docs:
 
 - [docs/operations/stable-restart-guide.md](/opt/projects/carbonet-react-migration/docs/operations/stable-restart-guide.md)
+- [docs/operations/backup-db-fast-workflow.md](/opt/projects/carbonet/docs/operations/backup-db-fast-workflow.md)
 - [docs/operations/codex-provision-api.md](/opt/projects/carbonet-react-migration/docs/operations/codex-provision-api.md)
 - [docs/history/refactor-summary-20260310.md](/opt/projects/carbonet-react-migration/docs/history/refactor-summary-20260310.md)
 - [docs/frontend/react-migration.md](/opt/projects/carbonet-react-migration/docs/frontend/react-migration.md)

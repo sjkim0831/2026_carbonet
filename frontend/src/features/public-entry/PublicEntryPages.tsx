@@ -4,6 +4,7 @@ import { invalidateFrontendSessionCache } from "../../lib/api/client";
 import { buildLocalizedPath, getSearchParam, isEnglish, navigate } from "../../lib/navigation/runtime";
 import { postJsonWithSession } from "./publicEntryApi";
 import { LoginResponse, PublicFrame } from "./publicEntryShared";
+import { AppButton, AppCheckbox, AppInput, AppLinkButton } from "../app-ui/primitives";
 
 function isOverseasPath() {
   const path = window.location.pathname;
@@ -107,9 +108,9 @@ export function PublicLoginPage() {
 
   return (
     <div className="bg-[var(--kr-gov-bg-gray)] text-[var(--kr-gov-text-primary)] min-h-screen flex flex-col">
-      <a className="absolute -top-full left-0 bg-[var(--kr-gov-blue)] text-white p-3 z-[100] transition-all focus:top-0 focus:outline-none focus:ring-2 focus:ring-white" href="#main-content">
+      <AppLinkButton className="absolute -top-full left-0 z-[100] !min-h-0 !border-0 !bg-[var(--kr-gov-blue)] !p-3 !text-white transition-all focus:top-0 focus:outline-none focus:ring-2 focus:ring-white hover:!bg-[var(--kr-gov-blue)]" href="#main-content" variant="ghost">
         {en ? "Skip to main content" : "본문 바로가기"}
-      </a>
+      </AppLinkButton>
       <div className="bg-white border-b border-[var(--kr-gov-border-light)]">
         <div className="max-w-7xl mx-auto px-4 lg:px-8 py-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -128,7 +129,7 @@ export function PublicLoginPage() {
         <div className="max-w-7xl mx-auto px-4 lg:px-8">
           <div className="flex justify-between items-center h-20">
             <div className="flex items-center gap-3">
-              <a className="flex items-center gap-2" href={buildLocalizedPath("/home", "/en/home")}>
+              <AppLinkButton className="!min-h-0 !border-0 !bg-transparent !p-0 !text-inherit hover:!bg-transparent flex items-center gap-2" href={buildLocalizedPath("/home", "/en/home")} variant="ghost">
                 <span className="material-symbols-outlined text-[32px] text-[var(--kr-gov-blue)]" style={{ fontVariationSettings: "'wght' 600" }}>
                   eco
                 </span>
@@ -140,7 +141,7 @@ export function PublicLoginPage() {
                     Carbon Capture, Utilization and Storage
                   </p>
                 </div>
-              </a>
+              </AppLinkButton>
             </div>
             <div className="flex items-center gap-6">
               <div className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-emerald-600 px-3 py-1.5 bg-emerald-50 rounded-full border border-emerald-100">
@@ -148,20 +149,24 @@ export function PublicLoginPage() {
                 {en ? "Secure SSL Communication Active" : "안전한 SSL 보안 통신 중"}
               </div>
               <div className="flex border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] overflow-hidden">
-                <button
+                <AppButton
                   className={`px-3 py-1 text-xs font-bold ${en ? "bg-white text-[var(--kr-gov-text-secondary)] hover:bg-gray-100" : "bg-[var(--kr-gov-blue)] text-white"}`}
                   onClick={() => navigate("/signin/loginView")}
+                  size="xs"
                   type="button"
+                  variant="ghost"
                 >
                   KO
-                </button>
-                <button
+                </AppButton>
+                <AppButton
                   className={`px-3 py-1 text-xs font-bold border-l border-[var(--kr-gov-border-light)] ${en ? "bg-[var(--kr-gov-blue)] text-white" : "bg-white text-[var(--kr-gov-text-secondary)] hover:bg-gray-100"}`}
                   onClick={() => navigate("/en/signin/loginView")}
+                  size="xs"
                   type="button"
+                  variant="ghost"
                 >
                   EN
-                </button>
+                </AppButton>
               </div>
             </div>
           </div>
@@ -183,26 +188,30 @@ export function PublicLoginPage() {
         </div>
         <div className="w-full max-w-[480px] bg-white border border-[var(--kr-gov-border-light)] rounded-lg shadow-sm overflow-hidden">
           <div className="flex border-b border-[var(--kr-gov-border-light)] bg-gray-50" aria-label={en ? "Member type" : "회원 유형 선택"} role="tablist" data-help-id="signin-login-tabs">
-            <button
+            <AppButton
               aria-selected={tab === "domestic"}
               className={`flex-1 py-4 text-[16px] border-b-4 ${tab === "domestic" ? "border-[var(--kr-gov-blue)] text-[var(--kr-gov-blue)] font-bold" : "border-transparent text-[var(--kr-gov-text-secondary)] hover:text-[var(--kr-gov-text-primary)] transition-colors"}`}
               onClick={() => setTab("domestic")}
               role="tab"
+              size="lg"
               tabIndex={tab === "domestic" ? 0 : -1}
               type="button"
+              variant="ghost"
             >
               {en ? "Domestic Enterprise" : "국내 기업 회원"}
-            </button>
-            <button
+            </AppButton>
+            <AppButton
               aria-selected={tab === "overseas"}
               className={`flex-1 py-4 text-[16px] border-b-4 ${tab === "overseas" ? "border-[var(--kr-gov-blue)] text-[var(--kr-gov-blue)] font-bold" : "border-transparent text-[var(--kr-gov-text-secondary)] hover:text-[var(--kr-gov-text-primary)] transition-colors"}`}
               onClick={() => setTab("overseas")}
               role="tab"
+              size="lg"
               tabIndex={tab === "overseas" ? 0 : -1}
               type="button"
+              variant="ghost"
             >
               {en ? "Overseas Enterprise" : "해외 기업 회원"}
-            </button>
+            </AppButton>
           </div>
           <div className="p-8 lg:p-10" data-help-id="signin-login-form">
             <form className="space-y-6" id="loginForm" name="loginForm" onSubmit={handleSubmit}>
@@ -211,9 +220,9 @@ export function PublicLoginPage() {
                   <label className="block text-sm font-bold text-[var(--kr-gov-text-secondary)] mb-1.5" htmlFor="userId">
                     {en ? "ID" : "아이디"}
                   </label>
-                  <input
+                  <AppInput
                     autoComplete="username"
-                    className="w-full h-14 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] focus:ring-2 focus:ring-[var(--kr-gov-focus)] focus:border-transparent transition-all"
+                    className="h-14"
                     id="userId"
                     name="userId"
                     onChange={(event) => setUserId(event.target.value)}
@@ -227,9 +236,9 @@ export function PublicLoginPage() {
                   <label className="block text-sm font-bold text-[var(--kr-gov-text-secondary)] mb-1.5" htmlFor="userPw">
                     {en ? "Password" : "비밀번호"}
                   </label>
-                  <input
+                  <AppInput
                     autoComplete="current-password"
-                    className="w-full h-14 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] focus:ring-2 focus:ring-[var(--kr-gov-focus)] focus:border-transparent transition-all"
+                    className="h-14"
                     id="userPw"
                     name="userPw"
                     onChange={(event) => setUserPw(event.target.value)}
@@ -242,46 +251,46 @@ export function PublicLoginPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <label className="inline-flex items-center cursor-pointer">
-                    <input
+                    <AppCheckbox
                       checked={saveId}
-                      className="w-5 h-5 rounded border-[var(--kr-gov-border-light)] text-[var(--kr-gov-blue)] focus:ring-[var(--kr-gov-focus)]"
+                      className="w-5"
                       id="saveId"
                       onChange={(event) => setSaveId(event.target.checked)}
-                      type="checkbox"
                     />
                     <span className="ml-2 text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Remember ID" : "아이디 저장"}</span>
                   </label>
                   <label className="inline-flex items-center cursor-pointer">
-                    <input
+                    <AppCheckbox
                       checked={autoLogin}
-                      className="w-5 h-5 rounded border-[var(--kr-gov-border-light)] text-[var(--kr-gov-blue)] focus:ring-[var(--kr-gov-focus)]"
+                      className="w-5"
                       id="autoLogin"
                       onChange={(event) => setAutoLogin(event.target.checked)}
-                      type="checkbox"
                     />
                     <span className="ml-2 text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Auto Login" : "자동 로그인"}</span>
                   </label>
                 </div>
               </div>
-              <button
-                className="w-full h-14 bg-[var(--kr-gov-blue)] text-white text-lg font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)] transition-colors"
+              <AppButton
+                className="w-full h-14 text-lg"
                 disabled={submitting}
+                size="lg"
                 type="submit"
+                variant="primary"
               >
                 {en ? "Log In" : "로그인"}
-              </button>
+              </AppButton>
               <div className="flex items-center justify-center gap-4 text-sm text-[var(--kr-gov-text-secondary)] font-medium pt-2">
-                <a className="hover:underline" href={tabMeta.findIdPath} id="findIdLink">
+                <AppLinkButton className="min-h-0 border-0 bg-transparent px-0 py-0 hover:bg-transparent hover:underline" href={tabMeta.findIdPath} id="findIdLink" variant="ghost">
                   {en ? "Find ID" : "아이디 찾기"}
-                </a>
+                </AppLinkButton>
                 <span className="w-px h-3 bg-[var(--kr-gov-border-light)]"></span>
-                <a className="hover:underline" href={tabMeta.findPasswordPath} id="findPasswordLink">
+                <AppLinkButton className="min-h-0 border-0 bg-transparent px-0 py-0 hover:bg-transparent hover:underline" href={tabMeta.findPasswordPath} id="findPasswordLink" variant="ghost">
                   {en ? "Reset Password" : "비밀번호 재설정"}
-                </a>
+                </AppLinkButton>
                 <span className="w-px h-3 bg-[var(--kr-gov-border-light)]"></span>
-                <a className="text-[var(--kr-gov-blue)] font-bold hover:underline" href={tabMeta.joinPath} id="joinLink">
+                <AppLinkButton className="min-h-0 border-0 bg-transparent px-0 py-0 font-bold text-[var(--kr-gov-blue)] hover:bg-transparent hover:underline" href={tabMeta.joinPath} id="joinLink" variant="ghost">
                   {en ? "Register" : "회원가입"}
-                </a>
+                </AppLinkButton>
               </div>
               <div className="relative py-4">
                 <div className="absolute inset-0 flex items-center">
@@ -294,19 +303,19 @@ export function PublicLoginPage() {
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-3" data-help-id="signin-login-simple-auth">
-                <button className="w-full h-12 flex items-center justify-center gap-2 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] hover:bg-gray-50 transition-colors font-bold text-sm" type="button">
+                <AppButton className="w-full h-12 text-sm" type="button">
                   <span className="material-symbols-outlined text-blue-700">verified_user</span>
                   {en ? "Simple Authentication (Kakao, Toss, etc.)" : "간편인증 (카카오, 토스 등)"}
-                </button>
+                </AppButton>
                 <div className="grid grid-cols-2 gap-3">
-                  <button className="h-12 flex items-center justify-center gap-2 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] hover:bg-gray-50 transition-colors font-bold text-sm" type="button">
+                  <AppButton className="h-12 text-sm" type="button">
                     <span className="material-symbols-outlined text-gray-600">badge</span>
                     {en ? "Joint Certificate" : "공동인증서"}
-                  </button>
-                  <button className="h-12 flex items-center justify-center gap-2 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] hover:bg-gray-50 transition-colors font-bold text-sm" type="button">
+                  </AppButton>
+                  <AppButton className="h-12 text-sm" type="button">
                     <span className="material-symbols-outlined text-gray-600">account_balance</span>
                     {en ? "Financial Certificate" : "금융인증서"}
-                  </button>
+                  </AppButton>
                 </div>
               </div>
             </form>
@@ -346,8 +355,8 @@ export function PublicLoginPage() {
             </div>
             <div className="flex flex-col items-end gap-4">
               <div className="flex flex-wrap gap-6 text-sm font-bold">
-                <a className="text-[var(--kr-gov-blue)] hover:underline" href="#">{en ? "Privacy Policy" : "개인정보처리방침"}</a>
-                <a className="text-[var(--kr-gov-text-primary)] hover:underline" href="#">{en ? "Terms of Use" : "이용약관"}</a>
+                <AppLinkButton className="!min-h-0 !border-0 !bg-transparent !p-0 !text-[var(--kr-gov-blue)] hover:underline hover:!bg-transparent" href="#" variant="ghost">{en ? "Privacy Policy" : "개인정보처리방침"}</AppLinkButton>
+                <AppLinkButton className="!min-h-0 !border-0 !bg-transparent !p-0 !text-[var(--kr-gov-text-primary)] hover:underline hover:!bg-transparent" href="#" variant="ghost">{en ? "Terms of Use" : "이용약관"}</AppLinkButton>
               </div>
               <div className="flex items-center gap-4">
                 <div className="px-3 py-1 bg-[var(--kr-gov-bg-gray)] rounded-[var(--kr-gov-radius)] text-[11px] font-bold text-[var(--kr-gov-text-secondary)]">
@@ -508,7 +517,7 @@ function PublicAuthShell(props: {
 
   return (
     <div className="bg-[var(--kr-gov-bg-gray)] text-[var(--kr-gov-text-primary)] min-h-screen flex flex-col">
-      <a className="skip-link" href="#main-content">{en ? "Skip to main content" : "본문 바로가기"}</a>
+      <AppLinkButton className="skip-link !min-h-0 !border-0 !bg-[var(--kr-gov-blue)] !p-3 !text-white hover:!bg-[var(--kr-gov-blue)]" href="#main-content" variant="ghost">{en ? "Skip to main content" : "본문 바로가기"}</AppLinkButton>
       <div className="bg-white border-b border-[var(--kr-gov-border-light)]">
         <div className="max-w-7xl mx-auto px-4 lg:px-8 py-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -527,7 +536,7 @@ function PublicAuthShell(props: {
         <div className="max-w-7xl mx-auto px-4 lg:px-8">
           <div className="flex justify-between items-center h-20">
             <div className="flex items-center gap-3">
-              <a className="flex items-center gap-2" href={buildLocalizedPath("/home", "/en/home")}>
+              <AppLinkButton className="!min-h-0 !border-0 !bg-transparent !p-0 !text-inherit hover:!bg-transparent flex items-center gap-2" href={buildLocalizedPath("/home", "/en/home")} variant="ghost">
                 <span className="material-symbols-outlined text-[32px] text-[var(--kr-gov-blue)]" style={{ fontVariationSettings: "'wght' 600" }}>eco</span>
                 <div className="flex flex-col">
                   <h1 className={`text-xl font-bold tracking-tight text-[var(--kr-gov-text-primary)] ${en ? "uppercase" : ""}`}>
@@ -535,7 +544,7 @@ function PublicAuthShell(props: {
                   </h1>
                   <p className="text-[10px] text-[var(--kr-gov-text-secondary)] font-bold uppercase tracking-wider">Carbon Capture, Utilization and Storage</p>
                 </div>
-              </a>
+              </AppLinkButton>
             </div>
             <div className="flex items-center gap-6">
               <div className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-emerald-600 px-3 py-1.5 bg-emerald-50 rounded-full border border-emerald-100">
@@ -543,8 +552,8 @@ function PublicAuthShell(props: {
                 {en ? "Secure SSL Communication Active" : "안전한 SSL 보안 통신 중"}
               </div>
               <div className="flex border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] overflow-hidden">
-                <a className={`px-3 py-1 text-xs font-bold ${en ? "bg-white text-[var(--kr-gov-text-secondary)] hover:bg-gray-100" : "bg-[var(--kr-gov-blue)] text-white"}`} href={props.languagePathKo}>KO</a>
-                <a className={`px-3 py-1 text-xs font-bold border-l border-[var(--kr-gov-border-light)] ${en ? "bg-[var(--kr-gov-blue)] text-white" : "bg-white text-[var(--kr-gov-text-secondary)] hover:bg-gray-100"}`} href={props.languagePathEn}>EN</a>
+                <AppLinkButton className={`px-3 py-1 text-xs font-bold ${en ? "!bg-white !text-[var(--kr-gov-text-secondary)] hover:!bg-gray-100" : "!bg-[var(--kr-gov-blue)] !text-white"}`} href={props.languagePathKo} size="xs" variant="ghost">KO</AppLinkButton>
+                <AppLinkButton className={`px-3 py-1 text-xs font-bold border-l border-[var(--kr-gov-border-light)] ${en ? "!bg-[var(--kr-gov-blue)] !text-white" : "!bg-white !text-[var(--kr-gov-text-secondary)] hover:!bg-gray-100"}`} href={props.languagePathEn} size="xs" variant="ghost">EN</AppLinkButton>
               </div>
             </div>
           </div>
@@ -575,8 +584,8 @@ function PublicAuthShell(props: {
             </div>
             <div className="flex flex-col items-end gap-4">
               <div className="flex flex-wrap gap-6 text-sm font-bold">
-                <a className="text-[var(--kr-gov-blue)] hover:underline" href="#">{en ? "Privacy Policy" : "개인정보처리방침"}</a>
-                <a className="text-[var(--kr-gov-text-primary)] hover:underline" href="#">{en ? "Terms of Service" : "이용약관"}</a>
+                <AppLinkButton className="!min-h-0 !border-0 !bg-transparent !p-0 !text-[var(--kr-gov-blue)] hover:underline hover:!bg-transparent" href="#" variant="ghost">{en ? "Privacy Policy" : "개인정보처리방침"}</AppLinkButton>
+                <AppLinkButton className="!min-h-0 !border-0 !bg-transparent !p-0 !text-[var(--kr-gov-text-primary)] hover:underline hover:!bg-transparent" href="#" variant="ghost">{en ? "Terms of Service" : "이용약관"}</AppLinkButton>
               </div>
               <div className="flex items-center gap-4">
                 <div className="px-3 py-1 bg-[var(--kr-gov-bg-gray)] rounded-[var(--kr-gov-radius)] text-[11px] font-bold text-[var(--kr-gov-text-secondary)]">
@@ -601,20 +610,24 @@ function FindIdTabs({ tab }: { tab: PublicTab }) {
 
   return (
     <div className="flex bg-gray-50">
-      <a
+      <AppLinkButton
         className={`flex-1 py-5 text-[16px] flex items-center justify-center gap-2 ${tab === "domestic" ? "tab-active" : "tab-inactive"}`}
         href={buildLocalizedPath("/signin/findId", "/en/signin/findId")}
+        size="lg"
+        variant="ghost"
       >
         <span className="material-symbols-outlined">person_check</span>
         {en ? "Domestic User" : "국내 사용자"}
-      </a>
-      <a
+      </AppLinkButton>
+      <AppLinkButton
         className={`flex-1 py-5 text-[16px] flex items-center justify-center gap-2 ${tab === "overseas" ? "tab-active" : "tab-inactive"}`}
         href={buildLocalizedPath("/signin/findId/overseas", "/en/signin/findId/overseas")}
+        size="lg"
+        variant="ghost"
       >
         <span className="material-symbols-outlined">mail</span>
         {en ? "Overseas User" : "해외 사용자"}
-      </a>
+      </AppLinkButton>
     </div>
   );
 }
@@ -712,15 +725,15 @@ export function FindIdPage() {
               <div className={tab === "overseas" ? "space-y-5" : "space-y-6"}>
                 <div>
                   <label className="block text-sm font-bold text-[var(--kr-gov-text-secondary)] mb-2" htmlFor="user-name">{en ? "Name" : "성명"}</label>
-                  <input className="w-full h-14 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] focus:ring-2 focus:ring-[var(--kr-gov-focus)] focus:border-transparent transition-all" id="user-name" onChange={(event) => setName(event.target.value)} placeholder={en ? "Enter your full name" : "성명을 입력하세요"} type="text" value={name} />
+                  <AppInput className="h-14 public-field public-field--auth" id="user-name" onChange={(event) => setName(event.target.value)} placeholder={en ? "Enter your full name" : "성명을 입력하세요"} type="text" value={name} />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-[var(--kr-gov-text-secondary)] mb-2" htmlFor="user-email">{en ? "Email Address" : "이메일 주소"}</label>
                   <div className="flex gap-2">
-                    <input className="flex-grow h-14 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] focus:ring-2 focus:ring-[var(--kr-gov-focus)] focus:border-transparent transition-all" id="user-email" onChange={(event) => setEmail(event.target.value)} placeholder="example@institution.go.kr" type="text" inputMode="email" value={email} />
-                    <button className="px-6 h-14 bg-gray-100 text-[var(--kr-gov-text-secondary)] font-bold border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] hover:bg-gray-200 transition-colors whitespace-nowrap" onClick={handleSendCode} type="button">
+                    <AppInput className="flex-grow h-14 public-field public-field--auth" id="user-email" onChange={(event) => setEmail(event.target.value)} placeholder="example@institution.go.kr" type="text" inputMode="email" value={email} />
+                    <AppButton className="px-6 h-14 whitespace-nowrap" onClick={handleSendCode} type="button">
                       {en ? "Send Verification Code" : "인증번호 발송"}
-                    </button>
+                    </AppButton>
                   </div>
                   <p className="mt-2 text-xs text-blue-600 font-medium">
                     {en ? "* For overseas users, official institutional email verification is required." : "* 해외 사업자의 경우 공식 기관 이메일 인증이 필요합니다."}
@@ -729,8 +742,8 @@ export function FindIdPage() {
                 {tab === "overseas" ? (
                   <div>
                     <label className="block text-sm font-bold text-[var(--kr-gov-text-secondary)] mb-2" htmlFor="auth-code">{en ? "Verification Code" : "인증번호"}</label>
-                    <input
-                      className="w-full h-14 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] focus:ring-2 focus:ring-[var(--kr-gov-focus)] focus:border-transparent transition-all"
+                    <AppInput
+                      className="h-14 public-field public-field--auth"
                       id="auth-code"
                       inputMode="numeric"
                       maxLength={6}
@@ -775,17 +788,17 @@ export function FindIdPage() {
                             <span className="text-xs text-[var(--kr-gov-text-secondary)] mt-1">{method.description}</span>
                           </div>
                         </div>
-                        <button className="px-5 py-2.5 bg-white border border-[var(--kr-gov-blue)] text-[var(--kr-gov-blue)] text-sm font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue)] hover:text-white transition-all whitespace-nowrap" type="button">
+                        <AppButton className="px-5 py-2.5 whitespace-nowrap text-sm" type="button">
                           {en ? "Select" : "선택"}
-                        </button>
+                        </AppButton>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
-              <button className="w-full h-16 bg-[var(--kr-gov-blue)] text-white text-xl font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)] transition-colors focus-visible" onClick={handleSubmit} type="button">
+              <AppButton className="w-full h-16 text-xl" onClick={handleSubmit} size="lg" type="button" variant="primary">
                 {en ? "Find ID" : "아이디 찾기"}
-              </button>
+              </AppButton>
             </div>
           </div>
         </div>
@@ -793,7 +806,7 @@ export function FindIdPage() {
         <div className="mt-12 text-center">
           <p className="text-sm text-[var(--kr-gov-text-secondary)] leading-relaxed">
             {en ? "Having trouble finding your ID?" : "아이디 찾기에 어려움이 있으신가요?"} <br />
-            {en ? <>Please contact our Support Center at <span className="font-bold text-[var(--kr-gov-text-primary)]">02-1234-5678</span> or use <a className="text-[var(--kr-gov-blue)] underline font-bold" href="#">1:1 Inquiry</a>.</> : <>고객지원센터 <span className="font-bold text-[var(--kr-gov-text-primary)]">02-1234-5678</span> 또는 <a className="text-[var(--kr-gov-blue)] underline font-bold" href="#">1:1 문의</a>를 이용해 주세요.</>}
+            {en ? <>Please contact our Support Center at <span className="font-bold text-[var(--kr-gov-text-primary)]">02-1234-5678</span> or use <AppLinkButton className="min-h-0 border-0 bg-transparent px-0 py-0 underline font-bold text-[var(--kr-gov-blue)] hover:bg-transparent" href="#" variant="ghost">1:1 Inquiry</AppLinkButton>.</> : <>고객지원센터 <span className="font-bold text-[var(--kr-gov-text-primary)]">02-1234-5678</span> 또는 <AppLinkButton className="min-h-0 border-0 bg-transparent px-0 py-0 underline font-bold text-[var(--kr-gov-blue)] hover:bg-transparent" href="#" variant="ghost">1:1 문의</AppLinkButton>를 이용해 주세요.</>}
           </p>
         </div>
       </main>
@@ -851,17 +864,17 @@ export function FindIdResultPage() {
           </p>
           {error ? <p className="text-sm text-[var(--kr-gov-error)] mb-6">{error}</p> : null}
           <div className="flex flex-col gap-3" data-help-id="signin-find-id-result-actions">
-            <a className="w-full h-14 bg-[var(--kr-gov-blue)] text-white text-lg font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)] transition-colors flex items-center justify-center focus-visible" href={buildLocalizedPath("/signin/loginView", "/en/signin/loginView")}>
+            <AppLinkButton className="w-full h-14 text-lg" href={buildLocalizedPath("/signin/loginView", "/en/signin/loginView")} size="lg" variant="primary">
               {en ? "Log In" : "로그인하기"}
-            </a>
-            <a className="w-full h-14 bg-white border border-[var(--kr-gov-border-light)] text-[var(--kr-gov-text-secondary)] text-lg font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-50 transition-colors flex items-center justify-center focus-visible" href={result.passwordResetUrl}>
+            </AppLinkButton>
+            <AppLinkButton className="w-full h-14 text-lg" href={result.passwordResetUrl} size="lg" variant="secondary">
               {en ? "Reset Password" : "비밀번호 재설정"}
-            </a>
+            </AppLinkButton>
           </div>
         </div>
         <div className="mt-12 text-center">
           <p className="text-sm text-[var(--kr-gov-text-secondary)] leading-relaxed">
-            {en ? <>Still can't remember your ID? <br />Contact Support at <span className="font-bold text-[var(--kr-gov-text-primary)]">02-1234-5678</span> or use our <a className="text-[var(--kr-gov-blue)] underline font-bold" href="#">1:1 Inquiry</a>.</> : <>아이디가 기억나지 않으시나요? <br />고객지원센터 <span className="font-bold text-[var(--kr-gov-text-primary)]">02-1234-5678</span> 또는 <a className="text-[var(--kr-gov-blue)] underline font-bold" href="#">1:1 문의</a>를 이용해 주세요.</>}
+            {en ? <>Still can't remember your ID? <br />Contact Support at <span className="font-bold text-[var(--kr-gov-text-primary)]">02-1234-5678</span> or use our <AppLinkButton className="!min-h-0 !border-0 !bg-transparent !p-0 !text-[var(--kr-gov-blue)] underline font-bold hover:!bg-transparent" href="#" variant="ghost">1:1 Inquiry</AppLinkButton>.</> : <>아이디가 기억나지 않으시나요? <br />고객지원센터 <span className="font-bold text-[var(--kr-gov-text-primary)]">02-1234-5678</span> 또는 <AppLinkButton className="!min-h-0 !border-0 !bg-transparent !p-0 !text-[var(--kr-gov-blue)] underline font-bold hover:!bg-transparent" href="#" variant="ghost">1:1 문의</AppLinkButton>를 이용해 주세요.</>}
           </p>
         </div>
       </main>
@@ -980,14 +993,14 @@ export function FindPasswordPage() {
         <div className="w-full max-w-2xl bg-white border border-[var(--kr-gov-border-light)] rounded-lg shadow-sm overflow-hidden mb-8">
           {tab === "overseas" ? (
             <div className="hidden flex border-b border-[var(--kr-gov-border-light)] bg-gray-50">
-              <button className="flex-1 py-4 text-[15px] font-medium border-b-4 border-transparent text-[var(--kr-gov-text-secondary)] hover:text-[var(--kr-gov-text-primary)] flex items-center justify-center gap-2 transition-colors" type="button">
+              <AppButton className="flex-1 py-4 text-[15px] font-medium border-b-4 border-transparent text-[var(--kr-gov-text-secondary)] hover:text-[var(--kr-gov-text-primary)] transition-colors" type="button" variant="ghost" size="lg">
                 <span className="material-symbols-outlined">person_check</span>
                 {en ? "Domestic User" : "국내 사용자"}
-              </button>
-              <button className="flex-1 py-4 text-[15px] font-bold border-b-4 border-[var(--kr-gov-blue)] text-[var(--kr-gov-blue)] flex items-center justify-center gap-2" type="button">
+              </AppButton>
+              <AppButton className="flex-1 py-4 text-[15px] font-bold border-b-4 border-[var(--kr-gov-blue)] text-[var(--kr-gov-blue)]" type="button" variant="ghost" size="lg">
                 <span className="material-symbols-outlined">mail</span>
                 {en ? "Overseas User" : "해외 사용자"}
-              </button>
+              </AppButton>
             </div>
           ) : null}
           <div className="flex items-center justify-around bg-gray-50 border-b border-[var(--kr-gov-border-light)] p-6">
@@ -1012,7 +1025,7 @@ export function FindPasswordPage() {
                 <div className="grid grid-cols-1 gap-6">
                   <div>
                     <label className="block text-sm font-bold text-[var(--kr-gov-text-secondary)] mb-2" htmlFor="user-id">{en ? "User ID" : "아이디"} <span className="text-red-600">*</span></label>
-                    <input className="w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] focus:ring-2 focus:ring-[var(--kr-gov-focus)] focus:border-transparent transition-all" id="user-id" onChange={(event) => setUserId(event.target.value)} placeholder={en ? "Please enter your registered ID" : "등록된 아이디를 입력하세요"} type="text" value={userId} />
+                    <AppInput className="public-field public-field--auth" id="user-id" onChange={(event) => setUserId(event.target.value)} placeholder={en ? "Please enter your registered ID" : "등록된 아이디를 입력하세요"} type="text" value={userId} />
                   </div>
                   {tab === "overseas" ? (
                     <div className="p-6 bg-slate-50 border border-slate-200 rounded-[var(--kr-gov-radius)] space-y-4">
@@ -1022,19 +1035,19 @@ export function FindPasswordPage() {
                       <div>
                         <label className="block text-sm font-bold text-[var(--kr-gov-text-secondary)] mb-2" htmlFor="user-email">{en ? "Email Address" : "이메일 주소"} <span className="text-red-600">*</span></label>
                         <div className="flex gap-2">
-                          <input className="flex-grow h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] focus:ring-2 focus:ring-[var(--kr-gov-focus)] focus:border-transparent transition-all" id="user-email" inputMode="email" onChange={(event) => setEmail(event.target.value)} placeholder="example@institution.go.kr" type="text" value={email} />
-                          <button className="px-4 h-12 bg-gray-100 text-[var(--kr-gov-text-secondary)] font-bold border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] hover:bg-gray-200 transition-colors whitespace-nowrap" onClick={handleSendCode} type="button">
+                          <AppInput className="flex-grow public-field public-field--auth" id="user-email" inputMode="email" onChange={(event) => setEmail(event.target.value)} placeholder="example@institution.go.kr" type="text" value={email} />
+                          <AppButton className="px-4 h-12 whitespace-nowrap" onClick={handleSendCode} type="button">
                             {en ? "Send Code" : "인증번호 발송"}
-                          </button>
+                          </AppButton>
                         </div>
                       </div>
                       <div>
                         <label className="block text-sm font-bold text-[var(--kr-gov-text-secondary)] mb-2" htmlFor="auth-code">{en ? "Verification Code" : "인증번호"} <span className="text-red-600">*</span></label>
-                        <input className="w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] focus:ring-2 focus:ring-[var(--kr-gov-focus)] focus:border-transparent transition-all" id="auth-code" inputMode="numeric" maxLength={6} onChange={(event) => setVerificationCode(event.target.value)} placeholder={en ? "Enter 6-digit verification code" : "인증번호 6자리를 입력하세요"} type="text" value={verificationCode} />
+                        <AppInput className="public-field public-field--auth" id="auth-code" inputMode="numeric" maxLength={6} onChange={(event) => setVerificationCode(event.target.value)} placeholder={en ? "Enter 6-digit verification code" : "인증번호 6자리를 입력하세요"} type="text" value={verificationCode} />
                       </div>
-                      <button className="w-full h-12 bg-white border border-[var(--kr-gov-blue)] text-[var(--kr-gov-blue)] font-bold rounded-[var(--kr-gov-radius)] hover:bg-blue-50 transition-colors" onClick={verifyEmailAndProceed} type="button">
+                      <AppButton className="w-full h-12" onClick={verifyEmailAndProceed} type="button">
                         {en ? "Verify Email & Continue" : "이메일 인증 확인"}
-                      </button>
+                      </AppButton>
                     </div>
                   ) : (
                     <div className="p-6 bg-slate-50 border border-slate-200 rounded-[var(--kr-gov-radius)]">
@@ -1047,10 +1060,10 @@ export function FindPasswordPage() {
                           { icon: "phonelink_lock", label: en ? "OTP Auth" : "OTP 인증" },
                           { icon: "mail", label: en ? "Email Auth" : "이메일 인증" }
                         ].map((item) => (
-                          <button className="flex flex-col items-center gap-2 p-4 bg-white border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] hover:border-[var(--kr-gov-blue)] hover:text-[var(--kr-gov-blue)] transition-all font-bold text-xs" key={item.label} onClick={verifyIdentity} type="button">
+                          <AppButton className="flex flex-col items-center gap-2 p-4 text-xs" key={item.label} onClick={verifyIdentity} type="button">
                             <span className="material-symbols-outlined">{item.icon}</span>
                             {item.label}
-                          </button>
+                          </AppButton>
                         ))}
                       </div>
                     </div>
@@ -1072,12 +1085,12 @@ export function FindPasswordPage() {
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-bold text-[var(--kr-gov-text-secondary)] mb-2" htmlFor="new-password">{en ? "New Password" : "새 비밀번호"} <span className="text-red-600">*</span></label>
-                      <input className="w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] focus:ring-2 focus:ring-[var(--kr-gov-focus)] focus:border-transparent transition-all" disabled={!verified} id="new-password" onChange={(event) => setNewPassword(event.target.value)} placeholder={en ? "Enter new password" : "새 비밀번호를 입력하세요"} type="password" value={newPassword} />
+                      <AppInput className="public-field public-field--auth" disabled={!verified} id="new-password" onChange={(event) => setNewPassword(event.target.value)} placeholder={en ? "Enter new password" : "새 비밀번호를 입력하세요"} type="password" value={newPassword} />
                       <PasswordLevel en={en} password={newPassword} />
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-[var(--kr-gov-text-secondary)] mb-2" htmlFor="confirm-password">{en ? "Confirm New Password" : "새 비밀번호 확인"} <span className="text-red-600">*</span></label>
-                      <input className="w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] focus:ring-2 focus:ring-[var(--kr-gov-focus)] focus:border-transparent transition-all" disabled={!verified} id="confirm-password" onChange={(event) => setConfirmPassword(event.target.value)} placeholder={en ? "Enter password again" : "다시 한번 입력하세요"} type="password" value={confirmPassword} />
+                      <AppInput className="public-field public-field--auth" disabled={!verified} id="confirm-password" onChange={(event) => setConfirmPassword(event.target.value)} placeholder={en ? "Enter password again" : "다시 한번 입력하세요"} type="password" value={confirmPassword} />
                     </div>
                   </div>
                   <div className="bg-gray-50 p-5 rounded-[var(--kr-gov-radius)] border border-gray-200">
@@ -1096,12 +1109,12 @@ export function FindPasswordPage() {
             </div>
 
             <div className="mt-12 flex gap-4" data-help-id="signin-find-password-actions">
-              <a className="flex-1 h-14 bg-white border border-[var(--kr-gov-border-light)] text-[var(--kr-gov-text-primary)] text-lg font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-50 transition-colors focus-visible flex items-center justify-center" href={buildLocalizedPath("/signin/loginView", "/en/signin/loginView")}>
+              <AppLinkButton className="flex-1 h-14 text-lg" href={buildLocalizedPath("/signin/loginView", "/en/signin/loginView")}>
                 {en ? "Cancel" : "취소"}
-              </a>
-              <button className="flex-[2] h-14 bg-[var(--kr-gov-blue)] text-white text-lg font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)] transition-colors focus-visible" disabled={saving} onClick={() => void handleReset()} type="button">
+              </AppLinkButton>
+              <AppButton className="flex-[2] h-14 text-lg" disabled={saving} onClick={() => void handleReset()} size="lg" type="button" variant="primary">
                 {saving ? "..." : (en ? "Complete Password Change" : "비밀번호 변경 완료")}
-              </button>
+              </AppButton>
             </div>
           </div>
         </div>
@@ -1148,14 +1161,14 @@ export function FindPasswordCompletePage() {
               {en ? <>Regular password changes are the safest way to <br className="hidden sm:block" /> protect your personal information.</> : <>주기적인 비밀번호 변경은 개인정보를 보호하는 <br className="hidden sm:block" /> 가장 안전한 방법입니다.</>}
             </p>
           </div>
-          <a className="w-full h-16 bg-[var(--kr-gov-blue)] text-white text-xl font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)] transition-colors flex items-center justify-center focus-visible" href={buildLocalizedPath("/signin/loginView", "/en/signin/loginView")} data-help-id="signin-find-password-result-action">
+          <AppLinkButton className="w-full h-16 text-xl" href={buildLocalizedPath("/signin/loginView", "/en/signin/loginView")} data-help-id="signin-find-password-result-action" size="lg" variant="primary">
             {en ? "Go to Login Screen" : "로그인 화면으로 이동"}
-          </a>
+          </AppLinkButton>
         </div>
 
         <div className="mt-12 text-center">
           <p className="text-sm text-[var(--kr-gov-text-secondary)] leading-relaxed">
-            {en ? <>Have questions about using the system? <br />Contact <span className="font-bold text-[var(--kr-gov-text-primary)]">Customer Support Center</span> at <span className="font-bold text-[var(--kr-gov-text-primary)]">02-1234-5678</span> or check the <a className="text-[var(--kr-gov-blue)] underline font-bold" href="#">Help Center</a>.</> : <>시스템 이용에 궁금한 점이 있으신가요? <br />고객지원센터 <span className="font-bold text-[var(--kr-gov-text-primary)]">02-1234-5678</span> 또는 <a className="text-[var(--kr-gov-blue)] underline font-bold" href="#">도움말 센터</a>를 확인해 주세요.</>}
+            {en ? <>Have questions about using the system? <br />Contact <span className="font-bold text-[var(--kr-gov-text-primary)]">Customer Support Center</span> at <span className="font-bold text-[var(--kr-gov-text-primary)]">02-1234-5678</span> or check the <AppLinkButton className="min-h-0 border-0 bg-transparent px-0 py-0 underline font-bold text-[var(--kr-gov-blue)] hover:bg-transparent" href="#" variant="ghost">Help Center</AppLinkButton>.</> : <>시스템 이용에 궁금한 점이 있으신가요? <br />고객지원센터 <span className="font-bold text-[var(--kr-gov-text-primary)]">02-1234-5678</span> 또는 <AppLinkButton className="min-h-0 border-0 bg-transparent px-0 py-0 underline font-bold text-[var(--kr-gov-blue)] hover:bg-transparent" href="#" variant="ghost">도움말 센터</AppLinkButton>를 확인해 주세요.</>}
           </p>
         </div>
       </main>

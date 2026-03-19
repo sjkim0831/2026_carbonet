@@ -2,6 +2,14 @@ import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useJoinSession } from "../../app/hooks/useJoinSession";
 import {
+  AppButton,
+  AppIconButton,
+  AppInput,
+  AppLinkButton,
+  AppSelect,
+  AppTable
+} from "../app-ui/primitives";
+import {
   UserGovernmentBar,
   UserPortalHeader
 } from "../../components/user-shell/UserPortalChrome";
@@ -510,52 +518,52 @@ export function JoinInfoMigrationPage() {
                   <div className="space-y-1">
                     <label className="form-label" htmlFor="user-id">{copy.userId} <span className="text-red-500">*</span></label>
                     <div className="flex gap-2">
-                      <input className="form-input" id="user-id" onChange={(event) => updateField("mberId", event.target.value)} placeholder={copy.idPlaceholder} required spellCheck={false} type="text" value={form.mberId} />
-                      <button className="px-4 bg-gray-800 text-white text-sm font-bold rounded-[var(--kr-gov-radius)] whitespace-nowrap" onClick={() => void handleCheckId()} type="button">{copy.duplicateCheck}</button>
+                      <AppInput id="user-id" onChange={(event) => updateField("mberId", event.target.value)} placeholder={copy.idPlaceholder} required spellCheck={false} type="text" value={form.mberId} />
+                      <AppButton onClick={() => void handleCheckId()} type="button" variant="primary">{copy.duplicateCheck}</AppButton>
                     </div>
                     {idMessage ? <div className={`mt-1 text-[12px] ${idChecked ? "text-green-600 font-bold" : "text-red-500"}`}>{idMessage}</div> : null}
                   </div>
                   <div className="space-y-1">
                     <label className="form-label" htmlFor="user-name">{copy.name} <span className="text-red-500">*</span></label>
-                    <input className="form-input" id="user-name" onChange={(event) => updateField("mberNm", event.target.value)} required type="text" value={form.mberNm} />
+                    <AppInput id="user-name" onChange={(event) => updateField("mberNm", event.target.value)} required type="text" value={form.mberNm} />
                   </div>
                   <div className="space-y-1">
                     <label className="form-label" htmlFor="password">{copy.password} <span className="text-red-500">*</span></label>
-                    <input className="form-input" id="password" onChange={(event) => updateField("password", event.target.value)} placeholder={copy.passwordPlaceholder} required type="password" value={form.password} />
+                    <AppInput id="password" onChange={(event) => updateField("password", event.target.value)} placeholder={copy.passwordPlaceholder} required type="password" value={form.password} />
                   </div>
                   <div className="space-y-1">
                     <label className="form-label" htmlFor="password-confirm">{copy.passwordConfirm} <span className="text-red-500">*</span></label>
-                    <input className="form-input" id="password-confirm" onChange={(event) => updateField("passwordConfirm", event.target.value)} placeholder={copy.passwordConfirmPlaceholder} required type="password" value={form.passwordConfirm} />
+                    <AppInput id="password-confirm" onChange={(event) => updateField("passwordConfirm", event.target.value)} placeholder={copy.passwordConfirmPlaceholder} required type="password" value={form.passwordConfirm} />
                     {passwordMessage ? <div className={`mt-1 text-[12px] ${form.password === form.passwordConfirm ? "text-green-600 font-bold" : "text-red-500"}`}>{passwordMessage}</div> : null}
                   </div>
                   <div className="md:col-span-2 space-y-1">
                     <label className="form-label">{copy.phone} <span className="text-red-500">*</span></label>
                     <div className="flex gap-2">
-                      <select className="w-24 form-input" onChange={(event) => updateField("moblphonNo1", event.target.value)} value={form.moblphonNo1}>
+                      <AppSelect className="w-24" onChange={(event) => updateField("moblphonNo1", event.target.value)} value={form.moblphonNo1}>
                         <option>010</option><option>011</option><option>02</option>
-                      </select>
+                      </AppSelect>
                       <span className="flex items-center">-</span>
-                      <input className="flex-1 form-input" onChange={(event) => updateField("moblphonNo2", event.target.value)} required type="text" value={form.moblphonNo2} />
+                      <AppInput className="flex-1" onChange={(event) => updateField("moblphonNo2", event.target.value)} required type="text" value={form.moblphonNo2} />
                       <span className="flex items-center">-</span>
-                      <input className="flex-1 form-input" onChange={(event) => updateField("moblphonNo3", event.target.value)} required type="text" value={form.moblphonNo3} />
+                      <AppInput className="flex-1" onChange={(event) => updateField("moblphonNo3", event.target.value)} required type="text" value={form.moblphonNo3} />
                     </div>
                   </div>
                   <div className="md:col-span-2 space-y-1">
                     <label className="form-label" htmlFor="email">{copy.email} <span className="text-red-500">*</span></label>
                     <div className="flex gap-2">
-                      <input className="form-input" id="email" inputMode="email" onChange={(event) => updateField("applcntEmailAdres", event.target.value)} placeholder={copy.emailPlaceholder} required type="text" value={form.applcntEmailAdres} />
-                      <button className="px-4 bg-gray-800 text-white text-sm font-bold rounded-[var(--kr-gov-radius)] whitespace-nowrap" onClick={() => void handleCheckEmail()} type="button">{copy.duplicateCheck}</button>
+                      <AppInput id="email" inputMode="email" onChange={(event) => updateField("applcntEmailAdres", event.target.value)} placeholder={copy.emailPlaceholder} required type="text" value={form.applcntEmailAdres} />
+                      <AppButton onClick={() => void handleCheckEmail()} type="button" variant="primary">{copy.duplicateCheck}</AppButton>
                     </div>
                     {emailMessage ? <div className={`mt-1 text-[12px] ${emailChecked ? "text-green-600 font-bold" : "text-red-500"}`}>{emailMessage}</div> : null}
                   </div>
                   <div className="md:col-span-2 space-y-1">
                     <label className="form-label" htmlFor="user-address">{copy.address} <span className="text-red-500">*</span></label>
                     <div className="flex gap-2 mb-2">
-                      <input className="form-input w-32 bg-gray-50 cursor-pointer" id="zip-code" onClick={openAddressSearch} placeholder={copy.zipPlaceholder} readOnly required type="text" value={form.zip} />
-                      <button className="px-5 border border-[var(--kr-gov-blue)] text-[var(--kr-gov-blue)] text-sm font-bold rounded-[var(--kr-gov-radius)] hover:bg-blue-50 transition-colors" onClick={openAddressSearch} type="button">{copy.searchAddress}</button>
+                      <AppInput className="w-32 bg-gray-50 cursor-pointer" id="zip-code" onClick={openAddressSearch} placeholder={copy.zipPlaceholder} readOnly required type="text" value={form.zip} />
+                      <AppButton onClick={openAddressSearch} type="button">{copy.searchAddress}</AppButton>
                     </div>
-                    <input className="form-input mb-2 bg-gray-50 cursor-pointer" id="user-address" onClick={openAddressSearch} placeholder={copy.addressPlaceholder} readOnly required type="text" value={form.adres} />
-                    <input className="form-input" id="user-address-detail" onChange={(event) => updateField("detailAdres", event.target.value)} placeholder={copy.detailAddressPlaceholder} type="text" value={form.detailAdres} />
+                    <AppInput className="mb-2 bg-gray-50 cursor-pointer" id="user-address" onClick={openAddressSearch} placeholder={copy.addressPlaceholder} readOnly required type="text" value={form.adres} />
+                    <AppInput id="user-address-detail" onChange={(event) => updateField("detailAdres", event.target.value)} placeholder={copy.detailAddressPlaceholder} type="text" value={form.detailAdres} />
                   </div>
                 </div>
               </section>
@@ -569,32 +577,32 @@ export function JoinInfoMigrationPage() {
                   <div className="md:col-span-2 space-y-1">
                     <label className="form-label" htmlFor="company-search">{copy.companyName} <span className="text-red-500">*</span></label>
                     <div className="relative">
-                      <input className={`form-input pr-24${en ? " bg-gray-50" : ""}`} id="company-search" placeholder={copy.companyPlaceholder} readOnly required type="text" value={form.insttNm} />
-                      <button className="absolute right-2 top-2 bottom-2 px-4 bg-[var(--kr-gov-blue)] text-white text-sm font-bold rounded-[var(--kr-gov-radius)] flex items-center gap-1" onClick={() => void handleOpenCompanySearch()} type="button">
+                      <AppInput className={`pr-24${en ? " bg-gray-50" : ""}`} id="company-search" placeholder={copy.companyPlaceholder} readOnly required type="text" value={form.insttNm} />
+                      <AppButton className="absolute right-2 top-2 bottom-2 px-4 min-h-0" onClick={() => void handleOpenCompanySearch()} size="sm" type="button" variant="primary">
                         <span className="material-symbols-outlined text-sm">search</span> {copy.search}
-                      </button>
+                      </AppButton>
                     </div>
                   </div>
                   <div className="space-y-1">
                     <label className="form-label" htmlFor="biz-number">{copy.bizno} <span className="text-red-500">*</span></label>
-                    <input className="form-input bg-gray-50" id="biz-number" placeholder={copy.biznoPlaceholder} readOnly required type="text" value={form.bizrno} />
+                    <AppInput className="bg-gray-50" id="biz-number" placeholder={copy.biznoPlaceholder} readOnly required type="text" value={form.bizrno} />
                   </div>
                   <div className="space-y-1">
                     <label className="form-label" htmlFor="representative-name">{copy.representative} <span className="text-red-500">*</span></label>
-                    <input className="form-input bg-gray-50" id="representative-name" placeholder={copy.representativePlaceholder} readOnly required type="text" value={form.representativeName} />
+                    <AppInput className="bg-gray-50" id="representative-name" placeholder={copy.representativePlaceholder} readOnly required type="text" value={form.representativeName} />
                   </div>
                   <div className="space-y-1">
                     <label className="form-label" htmlFor="department">{copy.department}</label>
-                    <input className="form-input" id="department" onChange={(event) => updateField("deptNm", event.target.value)} placeholder={copy.departmentPlaceholder} type="text" value={form.deptNm} />
+                    <AppInput id="department" onChange={(event) => updateField("deptNm", event.target.value)} placeholder={copy.departmentPlaceholder} type="text" value={form.deptNm} />
                   </div>
                   <div className="md:col-span-2 space-y-1" data-help-id="join-step4-files">
                     <label className="form-label">{copy.fileTitle} <span className="text-red-500">*</span></label>
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <p className="text-sm text-[var(--kr-gov-text-secondary)]">{copy.fileDesc}</p>
-                        <button className="join-upload-add-btn" onClick={addFileRow} type="button">
+                        <AppButton className="join-upload-add-btn" onClick={addFileRow} size="sm" type="button">
                           <span className="material-symbols-outlined text-[18px]">add</span>{copy.addFile}
-                        </button>
+                        </AppButton>
                       </div>
                       <div className="space-y-2">
                         {uploadRows.map((row, index) => (
@@ -610,9 +618,9 @@ export function JoinInfoMigrationPage() {
                               </label>
                             </div>
                             {uploadRows.length > 1 || (row.file && row.file.size > 0) ? (
-                              <button className="join-upload-remove-btn" onClick={() => removeFileRow(index)} type="button">
+                              <AppIconButton className="join-upload-remove-btn" onClick={() => removeFileRow(index)} type="button">
                                 <span className="material-symbols-outlined">close</span>
-                              </button>
+                              </AppIconButton>
                             ) : null}
                           </div>
                         ))}
@@ -624,8 +632,8 @@ export function JoinInfoMigrationPage() {
               </section>
 
               <div className="pt-8 border-t border-gray-100 flex flex-col md:flex-row gap-4">
-                <button className="flex-1 h-14 border border-[var(--kr-gov-border-light)] text-[var(--kr-gov-text-primary)] text-lg font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-50 transition-colors" onClick={() => navigate(buildLocalizedPath("/join/step3", "/join/en/step3"))} type="button">{copy.prev}</button>
-                <button className="flex-[2] h-14 bg-[var(--kr-gov-blue)] text-white text-lg font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)] transition-colors shadow-lg" disabled={submitting || !session?.canViewStep4} type="submit">{submitting ? "..." : copy.submit}</button>
+                <AppButton className="flex-1 text-lg" onClick={() => navigate(buildLocalizedPath("/join/step3", "/join/en/step3"))} size="lg" type="button">{copy.prev}</AppButton>
+                <AppButton className="flex-[2] text-lg shadow-lg" disabled={submitting || !session?.canViewStep4} size="lg" type="submit" variant="primary">{submitting ? "..." : copy.submit}</AppButton>
               </div>
             </form>
           </div>
@@ -642,7 +650,7 @@ export function JoinInfoMigrationPage() {
             <h2 className="text-xl font-bold text-[var(--kr-gov-text-primary)] flex items-center gap-2" id="modal-title">
               <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">corporate_fare</span>{copy.companyModalTitle}
             </h2>
-            <button className="text-gray-400 hover:text-gray-600 rounded-full p-1" onClick={closeCompanySearch} type="button"><span className="material-symbols-outlined">close</span></button>
+            <AppIconButton onClick={closeCompanySearch} type="button"><span className="material-symbols-outlined">close</span></AppIconButton>
           </div>
           <div className="p-6 overflow-y-auto">
             <div className="mb-8">
@@ -651,8 +659,8 @@ export function JoinInfoMigrationPage() {
                 <div className="flex gap-2">
                   <div className="relative flex-grow">
                     <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">search</span>
-                    <input
-                      className="form-input pl-11"
+                    <AppInput
+                      className="pl-11"
                       id="modal-search"
                       onChange={(event) => setDraftSearchKeyword(event.target.value)}
                       onKeyDown={(event) => {
@@ -666,12 +674,12 @@ export function JoinInfoMigrationPage() {
                       value={draftSearchKeyword}
                     />
                   </div>
-                  <button className="px-8 bg-[var(--kr-gov-blue)] text-white font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)] transition-colors" onClick={() => runCompanySearch(1)} type="button">{copy.search}</button>
+                  <AppButton onClick={() => runCompanySearch(1)} type="button" variant="primary">{copy.search}</AppButton>
                 </div>
               </div>
             </div>
             <div className="border border-[var(--kr-gov-border-light)] rounded-lg overflow-hidden mb-4">
-              <table className="w-full text-sm text-left">
+              <AppTable>
                 <thead className="bg-[#f8f9fa] border-b border-[var(--kr-gov-border-light)] text-[var(--kr-gov-text-primary)]">
                   <tr>
                     <th className="px-4 py-3 font-bold text-center w-12" scope="col">{copy.no}</th>
@@ -691,26 +699,26 @@ export function JoinInfoMigrationPage() {
                       <td className="px-4 py-4 text-gray-600">{row.bizrno}</td>
                       <td className="px-4 py-4 text-gray-600">{row.cxfc}</td>
                       <td className="px-4 py-4 text-center">
-                        <button className="px-3 py-1.5 border border-[var(--kr-gov-blue)] text-[var(--kr-gov-blue)] text-xs font-bold rounded-md hover:bg-[var(--kr-gov-blue)] hover:text-white transition-all" onClick={() => selectCompany(row)} type="button">{copy.select}</button>
+                        <AppButton onClick={() => selectCompany(row)} size="xs" type="button">{copy.select}</AppButton>
                       </td>
                     </tr>
                   )) : (
                     <tr><td className="px-4 py-8 text-center text-gray-500" colSpan={5}>{copy.noResults}</td></tr>
                   )}
                 </tbody>
-              </table>
+              </AppTable>
             </div>
             <div className="bg-gray-50 border-t border-b border-gray-200 p-4 rounded-md">
               <p className="text-[13px] text-[var(--kr-gov-text-secondary)] flex items-center gap-1.5 leading-relaxed">
                 <span className="material-symbols-outlined text-blue-600 text-[18px]">info</span>
                 {copy.newCompanyHelp}
-                <span className="font-bold text-[var(--kr-gov-blue)] text-sm cursor-pointer hover:underline" onClick={() => navigate(buildLocalizedPath("/join/companyRegister", "/join/en/companyRegister"))}>{copy.newCompanyLink}</span>
+                <AppLinkButton className="min-h-0 border-0 bg-transparent px-0 py-0 text-sm font-bold text-[var(--kr-gov-blue)] hover:bg-transparent hover:underline" href={buildLocalizedPath("/join/companyRegister", "/join/en/companyRegister")} variant="ghost">{copy.newCompanyLink}</AppLinkButton>
                 {copy.newCompanyTail}
               </p>
             </div>
           </div>
           <div className="px-6 py-4 bg-gray-100 flex justify-end gap-2">
-            <button className="px-6 py-2.5 bg-white border border-[var(--kr-gov-border-light)] text-[var(--kr-gov-text-primary)] font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-50" onClick={closeCompanySearch} type="button">{copy.cancel}</button>
+            <AppButton onClick={closeCompanySearch} type="button">{copy.cancel}</AppButton>
           </div>
         </div>
       </div>

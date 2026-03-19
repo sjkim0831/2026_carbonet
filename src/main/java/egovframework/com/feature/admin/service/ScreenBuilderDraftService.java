@@ -4,6 +4,7 @@ import egovframework.com.feature.admin.model.ScreenBuilderDraftDocumentVO;
 import egovframework.com.feature.admin.model.ScreenBuilderComponentRegistryItemVO;
 import egovframework.com.feature.admin.model.ScreenBuilderComponentRegistrySaveRequestVO;
 import egovframework.com.feature.admin.model.ScreenBuilderComponentRegistryUpdateRequestVO;
+import egovframework.com.feature.admin.model.ScreenBuilderComponentUsageVO;
 import egovframework.com.feature.admin.model.ScreenBuilderSaveRequestVO;
 import egovframework.com.feature.admin.model.ScreenBuilderVersionSummaryVO;
 
@@ -31,6 +32,12 @@ public interface ScreenBuilderDraftService {
     ScreenBuilderComponentRegistryItemVO registerComponent(ScreenBuilderComponentRegistrySaveRequestVO request, boolean isEn) throws Exception;
 
     ScreenBuilderComponentRegistryItemVO updateComponentRegistryItem(ScreenBuilderComponentRegistryUpdateRequestVO request, boolean isEn) throws Exception;
+
+    List<ScreenBuilderComponentUsageVO> getComponentRegistryUsage(String componentId, boolean isEn) throws Exception;
+
+    Map<String, Object> replaceComponentRegistryUsage(String fromComponentId, String toComponentId, boolean isEn) throws Exception;
+
+    Map<String, Object> deleteComponentRegistryItem(String componentId, boolean isEn) throws Exception;
 
     Map<String, Object> autoReplaceDeprecatedComponents(String menuCode, boolean isEn) throws Exception;
 
