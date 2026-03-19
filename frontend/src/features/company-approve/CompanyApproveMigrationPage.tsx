@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { CanView } from "../../components/access/CanView";
-import { PermissionButton } from "../../components/access/CanUse";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import {
   CompanyApprovePagePayload,
@@ -10,31 +9,14 @@ import {
   submitCompanyApproveAction
 } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
-import { MemberPagination } from "../member/common";
-
-type SearchFilters = {
-  searchKeyword: string;
-  status: string;
-  pageIndex: number;
-};
-
-const DEFAULT_FILTERS: SearchFilters = {
-  searchKeyword: "",
-  status: "A",
-  pageIndex: 1
-};
-
-const STATUS_OPTIONS = [
-  { value: "A", label: "승인 대기" },
-  { value: "P", label: "활성" },
-  { value: "R", label: "반려" },
-  { value: "X", label: "차단" }
-];
+import { MemberPermissionButton, MEMBER_BUTTON_LABELS } from "../member/common";
+import { ReviewModalFrame } from "../member/sections";
+import { CompanyApproveFilters, CompanyApproveReviewContent, CompanyApproveSearchSection, CompanyApproveTableSection, DEFAULT_COMPANY_APPROVE_FILTERS } from "./companyApproveSections";
 
 export function CompanyApproveMigrationPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [filters, setFilters] = useState<SearchFilters>(DEFAULT_FILTERS);
-  const [draftFilters, setDraftFilters] = useState<SearchFilters>(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState<CompanyApproveFilters>(DEFAULT_COMPANY_APPROVE_FILTERS);
+  const [draftFilters, setDraftFilters] = useState<CompanyApproveFilters>(DEFAULT_COMPANY_APPROVE_FILTERS);
   const [actionError, setActionError] = useState("");
   const [message, setMessage] = useState("");
   const [reviewInsttId, setReviewInsttId] = useState("");
@@ -67,7 +49,7 @@ export function CompanyApproveMigrationPage() {
   const approvalRows = (page?.approvalRows || []) as Array<Record<string, unknown>>;
   const reviewRow = approvalRows.find((row) => String(row.insttId || "") === reviewInsttId) || null;
 
-  function updateDraft<K extends keyof SearchFilters>(key: K, value: SearchFilters[K]) {
+  function updateDraft<K extends keyof CompanyApproveFilters>(key: K, value: CompanyApproveFilters[K]) {
     setDraftFilters((current) => ({ ...current, [key]: value }));
   }
 
@@ -147,182 +129,39 @@ export function CompanyApproveMigrationPage() {
       {message ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</section> : null}
       {error ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</section> : null}
       <CanView allowed={!!page?.canViewCompanyApprove} fallback={<section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm"><p className="text-sm text-[var(--kr-gov-text-secondary)]">회원사 승인 화면을 볼 권한이 없습니다.</p></section>}>
-        <section className="gov-card p-5 mb-6" data-help-id="company-approve-search">
-          <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)_auto_auto] lg:items-end">
-            <label>
-              <span className="block text-sm font-bold mb-2">상태</span>
-              <select className="w-full rounded border-gray-300 text-sm" value={draftFilters.status} onChange={(e) => updateDraft("status", e.target.value)}>
-                {STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-              </select>
-            </label>
-            <label>
-              <span className="block text-sm font-bold mb-2">검색어</span>
-              <input className="w-full rounded border-gray-300 text-sm" placeholder="회원사명, 사업자등록번호 검색" value={draftFilters.searchKeyword} onChange={(e) => updateDraft("searchKeyword", e.target.value)} />
-            </label>
-            <button className="px-4 py-2 bg-[var(--kr-gov-blue)] text-white text-sm font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)]" onClick={() => applyFilters(1)} type="button">검색</button>
-            <button className="px-4 py-2 border border-[var(--kr-gov-border-light)] bg-white text-[var(--kr-gov-text-secondary)] text-sm font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-50" onClick={() => { setDraftFilters(DEFAULT_FILTERS); setFilters(DEFAULT_FILTERS); }} type="button">초기화</button>
-          </div>
-        </section>
+        <CompanyApproveSearchSection
+          applyFilters={applyFilters}
+          draftFilters={draftFilters}
+          resetFilters={() => { setDraftFilters(DEFAULT_COMPANY_APPROVE_FILTERS); setFilters(DEFAULT_COMPANY_APPROVE_FILTERS); }}
+          updateDraft={updateDraft}
+        />
 
-        <section className="gov-card overflow-hidden" data-help-id="company-approve-table">
-          <div className="flex flex-col gap-3 border-b border-[var(--kr-gov-border-light)] px-6 py-4 bg-gray-50 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="text-sm font-bold">회원사 승인 목록</div>
-              <div className="mt-1 text-sm text-gray-500">총 <span className="font-bold text-[var(--kr-gov-blue)]">{Number(page?.memberApprovalTotalCount || 0).toLocaleString()}</span>건</div>
-            </div>
-            <div className="flex gap-2" data-help-id="company-approve-batch-actions">
-              <PermissionButton allowed={!!page?.canUseCompanyApproveAction && selectedIds.length > 0} className="px-4 py-2 bg-[var(--kr-gov-blue)] text-white text-sm font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)]" onClick={() => handleAction("batch_approve")} reason="전체 관리자만 승인할 수 있습니다." type="button">선택 승인</PermissionButton>
-              <PermissionButton allowed={!!page?.canUseCompanyApproveAction && selectedIds.length > 0} className="px-4 py-2 border border-red-200 bg-red-50 text-red-600 text-sm font-bold rounded-[var(--kr-gov-radius)] hover:bg-red-100" onClick={() => handleAction("batch_reject")} reason="전체 관리자만 반려할 수 있습니다." type="button">선택 반려</PermissionButton>
-            </div>
-          </div>
+        <CompanyApproveTableSection
+          approvalRows={approvalRows}
+          currentPage={currentPage}
+          handleAction={handleAction}
+          movePage={movePage}
+          openReview={setReviewInsttId}
+          page={page}
+          selectedIds={selectedIds}
+          toggleSelectAll={toggleSelectAll}
+          toggleSelection={toggleSelection}
+          totalPages={totalPages}
+        />
 
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[1100px] text-sm">
-              <thead className="bg-gray-50 border-b border-[var(--kr-gov-border-light)]">
-                <tr className="text-left text-[var(--kr-gov-text-secondary)]">
-                  <th className="px-4 py-4 w-12 text-center">
-                    <input checked={approvalRows.length > 0 && selectedIds.length === approvalRows.length} className="rounded border-gray-300" onChange={(e) => toggleSelectAll(e.target.checked)} type="checkbox" />
-                  </th>
-                  <th className="px-4 py-4 font-bold">정보 수정</th>
-                  <th className="px-4 py-4 font-bold">사업자등록번호</th>
-                  <th className="px-4 py-4 font-bold">대표자</th>
-                  <th className="px-4 py-4 font-bold">회원사명</th>
-                  <th className="px-4 py-4 font-bold">첨부서류</th>
-                  <th className="px-4 py-4 font-bold text-center">상태</th>
-                  <th className="px-4 py-4 font-bold text-center">처리</th>
-                </tr>
-              </thead>
-              <tbody>
-                {approvalRows.length === 0 ? (
-                  <tr><td className="px-4 py-12 text-center text-sm text-gray-500" colSpan={8}>조회된 승인 대상 회원사가 없습니다.</td></tr>
-                ) : approvalRows.map((row, index) => {
-                  const id = String(row.insttId || `instt-${index}`);
-                  const evidenceFiles = (row.evidenceFiles as Array<Record<string, unknown>> | undefined) || [];
-                  return (
-                    <tr className="border-b border-[var(--kr-gov-border-light)] align-top" key={id}>
-                      <td className="px-4 py-4 text-center">
-                        <input checked={selectedIds.includes(id)} className="rounded border-gray-300" onChange={() => toggleSelection(id)} type="checkbox" />
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="font-bold text-gray-900">{String(row.companyName || "-")}</div>
-                        <div className="text-xs text-gray-500 mt-1">{String(row.membershipTypeLabel || "-")}</div>
-                      </td>
-                      <td className="px-4 py-4 text-gray-700">{String(row.businessNumber || "-")}</td>
-                      <td className="px-4 py-4 text-gray-700">{String(row.representativeName || "-")}</td>
-                      <td className="px-4 py-4">
-                        <a className="inline-flex items-center gap-1 text-xs font-bold text-[var(--kr-gov-blue)] hover:underline" href={String(row.editUrl || buildLocalizedPath(`/admin/member/company_account?insttId=${encodeURIComponent(id)}`, `/en/admin/member/company_account?insttId=${encodeURIComponent(id)}`))}>
-                          회원사 정보 수정
-                        </a>
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex flex-col gap-2">
-                          {evidenceFiles.length === 0 ? <span className="text-xs text-gray-400">등록 파일 없음</span> : evidenceFiles.map((file, fileIndex) => (
-                            <a className="inline-flex items-center gap-1 text-xs font-bold text-[var(--kr-gov-blue)] hover:underline" href={String(file.downloadUrl || "#")} key={`${String(file.fileName || "file")}-${fileIndex}`}>
-                              {String(file.fileName || "-")}
-                            </a>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 text-center">
-                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${String(row.statusBadgeClass || "bg-slate-100 text-slate-700")}`}>{String(row.statusLabel || "-")}</span>
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex flex-wrap items-center justify-center gap-2">
-                          <button className="px-3 py-1.5 border border-[var(--kr-gov-border-light)] bg-white text-[12px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-50" onClick={() => setReviewInsttId(id)} type="button">상세 검토</button>
-                          <PermissionButton allowed={!!page?.canUseCompanyApproveAction} className="px-3 py-1.5 bg-[var(--kr-gov-blue)] text-white text-[12px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)]" onClick={() => handleAction("approve", id)} reason="전체 관리자만 승인할 수 있습니다." type="button">승인</PermissionButton>
-                          <PermissionButton allowed={!!page?.canUseCompanyApproveAction} className="px-3 py-1.5 border border-red-200 bg-red-50 text-red-600 text-[12px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-red-100" onClick={() => handleAction("reject", id)} reason="전체 관리자만 반려할 수 있습니다." type="button">반려</PermissionButton>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          <MemberPagination currentPage={currentPage} onPageChange={movePage} totalPages={totalPages} />
-        </section>
-
-        {reviewRow ? (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
-            <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg bg-white shadow-2xl">
-              <div className="flex items-center justify-between border-b border-[var(--kr-gov-border-light)] bg-white px-6 py-4">
-                <h3 className="flex items-center gap-2 text-xl font-bold">
-                  <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">assignment_ind</span>
-                  회원가입 신청 상세 검토
-                </h3>
-                <button className="rounded p-1 text-gray-500 hover:bg-gray-100" onClick={() => setReviewInsttId("")} type="button">
-                  <span className="material-symbols-outlined">close</span>
-                </button>
-              </div>
-              <div className="space-y-6 overflow-y-auto px-6 py-6">
-                <section>
-                  <h4 className="mb-3 flex items-center gap-2 text-[16px] font-bold"><span className="h-4 w-1 rounded-full bg-[var(--kr-gov-blue)]"></span>회원사 기본 정보</h4>
-                  <div className="border-t-2 border-[var(--kr-gov-text-primary)]">
-                    {[
-                      ["회원사명", String(reviewRow.companyName || "-")],
-                      ["기관 ID", String(reviewRow.insttId || "-")],
-                      ["회원 유형", String(reviewRow.membershipTypeLabel || "-")],
-                      ["현재 상태", String(reviewRow.statusLabel || "-")]
-                    ].map(([label, value]) => (
-                      <div className="grid grid-cols-[140px_1fr]" key={label}>
-                        <div className="bg-gray-50 px-4 py-3 text-sm font-bold text-[var(--kr-gov-text-secondary)] border-b border-r border-[var(--kr-gov-border-light)]">{label}</div>
-                        <div className="px-4 py-3 text-sm text-[var(--kr-gov-text-primary)] border-b border-[var(--kr-gov-border-light)]">{value}</div>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-                <section>
-                  <h4 className="mb-3 flex items-center gap-2 text-[16px] font-bold"><span className="h-4 w-1 rounded-full bg-[var(--kr-gov-blue)]"></span>소속 정보</h4>
-                  <div className="border-t-2 border-[var(--kr-gov-text-primary)]">
-                    {[
-                      ["업체/기관명", String(reviewRow.companyName || "-")],
-                      ["사업자등록번호", String(reviewRow.businessNumber || "-")],
-                      ["대표자명", String(reviewRow.representativeName || "-")]
-                    ].map(([label, value]) => (
-                      <div className="grid grid-cols-[140px_1fr]" key={label}>
-                        <div className="bg-gray-50 px-4 py-3 text-sm font-bold text-[var(--kr-gov-text-secondary)] border-b border-r border-[var(--kr-gov-border-light)]">{label}</div>
-                        <div className="px-4 py-3 text-sm text-[var(--kr-gov-text-primary)] border-b border-[var(--kr-gov-border-light)]">{value}</div>
-                      </div>
-                    ))}
-                    <div className="grid grid-cols-[140px_1fr]">
-                      <div className="bg-gray-50 px-4 py-3 text-sm font-bold text-[var(--kr-gov-text-secondary)] border-b border-r border-[var(--kr-gov-border-light)]">회원사 정보</div>
-                      <div className="px-4 py-3 text-sm text-[var(--kr-gov-text-primary)] border-b border-[var(--kr-gov-border-light)]">
-                        <a className="font-bold text-[var(--kr-gov-blue)] hover:underline" href={String(reviewRow.editUrl || buildLocalizedPath(`/admin/member/company_account?insttId=${encodeURIComponent(String(reviewRow.insttId || ""))}`, `/en/admin/member/company_account?insttId=${encodeURIComponent(String(reviewRow.insttId || ""))}`))}>
-                          회원사 정보 수정 화면으로 이동
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-                <section>
-                  <h4 className="mb-3 flex items-center gap-2 text-[16px] font-bold"><span className="h-4 w-1 rounded-full bg-[var(--kr-gov-blue)]"></span>증빙 서류 확인</h4>
-                  <div className="space-y-3 rounded-[var(--kr-gov-radius)] bg-[#f2f2f2] p-4">
-                    {(((reviewRow.evidenceFiles as Array<Record<string, unknown>> | undefined) || []).length === 0) ? (
-                      <div className="rounded border border-dashed border-[var(--kr-gov-border-light)] bg-white px-4 py-6 text-center text-sm text-gray-500">등록된 첨부 파일이 없습니다.</div>
-                    ) : ((reviewRow.evidenceFiles as Array<Record<string, unknown>> | undefined) || []).map((file, index) => (
-                      <div className="flex items-center justify-between rounded border border-[var(--kr-gov-border-light)] bg-white p-3" key={`${String(file.fileName || "file")}-${index}`}>
-                        <div className="flex items-center gap-3">
-                          <span className="material-symbols-outlined text-gray-500">description</span>
-                          <span className="text-sm font-medium">{String(file.fileName || "-")}</span>
-                        </div>
-                        <a className="flex items-center gap-1 rounded border border-[var(--kr-gov-blue)] px-3 py-1.5 text-xs font-bold text-[var(--kr-gov-blue)] hover:bg-blue-50" href={String(file.downloadUrl || "#")}>
-                          <span className="material-symbols-outlined text-[16px]">visibility</span>
-                          미리보기
-                        </a>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              </div>
-              <div className="flex items-center gap-3 border-t border-[var(--kr-gov-border-light)] bg-gray-50 px-6 py-6">
-                <PermissionButton allowed={!!page?.canUseCompanyApproveAction} className="h-12 flex-1 rounded-[var(--kr-gov-radius)] border border-red-500 bg-white px-6 font-bold text-red-600 hover:bg-red-50 sm:flex-none sm:min-w-[100px]" onClick={() => handleAction("reject", String(reviewRow.insttId || ""))} reason="전체 관리자만 반려할 수 있습니다." type="button">반려</PermissionButton>
-                <div className="hidden flex-grow sm:block"></div>
-                <PermissionButton allowed={!!page?.canUseCompanyApproveAction} className="h-12 flex-1 rounded-[var(--kr-gov-radius)] bg-[var(--kr-gov-blue)] px-10 font-bold text-white hover:bg-[var(--kr-gov-blue-hover)] sm:flex-none" onClick={() => handleAction("approve", String(reviewRow.insttId || ""))} reason="전체 관리자만 승인할 수 있습니다." type="button">승인 완료</PermissionButton>
-              </div>
-            </div>
-          </div>
-        ) : null}
+        <ReviewModalFrame
+          footerLeft={(
+            reviewRow ? <MemberPermissionButton allowed={!!page?.canUseCompanyApproveAction} className="flex-1 sm:min-w-[100px] sm:flex-none" onClick={() => handleAction("reject", String(reviewRow.insttId || ""))} reason="전체 관리자만 반려할 수 있습니다." size="lg" type="button" variant="dangerSecondary">{MEMBER_BUTTON_LABELS.reject}</MemberPermissionButton> : null
+          )}
+          footerRight={(
+            reviewRow ? <MemberPermissionButton allowed={!!page?.canUseCompanyApproveAction} className="flex-1 sm:flex-none" onClick={() => handleAction("approve", String(reviewRow.insttId || ""))} reason="전체 관리자만 승인할 수 있습니다." size="lg" type="button" variant="primary">{MEMBER_BUTTON_LABELS.approveDone}</MemberPermissionButton> : null
+          )}
+          onClose={() => setReviewInsttId("")}
+          open={!!reviewRow}
+          title="회원가입 신청 상세 검토"
+        >
+          {reviewRow ? <CompanyApproveReviewContent reviewRow={reviewRow} /> : null}
+        </ReviewModalFrame>
       </CanView>
     </AdminPageShell>
   );

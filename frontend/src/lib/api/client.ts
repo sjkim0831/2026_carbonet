@@ -949,6 +949,18 @@ export type SecurityPolicyPagePayload = Record<string, unknown> & {
   securityPolicySummary?: Array<Record<string, string>>;
   securityPolicyRows?: Array<Record<string, string>>;
   securityPolicyPlaybooks?: Array<Record<string, string>>;
+  menuPermissionDiagnosticSqlDownloadUrl?: string;
+  menuPermissionAuthGroupUrl?: string;
+  menuPermissionEnvironmentUrl?: string;
+  menuPermissionDiagnostics?: {
+    generatedAt?: string;
+    menuUrlDuplicateCount?: number;
+    viewFeatureDuplicateCount?: number;
+    cleanupRecommendationCount?: number;
+    message?: string;
+    duplicatedMenuUrls?: Array<Record<string, string>>;
+    duplicatedViewMappings?: Array<Record<string, string>>;
+  };
   isEn?: boolean;
 };
 

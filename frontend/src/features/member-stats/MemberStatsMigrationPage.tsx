@@ -3,6 +3,7 @@ import { fetchMemberStatsPage, readBootstrappedMemberStatsPageData, type MemberS
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { stringOf } from "../admin-system/adminSystemShared";
+import { MemberButton } from "../member/common";
 import { useMemo } from "react";
 
 export function MemberStatsMigrationPage() {
@@ -30,15 +31,9 @@ export function MemberStatsMigrationPage() {
       {pageState.error ? <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{pageState.error}</div> : null}
 
       <div className="flex justify-end gap-2 mb-8">
-        <button className="flex items-center gap-1 px-3 py-1.5 bg-white border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] text-[13px] font-bold hover:bg-gray-50" type="button">
-          <span className="material-symbols-outlined text-[18px]">calendar_today</span>{en ? "Period" : "기간 설정"}
-        </button>
-        <button className="flex items-center gap-1 px-3 py-1.5 bg-white border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] text-[13px] font-bold hover:bg-gray-50" type="button">
-          <span className="material-symbols-outlined text-[18px]">refresh</span>{en ? "Refresh" : "데이터 갱신"}
-        </button>
-        <button className="flex items-center gap-1 px-3 py-1.5 bg-[var(--kr-gov-blue)] text-white rounded-[var(--kr-gov-radius)] text-[13px] font-bold hover:bg-[var(--kr-gov-blue-hover)]" type="button">
-          <span className="material-symbols-outlined text-[18px]">description</span>{en ? "Generate Report" : "보고서 생성"}
-        </button>
+        <MemberButton icon="calendar_today" size="xs" type="button" variant="secondary">{en ? "Period" : "기간 설정"}</MemberButton>
+        <MemberButton icon="refresh" size="xs" type="button" variant="secondary">{en ? "Refresh" : "데이터 갱신"}</MemberButton>
+        <MemberButton icon="description" size="xs" type="button" variant="primary">{en ? "Generate Report" : "보고서 생성"}</MemberButton>
       </div>
 
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-10" data-help-id="member-stats-summary">
@@ -105,9 +100,7 @@ export function MemberStatsMigrationPage() {
             <h3 className="font-bold text-lg flex items-center gap-2"><span className="material-symbols-outlined text-orange-500">map</span>{en ? "Regional Distribution of Enterprise Members" : "기업 회원 지역별 분포 현황"}</h3>
             <p className="text-xs text-gray-500 mt-1">{en ? "Aggregated based on enterprise member location information." : "기업 회원 소재지 정보를 기준으로 집계된 데이터입니다."}</p>
           </div>
-          <button className="px-3 py-1.5 border border-[var(--kr-gov-border-light)] text-xs font-bold rounded hover:bg-gray-50 flex items-center gap-1" type="button">
-            <span className="material-symbols-outlined text-[16px]">download</span>{en ? "Download CSV" : "데이터 내려받기 (CSV)"}
-          </button>
+          <MemberButton icon="download" size="xs" type="button" variant="secondary">{en ? "Download CSV" : "데이터 내려받기 (CSV)"}</MemberButton>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {regionalDistribution.map((item) => (

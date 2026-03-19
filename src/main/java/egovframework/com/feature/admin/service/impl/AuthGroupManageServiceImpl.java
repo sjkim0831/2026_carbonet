@@ -89,8 +89,18 @@ public class AuthGroupManageServiceImpl extends EgovAbstractServiceImpl implemen
     }
 
     @Override
+    public List<String> selectRequiredViewFeatureCodesByMenuUrl(String menuUrl) {
+        return authGroupManageMapper.selectRequiredViewFeatureCodesByMenuUrl(menuUrl);
+    }
+
+    @Override
     public String selectRequiredViewFeatureCodeByMenuUrl(String menuUrl) {
         return authGroupManageMapper.selectRequiredViewFeatureCodeByMenuUrl(menuUrl);
+    }
+
+    @Override
+    public List<String> selectMenuCodesByMenuUrl(String menuUrl) {
+        return authGroupManageMapper.selectMenuCodesByMenuUrl(menuUrl);
     }
 
     @Override

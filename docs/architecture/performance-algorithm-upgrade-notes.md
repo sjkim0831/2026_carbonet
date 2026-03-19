@@ -167,6 +167,7 @@ This document tracks repository-level algorithm and data-structure upgrades that
   - selected admin dashboards such as member stats and security summary screens can now render without a separate first `page-data` fetch
   - query-driven admin list screens can skip the first fetch as long as the bootstrap payload matches the current URL query
   - high-frequency admin work screens such as auth-group, dept-role, and member-edit can also skip their first hard-refresh fetch
+  - auth-group, dept-role, and member-edit payload assembly now lives in `AdminHotPathPagePayloadService`, so API and shell bootstrap reuse the same concrete builder path
   - preserves existing API contracts and cache invalidation behavior for subsequent navigations
   - keeps shell HTML as the single fast-path handoff point for initial React hydration
 

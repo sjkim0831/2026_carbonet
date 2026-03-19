@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import egovframework.com.common.logging.RequestExecutionLogService;
 import egovframework.com.common.logging.RequestExecutionLogVO;
+import egovframework.com.feature.admin.mapper.AuthGroupManageMapper;
 import egovframework.com.feature.admin.mapper.AdminSummarySnapshotMapper;
 import egovframework.com.feature.admin.model.vo.AdminSummarySnapshotVO;
 import egovframework.com.feature.admin.model.vo.EmissionResultFilterSnapshot;
@@ -26,6 +27,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service("adminSummaryService")
@@ -38,13 +41,16 @@ public class AdminSummaryServiceImpl extends EgovAbstractServiceImpl implements 
 
     private final RequestExecutionLogService requestExecutionLogService;
     private final AdminSummarySnapshotMapper adminSummarySnapshotMapper;
+    private final AuthGroupManageMapper authGroupManageMapper;
     private final ObjectMapper objectMapper;
 
     public AdminSummaryServiceImpl(RequestExecutionLogService requestExecutionLogService,
             AdminSummarySnapshotMapper adminSummarySnapshotMapper,
+            AuthGroupManageMapper authGroupManageMapper,
             ObjectMapper objectMapper) {
         this.requestExecutionLogService = requestExecutionLogService;
         this.adminSummarySnapshotMapper = adminSummarySnapshotMapper;
+        this.authGroupManageMapper = authGroupManageMapper;
         this.objectMapper = objectMapper;
     }
 
@@ -155,6 +161,40 @@ public class AdminSummaryServiceImpl extends EgovAbstractServiceImpl implements 
         return loadCardSnapshot("SCHEDULER_SUMMARY", isEn, defaultSchedulerSummary(isEn));
     }
 
+    @Override
+    public Map<String, Object> buildMenuPermissionDiagnosticSummary(boolean isEn) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        try {
+            List<Map<String, String>> menuUrlRows = authGroupManageMapper.selectActiveMenuUrlRows();
+            List<Map<String, String>> viewFeatureRows = authGroupManageMapper.selectActiveMenuViewFeatureRows();
+            List<Map<String, String>> duplicatedMenuUrls = buildDuplicatedMenuUrlRows(menuUrlRows);
+            List<Map<String, String>> duplicatedViewMappings = buildDuplicatedViewMappingRows(viewFeatureRows);
+            response.put("generatedAt", java.time.LocalDateTime.now().toString());
+            response.put("menuUrlDuplicateCount", duplicatedMenuUrls.size());
+            response.put("viewFeatureDuplicateCount", duplicatedViewMappings.size());
+            response.put("cleanupRecommendationCount", duplicatedMenuUrls.size() + duplicatedViewMappings.size());
+            response.put("duplicatedMenuUrls", duplicatedMenuUrls);
+            response.put("duplicatedViewMappings", duplicatedViewMappings);
+            response.put("message", duplicatedMenuUrls.isEmpty() && duplicatedViewMappings.isEmpty()
+                    ? (isEn ? "No duplicate active menu URL or VIEW feature mapping was found."
+                            : "활성 메뉴 URL 또는 VIEW 기능 중복 매핑이 없습니다.")
+                    : (isEn ? "Duplicate active menu URL or VIEW feature mappings were detected."
+                            : "활성 메뉴 URL 또는 VIEW 기능 중복 매핑이 감지되었습니다."));
+        } catch (Exception e) {
+            log.warn("Failed to build menu permission diagnostic summary.", e);
+            response.put("generatedAt", java.time.LocalDateTime.now().toString());
+            response.put("menuUrlDuplicateCount", 0);
+            response.put("viewFeatureDuplicateCount", 0);
+            response.put("cleanupRecommendationCount", 0);
+            response.put("duplicatedMenuUrls", Collections.emptyList());
+            response.put("duplicatedViewMappings", Collections.emptyList());
+            response.put("message", isEn
+                    ? "Failed to collect menu permission diagnostics."
+                    : "메뉴 권한 진단 정보를 수집하지 못했습니다.");
+        }
+        return response;
+    }
+
     private List<Map<String, String>> buildSecurityAuditSummaryRows(SecurityAuditSnapshot auditSnapshot, boolean isEn) {
         SecurityAuditAggregate aggregate = auditSnapshot == null
                 ? SecurityAuditAggregate.empty()
@@ -237,6 +277,151 @@ public class AdminSummaryServiceImpl extends EgovAbstractServiceImpl implements 
                 isEn ? "Completed" : "산정 완료", "VERIFIED", isEn ? "Verified" : "검증 완료",
                 prefix + "/emission/result_detail?resultId=ER-2026-006"));
         return items;
+    }
+
+    private List<Map<String, String>> buildDuplicatedMenuUrlRows(List<Map<String, String>> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Map<String, Set<String>> grouped = new LinkedHashMap<>();
+        for (Map<String, String> row : rows) {
+            String menuUrl = safeString(row.get("menuUrl"));
+            String menuCode = safeString(row.get("menuCode"));
+            if (menuUrl.isEmpty() || menuCode.isEmpty()) {
+                continue;
+            }
+            grouped.computeIfAbsent(menuUrl, key -> new LinkedHashSet<>()).add(menuCode);
+        }
+        List<Map<String, String>> result = new ArrayList<>();
+        for (Map.Entry<String, Set<String>> entry : grouped.entrySet()) {
+            if (entry.getValue().size() < 2) {
+                continue;
+            }
+            List<String> menuCodes = new ArrayList<>(entry.getValue());
+            Collections.sort(menuCodes);
+            String primaryMenuCode = menuCodes.get(0);
+            String disableCandidates = menuCodes.size() > 1
+                    ? String.join(", ", menuCodes.subList(1, menuCodes.size()))
+                    : "";
+            result.add(mapOf(
+                    "menuUrl", entry.getKey(),
+                    "menuCodeCount", String.valueOf(menuCodes.size()),
+                    "menuCodes", String.join(", ", menuCodes),
+                    "recommendedPrimaryMenuCode", primaryMenuCode,
+                    "recommendedDisableMenuCodes", disableCandidates,
+                    "recommendedAction", "KEEP_PRIMARY_DISABLE_OTHERS",
+                    "recommendedSqlPreview", buildMenuCleanupSqlPreview(entry.getKey(), primaryMenuCode, disableCandidates)));
+        }
+        return result;
+    }
+
+    private List<Map<String, String>> buildDuplicatedViewMappingRows(List<Map<String, String>> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Map<String, Set<String>> menuCodesByUrl = new LinkedHashMap<>();
+        Map<String, Set<String>> featureCodesByUrl = new LinkedHashMap<>();
+        for (Map<String, String> row : rows) {
+            String menuUrl = safeString(row.get("menuUrl"));
+            String menuCode = safeString(row.get("menuCode"));
+            String featureCode = safeString(row.get("featureCode"));
+            if (menuUrl.isEmpty() || featureCode.isEmpty()) {
+                continue;
+            }
+            menuCodesByUrl.computeIfAbsent(menuUrl, key -> new LinkedHashSet<>()).add(menuCode);
+            featureCodesByUrl.computeIfAbsent(menuUrl, key -> new LinkedHashSet<>()).add(featureCode);
+        }
+        List<Map<String, String>> result = new ArrayList<>();
+        for (Map.Entry<String, Set<String>> entry : featureCodesByUrl.entrySet()) {
+            if (entry.getValue().size() < 2) {
+                continue;
+            }
+            List<String> menuCodes = new ArrayList<>(menuCodesByUrl.getOrDefault(entry.getKey(), Collections.emptySet()));
+            List<String> featureCodes = new ArrayList<>(entry.getValue());
+            Collections.sort(menuCodes);
+            Collections.sort(featureCodes);
+            String primaryMenuCode = menuCodes.isEmpty() ? "" : menuCodes.get(0);
+            String primaryFeatureCode = featureCodes.get(0);
+            String removeCandidates = featureCodes.size() > 1
+                    ? String.join(", ", featureCodes.subList(1, featureCodes.size()))
+                    : "";
+            result.add(mapOf(
+                    "menuUrl", entry.getKey(),
+                    "menuCodeCount", String.valueOf(menuCodes.size()),
+                    "menuCodes", String.join(", ", menuCodes),
+                    "viewFeatureCount", String.valueOf(featureCodes.size()),
+                    "featureCodes", String.join(", ", featureCodes),
+                    "recommendedPrimaryMenuCode", primaryMenuCode,
+                    "recommendedPrimaryFeatureCode", primaryFeatureCode,
+                    "recommendedRemoveFeatureCodes", removeCandidates,
+                    "recommendedAction", "KEEP_PRIMARY_VIEW_REMOVE_OTHERS",
+                    "recommendedSqlPreview", buildViewCleanupSqlPreview(entry.getKey(), primaryMenuCode, primaryFeatureCode, removeCandidates)));
+        }
+        return result;
+    }
+
+    private String buildMenuCleanupSqlPreview(String menuUrl, String primaryMenuCode, String disableCandidates) {
+        List<String> candidateCodes = splitCsv(disableCandidates);
+        StringBuilder builder = new StringBuilder();
+        builder.append("-- menuUrl: ").append(menuUrl).append("\n");
+        builder.append("-- keep primary menu: ").append(primaryMenuCode).append("\n");
+        if (candidateCodes.isEmpty()) {
+            builder.append("-- no disable candidates");
+            return builder.toString();
+        }
+        builder.append("SELECT MENU_CODE, MENU_URL, USE_AT\n")
+                .append("FROM COMTNMENUINFO\n")
+                .append("WHERE MENU_CODE IN (").append(joinQuoted(candidateCodes)).append(")\n")
+                .append("ORDER BY MENU_CODE;\n\n");
+        builder.append("UPDATE COMTNMENUINFO\n")
+                .append("SET USE_AT = 'N'\n")
+                .append("WHERE MENU_CODE IN (").append(joinQuoted(candidateCodes)).append(");");
+        return builder.toString();
+    }
+
+    private String buildViewCleanupSqlPreview(String menuUrl,
+            String primaryMenuCode,
+            String primaryFeatureCode,
+            String removeCandidates) {
+        List<String> candidateCodes = splitCsv(removeCandidates);
+        StringBuilder builder = new StringBuilder();
+        builder.append("-- menuUrl: ").append(menuUrl).append("\n");
+        builder.append("-- keep primary menu/view: ").append(primaryMenuCode).append(" / ").append(primaryFeatureCode).append("\n");
+        if (candidateCodes.isEmpty()) {
+            builder.append("-- no redundant VIEW features");
+            return builder.toString();
+        }
+        builder.append("SELECT MENU_CODE, FEATURE_CODE, USE_AT\n")
+                .append("FROM COMTNMENUFUNCTIONINFO\n")
+                .append("WHERE FEATURE_CODE IN (").append(joinQuoted(candidateCodes)).append(")\n")
+                .append("ORDER BY MENU_CODE, FEATURE_CODE;\n\n");
+        builder.append("UPDATE COMTNMENUFUNCTIONINFO\n")
+                .append("SET USE_AT = 'N'\n")
+                .append("WHERE FEATURE_CODE IN (").append(joinQuoted(candidateCodes)).append(");");
+        return builder.toString();
+    }
+
+    private List<String> splitCsv(String csv) {
+        if (csv == null || csv.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<String> values = new ArrayList<>();
+        for (String token : csv.split(",")) {
+            String value = safeString(token);
+            if (!value.isEmpty()) {
+                values.add(value);
+            }
+        }
+        return values;
+    }
+
+    private String joinQuoted(List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return "";
+        }
+        return values.stream()
+                .map(value -> "'" + value.replace("'", "''") + "'")
+                .collect(Collectors.joining(", "));
     }
 
     private boolean isSecurityAuditTarget(RequestExecutionLogVO item) {

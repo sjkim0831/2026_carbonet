@@ -7,11 +7,12 @@ import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import {
   MEMBER_STATUS_OPTIONS,
   MEMBER_TYPE_OPTIONS,
-  resolveMemberStatusBadgeClass,
-  resolveMemberStatusLabel,
   resolveMembershipTypeLabel
 } from "../member/shared";
-import { MemberPagination } from "../member/common";
+import { resolveMemberStatusBadgeClass, resolveMemberStatusLabel } from "../member/status";
+import { MemberButton, MemberLinkButton, MemberPagination } from "../member/common";
+import { MEMBER_BUTTON_LABELS, MEMBER_LIST_LABELS } from "../member/labels";
+import { MemberListEmptyRow, MemberListToolbar } from "../member/toolbar";
 
 type SearchFilters = {
   searchKeyword: string;
@@ -146,30 +147,20 @@ export function MemberListMigrationPage() {
               <span className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">검색어</span>
               <div className="flex gap-2">
                 <input className={`flex-1 ${fieldClassName}`} id="keyword" placeholder="신청자명, 아이디, 회사명 검색" value={draftFilters.searchKeyword} onChange={(event) => updateDraft("searchKeyword", event.target.value)} />
-                <button className="px-6 py-2 bg-[var(--kr-gov-blue)] text-white font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)] transition-colors flex items-center gap-2" type="submit">
-                  <span className="material-symbols-outlined text-[18px]">search</span>
-                  검색
-                </button>
+                <MemberButton icon="search" type="submit" variant="primary">
+                  {MEMBER_BUTTON_LABELS.search}
+                </MemberButton>
               </div>
             </div>
           </form>
         </div>
 
-        <div className="flex justify-between items-center mb-4">
-          <div className="text-[14px]">
-            전체 <span className="font-bold text-[var(--kr-gov-blue)]">{Number(page?.totalCount || 0).toLocaleString()}</span>건
-          </div>
-          <div className="flex gap-2">
-            <a className="flex items-center gap-1.5 px-3 py-2 bg-white border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] text-[13px] font-bold hover:bg-gray-50" href={buildMemberListExcelPath(filters)}>
-              <span className="material-symbols-outlined text-[18px]">download</span>
-              엑셀 다운로드
-            </a>
-            <a className="flex items-center gap-1.5 px-3 py-2 bg-[var(--kr-gov-green)] text-white rounded-[var(--kr-gov-radius)] text-[13px] font-bold hover:opacity-90" href={buildLocalizedPath("/admin/member/register", "/en/admin/member/register")}>
-              <span className="material-symbols-outlined text-[18px]">person_add</span>
-              신규 회원 등록
-            </a>
-          </div>
-        </div>
+        <MemberListToolbar
+          className="mb-4"
+          excelHref={buildMemberListExcelPath(filters)}
+          registerHref={buildLocalizedPath("/admin/member/register", "/en/admin/member/register")}
+          totalCount={Number(page?.totalCount || 0)}
+        />
 
         <div className="gov-card p-0 overflow-hidden" data-help-id="member-table">
           <div className="overflow-x-auto" data-help-id="member-list-table">
@@ -187,9 +178,7 @@ export function MemberListMigrationPage() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {(page?.member_list || []).length === 0 ? (
-                  <tr>
-                    <td className="px-6 py-8 text-center text-gray-500" colSpan={7}>조회된 기업 회원이 없습니다.</td>
-                  </tr>
+                  <MemberListEmptyRow colSpan={7} message={MEMBER_LIST_LABELS.emptyMemberList} />
                 ) : (page?.member_list || []).map((row, index) => {
                   const memberId = String(row.entrprsmberId || "");
                   const rowNumber = Number(page?.totalCount || 0) - ((currentPage - 1) * 10 + index);
@@ -209,12 +198,12 @@ export function MemberListMigrationPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center space-x-1">
-                        <a className="inline-flex px-3 py-1.5 border border-[var(--kr-gov-border-light)] text-[12px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-100" href={buildAdminPath("/admin/member/edit", "/en/admin/member/edit", "memberId", memberId)}>
-                          수정
-                        </a>
-                        <a className="inline-flex px-3 py-1.5 bg-[var(--kr-gov-blue)] text-white text-[12px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)]" href={buildAdminPath("/admin/member/detail", "/en/admin/member/detail", "memberId", memberId)}>
-                          상세
-                        </a>
+                        <MemberLinkButton href={buildAdminPath("/admin/member/edit", "/en/admin/member/edit", "memberId", memberId)} size="xs" variant="secondary">
+                          {MEMBER_BUTTON_LABELS.edit}
+                        </MemberLinkButton>
+                        <MemberLinkButton href={buildAdminPath("/admin/member/detail", "/en/admin/member/detail", "memberId", memberId)} size="xs" variant="primary">
+                          {MEMBER_BUTTON_LABELS.detail}
+                        </MemberLinkButton>
                       </td>
                     </tr>
                   );

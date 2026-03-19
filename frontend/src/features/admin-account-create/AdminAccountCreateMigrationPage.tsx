@@ -250,7 +250,7 @@ export function AdminAccountCreateMigrationPage() {
                 <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="admin-id">아이디 <span className="text-red-500">*</span></label>
                 <div className="flex gap-2">
                   <input className="form-input w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!canUseCreate} id="admin-id" placeholder="6~16자 영문, 숫자" spellCheck={false} value={adminId} onChange={(e) => setAdminId(e.target.value)} />
-                  <PermissionButton allowed={canUseCreate} className="px-4 bg-gray-800 text-white text-sm font-bold rounded-[var(--kr-gov-radius)] whitespace-nowrap" onClick={handleCheckId} reason="생성 권한이 있어야 중복 확인을 사용할 수 있습니다." type="button">중복확인</PermissionButton>
+                  <PermissionButton allowed={canUseCreate} className="inline-flex h-12 items-center justify-center px-4 bg-gray-800 text-white text-sm font-bold rounded-[var(--kr-gov-radius)] whitespace-nowrap" onClick={handleCheckId} reason="생성 권한이 있어야 중복 확인을 사용할 수 있습니다." type="button">중복확인</PermissionButton>
                 </div>
                 {idCheckMessage ? <div className="text-sm text-[var(--kr-gov-blue)]">{idCheckMessage}</div> : null}
               </div>
@@ -330,7 +330,7 @@ export function AdminAccountCreateMigrationPage() {
                     <div className="flex gap-2">
                       <input type="hidden" value={insttId} />
                       <input className="form-input w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-gray-50" id="company-search" placeholder="기업명을 검색해 주세요" readOnly value={companyName} />
-                      <PermissionButton allowed={canUseCreate} className="px-5 bg-gray-800 text-white text-sm font-bold rounded-[var(--kr-gov-radius)] whitespace-nowrap flex items-center gap-1" onClick={() => setCompanySearchOpen(true)} reason="생성 권한이 있어야 기관 검색을 사용할 수 있습니다." type="button">
+                      <PermissionButton allowed={canUseCreate} className="inline-flex h-12 items-center justify-center px-5 bg-gray-800 text-white text-sm font-bold rounded-[var(--kr-gov-radius)] whitespace-nowrap gap-1" onClick={() => setCompanySearchOpen(true)} reason="생성 권한이 있어야 기관 검색을 사용할 수 있습니다." type="button">
                         <span className="material-symbols-outlined text-[18px]">search</span> 기관 검색
                       </PermissionButton>
                     </div>

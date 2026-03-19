@@ -204,12 +204,18 @@ public class AdminMenuTreeService {
             return false;
         }
         try {
-            String featureCode = safeString(authGroupManageService.selectRequiredViewFeatureCodeByMenuUrl(normalizedMenuUrl))
-                    .toUpperCase(Locale.ROOT);
-            if (featureCode.isEmpty()) {
+            List<String> featureCodes = authGroupManageService.selectRequiredViewFeatureCodesByMenuUrl(normalizedMenuUrl);
+            if (featureCodes == null || featureCodes.isEmpty()) {
                 return !normalizedAuthorCode.isEmpty();
             }
-            return authGroupManageService.hasAuthorFeaturePermission(normalizedAuthorCode, featureCode);
+            for (String featureCode : featureCodes) {
+                String normalizedFeatureCode = safeString(featureCode).toUpperCase(Locale.ROOT);
+                if (!normalizedFeatureCode.isEmpty()
+                        && authGroupManageService.hasAuthorFeaturePermission(normalizedAuthorCode, normalizedFeatureCode)) {
+                    return true;
+                }
+            }
+            return false;
         } catch (Exception e) {
             log.warn("Failed to evaluate admin menu permission. authorCode={}, menuUrl={}",
                     normalizedAuthorCode, normalizedMenuUrl, e);

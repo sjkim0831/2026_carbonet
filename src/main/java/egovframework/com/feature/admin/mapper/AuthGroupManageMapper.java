@@ -25,6 +25,14 @@ public class AuthGroupManageMapper extends BaseMapperSupport {
         return selectList("AuthGroupManageMapper.selectFeatureCatalog");
     }
 
+    public List<Map<String, String>> selectActiveMenuUrlRows() {
+        return selectList("AuthGroupManageMapper.selectActiveMenuUrlRows");
+    }
+
+    public List<Map<String, String>> selectActiveMenuViewFeatureRows() {
+        return selectList("AuthGroupManageMapper.selectActiveMenuViewFeatureRows");
+    }
+
     public List<FeatureAssignmentStatVO> selectFeatureAssignmentStats() {
         return selectList("AuthGroupManageMapper.selectFeatureAssignmentStats");
     }
@@ -54,12 +62,22 @@ public class AuthGroupManageMapper extends BaseMapperSupport {
         return selectOne("AuthGroupManageMapper.selectAuthorCodeByUserId", userId);
     }
 
+    public List<String> selectRequiredViewFeatureCodesByMenuUrl(String menuUrl) {
+        return selectList("AuthGroupManageMapper.selectRequiredViewFeatureCodeByMenuUrl", menuUrl);
+    }
+
     public String selectRequiredViewFeatureCodeByMenuUrl(String menuUrl) {
-        return selectOne("AuthGroupManageMapper.selectRequiredViewFeatureCodeByMenuUrl", menuUrl);
+        List<String> featureCodes = selectRequiredViewFeatureCodesByMenuUrl(menuUrl);
+        return featureCodes == null || featureCodes.isEmpty() ? null : featureCodes.get(0);
+    }
+
+    public List<String> selectMenuCodesByMenuUrl(String menuUrl) {
+        return selectList("AuthGroupManageMapper.selectMenuCodeByMenuUrl", menuUrl);
     }
 
     public String selectMenuCodeByMenuUrl(String menuUrl) {
-        return selectOne("AuthGroupManageMapper.selectMenuCodeByMenuUrl", menuUrl);
+        List<String> menuCodes = selectMenuCodesByMenuUrl(menuUrl);
+        return menuCodes == null || menuCodes.isEmpty() ? null : menuCodes.get(0);
     }
 
     public List<String> selectFeatureCodesByMenuCode(String menuCode) {

@@ -29,7 +29,11 @@ public interface AuthGroupManageService {
 
     String selectAuthorCodeByUserId(String userId) throws Exception;
 
+    List<String> selectRequiredViewFeatureCodesByMenuUrl(String menuUrl) throws Exception;
+
     String selectRequiredViewFeatureCodeByMenuUrl(String menuUrl) throws Exception;
+
+    List<String> selectMenuCodesByMenuUrl(String menuUrl) throws Exception;
 
     String selectMenuCodeByMenuUrl(String menuUrl) throws Exception;
 

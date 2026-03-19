@@ -41,6 +41,37 @@
         ORDER BY F.MENU_CODE, F.FEATURE_CODE
     </select>
 
+    <select id="selectActiveMenuUrlRows" resultType="map">
+        SELECT
+            M.MENU_CODE AS menuCode,
+            COALESCE(M.MENU_URL, '') AS menuUrl
+        FROM COMTNMENUINFO M
+        LEFT JOIN COMTCCMMNDETAILCODE D
+            ON D.CODE = M.MENU_CODE
+        WHERE COALESCE(D.USE_AT, 'Y') = 'Y'
+          AND COALESCE(M.USE_AT, 'Y') = 'Y'
+          AND COALESCE(M.MENU_URL, '') != ''
+        ORDER BY M.MENU_URL, M.MENU_CODE
+    </select>
+
+    <select id="selectActiveMenuViewFeatureRows" resultType="map">
+        SELECT
+            M.MENU_CODE AS menuCode,
+            COALESCE(M.MENU_URL, '') AS menuUrl,
+            F.FEATURE_CODE AS featureCode
+        FROM COMTNMENUINFO M
+        INNER JOIN COMTNMENUFUNCTIONINFO F
+            ON F.MENU_CODE = M.MENU_CODE
+        LEFT JOIN COMTCCMMNDETAILCODE D
+            ON D.CODE = M.MENU_CODE
+        WHERE COALESCE(D.USE_AT, 'Y') = 'Y'
+          AND COALESCE(M.USE_AT, 'Y') = 'Y'
+          AND COALESCE(F.USE_AT, 'Y') = 'Y'
+          AND COALESCE(M.MENU_URL, '') != ''
+          AND F.FEATURE_CODE LIKE '%\_VIEW' ESCAPE '\'
+        ORDER BY M.MENU_URL, M.MENU_CODE, F.FEATURE_CODE
+    </select>
+
     <select id="selectFeatureAssignmentStats" resultType="egovframework.com.feature.admin.model.vo.FeatureAssignmentStatVO">
         SELECT
             FEATURE_CODE AS featureCode,

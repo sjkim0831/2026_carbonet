@@ -33,4 +33,6 @@ public interface AdminSummaryService {
     List<Map<String, String>> buildSecurityAuditRows(List<RequestExecutionLogVO> auditLogs, boolean isEn);
 
     List<Map<String, String>> getSchedulerSummary(boolean isEn);
+
+    Map<String, Object> buildMenuPermissionDiagnosticSummary(boolean isEn);
 }

@@ -2,13 +2,12 @@ package egovframework.com.feature.home.web;
 
 import egovframework.com.feature.admin.service.AdminMenuTreeService;
 import egovframework.com.feature.admin.service.AdminShellBootstrapPageService;
-import egovframework.com.feature.admin.web.AdminMainController;
+import egovframework.com.feature.admin.web.AdminHotPathPagePayloadService;
 import egovframework.com.feature.auth.dto.response.FrontendSessionResponseDTO;
 import egovframework.com.feature.auth.service.FrontendSessionService;
 import egovframework.com.feature.home.service.HomeMenuService;
 import egovframework.com.feature.home.service.HomeMypageService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpServletRequest;
@@ -25,8 +24,7 @@ public class ReactAppBootstrapService {
     private final HomeMypageService homeMypageService;
     private final AdminMenuTreeService adminMenuTreeService;
     private final AdminShellBootstrapPageService adminShellBootstrapPageService;
-    @Lazy
-    private final AdminMainController adminMainController;
+    private final AdminHotPathPagePayloadService adminHotPathPagePayloadService;
 
     public Map<String, Object> buildBootstrapPayload(String route, boolean en, boolean admin, HttpServletRequest request) {
         Map<String, Object> payload = new LinkedHashMap<>();
@@ -50,7 +48,7 @@ public class ReactAppBootstrapService {
             if ("admin_home".equals(normalizedRoute)) {
                 payload.put("adminHomePageData", adminShellBootstrapPageService.buildAdminHomePageData(en));
             } else if ("auth_group".equals(normalizedRoute) && request != null) {
-                payload.put("authGroupPageData", safeBody(adminMainController.authGroupPageApi(
+                payload.put("authGroupPageData", adminHotPathPagePayloadService.buildAuthGroupPagePayload(
                         request.getParameter("authorCode"),
                         request.getParameter("roleCategory"),
                         request.getParameter("insttId"),
@@ -58,7 +56,7 @@ public class ReactAppBootstrapService {
                         request.getParameter("featureCode"),
                         request.getParameter("userSearchKeyword"),
                         request,
-                        requestLocale(en))));
+                        requestLocale(en)));
             } else if ("dept_role".equals(normalizedRoute) && request != null) {
                 Integer memberPageIndex = null;
                 try {
@@ -69,20 +67,20 @@ public class ReactAppBootstrapService {
                 } catch (NumberFormatException ignored) {
                     memberPageIndex = null;
                 }
-                payload.put("deptRolePageData", safeBody(adminMainController.deptRoleMappingPageApi(
+                payload.put("deptRolePageData", adminHotPathPagePayloadService.buildDeptRolePagePayload(
                         request.getParameter("updated"),
                         request.getParameter("insttId"),
                         request.getParameter("memberSearchKeyword"),
                         memberPageIndex,
                         request.getParameter("error"),
                         request,
-                        requestLocale(en))));
+                        requestLocale(en)));
             } else if ("member_edit".equals(normalizedRoute) && request != null) {
-                payload.put("memberEditPageData", safeBody(adminMainController.memberEditApi(
+                payload.put("memberEditPageData", adminHotPathPagePayloadService.buildMemberEditPagePayload(
                         request.getParameter("memberId"),
                         request.getParameter("updated"),
                         request,
-                        requestLocale(en))));
+                        requestLocale(en)));
             } else if ("member_stats".equals(normalizedRoute)) {
                 payload.put("memberStatsPageData", adminShellBootstrapPageService.buildMemberStatsPageData(en));
             } else if ("security_policy".equals(normalizedRoute)) {
@@ -110,9 +108,5 @@ public class ReactAppBootstrapService {
 
     private Locale requestLocale(boolean en) {
         return en ? Locale.ENGLISH : Locale.KOREAN;
-    }
-
-    private Map<String, Object> safeBody(org.springframework.http.ResponseEntity<Map<String, Object>> response) {
-        return response == null || response.getBody() == null ? new LinkedHashMap<>() : response.getBody();
     }
 }

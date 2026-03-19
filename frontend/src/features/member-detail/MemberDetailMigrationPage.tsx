@@ -2,11 +2,11 @@ import { useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { CanView } from "../../components/access/CanView";
-import { PermissionButton } from "../../components/access/CanUse";
 import { buildLocalizedPath, getSearchParam } from "../../lib/navigation/runtime";
 import { fetchMemberDetailPage, MemberDetailPagePayload, resetMemberPasswordAction } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
-import { MemberActionBar } from "../member/common";
+import { MemberActionBar, MemberLinkButton, MemberPermissionButton, MEMBER_BUTTON_LABELS } from "../member/common";
+import { DetailSummaryCard, MemberSectionCard } from "../member/sections";
 
 function resolveInitialMemberId() {
   if (typeof window === "undefined") return "TEST1";
@@ -72,51 +72,36 @@ export function MemberDetailMigrationPage() {
               <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">Lookup Context</p>
               <p className="mt-1 text-sm text-[var(--kr-gov-text-primary)]">memberId: {initialMemberId}</p>
             </div>
-            <a
-              className="inline-flex items-center gap-2 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-2 text-sm font-bold hover:bg-gray-50"
-              href={buildLocalizedPath(`/admin/member/edit?memberId=${encodeURIComponent(initialMemberId)}`, `/en/admin/member/edit?memberId=${encodeURIComponent(initialMemberId)}`)}
-            >
-              수정 화면 이동
-            </a>
+            <MemberLinkButton href={buildLocalizedPath(`/admin/member/edit?memberId=${encodeURIComponent(initialMemberId)}`, `/en/admin/member/edit?memberId=${encodeURIComponent(initialMemberId)}`)} variant="secondary">
+              {MEMBER_BUTTON_LABELS.edit}
+            </MemberLinkButton>
           </div>
         </section>
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           <div className="xl:col-span-1 flex flex-col gap-8">
-            <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm" data-help-id="member-detail-summary">
-              <div className="flex flex-col items-center text-center">
-                <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                  <span className="material-symbols-outlined text-[48px] text-gray-400">account_circle</span>
+            <DetailSummaryCard
+              data-help-id="member-detail-summary"
+              actions={(
+                <div className="grid grid-cols-2 gap-2">
+                  <MemberPermissionButton allowed={true} onClick={handleResetPassword} reason="" type="button" variant="secondary">
+                    비밀번호 초기화
+                  </MemberPermissionButton>
+                  <MemberLinkButton href={buildLocalizedPath(`/admin/member/edit?memberId=${encodeURIComponent(initialMemberId)}`, `/en/admin/member/edit?memberId=${encodeURIComponent(initialMemberId)}`)} variant="secondary">
+                    {MEMBER_BUTTON_LABELS.edit}
+                  </MemberLinkButton>
                 </div>
-                <h3 className="text-xl font-bold mb-1">{`${String(member.applcntNm || "-")} (${String(member.entrprsmberId || "-")})`}</h3>
-                <div className="flex gap-2 mb-6">
+              )}
+              badges={(
+                <>
                   <span className="px-2.5 py-1 bg-blue-50 text-[var(--kr-gov-blue)] text-[12px] font-bold rounded border border-blue-100">{String(page?.membershipTypeLabel || "-")}</span>
                   <span className={`px-2.5 py-1 text-[12px] font-bold rounded border ${String(page?.statusBadgeClass || "bg-gray-100 text-gray-700 border-gray-200")}`}>{String(page?.statusLabel || "-")}</span>
-                </div>
-                <div className="w-full grid grid-cols-2 gap-2">
-                  <PermissionButton
-                    allowed={true}
-                    className="py-2.5 bg-white border border-[var(--kr-gov-border-light)] text-[13px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-50"
-                    onClick={handleResetPassword}
-                    reason=""
-                    type="button"
-                  >
-                    비밀번호 초기화
-                  </PermissionButton>
-                  <a
-                    className="inline-flex items-center justify-center py-2.5 bg-white border border-[var(--kr-gov-border-light)] text-[13px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-50"
-                    href={buildLocalizedPath(`/admin/member/edit?memberId=${encodeURIComponent(initialMemberId)}`, `/en/admin/member/edit?memberId=${encodeURIComponent(initialMemberId)}`)}
-                  >
-                    상태/정보 수정
-                  </a>
-                </div>
-              </div>
-            </section>
+                </>
+              )}
+              icon="account_circle"
+              title={`${String(member.applcntNm || "-")} (${String(member.entrprsmberId || "-")})`}
+            />
 
-            <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm" data-help-id="member-profile-card">
-              <div className="flex items-center gap-2 mb-6 pb-4 border-b">
-                <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">shield_person</span>
-                <h3 className="font-bold text-lg">권한 및 접근 정책</h3>
-              </div>
+            <MemberSectionCard data-help-id="member-profile-card" icon="shield_person" title="권한 및 접근 정책">
               <div className="space-y-4">
                 <div>
                   <p className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">배정 권한 그룹</p>
@@ -136,15 +121,11 @@ export function MemberDetailMigrationPage() {
                   </div>
                 </div>
               </div>
-            </section>
+            </MemberSectionCard>
           </div>
 
           <div className="xl:col-span-2 flex flex-col gap-8">
-            <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm" data-help-id="member-detail-history">
-              <div className="flex items-center gap-2 mb-6 pb-4 border-b">
-                <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">person</span>
-                <h3 className="font-bold text-lg">기본 정보</h3>
-              </div>
+            <MemberSectionCard data-help-id="member-detail-history" icon="person" title="기본 정보">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {[
                   ["성명", String(member.applcntNm || "-")],
@@ -172,13 +153,9 @@ export function MemberDetailMigrationPage() {
                   </div>
                 </div>
               </div>
-            </section>
+            </MemberSectionCard>
 
-            <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm">
-              <div className="flex items-center gap-2 mb-6 pb-4 border-b">
-                <span className="material-symbols-outlined text-[var(--kr-gov-green)]">business</span>
-                <h3 className="font-bold text-lg">소속 및 사업자 정보</h3>
-              </div>
+            <MemberSectionCard icon="business" iconClassName="text-[var(--kr-gov-green)]" title="소속 및 사업자 정보">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {[
                   { label: "기업명", value: String(member.cmpnyNm || "-"), wide: true },
@@ -193,13 +170,9 @@ export function MemberDetailMigrationPage() {
                   </div>
                 ))}
               </div>
-            </section>
+            </MemberSectionCard>
 
-            <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm">
-              <div className="flex items-center gap-2 mb-6 pb-4 border-b">
-                <span className="material-symbols-outlined text-orange-500">description</span>
-                <h3 className="font-bold text-lg">제출 증빙 서류</h3>
-              </div>
+            <MemberSectionCard icon="description" iconClassName="text-orange-500" title="제출 증빙 서류">
               <div className="space-y-4">
                 {memberEvidenceFiles.length === 0 ? (
                   <div className="rounded-[var(--kr-gov-radius)] border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-500">등록된 파일이 없습니다.</div>
@@ -213,19 +186,15 @@ export function MemberDetailMigrationPage() {
                       </div>
                     </div>
                     <div className="flex gap-2 shrink-0">
-                      {file.previewUrl ? <a className="px-3 py-1.5 text-[12px] font-bold border border-[var(--kr-gov-border-light)] bg-white rounded hover:bg-gray-50" href={String(file.previewUrl)} target="_blank">미리보기</a> : null}
-                      {file.downloadUrl ? <a className="px-3 py-1.5 text-[12px] font-bold border border-[var(--kr-gov-border-light)] bg-white rounded hover:bg-gray-50" href={String(file.downloadUrl)}>다운로드</a> : null}
+                      {file.previewUrl ? <MemberLinkButton href={String(file.previewUrl)} size="xs" target="_blank" variant="secondary">{MEMBER_BUTTON_LABELS.preview}</MemberLinkButton> : null}
+                      {file.downloadUrl ? <MemberLinkButton href={String(file.downloadUrl)} size="xs" variant="secondary">{MEMBER_BUTTON_LABELS.download}</MemberLinkButton> : null}
                     </div>
                   </div>
                 ))}
               </div>
-            </section>
+            </MemberSectionCard>
 
-            <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm">
-              <div className="flex items-center gap-2 mb-6 pb-4 border-b">
-                <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">lock_reset</span>
-                <h3 className="font-bold text-lg">비밀번호 초기화 이력</h3>
-              </div>
+            <MemberSectionCard icon="lock_reset" title="비밀번호 초기화 이력">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -248,7 +217,7 @@ export function MemberDetailMigrationPage() {
                   </tbody>
                 </table>
               </div>
-            </section>
+            </MemberSectionCard>
           </div>
         </div>
 
@@ -257,13 +226,13 @@ export function MemberDetailMigrationPage() {
           dataHelpId="member-action-bar"
           primary={(
             <div className="flex flex-col gap-3 sm:flex-row">
-              <button className="inline-flex min-h-[56px] min-w-[160px] items-center justify-center gap-2 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-6 py-3 text-base font-bold text-red-700 hover:bg-red-100" type="button">반려</button>
-              <button className="inline-flex min-h-[56px] min-w-[160px] items-center justify-center gap-2 rounded-[var(--kr-gov-radius)] bg-[var(--kr-gov-green)] px-6 py-3 text-base font-bold text-white hover:opacity-90" type="button">승인</button>
+              <MemberPermissionButton allowed={true} size="lg" type="button" variant="dangerSecondary">{MEMBER_BUTTON_LABELS.reject}</MemberPermissionButton>
+              <MemberPermissionButton allowed={true} size="lg" type="button" variant="success">{MEMBER_BUTTON_LABELS.approve}</MemberPermissionButton>
             </div>
           )}
           secondary={{
             icon: "arrow_back",
-            label: "목록으로",
+            label: MEMBER_BUTTON_LABELS.list,
             onClick: () => { window.location.href = buildLocalizedPath("/admin/member/list", "/en/admin/member/list"); }
           }}
         />

@@ -3,6 +3,8 @@ import { CanView } from "../../components/access/CanView";
 import { buildLocalizedPath, getSearchParam } from "../../lib/navigation/runtime";
 import { CompanyDetailPagePayload, fetchCompanyDetailPage } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { MemberLinkButton, MemberButtonGroup, MEMBER_BUTTON_LABELS } from "../member/common";
+import { DetailSummaryCard, MemberSectionCard } from "../member/sections";
 
 function resolveInitialInsttId() {
   if (typeof window === "undefined") return "";
@@ -55,22 +57,14 @@ export function CompanyDetailMigrationPage() {
       loading={!page && !error}
       loadingLabel="회원사 상세 정보를 불러오는 중입니다."
       actions={(
-        <div className="flex items-center gap-2">
-          <a
-            className="inline-flex items-center gap-1.5 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-2 text-sm font-bold hover:bg-gray-50"
-            href={buildLocalizedPath("/admin/member/company_list", "/en/admin/member/company_list")}
-          >
-            <span className="material-symbols-outlined text-[18px]">list</span>
+        <MemberButtonGroup>
+          <MemberLinkButton href={buildLocalizedPath("/admin/member/company_list", "/en/admin/member/company_list")} icon="list" variant="secondary">
             목록
-          </a>
-          <a
-            className="inline-flex items-center gap-1.5 rounded-[var(--kr-gov-radius)] bg-[var(--kr-gov-blue)] px-4 py-2 text-sm font-bold text-white hover:bg-[var(--kr-gov-blue-hover)]"
-            href={buildLocalizedPath(`/admin/member/company_account?insttId=${encodeURIComponent(insttId)}`, `/en/admin/member/company_account?insttId=${encodeURIComponent(insttId)}`)}
-          >
-            <span className="material-symbols-outlined text-[18px]">edit</span>
+          </MemberLinkButton>
+          <MemberLinkButton href={buildLocalizedPath(`/admin/member/company_account?insttId=${encodeURIComponent(insttId)}`, `/en/admin/member/company_account?insttId=${encodeURIComponent(insttId)}`)} icon="edit" variant="primary">
             수정
-          </a>
-        </div>
+          </MemberLinkButton>
+        </MemberButtonGroup>
       )}
     >
       {error ? <section className="mb-4 text-sm font-medium text-red-600">{error}</section> : null}
@@ -83,52 +77,36 @@ export function CompanyDetailMigrationPage() {
               <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">Lookup Context</p>
               <p className="mt-1 text-sm text-[var(--kr-gov-text-primary)]">insttId: {insttId || "-"}</p>
             </div>
-            <a
-              className="inline-flex items-center gap-1.5 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-2 text-sm font-bold hover:bg-gray-50"
-              href={buildLocalizedPath(`/admin/member/company_account?insttId=${encodeURIComponent(insttId)}`, `/en/admin/member/company_account?insttId=${encodeURIComponent(insttId)}`)}
-            >
-              수정 화면 이동
-            </a>
+            <MemberLinkButton href={buildLocalizedPath(`/admin/member/company_account?insttId=${encodeURIComponent(insttId)}`, `/en/admin/member/company_account?insttId=${encodeURIComponent(insttId)}`)} variant="secondary">
+              {MEMBER_BUTTON_LABELS.edit}
+            </MemberLinkButton>
           </div>
         </section>
         <div className="grid grid-cols-1 gap-8 xl:grid-cols-3">
-          <section className="gov-card xl:col-span-1" data-help-id="company-detail-summary">
-            <div className="flex flex-col items-center text-center">
-              <div className="mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-gray-100">
-                <span className="material-symbols-outlined text-[48px] text-gray-400">apartment</span>
-              </div>
-              <h3 className="mb-2 text-xl font-bold">{String(company.insttNm || "-")}</h3>
-              <div className="mb-3 flex flex-wrap justify-center gap-2">
+          <DetailSummaryCard
+            className="gov-card xl:col-span-1"
+            data-help-id="company-detail-summary"
+            badges={(
+              <>
                 <span className="rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-[12px] font-bold text-[var(--kr-gov-blue)]">
                   {String(page?.companyTypeLabel || "-")}
                 </span>
                 <span className={`rounded-full px-2.5 py-1 text-[12px] font-bold ${String(page?.companyStatusBadgeClass || "bg-gray-100 text-gray-700")}`}>
                   {String(page?.companyStatusLabel || "-")}
                 </span>
-              </div>
-              <div className="w-full rounded-[var(--kr-gov-radius)] bg-gray-50 p-4 text-left text-sm">
-                <div className="mb-2 flex justify-between gap-4">
-                  <span className="text-[var(--kr-gov-text-secondary)]">신청번호</span>
-                  <strong>{String(company.insttId || "-")}</strong>
-                </div>
-                <div className="mb-2 flex justify-between gap-4">
-                  <span className="text-[var(--kr-gov-text-secondary)]">등록일시</span>
-                  <strong>{String(company.frstRegistPnttm || "-")}</strong>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <span className="text-[var(--kr-gov-text-secondary)]">최종수정일시</span>
-                  <strong>{String(company.lastUpdtPnttm || "-")}</strong>
-                </div>
-              </div>
-            </div>
-          </section>
+              </>
+            )}
+            icon="apartment"
+            metaRows={[
+              { label: "신청번호", value: String(company.insttId || "-") },
+              { label: "등록일시", value: String(company.frstRegistPnttm || "-") },
+              { label: "최종수정일시", value: String(company.lastUpdtPnttm || "-") }
+            ]}
+            title={String(company.insttNm || "-")}
+          />
 
           <div className="flex flex-col gap-8 xl:col-span-2">
-            <section className="gov-card">
-              <div className="mb-6 flex items-center gap-2 border-b pb-4">
-                <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">business</span>
-                <h3 className="text-lg font-bold">사업자 정보</h3>
-              </div>
+            <MemberSectionCard className="gov-card" icon="business" title="사업자 정보">
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div className="md:col-span-2">
                   <label className="gov-label">기관/기업명</label>
@@ -159,13 +137,9 @@ export function CompanyDetailMigrationPage() {
                   <div className="gov-readonly">{String(company.detailAdres || "-")}</div>
                 </div>
               </div>
-            </section>
+            </MemberSectionCard>
 
-            <section className="gov-card">
-              <div className="mb-6 flex items-center gap-2 border-b pb-4">
-                <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">person</span>
-                <h3 className="text-lg font-bold">담당자 정보</h3>
-              </div>
+            <MemberSectionCard className="gov-card" icon="person" title="담당자 정보">
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
                   <label className="gov-label">담당자 성명</label>
@@ -180,13 +154,9 @@ export function CompanyDetailMigrationPage() {
                   <div className="gov-readonly">{String(company.chargerTel || "-")}</div>
                 </div>
               </div>
-            </section>
+            </MemberSectionCard>
 
-            <section className="gov-card" data-help-id="company-detail-files">
-              <div className="mb-6 flex items-center gap-2 border-b pb-4">
-                <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">upload_file</span>
-                <h3 className="text-lg font-bold">첨부 파일</h3>
-              </div>
+            <MemberSectionCard className="gov-card" data-help-id="company-detail-files" icon="upload_file" title="첨부 파일">
               <div className="overflow-x-auto rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)]">
                 <table className="w-full text-sm">
                   <thead className="bg-[#f8f9fa] text-left">
@@ -217,10 +187,9 @@ export function CompanyDetailMigrationPage() {
                           <td className="px-4 py-3">{formatBytes(file.fileMg)}</td>
                           <td className="px-4 py-3">{String(file.regDate || "-")}</td>
                           <td className="px-4 py-3 text-center">
-                            <a className="inline-flex items-center gap-1 rounded border border-[var(--kr-gov-border-light)] px-3 py-1.5 font-bold hover:bg-gray-50" data-action="download" href={downloadUrl}>
-                              <span className="material-symbols-outlined text-[18px]">download</span>
-                              다운로드
-                            </a>
+                            <MemberLinkButton data-action="download" href={downloadUrl} icon="download" size="xs" variant="secondary">
+                              {MEMBER_BUTTON_LABELS.download}
+                            </MemberLinkButton>
                           </td>
                         </tr>
                       );
@@ -228,7 +197,7 @@ export function CompanyDetailMigrationPage() {
                   </tbody>
                 </table>
               </div>
-            </section>
+            </MemberSectionCard>
           </div>
         </div>
       </CanView>

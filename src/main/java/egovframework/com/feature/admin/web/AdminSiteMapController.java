@@ -4,6 +4,7 @@ import egovframework.com.common.menu.service.SiteMapService;
 import egovframework.com.feature.home.web.ReactAppViewSupport;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,16 +21,16 @@ import java.util.Map;
 public class AdminSiteMapController {
 
     private final SiteMapService siteMapService;
-    private final ReactAppViewSupport reactAppViewSupport;
+    private final ObjectProvider<ReactAppViewSupport> reactAppViewSupportProvider;
 
     @RequestMapping(value = {"/admin/content/sitemap"}, method = {RequestMethod.GET, RequestMethod.POST})
     public String sitemap(HttpServletRequest request, Model model) {
-        return reactAppViewSupport.render(model, "admin-sitemap", false, true);
+        return reactAppViewSupportProvider.getObject().render(model, "admin-sitemap", false, true);
     }
 
     @RequestMapping(value = {"/en/admin/content/sitemap"}, method = {RequestMethod.GET, RequestMethod.POST})
     public String sitemapEn(HttpServletRequest request, Model model) {
-        return reactAppViewSupport.render(model, "admin-sitemap", true, true);
+        return reactAppViewSupportProvider.getObject().render(model, "admin-sitemap", true, true);
     }
 
     @GetMapping("/admin/api/admin/content/sitemap")

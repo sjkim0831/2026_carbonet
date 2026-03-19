@@ -4,6 +4,7 @@ import { fetchMemberRegisterPage, type MemberRegisterPagePayload } from "../../l
 import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { stringOf } from "../admin-system/adminSystemShared";
+import { MemberButton } from "../member/common";
 
 type RegisterFormState = {
   userName: string;
@@ -103,7 +104,7 @@ export function MemberRegisterMigrationPage() {
                 <label className="form-label" htmlFor="user-id">{en ? "Username" : "아이디"} <span className="required">*</span></label>
                 <div className="flex gap-2">
                   <input className="gov-input flex-1" id="user-id" placeholder={en ? "6-12 chars, alphanumeric" : "6~12자 영문, 숫자 조합"} value={form.userId} onChange={(event) => update("userId", event.target.value)} />
-                  <button className="px-4 py-2 border border-[var(--kr-gov-blue)] text-[var(--kr-gov-blue)] font-bold rounded-[var(--kr-gov-radius)] hover:bg-blue-50 whitespace-nowrap text-sm" onClick={handleDuplicateCheck} type="button">{en ? "Check Duplicates" : "중복 확인"}</button>
+                  <MemberButton onClick={handleDuplicateCheck} type="button" variant="info">{en ? "Check Duplicates" : "중복 확인"}</MemberButton>
                 </div>
                 {duplicateState === "ok" ? <p className="validation-msg success">{en ? "This username is available." : "사용 가능한 아이디입니다."}</p> : null}
                 {duplicateState === "error" ? <p className="validation-msg error">{en ? "Please use 6-12 alphanumeric characters." : "6~12자의 영문/숫자 조합으로 입력해주세요."}</p> : null}
@@ -135,7 +136,7 @@ export function MemberRegisterMigrationPage() {
                 <label className="form-label" htmlFor="org-name">{en ? "Organization / Company Name" : "소속 기관/기업명"} <span className="required">*</span></label>
                 <div className="flex gap-2">
                   <input className="gov-input flex-1" id="org-name" placeholder={en ? "Search for organization or company" : "기관명 또는 기업명을 검색하세요"} value={form.orgName} onChange={(event) => update("orgName", event.target.value)} />
-                  <button className="px-4 py-2 bg-gray-800 text-white font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-700 whitespace-nowrap text-sm flex items-center gap-1" onClick={() => update("orgName", en ? "Korea CCUS Center" : "한국 CCUS 센터")} type="button"><span className="material-symbols-outlined text-[18px]">search</span>{en ? "Search Org" : "기관 검색"}</button>
+                  <MemberButton icon="search" onClick={() => update("orgName", en ? "Korea CCUS Center" : "한국 CCUS 센터")} type="button" variant="secondary">{en ? "Search Org" : "기관 검색"}</MemberButton>
                 </div>
               </div>
               <div>
@@ -168,8 +169,8 @@ export function MemberRegisterMigrationPage() {
         </div>
 
         <div className="mt-12 flex justify-center gap-4 border-t border-[var(--kr-gov-border-light)] pt-10">
-          <button className="px-10 py-3.5 border border-[var(--kr-gov-border-light)] bg-white text-[var(--kr-gov-text-secondary)] font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-50 transition-colors text-[16px]" onClick={() => navigate(buildLocalizedPath("/admin/member/list", "/en/admin/member/list"))} type="button">{en ? "Cancel" : "취소"}</button>
-          <button className="px-10 py-3.5 bg-[var(--kr-gov-blue)] text-white font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)] transition-colors text-[16px] shadow-lg shadow-blue-900/10" type="submit">{en ? "Complete Registration" : "등록 완료"}</button>
+          <MemberButton className="px-10" onClick={() => navigate(buildLocalizedPath("/admin/member/list", "/en/admin/member/list"))} size="lg" type="button" variant="secondary">{en ? "Cancel" : "취소"}</MemberButton>
+          <MemberButton className="px-10 shadow-lg shadow-blue-900/10" size="lg" type="submit" variant="primary">{en ? "Complete Registration" : "등록 완료"}</MemberButton>
         </div>
       </form>
     </AdminPageShell>
