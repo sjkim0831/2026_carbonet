@@ -49,6 +49,9 @@ See also:
 - `docs/architecture/ai-assisted-module-intake-checklist.md`
 - `docs/architecture/module-intake-api-contracts.md`
 - `docs/architecture/module-selection-and-install-ui-contract.md`
+- `docs/architecture/module-selection-api-contracts.md`
+- `docs/architecture/module-selection-api-examples.md`
+- `docs/architecture/module-selection-checklist.md`
 - `docs/architecture/theme-set-schema.md`
 - `docs/architecture/page-design-schema.md`
 - `docs/architecture/element-design-set-schema.md`

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resonance Module Binding Preview</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <small>Resonance Builder</small>
+          <h1>Binding Preview</h1>
+          <p>선택한 모듈들이 현재 프로젝트와 release unit에 어떻게 묶일지 미리 봅니다.</p>
+        </div>
+        <div class="nav-group">
+          <h2>Pages</h2>
+          <a class="nav-link" href="index.html">Overview</a>
+          <a class="nav-link" href="module-selection-popup.html">Module Selection Popup</a>
+          <a class="nav-link active" href="module-binding-preview.html">Module Binding Preview</a>
+          <a class="nav-link" href="runtime-package-matrix.html">Runtime Package Matrix</a>
+        </div>
+      </aside>
+      <main class="content">
+        <div class="topbar">
+          <div class="page-title">
+            <div class="breadcrumbs">Resonance / Builder / Module Binding Preview</div>
+            <h1>Module Binding Preview</h1>
+            <p>선택한 모듈이 메뉴, 페이지, 공통 jar, runtime package에 어떻게 연결되는지 한 화면에서 확인합니다.</p>
+          </div>
+          <div class="header-actions">
+            <div class="btn secondary">Open Matrix</div>
+            <div class="btn secondary">Open Compare</div>
+            <div class="btn primary">Confirm Binding</div>
+          </div>
+        </div>
+
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <h2>Binding Summary</h2>
+              <p>프로젝트, 시나리오, release unit, runtime package 기준 영향 범위를 미리 봅니다.</p>
+            </div>
+            <span class="chip">Preview</span>
+          </div>
+          <div class="card-body">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Area</th>
+                  <th>Binding</th>
+                  <th>Scope</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Project</td>
+                  <td>member-core</td>
+                  <td>PROJECT</td>
+                </tr>
+                <tr>
+                  <td>Scenario</td>
+                  <td>join-member-info</td>
+                  <td>SCENARIO</td>
+                </tr>
+                <tr>
+                  <td>Module</td>
+                  <td>popup-member-selector, excel-export-extended</td>
+                  <td>FEATURE_MODULE</td>
+                </tr>
+                <tr>
+                  <td>Runtime Package</td>
+                  <td>release-unit/member-core-20260321-01</td>
+                  <td>PACKAGE</td>
+                </tr>
+                <tr>
+                  <td>Common Line Impact</td>
+                  <td>no change</td>
+                  <td>COMMON</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

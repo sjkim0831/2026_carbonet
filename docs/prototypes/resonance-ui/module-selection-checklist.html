@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resonance Module Selection Checklist</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <small>Resonance Builder</small>
+          <h1>선택 체크</h1>
+          <p>모듈 선택 결과가 스캐폴딩 가능 상태인지 체크리스트로 검증합니다.</p>
+        </div>
+        <div class="nav-group">
+          <h2>Pages</h2>
+          <a class="nav-link" href="index.html">Overview</a>
+          <a class="nav-link" href="module-selection-popup.html">Module Selection Popup</a>
+          <a class="nav-link active" href="module-selection-checklist.html">Module Selection Checklist</a>
+          <a class="nav-link" href="runtime-package-matrix.html">Runtime Package Matrix</a>
+        </div>
+      </aside>
+      <main class="content">
+        <div class="topbar">
+          <div class="page-title">
+            <div class="breadcrumbs">Resonance / Builder / Module Selection Checklist</div>
+            <h1>Module Selection Checklist</h1>
+            <p>선택된 모듈들이 dependency, CSS, DB, rollback, package 영향까지 충족하는지 확인한 뒤 스캐폴딩으로 넘깁니다.</p>
+          </div>
+          <div class="header-actions">
+            <div class="btn secondary">Open Popup Review</div>
+            <div class="btn secondary">Open Package Impact</div>
+            <div class="btn primary">Proceed To Scaffold</div>
+          </div>
+        </div>
+
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <h2>Checklist Result</h2>
+              <p>필수 모듈, 스타일, DB 영향, 롤백 준비 상태를 한 번에 확인합니다.</p>
+            </div>
+            <span class="chip ok">Ready</span>
+          </div>
+          <div class="card-body">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Check</th>
+                  <th>Result</th>
+                  <th>Detail</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Required modules selected</td>
+                  <td><span class="chip ok">Pass</span></td>
+                  <td>popup-member-selector selected</td>
+                </tr>
+                <tr>
+                  <td>Dependency resolution</td>
+                  <td><span class="chip ok">Pass</span></td>
+                  <td>All transitive modules resolved</td>
+                </tr>
+                <tr>
+                  <td>Style coverage / dedupe</td>
+                  <td><span class="chip ok">Pass</span></td>
+                  <td>No duplicate CSS in current selection</td>
+                </tr>
+                <tr>
+                  <td>Backend / DB review</td>
+                  <td><span class="chip ok">Pass</span></td>
+                  <td>No new DB object impact in selected set</td>
+                </tr>
+                <tr>
+                  <td>Rollback readiness</td>
+                  <td><span class="chip ok">Pass</span></td>
+                  <td>Attach plan has rollback target</td>
+                </tr>
+                <tr>
+                  <td>Runtime package preview</td>
+                  <td><span class="chip ok">Pass</span></td>
+                  <td>2 feature assets + 1 helper binding added</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

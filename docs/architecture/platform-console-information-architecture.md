@@ -201,6 +201,7 @@ Shows and manages:
 - GUI-first builder readiness status
 - property and binding blocker inspector
 - module selection popup and dependency review
+- module selection checklist result
 
 ### 6. Delete and Rollback Planning
 
