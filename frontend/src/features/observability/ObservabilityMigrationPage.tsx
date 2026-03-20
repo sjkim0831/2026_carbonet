@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";
+import { verifyRuntimeContextKeys } from "../admin-ui/contextKeyPresets";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { fetchAuditEvents, fetchTraceEvents, AuditEventSearchPayload, TraceEventSearchPayload } from "../../lib/api/client";
 
@@ -78,6 +80,9 @@ export function ObservabilityMigrationPage() {
       ]}
       title={en ? "Observability" : "추적 조회"}
       subtitle={en ? "Search and view audit logs and trace events." : "감사 로그와 추적 이벤트를 조회합니다."}
+      contextStrip={
+        <ContextKeyStrip items={verifyRuntimeContextKeys} />
+      }
     >
       <main className="app-shell">
       <section className="hero-card">

@@ -19,6 +19,7 @@ type AdminPageShellProps = {
   subtitle?: string;
   actions?: ReactNode;
   breadcrumbs?: BreadcrumbItem[];
+  contextStrip?: ReactNode;
   sidebarVariant?: string;
   loading?: boolean;
   loadingLabel?: string;
@@ -504,6 +505,7 @@ export function AdminPageShell({
   subtitle,
   actions,
   breadcrumbs,
+  contextStrip,
   sidebarVariant: _sidebarVariant,
   loading = false,
   loadingLabel,
@@ -947,6 +949,7 @@ export function AdminPageShell({
             {actions ? <div className="flex gap-2">{actions}</div> : null}
           </div>
 
+          {contextStrip}
           {children}
         </main>
       </div>

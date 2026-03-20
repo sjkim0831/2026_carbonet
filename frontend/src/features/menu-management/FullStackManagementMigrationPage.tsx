@@ -15,6 +15,9 @@ import {
 } from "../../lib/api/client";
 import { buildLocalizedPath, getCsrfMeta, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";
+import { authorDesignContextKeys } from "../admin-ui/contextKeyPresets";
+import { SummaryMetricCard, WarningPanel } from "../admin-ui/common";
 import { numberOf, stringOf } from "../admin-system/adminSystemShared";
 import { toDisplayMenuUrl } from "./menuUrlDisplay";
 
@@ -810,6 +813,9 @@ export function FullStackManagementMigrationPage() {
       ]}
       title={en ? "Full-Stack Management" : "풀스택 관리"}
       subtitle={en ? "Create and govern menu-linked frontend, backend, API, schema, permission, and column metadata from one admin surface." : "메뉴에 연결된 프론트엔드, 백엔드, API, 스키마, 권한, 컬럼 메타데이터를 하나의 관리자 화면에서 함께 관리합니다."}
+      contextStrip={
+        <ContextKeyStrip items={authorDesignContextKeys} />
+      }
     >
       {page?.menuMgmtMessage || actionMessage ? <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{actionMessage || String(page?.menuMgmtMessage)}</div> : null}
       {pageState.error || actionError || page?.menuMgmtError ? <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{actionError || page?.menuMgmtError || pageState.error}</div> : null}
@@ -956,55 +962,69 @@ export function FullStackManagementMigrationPage() {
         {governanceError ? <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">{governanceError}</div> : null}
 
         <div className="mb-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 text-sm">
-          <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[#f8fbff] px-4 py-3">
-            <p className="font-bold text-[var(--kr-gov-blue)]">{en ? "Route / Page" : "라우트 / 페이지"}</p>
-            <p className="mt-1 break-all">{governanceDetail?.routePath || toDisplayMenuUrl(stringOf(selectedMenuRow, "menuUrl")) || "-"}</p>
-            <p className="text-[var(--kr-gov-text-secondary)]">{governancePageId || "-"}</p>
-          </div>
-          <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[#fcfbf7] px-4 py-3">
-            <p className="font-bold text-[#8a5a00]">{en ? "Frontend / Components" : "프론트엔드 / 컴포넌트"}</p>
-            <p className="mt-1">{governanceDetail?.source || "-"}</p>
-            <p className="text-[var(--kr-gov-text-secondary)]">
-              {(governanceDetail?.surfaces || []).length} {en ? "surfaces" : "요소"} / {governanceDetail?.manifestRegistry?.componentCount || 0} {en ? "components" : "컴포넌트"}
-            </p>
-          </div>
-          <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[#f7fbf8] px-4 py-3">
-            <p className="font-bold text-[#196c2e]">{en ? "Functions / APIs" : "함수 / API"}</p>
-            <p className="mt-1">{(governanceDetail?.events || []).length} {en ? "events" : "이벤트"} / {(governanceDetail?.apis || []).length} API</p>
-            <p className="text-[var(--kr-gov-text-secondary)]">{(governanceDetail?.menuPermission?.featureRows || []).length} {en ? "feature codes" : "기능 코드"}</p>
-          </div>
-          <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[#f9f7fb] px-4 py-3">
-            <p className="font-bold text-[#6b3ea1]">{en ? "Schema / Data" : "스키마 / 데이터"}</p>
-            <p className="mt-1">{(governanceDetail?.schemas || []).length} {en ? "schemas" : "스키마"} / {(governanceDetail?.commonCodeGroups || []).length} {en ? "common code groups" : "공통코드 그룹"}</p>
-            <p className="text-[var(--kr-gov-text-secondary)]">{governanceDetail?.manifestRegistry?.layoutVersion || "-"}</p>
-          </div>
+          <SummaryMetricCard
+            accentClassName="text-[var(--kr-gov-blue)]"
+            description={governancePageId || "-"}
+            surfaceClassName="bg-[#f8fbff]"
+            title={en ? "Route / Page" : "라우트 / 페이지"}
+            value={<span className="break-all">{governanceDetail?.routePath || toDisplayMenuUrl(stringOf(selectedMenuRow, "menuUrl")) || "-"}</span>}
+          />
+          <SummaryMetricCard
+            accentClassName="text-[#8a5a00]"
+            description={`${(governanceDetail?.surfaces || []).length} ${en ? "surfaces" : "요소"} / ${governanceDetail?.manifestRegistry?.componentCount || 0} ${en ? "components" : "컴포넌트"}`}
+            surfaceClassName="bg-[#fcfbf7]"
+            title={en ? "Frontend / Components" : "프론트엔드 / 컴포넌트"}
+            value={governanceDetail?.source || "-"}
+          />
+          <SummaryMetricCard
+            accentClassName="text-[#196c2e]"
+            description={`${(governanceDetail?.menuPermission?.featureRows || []).length} ${en ? "feature codes" : "기능 코드"}`}
+            surfaceClassName="bg-[#f7fbf8]"
+            title={en ? "Functions / APIs" : "함수 / API"}
+            value={`${(governanceDetail?.events || []).length} ${en ? "events" : "이벤트"} / ${(governanceDetail?.apis || []).length} API`}
+          />
+          <SummaryMetricCard
+            accentClassName="text-[#6b3ea1]"
+            description={governanceDetail?.manifestRegistry?.layoutVersion || "-"}
+            surfaceClassName="bg-[#f9f7fb]"
+            title={en ? "Schema / Data" : "스키마 / 데이터"}
+            value={`${(governanceDetail?.schemas || []).length} ${en ? "schemas" : "스키마"} / ${(governanceDetail?.commonCodeGroups || []).length} ${en ? "common code groups" : "공통코드 그룹"}`}
+          />
         </div>
 
         {governanceWarnings.length > 0 ? (
-          <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          <WarningPanel>
             {governanceWarnings.map((warning) => <div key={warning}>{warning}</div>)}
-          </div>
+          </WarningPanel>
         ) : null}
 
         {governanceLoading ? <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Loading governance metadata..." : "거버넌스 메타데이터를 불러오는 중입니다..."}</p> : null}
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 text-sm mb-6">
-          <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[#f8fbff] px-4 py-3">
-            <p className="font-bold text-[var(--kr-gov-blue)]">{en ? "Managed Pages" : "관리 대상 페이지"}</p>
-            <p className="mt-1">{coverageOverview.total}</p>
-          </div>
-          <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[#f7fbf8] px-4 py-3">
-            <p className="font-bold text-[#196c2e]">{en ? "Coverage 70+" : "커버리지 70+"}</p>
-            <p className="mt-1">{coverageOverview.strong}</p>
-          </div>
-          <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[#fff8f1] px-4 py-3">
-            <p className="font-bold text-[#b45f06]">{en ? "Coverage Under 40" : "커버리지 40 미만"}</p>
-            <p className="mt-1">{coverageOverview.weak}</p>
-          </div>
-          <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[#fff1f2] px-4 py-3">
-            <p className="font-bold text-[#be123c]">{en ? "Missing VIEW Feature" : "VIEW 권한 누락"}</p>
-            <p className="mt-1">{coverageOverview.missingView}</p>
-          </div>
+          <SummaryMetricCard
+            accentClassName="text-[var(--kr-gov-blue)]"
+            surfaceClassName="bg-[#f8fbff]"
+            title={en ? "Managed Pages" : "관리 대상 페이지"}
+            value={coverageOverview.total}
+          />
+          <SummaryMetricCard
+            accentClassName="text-[#196c2e]"
+            surfaceClassName="bg-[#f7fbf8]"
+            title={en ? "Coverage 70+" : "커버리지 70+"}
+            value={coverageOverview.strong}
+          />
+          <SummaryMetricCard
+            accentClassName="text-[#b45f06]"
+            surfaceClassName="bg-[#fff8f1]"
+            title={en ? "Coverage Under 40" : "커버리지 40 미만"}
+            value={coverageOverview.weak}
+          />
+          <SummaryMetricCard
+            accentClassName="text-[#be123c]"
+            surfaceClassName="bg-[#fff1f2]"
+            title={en ? "Missing VIEW Feature" : "VIEW 권한 누락"}
+            value={coverageOverview.missingView}
+          />
         </div>
 
         <div className="table-wrap mb-6">

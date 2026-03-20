@@ -25,7 +25,9 @@ import {
 import { buildLocalizedPath, getCsrfMeta, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { numberOf, stringOf, submitFormRequest } from "../admin-system/adminSystemShared";
-import { DiagnosticCard, GridToolbar, MemberButton, MemberLinkButton } from "../admin-ui/common";
+import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";
+import { authorDesignContextKeys } from "../admin-ui/contextKeyPresets";
+import { BinaryStatusCard, CollectionResultPanel, DiagnosticCard, GridToolbar, KeyValueGridPanel, MemberButton, MemberLinkButton, MetaListPanel, PageStatusNotice, SummaryMetricCard, WarningPanel } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 import { toDisplayMenuUrl } from "../menu-management/menuUrlDisplay";
 
@@ -1777,17 +1779,20 @@ export function EnvironmentManagementHubPage() {
       subtitle={en
         ? "Search menus, register new pages with URL and group assignment, and continue feature editing from the same screen."
         : "메뉴를 검색해 수정하고, 그룹/공통코드와 URL을 지정해 페이지 메뉴를 등록한 뒤 같은 화면에서 기능 추가와 편집까지 이어서 처리합니다."}
+      contextStrip={
+        <ContextKeyStrip items={authorDesignContextKeys} />
+      }
     >
       <AdminWorkspacePageFrame>
       {actionMessage ? (
-        <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+        <PageStatusNotice tone="success">
           {actionMessage}
-        </section>
+        </PageStatusNotice>
       ) : null}
       {menuPageState.error || featurePageState.error || actionError ? (
-        <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <PageStatusNotice tone="error">
           {actionError || menuPageState.error || featurePageState.error}
-        </section>
+        </PageStatusNotice>
       ) : null}
 
       <DiagnosticCard
@@ -3413,19 +3418,15 @@ export function EnvironmentManagementHubPage() {
             </div>
 
             {governanceMessage ? (
-              <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+              <PageStatusNotice tone="success">
                 {governanceMessage}
-              </div>
+              </PageStatusNotice>
             ) : null}
             {lastAutoCollectAt && (postCollectAuditRows.length > 0 || postCollectTraceRows.length > 0) ? (
-              <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-blue-200 bg-blue-50 px-4 py-4 text-sm text-[var(--kr-gov-text-primary)]">
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">task_alt</span>
-                  <p className="font-bold">{en ? "Latest Auto-Collect Result" : "최근 자동 수집 결과"}</p>
-                </div>
-                <p className="mt-2 text-[var(--kr-gov-text-secondary)]">
-                  {en ? "Collected metadata and linked the newest observability records." : "메타데이터 수집 직후 연결된 최신 observability 기록입니다."}
-                </p>
+              <CollectionResultPanel
+                description={en ? "Collected metadata and linked the newest observability records." : "메타데이터 수집 직후 연결된 최신 observability 기록입니다."}
+                title={en ? "Latest Auto-Collect Result" : "최근 자동 수집 결과"}
+              >
                 <div className="mt-3 grid gap-3 xl:grid-cols-2">
                   <div className="rounded-[var(--kr-gov-radius)] border border-white bg-white px-4 py-3">
                     <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">Audit</p>
@@ -3462,68 +3463,91 @@ export function EnvironmentManagementHubPage() {
                     )}
                   </div>
                 </div>
-              </div>
+              </CollectionResultPanel>
             ) : null}
             {governanceError ? (
-              <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <PageStatusNotice tone="warning">
                 {governanceError}
-              </div>
+              </PageStatusNotice>
             ) : null}
 
             <div className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
-              <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
-                <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">Page</p>
-                <p className="mt-1 text-sm font-black text-[var(--kr-gov-text-primary)]">{governanceOverview.pageId || "-"}</p>
-              </div>
-              <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
-                <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Events / APIs" : "이벤트 / API"}</p>
-                <p className="mt-1 text-sm font-black text-[var(--kr-gov-text-primary)]">{governanceOverview.eventIds.length} / {governanceOverview.apiIds.length}</p>
-              </div>
-              <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
-                <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "DB Assets" : "DB 자원"}</p>
-                <p className="mt-1 text-sm font-black text-[var(--kr-gov-text-primary)]">{governanceOverview.tableNames.length} / {governanceOverview.columnNames.length}</p>
-              </div>
-              <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
-                <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Feature Codes" : "기능 코드"}</p>
-                <p className="mt-1 text-sm font-black text-[var(--kr-gov-text-primary)]">{governanceOverview.featureCodes.length}</p>
-              </div>
+              <SummaryMetricCard
+                accentClassName="text-[var(--kr-gov-text-secondary)] text-xs uppercase tracking-[0.08em]"
+                className="border-slate-200"
+                surfaceClassName="bg-slate-50"
+                title="Page"
+                value={<span className="text-sm font-black text-[var(--kr-gov-text-primary)]">{governanceOverview.pageId || "-"}</span>}
+              />
+              <SummaryMetricCard
+                accentClassName="text-[var(--kr-gov-text-secondary)] text-xs uppercase tracking-[0.08em]"
+                className="border-slate-200"
+                surfaceClassName="bg-slate-50"
+                title={en ? "Events / APIs" : "이벤트 / API"}
+                value={<span className="text-sm font-black text-[var(--kr-gov-text-primary)]">{governanceOverview.eventIds.length} / {governanceOverview.apiIds.length}</span>}
+              />
+              <SummaryMetricCard
+                accentClassName="text-[var(--kr-gov-text-secondary)] text-xs uppercase tracking-[0.08em]"
+                className="border-slate-200"
+                surfaceClassName="bg-slate-50"
+                title={en ? "DB Assets" : "DB 자원"}
+                value={<span className="text-sm font-black text-[var(--kr-gov-text-primary)]">{governanceOverview.tableNames.length} / {governanceOverview.columnNames.length}</span>}
+              />
+              <SummaryMetricCard
+                accentClassName="text-[var(--kr-gov-text-secondary)] text-xs uppercase tracking-[0.08em]"
+                className="border-slate-200"
+                surfaceClassName="bg-slate-50"
+                title={en ? "Feature Codes" : "기능 코드"}
+                value={<span className="text-sm font-black text-[var(--kr-gov-text-primary)]">{governanceOverview.featureCodes.length}</span>}
+              />
             </div>
             {selectedMenu && selectedMenuIsPage ? (
               <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                <div className={`rounded-[var(--kr-gov-radius)] border px-4 py-3 ${governanceOverview.pageId ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
-                  <p className="text-xs font-black uppercase tracking-[0.08em]">{en ? "Registry" : "레지스트리"}</p>
-                  <p className="mt-1 text-sm font-bold">{governanceOverview.pageId ? (en ? "Linked" : "연결됨") : (en ? "Missing" : "누락")}</p>
-                </div>
-                <div className={`rounded-[var(--kr-gov-radius)] border px-4 py-3 ${featureRows.some((row) => Boolean(row.unassignedToRole)) ? "border-amber-200 bg-amber-50" : "border-emerald-200 bg-emerald-50"}`}>
-                  <p className="text-xs font-black uppercase tracking-[0.08em]">{en ? "Permissions" : "권한"}</p>
-                  <p className="mt-1 text-sm font-bold">{featureRows.some((row) => Boolean(row.unassignedToRole)) ? (en ? "Review required" : "검토 필요") : (en ? "Aligned" : "정상")}</p>
-                </div>
-                <div className={`rounded-[var(--kr-gov-radius)] border px-4 py-3 ${governanceOverview.apiIds.length > 0 ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
-                  <p className="text-xs font-black uppercase tracking-[0.08em]">API</p>
-                  <p className="mt-1 text-sm font-bold">{governanceOverview.apiIds.length > 0 ? (en ? "Collected" : "수집됨") : (en ? "Not collected" : "미수집")}</p>
-                </div>
-                <div className={`rounded-[var(--kr-gov-radius)] border px-4 py-3 ${governanceOverview.tableNames.length > 0 ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
-                  <p className="text-xs font-black uppercase tracking-[0.08em]">DB</p>
-                  <p className="mt-1 text-sm font-bold">{governanceOverview.tableNames.length > 0 ? (en ? "Collected" : "수집됨") : (en ? "Not collected" : "미수집")}</p>
-                </div>
+                <BinaryStatusCard
+                  healthy={Boolean(governanceOverview.pageId)}
+                  healthyLabel={en ? "Linked" : "연결됨"}
+                  title={en ? "Registry" : "레지스트리"}
+                  unhealthyLabel={en ? "Missing" : "누락"}
+                />
+                <BinaryStatusCard
+                  healthy={!featureRows.some((row) => Boolean(row.unassignedToRole))}
+                  healthyLabel={en ? "Aligned" : "정상"}
+                  title={en ? "Permissions" : "권한"}
+                  unhealthyLabel={en ? "Review required" : "검토 필요"}
+                />
+                <BinaryStatusCard
+                  healthy={governanceOverview.apiIds.length > 0}
+                  healthyLabel={en ? "Collected" : "수집됨"}
+                  title="API"
+                  unhealthyLabel={en ? "Not collected" : "미수집"}
+                />
+                <BinaryStatusCard
+                  healthy={governanceOverview.tableNames.length > 0}
+                  healthyLabel={en ? "Collected" : "수집됨"}
+                  title="DB"
+                  unhealthyLabel={en ? "Not collected" : "미수집"}
+                />
               </div>
             ) : null}
             {governanceWarnings.length > 0 ? (
-              <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                <p className="font-bold">{en ? "Operational warnings" : "운영 경고"}</p>
-                <ul className="mt-2 space-y-1">
+              <WarningPanel
+                actions={
+                  <>
+                    <a className="gov-btn gov-btn-outline-blue" href={buildLocalizedPath("/admin/system/full-stack-management", "/en/admin/system/full-stack-management")}>
+                      {en ? "Open Full-Stack Management" : "풀스택 관리 바로가기"}
+                    </a>
+                    <a className="gov-btn gov-btn-outline-blue" href={buildLocalizedPath("/admin/system/platform-studio", "/en/admin/system/platform-studio")}>
+                      {en ? "Open Platform Studio" : "플랫폼 스튜디오 바로가기"}
+                    </a>
+                  </>
+                }
+                title={en ? "Operational warnings" : "운영 경고"}
+              >
+                <ul className="space-y-1">
                   {governanceWarnings.map((warning) => (
                     <li key={warning}>- {warning}</li>
                   ))}
                 </ul>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <a className="gov-btn gov-btn-outline-blue" href={buildLocalizedPath("/admin/system/full-stack-management", "/en/admin/system/full-stack-management")}>
-                    {en ? "Open Full-Stack Management" : "풀스택 관리 바로가기"}
-                  </a>
-                  <a className="gov-btn gov-btn-outline-blue" href={buildLocalizedPath("/admin/system/platform-studio", "/en/admin/system/platform-studio")}>
-                    {en ? "Open Platform Studio" : "플랫폼 스튜디오 바로가기"}
-                  </a>
-                </div>
                 {governanceRemediationItems.length > 0 ? (
                   <div className="mt-4 grid gap-3 xl:grid-cols-2">
                     {governanceRemediationItems.map((item) => (
@@ -3541,7 +3565,7 @@ export function EnvironmentManagementHubPage() {
                     ))}
                   </div>
                 ) : null}
-              </div>
+              </WarningPanel>
             ) : null}
 
             {!selectedMenu ? (
@@ -3602,18 +3626,18 @@ export function EnvironmentManagementHubPage() {
                 </div>
 
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                  <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 p-4">
-                    <h4 className="font-bold mb-2">{en ? "Screen / Manifest" : "화면 / 매니페스트"}</h4>
-                    <p className="text-sm text-[var(--kr-gov-text-secondary)]">{governanceOverview.summary || "-"}</p>
-                    <dl className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                      <div><dt className="font-bold">Menu Code</dt><dd>{selectedMenu.code || "-"}</dd></div>
-                      <div><dt className="font-bold">Menu URL</dt><dd>{selectedMenu.menuUrl || "-"}</dd></div>
-                      <div><dt className="font-bold">Page ID</dt><dd>{governancePage?.page?.manifestRegistry?.pageId || governanceOverview.pageId || "-"}</dd></div>
-                      <div><dt className="font-bold">Layout</dt><dd>{String(governancePage?.page?.manifestRegistry?.layoutVersion || "-")}</dd></div>
-                      <div><dt className="font-bold">Design Token</dt><dd>{String(governancePage?.page?.manifestRegistry?.designTokenVersion || "-")}</dd></div>
-                      <div><dt className="font-bold">VIEW Feature</dt><dd>{String(governancePage?.page?.menuPermission?.requiredViewFeatureCode || "-")}</dd></div>
-                    </dl>
-                  </div>
+                  <KeyValueGridPanel
+                    description={governanceOverview.summary || "-"}
+                    items={[
+                      { label: "Menu Code", value: selectedMenu.code || "-" },
+                      { label: "Menu URL", value: selectedMenu.menuUrl || "-" },
+                      { label: "Page ID", value: governancePage?.page?.manifestRegistry?.pageId || governanceOverview.pageId || "-" },
+                      { label: "Layout", value: String(governancePage?.page?.manifestRegistry?.layoutVersion || "-") },
+                      { label: "Design Token", value: String(governancePage?.page?.manifestRegistry?.designTokenVersion || "-") },
+                      { label: "VIEW Feature", value: String(governancePage?.page?.menuPermission?.requiredViewFeatureCode || "-") }
+                    ]}
+                    title={en ? "Screen / Manifest" : "화면 / 매니페스트"}
+                  />
                   <div className="rounded-[var(--kr-gov-radius)] border-2 border-[rgba(28,100,242,0.18)] bg-[linear-gradient(180deg,rgba(239,246,255,0.95),rgba(248,250,252,0.98))] p-4 shadow-[0_12px_32px_rgba(28,100,242,0.08)]">
                     <div className="flex items-center gap-2">
                       <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">policy</span>
@@ -3666,64 +3690,24 @@ export function EnvironmentManagementHubPage() {
                   </div>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <p className="gov-label mb-2">{en ? "Screen Elements / Components" : "화면 요소 / 컴포넌트"}</p>
-                    {renderMetaList(governanceOverview.componentIds, en ? "No components collected yet." : "수집된 컴포넌트가 없습니다.")}
-                  </div>
-                  <div>
-                    <p className="gov-label mb-2">{en ? "Events" : "이벤트"}</p>
-                    {renderMetaList(governanceOverview.eventIds, en ? "No events collected yet." : "수집된 이벤트가 없습니다.")}
-                  </div>
-                  <div>
-                    <p className="gov-label mb-2">{en ? "Functions" : "함수"}</p>
-                    {renderMetaList(governanceOverview.functionIds, en ? "No functions collected yet." : "수집된 함수가 없습니다.")}
-                  </div>
-                  <div>
-                    <p className="gov-label mb-2">{en ? "Feature Codes" : "기능 코드"}</p>
-                    {renderMetaList(governanceOverview.featureCodes, en ? "No feature codes collected yet." : "수집된 기능 코드가 없습니다.")}
-                  </div>
-                  <div>
-                    <p className="gov-label mb-2">{en ? "Parameters" : "파라미터"}</p>
-                    {renderMetaList(governanceOverview.parameterSpecs, en ? "No parameters collected yet." : "수집된 파라미터가 없습니다.")}
-                  </div>
-                  <div>
-                    <p className="gov-label mb-2">{en ? "Results" : "출력값"}</p>
-                    {renderMetaList(governanceOverview.resultSpecs, en ? "No results collected yet." : "수집된 출력값이 없습니다.")}
-                  </div>
-                  <div>
-                    <p className="gov-label mb-2">API</p>
-                    {renderMetaList(governanceOverview.apiIds, en ? "No APIs collected yet." : "수집된 API가 없습니다.")}
-                  </div>
-                  <div>
-                    <p className="gov-label mb-2">Controller</p>
-                    {renderMetaList(governanceOverview.controllerActions, en ? "No controller actions collected yet." : "수집된 Controller 액션이 없습니다.")}
-                  </div>
-                  <div>
-                    <p className="gov-label mb-2">Service</p>
-                    {renderMetaList(governanceOverview.serviceMethods, en ? "No service methods collected yet." : "수집된 Service 메서드가 없습니다.")}
-                  </div>
-                  <div>
-                    <p className="gov-label mb-2">Mapper</p>
-                    {renderMetaList(governanceOverview.mapperQueries, en ? "No mapper queries collected yet." : "수집된 Mapper 쿼리가 없습니다.")}
-                  </div>
-                  <div>
-                    <p className="gov-label mb-2">{en ? "Schemas" : "스키마"}</p>
-                    {renderMetaList(governanceOverview.schemaIds, en ? "No schemas collected yet." : "수집된 스키마가 없습니다.")}
-                  </div>
-                  <div>
-                    <p className="gov-label mb-2">{en ? "Common Codes" : "공통코드"}</p>
-                    {renderMetaList(governanceOverview.commonCodeGroups, en ? "No common code groups collected yet." : "수집된 공통코드가 없습니다.")}
-                  </div>
-                  <div>
-                    <p className="gov-label mb-2">{en ? "DB Tables" : "DB 테이블"}</p>
-                    {renderMetaList(governanceOverview.tableNames, en ? "No tables collected yet." : "수집된 테이블이 없습니다.")}
-                  </div>
-                  <div>
-                    <p className="gov-label mb-2">{en ? "DB Columns" : "DB 컬럼"}</p>
-                    {renderMetaList(governanceOverview.columnNames, en ? "No columns collected yet." : "수집된 컬럼이 없습니다.")}
-                  </div>
-                </div>
+                <MetaListPanel
+                  sections={[
+                    { label: en ? "Screen Elements / Components" : "화면 요소 / 컴포넌트", content: renderMetaList(governanceOverview.componentIds, en ? "No components collected yet." : "수집된 컴포넌트가 없습니다.") },
+                    { label: en ? "Events" : "이벤트", content: renderMetaList(governanceOverview.eventIds, en ? "No events collected yet." : "수집된 이벤트가 없습니다.") },
+                    { label: en ? "Functions" : "함수", content: renderMetaList(governanceOverview.functionIds, en ? "No functions collected yet." : "수집된 함수가 없습니다.") },
+                    { label: en ? "Feature Codes" : "기능 코드", content: renderMetaList(governanceOverview.featureCodes, en ? "No feature codes collected yet." : "수집된 기능 코드가 없습니다.") },
+                    { label: en ? "Parameters" : "파라미터", content: renderMetaList(governanceOverview.parameterSpecs, en ? "No parameters collected yet." : "수집된 파라미터가 없습니다.") },
+                    { label: en ? "Results" : "출력값", content: renderMetaList(governanceOverview.resultSpecs, en ? "No results collected yet." : "수집된 출력값이 없습니다.") },
+                    { label: "API", content: renderMetaList(governanceOverview.apiIds, en ? "No APIs collected yet." : "수집된 API가 없습니다.") },
+                    { label: "Controller", content: renderMetaList(governanceOverview.controllerActions, en ? "No controller actions collected yet." : "수집된 Controller 액션이 없습니다.") },
+                    { label: "Service", content: renderMetaList(governanceOverview.serviceMethods, en ? "No service methods collected yet." : "수집된 Service 메서드가 없습니다.") },
+                    { label: "Mapper", content: renderMetaList(governanceOverview.mapperQueries, en ? "No mapper queries collected yet." : "수집된 Mapper 쿼리가 없습니다.") },
+                    { label: en ? "Schemas" : "스키마", content: renderMetaList(governanceOverview.schemaIds, en ? "No schemas collected yet." : "수집된 스키마가 없습니다.") },
+                    { label: en ? "Common Codes" : "공통코드", content: renderMetaList(governanceOverview.commonCodeGroups, en ? "No common code groups collected yet." : "수집된 공통코드가 없습니다.") },
+                    { label: en ? "DB Tables" : "DB 테이블", content: renderMetaList(governanceOverview.tableNames, en ? "No tables collected yet." : "수집된 테이블이 없습니다.") },
+                    { label: en ? "DB Columns" : "DB 컬럼", content: renderMetaList(governanceOverview.columnNames, en ? "No columns collected yet." : "수집된 컬럼이 없습니다.") }
+                  ]}
+                />
 
                 <div className="space-y-4">
                   <div>

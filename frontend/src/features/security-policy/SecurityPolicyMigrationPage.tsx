@@ -3,7 +3,9 @@ import { fetchSecurityPolicyPage, readBootstrappedSecurityPolicyPageData, type S
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { stringOf } from "../admin-system/adminSystemShared";
-import { CopyableCodeBlock, DiagnosticCard, GridToolbar, MemberLinkButton } from "../admin-ui/common";
+import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";
+import { verifyRuntimeContextKeys } from "../admin-ui/contextKeyPresets";
+import { CopyableCodeBlock, DiagnosticCard, GridToolbar, MemberLinkButton, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
 import { AdminPolicyPageFrame, AdminSummaryStrip } from "../admin-ui/pageFrames";
 import { useMemo, useState } from "react";
 
@@ -61,11 +63,24 @@ export function SecurityPolicyMigrationPage() {
       ]}
       title={en ? "Security Policy Management" : "보안 정책 관리"}
       subtitle={en ? "Manage thresholds and automatic response rules for login, APIs, and admin access." : "로그인, 검색 API, 관리자 접근에 대한 임계치와 자동 대응 규칙을 관리합니다."}
+      contextStrip={
+        <ContextKeyStrip items={verifyRuntimeContextKeys} />
+      }
     >
-      {pageState.error ? <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{pageState.error}</div> : null}
+      {pageState.error ? <PageStatusNotice tone="error">{pageState.error}</PageStatusNotice> : null}
       <AdminPolicyPageFrame>
       <AdminSummaryStrip data-help-id="security-policy-summary">
-        {cards.map((card, idx) => <article className="gov-card" key={idx}><p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{card.title}</p><p className="mt-3 text-2xl font-black">{card.value}</p><p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">{card.description}</p></article>)}
+        {cards.map((card, idx) => (
+          <SummaryMetricCard
+            accentClassName="text-[var(--kr-gov-text-secondary)] text-xs"
+            className="gov-card"
+            description={card.description}
+            key={idx}
+            surfaceClassName="bg-white"
+            title={card.title}
+            value={<span className="text-2xl font-black">{card.value}</span>}
+          />
+        ))}
       </AdminSummaryStrip>
       <section className="gov-card p-0 overflow-hidden" data-help-id="security-policy-table">
         <GridToolbar
@@ -103,14 +118,20 @@ export function SecurityPolicyMigrationPage() {
           summary={(
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-4">
-                  <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Duplicated Menu URLs" : "중복 메뉴 URL"}</p>
-                  <p className="mt-2 text-2xl font-black">{stringOf(diagnostics, "menuUrlDuplicateCount") || "0"}</p>
-                </div>
-                <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-4">
-                  <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Duplicated VIEW Mappings" : "중복 VIEW 매핑"}</p>
-                  <p className="mt-2 text-2xl font-black">{stringOf(diagnostics, "viewFeatureDuplicateCount") || "0"}</p>
-                </div>
+                <SummaryMetricCard
+                  accentClassName="text-[var(--kr-gov-text-secondary)] text-xs"
+                  className="rounded-lg"
+                  surfaceClassName="bg-[var(--kr-gov-surface-subtle)]"
+                  title={en ? "Duplicated Menu URLs" : "중복 메뉴 URL"}
+                  value={<span className="text-2xl font-black">{stringOf(diagnostics, "menuUrlDuplicateCount") || "0"}</span>}
+                />
+                <SummaryMetricCard
+                  accentClassName="text-[var(--kr-gov-text-secondary)] text-xs"
+                  className="rounded-lg"
+                  surfaceClassName="bg-[var(--kr-gov-surface-subtle)]"
+                  title={en ? "Duplicated VIEW Mappings" : "중복 VIEW 매핑"}
+                  value={<span className="text-2xl font-black">{stringOf(diagnostics, "viewFeatureDuplicateCount") || "0"}</span>}
+                />
               </div>
               <div className="mt-4 rounded-lg border border-dashed border-amber-300 bg-amber-50 px-4 py-4">
                 <p className="text-xs font-bold text-amber-700">{en ? "Cleanup Recommendations" : "정리 추천"}</p>

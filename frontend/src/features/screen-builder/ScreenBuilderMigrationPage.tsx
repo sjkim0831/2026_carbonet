@@ -31,7 +31,9 @@ import {
 } from "../../lib/api/client";
 import { buildLocalizedPath, getSearchParam, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
-import { DiagnosticCard, GridToolbar, MemberButton, MemberButtonGroup, MemberIconButton, MemberLinkButton } from "../admin-ui/common";
+import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";
+import { authorDesignContextKeys } from "../admin-ui/contextKeyPresets";
+import { DiagnosticCard, GridToolbar, MemberButton, MemberButtonGroup, MemberIconButton, MemberLinkButton, PageStatusNotice } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 import { renderScreenBuilderNodePreview, resolveScreenBuilderQuery, sortScreenBuilderNodes } from "./screenBuilderRenderer";
 import { buildSystemComponentCatalog, type SystemComponentCatalogType } from "./buttonCatalog";
@@ -1224,18 +1226,21 @@ export function ScreenBuilderMigrationPage() {
       ]}
       title={en ? "Screen Builder" : "화면 빌더"}
       subtitle={en ? "Build a page draft from menu metadata, reusable components, and lightweight event bindings." : "메뉴 메타데이터를 기준으로 컴포넌트와 이벤트 연결을 조합해 화면 초안을 구성합니다."}
+      contextStrip={
+        <ContextKeyStrip items={authorDesignContextKeys} />
+      }
       loading={pageState.loading && !page}
       loadingLabel={en ? "Loading screen builder..." : "화면 빌더를 불러오는 중입니다."}
     >
       {pageState.error || saveError ? (
-        <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <PageStatusNotice tone="error">
           {pageState.error || saveError}
-        </section>
+        </PageStatusNotice>
       ) : null}
       {message ? (
-        <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <PageStatusNotice tone="success">
           {message}
-        </section>
+        </PageStatusNotice>
       ) : null}
       <AdminWorkspacePageFrame>
         <DiagnosticCard

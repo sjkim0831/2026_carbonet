@@ -25,7 +25,10 @@ import {
 } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";
+import { codexWorkbenchContextKeys } from "../admin-ui/contextKeyPresets";
 import { stringOf } from "../admin-system/adminSystemShared";
+import { PageStatusNotice } from "../admin-ui/common";
 
 function numberOrDash(value: unknown) {
   return value == null || value === "" ? "-" : String(value);
@@ -559,9 +562,20 @@ export function CodexProvisionMigrationPage() {
       ]}
       title={en ? "Codex Execution Console" : "Codex 실행 콘솔"}
       subtitle={en ? "Operate the SR ticket queue, review PLAN and BUILD artifacts, and use the legacy admin proxy from one console." : "SR 티켓 큐를 운영하고 PLAN/BUILD 아티팩트를 검토하며 기존 관리자 프록시도 함께 사용하는 중앙 실행 콘솔입니다."}
+      contextStrip={
+        <ContextKeyStrip items={codexWorkbenchContextKeys} />
+      }
     >
-      {pageState.error || historyState.error || error || selectedTicketError ? <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error || selectedTicketError || pageState.error || historyState.error}</div> : null}
-      {!codexReady ? <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{codexAvailabilityMessage || (en ? "Codex execution is not available in this environment." : "이 환경에서는 Codex 실행을 사용할 수 없습니다.")}</div> : null}
+      {pageState.error || historyState.error || error || selectedTicketError ? (
+        <PageStatusNotice tone="error">
+          {error || selectedTicketError || pageState.error || historyState.error}
+        </PageStatusNotice>
+      ) : null}
+      {!codexReady ? (
+        <PageStatusNotice tone="warning">
+          {codexAvailabilityMessage || (en ? "Codex execution is not available in this environment." : "이 환경에서는 Codex 실행을 사용할 수 없습니다.")}
+        </PageStatusNotice>
+      ) : null}
       <section className="grid grid-cols-1 xl:grid-cols-[1.05fr_0.95fr] gap-6">
         <article className="gov-card" data-help-id="codex-request-runtime">
           <div className="flex items-center gap-2 border-b pb-4 mb-4">

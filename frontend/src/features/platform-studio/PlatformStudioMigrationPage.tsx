@@ -18,6 +18,9 @@ import {
 } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { buildLocalizedPath, getCsrfMeta, isEnglish } from "../../lib/navigation/runtime";
+import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";
+import { KeyValueGridPanel, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
+import { authorDesignContextKeys } from "../admin-ui/contextKeyPresets";
 import { numberOf, stringOf } from "../admin-system/adminSystemShared";
 
 type FocusTab =
@@ -845,9 +848,12 @@ export function PlatformStudioMigrationPage() {
       ]}
       title={en ? "Platform Studio" : "플랫폼 스튜디오"}
       subtitle={en ? "Create menu pages, toggle visibility, edit connected resources, and create AI work instructions from one console." : "메뉴 생성, 숨김/보이기, 연결 자원 편집, AI 작업지시 생성까지 하나의 콘솔에서 처리합니다."}
+      contextStrip={
+        <ContextKeyStrip items={authorDesignContextKeys} />
+      }
     >
-      {actionMessage ? <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{actionMessage}</div> : null}
-      {actionError ? <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{actionError}</div> : null}
+      {actionMessage ? <PageStatusNotice tone="success">{actionMessage}</PageStatusNotice> : null}
+      {actionError ? <PageStatusNotice tone="error">{actionError}</PageStatusNotice> : null}
 
       <section className="gov-card mb-6" data-help-id="platform-studio-tabs">
         <div className="flex flex-wrap gap-2">
@@ -952,30 +958,36 @@ export function PlatformStudioMigrationPage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 mb-4">
               {qualityCards.map((card) => (
-                <div key={card.label} className={`rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] px-4 py-3 ${card.tone}`}>
-                  <p className="font-bold">{card.label}</p>
-                  <p className="mt-1 text-base font-semibold">{card.value}</p>
-                </div>
+                <SummaryMetricCard
+                  accentClassName="text-[var(--kr-gov-text-primary)]"
+                  className={card.tone}
+                  key={card.label}
+                  surfaceClassName=""
+                  title={card.label}
+                  value={card.value}
+                />
               ))}
             </div>
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-              <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[#fcfdff] p-4">
-                <h4 className="font-bold mb-2">{en ? "Manifest / Permission" : "매니페스트 / 권한"}</h4>
-                <dl className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                  <div><dt className="font-bold">Manifest</dt><dd>{stringOf(selectedSummary, "hasManifestRegistry") === "true" ? "OK" : "-"}</dd></div>
-                  <div><dt className="font-bold">Screen Command</dt><dd>{stringOf(selectedSummary, "hasScreenCommand") === "true" ? "OK" : "-"}</dd></div>
-                  <div><dt className="font-bold">Governance Registry</dt><dd>{stringOf(selectedSummary, "hasGovernanceRegistry") === "true" ? "OK" : "-"}</dd></div>
-                  <div><dt className="font-bold">VIEW Feature</dt><dd>{stringOf(selectedSummary, "requiredViewFeatureCode") || commandDetail?.menuPermission?.requiredViewFeatureCode || "-"}</dd></div>
-                  <div><dt className="font-bold">{en ? "Relation Tables" : "권한 해석 테이블"}</dt><dd>{numberOf(selectedSummary, "relationTableCount") || (commandDetail?.menuPermission?.relationTables || []).length || 0}</dd></div>
-                  <div><dt className="font-bold">{en ? "Resolver Notes" : "해석 노트"}</dt><dd>{numberOf(selectedSummary, "resolverNoteCount") || (commandDetail?.menuPermission?.resolverNotes || []).length || 0}</dd></div>
-                </dl>
-                <p className="mt-3 text-sm text-[var(--kr-gov-text-secondary)] break-words">
+              <KeyValueGridPanel
+                className="border-[var(--kr-gov-border-light)] bg-[#fcfdff]"
+                items={[
+                  { label: "Manifest", value: stringOf(selectedSummary, "hasManifestRegistry") === "true" ? "OK" : "-" },
+                  { label: "Screen Command", value: stringOf(selectedSummary, "hasScreenCommand") === "true" ? "OK" : "-" },
+                  { label: "Governance Registry", value: stringOf(selectedSummary, "hasGovernanceRegistry") === "true" ? "OK" : "-" },
+                  { label: "VIEW Feature", value: stringOf(selectedSummary, "requiredViewFeatureCode") || commandDetail?.menuPermission?.requiredViewFeatureCode || "-" },
+                  { label: en ? "Relation Tables" : "권한 해석 테이블", value: numberOf(selectedSummary, "relationTableCount") || (commandDetail?.menuPermission?.relationTables || []).length || 0 },
+                  { label: en ? "Resolver Notes" : "해석 노트", value: numberOf(selectedSummary, "resolverNoteCount") || (commandDetail?.menuPermission?.resolverNotes || []).length || 0 }
+                ]}
+                title={en ? "Manifest / Permission" : "매니페스트 / 권한"}
+              >
+                <p className="text-sm text-[var(--kr-gov-text-secondary)] break-words">
                   {(commandDetail?.menuPermission?.resolverNotes || []).join(" ") || "-"}
                 </p>
                 <p className="mt-2 text-sm break-words">
                   <strong>{en ? "Relation Tables" : "권한 해석 테이블"}:</strong> {(commandDetail?.menuPermission?.relationTables || []).join(", ") || "-"}
                 </p>
-              </div>
+              </KeyValueGridPanel>
               <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[#fffdf7] p-4">
                 <h4 className="font-bold mb-2">{en ? "Gaps / Tags" : "누락 항목 / 태그"}</h4>
                 <div className="flex flex-wrap gap-2">

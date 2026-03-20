@@ -254,3 +254,197 @@ export function CopyableCodeBlock({
     </div>
   );
 }
+
+type PageStatusNoticeTone = "success" | "error" | "warning";
+
+const pageStatusNoticeToneClassName: Record<PageStatusNoticeTone, string> = {
+  success: "border-emerald-200 bg-emerald-50 text-emerald-800",
+  error: "border-red-200 bg-red-50 text-red-700",
+  warning: "border-amber-200 bg-amber-50 text-amber-800"
+};
+
+export function PageStatusNotice({
+  tone,
+  children,
+  className = "",
+  ...props
+}: HTMLAttributes<HTMLElement> & {
+  tone: PageStatusNoticeTone;
+  children: ReactNode;
+}) {
+  return (
+    <section
+      {...props}
+      className={`mb-4 rounded-[var(--kr-gov-radius)] border px-4 py-3 text-sm ${pageStatusNoticeToneClassName[tone]} ${className}`.trim()}
+    >
+      {children}
+    </section>
+  );
+}
+
+export function SummaryMetricCard({
+  title,
+  value,
+  description,
+  accentClassName = "text-[var(--kr-gov-blue)]",
+  surfaceClassName = "bg-[#f8fbff]",
+  className = "",
+  ...props
+}: HTMLAttributes<HTMLElement> & {
+  title: ReactNode;
+  value: ReactNode;
+  description?: ReactNode;
+  accentClassName?: string;
+  surfaceClassName?: string;
+}) {
+  return (
+    <article
+      {...props}
+      className={`rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] px-4 py-3 ${surfaceClassName} ${className}`.trim()}
+    >
+      <p className={`font-bold ${accentClassName}`.trim()}>{title}</p>
+      <p className="mt-1 text-base font-semibold">{value}</p>
+      {description ? <p className="text-[var(--kr-gov-text-secondary)]">{description}</p> : null}
+    </article>
+  );
+}
+
+export function BinaryStatusCard({
+  title,
+  healthy,
+  healthyLabel,
+  unhealthyLabel,
+  className = "",
+  ...props
+}: HTMLAttributes<HTMLElement> & {
+  title: ReactNode;
+  healthy: boolean;
+  healthyLabel: ReactNode;
+  unhealthyLabel: ReactNode;
+}) {
+  return (
+    <article
+      {...props}
+      className={`rounded-[var(--kr-gov-radius)] border px-4 py-3 ${healthy ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"} ${className}`.trim()}
+    >
+      <p className="text-xs font-black uppercase tracking-[0.08em]">{title}</p>
+      <p className="mt-1 text-sm font-bold">{healthy ? healthyLabel : unhealthyLabel}</p>
+    </article>
+  );
+}
+
+export function WarningPanel({
+  title,
+  children,
+  actions,
+  className = "",
+  ...props
+}: HTMLAttributes<HTMLElement> & {
+  title?: ReactNode;
+  actions?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section
+      {...props}
+      className={`mb-4 rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 ${className}`.trim()}
+    >
+      {title ? <p className="font-bold">{title}</p> : null}
+      <div className={title ? "mt-2" : ""}>{children}</div>
+      {actions ? <div className="mt-3 flex flex-wrap gap-2">{actions}</div> : null}
+    </section>
+  );
+}
+
+export function CollectionResultPanel({
+  title,
+  description,
+  icon = "task_alt",
+  children,
+  className = "",
+  ...props
+}: HTMLAttributes<HTMLElement> & {
+  title: ReactNode;
+  description?: ReactNode;
+  icon?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section
+      {...props}
+      className={`mb-4 rounded-[var(--kr-gov-radius)] border border-blue-200 bg-blue-50 px-4 py-4 text-sm text-[var(--kr-gov-text-primary)] ${className}`.trim()}
+    >
+      <div className="flex items-center gap-2">
+        <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">{icon}</span>
+        <p className="font-bold">{title}</p>
+      </div>
+      {description ? <p className="mt-2 text-[var(--kr-gov-text-secondary)]">{description}</p> : null}
+      <div className="mt-3">{children}</div>
+    </section>
+  );
+}
+
+type KeyValueGridPanelItem = {
+  label: ReactNode;
+  value: ReactNode;
+};
+
+export function KeyValueGridPanel({
+  title,
+  description,
+  items,
+  children,
+  className = "",
+  ...props
+}: HTMLAttributes<HTMLElement> & {
+  title: ReactNode;
+  description?: ReactNode;
+  items: KeyValueGridPanelItem[];
+  children?: ReactNode;
+}) {
+  return (
+    <section
+      {...props}
+      className={`rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 p-4 ${className}`.trim()}
+    >
+      <h4 className="font-bold">{title}</h4>
+      {description ? <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">{description}</p> : null}
+      <dl className="mt-3 grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
+        {items.map((item, index) => (
+          <div key={index}>
+            <dt className="font-bold">{item.label}</dt>
+            <dd>{item.value}</dd>
+          </div>
+        ))}
+      </dl>
+      {children ? <div className="mt-3">{children}</div> : null}
+    </section>
+  );
+}
+
+type MetaListPanelSection = {
+  label: ReactNode;
+  content: ReactNode;
+};
+
+export function MetaListPanel({
+  sections,
+  className = "",
+  ...props
+}: HTMLAttributes<HTMLElement> & {
+  sections: MetaListPanelSection[];
+}) {
+  return (
+    <section
+      {...props}
+      className={`grid grid-cols-1 gap-6 md:grid-cols-2 ${className}`.trim()}
+    >
+      {sections.map((section, index) => (
+        <div key={index}>
+          <p className="gov-label mb-2">{section.label}</p>
+          {section.content}
+        </div>
+      ))}
+    </section>
+  );
+}
