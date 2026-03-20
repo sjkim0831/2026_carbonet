@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resonance Proposal Mapping Draft</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <small>Resonance Design</small>
+          <h1>매핑 초안</h1>
+          <p>제안요청서 업로드 후 AI가 한 번에 뽑은 요구사항 매핑 초안을 검토합니다.</p>
+        </div>
+        <div class="nav-group">
+          <h2>Pages</h2>
+          <a class="nav-link" href="index.html">Overview</a>
+          <a class="nav-link" href="design-workspace.html">Design Workspace</a>
+          <a class="nav-link active" href="proposal-mapping-draft.html">Proposal Mapping Draft</a>
+          <a class="nav-link" href="project-proposal-inventory.html">Project Proposal Inventory</a>
+        </div>
+      </aside>
+      <main class="content">
+        <div class="topbar">
+          <div class="page-title">
+            <div class="breadcrumbs">Resonance / Design Workspace / Proposal Mapping Draft</div>
+            <h1>Proposal Mapping Draft</h1>
+            <p>AI가 추출한 요구사항별 메뉴, 시나리오, 페이지, 컴포넌트, API, DB 후보를 구조화해 보여줍니다. surface type, template line, screen family rule도 함께 확인합니다.</p>
+          </div>
+          <div class="header-actions">
+            <div class="btn secondary">Open Source</div>
+            <div class="btn secondary">Repair Draft</div>
+            <div class="btn primary">Approve Canonical Mapping</div>
+          </div>
+        </div>
+
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <h2>Requirement Mapping Draft</h2>
+              <p>요구사항별 후보 자산을 한 번에 검토합니다.</p>
+            </div>
+            <span class="chip warn">AI Draft</span>
+          </div>
+          <div class="card-body">
+            <div class="two-col" style="margin-bottom:14px">
+              <div class="meta-row"><span class="label">Guided State</span><div class="value">guided-build-04-proposal-mapping</div></div>
+              <div class="meta-row"><span class="label">Synthesis Run</span><div class="value">SYN-20260321-01</div></div>
+            </div>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Requirement</th>
+                  <th>Surface</th>
+                  <th>Template</th>
+                  <th>Rule</th>
+                  <th>Menu</th>
+                  <th>Scenario</th>
+                  <th>Page</th>
+                  <th>API / DB</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>REQ-JOIN-001 회원가입</td>
+                  <td>PUBLIC</td>
+                  <td>public-line-01</td>
+                  <td>JOIN_ENTRY / JOIN_INFO / JOIN_COMPLETE</td>
+                  <td>JOIN, JOIN_STATUS</td>
+                  <td>join-public-company</td>
+                  <td>join-entry, join-info, join-complete</td>
+                  <td>joinCompanySave / COMTN_MEMBER</td>
+                </tr>
+                <tr>
+                  <td>REQ-JOIN-002 상태조회</td>
+                  <td>PUBLIC</td>
+                  <td>public-line-01</td>
+                  <td>JOIN_STATUS</td>
+                  <td>JOIN_STATUS</td>
+                  <td>join-status-family</td>
+                  <td>join-status-search, join-status-detail</td>
+                  <td>joinStatusLoad / JOIN_COMPANY_DRAFT</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

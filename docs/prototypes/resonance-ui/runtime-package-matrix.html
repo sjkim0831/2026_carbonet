@@ -25,7 +25,7 @@
           <div class="page-title">
             <div class="breadcrumbs">Resonance / Ops / Runtime Package Matrix</div>
             <h1>프로젝트 단위 패키지 매트릭스</h1>
-            <p>release unit 안의 공통 jar, frontend bundle, theme/token/css/js, feature module, menu/page/binding/backend/DB/cron 자산이 서버 역할별로 정상 배포 가능한지 확인합니다.</p>
+            <p>release unit 안의 공통 jar, frontend bundle, theme/token/css/js, feature module, menu/page/binding/backend/DB/cron 자산이 서버 역할별로 정상 배포 가능한지 확인합니다. guided step, template line, screen family rule도 함께 추적합니다.</p>
           </div>
           <div class="header-actions">
             <div class="btn secondary">Compare Current</div>
@@ -38,15 +38,15 @@
           <div class="card-header"><div><h2>Release Unit Matrix</h2><p>project-unit ready state</p></div><span class="chip ok">deployReady</span></div>
           <div class="card-body">
             <table>
-              <thead><tr><th>Asset Family</th><th>Version</th><th>Common/Project</th><th>Targets</th><th>Pattern/Style</th><th>State</th><th>Action</th></tr></thead>
+              <thead><tr><th>Asset Family</th><th>Version</th><th>Guided / Template / Rule</th><th>Common/Project</th><th>Targets</th><th>Pattern/Style</th><th>State</th><th>Action</th></tr></thead>
               <tbody>
-                <tr><td>COMMON_JAR</td><td>resonance-common-backend 1.8.2</td><td>COMMON</td><td>MAIN / SUB</td><td>BACKEND_CORE / green</td><td><span class="chip ok">Ready</span></td><td><span class="tiny-btn">Trace</span></td></tr>
-                <tr><td>FRONTEND_BUNDLE</td><td>resonance-common-frontend 1.6.4</td><td>COMMON</td><td>MAIN / SUB</td><td>PUBLIC_ADMIN_SHELL / green</td><td><span class="chip ok">Ready</span></td><td><span class="tiny-btn">Inspect</span></td></tr>
-                <tr><td>PAGE_MANIFEST</td><td>join-member-info v4</td><td>PROJECT</td><td>MAIN / SUB</td><td>JOIN_WIZARD / green</td><td><span class="chip ok">Ready</span></td><td><span class="tiny-btn">Compare</span></td></tr>
-                <tr><td>MODULE_PATTERN</td><td>BOARD_STANDARD / BOARD_DEPTH_V1</td><td>PROJECT</td><td>MAIN / SUB</td><td>style: warn / dedupe</td><td><span class="chip warn">Repair</span></td><td><span class="tiny-btn">Intake</span></td></tr>
-                <tr><td>DB_SQL_DRAFT</td><td>join_member_patch_03.sql</td><td>PROJECT</td><td>DB</td><td>DB_MEMBER_CORE / review</td><td><span class="chip warn">Review</span></td><td><span class="tiny-btn">SQL Review</span></td></tr>
-                <tr><td>DB_ATTACHMENT_TARGET</td><td>temp-project-db -> dedicated-db-01</td><td>PROJECT</td><td>DB / MAIN</td><td>PROJECT_DB_SWITCH / green</td><td><span class="chip warn">Switch Ready</span></td><td><span class="tiny-btn">Review</span></td></tr>
-                <tr><td>CRON_BINDING</td><td>member_cleanup_main_v2</td><td>PROJECT</td><td>SCHEDULER</td><td>MAIN_SERVER_CRON / green</td><td><span class="chip ok">Bound</span></td><td><span class="tiny-btn">Verify</span></td></tr>
+                <tr><td>COMMON_JAR</td><td>resonance-common-backend 1.8.2</td><td>guided-build-12-runtime-package / public-line-01 / JOIN_INFO</td><td>COMMON</td><td>MAIN / SUB</td><td>BACKEND_CORE / green</td><td><span class="chip ok">Ready</span></td><td><span class="tiny-btn">Trace</span></td></tr>
+                <tr><td>FRONTEND_BUNDLE</td><td>resonance-common-frontend 1.6.4</td><td>guided-build-12-runtime-package / public-line-01 / JOIN_INFO</td><td>COMMON</td><td>MAIN / SUB</td><td>PUBLIC_ADMIN_SHELL / green</td><td><span class="chip ok">Ready</span></td><td><span class="tiny-btn">Inspect</span></td></tr>
+                <tr><td>PAGE_MANIFEST</td><td>join-member-info v4</td><td>guided-build-12-runtime-package / public-line-01 / JOIN_INFO</td><td>PROJECT</td><td>MAIN / SUB</td><td>JOIN_WIZARD / green</td><td><span class="chip ok">Ready</span></td><td><span class="tiny-btn">Compare</span></td></tr>
+                <tr><td>MODULE_PATTERN</td><td>BOARD_STANDARD / BOARD_DEPTH_V1</td><td>guided-build-12-runtime-package / admin-line-02 / ADMIN_LIST_REVIEW</td><td>PROJECT</td><td>MAIN / SUB</td><td>style: warn / dedupe</td><td><span class="chip warn">Repair</span></td><td><span class="tiny-btn">Intake</span></td></tr>
+                <tr><td>DB_SQL_DRAFT</td><td>join_member_patch_03.sql</td><td>guided-build-12-runtime-package / public-line-01 / JOIN_INFO</td><td>PROJECT</td><td>DB</td><td>DB_MEMBER_CORE / review</td><td><span class="chip warn">Review</span></td><td><span class="tiny-btn">SQL Review</span></td></tr>
+                <tr><td>DB_ATTACHMENT_TARGET</td><td>temp-project-db -> dedicated-db-01</td><td>guided-build-12-runtime-package / public-line-01 / JOIN_INFO</td><td>PROJECT</td><td>DB / MAIN</td><td>PROJECT_DB_SWITCH / green</td><td><span class="chip warn">Switch Ready</span></td><td><span class="tiny-btn">Review</span></td></tr>
+                <tr><td>CRON_BINDING</td><td>member_cleanup_main_v2</td><td>guided-build-12-runtime-package / admin-line-02 / ADMIN_LIST_REVIEW</td><td>PROJECT</td><td>SCHEDULER</td><td>MAIN_SERVER_CRON / green</td><td><span class="chip ok">Bound</span></td><td><span class="tiny-btn">Verify</span></td></tr>
               </tbody>
             </table>
           </div>

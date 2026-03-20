@@ -25,7 +25,7 @@
           <div class="page-title">
             <div class="breadcrumbs">Resonance / Compare / Current Runtime</div>
             <h1>현재 런타임 비교</h1>
-            <p>메인 서버 기준 현재 런타임을 generated target, proposal baseline, patch target과 비교해 parity와 uniformity 차이를 추적합니다.</p>
+            <p>메인 서버 기준 현재 런타임을 generated target, proposal baseline, patch target과 비교해 parity와 uniformity 차이를 추적합니다. guided step, template line, screen family rule도 함께 확인합니다.</p>
           </div>
           <div class="header-actions">
             <div class="btn secondary">Collect Current Runtime</div>
@@ -41,12 +41,26 @@
           <div class="kpi"><span>Open Gaps</span><strong>4</strong><span>2 blockers / 2 warnings</span></div>
         </div>
 
+        <section class="card soft" style="margin-top:18px">
+          <div class="card-header"><div><h2>Context Keys</h2><p>compare identity</p></div></div>
+          <div class="card-body">
+            <div class="two-col">
+              <div class="meta-row"><span class="label">Guided State</span><div class="value">guided-build-14-runtime-compare</div></div>
+              <div class="meta-row"><span class="label">Template Line</span><div class="value">public-line-01</div></div>
+              <div class="meta-row"><span class="label">Screen Family Rule</span><div class="value">JOIN_INFO</div></div>
+              <div class="meta-row"><span class="label">Owner Lane</span><div class="value">res-verify / res-builder</div></div>
+            </div>
+          </div>
+        </section>
+
         <section class="card" style="margin-top:18px">
           <div class="card-header"><div><h2>Compare Matrix</h2><p>generated vs current vs baseline</p></div><span class="chip warn">drift</span></div>
           <div class="card-body">
             <table>
               <thead><tr><th>Target</th><th>Current Runtime</th><th>Generated</th><th>Baseline</th><th>Result</th></tr></thead>
               <tbody>
+                <tr><td>Template Line</td><td>public-line-01</td><td>public-line-01</td><td>public-line-01</td><td><span class="chip ok">Match</span></td></tr>
+                <tr><td>Screen Family Rule</td><td>JOIN_INFO</td><td>JOIN_INFO</td><td>JOIN_INFO</td><td><span class="chip ok">Match</span></td></tr>
                 <tr><td>Shell Profile</td><td>public-join-compact</td><td>public-join-compact</td><td>public-join-compact</td><td><span class="chip ok">Match</span></td></tr>
                 <tr><td>Action Layout</td><td>detail-footer-left/right</td><td>detail-footer-standard</td><td>detail-footer-standard</td><td><span class="chip danger">Mismatch</span></td></tr>
                 <tr><td>Help Anchors</td><td>12</td><td>10</td><td>12</td><td><span class="chip warn">Gap</span></td></tr>

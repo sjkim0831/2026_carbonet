@@ -41,6 +41,20 @@
           <div class="kpi"><span>DB Target</span><strong>temp-project-db</strong><span>switch-ready to dedicated-db-01</span></div>
         </div>
 
+        <div class="card soft" style="margin-top:18px">
+          <div class="card-header">
+            <div><h2>Context Keys</h2><p>작성부터 런타임까지 동일하게 유지되는 governed identity</p></div>
+          </div>
+          <div class="card-body">
+            <div class="two-col">
+              <div><span class="label">Guided State</span><div class="value">guided-build-07-runtime-binding</div></div>
+              <div><span class="label">Template Lines</span><div class="value">public-line-01 / admin-line-02</div></div>
+              <div><span class="label">Screen Family Rules</span><div class="value">public-home-shell / admin-list-review / admin-edit-form</div></div>
+              <div><span class="label">Owner Lane</span><div class="value">res-deploy / res-verify</div></div>
+            </div>
+          </div>
+        </div>
+
         <div class="grid main" style="margin-top:18px">
           <section class="section-stack">
             <div class="card">
@@ -56,7 +70,28 @@
                   <div><span class="label">Import-sensitive Line</span><div class="value">ops-common-bridge-0.9.4</div></div>
                   <div><span class="label">Current DB Attachment</span><div class="value">temp-project-db</div></div>
                   <div><span class="label">Target DB Attachment</span><div class="value">dedicated-db-01</div></div>
+                  <div><span class="label">Public / Admin Template Line</span><div class="value">public-line-01 / admin-line-02</div></div>
+                  <div><span class="label">Primary Screen Family Rules</span><div class="value">public-home-shell / admin-list-review</div></div>
+                  <div><span class="label">Public / Admin Owner Lane</span><div class="value">res-frontend / res-backend</div></div>
                 </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div><h2>Public / Admin Surface Split</h2><p>같은 프로젝트와 서버를 쓰더라도 디자인과 URL surface는 분리됩니다.</p></div>
+                <span class="chip ok">Split Surface</span>
+              </div>
+              <div class="card-body">
+                <table>
+                  <thead>
+                    <tr><th>Surface</th><th>URL Namespace</th><th>Template Line</th><th>Primary Family Rules</th><th>Owner Lane</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>Public</td><td>/</td><td>public-line-01</td><td>public-home-shell, JOIN_INFO</td><td>res-builder / res-frontend</td></tr>
+                    <tr><td>Admin</td><td>/admin</td><td>admin-line-02</td><td>admin-list-review, admin-edit-form</td><td>res-builder / res-backend</td></tr>
+                  </tbody>
+                </table>
               </div>
             </div>
 
@@ -88,6 +123,10 @@
               <div class="card-body">
                 <div class="meta-list">
                   <div class="meta-row"><span class="label">Project</span><div class="value">carbonet-main</div></div>
+                  <div class="meta-row"><span class="label">Guided State</span><div class="value">guided-build-07-runtime-binding</div></div>
+                  <div class="meta-row"><span class="label">Template Line</span><div class="value">admin-line-02</div></div>
+                  <div class="meta-row"><span class="label">Screen Family Rule</span><div class="value">admin-list-review</div></div>
+                  <div class="meta-row"><span class="label">Owner Lane</span><div class="value">res-deploy / res-verify</div></div>
                   <div class="meta-row"><span class="label">Selected Runtime</span><div class="value">Main + Idle Pool</div></div>
                   <div class="meta-row"><span class="label">Authority Scope</span><div class="value">ROLE_SYSTEM_MASTER / GLOBAL</div></div>
                 </div>

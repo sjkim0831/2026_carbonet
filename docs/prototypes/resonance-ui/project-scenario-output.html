@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resonance Project Scenario Output</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <small>Resonance Onboarding</small>
+          <h1>시나리오 출력</h1>
+          <p>프로젝트별로 생성된 시나리오 패밀리, 자식 시나리오, 스텝을 확인합니다.</p>
+        </div>
+        <div class="nav-group">
+          <h2>Pages</h2>
+          <a class="nav-link" href="index.html">Overview</a>
+          <a class="nav-link" href="project-proposal-inventory.html">Project Proposal Inventory</a>
+          <a class="nav-link active" href="project-scenario-output.html">Project Scenario Output</a>
+          <a class="nav-link" href="project-design-output.html">Project Design Output</a>
+        </div>
+      </aside>
+      <main class="content">
+        <div class="topbar">
+          <div class="page-title">
+            <div class="breadcrumbs">Resonance / Onboarding / Project Scenario Output</div>
+            <h1>Project Scenario Output Explorer</h1>
+            <p>신규 프로젝트에 대해 생성된 시나리오 패밀리, 자식 시나리오, 스텝, 바인딩 상태를 확인합니다.</p>
+          </div>
+          <div class="header-actions">
+            <div class="btn secondary">Open Result Chain</div>
+            <div class="btn secondary">Open Missing Queue</div>
+            <div class="btn primary">Approve Scenario Readiness</div>
+          </div>
+        </div>
+
+        <div class="card soft" style="margin-bottom:18px">
+          <div class="card-header"><div><h2>Context Keys</h2><p>시나리오 출력도 proposal과 design output의 같은 identity를 유지합니다.</p></div></div>
+          <div class="card-body">
+            <div class="two-col">
+              <div><span class="label">Guided State</span><div class="value">guided-build-06-scenario-output</div></div>
+              <div><span class="label">Template Lines</span><div class="value">public-line-01 / admin-line-02</div></div>
+              <div><span class="label">Screen Family Rules</span><div class="value">JOIN_INFO / ADMIN_LIST_REVIEW / BOARD_LIST</div></div>
+              <div><span class="label">Project</span><div class="value">member-core</div></div>
+            </div>
+          </div>
+        </div>
+
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <h2>Scenario Families</h2>
+              <p>프로젝트에서 생성된 핵심 시나리오 패밀리와 상태입니다.</p>
+            </div>
+            <span class="chip ok">21 Families</span>
+          </div>
+          <div class="card-body">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Scenario Family</th>
+                  <th>Template / Rule</th>
+                  <th>Child Scenarios</th>
+                  <th>Steps</th>
+                  <th>Bindings</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>join-public-company</td><td>public-line-01 / JOIN_INFO</td><td>9</td><td>16</td><td>complete</td><td><span class="chip ok">Ready</span></td></tr>
+                <tr><td>admin-login</td><td>admin-line-02 / ADMIN_LOGIN</td><td>3</td><td>5</td><td>complete</td><td><span class="chip ok">Ready</span></td></tr>
+                <tr><td>board-faq</td><td>admin-line-02 / BOARD_LIST</td><td>4</td><td>11</td><td>2 missing API bindings</td><td><span class="chip warn">Repair</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

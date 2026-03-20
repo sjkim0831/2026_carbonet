@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resonance Module Selection Trace</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <small>Resonance Trace</small>
+          <h1>선택 추적</h1>
+          <p>모듈 선택 결과가 generation trace와 repair 세션으로 이어지는 흐름을 확인합니다.</p>
+        </div>
+        <div class="nav-group">
+          <h2>Pages</h2>
+          <a class="nav-link" href="index.html">Overview</a>
+          <a class="nav-link" href="module-selection-result.html">Module Selection Result</a>
+          <a class="nav-link active" href="module-selection-trace.html">Module Selection Trace</a>
+          <a class="nav-link" href="runtime-package-matrix.html">Runtime Package Matrix</a>
+          <a class="nav-link" href="repair-workbench.html">Repair Workbench</a>
+          <a class="nav-link" href="current-runtime-compare.html">Current Runtime Compare</a>
+        </div>
+      </aside>
+      <main class="content">
+        <div class="topbar">
+          <div class="page-title">
+            <div class="breadcrumbs">Resonance / Trace / Module Selection Trace</div>
+            <h1>Module Selection Trace Linkage</h1>
+            <p>선택 적용 결과가 generation run, release unit, runtime package, repair 후보와 어떻게 연결되는지 확인합니다. guided step, template line, screen family rule도 함께 확인합니다.</p>
+          </div>
+          <div class="header-actions">
+            <div class="btn secondary">Open Generation Trace</div>
+            <div class="btn secondary">Open Backend Chain</div>
+            <div class="btn primary">Open Repair Workbench</div>
+          </div>
+        </div>
+
+        <section class="card soft" style="margin-top:18px">
+          <div class="card-header"><div><h2>Context Keys</h2><p>trace linkage도 동일한 governed identity를 유지합니다.</p></div></div>
+          <div class="card-body">
+            <div class="two-col">
+              <div class="meta-row"><span class="label">Guided State</span><div class="value">guided-build-10-module-select</div></div>
+              <div class="meta-row"><span class="label">Template Line</span><div class="value">public-line-01</div></div>
+              <div class="meta-row"><span class="label">Screen Family Rule</span><div class="value">JOIN_INFO</div></div>
+              <div class="meta-row"><span class="label">Owner Lane</span><div class="value">res-builder / res-module / res-verify</div></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <h2>Trace Chain</h2>
+              <p>모듈 선택의 lineage를 체인으로 보여줍니다.</p>
+            </div>
+            <span class="chip ok">Traceable</span>
+          </div>
+          <div class="card-body">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Trace Area</th>
+                  <th>Reference</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Guided State</td>
+                  <td>guided-build-10-module-select</td>
+                  <td><span class="chip ok">Linked</span></td>
+                </tr>
+                <tr>
+                  <td>Template / Rule</td>
+                  <td>public-line-01 / JOIN_INFO</td>
+                  <td><span class="chip ok">Linked</span></td>
+                </tr>
+                <tr>
+                  <td>Module Binding Preview</td>
+                  <td>MBP-20260321-01</td>
+                  <td><span class="chip ok">Linked</span></td>
+                </tr>
+                <tr>
+                  <td>Module Binding Result</td>
+                  <td>MBR-20260321-01</td>
+                  <td><span class="chip ok">Linked</span></td>
+                </tr>
+                <tr>
+                  <td>Generation Run</td>
+                  <td>GR-20260321-18</td>
+                  <td><span class="chip ok">Linked</span></td>
+                </tr>
+                <tr>
+                  <td>Release Unit</td>
+                  <td>member-core-20260321-01</td>
+                  <td><span class="chip ok">Linked</span></td>
+                </tr>
+                <tr>
+                  <td>Repair Candidate</td>
+                  <td>RS-join-member-info-03</td>
+                  <td><span class="chip warn">Optional</span></td>
+                </tr>
+                <tr>
+                  <td>Owner Lane</td>
+                  <td>res-builder / res-module / res-verify</td>
+                  <td><span class="chip ok">Linked</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <div class="grid cols-2" style="margin-top:18px">
+          <section class="card soft">
+            <div class="card-header">
+              <div>
+                <h2>Runtime Links</h2>
+                <p>런타임 관점에서 바로 확인할 링크입니다.</p>
+              </div>
+              <span class="chip">Runtime</span>
+            </div>
+            <div class="card-body">
+              <ul class="list">
+                <li>Runtime package delta visible</li>
+                <li>Template line and family rule preserved</li>
+                <li>Current runtime compare context saved</li>
+                <li>Deploy blockers inherited</li>
+              </ul>
+            </div>
+          </section>
+          <section class="card soft">
+            <div class="card-header">
+              <div>
+                <h2>Repair Promotion</h2>
+                <p>문제가 생기면 repair 우선 흐름으로 이동합니다.</p>
+              </div>
+              <span class="chip warn">Repair</span>
+            </div>
+            <div class="card-body">
+              <ul class="list">
+                <li>Style or layout drift opens repair queue</li>
+                <li>Backend/DB delta opens backend chain review</li>
+                <li>Repair session remains tied to the same generation run</li>
+                <li>Owner lane stays visible across compare and repair</li>
+              </ul>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

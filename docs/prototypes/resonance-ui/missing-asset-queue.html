@@ -25,7 +25,7 @@
           <div class="page-title">
             <div class="breadcrumbs">Resonance / Compare / Missing Asset Queue</div>
             <h1>누락 자산 큐</h1>
-            <p>요구사항, 시나리오, 메뉴, 페이지, 컴포넌트, 바인딩 단위로 빠진 항목을 추적하고 repair/open으로 바로 이동합니다.</p>
+            <p>요구사항, 시나리오, 메뉴, 페이지, 컴포넌트, 바인딩 단위로 빠진 항목을 추적하고 repair/open으로 바로 이동합니다. guided step, template line, screen family rule도 함께 봅니다.</p>
           </div>
           <div class="header-actions">
             <div class="btn secondary">Run Coverage Audit</div>
@@ -40,16 +40,28 @@
           <div class="kpi"><span>Missing Bindings</span><strong>7</strong><span>event/function/api/help/security</span></div>
         </div>
 
+        <section class="card soft" style="margin-top:18px">
+          <div class="card-header"><div><h2>Context Keys</h2><p>gap ownership</p></div></div>
+          <div class="card-body">
+            <div class="two-col">
+              <div class="meta-row"><span class="label">Guided State</span><div class="value">guided-build-14-runtime-compare</div></div>
+              <div class="meta-row"><span class="label">Template Line</span><div class="value">public-line-01</div></div>
+              <div class="meta-row"><span class="label">Screen Family Rule</span><div class="value">JOIN_INFO</div></div>
+              <div class="meta-row"><span class="label">Requirement Domain</span><div class="value">02_회원인증</div></div>
+            </div>
+          </div>
+        </section>
+
         <section class="card" style="margin-top:18px">
           <div class="card-header"><div><h2>Gap Queue</h2><p>release blocker only</p></div><span class="chip danger">blockers</span></div>
           <div class="card-body">
             <table>
-              <thead><tr><th>Gap Type</th><th>Target</th><th>Recommended Action</th><th>Status</th><th>Action</th></tr></thead>
+              <thead><tr><th>Gap Type</th><th>Target</th><th>Template/Rule</th><th>Recommended Action</th><th>Status</th><th>Action</th></tr></thead>
               <tbody>
-                <tr><td>MISSING_PAGE_FAMILY</td><td>join-status-guide</td><td>Generate page design from join theme set</td><td><span class="chip danger">Blocked</span></td><td><span class="tiny-btn">Repair Open</span></td></tr>
-                <tr><td>MISSING_COMPONENT_FAMILY</td><td>popup-selector</td><td>Promote existing runtime popup into catalog</td><td><span class="chip warn">Review</span></td><td><span class="tiny-btn">Promote</span></td></tr>
-                <tr><td>MISSING_BINDING</td><td>join-submit-api</td><td>Create function/API binding set</td><td><span class="chip danger">Blocked</span></td><td><span class="tiny-btn">Bind</span></td></tr>
-                <tr><td>REQUIREMENT_GAP</td><td>관리자 감사 상세</td><td>Link requirement to scenario and menu</td><td><span class="chip warn">Open</span></td><td><span class="tiny-btn">Map</span></td></tr>
+                <tr><td>MISSING_PAGE_FAMILY</td><td>join-status-guide</td><td>public-line-01 / JOIN_STATUS</td><td>Generate page design from join theme set</td><td><span class="chip danger">Blocked</span></td><td><span class="tiny-btn">Repair Open</span></td></tr>
+                <tr><td>MISSING_COMPONENT_FAMILY</td><td>popup-selector</td><td>admin-line-02 / ADMIN_LIST_REVIEW</td><td>Promote existing runtime popup into catalog</td><td><span class="chip warn">Review</span></td><td><span class="tiny-btn">Promote</span></td></tr>
+                <tr><td>MISSING_BINDING</td><td>join-submit-api</td><td>public-line-01 / JOIN_INFO</td><td>Create function/API binding set</td><td><span class="chip danger">Blocked</span></td><td><span class="tiny-btn">Bind</span></td></tr>
+                <tr><td>REQUIREMENT_GAP</td><td>관리자 감사 상세</td><td>admin-line-02 / ADMIN_DETAIL</td><td>Link requirement to scenario and menu</td><td><span class="chip warn">Open</span></td><td><span class="tiny-btn">Map</span></td></tr>
               </tbody>
             </table>
           </div>

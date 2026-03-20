@@ -26,7 +26,7 @@
           <div class="page-title">
             <div class="breadcrumbs">Resonance / Builder / Incremental Asset Studio</div>
             <h1>단일 자산 생성 스튜디오</h1>
-            <p>이미 승인된 theme set을 기준으로 page design 하나, element design 하나, component catalog item 하나를 점진적으로 생성하고 승인합니다.</p>
+            <p>이미 승인된 theme set을 기준으로 page design 하나, element design 하나, component catalog item 하나를 점진적으로 생성하고 승인합니다. guided step, template line, screen family rule을 유지합니다.</p>
           </div>
           <div class="header-actions">
             <div class="btn secondary">Load Theme Set</div>
@@ -40,6 +40,9 @@
             <div class="card-header"><div><h2>Page Design</h2><p>시나리오와 메뉴 기준</p></div><span class="chip">PAGE_DESIGN</span></div>
             <div class="card-body">
               <ul class="spec-list">
+                <li><span class="label">Guided State</span><div class="value">guided-build-10-asset-studio</div></li>
+                <li><span class="label">Template Line</span><div class="value">public-line-01</div></li>
+                <li><span class="label">Family Rule</span><div class="value">JOIN_INFO</div></li>
                 <li><span class="label">Scenario</span><div class="value">join-member-info</div></li>
                 <li><span class="label">Frame</span><div class="value">wizard-join-frame</div></li>
                 <li><span class="label">Expected Elements</span><div class="value">search form, detail card, action bar</div></li>
@@ -55,6 +58,8 @@
             <div class="card-header"><div><h2>Element Design</h2><p>재사용 요소</p></div><span class="chip ok">ELEMENT_DESIGN</span></div>
             <div class="card-body">
               <ul class="spec-list">
+                <li><span class="label">Template Line</span><div class="value">public-line-01</div></li>
+                <li><span class="label">Family Rule</span><div class="value">JOIN_INFO</div></li>
                 <li><span class="label">Element Family</span><div class="value">result-grid</div></li>
                 <li><span class="label">Component Kind</span><div class="value">data-grid</div></li>
                 <li><span class="label">Binding Capabilities</span><div class="value">row action, paging, export</div></li>
@@ -70,6 +75,8 @@
             <div class="card-header"><div><h2>Component Catalog Item</h2><p>공통 컴포넌트 생성</p></div><span class="chip warn">Catalog</span></div>
             <div class="card-body">
               <ul class="spec-list">
+                <li><span class="label">Template Line</span><div class="value">public-line-01</div></li>
+                <li><span class="label">Family Rule</span><div class="value">JOIN_INFO</div></li>
                 <li><span class="label">Semantic Alias</span><div class="value">member-search-reset-button</div></li>
                 <li><span class="label">Physical ID</span><div class="value">cmp_8d3a81b2</div></li>
                 <li><span class="label">Trace</span><div class="value">pointer / keyboard / blocked</div></li>

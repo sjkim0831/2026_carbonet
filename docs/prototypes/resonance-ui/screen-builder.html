@@ -25,7 +25,7 @@
           <div class="page-title">
             <div class="breadcrumbs">Resonance / Builder / Scenario-first</div>
             <h1>화면 생성 빌더</h1>
-            <p>프로젝트, 시나리오, actor policy, classification, CSRF, 테마, 컴포넌트 카탈로그, API/DB 바인딩을 먼저 고정하고 화면을 생성합니다.</p>
+            <p>프로젝트, 시나리오, actor policy, classification, CSRF, template line, screen family rule, 테마, 컴포넌트 카탈로그, API/DB 바인딩을 먼저 고정하고 화면을 생성합니다.</p>
           </div>
           <div class="header-actions">
             <div class="btn secondary">Collect Existing Screen</div>
@@ -41,6 +41,9 @@
               <div class="card-body">
                 <div class="two-col">
                   <div><span class="label">Project</span><div class="value">carbonet-main</div></div>
+                  <div><span class="label">Guided State</span><div class="value">guided-build-11-screen-builder</div></div>
+                  <div><span class="label">Template Line</span><div class="value">public-line-01</div></div>
+                  <div><span class="label">Family Rule</span><div class="value">JOIN_INFO</div></div>
                   <div><span class="label">Scenario Family</span><div class="value">join-public-company</div></div>
                   <div><span class="label">Scenario</span><div class="value">join-info</div></div>
                   <div><span class="label">Actor Policy</span><div class="value">public-join-basic</div></div>
@@ -68,6 +71,7 @@
                   <thead><tr><th>Asset</th><th>Value</th><th>Status</th></tr></thead>
                   <tbody>
                     <tr><td>Menu / Page / Feature</td><td>JOIN_STEP4 / join-info / JOIN_INFO_SUBMIT</td><td><span class="chip ok">Ready</span></td></tr>
+                    <tr><td>Template / Rule</td><td>public-line-01 / JOIN_INFO</td><td><span class="chip ok">Locked</span></td></tr>
                     <tr><td>Frontend</td><td>screen-layout.json + component-binding.json</td><td><span class="chip ok">Ready</span></td></tr>
                     <tr><td>Backend</td><td>Controller / Service / DTO / Mapper / XML</td><td><span class="chip ok">Scaffold</span></td></tr>
                     <tr><td>DB</td><td>JOIN_COMPANY_DRAFT / ATCH_FILE</td><td><span class="chip warn">Index Review</span></td></tr>

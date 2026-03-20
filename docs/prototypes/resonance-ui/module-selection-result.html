@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resonance Module Selection Result</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <small>Resonance Builder</small>
+          <h1>적용 결과</h1>
+          <p>모듈 선택 적용 후 실제 반영된 자산과 후속 조치를 확인합니다.</p>
+        </div>
+        <div class="nav-group">
+          <h2>Pages</h2>
+          <a class="nav-link" href="index.html">Overview</a>
+          <a class="nav-link" href="module-selection-popup.html">Module Selection Popup</a>
+          <a class="nav-link" href="module-selection-checklist.html">Module Selection Checklist</a>
+          <a class="nav-link active" href="module-selection-result.html">Module Selection Result</a>
+          <a class="nav-link" href="module-selection-trace.html">Module Selection Trace</a>
+          <a class="nav-link" href="module-binding-preview.html">Module Binding Preview</a>
+          <a class="nav-link" href="runtime-package-matrix.html">Runtime Package Matrix</a>
+          <a class="nav-link" href="repair-workbench.html">Repair Workbench</a>
+        </div>
+      </aside>
+      <main class="content">
+        <div class="topbar">
+          <div class="page-title">
+            <div class="breadcrumbs">Resonance / Builder / Module Selection Result</div>
+            <h1>Module Selection Apply Result</h1>
+            <p>선택한 모듈이 실제로 어떤 페이지, 컴포넌트, 백엔드, DB, 패키지 자산에 연결되었는지 확인합니다. guided step, template line, screen family rule도 함께 추적합니다.</p>
+          </div>
+          <div class="header-actions">
+            <div class="btn secondary">Open Binding Preview</div>
+            <div class="btn secondary">Open Trace Links</div>
+            <div class="btn secondary">Open Repair Queue</div>
+            <div class="btn primary">Proceed To Scaffold</div>
+          </div>
+        </div>
+
+        <div class="grid cols-4" style="margin-top:18px">
+          <div class="kpi"><span>Applied Modules</span><strong>3</strong><span>required 1 / optional 2</span></div>
+          <div class="kpi"><span>Page Assets</span><strong>4</strong><span>popup 1 / blocks 3</span></div>
+          <div class="kpi"><span>Backend Assets</span><strong>3</strong><span>service, mapper, API binding</span></div>
+          <div class="kpi"><span>Repair Needed</span><strong>No</strong><span>ready for scaffold</span></div>
+        </div>
+
+        <section class="card soft" style="margin-top:18px">
+          <div class="card-header"><div><h2>Context Keys</h2><p>module attach identity</p></div></div>
+          <div class="card-body">
+            <div class="two-col">
+              <div class="meta-row"><span class="label">Guided State</span><div class="value">guided-build-10-module-select</div></div>
+              <div class="meta-row"><span class="label">Template Line</span><div class="value">public-line-01</div></div>
+              <div class="meta-row"><span class="label">Screen Family Rule</span><div class="value">JOIN_INFO</div></div>
+              <div class="meta-row"><span class="label">Owner Lane</span><div class="value">res-builder / res-module</div></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card" style="margin-top:18px">
+          <div class="card-header">
+            <div>
+              <h2>Apply Summary</h2>
+              <p>어떤 모듈이 어떤 체인에 반영되었는지 요약합니다.</p>
+            </div>
+            <span class="chip ok">Applied</span>
+          </div>
+          <div class="card-body">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Area</th>
+                  <th>Applied Change</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Page Assembly</td>
+                  <td>member-search-popup block attached to join-member-info</td>
+                  <td><span class="chip ok">Applied</span></td>
+                </tr>
+                <tr>
+                  <td>Component Family</td>
+                  <td>search-form-standard and grid-standard bound</td>
+                  <td><span class="chip ok">Applied</span></td>
+                </tr>
+                <tr>
+                  <td>Backend Chain</td>
+                  <td>member lookup API and mapper binding linked</td>
+                  <td><span class="chip ok">Applied</span></td>
+                </tr>
+                <tr>
+                  <td>DB Impact</td>
+                  <td>no new object, reuse existing member search projection</td>
+                  <td><span class="chip ok">Safe</span></td>
+                </tr>
+                <tr>
+                  <td>Runtime Package</td>
+                  <td>feature-module set + helper binding registered</td>
+                  <td><span class="chip ok">Updated</span></td>
+                </tr>
+                <tr>
+                  <td>Owner Lane</td>
+                  <td>res-builder / res-module / res-verify</td>
+                  <td><span class="chip ok">Assigned</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <div class="grid cols-2" style="margin-top:18px">
+          <section class="card soft">
+            <div class="card-header">
+              <div>
+                <h2>Follow-up Checklist</h2>
+                <p>다음 단계로 넘어가기 전 확인할 항목입니다.</p>
+              </div>
+              <span class="chip">Checklist</span>
+            </div>
+            <div class="card-body">
+              <ul class="list">
+                <li>Selection checklist passed</li>
+                <li>No unresolved style dedupe blocker</li>
+                <li>Binding trace saved</li>
+                <li>Runtime package delta visible</li>
+                <li>Repair queue count is zero</li>
+              </ul>
+            </div>
+          </section>
+          <section class="card soft">
+            <div class="card-header">
+              <div>
+                <h2>Trace Links</h2>
+                <p>바로 이어서 검토 가능한 관련 화면입니다.</p>
+              </div>
+              <span class="chip warn">Trace</span>
+            </div>
+            <div class="card-body">
+              <ul class="list">
+                <li>Binding preview: `moduleBindingPreviewId=MBP-20260321-01`</li>
+                <li>Template/Rule: `public-line-01 / JOIN_INFO`</li>
+                <li>Runtime package matrix: `release-unit/member-core-20260321-01`</li>
+                <li>Repair workbench: `repair/open?screenId=join-member-info`</li>
+                <li>Generation trace: `GENERATION_RUN#GR-20260321-18`</li>
+              </ul>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

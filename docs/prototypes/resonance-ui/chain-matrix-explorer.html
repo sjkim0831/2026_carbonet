@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resonance Chain And Matrix Explorer</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand"><small>Resonance Trace</small><h1>Chain & Matrix</h1><p>메뉴, 화면, 컴포넌트, API, 백엔드, DB, 릴리즈를 한 축으로 추적</p></div>
+        <div class="nav-group">
+          <h2>Pages</h2>
+          <a class="nav-link" href="index.html">Overview</a>
+          <a class="nav-link active" href="chain-matrix-explorer.html">Chain & Matrix Explorer</a>
+          <a class="nav-link" href="current-runtime-compare.html">Current Runtime Compare</a>
+          <a class="nav-link" href="repair-workbench.html">Repair Workbench</a>
+          <a class="nav-link" href="runtime-package-matrix.html">Runtime Package Matrix</a>
+        </div>
+      </aside>
+      <main class="content">
+        <div class="topbar">
+          <div class="page-title">
+            <div class="breadcrumbs">Resonance / Trace / Chain And Matrix Explorer</div>
+            <h1>체인 및 매트릭스 탐색기</h1>
+            <p>프로젝트, 메뉴, 시나리오, 페이지, 컴포넌트, 이벤트, 함수, API, 백엔드, DB, release unit, runtime target을 한 화면에서 추적합니다.</p>
+          </div>
+          <div class="header-actions">
+            <div class="btn secondary">Pivot by Menu</div>
+            <div class="btn secondary">Pivot by Release Unit</div>
+            <div class="btn primary">Open Repair Candidate</div>
+          </div>
+        </div>
+
+        <div class="card soft" style="margin-bottom:18px">
+          <div class="card-header"><div><h2>Context Keys</h2><p>chain과 matrix 전 구간에서 유지되는 공통 식별 키</p></div></div>
+          <div class="card-body">
+            <div class="two-col">
+              <div><span class="label">Guided State</span><div class="value">guided-build-11-chain-matrix-review</div></div>
+              <div><span class="label">Template Line</span><div class="value">admin-line-02</div></div>
+              <div><span class="label">Screen Family Rule</span><div class="value">admin-list-review</div></div>
+              <div><span class="label">Owner Lane</span><div class="value">res-verify / res-builder / res-backend</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid cols-4">
+          <div class="kpi"><span>Matrix Rows</span><strong>248</strong><span>all governed assets</span></div>
+          <div class="kpi"><span>Missing Links</span><strong>3</strong><span>repair required</span></div>
+          <div class="kpi"><span>Parity Ready</span><strong>96%</strong><span>page family basis</span></div>
+          <div class="kpi"><span>Deploy Ready</span><strong>92%</strong><span>release-unit basis</span></div>
+        </div>
+
+        <section class="card" style="margin-top:18px">
+          <div class="card-header"><div><h2>Unified Chain Matrix</h2><p>menu to runtime target</p></div><span class="chip ok">Governed</span></div>
+          <div class="card-body">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Menu</th>
+                  <th>Scenario</th>
+                  <th>Page / Component</th>
+                  <th>Event / API</th>
+                  <th>Backend / DB</th>
+                  <th>Owner Lane</th>
+                  <th>Release / Runtime</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>회원관리 &gt; 가입심사</td>
+                  <td>join-review-step-02</td>
+                  <td>admin-member-review / grid-review-list</td>
+                  <td>rowSelect / reviewSubmitApi</td>
+                  <td>ReviewMemberController / TB_JOIN_MEMBER</td>
+                  <td>res-builder / res-backend</td>
+                  <td>ru-2026.03.21-03 / main-221</td>
+                  <td><span class="chip ok">Linked</span></td>
+                </tr>
+                <tr>
+                  <td>회원관리 &gt; 회원수정</td>
+                  <td>member-edit-step-01</td>
+                  <td>admin-member-edit / form-member-edit</td>
+                  <td>saveClick / memberUpdateApi</td>
+                  <td>MemberEditController / TB_MEMBER</td>
+                  <td>res-frontend / res-backend</td>
+                  <td>ru-2026.03.21-03 / main-221</td>
+                  <td><span class="chip ok">Linked</span></td>
+                </tr>
+                <tr>
+                  <td>게시판 &gt; FAQ 관리</td>
+                  <td>faq-board-list</td>
+                  <td>admin-board-list / grid-board</td>
+                  <td>searchSubmit / boardListApi</td>
+                  <td>BoardFaqController / TB_FAQ</td>
+                  <td>res-module / res-verify</td>
+                  <td>ru-2026.03.21-03 / idle-web-03</td>
+                  <td><span class="chip warn">Compare</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <div class="grid main" style="margin-top:18px">
+          <section class="card">
+            <div class="card-header"><div><h2>Blocker And Repair History</h2><p>matrix row에서 바로 blocker와 수리 이력을 확인합니다.</p></div><span class="chip warn">3 open</span></div>
+            <div class="card-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                  <th>Asset Row</th>
+                  <th>Open Blocker</th>
+                  <th>Repair Owner</th>
+                  <th>Owner Lane</th>
+                  <th>Last Repair</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>FAQ board / admin-board-list</td>
+                  <td>template-line drift on popup action bar</td>
+                  <td>res-builder</td>
+                  <td>res-module / res-builder</td>
+                  <td>2026-03-21 14:20</td>
+                  <td><span class="chip warn">Pending</span></td>
+                </tr>
+                <tr>
+                  <td>Member edit / form-member-edit</td>
+                  <td>repair completed, waiting compare</td>
+                  <td>res-frontend</td>
+                  <td>res-frontend / res-verify</td>
+                  <td>2026-03-21 13:48</td>
+                  <td><span class="chip ok">Ready</span></td>
+                </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <aside class="section-stack">
+            <div class="card soft">
+              <div class="card-header"><div><h3>Pivot Targets</h3><p>row click drill-down</p></div></div>
+              <div class="card-body">
+                <ul class="check-list">
+                  <li>Open current-runtime compare</li>
+                  <li>Open repair workbench</li>
+                  <li>Open runtime package matrix</li>
+                  <li>Open backend chain explorer</li>
+                </ul>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

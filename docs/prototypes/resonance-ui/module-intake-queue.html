@@ -44,6 +44,18 @@
           <div class="kpi"><span>Build Ready</span><strong>1</strong><span>attach plan approved</span></div>
         </div>
 
+        <div class="card soft" style="margin-top:18px">
+          <div class="card-header"><div><h2>Context Keys</h2><p>모듈 인테이크도 동일한 guided identity를 유지합니다.</p></div></div>
+          <div class="card-body">
+            <div class="two-col">
+              <div><span class="label">Guided State</span><div class="value">guided-build-08-module-intake</div></div>
+              <div><span class="label">Template Line</span><div class="value">admin-line-02</div></div>
+              <div><span class="label">Screen Family Rule</span><div class="value">admin-list-review</div></div>
+              <div><span class="label">Target Runtime</span><div class="value">main-221 / idle-web-03</div></div>
+            </div>
+          </div>
+        </div>
+
         <section class="card" style="margin-top:18px">
           <div class="card-header">
             <div>
@@ -58,6 +70,7 @@
                 <tr>
                   <th>Candidate</th>
                   <th>Requested Family</th>
+                  <th>Template / Rule</th>
                   <th>AI Verdict</th>
                   <th>Main Blocker</th>
                   <th>Next</th>
@@ -67,6 +80,7 @@
                 <tr>
                   <td>board-faq-module</td>
                   <td>BOARD</td>
+                  <td>admin-line-02 / admin-list-review</td>
                   <td><span class="chip ok">Normalized</span></td>
                   <td>SQL rollback not attached</td>
                   <td>Open attach plan</td>
@@ -74,6 +88,7 @@
                 <tr>
                   <td>popup-member-lookup</td>
                   <td>POPUP_SELECTOR</td>
+                  <td>admin-line-02 / admin-edit-form</td>
                   <td><span class="chip ok">Normalized</span></td>
                   <td>None</td>
                   <td>Approve build</td>
@@ -81,6 +96,7 @@
                 <tr>
                   <td>legacy-report-export</td>
                   <td>REPORT</td>
+                  <td>admin-line-02 / admin-list-review</td>
                   <td><span class="chip warn">Boundary review</span></td>
                   <td>Common/runtime split unclear</td>
                   <td>Open ownership diff</td>

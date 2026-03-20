@@ -18,6 +18,8 @@
           <h2>Pages</h2>
           <a class="nav-link" href="index.html">Overview</a>
           <a class="nav-link" href="module-selection-popup.html">Module Selection Popup</a>
+          <a class="nav-link" href="module-selection-checklist.html">Module Selection Checklist</a>
+          <a class="nav-link" href="module-selection-result.html">Module Selection Result</a>
           <a class="nav-link active" href="module-binding-preview.html">Module Binding Preview</a>
           <a class="nav-link" href="runtime-package-matrix.html">Runtime Package Matrix</a>
         </div>
@@ -33,6 +35,18 @@
             <div class="btn secondary">Open Matrix</div>
             <div class="btn secondary">Open Compare</div>
             <div class="btn primary">Confirm Binding</div>
+          </div>
+        </div>
+
+        <div class="card soft" style="margin-bottom:18px">
+          <div class="card-header"><div><h2>Context Keys</h2><p>binding preview도 같은 governed identity로 release unit에 연결됩니다.</p></div></div>
+          <div class="card-body">
+            <div class="two-col">
+              <div><span class="label">Guided State</span><div class="value">guided-build-11-binding-preview</div></div>
+              <div><span class="label">Template Line</span><div class="value">admin-line-02</div></div>
+              <div><span class="label">Screen Family Rule</span><div class="value">admin-edit-form</div></div>
+              <div><span class="label">Release Unit</span><div class="value">release-unit/member-core-20260321-01</div></div>
+            </div>
           </div>
         </div>
 
@@ -78,6 +92,11 @@
                   <td>Common Line Impact</td>
                   <td>no change</td>
                   <td>COMMON</td>
+                </tr>
+                <tr>
+                  <td>Template / Rule</td>
+                  <td>admin-line-02 / admin-edit-form</td>
+                  <td>GOVERNED</td>
                 </tr>
               </tbody>
             </table>

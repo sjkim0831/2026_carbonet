@@ -41,18 +41,45 @@
           <div class="kpi"><span>Rollback Window</span><strong>7d</strong><span>release-unit governed</span></div>
         </div>
 
+        <div class="card soft" style="margin-top:18px">
+          <div class="card-header">
+            <div><h2>Context Keys</h2><p>compare, repair, package, deploy 전 구간에 공통으로 전달되는 identity</p></div>
+          </div>
+          <div class="card-body">
+            <div class="two-col">
+              <div><span class="label">Guided State</span><div class="value">guided-build-12-package-deploy</div></div>
+              <div><span class="label">Template Lines</span><div class="value">public-line-01 / admin-line-02</div></div>
+              <div><span class="label">Screen Family Rules</span><div class="value">public-home-shell / admin-list-review / admin-edit-form</div></div>
+              <div><span class="label">Owner Lane</span><div class="value">res-deploy / res-verify / res-frontend</div></div>
+            </div>
+          </div>
+        </div>
+
         <div class="grid main" style="margin-top:18px">
           <section class="section-stack">
+            <div class="card">
+              <div class="card-header"><div><h2>Surface Rollout Split</h2><p>public/admin surface가 같은 release unit 안에서도 분리 검증됩니다.</p></div></div>
+              <div class="card-body">
+                <table>
+                  <thead><tr><th>Surface</th><th>Template Line</th><th>Primary Rule</th><th>Owner Lane</th><th>Status</th></tr></thead>
+                  <tbody>
+                    <tr><td>Public</td><td>public-line-01</td><td>public-home-shell</td><td>res-frontend</td><td><span class="chip ok">Ready</span></td></tr>
+                    <tr><td>Admin</td><td>admin-line-02</td><td>admin-list-review</td><td>res-deploy / res-verify</td><td><span class="chip warn">Pending Main Switch</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
             <div class="card">
               <div class="card-header"><div><h2>Release Unit Rollout</h2><p>current / target / rollback-ready</p></div></div>
               <div class="card-body">
                 <table>
                   <thead><tr><th>Stage</th><th>Target</th><th>Status</th><th>Notes</th></tr></thead>
                   <tbody>
-                    <tr><td>Build</td><td>34.82.141.193</td><td><span class="chip ok">Done</span></td><td>jar + manifest + security checklist</td></tr>
-                    <tr><td>Sub-first</td><td>idle-web-03</td><td><span class="chip ok">Passed</span></td><td>health + DB pool OK</td></tr>
-                    <tr><td>Main switch</td><td>136.117.100.221</td><td><span class="chip warn">Pending</span></td><td>Nginx upstream swap not yet executed</td></tr>
-                    <tr><td>Rollback</td><td>ru-2026.03.19-07</td><td><span class="chip">Prepared</span></td><td>checkpoint retained</td></tr>
+                    <tr><td>Build</td><td>34.82.141.193</td><td><span class="chip ok">Done</span></td><td>jar + manifest + security checklist + template/family snapshot</td></tr>
+                    <tr><td>Sub-first</td><td>idle-web-03</td><td><span class="chip ok">Passed</span></td><td>health + DB pool OK + admin-list-review parity OK</td></tr>
+                    <tr><td>Main switch</td><td>136.117.100.221</td><td><span class="chip warn">Pending</span></td><td>Nginx upstream swap not yet executed; guided state 12 active</td></tr>
+                    <tr><td>Rollback</td><td>ru-2026.03.19-07</td><td><span class="chip">Prepared</span></td><td>checkpoint retained with public/admin template line snapshot</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -79,6 +106,9 @@
               <div class="card-body">
                 <ul class="check-list">
                   <li>Project selected and release unit frozen</li>
+                  <li>Guided state resolved to deploy lane</li>
+                  <li>Template lines and screen family rules frozen in release unit</li>
+                  <li>Public/admin split rollout ownership assigned</li>
                   <li>Security checklist attached</li>
                   <li>DB migration impact reviewed</li>
                   <li>Nginx internal port route reachable</li>
@@ -92,6 +122,8 @@
                 <ul class="timeline">
                   <li>HTTP health: 200 OK</li>
                   <li>DB connection pool: 4 / 5</li>
+                  <li>Template line snapshot: public-line-01 / admin-line-02</li>
+                  <li>Screen family rule drift: none detected</li>
                   <li>Help manifest sync: OK</li>
                   <li>Security log ingest: delayed 18s</li>
                 </ul>

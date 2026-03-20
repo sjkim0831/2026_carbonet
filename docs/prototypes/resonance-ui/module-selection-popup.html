@@ -18,6 +18,8 @@
           <h2>Pages</h2>
           <a class="nav-link" href="index.html">Overview</a>
           <a class="nav-link active" href="module-selection-popup.html">Module Selection Popup</a>
+          <a class="nav-link" href="module-selection-checklist.html">Module Selection Checklist</a>
+          <a class="nav-link" href="module-selection-result.html">Module Selection Result</a>
           <a class="nav-link" href="module-intake-queue.html">Module Intake Queue</a>
           <a class="nav-link" href="runtime-package-matrix.html">Runtime Package Matrix</a>
         </div>
@@ -36,6 +38,18 @@
           </div>
         </div>
 
+        <div class="card soft" style="margin-bottom:18px">
+          <div class="card-header"><div><h2>Context Keys</h2><p>모듈 선택도 같은 guided identity를 유지한 채 진행됩니다.</p></div></div>
+          <div class="card-body">
+            <div class="two-col">
+              <div><span class="label">Guided State</span><div class="value">guided-build-10-module-select</div></div>
+              <div><span class="label">Template Line</span><div class="value">public-line-01</div></div>
+              <div><span class="label">Screen Family Rule</span><div class="value">JOIN_INFO</div></div>
+              <div><span class="label">Scenario Family</span><div class="value">join-public-company</div></div>
+            </div>
+          </div>
+        </div>
+
         <section class="card">
           <div class="card-header">
             <div>
@@ -50,6 +64,7 @@
                 <tr>
                   <th>Select</th>
                   <th>Module</th>
+                  <th>Template / Rule</th>
                   <th>Class</th>
                   <th>Impact</th>
                   <th>Status</th>
@@ -60,6 +75,7 @@
                 <tr>
                   <td><input type="checkbox" checked /></td>
                   <td>popup-member-selector</td>
+                  <td>public-line-01 / JOIN_INFO</td>
                   <td><span class="chip">REQUIRED</span></td>
                   <td>popup/grid/search</td>
                   <td><span class="chip ok">Ready</span></td>
@@ -68,6 +84,7 @@
                 <tr>
                   <td><input type="checkbox" checked /></td>
                   <td>board-faq</td>
+                  <td>admin-line-02 / ADMIN_LIST_REVIEW</td>
                   <td><span class="chip warn">RECOMMENDED</span></td>
                   <td>backend/DB/CSS</td>
                   <td><span class="chip warn">Popup Review</span></td>
@@ -76,6 +93,7 @@
                 <tr>
                   <td><input type="checkbox" /></td>
                   <td>excel-export-extended</td>
+                  <td>public-line-01 / JOIN_INFO</td>
                   <td><span class="chip">OPTIONAL</span></td>
                   <td>export helper</td>
                   <td><span class="chip ok">Ready</span></td>

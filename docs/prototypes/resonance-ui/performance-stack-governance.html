@@ -44,6 +44,18 @@
           <div class="kpi"><span>Cache Hit</span><strong>84%</strong><span>micro-cache + Redis</span></div>
         </div>
 
+        <div class="card soft" style="margin-top:18px">
+          <div class="card-header"><div><h2>Context Keys</h2><p>성능 스택도 같은 guided identity 기준으로 release unit과 runtime target에 결합됩니다.</p></div></div>
+          <div class="card-body">
+            <div class="two-col">
+              <div><span class="label">Guided State</span><div class="value">guided-build-12-runtime-package</div></div>
+              <div><span class="label">Template Lines</span><div class="value">public-line-01 / admin-line-02</div></div>
+              <div><span class="label">Screen Family Rules</span><div class="value">public-home-shell / admin-list-review</div></div>
+              <div><span class="label">Release Unit</span><div class="value">ru-2026.03.21-03</div></div>
+            </div>
+          </div>
+        </div>
+
         <div class="grid main" style="margin-top:18px">
           <section class="card">
             <div class="card-header">
@@ -111,6 +123,7 @@
                 <li>RUNTIME_SUB: verification and spare cache only</li>
                 <li>RUNTIME_IDLE: burst web capacity, avoid heavy stacks</li>
                 <li>SUPPORT_NODE: Redis, queue, search, logs, AI runners</li>
+                <li>Context keys preserved in stack attach and rollback traces</li>
               </ul>
             </div>
             <div class="stack-card">
@@ -119,6 +132,7 @@
                 <li>OpenSearch on 1GB runtime nodes</li>
                 <li>Redis colocated with DB target</li>
                 <li>Worker queue on main node without drain plan</li>
+                <li>Stack attach without guided-state and release-unit linkage</li>
               </ul>
             </div>
           </aside>

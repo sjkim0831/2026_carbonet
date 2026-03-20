@@ -19,6 +19,7 @@
           <a class="nav-link" href="index.html">Overview</a>
           <a class="nav-link" href="module-selection-popup.html">Module Selection Popup</a>
           <a class="nav-link active" href="module-selection-checklist.html">Module Selection Checklist</a>
+          <a class="nav-link" href="module-selection-result.html">Module Selection Result</a>
           <a class="nav-link" href="runtime-package-matrix.html">Runtime Package Matrix</a>
         </div>
       </aside>
@@ -32,7 +33,19 @@
           <div class="header-actions">
             <div class="btn secondary">Open Popup Review</div>
             <div class="btn secondary">Open Package Impact</div>
-            <div class="btn primary">Proceed To Scaffold</div>
+            <div class="btn primary">Open Apply Result</div>
+          </div>
+        </div>
+
+        <div class="card soft" style="margin-bottom:18px">
+          <div class="card-header"><div><h2>Context Keys</h2><p>checklist도 동일한 template line과 family rule 기준에서 검증됩니다.</p></div></div>
+          <div class="card-body">
+            <div class="two-col">
+              <div><span class="label">Guided State</span><div class="value">guided-build-10-module-select</div></div>
+              <div><span class="label">Template Line</span><div class="value">public-line-01</div></div>
+              <div><span class="label">Screen Family Rule</span><div class="value">JOIN_INFO</div></div>
+              <div><span class="label">Release Unit</span><div class="value">member-core-20260321-01</div></div>
+            </div>
           </div>
         </div>
 
@@ -83,6 +96,11 @@
                   <td>Runtime package preview</td>
                   <td><span class="chip ok">Pass</span></td>
                   <td>2 feature assets + 1 helper binding added</td>
+                </tr>
+                <tr>
+                  <td>Template / family rule continuity</td>
+                  <td><span class="chip ok">Pass</span></td>
+                  <td>public-line-01 and JOIN_INFO preserved end-to-end</td>
                 </tr>
               </tbody>
             </table>

@@ -43,6 +43,18 @@
           <div class="kpi"><span>Scheduler Drift</span><strong>0</strong><span>main-server truth</span></div>
         </div>
 
+        <div class="card soft" style="margin-top:18px">
+          <div class="card-header"><div><h2>Context Keys</h2><p>운영성 로그와 크론도 동일한 governed identity 기준으로 연결됩니다.</p></div></div>
+          <div class="card-body">
+            <div class="two-col">
+              <div><span class="label">Guided State</span><div class="value">guided-build-13-observe-and-schedule</div></div>
+              <div><span class="label">Template Line</span><div class="value">admin-line-02</div></div>
+              <div><span class="label">Screen Family Rule</span><div class="value">admin-list-review</div></div>
+              <div><span class="label">Owner Lane</span><div class="value">res-deploy / res-verify</div></div>
+            </div>
+          </div>
+        </div>
+
         <div class="grid main" style="margin-top:18px">
           <section class="card">
             <div class="card-header">
@@ -71,7 +83,7 @@
                     <td>main-221</td>
                     <td>0 2 * * *</td>
                     <td><span class="chip ok">Success</span></td>
-                    <td>Edit / Retry</td>
+                    <td>Edit / Retry / res-deploy</td>
                   </tr>
                   <tr>
                     <td>expired_file_delete</td>
@@ -79,7 +91,7 @@
                     <td>main-221</td>
                     <td>30 3 * * *</td>
                     <td><span class="chip warn">Review</span></td>
-                    <td>Inspect evidence</td>
+                    <td>Inspect evidence / res-verify</td>
                   </tr>
                   <tr>
                     <td>report_summary_refresh</td>
@@ -87,7 +99,7 @@
                     <td>main-221</td>
                     <td>*/15 * * * *</td>
                     <td><span class="chip ok">Success</span></td>
-                    <td>Open logs</td>
+                    <td>Open logs / res-deploy</td>
                   </tr>
                 </tbody>
               </table>
@@ -99,6 +111,7 @@
               <h3>Operational Search</h3>
               <ul class="list">
                 <li>Release-unit correlated log search</li>
+                <li>Guided-state correlated repair and rollout logs</li>
                 <li>Audit/security log correlation</li>
                 <li>Post-deploy smoke result timeline</li>
               </ul>
@@ -109,6 +122,7 @@
                 <li>Deleted file count with evidence hash</li>
                 <li>Orphan cleanup result</li>
                 <li>Rollback-safe archive move history</li>
+                <li>Template line / screen family rule aware scheduler evidence</li>
               </ul>
             </div>
           </aside>

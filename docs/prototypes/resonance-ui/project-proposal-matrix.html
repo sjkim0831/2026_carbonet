@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resonance Project Proposal Matrix</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <small>Resonance Onboarding</small>
+          <h1>생성 매트릭스</h1>
+          <p>제안서 업로드 이후 프로젝트 단위 생성 상태를 행/열 기준으로 점검합니다.</p>
+        </div>
+        <div class="nav-group">
+          <h2>Pages</h2>
+          <a class="nav-link" href="index.html">Overview</a>
+          <a class="nav-link" href="project-proposal-inventory.html">Project Proposal Inventory</a>
+          <a class="nav-link active" href="project-proposal-matrix.html">Project Proposal Matrix</a>
+          <a class="nav-link" href="repair-workbench.html">Repair Workbench</a>
+        </div>
+      </aside>
+      <main class="content">
+        <div class="topbar">
+          <div class="page-title">
+            <div class="breadcrumbs">Resonance / Onboarding / Project Proposal Matrix</div>
+            <h1>Project Proposal Generation Matrix</h1>
+            <p>제안서 원본, 생성 결과, 현재 런타임, 패치 타깃을 프로젝트 단위 매트릭스로 비교합니다. template line, screen family rule, guided state도 함께 점검합니다.</p>
+          </div>
+          <div class="header-actions">
+            <div class="btn secondary">Open Compare</div>
+            <div class="btn secondary">Open Backend Chain</div>
+            <div class="btn primary">Open Repair</div>
+          </div>
+        </div>
+
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <h2>Matrix Snapshot</h2>
+              <p>핵심 자산 가족의 readiness를 한 번에 봅니다.</p>
+            </div>
+            <span class="chip">Matrix</span>
+          </div>
+          <div class="card-body">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Row</th>
+                  <th>Template/Rule</th>
+                  <th>Designed</th>
+                  <th>Bound</th>
+                  <th>Build</th>
+                  <th>Deploy</th>
+                  <th>Parity</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>Menu Tree</td><td>public-line-01 / JOIN_ENTRY</td><td><span class="chip ok">Y</span></td><td><span class="chip ok">Y</span></td><td><span class="chip ok">Y</span></td><td><span class="chip ok">Y</span></td><td><span class="chip ok">Y</span></td></tr>
+                <tr><td>Scenario Family</td><td>public-line-01 / JOIN_INFO</td><td><span class="chip ok">Y</span></td><td><span class="chip ok">Y</span></td><td><span class="chip ok">Y</span></td><td><span class="chip ok">Y</span></td><td><span class="chip warn">2 gaps</span></td></tr>
+                <tr><td>Page Assembly</td><td>public-line-01 / JOIN_INFO</td><td><span class="chip ok">Y</span></td><td><span class="chip warn">2 missing</span></td><td><span class="chip warn">Blocked</span></td><td><span class="chip">-</span></td><td><span class="chip">-</span></td></tr>
+                <tr><td>Backend Chain</td><td>admin-line-02 / ADMIN_LIST_REVIEW</td><td><span class="chip ok">Y</span></td><td><span class="chip ok">Y</span></td><td><span class="chip ok">Y</span></td><td><span class="chip ok">Y</span></td><td><span class="chip ok">Y</span></td></tr>
+                <tr><td>DB Object</td><td>public-line-01 / JOIN_INFO</td><td><span class="chip ok">Y</span></td><td><span class="chip ok">Y</span></td><td><span class="chip ok">Y</span></td><td><span class="chip ok">Y</span></td><td><span class="chip warn">review</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

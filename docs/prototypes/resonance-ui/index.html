@@ -15,14 +15,26 @@
           <p>Control Plane, Builder, Ops, Security, Design Workspace 화면 미리보기</p>
         </div>
         <div class="nav-group">
-          <h2>Preview Pages</h2>
+          <h2>Primary Flow</h2>
           <a class="nav-link active" href="index.html">Overview</a>
-          <a class="nav-link" href="project-runtime.html">Project & Runtime</a>
-          <a class="nav-link" href="screen-builder.html">Screen Builder</a>
-          <a class="nav-link" href="design-workspace.html">Design Workspace</a>
-          <a class="nav-link" href="theme-set-studio.html">Theme Set Studio</a>
-          <a class="nav-link" href="asset-studio.html">Incremental Asset Studio</a>
-          <a class="nav-link" href="runtime-package-matrix.html">Runtime Package Matrix</a>
+          <a class="nav-link" href="guided-build-flow.html">01 Guided Build Flow</a>
+          <a class="nav-link" href="project-runtime.html">02 Project & Runtime</a>
+          <a class="nav-link" href="design-workspace.html">03 Design Workspace</a>
+          <a class="nav-link" href="proposal-mapping-draft.html">04 Proposal Mapping Draft</a>
+          <a class="nav-link" href="project-proposal-inventory.html">05 Project Proposal Inventory</a>
+          <a class="nav-link" href="project-proposal-matrix.html">06 Project Proposal Matrix</a>
+          <a class="nav-link" href="project-scenario-output.html">07 Project Scenario Output</a>
+          <a class="nav-link" href="project-design-output.html">08 Project Design Output</a>
+          <a class="nav-link" href="theme-set-studio.html">09 Theme Set Studio</a>
+          <a class="nav-link" href="asset-studio.html">10 Incremental Asset Studio</a>
+          <a class="nav-link" href="screen-builder.html">11 Screen Builder</a>
+          <a class="nav-link" href="runtime-package-matrix.html">12 Runtime Package Matrix</a>
+          <a class="nav-link" href="deploy-console.html">13 Deploy Console</a>
+          <a class="nav-link" href="current-runtime-compare.html">14 Current Runtime Compare</a>
+          <a class="nav-link" href="repair-workbench.html">15 Repair Workbench</a>
+        </div>
+        <div class="nav-group">
+          <h2>Supporting Governance</h2>
           <a class="nav-link" href="performance-stack-governance.html">Performance Stack Governance</a>
           <a class="nav-link" href="log-scheduler-governance.html">Log & Scheduler Governance</a>
           <a class="nav-link" href="module-pattern-governance.html">Module Pattern Governance</a>
@@ -31,13 +43,13 @@
           <a class="nav-link" href="module-attach-plan.html">Module Attach Plan</a>
           <a class="nav-link" href="module-selection-popup.html">Module Selection Popup</a>
           <a class="nav-link" href="module-selection-checklist.html">Module Selection Checklist</a>
+          <a class="nav-link" href="module-selection-result.html">Module Selection Result</a>
+          <a class="nav-link" href="module-selection-trace.html">Module Selection Trace</a>
           <a class="nav-link" href="module-binding-preview.html">Module Binding Preview</a>
+          <a class="nav-link" href="chain-matrix-explorer.html">Chain & Matrix Explorer</a>
           <a class="nav-link" href="style-dedupe-governance.html">Style Dedupe Governance</a>
           <a class="nav-link" href="missing-asset-queue.html">Missing Asset Queue</a>
-          <a class="nav-link" href="repair-workbench.html">Repair Workbench</a>
           <a class="nav-link" href="backend-chain-explorer.html">Backend Chain Explorer</a>
-          <a class="nav-link" href="current-runtime-compare.html">Current Runtime Compare</a>
-          <a class="nav-link" href="deploy-console.html">Deploy Console</a>
           <a class="nav-link" href="security-governance.html">Security Governance</a>
         </div>
         <div class="nav-note">
@@ -61,6 +73,52 @@
         <section class="hero">
           <h2>Build-first Control Plane Preview</h2>
           <p>프로젝트 선선택, 시나리오 선등록, 컴포넌트 카탈로그, 공통 모듈 버전 선택, Jenkins/Nomad 배포, 보안/감사/도움말 게이트를 한 화면군으로 묶는 방향을 시각화했습니다.</p>
+        </section>
+
+        <section class="card soft" style="margin-top:18px">
+          <div class="card-header">
+            <div><h2>Governed Identity</h2><p>shared keys across proposal, design, compare, repair, package, deploy</p></div>
+          </div>
+          <div class="card-body">
+            <div class="two-col">
+              <div class="meta-row"><span class="label">Guided State</span><div class="value">currentGuidedStep / nextRecommendedAiAction</div></div>
+              <div class="meta-row"><span class="label">Template Line</span><div class="value">PUBLIC_* / ADMIN_*</div></div>
+              <div class="meta-row"><span class="label">Screen Family Rule</span><div class="value">JOIN_* / ADMIN_* / BOARD_*</div></div>
+              <div class="meta-row"><span class="label">Owner Lane</span><div class="value">res-builder / res-backend / res-verify</div></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card soft" style="margin-top:18px">
+          <div class="card-header">
+            <div><h2>Context-Key Strip</h2><p>every governed screen should expose the same identity strip before the first work area</p></div>
+          </div>
+          <div class="card-body">
+            <ul class="check-list">
+              <li>`guidedStateId` is always visible</li>
+              <li>`templateLineId` or template-line set is always visible</li>
+              <li>`screenFamilyRuleId` or rule set is always visible</li>
+              <li>`ownerLane` is visible when repair, deploy, or handoff ownership matters</li>
+              <li>compare and repair screens show current vs target when they differ</li>
+            </ul>
+          </div>
+        </section>
+
+        <section class="card" style="margin-top:18px">
+          <div class="card-header">
+            <div>
+              <h2>Primary Guided Flow</h2>
+              <p>운영자가 AI 버튼을 따라가며 최종 빌드와 배포 산출물까지 도달하는 기본 순서입니다.</p>
+            </div>
+            <span class="chip ok">Operator Path</span>
+          </div>
+          <div class="card-body">
+            <div class="grid cols-3">
+              <div class="card soft"><div class="card-header"><h3>01-05 Plan</h3></div><div class="card-body"><p class="muted">Project → Design Workspace → Proposal Mapping → Inventory → Matrix</p></div></div>
+              <div class="card soft"><div class="card-header"><h3>06-11 Generate</h3></div><div class="card-body"><p class="muted">Scenario Output → Design Output → Theme Set → Asset Studio → Screen Builder</p></div></div>
+              <div class="card soft"><div class="card-header"><h3>12-15 Deliver</h3></div><div class="card-body"><p class="muted">Runtime Package → Deploy → Compare → Repair</p></div></div>
+            </div>
+          </div>
         </section>
 
         <div class="grid cols-4" style="margin-top:18px">
@@ -99,6 +157,36 @@
             <div class="card-header"><h2>Incremental Asset Studio</h2><span class="chip">One-by-one</span></div>
             <div class="card-body">
               <p class="muted">page design, element design, component catalog item을 하나씩 생성하고 비교·승인하는 점진적 생성 화면입니다.</p>
+            </div>
+          </a>
+          <a class="card" href="project-proposal-inventory.html">
+            <div class="card-header"><h2>Project Proposal Inventory</h2><span class="chip warn">Onboarding</span></div>
+            <div class="card-body">
+              <p class="muted">신규 프로젝트 + 제안서 업로드 후 메뉴, 시나리오, 화면, 바인딩, 백엔드, DB 자산 수량을 점검합니다.</p>
+            </div>
+          </a>
+          <a class="card" href="project-proposal-matrix.html">
+            <div class="card-header"><h2>Project Proposal Matrix</h2><span class="chip">Matrix</span></div>
+            <div class="card-body">
+              <p class="muted">제안서 원본, 생성 결과, 현재 런타임, 패치 타깃을 프로젝트 단위 매트릭스로 비교합니다.</p>
+            </div>
+          </a>
+          <a class="card" href="proposal-mapping-draft.html">
+            <div class="card-header"><h2>Proposal Mapping Draft</h2><span class="chip warn">AI Draft</span></div>
+            <div class="card-body">
+              <p class="muted">제안요청서 업로드 후 AI가 한 번에 뽑은 요구사항 매핑 초안을 검토하고 canonical mapping으로 승인합니다.</p>
+            </div>
+          </a>
+          <a class="card" href="project-scenario-output.html">
+            <div class="card-header"><h2>Project Scenario Output</h2><span class="chip ok">Scenario</span></div>
+            <div class="card-body">
+              <p class="muted">프로젝트별 시나리오 패밀리, 자식 시나리오, 스텝, 바인딩 상태를 확인합니다.</p>
+            </div>
+          </a>
+          <a class="card" href="project-design-output.html">
+            <div class="card-header"><h2>Project Design Output</h2><span class="chip warn">Design</span></div>
+            <div class="card-body">
+              <p class="muted">프로젝트별 mature design-output package와 시나리오 연결 상태를 확인합니다.</p>
             </div>
           </a>
           <a class="card" href="deploy-console.html">
@@ -159,6 +247,24 @@
             <div class="card-header"><h2>Module Selection Checklist</h2><span class="chip ok">Check</span></div>
             <div class="card-body">
               <p class="muted">선택한 모듈들이 dependency, CSS, DB, rollback 조건을 모두 만족하는지 확인합니다.</p>
+            </div>
+          </a>
+          <a class="card" href="module-selection-result.html">
+            <div class="card-header"><h2>Module Selection Result</h2><span class="chip ok">Applied</span></div>
+            <div class="card-body">
+              <p class="muted">선택한 모듈이 실제로 어떤 페이지, 백엔드, DB, 패키지 자산에 반영됐는지 한 번에 확인합니다.</p>
+            </div>
+          </a>
+          <a class="card" href="module-selection-trace.html">
+            <div class="card-header"><h2>Module Selection Trace</h2><span class="chip">Trace</span></div>
+            <div class="card-body">
+              <p class="muted">모듈 선택 결과가 generation run, release unit, repair 세션과 어떻게 연결되는지 확인합니다.</p>
+            </div>
+          </a>
+          <a class="card" href="chain-matrix-explorer.html">
+            <div class="card-header"><h2>Chain & Matrix Explorer</h2><span class="chip ok">Trace</span></div>
+            <div class="card-body">
+              <p class="muted">메뉴, 시나리오, 페이지, 컴포넌트, API, 백엔드, DB, release unit, runtime target을 한 화면에서 추적합니다.</p>
             </div>
           </a>
           <a class="card" href="module-binding-preview.html">
