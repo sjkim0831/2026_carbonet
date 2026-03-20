@@ -36,7 +36,7 @@ This document defines the current Carbonet skill taxonomy, overlap rules, and th
 
 - `carbonet-audit-trace-architecture`
   - Role: define audit, trace, UI manifest, registry, and rollout governance across backend and frontend.
-  - Use when the request is about tracking, metadata design, queryability, or system-wide governance.
+  - Use when the request is about tracking, metadata design, queryability, system-wide governance, or repository-level algorithm/data-structure upgrades tied to observability and governance paths.
   - If the task later becomes page implementation, hand off execution details to `carbonet-feature-builder`.
 
 ### Delivery consistency
@@ -45,6 +45,13 @@ This document defines the current Carbonet skill taxonomy, overlap rules, and th
   - Role: preserve correct refresh behavior for React assets, shell HTML, manifest resolution, and deployment packaging.
   - Use only when the problem is static-asset delivery, refresh visibility, or cache boundaries.
   - Do not use as the primary skill for page behavior or business workflows.
+
+### Infrastructure operations
+
+- `carbonet-runtime-topology-ops`
+  - Role: define runtime topology, server-role splits, idle-node pooling, Jenkins plus Nomad coordination, central operations-system build ownership, tmux rollout layout, DB/file placement rules, main-server runtime-truth rules, and installable module attachment or detachment boundaries for runtime nodes.
+  - Use when the request is about how Carbonet services should be deployed, shared, scaled, centrally built, version-bound, separated across small-memory nodes, or attached as plug-in style operational capabilities.
+  - Do not use as the primary guide for application feature code, screen behavior, or Codex execution-console internals.
 
 ## Common Overlaps
 
@@ -90,6 +97,7 @@ This document defines the current Carbonet skill taxonomy, overlap rules, and th
 - Keep Codex runner lifecycle rules in `carbonet-codex-execution-console`.
 - Keep refresh/cache rules in `carbonet-react-refresh-consistency`.
 - Keep design-source selection rules in `carbonet-screen-design-workspace`.
+- Keep installable module, server-role, and topology plug-in rules in `carbonet-runtime-topology-ops`.
 
 ## Current Practical Mapping
 
@@ -101,3 +109,5 @@ This document defines the current Carbonet skill taxonomy, overlap rules, and th
   - `carbonet-ai-session-orchestrator` -> `carbonet-audit-trace-architecture`
 - React page works in source but stays stale after deploy:
   - `carbonet-ai-session-orchestrator` -> `carbonet-react-refresh-consistency`
+- Infrastructure topology or runtime resource planning:
+  - `carbonet-ai-session-orchestrator` -> `carbonet-runtime-topology-ops`

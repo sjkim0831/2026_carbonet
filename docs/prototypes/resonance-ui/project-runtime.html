@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resonance Project & Runtime</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand"><small>Resonance Ops</small><h1>Project & Runtime</h1><p>프로젝트, 버전, 서버 토폴로지, 유휴 노드 관리</p></div>
+        <div class="nav-group">
+          <h2>Pages</h2>
+          <a class="nav-link" href="index.html">Overview</a>
+          <a class="nav-link active" href="project-runtime.html">Project & Runtime</a>
+          <a class="nav-link" href="screen-builder.html">Screen Builder</a>
+          <a class="nav-link" href="design-workspace.html">Design Workspace</a>
+          <a class="nav-link" href="deploy-console.html">Deploy Console</a>
+          <a class="nav-link" href="security-governance.html">Security Governance</a>
+        </div>
+      </aside>
+      <main class="content">
+        <div class="topbar">
+          <div class="page-title">
+            <div class="breadcrumbs">Resonance / Project Registry / Runtime</div>
+            <h1>프로젝트 및 런타임 관리</h1>
+            <p>시스템별 메인/서브/DB, 유휴 웹 노드, AI 러너, 공통 모듈 버전 선택, release unit 상태를 한 화면에서 관리합니다.</p>
+          </div>
+          <div class="header-actions">
+            <div class="btn secondary">Copy Project</div>
+            <div class="btn secondary">Idle Pool Audit</div>
+            <div class="btn primary">Add Project</div>
+          </div>
+        </div>
+
+        <div class="grid cols-4">
+          <div class="kpi"><span>Selected Project</span><strong>Carbonet</strong><span>projectId: carbonet-main</span></div>
+          <div class="kpi"><span>Main / Sub</span><strong>2 / 1</strong><span>main fixed, sub rolling</span></div>
+          <div class="kpi"><span>Idle Nodes</span><strong>4</strong><span>Nomad eligible</span></div>
+          <div class="kpi"><span>DB Target</span><strong>temp-project-db</strong><span>switch-ready to dedicated-db-01</span></div>
+        </div>
+
+        <div class="grid main" style="margin-top:18px">
+          <section class="section-stack">
+            <div class="card">
+              <div class="card-header">
+                <div><h2>Project Binding</h2><p>Framework line, common modules, runtime targets</p></div>
+                <div class="button-row"><div class="btn secondary">Compatibility</div><div class="btn secondary">Version Diff</div></div>
+              </div>
+              <div class="card-body">
+                <div class="two-col">
+                  <div><span class="label">Framework Line</span><div class="value">egov-4.x-admin-react</div></div>
+                  <div><span class="label">Release Unit</span><div class="value">ru-2026.03.21-03</div></div>
+                  <div><span class="label">Common Facade</span><div class="value">auth-2.2.1 / file-1.6.0 / pdf-1.4.3</div></div>
+                  <div><span class="label">Import-sensitive Line</span><div class="value">ops-common-bridge-0.9.4</div></div>
+                  <div><span class="label">Current DB Attachment</span><div class="value">temp-project-db</div></div>
+                  <div><span class="label">Target DB Attachment</span><div class="value">dedicated-db-01</div></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div><h2>Runtime Node Matrix</h2><p>Main, sub, DB, idle, AI runner topology</p></div>
+                <div class="button-row"><div class="btn secondary">Add Server</div><div class="btn secondary">Health Check</div></div>
+              </div>
+              <div class="card-body">
+                <table>
+                  <thead>
+                    <tr><th>Role</th><th>Server</th><th>IP</th><th>Status</th><th>Policy</th><th>Actions</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>Main</td><td>ops-main-221</td><td>136.117.100.221</td><td><span class="chip ok">Active</span></td><td>Nginx + latest files</td><td><div class="table-actions"><span class="tiny-btn">View</span><span class="tiny-btn">Drain</span></div></td></tr>
+                    <tr><td>Control</td><td>ops-control-193</td><td>34.82.141.193</td><td><span class="chip ok">Active</span></td><td>Jenkins + Nomad</td><td><div class="table-actions"><span class="tiny-btn">Pipelines</span><span class="tiny-btn">Macros</span></div></td></tr>
+                    <tr><td>DB</td><td>temp-project-db</td><td>34.82.141.111</td><td><span class="chip warn">Temporary</span></td><td>current runtime target</td><td><div class="table-actions"><span class="tiny-btn">Backup</span><span class="tiny-btn">Switch</span></div></td></tr>
+                    <tr><td>DB</td><td>dedicated-db-01</td><td>10.0.8.21</td><td><span class="chip">Candidate</span></td><td>next governed DB target</td><td><div class="table-actions"><span class="tiny-btn">Migrate</span><span class="tiny-btn">Promote</span></div></td></tr>
+                    <tr><td>Idle</td><td>idle-web-03</td><td>10.0.3.12</td><td><span class="chip warn">Standby</span></td><td>Nomad client</td><td><div class="table-actions"><span class="tiny-btn">Attach</span><span class="tiny-btn">Reserve</span></div></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <aside class="section-stack">
+            <div class="card soft">
+              <div class="card-header"><div><h3>Context</h3><p>현재 변경 범위</p></div></div>
+              <div class="card-body">
+                <div class="meta-list">
+                  <div class="meta-row"><span class="label">Project</span><div class="value">carbonet-main</div></div>
+                  <div class="meta-row"><span class="label">Selected Runtime</span><div class="value">Main + Idle Pool</div></div>
+                  <div class="meta-row"><span class="label">Authority Scope</span><div class="value">ROLE_SYSTEM_MASTER / GLOBAL</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div><h3>Diagnostics</h3><p>Idle node attach before deploy</p></div></div>
+              <div class="card-body">
+                <ul class="check-list">
+                  <li>Nomad client heartbeat OK</li>
+                  <li>App port range `18080-18099` reachable from main Nginx</li>
+                  <li>DB pool budget after scale-out: 16 / 20</li>
+                  <li>Security checklist attached to target release unit</li>
+                </ul>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <div class="footer-bar">
+          <div class="muted">Draft state. Server role changes require comparison preview and rollback checkpoint.</div>
+          <div class="button-row">
+            <div class="btn secondary">Cancel</div>
+            <div class="btn secondary">Save Draft</div>
+            <div class="btn primary">Publish Topology</div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

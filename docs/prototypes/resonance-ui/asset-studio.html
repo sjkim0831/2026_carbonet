@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resonance Incremental Asset Studio</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand"><small>Resonance Builder</small><h1>Incremental Asset Studio</h1><p>한 페이지, 한 요소, 한 컴포넌트 단위 생성</p></div>
+        <div class="nav-group">
+          <h2>Pages</h2>
+          <a class="nav-link" href="index.html">Overview</a>
+          <a class="nav-link" href="project-runtime.html">Project & Runtime</a>
+          <a class="nav-link active" href="asset-studio.html">Incremental Asset Studio</a>
+          <a class="nav-link" href="theme-set-studio.html">Theme Set Studio</a>
+          <a class="nav-link" href="runtime-package-matrix.html">Runtime Package Matrix</a>
+          <a class="nav-link" href="missing-asset-queue.html">Missing Asset Queue</a>
+          <a class="nav-link" href="deploy-console.html">Deploy Console</a>
+        </div>
+      </aside>
+      <main class="content">
+        <div class="topbar">
+          <div class="page-title">
+            <div class="breadcrumbs">Resonance / Builder / Incremental Asset Studio</div>
+            <h1>단일 자산 생성 스튜디오</h1>
+            <p>이미 승인된 theme set을 기준으로 page design 하나, element design 하나, component catalog item 하나를 점진적으로 생성하고 승인합니다.</p>
+          </div>
+          <div class="header-actions">
+            <div class="btn secondary">Load Theme Set</div>
+            <div class="btn secondary">Reuse Existing</div>
+            <div class="btn primary">Generate One Unit</div>
+          </div>
+        </div>
+
+        <div class="grid cols-3">
+          <section class="card">
+            <div class="card-header"><div><h2>Page Design</h2><p>시나리오와 메뉴 기준</p></div><span class="chip">PAGE_DESIGN</span></div>
+            <div class="card-body">
+              <ul class="spec-list">
+                <li><span class="label">Scenario</span><div class="value">join-member-info</div></li>
+                <li><span class="label">Frame</span><div class="value">wizard-join-frame</div></li>
+                <li><span class="label">Expected Elements</span><div class="value">search form, detail card, action bar</div></li>
+              </ul>
+              <div class="button-row" style="margin-top:14px">
+                <div class="tiny-btn">Create Draft</div>
+                <div class="tiny-btn">Compare Versions</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-header"><div><h2>Element Design</h2><p>재사용 요소</p></div><span class="chip ok">ELEMENT_DESIGN</span></div>
+            <div class="card-body">
+              <ul class="spec-list">
+                <li><span class="label">Element Family</span><div class="value">result-grid</div></li>
+                <li><span class="label">Component Kind</span><div class="value">data-grid</div></li>
+                <li><span class="label">Binding Capabilities</span><div class="value">row action, paging, export</div></li>
+              </ul>
+              <div class="button-row" style="margin-top:14px">
+                <div class="tiny-btn">Promote Reusable</div>
+                <div class="tiny-btn">Open Binding</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card soft">
+            <div class="card-header"><div><h2>Component Catalog Item</h2><p>공통 컴포넌트 생성</p></div><span class="chip warn">Catalog</span></div>
+            <div class="card-body">
+              <ul class="spec-list">
+                <li><span class="label">Semantic Alias</span><div class="value">member-search-reset-button</div></li>
+                <li><span class="label">Physical ID</span><div class="value">cmp_8d3a81b2</div></li>
+                <li><span class="label">Trace</span><div class="value">pointer / keyboard / blocked</div></li>
+              </ul>
+              <div class="button-row" style="margin-top:14px">
+                <div class="tiny-btn">Preview</div>
+                <div class="tiny-btn">Approve</div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="footer-bar">
+          <div class="muted">단일 자산도 프로젝트, 시나리오, 패러티, 롤백 체인을 그대로 따릅니다.</div>
+          <div class="button-row">
+            <div class="btn secondary">Open Chain</div>
+            <div class="btn secondary">Open Compare</div>
+            <div class="btn primary">Publish Selected Unit</div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

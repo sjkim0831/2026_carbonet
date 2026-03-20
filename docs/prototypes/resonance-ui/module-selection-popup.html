@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resonance Module Selection Popup</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <small>Resonance Builder</small>
+          <h1>모듈 선택</h1>
+          <p>화면 생성 중 필요한 설치형 모듈을 체크하거나 팝업에서 검토 후 선택합니다.</p>
+        </div>
+        <div class="nav-group">
+          <h2>Pages</h2>
+          <a class="nav-link" href="index.html">Overview</a>
+          <a class="nav-link active" href="module-selection-popup.html">Module Selection Popup</a>
+          <a class="nav-link" href="module-intake-queue.html">Module Intake Queue</a>
+          <a class="nav-link" href="runtime-package-matrix.html">Runtime Package Matrix</a>
+        </div>
+      </aside>
+      <main class="content">
+        <div class="topbar">
+          <div class="page-title">
+            <div class="breadcrumbs">Resonance / Builder / Module Selection</div>
+            <h1>Module Selection And Install Popup</h1>
+            <p>시나리오와 화면에 필요한 설치형 모듈을 선택하고 영향도를 확인합니다.</p>
+          </div>
+          <div class="header-actions">
+            <div class="btn secondary">Select Recommended</div>
+            <div class="btn secondary">Open Attach Preview</div>
+            <div class="btn primary">Apply Selection</div>
+          </div>
+        </div>
+
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <h2>Candidate Modules</h2>
+              <p>필수/권장/선택 항목과 영향도를 함께 보여줍니다.</p>
+            </div>
+            <span class="chip ok">Scenario-Aware</span>
+          </div>
+          <div class="card-body">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Select</th>
+                  <th>Module</th>
+                  <th>Class</th>
+                  <th>Impact</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><input type="checkbox" checked /></td>
+                  <td>popup-member-selector</td>
+                  <td><span class="chip">REQUIRED</span></td>
+                  <td>popup/grid/search</td>
+                  <td><span class="chip ok">Ready</span></td>
+                  <td>Details</td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" checked /></td>
+                  <td>board-faq</td>
+                  <td><span class="chip warn">RECOMMENDED</span></td>
+                  <td>backend/DB/CSS</td>
+                  <td><span class="chip warn">Popup Review</span></td>
+                  <td>Open Popup</td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" /></td>
+                  <td>excel-export-extended</td>
+                  <td><span class="chip">OPTIONAL</span></td>
+                  <td>export helper</td>
+                  <td><span class="chip ok">Ready</span></td>
+                  <td>Details</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <div class="card soft" style="margin-top:18px">
+          <div class="card-header">
+            <div>
+              <h2>Install Popup Preview</h2>
+              <p>고영향 모듈은 체크만으로 끝나지 않고 attach plan을 검토합니다.</p>
+            </div>
+            <span class="chip warn">Impact Review</span>
+          </div>
+          <div class="card-body">
+            <ul class="list">
+              <li>Module family: BOARD_STANDARD</li>
+              <li>Depth profile: BOARD_DEPTH_V1</li>
+              <li>Dependencies: popup selector, board toolbar, FAQ DB object family</li>
+              <li>CSS dedupe: 1 collision detected</li>
+              <li>Rollback: SQL rollback required before apply</li>
+            </ul>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

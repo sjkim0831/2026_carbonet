@@ -2,6 +2,8 @@
 
 Suggested routing:
 
+- Before broad Resonance architecture/doc updates, read [resonance-skill-and-doc-update-pattern.md](/opt/projects/carbonet/docs/ai/80-skills/resonance-skill-and-doc-update-pattern.md) and [resonance-design-patterns.md](/opt/projects/carbonet/docs/architecture/resonance-design-patterns.md) so repeated changes land in the right canonical layers instead of spawning duplicate docs.
+
 - Use `carbonet-ai-session-orchestrator` first on any implementation request to decide whether the work stays in one session or should split across multiple sessions with conflict-free path ownership.
 - Use `carbonet-audit-trace-architecture` when the task is about audit logging, trace correlation, page or component registry, or system-wide governance across frontend and backend.
 - Use `carbonet-react-refresh-consistency` when changing React build output, shell templates, Spring static resource delivery, or any cache behavior that affects whether frontend changes appear immediately after a hard refresh.

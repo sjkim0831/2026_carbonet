@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resonance Style Dedupe Governance</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <small>Resonance Design</small>
+          <h1>스타일 중복</h1>
+          <p>모듈 CSS가 중복되거나 누락되지 않도록 테마/토큰 기준으로 검토합니다.</p>
+        </div>
+        <div class="nav-group">
+          <h2>Pages</h2>
+          <a class="nav-link" href="index.html">Overview</a>
+          <a class="nav-link active" href="style-dedupe-governance.html">Style Dedupe Governance</a>
+          <a class="nav-link" href="theme-set-studio.html">Theme Set Studio</a>
+          <a class="nav-link" href="runtime-package-matrix.html">Runtime Package Matrix</a>
+        </div>
+      </aside>
+      <main class="content">
+        <div class="topbar">
+          <div class="page-title">
+            <div class="breadcrumbs">Resonance / Design / Style Dedupe Governance</div>
+            <h1>CSS Pattern And Dedupe Governance</h1>
+            <p>승인된 테마/토큰/컴포넌트 계층을 벗어난 스타일을 감지하고, 중복 CSS와 누락 CSS를 배포 전에 차단합니다.</p>
+          </div>
+          <div class="header-actions">
+            <div class="btn secondary">Dedupe Hash Scan</div>
+            <div class="btn secondary">Missing Style Queue</div>
+            <div class="btn primary">Approve Bundle</div>
+          </div>
+        </div>
+
+        <div class="grid cols-4">
+          <div class="kpi"><span>CSS Bundles</span><strong>18</strong><span>theme 6 / module 12</span></div>
+          <div class="kpi"><span>Dedupe Collisions</span><strong>2</strong><span>repair required</span></div>
+          <div class="kpi"><span>Missing Style</span><strong>1</strong><span>runtime blocked</span></div>
+          <div class="kpi"><span>Coverage Ready</span><strong>89%</strong><span>component family mapped</span></div>
+        </div>
+
+        <section class="card" style="margin-top:18px">
+          <div class="card-header">
+            <div>
+              <h2>Bundle Review</h2>
+              <p>모듈 CSS는 기존 테마/토큰을 덮어쓰지 않고 component family 계층 안에서만 확장되어야 합니다.</p>
+            </div>
+            <span class="chip warn">Review</span>
+          </div>
+          <div class="card-body">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Bundle</th>
+                  <th>Pattern Family</th>
+                  <th>Coverage</th>
+                  <th>Dedupe</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>theme-public-join-v3</td>
+                  <td>THEME_PUBLIC_TRUST</td>
+                  <td>shell + frame + component families</td>
+                  <td><span class="chip ok">Clean</span></td>
+                  <td><span class="chip ok">Ready</span></td>
+                </tr>
+                <tr>
+                  <td>module-board-notice-v1</td>
+                  <td>MODULE_EXTENSION_BOARD</td>
+                  <td>board card + board toolbar</td>
+                  <td><span class="chip warn">1 collision</span></td>
+                  <td><span class="chip warn">Repair</span></td>
+                </tr>
+                <tr>
+                  <td>module-popup-selector-v2</td>
+                  <td>MODULE_EXTENSION_POPUP</td>
+                  <td>popup search + result grid</td>
+                  <td><span class="chip ok">Clean</span></td>
+                  <td><span class="chip ok">Ready</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

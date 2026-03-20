@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resonance Module Intake Analysis</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <small>Resonance Ops</small>
+          <h1>인테이크 분석</h1>
+          <p>AI가 정규화한 모듈 후보의 경계, 패턴, DB, CSS, 롤백 상태를 검토합니다.</p>
+        </div>
+        <div class="nav-group">
+          <h2>Pages</h2>
+          <a class="nav-link" href="index.html">Overview</a>
+          <a class="nav-link" href="module-intake-queue.html">Module Intake Queue</a>
+          <a class="nav-link active" href="module-intake-analysis.html">Module Intake Analysis</a>
+          <a class="nav-link" href="module-pattern-governance.html">Module Pattern Governance</a>
+          <a class="nav-link" href="style-dedupe-governance.html">Style Dedupe Governance</a>
+        </div>
+      </aside>
+      <main class="content">
+        <div class="topbar">
+          <div class="page-title">
+            <div class="breadcrumbs">Resonance / Module Intake / Analysis</div>
+            <h1>Module Intake Analysis</h1>
+            <p>원본 폴더를 곧바로 빌드하지 않고, 공통/프로젝트 경계와 full-stack 영향도를 먼저 판단합니다.</p>
+          </div>
+          <div class="header-actions">
+            <div class="btn secondary">Open Source Diff</div>
+            <div class="btn secondary">Compare Pattern</div>
+            <div class="btn primary">Approve Attach Plan</div>
+          </div>
+        </div>
+
+        <div class="grid cols-4">
+          <div class="kpi"><span>Candidate</span><strong>board-faq</strong><span>project scope requested</span></div>
+          <div class="kpi"><span>Ownership</span><strong>PROJECT</strong><span>thin runtime allowed</span></div>
+          <div class="kpi"><span>Pattern</span><strong>BOARD_STANDARD</strong><span>depth v1</span></div>
+          <div class="kpi"><span>Blockers</span><strong>2</strong><span>SQL rollback, CSS collision</span></div>
+        </div>
+
+        <div class="grid main" style="margin-top:18px">
+          <section class="section-stack">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h2>Ownership And Boundary Verdict</h2>
+                  <p>어떤 자산이 공통으로 가고 어떤 자산이 일반 시스템 thin runtime으로 남는지 판정합니다.</p>
+                </div>
+                <span class="chip warn">Review</span>
+              </div>
+              <div class="card-body">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Area</th>
+                      <th>Verdict</th>
+                      <th>Reason</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Board shell components</td>
+                      <td>COMMON</td>
+                      <td>Existing board card and toolbar families should be reused.</td>
+                    </tr>
+                    <tr>
+                      <td>FAQ page manifests</td>
+                      <td>PROJECT</td>
+                      <td>Project-specific menu tree and route ownership.</td>
+                    </tr>
+                    <tr>
+                      <td>Search/grid popup block</td>
+                      <td>COMMON</td>
+                      <td>Already matches popup selector family.</td>
+                    </tr>
+                    <tr>
+                      <td>FAQ backend chain</td>
+                      <td>PROJECT</td>
+                      <td>Project-owned service and mapper family with common facade usage.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h2>DB And Rollback Review</h2>
+                  <p>DB 영향과 롤백 SQL 초안이 준비됐는지 확인합니다.</p>
+                </div>
+                <span class="chip danger">Blocker</span>
+              </div>
+              <div class="card-body">
+                <ul class="timeline">
+                  <li>DB object family: FAQ_BOARD_CORE</li>
+                  <li>Migration draft: ready</li>
+                  <li>Rollback SQL: missing</li>
+                  <li>Data patch impact: none</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <aside class="section-stack">
+            <div class="card soft">
+              <div class="card-header"><div><h3>Style Impact</h3><p>CSS dedupe</p></div></div>
+              <div class="card-body">
+                <ul class="list">
+                  <li>1 duplicated `.board-toolbar` override detected</li>
+                  <li>theme token override not allowed</li>
+                  <li>module extension layer can be kept</li>
+                </ul>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div><h3>AI Provenance</h3><p>analysis trace</p></div></div>
+              <div class="card-body">
+                <ul class="timeline">
+                  <li>Provider: CODEX</li>
+                  <li>Model: gpt-5-codex</li>
+                  <li>Session: codex-session-board-faq-01</li>
+                  <li>Result: normalized with blockers</li>
+                </ul>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

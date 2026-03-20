@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resonance Performance Stack Governance</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <small>Resonance Prototype</small>
+          <h1>성능 스택</h1>
+          <p>마이크로 캐시, Redis, 큐, 검색, 모니터링 스택의 부착과 메모리 예산을 관리합니다.</p>
+        </div>
+        <div class="nav-group">
+          <h2>Preview Pages</h2>
+          <a class="nav-link" href="index.html">Overview</a>
+          <a class="nav-link" href="project-runtime.html">Project & Runtime</a>
+          <a class="nav-link active" href="performance-stack-governance.html">Performance Stack Governance</a>
+          <a class="nav-link" href="runtime-package-matrix.html">Runtime Package Matrix</a>
+          <a class="nav-link" href="current-runtime-compare.html">Current Runtime Compare</a>
+        </div>
+      </aside>
+      <main class="content">
+        <div class="topbar">
+          <div class="page-title">
+            <div class="breadcrumbs">Resonance / Operations / Performance Stack Governance</div>
+            <h1>Performance Stack Governance</h1>
+            <p>설치형 고급 기술 스택을 호스트 클래스, 메모리 예산, 롤백 경로까지 포함해 통제합니다.</p>
+          </div>
+          <div class="header-actions">
+            <div class="btn secondary">Host-Class Matrix</div>
+            <div class="btn secondary">1GB Safety Check</div>
+            <div class="btn primary">Attach Stack</div>
+          </div>
+        </div>
+
+        <div class="grid cols-4">
+          <div class="kpi"><span>Attached Stacks</span><strong>7</strong><span>global 3 / project 4</span></div>
+          <div class="kpi"><span>1GB Safe</span><strong>5</strong><span>2 blocked</span></div>
+          <div class="kpi"><span>Rollback Ready</span><strong>100%</strong><span>history recorded</span></div>
+          <div class="kpi"><span>Cache Hit</span><strong>84%</strong><span>micro-cache + Redis</span></div>
+        </div>
+
+        <div class="grid main" style="margin-top:18px">
+          <section class="card">
+            <div class="card-header">
+              <div>
+                <h2>Stack Attachment Registry</h2>
+                <p>속도 향상 스택은 설치형으로 붙이되, 얇은 런타임 원칙을 유지합니다.</p>
+              </div>
+              <span class="chip ok">Installable</span>
+            </div>
+            <div class="card-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Stack</th>
+                    <th>Scope</th>
+                    <th>Host Class</th>
+                    <th>Memory Budget</th>
+                    <th>Status</th>
+                    <th>Rollback</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Nginx Micro-Cache</td>
+                    <td>Project</td>
+                    <td>RUNTIME_MAIN</td>
+                    <td>64MB</td>
+                    <td><span class="chip ok">Attached</span></td>
+                    <td>Remove cache profile</td>
+                  </tr>
+                  <tr>
+                    <td>Redis</td>
+                    <td>Global</td>
+                    <td>SUPPORT_NODE</td>
+                    <td>512MB</td>
+                    <td><span class="chip">Review</span></td>
+                    <td>Support node detach</td>
+                  </tr>
+                  <tr>
+                    <td>Worker Queue</td>
+                    <td>Project</td>
+                    <td>SUPPORT_NODE</td>
+                    <td>256MB</td>
+                    <td><span class="chip ok">Ready</span></td>
+                    <td>Queue disable + retry drain</td>
+                  </tr>
+                  <tr>
+                    <td>Loki + Grafana</td>
+                    <td>Global</td>
+                    <td>SUPPORT_NODE</td>
+                    <td>768MB</td>
+                    <td><span class="chip warn">Capacity Watch</span></td>
+                    <td>Switch to file-search fallback</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <aside class="stack">
+            <div class="stack-card">
+              <h3>Host-Class Placement</h3>
+              <ul class="list">
+                <li>RUNTIME_MAIN: micro-cache, light metrics only</li>
+                <li>RUNTIME_SUB: verification and spare cache only</li>
+                <li>RUNTIME_IDLE: burst web capacity, avoid heavy stacks</li>
+                <li>SUPPORT_NODE: Redis, queue, search, logs, AI runners</li>
+              </ul>
+            </div>
+            <div class="stack-card">
+              <h3>Blocked Attachments</h3>
+              <ul class="list">
+                <li>OpenSearch on 1GB runtime nodes</li>
+                <li>Redis colocated with DB target</li>
+                <li>Worker queue on main node without drain plan</li>
+              </ul>
+            </div>
+          </aside>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

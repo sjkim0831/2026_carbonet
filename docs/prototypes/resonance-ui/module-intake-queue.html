@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resonance Module Intake Queue</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <small>Resonance Ops</small>
+          <h1>모듈 인테이크</h1>
+          <p>새 모듈 폴더와 외부 모듈 후보를 AI가 분석한 뒤 승인하는 큐입니다.</p>
+        </div>
+        <div class="nav-group">
+          <h2>Pages</h2>
+          <a class="nav-link" href="index.html">Overview</a>
+          <a class="nav-link active" href="module-intake-queue.html">Module Intake Queue</a>
+          <a class="nav-link" href="module-pattern-governance.html">Module Pattern Governance</a>
+          <a class="nav-link" href="style-dedupe-governance.html">Style Dedupe Governance</a>
+          <a class="nav-link" href="runtime-package-matrix.html">Runtime Package Matrix</a>
+        </div>
+      </aside>
+      <main class="content">
+        <div class="topbar">
+          <div class="page-title">
+            <div class="breadcrumbs">Resonance / Governance / Module Intake Queue</div>
+            <h1>AI-Assisted Module Intake Queue</h1>
+            <p>새 모듈은 자동 빌드하지 않고, AI 분석 결과와 attach plan을 검토한 뒤 승인합니다.</p>
+          </div>
+          <div class="header-actions">
+            <div class="btn secondary">Analyze Folder</div>
+            <div class="btn secondary">Open Checklist</div>
+            <div class="btn primary">Approve Attach Plan</div>
+          </div>
+        </div>
+
+        <div class="grid cols-4">
+          <div class="kpi"><span>Pending Intake</span><strong>4</strong><span>AI review waiting</span></div>
+          <div class="kpi"><span>Ownership Issues</span><strong>1</strong><span>common/runtime unclear</span></div>
+          <div class="kpi"><span>CSS Dedupe Blocks</span><strong>2</strong><span>style review needed</span></div>
+          <div class="kpi"><span>Build Ready</span><strong>1</strong><span>attach plan approved</span></div>
+        </div>
+
+        <section class="card" style="margin-top:18px">
+          <div class="card-header">
+            <div>
+              <h2>Intake Review Queue</h2>
+              <p>폴더를 바로 빌드하지 않고 구조와 영향도를 먼저 검토합니다.</p>
+            </div>
+            <span class="chip warn">Review Required</span>
+          </div>
+          <div class="card-body">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Candidate</th>
+                  <th>Requested Family</th>
+                  <th>AI Verdict</th>
+                  <th>Main Blocker</th>
+                  <th>Next</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>board-faq-module</td>
+                  <td>BOARD</td>
+                  <td><span class="chip ok">Normalized</span></td>
+                  <td>SQL rollback not attached</td>
+                  <td>Open attach plan</td>
+                </tr>
+                <tr>
+                  <td>popup-member-lookup</td>
+                  <td>POPUP_SELECTOR</td>
+                  <td><span class="chip ok">Normalized</span></td>
+                  <td>None</td>
+                  <td>Approve build</td>
+                </tr>
+                <tr>
+                  <td>legacy-report-export</td>
+                  <td>REPORT</td>
+                  <td><span class="chip warn">Boundary review</span></td>
+                  <td>Common/runtime split unclear</td>
+                  <td>Open ownership diff</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

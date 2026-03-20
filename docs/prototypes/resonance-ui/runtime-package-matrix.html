@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resonance Runtime Package Matrix</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand"><small>Resonance Ops</small><h1>Runtime Package Matrix</h1><p>프로젝트 단위 패키지와 서버 배포 준비 상태</p></div>
+        <div class="nav-group">
+          <h2>Pages</h2>
+          <a class="nav-link" href="index.html">Overview</a>
+          <a class="nav-link" href="project-runtime.html">Project & Runtime</a>
+          <a class="nav-link active" href="runtime-package-matrix.html">Runtime Package Matrix</a>
+          <a class="nav-link" href="missing-asset-queue.html">Missing Asset Queue</a>
+          <a class="nav-link" href="deploy-console.html">Deploy Console</a>
+          <a class="nav-link" href="security-governance.html">Security Governance</a>
+        </div>
+      </aside>
+      <main class="content">
+        <div class="topbar">
+          <div class="page-title">
+            <div class="breadcrumbs">Resonance / Ops / Runtime Package Matrix</div>
+            <h1>프로젝트 단위 패키지 매트릭스</h1>
+            <p>release unit 안의 공통 jar, frontend bundle, theme/token/css/js, feature module, menu/page/binding/backend/DB/cron 자산이 서버 역할별로 정상 배포 가능한지 확인합니다.</p>
+          </div>
+          <div class="header-actions">
+            <div class="btn secondary">Compare Current</div>
+            <div class="btn secondary">Open Build Trace</div>
+            <div class="btn primary">Deploy Project Unit</div>
+          </div>
+        </div>
+
+        <section class="card">
+          <div class="card-header"><div><h2>Release Unit Matrix</h2><p>project-unit ready state</p></div><span class="chip ok">deployReady</span></div>
+          <div class="card-body">
+            <table>
+              <thead><tr><th>Asset Family</th><th>Version</th><th>Common/Project</th><th>Targets</th><th>Pattern/Style</th><th>State</th><th>Action</th></tr></thead>
+              <tbody>
+                <tr><td>COMMON_JAR</td><td>resonance-common-backend 1.8.2</td><td>COMMON</td><td>MAIN / SUB</td><td>BACKEND_CORE / green</td><td><span class="chip ok">Ready</span></td><td><span class="tiny-btn">Trace</span></td></tr>
+                <tr><td>FRONTEND_BUNDLE</td><td>resonance-common-frontend 1.6.4</td><td>COMMON</td><td>MAIN / SUB</td><td>PUBLIC_ADMIN_SHELL / green</td><td><span class="chip ok">Ready</span></td><td><span class="tiny-btn">Inspect</span></td></tr>
+                <tr><td>PAGE_MANIFEST</td><td>join-member-info v4</td><td>PROJECT</td><td>MAIN / SUB</td><td>JOIN_WIZARD / green</td><td><span class="chip ok">Ready</span></td><td><span class="tiny-btn">Compare</span></td></tr>
+                <tr><td>MODULE_PATTERN</td><td>BOARD_STANDARD / BOARD_DEPTH_V1</td><td>PROJECT</td><td>MAIN / SUB</td><td>style: warn / dedupe</td><td><span class="chip warn">Repair</span></td><td><span class="tiny-btn">Intake</span></td></tr>
+                <tr><td>DB_SQL_DRAFT</td><td>join_member_patch_03.sql</td><td>PROJECT</td><td>DB</td><td>DB_MEMBER_CORE / review</td><td><span class="chip warn">Review</span></td><td><span class="tiny-btn">SQL Review</span></td></tr>
+                <tr><td>DB_ATTACHMENT_TARGET</td><td>temp-project-db -> dedicated-db-01</td><td>PROJECT</td><td>DB / MAIN</td><td>PROJECT_DB_SWITCH / green</td><td><span class="chip warn">Switch Ready</span></td><td><span class="tiny-btn">Review</span></td></tr>
+                <tr><td>CRON_BINDING</td><td>member_cleanup_main_v2</td><td>PROJECT</td><td>SCHEDULER</td><td>MAIN_SERVER_CRON / green</td><td><span class="chip ok">Bound</span></td><td><span class="tiny-btn">Verify</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <div class="grid cols-3" style="margin-top:18px">
+          <div class="card soft">
+            <div class="card-header"><div><h3>Main</h3><p>truth source</p></div></div>
+            <div class="card-body"><ul class="timeline"><li>34.82.141.193 build authority</li><li>136.117.100.221 current runtime</li><li>smoke: pending</li></ul></div>
+          </div>
+          <div class="card soft">
+            <div class="card-header"><div><h3>Sub</h3><p>rollout target</p></div></div>
+            <div class="card-body"><ul class="timeline"><li>package transferred</li><li>health check ready</li><li>rollback handoff ready</li></ul></div>
+          </div>
+          <div class="card soft">
+            <div class="card-header"><div><h3>DB / Scheduler</h3><p>project bound</p></div></div>
+            <div class="card-body"><ul class="timeline"><li>DDL draft available</li><li>backup checkpoint exists</li><li>main-server cron binding verified</li></ul></div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resonance Backend Chain Explorer</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand"><small>Resonance Trace</small><h1>Backend Chain Explorer</h1><p>route부터 DB object까지 체인 추적</p></div>
+        <div class="nav-group">
+          <h2>Pages</h2>
+          <a class="nav-link" href="index.html">Overview</a>
+          <a class="nav-link" href="screen-builder.html">Screen Builder</a>
+          <a class="nav-link active" href="backend-chain-explorer.html">Backend Chain Explorer</a>
+          <a class="nav-link" href="repair-workbench.html">Repair Workbench</a>
+          <a class="nav-link" href="current-runtime-compare.html">Current Runtime Compare</a>
+          <a class="nav-link" href="runtime-package-matrix.html">Runtime Package Matrix</a>
+        </div>
+      </aside>
+      <main class="content">
+        <div class="topbar">
+          <div class="page-title">
+            <div class="breadcrumbs">Resonance / Trace / Backend Chain Explorer</div>
+            <h1>백엔드 체인 탐색기</h1>
+            <p>메뉴와 화면 기준으로 route, controller, service, mapper, SQL, table, column, index까지 한 체인으로 추적합니다.</p>
+          </div>
+          <div class="header-actions">
+            <div class="btn secondary">Open SQL Draft</div>
+            <div class="btn secondary">Show Indexes</div>
+            <div class="btn primary">Open Compare</div>
+          </div>
+        </div>
+
+        <div class="grid main">
+          <section class="card">
+            <div class="card-header"><div><h2>Execution Chain</h2><p>route to DB</p></div><span class="chip ok">PASS</span></div>
+            <div class="card-body">
+              <ul class="timeline">
+                <li><strong>Route</strong> `/member/join/info`</li>
+                <li><strong>Controller</strong> `JoinMemberController.joinMemberInfo()`</li>
+                <li><strong>Service</strong> `JoinMemberService.getJoinPageData()`</li>
+                <li><strong>Mapper</strong> `JoinMemberMapper.selectJoinGuide()`</li>
+                <li><strong>SQL</strong> `selectJoinGuide.sql`</li>
+                <li><strong>DB Objects</strong> `TB_JOIN_GUIDE`, `TB_JOIN_MEMBER`</li>
+              </ul>
+            </div>
+          </section>
+
+          <aside class="section-stack">
+            <div class="card soft">
+              <div class="card-header"><div><h3>DB Objects</h3><p>정합성 검토</p></div></div>
+              <div class="card-body">
+                <ul class="spec-list">
+                  <li><span class="label">PK</span><div class="value">JOIN_GUIDE_ID</div></li>
+                  <li><span class="label">FK</span><div class="value">MEMBER_ID -> COMTNEMPLYRINFO</div></li>
+                  <li><span class="label">Indexes</span><div class="value">IDX_JOIN_GUIDE_STATUS, IDX_JOIN_GUIDE_CRT</div></li>
+                </ul>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div><h3>Security / Authority</h3><p>backend gate</p></div></div>
+              <div class="card-body">
+                <ul class="check-list">
+                  <li>actorPolicy: public-member-join</li>
+                  <li>csrfPolicy: join-post-default</li>
+                  <li>maskingPolicy: member-basic-mask</li>
+                </ul>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

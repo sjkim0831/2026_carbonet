@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resonance Missing Asset Queue</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand"><small>Resonance Compare</small><h1>Missing Asset Queue</h1><p>빠진 페이지, 컴포넌트, 바인딩, 요구사항 갭 관리</p></div>
+        <div class="nav-group">
+          <h2>Pages</h2>
+          <a class="nav-link" href="index.html">Overview</a>
+          <a class="nav-link" href="screen-builder.html">Screen Builder</a>
+          <a class="nav-link active" href="missing-asset-queue.html">Missing Asset Queue</a>
+          <a class="nav-link" href="asset-studio.html">Incremental Asset Studio</a>
+          <a class="nav-link" href="runtime-package-matrix.html">Runtime Package Matrix</a>
+          <a class="nav-link" href="deploy-console.html">Deploy Console</a>
+        </div>
+      </aside>
+      <main class="content">
+        <div class="topbar">
+          <div class="page-title">
+            <div class="breadcrumbs">Resonance / Compare / Missing Asset Queue</div>
+            <h1>누락 자산 큐</h1>
+            <p>요구사항, 시나리오, 메뉴, 페이지, 컴포넌트, 바인딩 단위로 빠진 항목을 추적하고 repair/open으로 바로 이동합니다.</p>
+          </div>
+          <div class="header-actions">
+            <div class="btn secondary">Run Coverage Audit</div>
+            <div class="btn secondary">Compare Runtime</div>
+            <div class="btn primary">Open Repair Session</div>
+          </div>
+        </div>
+
+        <div class="grid cols-3">
+          <div class="kpi"><span>Missing Pages</span><strong>3</strong><span>join-status-guide, admin-audit-detail, board-write</span></div>
+          <div class="kpi"><span>Missing Components</span><strong>5</strong><span>chart-summary-block, file-timeline, popup-selector</span></div>
+          <div class="kpi"><span>Missing Bindings</span><strong>7</strong><span>event/function/api/help/security</span></div>
+        </div>
+
+        <section class="card" style="margin-top:18px">
+          <div class="card-header"><div><h2>Gap Queue</h2><p>release blocker only</p></div><span class="chip danger">blockers</span></div>
+          <div class="card-body">
+            <table>
+              <thead><tr><th>Gap Type</th><th>Target</th><th>Recommended Action</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody>
+                <tr><td>MISSING_PAGE_FAMILY</td><td>join-status-guide</td><td>Generate page design from join theme set</td><td><span class="chip danger">Blocked</span></td><td><span class="tiny-btn">Repair Open</span></td></tr>
+                <tr><td>MISSING_COMPONENT_FAMILY</td><td>popup-selector</td><td>Promote existing runtime popup into catalog</td><td><span class="chip warn">Review</span></td><td><span class="tiny-btn">Promote</span></td></tr>
+                <tr><td>MISSING_BINDING</td><td>join-submit-api</td><td>Create function/API binding set</td><td><span class="chip danger">Blocked</span></td><td><span class="tiny-btn">Bind</span></td></tr>
+                <tr><td>REQUIREMENT_GAP</td><td>관리자 감사 상세</td><td>Link requirement to scenario and menu</td><td><span class="chip warn">Open</span></td><td><span class="tiny-btn">Map</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <div class="footer-bar">
+          <div class="muted">blocking gap이 남아 있으면 parity-ready와 deploy-complete 상태로 바뀌지 않습니다.</div>
+          <div class="button-row">
+            <div class="btn secondary">Waive With Audit</div>
+            <div class="btn secondary">Open Current Runtime</div>
+            <div class="btn primary">Resolve Selected Gap</div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

@@ -100,6 +100,28 @@ Makes layout and component composition manageable as assets.
 
 Do not store full DOM trees or full payloads by default. Store enough metadata to reconstruct what happened.
 
+Every governed interactive component should emit enough trace metadata to reconstruct:
+
+- what component instance was used
+- what event type occurred
+- what blocked or succeeded
+- what downstream function or API was triggered
+
+The same reconstruction path should also support parity and uniformity governance.
+
+Derived statistics should be computable from governed traces and manifests without requiring ad hoc screen scraping:
+
+- page-frame family usage
+- shell-profile usage
+- component family usage
+- popup, grid, and search block usage
+- blocked-action rate by component family
+- help-anchor coverage rate
+- missing-binding rate
+- spacing and density drift count
+- parity compare result by page family
+- uniformity compare result by theme and frame family
+
 ### 3.3 Classify data before logging
 
 Every logged field must be classified:
@@ -121,6 +143,12 @@ Every page trace should carry:
 - `designTokenVersion`
 
 Otherwise historical trace records cannot be interpreted correctly after UI changes.
+
+Every component event should also carry:
+
+- `componentId`
+- `instanceKey`
+- `componentVersion` when versioned independently
 
 ## 4. Target Architecture
 
@@ -155,6 +183,22 @@ Recommended frontend event categories:
 - `api_request`
 - `api_response`
 - `ui_error`
+
+For governed component platforms such as Resonance, these component-level categories should also be standard:
+
+- `component_pointer_action`
+- `component_keyboard_action`
+- `component_focus_change`
+- `component_state_change`
+- `component_blocked_action`
+- `ui_uniformity_sample`
+- `ui_parity_compare_sample`
+
+Use this rule:
+
+- every approved interactive component must emit a standard component-level trace event family
+- component-level events should include `componentId` and `instanceKey`
+- high-volume passive rendering should use summarized render events instead of noisy per-frame logs
 
 ## 4.2 Backend
 
@@ -689,6 +733,17 @@ Each governed screen must also carry explicit `data-help-id` markers in the rend
 - tab panels
 - primary and secondary action controls
 - file upload/download zones
+
+Recommended governed help assets per page:
+
+- `help-content.json`
+- `help-anchor-map.json`
+
+Use this rule:
+
+- help anchors should be generated from the same page manifest family, not maintained as unrelated page copy
+- missing help anchor alignment is a governance defect for the page
+- help content should be queryable by page, component role, action, and language
 
 ### 8.2 Component registry
 

@@ -6,6 +6,18 @@
 
 이 문서는 현재 `frontend/src/features/*`의 React 관리자 화면을 기준으로 작성했다.
 
+같은 원칙은 공개 홈페이지와 회원가입 계열에도 적용되어야 한다.
+
+즉:
+
+- 공용 헤더
+- 공용 메뉴
+- 공용 유틸리티 영역
+- 공용 푸터
+- 공용 하단 액션바
+
+도 페이지 로컬 구현이 아니라 공통 셸 자산으로 다뤄야 한다.
+
 ## 현재 진단
 
 현재 관리자 화면은 크게 세 층으로 나뉜다.
@@ -56,7 +68,217 @@
 - 목록형, 상세형, 편집형, 승인형, 정책형이 명확한 레이아웃 템플릿 없이 개별 구현되어 있다.
 - 감사 이력, 메타데이터, 상태 요약을 어디에 붙일지 공통 규칙이 없다.
 
+### 상품화 시 어색해 보일 수 있는 위험
+
+- 페이지마다 제목, 요약, 액션바의 밀도와 간격이 다르면 저품질로 보인다.
+- 공용 셸을 쓰더라도 홈, 로그인, 회원가입, 게시판, 관리자 화면의 목적별 강조점이 없으면 템플릿 티가 난다.
+- 팝업, 그리드, 검색폼, 하단 액션바가 화면마다 미세하게 다른 위치와 간격을 쓰면 관리도 어렵고 완성도도 떨어진다.
+- 상태 화면, 빈 화면, 오류 화면, 권한 없음 화면이 설계되지 않으면 “만든 티”가 난다.
+- 운영 화면은 기능이 많기 때문에 compare, diagnostics, help rail이 레이아웃에 자연스럽게 통합되지 않으면 급조된 인상이 강해진다.
+
+## 상품화 UI 보장 규칙
+
+운영 시스템에서 만든 화면이 일반 시스템으로 배포될 때 다음은 기본적으로 맞아야 한다.
+
+- 헤더/메뉴/푸터/페이지 프레임이 승인된 셸 조합 안에서만 생성될 것
+- 같은 화면 패밀리에서는 같은 검색 밀도, 테이블 밀도, 버튼 슬롯, 섹션 간격을 유지할 것
+- 하단 주요 액션은 위치와 우선순위가 일관될 것
+- 팝업, 그리드, 검색폼, 위저드, 승인 모달은 공통 블록을 재사용할 것
+- 로그인, 회원가입, 게시판, 관리자 주요 화면은 목적별 기본 레이아웃 프로필을 가져야 할 것
+- 첫 배포된 일반 시스템에서도 현재 시스템과 비교해 낯설거나 조잡한 인상을 주지 않을 것
+- 미리 설계 등록된 디자인, 페이지 프레임, 액션 레이아웃, 컴포넌트만 출력에 사용될 것
+
+## HTML5 And Semantic Markup Rule
+
+React frontend outputs for both the operations system and deployed general systems should follow HTML5 semantic structure by default.
+
+Use this rule:
+
+- page shells should resolve to semantic landmarks such as `header`, `nav`, `main`, `section`, `article`, `aside`, and `footer`
+- interactive controls should use real `button`, `a`, `input`, `select`, `textarea`, `dialog`, `details`, `summary`, `fieldset`, and `legend` semantics where appropriate
+- layout-only `div` nesting must not replace semantics for page title, navigation, search, table controls, step navigation, or bottom action regions
+- search areas should be rendered as governed form regions with proper labels and grouping
+- popup and modal layers should preserve valid dialog semantics, focus return, and keyboard escape behavior
+- table-like UI should prefer real table semantics unless the scenario explicitly requires virtualized grid behavior
+- icon-only actions must carry accessible names and governed help anchors
+
+Release blockers:
+
+- missing `main` or equivalent primary content landmark
+- navigation rendered without a governed `nav` context
+- clickable `div` or `span` used where a `button` or link is required
+- unlabeled search, popup, upload, or step controls
+- invalid heading order or section hierarchy that breaks operator comprehension
+
+## HTML5 Verification Checklist
+
+Before a page family is marked publish-ready, confirm:
+
+1. one governed `main` landmark exists for the primary content area
+2. header and navigation areas resolve through approved shell assets
+3. search areas use real form semantics with labels and grouping
+4. popup and modal actions use dialog semantics and focus-return handling
+5. table-like outputs use real table semantics unless a governed virtual-grid exception exists
+6. action triggers use `button` or `a` instead of clickable layout nodes
+7. heading order is valid and section hierarchy is readable
+8. icon-only controls have accessible names and governed help anchors
+9. step, wizard, tab, upload, and bottom-action regions expose keyboard-safe semantics
+10. no custom page-local markup bypasses approved primitives for shell, form, grid, popup, or action zones
+
+If one item fails:
+
+- record the violation in compare or repair history
+- block parity-ready release
+- reopen selected-screen or selected-element repair
+
+출력물이 어색하다고 판단되는 대표 조건:
+
+- 제목/요약/상태 배지가 없는 화면
+- primary action이 둘 이상 충돌하는 화면
+- 검색폼과 결과 그리드 간 간격이 테마 규격에서 벗어난 화면
+- 화면별로 다른 버튼 문법을 쓰는 화면
+- 팝업 내 액션과 페이지 하단 액션이 같은 계층으로 섞인 화면
+- 홈, 회원가입, 관리자 화면이 동일 셸처럼 보여 역할 구분이 약한 화면
+- 미등록 버튼 위치 또는 미등록 섹션 레이아웃이 포함된 화면
+
+## 사전 등록 디자인 우선 규칙
+
+화면은 임의 배치가 아니라 아래 순서로만 생성되어야 한다.
+
+1. 페이지 프레임 선택
+2. 액션 레이아웃 선택
+3. 요소 패밀리 선택
+4. 승인된 컴포넌트 선택
+5. 페이지 조립
+6. 비교/검증 후 publish
+
+따라서:
+
+- 버튼 위치는 섹션마다 제각각 정하지 않는다
+- 검색폼, 그리드, 팝업, 상세카드, 하단 액션바는 공통 블록과 조립 규칙을 따른다
+- 대략 설계 단계에서 페이지와 요소를 먼저 등록하고, 실제 화면은 그 등록본으로만 출력한다
+
+## 컴포넌트 내부 슬롯 표준화 규칙
+
+같은 분류와 같은 위치의 컴포넌트는 내부 요소의 위치도 같아야 한다.
+
+예를 들면:
+
+- 같은 검색폼 패밀리는 제목, 조건영역, 보조설명, 액션버튼 순서가 동일해야 한다
+- 같은 그리드 패밀리는 총건수, 툴바, 행 액션, 페이지네이션 위치가 동일해야 한다
+- 같은 상세카드 패밀리는 상태배지, 메타정보, 본문, 로컬 액션의 위치가 동일해야 한다
+- 같은 하단 액션바 패밀리는 primary, secondary, danger 버튼 군의 위치가 동일해야 한다
+
+따라서 페이지 생성은 단순 컴포넌트 선택이 아니라 다음을 같이 고정해야 한다.
+
+- `componentFamily`
+- `slotProfileId`
+- `pageZone`
+- `spacingProfileId`
+- `densityProfileId`
+
+금지:
+
+- 같은 family인데 화면마다 다른 위치에 primary action을 두는 것
+- helper text, counter, status badge가 화면마다 다른 슬롯으로 이동하는 것
+- 페이지 로컬 CSS로 내부 슬롯 배치를 우회하는 것
+
+허용:
+
+- 새 목적이 명확하고 새 슬롯 프로필이 승인된 경우에만 내부 구조 변형
+
+## 패러티 UI 승인 기준
+
+일반 시스템으로 빌드 배포되기 전 다음 항목이 모두 확인되어야 한다.
+
+- 홈, 로그인, 회원가입, 게시판, 관리자 핵심 화면 패밀리의 셸 패리티
+- 버튼 계층, 검색/그리드 밀도, 팝업 액션 계층의 균일성
+- 상태 화면, 빈 화면, 오류 화면, 권한 없음 화면의 완성도
+- 도움말, 가이드, 진단 패널의 자연스러운 배치
+- 모바일/반응형에서의 구조 붕괴 여부
+- 현재 시스템 대비 과도하게 단순해진 화면이 없는지 여부
+
+하나라도 실패하면:
+
+- compare 결과에 기록
+- repair queue에 등록
+- patch release 전까지 parity-ready로 표시하지 않는다
+
 ## 표준 화면 타입
+
+### 0-A. DashboardPage
+
+대상:
+
+- 운영 대시보드
+- 통계/예측 대시보드
+- 모니터링/요약 대시보드
+- 가격 예측, 리스크 예측, 트렌드 분석형 화면
+
+구조:
+
+- 상단 `PageHeader`
+- 1행 `summary KPI cards`
+- 2행 `primary insight panel + trend/chart panel`
+- 3행 `explanation/driver panel + action/recommendation panel`
+- 하단 `detail grid / drill-down list / filter rail`
+
+배치 규칙:
+
+- `GWT + price-prediction` 스타일로, 상단은 빠른 KPI, 중단은 추세/예측, 하단은 설명/세부표로 고정
+- 카드, 차트, 추천 패널, 상세 그리드는 승인된 dashboard block만 사용
+- 상단 KPI는 4개 또는 6개 배수를 기본으로 하고 임의 카드 밀도를 금지
+- 주 차트는 항상 페이지의 중심 시각 요소 1개만 둔다
+- 보조 차트는 주 차트 아래나 우측 rail에 제한한다
+- 설명 패널은 모델 근거, 규칙 근거, 운영 가이드처럼 읽기 쉬운 섹션으로 분리한다
+- 필터는 상단 sticky filter bar 또는 좌측 filter rail 중 하나만 사용한다
+- 대시보드에서도 하단 액션바는 공용 action-layout profile을 따른다
+
+확장 규칙:
+
+- 대시보드 외 일반 화면도 가능하면 같은 카드 위계와 패널 밀도를 따른다
+- 상세/편집/검토 화면에서도 `summary -> primary content -> secondary evidence -> bottom action` 순서를 우선 사용한다
+- 즉 대시보드 전용 미학이 아니라, 전체 운영 화면의 시각 문법으로 재사용 가능해야 한다
+
+### 0. PublicShellPage
+
+대상:
+
+- `home`
+- `signin`
+- `join-*`
+- 공용 안내/조회/게시판 계열
+
+구조:
+
+- 상단 `PublicHeader`
+- 전역 `GlobalNavigation`
+- 본문 `PageFrame`
+- 보조 `Help/Guide rail` 또는 상태 안내
+- 하단 `PublicFooter`
+
+액션 규칙:
+
+- 헤더 유틸리티 액션은 우측 상단 고정
+- 글로벌 메뉴는 헤더 하단 또는 좌측 drawer 변형 중 하나로 통일
+- 공개 페이지 하단 CTA는 페이지별 제멋대로 두지 말고 공용 action slot을 사용
+- 회원가입/신청 wizard 계열은 `step header + content + bottom action bar` 구조를 유지
+- 푸터는 회사정보, 약관/개인정보 링크, 사이트맵/고객지원 링크, 저작권/정책 문구를 공용 슬롯으로 유지
+- 페이지마다 임의 푸터를 다시 그리지 않고 `PublicFooter` 자산을 재사용
+
+변형 규칙:
+
+- `home`은 `fullHeader + fullMenu + fullFooter`를 기본으로 사용
+- `signin`과 일부 `join-*` 화면은 `compactHeader + hiddenMenu + legalFooter` 변형을 사용할 수 있다
+- 게시판/고객지원 계열은 `publicHeader + contextualMenu + standardFooter` 변형을 사용할 수 있다
+- 같은 홈페이지 계열 안에서도 시스템별로 다른 셸 조합을 선택할 수 있지만, 반드시 승인된 shell profile만 사용한다
+
+항목 관리 규칙:
+
+- 헤더의 로고, 유틸리티 링크, 빠른 메뉴, CTA 버튼은 개별 항목으로 등록 가능해야 한다
+- 메뉴의 그룹, 1depth, 2depth, 강조 메뉴는 개별 항목으로 등록 가능해야 한다
+- 푸터의 법적 링크, 사이트맵 링크, 회사정보, 고객지원, 배지 영역은 개별 항목으로 등록 가능해야 한다
+- 항목 추가는 운영 시스템 GUI에서 처리하고, 일반 시스템은 승인된 결과만 빌드에 포함한다
 
 ### 1. ListPage
 

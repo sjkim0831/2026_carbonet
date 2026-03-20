@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resonance Repair Workbench</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand"><small>Resonance Compare</small><h1>Repair Workbench</h1><p>선택 화면/요소 수정과 패치 릴리즈 준비</p></div>
+        <div class="nav-group">
+          <h2>Pages</h2>
+          <a class="nav-link" href="index.html">Overview</a>
+          <a class="nav-link" href="screen-builder.html">Screen Builder</a>
+          <a class="nav-link" href="missing-asset-queue.html">Missing Asset Queue</a>
+          <a class="nav-link active" href="repair-workbench.html">Repair Workbench</a>
+          <a class="nav-link" href="backend-chain-explorer.html">Backend Chain Explorer</a>
+          <a class="nav-link" href="current-runtime-compare.html">Current Runtime Compare</a>
+          <a class="nav-link" href="deploy-console.html">Deploy Console</a>
+        </div>
+      </aside>
+      <main class="content">
+        <div class="topbar">
+          <div class="page-title">
+            <div class="breadcrumbs">Resonance / Compare / Repair Workbench</div>
+            <h1>선택 화면 수정 워크벤치</h1>
+            <p>현재 런타임, generated target, proposal baseline, patch target을 비교하면서 화면과 요소를 재사용 중심으로 수정하고 패치 릴리즈를 준비합니다.</p>
+          </div>
+          <div class="header-actions">
+            <div class="btn secondary">Open Compare</div>
+            <div class="btn secondary">Suggest Reuse</div>
+            <div class="btn primary">Apply Repair</div>
+          </div>
+        </div>
+
+        <div class="grid main">
+          <section class="section-stack">
+            <div class="card">
+              <div class="card-header"><div><h2>Repair Session</h2><p>repair/open 결과</p></div><span class="chip warn">REPAIR_REQUIRED</span></div>
+              <div class="card-body">
+                <div class="two-col">
+                  <div class="meta-row"><span class="label">Project</span><div class="value">carbonet-main</div></div>
+                  <div class="meta-row"><span class="label">Screen</span><div class="value">join-member-info-page</div></div>
+                  <div class="meta-row"><span class="label">Baseline</span><div class="value">CURRENT_RUNTIME</div></div>
+                  <div class="meta-row"><span class="label">Reason</span><div class="value">PARITY_GAP</div></div>
+                </div>
+                <div class="chips" style="margin-top:14px">
+                  <span class="chip danger">BUTTON_ZONE_DRIFT</span>
+                  <span class="chip danger">SPACING_PROFILE_MISMATCH</span>
+                  <span class="chip warn">MISSING_HELP_ANCHOR</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><div><h2>Asset Updates</h2><p>수정 대상 자산</p></div></div>
+              <div class="card-body">
+                <table>
+                  <thead><tr><th>Asset Type</th><th>Current</th><th>Target</th><th>Status</th></tr></thead>
+                  <tbody>
+                    <tr><td>Page Design</td><td>join-info v3</td><td>join-info v4</td><td><span class="chip ok">Prepared</span></td></tr>
+                    <tr><td>Page Assembly</td><td>join-info assembly v3</td><td>join-info assembly v4</td><td><span class="chip ok">Prepared</span></td></tr>
+                    <tr><td>Action Layout</td><td>detail-footer-standard v1</td><td>detail-footer-standard v2</td><td><span class="chip warn">Review</span></td></tr>
+                    <tr><td>Binding Set</td><td>join-submit binding v1</td><td>join-submit binding v2</td><td><span class="chip ok">Prepared</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <aside class="section-stack">
+            <div class="card soft">
+              <div class="card-header"><div><h3>Reuse Recommendation</h3><p>기존 자산 우선</p></div></div>
+              <div class="card-body">
+                <ul class="timeline">
+                  <li>common-search-form-v3 재사용 권장</li>
+                  <li>common-bottom-action-bar-v2 재사용 권장</li>
+                  <li>help-anchor bundle join-v2 적용 필요</li>
+                </ul>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div><h3>Patch Readiness</h3><p>repair/apply 결과 예정</p></div></div>
+              <div class="card-body">
+                <ul class="check-list">
+                  <li>parity recheck required</li>
+                  <li>uniformity recheck required</li>
+                  <li>smoke required on main server</li>
+                </ul>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

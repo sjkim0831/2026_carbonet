@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resonance Deploy Console</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand"><small>Resonance Ops</small><h1>Deploy Console</h1><p>Jenkins, Nomad, Nginx, rollout, restart, verify</p></div>
+        <div class="nav-group">
+          <h2>Pages</h2>
+          <a class="nav-link" href="index.html">Overview</a>
+          <a class="nav-link" href="project-runtime.html">Project & Runtime</a>
+          <a class="nav-link" href="screen-builder.html">Screen Builder</a>
+          <a class="nav-link" href="design-workspace.html">Design Workspace</a>
+          <a class="nav-link active" href="deploy-console.html">Deploy Console</a>
+          <a class="nav-link" href="security-governance.html">Security Governance</a>
+        </div>
+      </aside>
+      <main class="content">
+        <div class="topbar">
+          <div class="page-title">
+            <div class="breadcrumbs">Resonance / Ops / 193 → 221</div>
+            <h1>배포 및 재시작 콘솔</h1>
+            <p>193에서 빌드, 221에서 실행하는 기본 배포 경로와 sub-first rollout, idle node attach, post-deploy verify, rollback checkpoint를 관리합니다.</p>
+          </div>
+          <div class="header-actions">
+            <div class="btn secondary">Build Only</div>
+            <div class="btn secondary">Restart Only</div>
+            <div class="btn primary">Deploy Release Unit</div>
+          </div>
+        </div>
+
+        <div class="grid cols-4">
+          <div class="kpi"><span>Pipeline</span><strong>build-main-193</strong><span>Jenkins authority</span></div>
+          <div class="kpi"><span>Nomad Jobs</span><strong>5</strong><span>main/sub/idle attached</span></div>
+          <div class="kpi"><span>Post Verify</span><strong>11/12</strong><span>one warning</span></div>
+          <div class="kpi"><span>Rollback Window</span><strong>7d</strong><span>release-unit governed</span></div>
+        </div>
+
+        <div class="grid main" style="margin-top:18px">
+          <section class="section-stack">
+            <div class="card">
+              <div class="card-header"><div><h2>Release Unit Rollout</h2><p>current / target / rollback-ready</p></div></div>
+              <div class="card-body">
+                <table>
+                  <thead><tr><th>Stage</th><th>Target</th><th>Status</th><th>Notes</th></tr></thead>
+                  <tbody>
+                    <tr><td>Build</td><td>34.82.141.193</td><td><span class="chip ok">Done</span></td><td>jar + manifest + security checklist</td></tr>
+                    <tr><td>Sub-first</td><td>idle-web-03</td><td><span class="chip ok">Passed</span></td><td>health + DB pool OK</td></tr>
+                    <tr><td>Main switch</td><td>136.117.100.221</td><td><span class="chip warn">Pending</span></td><td>Nginx upstream swap not yet executed</td></tr>
+                    <tr><td>Rollback</td><td>ru-2026.03.19-07</td><td><span class="chip">Prepared</span></td><td>checkpoint retained</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><div><h2>Macros</h2><p>Current Carbonet build/package/restart alignment</p></div></div>
+              <div class="card-body">
+                <div class="chips">
+                  <span class="chip">BUILD_FRONTEND</span>
+                  <span class="chip">PACKAGE_BACKEND</span>
+                  <span class="chip">BUILD_AND_RESTART</span>
+                  <span class="chip">STOP_ONLY</span>
+                  <span class="chip">START_ONLY</span>
+                  <span class="chip">POST_DEPLOY_VERIFY</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <aside class="section-stack">
+            <div class="card soft">
+              <div class="card-header"><div><h3>Deploy Checklist</h3><p>publish gate</p></div></div>
+              <div class="card-body">
+                <ul class="check-list">
+                  <li>Project selected and release unit frozen</li>
+                  <li>Security checklist attached</li>
+                  <li>DB migration impact reviewed</li>
+                  <li>Nginx internal port route reachable</li>
+                  <li>Audit / ELK correlation keys present</li>
+                </ul>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div><h3>Live Diagnostics</h3><p>post-deploy verify</p></div></div>
+              <div class="card-body">
+                <ul class="timeline">
+                  <li>HTTP health: 200 OK</li>
+                  <li>DB connection pool: 4 / 5</li>
+                  <li>Help manifest sync: OK</li>
+                  <li>Security log ingest: delayed 18s</li>
+                </ul>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <div class="footer-bar">
+          <div class="muted">Main switch 전에는 항상 sub 또는 idle node에서 검토를 먼저 완료합니다.</div>
+          <div class="button-row">
+            <div class="btn secondary">Save Rollout Draft</div>
+            <div class="btn secondary">Run Post Verify</div>
+            <div class="btn primary">Switch Main Upstream</div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

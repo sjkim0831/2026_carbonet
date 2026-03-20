@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resonance Module Pattern Governance</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <small>Resonance Ops</small>
+          <h1>모듈 패턴</h1>
+          <p>설치형 모듈이 같은 깊이와 같은 패턴으로 생성되는지 검토합니다.</p>
+        </div>
+        <div class="nav-group">
+          <h2>Pages</h2>
+          <a class="nav-link" href="index.html">Overview</a>
+          <a class="nav-link active" href="module-pattern-governance.html">Module Pattern Governance</a>
+          <a class="nav-link" href="runtime-package-matrix.html">Runtime Package Matrix</a>
+          <a class="nav-link" href="theme-set-studio.html">Theme Set Studio</a>
+          <a class="nav-link" href="missing-asset-queue.html">Missing Asset Queue</a>
+        </div>
+      </aside>
+      <main class="content">
+        <div class="topbar">
+          <div class="page-title">
+            <div class="breadcrumbs">Resonance / Governance / Module Pattern</div>
+            <h1>Installable Module Pattern Governance</h1>
+            <p>AI가 수동 요청으로 추가하는 모듈도 항상 같은 깊이, 같은 구조, 같은 패키지 규칙으로 생성되도록 검토합니다.</p>
+          </div>
+          <div class="header-actions">
+            <div class="btn secondary">Depth Profile</div>
+            <div class="btn secondary">Pattern Compare</div>
+            <div class="btn primary">Approve Module</div>
+          </div>
+        </div>
+
+        <div class="grid cols-4">
+          <div class="kpi"><span>Registered Modules</span><strong>26</strong><span>common 12 / feature 14</span></div>
+          <div class="kpi"><span>Pattern Families</span><strong>9</strong><span>board, popup, export...</span></div>
+          <div class="kpi"><span>Depth Drift</span><strong>1</strong><span>needs repair</span></div>
+          <div class="kpi"><span>Attach Ready</span><strong>23</strong><span>3 blocked</span></div>
+        </div>
+
+        <section class="card" style="margin-top:18px">
+          <div class="card-header">
+            <div>
+              <h2>Module Registry</h2>
+              <p>모듈마다 frontend/backend/DB/SQL/rollback 깊이가 동일해야 합니다.</p>
+            </div>
+            <span class="chip ok">Pattern Family</span>
+          </div>
+          <div class="card-body">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Module</th>
+                  <th>Pattern Family</th>
+                  <th>Depth Profile</th>
+                  <th>Frontend</th>
+                  <th>Backend/DB</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>board-notice</td>
+                  <td>BOARD_STANDARD</td>
+                  <td>BOARD_DEPTH_V1</td>
+                  <td>menu + page family + popup/grid/search</td>
+                  <td>controller/service/mapper + DB + SQL</td>
+                  <td><span class="chip ok">Ready</span></td>
+                </tr>
+                <tr>
+                  <td>popup-member-selector</td>
+                  <td>POPUP_SELECTOR</td>
+                  <td>POPUP_DEPTH_V1</td>
+                  <td>popup + search + result grid</td>
+                  <td>API + backend-chain + no-own DB</td>
+                  <td><span class="chip ok">Ready</span></td>
+                </tr>
+                <tr>
+                  <td>board-faq</td>
+                  <td>BOARD_STANDARD</td>
+                  <td>BOARD_DEPTH_V1</td>
+                  <td>menu + page family + popup/grid/search</td>
+                  <td><span class="chip warn">SQL draft missing</span></td>
+                  <td><span class="chip warn">Repair</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

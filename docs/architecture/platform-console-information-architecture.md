@@ -2,6 +2,12 @@
 
 Generated on 2026-03-15 for the Carbonet platformization track.
 
+See also:
+
+- `docs/architecture/operations-platform-console-architecture.md`
+- `docs/architecture/platform-common-module-versioning.md`
+- `docs/architecture/common-module-taxonomy.md`
+
 ## Goal
 
 Define the main system as the platform console that replaces ad hoc IDE-driven management for common modules, projects, menus, resources, install units, and deployment governance.
@@ -88,8 +94,14 @@ Shows and manages:
 - optional security, UI, data, and integration common groups
 - compatibility matrix by project
 - common contract versions
+- installable module registry
+- parameter and result contract registry
 - security-sensitive dependency updates
 - facade and adapter ownership
+- common jar lines by framework version
+- import-aware upgrade reviews
+- project selection matrix for common lines
+- optional library and feature-module bundle selection
 
 ### 3. Project Registry
 
@@ -106,12 +118,22 @@ Shows and manages:
 - common DB linkage status
 - project DB migration status
 - status and owner
+- selected framework line
+- selected common jar line
+- selected frontend common bundle line
+- selected feature module line
+- main server, sub server, idle-node participation, and DB server-role bindings
+- per-server deploy-readiness state by project unit
+- current DB attachment target
+- target DB attachment candidate
+- DB switch readiness state
 
 ### 4. Menu and Install Unit Management
 
 Shows and manages:
 
 - menu tree
+- shell item registry for header, menu, utility, and footer areas
 - page IDs
 - function and permission chain
 - route and canonical URL
@@ -119,8 +141,19 @@ Shows and manages:
 - selected common modules and versions
 - install status
 - copy, export, import, upgrade, deprecate, and delete actions
+- scenario-linked menu registration
+- page, feature, route, and authority chain preview
+- common asset and project asset split preview
+- backend chain and DB object linkage preview
+- release-unit and rollback linkage preview
+- menu-to-rendered-screen verification result
+- post-deploy menu render check result
+- current runtime menu import result
+- home/admin menu tree parity status
 
 This area should become the operational root for new feature onboarding.
+
+Runtime systems should consume the results of this area, not expose the same authoring surfaces directly.
 
 ### 5. Resource Registry
 
@@ -137,6 +170,9 @@ Shows and manages:
 - indexes
 - uploaded asset definitions
 - PDFs, downloads, and templates
+- page design assets
+- element design assets
+- page assembly assets
 
 Each resource should expose:
 
@@ -146,6 +182,25 @@ Each resource should expose:
 - `packageId`
 - dependency count
 - last verification result
+
+### 5-A. Design Assembly Governance
+
+Shows and manages:
+
+- page-design registry
+- element-design registry
+- component slot-profile registry
+- theme-set registry
+- page-assembly registry
+- reusable versus page-local element decisions
+- theme and spacing compatibility checks
+- semantic HTML5 layout profile checks
+- requirement coverage audit
+- missing page or element registration queue
+- AI theme-set generation and approval queue
+- GUI-first builder readiness status
+- property and binding blocker inspector
+- module selection popup and dependency review
 
 ### 6. Delete and Rollback Planning
 
@@ -170,6 +225,117 @@ Shows:
 - what project was upgraded
 - what delete plan was approved
 
+### 7-A. Product Release And Compatibility
+
+Shows and manages:
+
+- product family and package line
+- release-unit asset matrix
+- current versus target version comparison
+- compatibility check result
+- rollback-ready release units
+- common jar and frontend bundle selection by project
+- scaffold baseline versus packaged artifact version comparison
+- attached library and feature-module asset matrix
+
+### 7-B. Parity And Runtime Compare
+
+Shows and manages:
+
+- generated-result compare
+- current-runtime versus generated-runtime compare
+- proposal baseline versus current runtime compare
+- patch delta compare
+- collected current asset versus governed asset compare
+- parity score by scenario family
+- parity score by page family
+- repair candidate list
+- menu-to-page render verification status
+
+### 7-BA. UI Uniformity And Repair
+
+Shows and manages:
+
+- screen element statistics dashboard
+- page-frame drift dashboard
+- shell-profile drift dashboard
+- component usage and spacing drift dashboard
+- action-layout drift dashboard
+- immediate repair queue
+- repair result history
+- uniformity score by theme family
+- uniformity score by page-frame family
+- selected screen and selected-element repair instruction editor
+- existing governed asset reuse recommendation panel
+- missing component-family queue
+- missing page-family queue
+- requirement-gap repair queue
+- slot-profile drift queue
+- component family internal-layout compare view
+
+### 7-BB. Chain And Matrix Explorer
+
+Shows and manages:
+
+- project and runtime matrix
+- menu and scenario matrix
+- page and component matrix
+- event/function/API/backend/DB chain matrix
+- release-unit asset matrix
+- runtime truth and rollout matrix
+- delete and rollback blocker matrix
+- parity and uniformity matrix
+
+Operators should be able to pivot from any one row to:
+
+- owner
+- scenario
+- menu
+- page
+- component family
+- backend chain
+- DB object set
+- release unit
+- runtime target
+- blocker and repair history
+
+### 7-C. Backend Chain Explorer
+
+Shows and manages:
+
+- route to controller mapping
+- controller to service mapping
+- service to mapper mapping
+- mapper to SQL and DB object mapping
+- backend security and authority bindings
+
+### 7-D. Proposal Baseline And Patch History
+
+Shows and manages:
+
+- proposal-derived baseline release
+- runtime patch history
+- per-patch changed asset matrix
+- patch rollback targets
+
+### 7-E. Current Runtime Collection And Promotion
+
+Shows and manages:
+
+- current runtime page collection
+- current backend chain collection
+- current DB object ownership collection
+- legacy asset promotion into governed catalogs
+- current screen element extraction
+- current popup, grid, search, and action-layout extraction
+- current backend chain extraction
+- reusable asset recommendation for repair or generation
+- governed main-server current-state view
+- main-server versus target-generated compare
+- runtime-admin change visibility based on the main server as the default runtime truth source
+
+These areas are control-plane menus and should not be deployed as ordinary runtime-admin screens.
+
 ### 8. Drift and Orphan Control
 
 Shows:
@@ -180,6 +346,125 @@ Shows:
 - route drift
 - DB objects with no current owner
 - files or code artifacts missing from registry
+
+### 9. UI Shell And Operator Guidance
+
+Shows and governs:
+
+- current project and system context
+- breadcrumb and navigation path
+- page-level state such as draft, published, degraded, rollback-ready, or read-only
+- help summary and help anchors
+- diagnostics and impact preview panels
+- sticky bottom action bars for save, publish, approve, reject, and rollback actions
+- compare views for draft versus published and current versus target
+
+This area keeps registry, builder, deploy, observability, and policy pages visually and behaviorally aligned.
+
+This shell should prefer an intuitive GUI-first operator experience.
+
+Recommended defaults:
+
+- summary cards before raw tables
+- guided step wizards before free-form expert forms
+- compare panes for current versus target and draft versus published
+- DB object cards for table, column, key, and index review
+- explicit help and diagnostics rails
+- semantic page-frame and landmark previews for `header`, `nav`, `main`, `section`, and `footer`
+
+Raw JSON, SQL, and shell previews should remain available, but secondary.
+
+### 10. File, Backup, Retention, And Scheduler
+
+Shows and manages:
+
+- file node registry
+- hot and archive file placement policy
+- backup and restore plans
+- retention rules
+- cron and scheduler registry
+- expired-file and orphan cleanup history
+- scheduler dependency graph
+- cron execution history
+- failed job retry and blocker history
+- retention execution result and delete evidence
+- main-server cron binding status
+- per-system scheduler ownership view
+
+### 10-A. Log And Operational Search
+
+Shows and manages:
+
+- live log tail
+- historical log search
+- log-family filters
+- release-unit correlated log view
+- deploy log artifact links
+- ELK or Kibana linked dashboards
+- audit and security log correlation panels
+- post-deploy smoke verification result
+
+### 10-B. Performance Stack Governance
+
+Shows and manages:
+
+- stack attachment registry
+- host-class placement matrix
+- memory budget review
+- cache and queue health
+- stack rollback history
+- runtime-node safety gate
+- support-node capacity view
+- project-level stack attachment eligibility
+- attach or detach request history
+
+### 10-D. Module Pattern And Style Governance
+
+Shows and manages:
+
+- AI-assisted module intake queue
+- installable module pattern family registry
+- module depth profile registry
+- CSS dedupe review
+- missing-style or duplicate-style queue
+- module attach or detach parity view
+- module intake analysis history
+- attach-plan approval history
+
+### 10-C. Feature Completeness And Gap Closure
+
+Shows and manages:
+
+- operator feature completeness checklist
+- missing control-plane screen or API queue
+- missing runtime-admin feature queue
+- parity blocker inventory
+- request-pattern replay coverage
+- current gap-to-owner assignment
+
+### 11. AI Agent And Model Governance
+
+Shows and manages:
+
+- provider registry
+- model registry
+- AI runner nodes
+- project bindings
+- prompt policy
+- execution history
+
+### 12. Common Master, Notification, And Certificate
+
+Shows and manages:
+
+- common master values
+- company type and member type
+- notification provider and template bundles
+- certificate profiles
+- secret and rotation status
+- approval policy registry
+- seal-image profile registry
+- approval evidence explorer
 
 ## Default Workflow
 
@@ -194,6 +479,8 @@ Recommended platform workflow:
 7. install or deploy
 8. track changes through audit and trace
 9. use delete-plan and rollback-plan instead of manual cleanup
+10. expose help, comparison, and diagnostic surfaces before publish or destructive execution
+11. verify runtime-deployable versus control-plane-only boundaries before packaging
 
 ## Boundaries
 

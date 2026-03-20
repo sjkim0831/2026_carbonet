@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resonance UI Prototype</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <small>Resonance Prototype</small>
+          <h1>운영 시스템</h1>
+          <p>Control Plane, Builder, Ops, Security, Design Workspace 화면 미리보기</p>
+        </div>
+        <div class="nav-group">
+          <h2>Preview Pages</h2>
+          <a class="nav-link active" href="index.html">Overview</a>
+          <a class="nav-link" href="project-runtime.html">Project & Runtime</a>
+          <a class="nav-link" href="screen-builder.html">Screen Builder</a>
+          <a class="nav-link" href="design-workspace.html">Design Workspace</a>
+          <a class="nav-link" href="theme-set-studio.html">Theme Set Studio</a>
+          <a class="nav-link" href="asset-studio.html">Incremental Asset Studio</a>
+          <a class="nav-link" href="runtime-package-matrix.html">Runtime Package Matrix</a>
+          <a class="nav-link" href="performance-stack-governance.html">Performance Stack Governance</a>
+          <a class="nav-link" href="log-scheduler-governance.html">Log & Scheduler Governance</a>
+          <a class="nav-link" href="module-pattern-governance.html">Module Pattern Governance</a>
+          <a class="nav-link" href="module-intake-queue.html">Module Intake Queue</a>
+          <a class="nav-link" href="module-intake-analysis.html">Module Intake Analysis</a>
+          <a class="nav-link" href="module-attach-plan.html">Module Attach Plan</a>
+          <a class="nav-link" href="module-selection-popup.html">Module Selection Popup</a>
+          <a class="nav-link" href="style-dedupe-governance.html">Style Dedupe Governance</a>
+          <a class="nav-link" href="missing-asset-queue.html">Missing Asset Queue</a>
+          <a class="nav-link" href="repair-workbench.html">Repair Workbench</a>
+          <a class="nav-link" href="backend-chain-explorer.html">Backend Chain Explorer</a>
+          <a class="nav-link" href="current-runtime-compare.html">Current Runtime Compare</a>
+          <a class="nav-link" href="deploy-console.html">Deploy Console</a>
+          <a class="nav-link" href="security-governance.html">Security Governance</a>
+        </div>
+        <div class="nav-note">
+          이 폴더는 Resonance 운영 시스템의 주요 화면군을 정적 HTML로 빠르게 검토하기 위한 프로토타입입니다.
+        </div>
+      </aside>
+      <main class="content">
+        <div class="topbar">
+          <div class="page-title">
+            <div class="breadcrumbs">Resonance / Preview / Overview</div>
+            <h1>Resonance UI 프리뷰 인덱스</h1>
+            <p>문서에 정의된 운영 시스템 체인을 화면 형태로 검토할 수 있도록 주요 페이지를 링크형 프로토타입으로 정리했습니다.</p>
+          </div>
+          <div class="header-actions">
+            <div class="btn secondary">Design Source Sync</div>
+            <div class="btn secondary">Scenario Audit</div>
+            <div class="btn primary">Open Prototype Set</div>
+          </div>
+        </div>
+
+        <section class="hero">
+          <h2>Build-first Control Plane Preview</h2>
+          <p>프로젝트 선선택, 시나리오 선등록, 컴포넌트 카탈로그, 공통 모듈 버전 선택, Jenkins/Nomad 배포, 보안/감사/도움말 게이트를 한 화면군으로 묶는 방향을 시각화했습니다.</p>
+        </section>
+
+        <div class="grid cols-4" style="margin-top:18px">
+          <div class="kpi"><span>Projects</span><strong>12</strong><span>운영중 8 / 준비중 4</span></div>
+          <div class="kpi"><span>Scenario Families</span><strong>184</strong><span>join 기준 파생 포함</span></div>
+          <div class="kpi"><span>Release Units</span><strong>39</strong><span>active 12 / target 7</span></div>
+          <div class="kpi"><span>Security Gates</span><strong>97%</strong><span>publish-ready coverage</span></div>
+        </div>
+
+        <div class="grid cols-3" style="margin-top:18px">
+          <a class="card" href="project-runtime.html">
+            <div class="card-header"><h2>Project & Runtime</h2><span class="chip">RegistryPage</span></div>
+            <div class="card-body">
+              <p class="muted">프로젝트, 메인/서브/유휴/DB/AI 노드, 공통 버전 라인, 배포 대상, 상태를 관리하는 메인 허브.</p>
+            </div>
+          </a>
+          <a class="card" href="screen-builder.html">
+            <div class="card-header"><h2>Screen Builder</h2><span class="chip ok">WorkspacePage</span></div>
+            <div class="card-body">
+              <p class="muted">시나리오, 메뉴, 페이지, 기능, 컴포넌트, 액션 레이아웃, API/DB 바인딩을 기반으로 화면을 생성하는 빌더.</p>
+            </div>
+          </a>
+          <a class="card" href="design-workspace.html">
+            <div class="card-header"><h2>Design Workspace</h2><span class="chip warn">Canonical</span></div>
+            <div class="card-body">
+              <p class="muted">제안서/HWP/PDF/설계문서 intake, canonical source 선택, mature output package, scaffold-ready package 생성.</p>
+            </div>
+          </a>
+          <a class="card" href="theme-set-studio.html">
+            <div class="card-header"><h2>Theme Set Studio</h2><span class="chip ok">AI Theme Set</span></div>
+            <div class="card-body">
+              <p class="muted">색상, 폰트, spacing, shell, page frame, component bundle, starter design을 테마 세트 단위로 생성·승인합니다.</p>
+            </div>
+          </a>
+          <a class="card" href="asset-studio.html">
+            <div class="card-header"><h2>Incremental Asset Studio</h2><span class="chip">One-by-one</span></div>
+            <div class="card-body">
+              <p class="muted">page design, element design, component catalog item을 하나씩 생성하고 비교·승인하는 점진적 생성 화면입니다.</p>
+            </div>
+          </a>
+          <a class="card" href="deploy-console.html">
+            <div class="card-header"><h2>Deploy Console</h2><span class="chip">RuntimeOpsPage</span></div>
+            <div class="card-body">
+              <p class="muted">193 빌드, 221 실행, sub-first rollout, Jenkins/Nomad/Nginx 상태와 post-deploy verify를 묶은 배포 콘솔.</p>
+            </div>
+          </a>
+          <a class="card" href="runtime-package-matrix.html">
+            <div class="card-header"><h2>Runtime Package Matrix</h2><span class="chip">Release Unit</span></div>
+            <div class="card-body">
+              <p class="muted">공통 jar, frontend bundle, theme/token/css/js, menu/page/binding/backend/DB/cron 자산의 프로젝트 단위 배포 준비 상태를 봅니다.</p>
+            </div>
+          </a>
+          <a class="card" href="performance-stack-governance.html">
+            <div class="card-header"><h2>Performance Stack Governance</h2><span class="chip ok">Speed</span></div>
+            <div class="card-body">
+              <p class="muted">마이크로 캐시, Redis, 큐, 로그/모니터링 같은 고급 스택을 호스트 클래스와 메모리 예산 기준으로 붙입니다.</p>
+            </div>
+          </a>
+          <a class="card" href="log-scheduler-governance.html">
+            <div class="card-header"><h2>Log & Scheduler Governance</h2><span class="chip">Ops</span></div>
+            <div class="card-body">
+              <p class="muted">메인 서버 기준 로그 검색, 감사 상관관계, 크론 등록/검토/수정/삭제, 리텐션 실행 증적을 관리합니다.</p>
+            </div>
+          </a>
+          <a class="card" href="module-pattern-governance.html">
+            <div class="card-header"><h2>Module Pattern Governance</h2><span class="chip">Module</span></div>
+            <div class="card-body">
+              <p class="muted">AI로 추가하는 설치형 모듈도 같은 깊이와 같은 구조로 생성되는지 패턴 가족 기준으로 검토합니다.</p>
+            </div>
+          </a>
+          <a class="card" href="module-intake-queue.html">
+            <div class="card-header"><h2>Module Intake Queue</h2><span class="chip warn">AI Review</span></div>
+            <div class="card-body">
+              <p class="muted">새 모듈 폴더와 외부 모듈 후보를 AI가 분석한 뒤 ownership, CSS, DB, rollback 관점으로 검토합니다.</p>
+            </div>
+          </a>
+          <a class="card" href="module-intake-analysis.html">
+            <div class="card-header"><h2>Module Intake Analysis</h2><span class="chip">Analysis</span></div>
+            <div class="card-body">
+              <p class="muted">AI가 정규화한 모듈 후보의 공통/프로젝트 경계, DB 영향, CSS 충돌, provenance를 검토합니다.</p>
+            </div>
+          </a>
+          <a class="card" href="module-attach-plan.html">
+            <div class="card-header"><h2>Module Attach Plan</h2><span class="chip ok">Attach</span></div>
+            <div class="card-body">
+              <p class="muted">모듈이 release unit과 runtime package에 어떤 형태로 포함되는지 승인 전 미리 확인합니다.</p>
+            </div>
+          </a>
+          <a class="card" href="module-selection-popup.html">
+            <div class="card-header"><h2>Module Selection Popup</h2><span class="chip">Select</span></div>
+            <div class="card-body">
+              <p class="muted">화면 생성 중 필요한 설치형 모듈을 체크하거나 영향도 팝업을 열어 선택합니다.</p>
+            </div>
+          </a>
+          <a class="card" href="style-dedupe-governance.html">
+            <div class="card-header"><h2>Style Dedupe Governance</h2><span class="chip ok">CSS</span></div>
+            <div class="card-body">
+              <p class="muted">모듈 CSS 중복, 누락, 테마/토큰 재정의 여부를 점검해 스타일 드리프트를 차단합니다.</p>
+            </div>
+          </a>
+          <a class="card" href="missing-asset-queue.html">
+            <div class="card-header"><h2>Missing Asset Queue</h2><span class="chip danger">Gap Closure</span></div>
+            <div class="card-body">
+              <p class="muted">빠진 페이지, 컴포넌트, 바인딩, 요구사항 갭을 큐로 관리하고 repair 세션으로 연결합니다.</p>
+            </div>
+          </a>
+          <a class="card" href="repair-workbench.html">
+            <div class="card-header"><h2>Repair Workbench</h2><span class="chip warn">Patch</span></div>
+            <div class="card-body">
+              <p class="muted">선택 화면과 요소를 기준으로 현재 런타임과 비교하고 재사용 중심으로 수정한 뒤 패치 릴리즈를 만듭니다.</p>
+            </div>
+          </a>
+          <a class="card" href="backend-chain-explorer.html">
+            <div class="card-header"><h2>Backend Chain Explorer</h2><span class="chip">Trace</span></div>
+            <div class="card-body">
+              <p class="muted">route, controller, service, mapper, SQL, DB object까지 체인으로 추적하고 보안/권한 바인딩도 같이 봅니다.</p>
+            </div>
+          </a>
+          <a class="card" href="current-runtime-compare.html">
+            <div class="card-header"><h2>Current Runtime Compare</h2><span class="chip ok">Parity</span></div>
+            <div class="card-body">
+              <p class="muted">main server current, generated target, proposal baseline, patch target을 비교해 parity와 uniformity 차이를 즉시 확인합니다.</p>
+            </div>
+          </a>
+          <a class="card" href="security-governance.html">
+            <div class="card-header"><h2>Security Governance</h2><span class="chip danger">PolicyPage</span></div>
+            <div class="card-body">
+              <p class="muted">security profile, masking, file access, CSRF, transport security, release-unit security checklist 화면.</p>
+            </div>
+          </a>
+          <div class="card soft">
+            <div class="card-header"><h2>Next</h2><span class="chip">Planned</span></div>
+            <div class="card-body">
+              <p class="muted">Observability, AI agent management, common module matrix, chain explorer, orphan drift control 화면을 같은 프레임으로 확장할 수 있습니다.</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

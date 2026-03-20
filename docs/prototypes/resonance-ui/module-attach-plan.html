@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resonance Module Attach Plan</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <small>Resonance Ops</small>
+          <h1>Attach Plan</h1>
+          <p>정규화된 모듈을 어떤 release unit과 runtime package에 붙일지 승인합니다.</p>
+        </div>
+        <div class="nav-group">
+          <h2>Pages</h2>
+          <a class="nav-link" href="index.html">Overview</a>
+          <a class="nav-link" href="module-intake-queue.html">Module Intake Queue</a>
+          <a class="nav-link" href="module-intake-analysis.html">Module Intake Analysis</a>
+          <a class="nav-link active" href="module-attach-plan.html">Module Attach Plan</a>
+          <a class="nav-link" href="runtime-package-matrix.html">Runtime Package Matrix</a>
+        </div>
+      </aside>
+      <main class="content">
+        <div class="topbar">
+          <div class="page-title">
+            <div class="breadcrumbs">Resonance / Module Intake / Attach Plan</div>
+            <h1>Module Attach Plan</h1>
+            <p>승인 후 어떤 자산이 일반 시스템 배포 패키지에 포함되는지 한 번에 확인합니다.</p>
+          </div>
+          <div class="header-actions">
+            <div class="btn secondary">Open Matrix</div>
+            <div class="btn secondary">Rollback Preview</div>
+            <div class="btn primary">Approve Build Ready</div>
+          </div>
+        </div>
+
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <h2>Attach Scope</h2>
+              <p>프로젝트 단위로 공통/일반 시스템 자산 경계를 유지한 채 모듈을 붙입니다.</p>
+            </div>
+            <span class="chip ok">Build Ready</span>
+          </div>
+          <div class="card-body">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Family</th>
+                  <th>Attach Result</th>
+                  <th>Scope</th>
+                  <th>Runtime Target</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>COMMON_JAR</td>
+                  <td>reuse existing board facade line</td>
+                  <td>COMMON</td>
+                  <td>MAIN / SUB</td>
+                </tr>
+                <tr>
+                  <td>FEATURE_MODULE</td>
+                  <td>board-faq v1</td>
+                  <td>PROJECT</td>
+                  <td>MAIN / SUB</td>
+                </tr>
+                <tr>
+                  <td>CSS_BUNDLE</td>
+                  <td>module-board-faq extension bundle</td>
+                  <td>PROJECT</td>
+                  <td>MAIN / SUB</td>
+                </tr>
+                <tr>
+                  <td>BACKEND_CHAIN</td>
+                  <td>faq-board-controller/service/mapper</td>
+                  <td>PROJECT</td>
+                  <td>MAIN / DB</td>
+                </tr>
+                <tr>
+                  <td>DB_SQL_DRAFT</td>
+                  <td>faq_board_create.sql + rollback.sql</td>
+                  <td>PROJECT</td>
+                  <td>DB</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <div class="footer-bar">
+          <div class="muted">승인 후에만 build/package/deploy 체인으로 이동합니다.</div>
+          <div class="button-row">
+            <div class="btn secondary">Reject</div>
+            <div class="btn secondary">Return To Analysis</div>
+            <div class="btn primary">Approve Attach Plan</div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

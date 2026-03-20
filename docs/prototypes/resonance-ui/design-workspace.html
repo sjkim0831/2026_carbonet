@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resonance Design Workspace</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand"><small>Resonance Knowledge</small><h1>Design Workspace</h1><p>설계 intake, canonical source, mature output package</p></div>
+        <div class="nav-group">
+          <h2>Pages</h2>
+          <a class="nav-link" href="index.html">Overview</a>
+          <a class="nav-link" href="project-runtime.html">Project & Runtime</a>
+          <a class="nav-link" href="screen-builder.html">Screen Builder</a>
+          <a class="nav-link active" href="design-workspace.html">Design Workspace</a>
+          <a class="nav-link" href="deploy-console.html">Deploy Console</a>
+          <a class="nav-link" href="security-governance.html">Security Governance</a>
+        </div>
+      </aside>
+      <main class="content">
+        <div class="topbar">
+          <div class="page-title">
+            <div class="breadcrumbs">Resonance / Design Workspace / Canonical Source</div>
+            <h1>설계 문서 작업 공간</h1>
+            <p>제안서, PDF, HWP, 와이어프레임, API/DB 설계문서를 프로젝트별로 인덱싱하고 canonical source를 선택한 뒤 mature output package와 scaffold-ready package를 생성합니다.</p>
+          </div>
+          <div class="header-actions">
+            <div class="btn secondary">Upload Source</div>
+            <div class="btn secondary">Extract Summary</div>
+            <div class="btn primary">Build Package</div>
+          </div>
+        </div>
+
+        <div class="grid main">
+          <section class="section-stack">
+            <div class="card">
+              <div class="card-header"><div><h2>Canonical Source Selector</h2><p>같은 family의 후보 문서 비교</p></div><span class="chip warn">Approval Needed</span></div>
+              <div class="card-body">
+                <table>
+                  <thead><tr><th>Family</th><th>Source</th><th>Version</th><th>Status</th><th>Action</th></tr></thead>
+                  <tbody>
+                    <tr><td>UI Detail</td><td>회원가입_상세설계_v3.pdf</td><td>2026.03</td><td><span class="chip ok">Recommended Canonical</span></td><td><span class="tiny-btn">Set Canonical</span></td></tr>
+                    <tr><td>Scenario</td><td>00_요구사항매핑.txt</td><td>2026.03</td><td><span class="chip ok">Approved</span></td><td><span class="tiny-btn">View Mapping</span></td></tr>
+                    <tr><td>API/DB</td><td>회원가입_API_DB.xlsx</td><td>2026.02</td><td><span class="chip">Supplement</span></td><td><span class="tiny-btn">Attach</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><div><h2>Mature Output Package</h2><p>출력 가능한 설계 패키지와 scaffold-ready package</p></div></div>
+              <div class="card-body">
+                <div class="two-col">
+                  <div class="meta-row"><span class="label">Package Family</span><div class="value">SCENARIO_BUNDLE / API_DB / SCAFFOLD_READY</div></div>
+                  <div class="meta-row"><span class="label">Source Coverage</span><div class="value">8 / 9 required families</div></div>
+                </div>
+                <ul class="check-list" style="margin-top:14px">
+                  <li>Requirement summary generated</li>
+                  <li>Actor/authority mapping generated</li>
+                  <li>Menu candidates extracted</li>
+                  <li>Scenario family inferred from join reference</li>
+                  <li>KRDS theme recommendation attached</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <aside class="section-stack">
+            <div class="card soft">
+              <div class="card-header"><div><h3>Mapped Results</h3><p>요구사항에서 추출</p></div></div>
+              <div class="card-body">
+                <div class="menu-tree">
+                  <div class="meta-row"><span class="label">Menus</span><div class="value">회원가입 / 상태조회 / 재신청</div></div>
+                  <div class="meta-row"><span class="label">Scenarios</span><div class="value">join-entry, join-info, join-complete</div></div>
+                  <div class="meta-row"><span class="label">Theme</span><div class="value">krds-public-join</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div><h3>Print / Export</h3><p>출력 이력</p></div></div>
+              <div class="card-body">
+                <ul class="timeline">
+                  <li>2026-03-21 11:20 / Wire + UI Detail PDF exported</li>
+                  <li>2026-03-21 11:34 / Scenario Bundle DOCX exported</li>
+                  <li>2026-03-21 11:42 / Scaffold-ready JSON package published</li>
+                </ul>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <div class="footer-bar">
+          <div class="muted">Canonical source가 확정되지 않으면 scaffold-ready package를 publish할 수 없습니다.</div>
+          <div class="button-row">
+            <div class="btn secondary">Export PDF</div>
+            <div class="btn secondary">Export DOCX</div>
+            <div class="btn primary">Publish Scaffold-ready Package</div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resonance Screen Builder</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand"><small>Resonance Builder</small><h1>Screen Builder</h1><p>시나리오 선등록, 컴포넌트 팔레트, 스캐폴딩 체인</p></div>
+        <div class="nav-group">
+          <h2>Pages</h2>
+          <a class="nav-link" href="index.html">Overview</a>
+          <a class="nav-link" href="project-runtime.html">Project & Runtime</a>
+          <a class="nav-link active" href="screen-builder.html">Screen Builder</a>
+          <a class="nav-link" href="design-workspace.html">Design Workspace</a>
+          <a class="nav-link" href="deploy-console.html">Deploy Console</a>
+          <a class="nav-link" href="security-governance.html">Security Governance</a>
+        </div>
+      </aside>
+      <main class="content">
+        <div class="topbar">
+          <div class="page-title">
+            <div class="breadcrumbs">Resonance / Builder / Scenario-first</div>
+            <h1>화면 생성 빌더</h1>
+            <p>프로젝트, 시나리오, actor policy, classification, CSRF, 테마, 컴포넌트 카탈로그, API/DB 바인딩을 먼저 고정하고 화면을 생성합니다.</p>
+          </div>
+          <div class="header-actions">
+            <div class="btn secondary">Collect Existing Screen</div>
+            <div class="btn secondary">Scenario Audit</div>
+            <div class="btn primary">New Screen Draft</div>
+          </div>
+        </div>
+
+        <div class="split">
+          <section class="section-stack">
+            <div class="card">
+              <div class="card-header"><div><h2>Scenario Binding</h2><p>회원가입 패밀리 기준으로 파생 화면 생성</p></div><span class="chip ok">Scenario First</span></div>
+              <div class="card-body">
+                <div class="two-col">
+                  <div><span class="label">Project</span><div class="value">carbonet-main</div></div>
+                  <div><span class="label">Scenario Family</span><div class="value">join-public-company</div></div>
+                  <div><span class="label">Scenario</span><div class="value">join-info</div></div>
+                  <div><span class="label">Actor Policy</span><div class="value">public-join-basic</div></div>
+                  <div><span class="label">Classification</span><div class="value">public-join-default</div></div>
+                  <div><span class="label">CSRF</span><div class="value">public-form-post-default</div></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><div><h2>Canvas And Registered Blocks</h2><p>승인된 컴포넌트만 드래그 가능</p></div><div class="button-row"><div class="btn secondary">Preview Diff</div><div class="btn secondary">Help Anchors</div></div></div>
+              <div class="card-body">
+                <div class="section-stack">
+                  <div class="meta-row"><span class="label">Header Section</span><div class="value">Join Hero + Progress Stepper + Help Summary</div></div>
+                  <div class="meta-row"><span class="label">Form Section</span><div class="value">CompanyInfoForm + SearchAddressBlock + FileUploadBlock</div></div>
+                  <div class="meta-row"><span class="label">Action Layout</span><div class="value">BottomActionBar: 목록/임시저장/저장</div></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><div><h2>Generated Output Chain</h2><p>메뉴, 페이지, 기능, 프론트/백엔드, DB 계약</p></div></div>
+              <div class="card-body">
+                <table>
+                  <thead><tr><th>Asset</th><th>Value</th><th>Status</th></tr></thead>
+                  <tbody>
+                    <tr><td>Menu / Page / Feature</td><td>JOIN_STEP4 / join-info / JOIN_INFO_SUBMIT</td><td><span class="chip ok">Ready</span></td></tr>
+                    <tr><td>Frontend</td><td>screen-layout.json + component-binding.json</td><td><span class="chip ok">Ready</span></td></tr>
+                    <tr><td>Backend</td><td>Controller / Service / DTO / Mapper / XML</td><td><span class="chip ok">Scaffold</span></td></tr>
+                    <tr><td>DB</td><td>JOIN_COMPANY_DRAFT / ATCH_FILE</td><td><span class="chip warn">Index Review</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <aside class="section-stack">
+            <div class="card soft">
+              <div class="card-header"><div><h3>Component Palette</h3><p>theme-scoped only</p></div></div>
+              <div class="card-body">
+                <div class="chips">
+                  <span class="chip">SearchForm</span><span class="chip">Grid</span><span class="chip">SectionCard</span>
+                  <span class="chip">FileUploadBlock</span><span class="chip">ActionBar</span><span class="chip">HelpPanel</span>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div><h3>Builder Gate</h3><p>publish blockers</p></div></div>
+              <div class="card-body">
+                <ul class="check-list">
+                  <li>Scenario exists and is approved</li>
+                  <li>All buttons mapped to action layout zones</li>
+                  <li>Help anchors present for search, grid, action bar</li>
+                  <li>Security profile and audit hooks attached</li>
+                  <li>Function ids generated with governed hash suffix</li>
+                </ul>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <div class="footer-bar">
+          <div class="muted">등록되지 않은 컴포넌트는 화면에 투입할 수 없습니다.</div>
+          <div class="button-row">
+            <div class="btn secondary">Save Draft</div>
+            <div class="btn secondary">Generate Scaffold</div>
+            <div class="btn primary">Publish Screen</div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

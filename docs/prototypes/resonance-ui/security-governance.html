@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resonance Security Governance</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand"><small>Resonance Security</small><h1>Security Governance</h1><p>masking, CSRF, file access, transport security, deny audit</p></div>
+        <div class="nav-group">
+          <h2>Pages</h2>
+          <a class="nav-link" href="index.html">Overview</a>
+          <a class="nav-link" href="project-runtime.html">Project & Runtime</a>
+          <a class="nav-link" href="screen-builder.html">Screen Builder</a>
+          <a class="nav-link" href="design-workspace.html">Design Workspace</a>
+          <a class="nav-link" href="deploy-console.html">Deploy Console</a>
+          <a class="nav-link active" href="security-governance.html">Security Governance</a>
+        </div>
+      </aside>
+      <main class="content">
+        <div class="topbar">
+          <div class="page-title">
+            <div class="breadcrumbs">Resonance / Security / Policy Registry</div>
+            <h1>보안 정책 거버넌스</h1>
+            <p>시나리오와 스캐폴딩 단계에서 보안이 누락되지 않도록 security profile, masking, file access, transport security, deny-audit를 묶어 관리합니다.</p>
+          </div>
+          <div class="header-actions">
+            <div class="btn secondary">Masking Editor</div>
+            <div class="btn secondary">Deny Explorer</div>
+            <div class="btn primary">Attach Security Profile</div>
+          </div>
+        </div>
+
+        <div class="split">
+          <section class="section-stack">
+            <div class="card">
+              <div class="card-header"><div><h2>Security Profile</h2><p>scenario-bound security family</p></div><span class="chip danger">Mandatory</span></div>
+              <div class="card-body">
+                <div class="two-col">
+                  <div><span class="label">Security Profile</span><div class="value">admin-member-standard</div></div>
+                  <div><span class="label">CSRF Policy</span><div class="value">admin-post-default</div></div>
+                  <div><span class="label">Masking Policy</span><div class="value">member-basic-mask</div></div>
+                  <div><span class="label">Transport Security</span><div class="value">https-hsts-secure-cookie</div></div>
+                  <div><span class="label">File Access</span><div class="value">member-attachment-scoped</div></div>
+                  <div><span class="label">Deny Audit</span><div class="value">standard-deny-audit</div></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><div><h2>Release-unit Security Gate</h2><p>publish blocker before build and deploy</p></div></div>
+              <div class="card-body">
+                <table>
+                  <thead><tr><th>Check</th><th>Result</th><th>Notes</th></tr></thead>
+                  <tbody>
+                    <tr><td>Actor / classification policy</td><td><span class="chip ok">Pass</span></td><td>company-admin-member-ops</td></tr>
+                    <tr><td>CSRF coverage</td><td><span class="chip ok">Pass</span></td><td>state-changing forms protected</td></tr>
+                    <tr><td>Masking / export control</td><td><span class="chip ok">Pass</span></td><td>Excel/PDF scoped</td></tr>
+                    <tr><td>Transport posture</td><td><span class="chip warn">Review</span></td><td>CSP draft pending</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <aside class="section-stack">
+            <div class="card soft">
+              <div class="card-header"><div><h3>Security Help</h3><p>operator guidance</p></div></div>
+              <div class="card-body">
+                <ul class="spec-list">
+                  <li>다운로드/엑셀/PDF는 classification scope와 masking rule을 동시에 따라야 합니다.</li>
+                  <li>stateful action은 scenario 단계에서 CSRF policy를 바인딩해야 합니다.</li>
+                  <li>project-local 보안 예외는 release-unit comment로 남겨야 합니다.</li>
+                </ul>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div><h3>Deny & Audit Summary</h3><p>최근 24시간</p></div></div>
+              <div class="card-body">
+                <div class="meta-list">
+                  <div class="meta-row"><span class="label">Denied Exports</span><div class="value">6</div></div>
+                  <div class="meta-row"><span class="label">Masked Fields Applied</span><div class="value">314</div></div>
+                  <div class="meta-row"><span class="label">CSRF Failures</span><div class="value">0</div></div>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <div class="footer-bar">
+          <div class="muted">보안 프로필이 없으면 메뉴, 화면, API, 파일 경로는 publish할 수 없습니다.</div>
+          <div class="button-row">
+            <div class="btn secondary">Save Draft</div>
+            <div class="btn secondary">Run Security Check</div>
+            <div class="btn primary">Publish Security Binding</div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

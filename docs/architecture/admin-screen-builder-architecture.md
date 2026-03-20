@@ -121,6 +121,12 @@ Examples:
 - empty state text
 - section title
 
+GUI-first rules:
+
+- property panels must prefer guided selectors and approved enums over free-text fields
+- theme, spacing, density, slot profile, actor policy, and help-anchor selection should be available without source editing
+- property panels must show parity, accessibility, security, and binding blockers inline
+
 ### 4. Event Binding Panel
 
 Responsibilities:
@@ -144,6 +150,13 @@ Initial supported actions:
 - reload query
 - toggle section
 
+GUI-first rules:
+
+- event candidates should be filtered by component family
+- function candidates should be filtered by scenario family and actor policy
+- API candidates should be filtered by function intent and backend-chain compatibility
+- broken or missing links should open repair guidance instead of silently saving
+
 ### 5. Data Binding Modeler
 
 Responsibilities:
@@ -159,6 +172,12 @@ Initial data sources:
 - page bootstrap payload
 - one query result
 - one mutation result
+
+GUI-first rules:
+
+- parameter and result contracts should be browsable and selectable from registry
+- DB object or SQL impact should be previewable without leaving the builder
+- generated payload shape should be visible before publish
 
 ### 6. Schema Persistence
 
@@ -214,6 +233,20 @@ Validation examples:
 - invalid menu linkage
 - component deleted while still referenced by draft/published pages
 - component standardization audit should report remaining raw tags and legacy class names by admin/home surface
+
+### 9. GUI-First Builder Completion
+
+The builder should be considered mature only when operators can:
+
+- select project and scenario
+- choose theme set, frame, shell, spacing, density, and slot profile
+- compose page and elements
+- edit properties
+- wire events, functions, APIs, backend, and DB links
+- inspect security, accessibility, help, diagnostics, and parity blockers
+- publish scaffold-ready output
+
+without needing raw source edits for standard work.
 
 ## Integration With Existing Carbonet Surfaces
 
