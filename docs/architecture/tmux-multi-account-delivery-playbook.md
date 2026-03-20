@@ -123,6 +123,14 @@ Every session should leave:
 - next expected lane
 - verification status
 
+Recommended handoff summary phrase:
+
+- `HANDOFF READY: <target lane> can continue from <file or flow>; current blocker count is <n>.`
+
+Recommended blocker phrase:
+
+- `BLOCKED: waiting for <lane or contract> because <specific reason>.`
+
 Handoff should happen before:
 
 - contract changes affecting other lanes
@@ -203,5 +211,7 @@ This playbook should be used together with:
 
 - `docs/ai/80-skills/resonance-10-session-assignment.md`
 - it is the numbered-session source of truth for lane numbers, attachment wording, and repeat-loop interpretation
+- `docs/architecture/session-implementation-handoff-map.md`
+- `docs/architecture/governed-identity-naming-convention.md`
 - `docs/architecture/resonance-ai-track-partition-map.md`
 - `docs/ai/80-skills/resonance-skill-and-doc-update-pattern.md`

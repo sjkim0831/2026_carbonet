@@ -27,6 +27,13 @@
 - `HANDOFF`: 넘김 대기 또는 넘김 완료
 - `DONE`: 완료
 
+## 표준 상태 문구
+
+세션 메모나 handoff 코멘트는 가능하면 아래 형식을 따릅니다.
+
+- `HANDOFF READY: <대상 세션> can continue from <파일 또는 흐름>; current blocker count is <n>.`
+- `BLOCKED: waiting for <세션 또는 계약> because <구체 사유>.`
+
 ## 추정 진행 현황
 
 각 작업 레인이 이 파일에서 직접 상태를 갱신하기 전까지 임시 운영 대시보드로 사용합니다.
@@ -55,14 +62,16 @@
 ### 01. 계약 조정
 
 - 상태: `IN_PROGRESS`
-- 추정 진행률: `80%`
-- 운영 메모: 공통 계약 문서군이 거의 정리됐고 인계 기준 마감이 남아 있습니다
-- 다음 1개 행동: 새 공통 계약 추가가 더 필요한지 최종 확인하고 세션 넘기기 기준을 한 줄로 확정합니다
+- 추정 진행률: `88%`
+- 운영 메모: 공통 계약 문서군과 naming 규약이 정리됐고 구현 세션 handoff 마감만 남아 있습니다
+- 다음 1개 행동: lane별 handoff 맵을 기준으로 실제 구현 세션에 넘길 blocker 없는 진입점만 최종 점검합니다
 - 목적: 공통 계약, 스키마, 점검표, 공통 규칙을 먼저 확정합니다
 - 최근 변경 파일:
   - `docs/architecture/platform-console-information-architecture.md`
   - `docs/architecture/operator-feature-completeness-checklist.md`
   - `docs/architecture/page-assembly-schema.md`
+  - `docs/architecture/governed-identity-naming-convention.md`
+  - `docs/architecture/session-implementation-handoff-map.md`
   - `docs/ai/80-skills/resonance-10-session-assignment.md`
 - 허용 경로:
   - `/opt/projects/carbonet/docs/architecture`
@@ -81,6 +90,10 @@
   - 공개/관리자 분리
   - 모듈 설치 규칙
   - 단계별 유도 규칙
+- 첫 30분 점검:
+  - `session-implementation-handoff-map.md` 기준으로 reopen 허용 범위를 재확인
+  - 새 계약 추가 필요 여부만 최종 판정
+  - 구현 세션이 바로 시작 가능한지 `HANDOFF READY` 수준으로 확인
 
 ### 02. 제안 및 요구 접수
 
