@@ -95,6 +95,66 @@ These admin templates exist in the canonical source set but do not yet have a de
 - `security_policy_en.html`
 - `system_code_en.html`
 
+## Template-Line And Theme-Set Governance
+
+This parity inventory should be reviewed together with:
+
+- `docs/architecture/public-admin-template-line-schema.md`
+- `docs/architecture/theme-set-schema.md`
+- `docs/frontend/admin-screen-layout-standard.md`
+
+Admin parity decisions should follow these rules:
+
+- keep the current `themeSetId` when the source template difference is limited to DOM blocks, menu placement, admin-only actions, or route/menu binding changes
+- create or revise an admin `templateLineId` when admin-only structure, scenario family, page family, slot profile, or backend facade binding diverges from the shared public line
+- split the `themeSetId` only when parity work proves that visual direction, token bundle, spacing, density, shell composition, page-frame family, or approved component coverage must change
+- do not treat untranslated text, route constants, or menu-tree differences as reasons to split the theme set
+
+Suggested admin family grouping for parity review:
+
+| Parity family | Candidate template line family | Typical source templates |
+| --- | --- | --- |
+| admin dashboard shell | `admin-line-dashboard` | `index.html`, `index_en.html` |
+| admin list and search | `admin-line-list` | `member_list.html`, `company_list.html`, `login_history.html`, `system_code.html` |
+| admin detail and review | `admin-line-detail` | `member_detail.html`, `company_detail.html`, `member_approve.html`, `company_approve.html` |
+| admin edit and registration | `admin-line-edit` | `member_edit.html`, `member_register.html`, `admin_account.html`, `company_account.html` |
+| admin security and monitoring | `admin-line-02` | `security_history.html`, `security_policy.html`, `security_monitoring.html`, `security_audit.html`, `blocklist.html` |
+
+Custom React admin screens should be classified before parity exceptions are approved:
+
+| Custom route id | Preferred page type | Template-line family guidance | Governance note |
+| --- | --- | --- | --- |
+| `observability` | `PolicyPage` | `admin-line-02` by default | keep shared theme set unless diagnostics or observability blocks require a new approved component family |
+| `help-management` | `WorkspacePage` | `admin-line-dashboard` or a dedicated workspace variant under the same admin family set | inherit approved workspace shell and section action slots before adding page-local layout rules |
+| `sr-workbench` | `WorkspacePage` | `admin-line-dashboard` or a dedicated workspace variant under the same admin family set | multi-panel builder flow should stay a template-line concern unless visual-system rules diverge |
+
+EN variant handling should follow these rules:
+
+- treat `_en` templates as language-profile coverage on the same template line by default
+- keep the same `themeSetId`, `spacingProfileId`, and `densityProfileId` for KO/EN variants unless measured structure or content density changes force a governed split
+- create a separate template-line version for EN only when route namespace, menu tree, slot profile, or page-family composition diverges beyond translation
+- if EN variants require wider controls or different table density, record that as an approved responsive or language profile inside the same theme set before considering a theme split
+
+## Approval Checks
+
+Before closing a parity batch, confirm:
+
+- each admin route is mapped to one candidate template-line family
+- the chosen template-line family can bind to an approved `themeSetId` without missing shell/frame/component coverage
+- page-local parity fixes are documented as exceptions and do not silently redefine theme tokens or spacing rules
+- custom React admin screens such as `observability`, `help-management`, and `sr-workbench` declare whether they inherit an existing admin template line or require a new governed family
+- EN variants are treated as language/profile coverage, not as separate visual-system branches unless the rendered structure truly diverges
+- custom workspace and policy pages inherit page-type action-slot rules from `admin-screen-layout-standard.md` before bespoke exceptions are approved
+
+## Handoff Ready Signal
+
+This parity inventory may be handed to `05` or `09` when:
+
+- every currently known admin route is attached to a candidate template-line family or an explicit governed custom-route note
+- custom routes `observability`, `help-management`, and `sr-workbench` are classified to a page type and template-line guidance
+- `_en` variants are explicitly treated as language/profile coverage unless a documented structural split exists
+- no unresolved parity batch requires a new theme-set split decision
+
 ## Current Execution Order
 
 1. lock shared admin layout parity in React entry files

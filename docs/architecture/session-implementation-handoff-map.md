@@ -12,6 +12,10 @@ Use together with:
 - `docs/ai/80-skills/resonance-10-session-assignment.md`
 - `docs/architecture/tmux-multi-account-delivery-playbook.md`
 - `docs/architecture/governed-identity-naming-convention.md`
+- `docs/architecture/implementation-priority-and-first-day-plan.md`
+- `docs/architecture/implementation-blocker-audit.md`
+- `docs/architecture/lane-start-instructions-05-06-08-09.md`
+- `docs/architecture/lane-start-instructions-07-10-04-03-02.md`
 
 ## Contract Freeze Baseline
 

@@ -78,6 +78,38 @@ Reject publish-ready theme sets when:
 - accessibility profile is missing
 - visual direction is not documented
 
+## Template-Line Compatibility Contract
+
+One approved theme set may support multiple template lines within the same project.
+
+The compatibility checks should follow this minimum crosswalk:
+
+| Theme set field | Template line field | Compatibility rule |
+| --- | --- | --- |
+| `themeSetId` | `themeSetId` | exact identity match is required |
+| `projectId` | `projectId` | theme sets should not be attached across projects without explicit copy/version |
+| `shellCompositionProfileSet` | `shellProfileSet` | the theme set must contain every shell profile referenced by the template line |
+| `pageFrameFamilySet` | `pageFrameFamilySet` | the theme set must contain every page frame family referenced by the template line |
+| `spacingProfileId` | `spacingProfileId` | exact match is required |
+| `densityProfileId` | `densityProfileId` | exact match is required |
+| `componentCatalogSelection` | `componentFamilySet` | approved component coverage must include the families used by the template line |
+| `screenFamilyRuleSet` | `scenarioFamilySet` | screen-family rules must cover all governed scenario families bound by the template line |
+
+Theme-set split guidance:
+
+- keep one shared theme set when public/admin lines intentionally share visual direction, token bundles, spacing, density, shell composition, and core component rules
+- split the theme set when visual-system governance changes, not merely because routes or menu trees diverge
+- prefer template-line versioning over theme-set versioning for namespace, menu, scenario, page-family, or backend facade changes
+- if admin parity requires extra component families, update `componentCatalogSelection` only when those components are approved for the whole governed theme-set version
+
+## Operator Review Checks
+
+Before marking a theme set `APPROVED`, confirm:
+
+- at least one public or admin template line can bind without missing shell/frame/component coverage
+- the selected screen-family rules explicitly cover the scenario families expected by current template lines
+- element design sets referencing this theme set remain compatible with the same spacing, density, accessibility, and security profiles
+
 ## Use
 
 `theme-set.json` should be consumable by:

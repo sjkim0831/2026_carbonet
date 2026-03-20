@@ -242,6 +242,11 @@ Recommended per-session ownership artifacts:
 - `handoffTarget`
 - `publishChecklist`
 
+For operator attachment and repeat wording such as `붙어`, `붙어서`, `이어서 해줘`, and `무한반복`, use these documents as the routing standard:
+
+- `docs/ai/80-skills/resonance-10-session-assignment.md`
+- `docs/architecture/tmux-multi-account-delivery-playbook.md`
+
 ## Conflict Rules
 
 Do not let multiple tracks edit the same family at the same time.

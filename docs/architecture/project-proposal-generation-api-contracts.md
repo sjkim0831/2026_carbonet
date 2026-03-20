@@ -88,6 +88,7 @@ Required request fields:
 
 Required response fields:
 
+- `mappingDraftId`
 - `homeMenuNodeCount`
 - `adminMenuNodeCount`
 - `templateLineCount`
@@ -128,9 +129,11 @@ Required request fields:
 
 Required response fields:
 
+- `mappingDraftId`
 - `matrixRowSet`
   - `assetFamily`
   - `assetId`
+  - `assetCount`
   - `templateLineId`
   - `screenFamilyRuleId`
   - `ownedYn`
@@ -146,8 +149,42 @@ Required response fields:
   - `blockerCount`
   - `traceSourceType`
   - `traceSourceId`
+  - `drilldownTargetSet`
 
 ## 6. `project-proposal-generation/design-outputs`
+
+Return all governed scenario outputs generated for one project baseline.
+
+Required request fields:
+
+- `projectId`
+- `synthesisRunId`
+
+Required response fields:
+
+- `mappingDraftId`
+- `scenarioFamilySet`
+- `publicScenarioFamilySet`
+- `adminScenarioFamilySet`
+- `templateLineSet`
+- `screenFamilyRuleSet`
+- `childScenarioSet`
+- `scenarioStepSet`
+- `scenarioResultChainSummary`
+- `scenarioMenuBindingSet`
+- `scenarioPageBindingSet`
+- `scenarioComponentBindingSet`
+- `scenarioEventBindingSet`
+- `scenarioFunctionBindingSet`
+- `scenarioApiBindingSet`
+- `scenarioFamilyCount`
+- `publicScenarioFamilyCount`
+- `adminScenarioFamilyCount`
+- `childScenarioCount`
+- `scenarioStepCount`
+- `designOutputPackageCount`
+
+## 7. `project-proposal-generation/design-outputs`
 
 Return all mature design packages generated for one project baseline.
 
@@ -158,6 +195,7 @@ Required request fields:
 
 Required response fields:
 
+- `mappingDraftId`
 - `designOutputPackageSet`
   - `packageFamily`
   - `packageId`
@@ -167,12 +205,19 @@ Required response fields:
   - `scenarioFamilySet`
   - `approvalState`
   - `printableOutputPath`
+  - `packageCount`
+- `designOutputPackageCount`
+- `pageDesignPackageCount`
+- `elementDesignPackageCount`
+- `pageAssemblyPackageCount`
+- `interactionBindingPackageCount`
+- `backendDbPackageCount`
 
 ## Rules
 
 - no proposal-generated project may proceed to build without a green inventory
 - matrix and inventory must use the same `projectId` and `synthesisRunId`
-- mapping draft and inventory must use the same `projectId` and `synthesisRunId`
+- mapping draft, inventory, matrix, and design outputs must use the same `projectId`, `synthesisRunId`, and `mappingDraftId`
 - scenario outputs and design outputs must remain queryable from the same
   project onboarding flow
 - template lines and screen family rules must remain queryable from the same

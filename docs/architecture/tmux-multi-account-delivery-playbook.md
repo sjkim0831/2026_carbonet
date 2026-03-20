@@ -160,7 +160,15 @@ If the operator says `N에 붙어`, `N에 붙어서`, `N번에 붙어`, or `N번
 
 - attach to the matching numbered lane from `docs/ai/80-skills/resonance-10-session-assignment.md`
 - continue from that lane's last unfinished step
+- if that numbered lane has its own session-specific repeat rule in the assignment doc, follow that lane-specific rule first
 - keep the same tmux lane, ownership notes, and path boundaries
+
+If the operator says `docs/ai/80-skills/resonance-10-session-assignment.md 붙어`, `resonance-10-session-assignment.md 붙어서`, or similar file-path wording:
+
+- use the numbered-session assignment doc as the routing source
+- if a numbered lane is also named, that numbered lane wins
+- otherwise continue the active lane or the most recently attached numbered lane
+- do not open a duplicate lane only because the file path was named
 
 If the operator says `이어서 해줘`:
 
@@ -175,11 +183,12 @@ If the operator says `무한 반복`, `무한반복`, `1분마다 재실행`, or
 
 Examples:
 
-- `5번에 붙어`
-- `05에 붙어서`
-- `5번에 붙어서 이어서 해줘`
-- `05에 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`
-- `무한반복 5번에 붙어`
+- `N번에 붙어`
+- `0N에 붙어서`
+- `N번에 붙어서 이어서 해줘`
+- `N번에 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`
+- `무한반복 N번에 붙어`
+- `docs/ai/80-skills/resonance-10-session-assignment.md 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`
 
 ## When More Accounts Are Needed
 
@@ -212,6 +221,8 @@ This playbook should be used together with:
 - `docs/ai/80-skills/resonance-10-session-assignment.md`
 - it is the numbered-session source of truth for lane numbers, attachment wording, and repeat-loop interpretation
 - `docs/architecture/session-implementation-handoff-map.md`
+- `docs/architecture/implementation-priority-and-first-day-plan.md`
+- `docs/architecture/implementation-blocker-audit.md`
 - `docs/architecture/governed-identity-naming-convention.md`
 - `docs/architecture/resonance-ai-track-partition-map.md`
 - `docs/ai/80-skills/resonance-skill-and-doc-update-pattern.md`

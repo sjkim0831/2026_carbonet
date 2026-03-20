@@ -7,6 +7,17 @@ Generated on 2026-03-21 for Resonance project-level onboarding and proposal-driv
 Define the matrix used to inspect all assets generated for one project after
 proposal upload and before build or deploy.
 
+## Identity Rule
+
+Every matrix snapshot must retain the same:
+
+- `projectId`
+- `synthesisRunId`
+- `mappingDraftId`
+
+used by the mapping draft, inventory, scenario output, and design-output
+package views.
+
 ## Matrix Axes
 
 ### Rows
@@ -36,6 +47,11 @@ proposal upload and before build or deploy.
 
 ### Columns
 
+- `assetFamily`
+- `assetId`
+- `assetCount`
+- `templateLineId`
+- `screenFamilyRuleId`
 - `ownedYn`
 - `designedYn`
 - `boundYn`
@@ -47,6 +63,9 @@ proposal upload and before build or deploy.
 - `runtimeComparableYn`
 - `repairNeededYn`
 - `blockerCount`
+- `traceSourceType`
+- `traceSourceId`
+- `drilldownTargetSet`
 
 ## Required Compare Views
 
@@ -69,9 +88,26 @@ Operators should be able to open:
 
 from any row.
 
+## Required Summary Counters
+
+The matrix header should also expose enough project-level counts to cross-check
+inventory and output views:
+
+- `scenarioFamilyCount`
+- `publicScenarioFamilyCount`
+- `adminScenarioFamilyCount`
+- `childScenarioCount`
+- `scenarioStepCount`
+- `designOutputPackageCount`
+- `missingAssetCount`
+- `parityGapCount`
+- `buildReadyYn`
+
 ## Rules
 
 - no project is considered onboarded until the project proposal generation
   matrix is green for all required families
 - row counts should be exportable as operator evidence
 - matrix state should be preserved per project and per proposal baseline
+- matrix header counts must be reconcilable with inventory and scenario/design
+  output views without changing identity keys
