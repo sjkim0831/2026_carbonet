@@ -52,6 +52,22 @@ See also:
 - `docs/architecture/module-selection-api-contracts.md`
 - `docs/architecture/module-selection-api-examples.md`
 - `docs/architecture/module-selection-checklist.md`
+- `docs/architecture/module-selection-apply-result-contract.md`
+- `docs/architecture/module-selection-trace-linkage-contract.md`
+- `docs/architecture/project-proposal-generation-inventory-checklist.md`
+- `docs/architecture/project-proposal-generation-matrix.md`
+- `docs/architecture/project-scenario-and-design-output-contract.md`
+- `docs/architecture/project-proposal-generation-api-contracts.md`
+- `docs/architecture/project-proposal-generation-api-examples.md`
+- `docs/architecture/proposal-to-mapping-ai-output-schema.md`
+- `docs/architecture/public-admin-template-line-schema.md`
+- `docs/architecture/guided-step-state-contract.md`
+- `docs/architecture/guided-operator-build-flow.md`
+- `docs/architecture/context-key-strip-contract.md`
+- `docs/architecture/scenario-step-menu-binding-contract.md`
+- `docs/architecture/page-design-guide-automation-contract.md`
+- `docs/architecture/component-layout-guide-api-contract.md`
+- `docs/architecture/screen-family-ui-consistency-contract.md`
 - `docs/architecture/theme-set-schema.md`
 - `docs/architecture/page-design-schema.md`
 - `docs/architecture/element-design-set-schema.md`
@@ -190,6 +206,184 @@ Required project-unit answers:
 4. which DB server belongs to the project
 5. which common artifact lines are pinned into the package
 6. which project-local thin runtime outputs are included
+7. how many menu nodes were generated
+8. how many scenario families and scenario steps were generated
+9. how many page, binding, backend, and DB assets were generated
+10. which required assets are still missing before build
+11. whether the proposal-derived project is parity-ready before first deploy
+
+### Project-Proposal Inventory Rule
+
+Every new project created from proposal upload should produce both:
+
+- a proposal-generation inventory checklist
+- a project proposal generation matrix
+- project-level scenario outputs
+- project-level mature design-output packages
+
+These two views are the required bridge between:
+
+- proposal synthesis
+- scenario-family generation
+- screen and element design
+- backend and DB scaffold
+- release-unit packaging
+
+No project-unit build should begin until Resonance can prove the generated
+inventory count and missing-asset status for the uploaded proposal baseline.
+
+This inventory should now also include:
+
+- public/admin template lines
+- screen family rules by page family
+
+### Public/Admin Split From Proposal Rule
+
+Proposal-driven generation should always separate:
+
+- homepage or public-facing surfaces
+- admin or runtime-admin-facing surfaces
+
+These may share:
+
+- the same project
+- the same web server set
+- the same backend package line
+
+But they should remain separate in:
+
+- template family selection
+- shell profiles
+- menu trees
+- scenario families
+- page-design and page-assembly outputs
+
+Admin families should be explicitly marked as reusable, copyable template lines so a new project can clone approved admin patterns with only small functional deltas.
+
+Template lines should be first-class governed assets.
+
+Required families:
+
+- public template lines
+- admin template lines
+
+These should remain separately versioned even when one project and one runtime set are shared.
+
+### Shared Project, Split URL Rule
+
+Public and admin surfaces should normally belong to the same project unit, while routes remain clearly separated.
+
+Examples:
+
+- `/home/*`
+- `/member/*`
+- `/admin/*`
+
+Controllers may share backend services and common code lines, but URL families, shell profiles, menu trees, and screen families should remain distinct.
+
+### Data-Driven Scaffold Rule
+
+Public and admin generation should stay data-driven.
+
+The operations system should scaffold from governed data for:
+
+- menu trees
+- scenario families and steps
+- page designs
+- element designs
+- page assemblies
+- event/function/API bindings
+- backend chain definitions
+- DB object and SQL drafts
+
+Do not depend on hand-maintained route-specific source copying as the primary generation path.
+
+### Screen-Family UI Consistency Rule
+
+Once one screen family is generated and approved, later pages of the same family should be generated with the same approved UI rule profile.
+
+This should cover:
+
+- shell profile
+- page frame
+- action layout
+- slot profile set
+- spacing and density profile
+- approved component family set
+- help and diagnostics structure
+
+The operations system should not treat each generated screen as a fresh visual invention.
+
+Instead, it should:
+
+1. resolve target `screenFamilyId`
+2. load approved `screenFamilyRuleId`
+3. reuse approved component families first
+4. allow AI-assisted edits only inside the approved boundary
+5. reopen repair immediately if family drift is detected
+
+### Existing-Component-First Rule
+
+When AI or an operator generates a screen:
+
+- existing approved components should be reused first
+- new components should be created only when no family-compatible asset already exists
+- if a new component is created, it should immediately be registered into the catalog and linked to the current family rule
+
+### Guided-State And Family-Rule Linkage Rule
+
+Compare, repair, runtime package, and deploy flows should all carry:
+
+- `guidedStateId`
+- `screenFamilyRuleId`
+
+This ensures:
+
+- the current guided operator step remains visible
+- the exact family rule used by a generated screen remains visible
+- package, compare, and repair flows do not drift into untracked side paths
+
+Scenario and design-document output generation should be visible from the same
+project onboarding flow, not hidden behind separate tools.
+
+The first AI-assisted proposal mapping draft should also be visible and
+repairable before canonical approval.
+
+### Scenario-Step Menu Binding Rule
+
+Resonance should allow operators to assign menus at scenario-step level so that
+one selected step can immediately drive screen generation.
+
+Initial rule:
+
+- each scenario step may own one primary menu
+- hidden or collapsed menu behavior can be handled later
+- the first governed delivery should prefer explicit visible step bindings
+
+### Page Design Guide Automation Rule
+
+Every generated page should also receive one governed design guide profile.
+
+The guide may be selected from approved templates or AI-generated from:
+
+- scenario
+- page family
+- theme set
+- frame and slot profiles
+- action layout
+
+### Component Layout Guide API Rule
+
+Component placement should be automatable through approved layout-guide APIs.
+
+This lets AI or builder automation compose screens from:
+
+- page guides
+- section guides
+- slot profiles
+- approved component placement rules
+
+instead of freehand positioning.
 
 ## System Development Rule In Resonance
 
@@ -4804,6 +4998,31 @@ Recommended product-grade menu set:
 13. `Complexity / Resource / Source Governance`
 14. `Optional Evidence / Blockchain`
 
+### Primary Guided Operator Flow
+
+Even though Resonance exposes many governance screens, the primary operator
+journey for new project delivery should remain linear and visually obvious.
+
+Use this order:
+
+1. `Project And Runtime`
+2. `Design Workspace`
+3. `Proposal Mapping Draft`
+4. `Project Proposal Inventory`
+5. `Project Proposal Matrix`
+6. `Project Scenario Output`
+7. `Project Design Output`
+8. `Theme Set Studio`
+9. `Incremental Asset Studio`
+10. `Screen Builder`
+11. `Runtime Package Matrix`
+12. `Deploy Console`
+13. `Current Runtime Compare`
+14. `Repair Workbench`
+
+All other screens should be treated as supporting governance or exception
+handling surfaces around this main path.
+
 Reason:
 
 - operators usually begin from project selection and runtime status
@@ -6237,6 +6456,32 @@ Use this merge order:
 4. screen-builder and scaffold
 5. deploy and runtime ops
 6. observability and governance verification
+
+### Instruction-Routed Continuation Rule
+
+Repeated work on the same Resonance initiative should always continue through the same guided flow and ownership split.
+
+Use this rule:
+
+- continue from the currently incomplete or blocked guided step
+- keep the same contract, pattern, menu, and matrix families aligned
+- keep the same tmux lane or handoff target unless ownership is formally changed
+- do not create ad hoc side flows for minor wording changes in later requests
+
+If the operator uses wording such as `붙어`, `붙어서`, `이어서 해줘`, `무한 반복`, `무한반복`, or `1분마다 재실행`:
+
+- treat that wording as continuation of the same governed lane unless ownership explicitly changes
+- interpret numbered-session attachment by [resonance-10-session-assignment.md](/opt/projects/carbonet/docs/ai/80-skills/resonance-10-session-assignment.md)
+- interpret tmux-lane continuation by [tmux-multi-account-delivery-playbook.md](/opt/projects/carbonet/docs/architecture/tmux-multi-account-delivery-playbook.md)
+
+The operations system should make this visible by storing:
+
+- `currentGuidedStep`
+- `nextRecommendedAiAction`
+- `activeBlockerFamily`
+- `activeOwnershipLane`
+
+This state should follow the guided-step state contract and remain visible from proposal onboarding, build, compare, repair, and deploy screens.
 
 Do not let two AI tracks edit the same shared contract family at the same time.
 

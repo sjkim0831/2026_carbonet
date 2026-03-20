@@ -23,16 +23,18 @@ Also use it when:
 
 Check these in order for every governed menu node:
 
-1. menu node resolves to the expected page id
-2. page id resolves to the expected route
-3. route resolves to the expected shell profile
-4. shell profile resolves to the expected header/menu/footer composition
-5. page frame matches the approved family
-6. all governed components render without missing asset errors
-7. required popup, grid, search, upload, report, and approval blocks exist
-8. primary actions and row actions are visible where expected
-9. event -> function -> API -> backend -> DB chain is complete
-10. help, accessibility, security, and authority bindings are present
+1. guided step context is known for the verification target
+2. template line and screen family rule are resolved
+3. menu node resolves to the expected page id
+4. page id resolves to the expected route
+5. route resolves to the expected shell profile
+6. shell profile resolves to the expected header/menu/footer composition
+7. page frame matches the approved family
+8. all governed components render without missing asset errors
+9. required popup, grid, search, upload, report, and approval blocks exist
+10. primary actions and row actions are visible where expected
+11. event -> function -> API -> backend -> DB chain is complete
+12. help, accessibility, security, and authority bindings are present
 
 Release blocker if one item fails.
 
@@ -53,43 +55,48 @@ Review the following families before marking parity-ready:
 
 For each family, confirm:
 
-1. shell parity
-2. page-frame parity
-3. popup/grid/search parity
-4. action hierarchy parity
-5. help and diagnostics parity
-6. authority behavior parity
-7. backend-chain parity
-8. first-deployment behavior parity
+1. template-line parity
+2. screen-family-rule parity
+3. shell parity
+4. page-frame parity
+5. popup/grid/search parity
+6. action hierarchy parity
+7. help and diagnostics parity
+8. authority behavior parity
+9. backend-chain parity
+10. first-deployment behavior parity
 
 ## 3. Uniformity Review Checklist
 
 Check:
 
-1. approved shell profile used
-2. approved page frame used
-3. approved action-layout profile used
-4. approved theme and token bundle used
-5. approved spacing and density profile used
-6. no unregistered button zones
-7. no unregistered section layout
-8. no page-local component family drift
-9. HTML5 semantic landmarks and control semantics pass the governed verification checklist
+1. approved template line used
+2. approved screen family rule used
+3. approved shell profile used
+4. approved page frame used
+5. approved action-layout profile used
+6. approved theme and token bundle used
+7. approved spacing and density profile used
+8. no unregistered button zones
+9. no unregistered section layout
+10. no page-local component family drift
+11. HTML5 semantic landmarks and control semantics pass the governed verification checklist
 
 ## 4. Selected-Screen Repair Checklist
 
 When opening repair for one page:
 
 1. select project
-2. select screen family or page id
-3. compare current runtime vs generated vs baseline vs patch target
-4. select affected menu, element, popup, grid, search, or backend chain
-5. prefer existing governed asset reuse
-6. apply structured repair
-7. rerun menu-to-rendered-screen verification
-8. rerun parity and uniformity checks
-9. rebuild release unit
-10. deploy patch and rerun smoke
+2. resolve guided step, template line, and screen family rule
+3. select screen family or page id
+4. compare current runtime vs generated vs baseline vs patch target
+5. select affected menu, element, popup, grid, search, or backend chain
+6. prefer existing governed asset reuse
+7. apply structured repair
+8. rerun menu-to-rendered-screen verification
+9. rerun parity and uniformity checks
+10. rebuild release unit
+11. deploy patch and rerun smoke
 
 ## 5. Project-Unit Deploy Smoke Checklist
 
@@ -158,28 +165,30 @@ A feature family is done only when:
 Before closing a governed feature family, confirm:
 
 1. menu, scenario, page, element, backend, and DB assets all belong to the same governed chain
-2. approved shell, frame, theme, token, spacing, and action-layout profiles are used
-3. generated assets carry provenance to requirement, scenario, and release unit
-4. human and AI modifications are both visible in change traces
-5. event, function, API, backend, and DB links are complete
-6. help, accessibility, authority, security, and diagnostics assets are present
-7. compare, patch, and rollback targets are available
-8. no unmanaged runtime-only drift remains after current-runtime collection
-9. frontend, backend, DB, and runtime package pattern families are compatible
+2. approved template line and screen family rule are used
+3. approved shell, frame, theme, token, spacing, and action-layout profiles are used
+4. generated assets carry provenance to requirement, scenario, guided step, and release unit
+5. human and AI modifications are both visible in change traces
+6. event, function, API, backend, and DB links are complete
+7. help, accessibility, authority, security, and diagnostics assets are present
+8. compare, patch, and rollback targets are available
+9. no unmanaged runtime-only drift remains after current-runtime collection
+10. frontend, backend, DB, and runtime package pattern families are compatible
 
 ## 7-B. Full-Stack Pattern Consistency Checklist
 
 Before release is marked parity-ready, confirm:
 
-1. selected shell, frame, theme, spacing, density, and slot profiles are declared
-2. selected binding family is declared
-3. selected backend-chain family is declared
-4. selected DB object and SQL draft families are declared
-5. runtime package pattern family is declared
-6. frontend pattern maps to backend pattern
-7. backend pattern maps to DB pattern
-8. package pattern matches selected common lines and thin-runtime boundary
-9. style coverage and style dedupe states are green
+1. selected template line and screen family rule are declared
+2. selected shell, frame, theme, spacing, density, and slot profiles are declared
+3. selected binding family is declared
+4. selected backend-chain family is declared
+5. selected DB object and SQL draft families are declared
+6. runtime package pattern family is declared
+7. frontend pattern maps to backend pattern
+8. backend pattern maps to DB pattern
+9. package pattern matches selected common lines and thin-runtime boundary
+10. style coverage and style dedupe states are green
 
 ## 8. Requirement Coverage Recheck Checklist
 
@@ -187,11 +196,12 @@ Before closing a feature family, confirm:
 
 1. requirement-domain items are all mapped
 2. menu candidates are all registered or explicitly waived
-3. page-design assets are all registered or explicitly waived
-4. element-design assets are all registered or explicitly waived
-5. popup/grid/search/upload/export/approval blocks are covered when required
-6. backend-chain and DB-chain are covered
-7. help, security, and accessibility assets are covered
+3. template lines and screen family rules are all registered or explicitly waived
+4. page-design assets are all registered or explicitly waived
+5. element-design assets are all registered or explicitly waived
+6. popup/grid/search/upload/export/approval blocks are covered when required
+7. backend-chain and DB-chain are covered
+8. help, security, and accessibility assets are covered
 
 ## 8-A. Component Coverage And Missing-Asset Checklist
 
@@ -255,3 +265,10 @@ For repeat update turns, always re-check in this order:
 6. runtime-only drift
 7. repair candidates
 8. rebuild and redeploy readiness
+
+If the operator uses wording such as `붙어`, `붙어서`, `이어서 해줘`, `무한 반복`, `무한반복`, or `1분마다 재실행` during this replay loop:
+
+- keep the same parity-closure lane and the same current checklist position unless ownership explicitly changes
+- continue from the last unfinished blocker or checklist item instead of restarting the whole review
+- interpret numbered-session attachment by [resonance-10-session-assignment.md](/opt/projects/carbonet/docs/ai/80-skills/resonance-10-session-assignment.md)
+- interpret tmux-lane continuation by [tmux-multi-account-delivery-playbook.md](/opt/projects/carbonet/docs/architecture/tmux-multi-account-delivery-playbook.md)

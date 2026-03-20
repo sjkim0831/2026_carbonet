@@ -258,7 +258,24 @@ If a later track needs a contract change:
 
 1. return the change to Track 1
 2. re-freeze the contract
+
+## Tmux Session Operating Note
+
+Use `tmux` sessions as the concrete ownership container for each lane.
+
+Recommended reference:
+
+- [tmux-multi-account-delivery-playbook.md](/opt/projects/carbonet/docs/architecture/tmux-multi-account-delivery-playbook.md)
+- [resonance-10-session-assignment.md](/opt/projects/carbonet/docs/ai/80-skills/resonance-10-session-assignment.md)
+
+Each lane should bind one named session to one bounded ownership family before implementation begins.
 3. then continue dependent work
+
+If the operator uses wording such as `붙어`, `붙어서`, `이어서 해줘`, `무한 반복`, `무한반복`, or `1분마다 재실행`:
+
+- keep the current track and numbered session attached unless ownership explicitly changes
+- interpret numbered attachment wording by `resonance-10-session-assignment.md`
+- interpret tmux-lane continuation wording by `tmux-multi-account-delivery-playbook.md`
 
 Additional session rules:
 

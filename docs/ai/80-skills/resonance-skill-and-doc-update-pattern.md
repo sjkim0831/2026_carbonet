@@ -27,6 +27,23 @@ Update in this order:
 5. `skill-gaps.md` only if a reusable implementation skill or checklist is still missing
 6. `skill-boundaries.md` and `skill-index.md` only if the new work changes skill selection or scope
 
+## Instruction-Driven Execution Rule
+
+When repeated follow-up instructions arrive for the same Resonance initiative, keep routing the work through the same governed update path.
+
+Use this execution priority:
+
+1. latest explicit user instruction
+2. frozen Resonance patterns
+3. the most specific contract document
+4. operations architecture
+5. platform IA
+6. parity, smoke, and missing-asset checks
+7. only then record any remaining reusable gap
+
+Do not restart the architecture from zero because the wording changed.
+Continue from the last governed step and add only the next missing governed piece.
+
 ## No-Duplication Rule
 
 Use these layers consistently:
@@ -191,6 +208,15 @@ Update:
 - `two-host-build-deploy-runbook.md` or related rollout doc
 - `platform-console-information-architecture.md` if operator screens change
 
+### New multi-account or tmux delivery rule
+
+Update:
+
+- `resonance-design-patterns.md` if a new delivery pattern is introduced
+- `resonance-ai-track-partition-map.md`
+- `tmux-multi-account-delivery-playbook.md`
+- `operations-platform-console-architecture.md` only if operator surfaces or deployment governance changes
+
 ### New compare, repair, or audit rule
 
 Update:
@@ -249,7 +275,32 @@ When the request is “keep updating until parity is the same and no unmanaged e
 8. confirm operator feature completeness checklist coverage
 8. confirm chain and matrix visibility
 9. record remaining parity or unmanaged-element gaps in `skill-gaps.md` only if they are still reusable future work
+10. for new-project requests, confirm project proposal generation inventory coverage
+11. for proposal-upload requests, confirm project proposal generation matrix visibility
+
+## Repeat-Until-Governed Routine
+
+When the user keeps extending the same direction, apply this routine every turn:
+
+1. continue from the last completed or blocked guided step
+2. preserve the same ownership split and tmux lane boundaries
+3. update the most specific contract first
+4. update operations architecture if runtime or product shape changed
+5. update IA if operator menus or screens changed
+6. re-run requirement, parity, uniformity, and missing-asset checks
+7. leave the next natural continuation point explicit
 
 This routine should be repeated feature-family by feature-family, not by rewriting the entire architecture each time.
 
 Use [parity-and-smoke-checklists.md](/opt/projects/carbonet/docs/architecture/parity-and-smoke-checklists.md) as the default execution checklist for this loop.
+
+If the operator uses wording such as `붙어`, `붙어서`, `이어서 해줘`, `무한 반복`, `무한반복`, or `1분마다 재실행`, keep the same governed continuation path and interpret numbered-session or tmux-lane attachment by:
+
+- [resonance-10-session-assignment.md](/opt/projects/carbonet/docs/ai/80-skills/resonance-10-session-assignment.md)
+- [tmux-multi-account-delivery-playbook.md](/opt/projects/carbonet/docs/architecture/tmux-multi-account-delivery-playbook.md)
+
+For proposal-driven project onboarding, also use:
+
+- [project-proposal-generation-inventory-checklist.md](/opt/projects/carbonet/docs/architecture/project-proposal-generation-inventory-checklist.md)
+- [project-proposal-generation-matrix.md](/opt/projects/carbonet/docs/architecture/project-proposal-generation-matrix.md)
+- [project-scenario-and-design-output-contract.md](/opt/projects/carbonet/docs/architecture/project-scenario-and-design-output-contract.md)
