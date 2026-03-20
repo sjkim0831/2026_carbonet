@@ -709,3 +709,18 @@ Needed next:
   - revision-save and checksum policy
   - AI-edit versus user-edit provenance checklist
   - draft rollback and publish-binding checklist
+
+### Project-Proposal Onboarding Inventory Operation
+
+- Task type:
+  - checking whether a new project created from a proposal upload generated the full expected menu, scenario, page, binding, backend, and DB asset set before build
+  - operating a per-project proposal-generation matrix that links source proposal coverage to runtime parity readiness
+- Why current skills are insufficient:
+  - the architecture now defines project-first proposal onboarding, generated asset counts, and project proposal generation matrix views, but there is not yet a dedicated implementation skill for building and operating that inventory end to end
+- Repeated errors or omissions:
+  - building a project after proposal synthesis without confirming generated asset counts
+  - treating scenario families as complete without checking step-level page and binding coverage
+  - losing visibility into how many backend and DB assets were produced from the proposal baseline
+- Candidate follow-up assets:
+  - project proposal generation inventory API checklist
+  - project proposal generation matrix operator checklist

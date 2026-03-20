@@ -13,6 +13,9 @@ See:
 {
   "projectId": "carbonet-main",
   "releaseUnitId": "ru-20260321-join-patch-01",
+  "guidedStateId": "guided-build-15-repair",
+  "screenFamilyRuleId": "sfr-join-info-public-v1",
+  "ownerLane": "res-verify / res-builder",
   "selectedScreenId": "join-member-info-page",
   "selectedElementSet": [
     "join-info-search-form",
@@ -36,6 +39,9 @@ See:
 {
   "repairSessionId": "repair-join-20260321-001",
   "projectId": "carbonet-main",
+  "guidedStateId": "guided-build-15-repair",
+  "screenFamilyRuleId": "sfr-join-info-public-v1",
+  "ownerLane": "res-verify / res-builder",
   "selectedScreenId": "join-member-info-page",
   "selectedElementSet": [
     "join-info-search-form",
@@ -65,6 +71,9 @@ See:
 {
   "repairSessionId": "repair-join-20260321-001",
   "projectId": "carbonet-main",
+  "guidedStateId": "guided-build-15-repair",
+  "screenFamilyRuleId": "sfr-join-info-public-v1",
+  "ownerLane": "res-builder / res-frontend",
   "selectedScreenId": "join-member-info-page",
   "updatedAssetSet": [
     "page-design:join-member-info-page:v4",
@@ -92,6 +101,8 @@ See:
 ```json
 {
   "repairApplyRunId": "repair-apply-20260321-014",
+  "guidedStateId": "guided-build-15-repair",
+  "ownerLane": "res-builder / res-frontend / res-verify",
   "updatedAssetTraceSet": [
     "trace-page-join-v4",
     "trace-assembly-join-v4"
@@ -110,6 +121,8 @@ See:
 {
   "projectId": "carbonet-main",
   "menuId": "MENU_JOIN_MEMBER_INFO",
+  "guidedStateId": "guided-build-14-runtime-compare",
+  "ownerLane": "res-verify",
   "targetRuntime": "MAIN_SERVER_CURRENT",
   "releaseUnitId": "ru-20260321-join-patch-02",
   "verifyShellYn": true,
@@ -128,6 +141,7 @@ See:
   "menuId": "MENU_JOIN_MEMBER_INFO",
   "pageId": "join-member-info-page",
   "routeId": "/member/join/info",
+  "screenFamilyRuleId": "sfr-join-info-public-v1",
   "shellProfileId": "public-join-compact",
   "pageFrameId": "wizard-join-frame",
   "componentCoverageState": "PASS",

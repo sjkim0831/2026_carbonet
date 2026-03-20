@@ -64,6 +64,7 @@ See also:
 - `docs/architecture/guided-step-state-contract.md`
 - `docs/architecture/guided-operator-build-flow.md`
 - `docs/architecture/context-key-strip-contract.md`
+- `docs/architecture/governed-identity-naming-convention.md`
 - `docs/architecture/scenario-step-menu-binding-contract.md`
 - `docs/architecture/page-design-guide-automation-contract.md`
 - `docs/architecture/component-layout-guide-api-contract.md`
@@ -97,6 +98,42 @@ Build a separate Carbonet operations system that acts as the control plane for:
 This console is not another business app.
 
 It is the operational authority that manages deployed systems as runtime targets.
+
+## Governed Identity Naming Rule
+
+Resonance should use one naming convention for governed identity across:
+
+- proposal mapping
+- scenario and design outputs
+- compare and repair
+- runtime package and deploy
+- blocker and handoff traces
+
+Use this split:
+
+- `guidedStateId`
+  - flow step identity
+  - format: `guided-build-*`
+- `templateLineId`
+  - reusable public/admin template instance line
+  - format: `public-line-*` or `admin-line-*`
+- `screenFamilyRuleId`
+  - canonical page-family rule enum
+  - format: uppercase canonical rule such as `ADMIN_LIST_REVIEW`
+- `ownerLane`
+  - active responsibility lane
+  - format: `res-*`
+
+Do not mix these naming styles.
+
+Example:
+
+- a template line should not be named like a screen family rule
+- a guided state should not use short temporary IDs such as `gs-*`
+
+See:
+
+- `docs/architecture/governed-identity-naming-convention.md`
 
 ## Uniform Asset Quality Goal
 

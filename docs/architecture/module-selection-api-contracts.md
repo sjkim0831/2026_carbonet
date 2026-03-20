@@ -20,6 +20,9 @@ Required request fields:
 - `projectId`
 - `scenarioFamilyId`
 - `scenarioId`
+- `guidedStateId`
+- `templateLineId`
+- `screenFamilyRuleId`
 - `pageDesignId`
 - `themeSetId`
 
@@ -46,6 +49,9 @@ Required request fields:
 
 - `projectId`
 - `scenarioId`
+- `guidedStateId`
+- `templateLineId`
+- `screenFamilyRuleId`
 - `installableModuleId`
 
 Required response fields:
@@ -53,6 +59,8 @@ Required response fields:
 - `installableModuleId`
 - `modulePatternFamilyId`
 - `moduleDepthProfileId`
+- `templateLineId`
+- `screenFamilyRuleId`
 - `dependencySet`
 - `frontendImpactSummary`
 - `backendImpactSummary`
@@ -70,6 +78,9 @@ Required request fields:
 
 - `projectId`
 - `scenarioId`
+- `guidedStateId`
+- `templateLineId`
+- `screenFamilyRuleId`
 - `selectedModuleSet`
 - `selectionMode`
   - `INLINE_CHECK`
@@ -79,6 +90,9 @@ Required request fields:
 Required response fields:
 
 - `moduleBindingPreviewId`
+- `guidedStateId`
+- `templateLineId`
+- `screenFamilyRuleId`
 - `selectedModuleSet`
 - `runtimePackageImpactSummary`
 - `blockingIssueCount`
@@ -90,3 +104,42 @@ Required response fields:
 - modules flagged `requiresPopupReviewYn` must pass preview acknowledgment before apply
 - required modules may not be omitted
 - selected modules must be visible in runtime package impact preview immediately
+- selected modules must remain traceable to the target template line and screen family rule
+
+## 4. `module-selection/apply-result`
+
+Return the persisted result after module binding is committed into the current
+screen, scenario, and project-unit context.
+
+Required request fields:
+
+- `projectId`
+- `scenarioId`
+- `guidedStateId`
+- `moduleBindingPreviewId`
+
+Required response fields:
+
+- `moduleBindingResultId`
+- `guidedStateId`
+- `templateLineId`
+- `screenFamilyRuleId`
+- `selectionAppliedYn`
+- `appliedModuleSet`
+- `attachedPageAssetSet`
+- `attachedBackendAssetSet`
+- `attachedDbAssetSet`
+- `runtimePackageImpactSummary`
+- `followUpChecklistSummary`
+- `repairNeededYn`
+- `repairQueueCount`
+- `nextRecommendedAction`
+
+## Additional Rules
+
+- apply result must show exactly which page, backend, DB, and runtime-package
+  assets were affected
+- apply result must be traceable to one `moduleBindingPreviewId`
+- if `repairNeededYn` is true, the operator may not continue directly to build
+- apply result must remain visible from the current screen, runtime package
+  matrix, and repair workbench

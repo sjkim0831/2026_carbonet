@@ -31,6 +31,10 @@ No generated asset should exist in runtime without a trace back to:
 - `projectId`
 - `scenarioFamilyId`
 - `scenarioId`
+- `guidedStateId`
+- `screenFamilyRuleId`
+- `templateLineId`
+- `ownerLane`
 - `scaffoldRequestId`
 - `releaseUnitId`
 
@@ -46,6 +50,10 @@ JSON working revisions, AI-assisted patches, user edits, and published artifacts
 - `projectId`
 - `scenarioFamilyId`
 - `scenarioId`
+- `guidedStateId`
+- `screenFamilyRuleId`
+- `templateLineId`
+- `ownerLane`
 - `menuCode`
 - `pageId`
 - `scaffoldRequestId`
@@ -87,6 +95,8 @@ JSON working revisions, AI-assisted patches, user edits, and published artifacts
   - `DB_OBJECT`
   - `DDL_DRAFT`
   - `QUERY_PROFILE`
+  - `SCREEN_FAMILY_RULE`
+  - `TEMPLATE_LINE`
 - `assetId`
 - `versionLine`
 - `jsonRevisionRef`
@@ -152,6 +162,8 @@ JSON working revisions, AI-assisted patches, user edits, and published artifacts
 - `releaseBindingTraceId`
 - `releaseUnitId`
 - `projectId`
+- `guidedStateId`
+- `ownerLaneSet`
 - `selectedFrameworkLine`
 - `selectedCommonJarLine`
 - `selectedImportSensitiveLine`
@@ -159,6 +171,8 @@ JSON working revisions, AI-assisted patches, user edits, and published artifacts
 - `selectedThemeTokenLine`
 - `selectedFeatureModuleLine`
 - `patternFamilySet`
+- `screenFamilyRuleSet`
+- `templateLineSet`
 - `assetTraceSet`
 - `boundAt`
 
@@ -182,6 +196,7 @@ JSON working revisions, AI-assisted patches, user edits, and published artifacts
 - `proposalBaselineTraceId`
 - `projectId`
 - `synthesisRunId`
+- `guidedStateId`
 - `designOutputPackageId`
 - `baselineReleaseUnitId`
 - `baselineRuntimeVersionRef`
@@ -192,6 +207,8 @@ JSON working revisions, AI-assisted patches, user edits, and published artifacts
 - `runtimePatchTraceId`
 - `projectId`
 - `releaseUnitId`
+- `guidedStateId`
+- `ownerLane`
 - `patchScope`
   - `PAGE_ONLY`
   - `FEATURE_ONLY`
@@ -258,6 +275,7 @@ Rollback must preserve visibility into:
 
 - which generated assets were introduced
 - which common jar and frontend lines were active
+- which template lines and screen family rules were active
 - which DB drafts or migrations were included
 - what security checklist state was attached
 - which JSON working revisions produced the deployed artifacts

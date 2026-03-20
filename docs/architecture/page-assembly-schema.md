@@ -29,6 +29,7 @@ It should:
 - `pageId`
 - `pageDesignId`
 - `themeSetId`
+- `screenFamilyRuleId`
 - `elementDesignSet`
 - `bindingAssemblyId`
 - `helpAssemblyId`
@@ -51,6 +52,7 @@ Each element placement should include:
 - `variantId`
 - `actionLayoutSlot`
 - `popupAnchorSet`
+- `slotProfileId`
 
 ## Validation Rules
 
@@ -58,10 +60,12 @@ Reject publish-ready page assemblies when:
 
 - page design is missing
 - theme set is missing
+- screen family rule is missing
 - binding assembly is missing
 - required zones are empty
 - runtime-deployable pages still include control-plane-only assets
 - menu, feature, or route binding is missing
+- element placement violates the approved slot profile or action layout of the screen family
 
 ## Use
 
@@ -71,3 +75,4 @@ Reject publish-ready page assemblies when:
 - runtime package assembly
 - menu-to-rendered-screen verification
 - post-deploy smoke and parity compare
+- screen-family consistency verification

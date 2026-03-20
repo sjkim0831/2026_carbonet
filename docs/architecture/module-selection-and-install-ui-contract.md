@@ -31,6 +31,8 @@ Required UI:
 - required/recommended/optional label
 - current version
 - short impact summary
+- target template line summary
+- target screen family rule summary
 
 ### 2. Install Popup Mode
 
@@ -50,6 +52,8 @@ Required popup content:
 - frontend impact
 - backend and DB impact
 - CSS dedupe and style coverage state
+- target template line
+- target screen family rule
 - runtime package attach preview
 - rollback path
 

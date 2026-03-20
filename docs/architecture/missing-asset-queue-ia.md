@@ -21,8 +21,11 @@ Resonance should expose at least:
 Each row should show:
 
 - `projectId`
+- `guidedStateId`
 - `requirementDomain`
 - `scenarioFamilyId`
+- `templateLineId`
+- `screenFamilyRuleId`
 - `expectedPageFamily`
 - `currentState`
   - `MISSING`
@@ -41,8 +44,11 @@ Each row should show:
 Each row should show:
 
 - `projectId`
+- `guidedStateId`
 - `scenarioFamilyId`
 - `pageId`
+- `templateLineId`
+- `screenFamilyRuleId`
 - `expectedComponentFamily`
 - `expectedBlockType`
 - `themeSetId`
@@ -58,8 +64,10 @@ Each row should show:
 Each row should show:
 
 - `projectId`
+- `guidedStateId`
 - `pageId`
 - `componentId`
+- `screenFamilyRuleId`
 - `missingBindingType`
   - `EVENT`
   - `FUNCTION`
@@ -77,8 +85,11 @@ Each row should show:
 Each row should show:
 
 - `projectId`
+- `guidedStateId`
 - `requirementDomain`
 - `screenRequirementId`
+- `templateLineId`
+- `screenFamilyRuleId`
 - `missingAssetClass`
 - `linkedScenarioFamilyId`
 - `linkedMenuId`
@@ -103,3 +114,4 @@ Any row in blocking state should prevent:
 - publish-ready generation
 - parity-ready release
 - deploy-complete status
+- guided-step completion for the affected initiative

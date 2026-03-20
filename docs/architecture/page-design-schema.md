@@ -26,11 +26,13 @@ This schema describes page-level intent and should not inline all element detail
 - `scenarioId`
 - `pageId`
 - `pageFamily`
+- `screenFamilyRuleId`
 - `menuCandidateSet`
 - `routeCandidateSet`
 - `shellProfileId`
 - `pageFrameId`
 - `themeSetId`
+- `designGuideProfileId`
 - `actionLayoutProfileId`
 - `responsiveProfileId`
 - `languageProfileSet`
@@ -57,11 +59,13 @@ This schema describes page-level intent and should not inline all element detail
 Reject publish-ready page designs when:
 
 - page family is missing
+- screen family rule is missing
 - shell or frame is missing
 - theme set is missing
 - action layout profile is missing
 - expected element families are empty
 - actor or help profile is missing
+- page design violates its approved screen family rule
 
 ## Use
 
@@ -71,3 +75,5 @@ Reject publish-ready page designs when:
 - menu-to-rendered-screen verification
 - parity compare
 - runtime package matrix
+- design guide workspace and printable design output
+- screen-family consistency verification

@@ -22,6 +22,9 @@ Purpose:
 
 - `projectId`
 - `releaseUnitId`
+- `guidedStateId`
+- `screenFamilyRuleId`
+- `ownerLane`
 - `selectedScreenId`
 - `selectedElementSet`
 - `compareBaseline`
@@ -49,6 +52,9 @@ Purpose:
 
 - `repairSessionId`
 - `projectId`
+- `guidedStateId`
+- `screenFamilyRuleId`
+- `ownerLane`
 - `selectedScreenId`
 - `selectedElementSet`
 - `compareSnapshotId`
@@ -70,6 +76,9 @@ Purpose:
 
 - `repairSessionId`
 - `projectId`
+- `guidedStateId`
+- `screenFamilyRuleId`
+- `ownerLane`
 - `selectedScreenId`
 - `updatedAssetSet`
 - `updatedBindingSet`
@@ -86,6 +95,8 @@ Purpose:
 ### Response
 
 - `repairApplyRunId`
+- `guidedStateId`
+- `ownerLane`
 - `updatedAssetTraceSet`
 - `updatedReleaseCandidateId`
 - `parityRecheckRequiredYn`
@@ -106,6 +117,8 @@ Purpose:
 
 - `projectId`
 - `menuId`
+- `guidedStateId`
+- `ownerLane`
 - `targetRuntime`
   - `MAIN_SERVER_CURRENT`
   - `GENERATED_TARGET`
@@ -123,6 +136,7 @@ Purpose:
 - `menuId`
 - `pageId`
 - `routeId`
+- `screenFamilyRuleId`
 - `shellProfileId`
 - `pageFrameId`
 - `componentCoverageState`
@@ -130,6 +144,7 @@ Purpose:
 - `backendChainState`
 - `helpSecurityState`
 - `blockerSet`
+- `ownerLane`
 - `result`
   - `PASS`
   - `WARN`
@@ -142,6 +157,9 @@ Every repair and verification run should record:
 - `traceId`
 - `projectId`
 - `releaseUnitId`
+- `guidedStateId`
+- `screenFamilyRuleId`
+- `ownerLane`
 - `requestedBy`
 - `requestedByType`
 - `selectedScreenId`

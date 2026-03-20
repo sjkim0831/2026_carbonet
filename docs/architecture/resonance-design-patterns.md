@@ -120,6 +120,33 @@ Uniformity comes from:
 
 Do not allow page-local button placement or ad hoc spacing to bypass those profiles.
 
+## Pattern 5-A. Template-Line Split
+
+One project may share one runtime set while still keeping separate:
+
+- public template lines
+- admin template lines
+
+Template lines should be first-class governed assets, not implicit conventions.
+
+Admin template lines should be explicitly reusable and copyable for new projects.
+
+## Pattern 5-B. Screen-Family Rule
+
+One screen family should map to one approved UI rule profile.
+
+That profile should govern:
+
+- shell profile
+- page frame
+- action layout
+- slot profiles
+- spacing and density
+- approved component families
+- help and diagnostics structure
+
+AI editing is allowed only inside the approved family boundary.
+
 ## Pattern 6. HTML5 Semantic Output
 
 Generated React output should prefer semantic HTML5 structure.
@@ -258,6 +285,20 @@ Required matrix families:
 - parity/uniformity matrix
 
 If an asset cannot be explained in one of these matrices, the asset is not governed enough.
+
+## Pattern 12-A. Guided Continuation State
+
+Repeated work should continue from the current governed step instead of restarting from zero.
+
+Each active initiative should keep:
+
+- `currentGuidedStep`
+- `lastCompletedGuidedStep`
+- `openBlockerStep`
+- `nextRecommendedAiAction`
+- `activeOwnershipLane`
+
+This keeps operator flow, AI edits, repair, packaging, and deploy aligned over many turns.
 
 ## Pattern 13. Parity And Uniformity
 

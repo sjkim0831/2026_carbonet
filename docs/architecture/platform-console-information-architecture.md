@@ -26,6 +26,21 @@ It is the authoritative platform console for:
 
 This console should be the place where a top-level master account can see and control what used to be scattered across source browsing, IDE search, SQL scripts, and manual deployment notes.
 
+## Primary Guided Flow
+
+The console should present one guided delivery path for operators:
+
+- project selection
+- proposal and design intake
+- AI mapping review
+- inventory and matrix verification
+- scenario and design output review
+- theme and asset generation
+- screen assembly
+- runtime package review
+- deploy
+- compare and repair
+
 ## Primary Actors
 
 ### `SUPER_MASTER`
@@ -189,6 +204,8 @@ Shows and manages:
 
 - page-design registry
 - element-design registry
+- scenario-step menu binding registry
+- page design-guide registry
 - component slot-profile registry
 - theme-set registry
 - page-assembly registry
@@ -202,6 +219,8 @@ Shows and manages:
 - property and binding blocker inspector
 - module selection popup and dependency review
 - module selection checklist result
+- module selection apply result
+- module selection trace linkage view
 
 ### 6. Delete and Rollback Planning
 
@@ -239,6 +258,12 @@ Shows and manages:
 - scaffold baseline versus packaged artifact version comparison
 - attached library and feature-module asset matrix
 
+All release and deploy views should visibly expose:
+
+- current guided-step state
+- bound public/admin template line set
+- bound screen-family-rule set
+
 ### 7-B. Parity And Runtime Compare
 
 Shows and manages:
@@ -248,8 +273,15 @@ Shows and manages:
 - proposal baseline versus current runtime compare
 - patch delta compare
 - collected current asset versus governed asset compare
+- template line current versus target compare
+- screen family rule current versus target compare
+- guided-step state and blocker compare
 - parity score by scenario family
 - parity score by page family
+- project proposal generation inventory
+- project proposal generation matrix
+- project scenario output explorer
+- project design-output package explorer
 - repair candidate list
 - menu-to-page render verification status
 
@@ -286,6 +318,7 @@ Shows and manages:
 - runtime truth and rollout matrix
 - delete and rollback blocker matrix
 - parity and uniformity matrix
+- guided-step, template-line, and screen-family-rule context strip for every matrix pivot
 
 Operators should be able to pivot from any one row to:
 
@@ -299,6 +332,7 @@ Operators should be able to pivot from any one row to:
 - release unit
 - runtime target
 - blocker and repair history
+- compare result and repair workbench entry
 
 ### 7-C. Backend Chain Explorer
 
@@ -309,6 +343,7 @@ Shows and manages:
 - service to mapper mapping
 - mapper to SQL and DB object mapping
 - backend security and authority bindings
+- guided-step, template-line, and screen-family-rule context for the selected backend chain
 
 ### 7-D. Proposal Baseline And Patch History
 
@@ -336,6 +371,26 @@ Shows and manages:
 - runtime-admin change visibility based on the main server as the default runtime truth source
 
 These areas are control-plane menus and should not be deployed as ordinary runtime-admin screens.
+
+## Public/Admin Split Governance
+
+Proposal and project-generation surfaces should clearly show:
+
+- public menu tree
+- admin menu tree
+- public scenario families
+- admin scenario families
+- reusable admin template line status
+- shared project/runtime host set
+- split URL namespace status
+
+Operators should be able to confirm that one project can share one runtime set while still producing separate public and admin design lines.
+
+This area should also expose:
+
+- public template line registry
+- admin template line registry
+- guided step state and next AI action
 
 ### 8. Drift and Orphan Control
 
@@ -372,6 +427,14 @@ Recommended defaults:
 - DB object cards for table, column, key, and index review
 - explicit help and diagnostics rails
 - semantic page-frame and landmark previews for `header`, `nav`, `main`, `section`, and `footer`
+- a consistent context-key strip before the first primary work area
+
+Authoring, compare, repair, runtime, and deploy screens should all display the same context-key strip:
+
+- `guidedStateId`
+- `templateLineId` or template-line set
+- `screenFamilyRuleId` or rule set
+- `ownerLane` when responsibility or handoff matters on that surface
 
 Raw JSON, SQL, and shell previews should remain available, but secondary.
 
@@ -391,6 +454,7 @@ Shows and manages:
 - retention execution result and delete evidence
 - main-server cron binding status
 - per-system scheduler ownership view
+- guided-step, template-line, and screen-family-rule context for scheduler ownership and retention evidence
 
 ### 10-A. Log And Operational Search
 
@@ -404,6 +468,7 @@ Shows and manages:
 - ELK or Kibana linked dashboards
 - audit and security log correlation panels
 - post-deploy smoke verification result
+- guided-step, template-line, and screen-family-rule context for deploy-correlated logs
 
 ### 10-B. Performance Stack Governance
 

@@ -106,6 +106,8 @@ Recommended fields:
 - `blockerId`
 - `chainRowId`
 - `blockerType`
+- `ownerLane`
+- `repairOwnerLane`
 - `blockingResourceId`
 - `severity`
 - `reasonCode`

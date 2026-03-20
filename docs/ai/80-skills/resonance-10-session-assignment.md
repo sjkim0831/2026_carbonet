@@ -31,18 +31,18 @@
 
 각 작업 레인이 이 파일에서 직접 상태를 갱신하기 전까지 임시 운영 대시보드로 사용합니다.
 
-| 세션 | 현재 상태 | 추정 진행률 | 오늘 목표 |
-| --- | --- | ---: | --- |
-| `01` 계약 조정 | `IN_PROGRESS` | `80%` | 공통 계약군을 마감하고 인계 기준 확정 |
-| `02` 제안 및 요구 접수 | `IN_PROGRESS` | `78%` | 제안 흐름 계약과 프로토타입 연결 마감 |
-| `03` 테마, 셸, 디자인 시스템 | `IN_PROGRESS` | `65%` | 공개/관리자 템플릿 라인과 테마 규칙 마감 |
-| `04` 빌더 및 자산 스튜디오 | `IN_PROGRESS` | `68%` | 빌더/자산/화면 빌더 프로토타입 정합성 마감 |
-| `05` 프런트엔드 런타임 및 운영자 UI | `READY` | `15%` | 동결 이후 리액트 구현 시작 대기 |
-| `06` 백엔드 제어 평면 | `READY` | `10%` | 동결 이후 인터페이스와 서비스 구현 시작 대기 |
-| `07` DB, SQL, 마이그레이션, 롤백 | `READY` | `15%` | `06` 인터페이스 윤곽이 또렷해진 뒤 DB 초안 보강 |
-| `08` 배포, 런타임 패키지, 서버 | `IN_PROGRESS` | `55%` | 운영 흐름 문서와 반복 스크립트 기준 마감 |
-| `09` 정합성, 비교, 복구, 검증 | `IN_PROGRESS` | `60%` | 정합성 점검표와 복구 계약/프로토타입 정리 |
-| `10` 설치형 모듈 및 공통 계열 | `IN_PROGRESS` | `65%` | 모듈 선택 결과와 추적 연계 규칙 마감 |
+| 세션 | 현재 상태 | 추정 진행률 | 담당 계정 | 최종 갱신 | 오늘 목표 |
+| --- | --- | ---: | --- | --- | --- |
+| `01` 계약 조정 | `IN_PROGRESS` | `80%` | `미지정` | `2026-03-21` | 공통 계약군을 마감하고 인계 기준 확정 |
+| `02` 제안 및 요구 접수 | `IN_PROGRESS` | `78%` | `미지정` | `2026-03-21` | 제안 흐름 계약과 프로토타입 연결 마감 |
+| `03` 테마, 셸, 디자인 시스템 | `IN_PROGRESS` | `65%` | `미지정` | `2026-03-21` | 공개/관리자 템플릿 라인과 테마 규칙 마감 |
+| `04` 빌더 및 자산 스튜디오 | `IN_PROGRESS` | `68%` | `미지정` | `2026-03-21` | 빌더/자산/화면 빌더 프로토타입 정합성 마감 |
+| `05` 프런트엔드 런타임 및 운영자 UI | `READY` | `15%` | `미지정` | `2026-03-21` | 동결 이후 React 구현 시작 대기 |
+| `06` 백엔드 제어 평면 | `READY` | `10%` | `미지정` | `2026-03-21` | 동결 이후 인터페이스와 서비스 구현 시작 대기 |
+| `07` DB, SQL, 마이그레이션, 롤백 | `READY` | `15%` | `미지정` | `2026-03-21` | `06` 인터페이스 윤곽이 또렷해진 뒤 DB 초안 보강 |
+| `08` 배포, 런타임 패키지, 서버 | `IN_PROGRESS` | `55%` | `미지정` | `2026-03-21` | 운영 흐름 문서와 반복 스크립트 기준 마감 |
+| `09` 정합성, 비교, 복구, 검증 | `IN_PROGRESS` | `60%` | `미지정` | `2026-03-21` | 정합성 점검표와 복구 계약/프로토타입 정리 |
+| `10` 설치형 모듈 및 공통 계열 | `IN_PROGRESS` | `65%` | `미지정` | `2026-03-21` | 모듈 선택 결과와 추적 연계 규칙 마감 |
 
 ## 비가역 기본 규칙
 
@@ -57,7 +57,13 @@
 - 상태: `IN_PROGRESS`
 - 추정 진행률: `80%`
 - 운영 메모: 공통 계약 문서군이 거의 정리됐고 인계 기준 마감이 남아 있습니다
+- 다음 1개 행동: 새 공통 계약 추가가 더 필요한지 최종 확인하고 세션 넘기기 기준을 한 줄로 확정합니다
 - 목적: 공통 계약, 스키마, 점검표, 공통 규칙을 먼저 확정합니다
+- 최근 변경 파일:
+  - `docs/architecture/platform-console-information-architecture.md`
+  - `docs/architecture/operator-feature-completeness-checklist.md`
+  - `docs/architecture/page-assembly-schema.md`
+  - `docs/ai/80-skills/resonance-10-session-assignment.md`
 - 허용 경로:
   - `/opt/projects/carbonet/docs/architecture`
   - `/opt/projects/carbonet/docs/ai/80-skills`
@@ -81,7 +87,13 @@
 - 상태: `IN_PROGRESS`
 - 추정 진행률: `78%`
 - 운영 메모: 제안 매핑, 인벤토리, 산출 흐름 문서와 프로토타입 연결이 진행 중입니다
+- 다음 1개 행동: 제안 흐름 계약 문서와 프로토타입 사이의 필드/단계/카운트 불일치를 한 번 더 맞춥니다
 - 목적: 제안 업로드, 매핑 초안, 인벤토리, 매트릭스, 시나리오/설계 산출 흐름을 정리합니다
+- 최근 변경 파일:
+  - `docs/architecture/project-proposal-generation-api-contracts.md`
+  - `docs/architecture/project-proposal-generation-inventory-checklist.md`
+  - `docs/prototypes/resonance-ui/proposal-mapping-draft.html`
+  - `docs/prototypes/resonance-ui/project-proposal-inventory.html`
 - 붙기/반복 기준:
   - 운영자가 `2번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`라고 말하면 항상 이 레인으로 해석합니다
   - 새 레인을 만들지 않고 현재 `02` 레인의 마지막 미완료 문서부터 이어갑니다
@@ -119,7 +131,13 @@
 - 상태: `IN_PROGRESS`
 - 추정 진행률: `65%`
 - 운영 메모: 테마, 템플릿 라인, 셸 규칙 문서 정리가 진행 중입니다
+- 다음 1개 행동: 공개/관리자 템플릿 라인 규칙과 테마 세트 기준을 한 번에 참조할 수 있게 묶습니다
 - 목적: 공개/관리자 템플릿 라인, 테마 세트, 색상/폰트/간격/토큰, 셸 구성을 정리합니다
+- 최근 변경 파일:
+  - `docs/architecture/public-admin-template-line-schema.md`
+  - `docs/architecture/theme-set-schema.md`
+  - `docs/prototypes/resonance-ui/theme-set-studio.html`
+  - `docs/prototypes/resonance-ui/design-workspace.html`
 - 허용 경로:
   - `/opt/projects/carbonet/docs/architecture`
   - `/opt/projects/carbonet/docs/frontend`
@@ -138,7 +156,13 @@
 - 상태: `IN_PROGRESS`
 - 추정 진행률: `68%`
 - 운영 메모: 빌더/자산/화면 빌더 프로토타입이 계속 수정 중이라 아직 넘기기 완료 전입니다
+- 다음 1개 행동: 화면 빌더, 자산 스튜디오, 유도 흐름 프로토타입 사이의 누락 연결을 닫습니다
 - 목적: 테마 세트 스튜디오, 증분 자산 스튜디오, 화면 빌더, 페이지/요소/조합 거버넌스를 정리합니다
+- 최근 변경 파일:
+  - `docs/prototypes/resonance-ui/screen-builder.html`
+  - `docs/prototypes/resonance-ui/asset-studio.html`
+  - `docs/prototypes/resonance-ui/guided-build-flow.html`
+  - `docs/architecture/page-design-guide-automation-contract.md`
 - 인계 기준:
   - 빌더 연계 계약 문서 추가 수정이 더 이상 필요 없다
   - 유도 흐름, 화면 빌더, 자산 스튜디오 관련 프로토타입이 1차 검토 가능한 상태다
@@ -162,8 +186,13 @@
 
 - 상태: `READY`
 - 추정 진행률: `15%`
-- 운영 메모: `01` 동결 이후 리액트 기반 화면 작업을 시작합니다
-- 목적: 리액트 운영 화면, 런타임 관리자 UI와 공개 UI의 일관성, 공통 기본 구성요소를 구현합니다
+- 운영 메모: `01` 동결 이후 React 기반 화면 작업을 시작합니다
+- 다음 1개 행동: 첫 구현 대상 화면과 공통 기본 구성요소 목록을 `03`, `04` 산출물 기준으로 고정합니다
+- 목적: React 운영 화면, 런타임 관리자 UI와 공개 UI의 일관성, 공통 기본 구성요소를 구현합니다
+- 최근 변경 파일:
+  - `docs/architecture/screen-family-ui-consistency-contract.md`
+  - `docs/prototypes/resonance-ui/index.html`
+  - `docs/prototypes/resonance-ui/project-runtime.html`
 - 허용 경로:
   - `/opt/projects/carbonet/frontend/src`
   - `/opt/projects/carbonet/frontend/scripts`
@@ -182,7 +211,12 @@
 - 상태: `READY`
 - 추정 진행률: `10%`
 - 운영 메모: 계약은 있으나 구현은 아직 본격 시작 전입니다
+- 다음 1개 행동: 첫 구현 대상 인터페이스와 서비스 뼈대를 현재 계약 문서 기준으로 확정합니다
 - 목적: 제어 평면 인터페이스, 레지스트리, 수명주기, 비교, 보정, 릴리스 서비스를 구현합니다
+- 최근 변경 파일:
+  - `docs/architecture/module-selection-api-contracts.md`
+  - `docs/architecture/repair-and-verification-api-contracts.md`
+  - `docs/prototypes/resonance-ui/backend-chain-explorer.html`
 - 허용 경로:
   - `/opt/projects/carbonet/src/main/java`
   - `/opt/projects/carbonet/src/main/resources/egovframework/mapper`
@@ -201,7 +235,11 @@
 - 상태: `READY`
 - 추정 진행률: `15%`
 - 운영 메모: `06` 백엔드 인터페이스가 안정된 뒤 DB 초안 작업을 시작합니다
+- 다음 1개 행동: `06` 인터페이스 초안이 고정되는 즉시 필요한 테이블/컬럼/롤백 지점을 목록화합니다
 - 목적: SQL 초안, DB 기준, 마이그레이션, 롤백, 공통/프로젝트 DB 분리를 정리합니다
+- 최근 변경 파일:
+  - `docs/architecture/chain-matrix-governance-schema.md`
+  - `docs/architecture/scenario-family-generation-contracts.md`
 - 허용 경로:
   - `/opt/projects/carbonet/docs/sql`
   - `/opt/projects/carbonet/docs/architecture`
@@ -220,7 +258,13 @@
 - 상태: `IN_PROGRESS`
 - 추정 진행률: `55%`
 - 운영 메모: 운영 흐름 문서, 배포 콘솔, 반복 스크립트 기준 정리가 진행 중입니다
+- 다음 1개 행동: 배포 콘솔 문서와 `ops/scripts/resonance-session-loop.sh`의 역할 경계를 맞춥니다
 - 목적: Jenkins/Nomad/Nginx, 런타임 패키지 매트릭스, 193->221 배포 흐름, 서버 세트 소유를 정리합니다
+- 최근 변경 파일:
+  - `docs/architecture/runtime-package-matrix-and-deploy-ia.md`
+  - `docs/prototypes/resonance-ui/deploy-console.html`
+  - `docs/prototypes/resonance-ui/runtime-package-matrix.html`
+  - `ops/scripts/resonance-session-loop.sh`
 - 허용 경로:
   - `/opt/projects/carbonet/ops`
   - `/opt/projects/carbonet/docs/architecture`
@@ -240,7 +284,13 @@
 - 상태: `IN_PROGRESS`
 - 추정 진행률: `60%`
 - 운영 메모: 점검표, 복구 계약, 누락 자산/비교 프로토타입 정리가 진행 중입니다
+- 다음 1개 행동: 정합성 점검표와 복구 계약 문서가 비교/검증 프로토타입에 바로 매핑되도록 기준을 닫습니다
 - 목적: 비교, 스모크 점검, 누락 자산 대기열, 복구 작업대, 정합성 및 일관성 검증을 정리합니다
+- 최근 변경 파일:
+  - `docs/architecture/parity-and-smoke-checklists.md`
+  - `docs/architecture/repair-and-verification-api-examples.md`
+  - `docs/prototypes/resonance-ui/current-runtime-compare.html`
+  - `docs/prototypes/resonance-ui/repair-workbench.html`
 - 허용 경로:
   - `/opt/projects/carbonet/docs/architecture`
   - `/opt/projects/carbonet/docs/prototypes/resonance-ui`
@@ -259,7 +309,13 @@
 - 상태: `IN_PROGRESS`
 - 추정 진행률: `65%`
 - 운영 메모: 모듈 선택 문서와 프로토타입은 많이 진행됐고 백엔드 연계가 남아 있습니다
+- 다음 1개 행동: 모듈 선택 결과, 적용 결과, 추적 연계 문서를 한 흐름으로 묶고 백엔드 연계 지점을 고정합니다
 - 목적: 모듈 수집, 선택 팝업, 공통 JAR 구성, 메일/SMS/인증/결재/인장 공통 연동기를 정리합니다
+- 최근 변경 파일:
+  - `docs/architecture/module-selection-apply-result-contract.md`
+  - `docs/architecture/module-selection-trace-linkage-contract.md`
+  - `docs/prototypes/resonance-ui/module-selection-result.html`
+  - `docs/prototypes/resonance-ui/module-selection-trace.html`
 - 허용 경로:
   - `/opt/projects/carbonet/docs/architecture`
   - `/opt/projects/carbonet/docs/prototypes/resonance-ui`
@@ -372,6 +428,6 @@ AI에게 `무한반복 N번에 붙어서`, `N번에 붙어서 무한 반복` 같
 다음 문서와 함께 사용합니다:
 
 - [tmux-multi-account-delivery-playbook.md](/opt/projects/carbonet/docs/architecture/tmux-multi-account-delivery-playbook.md)
-- 이 문서의 `운영자 라우팅 규칙` 섹션은 `붙어`, `붙어서`, `이어서 해줘`, `무한반복` 표현을 `tmux` 운영에 어떻게 해석할지 정한 기준입니다
+- 이 문서의 `운영자 라우팅 규칙` 섹션은 `붙어`, `붙어서`, `이어서 해줘`, `무한반복` 표현을 `tmux` 운영에서 어떻게 해석할지 정한 기준입니다
 - [resonance-ai-track-partition-map.md](/opt/projects/carbonet/docs/architecture/resonance-ai-track-partition-map.md)
 - [guided-operator-build-flow.md](/opt/projects/carbonet/docs/architecture/guided-operator-build-flow.md)

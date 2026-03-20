@@ -52,8 +52,23 @@ The mature output layer should be able to emit at least these governed deliverab
 - DB and SQL package
 - test and acceptance package
 - help and operator-guide package
+- page design-guide package
 - release-ready scaffold package
 - theme-set package
+
+## Project Proposal Design Output Rule
+
+When a new project begins from proposal upload, the design workspace should
+produce mature design-output packages as part of the same onboarding chain that
+creates menu trees, scenario families, and scaffold requests.
+
+The design-output view should therefore support:
+
+- project-level output counts
+- synthesis-run level output counts
+- package-family level output counts
+- direct links from design-output packages to scenario families and page designs
+- direct links from page designs to page-level design guides
 
 ## Canonical Source Rule
 
@@ -153,6 +168,25 @@ Recommended `exportFormatSet` values:
 - `scaffoldRequestSet`
 - `approvalState`
 - `generatedAt`
+
+### `proposal-mapping-draft.json`
+
+The first AI-assisted output after proposal upload should be stored as a
+governed mapping draft.
+
+It should include:
+
+- requirement item set
+- menu candidate set
+- scenario-family candidate set
+- page-family candidate set
+- component candidate set
+- API candidate set
+- DB candidate set
+- common-versus-project candidate split
+
+This draft is not final truth. It is the reviewable bridge between uploaded
+proposal files and canonical mapping approval.
 
 ### `PAGE_DESIGN_REGISTRY`
 
@@ -277,6 +311,7 @@ Actions:
 - create page-design draft
 - compare page-design versions
 - bind page-design to scenarios and menus
+- generate or refresh page-level design guide
 
 ### 3-B. Element Design Workspace
 

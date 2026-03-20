@@ -38,8 +38,10 @@ Operators and AI workers should be able to:
 - list scenario families by project and requirement domain
 - inspect child scenarios without reading raw source files
 - select one scenario and immediately inspect its menu, page, actor, API, DB, and action-layout bindings
+- select one scenario step and bind a menu directly to that step
 - add page, menu, button, component, event, function, and API assets from that selected scenario context
 - inspect the generated result chain from scenario to release unit
+- inspect which proposal-generated design-output packages currently back the scenario family
 
 ## Scenario Completeness And Runtime Parity Rule
 
@@ -140,6 +142,7 @@ These APIs should return:
 ### Scenario Asset Augmentation
 
 - `POST /api/admin/resonance/scenarios/{scenarioId}/menu-bindings`
+- `POST /api/admin/resonance/scenario-steps/{scenarioStepId}/menu-bindings`
 - `POST /api/admin/resonance/scenarios/{scenarioId}/page-bindings`
 - `POST /api/admin/resonance/scenarios/{scenarioId}/button-bindings`
 - `POST /api/admin/resonance/scenarios/{scenarioId}/component-bindings`
@@ -150,6 +153,7 @@ These APIs should return:
 Use this rule:
 
 - additions happen from a selected scenario context
+- additions may also happen from a selected scenario-step context when one step owns one page or popup
 - the system should not allow asset creation with no scenario ownership
 - added assets must be immediately queryable from the scenario detail screen
 
@@ -168,6 +172,17 @@ These APIs should expose:
 - published version history
 - release-unit bindings
 - deploy and rollback pointers
+- linked mature design-output packages
+
+## Project Proposal Scenario Output Rule
+
+When a scenario family is generated from proposal upload, the control plane
+should preserve project-level visibility into:
+
+- how many scenario families were created
+- how many child scenarios and steps were created
+- which design-output packages back each scenario family
+- which scenario families are still missing page assemblies or bindings
 
 ## `scenario-definition.json`
 

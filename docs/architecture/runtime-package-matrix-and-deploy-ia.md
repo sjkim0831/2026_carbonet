@@ -32,6 +32,8 @@ Required columns:
 - `rollbackReadyYn`
 - `targetServerRoleSet`
 - `mainServerTruthRequiredYn`
+- `screenFamilyRuleId`
+- `guidedStateId`
 - `compareState`
 - `blockerCount`
 - `patternFamilyState`
@@ -55,6 +57,7 @@ Recommended `assetFamily` values:
 - `BACKEND_CHAIN`
 - `DB_SQL_DRAFT`
 - `CRON_BINDING`
+- `SCREEN_FAMILY_RULE`
 
 ## 2. Project-Unit Deploy View
 
@@ -79,6 +82,7 @@ Required panes:
 - compare current vs target
 - compare style coverage and dedupe state
 - compare module pattern family and depth profile state
+- compare screen-family rule and guided-step ownership state
 
 ### Right: Deploy And Rollback Rail
 
@@ -109,6 +113,7 @@ Each tab should show:
 - smoke readiness
 - parity blockers
 - recent deploy trace
+- active guided step and family-rule blockers
 
 ## 4. Compare Views
 
@@ -120,6 +125,7 @@ The screen should support compare pivots:
 - `common line current` vs `common line target`
 - `frontend pattern` vs `backend/db/package pattern`
 - `theme/css/module style coverage` vs `runtime attached style state`
+- `screen family rule current` vs `screen family rule target`
 
 ## 5. Required Actions
 
@@ -146,3 +152,4 @@ Do not allow deploy-complete status when:
 - common/project split is ambiguous
 - pattern consistency is not green across frontend, backend, DB, and runtime package families
 - style coverage or style dedupe state is not green
+- screen-family rule state is unresolved for required runtime pages

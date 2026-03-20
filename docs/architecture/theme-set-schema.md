@@ -21,6 +21,7 @@ One theme set should bundle together:
 - approved component bundle
 - approved composite block set
 - starter page and element design assets
+- screen-family starter rule set
 
 ## Required Fields
 
@@ -40,6 +41,7 @@ One theme set should bundle together:
 - `compositeBlockSet`
 - `starterPageDesignSet`
 - `starterElementDesignSet`
+- `screenFamilyRuleSet`
 - `responsiveProfileSet`
 - `languageProfileSet`
 - `accessibilityProfileId`
@@ -72,6 +74,7 @@ Reject publish-ready theme sets when:
 - page-frame families are missing
 - component bundle is empty
 - starter design sets are empty
+- screen-family starter rules are missing for governed page families
 - accessibility profile is missing
 - visual direction is not documented
 
@@ -84,3 +87,4 @@ Reject publish-ready theme sets when:
 - component palette filtering
 - shell and frame preview
 - parity and uniformity comparison
+- screen-family rule generation

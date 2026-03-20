@@ -33,7 +33,9 @@ Confirm the operator can:
 
 - import current runtime menu tree
 - register home and admin menu trees
+- inspect and manage public/admin template lines
 - link menu to scenario family and child scenario
+- inspect screen family rules per page family
 - verify menu-to-rendered-screen status
 - see missing page-family and requirement gaps
 - open repair from a failed menu/page parity row
@@ -46,6 +48,7 @@ Confirm the operator can:
 - manage page designs
 - manage element design sets
 - assemble pages from pre-registered assets
+- manage screen family rules
 - manage component catalog items
 - manage component slot profiles
 - manage shell item registries for header, menu, utility, and footer
@@ -79,6 +82,7 @@ Confirm the operator can:
 
 - build by project unit
 - view runtime package matrix
+- inspect guided-step state and next AI action
 - select common jar, frontend bundle, module lines, and optional library bundles
 - inspect full-stack pattern consistency state
 - inspect module pattern and style dedupe state
@@ -124,6 +128,7 @@ The control plane is not complete if any of the following is missing:
 
 - project-unit runtime package matrix
 - menu-to-rendered-screen verification
+- template-line and screen-family-rule management
 - missing asset queues
 - repair open/apply flow
 - backend chain explorer
