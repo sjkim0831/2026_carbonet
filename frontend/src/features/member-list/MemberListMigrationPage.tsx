@@ -10,9 +10,9 @@ import {
   resolveMembershipTypeLabel
 } from "../member/shared";
 import { resolveMemberStatusBadgeClass, resolveMemberStatusLabel } from "../member/status";
-import { AdminInput, AdminSelect, AdminTable, MemberButton, MemberLinkButton, MemberPagination } from "../member/common";
+import { AdminInput, AdminSelect, AdminTable, MemberButton, MemberLinkButton, MemberPagination, MemberSectionToolbar } from "../member/common";
 import { MEMBER_BUTTON_LABELS, MEMBER_LIST_LABELS } from "../member/labels";
-import { MemberListEmptyRow, MemberListToolbar } from "../member/toolbar";
+import { MemberCountSummary, MemberListEmptyRow, MemberListTopActions } from "../member/toolbar";
 
 type SearchFilters = {
   searchKeyword: string;
@@ -110,6 +110,12 @@ export function MemberListMigrationPage() {
     applyFilters(1);
   }
 
+  function resetFilters() {
+    setActionError("");
+    setDraftFilters(DEFAULT_FILTERS);
+    setFilters(DEFAULT_FILTERS);
+  }
+
   return (
     <AdminPageShell
       breadcrumbs={[
@@ -117,6 +123,7 @@ export function MemberListMigrationPage() {
         { label: "회원" },
         { label: "회원 목록 조회" }
       ]}
+      subtitle="검색 조건과 가입 상태를 기준으로 기업 회원 신청 현황을 빠르게 확인하고 상세 관리 화면으로 이동합니다."
       title="회원 목록 조회"
       loading={pageState.loading && !page && !error}
       loadingLabel="회원 목록을 불러오는 중입니다."
@@ -124,7 +131,20 @@ export function MemberListMigrationPage() {
       {error ? <section className="border border-red-200 bg-red-50 rounded-[var(--kr-gov-radius)] px-4 py-3 mb-4"><p className="text-sm text-red-700">조회 중 오류: {error}</p></section> : null}
       <CanView allowed={!!page?.canViewMemberList} fallback={<section className="bg-white border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] px-6 py-8"><p className="text-sm text-[var(--kr-gov-text-secondary)]">회원 목록을 불러올 수 없습니다.</p></section>}>
         <div className="gov-card mb-8" data-help-id="member-search-form">
-          <form className="grid grid-cols-1 md:grid-cols-4 gap-6" data-help-id="member-list-search" onSubmit={handleSearchSubmit}>
+          <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
+            <MemberSectionToolbar
+              actions={(
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
+                    현재 페이지 {currentPage} / {totalPages}
+                  </span>
+                </div>
+              )}
+              meta="회원 유형, 상태, 검색어를 함께 조합해 목록 기준 화면을 동일한 밀도로 유지합니다."
+              title="검색 조건"
+            />
+          </div>
+          <form className="grid grid-cols-1 gap-6 px-6 py-6 md:grid-cols-4" data-help-id="member-list-search" onSubmit={handleSearchSubmit}>
             <div>
               <span className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">회원 유형</span>
               <AdminSelect id="member-type" value={draftFilters.membershipType} onChange={(event) => updateDraft("membershipType", event.target.value)}>
@@ -145,22 +165,39 @@ export function MemberListMigrationPage() {
               <span className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">검색어</span>
               <div className="flex gap-2">
                 <AdminInput className="flex-1" id="keyword" placeholder="신청자명, 아이디, 회사명 검색" value={draftFilters.searchKeyword} onChange={(event) => updateDraft("searchKeyword", event.target.value)} />
-                <MemberButton icon="search" type="submit" variant="primary">
-                  {MEMBER_BUTTON_LABELS.search}
-                </MemberButton>
+              </div>
+            </div>
+            <div className="md:col-span-4">
+              <div className="flex flex-col gap-3 border-t border-[var(--kr-gov-border-light)] pt-5 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
+                  동일한 목록형 화면은 검색 카드, 상단 툴바, 결과 테이블 순서를 유지합니다.
+                </p>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <MemberButton onClick={resetFilters} type="button" variant="secondary">
+                    {MEMBER_BUTTON_LABELS.reset}
+                  </MemberButton>
+                  <MemberButton icon="search" type="submit" variant="primary">
+                    {MEMBER_BUTTON_LABELS.search}
+                  </MemberButton>
+                </div>
               </div>
             </div>
           </form>
         </div>
 
-        <MemberListToolbar
-          className="mb-4"
-          excelHref={buildMemberListExcelPath(filters)}
-          registerHref={buildLocalizedPath("/admin/member/register", "/en/admin/member/register")}
-          totalCount={Number(page?.totalCount || 0)}
-        />
-
         <div className="gov-card p-0 overflow-hidden" data-help-id="member-table">
+          <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
+            <MemberSectionToolbar
+              actions={(
+                <MemberListTopActions
+                  excelHref={buildMemberListExcelPath(filters)}
+                  registerHref={buildLocalizedPath("/admin/member/register", "/en/admin/member/register")}
+                />
+              )}
+              meta="회원 목록형 화면은 전체 건수, 다운로드, 신규 등록 버튼의 순서와 높이를 동일하게 유지합니다."
+              title={<MemberCountSummary totalCount={Number(page?.totalCount || 0)} />}
+            />
+          </div>
           <div className="overflow-x-auto" data-help-id="member-list-table">
             <AdminTable>
               <thead>
@@ -195,13 +232,15 @@ export function MemberListMigrationPage() {
                           {resolveMemberStatusLabel(row.entrprsMberSttus)}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-center space-x-1">
-                        <MemberLinkButton href={buildAdminPath("/admin/member/edit", "/en/admin/member/edit", "memberId", memberId)} size="xs" variant="secondary">
-                          {MEMBER_BUTTON_LABELS.edit}
-                        </MemberLinkButton>
-                        <MemberLinkButton href={buildAdminPath("/admin/member/detail", "/en/admin/member/detail", "memberId", memberId)} size="xs" variant="primary">
-                          {MEMBER_BUTTON_LABELS.detail}
-                        </MemberLinkButton>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-wrap items-center justify-center gap-2">
+                          <MemberLinkButton href={buildAdminPath("/admin/member/edit", "/en/admin/member/edit", "memberId", memberId)} size="xs" variant="secondary">
+                            {MEMBER_BUTTON_LABELS.edit}
+                          </MemberLinkButton>
+                          <MemberLinkButton href={buildAdminPath("/admin/member/detail", "/en/admin/member/detail", "memberId", memberId)} size="xs" variant="primary">
+                            {MEMBER_BUTTON_LABELS.detail}
+                          </MemberLinkButton>
+                        </div>
                       </td>
                     </tr>
                   );
