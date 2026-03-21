@@ -28,6 +28,42 @@ const DEFAULT_FILTERS: SearchFilters = {
   pageIndex: 1
 };
 
+function readInitialFilters(): SearchFilters {
+  if (typeof window === "undefined") {
+    return DEFAULT_FILTERS;
+  }
+  const params = new URLSearchParams(window.location.search);
+  return {
+    searchKeyword: params.get("searchKeyword") || "",
+    membershipType: params.get("membershipType") || "",
+    status: params.get("sbscrbSttus") || "",
+    pageIndex: Number(params.get("pageIndex") || "1") || 1
+  };
+}
+
+function resolveMemberListPageCopy(status: string) {
+  const normalizedStatus = String(status || "").trim().toUpperCase();
+  if (normalizedStatus === "D") {
+    return {
+      breadcrumb: "탈퇴 회원",
+      title: "탈퇴 회원",
+      subtitle: "삭제 상태 회원을 조회하고 상세 이력을 확인합니다."
+    };
+  }
+  if (normalizedStatus === "X") {
+    return {
+      breadcrumb: "휴면 계정",
+      title: "휴면 계정",
+      subtitle: "비활성 상태 회원을 조회하고 후속 조치 대상 여부를 확인합니다."
+    };
+  }
+  return {
+    breadcrumb: "회원 목록 조회",
+    title: "회원 목록 조회",
+    subtitle: "검색 조건과 가입 상태를 기준으로 기업 회원 신청 현황을 빠르게 확인하고 상세 관리 화면으로 이동합니다."
+  };
+}
+
 function buildAdminPath(koPath: string, enPath: string, key?: string, value?: string) {
   const params = new URLSearchParams();
   if (key && value) {
@@ -59,8 +95,8 @@ function buildMemberListExcelPath(filters: SearchFilters) {
 }
 
 export function MemberListMigrationPage() {
-  const [filters, setFilters] = useState<SearchFilters>(DEFAULT_FILTERS);
-  const [draftFilters, setDraftFilters] = useState<SearchFilters>(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState<SearchFilters>(() => readInitialFilters());
+  const [draftFilters, setDraftFilters] = useState<SearchFilters>(() => readInitialFilters());
   const [actionError, setActionError] = useState("");
   const pageState = useAsyncValue<MemberListPagePayload>(
     () => fetchMemberListPage({
@@ -87,6 +123,7 @@ export function MemberListMigrationPage() {
   const error = actionError || pageState.error;
   const totalPages = Math.max(1, Number(page?.totalPages || 1));
   const currentPage = Math.max(1, Number(page?.pageIndex || filters.pageIndex || 1));
+  const pageCopy = resolveMemberListPageCopy(filters.status || page?.sbscrbSttus || "");
 
   function updateDraft<K extends keyof SearchFilters>(key: K, value: SearchFilters[K]) {
     setDraftFilters((current) => ({ ...current, [key]: value }));
@@ -121,10 +158,10 @@ export function MemberListMigrationPage() {
       breadcrumbs={[
         { label: "홈", href: buildLocalizedPath("/admin/", "/en/admin/") },
         { label: "회원" },
-        { label: "회원 목록 조회" }
+        { label: pageCopy.breadcrumb }
       ]}
-      subtitle="검색 조건과 가입 상태를 기준으로 기업 회원 신청 현황을 빠르게 확인하고 상세 관리 화면으로 이동합니다."
-      title="회원 목록 조회"
+      subtitle={pageCopy.subtitle}
+      title={pageCopy.title}
       loading={pageState.loading && !page && !error}
       loadingLabel="회원 목록을 불러오는 중입니다."
     >

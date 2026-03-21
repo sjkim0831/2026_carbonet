@@ -16,9 +16,11 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -48,6 +50,7 @@ public class AdminMenuTreeService {
         Map<String, AdminMenuDomainDTO> domainByCode = new LinkedHashMap<>();
         Map<String, AdminMenuGroupDTO> groupByCode = new LinkedHashMap<>();
         Map<String, Integer> sortOrderMap = new LinkedHashMap<>();
+        Set<String> exposedMenuKeys = new LinkedHashSet<>();
 
         for (MenuInfoDTO row : rows) {
             String code = safeString(row.getCode());
@@ -97,10 +100,19 @@ public class AdminMenuTreeService {
                 }
             } else if (code.length() == 8) {
                 String menuUrl = normalizeMenuUrl(row.getMenuUrl());
+                if (shouldHideMenu(code, menuUrl)) {
+                    continue;
+                }
                 if (!shouldExposeMenu(authorCode, menuUrl)) {
                     continue;
                 }
                 String exposedMenuUrl = mapReactAdminMenuUrl(menuUrl, isEn);
+                String exposedMenuKey = normalizeMenuUrl(exposedMenuUrl);
+                if (exposedMenuKey.isEmpty()
+                        || !shouldKeepPreferredMenu(code, menuUrl)
+                        || !exposedMenuKeys.add(exposedMenuKey)) {
+                    continue;
+                }
                 String groupCode = code.substring(0, 6);
                 AdminMenuGroupDTO group = groupByCode.get(groupCode);
                 if (group == null) {
@@ -264,14 +276,16 @@ public class AdminMenuTreeService {
         if (url.isEmpty() || "#".equals(url)) {
             return url;
         }
+        if ("/admin/member/withdrawn".equals(url)) {
+            url = "/admin/member/list?sbscrbSttus=D";
+        } else if ("/admin/member/activate".equals(url)) {
+            url = "/admin/member/list?sbscrbSttus=X";
+        }
         String canonical = ReactPageUrlMapper.toCanonicalMenuUrl(url);
         if (!canonical.isEmpty()) {
             url = canonical;
         }
-        if (isEn && !url.startsWith("/en/")) {
-            return "/en" + url;
-        }
-        return url;
+        return isEn ? localizeAdminUrl(url) : url;
     }
 
     private String safeString(String value) {
@@ -315,13 +329,44 @@ public class AdminMenuTreeService {
     }
 
     private String resolveCodeByUrl(List<MenuInfoDTO> rows, String menuUrl) {
-        String normalizedUrl = ReactPageUrlMapper.toCanonicalMenuUrl(normalizeMenuUrl(menuUrl));
+        String normalizedUrl = normalizeMenuUrl(menuUrl);
         for (MenuInfoDTO row : rows) {
-            String rowUrl = ReactPageUrlMapper.toCanonicalMenuUrl(normalizeMenuUrl(row.getMenuUrl()));
+            String rowUrl = normalizeMenuUrl(mapReactAdminMenuUrl(row.getMenuUrl(), false));
             if (rowUrl.equals(normalizedUrl)) {
                 return safeString(row.getCode());
             }
         }
         return "";
+    }
+
+    private boolean shouldHideMenu(String code, String menuUrl) {
+        String normalizedCode = safeString(code);
+        String normalizedMenuUrl = normalizeMenuUrl(menuUrl);
+        return "/admin/member/edit".equals(normalizedMenuUrl)
+                || "/admin/member/detail".equals(normalizedMenuUrl)
+                || "/admin/member/company_detail".equals(normalizedMenuUrl)
+                || "/admin/member/admin_account/permissions".equals(normalizedMenuUrl)
+                || ("A0010203".equals(normalizedCode) && "/admin/member/company_account".equals(normalizedMenuUrl));
+    }
+
+    private boolean shouldKeepPreferredMenu(String code, String menuUrl) {
+        String normalizedCode = safeString(code);
+        String normalizedMenuUrl = normalizeMenuUrl(menuUrl);
+        if ("/admin/member/company_account".equals(normalizedMenuUrl)) {
+            return "A0010102".equals(normalizedCode) || normalizedCode.isEmpty();
+        }
+        return true;
+    }
+
+    private String localizeAdminUrl(String url) {
+        String normalizedUrl = normalizeMenuUrl(url);
+        if (normalizedUrl.isEmpty() || normalizedUrl.startsWith("/en/")) {
+            return normalizedUrl;
+        }
+        int queryIndex = normalizedUrl.indexOf('?');
+        if (queryIndex < 0) {
+            return "/en" + normalizedUrl;
+        }
+        return "/en" + normalizedUrl.substring(0, queryIndex) + normalizedUrl.substring(queryIndex);
     }
 }

@@ -155,10 +155,31 @@ function getFallbackMenuTree(): Record<string, AdminMenuDomain> {
           icon: "group",
           links: [
             { text: "회원 목록", tEn: "Member List", u: buildLocalizedPath("/admin/member/list", "/en/admin/member/list"), icon: "badge" },
-            { text: "회원 승인", tEn: "Member Approval", u: buildLocalizedPath("/admin/member/approve", "/en/admin/member/approve"), icon: "task" },
+            { text: "신규 회원 등록", tEn: "New Member Registration", u: buildLocalizedPath("/admin/member/company_account", "/en/admin/member/company_account"), icon: "person_add" },
+            { text: "가입 승인", tEn: "Sign-up Approval", u: buildLocalizedPath("/admin/member/approve", "/en/admin/member/approve"), icon: "task" },
+            { text: "탈퇴 회원", tEn: "Withdrawn Members", u: buildLocalizedPath("/admin/member/list?sbscrbSttus=D", "/en/admin/member/list?sbscrbSttus=D"), icon: "person_remove" },
+            { text: "휴면 계정", tEn: "Dormant Accounts", u: buildLocalizedPath("/admin/member/list?sbscrbSttus=X", "/en/admin/member/list?sbscrbSttus=X"), icon: "bedtime" }
+          ]
+        },
+        {
+          title: "회원사",
+          titleEn: "Companies",
+          icon: "apartment",
+          links: [
             { text: "회원사 목록", tEn: "Company List", u: buildLocalizedPath("/admin/member/company_list", "/en/admin/member/company_list"), icon: "apartment" },
-            { text: "회원사 승인", tEn: "Company Approval", u: buildLocalizedPath("/admin/member/company-approve", "/en/admin/member/company-approve"), icon: "domain_verification" },
-            { text: "관리자 목록", tEn: "Admin List", u: buildLocalizedPath("/admin/member/admin_list", "/en/admin/member/admin_list"), icon: "admin_panel_settings" }
+            { text: "회원사 승인", tEn: "Company Approval", u: buildLocalizedPath("/admin/member/company-approve", "/en/admin/member/company-approve"), icon: "domain_verification" }
+          ]
+        },
+        {
+          title: "관리자",
+          titleEn: "Administrators",
+          icon: "admin_panel_settings",
+          links: [
+            { text: "관리자 목록", tEn: "Admin List", u: buildLocalizedPath("/admin/member/admin_list", "/en/admin/member/admin_list"), icon: "admin_panel_settings" },
+            { text: "관리자 계정 생성", tEn: "Admin Account Create", u: buildLocalizedPath("/admin/member/admin_account", "/en/admin/member/admin_account"), icon: "person_add_alt" },
+            { text: "권한 변경", tEn: "Permission Changes", u: buildLocalizedPath("/admin/member/auth-change", "/en/admin/member/auth-change"), icon: "swap_horiz" },
+            { text: "권한 그룹", tEn: "Permission Groups", u: buildLocalizedPath("/admin/auth/group", "/en/admin/auth/group"), icon: "shield" },
+            { text: "부서 권한 맵핑", tEn: "Department Permission Mapping", u: buildLocalizedPath("/admin/member/dept-role-mapping", "/en/admin/member/dept-role-mapping"), icon: "account_tree" }
           ]
         }
       ]
@@ -283,14 +304,14 @@ function ensureCurrentPageInMenuTree(
   breadcrumbs?: BreadcrumbItem[],
   en?: boolean
 ) {
-  const currentFull = normalizeComparablePath(currentPath);
+  const currentFull = resolveMenuComparablePath(currentPath, false);
   const currentBase = pathOnly(currentFull);
   const nextTree = cloneMenuTree(source);
 
   for (const domain of Object.values(nextTree)) {
     for (const group of domain.groups || []) {
       const matched = (group.links || []).some((link) => {
-        const targetFull = normalizeComparablePath(link.u || "");
+        const targetFull = resolveMenuComparablePath(link.u || "", true);
         const targetBase = pathOnly(targetFull);
         return targetFull === currentFull || targetBase === currentBase;
       });
@@ -347,6 +368,41 @@ function normalizeComparablePath(value: string) {
   }
 }
 
+function resolveMenuComparablePath(value: string, preserveDirectMenu = true) {
+  const normalized = normalizeComparablePath(value);
+  try {
+    const url = new URL(normalized, window.location.origin);
+    const pathname = pathOnly(url.pathname);
+    const search = new URLSearchParams(url.search);
+
+    if (pathname === "/admin/member/edit"
+      || pathname === "/en/admin/member/edit"
+      || pathname === "/admin/member/detail"
+      || pathname === "/en/admin/member/detail") {
+      return pathname.startsWith("/en/") ? "/en/admin/member/list" : "/admin/member/list";
+    }
+
+    if (pathname === "/admin/member/company_detail" || pathname === "/en/admin/member/company_detail") {
+      return pathname.startsWith("/en/") ? "/en/admin/member/company_list" : "/admin/member/company_list";
+    }
+
+    if (pathname === "/admin/member/company_account" || pathname === "/en/admin/member/company_account") {
+      if (!preserveDirectMenu && search.get("insttId")) {
+        return pathname.startsWith("/en/") ? "/en/admin/member/company_list" : "/admin/member/company_list";
+      }
+      return normalized;
+    }
+
+    if (pathname === "/admin/member/admin_account/permissions" || pathname === "/en/admin/member/admin_account/permissions") {
+      return pathname.startsWith("/en/") ? "/en/admin/member/admin_list" : "/admin/member/admin_list";
+    }
+
+    return normalized;
+  } catch {
+    return normalized;
+  }
+}
+
 function pathOnly(value: string) {
   const [pathname] = normalizeComparablePath(value).split("?");
   return pathname;
@@ -367,13 +423,13 @@ function resolveFirstDomainPath(domain: AdminMenuDomain | undefined) {
 }
 
 function resolveActiveDomainKey(menuTree: Record<string, AdminMenuDomain>, currentPath: string) {
-  const currentFull = normalizeComparablePath(currentPath);
+  const currentFull = resolveMenuComparablePath(currentPath, false);
   const currentBase = pathOnly(currentFull);
 
   for (const [domainKey, domain] of Object.entries(menuTree)) {
     for (const group of domain.groups || []) {
       for (const link of group.links || []) {
-        const targetFull = normalizeComparablePath(link.u || "");
+        const targetFull = resolveMenuComparablePath(link.u || "", true);
         const targetBase = pathOnly(targetFull);
         if (targetFull === currentFull || targetBase === currentBase) {
           return domainKey;
@@ -386,13 +442,13 @@ function resolveActiveDomainKey(menuTree: Record<string, AdminMenuDomain>, curre
 }
 
 function resolveActiveLinkIndex(links: Array<{ u?: string }>, currentPath: string) {
-  const currentFull = normalizeComparablePath(currentPath);
+  const currentFull = resolveMenuComparablePath(currentPath, false);
   const currentBase = pathOnly(currentFull);
-  const exactIndex = links.findIndex((link) => normalizeComparablePath(link.u || "") === currentFull);
+  const exactIndex = links.findIndex((link) => resolveMenuComparablePath(link.u || "", true) === currentFull);
   if (exactIndex >= 0) {
     return exactIndex;
   }
-  return links.findIndex((link) => pathOnly(link.u || "") === currentBase);
+  return links.findIndex((link) => pathOnly(resolveMenuComparablePath(link.u || "", true)) === currentBase);
 }
 
 function normalizeMenuSearchText(value: string | undefined) {
@@ -566,12 +622,13 @@ export function AdminPageShell({
     if (!selectedDomain) {
       return;
     }
+    const currentComparable = resolveMenuComparablePath(currentPath, false);
     const nextState: Record<string, boolean> = {};
     (selectedDomain.groups || []).forEach((group, index) => {
       const hasActiveLink = (group.links || []).some((link) => {
-        const targetFull = normalizeComparablePath(link.u || "");
+        const targetFull = resolveMenuComparablePath(link.u || "", true);
         const targetBase = pathOnly(targetFull);
-        return targetFull === normalizeComparablePath(currentPath) || targetBase === pathOnly(currentPath);
+        return targetFull === currentComparable || targetBase === pathOnly(currentComparable);
       });
       nextState[group.title || `group-${index}`] = hasActiveLink || index === 0;
     });
