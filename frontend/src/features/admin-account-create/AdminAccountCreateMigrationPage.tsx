@@ -29,24 +29,31 @@ import { AdminEditPageFrame } from "../admin-ui/pageFrames";
 const ROLE_PRESETS = [
   { code: "MASTER", label: "마스터 관리자" },
   { code: "SYSTEM", label: "시스템 관리자" },
-  { code: "OPERATION", label: "운영 관리자" },
-  { code: "GENERAL", label: "일반 관리자" }
+  { code: "OPERATION", label: "운영 관리자" }
+] as const;
+
+const ROLE_PRESET_SUMMARIES: Record<string, string> = {
+  MASTER: "기관 검색 없이 마스터 관리자 권한을 바로 부여합니다.",
+  SYSTEM: "소속 회사 기준으로 설정, 계정, 운영 체계를 총괄합니다.",
+  OPERATION: "소속 회사 기준으로 실무 운영과 현장 업무를 담당합니다."
+};
+
+const MEMBERSHIP_TYPE_OPTIONS = [
+  { value: "E", label: "CO2 배출사업자" },
+  { value: "P", label: "CCUS 프로젝트 사업자" },
+  { value: "C", label: "진흥·지원 기관" },
+  { value: "G", label: "관계 기관·주무관청" }
 ] as const;
 
 function roleChipClass(active: boolean) {
-  return `flex items-center justify-center min-h-[52px] rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] px-4 text-sm font-bold transition-all ${
+  return `flex min-h-[56px] w-full items-center justify-center rounded-[var(--kr-gov-radius)] border px-4 text-center text-sm font-bold whitespace-nowrap transition-all ${
     active
       ? "border-[var(--kr-gov-blue)] bg-blue-50 text-[var(--kr-gov-blue)] shadow-sm"
-      : "bg-white text-[var(--kr-gov-text-secondary)]"
+      : "border-[var(--kr-gov-border-light)] bg-white text-[var(--kr-gov-text-secondary)] hover:border-[var(--kr-gov-blue)]/40 hover:bg-slate-50"
   }`;
 }
 
 type CompanyResult = CompanySearchPayload["list"][number];
-
-function normalizeText(value: unknown, fallback = "-") {
-  const text = String(value || "").trim();
-  return text || fallback;
-}
 
 export function AdminAccountCreateMigrationPage() {
   const [session, setSession] = useState<FrontendSession | null>(null);
@@ -66,13 +73,11 @@ export function AdminAccountCreateMigrationPage() {
   const [companyName, setCompanyName] = useState("");
   const [bizrno, setBizrno] = useState("");
   const [representativeName, setRepresentativeName] = useState("");
-  const [featureCodes, setFeatureCodes] = useState<string[]>([]);
   const [companyKeyword, setCompanyKeyword] = useState("");
   const [companySearch, setCompanySearch] = useState<CompanySearchPayload | null>(null);
   const [companySearchOpen, setCompanySearchOpen] = useState(false);
   const [idCheckMessage, setIdCheckMessage] = useState("");
   const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
   const [searchingCompanies, setSearchingCompanies] = useState(false);
 
   useEffect(() => {
@@ -86,8 +91,6 @@ export function AdminAccountCreateMigrationPage() {
   }, []);
 
   useEffect(() => {
-    const presetMap = (page?.adminAccountCreatePresetFeatureCodes || {}) as Record<string, string[]>;
-    setFeatureCodes([...(presetMap[rolePreset] || [])]);
     if (rolePreset === "MASTER") {
       setMembershipType("");
       setInsttId("");
@@ -98,16 +101,11 @@ export function AdminAccountCreateMigrationPage() {
   }, [page, rolePreset]);
 
   const canUseCreate = !!page?.canUseAdminAccountCreate;
-  const featureSections = page?.permissionFeatureSections || [];
-  const summarySections = featureSections.slice(0, 4);
-
-  const sectionSelections = useMemo(() => (
-    summarySections.map((section) => ({
-      section,
-      selectedCount: section.features.filter((feature) => featureCodes.includes(feature.featureCode)).length,
-      totalCount: section.features.length
-    }))
-  ), [featureCodes, summarySections]);
+  const filteredCompanyResults = useMemo(() => {
+    const rows = companySearch?.list || [];
+    if (!membershipType) return rows;
+    return rows.filter((item) => String(item.entrprsSeCode || "").toUpperCase() === membershipType);
+  }, [companySearch, membershipType]);
 
   function resetForm() {
     setAdminId("");
@@ -128,7 +126,6 @@ export function AdminAccountCreateMigrationPage() {
     setCompanySearch(null);
     setCompanySearchOpen(false);
     setIdCheckMessage("");
-    setMessage("");
   }
 
   function applyCompany(item: CompanyResult) {
@@ -137,20 +134,6 @@ export function AdminAccountCreateMigrationPage() {
     setBizrno(item.bizrno);
     setRepresentativeName(item.cxfc);
     setCompanySearchOpen(false);
-  }
-
-  function toggleSection(sectionFeatureCodes: string[], nextChecked: boolean) {
-    setFeatureCodes((current) => {
-      const set = new Set(current);
-      sectionFeatureCodes.forEach((code) => {
-        if (nextChecked) {
-          set.add(code);
-        } else {
-          set.delete(code);
-        }
-      });
-      return [...set];
-    });
   }
 
   async function handleCheckId() {
@@ -166,9 +149,13 @@ export function AdminAccountCreateMigrationPage() {
 
   async function handleCompanySearch(pageIndex = 1) {
     setError("");
+    if (!membershipType) {
+      setError("회사 타입을 먼저 선택해 주세요.");
+      return;
+    }
     setSearchingCompanies(true);
     try {
-      const result = await searchAdminCompanies({ keyword: companyKeyword, page: pageIndex, size: 5, status: "P" });
+      const result = await searchAdminCompanies({ keyword: companyKeyword, page: pageIndex, size: 5 });
       setCompanySearch(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : "회사 검색 실패");
@@ -180,9 +167,14 @@ export function AdminAccountCreateMigrationPage() {
   async function handleSave() {
     if (!session) return;
     setError("");
-    setMessage("");
     try {
-      const result = await createAdminAccount(session, {
+      if (rolePreset !== "MASTER" && !membershipType) {
+        throw new Error("시스템 관리자와 운영 관리자는 회사 타입을 선택해야 합니다.");
+      }
+      if (rolePreset !== "MASTER" && !insttId) {
+        throw new Error("시스템 관리자와 운영 관리자는 기관 검색으로 소속 회사를 지정해야 합니다.");
+      }
+      await createAdminAccount(session, {
         rolePreset,
         adminId,
         adminName,
@@ -194,9 +186,9 @@ export function AdminAccountCreateMigrationPage() {
         phone3,
         deptNm,
         insttId,
-        featureCodes
+        featureCodes: []
       });
-      setMessage(`${result.emplyrId} 관리자 계정을 생성했습니다.`);
+      window.location.href = buildLocalizedPath("/admin/member/admin_list", "/en/admin/member/admin_list");
       resetForm();
     } catch (err) {
       setError(err instanceof Error ? err.message : "저장 실패");
@@ -214,8 +206,6 @@ export function AdminAccountCreateMigrationPage() {
       title="관리자 사용자 추가"
     >
       {error ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</section> : null}
-      {message ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{message}</section> : null}
-
       <CanView
         allowed={!!page?.canViewAdminAccountCreate}
         fallback={<section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm"><p className="text-sm text-[var(--kr-gov-text-secondary)]">이 화면을 볼 권한이 없습니다.</p></section>}
@@ -231,23 +221,25 @@ export function AdminAccountCreateMigrationPage() {
           <section className="section-shell border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm" data-help-id="admin-create-role">
             <GridToolbar
               actions={<span className="material-symbols-outlined text-[var(--kr-gov-blue)]">shield_person</span>}
-              meta="마스터 선택 시 회사 분류 없이 전체 권한 범위로 등록합니다."
-              title="마스터 관리자 선택"
+              meta="마스터 관리자는 기관 검색 없이 생성하고, 시스템·운영 관리자는 회사 타입과 소속 기관을 지정합니다."
+              title="관리 권한 프리셋 선택"
             />
             <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 {ROLE_PRESETS.map((preset) => (
-                  <MemberButton
+                  <button
                     className={roleChipClass(rolePreset === preset.code)}
                     disabled={!canUseCreate}
                     key={preset.code}
                     onClick={() => setRolePreset(preset.code)}
-                    variant="ghost"
                     type="button"
                   >
                     {preset.label}
-                  </MemberButton>
+                  </button>
                 ))}
+              </div>
+              <div className="mt-4 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-3 text-sm text-[var(--kr-gov-text-secondary)]">
+                {ROLE_PRESET_SUMMARIES[rolePreset] || ROLE_PRESET_SUMMARIES.MASTER}
               </div>
             </div>
           </section>
@@ -260,9 +252,9 @@ export function AdminAccountCreateMigrationPage() {
             <div className="p-6 grid grid-cols-1 xl:grid-cols-2 gap-6">
               <div className="space-y-1">
                 <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="admin-id">아이디 <span className="text-red-500">*</span></label>
-                <div className="flex gap-2">
-                  <AdminInput disabled={!canUseCreate} id="admin-id" placeholder="6~16자 영문, 숫자" spellCheck={false} value={adminId} onChange={(e) => setAdminId(e.target.value)} />
-                  <MemberPermissionButton allowed={canUseCreate} onClick={handleCheckId} reason="생성 권한이 있어야 중복 확인을 사용할 수 있습니다." type="button" variant="primary">중복확인</MemberPermissionButton>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <AdminInput className="sm:flex-1" disabled={!canUseCreate} id="admin-id" placeholder="6~16자 영문, 숫자" spellCheck={false} value={adminId} onChange={(e) => setAdminId(e.target.value)} />
+                  <MemberPermissionButton allowed={canUseCreate} className="shrink-0 whitespace-nowrap sm:min-w-[126px]" onClick={handleCheckId} reason="생성 권한이 있어야 중복 확인을 사용할 수 있습니다." type="button" variant="primary">중복 확인</MemberPermissionButton>
                 </div>
                 {idCheckMessage ? <div className="text-sm text-[var(--kr-gov-blue)]">{idCheckMessage}</div> : null}
               </div>
@@ -303,16 +295,16 @@ export function AdminAccountCreateMigrationPage() {
                 </div>
                 <div className="space-y-1">
                   <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="contact-mid">연락처 <span className="text-red-500">*</span></label>
-                  <div className="flex gap-2">
-                    <AdminSelect className="w-24" disabled={!canUseCreate} value={phone1} onChange={(e) => setPhone1(e.target.value)}>
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
+                    <AdminSelect className="min-w-0" disabled={!canUseCreate} value={phone1} onChange={(e) => setPhone1(e.target.value)}>
                       <option value="010">010</option>
                       <option value="011">011</option>
                       <option value="02">02</option>
                     </AdminSelect>
                     <span className="flex items-center">-</span>
-                    <AdminInput className="flex-1" disabled={!canUseCreate} id="contact-mid" inputMode="numeric" value={phone2} onChange={(e) => setPhone2(e.target.value)} />
+                    <AdminInput className="min-w-0" disabled={!canUseCreate} id="contact-mid" inputMode="numeric" value={phone2} onChange={(e) => setPhone2(e.target.value)} />
                     <span className="flex items-center">-</span>
-                    <AdminInput className="flex-1" disabled={!canUseCreate} inputMode="numeric" value={phone3} onChange={(e) => setPhone3(e.target.value)} />
+                    <AdminInput className="min-w-0" disabled={!canUseCreate} inputMode="numeric" value={phone3} onChange={(e) => setPhone3(e.target.value)} />
                   </div>
                 </div>
               </div>
@@ -326,12 +318,14 @@ export function AdminAccountCreateMigrationPage() {
                 />
                 <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="md:col-span-2 space-y-1">
-                    <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="affiliation-type">회원 유형</label>
+                    <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="affiliation-type">회사 타입 <span className="text-red-500">*</span></label>
                     <AdminSelect disabled={!canUseCreate} id="affiliation-type" value={membershipType} onChange={(e) => setMembershipType(e.target.value)}>
-                      <option value="">유형을 선택하세요</option>
-                      <option value="enterprise">기업회원</option>
-                      <option value="agency">기관회원</option>
+                      <option value="">회사 타입을 선택하세요</option>
+                      {MEMBERSHIP_TYPE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
                     </AdminSelect>
+                    <p className="text-xs text-[var(--kr-gov-text-secondary)]">시스템 관리자와 운영 관리자는 선택한 회사 타입 기준으로 기관 검색을 진행합니다.</p>
                   </div>
                   <div className="space-y-1">
                     <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="department">부서명</label>
@@ -339,11 +333,24 @@ export function AdminAccountCreateMigrationPage() {
                   </div>
                   <div className="space-y-1">
                     <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="company-search">소속 기관 / 기업명 <span className="text-red-500">*</span></label>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col gap-2 sm:flex-row">
                       <input type="hidden" value={insttId} />
-                      <AdminInput className="bg-gray-50" id="company-search" placeholder="기업명을 검색해 주세요" readOnly value={companyName} />
-                      <MemberPermissionButton allowed={canUseCreate} onClick={() => setCompanySearchOpen(true)} reason="생성 권한이 있어야 기관 검색을 사용할 수 있습니다." type="button" variant="primary">
-                        <span className="material-symbols-outlined text-[18px]">search</span> 기관 검색
+                      <AdminInput className="bg-gray-50 sm:flex-1" id="company-search" placeholder="기관 검색으로 소속 회사를 선택해 주세요" readOnly value={companyName} />
+                      <MemberPermissionButton
+                        allowed={canUseCreate}
+                        className="shrink-0 whitespace-nowrap sm:min-w-[132px]"
+                        onClick={() => {
+                          if (!membershipType) {
+                            setError("회사 타입을 먼저 선택해 주세요.");
+                            return;
+                          }
+                          setCompanySearchOpen(true);
+                        }}
+                        reason="생성 권한이 있어야 기관 검색을 사용할 수 있습니다."
+                        type="button"
+                        variant="primary"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">search</span>기관 검색
                       </MemberPermissionButton>
                     </div>
                   </div>
@@ -360,67 +367,35 @@ export function AdminAccountCreateMigrationPage() {
             ) : null}
           </div>
 
-          <section className="section-shell border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm" data-help-id="admin-create-permissions">
-            <GridToolbar
-              actions={<span className="material-symbols-outlined text-[var(--kr-gov-blue)]">tune</span>}
-              title="권한 부여"
-            />
-            <div className="p-6 space-y-5">
-              <div>
-                <p className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2">권한 프리셋 (Preset Role) <span className="text-red-500">*</span></p>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                  {ROLE_PRESETS.map((preset) => (
-                    <MemberButton
-                      className={roleChipClass(rolePreset === preset.code)}
-                      disabled={!canUseCreate}
-                      key={`bottom-${preset.code}`}
-                      onClick={() => setRolePreset(preset.code)}
-                      variant="ghost"
-                      type="button"
-                    >
-                      {preset.label}
-                    </MemberButton>
-                  ))}
-                </div>
-              </div>
-              <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">세부 메뉴 접근 권한 (Custom Toggle)</p>
-                  <span className="text-xs text-[var(--kr-gov-text-secondary)]">기본 프리셋 위에 세부 토글을 추가로 조정합니다.</span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {sectionSelections.map(({ section, selectedCount, totalCount }) => {
-                    const checked = totalCount > 0 && selectedCount === totalCount;
-                    const sectionFeatureCodes = section.features.map((feature) => feature.featureCode);
-                    return (
-                      <label className="flex items-center justify-between rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-3" key={section.menuCode}>
-                        <span className="text-sm font-medium text-[var(--kr-gov-text-primary)]">{normalizeText(section.menuNm || section.menuNmEn || section.menuCode)}</span>
-                        <MemberButton
-                          aria-label={`${normalizeText(section.menuNm || section.menuNmEn || section.menuCode)} 권한 토글`}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${checked ? "bg-[var(--kr-gov-blue)]" : "bg-gray-300"}`}
-                          disabled={!canUseCreate}
-                          onClick={() => toggleSection(sectionFeatureCodes, !checked)}
-                          variant="ghost"
-                          type="button"
-                        >
-                          <span className={`absolute left-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${checked ? "translate-x-5" : ""}`} />
-                        </MemberButton>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </section>
-
           <MemberActionBar
             dataHelpId="admin-create-actions"
+            description="관리자 목록으로 돌아가거나 입력값을 초기화한 뒤 현재 관리자 계정을 등록할 수 있습니다."
+            eyebrow="작업 흐름"
             primary={(
-              <MemberPermissionButton allowed={canUseCreate} className="min-w-[220px]" onClick={handleSave} reason="webmaster만 관리자 계정을 생성할 수 있습니다." size="lg" type="button" variant="primary">
+              <MemberPermissionButton
+                allowed={canUseCreate}
+                className="w-full max-w-[320px] shadow-lg shadow-blue-900/10"
+                icon="person_add"
+                onClick={handleSave}
+                reason="webmaster만 관리자 계정을 생성할 수 있습니다."
+                size="lg"
+                type="button"
+                variant="primary"
+              >
                 {ADMIN_BUTTON_LABELS.create}
               </MemberPermissionButton>
             )}
-            secondary={{ label: ADMIN_BUTTON_LABELS.reset, onClick: resetForm }}
+            secondary={{
+              href: buildLocalizedPath("/admin/member/admin_list", "/en/admin/member/admin_list"),
+              icon: "list",
+              label: ADMIN_BUTTON_LABELS.list
+            }}
+            tertiary={{
+              icon: "refresh",
+              label: ADMIN_BUTTON_LABELS.reset,
+              onClick: resetForm
+            }}
+            title="입력한 관리자 정보와 소속 정보를 검토한 뒤 등록하세요."
           />
           </AdminEditPageFrame>
         </form>
@@ -440,12 +415,12 @@ export function AdminAccountCreateMigrationPage() {
               <div className="mb-8">
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-bold text-[var(--kr-gov-text-secondary)]" htmlFor="modal-search">검색어 입력</label>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row">
                     <div className="relative flex-grow">
                       <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">search</span>
                       <AdminInput aria-label="기관명 또는 사업자등록번호 입력" className="pl-11 pr-4" id="modal-search" placeholder="기관명 또는 사업자등록번호를 입력하세요" value={companyKeyword} onChange={(e) => setCompanyKeyword(e.target.value)} />
                     </div>
-                    <MemberButton onClick={() => handleCompanySearch(1)} type="button" variant="primary">{ADMIN_BUTTON_LABELS.search}</MemberButton>
+                    <MemberButton className="shrink-0 whitespace-nowrap sm:min-w-[110px]" onClick={() => handleCompanySearch(1)} type="button" variant="primary">{ADMIN_BUTTON_LABELS.search}</MemberButton>
                   </div>
                 </div>
               </div>
@@ -463,10 +438,10 @@ export function AdminAccountCreateMigrationPage() {
                   <tbody className="divide-y divide-gray-100">
                     {searchingCompanies ? (
                       <tr><td className="px-4 py-8 text-center text-gray-500" colSpan={5}>검색 중...</td></tr>
-                    ) : (companySearch?.list || []).length === 0 ? (
+                    ) : filteredCompanyResults.length === 0 ? (
                       <tr><td className="px-4 py-8 text-center text-gray-500" colSpan={5}>검색어를 입력하고 검색 버튼을 눌러 주세요.</td></tr>
                     ) : (
-                      (companySearch?.list || []).map((item, idx) => (
+                      filteredCompanyResults.map((item, idx) => (
                         <tr className="hover:bg-blue-50/50 transition-colors" key={item.insttId}>
                           <td className="px-4 py-4 text-center text-gray-500">{((companySearch?.page || 1) - 1) * (companySearch?.size || 5) + idx + 1}</td>
                           <td className="px-4 py-4 font-medium">{item.cmpnyNm}</td>
@@ -481,6 +456,11 @@ export function AdminAccountCreateMigrationPage() {
                   </tbody>
                 </AdminTable>
               </div>
+              {companySearch && companySearch.list.length > 0 && filteredCompanyResults.length === 0 ? (
+                <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  선택한 회사 타입에 맞는 기관이 없습니다. 회사 타입이나 검색어를 다시 확인해 주세요.
+                </div>
+              ) : null}
               <nav aria-label="검색 결과 페이지" className={`${(companySearch?.totalPages || 0) > 1 ? "flex" : "hidden"} justify-center items-center gap-1 my-4`}>
                 {Array.from({ length: Number(companySearch?.totalPages || 0) }, (_, idx) => idx + 1).map((pageIndex) => (
                   <MemberButton

@@ -684,7 +684,7 @@
             ZIP = #{zip},
             ADRES = #{adres},
             DETAIL_ADRES = #{detailAdres},
-            INSTT_STTUS = 'P',
+            INSTT_STTUS = #{insttSttus},
             LAST_UPDT_PNTTM = SYSDATETIME,
             CHARGER_NM = #{chargerNm},
             CHARGER_EMAIL = #{chargerEmail},
