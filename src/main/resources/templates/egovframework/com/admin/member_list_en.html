@@ -66,6 +66,9 @@
         .status-badge {
             @apply px-2 py-0.5 text-[11px] font-bold rounded-full;
         }
+        .page-active {
+            @apply bg-[var(--kr-gov-blue)] text-white font-bold;
+        }
     </style>
     <script id="tailwind-config">
         tailwind.config = {
@@ -106,10 +109,24 @@
             <div class="flex justify-between items-end mb-8">
                 <div>
                     <h2 class="text-2xl font-black text-[var(--kr-gov-text-primary)]">Member List</h2>
+                    <p class="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">
+                        Quickly review company member applications by search criteria and membership status, then move to the management detail page.
+                    </p>
                 </div>
             </div>
-            <div class="gov-card mb-8">
-                <form action="/en/admin/member/list" class="grid grid-cols-1 md:grid-cols-4 gap-6" method="get">
+            <div class="gov-card mb-8 p-0 overflow-hidden">
+                <div class="border-b border-[var(--kr-gov-border-light)] px-6 py-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div>
+                        <h3 class="text-lg font-extrabold text-[var(--kr-gov-text-primary)]">Search Filters</h3>
+                        <p class="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+                            Combine member type, status, and keyword filters while keeping a consistent density for list-based screens.
+                        </p>
+                    </div>
+                    <span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
+                        Current Page <span class="ml-1" th:text="${pageIndex}">1</span> / <span class="ml-1" th:text="${totalPages}">1</span>
+                    </span>
+                </div>
+                <form action="/en/admin/member/list" class="grid grid-cols-1 gap-6 px-6 py-6 md:grid-cols-4" method="get">
                     <input type="hidden" name="language" value="en" />
                     <div>
                         <label class="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2" for="member-type">Member Type</label>
@@ -136,34 +153,50 @@
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2" for="keyword">Keyword</label>
-                        <div class="flex gap-2">
-                            <input class="flex-1 border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] text-sm focus:ring-[var(--kr-gov-focus)] focus:border-[var(--kr-gov-focus)]"
-                                   id="keyword" name="searchKeyword" placeholder="Search by name, ID, or company" th:value="${searchKeyword}" type="text" />
-                            <button class="px-6 py-2 bg-[var(--kr-gov-blue)] text-white font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)] transition-colors flex items-center gap-2" type="submit">
-                                <span class="material-symbols-outlined text-[18px]">search</span>
-                                Search
-                            </button>
+                        <input class="w-full border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] text-sm focus:ring-[var(--kr-gov-focus)] focus:border-[var(--kr-gov-focus)]"
+                               id="keyword" name="searchKeyword" placeholder="Search by name, ID, or company" th:value="${searchKeyword}" type="text" />
+                    </div>
+                    <div class="md:col-span-4">
+                        <div class="flex flex-col gap-3 border-t border-[var(--kr-gov-border-light)] pt-5 sm:flex-row sm:items-center sm:justify-between">
+                            <p class="text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
+                                List-based admin pages keep the same order: search card, toolbar header, result table, and pagination.
+                            </p>
+                            <div class="flex flex-wrap items-center justify-end gap-2">
+                                <a class="inline-flex min-h-[40px] items-center justify-center rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-5 py-2 text-sm font-bold text-[var(--kr-gov-text-secondary)] transition-colors hover:bg-gray-50"
+                                   href="/en/admin/member/list">Reset</a>
+                                <button class="inline-flex min-h-[40px] items-center justify-center gap-2 rounded-[var(--kr-gov-radius)] bg-[var(--kr-gov-blue)] px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-[var(--kr-gov-blue-hover)]"
+                                        type="submit">
+                                    <span class="material-symbols-outlined text-[18px]">search</span>
+                                    Search
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </form>
             </div>
             <div class="mb-4 text-sm text-red-600 font-medium" th:if="${member_listError}" th:text="'Error during lookup: ' + ${member_listError}"></div>
-            <div class="flex justify-between items-center mb-4">
-                <div class="text-[14px]">
-                    Total <span class="font-bold text-[var(--kr-gov-blue)]" th:text="${#numbers.formatInteger(totalCount, 0, 'COMMA')}">0</span> records
-                </div>
-                <div class="flex gap-2">
-                    <a class="flex items-center gap-1.5 px-3 py-2 bg-white border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] text-[13px] font-bold hover:bg-gray-50"
-                       th:href="@{/en/admin/member/list/excel(searchKeyword=${searchKeyword},membershipType=${membershipType},sbscrbSttus=${sbscrbSttus})}">
-                        <span class="material-symbols-outlined text-[18px]">download</span> Download Excel
-                    </a>
-                    <a class="flex items-center gap-1.5 px-3 py-2 bg-[var(--kr-gov-green)] text-white rounded-[var(--kr-gov-radius)] text-[13px] font-bold hover:opacity-90"
-                       href="/en/admin/member/register">
-                        <span class="material-symbols-outlined text-[18px]">person_add</span> New Member Registration
-                    </a>
-                </div>
-            </div>
             <div class="gov-card p-0 overflow-hidden">
+                <div class="border-b border-[var(--kr-gov-border-light)] px-6 py-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div>
+                        <h3 class="text-lg font-extrabold text-[var(--kr-gov-text-primary)]">
+                            Results
+                            <span class="ml-2 text-[15px] font-bold text-[var(--kr-gov-blue)]" th:text="${#numbers.formatInteger(totalCount, 0, 'COMMA')} + ' records'">0 records</span>
+                        </h3>
+                        <p class="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+                            Member list screens should keep the total count, download, and create actions in the same order and height.
+                        </p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <a class="inline-flex min-h-[40px] items-center gap-1.5 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-2 text-[13px] font-bold text-[var(--kr-gov-text-secondary)] hover:bg-gray-50"
+                           th:href="@{/en/admin/member/list/excel(searchKeyword=${searchKeyword},membershipType=${membershipType},sbscrbSttus=${sbscrbSttus})}">
+                            <span class="material-symbols-outlined text-[18px]">download</span> Download Excel
+                        </a>
+                        <a class="inline-flex min-h-[40px] items-center gap-1.5 rounded-[var(--kr-gov-radius)] bg-[var(--kr-gov-green)] px-4 py-2 text-[13px] font-bold text-white hover:opacity-90"
+                           href="/en/admin/member/register">
+                            <span class="material-symbols-outlined text-[18px]">person_add</span> New Member Registration
+                        </a>
+                    </div>
+                </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm text-left border-collapse">
                         <thead>
@@ -215,11 +248,13 @@
                                           th:if="${member.entrprsMberSttus != 'P' and member.entrprsMberSttus != 'A' and member.entrprsMberSttus != 'R' and member.entrprsMberSttus != 'D' and member.entrprsMberSttus != 'X'}"
                                           th:text="${member.entrprsMberSttus}">Other</span>
                                 </td>
-                                <td class="px-6 py-4 text-center space-x-1">
-                                    <a class="inline-flex px-3 py-1.5 border border-[var(--kr-gov-border-light)] text-[12px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-100"
+                                <td class="px-6 py-4">
+                                    <div class="flex flex-wrap items-center justify-center gap-2">
+                                    <a class="inline-flex min-h-[36px] items-center justify-center rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] px-3 py-1.5 text-[12px] font-bold hover:bg-gray-100"
                                        th:href="@{/en/admin/member/edit(memberId=${member.entrprsmberId})}">Edit</a>
-                                    <a class="inline-flex px-3 py-1.5 bg-[var(--kr-gov-blue)] text-white text-[12px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)]"
+                                    <a class="inline-flex min-h-[36px] items-center justify-center rounded-[var(--kr-gov-radius)] bg-[var(--kr-gov-blue)] px-3 py-1.5 text-[12px] font-bold text-white hover:bg-[var(--kr-gov-blue-hover)]"
                                        th:href="@{/en/admin/member/detail(memberId=${member.entrprsmberId})}">Detail</a>
+                                    </div>
                                 </td>
                             </tr>
                             <tr th:if="${#lists.isEmpty(member_list)}">
@@ -242,7 +277,7 @@
                             <a th:each="pageNum : ${#numbers.sequence(startPage, endPage)}"
                                th:href="@{/en/admin/member/list(pageIndex=${pageNum},searchKeyword=${searchKeyword},membershipType=${membershipType},sbscrbSttus=${sbscrbSttus})}"
                                th:text="${pageNum}"
-                               th:classappend="${pageNum == pageIndex} ? 'bg-[var(--kr-gov-blue)] text-white font-bold' : 'hover:bg-white hover:border-gray-200'"
+                               th:classappend="${pageNum == pageIndex} ? 'page-active' : 'hover:bg-white hover:border-gray-200'"
                                class="w-8 h-8 rounded border border-transparent text-sm flex items-center justify-center">1</a>
                         </div>
                         <a class="p-1 rounded hover:bg-white border border-transparent hover:border-gray-200"
