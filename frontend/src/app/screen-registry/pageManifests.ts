@@ -668,7 +668,9 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     designTokenVersion: "krds-current",
     components: [
       { componentId: "MemberRegisterBasic", instanceKey: "member-register-basic", layoutZone: "content", propsSummary: ["userName", "userId", "userType"] },
-      { componentId: "MemberRegisterAffiliation", instanceKey: "member-register-affiliation", layoutZone: "content", propsSummary: ["orgName", "permissions"] }
+      { componentId: "MemberRegisterAffiliation", instanceKey: "member-register-affiliation", layoutZone: "content", propsSummary: ["orgName", "permissions"] },
+      { componentId: "MemberRegisterActions", instanceKey: "member-register-actions", layoutZone: "actions", propsSummary: ["canUseMemberRegisterSave"] },
+      { componentId: "MemberRegisterOrgSearch", instanceKey: "member-register-org-search-title", layoutZone: "actions", propsSummary: ["canUseMemberRegisterOrgSearch", "insttId"] }
     ]
   },
   "emission-result-list": {

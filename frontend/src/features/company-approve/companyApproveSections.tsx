@@ -34,8 +34,14 @@ export function CompanyApproveSearchSection({
   resetFilters: () => void;
 }) {
   return (
-    <section className="gov-card p-5 mb-6" data-help-id="company-approve-search">
-      <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)_auto_auto] lg:items-end">
+    <section className="gov-card mb-6 overflow-hidden p-0" data-help-id="company-approve-search">
+      <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
+        <MemberSectionToolbar
+          meta="회원사 승인 목록은 상태와 검색어 조합을 같은 카드 구조 안에서 유지합니다."
+          title="검색 조건"
+        />
+      </div>
+      <div className="grid gap-4 px-6 py-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-end">
         <label>
           <span className="block text-sm font-bold mb-2">상태</span>
           <select className="w-full rounded border-gray-300 text-sm" value={draftFilters.status} onChange={(e) => updateDraft("status", e.target.value)}>
@@ -46,8 +52,17 @@ export function CompanyApproveSearchSection({
           <span className="block text-sm font-bold mb-2">검색어</span>
           <input className="w-full rounded border-gray-300 text-sm" placeholder="회원사명, 사업자등록번호 검색" value={draftFilters.searchKeyword} onChange={(e) => updateDraft("searchKeyword", e.target.value)} />
         </label>
-        <MemberButton onClick={() => applyFilters(1)} type="button" variant="primary">{MEMBER_BUTTON_LABELS.search}</MemberButton>
-        <MemberButton onClick={resetFilters} type="button" variant="secondary">{MEMBER_BUTTON_LABELS.reset}</MemberButton>
+      </div>
+      <div className="border-t border-[var(--kr-gov-border-light)] px-6 py-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
+            동일한 목록형 화면은 검색 카드, 상단 툴바, 결과 테이블 순서를 유지합니다.
+          </p>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <MemberButton onClick={resetFilters} type="button" variant="secondary">{MEMBER_BUTTON_LABELS.reset}</MemberButton>
+            <MemberButton onClick={() => applyFilters(1)} type="button" variant="primary">{MEMBER_BUTTON_LABELS.search}</MemberButton>
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -76,13 +91,15 @@ export function CompanyApproveTableSection({
   totalPages: number;
   movePage: (pageNumber: number) => void;
 }) {
+  const canUseBatchAction = !!page?.canUseCompanyApproveAction;
+  const hasSelection = selectedIds.length > 0;
   return (
     <section className="gov-card overflow-hidden" data-help-id="company-approve-table">
       <MemberSectionToolbar
         actions={(
           <MemberButtonGroup data-help-id="company-approve-batch-actions">
-            <MemberPermissionButton allowed={!!page?.canUseCompanyApproveAction && selectedIds.length > 0} onClick={() => handleAction("batch_approve")} reason="전체 관리자만 승인할 수 있습니다." type="button" variant="primary">선택 승인</MemberPermissionButton>
-            <MemberPermissionButton allowed={!!page?.canUseCompanyApproveAction && selectedIds.length > 0} onClick={() => handleAction("batch_reject")} reason="전체 관리자만 반려할 수 있습니다." type="button" variant="dangerSecondary">선택 반려</MemberPermissionButton>
+            <MemberPermissionButton allowed={canUseBatchAction && hasSelection} onClick={() => handleAction("batch_approve")} reason={!canUseBatchAction ? "전체 관리자만 승인할 수 있습니다." : undefined} type="button" variant="primary">선택 승인</MemberPermissionButton>
+            <MemberPermissionButton allowed={canUseBatchAction && hasSelection} onClick={() => handleAction("batch_reject")} reason={!canUseBatchAction ? "전체 관리자만 반려할 수 있습니다." : undefined} type="button" variant="dangerSecondary">선택 반려</MemberPermissionButton>
           </MemberButtonGroup>
         )}
         className="border-b border-[var(--kr-gov-border-light)] bg-gray-50 px-6 py-4"

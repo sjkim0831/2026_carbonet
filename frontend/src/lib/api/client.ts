@@ -1089,6 +1089,11 @@ export type MemberRegisterPagePayload = Record<string, unknown> & {
   memberTypeOptions?: Array<Record<string, string>>;
   permissionOptions?: Array<Record<string, string>>;
   defaultOrganizationName?: string;
+  canViewMemberRegister?: boolean;
+  canUseMemberRegisterIdCheck?: boolean;
+  canUseMemberRegisterOrgSearch?: boolean;
+  canUseMemberRegisterSave?: boolean;
+  memberRegisterFeatureCodes?: string[];
   isEn?: boolean;
 };
 

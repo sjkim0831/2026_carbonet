@@ -1,0 +1,79 @@
+-- Member register feature catalog and default role mappings
+-- Route: /admin/member/register
+-- Menu code is resolved from COMTNMENUINFO to avoid hard-coding environment-specific values.
+
+INSERT INTO COMTNMENUFUNCTIONINFO (
+    MENU_CODE,
+    FEATURE_CODE,
+    FEATURE_NM,
+    FEATURE_NM_EN,
+    FEATURE_DC,
+    USE_AT,
+    FRST_REGIST_PNTTM,
+    LAST_UPDT_PNTTM
+)
+SELECT
+    m.MENU_CODE,
+    seed.FEATURE_CODE,
+    seed.FEATURE_NM,
+    seed.FEATURE_NM_EN,
+    seed.FEATURE_DC,
+    'Y',
+    CURRENT_DATETIME,
+    CURRENT_DATETIME
+FROM COMTNMENUINFO m
+JOIN (
+    SELECT 'MEMBER_REGISTER_VIEW' AS FEATURE_CODE, '회원 등록 조회' AS FEATURE_NM, 'Member Register View' AS FEATURE_NM_EN, '회원 등록 화면 조회 권한' AS FEATURE_DC FROM db_root
+    UNION ALL
+    SELECT 'MEMBER_REGISTER_ID_CHECK', '회원 등록 아이디 중복 확인', 'Member Register ID Check', '회원 등록 아이디 중복 확인 권한' FROM db_root
+    UNION ALL
+    SELECT 'MEMBER_REGISTER_ORG_SEARCH', '회원 등록 기관 검색', 'Member Register Organization Search', '회원 등록 기관 검색 및 선택 권한' FROM db_root
+    UNION ALL
+    SELECT 'MEMBER_REGISTER_SAVE', '회원 등록 저장', 'Member Register Save', '회원 등록 저장 실행 권한' FROM db_root
+) seed ON 1 = 1
+WHERE m.MENU_URL = '/admin/member/register'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM COMTNMENUFUNCTIONINFO f
+      WHERE f.FEATURE_CODE = seed.FEATURE_CODE
+  );
+
+INSERT INTO COMTNAUTHORFUNCTIONRELATE (
+    AUTHOR_CODE,
+    FEATURE_CODE,
+    GRANT_AUTHORITY_YN,
+    CREAT_DT
+)
+SELECT
+    seed.AUTHOR_CODE,
+    seed.FEATURE_CODE,
+    'N',
+    CURRENT_DATETIME
+FROM (
+    SELECT 'ROLE_SYSTEM_ADMIN' AS AUTHOR_CODE, 'MEMBER_REGISTER_VIEW' AS FEATURE_CODE FROM db_root
+    UNION ALL
+    SELECT 'ROLE_SYSTEM_ADMIN', 'MEMBER_REGISTER_ID_CHECK' FROM db_root
+    UNION ALL
+    SELECT 'ROLE_SYSTEM_ADMIN', 'MEMBER_REGISTER_ORG_SEARCH' FROM db_root
+    UNION ALL
+    SELECT 'ROLE_SYSTEM_ADMIN', 'MEMBER_REGISTER_SAVE' FROM db_root
+    UNION ALL
+    SELECT 'ROLE_ADMIN', 'MEMBER_REGISTER_VIEW' FROM db_root
+    UNION ALL
+    SELECT 'ROLE_ADMIN', 'MEMBER_REGISTER_ID_CHECK' FROM db_root
+    UNION ALL
+    SELECT 'ROLE_ADMIN', 'MEMBER_REGISTER_ORG_SEARCH' FROM db_root
+    UNION ALL
+    SELECT 'ROLE_ADMIN', 'MEMBER_REGISTER_SAVE' FROM db_root
+) seed
+WHERE EXISTS (
+    SELECT 1
+    FROM COMTNMENUFUNCTIONINFO f
+    WHERE f.FEATURE_CODE = seed.FEATURE_CODE
+)
+  AND NOT EXISTS (
+      SELECT 1
+      FROM COMTNAUTHORFUNCTIONRELATE r
+      WHERE r.AUTHOR_CODE = seed.AUTHOR_CODE
+        AND r.FEATURE_CODE = seed.FEATURE_CODE
+  );
