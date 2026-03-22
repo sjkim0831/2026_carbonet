@@ -291,6 +291,7 @@ public class AdminMemberPagePayloadService {
             String pageIndexParam,
             String searchKeyword,
             String resetSource,
+            String insttId,
             String memberId,
             HttpServletRequest request,
             Locale locale) {
@@ -310,6 +311,8 @@ public class AdminMemberPagePayloadService {
                     pageIndexParam,
                     controller.preferredResetHistoryKeyword(memberId, searchKeyword),
                     resetSource,
+                    insttId,
+                    request,
                     model,
                     "",
                     isEn);

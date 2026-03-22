@@ -4,6 +4,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import egovframework.com.common.audit.AuditEventRecordVO;
 import egovframework.com.common.audit.AuditEventSearchVO;
+import egovframework.com.common.error.ErrorEventRecordVO;
+import egovframework.com.common.error.ErrorEventSearchVO;
+import egovframework.com.common.logging.AccessEventRecordVO;
+import egovframework.com.common.logging.AccessEventSearchVO;
 import egovframework.com.feature.member.service.EnterpriseMemberService;
 import egovframework.com.feature.member.service.EmployeeMemberService;
 import egovframework.com.feature.member.model.vo.CompanyListItemVO;
@@ -44,8 +48,12 @@ import egovframework.com.feature.admin.dto.request.AdminPermissionSaveRequestDTO
 import egovframework.com.feature.admin.dto.request.AdminAdminAccountCreateRequestDTO;
 import egovframework.com.feature.admin.dto.response.MenuInfoDTO;
 import egovframework.com.feature.auth.domain.entity.EmplyrInfo;
+import egovframework.com.feature.auth.domain.entity.EntrprsMber;
+import egovframework.com.feature.auth.domain.entity.GnrlMber;
 import egovframework.com.feature.auth.domain.entity.PasswordResetHistory;
 import egovframework.com.feature.auth.domain.repository.EmployeeMemberRepository;
+import egovframework.com.feature.auth.domain.repository.EnterpriseMemberRepository;
+import egovframework.com.feature.auth.domain.repository.GeneralMemberRepository;
 import egovframework.com.feature.member.dto.response.CompanySearchResponseDTO;
 import egovframework.com.feature.auth.service.AuthService;
 import egovframework.com.feature.auth.util.JwtTokenProvider;
@@ -138,6 +146,8 @@ public class AdminMainController {
     private final EnterpriseMemberService entrprsManageService;
     private final EmployeeMemberService userManageService;
     private final EmployeeMemberRepository employMemberRepository;
+    private final EnterpriseMemberRepository enterpriseMemberRepository;
+    private final GeneralMemberRepository generalMemberRepository;
     private final CommonCodeService cmmUseService;
     private final AuthGroupManageService authGroupManageService;
     private final AdminLoginHistoryService adminLoginHistoryService;
@@ -968,6 +978,7 @@ public class AdminMainController {
             @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
             @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
             @RequestParam(value = "resetSource", required = false) String resetSource,
+            @RequestParam(value = "insttId", required = false) String insttId,
             @RequestParam(value = "memberId", required = false) String memberId,
             HttpServletRequest request,
             Locale locale) {
@@ -975,6 +986,7 @@ public class AdminMainController {
                 pageIndexParam,
                 searchKeyword,
                 resetSource,
+                insttId,
                 memberId,
                 request,
                 locale));
@@ -2161,12 +2173,13 @@ public class AdminMainController {
             @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
             @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
             @RequestParam(value = "userSe", required = false) String userSe,
+            @RequestParam(value = "insttId", required = false) String insttId,
             HttpServletRequest request,
             Locale locale) {
         primeCsrfToken(request);
         boolean isEn = isEnglishRequest(request, locale);
         ExtendedModelMap model = new ExtendedModelMap();
-        populateBlockedLoginHistory(pageIndexParam, searchKeyword, userSe, model, isEn ? "egovframework/com/admin/security_history_en" : "egovframework/com/admin/security_history");
+        populateBlockedLoginHistory(pageIndexParam, searchKeyword, userSe, insttId, model, isEn ? "egovframework/com/admin/security_history_en" : "egovframework/com/admin/security_history", request);
         model.addAttribute("isEn", isEn);
         return ResponseEntity.ok(new LinkedHashMap<>(model));
     }
@@ -2193,6 +2206,34 @@ public class AdminMainController {
         primeCsrfToken(request);
         boolean isEn = isEnglishRequest(request, locale);
         return ResponseEntity.ok(buildAccessHistoryPagePayload(pageIndexParam, searchKeyword, insttId, request, isEn));
+    }
+
+    @RequestMapping(value = "/system/error-log", method = { RequestMethod.GET, RequestMethod.POST })
+    public String error_log(
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "insttId", required = false) String insttId,
+            @RequestParam(value = "sourceType", required = false) String sourceType,
+            @RequestParam(value = "errorType", required = false) String errorType,
+            HttpServletRequest request,
+            Locale locale,
+            Model model) {
+        return redirectReactMigration(request, locale, "error-log");
+    }
+
+    @GetMapping("/system/error-log/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> errorLogPageApi(
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "insttId", required = false) String insttId,
+            @RequestParam(value = "sourceType", required = false) String sourceType,
+            @RequestParam(value = "errorType", required = false) String errorType,
+            HttpServletRequest request,
+            Locale locale) {
+        primeCsrfToken(request);
+        boolean isEn = isEnglishRequest(request, locale);
+        return ResponseEntity.ok(buildErrorLogPagePayload(pageIndexParam, searchKeyword, insttId, sourceType, errorType, request, isEn));
     }
 
     @RequestMapping(value = "/system/security-policy", method = { RequestMethod.GET, RequestMethod.POST })
@@ -2329,12 +2370,13 @@ public class AdminMainController {
             @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
             @RequestParam(value = "userSe", required = false) String userSe,
             @RequestParam(value = "loginResult", required = false) String loginResult,
+            @RequestParam(value = "insttId", required = false) String insttId,
             HttpServletRequest request,
             Locale locale) {
         primeCsrfToken(request);
         boolean isEn = isEnglishRequest(request, locale);
         ExtendedModelMap model = new ExtendedModelMap();
-        populateLoginHistory(pageIndexParam, searchKeyword, userSe, loginResult, model, isEn ? "egovframework/com/admin/login_history_en" : "egovframework/com/admin/login_history");
+        populateLoginHistory(pageIndexParam, searchKeyword, userSe, loginResult, insttId, model, isEn ? "egovframework/com/admin/login_history_en" : "egovframework/com/admin/login_history", request);
         model.addAttribute("isEn", isEn);
         return ResponseEntity.ok(new LinkedHashMap<>(model));
     }
@@ -3154,8 +3196,10 @@ public class AdminMainController {
             String searchKeyword,
             String userSe,
             String loginResult,
+            String requestedInsttId,
             Model model,
-            String viewName) {
+            String viewName,
+            HttpServletRequest request) {
         int pageIndex = 1;
         if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
             try {
@@ -3170,11 +3214,22 @@ public class AdminMainController {
         String keyword = safeString(searchKeyword);
         String normalizedUserSe = safeString(userSe).toUpperCase(Locale.ROOT);
         String normalizedLoginResult = safeString(loginResult).toUpperCase(Locale.ROOT);
+        String currentUserId = extractCurrentUserId(request);
+        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+        boolean masterAccess = hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode);
+        String currentUserInsttId = resolveCurrentUserInsttId(currentUserId);
+        List<Map<String, String>> companyOptions = masterAccess
+                ? loadAccessHistoryCompanyOptions()
+                : buildScopedAccessHistoryCompanyOptions(currentUserInsttId);
+        String selectedInsttId = masterAccess
+                ? resolveSelectedInsttId(requestedInsttId, companyOptions, true)
+                : currentUserInsttId;
 
         LoginHistorySearchVO searchVO = new LoginHistorySearchVO();
         searchVO.setSearchKeyword(keyword);
         searchVO.setUserSe(normalizedUserSe);
         searchVO.setLoginResult(normalizedLoginResult);
+        searchVO.setInsttId(selectedInsttId);
         searchVO.setRecordCountPerPage(pageSize);
 
         List<LoginHistoryVO> pageItems;
@@ -3218,6 +3273,9 @@ public class AdminMainController {
         model.addAttribute("searchKeyword", keyword);
         model.addAttribute("userSe", normalizedUserSe);
         model.addAttribute("loginResult", normalizedLoginResult);
+        model.addAttribute("companyOptions", companyOptions);
+        model.addAttribute("selectedInsttId", selectedInsttId);
+        model.addAttribute("canManageAllCompanies", masterAccess);
         return viewName;
     }
 
@@ -3225,9 +3283,11 @@ public class AdminMainController {
             String pageIndexParam,
             String searchKeyword,
             String userSe,
+            String requestedInsttId,
             Model model,
-            String viewName) {
-        return populateLoginHistoryInternal(pageIndexParam, searchKeyword, userSe, "FAIL", "Y", model, viewName);
+            String viewName,
+            HttpServletRequest request) {
+        return populateLoginHistoryInternal(pageIndexParam, searchKeyword, userSe, "FAIL", "Y", requestedInsttId, model, viewName, request);
     }
 
     private String populateLoginHistoryInternal(
@@ -3236,8 +3296,10 @@ public class AdminMainController {
             String userSe,
             String loginResult,
             String blockedOnly,
+            String requestedInsttId,
             Model model,
-            String viewName) {
+            String viewName,
+            HttpServletRequest request) {
         int pageIndex = 1;
         if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
             try {
@@ -3253,12 +3315,23 @@ public class AdminMainController {
         String normalizedUserSe = safeString(userSe).toUpperCase(Locale.ROOT);
         String normalizedLoginResult = safeString(loginResult).toUpperCase(Locale.ROOT);
         String normalizedBlockedOnly = safeString(blockedOnly).toUpperCase(Locale.ROOT);
+        String currentUserId = extractCurrentUserId(request);
+        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+        boolean masterAccess = hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode);
+        String currentUserInsttId = resolveCurrentUserInsttId(currentUserId);
+        List<Map<String, String>> companyOptions = masterAccess
+                ? loadAccessHistoryCompanyOptions()
+                : buildScopedAccessHistoryCompanyOptions(currentUserInsttId);
+        String selectedInsttId = masterAccess
+                ? resolveSelectedInsttId(requestedInsttId, companyOptions, true)
+                : currentUserInsttId;
 
         LoginHistorySearchVO searchVO = new LoginHistorySearchVO();
         searchVO.setSearchKeyword(keyword);
         searchVO.setUserSe(normalizedUserSe);
         searchVO.setLoginResult(normalizedLoginResult);
         searchVO.setBlockedOnly(normalizedBlockedOnly);
+        searchVO.setInsttId(selectedInsttId);
         searchVO.setRecordCountPerPage(pageSize);
 
         List<LoginHistoryVO> pageItems;
@@ -3302,6 +3375,9 @@ public class AdminMainController {
         model.addAttribute("searchKeyword", keyword);
         model.addAttribute("userSe", normalizedUserSe);
         model.addAttribute("loginResult", normalizedLoginResult);
+        model.addAttribute("companyOptions", companyOptions);
+        model.addAttribute("selectedInsttId", selectedInsttId);
+        model.addAttribute("canManageAllCompanies", masterAccess);
         return viewName;
     }
 
@@ -3374,61 +3450,116 @@ public class AdminMainController {
             return payload;
         }
 
-        String normalizedKeyword = safeString(searchKeyword).toLowerCase(Locale.ROOT);
         Map<String, String> companyNameById = new LinkedHashMap<>();
         for (Map<String, String> option : companyOptions) {
             companyNameById.put(safeString(option.get("insttId")), safeString(option.get("cmpnyNm")));
         }
 
-        List<RequestExecutionLogVO> filtered = new ArrayList<>();
         String forcedInsttId = masterAccess ? selectedInsttId : currentUserInsttId;
         String errorMessage = "";
+        int pageSize = 10;
+        List<Map<String, Object>> rows = new ArrayList<>();
+        int totalCount = 0;
+        int totalPages = 1;
+        int currentPage = 1;
         try {
-            for (RequestExecutionLogVO item : requestExecutionLogService.readRecent(5000)) {
-                String scopedInsttId = resolveAccessHistoryInsttId(item);
+            AccessEventSearchVO searchVO = new AccessEventSearchVO();
+            searchVO.setFirstIndex(Math.max(pageIndex - 1, 0) * pageSize);
+            searchVO.setRecordCountPerPage(pageSize);
+            searchVO.setSearchKeyword(safeString(searchKeyword));
+            searchVO.setInsttId(forcedInsttId);
+            searchVO.setFeatureType("PAGE_VIEW");
+            totalCount = observabilityQueryService.selectAccessEventCount(searchVO);
+            totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
+            currentPage = Math.max(1, Math.min(pageIndex, totalPages));
+            searchVO.setFirstIndex(Math.max(currentPage - 1, 0) * pageSize);
+            for (AccessEventRecordVO item : observabilityQueryService.selectAccessEventList(searchVO)) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                String scopedInsttId = firstNonBlank(
+                        safeString(item.getTargetCompanyContextId()),
+                        safeString(item.getCompanyContextId()),
+                        safeString(item.getActorInsttId())
+                );
                 if (scopedInsttId.isEmpty()) {
-                    continue;
+                    scopedInsttId = "__GLOBAL__";
                 }
-                if (!forcedInsttId.isEmpty() && !forcedInsttId.equals(scopedInsttId)) {
-                    continue;
-                }
-                if (!normalizedKeyword.isEmpty()
-                        && !matchesAccessHistoryKeyword(item, normalizedKeyword, companyNameById.get(scopedInsttId))) {
-                    continue;
-                }
-                filtered.add(item);
+                row.put("executedAt", safeString(item.getCreatedAt()));
+                row.put("insttId", scopedInsttId);
+                row.put("companyName", companyNameById.getOrDefault(scopedInsttId, "__GLOBAL__".equals(scopedInsttId) ? (isEn ? "Global" : "공통/전체") : resolveCompanyNameByInsttId(scopedInsttId)));
+                row.put("actorUserId", safeString(item.getActorId()));
+                row.put("actorType", safeString(item.getActorType()));
+                row.put("actorAuthorCode", safeString(item.getActorRole()));
+                row.put("requestUri", safeString(item.getRequestUri()));
+                row.put("httpMethod", safeString(item.getHttpMethod()));
+                row.put("responseStatus", item.getResponseStatus());
+                row.put("durationMs", item.getDurationMs());
+                row.put("remoteAddr", safeString(item.getRemoteAddr()));
+                row.put("featureType", safeString(item.getFeatureType()));
+                row.put("companyScopeDecision", safeString(item.getCompanyScopeDecision()));
+                row.put("pageId", safeString(item.getPageId()));
+                row.put("apiId", safeString(item.getApiId()));
+                rows.add(row);
             }
         } catch (Exception e) {
-            log.error("Failed to load access history.", e);
+            log.error("Failed to load persisted access history. Falling back to recent file logs.", e);
             errorMessage = isEn
-                    ? "An error occurred while retrieving access history."
-                    : "접속 로그 조회 중 오류가 발생했습니다.";
-        }
-
-        int pageSize = 10;
-        int totalCount = filtered.size();
-        int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
-        int currentPage = Math.max(1, Math.min(pageIndex, totalPages));
-        int fromIndex = Math.max(0, (currentPage - 1) * pageSize);
-        int toIndex = Math.min(totalCount, fromIndex + pageSize);
-        List<Map<String, Object>> rows = new ArrayList<>();
-        for (RequestExecutionLogVO item : filtered.subList(fromIndex, toIndex)) {
-            Map<String, Object> row = new LinkedHashMap<>();
-            String scopedInsttId = resolveAccessHistoryInsttId(item);
-            row.put("executedAt", safeString(item.getExecutedAt()));
-            row.put("insttId", scopedInsttId);
-            row.put("companyName", companyNameById.getOrDefault(scopedInsttId, scopedInsttId));
-            row.put("actorUserId", safeString(item.getActorUserId()));
-            row.put("actorType", safeString(item.getActorType()));
-            row.put("actorAuthorCode", safeString(item.getActorAuthorCode()));
-            row.put("requestUri", safeString(item.getRequestUri()));
-            row.put("httpMethod", safeString(item.getHttpMethod()));
-            row.put("responseStatus", item.getResponseStatus());
-            row.put("durationMs", item.getDurationMs());
-            row.put("remoteAddr", safeString(item.getRemoteAddr()));
-            row.put("featureType", safeString(item.getFeatureType()));
-            row.put("companyScopeDecision", safeString(item.getCompanyScopeDecision()));
-            rows.add(row);
+                    ? "Persistent access history is not ready yet. Showing recent log file data."
+                    : "영구 접속 로그가 아직 준비되지 않아 최근 파일 로그를 대신 표시합니다.";
+            List<RequestExecutionLogVO> filtered = new ArrayList<>();
+            String normalizedKeyword = safeString(searchKeyword).toLowerCase(Locale.ROOT);
+            try {
+                for (RequestExecutionLogVO item : requestExecutionLogService.readRecent(20000)) {
+                    if (isAccessHistorySelfNoise(item)) {
+                        continue;
+                    }
+                    if (!isFallbackPageAccessCandidate(item)) {
+                        continue;
+                    }
+                    String scopedInsttId = resolveAccessHistoryInsttId(item);
+                    if (scopedInsttId.isEmpty() && !masterAccess) {
+                        continue;
+                    }
+                    if (scopedInsttId.isEmpty()) {
+                        scopedInsttId = "__GLOBAL__";
+                    }
+                    if (!forcedInsttId.isEmpty() && !forcedInsttId.equals(scopedInsttId)) {
+                        continue;
+                    }
+                    if (!normalizedKeyword.isEmpty()
+                            && !matchesAccessHistoryKeyword(item, normalizedKeyword, companyNameById.get(scopedInsttId))) {
+                        continue;
+                    }
+                    filtered.add(item);
+                }
+            } catch (Exception inner) {
+                log.error("Failed to load fallback access history.", inner);
+            }
+            totalCount = filtered.size();
+            totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
+            currentPage = Math.max(1, Math.min(pageIndex, totalPages));
+            int fromIndex = Math.max(0, (currentPage - 1) * pageSize);
+            int toIndex = Math.min(totalCount, fromIndex + pageSize);
+            for (RequestExecutionLogVO item : filtered.subList(fromIndex, toIndex)) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                String scopedInsttId = resolveAccessHistoryInsttId(item);
+                if (scopedInsttId.isEmpty()) {
+                    scopedInsttId = "__GLOBAL__";
+                }
+                row.put("executedAt", safeString(item.getExecutedAt()));
+                row.put("insttId", scopedInsttId);
+                row.put("companyName", companyNameById.getOrDefault(scopedInsttId, "__GLOBAL__".equals(scopedInsttId) ? (isEn ? "Global" : "공통/전체") : scopedInsttId));
+                row.put("actorUserId", safeString(item.getActorUserId()));
+                row.put("actorType", safeString(item.getActorType()));
+                row.put("actorAuthorCode", safeString(item.getActorAuthorCode()));
+                row.put("requestUri", safeString(item.getRequestUri()));
+                row.put("httpMethod", safeString(item.getHttpMethod()));
+                row.put("responseStatus", item.getResponseStatus());
+                row.put("durationMs", item.getDurationMs());
+                row.put("remoteAddr", safeString(item.getRemoteAddr()));
+                row.put("featureType", safeString(item.getFeatureType()));
+                row.put("companyScopeDecision", safeString(item.getCompanyScopeDecision()));
+                rows.add(row);
+            }
         }
 
         int startPage = Math.max(1, currentPage - 4);
@@ -3450,7 +3581,138 @@ public class AdminMainController {
         return payload;
     }
 
-    private List<Map<String, String>> loadAccessHistoryCompanyOptions() {
+    private Map<String, Object> buildErrorLogPagePayload(
+            String pageIndexParam,
+            String searchKeyword,
+            String requestedInsttId,
+            String sourceType,
+            String errorType,
+            HttpServletRequest request,
+            boolean isEn) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        int pageIndex = 1;
+        if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
+            try {
+                pageIndex = Integer.parseInt(pageIndexParam.trim());
+            } catch (NumberFormatException ignored) {
+                pageIndex = 1;
+            }
+        }
+        String currentUserId = extractCurrentUserId(request);
+        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+        boolean masterAccess = ROLE_SYSTEM_MASTER.equalsIgnoreCase(currentUserAuthorCode);
+        boolean systemAccess = ROLE_SYSTEM_ADMIN.equalsIgnoreCase(currentUserAuthorCode);
+        boolean canView = masterAccess || systemAccess;
+        payload.put("canViewErrorLog", canView);
+        payload.put("canManageAllCompanies", masterAccess);
+        payload.put("searchKeyword", safeString(searchKeyword));
+        payload.put("selectedSourceType", safeString(sourceType));
+        payload.put("selectedErrorType", safeString(errorType));
+
+        String currentUserInsttId = resolveCurrentUserInsttId(currentUserId);
+        List<Map<String, String>> companyOptions = masterAccess
+                ? loadAccessHistoryCompanyOptions()
+                : buildScopedAccessHistoryCompanyOptions(currentUserInsttId);
+        String selectedInsttId = masterAccess
+                ? resolveSelectedInsttId(requestedInsttId, companyOptions, true)
+                : currentUserInsttId;
+        payload.put("companyOptions", companyOptions);
+        payload.put("selectedInsttId", selectedInsttId);
+
+        if (!masterAccess && currentUserInsttId.isEmpty()) {
+            payload.put("errorLogError", isEn ? "Your administrator account is missing company information." : "관리자 계정에 회사 정보가 없습니다.");
+            payload.put("errorLogList", Collections.emptyList());
+            payload.put("totalCount", 0);
+            payload.put("pageIndex", 1);
+            payload.put("pageSize", 10);
+            payload.put("totalPages", 1);
+            payload.put("startPage", 1);
+            payload.put("endPage", 1);
+            payload.put("prevPage", 1);
+            payload.put("nextPage", 1);
+            payload.put("isEn", isEn);
+            return payload;
+        }
+
+        if (!canView) {
+            payload.put("errorLogError", isEn ? "Only master administrators and system administrators can view error logs." : "에러 로그는 마스터 관리자와 시스템 관리자만 조회할 수 있습니다.");
+            payload.put("errorLogList", Collections.emptyList());
+            payload.put("totalCount", 0);
+            payload.put("pageIndex", 1);
+            payload.put("pageSize", 10);
+            payload.put("totalPages", 1);
+            payload.put("startPage", 1);
+            payload.put("endPage", 1);
+            payload.put("prevPage", 1);
+            payload.put("nextPage", 1);
+            payload.put("isEn", isEn);
+            return payload;
+        }
+
+        String forcedInsttId = masterAccess ? selectedInsttId : currentUserInsttId;
+        int pageSize = 10;
+        int totalCount = 0;
+        int totalPages = 1;
+        int currentPage = 1;
+        List<Map<String, Object>> rows = new ArrayList<>();
+        String errorMessage = "";
+        try {
+            ErrorEventSearchVO searchVO = new ErrorEventSearchVO();
+            searchVO.setFirstIndex(Math.max(pageIndex - 1, 0) * pageSize);
+            searchVO.setRecordCountPerPage(pageSize);
+            searchVO.setSearchKeyword(safeString(searchKeyword));
+            searchVO.setInsttId(forcedInsttId);
+            searchVO.setSourceType(safeString(sourceType));
+            searchVO.setErrorType(safeString(errorType));
+            totalCount = observabilityQueryService.selectErrorEventCount(searchVO);
+            totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
+            currentPage = Math.max(1, Math.min(pageIndex, totalPages));
+            searchVO.setFirstIndex(Math.max(currentPage - 1, 0) * pageSize);
+            for (ErrorEventRecordVO item : observabilityQueryService.selectErrorEventList(searchVO)) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                String scopedInsttId = safeString(item.getActorInsttId());
+                row.put("createdAt", safeString(item.getCreatedAt()));
+                row.put("insttId", scopedInsttId);
+                row.put("companyName", scopedInsttId.isEmpty() ? "-" : resolveCompanyNameByInsttId(scopedInsttId));
+                row.put("sourceType", safeString(item.getSourceType()));
+                row.put("errorType", safeString(item.getErrorType()));
+                row.put("actorId", safeString(item.getActorId()));
+                row.put("actorRole", safeString(item.getActorRole()));
+                row.put("requestUri", safeString(item.getRequestUri()));
+                row.put("pageId", safeString(item.getPageId()));
+                row.put("apiId", safeString(item.getApiId()));
+                row.put("remoteAddr", safeString(item.getRemoteAddr()));
+                row.put("message", safeString(item.getMessage()));
+                row.put("resultStatus", safeString(item.getResultStatus()));
+                rows.add(row);
+            }
+        } catch (Exception e) {
+            log.error("Failed to load error log page.", e);
+            errorMessage = isEn ? "An error occurred while retrieving error logs." : "에러 로그 조회 중 오류가 발생했습니다.";
+        }
+
+        int startPage = Math.max(1, currentPage - 4);
+        int endPage = Math.min(totalPages, startPage + 9);
+        if (endPage - startPage < 9) {
+            startPage = Math.max(1, endPage - 9);
+        }
+        payload.put("errorLogError", errorMessage);
+        payload.put("errorLogList", rows);
+        payload.put("totalCount", totalCount);
+        payload.put("pageIndex", currentPage);
+        payload.put("pageSize", pageSize);
+        payload.put("totalPages", totalPages);
+        payload.put("startPage", startPage);
+        payload.put("endPage", endPage);
+        payload.put("prevPage", Math.max(1, currentPage - 1));
+        payload.put("nextPage", Math.min(totalPages, currentPage + 1));
+        payload.put("sourceTypeOptions", buildObservabilityOptionList("", "BACKEND_ERROR_CONTROLLER", "PAGE_EXCEPTION_ADVICE", "FRONTEND_REPORT", "FRONTEND_TELEMETRY"));
+        payload.put("errorTypeOptions", buildObservabilityOptionList("", "UI_ERROR", "ERROR_DISPATCH", "PAGE_EXCEPTION"));
+        payload.put("isEn", isEn);
+        return payload;
+    }
+
+    List<Map<String, String>> loadAccessHistoryCompanyOptions() {
         try {
             Map<String, Object> searchParams = new LinkedHashMap<>();
             searchParams.put("keyword", "");
@@ -3495,7 +3757,7 @@ public class AdminMainController {
         }
     }
 
-    private List<Map<String, String>> buildScopedAccessHistoryCompanyOptions(String insttId) {
+    List<Map<String, String>> buildScopedAccessHistoryCompanyOptions(String insttId) {
         String normalizedInsttId = safeString(insttId);
         if (normalizedInsttId.isEmpty()) {
             return Collections.emptyList();
@@ -3541,10 +3803,38 @@ public class AdminMainController {
                 || safeString(companyName).toLowerCase(Locale.ROOT).contains(normalizedKeyword);
     }
 
+    private boolean isAccessHistorySelfNoise(RequestExecutionLogVO item) {
+        String uri = safeString(item == null ? null : item.getRequestUri());
+        return "/admin/system/access_history".equals(uri)
+                || "/en/admin/system/access_history".equals(uri)
+                || "/admin/system/access_history/page-data".equals(uri)
+                || "/en/admin/system/access_history/page-data".equals(uri);
+    }
+
+    private boolean isFallbackPageAccessCandidate(RequestExecutionLogVO item) {
+        String uri = safeString(item == null ? null : item.getRequestUri()).toLowerCase(Locale.ROOT);
+        String method = safeString(item == null ? null : item.getHttpMethod()).toUpperCase(Locale.ROOT);
+        if (!"GET".equals(method)) {
+            return false;
+        }
+        if (uri.isEmpty()
+                || uri.startsWith("/api/")
+                || uri.contains("/api/")
+                || uri.endsWith("/page-data")
+                || uri.startsWith("/css/")
+                || uri.startsWith("/js/")
+                || uri.startsWith("/images/")) {
+            return false;
+        }
+        return uri.startsWith("/admin/") || uri.startsWith("/en/admin/");
+    }
+
     String populatePasswordResetHistory(
             String pageIndexParam,
             String searchKeyword,
             String resetSource,
+            String insttId,
+            HttpServletRequest request,
             Model model,
             String viewName,
             boolean isEn) {
@@ -3552,6 +3842,8 @@ public class AdminMainController {
                 pageIndexParam,
                 searchKeyword,
                 resetSource,
+                insttId,
+                request,
                 model,
                 viewName,
                 isEn);
@@ -5052,11 +5344,14 @@ public class AdminMainController {
 
         List<Map<String, String>> rows = new ArrayList<>();
         for (PasswordResetHistory history : histories) {
+            String scopedInsttId = resolveHistoryTargetInsttId(safeString(history.getTargetUserId()), safeString(history.getTargetUserSe()));
             Map<String, String> row = new LinkedHashMap<>();
             row.put("resetAt", formatDateTime(history.getResetPnttm()));
             row.put("targetUserId", safeString(history.getTargetUserId()));
             row.put("targetUserSe", safeString(history.getTargetUserSe()));
             row.put("targetUserSeLabel", resolveUserSeLabel(history.getTargetUserSe(), isEn));
+            row.put("insttId", scopedInsttId);
+            row.put("companyName", resolveCompanyNameByInsttId(scopedInsttId));
             row.put("resetBy", safeString(history.getResetByUserId()));
             row.put("resetIp", safeString(history.getResetIp()));
             row.put("resetSource", safeString(history.getResetSource()));
@@ -5065,6 +5360,77 @@ public class AdminMainController {
             rows.add(row);
         }
         return rows;
+    }
+
+    String resolveHistoryTargetInsttId(String userId, String userSe) {
+        String normalizedUserId = safeString(userId);
+        String normalizedUserSe = safeString(userSe).toUpperCase(Locale.ROOT);
+        if (normalizedUserId.isEmpty()) {
+            return "";
+        }
+        try {
+            if ("USR".equals(normalizedUserSe)) {
+                return employMemberRepository.findById(normalizedUserId)
+                        .map(EmplyrInfo::getInsttId)
+                        .map(this::safeString)
+                        .orElse("");
+            }
+            if ("ENT".equals(normalizedUserSe)) {
+                return enterpriseMemberRepository.findById(normalizedUserId)
+                        .map(EntrprsMber::getInsttId)
+                        .map(this::safeString)
+                        .orElse("");
+            }
+            if ("GNR".equals(normalizedUserSe)) {
+                return generalMemberRepository.findById(normalizedUserId)
+                        .map(GnrlMber::getGroupId)
+                        .map(this::safeString)
+                        .orElse("");
+            }
+        } catch (Exception e) {
+            log.warn("Failed to resolve history target company. userId={}, userSe={}", normalizedUserId, normalizedUserSe, e);
+        }
+        return "";
+    }
+
+    String resolveCompanyNameByInsttId(String insttId) {
+        String normalizedInsttId = safeString(insttId);
+        if (normalizedInsttId.isEmpty()) {
+            return "";
+        }
+        InstitutionStatusVO institution = loadInstitutionInfoByInsttId(normalizedInsttId);
+        if (institution == null) {
+            return normalizedInsttId;
+        }
+        String companyName = safeString(institution.getInsttNm());
+        return companyName.isEmpty() ? normalizedInsttId : companyName;
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return "";
+        }
+        for (String value : values) {
+            String normalized = safeString(value);
+            if (!normalized.isEmpty()) {
+                return normalized;
+            }
+        }
+        return "";
+    }
+
+    private List<Map<String, String>> buildObservabilityOptionList(String... values) {
+        List<Map<String, String>> items = new ArrayList<>();
+        if (values == null) {
+            return items;
+        }
+        for (String value : values) {
+            Map<String, String> option = new LinkedHashMap<>();
+            option.put("value", safeString(value));
+            option.put("label", safeString(value).isEmpty() ? "전체" : safeString(value));
+            items.add(option);
+        }
+        return items;
     }
 
     List<Map<String, String>> buildPasswordResetHistoryRows(List<PasswordResetHistory> histories) {

@@ -3,6 +3,10 @@ package egovframework.com.common.mapper;
 import egovframework.com.common.audit.AuditEvent;
 import egovframework.com.common.audit.AuditEventRecordVO;
 import egovframework.com.common.audit.AuditEventSearchVO;
+import egovframework.com.common.error.ErrorEventRecordVO;
+import egovframework.com.common.error.ErrorEventSearchVO;
+import egovframework.com.common.logging.AccessEventRecordVO;
+import egovframework.com.common.logging.AccessEventSearchVO;
 import egovframework.com.common.mapper.support.BaseMapperSupport;
 import egovframework.com.common.trace.TraceEventRecordVO;
 import egovframework.com.common.trace.TraceEventSearchVO;
@@ -34,6 +38,32 @@ public class ObservabilityMapper extends BaseMapperSupport {
 
     public void insertTraceEvent(TraceEventRecordVO traceEventRecordVO) {
         insert("ObservabilityMapper.insertTraceEvent", traceEventRecordVO);
+    }
+
+    public void insertAccessEvent(AccessEventRecordVO accessEventRecordVO) {
+        insert("ObservabilityMapper.insertAccessEvent", accessEventRecordVO);
+    }
+
+    public int selectAccessEventCount(AccessEventSearchVO searchVO) {
+        Integer count = selectOne("ObservabilityMapper.selectAccessEventCount", searchVO);
+        return count == null ? 0 : count;
+    }
+
+    public List<AccessEventRecordVO> selectAccessEventList(AccessEventSearchVO searchVO) {
+        return selectList("ObservabilityMapper.selectAccessEventList", searchVO);
+    }
+
+    public void insertErrorEvent(ErrorEventRecordVO errorEventRecordVO) {
+        insert("ObservabilityMapper.insertErrorEvent", errorEventRecordVO);
+    }
+
+    public int selectErrorEventCount(ErrorEventSearchVO searchVO) {
+        Integer count = selectOne("ObservabilityMapper.selectErrorEventCount", searchVO);
+        return count == null ? 0 : count;
+    }
+
+    public List<ErrorEventRecordVO> selectErrorEventList(ErrorEventSearchVO searchVO) {
+        return selectList("ObservabilityMapper.selectErrorEventList", searchVO);
     }
 
     public int selectTraceEventCount(TraceEventSearchVO searchVO) {

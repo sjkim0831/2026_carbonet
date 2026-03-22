@@ -437,8 +437,12 @@ export type MemberEditPagePayload = Record<string, unknown> & {
 
 export type PasswordResetPagePayload = Record<string, unknown> & {
   passwordResetHistoryList?: Array<Record<string, string>>;
+  companyOptions?: Array<Record<string, string>>;
+  selectedInsttId?: string;
+  canManageAllCompanies?: boolean;
   totalCount?: number;
   pageIndex?: number;
+  pageSize?: number;
   totalPages?: number;
   searchKeyword?: string;
   resetSource?: string;
@@ -1070,8 +1074,34 @@ export type AccessHistoryPagePayload = Record<string, unknown> & {
   isEn?: boolean;
 };
 
+export type ErrorLogPagePayload = Record<string, unknown> & {
+  errorLogList?: Array<Record<string, unknown>>;
+  companyOptions?: Array<Record<string, string>>;
+  sourceTypeOptions?: Array<Record<string, string>>;
+  errorTypeOptions?: Array<Record<string, string>>;
+  selectedInsttId?: string;
+  selectedSourceType?: string;
+  selectedErrorType?: string;
+  canViewErrorLog?: boolean;
+  canManageAllCompanies?: boolean;
+  totalCount?: number;
+  pageIndex?: number;
+  pageSize?: number;
+  totalPages?: number;
+  startPage?: number;
+  endPage?: number;
+  prevPage?: number;
+  nextPage?: number;
+  searchKeyword?: string;
+  errorLogError?: string;
+  isEn?: boolean;
+};
+
 export type LoginHistoryPagePayload = Record<string, unknown> & {
   loginHistoryList?: Array<Record<string, unknown>>;
+  companyOptions?: Array<Record<string, string>>;
+  selectedInsttId?: string;
+  canManageAllCompanies?: boolean;
   totalCount?: number;
   pageIndex?: number;
   pageSize?: number;
@@ -1744,12 +1774,13 @@ export function prefetchRoutePageData(route: MigrationPageId, search = ""): Prom
   }
 }
 
-export async function fetchPasswordResetPage(params?: { memberId?: string; pageIndex?: number; searchKeyword?: string; resetSource?: string; }) {
+export async function fetchPasswordResetPage(params?: { memberId?: string; pageIndex?: number; searchKeyword?: string; resetSource?: string; insttId?: string; }) {
   const search = new URLSearchParams();
   if (params?.memberId) search.set("memberId", params.memberId);
   if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
   if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
   if (params?.resetSource) search.set("resetSource", params.resetSource);
+  if (params?.insttId) search.set("insttId", params.insttId);
   const response = await fetch(`${buildAdminApiPath("/api/admin/member/reset-password")}${search.toString() ? `?${search.toString()}` : ""}`, {
     credentials: "include"
   });
@@ -2488,12 +2519,13 @@ export async function fetchIpWhitelistPage(params?: { searchIp?: string; accessS
   return body as IpWhitelistPagePayload;
 }
 
-export async function fetchLoginHistoryPage(params?: { pageIndex?: number; searchKeyword?: string; userSe?: string; loginResult?: string; }) {
+export async function fetchLoginHistoryPage(params?: { pageIndex?: number; searchKeyword?: string; userSe?: string; loginResult?: string; insttId?: string; }) {
   const search = new URLSearchParams();
   if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
   if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
   if (params?.userSe) search.set("userSe", params.userSe);
   if (params?.loginResult) search.set("loginResult", params.loginResult);
+  if (params?.insttId) search.set("insttId", params.insttId);
   const response = await fetch(`${buildAdminApiPath("/api/admin/member/login-history/page")}${search.toString() ? `?${search.toString()}` : ""}`, {
     credentials: "include"
   });
@@ -2515,11 +2547,27 @@ export async function fetchAccessHistoryPage(params?: { pageIndex?: number; sear
   return body as AccessHistoryPagePayload;
 }
 
-export async function fetchSecurityHistoryPage(params?: { pageIndex?: number; searchKeyword?: string; userSe?: string; }) {
+export async function fetchErrorLogPage(params?: { pageIndex?: number; searchKeyword?: string; insttId?: string; sourceType?: string; errorType?: string; }) {
+  const search = new URLSearchParams();
+  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
+  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
+  if (params?.insttId) search.set("insttId", params.insttId);
+  if (params?.sourceType) search.set("sourceType", params.sourceType);
+  if (params?.errorType) search.set("errorType", params.errorType);
+  const response = await fetch(buildLocalizedPath(`/admin/system/error-log/page-data${search.toString() ? `?${search.toString()}` : ""}`, `/en/admin/system/error-log/page-data${search.toString() ? `?${search.toString()}` : ""}`), {
+    credentials: "include"
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(body.errorLogError || `Failed to load error log page: ${response.status}`);
+  return body as ErrorLogPagePayload;
+}
+
+export async function fetchSecurityHistoryPage(params?: { pageIndex?: number; searchKeyword?: string; userSe?: string; insttId?: string; }) {
   const search = new URLSearchParams();
   if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
   if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
   if (params?.userSe) search.set("userSe", params.userSe);
+  if (params?.insttId) search.set("insttId", params.insttId);
   const response = await fetch(`/admin/system/security/page-data${search.toString() ? `?${search.toString()}` : ""}`, {
     credentials: "include"
   });

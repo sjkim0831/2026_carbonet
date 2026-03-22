@@ -1,5 +1,6 @@
 package egovframework.com.feature.home.web;
 
+import egovframework.com.common.error.ErrorEventService;
 import egovframework.com.feature.admin.service.SrSelfHealingService;
 import egovframework.com.feature.home.dto.request.FrontendErrorReportRequest;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ public class FrontendErrorReportController {
     private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ISO_DATE_TIME;
 
     private final SrSelfHealingService srSelfHealingService;
+    private final ErrorEventService errorEventService;
 
     @PostMapping("/report")
     @ResponseBody
@@ -68,6 +70,18 @@ public class FrontendErrorReportController {
         
         String currentUserId = extractCurrentUserId(httpRequest);
         String companyId = extractCompanyId(httpRequest);
+        errorEventService.recordFrontendErrorReport(
+                fingerprint,
+                currentUserId,
+                companyId,
+                httpRequest,
+                request.getPageId(),
+                request.getUrl(),
+                request.getErrorType(),
+                request.getMessage(),
+                request.getStack(),
+                request.getUserAgent()
+        );
         
         log.warn("[FrontendErrorReport] Error report received: fingerprint={}, type={}, pageId={}, userId={}, url={}",
                 fingerprint, request.getErrorType(), request.getPageId(), currentUserId, request.getUrl());

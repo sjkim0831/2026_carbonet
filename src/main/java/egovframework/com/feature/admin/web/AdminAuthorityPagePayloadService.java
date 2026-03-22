@@ -86,6 +86,8 @@ public class AdminAuthorityPagePayloadService {
                     insttId,
                     userSearchKeyword,
                     selectedRoleCategory,
+                    currentUserId,
+                    currentUserAuthorCode,
                     currentUserInsttId,
                     webmaster,
                     globalAccess,
@@ -132,10 +134,14 @@ public class AdminAuthorityPagePayloadService {
         response.put("isEn", isEn);
         response.put("currentUserId", currentUserId);
         response.put("isWebmaster", webmaster);
-        response.put("authorGroups", authorGroups);
+        response.put("authorGroups", filteredAuthorGroups);
         response.put("filteredAuthorGroups", filteredAuthorGroups);
         response.put("referenceAuthorGroups", filteredAuthorGroups);
-        response.put("generalAuthorGroups", authorityPagePayloadSupport.filterAuthorGroups(authorGroups, "GENERAL"));
+        response.put("generalAuthorGroups", authorityPagePayloadSupport.filterAuthorGroups(
+                authorGroups,
+                "GENERAL",
+                currentUserId,
+                currentUserAuthorCode));
         FeatureCatalogSummarySnapshot featureCatalogSummary = adminSummaryService.summarizeFeatureCatalog(featureSections);
         response.put("featureSections", featureSections);
         response.put("authorGroupCount", filteredAuthorGroups.size());
@@ -144,9 +150,11 @@ public class AdminAuthorityPagePayloadService {
         response.put("pageCount", authorityPagePayloadSupport.countSelectedPageCount(featureSections, selectedFeatureCodes));
         response.put("unassignedFeatureCount", featureCatalogSummary.getUnassignedFeatureCount());
         response.put("recommendedRoleSections",
-                authorityPagePayloadSupport.filterRecommendedRoleSections(
+                authorityPagePayloadSupport.filterGrantableRecommendedRoleSections(
                         authorityPagePayloadSupport.buildRecommendedRoleSections(authorGroups, isEn),
-                        selectedRoleCategory));
+                        selectedRoleCategory,
+                        currentUserId,
+                        currentUserAuthorCode));
         response.put("assignmentAuthorities", authorityPagePayloadSupport.buildAssignmentAuthorities(isEn));
         response.put("roleCategories", authorityPagePayloadSupport.buildRoleCategories(isEn));
         response.put("roleCategoryOptions", authorityPagePayloadSupport.buildRoleCategoryOptions(isEn, canViewGeneralAuthorityGroups));
@@ -224,13 +232,23 @@ public class AdminAuthorityPagePayloadService {
             }
             String authorScopeInsttId = !selectedInsttId.isEmpty() ? selectedInsttId : scopedInsttId;
             authorGroups = authorityPagePayloadSupport.filterScopedDepartmentAuthorGroups(
-                    authorityPagePayloadSupport.filterAuthorGroupsByScope(allAuthorGroups, "DEPARTMENT", authorScopeInsttId, globalDeptRoleAccess),
+                    authorityPagePayloadSupport.filterAuthorGroupsByScope(
+                            allAuthorGroups,
+                            "DEPARTMENT",
+                            authorScopeInsttId,
+                            globalDeptRoleAccess,
+                            currentUserId,
+                            currentUserAuthorCode),
                     departmentRows);
             List<UserAuthorityTargetVO> allCompanyMembers = selectedInsttId.isEmpty()
                     ? Collections.emptyList()
                     : authGroupManageService.selectUserAuthorityTargets(selectedInsttId, controller.safeString(memberSearchKeyword));
             memberAssignableAuthorGroups = authorityPagePayloadSupport.buildDeptMemberAssignableGroups(
-                    allAuthorGroups, authorScopeInsttId, globalDeptRoleAccess);
+                    allAuthorGroups,
+                    authorScopeInsttId,
+                    globalDeptRoleAccess,
+                    currentUserId,
+                    currentUserAuthorCode);
             companyMemberCount = allCompanyMembers.size();
             companyMemberPageSize = 10;
             companyMemberTotalPages = Math.max(1, (int) Math.ceil((double) companyMemberCount / (double) companyMemberPageSize));
@@ -308,7 +326,11 @@ public class AdminAuthorityPagePayloadService {
         int assignmentCount;
         try {
             assignments = authGroupManageService.selectAdminRoleAssignments();
-            authorGroups = authorityPagePayloadSupport.filterAuthorGroups(authGroupManageService.selectAuthorList(), "GENERAL");
+            authorGroups = authorityPagePayloadSupport.filterAuthorGroups(
+                    authGroupManageService.selectAuthorList(),
+                    "GENERAL",
+                    currentUserId,
+                    authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId));
             assignmentCount = assignments.size();
         } catch (Exception e) {
             log.error("Failed to load auth change page api.", e);

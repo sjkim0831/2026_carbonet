@@ -455,7 +455,15 @@ public class SiteMapServiceImpl implements SiteMapService {
 
     private boolean isGlobalOnlyRoute(String normalizedUri) {
         String value = safeString(normalizedUri);
-        if ("/admin/system/access_history".equals(value)) {
+        if ("/admin/system/access_history".equals(value)
+                || "/admin/system/error-log".equals(value)
+                || "/admin/system/security".equals(value)
+                || "/admin/system/security-audit".equals(value)
+                || "/admin/system/observability".equals(value)
+                || "/admin/system/help-management".equals(value)
+                || "/admin/system/sr-workbench".equals(value)
+                || "/admin/system/wbs-management".equals(value)
+                || "/admin/system/codex-request".equals(value)) {
             return false;
         }
         return "/admin/member/company-approve".equals(value)

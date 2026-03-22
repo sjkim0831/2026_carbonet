@@ -186,6 +186,7 @@ public class AdminHotPathPagePayloadService {
             String pageIndexParam,
             String searchKeyword,
             String resetSource,
+            String insttId,
             String memberId,
             HttpServletRequest request,
             Locale locale) {
@@ -193,6 +194,7 @@ public class AdminHotPathPagePayloadService {
                 pageIndexParam,
                 searchKeyword,
                 resetSource,
+                insttId,
                 memberId,
                 request,
                 locale);

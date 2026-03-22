@@ -1,5 +1,7 @@
 package egovframework.com.common.web;
 
+import egovframework.com.common.error.ErrorEventService;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -14,14 +16,27 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 @ControllerAdvice(annotations = Controller.class)
+@RequiredArgsConstructor
 public class PageIsolationExceptionAdvice {
 
     private static final Logger log = LoggerFactory.getLogger(PageIsolationExceptionAdvice.class);
+    private final ErrorEventService errorEventService;
 
     @ExceptionHandler(Exception.class)
     public Object handlePageException(Exception ex, HttpServletRequest request) {
         final String uri = request.getRequestURI();
         log.error("Page-level error isolated for uri={}", uri, ex);
+        errorEventService.recordBackendError(
+                "PAGE_EXCEPTION_ADVICE",
+                ex == null ? "PAGE_EXCEPTION" : ex.getClass().getSimpleName(),
+                request,
+                "",
+                "",
+                safeString(request.getAttribute("targetCompanyContextId")),
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                ex,
+                ex == null ? "" : ex.getMessage()
+        );
 
         // API/AJAX endpoints should receive structured error without affecting main page runtime.
         if (isApiRequest(request, uri)) {
@@ -37,6 +52,10 @@ public class PageIsolationExceptionAdvice {
         mv.addObject("errorPath", uri);
         mv.addObject("errorMessage", "요청한 페이지 처리 중 오류가 발생했습니다. 메인 화면은 계속 사용할 수 있습니다.");
         return mv;
+    }
+
+    private String safeString(Object value) {
+        return value == null ? "" : value.toString().trim();
     }
 
     private boolean isApiRequest(HttpServletRequest request, String uri) {

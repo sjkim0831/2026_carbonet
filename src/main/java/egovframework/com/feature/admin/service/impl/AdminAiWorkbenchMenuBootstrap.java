@@ -36,6 +36,7 @@ public class AdminAiWorkbenchMenuBootstrap {
     private static final String SR_MENU_CODE = "A1900102";
     private static final String CODEX_MENU_CODE = "A1900103";
     private static final String WBS_MENU_CODE = "A1900104";
+    private static final String OBSERVABILITY_MENU_CODE = "A1900105";
     private static final String ACTOR_ID = "SYSTEM_BOOTSTRAP";
     private static final List<String> STANDARD_ADMIN_ROLES = Arrays.asList(
             "ROLE_SYSTEM_MASTER",
@@ -55,6 +56,7 @@ public class AdminAiWorkbenchMenuBootstrap {
         provision("sr-workbench", buildSrWorkbenchRequest());
         provision("codex-request", buildCodexRequest());
         provision("wbs-management", buildWbsManagementRequest());
+        provision("observability", buildObservabilityRequest());
         cleanupLegacyMenus();
     }
 
@@ -159,6 +161,26 @@ public class AdminAiWorkbenchMenuBootstrap {
         return request;
     }
 
+    private CodexProvisionRequest buildObservabilityRequest() {
+        CodexProvisionRequest request = baseRequest("BOOTSTRAP-OBSERVABILITY", "/admin/system/observability");
+        request.setPage(pageRequest(
+                OBSERVABILITY_MENU_CODE,
+                "감사/추적 조회",
+                "Observability",
+                "/admin/system/observability",
+                "monitoring"
+        ));
+        request.setFeatures(Arrays.asList(
+                featureRequest(OBSERVABILITY_MENU_CODE, OBSERVABILITY_MENU_CODE + "_VIEW", "감사/추적 조회", "View Observability", "Audit and trace observability page access")
+        ));
+        request.setAuthors(Arrays.asList(
+                authorRequest("ROLE_SYSTEM_MASTER", "시스템 마스터", "System Master", OBSERVABILITY_MENU_CODE + "_VIEW"),
+                authorRequest("ROLE_SYSTEM_ADMIN", "시스템 관리자", "System Administrator", OBSERVABILITY_MENU_CODE + "_VIEW"),
+                authorRequest("ROLE_ADMIN", "일반 관리자", "General Administrator", OBSERVABILITY_MENU_CODE + "_VIEW")
+        ));
+        return request;
+    }
+
     private void reconcileStandardRoleAssignments(String registrationId) {
         Map<String, Set<String>> desiredByRole = buildDesiredFeatureCodesByRole();
         Set<String> targetFeatureCodes = new LinkedHashSet<>();
@@ -203,7 +225,8 @@ public class AdminAiWorkbenchMenuBootstrap {
                 CODEX_MENU_CODE + "_VIEW",
                 CODEX_MENU_CODE + "_EXECUTE",
                 WBS_MENU_CODE + "_VIEW",
-                WBS_MENU_CODE + "_EDIT"
+                WBS_MENU_CODE + "_EDIT",
+                OBSERVABILITY_MENU_CODE + "_VIEW"
         ));
         desired.put("ROLE_SYSTEM_ADMIN", linkedSet(
                 HELP_MENU_CODE + "_VIEW",
@@ -216,7 +239,8 @@ public class AdminAiWorkbenchMenuBootstrap {
                 CODEX_MENU_CODE + "_VIEW",
                 CODEX_MENU_CODE + "_EXECUTE",
                 WBS_MENU_CODE + "_VIEW",
-                WBS_MENU_CODE + "_EDIT"
+                WBS_MENU_CODE + "_EDIT",
+                OBSERVABILITY_MENU_CODE + "_VIEW"
         ));
         desired.put("ROLE_ADMIN", linkedSet(
                 HELP_MENU_CODE + "_VIEW",
@@ -226,7 +250,8 @@ public class AdminAiWorkbenchMenuBootstrap {
                 CODEX_MENU_CODE + "_VIEW",
                 CODEX_MENU_CODE + "_EXECUTE",
                 WBS_MENU_CODE + "_VIEW",
-                WBS_MENU_CODE + "_EDIT"
+                WBS_MENU_CODE + "_EDIT",
+                OBSERVABILITY_MENU_CODE + "_VIEW"
         ));
         desired.put("ROLE_OPERATION_ADMIN", Collections.emptySet());
         return desired;

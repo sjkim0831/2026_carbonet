@@ -342,10 +342,11 @@ public class AuthServiceImpl extends EgovAbstractServiceImpl implements AuthServ
     }
 
     @Override
-    public Page<PasswordResetHistory> searchPasswordResetHistories(String searchKeyword, String resetSource, Pageable pageable) {
+    public Page<PasswordResetHistory> searchPasswordResetHistories(String searchKeyword, String resetSource, String insttId, Pageable pageable) {
         String normalizedKeyword = searchKeyword == null ? "" : searchKeyword.trim();
         String normalizedSource = resetSource == null ? "" : resetSource.trim();
-        return passwordResetHistoryRepository.searchPasswordResetHistories(normalizedSource, normalizedKeyword, pageable);
+        String normalizedInsttId = insttId == null ? "" : insttId.trim();
+        return passwordResetHistoryRepository.searchPasswordResetHistories(normalizedSource, normalizedInsttId, normalizedKeyword, pageable);
     }
 
     private void savePasswordResetHistory(String userId, String userSe, String resetByUserId, String resetIp,

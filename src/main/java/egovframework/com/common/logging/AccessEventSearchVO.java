@@ -1,17 +1,18 @@
-package egovframework.com.feature.admin.model.vo;
+package egovframework.com.common.logging;
 
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class LoginHistorySearchVO {
+public class AccessEventSearchVO {
 
     private int firstIndex;
     private int recordCountPerPage;
     private String searchKeyword;
-    private String userSe;
-    private String loginResult;
-    private String blockedOnly;
     private String insttId;
+    private String actorId;
+    private String pageId;
+    private String apiId;
+    private String featureType;
 }

@@ -68,6 +68,7 @@ public final class ReactPageUrlMapper {
         registerAdmin(adminPathToRoute, adminRouteToPath, "environment_management", "/admin/system/environment-management", "/admin/system/environment-management");
         registerAdmin(adminPathToRoute, adminRouteToPath, "wbs_management", "/admin/system/wbs-management", "/admin/system/wbs-management");
         registerAdmin(adminPathToRoute, adminRouteToPath, "sr_workbench", "/admin/system/sr-workbench", "/admin/system/sr-workbench");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "error_log", "/admin/system/error-log", "/admin/system/error-log");
 
         registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "mypage", "/mypage", "/en/mypage", "/mypage");
         registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "join_wizard", "/join/step1", "/join/en/step1", "/join/step1", "/join/overseas/step1");
