@@ -129,8 +129,7 @@ public class AdminMainAuthInterceptor implements HandlerInterceptor {
                 || "/admin".equals(normalizedUri)
                 || "/admin/".equals(normalizedUri)
                 || "/admin/system/menu-data".equals(normalizedUri)
-                || "/admin/member/login_history".equals(normalizedUri)
-                || "/admin/system/security".equals(normalizedUri);
+                || "/admin/member/login_history".equals(normalizedUri);
     }
 
     private String normalizeMenuUrl(String requestUri) {
@@ -490,11 +489,13 @@ public class AdminMainAuthInterceptor implements HandlerInterceptor {
     private boolean isGlobalOnlyRoute(String normalizedUri) {
         String value = safeString(normalizedUri);
         return "/admin/member/approve".equals(value)
+                || "/admin/content/sitemap".equals(value)
                 || "/admin/member/company-approve".equals(value)
                 || "/admin/member/company_list".equals(value)
                 || "/admin/member/company_detail".equals(value)
                 || "/admin/member/company_account".equals(value)
                 || "/admin/member/company-file".equals(value)
+                || "/admin/api/admin/content/sitemap".equals(value)
                 || "/admin/member/admin_list".equals(value)
                 || "/admin/member/admin-list".equals(value)
                 || "/admin/member/admin_account".equals(value)
@@ -515,7 +516,12 @@ public class AdminMainAuthInterceptor implements HandlerInterceptor {
                 || "/admin/api/admin/companies/search".equals(value)
                 || "/admin/api/admin/auth-change/page".equals(value)
                 || "/admin/api/admin/auth-change/save".equals(value)
-                || value.startsWith("/admin/system/");
+                || value.startsWith("/admin/content/")
+                || value.startsWith("/admin/external/")
+                || value.startsWith("/admin/system/")
+                || value.startsWith("/admin/api/admin/content/")
+                || value.startsWith("/admin/api/admin/external/")
+                || value.startsWith("/admin/api/admin/system/");
     }
 
     private boolean isImplicitOwnCompanyRoute(String normalizedUri) {

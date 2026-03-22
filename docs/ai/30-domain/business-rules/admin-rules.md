@@ -30,6 +30,16 @@ Record admin-only behaviors and review constraints.
 - `MASTER`가 아닌 경우에는 항상 `instt_id` 또는 회사 ID 범위 안에서만 권한 조회/부여/수정이 가능해야 한다.
 - `instt_id` 범위 제한은 화면 숨김으로 끝내지 말고 컨트롤러, 서비스, 매퍼/SQL까지 같은 조건으로 강제해야 한다.
 
+## System Menu Scope
+
+- `/admin/system/*` 화면은 마스터 관리자만 접근할 수 있어야 한다.
+- `/admin/api/admin/system/*` 기능 API도 마스터 관리자만 접근할 수 있어야 한다.
+- `/admin/member/login_history`를 포함한 모니터링 메뉴도 마스터 관리자만 접근할 수 있어야 한다.
+- `/admin/content/*` 화면과 `/admin/api/admin/content/*` 기능 API도 마스터 관리자만 접근할 수 있어야 한다.
+- `/admin/external/*` 화면과 `/admin/api/admin/external/*` 기능 API도 마스터 관리자만 접근할 수 있어야 한다.
+- 시스템 메뉴의 좌측 메뉴 노출과 사이트맵 노출도 마스터 관리자에게만 허용한다.
+- 시스템/모니터링/콘텐츠/외부연계 메뉴 기능 권한이 별도로 등록되어 있더라도, 마스터 관리자가 아니면 화면 진입과 기능 실행을 모두 차단한다.
+
 ## Admin Restoration Track
 
 - 현재 관리자 화면 복원 우선순위는 `auth_group`, `auth_change`, `dept_role_mapping`, `member_edit`, `admin_account` 5개 페이지다.

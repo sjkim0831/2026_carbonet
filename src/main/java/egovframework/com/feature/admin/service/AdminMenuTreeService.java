@@ -249,6 +249,8 @@ public class AdminMenuTreeService {
                 || "/admin/member/company_detail".equals(value)
                 || "/admin/member/company_account".equals(value)
                 || "/admin/member/company-file".equals(value)
+                || value.startsWith("/admin/content/")
+                || value.startsWith("/admin/external/")
                 || value.startsWith("/admin/system/");
     }
 
