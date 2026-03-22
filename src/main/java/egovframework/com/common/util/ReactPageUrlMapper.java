@@ -44,6 +44,7 @@ public final class ReactPageUrlMapper {
         registerAdmin(adminPathToRoute, adminRouteToPath, "function_management", "/admin/system/feature-management", "/admin/system/feature-management");
         registerAdmin(adminPathToRoute, adminRouteToPath, "menu_management", "/admin/system/menu-management", "/admin/system/menu-management");
         registerAdmin(adminPathToRoute, adminRouteToPath, "ip_whitelist", "/admin/system/ip_whitelist", "/admin/system/ip_whitelist");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "access_history", "/admin/system/access_history", "/admin/system/access_history");
         registerAdmin(adminPathToRoute, adminRouteToPath, "login_history", "/admin/member/login_history", "/admin/member/login_history");
         registerAdmin(adminPathToRoute, adminRouteToPath, "security_history", "/admin/system/security", "/admin/system/security");
         registerAdmin(adminPathToRoute, adminRouteToPath, "security_policy", "/admin/system/security-policy", "/admin/system/security-policy");

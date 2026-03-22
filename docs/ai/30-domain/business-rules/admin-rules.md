@@ -34,6 +34,8 @@ Record admin-only behaviors and review constraints.
 
 - `/admin/system/*` 화면은 마스터 관리자만 접근할 수 있어야 한다.
 - `/admin/api/admin/system/*` 기능 API도 마스터 관리자만 접근할 수 있어야 한다.
+- 예외적으로 `/admin/system/access_history`와 같은 시스템 로그 메뉴는 마스터 관리자와 시스템 관리자까지 허용할 수 있다.
+  이 경우 시스템 관리자는 반드시 자기 `instt_id` 범위 로그만 조회할 수 있어야 한다.
 - `/admin/member/login_history`를 포함한 모니터링 메뉴도 마스터 관리자만 접근할 수 있어야 한다.
 - `/admin/content/*` 화면과 `/admin/api/admin/content/*` 기능 API도 마스터 관리자만 접근할 수 있어야 한다.
 - `/admin/external/*` 화면과 `/admin/api/admin/external/*` 기능 API도 마스터 관리자만 접근할 수 있어야 한다.

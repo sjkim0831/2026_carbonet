@@ -244,6 +244,9 @@ public class AdminMenuTreeService {
 
     private boolean isMasterOnlyRoute(String normalizedUri) {
         String value = safeString(normalizedUri);
+        if ("/admin/system/access_history".equals(value)) {
+            return false;
+        }
         return "/admin/member/company-approve".equals(value)
                 || "/admin/member/company_list".equals(value)
                 || "/admin/member/company_detail".equals(value)

@@ -750,6 +750,18 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "IpWhitelistRequests", instanceKey: "ip-whitelist-requests", layoutZone: "content", propsSummary: ["ipWhitelistRequestRows"] }
     ]
   },
+  "access-history": {
+    pageId: "access-history",
+    routePath: "/admin/system/access_history",
+    menuCode: "A0060301",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "AccessHistorySearch", instanceKey: "access-history-search", layoutZone: "actions", propsSummary: ["searchKeyword", "insttId"] },
+      { componentId: "AccessHistoryTable", instanceKey: "access-history-table", layoutZone: "content", propsSummary: ["accessHistoryList", "pageIndex"] }
+    ]
+  },
   "login-history": {
     pageId: "login-history",
     routePath: "/admin/member/login_history",

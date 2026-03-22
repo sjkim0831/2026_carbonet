@@ -93,6 +93,7 @@ public class RequestExecutionLoggingFilter extends OncePerRequestFilter {
         item.setRequestContentType(safeString(request.getContentType()));
         item.setResponseStatus(response == null ? 0 : response.getStatus());
         item.setDurationMs(Math.max(System.currentTimeMillis() - startedAt, 0));
+        item.setRemoteAddr(safeString(request.getRemoteAddr()));
         item.setQueryString(safeString(request.getQueryString()));
         item.setParameterSummary(buildParameterSummary(request));
         item.setErrorMessage(failure == null ? "" : safeString(failure.getMessage()));

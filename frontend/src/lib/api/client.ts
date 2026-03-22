@@ -1051,6 +1051,25 @@ export type IpWhitelistPagePayload = Record<string, unknown> & {
   status?: string;
 };
 
+export type AccessHistoryPagePayload = Record<string, unknown> & {
+  accessHistoryList?: Array<Record<string, unknown>>;
+  companyOptions?: Array<Record<string, string>>;
+  selectedInsttId?: string;
+  canViewAccessHistory?: boolean;
+  canManageAllCompanies?: boolean;
+  totalCount?: number;
+  pageIndex?: number;
+  pageSize?: number;
+  totalPages?: number;
+  startPage?: number;
+  endPage?: number;
+  prevPage?: number;
+  nextPage?: number;
+  searchKeyword?: string;
+  accessHistoryError?: string;
+  isEn?: boolean;
+};
+
 export type LoginHistoryPagePayload = Record<string, unknown> & {
   loginHistoryList?: Array<Record<string, unknown>>;
   totalCount?: number;
@@ -2481,6 +2500,19 @@ export async function fetchLoginHistoryPage(params?: { pageIndex?: number; searc
   const body = await response.json();
   if (!response.ok) throw new Error(body.loginHistoryError || `Failed to load login history page: ${response.status}`);
   return body as LoginHistoryPagePayload;
+}
+
+export async function fetchAccessHistoryPage(params?: { pageIndex?: number; searchKeyword?: string; insttId?: string; }) {
+  const search = new URLSearchParams();
+  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
+  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
+  if (params?.insttId) search.set("insttId", params.insttId);
+  const response = await fetch(buildLocalizedPath(`/admin/system/access_history/page-data${search.toString() ? `?${search.toString()}` : ""}`, `/en/admin/system/access_history/page-data${search.toString() ? `?${search.toString()}` : ""}`), {
+    credentials: "include"
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(body.accessHistoryError || `Failed to load access history page: ${response.status}`);
+  return body as AccessHistoryPagePayload;
 }
 
 export async function fetchSecurityHistoryPage(params?: { pageIndex?: number; searchKeyword?: string; userSe?: string; }) {

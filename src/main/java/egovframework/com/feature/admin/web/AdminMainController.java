@@ -51,6 +51,8 @@ import egovframework.com.feature.auth.service.AuthService;
 import egovframework.com.feature.auth.util.JwtTokenProvider;
 import egovframework.com.feature.auth.util.ClientIpUtil;
 import egovframework.com.common.audit.AuditTrailService;
+import egovframework.com.common.logging.RequestExecutionLogService;
+import egovframework.com.common.logging.RequestExecutionLogVO;
 import egovframework.com.common.service.ObservabilityQueryService;
 import egovframework.com.common.util.FeatureCodeBitmap;
 import egovframework.com.common.util.ReactPageUrlMapper;
@@ -147,6 +149,7 @@ public class AdminMainController {
     private final AuthorRoleProfileService authorRoleProfileService;
     private final AdminAuthorityPagePayloadSupport adminAuthorityPagePayloadSupport;
     private final AuditTrailService auditTrailService;
+    private final RequestExecutionLogService requestExecutionLogService;
     private final ObservabilityQueryService observabilityQueryService;
     private final ObjectMapper objectMapper;
     private final ObjectProvider<ReactAppViewSupport> reactAppViewSupportProvider;
@@ -2168,6 +2171,30 @@ public class AdminMainController {
         return ResponseEntity.ok(new LinkedHashMap<>(model));
     }
 
+    @RequestMapping(value = "/system/access_history", method = { RequestMethod.GET, RequestMethod.POST })
+    public String access_history(
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "insttId", required = false) String insttId,
+            HttpServletRequest request,
+            Locale locale,
+            Model model) {
+        return redirectReactMigration(request, locale, "access-history");
+    }
+
+    @GetMapping("/system/access_history/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> accessHistoryPageApi(
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "insttId", required = false) String insttId,
+            HttpServletRequest request,
+            Locale locale) {
+        primeCsrfToken(request);
+        boolean isEn = isEnglishRequest(request, locale);
+        return ResponseEntity.ok(buildAccessHistoryPagePayload(pageIndexParam, searchKeyword, insttId, request, isEn));
+    }
+
     @RequestMapping(value = "/system/security-policy", method = { RequestMethod.GET, RequestMethod.POST })
     public String security_policy(
             HttpServletRequest request,
@@ -3276,6 +3303,242 @@ public class AdminMainController {
         model.addAttribute("userSe", normalizedUserSe);
         model.addAttribute("loginResult", normalizedLoginResult);
         return viewName;
+    }
+
+    private Map<String, Object> buildAccessHistoryPagePayload(
+            String pageIndexParam,
+            String searchKeyword,
+            String requestedInsttId,
+            HttpServletRequest request,
+            boolean isEn) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        int pageIndex = 1;
+        if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
+            try {
+                pageIndex = Integer.parseInt(pageIndexParam.trim());
+            } catch (NumberFormatException ignored) {
+                pageIndex = 1;
+            }
+        }
+
+        String currentUserId = extractCurrentUserId(request);
+        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+        boolean masterAccess = ROLE_SYSTEM_MASTER.equalsIgnoreCase(currentUserAuthorCode);
+        boolean systemAccess = ROLE_SYSTEM_ADMIN.equalsIgnoreCase(currentUserAuthorCode);
+        boolean canView = masterAccess || systemAccess;
+        payload.put("canViewAccessHistory", canView);
+        payload.put("canManageAllCompanies", masterAccess);
+        payload.put("searchKeyword", safeString(searchKeyword));
+
+        String currentUserInsttId = resolveCurrentUserInsttId(currentUserId);
+        List<Map<String, String>> companyOptions = masterAccess
+                ? loadAccessHistoryCompanyOptions()
+                : buildScopedAccessHistoryCompanyOptions(currentUserInsttId);
+        String selectedInsttId = masterAccess
+                ? resolveSelectedInsttId(requestedInsttId, companyOptions, true)
+                : currentUserInsttId;
+        payload.put("companyOptions", companyOptions);
+        payload.put("selectedInsttId", selectedInsttId);
+
+        if (!masterAccess && currentUserInsttId.isEmpty()) {
+            payload.put("accessHistoryError", isEn
+                    ? "Your administrator account is missing company information."
+                    : "관리자 계정에 회사 정보가 없습니다.");
+            payload.put("accessHistoryList", Collections.emptyList());
+            payload.put("totalCount", 0);
+            payload.put("pageIndex", 1);
+            payload.put("pageSize", 10);
+            payload.put("totalPages", 1);
+            payload.put("startPage", 1);
+            payload.put("endPage", 1);
+            payload.put("prevPage", 1);
+            payload.put("nextPage", 1);
+            payload.put("isEn", isEn);
+            return payload;
+        }
+
+        if (!canView) {
+            payload.put("accessHistoryError", isEn
+                    ? "Only master administrators and system administrators can view access history."
+                    : "접속 로그는 마스터 관리자와 시스템 관리자만 조회할 수 있습니다.");
+            payload.put("accessHistoryList", Collections.emptyList());
+            payload.put("totalCount", 0);
+            payload.put("pageIndex", 1);
+            payload.put("pageSize", 10);
+            payload.put("totalPages", 1);
+            payload.put("startPage", 1);
+            payload.put("endPage", 1);
+            payload.put("prevPage", 1);
+            payload.put("nextPage", 1);
+            payload.put("isEn", isEn);
+            return payload;
+        }
+
+        String normalizedKeyword = safeString(searchKeyword).toLowerCase(Locale.ROOT);
+        Map<String, String> companyNameById = new LinkedHashMap<>();
+        for (Map<String, String> option : companyOptions) {
+            companyNameById.put(safeString(option.get("insttId")), safeString(option.get("cmpnyNm")));
+        }
+
+        List<RequestExecutionLogVO> filtered = new ArrayList<>();
+        String forcedInsttId = masterAccess ? selectedInsttId : currentUserInsttId;
+        String errorMessage = "";
+        try {
+            for (RequestExecutionLogVO item : requestExecutionLogService.readRecent(5000)) {
+                String scopedInsttId = resolveAccessHistoryInsttId(item);
+                if (scopedInsttId.isEmpty()) {
+                    continue;
+                }
+                if (!forcedInsttId.isEmpty() && !forcedInsttId.equals(scopedInsttId)) {
+                    continue;
+                }
+                if (!normalizedKeyword.isEmpty()
+                        && !matchesAccessHistoryKeyword(item, normalizedKeyword, companyNameById.get(scopedInsttId))) {
+                    continue;
+                }
+                filtered.add(item);
+            }
+        } catch (Exception e) {
+            log.error("Failed to load access history.", e);
+            errorMessage = isEn
+                    ? "An error occurred while retrieving access history."
+                    : "접속 로그 조회 중 오류가 발생했습니다.";
+        }
+
+        int pageSize = 10;
+        int totalCount = filtered.size();
+        int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
+        int currentPage = Math.max(1, Math.min(pageIndex, totalPages));
+        int fromIndex = Math.max(0, (currentPage - 1) * pageSize);
+        int toIndex = Math.min(totalCount, fromIndex + pageSize);
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (RequestExecutionLogVO item : filtered.subList(fromIndex, toIndex)) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            String scopedInsttId = resolveAccessHistoryInsttId(item);
+            row.put("executedAt", safeString(item.getExecutedAt()));
+            row.put("insttId", scopedInsttId);
+            row.put("companyName", companyNameById.getOrDefault(scopedInsttId, scopedInsttId));
+            row.put("actorUserId", safeString(item.getActorUserId()));
+            row.put("actorType", safeString(item.getActorType()));
+            row.put("actorAuthorCode", safeString(item.getActorAuthorCode()));
+            row.put("requestUri", safeString(item.getRequestUri()));
+            row.put("httpMethod", safeString(item.getHttpMethod()));
+            row.put("responseStatus", item.getResponseStatus());
+            row.put("durationMs", item.getDurationMs());
+            row.put("remoteAddr", safeString(item.getRemoteAddr()));
+            row.put("featureType", safeString(item.getFeatureType()));
+            row.put("companyScopeDecision", safeString(item.getCompanyScopeDecision()));
+            rows.add(row);
+        }
+
+        int startPage = Math.max(1, currentPage - 4);
+        int endPage = Math.min(totalPages, startPage + 9);
+        if (endPage - startPage < 9) {
+            startPage = Math.max(1, endPage - 9);
+        }
+        payload.put("accessHistoryError", errorMessage);
+        payload.put("accessHistoryList", rows);
+        payload.put("totalCount", totalCount);
+        payload.put("pageIndex", currentPage);
+        payload.put("pageSize", pageSize);
+        payload.put("totalPages", totalPages);
+        payload.put("startPage", startPage);
+        payload.put("endPage", endPage);
+        payload.put("prevPage", Math.max(1, currentPage - 1));
+        payload.put("nextPage", Math.min(totalPages, currentPage + 1));
+        payload.put("isEn", isEn);
+        return payload;
+    }
+
+    private List<Map<String, String>> loadAccessHistoryCompanyOptions() {
+        try {
+            Map<String, Object> searchParams = new LinkedHashMap<>();
+            searchParams.put("keyword", "");
+            searchParams.put("status", "");
+            searchParams.put("offset", 0);
+            searchParams.put("pageSize", 500);
+            List<?> companies = entrprsManageService.searchCompanyListPaged(searchParams);
+            Map<String, String> dedup = new LinkedHashMap<>();
+            for (Object item : companies) {
+                String insttId = "";
+                String cmpnyNm = "";
+                if (item instanceof CompanyListItemVO) {
+                    CompanyListItemVO company = (CompanyListItemVO) item;
+                    insttId = safeString(company.getInsttId());
+                    cmpnyNm = safeString(company.getCmpnyNm());
+                } else if (item instanceof Map) {
+                    Map<?, ?> row = (Map<?, ?>) item;
+                    insttId = stringValue(row.get("insttId"));
+                    if (insttId.isEmpty()) {
+                        insttId = stringValue(row.get("INSTT_ID"));
+                    }
+                    cmpnyNm = stringValue(row.get("cmpnyNm"));
+                    if (cmpnyNm.isEmpty()) {
+                        cmpnyNm = stringValue(row.get("CMPNY_NM"));
+                    }
+                }
+                if (!insttId.isEmpty() && !dedup.containsKey(insttId)) {
+                    dedup.put(insttId, cmpnyNm);
+                }
+            }
+            List<Map<String, String>> options = new ArrayList<>();
+            for (Map.Entry<String, String> entry : dedup.entrySet()) {
+                Map<String, String> option = new LinkedHashMap<>();
+                option.put("insttId", entry.getKey());
+                option.put("cmpnyNm", entry.getValue());
+                options.add(option);
+            }
+            return options;
+        } catch (Exception e) {
+            log.warn("Failed to load access history company options.", e);
+            return Collections.emptyList();
+        }
+    }
+
+    private List<Map<String, String>> buildScopedAccessHistoryCompanyOptions(String insttId) {
+        String normalizedInsttId = safeString(insttId);
+        if (normalizedInsttId.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<Map<String, String>> masterOptions = loadAccessHistoryCompanyOptions();
+        if (masterOptions.isEmpty()) {
+            Map<String, String> fallback = new LinkedHashMap<>();
+            fallback.put("insttId", normalizedInsttId);
+            fallback.put("cmpnyNm", normalizedInsttId);
+            return Collections.singletonList(fallback);
+        }
+        return masterOptions.stream()
+                .filter(option -> normalizedInsttId.equals(option.get("insttId")))
+                .collect(Collectors.toList());
+    }
+
+    private String resolveAccessHistoryInsttId(RequestExecutionLogVO item) {
+        if (item == null) {
+            return "";
+        }
+        String[] candidates = {
+                safeString(item.getCompanyContextId()),
+                safeString(item.getTargetCompanyContextId()),
+                safeString(item.getActorInsttId())
+        };
+        for (String candidate : candidates) {
+            if (!candidate.isEmpty()) {
+                return candidate;
+            }
+        }
+        return "";
+    }
+
+    private boolean matchesAccessHistoryKeyword(RequestExecutionLogVO item, String keyword, String companyName) {
+        String normalizedKeyword = safeString(keyword).toLowerCase(Locale.ROOT);
+        if (normalizedKeyword.isEmpty()) {
+            return true;
+        }
+        return safeString(item.getActorUserId()).toLowerCase(Locale.ROOT).contains(normalizedKeyword)
+                || safeString(item.getRequestUri()).toLowerCase(Locale.ROOT).contains(normalizedKeyword)
+                || safeString(item.getRemoteAddr()).toLowerCase(Locale.ROOT).contains(normalizedKeyword)
+                || safeString(item.getActorAuthorCode()).toLowerCase(Locale.ROOT).contains(normalizedKeyword)
+                || safeString(companyName).toLowerCase(Locale.ROOT).contains(normalizedKeyword);
     }
 
     String populatePasswordResetHistory(
