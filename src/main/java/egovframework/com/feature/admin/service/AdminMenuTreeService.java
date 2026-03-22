@@ -324,4 +324,51 @@ public class AdminMenuTreeService {
         }
         return "";
     }
+    private boolean shouldHideMenu(String code, String menuUrl) {
+        String normalizedCode = safeString(code);
+        String normalizedMenuUrl = normalizeMenuUrl(menuUrl);
+        return "/admin/member/edit".equals(normalizedMenuUrl)
+                || "/admin/member/detail".equals(normalizedMenuUrl)
+                || "/admin/member/company_detail".equals(normalizedMenuUrl)
+                || "/admin/member/admin_account/permissions".equals(normalizedMenuUrl);
+    }
+
+    private boolean shouldKeepPreferredMenu(String code, String menuUrl) {
+        String normalizedCode = safeString(code);
+        String normalizedMenuUrl = normalizeMenuUrl(menuUrl);
+        if ("/admin/member/register".equals(normalizedMenuUrl)) {
+            return "A0010102".equals(normalizedCode) || normalizedCode.isEmpty();
+        }
+        if ("/admin/member/company_account".equals(normalizedMenuUrl)) {
+            return "A0010203".equals(normalizedCode) || normalizedCode.isEmpty();
+        }
+        if ("/admin/system/security".equals(normalizedMenuUrl)) {
+            return "A0060205".equals(normalizedCode) || normalizedCode.isEmpty();
+        }
+        if ("/admin/system/observability".equals(normalizedMenuUrl)) {
+            return "A0060303".equals(normalizedCode) || normalizedCode.isEmpty();
+        }
+        return true;
+    }
+
+    private String resolveMenuUrlOverride(String code, String menuUrl) {
+        String normalizedCode = safeString(code);
+        String normalizedMenuUrl = normalizeMenuUrl(menuUrl);
+        if ("A0010102".equals(normalizedCode) && "/admin/member/company_account".equals(normalizedMenuUrl)) {
+            return "/admin/member/register";
+        }
+        return normalizedMenuUrl;
+    }
+
+    private String localizeAdminUrl(String url) {
+        String normalizedUrl = normalizeMenuUrl(url);
+        if (normalizedUrl.isEmpty() || normalizedUrl.startsWith("/en/")) {
+            return normalizedUrl;
+        }
+        int queryIndex = normalizedUrl.indexOf('?');
+        if (queryIndex < 0) {
+            return "/en" + normalizedUrl;
+        }
+        return "/en" + normalizedUrl.substring(0, queryIndex) + normalizedUrl.substring(queryIndex);
+    }
 }

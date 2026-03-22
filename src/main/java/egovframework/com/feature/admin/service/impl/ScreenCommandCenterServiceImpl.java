@@ -2050,7 +2050,7 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
     }
 
     private Map<String, Object> buildObservabilityPage() {
-        Map<String, Object> page = pageOption("observability", "감사/추적 조회", "/admin/system/observability", "AMENU_SYSTEM_OBSERVABILITY", "admin");
+        Map<String, Object> page = pageOption("observability", "감사 로그", "/admin/system/observability", "A0060303", "admin");
         page.put("summary", "감사 로그와 trace 이벤트를 같은 페이지에서 조회하는 운영 화면입니다.");
         page.put("source", "frontend/src/features/observability/ObservabilityMigrationPage.tsx");
         page.put("surfaces", Arrays.asList(
@@ -2160,7 +2160,7 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                         Arrays.asList("SELECT", "INSERT", "UPDATE", "DELETE"), "페이지 VIEW 기능과 역할/사용자 권한 연결을 관리합니다.")
         ));
         page.put("commonCodeGroups", Arrays.asList(
-                codeGroup("AMENU1", "관리자 메뉴 코드", Arrays.asList("AMENU_SYSTEM_FULL_STACK_MANAGEMENT", "A1900101", "AMENU_SYSTEM_OBSERVABILITY"), "시스템 운영 메뉴 코드군입니다."),
+                codeGroup("AMENU1", "관리자 메뉴 코드", Arrays.asList("AMENU_SYSTEM_FULL_STACK_MANAGEMENT", "A1900101", "A0060303"), "시스템 운영 메뉴 코드군입니다."),
                 codeGroup("CHANGE_LAYER", "수정 레이어", Arrays.asList("UI", "EVENT", "FUNCTION", "API", "SERVICE", "MAPPER", "SCHEMA", "DB_COLUMN", "MENU_AUTH"), "풀스택 관리 시 선택하는 변경 레이어입니다.")
         ));
         page.put("changeTargets", defaultChangeTargets());
@@ -2289,7 +2289,7 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                         Arrays.asList("SELECT"), "페이지 기능 권한과 메뉴 연결을 해석합니다.")
         ));
         page.put("commonCodeGroups", Arrays.asList(
-                codeGroup("AMENU1", "관리자 메뉴 코드", Arrays.asList("A1900101", "A1900102", "A1900103", "A1900104", "AMENU_SYSTEM_OBSERVABILITY"), "관리자 AI 운영 메뉴 분류입니다."),
+                codeGroup("AMENU1", "관리자 메뉴 코드", Arrays.asList("A1900101", "A1900102", "A1900103", "A1900104"), "관리자 AI 운영 메뉴 분류입니다."),
                 codeGroup("CHANGE_LAYER", "수정 레이어", Arrays.asList("UI", "CSS", "EVENT", "API", "CONTROLLER", "SERVICE", "MAPPER", "SCHEMA", "MENU_AUTH"),
                         "수정 지시 생성 시 선택하는 레이어 그룹입니다.")
         ));

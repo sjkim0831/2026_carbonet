@@ -36,6 +36,7 @@ public class AdminAiWorkbenchMenuBootstrap {
     private static final String SR_MENU_CODE = "A1900102";
     private static final String CODEX_MENU_CODE = "A1900103";
     private static final String WBS_MENU_CODE = "A1900104";
+    private static final String SYSTEM_AUDIT_LOG_MENU_CODE = "A0060303";
     private static final String ACTOR_ID = "SYSTEM_BOOTSTRAP";
     private static final List<String> STANDARD_ADMIN_ROLES = Arrays.asList(
             "ROLE_SYSTEM_MASTER",
@@ -203,7 +204,8 @@ public class AdminAiWorkbenchMenuBootstrap {
                 CODEX_MENU_CODE + "_VIEW",
                 CODEX_MENU_CODE + "_EXECUTE",
                 WBS_MENU_CODE + "_VIEW",
-                WBS_MENU_CODE + "_EDIT"
+                WBS_MENU_CODE + "_EDIT",
+                SYSTEM_AUDIT_LOG_MENU_CODE + "_VIEW"
         ));
         desired.put("ROLE_SYSTEM_ADMIN", linkedSet(
                 HELP_MENU_CODE + "_VIEW",
@@ -216,7 +218,8 @@ public class AdminAiWorkbenchMenuBootstrap {
                 CODEX_MENU_CODE + "_VIEW",
                 CODEX_MENU_CODE + "_EXECUTE",
                 WBS_MENU_CODE + "_VIEW",
-                WBS_MENU_CODE + "_EDIT"
+                WBS_MENU_CODE + "_EDIT",
+                SYSTEM_AUDIT_LOG_MENU_CODE + "_VIEW"
         ));
         desired.put("ROLE_ADMIN", linkedSet(
                 HELP_MENU_CODE + "_VIEW",
@@ -226,7 +229,8 @@ public class AdminAiWorkbenchMenuBootstrap {
                 CODEX_MENU_CODE + "_VIEW",
                 CODEX_MENU_CODE + "_EXECUTE",
                 WBS_MENU_CODE + "_VIEW",
-                WBS_MENU_CODE + "_EDIT"
+                WBS_MENU_CODE + "_EDIT",
+                SYSTEM_AUDIT_LOG_MENU_CODE + "_VIEW"
         ));
         desired.put("ROLE_OPERATION_ADMIN", Collections.emptySet());
         return desired;
