@@ -445,7 +445,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
   "observability": {
     pageId: "observability",
     routePath: "/admin/system/observability",
-    menuCode: "A1900105",
+    menuCode: "A0060303",
     domainCode: "admin",
     layoutVersion: "v1",
     designTokenVersion: "krds-current",

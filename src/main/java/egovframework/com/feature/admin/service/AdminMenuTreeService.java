@@ -377,6 +377,12 @@ public class AdminMenuTreeService {
         if ("/admin/member/company_account".equals(normalizedMenuUrl)) {
             return "A0010203".equals(normalizedCode) || normalizedCode.isEmpty();
         }
+        if ("/admin/system/security".equals(normalizedMenuUrl)) {
+            return "A0060205".equals(normalizedCode) || normalizedCode.isEmpty();
+        }
+        if ("/admin/system/observability".equals(normalizedMenuUrl)) {
+            return "A0060303".equals(normalizedCode) || normalizedCode.isEmpty();
+        }
         return true;
     }
 
