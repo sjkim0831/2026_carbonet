@@ -33,6 +33,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addResourceHandler("/home/**").addResourceLocations("classpath:/static/");
         registry.addResourceHandler("/signin/**").addResourceLocations("classpath:/static/");
         registry.addResourceHandler("/main/**").addResourceLocations("classpath:/static/");
+        registry.addResourceHandler("/admin/assets/react/**", "/en/admin/assets/react/**")
+                .addResourceLocations("classpath:/static/react-app/")
+                .setCacheControl(CacheControl.maxAge(365, TimeUnit.DAYS).cachePublic());
         registry.addResourceHandler("/admin/**").addResourceLocations("classpath:/static/");
         registry.addResourceHandler("/assets/react/**")
                 .addResourceLocations("classpath:/static/react-app/")
