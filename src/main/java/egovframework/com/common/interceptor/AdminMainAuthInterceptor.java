@@ -336,6 +336,9 @@ public class AdminMainAuthInterceptor implements HandlerInterceptor {
 
     private boolean checkCompanyScope(HttpServletRequest request, HttpServletResponse response,
                                       String userId, String authorCode, String normalizedUri) throws Exception {
+        if (isMemberManagementRoute(normalizedUri)) {
+            return checkMemberManagementScope(request, response, userId, authorCode, normalizedUri);
+        }
         String targetInsttId = resolveTargetInsttId(request, normalizedUri);
         if (hasGlobalCompanyAccess(authorCode)) {
             if (targetInsttId.isEmpty()) {
@@ -393,6 +396,57 @@ public class AdminMainAuthInterceptor implements HandlerInterceptor {
         return true;
     }
 
+    private boolean checkMemberManagementScope(HttpServletRequest request, HttpServletResponse response,
+                                               String userId, String authorCode, String normalizedUri) throws Exception {
+        String targetInsttId = resolveTargetInsttId(request, normalizedUri);
+        if (ROLE_SYSTEM_MASTER.equalsIgnoreCase(safeString(authorCode))) {
+            markCompanyScope(request, "ALLOW_MEMBER_MASTER", "", targetInsttId);
+            return true;
+        }
+        if (isMemberMasterOnlyRoute(normalizedUri)) {
+            markCompanyScope(request, "DENY_MEMBER_MASTER_ONLY", "Master administrator only route.", targetInsttId);
+            denyWithMessage(request, response,
+                    "This page is only available to master administrators.",
+                    "이 화면은 마스터 관리자만 사용할 수 있습니다.");
+            return false;
+        }
+        if (isMemberAdminRoute(normalizedUri) && !hasMemberManagementCompanyAdminAccess(authorCode)) {
+            markCompanyScope(request, "DENY_MEMBER_ADMIN_ONLY", "Company admin route.", targetInsttId);
+            denyWithMessage(request, response,
+                    "This page is only available to company administrators.",
+                    "이 화면은 회원사 시스템 관리자만 사용할 수 있습니다.");
+            return false;
+        }
+        if (isMemberCompanyScopedRoute(normalizedUri) && !hasMemberManagementCompanyOperatorAccess(authorCode)) {
+            markCompanyScope(request, "DENY_MEMBER_SCOPE_ROLE", "Member-management scope denied by role.", targetInsttId);
+            denyWithMessage(request, response,
+                    "You do not have permission for this member-management page.",
+                    "회원관리 화면을 사용할 권한이 없습니다.");
+            return false;
+        }
+        String currentInsttId = resolveCurrentAdminInsttId(userId);
+        if (currentInsttId.isEmpty()) {
+            markCompanyScope(request, "DENY_MEMBER_NO_COMPANY", "Administrator account is missing company information.", targetInsttId);
+            denyWithMessage(request, response,
+                    "Your administrator account is missing company information.",
+                    "관리자 계정에 회사 정보가 없습니다.");
+            return false;
+        }
+        if (targetInsttId.isEmpty()) {
+            markCompanyScope(request, "ALLOW_MEMBER_IMPLICIT_SELF", "The request was resolved to the actor company.", currentInsttId);
+            return true;
+        }
+        if (!currentInsttId.equals(targetInsttId)) {
+            markCompanyScope(request, "DENY_MEMBER_COMPANY_MISMATCH", "The request company does not match the actor company.", targetInsttId);
+            denyWithMessage(request, response,
+                    "You can only access data in your own company.",
+                    "본인 회사 데이터만 접근할 수 있습니다.");
+            return false;
+        }
+        markCompanyScope(request, "ALLOW_MEMBER_MATCHED", "", targetInsttId);
+        return true;
+    }
+
     private void markCompanyScope(HttpServletRequest request, String decision, String reason, String targetInsttId) {
         request.setAttribute("companyScopeDecision", safeString(decision));
         request.setAttribute("companyScopeReason", safeString(reason));
@@ -408,6 +462,18 @@ public class AdminMainAuthInterceptor implements HandlerInterceptor {
 
     private boolean requiresOwnCompanyAccess(String authorCode) {
         return ROLE_OPERATION_ADMIN.equals(safeString(authorCode).toUpperCase(Locale.ROOT));
+    }
+
+    private boolean hasMemberManagementCompanyAdminAccess(String authorCode) {
+        String normalizedAuthorCode = safeString(authorCode).toUpperCase(Locale.ROOT);
+        return ROLE_SYSTEM_MASTER.equals(normalizedAuthorCode)
+                || ROLE_SYSTEM_ADMIN.equals(normalizedAuthorCode)
+                || ROLE_ADMIN.equals(normalizedAuthorCode);
+    }
+
+    private boolean hasMemberManagementCompanyOperatorAccess(String authorCode) {
+        return hasMemberManagementCompanyAdminAccess(authorCode)
+                || ROLE_OPERATION_ADMIN.equals(safeString(authorCode).toUpperCase(Locale.ROOT));
     }
 
     private String resolveCurrentAdminInsttId(String userId) {
@@ -484,6 +550,14 @@ public class AdminMainAuthInterceptor implements HandlerInterceptor {
                 || "/admin/api/admin/member/reset-password".equals(value)) {
             return resolveMemberInsttId(request.getParameter("memberId"));
         }
+        if ("/admin/member/admin_account/permissions".equals(value)
+                || "/admin/api/admin/member/admin-account/permissions".equals(value)) {
+            return resolveAdminInsttId(request.getParameter("emplyrId"));
+        }
+        if ("/admin/member/admin_account".equals(value)
+                || "/admin/api/admin/member/admin-account".equals(value)) {
+            return safeString(request.getParameter("insttId"));
+        }
         if ("/admin/member/file".equals(value)) {
             return resolveMemberFileInsttId(request.getParameter("fileId"));
         }
@@ -499,6 +573,72 @@ public class AdminMainAuthInterceptor implements HandlerInterceptor {
             return safeString(request.getParameter("insttId"));
         }
         return "";
+    }
+
+    private String resolveAdminInsttId(String emplyrId) {
+        String normalizedEmplyrId = safeString(emplyrId);
+        if (normalizedEmplyrId.isEmpty()) {
+            return "";
+        }
+        try {
+            return employeeMemberRepository.findById(normalizedEmplyrId)
+                    .map(EmplyrInfo::getInsttId)
+                    .map(this::safeString)
+                    .orElse("");
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private boolean isMemberManagementRoute(String normalizedUri) {
+        String value = safeString(normalizedUri);
+        return value.startsWith("/admin/member/");
+    }
+
+    private boolean isMemberMasterOnlyRoute(String normalizedUri) {
+        String value = safeString(normalizedUri);
+        return "/admin/member/company-approve".equals(value)
+                || "/admin/member/company_list".equals(value)
+                || "/admin/member/company_detail".equals(value)
+                || "/admin/member/company_account".equals(value)
+                || "/admin/member/company-file".equals(value)
+                || "/admin/api/admin/member/company-approve/page".equals(value)
+                || "/admin/api/admin/member/company-approve/action".equals(value)
+                || "/admin/api/admin/member/company-list/page".equals(value)
+                || "/admin/api/admin/member/company-detail/page".equals(value)
+                || "/admin/api/admin/member/company-account/page".equals(value)
+                || "/admin/api/admin/member/company-account".equals(value)
+                || "/admin/api/admin/companies/search".equals(value);
+    }
+
+    private boolean isMemberAdminRoute(String normalizedUri) {
+        String value = safeString(normalizedUri);
+        return "/admin/member/admin_list".equals(value)
+                || "/admin/member/admin-list".equals(value)
+                || "/admin/member/admin_account".equals(value)
+                || "/admin/member/admin_account/permissions".equals(value)
+                || "/admin/api/admin/member/admin-list/page".equals(value)
+                || "/admin/api/admin/member/admin-account/page".equals(value)
+                || "/admin/api/admin/member/admin-account/check-id".equals(value)
+                || "/admin/api/admin/member/admin-account".equals(value)
+                || "/admin/api/admin/member/admin-account/permissions".equals(value);
+    }
+
+    private boolean isMemberCompanyScopedRoute(String normalizedUri) {
+        String value = safeString(normalizedUri);
+        return "/admin/member/list".equals(value)
+                || "/admin/member/register".equals(value)
+                || "/admin/member/edit".equals(value)
+                || "/admin/member/detail".equals(value)
+                || "/admin/member/reset_password".equals(value)
+                || "/admin/member/approve".equals(value)
+                || "/admin/api/admin/member/list/page".equals(value)
+                || "/admin/api/admin/member/edit".equals(value)
+                || "/admin/api/admin/member/detail/page".equals(value)
+                || "/admin/api/admin/member/reset-password".equals(value)
+                || "/admin/api/admin/member/approve/page".equals(value)
+                || "/admin/api/admin/member/approve/action".equals(value)
+                || isMemberAdminRoute(value);
     }
 
     private String resolveMemberInsttId(String memberId) {

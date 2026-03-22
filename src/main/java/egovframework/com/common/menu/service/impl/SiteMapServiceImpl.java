@@ -370,7 +370,10 @@ public class SiteMapServiceImpl implements SiteMapService {
         if (permissionContext.systemMaster) {
             return true;
         }
-        if (node.globalOnlyRoute && permissionContext.operationAdmin) {
+        if (isMasterOnlyRoute(node.url)) {
+            return false;
+        }
+        if (isCompanyAdminOnlyRoute(node.url) && permissionContext.operationAdmin) {
             return false;
         }
         if (safeString(node.requiredFeatureCode).isEmpty()) {
@@ -452,17 +455,25 @@ public class SiteMapServiceImpl implements SiteMapService {
 
     private boolean isGlobalOnlyRoute(String normalizedUri) {
         String value = safeString(normalizedUri);
-        return "/admin/member/approve".equals(value)
-                || "/admin/member/company-approve".equals(value)
+        return "/admin/member/company-approve".equals(value)
                 || "/admin/member/company_list".equals(value)
                 || "/admin/member/company_detail".equals(value)
                 || "/admin/member/company_account".equals(value)
                 || "/admin/member/company-file".equals(value)
-                || "/admin/member/admin_list".equals(value)
+                || value.startsWith("/admin/system/");
+    }
+
+    private boolean isMasterOnlyRoute(String normalizedUri) {
+        return isGlobalOnlyRoute(normalizedUri);
+    }
+
+    private boolean isCompanyAdminOnlyRoute(String normalizedUri) {
+        String value = safeString(normalizedUri);
+        return "/admin/member/admin_list".equals(value)
                 || "/admin/member/admin-list".equals(value)
                 || "/admin/member/admin_account".equals(value)
                 || "/admin/member/admin_account/permissions".equals(value)
-                || value.startsWith("/admin/system/");
+                || isMasterOnlyRoute(value);
     }
 
     private String resolveAuthorCode(HttpServletRequest request) {

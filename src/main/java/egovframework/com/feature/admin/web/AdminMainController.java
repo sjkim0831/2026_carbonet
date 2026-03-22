@@ -262,6 +262,7 @@ public class AdminMainController {
             @RequestParam(value = "action", required = false) String action,
             @RequestParam(value = "memberId", required = false) String memberId,
             @RequestParam(value = "selectedMemberIds", required = false) List<String> selectedMemberIds,
+            @RequestParam(value = "rejectReason", required = false) String rejectReason,
             @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
             @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
             @RequestParam(value = "membershipType", required = false) String membershipType,
@@ -272,11 +273,11 @@ public class AdminMainController {
         boolean isEn = isEnglishRequest(request, locale);
         String currentUserId = extractCurrentUserId(request);
         String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        if (!hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        if (!hasMemberManagementCompanyOperatorAccess(currentUserId, currentUserAuthorCode)) {
             String viewName = resolveMemberApprovalViewName(request, isEn);
             primeCsrfToken(request);
             model.addAttribute("memberApprovalError",
-                    isEn ? "Only global administrators can approve members." : "회원 승인 처리는 전체 관리자만 수행할 수 있습니다.");
+                    isEn ? "You do not have permission to approve members." : "회원 승인 처리를 수행할 권한이 없습니다.");
             return populateMemberApprovalList(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, null, model, viewName, isEn, request, locale);
         }
         String normalizedAction = safeString(action).toLowerCase(Locale.ROOT);
@@ -310,11 +311,23 @@ public class AdminMainController {
                     isEn ? "The requested action is not valid." : "요청한 처리 작업이 올바르지 않습니다.");
             return populateMemberApprovalList(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, null, model, viewName, isEn, request, locale);
         }
+        String normalizedRejectReason = trimToLen(safeString(rejectReason), 1000);
 
         try {
             for (String targetMemberId : targetMemberIds) {
-                processMemberApprovalStatusChange(targetMemberId, targetStatus);
+                EntrprsManageVO targetMember = entrprsManageService.selectEntrprsmberByMberId(targetMemberId);
+                if (!canCurrentAdminAccessMember(request, targetMember)) {
+                    throw new IllegalArgumentException(isEn
+                            ? "You can only approve members in your own company."
+                            : "본인 회사 소속 회원만 승인 처리할 수 있습니다.");
+                }
+                processMemberApprovalStatusChange(targetMemberId, targetStatus, normalizedRejectReason);
             }
+        } catch (IllegalArgumentException e) {
+            String viewName = resolveMemberApprovalViewName(request, isEn);
+            primeCsrfToken(request);
+            model.addAttribute("memberApprovalError", e.getMessage());
+            return populateMemberApprovalList(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, null, model, viewName, isEn, request, locale);
         } catch (Exception e) {
             log.error("Failed to process member approval action. action={}, memberIds={}", normalizedAction, targetMemberIds, e);
             String viewName = resolveMemberApprovalViewName(request, isEn);
@@ -343,6 +356,7 @@ public class AdminMainController {
             @RequestParam(value = "action", required = false) String action,
             @RequestParam(value = "insttId", required = false) String insttId,
             @RequestParam(value = "selectedInsttIds", required = false) List<String> selectedInsttIds,
+            @RequestParam(value = "rejectReason", required = false) String rejectReason,
             @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
             @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
             @RequestParam(value = "sbscrbSttus", required = false) String sbscrbSttus,
@@ -367,10 +381,10 @@ public class AdminMainController {
         }
 
         String viewName = isEn ? "egovframework/com/admin/company_approve_en" : "egovframework/com/admin/company_approve";
-        if (!hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        if (!hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)) {
             primeCsrfToken(request);
             model.addAttribute("memberApprovalError",
-                    isEn ? "Only global administrators can approve companies." : "회원사 승인 처리는 전체 관리자만 수행할 수 있습니다.");
+                    isEn ? "Only master administrators can approve companies." : "회원사 승인 처리는 마스터 관리자만 수행할 수 있습니다.");
             return populateCompanyApprovalList(pageIndexParam, searchKeyword, sbscrbSttus, null, model, viewName, isEn, request, locale);
         }
         if (targetInsttIds.isEmpty()) {
@@ -389,9 +403,10 @@ public class AdminMainController {
             return populateCompanyApprovalList(pageIndexParam, searchKeyword, sbscrbSttus, null, model, viewName, isEn, request, locale);
         }
 
+        String normalizedRejectReason = trimToLen(safeString(rejectReason), 1000);
         try {
             for (String targetInsttId : targetInsttIds) {
-                processCompanyApprovalStatusChange(targetInsttId, targetStatus);
+                processCompanyApprovalStatusChange(targetInsttId, targetStatus, normalizedRejectReason);
             }
         } catch (Exception e) {
             log.error("Failed to process company approval action. action={}, insttIds={}", normalizedAction, targetInsttIds, e);
@@ -424,12 +439,13 @@ public class AdminMainController {
         Map<String, Object> response = new LinkedHashMap<>();
         String currentUserId = extractCurrentUserId(request);
         String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        if (!hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        if (!hasMemberManagementCompanyOperatorAccess(currentUserId, currentUserAuthorCode)) {
             response.put("success", false);
-            response.put("message", isEn ? "Only global administrators can approve members." : "회원 승인 처리는 전체 관리자만 수행할 수 있습니다.");
+            response.put("message", isEn ? "You do not have permission to approve members." : "회원 승인 처리를 수행할 권한이 없습니다.");
             return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
         }
         String normalizedAction = safeString(payload.get("action") == null ? null : payload.get("action").toString()).toLowerCase(Locale.ROOT);
+        String normalizedRejectReason = trimToLen(safeString(payload.get("rejectReason") == null ? null : payload.get("rejectReason").toString()), 1000);
         List<String> targetMemberIds = extractPayloadIds(payload.get("selectedIds"), payload.get("memberId") == null ? null : payload.get("memberId").toString());
         if (targetMemberIds.isEmpty()) {
             response.put("success", false);
@@ -445,7 +461,13 @@ public class AdminMainController {
         }
         try {
             for (String targetMemberId : targetMemberIds) {
-                processMemberApprovalStatusChange(targetMemberId, targetStatus);
+                EntrprsManageVO targetMember = entrprsManageService.selectEntrprsmberByMberId(targetMemberId);
+                if (!canCurrentAdminAccessMember(request, targetMember)) {
+                    response.put("success", false);
+                    response.put("message", isEn ? "You can only approve members in your own company." : "본인 회사 소속 회원만 승인 처리할 수 있습니다.");
+                    return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
+                }
+                processMemberApprovalStatusChange(targetMemberId, targetStatus, normalizedRejectReason);
             }
         } catch (Exception e) {
             log.error("Failed to process member approval action api. action={}, memberIds={}", normalizedAction, targetMemberIds, e);
@@ -461,7 +483,7 @@ public class AdminMainController {
         recordApprovalAuditSafely(request, currentUserId, currentUserAuthorCode, "AMENU_MEMBER_APPROVE", "member-approve",
                 "MEMBER_APPROVAL_" + ("P".equals(targetStatus) ? "APPROVE" : "REJECT"),
                 "MEMBER", targetMemberIds.toString(), "SUCCESS",
-                "{\"action\":\"" + normalizedAction + "\",\"selectedIds\":\"" + safeJson(targetMemberIds.toString()) + "\"}",
+                "{\"action\":\"" + normalizedAction + "\",\"selectedIds\":\"" + safeJson(targetMemberIds.toString()) + "\",\"rejectReason\":\"" + safeJson(normalizedRejectReason) + "\"}",
                 "{\"targetStatus\":\"" + targetStatus + "\"}");
         return ResponseEntity.ok(response);
     }
@@ -476,12 +498,13 @@ public class AdminMainController {
         Map<String, Object> response = new LinkedHashMap<>();
         String currentUserId = extractCurrentUserId(request);
         String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        if (!hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        if (!hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)) {
             response.put("success", false);
-            response.put("message", isEn ? "Only global administrators can approve companies." : "회원사 승인 처리는 전체 관리자만 수행할 수 있습니다.");
+            response.put("message", isEn ? "Only master administrators can approve companies." : "회원사 승인 처리는 마스터 관리자만 수행할 수 있습니다.");
             return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
         }
         String normalizedAction = safeString(payload.get("action") == null ? null : payload.get("action").toString()).toLowerCase(Locale.ROOT);
+        String normalizedRejectReason = trimToLen(safeString(payload.get("rejectReason") == null ? null : payload.get("rejectReason").toString()), 1000);
         List<String> targetInsttIds = extractPayloadIds(payload.get("selectedIds"), payload.get("insttId") == null ? null : payload.get("insttId").toString());
         if (targetInsttIds.isEmpty()) {
             response.put("success", false);
@@ -497,7 +520,7 @@ public class AdminMainController {
         }
         try {
             for (String targetInsttId : targetInsttIds) {
-                processCompanyApprovalStatusChange(targetInsttId, targetStatus);
+                processCompanyApprovalStatusChange(targetInsttId, targetStatus, normalizedRejectReason);
             }
         } catch (Exception e) {
             log.error("Failed to process company approval action api. action={}, insttIds={}", normalizedAction, targetInsttIds, e);
@@ -513,7 +536,7 @@ public class AdminMainController {
         recordApprovalAuditSafely(request, currentUserId, currentUserAuthorCode, "AMENU_COMPANY_APPROVE", "company-approve",
                 "COMPANY_APPROVAL_" + ("P".equals(targetStatus) ? "APPROVE" : "REJECT"),
                 "COMPANY", targetInsttIds.toString(), "SUCCESS",
-                "{\"action\":\"" + normalizedAction + "\",\"selectedIds\":\"" + safeJson(targetInsttIds.toString()) + "\"}",
+                "{\"action\":\"" + normalizedAction + "\",\"selectedIds\":\"" + safeJson(targetInsttIds.toString()) + "\",\"rejectReason\":\"" + safeJson(normalizedRejectReason) + "\"}",
                 "{\"targetStatus\":\"" + targetStatus + "\"}");
         return ResponseEntity.ok(response);
     }
@@ -622,10 +645,19 @@ public class AdminMainController {
         try {
             Set<String> grantableFeatureCodes = resolveGrantableFeatureCodeSet(extractCurrentUserId(request),
                     isWebmaster(extractCurrentUserId(request)));
-            permissionAuthorGroups = authGroupManageService.selectAuthorList();
+            String currentAssignedAuthorCode = safeString(authGroupManageService.selectEnterpriseAuthorCodeByUserId(normalizedMemberId))
+                    .toUpperCase(Locale.ROOT);
+            permissionAuthorGroups = filterAuthorGroups(
+                    authGroupManageService.selectAuthorList(),
+                    "GENERAL",
+                    extractCurrentUserId(request),
+                    resolveCurrentUserAuthorCode(extractCurrentUserId(request)));
             if (normalizedAuthorCode.isEmpty()) {
                 errors.add(isEn ? "Please select a role." : "권한 롤을 선택해 주세요.");
-            } else if (!containsAuthorCode(permissionAuthorGroups, normalizedAuthorCode)) {
+            } else if (!adminAuthorityPagePayloadSupport.isGrantableOrCurrentAuthorCode(
+                    permissionAuthorGroups,
+                    normalizedAuthorCode,
+                    currentAssignedAuthorCode)) {
                 errors.add(isEn ? "Please select a valid role." : "유효한 권한 롤을 선택해 주세요.");
             } else {
                 baselineFeatureCodes = normalizeFeatureCodes(authGroupManageService.selectAuthorFeatureCodes(normalizedAuthorCode));
@@ -773,10 +805,19 @@ public class AdminMainController {
         try {
             Set<String> grantableFeatureCodes = resolveGrantableFeatureCodeSet(extractCurrentUserId(request),
                     isWebmaster(extractCurrentUserId(request)));
-            permissionAuthorGroups = authGroupManageService.selectAuthorList();
+            String currentAssignedAuthorCode = safeString(authGroupManageService.selectEnterpriseAuthorCodeByUserId(normalizedMemberId))
+                    .toUpperCase(Locale.ROOT);
+            permissionAuthorGroups = filterAuthorGroups(
+                    authGroupManageService.selectAuthorList(),
+                    "GENERAL",
+                    extractCurrentUserId(request),
+                    resolveCurrentUserAuthorCode(extractCurrentUserId(request)));
             if (normalizedAuthorCode.isEmpty()) {
                 errors.add(isEn ? "Please select a role." : "권한 롤을 선택해 주세요.");
-            } else if (!containsAuthorCode(permissionAuthorGroups, normalizedAuthorCode)) {
+            } else if (!adminAuthorityPagePayloadSupport.isGrantableOrCurrentAuthorCode(
+                    permissionAuthorGroups,
+                    normalizedAuthorCode,
+                    currentAssignedAuthorCode)) {
                 errors.add(isEn ? "Please select a valid role." : "유효한 권한 롤을 선택해 주세요.");
             } else {
                 baselineFeatureCodes = normalizeFeatureCodes(authGroupManageService.selectAuthorFeatureCodes(normalizedAuthorCode));
@@ -1051,6 +1092,14 @@ public class AdminMainController {
             Locale locale) {
         boolean isEn = isEnglishRequest(request, locale);
         Map<String, Object> response = new LinkedHashMap<>();
+        String currentUserId = extractCurrentUserId(request);
+        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+        if (!canCreateAdminAccounts(currentUserId, currentUserAuthorCode)) {
+            response.put("valid", false);
+            response.put("duplicated", false);
+            response.put("message", isEn ? "You do not have permission to validate administrator IDs." : "관리자 ID를 확인할 권한이 없습니다.");
+            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
+        }
         String normalizedAdminId = safeString(adminId);
         if (normalizedAdminId.isEmpty()) {
             response.put("valid", false);
@@ -1098,7 +1147,7 @@ public class AdminMainController {
         boolean isEn = isEnglishRequest(request, locale);
         String currentUserId = extractCurrentUserId(request);
         String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        if (!isWebmaster(currentUserId) && !hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        if (!hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)) {
             return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN)
                     .body(new CompanySearchResponseDTO(Collections.emptyList(), 0, 1, 1, 0));
         }
@@ -1135,11 +1184,12 @@ public class AdminMainController {
         boolean isEn = isEnglishRequest(request, locale);
         Map<String, Object> response = new LinkedHashMap<>();
         String currentUserId = extractCurrentUserId(request);
-        if (!isWebmaster(currentUserId)) {
+        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+        if (!canCreateAdminAccounts(currentUserId, currentUserAuthorCode)) {
             response.put("success", false);
             response.put("message", isEn
-                    ? "Only webmaster can create administrator accounts."
-                    : "webmaster만 관리자 계정을 생성할 수 있습니다.");
+                    ? "You do not have permission to create administrator accounts."
+                    : "관리자 계정을 생성할 권한이 없습니다.");
             return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
         }
 
@@ -1156,6 +1206,16 @@ public class AdminMainController {
         String rolePreset = safeString(payload == null ? null : payload.getRolePreset()).toUpperCase(Locale.ROOT);
         String authorCode = resolveAdminPresetAuthorCode(rolePreset);
         List<String> featureCodes = normalizeFeatureCodes(payload == null ? null : payload.getFeatureCodes());
+        if (!canCreateAdminRolePreset(currentUserId, currentUserAuthorCode, rolePreset)) {
+            response.put("success", false);
+            response.put("message", isEn
+                    ? "You cannot create the selected administrator type."
+                    : "선택한 관리자 유형을 생성할 수 없습니다.");
+            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
+        }
+        String scopedInsttId = hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)
+                ? insttId
+                : resolveCurrentUserInsttId(currentUserId);
 
         List<String> errors = new ArrayList<>();
         if (!adminId.matches("^[A-Za-z0-9]{6,16}$")) {
@@ -1179,7 +1239,7 @@ public class AdminMainController {
         if (authorCode.isEmpty()) {
             errors.add(isEn ? "Please select a valid administrator role preset." : "유효한 관리자 권한 프리셋을 선택해 주세요.");
         }
-        if (!"MASTER".equals(rolePreset) && insttId.isEmpty()) {
+        if (!"MASTER".equals(rolePreset) && scopedInsttId.isEmpty()) {
             errors.add(isEn ? "Please select an affiliated company or institution." : "소속 기관 또는 기업을 선택해 주세요.");
         }
 
@@ -1193,8 +1253,8 @@ public class AdminMainController {
         }
 
         InstitutionStatusVO institutionInfo = null;
-        if (!insttId.isEmpty()) {
-            institutionInfo = loadInstitutionInfoByInsttId(insttId);
+        if (!scopedInsttId.isEmpty()) {
+            institutionInfo = loadInstitutionInfoByInsttId(scopedInsttId);
             if (institutionInfo == null || institutionInfo.isEmpty()) {
                 errors.add(isEn ? "The selected company or institution was not found." : "선택한 기관 또는 기업 정보를 찾을 수 없습니다.");
             }
@@ -1229,9 +1289,9 @@ public class AdminMainController {
             userManageVO.setMoblphonNo(fullPhone);
             userManageVO.setOffmTelno(fullPhone);
             userManageVO.setEmplyrSttusCode("P");
-            userManageVO.setOrgnztId(insttId);
+            userManageVO.setOrgnztId(scopedInsttId);
             userManageVO.setOfcpsNm(deptNm);
-            userManageVO.setGroupId(insttId);
+            userManageVO.setGroupId(scopedInsttId);
             userManageVO.setLockAt("N");
             userManageVO.setPasswordHint("");
             userManageVO.setPasswordCnsr("");
@@ -1242,9 +1302,9 @@ public class AdminMainController {
                 throw new IllegalStateException("Administrator account insert verification failed.");
             }
             EmplyrInfo savedAdmin = savedAdminOpt.get();
-            savedAdmin.setInsttId(insttId);
-            savedAdmin.setOrgnztId(insttId);
-            savedAdmin.setGroupId(insttId);
+            savedAdmin.setInsttId(scopedInsttId);
+            savedAdmin.setOrgnztId(scopedInsttId);
+            savedAdmin.setGroupId(scopedInsttId);
             savedAdmin.setUserNm(adminName);
             savedAdmin.setEmailAdres(adminEmail);
             savedAdmin.setAreaNo(phone1);
@@ -1266,7 +1326,7 @@ public class AdminMainController {
             response.put("success", true);
             response.put("emplyrId", adminId);
             response.put("authorCode", authorCode);
-            response.put("insttId", insttId);
+            response.put("insttId", scopedInsttId);
             response.put("companyName", institutionInfo == null ? "" : safeString(institutionInfo.getInsttNm()));
             recordAdminActionAudit(request,
                     currentUserId,
@@ -1276,7 +1336,7 @@ public class AdminMainController {
                     "ADMIN_ACCOUNT_CREATE",
                     "ADMIN",
                     adminId,
-                    "{\"adminId\":\"" + safeJson(adminId) + "\",\"authorCode\":\"" + safeJson(authorCode) + "\",\"insttId\":\"" + safeJson(insttId) + "\"}",
+                    "{\"adminId\":\"" + safeJson(adminId) + "\",\"authorCode\":\"" + safeJson(authorCode) + "\",\"insttId\":\"" + safeJson(scopedInsttId) + "\"}",
                     "{\"status\":\"SUCCESS\"}");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -1304,6 +1364,8 @@ public class AdminMainController {
         model.addAttribute("adminPermissionUpdated", "true".equalsIgnoreCase(safeString(updated)));
         model.addAttribute("adminAccountMode", safeString(mode));
         String normalizedEmplyrId = safeString(emplyrId);
+        boolean canView = false;
+        boolean canSave = false;
         if (!normalizedEmplyrId.isEmpty()) {
             try {
                 Optional<EmplyrInfo> adminMemberOpt = employMemberRepository.findById(normalizedEmplyrId);
@@ -1311,8 +1373,17 @@ public class AdminMainController {
                     model.addAttribute("adminPermissionError", isEn
                             ? "Administrator information was not found."
                             : "관리자 정보를 찾을 수 없습니다.");
+                } else if (!canCurrentAdminAccessAdmin(request, adminMemberOpt.get())) {
+                    model.addAttribute("adminPermissionError", isEn
+                            ? "You can only view administrators in your own company."
+                            : "본인 회사에 속한 관리자만 조회할 수 있습니다.");
                 } else {
                     populateAdminAccountEditModel(model, adminMemberOpt.get(), isEn, null, extractCurrentUserId(request));
+                    canView = true;
+                    String currentUserId = extractCurrentUserId(request);
+                    String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+                    canSave = !Boolean.TRUE.equals(model.getAttribute("adminAccountReadOnly"))
+                            && hasMemberManagementCompanyAdminAccess(currentUserId, currentUserAuthorCode);
                 }
             } catch (Exception e) {
                 log.error("Failed to load admin account edit page api. emplyrId={}", normalizedEmplyrId, e);
@@ -1323,8 +1394,8 @@ public class AdminMainController {
         }
         Map<String, Object> response = new LinkedHashMap<>();
         response.putAll(model);
-        response.put("canViewAdminPermissionEdit", !normalizedEmplyrId.isEmpty());
-        response.put("canUseAdminPermissionSave", isWebmaster(extractCurrentUserId(request)) && !Boolean.TRUE.equals(model.getAttribute("adminAccountReadOnly")));
+        response.put("canViewAdminPermissionEdit", canView);
+        response.put("canUseAdminPermissionSave", canSave);
         return ResponseEntity.ok(response);
     }
 
@@ -1337,11 +1408,12 @@ public class AdminMainController {
         boolean isEn = isEnglishRequest(request, locale);
         Map<String, Object> response = new LinkedHashMap<>();
         String currentUserId = extractCurrentUserId(request);
-        if (!isWebmaster(currentUserId)) {
+        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+        if (!hasMemberManagementCompanyAdminAccess(currentUserId, currentUserAuthorCode)) {
             response.put("success", false);
             response.put("message", isEn
-                    ? "Only webmaster can change administrator permissions."
-                    : "webmaster만 관리자 권한을 변경할 수 있습니다.");
+                    ? "You do not have permission to change administrator permissions."
+                    : "관리자 권한을 변경할 권한이 없습니다.");
             return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
         }
 
@@ -1372,14 +1444,30 @@ public class AdminMainController {
         }
 
         EmplyrInfo adminMember = adminMemberOpt.get();
+        if (!canCurrentAdminAccessAdmin(request, adminMember)) {
+            response.put("success", false);
+            response.put("message", isEn
+                    ? "You can only update administrators in your own company."
+                    : "본인 회사에 속한 관리자만 수정할 수 있습니다.");
+            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
+        }
         List<String> errors = new ArrayList<>();
         List<AuthorInfoVO> authorGroups = Collections.emptyList();
         List<String> baselineFeatureCodes = Collections.emptyList();
         try {
-            authorGroups = filterAuthorGroups(authGroupManageService.selectAuthorList(), "GENERAL");
+            String currentAssignedAuthorCode = safeString(authGroupManageService.selectAuthorCodeByUserId(normalizedEmplyrId))
+                    .toUpperCase(Locale.ROOT);
+            authorGroups = filterAuthorGroups(
+                    authGroupManageService.selectAuthorList(),
+                    "GENERAL",
+                    currentUserId,
+                    resolveCurrentUserAuthorCode(currentUserId));
             if (normalizedAuthorCode.isEmpty()) {
                 errors.add(isEn ? "Please select an administrator role." : "관리자 권한 롤을 선택해 주세요.");
-            } else if (!containsAuthorCode(authorGroups, normalizedAuthorCode)) {
+            } else if (!adminAuthorityPagePayloadSupport.isGrantableOrCurrentAuthorCode(
+                    authorGroups,
+                    normalizedAuthorCode,
+                    currentAssignedAuthorCode)) {
                 errors.add(isEn ? "Please select a valid administrator role." : "유효한 관리자 권한 롤을 선택해 주세요.");
             } else {
                 baselineFeatureCodes = normalizeFeatureCodes(authGroupManageService.selectAuthorFeatureCodes(normalizedAuthorCode));
@@ -1405,7 +1493,7 @@ public class AdminMainController {
                     baselineFeatureCodes,
                     normalizedFeatureCodes,
                     currentUserId,
-                    resolveGrantableFeatureCodeSet(currentUserId, true));
+                    resolveGrantableFeatureCodeSet(currentUserId, isWebmaster(currentUserId)));
         } catch (Exception e) {
             log.error("Failed to save admin account permissions api. emplyrId={}, authorCode={}", normalizedEmplyrId, normalizedAuthorCode, e);
             response.put("success", false);
@@ -1448,10 +1536,11 @@ public class AdminMainController {
         ensureAdminAccountDefaults(model, isEn);
 
         String currentUserId = extractCurrentUserId(request);
-        if (!isWebmaster(currentUserId)) {
+        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+        if (!hasMemberManagementCompanyAdminAccess(currentUserId, currentUserAuthorCode)) {
             model.addAttribute("adminPermissionError", isEn
-                    ? "Only webmaster can change administrator permissions."
-                    : "webmaster만 관리자 권한을 변경할 수 있습니다.");
+                    ? "You do not have permission to change administrator permissions."
+                    : "관리자 권한을 변경할 권한이 없습니다.");
             return viewName;
         }
 
@@ -1483,14 +1572,29 @@ public class AdminMainController {
         }
 
         EmplyrInfo adminMember = adminMemberOpt.get();
+        if (!canCurrentAdminAccessAdmin(request, adminMember)) {
+            model.addAttribute("adminPermissionError", isEn
+                    ? "You can only update administrators in your own company."
+                    : "본인 회사에 속한 관리자만 수정할 수 있습니다.");
+            return viewName;
+        }
         List<String> errors = new ArrayList<>();
         List<AuthorInfoVO> authorGroups = Collections.emptyList();
         List<String> baselineFeatureCodes = Collections.emptyList();
         try {
-            authorGroups = filterAuthorGroups(authGroupManageService.selectAuthorList(), "GENERAL");
+            String currentAssignedAuthorCode = safeString(authGroupManageService.selectAuthorCodeByUserId(normalizedEmplyrId))
+                    .toUpperCase(Locale.ROOT);
+            authorGroups = filterAuthorGroups(
+                    authGroupManageService.selectAuthorList(),
+                    "GENERAL",
+                    currentUserId,
+                    resolveCurrentUserAuthorCode(currentUserId));
             if (normalizedAuthorCode.isEmpty()) {
                 errors.add(isEn ? "Please select an administrator role." : "관리자 권한 롤을 선택해 주세요.");
-            } else if (!containsAuthorCode(authorGroups, normalizedAuthorCode)) {
+            } else if (!adminAuthorityPagePayloadSupport.isGrantableOrCurrentAuthorCode(
+                    authorGroups,
+                    normalizedAuthorCode,
+                    currentAssignedAuthorCode)) {
                 errors.add(isEn ? "Please select a valid administrator role." : "유효한 관리자 권한 롤을 선택해 주세요.");
             } else {
                 baselineFeatureCodes = normalizeFeatureCodes(authGroupManageService.selectAuthorFeatureCodes(normalizedAuthorCode));
@@ -1522,7 +1626,7 @@ public class AdminMainController {
                     baselineFeatureCodes,
                     normalizedFeatureCodes,
                     currentUserId,
-                    resolveGrantableFeatureCodeSet(currentUserId, true));
+                    resolveGrantableFeatureCodeSet(currentUserId, isWebmaster(currentUserId)));
             return "redirect:" + adminPrefix(request, locale) + "/member/admin_account?emplyrId=" + urlEncode(normalizedEmplyrId) + "&updated=true";
         } catch (Exception e) {
             log.error("Failed to save admin account permissions. emplyrId={}, authorCode={}", normalizedEmplyrId, normalizedAuthorCode, e);
@@ -1735,9 +1839,9 @@ public class AdminMainController {
         String currentUserId = extractCurrentUserId(request);
         String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
         Map<String, Object> response = new LinkedHashMap<>();
-        if (!hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        if (!hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)) {
             response.put("success", false);
-            response.put("message", isEn ? "Only global administrators can manage company accounts." : "회원사 관리는 전체 관리자만 처리할 수 있습니다.");
+            response.put("message", isEn ? "Only master administrators can manage company accounts." : "회원사 관리는 마스터 관리자만 처리할 수 있습니다.");
             return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
         }
 
@@ -2338,9 +2442,9 @@ public class AdminMainController {
         searchVO.setSbscrbSttus(status);
         String currentUserId = extractCurrentUserId(request);
         String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        if (!hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        if (!hasMemberManagementCompanyOperatorAccess(currentUserId, currentUserAuthorCode)) {
             model.addAttribute("memberApprovalError",
-                    isEn ? "Only global administrators can view member approvals." : "회원 승인 목록은 전체 관리자만 조회할 수 있습니다.");
+                    isEn ? "You do not have permission to view member approvals." : "회원 승인 목록을 조회할 권한이 없습니다.");
             model.addAttribute("approvalRows", Collections.emptyList());
             model.addAttribute("memberApprovalTotalCount", 0);
             model.addAttribute("pageIndex", 1);
@@ -2359,6 +2463,9 @@ public class AdminMainController {
             model.addAttribute("memberApprovalStatusOptions", buildApprovalStatusOptions(isEn));
             model.addAttribute("memberTypeOptions", buildMemberTypeOptions(isEn));
             return viewName;
+        }
+        if (requiresMemberManagementCompanyScope(currentUserId, currentUserAuthorCode)) {
+            searchVO.setInsttId(resolveCurrentUserInsttId(currentUserId));
         }
 
         List<EntrprsManageVO> memberList;
@@ -2460,9 +2567,9 @@ public class AdminMainController {
         }
         String currentUserId = extractCurrentUserId(request);
         String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        if (!hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        if (!hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)) {
             model.addAttribute("memberApprovalError",
-                    isEn ? "Only global administrators can view company approvals." : "회원사 승인 목록은 전체 관리자만 조회할 수 있습니다.");
+                    isEn ? "Only master administrators can view company approvals." : "회원사 승인 목록은 마스터 관리자만 조회할 수 있습니다.");
             model.addAttribute("approvalRows", Collections.emptyList());
             model.addAttribute("memberApprovalTotalCount", 0);
             model.addAttribute("pageIndex", 1);
@@ -2593,7 +2700,7 @@ public class AdminMainController {
         return viewName;
     }
 
-    private void processMemberApprovalStatusChange(String memberId, String targetStatus) throws Exception {
+    private void processMemberApprovalStatusChange(String memberId, String targetStatus, String rejectReason) throws Exception {
         String normalizedMemberId = safeString(memberId);
         String normalizedTargetStatus = normalizeMemberStatusCode(targetStatus);
         if (normalizedMemberId.isEmpty() || normalizedTargetStatus.isEmpty()) {
@@ -2610,7 +2717,7 @@ public class AdminMainController {
         }
     }
 
-    private void processCompanyApprovalStatusChange(String insttId, String targetStatus) throws Exception {
+    private void processCompanyApprovalStatusChange(String insttId, String targetStatus, String rejectReason) throws Exception {
         String normalizedInsttId = safeString(insttId);
         String normalizedTargetStatus = normalizeMemberStatusCode(targetStatus);
         if (normalizedInsttId.isEmpty() || normalizedTargetStatus.isEmpty()) {
@@ -2631,8 +2738,13 @@ public class AdminMainController {
         vo.setBizRegFilePath(current.getBizRegFilePath());
         vo.setInsttSttus(normalizedTargetStatus);
         vo.setEntrprsSeCode(current.getEntrprsSeCode());
-        vo.setRjctRsn(current.getRjctRsn());
-        vo.setRjctPnttm(current.getRjctPnttm());
+        if ("R".equals(normalizedTargetStatus)) {
+            vo.setRjctRsn(trimToLen(safeString(rejectReason), 1000));
+            vo.setRjctPnttm(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        } else {
+            vo.setRjctRsn("");
+            vo.setRjctPnttm("");
+        }
         vo.setChargerNm(current.getChargerNm());
         vo.setChargerEmail(current.getChargerEmail());
         vo.setChargerTel(current.getChargerTel());
@@ -2716,7 +2828,8 @@ public class AdminMainController {
             String searchKeyword,
             String sbscrbSttus,
             Model model,
-            String viewName) {
+            String viewName,
+            HttpServletRequest request) {
         int pageIndex = 1;
         if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
             try {
@@ -2730,17 +2843,27 @@ public class AdminMainController {
 
         String keyword = safeString(searchKeyword);
         String status = safeString(sbscrbSttus).toUpperCase(Locale.ROOT);
-        Sort sort = Sort.by(Sort.Direction.DESC, "sbscrbDe");
-        Page<EmplyrInfo> page;
+        String currentUserId = extractCurrentUserId(request);
+        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+        boolean canView = adminAuthorityPagePayloadSupport.hasMemberManagementCompanyAdminAccess(currentUserId, currentUserAuthorCode);
+        if (!canView) {
+            model.addAttribute("member_listError", "관리자 목록을 조회할 권한이 없습니다.");
+            model.addAttribute("member_list", Collections.emptyList());
+            model.addAttribute("totalCount", 0);
+            model.addAttribute("pageIndex", 1);
+            model.addAttribute("pageSize", pageSize);
+            model.addAttribute("totalPages", 1);
+            model.addAttribute("startPage", 1);
+            model.addAttribute("endPage", 1);
+            model.addAttribute("searchKeyword", keyword);
+            model.addAttribute("sbscrbSttus", status);
+            model.addAttribute("canUseAdminListActions", false);
+            return viewName;
+        }
+
+        List<EmplyrInfo> visibleAdmins;
         try {
-            page = employMemberRepository.searchAdminMembers(keyword, status,
-                    PageRequest.of(currentPage - 1, pageSize, sort));
-            int totalPages = page.getTotalPages();
-            if (totalPages > 0 && currentPage > totalPages) {
-                currentPage = totalPages;
-                page = employMemberRepository.searchAdminMembers(keyword, status,
-                        PageRequest.of(currentPage - 1, pageSize, sort));
-            }
+            visibleAdmins = selectVisibleAdminMembers(currentUserId, currentUserAuthorCode, keyword, status);
         } catch (Exception e) {
             log.error("Failed to load admin member list.", e);
             model.addAttribute("member_listError", e.getMessage());
@@ -2753,14 +2876,18 @@ public class AdminMainController {
             model.addAttribute("endPage", 1);
             model.addAttribute("searchKeyword", keyword);
             model.addAttribute("sbscrbSttus", status);
+            model.addAttribute("canUseAdminListActions", false);
             return viewName;
         }
 
-        int totalCount = (int) page.getTotalElements();
-        int totalPages = Math.max(page.getTotalPages(), 1);
+        int totalCount = visibleAdmins.size();
+        int totalPages = Math.max((int) Math.ceil(totalCount / (double) pageSize), 1);
         if (currentPage > totalPages) {
             currentPage = totalPages;
         }
+        int fromIndex = Math.max(0, Math.min((currentPage - 1) * pageSize, totalCount));
+        int toIndex = Math.max(fromIndex, Math.min(fromIndex + pageSize, totalCount));
+        List<EmplyrInfo> pageItems = totalCount == 0 ? Collections.emptyList() : visibleAdmins.subList(fromIndex, toIndex);
         int startPage = Math.max(1, currentPage - 4);
         int endPage = Math.min(totalPages, startPage + 9);
         if (endPage - startPage < 9) {
@@ -2769,7 +2896,7 @@ public class AdminMainController {
         int prevPage = Math.max(1, currentPage - 1);
         int nextPage = Math.min(totalPages, currentPage + 1);
 
-        model.addAttribute("member_list", page.getContent());
+        model.addAttribute("member_list", pageItems);
         model.addAttribute("totalCount", totalCount);
         model.addAttribute("pageIndex", currentPage);
         model.addAttribute("pageSize", pageSize);
@@ -2780,6 +2907,7 @@ public class AdminMainController {
         model.addAttribute("nextPage", nextPage);
         model.addAttribute("searchKeyword", keyword);
         model.addAttribute("sbscrbSttus", status);
+        model.addAttribute("canUseAdminListActions", canCreateAdminAccounts(currentUserId, currentUserAuthorCode));
         return viewName;
     }
 
@@ -3244,6 +3372,13 @@ public class AdminMainController {
             response.put("message", isEn ? "Role code is required." : "Role 코드를 확인해 주세요.");
             return ResponseEntity.badRequest().body(response);
         }
+        if (!adminAuthorityPagePayloadSupport.canAssignAuthorCode(currentUserId, currentUserAuthorCode, normalizedAuthorCode)) {
+            response.put("success", false);
+            response.put("message", isEn
+                    ? "You can only update role profiles lower than your own authority."
+                    : "본인 권한보다 낮은 권한 그룹 프로필만 수정할 수 있습니다.");
+            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
+        }
         if (!webmaster) {
             if ("GENERAL".equals(selectedRoleCategory)) {
                 response.put("success", false);
@@ -3335,6 +3470,13 @@ public class AdminMainController {
             response.put("message", isEn ? "Role code and role name are required." : "Role 코드와 Role 명은 필수입니다.");
             return ResponseEntity.badRequest().body(response);
         }
+        if (!adminAuthorityPagePayloadSupport.canAssignAuthorCode(currentUserId, currentUserAuthorCode, normalizedCode)) {
+            response.put("success", false);
+            response.put("message", isEn
+                    ? "You can only create authority groups lower than your own authority."
+                    : "본인 권한보다 낮은 권한 그룹만 생성할 수 있습니다.");
+            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
+        }
 
         try {
             if (authGroupManageService.countAuthorCode(normalizedCode) > 0) {
@@ -3395,6 +3537,13 @@ public class AdminMainController {
             response.put("success", false);
             response.put("message", isEn ? "Role code is required." : "Role 코드를 확인해 주세요.");
             return ResponseEntity.badRequest().body(response);
+        }
+        if (!adminAuthorityPagePayloadSupport.canAssignAuthorCode(currentUserId, currentUserAuthorCode, normalizedAuthorCode)) {
+            response.put("success", false);
+            response.put("message", isEn
+                    ? "You can only update authority groups lower than your own authority."
+                    : "본인 권한보다 낮은 권한 그룹만 수정할 수 있습니다.");
+            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
         }
         if (!webmaster) {
             if ("GENERAL".equals(selectedRoleCategory)) {
@@ -3506,8 +3655,17 @@ public class AdminMainController {
             return ResponseEntity.badRequest().body(response);
         }
         try {
-            List<AuthorInfoVO> generalAuthorGroups = filterAuthorGroups(authGroupManageService.selectAuthorList(), "GENERAL");
-            if (!containsAuthorCode(generalAuthorGroups, normalizedAuthorCode)) {
+            String currentAssignedAuthorCode = safeString(authGroupManageService.selectAuthorCodeByUserId(normalizedEmplyrId))
+                    .toUpperCase(Locale.ROOT);
+            List<AuthorInfoVO> generalAuthorGroups = filterAuthorGroups(
+                    authGroupManageService.selectAuthorList(),
+                    "GENERAL",
+                    currentUserId,
+                    resolveCurrentUserAuthorCode(currentUserId));
+            if (!adminAuthorityPagePayloadSupport.isGrantableOrCurrentAuthorCode(
+                    generalAuthorGroups,
+                    normalizedAuthorCode,
+                    currentAssignedAuthorCode)) {
                 response.put("success", false);
                 response.put("message", isEn
                         ? "Only valid general administrator roles can be assigned here."
@@ -3579,6 +3737,31 @@ public class AdminMainController {
             model.addAttribute("authChangeError", isEn
                     ? "webmaster must keep ROLE_SYSTEM_MASTER."
                     : "webmaster 계정은 ROLE_SYSTEM_MASTER만 유지할 수 있습니다.");
+            return auth_change(null, null, null, request, locale, model);
+        }
+
+        try {
+            String currentAssignedAuthorCode = safeString(authGroupManageService.selectAuthorCodeByUserId(normalizedEmplyrId))
+                    .toUpperCase(Locale.ROOT);
+            List<AuthorInfoVO> generalAuthorGroups = filterAuthorGroups(
+                    authGroupManageService.selectAuthorList(),
+                    "GENERAL",
+                    currentUserId,
+                    resolveCurrentUserAuthorCode(currentUserId));
+            if (!adminAuthorityPagePayloadSupport.isGrantableOrCurrentAuthorCode(
+                    generalAuthorGroups,
+                    normalizedAuthorCode,
+                    currentAssignedAuthorCode)) {
+                model.addAttribute("authChangeError", isEn
+                        ? "Only valid lower administrator roles can be assigned here."
+                        : "이 화면에서는 본인보다 낮은 유효한 관리자 권한 그룹만 지정할 수 있습니다.");
+                return auth_change(null, null, null, request, locale, model);
+            }
+        } catch (Exception e) {
+            log.error("Failed to validate auth-change target role. authorCode={}", normalizedAuthorCode, e);
+            model.addAttribute("authChangeError", isEn
+                    ? "Failed to validate the target role."
+                    : "대상 권한 그룹 검증에 실패했습니다.");
             return auth_change(null, null, null, request, locale, model);
         }
 
@@ -4193,18 +4376,17 @@ public class AdminMainController {
     @RequestMapping(value = { "/member/admin_list/excel", "/member/admin-list/excel" }, method = { RequestMethod.GET, RequestMethod.POST })
     public ResponseEntity<byte[]> adminListExcel(
             @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
-            @RequestParam(value = "sbscrbSttus", required = false) String sbscrbSttus) throws Exception {
+            @RequestParam(value = "sbscrbSttus", required = false) String sbscrbSttus,
+            HttpServletRequest request) throws Exception {
         String keyword = safeString(searchKeyword);
         String status = safeString(sbscrbSttus).toUpperCase(Locale.ROOT);
-        Sort sort = Sort.by(Sort.Direction.DESC, "sbscrbDe");
-
-        Page<EmplyrInfo> countPage = employMemberRepository.searchAdminMembers(keyword, status,
-                PageRequest.of(0, 1, sort));
-        int totalCount = (int) countPage.getTotalElements();
-        int pageSize = Math.max(totalCount, 1);
-        Page<EmplyrInfo> listPage = employMemberRepository.searchAdminMembers(keyword, status,
-                PageRequest.of(0, pageSize, sort));
-        List<EmplyrInfo> member_list = listPage.getContent();
+        String currentUserId = extractCurrentUserId(request);
+        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+        if (!hasMemberManagementCompanyAdminAccess(currentUserId, currentUserAuthorCode)) {
+            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).build();
+        }
+        List<EmplyrInfo> member_list = selectVisibleAdminMembers(currentUserId, currentUserAuthorCode, keyword, status);
+        int totalCount = member_list.size();
 
         byte[] content;
         try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
@@ -4284,7 +4466,7 @@ public class AdminMainController {
         String status = safeString(sbscrbSttus).toUpperCase(Locale.ROOT);
         String currentUserId = extractCurrentUserId(request);
         String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        if (!hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        if (!hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)) {
             return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).build();
         }
 
@@ -4944,13 +5126,55 @@ public class AdminMainController {
         return adminAuthorityPagePayloadSupport.filterAuthorGroups(authorGroups, selectedRoleCategory);
     }
 
+    List<AuthorInfoVO> filterAuthorGroups(
+            List<AuthorInfoVO> authorGroups,
+            String selectedRoleCategory,
+            String currentUserId,
+            String currentUserAuthorCode) {
+        return adminAuthorityPagePayloadSupport.filterAuthorGroups(
+                authorGroups,
+                selectedRoleCategory,
+                currentUserId,
+                currentUserAuthorCode);
+    }
+
     List<AuthorInfoVO> filterAuthorGroupsByScope(List<AuthorInfoVO> authorGroups, String selectedRoleCategory,
                                                          String insttId, boolean globalAccess) {
         return adminAuthorityPagePayloadSupport.filterAuthorGroupsByScope(authorGroups, selectedRoleCategory, insttId, globalAccess);
     }
 
+    List<AuthorInfoVO> filterAuthorGroupsByScope(
+            List<AuthorInfoVO> authorGroups,
+            String selectedRoleCategory,
+            String insttId,
+            boolean globalAccess,
+            String currentUserId,
+            String currentUserAuthorCode) {
+        return adminAuthorityPagePayloadSupport.filterAuthorGroupsByScope(
+                authorGroups,
+                selectedRoleCategory,
+                insttId,
+                globalAccess,
+                currentUserId,
+                currentUserAuthorCode);
+    }
+
     List<AuthorInfoVO> buildDeptMemberAssignableGroups(List<AuthorInfoVO> authorGroups, String insttId, boolean globalAccess) {
         return adminAuthorityPagePayloadSupport.buildDeptMemberAssignableGroups(authorGroups, insttId, globalAccess);
+    }
+
+    List<AuthorInfoVO> buildDeptMemberAssignableGroups(
+            List<AuthorInfoVO> authorGroups,
+            String insttId,
+            boolean globalAccess,
+            String currentUserId,
+            String currentUserAuthorCode) {
+        return adminAuthorityPagePayloadSupport.buildDeptMemberAssignableGroups(
+                authorGroups,
+                insttId,
+                globalAccess,
+                currentUserId,
+                currentUserAuthorCode);
     }
 
     private boolean matchesRoleCategory(String authorCode, String selectedRoleCategory) {
@@ -5121,6 +5345,8 @@ public class AdminMainController {
                         insttId,
                         userSearchKeyword,
                         selectedRoleCategory,
+                        currentUserId,
+                        resolveCurrentUserAuthorCode(currentUserId),
                         resolveCurrentUserInsttId(currentUserId),
                         webmaster,
                         webmaster || hasGlobalDeptRoleAccess(currentUserId, resolveCurrentUserAuthorCode(currentUserId)),
@@ -5156,6 +5382,145 @@ public class AdminMainController {
 
     boolean requiresOwnCompanyAccess(String currentUserId, String authorCode) {
         return adminAuthorityPagePayloadSupport.requiresOwnCompanyAccess(currentUserId, authorCode);
+    }
+
+    boolean hasMemberManagementMasterAccess(String currentUserId, String authorCode) {
+        return adminAuthorityPagePayloadSupport.hasMemberManagementMasterAccess(currentUserId, authorCode);
+    }
+
+    boolean hasMemberManagementCompanyAdminAccess(String currentUserId, String authorCode) {
+        return adminAuthorityPagePayloadSupport.hasMemberManagementCompanyAdminAccess(currentUserId, authorCode);
+    }
+
+    boolean hasMemberManagementCompanyOperatorAccess(String currentUserId, String authorCode) {
+        return adminAuthorityPagePayloadSupport.hasMemberManagementCompanyOperatorAccess(currentUserId, authorCode);
+    }
+
+    boolean requiresMemberManagementCompanyScope(String currentUserId, String authorCode) {
+        return adminAuthorityPagePayloadSupport.requiresMemberManagementCompanyScope(currentUserId, authorCode);
+    }
+
+    boolean canCreateAdminAccounts(String currentUserId, String currentUserAuthorCode) {
+        return hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)
+                || canCreateOperationAdminAccounts(currentUserId, currentUserAuthorCode);
+    }
+
+    private boolean canCreateOperationAdminAccounts(String currentUserId, String currentUserAuthorCode) {
+        if (hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)) {
+            return true;
+        }
+        String normalizedAuthorCode = safeString(currentUserAuthorCode).toUpperCase(Locale.ROOT);
+        return ROLE_SYSTEM_ADMIN.equals(normalizedAuthorCode)
+                || ROLE_ADMIN.equals(normalizedAuthorCode);
+    }
+
+    boolean canCreateAdminRolePreset(String currentUserId, String currentUserAuthorCode, String rolePreset) {
+        String normalizedRolePreset = safeString(rolePreset).toUpperCase(Locale.ROOT);
+        if (normalizedRolePreset.isEmpty()) {
+            return false;
+        }
+        if ("MASTER".equals(normalizedRolePreset)) {
+            return isWebmaster(currentUserId);
+        }
+        if ("SYSTEM".equals(normalizedRolePreset)) {
+            return hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode);
+        }
+        if ("OPERATION".equals(normalizedRolePreset)) {
+            return canCreateOperationAdminAccounts(currentUserId, currentUserAuthorCode);
+        }
+        return false;
+    }
+
+    private boolean canCurrentAdminAccessAdmin(HttpServletRequest request, EmplyrInfo adminMember) {
+        if (adminMember == null) {
+            return false;
+        }
+        String currentUserId = extractCurrentUserId(request);
+        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+        if (hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)) {
+            return true;
+        }
+        if (!hasMemberManagementCompanyAdminAccess(currentUserId, currentUserAuthorCode)) {
+            return false;
+        }
+        String targetAdminId = safeString(adminMember.getEmplyrId());
+        if ("webmaster".equalsIgnoreCase(targetAdminId)) {
+            return false;
+        }
+        String actorInsttId = resolveCurrentUserInsttId(currentUserId);
+        String targetInsttId = safeString(adminMember.getInsttId());
+        if (actorInsttId.isEmpty() || !actorInsttId.equals(targetInsttId)) {
+            return false;
+        }
+        try {
+            String targetAuthorCode = safeString(authGroupManageService.selectAuthorCodeByUserId(targetAdminId)).toUpperCase(Locale.ROOT);
+            return !ROLE_SYSTEM_MASTER.equals(targetAuthorCode);
+        } catch (Exception e) {
+            log.warn("Failed to resolve target admin author code. emplyrId={}", targetAdminId, e);
+            return false;
+        }
+    }
+
+    private List<EmplyrInfo> selectVisibleAdminMembers(
+            String currentUserId,
+            String currentUserAuthorCode,
+            String keyword,
+            String status) throws Exception {
+        List<EmplyrInfo> employees = new ArrayList<>(employMemberRepository.findAll());
+        Map<String, String> authorCodeByUserId = new LinkedHashMap<>();
+        for (AdminRoleAssignmentVO assignment : authGroupManageService.selectAdminRoleAssignments()) {
+            authorCodeByUserId.put(
+                    safeString(assignment.getEmplyrId()),
+                    safeString(assignment.getAuthorCode()).toUpperCase(Locale.ROOT));
+        }
+        String actorInsttId = resolveCurrentUserInsttId(currentUserId);
+        boolean masterAccess = hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode);
+        String normalizedKeyword = safeString(keyword).toLowerCase(Locale.ROOT);
+        String normalizedStatus = safeString(status).toUpperCase(Locale.ROOT);
+        List<EmplyrInfo> visible = employees.stream()
+                .filter(item -> {
+                    String userId = safeString(item.getEmplyrId());
+                    String authorCode = authorCodeByUserId.getOrDefault(userId, "");
+                    if (authorCode.isEmpty()) {
+                        return false;
+                    }
+                    if (!masterAccess) {
+                        String targetInsttId = safeString(item.getInsttId());
+                        if (actorInsttId.isEmpty() || !actorInsttId.equals(targetInsttId)) {
+                            return false;
+                        }
+                        if (ROLE_SYSTEM_MASTER.equals(authorCode)) {
+                            return false;
+                        }
+                    }
+                    if (!normalizedStatus.isEmpty() && !normalizedStatus.equalsIgnoreCase(safeString(item.getEmplyrStusCode()))) {
+                        return false;
+                    }
+                    if (normalizedKeyword.isEmpty()) {
+                        return true;
+                    }
+                    return safeString(item.getEmplyrId()).toLowerCase(Locale.ROOT).contains(normalizedKeyword)
+                            || safeString(item.getUserNm()).toLowerCase(Locale.ROOT).contains(normalizedKeyword)
+                            || safeString(item.getOrgnztId()).toLowerCase(Locale.ROOT).contains(normalizedKeyword)
+                            || safeString(item.getEmailAdres()).toLowerCase(Locale.ROOT).contains(normalizedKeyword);
+                })
+                .sorted((left, right) -> {
+                    LocalDateTime leftDate = left.getSbscrbDe();
+                    LocalDateTime rightDate = right.getSbscrbDe();
+                    if (leftDate == null && rightDate == null) {
+                        return safeString(left.getEmplyrId()).compareToIgnoreCase(safeString(right.getEmplyrId()));
+                    }
+                    if (leftDate == null) {
+                        return 1;
+                    }
+                    if (rightDate == null) {
+                        return -1;
+                    }
+                    int compared = rightDate.compareTo(leftDate);
+                    return compared != 0 ? compared : safeString(left.getEmplyrId()).compareToIgnoreCase(safeString(right.getEmplyrId()));
+                })
+                .collect(Collectors.toList());
+        return visible;
     }
 
     boolean canCurrentAdminAccessMember(HttpServletRequest request, EntrprsManageVO member) {
@@ -6409,6 +6774,7 @@ public class AdminMainController {
                                                boolean isEn, String currentUserId) throws Exception {
         ensurePermissionEditorDefaults(model, isEn);
         List<AuthorInfoVO> safeAuthorGroups = authorGroups == null ? Collections.emptyList() : authorGroups;
+        safeAuthorGroups = adminAuthorityPagePayloadSupport.appendCurrentAuthorGroup(safeAuthorGroups, selectedAuthorCode);
         Set<String> grantableFeatureCodes = resolveGrantableFeatureCodeSet(currentUserId, isWebmaster(currentUserId));
         List<FeatureCatalogSectionVO> featureSections = filterFeatureCatalogSectionsByGrantable(
                 buildFeatureCatalogSections(authGroupManageService.selectFeatureCatalog(), isEn),

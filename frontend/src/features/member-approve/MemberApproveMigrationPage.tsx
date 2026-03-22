@@ -20,6 +20,7 @@ export function MemberApproveMigrationPage() {
   const [actionError, setActionError] = useState("");
   const [message, setMessage] = useState("");
   const [reviewMemberId, setReviewMemberId] = useState("");
+  const [rejectReason, setRejectReason] = useState("");
   const sessionState = useFrontendSession();
   const pageState = useAsyncValue<MemberApprovePagePayload>(
     () => fetchMemberApprovePage({
@@ -80,11 +81,13 @@ export function MemberApproveMigrationPage() {
       await submitMemberApproveAction(session, {
         action,
         memberId,
-        selectedIds: memberId ? undefined : selectedIds
+        selectedIds: memberId ? undefined : selectedIds,
+        rejectReason: action.includes("reject") ? rejectReason : undefined
       });
       await pageState.reload();
       if (memberId) {
         setReviewMemberId("");
+        setRejectReason("");
       }
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "승인 처리 실패");
@@ -139,16 +142,34 @@ export function MemberApproveMigrationPage() {
 
         <ReviewModalFrame
           footerLeft={(
-            reviewRow ? <MemberPermissionButton allowed={!!page?.canUseMemberApproveAction} className="flex-1 sm:min-w-[100px] sm:flex-none" onClick={() => handleAction("reject", String(reviewRow.memberId || ""))} reason="전체 관리자만 반려할 수 있습니다." size="lg" type="button" variant="dangerSecondary">{MEMBER_BUTTON_LABELS.reject}</MemberPermissionButton> : null
+            reviewRow ? <MemberPermissionButton allowed={!!page?.canUseMemberApproveAction} className="flex-1 sm:min-w-[100px] sm:flex-none" onClick={() => handleAction("reject", String(reviewRow.memberId || ""))} reason="권한 있는 관리자만 반려할 수 있습니다." size="lg" type="button" variant="dangerSecondary">{MEMBER_BUTTON_LABELS.reject}</MemberPermissionButton> : null
           )}
           footerRight={(
-            reviewRow ? <MemberPermissionButton allowed={!!page?.canUseMemberApproveAction} className="flex-1 sm:flex-none" onClick={() => handleAction("approve", String(reviewRow.memberId || ""))} reason="전체 관리자만 승인할 수 있습니다." size="lg" type="button" variant="primary">{MEMBER_BUTTON_LABELS.approveDone}</MemberPermissionButton> : null
+            reviewRow ? <MemberPermissionButton allowed={!!page?.canUseMemberApproveAction} className="flex-1 sm:flex-none" onClick={() => handleAction("approve", String(reviewRow.memberId || ""))} reason="권한 있는 관리자만 승인할 수 있습니다." size="lg" type="button" variant="primary">{MEMBER_BUTTON_LABELS.approveDone}</MemberPermissionButton> : null
           )}
-          onClose={() => setReviewMemberId("")}
+          onClose={() => {
+            setReviewMemberId("");
+            setRejectReason("");
+          }}
           open={!!reviewRow}
-          title="회원가입 신청 상세 검토"
+          title="회원 가입 신청 상세 검토"
         >
-          {reviewRow ? <MemberApproveReviewContent reviewRow={reviewRow} /> : null}
+          {reviewRow ? (
+            <>
+              <MemberApproveReviewContent reviewRow={reviewRow} />
+              <section className="mt-6">
+                <label className="block">
+                  <span className="mb-2 block text-sm font-bold text-[var(--kr-gov-text-primary)]">반려 사유</span>
+                  <textarea
+                    className="gov-input min-h-[120px] py-3"
+                    onChange={(event) => setRejectReason(event.target.value)}
+                    placeholder="상세 검토 후 반려 사유를 입력하세요."
+                    value={rejectReason}
+                  />
+                </label>
+              </section>
+            </>
+          ) : null}
         </ReviewModalFrame>
       </CanView>
     </AdminPageShell>

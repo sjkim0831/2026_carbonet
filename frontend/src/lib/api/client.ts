@@ -3581,7 +3581,7 @@ export async function saveCompanyAccount(
 
 export async function submitMemberApproveAction(
   session: FrontendSession,
-  payload: { action: string; memberId?: string; selectedIds?: string[]; }
+  payload: { action: string; memberId?: string; selectedIds?: string[]; rejectReason?: string; }
 ) {
   const response = await fetch(buildAdminApiPath("/api/admin/member/approve/action"), {
     method: "POST",
@@ -3599,7 +3599,7 @@ export async function submitMemberApproveAction(
 
 export async function submitCompanyApproveAction(
   session: FrontendSession,
-  payload: { action: string; insttId?: string; selectedIds?: string[]; }
+  payload: { action: string; insttId?: string; selectedIds?: string[]; rejectReason?: string; }
 ) {
   const response = await fetch(buildAdminApiPath("/api/admin/member/company-approve/action"), {
     method: "POST",

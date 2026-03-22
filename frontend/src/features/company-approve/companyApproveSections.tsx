@@ -98,8 +98,8 @@ export function CompanyApproveTableSection({
       <MemberSectionToolbar
         actions={(
           <MemberButtonGroup data-help-id="company-approve-batch-actions">
-            <MemberPermissionButton allowed={canUseBatchAction && hasSelection} onClick={() => handleAction("batch_approve")} reason={!canUseBatchAction ? "전체 관리자만 승인할 수 있습니다." : undefined} type="button" variant="primary">선택 승인</MemberPermissionButton>
-            <MemberPermissionButton allowed={canUseBatchAction && hasSelection} onClick={() => handleAction("batch_reject")} reason={!canUseBatchAction ? "전체 관리자만 반려할 수 있습니다." : undefined} type="button" variant="dangerSecondary">선택 반려</MemberPermissionButton>
+            <MemberPermissionButton allowed={canUseBatchAction && hasSelection} onClick={() => handleAction("batch_approve")} reason={!canUseBatchAction ? "마스터 관리자만 승인할 수 있습니다." : undefined} type="button" variant="primary">선택 승인</MemberPermissionButton>
+            <MemberPermissionButton allowed={canUseBatchAction && hasSelection} onClick={() => handleAction("batch_reject")} reason={!canUseBatchAction ? "마스터 관리자만 반려할 수 있습니다." : undefined} type="button" variant="dangerSecondary">선택 반려</MemberPermissionButton>
           </MemberButtonGroup>
         )}
         className="border-b border-[var(--kr-gov-border-light)] bg-gray-50 px-6 py-4"
@@ -160,8 +160,8 @@ export function CompanyApproveTableSection({
                   <td className="px-4 py-4">
                     <div className="flex flex-wrap items-center justify-center gap-2">
                       <MemberButton onClick={() => openReview(id)} size="xs" type="button" variant="secondary">{MEMBER_BUTTON_LABELS.review}</MemberButton>
-                      <MemberPermissionButton allowed={!!page?.canUseCompanyApproveAction} onClick={() => handleAction("approve", id)} reason="전체 관리자만 승인할 수 있습니다." size="xs" type="button" variant="primary">{MEMBER_BUTTON_LABELS.approve}</MemberPermissionButton>
-                      <MemberPermissionButton allowed={!!page?.canUseCompanyApproveAction} onClick={() => handleAction("reject", id)} reason="전체 관리자만 반려할 수 있습니다." size="xs" type="button" variant="dangerSecondary">{MEMBER_BUTTON_LABELS.reject}</MemberPermissionButton>
+                      <MemberPermissionButton allowed={!!page?.canUseCompanyApproveAction} onClick={() => handleAction("approve", id)} reason="마스터 관리자만 승인할 수 있습니다." size="xs" type="button" variant="primary">{MEMBER_BUTTON_LABELS.approve}</MemberPermissionButton>
+                      <MemberPermissionButton allowed={!!page?.canUseCompanyApproveAction} onClick={() => handleAction("reject", id)} reason="마스터 관리자만 반려할 수 있습니다." size="xs" type="button" variant="dangerSecondary">{MEMBER_BUTTON_LABELS.reject}</MemberPermissionButton>
                     </div>
                   </td>
                 </tr>
