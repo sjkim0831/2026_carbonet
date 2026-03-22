@@ -91,9 +91,6 @@ public class ReactAppViewSupport {
 
     private String adaptAssetPath(String path, boolean admin, boolean en) {
         String normalized = path == null ? "" : path.trim();
-        if (!admin || normalized.isEmpty() || !normalized.startsWith("/assets/react/")) {
-            return normalized;
-        }
-        return (en ? "/en/admin" : "/admin") + normalized;
+        return normalized;
     }
 }

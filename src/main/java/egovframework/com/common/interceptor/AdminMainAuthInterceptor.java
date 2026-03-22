@@ -40,15 +40,15 @@ public class AdminMainAuthInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        String requestUri = request.getRequestURI();
+        if (shouldSkipAuthorization(request, requestUri)) {
+            return true;
+        }
+
         String accessToken = jwtProvider.getCookie(request, "accessToken");
         if (ObjectUtils.isEmpty(accessToken) || jwtProvider.accessValidateToken(accessToken) != 200) {
             redirectToLogin(request, response);
             return false;
-        }
-
-        String requestUri = request.getRequestURI();
-        if (shouldSkipAuthorization(request, requestUri)) {
-            return true;
         }
 
         String userId = extractCurrentUserId(accessToken);
@@ -128,6 +128,7 @@ public class AdminMainAuthInterceptor implements HandlerInterceptor {
         return ObjectUtils.isEmpty(normalizedUri)
                 || "/admin".equals(normalizedUri)
                 || "/admin/".equals(normalizedUri)
+                || normalizedUri.startsWith("/admin/assets/react/")
                 || "/admin/system/menu-data".equals(normalizedUri)
                 || "/admin/member/login_history".equals(normalizedUri);
     }
