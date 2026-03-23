@@ -156,6 +156,7 @@ public class AdminMainController {
     private final ObjectProvider<AdminMemberPageModelAssembler> adminMemberPageModelAssemblerProvider;
     private final ObjectProvider<AdminEmissionResultPageModelAssembler> adminEmissionResultPageModelAssemblerProvider;
     private final AdminCompanyAccountService adminCompanyAccountService;
+    private final AdminAdminPermissionService adminAdminPermissionService;
     private final AuthService authService;
     private final MenuInfoService menuInfoService;
     private final AdminSummaryService adminSummaryService;
@@ -1449,117 +1450,30 @@ public class AdminMainController {
             HttpServletRequest request,
             Locale locale) {
         boolean isEn = isEnglishRequest(request, locale);
-        Map<String, Object> response = new LinkedHashMap<>();
         String currentUserId = extractCurrentUserId(request);
         String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        if (!hasMemberManagementCompanyAdminAccess(currentUserId, currentUserAuthorCode)) {
-            response.put("success", false);
-            response.put("message", isEn
-                    ? "You do not have permission to change administrator permissions."
-                    : "관리자 권한을 변경할 권한이 없습니다.");
-            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
-        }
-
-        String normalizedEmplyrId = safeString(payload == null ? null : payload.getEmplyrId());
-        String normalizedAuthorCode = safeString(payload == null ? null : payload.getAuthorCode()).toUpperCase(Locale.ROOT);
-        List<String> normalizedFeatureCodes = normalizeFeatureCodes(payload == null ? null : payload.getFeatureCodes());
-        if (normalizedEmplyrId.isEmpty()) {
-            response.put("success", false);
-            response.put("message", isEn ? "Administrator ID was not provided." : "관리자 ID가 전달되지 않았습니다.");
-            return ResponseEntity.badRequest().body(response);
-        }
-
-        Optional<EmplyrInfo> adminMemberOpt;
-        try {
-            adminMemberOpt = employMemberRepository.findById(normalizedEmplyrId);
-        } catch (Exception e) {
-            log.error("Failed to load admin for permission submit api. emplyrId={}", normalizedEmplyrId, e);
-            response.put("success", false);
-            response.put("message", isEn
-                    ? "An error occurred while retrieving administrator information."
-                    : "관리자 정보 조회 중 오류가 발생했습니다.");
-            return ResponseEntity.internalServerError().body(response);
-        }
-        if (!adminMemberOpt.isPresent()) {
-            response.put("success", false);
-            response.put("message", isEn ? "Administrator information was not found." : "관리자 정보를 찾을 수 없습니다.");
-            return ResponseEntity.badRequest().body(response);
-        }
-
-        EmplyrInfo adminMember = adminMemberOpt.get();
-        if (!canCurrentAdminAccessAdmin(request, adminMember)) {
-            response.put("success", false);
-            response.put("message", isEn
-                    ? "You can only update administrators in your own company."
-                    : "본인 회사에 속한 관리자만 수정할 수 있습니다.");
-            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
-        }
-        List<String> errors = new ArrayList<>();
-        List<AuthorInfoVO> authorGroups = Collections.emptyList();
-        List<String> baselineFeatureCodes = Collections.emptyList();
-        try {
-            String currentAssignedAuthorCode = safeString(authGroupManageService.selectAuthorCodeByUserId(normalizedEmplyrId))
-                    .toUpperCase(Locale.ROOT);
-            authorGroups = filterAuthorGroups(
-                    authGroupManageService.selectAuthorList(),
-                    "GENERAL",
-                    currentUserId,
-                    resolveCurrentUserAuthorCode(currentUserId));
-            if (normalizedAuthorCode.isEmpty()) {
-                errors.add(isEn ? "Please select an administrator role." : "관리자 권한 롤을 선택해 주세요.");
-            } else if (!adminAuthorityPagePayloadSupport.isGrantableOrCurrentAuthorCode(
-                    authorGroups,
-                    normalizedAuthorCode,
-                    currentAssignedAuthorCode)) {
-                errors.add(isEn ? "Please select a valid administrator role." : "유효한 관리자 권한 롤을 선택해 주세요.");
-            } else {
-                baselineFeatureCodes = normalizeFeatureCodes(authGroupManageService.selectAuthorFeatureCodes(normalizedAuthorCode));
-            }
-            if ("webmaster".equalsIgnoreCase(normalizedEmplyrId) && !ROLE_SYSTEM_MASTER.equalsIgnoreCase(normalizedAuthorCode)) {
-                errors.add(isEn ? "webmaster must keep ROLE_SYSTEM_MASTER." : "webmaster 계정은 ROLE_SYSTEM_MASTER만 유지할 수 있습니다.");
-            }
-        } catch (Exception e) {
-            log.error("Failed to load permission data for admin edit api. emplyrId={}", normalizedEmplyrId, e);
-            errors.add(isEn ? "Failed to load role and feature information." : "권한 롤 및 기능 정보를 불러오지 못했습니다.");
-        }
-        if (!errors.isEmpty()) {
-            response.put("success", false);
-            response.put("errors", errors);
-            return ResponseEntity.badRequest().body(response);
-        }
-
-        try {
-            authGroupManageService.updateAdminRoleAssignment(normalizedEmplyrId, normalizedAuthorCode);
-            savePermissionOverrides(
-                    safeString(adminMember.getEsntlId()),
-                    "USR03",
-                    baselineFeatureCodes,
-                    normalizedFeatureCodes,
-                    currentUserId,
-                    resolveGrantableFeatureCodeSet(currentUserId, isWebmaster(currentUserId)));
-        } catch (Exception e) {
-            log.error("Failed to save admin account permissions api. emplyrId={}, authorCode={}", normalizedEmplyrId, normalizedAuthorCode, e);
-            response.put("success", false);
-            response.put("message", isEn
-                    ? "An error occurred while saving administrator permissions."
-                    : "관리자 권한 저장 중 오류가 발생했습니다.");
-            return ResponseEntity.internalServerError().body(response);
-        }
-
-        response.put("success", true);
-        response.put("emplyrId", normalizedEmplyrId);
-        response.put("authorCode", normalizedAuthorCode);
-        recordAdminActionAudit(request,
+        AdminAdminPermissionService.SaveResult result = adminAdminPermissionService.saveAdminPermission(
+                payload == null ? null : payload.getEmplyrId(),
+                payload == null ? null : payload.getAuthorCode(),
+                payload == null ? null : payload.getFeatureCodes(),
+                request,
+                isEn,
                 currentUserId,
-                resolveCurrentUserAuthorCode(currentUserId),
-                "AMENU_ADMIN_PERMISSION",
-                "admin-permission",
-                "ADMIN_PERMISSION_SAVE",
-                "ADMIN",
-                normalizedEmplyrId,
-                "{\"emplyrId\":\"" + safeJson(normalizedEmplyrId) + "\",\"authorCode\":\"" + safeJson(normalizedAuthorCode) + "\"}",
-                "{\"status\":\"SUCCESS\"}");
-        return ResponseEntity.ok(response);
+                currentUserAuthorCode,
+                hasMemberManagementCompanyAdminAccess(currentUserId, currentUserAuthorCode));
+        if (result.isSuccess()) {
+            recordAdminActionAudit(request,
+                    currentUserId,
+                    resolveCurrentUserAuthorCode(currentUserId),
+                    "AMENU_ADMIN_PERMISSION",
+                    "admin-permission",
+                    "ADMIN_PERMISSION_SAVE",
+                    "ADMIN",
+                    result.getEmplyrId(),
+                    "{\"emplyrId\":\"" + safeJson(result.getEmplyrId()) + "\",\"authorCode\":\"" + safeJson(result.getAuthorCode()) + "\"}",
+                    "{\"status\":\"SUCCESS\"}");
+        }
+        return result.toResponseEntity();
     }
 
     @RequestMapping(value = { "/member/admin_account/permissions" }, method = RequestMethod.POST)
@@ -1580,110 +1494,43 @@ public class AdminMainController {
 
         String currentUserId = extractCurrentUserId(request);
         String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        if (!hasMemberManagementCompanyAdminAccess(currentUserId, currentUserAuthorCode)) {
-            model.addAttribute("adminPermissionError", isEn
-                    ? "You do not have permission to change administrator permissions."
-                    : "관리자 권한을 변경할 권한이 없습니다.");
-            return viewName;
-        }
-
-        String normalizedEmplyrId = safeString(emplyrId);
-        String normalizedAuthorCode = safeString(authorCode).toUpperCase(Locale.ROOT);
-        List<String> normalizedFeatureCodes = normalizeFeatureCodes(featureCodes);
-        if (normalizedEmplyrId.isEmpty()) {
-            model.addAttribute("adminPermissionError", isEn
-                    ? "Administrator ID was not provided."
-                    : "관리자 ID가 전달되지 않았습니다.");
-            return viewName;
-        }
-
-        Optional<EmplyrInfo> adminMemberOpt;
-        try {
-            adminMemberOpt = employMemberRepository.findById(normalizedEmplyrId);
-        } catch (Exception e) {
-            log.error("Failed to load admin for permission submit. emplyrId={}", normalizedEmplyrId, e);
-            model.addAttribute("adminPermissionError", isEn
-                    ? "An error occurred while retrieving administrator information."
-                    : "관리자 정보 조회 중 오류가 발생했습니다.");
-            return viewName;
-        }
-        if (!adminMemberOpt.isPresent()) {
-            model.addAttribute("adminPermissionError", isEn
-                    ? "Administrator information was not found."
-                    : "관리자 정보를 찾을 수 없습니다.");
-            return viewName;
-        }
-
-        EmplyrInfo adminMember = adminMemberOpt.get();
-        if (!canCurrentAdminAccessAdmin(request, adminMember)) {
-            model.addAttribute("adminPermissionError", isEn
-                    ? "You can only update administrators in your own company."
-                    : "본인 회사에 속한 관리자만 수정할 수 있습니다.");
-            return viewName;
-        }
-        List<String> errors = new ArrayList<>();
-        List<AuthorInfoVO> authorGroups = Collections.emptyList();
-        List<String> baselineFeatureCodes = Collections.emptyList();
-        try {
-            String currentAssignedAuthorCode = safeString(authGroupManageService.selectAuthorCodeByUserId(normalizedEmplyrId))
-                    .toUpperCase(Locale.ROOT);
-            authorGroups = filterAuthorGroups(
-                    authGroupManageService.selectAuthorList(),
-                    "GENERAL",
-                    currentUserId,
-                    resolveCurrentUserAuthorCode(currentUserId));
-            if (normalizedAuthorCode.isEmpty()) {
-                errors.add(isEn ? "Please select an administrator role." : "관리자 권한 롤을 선택해 주세요.");
-            } else if (!adminAuthorityPagePayloadSupport.isGrantableOrCurrentAuthorCode(
-                    authorGroups,
-                    normalizedAuthorCode,
-                    currentAssignedAuthorCode)) {
-                errors.add(isEn ? "Please select a valid administrator role." : "유효한 관리자 권한 롤을 선택해 주세요.");
-            } else {
-                baselineFeatureCodes = normalizeFeatureCodes(authGroupManageService.selectAuthorFeatureCodes(normalizedAuthorCode));
+        AdminAdminPermissionService.SaveResult result = adminAdminPermissionService.saveAdminPermission(
+                emplyrId,
+                authorCode,
+                featureCodes,
+                request,
+                isEn,
+                currentUserId,
+                currentUserAuthorCode,
+                hasMemberManagementCompanyAdminAccess(currentUserId, currentUserAuthorCode));
+        if (result.isForbidden() || result.isInvalid() || result.isServerError()) {
+            if (result.getAdminMember() != null) {
+                try {
+                    populateAdminAccountEditModel(model, result.getAdminMember(), isEn, result.getFeatureCodes(), currentUserId);
+                } catch (Exception e) {
+                    log.error("Failed to populate admin account edit model after permission submit. emplyrId={}", result.getEmplyrId(), e);
+                    ensureAdminAccountDefaults(model, isEn);
+                }
             }
-            if ("webmaster".equalsIgnoreCase(normalizedEmplyrId) && !ROLE_SYSTEM_MASTER.equalsIgnoreCase(normalizedAuthorCode)) {
-                errors.add(isEn ? "webmaster must keep ROLE_SYSTEM_MASTER." : "webmaster 계정은 ROLE_SYSTEM_MASTER만 유지할 수 있습니다.");
+            if (!result.getErrors().isEmpty()) {
+                model.addAttribute("adminPermissionErrors", result.getErrors());
             }
-        } catch (Exception e) {
-            log.error("Failed to load permission data for admin edit. emplyrId={}", normalizedEmplyrId, e);
-            errors.add(isEn ? "Failed to load role and feature information." : "권한 롤 및 기능 정보를 불러오지 못했습니다.");
-        }
-
-        if (!errors.isEmpty()) {
-            try {
-                populateAdminAccountEditModel(model, adminMember, isEn, normalizedFeatureCodes, currentUserId);
-            } catch (Exception e) {
-                log.error("Failed to populate admin account edit model (validation errors). emplyrId={}", normalizedEmplyrId, e);
-                ensureAdminAccountDefaults(model, isEn);
+            if (!safeString(result.getMessage()).isEmpty()) {
+                model.addAttribute("adminPermissionError", result.getMessage());
             }
-            model.addAttribute("adminPermissionErrors", errors);
             return viewName;
         }
-
-        try {
-            authGroupManageService.updateAdminRoleAssignment(normalizedEmplyrId, normalizedAuthorCode);
-            savePermissionOverrides(
-                    safeString(adminMember.getEsntlId()),
-                    "USR03",
-                    baselineFeatureCodes,
-                    normalizedFeatureCodes,
-                    currentUserId,
-                    resolveGrantableFeatureCodeSet(currentUserId, isWebmaster(currentUserId)));
-            return "redirect:" + adminPrefix(request, locale) + "/member/admin_account?emplyrId=" + urlEncode(normalizedEmplyrId) + "&updated=true";
-        } catch (Exception e) {
-            log.error("Failed to save admin account permissions. emplyrId={}, authorCode={}", normalizedEmplyrId, normalizedAuthorCode, e);
-            try {
-                populateAdminAccountEditModel(model, adminMember, isEn, normalizedFeatureCodes, currentUserId);
-            } catch (Exception inner) {
-                log.error("Failed to populate admin account edit model (save error). emplyrId={}", normalizedEmplyrId, inner);
-                ensureAdminAccountDefaults(model, isEn);
-            }
-            model.addAttribute("adminPermissionError", isEn
-                    ? "An error occurred while saving administrator permissions."
-                    : "관리자 권한 저장 중 오류가 발생했습니다.");
-            return viewName;
-        }
+        recordAdminActionAudit(request,
+                currentUserId,
+                resolveCurrentUserAuthorCode(currentUserId),
+                "AMENU_ADMIN_PERMISSION",
+                "admin-permission",
+                "ADMIN_PERMISSION_SAVE",
+                "ADMIN",
+                result.getEmplyrId(),
+                "{\"emplyrId\":\"" + safeJson(result.getEmplyrId()) + "\",\"authorCode\":\"" + safeJson(result.getAuthorCode()) + "\"}",
+                "{\"status\":\"SUCCESS\"}");
+        return "redirect:" + adminPrefix(request, locale) + "/member/admin_account?emplyrId=" + urlEncode(result.getEmplyrId()) + "&updated=true";
     }
 
     @RequestMapping(value = "/member/list", method = { RequestMethod.GET, RequestMethod.POST })
@@ -4644,7 +4491,7 @@ public class AdminMainController {
         }
     }
 
-    private boolean isWebmaster(String userId) {
+    boolean isWebmaster(String userId) {
         return "webmaster".equalsIgnoreCase(safeString(userId));
     }
 
@@ -5233,7 +5080,7 @@ public class AdminMainController {
         return false;
     }
 
-    private boolean canCurrentAdminAccessAdmin(HttpServletRequest request, EmplyrInfo adminMember) {
+    boolean canCurrentAdminAccessAdmin(HttpServletRequest request, EmplyrInfo adminMember) {
         if (adminMember == null) {
             return false;
         }
@@ -6522,7 +6369,7 @@ public class AdminMainController {
         model.addAttribute("permissionEmptyRoleLabel", isEn ? "Select a role" : "권한 롤 선택");
     }
 
-    private void populateAdminAccountEditModel(Model model, EmplyrInfo adminMember, boolean isEn,
+    void populateAdminAccountEditModel(Model model, EmplyrInfo adminMember, boolean isEn,
                                                List<String> effectiveFeatureCodes, String currentUserId) throws Exception {
         adminMemberPageModelAssembler().populateAdminAccountEditModel(model, adminMember, isEn, effectiveFeatureCodes, currentUserId);
     }
@@ -6668,7 +6515,7 @@ public class AdminMainController {
         return String.join("-", parts);
     }
 
-    private void savePermissionOverrides(String scrtyTargetId, String memberTypeCode,
+    void savePermissionOverrides(String scrtyTargetId, String memberTypeCode,
                                          List<String> baselineFeatureCodes, List<String> effectiveFeatureCodes,
                                          String actorId, Set<String> grantableFeatureCodes) throws Exception {
         String normalizedTargetId = safeString(scrtyTargetId);
@@ -6744,6 +6591,36 @@ public class AdminMainController {
 
     Set<String> resolveGrantableFeatureCodeSet(String currentUserId, boolean webmaster) throws Exception {
         return adminAuthorityPagePayloadSupport.resolveGrantableFeatureCodeSet(currentUserId, webmaster);
+    }
+
+    String loadAssignedAuthorCode(String emplyrId) throws Exception {
+        return safeString(authGroupManageService.selectAuthorCodeByUserId(emplyrId)).toUpperCase(Locale.ROOT);
+    }
+
+    List<AuthorInfoVO> loadGrantableAdminAuthorGroups(String currentUserId, String currentUserAuthorCode) throws Exception {
+        return filterAuthorGroups(
+                authGroupManageService.selectAuthorList(),
+                "GENERAL",
+                currentUserId,
+                currentUserAuthorCode);
+    }
+
+    boolean isGrantableOrCurrentAdminAuthorCode(
+            List<AuthorInfoVO> authorGroups,
+            String selectedAuthorCode,
+            String currentAssignedAuthorCode) {
+        return adminAuthorityPagePayloadSupport.isGrantableOrCurrentAuthorCode(
+                authorGroups,
+                selectedAuthorCode,
+                currentAssignedAuthorCode);
+    }
+
+    List<String> loadAuthorFeatureCodes(String authorCode) throws Exception {
+        return normalizeFeatureCodes(authGroupManageService.selectAuthorFeatureCodes(authorCode));
+    }
+
+    void updateAdminRoleAssignment(String emplyrId, String authorCode) throws Exception {
+        authGroupManageService.updateAdminRoleAssignment(emplyrId, authorCode);
     }
 
     private void applyUserFeatureOverrides(Set<String> featureCodes, List<UserFeatureOverrideVO> overrides) {
