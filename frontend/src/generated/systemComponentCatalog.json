@@ -15760,65 +15760,6 @@
     ]
   },
   {
-    "key": "select:select:::gov-select h-10::",
-    "styleGroupId": "SEL-select-plain-md-gov-select-h-10-noplace",
-    "componentType": "select",
-    "componentName": "select",
-    "variant": "",
-    "size": "",
-    "className": "gov-select h-10",
-    "icon": "",
-    "placeholder": "",
-    "summary": "gov-select h-10",
-    "routeCount": 1,
-    "instanceCount": 2,
-    "labels": [],
-    "routes": [
-      {
-        "routeId": "member-approve",
-        "label": "회원 승인",
-        "koPath": "/admin/member/approve",
-        "enPath": "/en/admin/member/approve"
-      }
-    ],
-    "instances": [
-      {
-        "route": {
-          "routeId": "member-approve",
-          "label": "회원 승인",
-          "koPath": "/admin/member/approve",
-          "enPath": "/en/admin/member/approve"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select h-10",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select h-10"
-      },
-      {
-        "route": {
-          "routeId": "member-approve",
-          "label": "회원 승인",
-          "koPath": "/admin/member/approve",
-          "enPath": "/en/admin/member/approve"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select h-10",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select h-10"
-      }
-    ]
-  },
-  {
     "key": "select:select:::min-w-[16rem] rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] h-10 px-3 text-sm::",
     "styleGroupId": "SEL-select-plain-md-min-w-16rem-rounded-var-kr-gov-r",
     "componentType": "select",
@@ -17658,50 +17599,6 @@
     ]
   },
   {
-    "key": "input:input:::gov-input h-10::신청자명, 회원 ID, 기관명 검색",
-    "styleGroupId": "INP-input-plain-md-gov-input-h-10-id",
-    "componentType": "input",
-    "componentName": "input",
-    "variant": "",
-    "size": "",
-    "className": "gov-input h-10",
-    "icon": "",
-    "placeholder": "신청자명, 회원 ID, 기관명 검색",
-    "summary": "gov-input h-10 / 신청자명, 회원 ID, 기관명 검색",
-    "routeCount": 1,
-    "instanceCount": 1,
-    "labels": [
-      "신청자명, 회원 ID, 기관명 검색"
-    ],
-    "routes": [
-      {
-        "routeId": "member-approve",
-        "label": "회원 승인",
-        "koPath": "/admin/member/approve",
-        "enPath": "/en/admin/member/approve"
-      }
-    ],
-    "instances": [
-      {
-        "route": {
-          "routeId": "member-approve",
-          "label": "회원 승인",
-          "koPath": "/admin/member/approve",
-          "enPath": "/en/admin/member/approve"
-        },
-        "componentType": "input",
-        "componentName": "input",
-        "variant": "",
-        "size": "",
-        "className": "gov-input h-10",
-        "icon": "",
-        "label": "",
-        "placeholder": "신청자명, 회원 ID, 기관명 검색",
-        "summary": "gov-input h-10 / 신청자명, 회원 ID, 기관명 검색"
-      }
-    ]
-  },
-  {
     "key": "input:input:::gov-input mb-3::",
     "styleGroupId": "INP-input-plain-md-gov-input-mb-3-noplace",
     "componentType": "input",
@@ -17824,48 +17721,6 @@
         "label": "",
         "placeholder": "",
         "summary": "h-4 w-4"
-      }
-    ]
-  },
-  {
-    "key": "input:input:::mt-1 h-4 w-4 rounded border-gray-300 text-[var(--kr-gov-blue)] focus:ring-[var(--kr-gov-focus)]::",
-    "styleGroupId": "INP-input-plain-md-mt-1-h-4-w-4-rounded-border-gray-",
-    "componentType": "input",
-    "componentName": "input",
-    "variant": "",
-    "size": "",
-    "className": "mt-1 h-4 w-4 rounded border-gray-300 text-[var(--kr-gov-blue)] focus:ring-[var(--kr-gov-focus)]",
-    "icon": "",
-    "placeholder": "",
-    "summary": "mt-1 h-4 w-4 rounded border-gray-300 text-[var(--kr-gov-blue)] focus:ring-[var(--kr-gov-focus)]",
-    "routeCount": 1,
-    "instanceCount": 1,
-    "labels": [],
-    "routes": [
-      {
-        "routeId": "admin-permission",
-        "label": "관리자 권한",
-        "koPath": "/admin/member/admin_account/permissions",
-        "enPath": "/en/admin/member/admin_account/permissions"
-      }
-    ],
-    "instances": [
-      {
-        "route": {
-          "routeId": "admin-permission",
-          "label": "관리자 권한",
-          "koPath": "/admin/member/admin_account/permissions",
-          "enPath": "/en/admin/member/admin_account/permissions"
-        },
-        "componentType": "input",
-        "componentName": "input",
-        "variant": "",
-        "size": "",
-        "className": "mt-1 h-4 w-4 rounded border-gray-300 text-[var(--kr-gov-blue)] focus:ring-[var(--kr-gov-focus)]",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "mt-1 h-4 w-4 rounded border-gray-300 text-[var(--kr-gov-blue)] focus:ring-[var(--kr-gov-focus)]"
       }
     ]
   },
@@ -18034,48 +17889,6 @@
         "label": "",
         "placeholder": "",
         "summary": "max-w-sm w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
-      }
-    ]
-  },
-  {
-    "key": "select:select:::w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]::",
-    "styleGroupId": "SEL-select-plain-md-w-full-h-12-px-4-border-border-v",
-    "componentType": "select",
-    "componentName": "select",
-    "variant": "",
-    "size": "",
-    "className": "w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]",
-    "icon": "",
-    "placeholder": "",
-    "summary": "w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]",
-    "routeCount": 1,
-    "instanceCount": 1,
-    "labels": [],
-    "routes": [
-      {
-        "routeId": "admin-permission",
-        "label": "관리자 권한",
-        "koPath": "/admin/member/admin_account/permissions",
-        "enPath": "/en/admin/member/admin_account/permissions"
-      }
-    ],
-    "instances": [
-      {
-        "route": {
-          "routeId": "admin-permission",
-          "label": "관리자 권한",
-          "koPath": "/admin/member/admin_account/permissions",
-          "enPath": "/en/admin/member/admin_account/permissions"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]"
       }
     ]
   },

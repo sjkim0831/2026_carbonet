@@ -8,6 +8,7 @@ import {
   type AdminMenuGroup,
   type AdminMenuLink
 } from "../../lib/api/client";
+import { fetchJson } from "../../lib/api/core";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
 
@@ -41,6 +42,17 @@ type MenuLinkLike = {
   tEn?: string;
   u?: string;
   icon?: string;
+};
+
+type MenuIndexEntry = {
+  domainKey: string;
+  groupKey: string;
+  linkIndex: number;
+};
+
+type MenuIndex = {
+  exactPathMap: Record<string, MenuIndexEntry>;
+  basePathMap: Record<string, MenuIndexEntry>;
 };
 
 const GOV_SYMBOL = "/img/egovframework/kr_gov_symbol.png";
@@ -221,6 +233,72 @@ function cloneMenuTree(source: Record<string, AdminMenuDomain>): Record<string, 
   );
 }
 
+const MEMBER_GROUP_ORDER = ["회원", "회원사", "관리자"];
+
+const MEMBER_LINK_ORDER: Record<string, string[]> = {
+  회원: [
+    "회원 목록",
+    "신규 회원 등록",
+    "가입 승인",
+    "탈퇴 회원",
+    "휴면 계정"
+  ],
+  회원사: [
+    "회원사 목록",
+    "회원사 추가",
+    "회원사 승인"
+  ],
+  관리자: [
+    "관리자 목록",
+    "관리자 계정 생성",
+    "권한 변경",
+    "부서 권한 맵핑"
+  ]
+};
+
+function sortByPreferredOrder<T>(items: T[], resolveKey: (item: T) => string, preferred: string[]) {
+  const indexByKey = new Map(preferred.map((key, index) => [key, index]));
+  return [...items].sort((left, right) => {
+    const leftKey = resolveKey(left);
+    const rightKey = resolveKey(right);
+    const leftOrder = indexByKey.has(leftKey) ? indexByKey.get(leftKey)! : Number.MAX_SAFE_INTEGER;
+    const rightOrder = indexByKey.has(rightKey) ? indexByKey.get(rightKey)! : Number.MAX_SAFE_INTEGER;
+    if (leftOrder !== rightOrder) {
+      return leftOrder - rightOrder;
+    }
+    return leftKey.localeCompare(rightKey);
+  });
+}
+
+function normalizeMemberManagementMenuTree(source: Record<string, AdminMenuDomain>) {
+  const nextTree = cloneMenuTree(source);
+  const memberDomain = nextTree["회원관리"];
+  if (!memberDomain) {
+    return nextTree;
+  }
+
+  memberDomain.groups = sortByPreferredOrder(
+    memberDomain.groups || [],
+    (group) => String(group.title || "").trim(),
+    MEMBER_GROUP_ORDER
+  ).map((group) => {
+    const preferredLinks = MEMBER_LINK_ORDER[String(group.title || "").trim()];
+    if (!preferredLinks) {
+      return group;
+    }
+    return {
+      ...group,
+      links: sortByPreferredOrder(
+        group.links || [],
+        (link) => String(link.text || "").trim(),
+        preferredLinks
+      )
+    };
+  });
+
+  return nextTree;
+}
+
 function resolveFallbackDomainKey(label: string) {
   const normalized = label.trim();
   if (!normalized) {
@@ -334,6 +412,44 @@ function visibleLinks(links: AdminMenuLink[] | undefined): AdminMenuLink[] {
   return (links || []).filter((link) => !shouldHideSidebarLink(link));
 }
 
+function getMenuGroupKey(group: AdminMenuGroup, index: number) {
+  return group.title || `group-${index}`;
+}
+
+function buildMenuIndex(menuTree: Record<string, AdminMenuDomain>): MenuIndex {
+  const exactPathMap: Record<string, MenuIndexEntry> = {};
+  const basePathMap: Record<string, MenuIndexEntry> = {};
+
+  Object.entries(menuTree).forEach(([domainKey, domain]) => {
+    (domain.groups || []).forEach((group, groupIndex) => {
+      const groupKey = getMenuGroupKey(group, groupIndex);
+      visibleLinks(group.links).forEach((link, linkIndex) => {
+        const runtimeUrl = resolveMenuLinkRuntimeUrl(link);
+        if (!runtimeUrl || runtimeUrl === "#") {
+          return;
+        }
+        const fullPath = resolveMenuComparablePath(runtimeUrl, true);
+        const basePath = pathOnly(fullPath);
+        const entry = { domainKey, groupKey, linkIndex };
+        if (fullPath && !exactPathMap[fullPath]) {
+          exactPathMap[fullPath] = entry;
+        }
+        if (basePath && !basePathMap[basePath]) {
+          basePathMap[basePath] = entry;
+        }
+      });
+    });
+  });
+
+  return { exactPathMap, basePathMap };
+}
+
+function resolveMenuIndexEntry(menuIndex: MenuIndex, currentPath: string) {
+  const currentFull = resolveMenuComparablePath(currentPath, false);
+  const currentBase = pathOnly(currentFull);
+  return menuIndex.exactPathMap[currentFull] || menuIndex.basePathMap[currentBase] || null;
+}
+
 function ensureCurrentPageInMenuTree(
   source: Record<string, AdminMenuDomain>,
   currentPath: string,
@@ -341,24 +457,15 @@ function ensureCurrentPageInMenuTree(
   breadcrumbs?: BreadcrumbItem[],
   en?: boolean
 ) {
-  const currentFull = resolveMenuComparablePath(currentPath, false);
-  const currentBase = pathOnly(currentFull);
   const nextTree = cloneMenuTree(source);
-
-  for (const domain of Object.values(nextTree)) {
-    for (const group of domain.groups || []) {
-      const matched = visibleLinks(group.links).some((link) => {
-        const targetFull = resolveMenuComparablePath(resolveMenuLinkRuntimeUrl(link), true);
-        const targetBase = pathOnly(targetFull);
-        return targetFull === currentFull || targetBase === currentBase;
-      });
-      if (matched) {
-        return nextTree;
-      }
-    }
+  const existingEntry = resolveMenuIndexEntry(buildMenuIndex(nextTree), currentPath);
+  if (existingEntry) {
+    return nextTree;
   }
 
   const sectionLabel = breadcrumbs?.[1]?.label || "";
+  const currentFull = resolveMenuComparablePath(currentPath, false);
+  const currentBase = pathOnly(currentFull);
   const pageLabel = breadcrumbs?.[breadcrumbs.length - 1]?.label || title || currentBase;
   const domainKey = resolveFallbackDomainKey(sectionLabel);
   const domain = nextTree[domainKey];
@@ -395,36 +502,6 @@ function resolveFirstDomainPath(domain: AdminMenuDomain | undefined) {
     }
   }
   return "#";
-}
-
-function resolveActiveDomainKey(menuTree: Record<string, AdminMenuDomain>, currentPath: string) {
-  const currentFull = resolveMenuComparablePath(currentPath, false);
-  const currentBase = pathOnly(currentFull);
-
-  for (const [domainKey, domain] of Object.entries(menuTree)) {
-    for (const group of domain.groups || []) {
-      for (const link of visibleLinks(group.links)) {
-        const targetFull = resolveMenuComparablePath(resolveMenuLinkRuntimeUrl(link), true);
-        const targetBase = pathOnly(targetFull);
-        if (targetFull === currentFull || targetBase === currentBase) {
-          return domainKey;
-        }
-      }
-    }
-  }
-
-  return Object.keys(menuTree)[0] || "";
-}
-
-function resolveActiveLinkIndex(links: AdminMenuLink[], currentPath: string) {
-  const currentFull = resolveMenuComparablePath(currentPath, false);
-  const currentBase = pathOnly(currentFull);
-  const sidebarLinks = visibleLinks(links);
-  const exactIndex = sidebarLinks.findIndex((link) => resolveMenuComparablePath(resolveMenuLinkRuntimeUrl(link), true) === currentFull);
-  if (exactIndex >= 0) {
-    return exactIndex;
-  }
-  return sidebarLinks.findIndex((link) => pathOnly(resolveMenuComparablePath(resolveMenuLinkRuntimeUrl(link), true)) === currentBase);
 }
 
 function normalizeMenuSearchText(value: string | undefined) {
@@ -506,9 +583,8 @@ function filterMenuGroups(groups: AdminMenuGroup[] | undefined, rawQuery: string
 
 async function handleAdminLogout() {
   try {
-    await fetch(buildLocalizedPath("/admin/login/actionLogout", "/en/admin/login/actionLogout"), {
-      method: "POST",
-      credentials: "include"
+    await fetchJson(buildLocalizedPath("/admin/login/actionLogout", "/en/admin/login/actionLogout"), {
+      method: "POST"
     });
   } finally {
     invalidateFrontendSessionCache();
@@ -545,12 +621,17 @@ export function AdminPageShell({
     skipInitialLoad: initialMenuTree !== null
   });
   const fallbackMenuTree = useMemo(
-    () => ensureCurrentPageInMenuTree(getFallbackMenuTree(), currentPath, title, breadcrumbs, en),
+    () => normalizeMemberManagementMenuTree(ensureCurrentPageInMenuTree(getFallbackMenuTree(), currentPath, title, breadcrumbs, en)),
     [breadcrumbs, currentPath, en, title]
   );
-  const menuTree = Object.keys(menuState.value || {}).length ? (menuState.value || {}) : fallbackMenuTree;
+  const menuTree = useMemo(
+    () => normalizeMemberManagementMenuTree(Object.keys(menuState.value || {}).length ? (menuState.value || {}) : fallbackMenuTree),
+    [fallbackMenuTree, menuState.value]
+  );
+  const menuIndex = useMemo(() => buildMenuIndex(menuTree), [menuTree]);
   const fallbackGnbItems = getFallbackGnbItems(en);
-  const activeDomainKey = useMemo(() => resolveActiveDomainKey(menuTree, currentPath), [menuTree, currentPath]);
+  const activeMenuEntry = useMemo(() => resolveMenuIndexEntry(menuIndex, currentPath), [menuIndex, currentPath]);
+  const activeDomainKey = activeMenuEntry?.domainKey || Object.keys(menuTree)[0] || "";
   const [selectedDomainKey, setSelectedDomainKey] = useState(activeDomainKey);
   const [menuFilter, setMenuFilter] = useState("");
   const deferredMenuFilter = useDeferredValue(menuFilter);
@@ -584,19 +665,14 @@ export function AdminPageShell({
     if (!selectedDomain) {
       return;
     }
-    const currentComparable = resolveMenuComparablePath(currentPath, false);
-    const currentBase = pathOnly(currentComparable);
     const nextState: Record<string, boolean> = {};
     (selectedDomain.groups || []).forEach((group, index) => {
-      const hasActiveLink = visibleLinks(group.links).some((link) => {
-        const targetFull = resolveMenuComparablePath(resolveMenuLinkRuntimeUrl(link), true);
-        const targetBase = pathOnly(targetFull);
-        return targetFull === currentComparable || targetBase === currentBase;
-      });
-      nextState[group.title || `group-${index}`] = hasActiveLink || index === 0;
+      const groupKey = getMenuGroupKey(group, index);
+      const hasActiveLink = activeMenuEntry?.domainKey === selectedDomainKey && activeMenuEntry.groupKey === groupKey;
+      nextState[groupKey] = hasActiveLink || index === 0;
     });
     setOpenGroups(nextState);
-  }, [currentPath, selectedDomain]);
+  }, [activeMenuEntry, selectedDomain, selectedDomainKey]);
 
   useEffect(() => {
     let expired = false;
@@ -661,15 +737,14 @@ export function AdminPageShell({
 
     setSessionRefreshPending(true);
     try {
-      const response = await fetch(buildLocalizedPath("/admin/login/refreshSession", "/en/admin/login/refreshSession"), {
-        method: "GET",
-        credentials: "same-origin",
-        headers: { "X-Requested-With": "XMLHttpRequest" }
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      const payload = await response.json() as { status?: string; accessExpiresIn?: number };
+      const payload = await fetchJson<{ status?: string; accessExpiresIn?: number }>(
+        buildLocalizedPath("/admin/login/refreshSession", "/en/admin/login/refreshSession"),
+        {
+          method: "GET",
+          credentials: "same-origin",
+          headers: { "X-Requested-With": "XMLHttpRequest" }
+        }
+      );
       if (payload?.status !== "success") {
         throw new Error("REFRESH_FAILED");
       }
@@ -817,8 +892,10 @@ export function AdminPageShell({
           <div className="js-admin-lnb-body space-y-5" id="gnbTreeWrap">
             {filteredSelectedDomain.groups.map((group: AdminMenuGroup, index) => {
               const groupLinks = visibleLinks(group.links);
-              const groupKey = group.title || `group-${index}`;
-              const activeLinkIndex = resolveActiveLinkIndex(groupLinks, currentPath);
+              const groupKey = getMenuGroupKey(group, index);
+              const activeLinkIndex = activeMenuEntry?.domainKey === selectedDomainKey && activeMenuEntry.groupKey === groupKey
+                ? activeMenuEntry.linkIndex
+                : -1;
               const groupHasActive = activeLinkIndex >= 0;
               const expanded = deferredMenuFilter.trim() ? true : (openGroups[groupKey] ?? groupHasActive ?? index === 0);
               return (

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { CanView } from "../../components/access/CanView";
-import { buildLocalizedPath } from "../../lib/navigation/runtime";
+import { buildLocalizedPath, navigate } from "../../lib/navigation/runtime";
 import {
   AdminAccountCreatePagePayload,
   checkAdminAccountId,
@@ -55,6 +55,15 @@ function roleChipClass(active: boolean) {
   }`;
 }
 
+function normalizeMembershipCode(value: string) {
+  const normalized = String(value || "").trim().toUpperCase();
+  if (normalized === "EMITTER") return "E";
+  if (normalized === "PERFORMER") return "P";
+  if (normalized === "CENTER") return "C";
+  if (normalized === "GOV") return "G";
+  return normalized;
+}
+
 type CompanyResult = CompanySearchPayload["list"][number];
 
 export function AdminAccountCreateMigrationPage() {
@@ -84,9 +93,7 @@ export function AdminAccountCreateMigrationPage() {
   const canUseCreate = !!page?.canUseAdminAccountCreate;
   const presetAuthorCodes = (page?.adminAccountCreatePresetAuthorCodes || {}) as Record<string, string>;
   const allowedPresets = (((page?.adminAccountCreateAllowedPresets as string[] | undefined) || Object.keys(presetAuthorCodes))).map((item) => String(item));
-  const canSearchCompanies = page?.adminAccountCreateCanSearchCompanies == null
-    ? true
-    : Boolean(page.adminAccountCreateCanSearchCompanies);
+  const canSearchCompanies = rolePreset !== "MASTER";
 
   useEffect(() => {
     Promise.all([fetchFrontendSession(), fetchAdminAccountCreatePage()])
@@ -124,7 +131,7 @@ export function AdminAccountCreateMigrationPage() {
   const filteredCompanyResults = useMemo(() => {
     const rows = companySearch?.list || [];
     if (!membershipType) return rows;
-    return rows.filter((item) => String(item.entrprsSeCode || "").toUpperCase() === membershipType);
+    return rows.filter((item) => normalizeMembershipCode(String(item.entrprsSeCode || "")) === normalizeMembershipCode(membershipType));
   }, [companySearch, membershipType]);
 
   function resetForm() {
@@ -175,7 +182,12 @@ export function AdminAccountCreateMigrationPage() {
     }
     setSearchingCompanies(true);
     try {
-      const result = await searchAdminCompanies({ keyword: companyKeyword, page: pageIndex, size: 5 });
+      const result = await searchAdminCompanies({
+        keyword: companyKeyword,
+        page: pageIndex,
+        size: 5,
+        membershipType: normalizeMembershipCode(membershipType)
+      });
       setCompanySearch(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : "회사 검색 실패");
@@ -208,7 +220,7 @@ export function AdminAccountCreateMigrationPage() {
         insttId,
         featureCodes: []
       });
-      window.location.href = buildLocalizedPath("/admin/member/admin_list", "/en/admin/member/admin_list");
+      navigate(buildLocalizedPath("/admin/member/admin_list", "/en/admin/member/admin_list"));
       resetForm();
     } catch (err) {
       setError(err instanceof Error ? err.message : "저장 실패");
@@ -273,7 +285,7 @@ export function AdminAccountCreateMigrationPage() {
               actions={<span className="material-symbols-outlined text-[var(--kr-gov-blue)]">manage_accounts</span>}
               title="계정 정보"
             />
-            <div className="p-6 grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1">
                 <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="admin-id">아이디 <span className="text-red-500">*</span></label>
                 <div className="flex flex-col gap-2 sm:flex-row">
@@ -281,10 +293,6 @@ export function AdminAccountCreateMigrationPage() {
                   <MemberPermissionButton allowed={canUseCreate} className="shrink-0 whitespace-nowrap sm:min-w-[126px]" onClick={handleCheckId} reason="생성 권한이 있어야 중복 확인을 사용할 수 있습니다." type="button" variant="primary">중복 확인</MemberPermissionButton>
                 </div>
                 {idCheckMessage ? <div className="text-sm text-[var(--kr-gov-blue)]">{idCheckMessage}</div> : null}
-              </div>
-              <div className="space-y-1">
-                <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="user-name-top">이름 <span className="text-red-500">*</span></label>
-                <AdminInput disabled={!canUseCreate} id="user-name-top" value={adminName} onChange={(e) => setAdminName(e.target.value)} />
               </div>
               <div className="space-y-1">
                 <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="password">비밀번호 <span className="text-red-500">*</span></label>
@@ -303,6 +311,67 @@ export function AdminAccountCreateMigrationPage() {
           </section>
 
           <div className="grid grid-cols-1 gap-6" id="infoSectionGrid">
+            {rolePreset !== "MASTER" ? (
+              <section className="section-shell border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm">
+                <GridToolbar
+                  actions={<span className="material-symbols-outlined text-[var(--kr-gov-blue)]">corporate_fare</span>}
+                  meta="시스템 관리자와 운영 관리자는 회원사 유형을 먼저 고른 뒤 기관 검색으로 소속 회사를 선택합니다."
+                  title="소속 정보"
+                />
+                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="md:col-span-2 space-y-1">
+                    <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="affiliation-type">회원사 유형 <span className="text-red-500">*</span></label>
+                    <AdminSelect disabled={!canUseCreate || !canSearchCompanies} id="affiliation-type" value={membershipType} onChange={(e) => setMembershipType(e.target.value)}>
+                      <option value="">회원사 유형을 선택하세요</option>
+                      {MEMBERSHIP_TYPE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </AdminSelect>
+                    <p className="text-xs text-[var(--kr-gov-text-secondary)]">회원사 유형을 선택해야 기관 검색 버튼을 사용할 수 있습니다.</p>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="department">부서명</label>
+                    <AdminInput disabled={!canUseCreate} id="department" placeholder="부서명을 입력하세요" value={deptNm} onChange={(e) => setDeptNm(e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="company-search">소속 기관 / 기업명 <span className="text-red-500">*</span></label>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <input type="hidden" value={insttId} />
+                      <AdminInput className="bg-gray-50 sm:flex-1" id="company-search" placeholder="기관 검색으로 소속 회사를 선택해 주세요" readOnly value={companyName} />
+                      <MemberPermissionButton
+                        allowed={canUseCreate}
+                        className="shrink-0 whitespace-nowrap sm:min-w-[132px]"
+                        onClick={() => {
+                          if (!membershipType) {
+                            setError("회원사 유형을 먼저 선택해 주세요.");
+                            return;
+                          }
+                          setCompanySearchOpen(true);
+                        }}
+                        reason="생성 권한이 있어야 기관 검색을 사용할 수 있습니다."
+                        type="button"
+                        variant="primary"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">search</span>기관 검색
+                      </MemberPermissionButton>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="instt-id">회원사 ID</label>
+                    <AdminInput className="bg-gray-50" id="instt-id" readOnly value={insttId} />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="biz-number">사업자등록번호</label>
+                    <AdminInput className="bg-gray-50" id="biz-number" readOnly value={bizrno} />
+                  </div>
+                  <div className="space-y-1 md:col-span-2">
+                    <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="representative-name">대표자명</label>
+                    <AdminInput className="bg-gray-50" id="representative-name" readOnly value={representativeName} />
+                  </div>
+                </div>
+              </section>
+            ) : null}
+
             <section className={`section-shell border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm ${rolePreset === "MASTER" ? "xl:col-span-2" : ""}`}>
               <div className="flex items-center gap-2 px-6 py-4 border-b border-[var(--kr-gov-border-light)]">
                 <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">badge</span>
@@ -334,69 +403,6 @@ export function AdminAccountCreateMigrationPage() {
               </div>
             </section>
 
-            {rolePreset !== "MASTER" ? (
-              <section className="section-shell border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm">
-                <GridToolbar
-                  actions={<span className="material-symbols-outlined text-[var(--kr-gov-blue)]">corporate_fare</span>}
-                  title="소속 정보"
-                />
-                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="md:col-span-2 space-y-1">
-                    <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="affiliation-type">회사 타입 <span className="text-red-500">*</span></label>
-                    <AdminSelect disabled={!canUseCreate || !canSearchCompanies} id="affiliation-type" value={membershipType} onChange={(e) => setMembershipType(e.target.value)}>
-                      <option value="">회사 타입을 선택하세요</option>
-                      {MEMBERSHIP_TYPE_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </AdminSelect>
-                    <p className="text-xs text-[var(--kr-gov-text-secondary)]">
-                      {canSearchCompanies
-                        ? "시스템 관리자와 운영 관리자는 선택한 회사 타입 기준으로 기관 검색을 진행합니다."
-                        : "회원사 시스템 관리자는 본인 회사에 속한 운영 관리자만 생성할 수 있습니다."}
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="department">부서명</label>
-                    <AdminInput disabled={!canUseCreate} id="department" placeholder="부서명을 입력하세요" value={deptNm} onChange={(e) => setDeptNm(e.target.value)} />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="company-search">소속 기관 / 기업명 <span className="text-red-500">*</span></label>
-                    <div className="flex flex-col gap-2 sm:flex-row">
-                      <input type="hidden" value={insttId} />
-                      <AdminInput className="bg-gray-50 sm:flex-1" id="company-search" placeholder="기관 검색으로 소속 회사를 선택해 주세요" readOnly value={companyName} />
-                      <MemberPermissionButton
-                        allowed={canUseCreate}
-                        className="shrink-0 whitespace-nowrap sm:min-w-[132px]"
-                        onClick={() => {
-                          if (!canSearchCompanies) {
-                            setError("회원사 시스템 관리자는 본인 회사만 사용할 수 있습니다.");
-                            return;
-                          }
-                          if (!membershipType) {
-                            setError("회사 타입을 먼저 선택해 주세요.");
-                            return;
-                          }
-                          setCompanySearchOpen(true);
-                        }}
-                        reason={canSearchCompanies ? "생성 권한이 있어야 기관 검색을 사용할 수 있습니다." : "회원사 시스템 관리자는 본인 회사만 사용할 수 있습니다."}
-                        type="button"
-                        variant="primary"
-                      >
-                        <span className="material-symbols-outlined text-[18px]">search</span>기관 검색
-                      </MemberPermissionButton>
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="biz-number">사업자등록번호</label>
-                    <AdminInput className="bg-gray-50" id="biz-number" readOnly value={bizrno} />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="representative-name">대표자명</label>
-                    <AdminInput className="bg-gray-50" id="representative-name" readOnly value={representativeName} />
-                  </div>
-                </div>
-              </section>
-            ) : null}
           </div>
 
           <MemberActionBar

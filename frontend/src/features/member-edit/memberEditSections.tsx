@@ -141,29 +141,29 @@ export function MemberEditMainSections({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <label>
             <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">회원명 <span className="text-[var(--kr-gov-error)]">*</span></span>
-            <AdminInput className="h-11" disabled={!canUse} value={form.applcntNm} onChange={(e) => setForm({ ...form, applcntNm: e.target.value })} />
+            <AdminInput disabled={!canUse} value={form.applcntNm} onChange={(e) => setForm({ ...form, applcntNm: e.target.value })} />
           </label>
           <label>
             <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">이메일 <span className="text-[var(--kr-gov-error)]">*</span></span>
-            <AdminInput className="h-11" disabled={!canUse} value={form.applcntEmailAdres} onChange={(e) => setForm({ ...form, applcntEmailAdres: e.target.value })} />
+            <AdminInput disabled={!canUse} value={form.applcntEmailAdres} onChange={(e) => setForm({ ...form, applcntEmailAdres: e.target.value })} />
           </label>
           <label>
             <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">연락처 <span className="text-[var(--kr-gov-error)]">*</span></span>
-            <AdminInput className="h-11" disabled={!canUse} value={form.phoneNumber} onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })} />
+            <AdminInput disabled={!canUse} value={form.phoneNumber} onChange={(e) => setForm({ ...form, phoneNumber: e.target.value })} />
           </label>
           <label>
             <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">부서명</span>
-            <AdminInput className="h-11" disabled={!canUse} value={form.deptNm} onChange={(e) => setForm({ ...form, deptNm: e.target.value })} />
+            <AdminInput disabled={!canUse} value={form.deptNm} onChange={(e) => setForm({ ...form, deptNm: e.target.value })} />
           </label>
           <label>
             <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">회원 유형 <span className="text-[var(--kr-gov-error)]">*</span></span>
-            <AdminSelect className="h-11" disabled={!canUse} value={form.entrprsSeCode} onChange={(e) => setForm({ ...form, entrprsSeCode: e.target.value })}>
+            <AdminSelect disabled={!canUse} value={form.entrprsSeCode} onChange={(e) => setForm({ ...form, entrprsSeCode: e.target.value })}>
               {((page?.memberTypeOptions as Array<{ code: string; label: string }>) || []).map((opt) => <option key={opt.code} value={opt.code}>{opt.label}</option>)}
             </AdminSelect>
           </label>
           <label>
             <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">회원 상태 <span className="text-[var(--kr-gov-error)]">*</span></span>
-            <AdminSelect className="h-11" disabled={!canUse} value={form.entrprsMberSttus} onChange={(e) => setForm({ ...form, entrprsMberSttus: e.target.value })}>
+            <AdminSelect disabled={!canUse} value={form.entrprsMberSttus} onChange={(e) => setForm({ ...form, entrprsMberSttus: e.target.value })}>
               {((page?.memberStatusOptions as Array<{ code: string; label: string }>) || []).map((opt) => <option key={opt.code} value={opt.code}>{opt.label}</option>)}
             </AdminSelect>
           </label>
@@ -180,7 +180,7 @@ export function MemberEditMainSections({
             <div className="md:col-span-2">
               <label>
                 <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">기준 권한 롤 <span className="text-[var(--kr-gov-error)]">*</span></span>
-                <AdminSelect className="h-11" disabled={!canUse} value={form.authorCode} onChange={(e) => setForm({ ...form, authorCode: e.target.value })}>
+                <AdminSelect disabled={!canUse} value={form.authorCode} onChange={(e) => setForm({ ...form, authorCode: e.target.value })}>
                   <option value="">권한 롤 선택</option>
                   {(page?.permissionAuthorGroups || []).map((group) => (
                     <option key={group.authorCode} value={group.authorCode}>{group.authorNm} ({group.authorCode})</option>
@@ -239,11 +239,11 @@ export function MemberEditMainSections({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <label>
             <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">우편번호</span>
-            <AdminInput className="h-11" disabled={!canUse} value={form.zip} onChange={(e) => setForm({ ...form, zip: e.target.value })} />
+            <AdminInput disabled={!canUse} value={form.zip} onChange={(e) => setForm({ ...form, zip: e.target.value })} />
           </label>
           <label>
             <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">상세주소</span>
-            <AdminInput className="h-11" disabled={!canUse} value={form.detailAdres} onChange={(e) => setForm({ ...form, detailAdres: e.target.value })} />
+            <AdminInput disabled={!canUse} value={form.detailAdres} onChange={(e) => setForm({ ...form, detailAdres: e.target.value })} />
           </label>
           <label className="md:col-span-2">
             <span className="block text-[14px] font-bold text-[var(--kr-gov-text-primary)] mb-2">기본주소</span>

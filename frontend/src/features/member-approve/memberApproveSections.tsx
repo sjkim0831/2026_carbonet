@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { MemberApprovePagePayload } from "../../lib/api/client";
 import { MemberButton, MemberButtonGroup, MemberPagination, MemberPermissionButton, MemberSectionToolbar, MEMBER_BUTTON_LABELS } from "../member/common";
+import { AdminInput, AdminSelect } from "../admin-ui/common";
 import { MEMBER_APPROVAL_STATUS_OPTIONS, MEMBER_TYPE_OPTIONS } from "../member/shared";
 
 export type MemberApproveFilters = {
@@ -39,19 +40,19 @@ export function MemberApproveSearchSection({
       <div className="grid gap-4 px-6 py-6 lg:grid-cols-[220px_220px_minmax(0,1fr)] lg:items-end">
         <label>
           <span className="block text-sm font-bold mb-2">회원구분</span>
-          <select className="gov-select h-10" value={draftFilters.membershipType} onChange={(e) => updateDraft("membershipType", e.target.value)}>
+          <AdminSelect value={draftFilters.membershipType} onChange={(e) => updateDraft("membershipType", e.target.value)}>
             {MEMBER_TYPE_OPTIONS.map((option) => <option key={option.value || "all"} value={option.value}>{option.label}</option>)}
-          </select>
+          </AdminSelect>
         </label>
         <label>
           <span className="block text-sm font-bold mb-2">상태</span>
-          <select className="gov-select h-10" value={draftFilters.status} onChange={(e) => updateDraft("status", e.target.value)}>
+          <AdminSelect value={draftFilters.status} onChange={(e) => updateDraft("status", e.target.value)}>
             {MEMBER_APPROVAL_STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
+          </AdminSelect>
         </label>
         <label>
           <span className="block text-sm font-bold mb-2">검색어</span>
-          <input className="gov-input h-10" placeholder="신청자명, 회원 ID, 기관명 검색" value={draftFilters.searchKeyword} onChange={(e) => updateDraft("searchKeyword", e.target.value)} />
+          <AdminInput placeholder="신청자명, 회원 ID, 기관명 검색" value={draftFilters.searchKeyword} onChange={(e) => updateDraft("searchKeyword", e.target.value)} />
         </label>
       </div>
       <div className="border-t border-[var(--kr-gov-border-light)] px-6 py-5">
@@ -231,7 +232,7 @@ export function MemberApproveReviewContent({
                 <span className="material-symbols-outlined text-gray-500">description</span>
                 <span className="text-sm font-medium">{String(file.fileName || "-")}</span>
               </div>
-              <MemberButton className="text-[var(--kr-gov-blue)]" icon="visibility" onClick={() => { window.location.href = String(file.downloadUrl || "#"); }} size="xs" type="button" variant="info">
+              <MemberButton className="text-[var(--kr-gov-blue)]" icon="visibility" onClick={() => { window.open(String(file.downloadUrl || "#"), "_blank", "noopener,noreferrer"); }} size="xs" type="button" variant="info">
                 {MEMBER_BUTTON_LABELS.preview}
               </MemberButton>
             </div>

@@ -4,6 +4,7 @@ import { PermissionButton } from "../../components/access/CanUse";
 import { buildLocalizedPath, getSearchParam } from "../../lib/navigation/runtime";
 import { AdminPermissionPagePayload, fetchAdminPermissionPage, fetchFrontendSession, FrontendSession, saveAdminPermission } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { AdminCheckbox, AdminSelect, getMemberButtonClassName } from "../admin-ui/common";
 import { ADMIN_BUTTON_LABELS } from "../admin-ui/labels";
 import { GridToolbar, MemberActionBar } from "../admin-ui/common";
 import { AdminEditPageFrame } from "../admin-ui/pageFrames";
@@ -129,10 +130,10 @@ export function AdminPermissionMigrationPage() {
               <div className="md:col-span-2">
                 <label className="block">
                   <span className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2">{text(page, "기준 권한 롤", "Base Role")} <span className="text-red-500">*</span></span>
-                  <select className="w-full h-12 px-4 border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)]" disabled={!page?.canUseAdminPermissionSave || readOnly} value={authorCode} onChange={(e) => setAuthorCode(e.target.value)}>
+                  <AdminSelect disabled={!page?.canUseAdminPermissionSave || readOnly} value={authorCode} onChange={(e) => setAuthorCode(e.target.value)}>
                     <option value="">{text(page, "권한 롤 선택", "Select a role")}</option>
                     {(page?.permissionAuthorGroups || []).map((group) => <option key={group.authorCode} value={group.authorCode}>{group.authorNm} ({group.authorCode})</option>)}
-                  </select>
+                  </AdminSelect>
                 </label>
               </div>
               <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4 text-sm">
@@ -159,7 +160,7 @@ export function AdminPermissionMigrationPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4">
                     {section.features.map((feature) => (
                       <label className="flex items-start gap-3 rounded-[var(--kr-gov-radius)] border border-slate-200 bg-white px-4 py-3" key={feature.featureCode}>
-                        <input className="mt-1 h-4 w-4 rounded border-gray-300 text-[var(--kr-gov-blue)] focus:ring-[var(--kr-gov-focus)]" disabled={!page?.canUseAdminPermissionSave || readOnly} checked={featureCodes.includes(feature.featureCode)} onChange={() => toggleFeature(feature.featureCode)} type="checkbox" />
+                        <AdminCheckbox className="mt-1 h-4 w-4 border-gray-300" disabled={!page?.canUseAdminPermissionSave || readOnly} checked={featureCodes.includes(feature.featureCode)} onChange={() => toggleFeature(feature.featureCode)} />
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{feature.featureNm || feature.featureCode}</span>
@@ -179,10 +180,17 @@ export function AdminPermissionMigrationPage() {
         </section>
         <MemberActionBar
           dataHelpId="admin-permission-actions"
+          eyebrow={text(page, "권한 변경", "Permission Update")}
+          title={text(page, "관리자 권한 저장", "Save Administrator Permissions")}
+          description={text(
+            page,
+            "기준 권한 롤과 개별 예외 권한을 검토한 뒤 저장합니다. 목록으로 돌아가 다시 대상을 선택할 수 있습니다.",
+            "Review the base role and per-account overrides, then save. You can return to the list to choose another administrator."
+          )}
           primary={(
             <PermissionButton
               allowed={!!page?.canUseAdminPermissionSave && !readOnly}
-              className="inline-flex w-full max-w-[320px] items-center justify-center gap-1.5 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-blue)] bg-[var(--kr-gov-blue)] px-6 py-3 text-base font-bold text-white shadow-lg shadow-blue-900/10 transition-colors hover:border-[var(--kr-gov-blue-hover)] hover:bg-[var(--kr-gov-blue-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+              className={`${getMemberButtonClassName({ variant: "primary", size: "lg" })} w-full sm:w-auto sm:min-w-[220px] justify-center whitespace-nowrap`}
               onClick={handleSave}
               reason={readOnly ? text(page, "상세 모드에서는 저장할 수 없습니다.", "Save is unavailable in detail mode.") : text(page, "권한 범위 안의 관리자만 저장할 수 있습니다.", "Only authorized company administrators can save administrator permissions.")}
               type="button"

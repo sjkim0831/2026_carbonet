@@ -1859,12 +1859,13 @@ export async function checkAdminAccountId(adminId: string) {
   return body as { valid: boolean; duplicated: boolean; message: string; };
 }
 
-export async function searchAdminCompanies(params: { keyword: string; page?: number; size?: number; status?: string; }) {
+export async function searchAdminCompanies(params: { keyword: string; page?: number; size?: number; status?: string; membershipType?: string; }) {
   const search = new URLSearchParams();
   search.set("keyword", params.keyword);
   if (params.page) search.set("page", String(params.page));
   if (params.size) search.set("size", String(params.size));
   if (params.status) search.set("status", params.status);
+  if (params.membershipType) search.set("membershipType", params.membershipType);
   const response = await fetch(`${buildAdminApiPath("/api/admin/companies/search")}?${search.toString()}`, {
     credentials: "include"
   });
