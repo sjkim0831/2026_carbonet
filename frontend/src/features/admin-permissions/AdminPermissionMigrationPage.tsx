@@ -178,9 +178,9 @@ export function AdminPermissionMigrationPage() {
           primary={(
             <PermissionButton
               allowed={!!page?.canUseAdminPermissionSave && !readOnly}
-              className="inline-flex min-w-[220px] items-center justify-center gap-1.5 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-blue)] bg-[var(--kr-gov-blue)] px-6 py-3 text-base font-bold text-white transition-colors hover:border-[var(--kr-gov-blue-hover)] hover:bg-[var(--kr-gov-blue-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex w-full max-w-[320px] items-center justify-center gap-1.5 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-blue)] bg-[var(--kr-gov-blue)] px-6 py-3 text-base font-bold text-white shadow-lg shadow-blue-900/10 transition-colors hover:border-[var(--kr-gov-blue-hover)] hover:bg-[var(--kr-gov-blue-hover)] disabled:cursor-not-allowed disabled:opacity-50"
               onClick={handleSave}
-              reason={readOnly ? text(page, "상세 모드에서는 저장할 수 없습니다.", "Save is unavailable in detail mode.") : text(page, "webmaster만 관리자 권한을 저장할 수 있습니다.", "Only webmaster can save administrator permissions.")}
+              reason={readOnly ? text(page, "상세 모드에서는 저장할 수 없습니다.", "Save is unavailable in detail mode.") : text(page, "권한 범위 안의 관리자만 저장할 수 있습니다.", "Only authorized company administrators can save administrator permissions.")}
               type="button"
             >
               {readOnly ? text(page, "상세 모드", "Detail mode") : text(page, "권한 저장", "Save permissions")}

@@ -1,4 +1,8 @@
+<<<<<<<< HEAD:src/main/resources/static/react-app/assets/JoinAuthMigrationPage-BoNItpjG.js
 import{a as m,j as e}from"./vendor-react-Ap5sJVW9.js";import{i as g,bh as b,n as a,b as x,bo as u}from"./index-lwa4BUsd.js";const f=[{method:"ONEPASS",icon:"smartphone",title:"디지털 원패스",description:`하나의 아이디로 모든
+========
+import{a as m,j as e}from"./vendor-react-Ap5sJVW9.js";import{i as g,bi as b,n as a,b as x,bp as u}from"./index-BUUdlsl_.js";const f=[{method:"ONEPASS",icon:"smartphone",title:"디지털 원패스",description:`하나의 아이디로 모든
+>>>>>>>> origin/20260322-member-management-authority:src/main/resources/static/react-app/assets/JoinAuthMigrationPage-DRhIk6ID.js
 정부 서비스를 이용합니다.`},{method:"JOINT",icon:"verified_user",title:"공동인증서",description:`기존 공인인증서를 사용하여
 본인을 확인합니다.`},{method:"FINANCIAL",icon:"account_balance",title:"금융인증서",description:`클라우드 기반의 금융인증서로
 간편하게 인증합니다.`},{method:"SIMPLE",icon:"qr_code_scanner",title:"간편인증 (카카오, 토스 등)",description:`민간 인증서의 간편한

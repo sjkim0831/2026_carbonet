@@ -99,7 +99,7 @@ public class AdminMenuTreeService {
                     group.setIcon(menuIcon);
                 }
             } else if (code.length() == 8) {
-                String menuUrl = normalizeMenuUrl(row.getMenuUrl());
+                String menuUrl = normalizeMenuUrl(resolveMenuUrlOverride(code, row.getMenuUrl()));
                 if (shouldHideMenu(code, menuUrl)) {
                     continue;
                 }
@@ -212,7 +212,10 @@ public class AdminMenuTreeService {
         if (ROLE_SYSTEM_MASTER.equals(normalizedAuthorCode)) {
             return true;
         }
-        if (ROLE_OPERATION_ADMIN.equals(normalizedAuthorCode) && isGlobalOnlyRoute(normalizedMenuUrl)) {
+        if (isMasterOnlyRoute(normalizedMenuUrl)) {
+            return false;
+        }
+        if (ROLE_OPERATION_ADMIN.equals(normalizedAuthorCode) && isCompanyAdminOnlyRoute(normalizedMenuUrl)) {
             return false;
         }
         try {
@@ -239,19 +242,36 @@ public class AdminMenuTreeService {
         return ReactPageUrlMapper.toCanonicalMenuUrl(normalizeMenuUrl(value));
     }
 
-    private boolean isGlobalOnlyRoute(String normalizedUri) {
+    private boolean isMasterOnlyRoute(String normalizedUri) {
         String value = safeString(normalizedUri);
-        return "/admin/member/approve".equals(value)
-                || "/admin/member/company-approve".equals(value)
+        if ("/admin/system/access_history".equals(value)
+                || "/admin/system/error-log".equals(value)
+                || "/admin/system/security".equals(value)
+                || "/admin/system/security-audit".equals(value)
+                || "/admin/system/observability".equals(value)
+                || "/admin/system/help-management".equals(value)
+                || "/admin/system/sr-workbench".equals(value)
+                || "/admin/system/wbs-management".equals(value)
+                || "/admin/system/codex-request".equals(value)) {
+            return false;
+        }
+        return "/admin/member/company-approve".equals(value)
                 || "/admin/member/company_list".equals(value)
                 || "/admin/member/company_detail".equals(value)
                 || "/admin/member/company_account".equals(value)
                 || "/admin/member/company-file".equals(value)
-                || "/admin/member/admin_list".equals(value)
+                || value.startsWith("/admin/content/")
+                || value.startsWith("/admin/external/")
+                || value.startsWith("/admin/system/");
+    }
+
+    private boolean isCompanyAdminOnlyRoute(String normalizedUri) {
+        String value = safeString(normalizedUri);
+        return "/admin/member/admin_list".equals(value)
                 || "/admin/member/admin-list".equals(value)
                 || "/admin/member/admin_account".equals(value)
                 || "/admin/member/admin_account/permissions".equals(value)
-                || value.startsWith("/admin/system/");
+                || isMasterOnlyRoute(value);
     }
 
     private String normalizeMenuUrl(String value) {
@@ -345,17 +365,34 @@ public class AdminMenuTreeService {
         return "/admin/member/edit".equals(normalizedMenuUrl)
                 || "/admin/member/detail".equals(normalizedMenuUrl)
                 || "/admin/member/company_detail".equals(normalizedMenuUrl)
-                || "/admin/member/admin_account/permissions".equals(normalizedMenuUrl)
-                || ("A0010203".equals(normalizedCode) && "/admin/member/company_account".equals(normalizedMenuUrl));
+                || "/admin/member/admin_account/permissions".equals(normalizedMenuUrl);
     }
 
     private boolean shouldKeepPreferredMenu(String code, String menuUrl) {
         String normalizedCode = safeString(code);
         String normalizedMenuUrl = normalizeMenuUrl(menuUrl);
-        if ("/admin/member/company_account".equals(normalizedMenuUrl)) {
+        if ("/admin/member/register".equals(normalizedMenuUrl)) {
             return "A0010102".equals(normalizedCode) || normalizedCode.isEmpty();
         }
+        if ("/admin/member/company_account".equals(normalizedMenuUrl)) {
+            return "A0010203".equals(normalizedCode) || normalizedCode.isEmpty();
+        }
+        if ("/admin/system/security".equals(normalizedMenuUrl)) {
+            return "A0060205".equals(normalizedCode) || normalizedCode.isEmpty();
+        }
+        if ("/admin/system/observability".equals(normalizedMenuUrl)) {
+            return "A0060303".equals(normalizedCode) || normalizedCode.isEmpty();
+        }
         return true;
+    }
+
+    private String resolveMenuUrlOverride(String code, String menuUrl) {
+        String normalizedCode = safeString(code);
+        String normalizedMenuUrl = normalizeMenuUrl(menuUrl);
+        if ("A0010102".equals(normalizedCode) && "/admin/member/company_account".equals(normalizedMenuUrl)) {
+            return "/admin/member/register";
+        }
+        return normalizedMenuUrl;
     }
 
     private String localizeAdminUrl(String url) {

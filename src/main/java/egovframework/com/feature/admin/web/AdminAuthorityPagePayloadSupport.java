@@ -198,6 +198,34 @@ public class AdminAuthorityPagePayloadSupport {
         return !hasGlobalDeptRoleAccess(currentUserId, authorCode) && hasOwnCompanyDeptRoleAccess(currentUserId, authorCode);
     }
 
+    public boolean hasMemberManagementMasterAccess(String currentUserId, String authorCode) {
+        if (isWebmaster(currentUserId)) {
+            return true;
+        }
+        return ROLE_SYSTEM_MASTER.equals(safeString(authorCode).toUpperCase(Locale.ROOT));
+    }
+
+    public boolean hasMemberManagementCompanyAdminAccess(String currentUserId, String authorCode) {
+        if (hasMemberManagementMasterAccess(currentUserId, authorCode)) {
+            return true;
+        }
+        String normalizedAuthorCode = safeString(authorCode).toUpperCase(Locale.ROOT);
+        return ROLE_SYSTEM_ADMIN.equals(normalizedAuthorCode)
+                || ROLE_ADMIN.equals(normalizedAuthorCode);
+    }
+
+    public boolean hasMemberManagementCompanyOperatorAccess(String currentUserId, String authorCode) {
+        if (hasMemberManagementCompanyAdminAccess(currentUserId, authorCode)) {
+            return true;
+        }
+        return ROLE_OPERATION_ADMIN.equals(safeString(authorCode).toUpperCase(Locale.ROOT));
+    }
+
+    public boolean requiresMemberManagementCompanyScope(String currentUserId, String authorCode) {
+        return hasMemberManagementCompanyOperatorAccess(currentUserId, authorCode)
+                && !hasMemberManagementMasterAccess(currentUserId, authorCode);
+    }
+
     public Set<String> resolveGrantableFeatureCodeSet(String currentUserId, boolean webmaster) throws Exception {
         if (webmaster) {
             return null;
@@ -409,9 +437,51 @@ public class AdminAuthorityPagePayloadSupport {
                 .collect(Collectors.toList());
     }
 
+    public List<Map<String, Object>> filterGrantableRecommendedRoleSections(
+            List<Map<String, Object>> sections,
+            String selectedRoleCategory,
+            String currentUserId,
+            String currentUserAuthorCode) {
+        return filterRecommendedRoleSections(sections, selectedRoleCategory).stream()
+                .map(section -> {
+                    Map<String, Object> filteredSection = new LinkedHashMap<>(section);
+                    Object roles = section.get("roles");
+                    List<Map<String, String>> filteredRoles = roles instanceof List<?>
+                            ? ((List<?>) roles).stream()
+                            .filter(Map.class::isInstance)
+                            .map(Map.class::cast)
+                            .filter(role -> canAssignAuthorCode(
+                                    currentUserId,
+                                    currentUserAuthorCode,
+                                    role.get("code") == null ? "" : role.get("code").toString()))
+                            .map(role -> {
+                                Map<String, String> copied = new LinkedHashMap<>();
+                                role.forEach((key, value) -> copied.put(
+                                        key == null ? "" : key.toString(),
+                                        value == null ? "" : value.toString().trim()));
+                                return copied;
+                            })
+                            .collect(Collectors.toList())
+                            : Collections.emptyList();
+                    filteredSection.put("roles", filteredRoles);
+                    return filteredSection;
+                })
+                .collect(Collectors.toList());
+    }
+
     public List<AuthorInfoVO> filterAuthorGroups(List<AuthorInfoVO> authorGroups, String selectedRoleCategory) {
         return authorGroups.stream()
                 .filter(group -> matchesRoleCategory(group.getAuthorCode(), selectedRoleCategory))
+                .collect(Collectors.toList());
+    }
+
+    public List<AuthorInfoVO> filterAuthorGroups(
+            List<AuthorInfoVO> authorGroups,
+            String selectedRoleCategory,
+            String currentUserId,
+            String currentUserAuthorCode) {
+        return filterAuthorGroups(authorGroups, selectedRoleCategory).stream()
+                .filter(group -> canAssignAuthorCode(currentUserId, currentUserAuthorCode, group.getAuthorCode()))
                 .collect(Collectors.toList());
     }
 
@@ -423,6 +493,18 @@ public class AdminAuthorityPagePayloadSupport {
         return authorGroups.stream()
                 .filter(group -> matchesRoleCategory(group.getAuthorCode(), selectedRoleCategory))
                 .filter(group -> globalAccess || isVisibleScopedAuthorCode(group.getAuthorCode(), selectedRoleCategory, insttId))
+                .collect(Collectors.toList());
+    }
+
+    public List<AuthorInfoVO> filterAuthorGroupsByScope(
+            List<AuthorInfoVO> authorGroups,
+            String selectedRoleCategory,
+            String insttId,
+            boolean globalAccess,
+            String currentUserId,
+            String currentUserAuthorCode) {
+        return filterAuthorGroupsByScope(authorGroups, selectedRoleCategory, insttId, globalAccess).stream()
+                .filter(group -> canAssignAuthorCode(currentUserId, currentUserAuthorCode, group.getAuthorCode()))
                 .collect(Collectors.toList());
     }
 
@@ -440,6 +522,63 @@ public class AdminAuthorityPagePayloadSupport {
                         || isVisibleScopedAuthorCode(group.getAuthorCode(), "DEPARTMENT", insttId)
                         || isVisibleScopedAuthorCode(group.getAuthorCode(), "USER", insttId))
                 .collect(Collectors.toList());
+    }
+
+    public List<AuthorInfoVO> buildDeptMemberAssignableGroups(
+            List<AuthorInfoVO> authorGroups,
+            String insttId,
+            boolean globalAccess,
+            String currentUserId,
+            String currentUserAuthorCode) {
+        return buildDeptMemberAssignableGroups(authorGroups, insttId, globalAccess).stream()
+                .filter(group -> canAssignAuthorCode(currentUserId, currentUserAuthorCode, group.getAuthorCode()))
+                .collect(Collectors.toList());
+    }
+
+    public List<AuthorInfoVO> appendCurrentAuthorGroup(List<AuthorInfoVO> authorGroups, String currentAuthorCode) {
+        List<AuthorInfoVO> safeAuthorGroups = authorGroups == null ? Collections.emptyList() : authorGroups;
+        String normalizedCurrentAuthorCode = safeString(currentAuthorCode).toUpperCase(Locale.ROOT);
+        if (normalizedCurrentAuthorCode.isEmpty()) {
+            return safeAuthorGroups;
+        }
+        boolean exists = safeAuthorGroups.stream()
+                .anyMatch(group -> normalizedCurrentAuthorCode.equalsIgnoreCase(safeString(group.getAuthorCode())));
+        if (exists) {
+            return safeAuthorGroups;
+        }
+        AuthorInfoVO currentGroup = findAuthorGroupByCode(normalizedCurrentAuthorCode);
+        if (currentGroup == null) {
+            return safeAuthorGroups;
+        }
+        List<AuthorInfoVO> extended = new ArrayList<>(safeAuthorGroups.size() + 1);
+        extended.addAll(safeAuthorGroups);
+        extended.add(currentGroup);
+        return extended;
+    }
+
+    public boolean isGrantableOrCurrentAuthorCode(
+            List<AuthorInfoVO> grantableAuthorGroups,
+            String requestedAuthorCode,
+            String currentAssignedAuthorCode) {
+        String normalizedRequestedAuthorCode = safeString(requestedAuthorCode).toUpperCase(Locale.ROOT);
+        if (normalizedRequestedAuthorCode.isEmpty()) {
+            return false;
+        }
+        if (normalizedRequestedAuthorCode.equalsIgnoreCase(safeString(currentAssignedAuthorCode))) {
+            return true;
+        }
+        return grantableAuthorGroups != null && grantableAuthorGroups.stream()
+                .anyMatch(group -> normalizedRequestedAuthorCode.equalsIgnoreCase(safeString(group.getAuthorCode())));
+    }
+
+    public boolean canAssignAuthorCode(String currentUserId, String currentUserAuthorCode, String targetAuthorCode) {
+        String normalizedTargetAuthorCode = safeString(targetAuthorCode).toUpperCase(Locale.ROOT);
+        if (normalizedTargetAuthorCode.isEmpty()) {
+            return false;
+        }
+        int actorRank = resolveAuthorRank(resolveEffectiveCurrentUserAuthorCode(currentUserId, currentUserAuthorCode));
+        int targetRank = resolveAuthorRank(normalizedTargetAuthorCode);
+        return actorRank > 0 && targetRank > 0 && actorRank > targetRank;
     }
 
     public String resolveRoleCategory(String roleCategory) {
@@ -553,6 +692,8 @@ public class AdminAuthorityPagePayloadSupport {
             String insttId,
             String userSearchKeyword,
             String selectedRoleCategory,
+            String currentUserId,
+            String currentUserAuthorCode,
             String currentUserInsttId,
             boolean webmaster,
             boolean globalAccess,
@@ -560,7 +701,11 @@ public class AdminAuthorityPagePayloadSupport {
             boolean isEn) {
         AuthGroupScopeContext context = AuthGroupScopeContext.empty();
         context.setUserSearchKeyword(safeString(userSearchKeyword));
-        context.setReferenceAuthorGroups(filterAuthorGroups(authorGroups, selectedRoleCategory));
+        context.setReferenceAuthorGroups(filterAuthorGroups(
+                authorGroups,
+                selectedRoleCategory,
+                currentUserId,
+                currentUserAuthorCode));
         if (!"DEPARTMENT".equals(selectedRoleCategory) && !"USER".equals(selectedRoleCategory)) {
             return context;
         }
@@ -586,12 +731,25 @@ public class AdminAuthorityPagePayloadSupport {
                 context.setDepartmentRows(filteredRows);
                 context.setDepartmentRoleSummaries(buildDepartmentRoleSummaries(filteredRows, isEn));
                 context.setReferenceAuthorGroups(filterScopedDepartmentAuthorGroups(
-                        filterAuthorGroupsByScope(authorGroups, "DEPARTMENT", selectedInsttId, globalAccess), filteredRows));
+                        filterAuthorGroupsByScope(
+                                authorGroups,
+                                "DEPARTMENT",
+                                selectedInsttId,
+                                globalAccess,
+                                currentUserId,
+                                currentUserAuthorCode),
+                        filteredRows));
                 return context;
             }
 
             if ("USER".equals(selectedRoleCategory) && !selectedInsttId.isEmpty()) {
-                context.setReferenceAuthorGroups(filterAuthorGroupsByScope(authorGroups, "USER", selectedInsttId, globalAccess));
+                context.setReferenceAuthorGroups(filterAuthorGroupsByScope(
+                        authorGroups,
+                        "USER",
+                        selectedInsttId,
+                        globalAccess,
+                        currentUserId,
+                        currentUserAuthorCode));
                 context.setUserAuthorityTargets(authGroupManageService.selectUserAuthorityTargets(selectedInsttId, userSearchKeyword));
             }
         } catch (Exception e) {
@@ -862,6 +1020,69 @@ public class AdminAuthorityPagePayloadSupport {
         if ("SALE".equals(roleType) || "SALES".equals(roleType)) return isEn ? "Baseline authority for sales and account management departments." : "영업/고객사 관리 부서 기본 권한 베이스라인";
         if ("MGMT".equals(roleType) || "MANAGEMENT".equals(roleType)) return isEn ? "Baseline authority for management support, finance, and HR departments." : "경영지원/재무/인사 부서 기본 권한 베이스라인";
         return isEn ? "Department role needs review." : "회사/부서 기준 검토가 필요한 권한입니다.";
+    }
+
+    private AuthorInfoVO findAuthorGroupByCode(String authorCode) {
+        String normalizedAuthorCode = safeString(authorCode).toUpperCase(Locale.ROOT);
+        if (normalizedAuthorCode.isEmpty()) {
+            return null;
+        }
+        try {
+            return authGroupManageService.selectAuthorList().stream()
+                    .filter(group -> normalizedAuthorCode.equalsIgnoreCase(safeString(group.getAuthorCode())))
+                    .findFirst()
+                    .orElse(null);
+        } catch (Exception e) {
+            log.warn("Failed to resolve author group by code. authorCode={}", normalizedAuthorCode, e);
+            return null;
+        }
+    }
+
+    private String resolveEffectiveCurrentUserAuthorCode(String currentUserId, String currentUserAuthorCode) {
+        if (isWebmaster(currentUserId)) {
+            return ROLE_SYSTEM_MASTER;
+        }
+        return safeString(currentUserAuthorCode).toUpperCase(Locale.ROOT);
+    }
+
+    private int resolveAuthorRank(String authorCode) {
+        String normalizedAuthorCode = safeString(authorCode).toUpperCase(Locale.ROOT);
+        if (normalizedAuthorCode.isEmpty()) {
+            return 0;
+        }
+        if (ROLE_SYSTEM_MASTER.equals(normalizedAuthorCode)) {
+            return 1000;
+        }
+        if (ROLE_SYSTEM_ADMIN.equals(normalizedAuthorCode)) {
+            return 900;
+        }
+        if (ROLE_ADMIN.equals(normalizedAuthorCode)) {
+            return 800;
+        }
+        if (ROLE_OPERATION_ADMIN.equals(normalizedAuthorCode)) {
+            return 700;
+        }
+        if ("ROLE_COMPANY_ADMIN".equals(normalizedAuthorCode)) {
+            return 600;
+        }
+        if ("ROLE_CS_ADMIN".equals(normalizedAuthorCode)) {
+            return 550;
+        }
+        if ("ROLE_USER".equals(normalizedAuthorCode)) {
+            return 500;
+        }
+        if (normalizedAuthorCode.startsWith("ROLE_DEPT_")) {
+            return 300;
+        }
+        if (normalizedAuthorCode.startsWith("ROLE_USER_")
+                || normalizedAuthorCode.startsWith("ROLE_MEMBER_")
+                || normalizedAuthorCode.startsWith("ROLE_ACCOUNT_")) {
+            return 200;
+        }
+        if (normalizedAuthorCode.startsWith("ROLE_")) {
+            return 400;
+        }
+        return 0;
     }
 
     private String resolveDepartmentRoleTypeFromDeptName(String companyName, String deptName) {

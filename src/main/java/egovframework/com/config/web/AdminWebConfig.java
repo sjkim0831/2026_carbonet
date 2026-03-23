@@ -19,6 +19,8 @@ public class AdminWebConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/admin/login/**",
                         "/en/admin/login/**",
+                        "/admin/assets/react/**",
+                        "/en/admin/assets/react/**",
                         "/admin/css/**",
                         "/admin/js/**",
                         "/admin/img/**",

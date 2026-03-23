@@ -36,6 +36,8 @@ public class ReactAppViewSupport {
 
     public void populate(Model model, String route, boolean en, boolean admin, HttpServletRequest request) {
         ReactAppAssetResolver.ReactAppAssets assets = reactAppAssetResolver.resolveAssets();
+        String jsPath = adaptAssetPath(assets.getJsPath(), admin, en);
+        String cssPath = adaptAssetPath(assets.getCssPath(), admin, en);
         model.addAttribute("reactRoute", normalizeRoute(route, admin));
         model.addAttribute("reactLocale", en ? "en" : "ko");
         model.addAttribute("reactAdmin", admin);
@@ -46,13 +48,15 @@ public class ReactAppViewSupport {
                 ? "This page mounts the React app shell."
                 : "이 페이지는 React 앱 셸을 마운트합니다.");
         model.addAttribute("reactAppDevUrl", reactAppDevUrl);
-        model.addAttribute("reactAppProdJs", assets.getJsPath());
-        model.addAttribute("reactAppProdCss", assets.getCssPath());
+        model.addAttribute("reactAppProdJs", jsPath);
+        model.addAttribute("reactAppProdCss", cssPath);
         model.addAttribute("reactBootstrapPayload", reactAppBootstrapService.buildBootstrapPayload(route, en, admin, request));
     }
 
     public Map<String, Object> createBootstrapPayload(String route, boolean en, boolean admin) {
         ReactAppAssetResolver.ReactAppAssets assets = reactAppAssetResolver.resolveAssets();
+        String jsPath = adaptAssetPath(assets.getJsPath(), admin, en);
+        String cssPath = adaptAssetPath(assets.getCssPath(), admin, en);
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("reactRoute", normalizeRoute(route, admin));
         payload.put("reactLocale", en ? "en" : "ko");
@@ -64,8 +68,8 @@ public class ReactAppViewSupport {
                 ? "This page mounts the React app shell."
                 : "이 페이지는 React 앱 셸을 마운트합니다.");
         payload.put("reactAppDevUrl", reactAppDevUrl);
-        payload.put("reactAppProdJs", assets.getJsPath());
-        payload.put("reactAppProdCss", assets.getCssPath());
+        payload.put("reactAppProdJs", jsPath);
+        payload.put("reactAppProdCss", cssPath);
         return payload;
     }
 
@@ -83,5 +87,10 @@ public class ReactAppViewSupport {
             return ((ServletRequestAttributes) requestAttributes).getRequest();
         }
         return null;
+    }
+
+    private String adaptAssetPath(String path, boolean admin, boolean en) {
+        String normalized = path == null ? "" : path.trim();
+        return normalized;
     }
 }

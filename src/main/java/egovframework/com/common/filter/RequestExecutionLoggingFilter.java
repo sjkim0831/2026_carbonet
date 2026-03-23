@@ -1,7 +1,11 @@
 package egovframework.com.common.filter;
 
+import egovframework.com.common.audit.AuditTrailService;
+import egovframework.com.common.logging.AccessEventService;
 import egovframework.com.common.logging.RequestExecutionLogService;
 import egovframework.com.common.logging.RequestExecutionLogVO;
+import egovframework.com.common.trace.TraceContext;
+import egovframework.com.common.trace.TraceContextHolder;
 import egovframework.com.feature.admin.service.AuthGroupManageService;
 import egovframework.com.feature.auth.domain.entity.EmplyrInfo;
 import egovframework.com.feature.auth.domain.entity.EntrprsMber;
@@ -33,17 +37,23 @@ public class RequestExecutionLoggingFilter extends OncePerRequestFilter {
     private static final DateTimeFormatter TS_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final RequestExecutionLogService requestExecutionLogService;
+    private final AccessEventService accessEventService;
+    private final AuditTrailService auditTrailService;
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthGroupManageService authGroupManageService;
     private final EmployeeMemberRepository employeeMemberRepository;
     private final EnterpriseMemberRepository enterpriseMemberRepository;
 
     public RequestExecutionLoggingFilter(RequestExecutionLogService requestExecutionLogService,
+                                         AccessEventService accessEventService,
+                                         AuditTrailService auditTrailService,
                                          JwtTokenProvider jwtTokenProvider,
                                          AuthGroupManageService authGroupManageService,
                                          EmployeeMemberRepository employeeMemberRepository,
                                          EnterpriseMemberRepository enterpriseMemberRepository) {
         this.requestExecutionLogService = requestExecutionLogService;
+        this.accessEventService = accessEventService;
+        this.auditTrailService = auditTrailService;
         this.jwtTokenProvider = jwtTokenProvider;
         this.authGroupManageService = authGroupManageService;
         this.employeeMemberRepository = employeeMemberRepository;
@@ -62,7 +72,11 @@ public class RequestExecutionLoggingFilter extends OncePerRequestFilter {
             throw e;
         } finally {
             try {
-                requestExecutionLogService.append(buildLog(request, response, startedAt, failure));
+                RequestExecutionLogVO item = buildLog(request, response, startedAt, failure);
+                TraceContext traceContext = TraceContextHolder.get();
+                requestExecutionLogService.append(item);
+                accessEventService.recordRequestLog(item, traceContext);
+                recordApiAuditIfNeeded(item, request, traceContext);
             } catch (Exception e) {
                 log.warn("Failed to append request execution log. uri={}", request.getRequestURI(), e);
             }
@@ -93,6 +107,7 @@ public class RequestExecutionLoggingFilter extends OncePerRequestFilter {
         item.setRequestContentType(safeString(request.getContentType()));
         item.setResponseStatus(response == null ? 0 : response.getStatus());
         item.setDurationMs(Math.max(System.currentTimeMillis() - startedAt, 0));
+        item.setRemoteAddr(safeString(request.getRemoteAddr()));
         item.setQueryString(safeString(request.getQueryString()));
         item.setParameterSummary(buildParameterSummary(request));
         item.setErrorMessage(failure == null ? "" : safeString(failure.getMessage()));
@@ -268,5 +283,60 @@ public class RequestExecutionLoggingFilter extends OncePerRequestFilter {
 
     private String safeString(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private void recordApiAuditIfNeeded(RequestExecutionLogVO item, HttpServletRequest request, TraceContext traceContext) {
+        if (!isAuditableApiRequest(item, request)) {
+            return;
+        }
+        String apiId = traceContext == null ? "" : safeString(traceContext.getApiId());
+        String actionCode = apiId.isEmpty() ? "AUTO_API_USAGE" : apiId;
+        String reasonSummary = "uri=" + safeString(item.getRequestUri())
+                + ", method=" + safeString(item.getHttpMethod())
+                + ", status=" + item.getResponseStatus()
+                + ", featureType=" + safeString(item.getFeatureType())
+                + ", durationMs=" + item.getDurationMs();
+        auditTrailService.record(
+                safeString(item.getActorUserId()),
+                safeString(item.getActorAuthorCode()),
+                "",
+                traceContext == null ? "" : safeString(traceContext.getPageId()),
+                truncate(actionCode, 120),
+                "API",
+                truncate(safeString(item.getRequestUri()), 120),
+                item.getResponseStatus() >= 200 && item.getResponseStatus() < 400 ? "SUCCESS" : "ERROR",
+                truncate(reasonSummary, 1000),
+                "",
+                truncate(safeString(item.getParameterSummary()), 4000),
+                safeString(item.getRemoteAddr()),
+                truncate(request == null ? "" : request.getHeader("User-Agent"), 500)
+        );
+    }
+
+    private boolean isAuditableApiRequest(RequestExecutionLogVO item, HttpServletRequest request) {
+        String uri = safeString(item.getRequestUri()).toLowerCase(Locale.ROOT);
+        if (uri.isEmpty()) {
+            return false;
+        }
+        if (uri.startsWith("/api/") || uri.contains("/api/")) {
+            return !uri.startsWith("/api/telemetry/")
+                    && !uri.contains("/observability/")
+                    && !uri.contains("/access_history/page-data")
+                    && !uri.contains("/error/report");
+        }
+        if (!"GET".equalsIgnoreCase(safeString(item.getHttpMethod()))
+                && !"VIEW".equalsIgnoreCase(safeString(item.getFeatureType()))
+                && !"QUERY".equalsIgnoreCase(safeString(item.getFeatureType()))) {
+            return uri.startsWith("/admin/") || uri.startsWith("/en/admin/");
+        }
+        return false;
+    }
+
+    private String truncate(String value, int maxLength) {
+        String safeValue = safeString(value);
+        if (safeValue.length() <= maxLength) {
+            return safeValue;
+        }
+        return safeValue.substring(0, maxLength);
     }
 }

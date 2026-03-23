@@ -170,6 +170,8 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                 return buildJoinWizardPage();
             case "observability":
                 return buildObservabilityPage();
+            case "error-log":
+                return buildErrorLogPage();
             case "help-management":
                 return buildHelpManagementPage();
             case "codex-request":
@@ -2050,7 +2052,7 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
     }
 
     private Map<String, Object> buildObservabilityPage() {
-        Map<String, Object> page = pageOption("observability", "감사/추적 조회", "/admin/system/observability", "AMENU_SYSTEM_OBSERVABILITY", "admin");
+        Map<String, Object> page = pageOption("observability", "감사 로그", "/admin/system/observability", "A0060303", "admin");
         page.put("summary", "감사 로그와 trace 이벤트를 같은 페이지에서 조회하는 운영 화면입니다.");
         page.put("source", "frontend/src/features/observability/ObservabilityMigrationPage.tsx");
         page.put("surfaces", Arrays.asList(
@@ -2092,6 +2094,36 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         page.put("commonCodeGroups", Arrays.asList(
                 codeGroup("TRACE_EVENT_TYPE", "추적 이벤트 유형", Arrays.asList("PAGE_LOAD", "API_CALL", "DB_QUERY"), "trace 분류 기준입니다."),
                 codeGroup("RESULT_STATUS", "결과 코드", Arrays.asList("SUCCESS", "ERROR"), "감사/추적 결과 배지에 사용됩니다.")
+        ));
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
+    private Map<String, Object> buildErrorLogPage() {
+        Map<String, Object> page = pageOption("error-log", "에러 로그", "/admin/system/error-log", "A0060302", "admin");
+        page.put("summary", "백엔드 오류, 페이지 격리 오류, 프런트 오류 리포트를 영구 추적으로 조회하는 관리자 화면입니다.");
+        page.put("source", "frontend/src/features/error-log/ErrorLogMigrationPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("error-log-search", "에러 로그 검색", "[data-help-id=\"error-log-search\"]", "ErrorLogSearch", "actions",
+                        Arrays.asList("error-log-search-submit"), "회사, 소스 유형, 오류 유형과 검색어를 조합합니다."),
+                surface("error-log-table", "에러 로그 테이블", "[data-help-id=\"error-log-table\"]", "ErrorLogTable", "content",
+                        Collections.emptyList(), "영구 저장된 에러 로그를 시간 역순으로 조회합니다.")
+        ));
+        page.put("events", Arrays.asList(
+                event("error-log-search-submit", "에러 로그 조회", "submit", "fetchErrorLogPage", "[data-help-id=\"error-log-search\"] form",
+                        Arrays.asList("admin.error-log.page"), "에러 로그 테이블을 갱신합니다.")
+        ));
+        page.put("apis", Arrays.asList(
+                api("admin.error-log.page", "에러 로그 페이지 조회", "GET", "/admin/system/error-log/page-data",
+                        "AdminMainController.errorLogPageApi", "AdminMainController.buildErrorLogPagePayload",
+                        "ObservabilityMapper.selectErrorEventList / selectErrorEventCount",
+                        Arrays.asList("ERROR_EVENT", "COMTNENTRPRSMBER", "COMTNEMPLYRINFO"),
+                        Arrays.asList("error-event-schema"), "회사 범위와 검색 조건 기준으로 에러 로그를 조회합니다.")
+        ));
+        page.put("schemas", Arrays.asList(
+                schema("error-event-schema", "에러 이벤트 스키마", "ERROR_EVENT",
+                        Arrays.asList("ERROR_ID", "TRACE_ID", "PAGE_ID", "API_ID", "SOURCE_TYPE", "ERROR_TYPE", "ACTOR_ID", "ACTOR_INSTT_ID", "REQUEST_URI", "MESSAGE", "RESULT_STATUS", "CREATED_AT"),
+                        Arrays.asList("SELECT", "INSERT"), "영구 에러 로그 조회 테이블입니다.")
         ));
         page.put("changeTargets", defaultChangeTargets());
         return page;
@@ -2160,7 +2192,7 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                         Arrays.asList("SELECT", "INSERT", "UPDATE", "DELETE"), "페이지 VIEW 기능과 역할/사용자 권한 연결을 관리합니다.")
         ));
         page.put("commonCodeGroups", Arrays.asList(
-                codeGroup("AMENU1", "관리자 메뉴 코드", Arrays.asList("AMENU_SYSTEM_FULL_STACK_MANAGEMENT", "A1900101", "AMENU_SYSTEM_OBSERVABILITY"), "시스템 운영 메뉴 코드군입니다."),
+                codeGroup("AMENU1", "관리자 메뉴 코드", Arrays.asList("AMENU_SYSTEM_FULL_STACK_MANAGEMENT", "A1900101", "A0060303"), "시스템 운영 메뉴 코드군입니다."),
                 codeGroup("CHANGE_LAYER", "수정 레이어", Arrays.asList("UI", "EVENT", "FUNCTION", "API", "SERVICE", "MAPPER", "SCHEMA", "DB_COLUMN", "MENU_AUTH"), "풀스택 관리 시 선택하는 변경 레이어입니다.")
         ));
         page.put("changeTargets", defaultChangeTargets());
@@ -2289,7 +2321,7 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                         Arrays.asList("SELECT"), "페이지 기능 권한과 메뉴 연결을 해석합니다.")
         ));
         page.put("commonCodeGroups", Arrays.asList(
-                codeGroup("AMENU1", "관리자 메뉴 코드", Arrays.asList("A1900101", "A1900102", "A1900103", "A1900104", "AMENU_SYSTEM_OBSERVABILITY"), "관리자 AI 운영 메뉴 분류입니다."),
+                codeGroup("AMENU1", "관리자 메뉴 코드", Arrays.asList("A1900101", "A1900102", "A1900103", "A1900104"), "관리자 AI 운영 메뉴 분류입니다."),
                 codeGroup("CHANGE_LAYER", "수정 레이어", Arrays.asList("UI", "CSS", "EVENT", "API", "CONTROLLER", "SERVICE", "MAPPER", "SCHEMA", "MENU_AUTH"),
                         "수정 지시 생성 시 선택하는 레이어 그룹입니다.")
         ));

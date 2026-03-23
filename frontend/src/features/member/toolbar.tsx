@@ -5,7 +5,7 @@ import { MEMBER_BUTTON_LABELS, MEMBER_LIST_LABELS } from "./labels";
 type MemberListToolbarProps = {
   totalCount: number;
   excelHref: string;
-  registerHref: string;
+  registerHref?: string;
   registerLabel?: string;
   className?: string;
 };
@@ -28,9 +28,11 @@ export function MemberListTopActions({
       <MemberLinkButton href={excelHref} icon="download" variant="secondary">
         {MEMBER_BUTTON_LABELS.excelDownload}
       </MemberLinkButton>
-      <MemberLinkButton href={registerHref} icon="person_add" variant="success">
-        {registerLabel}
-      </MemberLinkButton>
+      {registerHref ? (
+        <MemberLinkButton href={registerHref} icon="person_add" variant="success">
+          {registerLabel}
+        </MemberLinkButton>
+      ) : null}
     </MemberButtonGroup>
   );
 }

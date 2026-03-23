@@ -370,7 +370,10 @@ public class SiteMapServiceImpl implements SiteMapService {
         if (permissionContext.systemMaster) {
             return true;
         }
-        if (node.globalOnlyRoute && permissionContext.operationAdmin) {
+        if (isMasterOnlyRoute(node.url)) {
+            return false;
+        }
+        if (isCompanyAdminOnlyRoute(node.url) && permissionContext.operationAdmin) {
             return false;
         }
         if (safeString(node.requiredFeatureCode).isEmpty()) {
@@ -452,17 +455,38 @@ public class SiteMapServiceImpl implements SiteMapService {
 
     private boolean isGlobalOnlyRoute(String normalizedUri) {
         String value = safeString(normalizedUri);
-        return "/admin/member/approve".equals(value)
-                || "/admin/member/company-approve".equals(value)
+        if ("/admin/system/access_history".equals(value)
+                || "/admin/system/error-log".equals(value)
+                || "/admin/system/security".equals(value)
+                || "/admin/system/security-audit".equals(value)
+                || "/admin/system/observability".equals(value)
+                || "/admin/system/help-management".equals(value)
+                || "/admin/system/sr-workbench".equals(value)
+                || "/admin/system/wbs-management".equals(value)
+                || "/admin/system/codex-request".equals(value)) {
+            return false;
+        }
+        return "/admin/member/company-approve".equals(value)
                 || "/admin/member/company_list".equals(value)
                 || "/admin/member/company_detail".equals(value)
                 || "/admin/member/company_account".equals(value)
                 || "/admin/member/company-file".equals(value)
-                || "/admin/member/admin_list".equals(value)
+                || value.startsWith("/admin/content/")
+                || value.startsWith("/admin/external/")
+                || value.startsWith("/admin/system/");
+    }
+
+    private boolean isMasterOnlyRoute(String normalizedUri) {
+        return isGlobalOnlyRoute(normalizedUri);
+    }
+
+    private boolean isCompanyAdminOnlyRoute(String normalizedUri) {
+        String value = safeString(normalizedUri);
+        return "/admin/member/admin_list".equals(value)
                 || "/admin/member/admin-list".equals(value)
                 || "/admin/member/admin_account".equals(value)
                 || "/admin/member/admin_account/permissions".equals(value)
-                || value.startsWith("/admin/system/");
+                || isMasterOnlyRoute(value);
     }
 
     private String resolveAuthorCode(HttpServletRequest request) {

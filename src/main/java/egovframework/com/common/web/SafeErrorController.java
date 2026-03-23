@@ -1,5 +1,7 @@
 package egovframework.com.common.web;
 
+import egovframework.com.common.error.ErrorEventService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -17,9 +19,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Controller
+@RequiredArgsConstructor
 public class SafeErrorController implements ErrorController {
 
     private static final Logger log = LoggerFactory.getLogger(SafeErrorController.class);
+    private final ErrorEventService errorEventService;
 
     @RequestMapping("/error")
     public Object handleError(HttpServletRequest request) {
@@ -35,6 +39,17 @@ public class SafeErrorController implements ErrorController {
         } else {
             log.error("Error dispatch for path={}, status={} with no exception attached", path, status);
         }
+        errorEventService.recordBackendError(
+                "BACKEND_ERROR_CONTROLLER",
+                ex == null ? "ERROR_DISPATCH" : ex.getClass().getSimpleName(),
+                request,
+                "",
+                "",
+                safeString(request == null ? null : request.getAttribute("targetCompanyContextId")),
+                status,
+                ex,
+                errorMessage
+        );
 
         if (isApiRequest(request, path)) {
             Map<String, Object> body = new LinkedHashMap<>();

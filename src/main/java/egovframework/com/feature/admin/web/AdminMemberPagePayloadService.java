@@ -120,7 +120,7 @@ public class AdminMemberPagePayloadService {
         controller.primeCsrfToken(request);
         String currentUserId = controller.extractCurrentUserId(request);
         String currentUserAuthorCode = authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
-        boolean canView = authorityPagePayloadSupport.hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode);
+        boolean canView = authorityPagePayloadSupport.hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode);
         if (canView) {
             controller.populateCompanyList(
                     pageIndexParam,
@@ -151,7 +151,7 @@ public class AdminMemberPagePayloadService {
         String currentUserAuthorCode = authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
         ExtendedModelMap model = new ExtendedModelMap();
         controller.primeCsrfToken(request);
-        if (!authorityPagePayloadSupport.hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        if (!authorityPagePayloadSupport.hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)) {
             model.addAttribute("companyDetailError", isEn ? "Only global administrators can view company details." : "회원사 상세는 전체 관리자만 조회할 수 있습니다.");
             Map<String, Object> forbiddenResponse = new LinkedHashMap<>();
             forbiddenResponse.putAll(model);
@@ -180,7 +180,7 @@ public class AdminMemberPagePayloadService {
         String currentUserId = controller.extractCurrentUserId(request);
         String currentUserAuthorCode = authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
         Map<String, Object> response = new LinkedHashMap<>();
-        if (!authorityPagePayloadSupport.hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        if (!authorityPagePayloadSupport.hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)) {
             response.put("companyAccountErrors", Collections.singletonList(
                     isEn ? "Only global administrators can manage company accounts." : "회원사 관리는 전체 관리자만 처리할 수 있습니다."));
             response.put("canViewCompanyAccount", false);
@@ -212,11 +212,15 @@ public class AdminMemberPagePayloadService {
                 searchKeyword,
                 sbscrbSttus,
                 model,
-                isEn ? "egovframework/com/admin/admin_list_en" : "egovframework/com/admin/admin_list");
+                isEn ? "egovframework/com/admin/admin_list_en" : "egovframework/com/admin/admin_list",
+                request);
         Map<String, Object> response = new LinkedHashMap<>();
         response.putAll(model);
-        response.put("canViewAdminList", true);
-        response.put("canUseAdminListActions", "webmaster".equalsIgnoreCase(controller.extractCurrentUserId(request)));
+        boolean canViewAdminList = authorityPagePayloadSupport.hasMemberManagementCompanyAdminAccess(
+                controller.extractCurrentUserId(request),
+                authorityPagePayloadSupport.resolveCurrentUserAuthorCode(controller.extractCurrentUserId(request)));
+        response.put("canViewAdminList", canViewAdminList);
+        response.put("canUseAdminListActions", Boolean.TRUE.equals(model.getAttribute("canUseAdminListActions")));
         return response;
     }
 
@@ -287,6 +291,7 @@ public class AdminMemberPagePayloadService {
             String pageIndexParam,
             String searchKeyword,
             String resetSource,
+            String insttId,
             String memberId,
             HttpServletRequest request,
             Locale locale) {
@@ -306,6 +311,8 @@ public class AdminMemberPagePayloadService {
                     pageIndexParam,
                     controller.preferredResetHistoryKeyword(memberId, searchKeyword),
                     resetSource,
+                    insttId,
+                    request,
                     model,
                     "",
                     isEn);
@@ -323,15 +330,38 @@ public class AdminMemberPagePayloadService {
         AdminMainController controller = adminMainController();
         boolean isEn = controller.isEnglishRequest(request, locale);
         String currentUserId = controller.extractCurrentUserId(request);
+        String currentUserAuthorCode = authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
         ExtendedModelMap model = new ExtendedModelMap();
         controller.primeCsrfToken(request);
         controller.ensureAdminAccountCreateDefaults(model, isEn);
         controller.populateAdminAccountCreatePageModel(model, isEn);
+        java.util.List<String> allowedPresets = new java.util.ArrayList<>();
+        if (controller.canCreateAdminRolePreset(currentUserId, currentUserAuthorCode, "MASTER")) {
+            allowedPresets.add("MASTER");
+        }
+        if (controller.canCreateAdminRolePreset(currentUserId, currentUserAuthorCode, "SYSTEM")) {
+            allowedPresets.add("SYSTEM");
+        }
+        if (controller.canCreateAdminRolePreset(currentUserId, currentUserAuthorCode, "OPERATION")) {
+            allowedPresets.add("OPERATION");
+        }
+        String currentUserInsttId = controller.resolveCurrentUserInsttId(currentUserId);
+        egovframework.com.feature.member.model.vo.InstitutionStatusVO actorInstitution = controller.loadInstitutionInfoByInsttId(currentUserInsttId);
+        model.addAttribute("adminAccountCreateAllowedPresets", allowedPresets);
+        model.addAttribute("adminAccountCreateCanSearchCompanies",
+                controller.hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode));
+        model.addAttribute("adminAccountCreateCurrentInsttId", currentUserInsttId);
+        model.addAttribute("adminAccountCreateCurrentCompanyName", actorInstitution == null ? "" : controller.safeString(actorInstitution.getInsttNm()));
+        model.addAttribute("adminAccountCreateCurrentBizrno", actorInstitution == null ? "" : controller.safeString(actorInstitution.getBizrno()));
+        model.addAttribute("adminAccountCreateCurrentRepresentativeName", actorInstitution == null ? "" : controller.safeString(actorInstitution.getReprsntNm()));
+        model.addAttribute("canUseAdminAccountCreate",
+                controller.canCreateAdminAccounts(currentUserId, currentUserAuthorCode));
         Map<String, Object> response = new LinkedHashMap<>();
         response.putAll(model);
         response.put("currentUserId", currentUserId);
-        response.put("canViewAdminAccountCreate", true);
-        response.put("canUseAdminAccountCreate", "webmaster".equalsIgnoreCase(currentUserId));
+        response.put("canViewAdminAccountCreate",
+                authorityPagePayloadSupport.hasMemberManagementCompanyAdminAccess(currentUserId, currentUserAuthorCode));
+        response.put("canUseAdminAccountCreate", Boolean.TRUE.equals(model.getAttribute("canUseAdminAccountCreate")));
         return response;
     }
 }

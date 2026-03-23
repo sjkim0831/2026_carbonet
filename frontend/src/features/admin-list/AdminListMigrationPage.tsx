@@ -3,6 +3,9 @@ import { CanView } from "../../components/access/CanView";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import { AdminListPagePayload, fetchAdminListPage } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { AdminInput, AdminSelect, AdminTable, MemberButton, MemberLinkButton, MemberPagination, MemberSectionToolbar } from "../member/common";
+import { MEMBER_BUTTON_LABELS } from "../member/labels";
+import { MemberCountSummary, MemberListEmptyRow, MemberListTopActions } from "../member/toolbar";
 
 function statusLabel(code: string) {
   switch (code) {
@@ -43,6 +46,8 @@ export function AdminListMigrationPage() {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  const currentPage = Math.max(1, Number(page?.pageIndex || 1));
+  const totalPages = Math.max(1, Number(page?.totalPages || 1));
 
   async function load(next?: { pageIndex?: number; searchKeyword?: string; sbscrbSttus?: string; }) {
     const payload = await fetchAdminListPage(next);
@@ -55,6 +60,13 @@ export function AdminListMigrationPage() {
     load().catch((err: Error) => setError(err.message));
   }, []);
 
+  function resetFilters() {
+    setError("");
+    setSearchKeyword("");
+    setStatus("");
+    load({ pageIndex: 1, searchKeyword: "", sbscrbSttus: "" }).catch((err: Error) => setError(err.message));
+  }
+
   return (
     <AdminPageShell
       breadcrumbs={[
@@ -62,15 +74,29 @@ export function AdminListMigrationPage() {
         { label: "관리자" },
         { label: "관리자 회원 목록 조회" }
       ]}
+      subtitle="관리자 계정 상태와 조직 정보를 같은 목록 기준으로 조회하고 권한 관리 화면으로 이어집니다."
       title="관리자 회원 목록 조회"
       loading={!page && !error}
       loadingLabel="관리자 목록을 불러오는 중입니다."
     >
       {error ? <section className="mb-4 text-sm text-red-600 font-medium"><p>{error}</p></section> : null}
       <CanView allowed={!!page?.canViewAdminList} fallback={<section className="panel"><p className="state-text">관리자 목록을 불러올 수 없습니다.</p></section>}>
-        <section className="gov-card mb-8" data-help-id="admin-list-search">
+        <section className="gov-card mb-8 p-0 overflow-hidden" data-help-id="admin-list-search">
+          <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
+            <MemberSectionToolbar
+              actions={(
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
+                    현재 페이지 {currentPage} / {totalPages}
+                  </span>
+                </div>
+              )}
+              meta="상태와 검색어를 조합해 관리자 목록 기준 화면의 정보 밀도를 동일하게 유지합니다."
+              title="검색 조건"
+            />
+          </div>
           <form
-            className="grid grid-cols-1 md:grid-cols-3 gap-6"
+            className="grid grid-cols-1 gap-6 px-6 py-6 md:grid-cols-3"
             onSubmit={(e) => {
               e.preventDefault();
               load({ pageIndex: 1, searchKeyword, sbscrbSttus: status }).catch((err: Error) => setError(err.message));
@@ -78,61 +104,55 @@ export function AdminListMigrationPage() {
           >
             <div>
               <label className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2" htmlFor="status">상태</label>
-              <select
-                className="w-full border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] text-sm focus:ring-[var(--kr-gov-focus)] focus:border-[var(--kr-gov-focus)]"
-                id="status"
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-              >
+              <AdminSelect id="status" value={status} onChange={(e) => setStatus(e.target.value)}>
                 <option value="">전체</option>
                 <option value="P">활성</option>
                 <option value="A">승인 대기</option>
                 <option value="R">반려</option>
                 <option value="D">삭제</option>
                 <option value="X">차단</option>
-              </select>
+              </AdminSelect>
             </div>
             <div className="md:col-span-2">
               <label className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2" htmlFor="keyword">검색어</label>
-              <div className="flex gap-2">
-                <input
-                  className="flex-1 border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] text-sm focus:ring-[var(--kr-gov-focus)] focus:border-[var(--kr-gov-focus)]"
-                  id="keyword"
-                  placeholder="성명, 아이디, 조직ID, 이메일 검색"
-                  value={searchKeyword}
-                  onChange={(e) => setSearchKeyword(e.target.value)}
-                />
-                <button className="px-6 py-2 bg-[var(--kr-gov-blue)] text-white font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)] transition-colors flex items-center gap-2" type="submit">
-                  <span className="material-symbols-outlined text-[18px]">search</span>
-                  검색
-                </button>
+              <AdminInput id="keyword" placeholder="성명, 아이디, 조직ID, 이메일 검색" value={searchKeyword} onChange={(e) => setSearchKeyword(e.target.value)} />
+            </div>
+            <div className="md:col-span-3">
+              <div className="flex flex-col gap-3 border-t border-[var(--kr-gov-border-light)] pt-5 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
+                  동일한 목록형 화면은 검색 카드, 상단 툴바, 결과 테이블 순서를 유지합니다.
+                </p>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <MemberButton onClick={resetFilters} type="button" variant="secondary">
+                    {MEMBER_BUTTON_LABELS.reset}
+                  </MemberButton>
+                  <MemberButton icon="search" type="submit" variant="primary">
+                    {MEMBER_BUTTON_LABELS.search}
+                  </MemberButton>
+                </div>
               </div>
             </div>
           </form>
         </section>
-        <section data-help-id="admin-list-table">
-          <div className="flex justify-between items-center mb-4">
-            <div className="text-[14px]">
-              전체 <span className="font-bold text-[var(--kr-gov-blue)]">{Number(page?.totalCount || 0).toLocaleString("ko-KR")}</span>건
-            </div>
-            <div className="flex gap-2">
-              <a
-                className="flex items-center gap-1.5 px-3 py-2 bg-white border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] text-[13px] font-bold hover:bg-gray-50"
-                href={`/admin/member/admin_list/excel?searchKeyword=${encodeURIComponent(searchKeyword)}&sbscrbSttus=${encodeURIComponent(status)}`}
-              >
-                <span className="material-symbols-outlined text-[18px]">download</span> 관리자 엑셀 다운로드
-              </a>
-              <a
-                className="flex items-center gap-1.5 px-3 py-2 bg-[var(--kr-gov-green)] text-white rounded-[var(--kr-gov-radius)] text-[13px] font-bold hover:opacity-90"
-                href={buildLocalizedPath("/admin/member/admin_account", "/en/admin/member/admin_account")}
-              >
-                <span className="material-symbols-outlined text-[18px]">person_add</span> 신규 관리자 등록
-              </a>
-            </div>
+        <section className="gov-card p-0 overflow-hidden" data-help-id="admin-list-table">
+          <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
+            <MemberSectionToolbar
+              actions={(
+                <MemberListTopActions
+                  excelHref={buildLocalizedPath(
+                    `/admin/member/admin_list/excel?searchKeyword=${encodeURIComponent(searchKeyword)}&sbscrbSttus=${encodeURIComponent(status)}`,
+                    `/en/admin/member/admin_list/excel?searchKeyword=${encodeURIComponent(searchKeyword)}&sbscrbSttus=${encodeURIComponent(status)}`
+                  )}
+                  registerHref={page?.canUseAdminListActions ? buildLocalizedPath("/admin/member/admin_account", "/en/admin/member/admin_account") : undefined}
+                  registerLabel="신규 관리자 등록"
+                />
+              )}
+              meta="관리자 목록 화면은 전체 건수, 다운로드, 신규 등록 버튼의 순서와 높이를 동일하게 유지합니다."
+              title={<MemberCountSummary totalCount={Number(page?.totalCount || 0)} />}
+            />
           </div>
-          <div className="gov-card p-0 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left border-collapse">
+          <div className="overflow-x-auto">
+              <AdminTable>
                 <thead>
                   <tr className="bg-gray-50 border-y border-[var(--kr-gov-border-light)] text-[14px] font-bold text-[var(--kr-gov-text-secondary)]">
                     <th className="px-6 py-4 text-center w-16">번호</th>
@@ -146,10 +166,10 @@ export function AdminListMigrationPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {(page?.member_list || []).length === 0 ? (
-                    <tr><td className="px-6 py-8 text-center text-gray-500" colSpan={7}>조회된 관리자 계정이 없습니다.</td></tr>
+                    <MemberListEmptyRow colSpan={7} message="조회된 관리자 계정이 없습니다." />
                   ) : (page?.member_list || []).map((row, index) => (
                     <tr className="hover:bg-gray-50/50 transition-colors" key={`${String(row.emplyrId || "admin")}-${index}`}>
-                      <td className="px-6 py-4 text-center text-gray-500">{Number(page?.totalCount || 0) - (((Number(page?.pageIndex || 1) - 1) * 10) + index)}</td>
+                      <td className="px-6 py-4 text-center text-gray-500">{Number(page?.totalCount || 0) - (((currentPage - 1) * 10) + index)}</td>
                       <td className="px-6 py-4">
                         <div className="font-bold text-[var(--kr-gov-text-primary)]">{String(row.userNm || "-")}</div>
                         <div className="text-xs text-gray-400">{String(row.emplyrId || "-")}</div>
@@ -162,44 +182,22 @@ export function AdminListMigrationPage() {
                           {statusLabel(String(row.emplyrStusCode || ""))}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-center space-x-1">
-                        <a className="inline-flex px-3 py-1.5 border border-[var(--kr-gov-border-light)] text-[12px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-100" href={buildLocalizedPath(`/admin/member/admin_account/permissions?emplyrId=${encodeURIComponent(String(row.emplyrId || ""))}`, `/en/admin/member/admin_account/permissions?emplyrId=${encodeURIComponent(String(row.emplyrId || ""))}`)}>수정</a>
-                        <a className="inline-flex px-3 py-1.5 bg-[var(--kr-gov-blue)] text-white text-[12px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)]" href={buildLocalizedPath(`/admin/member/admin_account/permissions?emplyrId=${encodeURIComponent(String(row.emplyrId || ""))}&mode=detail`, `/en/admin/member/admin_account/permissions?emplyrId=${encodeURIComponent(String(row.emplyrId || ""))}&mode=detail`)}>상세</a>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-wrap items-center justify-center gap-2">
+                          <MemberLinkButton href={buildLocalizedPath(`/admin/member/admin_account/permissions?emplyrId=${encodeURIComponent(String(row.emplyrId || ""))}`, `/en/admin/member/admin_account/permissions?emplyrId=${encodeURIComponent(String(row.emplyrId || ""))}`)} size="xs" variant="secondary">수정</MemberLinkButton>
+                          <MemberLinkButton href={buildLocalizedPath(`/admin/member/admin_account/permissions?emplyrId=${encodeURIComponent(String(row.emplyrId || ""))}&mode=detail`, `/en/admin/member/admin_account/permissions?emplyrId=${encodeURIComponent(String(row.emplyrId || ""))}&mode=detail`)} size="xs" variant="primary">상세</MemberLinkButton>
+                        </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </AdminTable>
             </div>
-            <div className="px-6 py-4 border-t border-[var(--kr-gov-border-light)] bg-gray-50 flex justify-center">
-              <nav className="flex items-center gap-1">
-                <button className="p-1 rounded hover:bg-white border border-transparent hover:border-gray-200 disabled:opacity-40" disabled={Number(page?.pageIndex || 1) <= 1} onClick={() => load({ pageIndex: 1, searchKeyword, sbscrbSttus: status }).catch((err: Error) => setError(err.message))} type="button">
-                  <span className="material-symbols-outlined">first_page</span>
-                </button>
-                <button className="p-1 rounded hover:bg-white border border-transparent hover:border-gray-200 disabled:opacity-40" disabled={Number(page?.pageIndex || 1) <= 1} onClick={() => load({ pageIndex: Math.max(1, Number(page?.pageIndex || 1) - 1), searchKeyword, sbscrbSttus: status }).catch((err: Error) => setError(err.message))} type="button">
-                  <span className="material-symbols-outlined">chevron_left</span>
-                </button>
-                <div className="flex items-center gap-1 mx-4">
-                  {Array.from({ length: Number(page?.totalPages || 0) }, (_, i) => i + 1).map((pageNum) => (
-                    <button
-                      className={`w-8 h-8 rounded border border-transparent text-sm flex items-center justify-center ${pageNum === Number(page?.pageIndex || 1) ? "bg-[var(--kr-gov-blue)] text-white font-bold" : "hover:bg-white hover:border-gray-200"}`}
-                      key={pageNum}
-                      onClick={() => load({ pageIndex: pageNum, searchKeyword, sbscrbSttus: status }).catch((err: Error) => setError(err.message))}
-                      type="button"
-                    >
-                      {pageNum}
-                    </button>
-                  ))}
-                </div>
-                <button className="p-1 rounded hover:bg-white border border-transparent hover:border-gray-200 disabled:opacity-40" disabled={Number(page?.pageIndex || 1) >= Number(page?.totalPages || 1)} onClick={() => load({ pageIndex: Math.min(Number(page?.totalPages || 1), Number(page?.pageIndex || 1) + 1), searchKeyword, sbscrbSttus: status }).catch((err: Error) => setError(err.message))} type="button">
-                  <span className="material-symbols-outlined">chevron_right</span>
-                </button>
-                <button className="p-1 rounded hover:bg-white border border-transparent hover:border-gray-200 disabled:opacity-40" disabled={Number(page?.pageIndex || 1) >= Number(page?.totalPages || 1)} onClick={() => load({ pageIndex: Number(page?.totalPages || 1), searchKeyword, sbscrbSttus: status }).catch((err: Error) => setError(err.message))} type="button">
-                  <span className="material-symbols-outlined">last_page</span>
-                </button>
-              </nav>
-            </div>
-          </div>
+          <MemberPagination
+            currentPage={currentPage}
+            onPageChange={(pageNumber) => load({ pageIndex: pageNumber, searchKeyword, sbscrbSttus: status }).catch((err: Error) => setError(err.message))}
+            totalPages={totalPages}
+          />
         </section>
       </CanView>
     </AdminPageShell>

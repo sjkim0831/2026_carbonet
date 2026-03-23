@@ -4,6 +4,8 @@ import egovframework.com.common.filter.HtmlTagFilter;
 import egovframework.com.common.filter.PublicLogoutFilter;
 import egovframework.com.common.filter.RequestExecutionLoggingFilter;
 import egovframework.com.common.filter.TraceContextFilter;
+import egovframework.com.common.audit.AuditTrailService;
+import egovframework.com.common.logging.AccessEventService;
 import egovframework.com.common.logging.RequestExecutionLogService;
 import egovframework.com.common.trace.TraceEventService;
 import egovframework.com.feature.admin.service.AuthGroupManageService;
@@ -21,7 +23,9 @@ import org.springframework.core.Ordered;
 public class FilterConfig {
 
     private final RequestExecutionLogService requestExecutionLogService;
+    private final AccessEventService accessEventService;
     private final TraceEventService traceEventService;
+    private final AuditTrailService auditTrailService;
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthGroupManageService authGroupManageService;
     private final EmployeeMemberRepository employeeMemberRepository;
@@ -59,6 +63,8 @@ public class FilterConfig {
         FilterRegistrationBean<RequestExecutionLoggingFilter> registrationBean = new FilterRegistrationBean<>();
         registrationBean.setFilter(new RequestExecutionLoggingFilter(
                 requestExecutionLogService,
+                accessEventService,
+                auditTrailService,
                 jwtTokenProvider,
                 authGroupManageService,
                 employeeMemberRepository,

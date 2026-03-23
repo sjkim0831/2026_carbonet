@@ -109,21 +109,7 @@ function getFallbackGnbItems(en: boolean): GnbItem[] {
       domain: "회원관리"
     },
     { key: "배출/인증", label: en ? "Emission / Certification" : "배출/인증", href: "#", domain: "배출/인증" },
-    { key: "거래/정산", label: en ? "Trade / Settlement" : "거래/정산", href: "#", domain: "거래/정산" },
-    { key: "콘텐츠", label: en ? "Content" : "콘텐츠", href: "#", domain: "콘텐츠" },
-    { key: "외부연계", label: en ? "External Linkage" : "외부연계", href: "#", domain: "외부연계" },
-    {
-      key: "시스템",
-      label: en ? "System" : "시스템",
-      href: buildLocalizedPath("/admin/system/code", "/en/admin/system/code"),
-      domain: "시스템"
-    },
-    {
-      key: "모니터링",
-      label: en ? "Monitoring" : "모니터링",
-      href: buildLocalizedPath("/admin/member/login_history", "/en/admin/member/login_history"),
-      domain: "모니터링"
-    }
+    { key: "거래/정산", label: en ? "Trade / Settlement" : "거래/정산", href: "#", domain: "거래/정산" }
   ];
 }
 
@@ -182,78 +168,6 @@ function getFallbackMenuTree(): Record<string, AdminMenuDomain> {
             { text: "부서 권한 맵핑", tEn: "Department Permission Mapping", u: buildLocalizedPath("/admin/member/dept-role-mapping", "/en/admin/member/dept-role-mapping"), icon: "account_tree" }
           ]
         }
-      ]
-    },
-    시스템: {
-      label: "시스템",
-      labelEn: "System",
-      summary: "",
-      groups: [
-        {
-          title: "환경",
-          titleEn: "Environment",
-          icon: "settings",
-          links: [
-            { text: "코드 관리", tEn: "Code Management", u: buildLocalizedPath("/admin/system/code", "/en/admin/system/code"), icon: "category" },
-            { text: "페이지 관리", tEn: "Page Management", u: buildLocalizedPath("/admin/system/page-management", "/en/admin/system/page-management"), icon: "web" },
-            { text: "기능 관리", tEn: "Function Management", u: buildLocalizedPath("/admin/system/feature-management", "/en/admin/system/feature-management"), icon: "extension" },
-            { text: "메뉴 관리", tEn: "Menu Management", u: buildLocalizedPath("/admin/system/menu-management", "/en/admin/system/menu-management"), icon: "account_tree" },
-            { text: "메뉴 통합 관리", tEn: "Menu Unified Management", u: buildLocalizedPath("/admin/system/environment-management", "/en/admin/system/environment-management"), icon: "tune" },
-            { text: "풀스택 관리", tEn: "Full-Stack Management", u: buildLocalizedPath("/admin/system/full-stack-management", "/en/admin/system/full-stack-management"), icon: "hub" },
-            { text: "플랫폼 스튜디오", tEn: "Platform Studio", u: buildLocalizedPath("/admin/system/platform-studio", "/en/admin/system/platform-studio"), icon: "dashboard_customize" },
-            { text: "화면 요소 관리", tEn: "Screen Elements", u: buildLocalizedPath("/admin/system/screen-elements-management?focus=surfaces", "/en/admin/system/screen-elements-management?focus=surfaces"), icon: "crop_landscape" },
-            { text: "이벤트 관리", tEn: "Event Management", u: buildLocalizedPath("/admin/system/event-management-console?focus=events", "/en/admin/system/event-management-console?focus=events"), icon: "bolt" },
-            { text: "함수 콘솔", tEn: "Function Console", u: buildLocalizedPath("/admin/system/function-management-console?focus=functions", "/en/admin/system/function-management-console?focus=functions"), icon: "functions" },
-            { text: "API 관리", tEn: "API Management", u: buildLocalizedPath("/admin/system/api-management-console?focus=apis", "/en/admin/system/api-management-console?focus=apis"), icon: "api" },
-            { text: "컨트롤러 관리", tEn: "Controller Management", u: buildLocalizedPath("/admin/system/controller-management-console?focus=controllers", "/en/admin/system/controller-management-console?focus=controllers"), icon: "account_tree" },
-            { text: "DB 테이블 관리", tEn: "DB Table Management", u: buildLocalizedPath("/admin/system/db-table-management?focus=db", "/en/admin/system/db-table-management?focus=db"), icon: "database" },
-            { text: "컬럼 관리", tEn: "Column Management", u: buildLocalizedPath("/admin/system/column-management-console?focus=columns", "/en/admin/system/column-management-console?focus=columns"), icon: "view_column" },
-            { text: "자동화 스튜디오", tEn: "Automation Studio", u: buildLocalizedPath("/admin/system/automation-studio?focus=automation", "/en/admin/system/automation-studio?focus=automation"), icon: "smart_toy" }
-          ]
-        },
-        {
-          title: "AI 운영",
-          titleEn: "AI Operations",
-          icon: "smart_toy",
-          links: [
-            { text: "도움말 운영", tEn: "Help Management", u: buildLocalizedPath("/admin/system/help-management", "/en/admin/system/help-management"), icon: "help_center" },
-            { text: "SR 워크벤치", tEn: "SR Workbench", u: buildLocalizedPath("/admin/system/sr-workbench", "/en/admin/system/sr-workbench"), icon: "assignment" },
-            { text: "Codex 요청", tEn: "Codex Request", u: buildLocalizedPath("/admin/system/codex-request", "/en/admin/system/codex-request"), icon: "smart_toy" },
-            { text: "WBS 관리", tEn: "WBS Management", u: buildLocalizedPath("/admin/system/wbs-management", "/en/admin/system/wbs-management"), icon: "calendar_month" }
-          ]
-        }
-      ]
-    },
-    콘텐츠: {
-      label: "콘텐츠",
-      labelEn: "Content",
-      summary: "",
-      groups: [
-        {
-          title: "콘텐츠 운영",
-          titleEn: "Content Operations",
-          icon: "inventory_2",
-          links: [
-            { text: "사이트맵", tEn: "Sitemap", u: buildLocalizedPath("/admin/content/sitemap", "/en/admin/content/sitemap"), icon: "map" }
-          ]
-        }
-      ]
-    },
-    모니터링: {
-      label: "모니터링",
-      labelEn: "Monitoring",
-      summary: "",
-      groups: [
-        {
-          title: "로그",
-          titleEn: "Logs",
-          icon: "monitoring",
-          links: [
-            { text: "로그인 이력", tEn: "Login History", u: buildLocalizedPath("/admin/member/login_history", "/en/admin/member/login_history"), icon: "history" },
-            { text: "보안 이력", tEn: "Security History", u: buildLocalizedPath("/admin/system/security", "/en/admin/system/security"), icon: "policy" },
-            { text: "보안 정책", tEn: "Security Policy", u: buildLocalizedPath("/admin/system/security-policy", "/en/admin/system/security-policy"), icon: "shield" }
-          ]
-        },
       ]
     }
   };

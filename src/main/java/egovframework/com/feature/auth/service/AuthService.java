@@ -28,6 +28,6 @@ public interface AuthService {
 
     List<PasswordResetHistory> findRecentPasswordResetHistories(String userId);
 
-    Page<PasswordResetHistory> searchPasswordResetHistories(String searchKeyword, String resetSource, Pageable pageable);
+    Page<PasswordResetHistory> searchPasswordResetHistories(String searchKeyword, String resetSource, String insttId, Pageable pageable);
 
 }

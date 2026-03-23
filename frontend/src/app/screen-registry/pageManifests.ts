@@ -445,7 +445,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
   "observability": {
     pageId: "observability",
     routePath: "/admin/system/observability",
-    menuCode: "AMENU_SYSTEM_OBSERVABILITY",
+    menuCode: "A0060303",
     domainCode: "admin",
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
@@ -750,6 +750,30 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "IpWhitelistRequests", instanceKey: "ip-whitelist-requests", layoutZone: "content", propsSummary: ["ipWhitelistRequestRows"] }
     ]
   },
+  "access-history": {
+    pageId: "access-history",
+    routePath: "/admin/system/access_history",
+    menuCode: "A0060301",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "AccessHistorySearch", instanceKey: "access-history-search", layoutZone: "actions", propsSummary: ["searchKeyword", "insttId"] },
+      { componentId: "AccessHistoryTable", instanceKey: "access-history-table", layoutZone: "content", propsSummary: ["accessHistoryList", "pageIndex"] }
+    ]
+  },
+  "error-log": {
+    pageId: "error-log",
+    routePath: "/admin/system/error-log",
+    menuCode: "A0060302",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "ErrorLogSearch", instanceKey: "error-log-search", layoutZone: "actions", propsSummary: ["searchKeyword", "insttId", "sourceType", "errorType"] },
+      { componentId: "ErrorLogTable", instanceKey: "error-log-table", layoutZone: "content", propsSummary: ["errorLogList", "pageIndex"] }
+    ]
+  },
   "login-history": {
     pageId: "login-history",
     routePath: "/admin/member/login_history",
@@ -816,7 +840,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
   "security-audit": {
     pageId: "security-audit",
     routePath: "/admin/system/security-audit",
-    menuCode: "AMENU_SECURITY_AUDIT",
+    menuCode: "A0060206",
     domainCode: "admin",
     layoutVersion: "v1",
     designTokenVersion: "krds-current",

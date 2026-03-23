@@ -1694,6 +1694,42 @@
       }
     ]
   },
+  "access-history": {
+    "title": "접속 로그 도움말",
+    "summary": "회사 범위 기준으로 관리자 접속 이력을 조회하는 화면입니다.",
+    "items": [
+      {
+        "id": "search",
+        "title": "접속 로그 검색",
+        "body": "회사와 검색어 기준으로 접속 로그를 좁혀서 조회합니다.",
+        "anchorSelector": "[data-help-id=\"access-history-search\"]"
+      },
+      {
+        "id": "table",
+        "title": "접속 로그 목록",
+        "body": "접속 시각, 회사, 계정, IP, 요청 URI와 응답 상태를 표로 확인합니다.",
+        "anchorSelector": "[data-help-id=\"access-history-table\"]"
+      }
+    ]
+  },
+  "error-log": {
+    "title": "에러 로그 도움말",
+    "summary": "백엔드 오류, 페이지 격리 오류, 프런트 오류 리포트를 영구 추적으로 조회하는 화면입니다.",
+    "items": [
+      {
+        "id": "search",
+        "title": "에러 로그 검색",
+        "body": "회사, 소스, 오류 유형과 검색어 기준으로 에러 로그를 좁혀서 조회합니다.",
+        "anchorSelector": "[data-help-id=\"error-log-search\"]"
+      },
+      {
+        "id": "table",
+        "title": "에러 로그 목록",
+        "body": "발생 시각, 회사, 소스 유형, 사용자, 요청 위치와 메시지를 표로 확인합니다.",
+        "anchorSelector": "[data-help-id=\"error-log-table\"]"
+      }
+    ]
+  },
   "security-history": {
     "title": "접근 차단 이력 도움말",
     "summary": "차단된 접근 이벤트만 필터링해서 조회하는 화면입니다.",

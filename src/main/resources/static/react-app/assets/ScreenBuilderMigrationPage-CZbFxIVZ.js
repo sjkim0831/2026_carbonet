@@ -1,4 +1,8 @@
+<<<<<<<< HEAD:src/main/resources/static/react-app/assets/ScreenBuilderMigrationPage-CZbFxIVZ.js
 import{a as m,j as e}from"./vendor-react-Ap5sJVW9.js";import{u as An}from"./useAsyncValue-CBLYfvEg.js";import{i as yt,ai as ft,aa as ht,c as Nt,aj as _e,b as G,m as kt,ak as St,al as wt,am as Ct,an as It,ao as Pt,ap as Mt,aq as En,ar as At,as as Et,at as Rt,au as Tt,av as Lt,aw as Bt}from"./index-lwa4BUsd.js";import{A as Dt}from"./AdminPageShell-BWslpS3h.js";import{C as Ft,a as Ut}from"./contextKeyPresets-B0lvhlWD.js";import{P as Rn,D as Ne,g as Y,c as y,G as P,m as de,i as ce}from"./common-CQL9xqOr.js";import{b as Ot}from"./pageFrames-DSLoDoio.js";import{r as _t,s as E,a as $t}from"./screenBuilderRenderer-D4vJ2iEe.js";import"./primitives-C-F0RI9K.js";const jt=`export type MigrationPageId =
+========
+import{a as m,j as e}from"./vendor-react-Ap5sJVW9.js";import{u as An}from"./useAsyncValue-CBLYfvEg.js";import{i as yt,ai as ft,aa as ht,c as Nt,aj as _e,b as G,m as kt,ak as St,al as wt,am as Ct,an as It,ao as Pt,ap as Mt,aq as En,ar as At,as as Et,at as Rt,au as Tt,av as Lt,aw as Bt}from"./index-BUUdlsl_.js";import{A as Dt}from"./AdminPageShell-C1Q4yzLr.js";import{C as Ft,a as Ut}from"./contextKeyPresets-B0lvhlWD.js";import{P as Rn,D as Ne,g as W,c as y,G as P,m as de,i as ce}from"./common-DRGUc9Kx.js";import{b as Ot}from"./pageFrames-DSLoDoio.js";import{r as _t,s as E,a as $t}from"./screenBuilderRenderer-D4vJ2iEe.js";import"./primitives-WQ_L76wu.js";const jt=`export type MigrationPageId =
+>>>>>>>> origin/20260322-member-management-authority:src/main/resources/static/react-app/assets/ScreenBuilderMigrationPage-CHm0YpmW.js
   | "home"
   | "admin-home"
   | "signin-login"
@@ -46,6 +50,7 @@ import{a as m,j as e}from"./vendor-react-Ap5sJVW9.js";import{u as An}from"./useA
   | "screen-runtime"
   | "wbs-management"
   | "ip-whitelist"
+  | "access-history"
   | "login-history"
   | "security-history"
   | "security-policy"
@@ -130,6 +135,7 @@ export const ROUTES: RouteDefinition[] = [
   { id: "screen-runtime", label: "발행 화면 런타임", group: "admin", koPath: "/admin/system/screen-runtime", enPath: "/en/admin/system/screen-runtime" },
   { id: "wbs-management", label: "WBS 관리", group: "admin", koPath: "/admin/system/wbs-management", enPath: "/en/admin/system/wbs-management" },
   { id: "ip-whitelist", label: "IP 화이트리스트", group: "admin", koPath: "/admin/system/ip_whitelist", enPath: "/en/admin/system/ip_whitelist" },
+  { id: "access-history", label: "접속 로그", group: "admin", koPath: "/admin/system/access_history", enPath: "/en/admin/system/access_history" },
   { id: "login-history", label: "로그인 이력", group: "admin", koPath: "/admin/member/login_history", enPath: "/en/admin/member/login_history" },
   { id: "security-history", label: "보안 이력", group: "admin", koPath: "/admin/system/security", enPath: "/en/admin/system/security" },
   { id: "security-policy", label: "보안 정책", group: "admin", koPath: "/admin/system/security-policy", enPath: "/en/admin/system/security-policy" },
@@ -235,6 +241,7 @@ export const pageComponents: Record<MigrationPageId, ComponentType> = {
   "screen-runtime": lazyNamed(() => import("../../features/screen-builder/ScreenRuntimeMigrationPage"), "ScreenRuntimeMigrationPage"),
   "wbs-management": lazyNamed(() => import("../../features/wbs-management/WbsManagementMigrationPage"), "WbsManagementMigrationPage"),
   "ip-whitelist": lazyNamed(() => import("../../features/ip-whitelist/IpWhitelistMigrationPage"), "IpWhitelistMigrationPage"),
+  "access-history": lazyNamed(() => import("../../features/access-history/AccessHistoryMigrationPage"), "AccessHistoryMigrationPage"),
   "login-history": lazyNamed(() => import("../../features/login-history/LoginHistoryMigrationPage"), "LoginHistoryMigrationPage"),
   "security-history": lazyNamed(() => import("../../features/security-history/SecurityHistoryMigrationPage"), "SecurityHistoryMigrationPage"),
   "security-policy": lazyNamed(() => import("../../features/security-policy/SecurityPolicyMigrationPage"), "SecurityPolicyMigrationPage"),
@@ -306,6 +313,7 @@ const pagePreloaders: Partial<Record<MigrationPageId, () => Promise<unknown>>> =
   "screen-runtime": () => import("../../features/screen-builder/ScreenRuntimeMigrationPage"),
   "wbs-management": () => import("../../features/wbs-management/WbsManagementMigrationPage"),
   "ip-whitelist": () => import("../../features/ip-whitelist/IpWhitelistMigrationPage"),
+  "access-history": () => import("../../features/access-history/AccessHistoryMigrationPage"),
   "login-history": () => import("../../features/login-history/LoginHistoryMigrationPage"),
   "security-history": () => import("../../features/security-history/SecurityHistoryMigrationPage"),
   "security-policy": () => import("../../features/security-policy/SecurityPolicyMigrationPage"),
@@ -333,7 +341,262 @@ export function preloadPageModule(route: MigrationPageId) {
   }
   return preloadedModules[route]!;
 }
-`,Vt=`import { useEffect, useMemo, useState } from "react";
+`,Vt=`import { useState } from "react";
+import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { CanView } from "../../components/access/CanView";
+import { fetchAccessHistoryPage, type AccessHistoryPagePayload } from "../../lib/api/client";
+import { buildLocalizedPath } from "../../lib/navigation/runtime";
+import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { AdminInput, AdminSelect, AdminTable, MemberButton, MemberPagination, MemberSectionToolbar } from "../member/common";
+
+type Filters = {
+  pageIndex: number;
+  searchKeyword: string;
+  insttId: string;
+};
+
+const DEFAULT_FILTERS: Filters = {
+  pageIndex: 1,
+  searchKeyword: "",
+  insttId: ""
+};
+
+function readInitialFilters(): Filters {
+  if (typeof window === "undefined") {
+    return DEFAULT_FILTERS;
+  }
+  const params = new URLSearchParams(window.location.search);
+  return {
+    pageIndex: Number(params.get("pageIndex") || "1") || 1,
+    searchKeyword: params.get("searchKeyword") || "",
+    insttId: params.get("insttId") || ""
+  };
+}
+
+function stringOf(row: Record<string, unknown> | null | undefined, ...keys: string[]) {
+  if (!row) {
+    return "";
+  }
+  for (const key of keys) {
+    const value = row[key];
+    if (value !== null && value !== undefined) {
+      const text = String(value).trim();
+      if (text) {
+        return text;
+      }
+    }
+  }
+  return "";
+}
+
+function statusBadge(status: number) {
+  if (status >= 500) {
+    return "bg-red-100 text-red-700";
+  }
+  if (status >= 400) {
+    return "bg-amber-100 text-amber-700";
+  }
+  return "bg-emerald-100 text-emerald-700";
+}
+
+export function AccessHistoryMigrationPage() {
+  const [filters, setFilters] = useState<Filters>(() => readInitialFilters());
+  const [draftFilters, setDraftFilters] = useState<Filters>(() => readInitialFilters());
+  const pageState = useAsyncValue<AccessHistoryPagePayload>(
+    () => fetchAccessHistoryPage(filters),
+    [filters.pageIndex, filters.searchKeyword, filters.insttId],
+    {
+      onSuccess(payload) {
+        const next = {
+          pageIndex: Number(payload.pageIndex || 1),
+          searchKeyword: String(payload.searchKeyword || ""),
+          insttId: String(payload.selectedInsttId || "")
+        };
+        setFilters(next);
+        setDraftFilters(next);
+      }
+    }
+  );
+  const page = pageState.value;
+  const error = pageState.error || String(page?.accessHistoryError || "");
+  const totalPages = Math.max(1, Number(page?.totalPages || 1));
+  const currentPage = Math.max(1, Number(page?.pageIndex || 1));
+  const rows = (page?.accessHistoryList || []) as Array<Record<string, unknown>>;
+  const companyOptions = (page?.companyOptions || []) as Array<Record<string, string>>;
+
+  function updateDraft<K extends keyof Filters>(key: K, value: Filters[K]) {
+    setDraftFilters((current) => ({ ...current, [key]: value }));
+  }
+
+  function applyFilters(nextPageIndex = 1) {
+    setFilters({
+      ...draftFilters,
+      pageIndex: nextPageIndex
+    });
+  }
+
+  function resetFilters() {
+    const next = {
+      ...DEFAULT_FILTERS,
+      insttId: page?.canManageAllCompanies ? "" : String(page?.selectedInsttId || "")
+    };
+    setDraftFilters(next);
+    setFilters(next);
+  }
+
+  return (
+    <AdminPageShell
+      breadcrumbs={[
+        { label: "홈", href: buildLocalizedPath("/admin/", "/en/admin/") },
+        { label: "시스템" },
+        { label: "접속 로그" }
+      ]}
+      subtitle="회원 목록형 레이아웃을 기준으로 회사별 관리자 접속 이력을 조회합니다."
+      title="접속 로그"
+      loading={pageState.loading && !page && !error}
+      loadingLabel="접속 로그를 불러오는 중입니다."
+    >
+      {error ? (
+        <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3">
+          <p className="text-sm text-red-700">조회 중 오류: {error}</p>
+        </section>
+      ) : null}
+      <CanView
+        allowed={!!page?.canViewAccessHistory}
+        fallback={(
+          <section className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-6 py-8">
+            <p className="text-sm text-[var(--kr-gov-text-secondary)]">접속 로그를 조회할 권한이 없습니다.</p>
+          </section>
+        )}
+      >
+        <div className="gov-card mb-8" data-help-id="access-history-search">
+          <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
+            <MemberSectionToolbar
+              actions={(
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
+                    현재 페이지 {currentPage} / {totalPages}
+                  </span>
+                </div>
+              )}
+              meta="회사와 검색어 기준으로 접속 로그를 빠르게 좁혀서 조회합니다."
+              title="검색 조건"
+            />
+          </div>
+          <form className="grid grid-cols-1 gap-6 px-6 py-6 md:grid-cols-4" onSubmit={(event) => {
+            event.preventDefault();
+            applyFilters(1);
+          }}>
+            <div>
+              <span className="mb-2 block text-[14px] font-bold text-[var(--kr-gov-text-secondary)]">회사</span>
+              <AdminSelect
+                disabled={!page?.canManageAllCompanies}
+                id="insttId"
+                value={draftFilters.insttId}
+                onChange={(event) => updateDraft("insttId", event.target.value)}
+              >
+                {page?.canManageAllCompanies ? <option value="">전체</option> : null}
+                {companyOptions.map((option) => (
+                  <option key={String(option.insttId || "")} value={String(option.insttId || "")}>
+                    {String(option.cmpnyNm || option.insttId || "-")}
+                  </option>
+                ))}
+              </AdminSelect>
+            </div>
+            <div className="md:col-span-3">
+              <span className="mb-2 block text-[14px] font-bold text-[var(--kr-gov-text-secondary)]">검색어</span>
+              <AdminInput
+                id="searchKeyword"
+                placeholder="회사명, 계정 ID, 요청 URI, IP 검색"
+                value={draftFilters.searchKeyword}
+                onChange={(event) => updateDraft("searchKeyword", event.target.value)}
+              />
+            </div>
+            <div className="md:col-span-4">
+              <div className="flex flex-col gap-3 border-t border-[var(--kr-gov-border-light)] pt-5 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
+                  마스터 관리자는 회사별로 조회할 수 있고, 시스템 관리자는 본인 회사 로그만 조회합니다.
+                </p>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <MemberButton onClick={resetFilters} type="button" variant="secondary">
+                    초기화
+                  </MemberButton>
+                  <MemberButton icon="search" type="submit" variant="primary">
+                    검색
+                  </MemberButton>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div className="gov-card p-0 overflow-hidden" data-help-id="access-history-table">
+          <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
+            <MemberSectionToolbar
+              meta="회원 목록형 화면과 동일하게 상단 요약과 결과 테이블 순서를 유지합니다."
+              title={(
+                <span className="text-[15px] font-semibold text-[var(--kr-gov-text-primary)]">
+                  전체 <span className="text-[var(--kr-gov-blue)]">{Number(page?.totalCount || 0).toLocaleString()}</span>건
+                </span>
+              )}
+            />
+          </div>
+          <div className="overflow-x-auto">
+            <AdminTable>
+              <thead>
+                <tr className="border-y border-[var(--kr-gov-border-light)] bg-gray-50 text-[14px] font-bold text-[var(--kr-gov-text-secondary)]">
+                  <th className="w-16 px-6 py-4 text-center">번호</th>
+                  <th className="px-6 py-4">접속 일시</th>
+                  <th className="px-6 py-4">회사</th>
+                  <th className="px-6 py-4">사용자(ID)</th>
+                  <th className="px-6 py-4">IP</th>
+                  <th className="px-6 py-4">요청</th>
+                  <th className="px-6 py-4 text-center">응답</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {rows.length === 0 ? (
+                  <tr>
+                    <td className="px-6 py-8 text-center text-gray-500" colSpan={7}>조회된 접속 로그가 없습니다.</td>
+                  </tr>
+                ) : rows.map((row, index) => {
+                  const rowNumber = Number(page?.totalCount || 0) - ((currentPage - 1) * Number(page?.pageSize || 10) + index);
+                  const status = Number(row.responseStatus || 0);
+                  return (
+                    <tr className="transition-colors hover:bg-gray-50/50" key={\`\${stringOf(row, "executedAt", "actorUserId", "requestUri")}-\${index}\`}>
+                      <td className="px-6 py-4 text-center text-gray-500">{rowNumber > 0 ? rowNumber : index + 1}</td>
+                      <td className="px-6 py-4 text-gray-600">{stringOf(row, "executedAt") || "-"}</td>
+                      <td className="px-6 py-4 font-medium text-[var(--kr-gov-text-secondary)]">
+                        <div>{stringOf(row, "companyName") || "-"}</div>
+                        <div className="text-xs text-gray-400">{stringOf(row, "insttId") || "-"}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="font-bold text-[var(--kr-gov-text-primary)]">{stringOf(row, "actorUserId") || "-"}</div>
+                        <div className="text-xs text-gray-400">{stringOf(row, "actorAuthorCode") || "-"}</div>
+                      </td>
+                      <td className="px-6 py-4 text-gray-600">{stringOf(row, "remoteAddr") || "-"}</td>
+                      <td className="px-6 py-4">
+                        <div className="font-medium text-[var(--kr-gov-text-primary)]">{stringOf(row, "requestUri") || "-"}</div>
+                        <div className="text-xs text-gray-400">{stringOf(row, "httpMethod")} / {stringOf(row, "featureType")} / {stringOf(row, "durationMs")}ms</div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className={\`inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold \${statusBadge(status)}\`}>
+                          {status || "-"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </AdminTable>
+          </div>
+          <MemberPagination currentPage={currentPage} onPageChange={(pageIndex) => applyFilters(pageIndex)} totalPages={totalPages} />
+        </div>
+      </CanView>
+    </AdminPageShell>
+  );
+}
+`,Gt=`import { useEffect, useMemo, useState } from "react";
 import { CanView } from "../../components/access/CanView";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import {
@@ -364,24 +627,31 @@ import { AdminEditPageFrame } from "../admin-ui/pageFrames";
 const ROLE_PRESETS = [
   { code: "MASTER", label: "마스터 관리자" },
   { code: "SYSTEM", label: "시스템 관리자" },
-  { code: "OPERATION", label: "운영 관리자" },
-  { code: "GENERAL", label: "일반 관리자" }
+  { code: "OPERATION", label: "운영 관리자" }
+] as const;
+
+const ROLE_PRESET_SUMMARIES: Record<string, string> = {
+  MASTER: "기관 검색 없이 마스터 관리자 권한을 바로 부여합니다.",
+  SYSTEM: "소속 회사 기준으로 설정, 계정, 운영 체계를 총괄합니다.",
+  OPERATION: "소속 회사 기준으로 실무 운영과 현장 업무를 담당합니다."
+};
+
+const MEMBERSHIP_TYPE_OPTIONS = [
+  { value: "E", label: "CO2 배출사업자" },
+  { value: "P", label: "CCUS 프로젝트 사업자" },
+  { value: "C", label: "진흥·지원 기관" },
+  { value: "G", label: "관계 기관·주무관청" }
 ] as const;
 
 function roleChipClass(active: boolean) {
-  return \`flex items-center justify-center min-h-[52px] rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] px-4 text-sm font-bold transition-all \${
+  return \`flex min-h-[56px] w-full items-center justify-center rounded-[var(--kr-gov-radius)] border px-4 text-center text-sm font-bold whitespace-nowrap transition-all \${
     active
       ? "border-[var(--kr-gov-blue)] bg-blue-50 text-[var(--kr-gov-blue)] shadow-sm"
-      : "bg-white text-[var(--kr-gov-text-secondary)]"
+      : "border-[var(--kr-gov-border-light)] bg-white text-[var(--kr-gov-text-secondary)] hover:border-[var(--kr-gov-blue)]/40 hover:bg-slate-50"
   }\`;
 }
 
 type CompanyResult = CompanySearchPayload["list"][number];
-
-function normalizeText(value: unknown, fallback = "-") {
-  const text = String(value || "").trim();
-  return text || fallback;
-}
 
 export function AdminAccountCreateMigrationPage() {
   const [session, setSession] = useState<FrontendSession | null>(null);
@@ -401,48 +671,53 @@ export function AdminAccountCreateMigrationPage() {
   const [companyName, setCompanyName] = useState("");
   const [bizrno, setBizrno] = useState("");
   const [representativeName, setRepresentativeName] = useState("");
-  const [featureCodes, setFeatureCodes] = useState<string[]>([]);
   const [companyKeyword, setCompanyKeyword] = useState("");
   const [companySearch, setCompanySearch] = useState<CompanySearchPayload | null>(null);
   const [companySearchOpen, setCompanySearchOpen] = useState(false);
   const [idCheckMessage, setIdCheckMessage] = useState("");
   const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
   const [searchingCompanies, setSearchingCompanies] = useState(false);
+  const canUseCreate = !!page?.canUseAdminAccountCreate;
+  const allowedPresets = ((page?.adminAccountCreateAllowedPresets as string[] | undefined) || []).map((item) => String(item));
+  const canSearchCompanies = Boolean(page?.adminAccountCreateCanSearchCompanies);
 
   useEffect(() => {
     Promise.all([fetchFrontendSession(), fetchAdminAccountCreatePage()])
       .then(([sessionPayload, pagePayload]) => {
         setSession(sessionPayload);
         setPage(pagePayload);
-        setRolePreset(String(pagePayload.adminAccountCreatePreset || "MASTER"));
+        const presetOptions = ((pagePayload.adminAccountCreateAllowedPresets as string[] | undefined) || []).map((item) => String(item));
+        setRolePreset(presetOptions[0] || String(pagePayload.adminAccountCreatePreset || "MASTER"));
+        if (!Boolean(pagePayload.adminAccountCreateCanSearchCompanies)) {
+          setInsttId(String(pagePayload.adminAccountCreateCurrentInsttId || ""));
+          setCompanyName(String(pagePayload.adminAccountCreateCurrentCompanyName || ""));
+          setBizrno(String(pagePayload.adminAccountCreateCurrentBizrno || ""));
+          setRepresentativeName(String(pagePayload.adminAccountCreateCurrentRepresentativeName || ""));
+        }
       })
       .catch((err: Error) => setError(err.message));
   }, []);
 
   useEffect(() => {
-    const presetMap = (page?.adminAccountCreatePresetFeatureCodes || {}) as Record<string, string[]>;
-    setFeatureCodes([...(presetMap[rolePreset] || [])]);
     if (rolePreset === "MASTER") {
       setMembershipType("");
       setInsttId("");
       setCompanyName("");
       setBizrno("");
       setRepresentativeName("");
+    } else if (!canSearchCompanies) {
+      setInsttId(String(page?.adminAccountCreateCurrentInsttId || ""));
+      setCompanyName(String(page?.adminAccountCreateCurrentCompanyName || ""));
+      setBizrno(String(page?.adminAccountCreateCurrentBizrno || ""));
+      setRepresentativeName(String(page?.adminAccountCreateCurrentRepresentativeName || ""));
     }
-  }, [page, rolePreset]);
+  }, [canSearchCompanies, page, rolePreset]);
 
-  const canUseCreate = !!page?.canUseAdminAccountCreate;
-  const featureSections = page?.permissionFeatureSections || [];
-  const summarySections = featureSections.slice(0, 4);
-
-  const sectionSelections = useMemo(() => (
-    summarySections.map((section) => ({
-      section,
-      selectedCount: section.features.filter((feature) => featureCodes.includes(feature.featureCode)).length,
-      totalCount: section.features.length
-    }))
-  ), [featureCodes, summarySections]);
+  const filteredCompanyResults = useMemo(() => {
+    const rows = companySearch?.list || [];
+    if (!membershipType) return rows;
+    return rows.filter((item) => String(item.entrprsSeCode || "").toUpperCase() === membershipType);
+  }, [companySearch, membershipType]);
 
   function resetForm() {
     setAdminId("");
@@ -463,7 +738,6 @@ export function AdminAccountCreateMigrationPage() {
     setCompanySearch(null);
     setCompanySearchOpen(false);
     setIdCheckMessage("");
-    setMessage("");
   }
 
   function applyCompany(item: CompanyResult) {
@@ -472,20 +746,6 @@ export function AdminAccountCreateMigrationPage() {
     setBizrno(item.bizrno);
     setRepresentativeName(item.cxfc);
     setCompanySearchOpen(false);
-  }
-
-  function toggleSection(sectionFeatureCodes: string[], nextChecked: boolean) {
-    setFeatureCodes((current) => {
-      const set = new Set(current);
-      sectionFeatureCodes.forEach((code) => {
-        if (nextChecked) {
-          set.add(code);
-        } else {
-          set.delete(code);
-        }
-      });
-      return [...set];
-    });
   }
 
   async function handleCheckId() {
@@ -501,9 +761,13 @@ export function AdminAccountCreateMigrationPage() {
 
   async function handleCompanySearch(pageIndex = 1) {
     setError("");
+    if (!membershipType) {
+      setError("회사 타입을 먼저 선택해 주세요.");
+      return;
+    }
     setSearchingCompanies(true);
     try {
-      const result = await searchAdminCompanies({ keyword: companyKeyword, page: pageIndex, size: 5, status: "P" });
+      const result = await searchAdminCompanies({ keyword: companyKeyword, page: pageIndex, size: 5 });
       setCompanySearch(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : "회사 검색 실패");
@@ -515,9 +779,14 @@ export function AdminAccountCreateMigrationPage() {
   async function handleSave() {
     if (!session) return;
     setError("");
-    setMessage("");
     try {
-      const result = await createAdminAccount(session, {
+      if (rolePreset !== "MASTER" && canSearchCompanies && !membershipType) {
+        throw new Error("시스템 관리자와 운영 관리자는 회사 타입을 선택해야 합니다.");
+      }
+      if (rolePreset !== "MASTER" && !insttId) {
+        throw new Error("시스템 관리자와 운영 관리자는 기관 검색으로 소속 회사를 지정해야 합니다.");
+      }
+      await createAdminAccount(session, {
         rolePreset,
         adminId,
         adminName,
@@ -529,9 +798,9 @@ export function AdminAccountCreateMigrationPage() {
         phone3,
         deptNm,
         insttId,
-        featureCodes
+        featureCodes: []
       });
-      setMessage(\`\${result.emplyrId} 관리자 계정을 생성했습니다.\`);
+      window.location.href = buildLocalizedPath("/admin/member/admin_list", "/en/admin/member/admin_list");
       resetForm();
     } catch (err) {
       setError(err instanceof Error ? err.message : "저장 실패");
@@ -549,8 +818,6 @@ export function AdminAccountCreateMigrationPage() {
       title="관리자 사용자 추가"
     >
       {error ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</section> : null}
-      {message ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{message}</section> : null}
-
       <CanView
         allowed={!!page?.canViewAdminAccountCreate}
         fallback={<section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm"><p className="text-sm text-[var(--kr-gov-text-secondary)]">이 화면을 볼 권한이 없습니다.</p></section>}
@@ -566,23 +833,25 @@ export function AdminAccountCreateMigrationPage() {
           <section className="section-shell border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm" data-help-id="admin-create-role">
             <GridToolbar
               actions={<span className="material-symbols-outlined text-[var(--kr-gov-blue)]">shield_person</span>}
-              meta="마스터 선택 시 회사 분류 없이 전체 권한 범위로 등록합니다."
-              title="마스터 관리자 선택"
+              meta="마스터 관리자는 기관 검색 없이 생성하고, 시스템·운영 관리자는 회사 타입과 소속 기관을 지정합니다."
+              title="관리 권한 프리셋 선택"
             />
             <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                {ROLE_PRESETS.map((preset) => (
-                  <MemberButton
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                {ROLE_PRESETS.filter((preset) => allowedPresets.length === 0 || allowedPresets.includes(preset.code)).map((preset) => (
+                  <button
                     className={roleChipClass(rolePreset === preset.code)}
                     disabled={!canUseCreate}
                     key={preset.code}
                     onClick={() => setRolePreset(preset.code)}
-                    variant="ghost"
                     type="button"
                   >
                     {preset.label}
-                  </MemberButton>
+                  </button>
                 ))}
+              </div>
+              <div className="mt-4 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-3 text-sm text-[var(--kr-gov-text-secondary)]">
+                {ROLE_PRESET_SUMMARIES[rolePreset] || ROLE_PRESET_SUMMARIES.MASTER}
               </div>
             </div>
           </section>
@@ -595,9 +864,9 @@ export function AdminAccountCreateMigrationPage() {
             <div className="p-6 grid grid-cols-1 xl:grid-cols-2 gap-6">
               <div className="space-y-1">
                 <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="admin-id">아이디 <span className="text-red-500">*</span></label>
-                <div className="flex gap-2">
-                  <AdminInput disabled={!canUseCreate} id="admin-id" placeholder="6~16자 영문, 숫자" spellCheck={false} value={adminId} onChange={(e) => setAdminId(e.target.value)} />
-                  <MemberPermissionButton allowed={canUseCreate} onClick={handleCheckId} reason="생성 권한이 있어야 중복 확인을 사용할 수 있습니다." type="button" variant="primary">중복확인</MemberPermissionButton>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <AdminInput className="sm:flex-1" disabled={!canUseCreate} id="admin-id" placeholder="6~16자 영문, 숫자" spellCheck={false} value={adminId} onChange={(e) => setAdminId(e.target.value)} />
+                  <MemberPermissionButton allowed={canUseCreate} className="shrink-0 whitespace-nowrap sm:min-w-[126px]" onClick={handleCheckId} reason="생성 권한이 있어야 중복 확인을 사용할 수 있습니다." type="button" variant="primary">중복 확인</MemberPermissionButton>
                 </div>
                 {idCheckMessage ? <div className="text-sm text-[var(--kr-gov-blue)]">{idCheckMessage}</div> : null}
               </div>
@@ -638,16 +907,16 @@ export function AdminAccountCreateMigrationPage() {
                 </div>
                 <div className="space-y-1">
                   <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="contact-mid">연락처 <span className="text-red-500">*</span></label>
-                  <div className="flex gap-2">
-                    <AdminSelect className="w-24" disabled={!canUseCreate} value={phone1} onChange={(e) => setPhone1(e.target.value)}>
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
+                    <AdminSelect className="min-w-0" disabled={!canUseCreate} value={phone1} onChange={(e) => setPhone1(e.target.value)}>
                       <option value="010">010</option>
                       <option value="011">011</option>
                       <option value="02">02</option>
                     </AdminSelect>
                     <span className="flex items-center">-</span>
-                    <AdminInput className="flex-1" disabled={!canUseCreate} id="contact-mid" inputMode="numeric" value={phone2} onChange={(e) => setPhone2(e.target.value)} />
+                    <AdminInput className="min-w-0" disabled={!canUseCreate} id="contact-mid" inputMode="numeric" value={phone2} onChange={(e) => setPhone2(e.target.value)} />
                     <span className="flex items-center">-</span>
-                    <AdminInput className="flex-1" disabled={!canUseCreate} inputMode="numeric" value={phone3} onChange={(e) => setPhone3(e.target.value)} />
+                    <AdminInput className="min-w-0" disabled={!canUseCreate} inputMode="numeric" value={phone3} onChange={(e) => setPhone3(e.target.value)} />
                   </div>
                 </div>
               </div>
@@ -661,12 +930,18 @@ export function AdminAccountCreateMigrationPage() {
                 />
                 <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="md:col-span-2 space-y-1">
-                    <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="affiliation-type">회원 유형</label>
-                    <AdminSelect disabled={!canUseCreate} id="affiliation-type" value={membershipType} onChange={(e) => setMembershipType(e.target.value)}>
-                      <option value="">유형을 선택하세요</option>
-                      <option value="enterprise">기업회원</option>
-                      <option value="agency">기관회원</option>
+                    <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="affiliation-type">회사 타입 <span className="text-red-500">*</span></label>
+                    <AdminSelect disabled={!canUseCreate || !canSearchCompanies} id="affiliation-type" value={membershipType} onChange={(e) => setMembershipType(e.target.value)}>
+                      <option value="">회사 타입을 선택하세요</option>
+                      {MEMBERSHIP_TYPE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
                     </AdminSelect>
+                    <p className="text-xs text-[var(--kr-gov-text-secondary)]">
+                      {canSearchCompanies
+                        ? "시스템 관리자와 운영 관리자는 선택한 회사 타입 기준으로 기관 검색을 진행합니다."
+                        : "회원사 시스템 관리자는 본인 회사에 속한 운영 관리자만 생성할 수 있습니다."}
+                    </p>
                   </div>
                   <div className="space-y-1">
                     <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="department">부서명</label>
@@ -674,11 +949,28 @@ export function AdminAccountCreateMigrationPage() {
                   </div>
                   <div className="space-y-1">
                     <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="company-search">소속 기관 / 기업명 <span className="text-red-500">*</span></label>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col gap-2 sm:flex-row">
                       <input type="hidden" value={insttId} />
-                      <AdminInput className="bg-gray-50" id="company-search" placeholder="기업명을 검색해 주세요" readOnly value={companyName} />
-                      <MemberPermissionButton allowed={canUseCreate} onClick={() => setCompanySearchOpen(true)} reason="생성 권한이 있어야 기관 검색을 사용할 수 있습니다." type="button" variant="primary">
-                        <span className="material-symbols-outlined text-[18px]">search</span> 기관 검색
+                      <AdminInput className="bg-gray-50 sm:flex-1" id="company-search" placeholder="기관 검색으로 소속 회사를 선택해 주세요" readOnly value={companyName} />
+                      <MemberPermissionButton
+                        allowed={canUseCreate}
+                        className="shrink-0 whitespace-nowrap sm:min-w-[132px]"
+                        onClick={() => {
+                          if (!canSearchCompanies) {
+                            setError("회원사 시스템 관리자는 본인 회사만 사용할 수 있습니다.");
+                            return;
+                          }
+                          if (!membershipType) {
+                            setError("회사 타입을 먼저 선택해 주세요.");
+                            return;
+                          }
+                          setCompanySearchOpen(true);
+                        }}
+                        reason={canSearchCompanies ? "생성 권한이 있어야 기관 검색을 사용할 수 있습니다." : "회원사 시스템 관리자는 본인 회사만 사용할 수 있습니다."}
+                        type="button"
+                        variant="primary"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">search</span>기관 검색
                       </MemberPermissionButton>
                     </div>
                   </div>
@@ -695,67 +987,35 @@ export function AdminAccountCreateMigrationPage() {
             ) : null}
           </div>
 
-          <section className="section-shell border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm" data-help-id="admin-create-permissions">
-            <GridToolbar
-              actions={<span className="material-symbols-outlined text-[var(--kr-gov-blue)]">tune</span>}
-              title="권한 부여"
-            />
-            <div className="p-6 space-y-5">
-              <div>
-                <p className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2">권한 프리셋 (Preset Role) <span className="text-red-500">*</span></p>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                  {ROLE_PRESETS.map((preset) => (
-                    <MemberButton
-                      className={roleChipClass(rolePreset === preset.code)}
-                      disabled={!canUseCreate}
-                      key={\`bottom-\${preset.code}\`}
-                      onClick={() => setRolePreset(preset.code)}
-                      variant="ghost"
-                      type="button"
-                    >
-                      {preset.label}
-                    </MemberButton>
-                  ))}
-                </div>
-              </div>
-              <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">세부 메뉴 접근 권한 (Custom Toggle)</p>
-                  <span className="text-xs text-[var(--kr-gov-text-secondary)]">기본 프리셋 위에 세부 토글을 추가로 조정합니다.</span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {sectionSelections.map(({ section, selectedCount, totalCount }) => {
-                    const checked = totalCount > 0 && selectedCount === totalCount;
-                    const sectionFeatureCodes = section.features.map((feature) => feature.featureCode);
-                    return (
-                      <label className="flex items-center justify-between rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-3" key={section.menuCode}>
-                        <span className="text-sm font-medium text-[var(--kr-gov-text-primary)]">{normalizeText(section.menuNm || section.menuNmEn || section.menuCode)}</span>
-                        <MemberButton
-                          aria-label={\`\${normalizeText(section.menuNm || section.menuNmEn || section.menuCode)} 권한 토글\`}
-                          className={\`relative inline-flex h-6 w-11 items-center rounded-full transition-colors \${checked ? "bg-[var(--kr-gov-blue)]" : "bg-gray-300"}\`}
-                          disabled={!canUseCreate}
-                          onClick={() => toggleSection(sectionFeatureCodes, !checked)}
-                          variant="ghost"
-                          type="button"
-                        >
-                          <span className={\`absolute left-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform \${checked ? "translate-x-5" : ""}\`} />
-                        </MemberButton>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </section>
-
           <MemberActionBar
             dataHelpId="admin-create-actions"
+            description="관리자 목록으로 돌아가거나 입력값을 초기화한 뒤 현재 관리자 계정을 등록할 수 있습니다."
+            eyebrow="작업 흐름"
             primary={(
-              <MemberPermissionButton allowed={canUseCreate} className="min-w-[220px]" onClick={handleSave} reason="webmaster만 관리자 계정을 생성할 수 있습니다." size="lg" type="button" variant="primary">
+              <MemberPermissionButton
+                allowed={canUseCreate}
+                className="w-full max-w-[320px] shadow-lg shadow-blue-900/10"
+                icon="person_add"
+                onClick={handleSave}
+                reason="webmaster만 관리자 계정을 생성할 수 있습니다."
+                size="lg"
+                type="button"
+                variant="primary"
+              >
                 {ADMIN_BUTTON_LABELS.create}
               </MemberPermissionButton>
             )}
-            secondary={{ label: ADMIN_BUTTON_LABELS.reset, onClick: resetForm }}
+            secondary={{
+              href: buildLocalizedPath("/admin/member/admin_list", "/en/admin/member/admin_list"),
+              icon: "list",
+              label: ADMIN_BUTTON_LABELS.list
+            }}
+            tertiary={{
+              icon: "refresh",
+              label: ADMIN_BUTTON_LABELS.reset,
+              onClick: resetForm
+            }}
+            title="입력한 관리자 정보와 소속 정보를 검토한 뒤 등록하세요."
           />
           </AdminEditPageFrame>
         </form>
@@ -775,12 +1035,12 @@ export function AdminAccountCreateMigrationPage() {
               <div className="mb-8">
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-bold text-[var(--kr-gov-text-secondary)]" htmlFor="modal-search">검색어 입력</label>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row">
                     <div className="relative flex-grow">
                       <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">search</span>
                       <AdminInput aria-label="기관명 또는 사업자등록번호 입력" className="pl-11 pr-4" id="modal-search" placeholder="기관명 또는 사업자등록번호를 입력하세요" value={companyKeyword} onChange={(e) => setCompanyKeyword(e.target.value)} />
                     </div>
-                    <MemberButton onClick={() => handleCompanySearch(1)} type="button" variant="primary">{ADMIN_BUTTON_LABELS.search}</MemberButton>
+                    <MemberButton className="shrink-0 whitespace-nowrap sm:min-w-[110px]" onClick={() => handleCompanySearch(1)} type="button" variant="primary">{ADMIN_BUTTON_LABELS.search}</MemberButton>
                   </div>
                 </div>
               </div>
@@ -798,10 +1058,10 @@ export function AdminAccountCreateMigrationPage() {
                   <tbody className="divide-y divide-gray-100">
                     {searchingCompanies ? (
                       <tr><td className="px-4 py-8 text-center text-gray-500" colSpan={5}>검색 중...</td></tr>
-                    ) : (companySearch?.list || []).length === 0 ? (
+                    ) : filteredCompanyResults.length === 0 ? (
                       <tr><td className="px-4 py-8 text-center text-gray-500" colSpan={5}>검색어를 입력하고 검색 버튼을 눌러 주세요.</td></tr>
                     ) : (
-                      (companySearch?.list || []).map((item, idx) => (
+                      filteredCompanyResults.map((item, idx) => (
                         <tr className="hover:bg-blue-50/50 transition-colors" key={item.insttId}>
                           <td className="px-4 py-4 text-center text-gray-500">{((companySearch?.page || 1) - 1) * (companySearch?.size || 5) + idx + 1}</td>
                           <td className="px-4 py-4 font-medium">{item.cmpnyNm}</td>
@@ -816,6 +1076,11 @@ export function AdminAccountCreateMigrationPage() {
                   </tbody>
                 </AdminTable>
               </div>
+              {companySearch && companySearch.list.length > 0 && filteredCompanyResults.length === 0 ? (
+                <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  선택한 회사 타입에 맞는 기관이 없습니다. 회사 타입이나 검색어를 다시 확인해 주세요.
+                </div>
+              ) : null}
               <nav aria-label="검색 결과 페이지" className={\`\${(companySearch?.totalPages || 0) > 1 ? "flex" : "hidden"} justify-center items-center gap-1 my-4\`}>
                 {Array.from({ length: Number(companySearch?.totalPages || 0) }, (_, idx) => idx + 1).map((pageIndex) => (
                   <MemberButton
@@ -845,7 +1110,7 @@ export function AdminAccountCreateMigrationPage() {
     </AdminPageShell>
   );
 }
-`,Gt=`import { FormEvent, SyntheticEvent, useState } from "react";
+`,Ht=`import { FormEvent, SyntheticEvent, useState } from "react";
 import { fetchFrontendSession, readBootstrappedAdminHomePageData } from "../../lib/api/client";
 import { buildLocalizedPath, navigate } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "./AdminPageShell";
@@ -1277,7 +1542,7 @@ export function AdminHomePage() {
     </AdminPageShell>
   );
 }
-`,Ht=`import { ReactNode, SyntheticEvent, useEffect, useMemo, useState } from "react";
+`,Kt=`import { ReactNode, SyntheticEvent, useEffect, useMemo, useState } from "react";
 import {
   invalidateFrontendSessionCache,
   fetchAdminMenuTree,
@@ -1388,21 +1653,7 @@ function getFallbackGnbItems(en: boolean): GnbItem[] {
       domain: "회원관리"
     },
     { key: "배출/인증", label: en ? "Emission / Certification" : "배출/인증", href: "#", domain: "배출/인증" },
-    { key: "거래/정산", label: en ? "Trade / Settlement" : "거래/정산", href: "#", domain: "거래/정산" },
-    { key: "콘텐츠", label: en ? "Content" : "콘텐츠", href: "#", domain: "콘텐츠" },
-    { key: "외부연계", label: en ? "External Linkage" : "외부연계", href: "#", domain: "외부연계" },
-    {
-      key: "시스템",
-      label: en ? "System" : "시스템",
-      href: buildLocalizedPath("/admin/system/code", "/en/admin/system/code"),
-      domain: "시스템"
-    },
-    {
-      key: "모니터링",
-      label: en ? "Monitoring" : "모니터링",
-      href: buildLocalizedPath("/admin/member/login_history", "/en/admin/member/login_history"),
-      domain: "모니터링"
-    }
+    { key: "거래/정산", label: en ? "Trade / Settlement" : "거래/정산", href: "#", domain: "거래/정산" }
   ];
 }
 
@@ -1434,84 +1685,33 @@ function getFallbackMenuTree(): Record<string, AdminMenuDomain> {
           icon: "group",
           links: [
             { text: "회원 목록", tEn: "Member List", u: buildLocalizedPath("/admin/member/list", "/en/admin/member/list"), icon: "badge" },
-            { text: "회원 승인", tEn: "Member Approval", u: buildLocalizedPath("/admin/member/approve", "/en/admin/member/approve"), icon: "task" },
+            { text: "신규 회원 등록", tEn: "New Member Registration", u: buildLocalizedPath("/admin/member/company_account", "/en/admin/member/company_account"), icon: "person_add" },
+            { text: "가입 승인", tEn: "Sign-up Approval", u: buildLocalizedPath("/admin/member/approve", "/en/admin/member/approve"), icon: "task" },
+            { text: "탈퇴 회원", tEn: "Withdrawn Members", u: buildLocalizedPath("/admin/member/list?sbscrbSttus=D", "/en/admin/member/list?sbscrbSttus=D"), icon: "person_remove" },
+            { text: "휴면 계정", tEn: "Dormant Accounts", u: buildLocalizedPath("/admin/member/list?sbscrbSttus=X", "/en/admin/member/list?sbscrbSttus=X"), icon: "bedtime" }
+          ]
+        },
+        {
+          title: "회원사",
+          titleEn: "Companies",
+          icon: "apartment",
+          links: [
             { text: "회원사 목록", tEn: "Company List", u: buildLocalizedPath("/admin/member/company_list", "/en/admin/member/company_list"), icon: "apartment" },
-            { text: "회원사 승인", tEn: "Company Approval", u: buildLocalizedPath("/admin/member/company-approve", "/en/admin/member/company-approve"), icon: "domain_verification" },
-            { text: "관리자 목록", tEn: "Admin List", u: buildLocalizedPath("/admin/member/admin_list", "/en/admin/member/admin_list"), icon: "admin_panel_settings" }
-          ]
-        }
-      ]
-    },
-    시스템: {
-      label: "시스템",
-      labelEn: "System",
-      summary: "",
-      groups: [
-        {
-          title: "환경",
-          titleEn: "Environment",
-          icon: "settings",
-          links: [
-            { text: "코드 관리", tEn: "Code Management", u: buildLocalizedPath("/admin/system/code", "/en/admin/system/code"), icon: "category" },
-            { text: "페이지 관리", tEn: "Page Management", u: buildLocalizedPath("/admin/system/page-management", "/en/admin/system/page-management"), icon: "web" },
-            { text: "기능 관리", tEn: "Function Management", u: buildLocalizedPath("/admin/system/feature-management", "/en/admin/system/feature-management"), icon: "extension" },
-            { text: "메뉴 관리", tEn: "Menu Management", u: buildLocalizedPath("/admin/system/menu-management", "/en/admin/system/menu-management"), icon: "account_tree" },
-            { text: "메뉴 통합 관리", tEn: "Menu Unified Management", u: buildLocalizedPath("/admin/system/environment-management", "/en/admin/system/environment-management"), icon: "tune" },
-            { text: "풀스택 관리", tEn: "Full-Stack Management", u: buildLocalizedPath("/admin/system/full-stack-management", "/en/admin/system/full-stack-management"), icon: "hub" },
-            { text: "플랫폼 스튜디오", tEn: "Platform Studio", u: buildLocalizedPath("/admin/system/platform-studio", "/en/admin/system/platform-studio"), icon: "dashboard_customize" },
-            { text: "화면 요소 관리", tEn: "Screen Elements", u: buildLocalizedPath("/admin/system/screen-elements-management?focus=surfaces", "/en/admin/system/screen-elements-management?focus=surfaces"), icon: "crop_landscape" },
-            { text: "이벤트 관리", tEn: "Event Management", u: buildLocalizedPath("/admin/system/event-management-console?focus=events", "/en/admin/system/event-management-console?focus=events"), icon: "bolt" },
-            { text: "함수 콘솔", tEn: "Function Console", u: buildLocalizedPath("/admin/system/function-management-console?focus=functions", "/en/admin/system/function-management-console?focus=functions"), icon: "functions" },
-            { text: "API 관리", tEn: "API Management", u: buildLocalizedPath("/admin/system/api-management-console?focus=apis", "/en/admin/system/api-management-console?focus=apis"), icon: "api" },
-            { text: "컨트롤러 관리", tEn: "Controller Management", u: buildLocalizedPath("/admin/system/controller-management-console?focus=controllers", "/en/admin/system/controller-management-console?focus=controllers"), icon: "account_tree" },
-            { text: "DB 테이블 관리", tEn: "DB Table Management", u: buildLocalizedPath("/admin/system/db-table-management?focus=db", "/en/admin/system/db-table-management?focus=db"), icon: "database" },
-            { text: "컬럼 관리", tEn: "Column Management", u: buildLocalizedPath("/admin/system/column-management-console?focus=columns", "/en/admin/system/column-management-console?focus=columns"), icon: "view_column" },
-            { text: "자동화 스튜디오", tEn: "Automation Studio", u: buildLocalizedPath("/admin/system/automation-studio?focus=automation", "/en/admin/system/automation-studio?focus=automation"), icon: "smart_toy" }
+            { text: "회원사 승인", tEn: "Company Approval", u: buildLocalizedPath("/admin/member/company-approve", "/en/admin/member/company-approve"), icon: "domain_verification" }
           ]
         },
         {
-          title: "AI 운영",
-          titleEn: "AI Operations",
-          icon: "smart_toy",
+          title: "관리자",
+          titleEn: "Administrators",
+          icon: "admin_panel_settings",
           links: [
-            { text: "도움말 운영", tEn: "Help Management", u: buildLocalizedPath("/admin/system/help-management", "/en/admin/system/help-management"), icon: "help_center" },
-            { text: "SR 워크벤치", tEn: "SR Workbench", u: buildLocalizedPath("/admin/system/sr-workbench", "/en/admin/system/sr-workbench"), icon: "assignment" },
-            { text: "Codex 요청", tEn: "Codex Request", u: buildLocalizedPath("/admin/system/codex-request", "/en/admin/system/codex-request"), icon: "smart_toy" },
-            { text: "WBS 관리", tEn: "WBS Management", u: buildLocalizedPath("/admin/system/wbs-management", "/en/admin/system/wbs-management"), icon: "calendar_month" }
+            { text: "관리자 목록", tEn: "Admin List", u: buildLocalizedPath("/admin/member/admin_list", "/en/admin/member/admin_list"), icon: "admin_panel_settings" },
+            { text: "관리자 계정 생성", tEn: "Admin Account Create", u: buildLocalizedPath("/admin/member/admin_account", "/en/admin/member/admin_account"), icon: "person_add_alt" },
+            { text: "권한 변경", tEn: "Permission Changes", u: buildLocalizedPath("/admin/member/auth-change", "/en/admin/member/auth-change"), icon: "swap_horiz" },
+            { text: "권한 그룹", tEn: "Permission Groups", u: buildLocalizedPath("/admin/auth/group", "/en/admin/auth/group"), icon: "shield" },
+            { text: "부서 권한 맵핑", tEn: "Department Permission Mapping", u: buildLocalizedPath("/admin/member/dept-role-mapping", "/en/admin/member/dept-role-mapping"), icon: "account_tree" }
           ]
         }
-      ]
-    },
-    콘텐츠: {
-      label: "콘텐츠",
-      labelEn: "Content",
-      summary: "",
-      groups: [
-        {
-          title: "콘텐츠 운영",
-          titleEn: "Content Operations",
-          icon: "inventory_2",
-          links: [
-            { text: "사이트맵", tEn: "Sitemap", u: buildLocalizedPath("/admin/content/sitemap", "/en/admin/content/sitemap"), icon: "map" }
-          ]
-        }
-      ]
-    },
-    모니터링: {
-      label: "모니터링",
-      labelEn: "Monitoring",
-      summary: "",
-      groups: [
-        {
-          title: "로그",
-          titleEn: "Logs",
-          icon: "monitoring",
-          links: [
-            { text: "로그인 이력", tEn: "Login History", u: buildLocalizedPath("/admin/member/login_history", "/en/admin/member/login_history"), icon: "history" },
-            { text: "보안 이력", tEn: "Security History", u: buildLocalizedPath("/admin/system/security", "/en/admin/system/security"), icon: "policy" },
-            { text: "보안 정책", tEn: "Security Policy", u: buildLocalizedPath("/admin/system/security-policy", "/en/admin/system/security-policy"), icon: "shield" }
-          ]
-        },
       ]
     }
   };
@@ -1562,14 +1762,14 @@ function ensureCurrentPageInMenuTree(
   breadcrumbs?: BreadcrumbItem[],
   en?: boolean
 ) {
-  const currentFull = normalizeComparablePath(currentPath);
+  const currentFull = resolveMenuComparablePath(currentPath, false);
   const currentBase = pathOnly(currentFull);
   const nextTree = cloneMenuTree(source);
 
   for (const domain of Object.values(nextTree)) {
     for (const group of domain.groups || []) {
       const matched = (group.links || []).some((link) => {
-        const targetFull = normalizeComparablePath(link.u || "");
+        const targetFull = resolveMenuComparablePath(link.u || "", true);
         const targetBase = pathOnly(targetFull);
         return targetFull === currentFull || targetBase === currentBase;
       });
@@ -1626,6 +1826,41 @@ function normalizeComparablePath(value: string) {
   }
 }
 
+function resolveMenuComparablePath(value: string, preserveDirectMenu = true) {
+  const normalized = normalizeComparablePath(value);
+  try {
+    const url = new URL(normalized, window.location.origin);
+    const pathname = pathOnly(url.pathname);
+    const search = new URLSearchParams(url.search);
+
+    if (pathname === "/admin/member/edit"
+      || pathname === "/en/admin/member/edit"
+      || pathname === "/admin/member/detail"
+      || pathname === "/en/admin/member/detail") {
+      return pathname.startsWith("/en/") ? "/en/admin/member/list" : "/admin/member/list";
+    }
+
+    if (pathname === "/admin/member/company_detail" || pathname === "/en/admin/member/company_detail") {
+      return pathname.startsWith("/en/") ? "/en/admin/member/company_list" : "/admin/member/company_list";
+    }
+
+    if (pathname === "/admin/member/company_account" || pathname === "/en/admin/member/company_account") {
+      if (!preserveDirectMenu && search.get("insttId")) {
+        return pathname.startsWith("/en/") ? "/en/admin/member/company_list" : "/admin/member/company_list";
+      }
+      return normalized;
+    }
+
+    if (pathname === "/admin/member/admin_account/permissions" || pathname === "/en/admin/member/admin_account/permissions") {
+      return pathname.startsWith("/en/") ? "/en/admin/member/admin_list" : "/admin/member/admin_list";
+    }
+
+    return normalized;
+  } catch {
+    return normalized;
+  }
+}
+
 function pathOnly(value: string) {
   const [pathname] = normalizeComparablePath(value).split("?");
   return pathname;
@@ -1646,13 +1881,13 @@ function resolveFirstDomainPath(domain: AdminMenuDomain | undefined) {
 }
 
 function resolveActiveDomainKey(menuTree: Record<string, AdminMenuDomain>, currentPath: string) {
-  const currentFull = normalizeComparablePath(currentPath);
+  const currentFull = resolveMenuComparablePath(currentPath, false);
   const currentBase = pathOnly(currentFull);
 
   for (const [domainKey, domain] of Object.entries(menuTree)) {
     for (const group of domain.groups || []) {
       for (const link of group.links || []) {
-        const targetFull = normalizeComparablePath(link.u || "");
+        const targetFull = resolveMenuComparablePath(link.u || "", true);
         const targetBase = pathOnly(targetFull);
         if (targetFull === currentFull || targetBase === currentBase) {
           return domainKey;
@@ -1665,13 +1900,13 @@ function resolveActiveDomainKey(menuTree: Record<string, AdminMenuDomain>, curre
 }
 
 function resolveActiveLinkIndex(links: Array<{ u?: string }>, currentPath: string) {
-  const currentFull = normalizeComparablePath(currentPath);
+  const currentFull = resolveMenuComparablePath(currentPath, false);
   const currentBase = pathOnly(currentFull);
-  const exactIndex = links.findIndex((link) => normalizeComparablePath(link.u || "") === currentFull);
+  const exactIndex = links.findIndex((link) => resolveMenuComparablePath(link.u || "", true) === currentFull);
   if (exactIndex >= 0) {
     return exactIndex;
   }
-  return links.findIndex((link) => pathOnly(link.u || "") === currentBase);
+  return links.findIndex((link) => pathOnly(resolveMenuComparablePath(link.u || "", true)) === currentBase);
 }
 
 function normalizeMenuSearchText(value: string | undefined) {
@@ -1845,12 +2080,13 @@ export function AdminPageShell({
     if (!selectedDomain) {
       return;
     }
+    const currentComparable = resolveMenuComparablePath(currentPath, false);
     const nextState: Record<string, boolean> = {};
     (selectedDomain.groups || []).forEach((group, index) => {
       const hasActiveLink = (group.links || []).some((link) => {
-        const targetFull = normalizeComparablePath(link.u || "");
+        const targetFull = resolveMenuComparablePath(link.u || "", true);
         const targetBase = pathOnly(targetFull);
-        return targetFull === normalizeComparablePath(currentPath) || targetBase === pathOnly(currentPath);
+        return targetFull === currentComparable || targetBase === pathOnly(currentComparable);
       });
       nextState[group.title || \`group-\${index}\`] = hasActiveLink || index === 0;
     });
@@ -2276,7 +2512,7 @@ export function AdminPageShell({
     </div>
   );
 }
-`,Kt=`import { ReactNode, SyntheticEvent } from "react";
+`,qt=`import { ReactNode, SyntheticEvent } from "react";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 
 const GOV_SYMBOL = "/img/egovframework/kr_gov_symbol.png";
@@ -2375,11 +2611,14 @@ export function AdminHomeShell({ children }: { children: ReactNode }) {
     </div>
   );
 }
-`,qt=`import { useEffect, useState } from "react";
+`,Yt=`import { useEffect, useState } from "react";
 import { CanView } from "../../components/access/CanView";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import { AdminListPagePayload, fetchAdminListPage } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { AdminInput, AdminSelect, AdminTable, MemberButton, MemberLinkButton, MemberPagination, MemberSectionToolbar } from "../member/common";
+import { MEMBER_BUTTON_LABELS } from "../member/labels";
+import { MemberCountSummary, MemberListEmptyRow, MemberListTopActions } from "../member/toolbar";
 
 function statusLabel(code: string) {
   switch (code) {
@@ -2420,6 +2659,8 @@ export function AdminListMigrationPage() {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  const currentPage = Math.max(1, Number(page?.pageIndex || 1));
+  const totalPages = Math.max(1, Number(page?.totalPages || 1));
 
   async function load(next?: { pageIndex?: number; searchKeyword?: string; sbscrbSttus?: string; }) {
     const payload = await fetchAdminListPage(next);
@@ -2432,6 +2673,13 @@ export function AdminListMigrationPage() {
     load().catch((err: Error) => setError(err.message));
   }, []);
 
+  function resetFilters() {
+    setError("");
+    setSearchKeyword("");
+    setStatus("");
+    load({ pageIndex: 1, searchKeyword: "", sbscrbSttus: "" }).catch((err: Error) => setError(err.message));
+  }
+
   return (
     <AdminPageShell
       breadcrumbs={[
@@ -2439,15 +2687,29 @@ export function AdminListMigrationPage() {
         { label: "관리자" },
         { label: "관리자 회원 목록 조회" }
       ]}
+      subtitle="관리자 계정 상태와 조직 정보를 같은 목록 기준으로 조회하고 권한 관리 화면으로 이어집니다."
       title="관리자 회원 목록 조회"
       loading={!page && !error}
       loadingLabel="관리자 목록을 불러오는 중입니다."
     >
       {error ? <section className="mb-4 text-sm text-red-600 font-medium"><p>{error}</p></section> : null}
       <CanView allowed={!!page?.canViewAdminList} fallback={<section className="panel"><p className="state-text">관리자 목록을 불러올 수 없습니다.</p></section>}>
-        <section className="gov-card mb-8" data-help-id="admin-list-search">
+        <section className="gov-card mb-8 p-0 overflow-hidden" data-help-id="admin-list-search">
+          <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
+            <MemberSectionToolbar
+              actions={(
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
+                    현재 페이지 {currentPage} / {totalPages}
+                  </span>
+                </div>
+              )}
+              meta="상태와 검색어를 조합해 관리자 목록 기준 화면의 정보 밀도를 동일하게 유지합니다."
+              title="검색 조건"
+            />
+          </div>
           <form
-            className="grid grid-cols-1 md:grid-cols-3 gap-6"
+            className="grid grid-cols-1 gap-6 px-6 py-6 md:grid-cols-3"
             onSubmit={(e) => {
               e.preventDefault();
               load({ pageIndex: 1, searchKeyword, sbscrbSttus: status }).catch((err: Error) => setError(err.message));
@@ -2455,61 +2717,55 @@ export function AdminListMigrationPage() {
           >
             <div>
               <label className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2" htmlFor="status">상태</label>
-              <select
-                className="w-full border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] text-sm focus:ring-[var(--kr-gov-focus)] focus:border-[var(--kr-gov-focus)]"
-                id="status"
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-              >
+              <AdminSelect id="status" value={status} onChange={(e) => setStatus(e.target.value)}>
                 <option value="">전체</option>
                 <option value="P">활성</option>
                 <option value="A">승인 대기</option>
                 <option value="R">반려</option>
                 <option value="D">삭제</option>
                 <option value="X">차단</option>
-              </select>
+              </AdminSelect>
             </div>
             <div className="md:col-span-2">
               <label className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2" htmlFor="keyword">검색어</label>
-              <div className="flex gap-2">
-                <input
-                  className="flex-1 border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] text-sm focus:ring-[var(--kr-gov-focus)] focus:border-[var(--kr-gov-focus)]"
-                  id="keyword"
-                  placeholder="성명, 아이디, 조직ID, 이메일 검색"
-                  value={searchKeyword}
-                  onChange={(e) => setSearchKeyword(e.target.value)}
-                />
-                <button className="px-6 py-2 bg-[var(--kr-gov-blue)] text-white font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)] transition-colors flex items-center gap-2" type="submit">
-                  <span className="material-symbols-outlined text-[18px]">search</span>
-                  검색
-                </button>
+              <AdminInput id="keyword" placeholder="성명, 아이디, 조직ID, 이메일 검색" value={searchKeyword} onChange={(e) => setSearchKeyword(e.target.value)} />
+            </div>
+            <div className="md:col-span-3">
+              <div className="flex flex-col gap-3 border-t border-[var(--kr-gov-border-light)] pt-5 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
+                  동일한 목록형 화면은 검색 카드, 상단 툴바, 결과 테이블 순서를 유지합니다.
+                </p>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <MemberButton onClick={resetFilters} type="button" variant="secondary">
+                    {MEMBER_BUTTON_LABELS.reset}
+                  </MemberButton>
+                  <MemberButton icon="search" type="submit" variant="primary">
+                    {MEMBER_BUTTON_LABELS.search}
+                  </MemberButton>
+                </div>
               </div>
             </div>
           </form>
         </section>
-        <section data-help-id="admin-list-table">
-          <div className="flex justify-between items-center mb-4">
-            <div className="text-[14px]">
-              전체 <span className="font-bold text-[var(--kr-gov-blue)]">{Number(page?.totalCount || 0).toLocaleString("ko-KR")}</span>건
-            </div>
-            <div className="flex gap-2">
-              <a
-                className="flex items-center gap-1.5 px-3 py-2 bg-white border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] text-[13px] font-bold hover:bg-gray-50"
-                href={\`/admin/member/admin_list/excel?searchKeyword=\${encodeURIComponent(searchKeyword)}&sbscrbSttus=\${encodeURIComponent(status)}\`}
-              >
-                <span className="material-symbols-outlined text-[18px]">download</span> 관리자 엑셀 다운로드
-              </a>
-              <a
-                className="flex items-center gap-1.5 px-3 py-2 bg-[var(--kr-gov-green)] text-white rounded-[var(--kr-gov-radius)] text-[13px] font-bold hover:opacity-90"
-                href={buildLocalizedPath("/admin/member/admin_account", "/en/admin/member/admin_account")}
-              >
-                <span className="material-symbols-outlined text-[18px]">person_add</span> 신규 관리자 등록
-              </a>
-            </div>
+        <section className="gov-card p-0 overflow-hidden" data-help-id="admin-list-table">
+          <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
+            <MemberSectionToolbar
+              actions={(
+                <MemberListTopActions
+                  excelHref={buildLocalizedPath(
+                    \`/admin/member/admin_list/excel?searchKeyword=\${encodeURIComponent(searchKeyword)}&sbscrbSttus=\${encodeURIComponent(status)}\`,
+                    \`/en/admin/member/admin_list/excel?searchKeyword=\${encodeURIComponent(searchKeyword)}&sbscrbSttus=\${encodeURIComponent(status)}\`
+                  )}
+                  registerHref={page?.canUseAdminListActions ? buildLocalizedPath("/admin/member/admin_account", "/en/admin/member/admin_account") : undefined}
+                  registerLabel="신규 관리자 등록"
+                />
+              )}
+              meta="관리자 목록 화면은 전체 건수, 다운로드, 신규 등록 버튼의 순서와 높이를 동일하게 유지합니다."
+              title={<MemberCountSummary totalCount={Number(page?.totalCount || 0)} />}
+            />
           </div>
-          <div className="gov-card p-0 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left border-collapse">
+          <div className="overflow-x-auto">
+              <AdminTable>
                 <thead>
                   <tr className="bg-gray-50 border-y border-[var(--kr-gov-border-light)] text-[14px] font-bold text-[var(--kr-gov-text-secondary)]">
                     <th className="px-6 py-4 text-center w-16">번호</th>
@@ -2523,10 +2779,10 @@ export function AdminListMigrationPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {(page?.member_list || []).length === 0 ? (
-                    <tr><td className="px-6 py-8 text-center text-gray-500" colSpan={7}>조회된 관리자 계정이 없습니다.</td></tr>
+                    <MemberListEmptyRow colSpan={7} message="조회된 관리자 계정이 없습니다." />
                   ) : (page?.member_list || []).map((row, index) => (
                     <tr className="hover:bg-gray-50/50 transition-colors" key={\`\${String(row.emplyrId || "admin")}-\${index}\`}>
-                      <td className="px-6 py-4 text-center text-gray-500">{Number(page?.totalCount || 0) - (((Number(page?.pageIndex || 1) - 1) * 10) + index)}</td>
+                      <td className="px-6 py-4 text-center text-gray-500">{Number(page?.totalCount || 0) - (((currentPage - 1) * 10) + index)}</td>
                       <td className="px-6 py-4">
                         <div className="font-bold text-[var(--kr-gov-text-primary)]">{String(row.userNm || "-")}</div>
                         <div className="text-xs text-gray-400">{String(row.emplyrId || "-")}</div>
@@ -2539,44 +2795,22 @@ export function AdminListMigrationPage() {
                           {statusLabel(String(row.emplyrStusCode || ""))}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-center space-x-1">
-                        <a className="inline-flex px-3 py-1.5 border border-[var(--kr-gov-border-light)] text-[12px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-100" href={buildLocalizedPath(\`/admin/member/admin_account/permissions?emplyrId=\${encodeURIComponent(String(row.emplyrId || ""))}\`, \`/en/admin/member/admin_account/permissions?emplyrId=\${encodeURIComponent(String(row.emplyrId || ""))}\`)}>수정</a>
-                        <a className="inline-flex px-3 py-1.5 bg-[var(--kr-gov-blue)] text-white text-[12px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)]" href={buildLocalizedPath(\`/admin/member/admin_account/permissions?emplyrId=\${encodeURIComponent(String(row.emplyrId || ""))}&mode=detail\`, \`/en/admin/member/admin_account/permissions?emplyrId=\${encodeURIComponent(String(row.emplyrId || ""))}&mode=detail\`)}>상세</a>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-wrap items-center justify-center gap-2">
+                          <MemberLinkButton href={buildLocalizedPath(\`/admin/member/admin_account/permissions?emplyrId=\${encodeURIComponent(String(row.emplyrId || ""))}\`, \`/en/admin/member/admin_account/permissions?emplyrId=\${encodeURIComponent(String(row.emplyrId || ""))}\`)} size="xs" variant="secondary">수정</MemberLinkButton>
+                          <MemberLinkButton href={buildLocalizedPath(\`/admin/member/admin_account/permissions?emplyrId=\${encodeURIComponent(String(row.emplyrId || ""))}&mode=detail\`, \`/en/admin/member/admin_account/permissions?emplyrId=\${encodeURIComponent(String(row.emplyrId || ""))}&mode=detail\`)} size="xs" variant="primary">상세</MemberLinkButton>
+                        </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </AdminTable>
             </div>
-            <div className="px-6 py-4 border-t border-[var(--kr-gov-border-light)] bg-gray-50 flex justify-center">
-              <nav className="flex items-center gap-1">
-                <button className="p-1 rounded hover:bg-white border border-transparent hover:border-gray-200 disabled:opacity-40" disabled={Number(page?.pageIndex || 1) <= 1} onClick={() => load({ pageIndex: 1, searchKeyword, sbscrbSttus: status }).catch((err: Error) => setError(err.message))} type="button">
-                  <span className="material-symbols-outlined">first_page</span>
-                </button>
-                <button className="p-1 rounded hover:bg-white border border-transparent hover:border-gray-200 disabled:opacity-40" disabled={Number(page?.pageIndex || 1) <= 1} onClick={() => load({ pageIndex: Math.max(1, Number(page?.pageIndex || 1) - 1), searchKeyword, sbscrbSttus: status }).catch((err: Error) => setError(err.message))} type="button">
-                  <span className="material-symbols-outlined">chevron_left</span>
-                </button>
-                <div className="flex items-center gap-1 mx-4">
-                  {Array.from({ length: Number(page?.totalPages || 0) }, (_, i) => i + 1).map((pageNum) => (
-                    <button
-                      className={\`w-8 h-8 rounded border border-transparent text-sm flex items-center justify-center \${pageNum === Number(page?.pageIndex || 1) ? "bg-[var(--kr-gov-blue)] text-white font-bold" : "hover:bg-white hover:border-gray-200"}\`}
-                      key={pageNum}
-                      onClick={() => load({ pageIndex: pageNum, searchKeyword, sbscrbSttus: status }).catch((err: Error) => setError(err.message))}
-                      type="button"
-                    >
-                      {pageNum}
-                    </button>
-                  ))}
-                </div>
-                <button className="p-1 rounded hover:bg-white border border-transparent hover:border-gray-200 disabled:opacity-40" disabled={Number(page?.pageIndex || 1) >= Number(page?.totalPages || 1)} onClick={() => load({ pageIndex: Math.min(Number(page?.totalPages || 1), Number(page?.pageIndex || 1) + 1), searchKeyword, sbscrbSttus: status }).catch((err: Error) => setError(err.message))} type="button">
-                  <span className="material-symbols-outlined">chevron_right</span>
-                </button>
-                <button className="p-1 rounded hover:bg-white border border-transparent hover:border-gray-200 disabled:opacity-40" disabled={Number(page?.pageIndex || 1) >= Number(page?.totalPages || 1)} onClick={() => load({ pageIndex: Number(page?.totalPages || 1), searchKeyword, sbscrbSttus: status }).catch((err: Error) => setError(err.message))} type="button">
-                  <span className="material-symbols-outlined">last_page</span>
-                </button>
-              </nav>
-            </div>
-          </div>
+          <MemberPagination
+            currentPage={currentPage}
+            onPageChange={(pageNumber) => load({ pageIndex: pageNumber, searchKeyword, sbscrbSttus: status }).catch((err: Error) => setError(err.message))}
+            totalPages={totalPages}
+          />
         </section>
       </CanView>
     </AdminPageShell>
@@ -2762,9 +2996,9 @@ export function AdminPermissionMigrationPage() {
           primary={(
             <PermissionButton
               allowed={!!page?.canUseAdminPermissionSave && !readOnly}
-              className="inline-flex min-w-[220px] items-center justify-center gap-1.5 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-blue)] bg-[var(--kr-gov-blue)] px-6 py-3 text-base font-bold text-white transition-colors hover:border-[var(--kr-gov-blue-hover)] hover:bg-[var(--kr-gov-blue-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex w-full max-w-[320px] items-center justify-center gap-1.5 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-blue)] bg-[var(--kr-gov-blue)] px-6 py-3 text-base font-bold text-white shadow-lg shadow-blue-900/10 transition-colors hover:border-[var(--kr-gov-blue-hover)] hover:bg-[var(--kr-gov-blue-hover)] disabled:cursor-not-allowed disabled:opacity-50"
               onClick={handleSave}
-              reason={readOnly ? text(page, "상세 모드에서는 저장할 수 없습니다.", "Save is unavailable in detail mode.") : text(page, "webmaster만 관리자 권한을 저장할 수 있습니다.", "Only webmaster can save administrator permissions.")}
+              reason={readOnly ? text(page, "상세 모드에서는 저장할 수 없습니다.", "Save is unavailable in detail mode.") : text(page, "권한 범위 안의 관리자만 저장할 수 있습니다.", "Only authorized company administrators can save administrator permissions.")}
               type="button"
             >
               {readOnly ? text(page, "상세 모드", "Detail mode") : text(page, "권한 저장", "Save permissions")}
@@ -2777,7 +3011,7 @@ export function AdminPermissionMigrationPage() {
     </AdminPageShell>
   );
 }
-`,Yt=`import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+`,Jt=`import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { fetchAdminMenuPlaceholderPage, type AdminMenuPlaceholderPagePayload } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
@@ -2840,7 +3074,7 @@ export function AdminMenuPlaceholderPage() {
     </AdminPageShell>
   );
 }
-`,Jt=`import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+`,Qt=`import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { fetchAdminSitemapPage, type SitemapNode, type SitemapPagePayload } from "../../lib/api/client";
@@ -2926,7 +3160,7 @@ export function AdminSitemapMigrationPage() {
     </AdminPageShell>
   );
 }
-`,Qt=`import { getCsrfMeta } from "../../lib/navigation/runtime";
+`,Xt=`import { getCsrfMeta } from "../../lib/navigation/runtime";
 
 export function valueOf(record: Record<string, unknown> | null | undefined, ...keys: string[]) {
   if (!record) {
@@ -3001,7 +3235,7 @@ export async function submitFormRequest(form: HTMLFormElement) {
 export function normalizeUpper(value: string) {
   return value.trim().toUpperCase();
 }
-`,Xt=`import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
+`,Zt=`import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 
 type TemplateFrameConfig = {
   titleKo: string;
@@ -3209,7 +3443,7 @@ export function AdminTemplateFramePage() {
     </main>
   );
 }
-`,Zt=`export type ContextKeyItem = {
+`,ea=`export type ContextKeyItem = {
   label: string;
   value: string;
 };
@@ -3247,7 +3481,7 @@ export function ContextKeyStrip({ items, className = "" }: ContextKeyStripProps)
     </section>
   );
 }
-`,ea=`import type { HTMLAttributes, ReactNode } from "react";
+`,na=`import type { HTMLAttributes, ReactNode } from "react";
 import {
   AppButton,
   AppCheckbox,
@@ -3697,7 +3931,7 @@ export function MetaListPanel({
     </section>
   );
 }
-`,na=`import type { HTMLAttributes, ReactNode } from "react";
+`,ta=`import type { HTMLAttributes, ReactNode } from "react";
 
 type AdminPageFrameProps = HTMLAttributes<HTMLDivElement> & {
   children: ReactNode;
@@ -3742,7 +3976,7 @@ export function AdminSummaryStrip({ children, className = "", ...props }: AdminP
     </section>
   );
 }
-`,ta=`import type {
+`,aa=`import type {
   AnchorHTMLAttributes,
   ButtonHTMLAttributes,
   InputHTMLAttributes,
@@ -3940,7 +4174,7 @@ export function AppRadio(props: InputHTMLAttributes<HTMLInputElement> & AppField
   const { className = "", ...rest } = props;
   return <input {...rest} className={\`app-choice app-choice--radio h-5 w-5 border-[var(--kr-gov-border-light)] text-[var(--kr-gov-blue)] focus:ring-[var(--kr-gov-focus)] \${className}\`.trim()} type="radio" />;
 }
-`,aa=`import { useEffect, useMemo, useState } from "react";
+`,ra=`import { useEffect, useMemo, useState } from "react";
 import { CanView } from "../../components/access/CanView";
 import { AuthChangePagePayload, FrontendSession, fetchAuthChangePage, fetchFrontendSession, saveAdminAuthChange } from "../../lib/api/client";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
@@ -4012,7 +4246,10 @@ export function AuthChangeMigrationPage() {
   const pagedAssignments = visibleAssignments.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const selectedAssignment = (page?.roleAssignments || []).find((row) => row.emplyrId === selectedAdminId) || null;
   const selectedDraftAuthorCode = selectedAssignment ? (drafts[selectedAssignment.emplyrId] || "") : "";
-  const selectedDraftAuthorName = (page?.authorGroups || []).find((group) => group.authorCode === selectedDraftAuthorCode)?.authorNm || "";
+  const selectedDraftAuthorName =
+    (page?.authorGroups || []).find((group) => group.authorCode === selectedDraftAuthorCode)?.authorNm
+    || (selectedAssignment && selectedAssignment.authorCode === selectedDraftAuthorCode ? selectedAssignment.authorNm : "")
+    || "";
   const filteredHistory = useMemo(() => {
     const rows = page?.recentRoleChangeHistory || [];
     if (!selectedAdminId) return rows;
@@ -4126,7 +4363,7 @@ export function AuthChangeMigrationPage() {
     </AdminPageShell>
   );
 }
-`,ra=`import type { Dispatch, SetStateAction } from "react";
+`,sa=`import type { Dispatch, SetStateAction } from "react";
 import type { AuthChangePagePayload } from "../../lib/api/client";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import { AdminInput, AdminSelect, AdminTable, DiagnosticCard, GridToolbar, MemberButton, MemberPagination, MemberPermissionButton } from "../admin-ui/common";
@@ -4305,6 +4542,11 @@ export function AuthChangeTableSection({
             {pagedAssignments.map((row) => {
               const draftCode = drafts[row.emplyrId] || "";
               const changed = draftCode !== (row.authorCode || "");
+              const authorGroupOptions = (page?.authorGroups || []).some((group) => group.authorCode === row.authorCode)
+                ? (page?.authorGroups || [])
+                : row.authorCode
+                  ? [{ authorCode: row.authorCode, authorNm: row.authorNm || row.authorCode }, ...(page?.authorGroups || [])]
+                  : (page?.authorGroups || []);
               return (
                 <tr className={selectedAdminId === row.emplyrId ? "bg-blue-50/60" : ""} id={\`auth-change-row-\${row.emplyrId}\`} key={row.emplyrId} onClick={() => setSelectedAdminId(row.emplyrId)}>
                   <td className="px-4 py-3">
@@ -4317,7 +4559,7 @@ export function AuthChangeTableSection({
                   </td>
                   <td className="px-4 py-3">
                     <AdminSelect className="min-w-[16rem] h-10 px-3 text-sm" disabled={!canEdit} value={draftCode} onChange={(event) => setDrafts((current) => ({ ...current, [row.emplyrId]: event.target.value }))}>
-                      {(page?.authorGroups || []).map((group) => (
+                      {authorGroupOptions.map((group) => (
                         <option key={group.authorCode} value={group.authorCode}>{group.authorNm} ({group.authorCode})</option>
                       ))}
                     </AdminSelect>
@@ -4380,7 +4622,7 @@ export function AuthChangeHistorySection({
     </section>
   );
 }
-`,sa=`import { FormEvent, useEffect, useState } from "react";
+`,oa=`import { FormEvent, useEffect, useState } from "react";
 import {
   AuthGroupPagePayload,
   FrontendSession,
@@ -5923,7 +6165,7 @@ export function AuthGroupMigrationPage() {
     </AdminPageShell>
   );
 }
-`,oa=`import { useState } from "react";
+`,ia=`import { useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { fetchBlocklistPage, type BlocklistPagePayload } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
@@ -5976,7 +6218,7 @@ export function BlocklistMigrationPage() {
     </AdminPageShell>
   );
 }
-`,ia=`import { useEffect, useState } from "react";
+`,la=`import { useEffect, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import {
   type CodexHistoryPayload,
@@ -6965,7 +7207,7 @@ export function CodexProvisionMigrationPage() {
     </AdminPageShell>
   );
 }
-`,la=`import { ChangeEvent, useEffect, useState } from "react";
+`,da=`import { ChangeEvent, useEffect, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { CanView } from "../../components/access/CanView";
@@ -7247,6 +7489,13 @@ export function CompanyAccountMigrationPage() {
               </span>
             </div>
           ) : null}
+          <div className="mb-8 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[#f8fafc] px-5 py-4">
+            <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">Edit Scope</p>
+            <p className="mt-2 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
+              회원사 기본 정보, 담당자 정보, 첨부 파일을 같은 수정 화면 기준으로 정리합니다.
+              기관명 중복 확인과 첨부 파일 추가는 저장 전에 다시 확인하세요.
+            </p>
+          </div>
           <div className="space-y-8">
             <CompanyMembershipSection canUse={!!page?.canUseCompanyAccountSave} form={form} updateField={updateField} />
             <CompanyBusinessSection canUseSave={canUseSave} form={form} handleAddressSearch={handleAddressSearch} handleCheckDuplicate={handleCheckDuplicate} isNameChecked={isNameChecked} nameCheckMessage={nameCheckMessage} updateField={updateField} />
@@ -7255,12 +7504,14 @@ export function CompanyAccountMigrationPage() {
 
             <MemberActionBar
               dataHelpId="company-account-actions"
+              description="목록으로 돌아가거나 상세 화면을 확인한 뒤 현재 회원사 정보를 저장할 수 있습니다."
+              eyebrow="작업 흐름"
               primary={(
                 <MemberPermissionButton
                   allowed={!!page?.canUseCompanyAccountSave}
                   className="w-full max-w-[320px] shadow-lg shadow-blue-900/10"
                   data-action="save"
-                  icon="arrow_forward"
+                  icon="save"
                   onClick={handleSave}
                   reason="전체 관리자만 회원사 정보를 저장할 수 있습니다."
                   size="lg"
@@ -7272,8 +7523,15 @@ export function CompanyAccountMigrationPage() {
               )}
               secondary={{
                 href: buildLocalizedPath("/admin/member/company_list", "/en/admin/member/company_list"),
+                icon: "list",
                 label: MEMBER_BUTTON_LABELS.list
               }}
+              tertiary={form.insttId ? {
+                href: buildLocalizedPath(\`/admin/member/company_detail?insttId=\${encodeURIComponent(form.insttId)}\`, \`/en/admin/member/company_detail?insttId=\${encodeURIComponent(form.insttId)}\`),
+                icon: "preview",
+                label: MEMBER_BUTTON_LABELS.detail
+              } : undefined}
+              title="수정 내용을 검토한 뒤 저장하세요."
             />
           </div>
         </div>
@@ -7281,7 +7539,7 @@ export function CompanyAccountMigrationPage() {
     </AdminPageShell>
   );
 }
-`,da=`import type { ChangeEvent } from "react";
+`,ca=`import type { ChangeEvent } from "react";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import { AdminInput, AdminRadio } from "../admin-ui/common";
 import { MemberButton, MemberIconButton, MemberLinkButton, MEMBER_BUTTON_LABELS } from "../member/common";
@@ -7386,9 +7644,9 @@ export function CompanyBusinessSection({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
         <div className="md:col-span-2">
           <label className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2">기관/기업명 <span className="text-red-500">*</span></label>
-          <div className="flex gap-2">
-            <AdminInput disabled={!canUseSave} value={form.agencyName} onChange={(e) => updateField("agencyName", e.target.value)} />
-            <MemberButton disabled={!canUseSave} onClick={() => void handleCheckDuplicate()} type="button" variant="info">
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <AdminInput className="sm:flex-1" disabled={!canUseSave} value={form.agencyName} onChange={(e) => updateField("agencyName", e.target.value)} />
+            <MemberButton className="shrink-0 whitespace-nowrap sm:min-w-[126px]" disabled={!canUseSave} onClick={() => void handleCheckDuplicate()} type="button" variant="info">
               {MEMBER_BUTTON_LABELS.duplicateCheck}
             </MemberButton>
           </div>
@@ -7406,9 +7664,9 @@ export function CompanyBusinessSection({
         </label>
         <div className="md:col-span-2">
           <label className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2">사업장 주소 <span className="text-red-500">*</span></label>
-          <div className="mb-2 flex gap-2">
+          <div className="mb-2 flex flex-col gap-2 sm:flex-row">
             <AdminInput className="w-32 bg-gray-50" placeholder="우편번호" readOnly value={form.zipCode} />
-            <MemberButton disabled={!canUseSave} onClick={handleAddressSearch} type="button" variant="info">
+            <MemberButton className="shrink-0 whitespace-nowrap sm:min-w-[126px]" disabled={!canUseSave} onClick={handleAddressSearch} type="button" variant="info">
               {MEMBER_BUTTON_LABELS.addressSearch}
             </MemberButton>
           </div>
@@ -7521,7 +7779,7 @@ export function CompanyFilesSection({
     </MemberSectionCard>
   );
 }
-`,ca=`import { useState } from "react";
+`,ma=`import { useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { CanView } from "../../components/access/CanView";
@@ -7549,6 +7807,7 @@ export function CompanyApproveMigrationPage() {
   const [actionError, setActionError] = useState(() => getSearchParam("errorMessage"));
   const [message, setMessage] = useState("");
   const [reviewInsttId, setReviewInsttId] = useState("");
+  const [rejectReason, setRejectReason] = useState("");
   const sessionState = useFrontendSession();
   const pageState = useAsyncValue<CompanyApprovePagePayload>(
     () => fetchCompanyApprovePage({
@@ -7608,11 +7867,13 @@ export function CompanyApproveMigrationPage() {
       await submitCompanyApproveAction(session, {
         action,
         insttId,
-        selectedIds: insttId ? undefined : selectedIds
+        selectedIds: insttId ? undefined : selectedIds,
+        rejectReason: action.includes("reject") ? rejectReason : undefined
       });
       await pageState.reload();
       if (insttId) {
         setReviewInsttId("");
+        setRejectReason("");
       }
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "승인 처리 실패");
@@ -7681,22 +7942,40 @@ export function CompanyApproveMigrationPage() {
 
         <ReviewModalFrame
           footerLeft={(
-            reviewRow ? <MemberPermissionButton allowed={!!page?.canUseCompanyApproveAction} className="flex-1 sm:min-w-[100px] sm:flex-none" onClick={() => handleAction("reject", String(reviewRow.insttId || ""))} reason="전체 관리자만 반려할 수 있습니다." size="lg" type="button" variant="dangerSecondary">{MEMBER_BUTTON_LABELS.reject}</MemberPermissionButton> : null
+            reviewRow ? <MemberPermissionButton allowed={!!page?.canUseCompanyApproveAction} className="flex-1 sm:min-w-[100px] sm:flex-none" onClick={() => handleAction("reject", String(reviewRow.insttId || ""))} reason="마스터 관리자만 반려할 수 있습니다." size="lg" type="button" variant="dangerSecondary">{MEMBER_BUTTON_LABELS.reject}</MemberPermissionButton> : null
           )}
           footerRight={(
-            reviewRow ? <MemberPermissionButton allowed={!!page?.canUseCompanyApproveAction} className="flex-1 sm:flex-none" onClick={() => handleAction("approve", String(reviewRow.insttId || ""))} reason="전체 관리자만 승인할 수 있습니다." size="lg" type="button" variant="primary">{MEMBER_BUTTON_LABELS.approveDone}</MemberPermissionButton> : null
+            reviewRow ? <MemberPermissionButton allowed={!!page?.canUseCompanyApproveAction} className="flex-1 sm:flex-none" onClick={() => handleAction("approve", String(reviewRow.insttId || ""))} reason="마스터 관리자만 승인할 수 있습니다." size="lg" type="button" variant="primary">{MEMBER_BUTTON_LABELS.approveDone}</MemberPermissionButton> : null
           )}
-          onClose={() => setReviewInsttId("")}
+          onClose={() => {
+            setReviewInsttId("");
+            setRejectReason("");
+          }}
           open={!!reviewRow}
-          title="회원가입 신청 상세 검토"
+          title="회원사 가입 신청 상세 검토"
         >
-          {reviewRow ? <CompanyApproveReviewContent reviewRow={reviewRow} /> : null}
+          {reviewRow ? (
+            <>
+              <CompanyApproveReviewContent reviewRow={reviewRow} />
+              <section className="mt-6">
+                <label className="block">
+                  <span className="mb-2 block text-sm font-bold text-[var(--kr-gov-text-primary)]">반려 사유</span>
+                  <textarea
+                    className="gov-input min-h-[120px] py-3"
+                    onChange={(event) => setRejectReason(event.target.value)}
+                    placeholder="회원사 반려 사유를 입력하세요."
+                    value={rejectReason}
+                  />
+                </label>
+              </section>
+            </>
+          ) : null}
         </ReviewModalFrame>
       </CanView>
     </AdminPageShell>
   );
 }
-`,ma=`import type { ReactNode } from "react";
+`,pa=`import type { ReactNode } from "react";
 import type { CompanyApprovePagePayload } from "../../lib/api/client";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import { MemberButton, MemberButtonGroup, MemberPagination, MemberPermissionButton, MemberSectionToolbar, MEMBER_BUTTON_LABELS } from "../member/common";
@@ -7732,8 +8011,14 @@ export function CompanyApproveSearchSection({
   resetFilters: () => void;
 }) {
   return (
-    <section className="gov-card p-5 mb-6" data-help-id="company-approve-search">
-      <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)_auto_auto] lg:items-end">
+    <section className="gov-card mb-6 overflow-hidden p-0" data-help-id="company-approve-search">
+      <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
+        <MemberSectionToolbar
+          meta="회원사 승인 목록은 상태와 검색어 조합을 같은 카드 구조 안에서 유지합니다."
+          title="검색 조건"
+        />
+      </div>
+      <div className="grid gap-4 px-6 py-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-end">
         <label>
           <span className="block text-sm font-bold mb-2">상태</span>
           <select className="w-full rounded border-gray-300 text-sm" value={draftFilters.status} onChange={(e) => updateDraft("status", e.target.value)}>
@@ -7744,8 +8029,17 @@ export function CompanyApproveSearchSection({
           <span className="block text-sm font-bold mb-2">검색어</span>
           <input className="w-full rounded border-gray-300 text-sm" placeholder="회원사명, 사업자등록번호 검색" value={draftFilters.searchKeyword} onChange={(e) => updateDraft("searchKeyword", e.target.value)} />
         </label>
-        <MemberButton onClick={() => applyFilters(1)} type="button" variant="primary">{MEMBER_BUTTON_LABELS.search}</MemberButton>
-        <MemberButton onClick={resetFilters} type="button" variant="secondary">{MEMBER_BUTTON_LABELS.reset}</MemberButton>
+      </div>
+      <div className="border-t border-[var(--kr-gov-border-light)] px-6 py-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
+            동일한 목록형 화면은 검색 카드, 상단 툴바, 결과 테이블 순서를 유지합니다.
+          </p>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <MemberButton onClick={resetFilters} type="button" variant="secondary">{MEMBER_BUTTON_LABELS.reset}</MemberButton>
+            <MemberButton onClick={() => applyFilters(1)} type="button" variant="primary">{MEMBER_BUTTON_LABELS.search}</MemberButton>
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -7774,13 +8068,15 @@ export function CompanyApproveTableSection({
   totalPages: number;
   movePage: (pageNumber: number) => void;
 }) {
+  const canUseBatchAction = !!page?.canUseCompanyApproveAction;
+  const hasSelection = selectedIds.length > 0;
   return (
     <section className="gov-card overflow-hidden" data-help-id="company-approve-table">
       <MemberSectionToolbar
         actions={(
           <MemberButtonGroup data-help-id="company-approve-batch-actions">
-            <MemberPermissionButton allowed={!!page?.canUseCompanyApproveAction && selectedIds.length > 0} onClick={() => handleAction("batch_approve")} reason="전체 관리자만 승인할 수 있습니다." type="button" variant="primary">선택 승인</MemberPermissionButton>
-            <MemberPermissionButton allowed={!!page?.canUseCompanyApproveAction && selectedIds.length > 0} onClick={() => handleAction("batch_reject")} reason="전체 관리자만 반려할 수 있습니다." type="button" variant="dangerSecondary">선택 반려</MemberPermissionButton>
+            <MemberPermissionButton allowed={canUseBatchAction && hasSelection} onClick={() => handleAction("batch_approve")} reason={!canUseBatchAction ? "마스터 관리자만 승인할 수 있습니다." : undefined} type="button" variant="primary">선택 승인</MemberPermissionButton>
+            <MemberPermissionButton allowed={canUseBatchAction && hasSelection} onClick={() => handleAction("batch_reject")} reason={!canUseBatchAction ? "마스터 관리자만 반려할 수 있습니다." : undefined} type="button" variant="dangerSecondary">선택 반려</MemberPermissionButton>
           </MemberButtonGroup>
         )}
         className="border-b border-[var(--kr-gov-border-light)] bg-gray-50 px-6 py-4"
@@ -7841,8 +8137,8 @@ export function CompanyApproveTableSection({
                   <td className="px-4 py-4">
                     <div className="flex flex-wrap items-center justify-center gap-2">
                       <MemberButton onClick={() => openReview(id)} size="xs" type="button" variant="secondary">{MEMBER_BUTTON_LABELS.review}</MemberButton>
-                      <MemberPermissionButton allowed={!!page?.canUseCompanyApproveAction} onClick={() => handleAction("approve", id)} reason="전체 관리자만 승인할 수 있습니다." size="xs" type="button" variant="primary">{MEMBER_BUTTON_LABELS.approve}</MemberPermissionButton>
-                      <MemberPermissionButton allowed={!!page?.canUseCompanyApproveAction} onClick={() => handleAction("reject", id)} reason="전체 관리자만 반려할 수 있습니다." size="xs" type="button" variant="dangerSecondary">{MEMBER_BUTTON_LABELS.reject}</MemberPermissionButton>
+                      <MemberPermissionButton allowed={!!page?.canUseCompanyApproveAction} onClick={() => handleAction("approve", id)} reason="마스터 관리자만 승인할 수 있습니다." size="xs" type="button" variant="primary">{MEMBER_BUTTON_LABELS.approve}</MemberPermissionButton>
+                      <MemberPermissionButton allowed={!!page?.canUseCompanyApproveAction} onClick={() => handleAction("reject", id)} reason="마스터 관리자만 반려할 수 있습니다." size="xs" type="button" variant="dangerSecondary">{MEMBER_BUTTON_LABELS.reject}</MemberPermissionButton>
                     </div>
                   </td>
                 </tr>
@@ -7924,12 +8220,12 @@ export function CompanyApproveReviewContent({
     </>
   );
 }
-`,pa=`import { useEffect, useState } from "react";
+`,ua=`import { useEffect, useState } from "react";
 import { CanView } from "../../components/access/CanView";
 import { buildLocalizedPath, getSearchParam } from "../../lib/navigation/runtime";
 import { CompanyDetailPagePayload, fetchCompanyDetailPage } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
-import { MemberLinkButton, MemberButtonGroup, MEMBER_BUTTON_LABELS } from "../member/common";
+import { MemberActionBar, MemberLinkButton, MemberButtonGroup, MEMBER_BUTTON_LABELS } from "../member/common";
 import { DetailSummaryCard, MemberSectionCard } from "../member/sections";
 
 function resolveInitialInsttId() {
@@ -7974,6 +8270,7 @@ export function CompanyDetailMigrationPage() {
   return (
     <AdminPageShell
       breadcrumbs={[
+        { label: "홈", href: buildLocalizedPath("/admin/", "/en/admin/") },
         { label: "회원관리" },
         { label: "회원사" },
         { label: "회원사 상세" }
@@ -7993,11 +8290,11 @@ export function CompanyDetailMigrationPage() {
         </MemberButtonGroup>
       )}
     >
-      {error ? <section className="mb-4 text-sm font-medium text-red-600">{error}</section> : null}
-      {page?.companyDetailError ? <section className="mb-4 text-sm font-medium text-red-600">{String(page.companyDetailError)}</section> : null}
+      {error ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</section> : null}
+      {page?.companyDetailError ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{String(page.companyDetailError)}</section> : null}
 
       <CanView allowed={!!page?.canViewCompanyDetail} fallback={<section className="gov-card"><p className="text-sm text-[var(--kr-gov-text-secondary)]">회원사 상세를 볼 권한이 없거나 대상이 없습니다.</p></section>}>
-        <section className="gov-card mb-6" data-help-id="company-detail-lookup">
+        <section className="mb-6 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-5 py-4 shadow-sm" data-help-id="company-detail-lookup">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">Lookup Context</p>
@@ -8126,20 +8423,44 @@ export function CompanyDetailMigrationPage() {
             </MemberSectionCard>
           </div>
         </div>
+
+        <MemberActionBar
+          className="mt-10"
+          dataHelpId="company-detail-actions"
+          description="목록으로 돌아가거나 수정 화면으로 이동한 뒤 현재 회원사 상세를 계속 확인할 수 있습니다."
+          eyebrow="상세 작업"
+          primary={(
+            <MemberLinkButton
+              className="w-full max-w-[320px]"
+              href={buildLocalizedPath(\`/admin/member/company_account?insttId=\${encodeURIComponent(insttId)}\`, \`/en/admin/member/company_account?insttId=\${encodeURIComponent(insttId)}\`)}
+              icon="edit_square"
+              size="lg"
+              variant="primary"
+            >
+              {MEMBER_BUTTON_LABELS.edit}
+            </MemberLinkButton>
+          )}
+          secondary={{
+            href: buildLocalizedPath("/admin/member/company_list", "/en/admin/member/company_list"),
+            icon: "list",
+            label: MEMBER_BUTTON_LABELS.list
+          }}
+          title="상세 정보를 확인한 뒤 다음 작업을 선택하세요."
+        />
       </CanView>
     </AdminPageShell>
   );
 }
-`,ua=`import { useMemo, useState, type FormEvent } from "react";
+`,ga=`import { useMemo, useState, type FormEvent } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { CanView } from "../../components/access/CanView";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import { CompanyListPagePayload, fetchCompanyListPage } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
-import { AdminInput, AdminSelect, AdminTable, MemberButton, MemberLinkButton, MemberPagination } from "../member/common";
+import { AdminInput, AdminSelect, AdminTable, MemberButton, MemberLinkButton, MemberPagination, MemberSectionToolbar } from "../member/common";
 import { MEMBER_BUTTON_LABELS, MEMBER_LIST_LABELS } from "../member/labels";
 import { resolveMemberStatusBadgeClass, resolveMemberStatusLabel } from "../member/status";
-import { MemberListEmptyRow, MemberListToolbar } from "../member/toolbar";
+import { MemberCountSummary, MemberListEmptyRow, MemberListTopActions } from "../member/toolbar";
 
 type SearchFilters = {
   searchKeyword: string;
@@ -8221,6 +8542,12 @@ export function CompanyListMigrationPage() {
     applyFilters(1);
   }
 
+  function resetFilters() {
+    setActionError("");
+    setDraftFilters(DEFAULT_FILTERS);
+    setFilters(DEFAULT_FILTERS);
+  }
+
   return (
     <AdminPageShell
       breadcrumbs={[
@@ -8228,14 +8555,28 @@ export function CompanyListMigrationPage() {
         { label: "회원사" },
         { label: "회원사 목록 조회" }
       ]}
+      subtitle="회원사 신청 현황과 운영 상태를 같은 목록 기준으로 확인하고 상세 또는 수정 화면으로 이어집니다."
       title="회원사 목록 조회"
       loading={pageState.loading && !page && !error}
       loadingLabel="회원사 목록을 불러오는 중입니다."
     >
       {error ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">조회 중 오류: {error}</section> : null}
       <CanView allowed={!!page?.canViewCompanyList} fallback={<section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm"><p className="text-sm text-[var(--kr-gov-text-secondary)]">회원사 목록을 볼 권한이 없습니다.</p></section>}>
-        <section className="gov-card mb-8" data-help-id="company-list-search">
-          <form className="grid grid-cols-1 md:grid-cols-3 gap-6" onSubmit={handleSearchSubmit}>
+        <section className="gov-card mb-8 p-0 overflow-hidden" data-help-id="company-list-search">
+          <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
+            <MemberSectionToolbar
+              actions={(
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
+                    현재 페이지 {currentPage} / {totalPages}
+                  </span>
+                </div>
+              )}
+              meta="상태와 검색어를 조합해 회원사 목록 기준 화면의 정보 밀도를 동일하게 유지합니다."
+              title="검색 조건"
+            />
+          </div>
+          <form className="grid grid-cols-1 gap-6 px-6 py-6 md:grid-cols-3" onSubmit={handleSearchSubmit}>
             <label>
               <span className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">상태</span>
               <AdminSelect value={draftFilters.status} onChange={(e) => updateDraft("status", e.target.value)}>
@@ -8244,24 +8585,40 @@ export function CompanyListMigrationPage() {
             </label>
             <label className="md:col-span-2">
               <span className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">검색어</span>
-              <div className="flex gap-2">
-                <AdminInput className="flex-1" placeholder="기관명, 사업자등록번호 검색" value={draftFilters.searchKeyword} onChange={(e) => updateDraft("searchKeyword", e.target.value)} />
-                <MemberButton icon="search" type="submit" variant="primary">
-                  {MEMBER_BUTTON_LABELS.search}
-                </MemberButton>
-              </div>
+              <AdminInput className="w-full" placeholder="기관명, 사업자등록번호 검색" value={draftFilters.searchKeyword} onChange={(e) => updateDraft("searchKeyword", e.target.value)} />
             </label>
+            <div className="md:col-span-3">
+              <div className="flex flex-col gap-3 border-t border-[var(--kr-gov-border-light)] pt-5 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
+                  동일한 목록형 화면은 검색 카드, 상단 툴바, 결과 테이블 순서를 유지합니다.
+                </p>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <MemberButton onClick={resetFilters} type="button" variant="secondary">
+                    {MEMBER_BUTTON_LABELS.reset}
+                  </MemberButton>
+                  <MemberButton icon="search" type="submit" variant="primary">
+                    {MEMBER_BUTTON_LABELS.search}
+                  </MemberButton>
+                </div>
+              </div>
+            </div>
           </form>
         </section>
 
-        <MemberListToolbar
-          className="mb-4"
-          excelHref={buildLocalizedPath(\`/admin/member/company_list/excel\${exportQuery}\`, \`/en/admin/member/company_list/excel\${exportQuery}\`)}
-          registerHref={buildLocalizedPath("/admin/member/company_account", "/en/admin/member/company_account")}
-          totalCount={Number(page?.totalCount || 0)}
-        />
-
         <section className="gov-card p-0 overflow-hidden" data-help-id="company-list-table">
+          <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
+            <MemberSectionToolbar
+              actions={(
+                <MemberListTopActions
+                  excelHref={buildLocalizedPath(\`/admin/member/company_list/excel\${exportQuery}\`, \`/en/admin/member/company_list/excel\${exportQuery}\`)}
+                  registerHref={buildLocalizedPath("/admin/member/company_account", "/en/admin/member/company_account")}
+                  registerLabel="신규 회원사 등록"
+                />
+              )}
+              meta="회원사 목록 화면은 전체 건수, 다운로드, 신규 등록 버튼의 순서와 높이를 동일하게 유지합니다."
+              title={<MemberCountSummary totalCount={Number(page?.totalCount || 0)} />}
+            />
+          </div>
           <div className="overflow-x-auto">
             <AdminTable>
               <thead>
@@ -8289,13 +8646,15 @@ export function CompanyListMigrationPage() {
                       <td className="px-6 py-4 text-center">
                         <span className={\`inline-flex px-2 py-0.5 text-[11px] font-bold rounded-full \${resolveMemberStatusBadgeClass(row.joinStat)}\`}>{resolveMemberStatusLabel(row.joinStat)}</span>
                       </td>
-                      <td className="px-6 py-4 text-center space-x-1">
-                        <MemberLinkButton href={buildLocalizedPath(\`/admin/member/company_account?insttId=\${encodeURIComponent(insttId)}\`, \`/en/admin/member/company_account?insttId=\${encodeURIComponent(insttId)}\`)} size="xs" variant="secondary">
-                          {MEMBER_BUTTON_LABELS.edit}
-                        </MemberLinkButton>
-                        <MemberLinkButton href={buildLocalizedPath(\`/admin/member/company_detail?insttId=\${encodeURIComponent(insttId)}\`, \`/en/admin/member/company_detail?insttId=\${encodeURIComponent(insttId)}\`)} size="xs" variant="primary">
-                          {MEMBER_BUTTON_LABELS.detail}
-                        </MemberLinkButton>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-wrap items-center justify-center gap-2">
+                          <MemberLinkButton href={buildLocalizedPath(\`/admin/member/company_account?insttId=\${encodeURIComponent(insttId)}\`, \`/en/admin/member/company_account?insttId=\${encodeURIComponent(insttId)}\`)} size="xs" variant="secondary">
+                            {MEMBER_BUTTON_LABELS.edit}
+                          </MemberLinkButton>
+                          <MemberLinkButton href={buildLocalizedPath(\`/admin/member/company_detail?insttId=\${encodeURIComponent(insttId)}\`, \`/en/admin/member/company_detail?insttId=\${encodeURIComponent(insttId)}\`)} size="xs" variant="primary">
+                            {MEMBER_BUTTON_LABELS.detail}
+                          </MemberLinkButton>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -8309,7 +8668,7 @@ export function CompanyListMigrationPage() {
     </AdminPageShell>
   );
 }
-`,ga=`import { useEffect, useState } from "react";
+`,va=`import { useEffect, useState } from "react";
 import { CanView } from "../../components/access/CanView";
 import { DeptRolePagePayload, FrontendSession, fetchDeptRolePage, fetchFrontendSession, readBootstrappedDeptRolePageData, saveDeptRoleMapping, saveDeptRoleMember } from "../../lib/api/client";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
@@ -8440,7 +8799,7 @@ export function DeptRoleMappingMigrationPage() {
     </AdminPageShell>
   );
 }
-`,va=`import type { Dispatch, SetStateAction } from "react";
+`,ba=`import type { Dispatch, SetStateAction } from "react";
 import type { DeptRolePagePayload } from "../../lib/api/client";
 import { GridToolbar, MemberButton, MemberPagination, MemberPermissionButton } from "../admin-ui/common";
 
@@ -8565,7 +8924,7 @@ export function DeptRoleMemberTable({ page, canUseAllCompanies, canUseOwnCompany
     </div>
   );
 }
-`,ba=`import { useMemo, useState } from "react";
+`,xa=`import { useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { fetchEmissionResultListPage, readBootstrappedEmissionResultListPageData, type EmissionResultListPagePayload } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
@@ -8736,7 +9095,7 @@ export function EmissionResultListMigrationPage() {
     </AdminPageShell>
   );
 }
-`,xa=`import { FormEvent, Fragment, useEffect, useMemo, useState } from "react";
+`,ya=`import { FormEvent, Fragment, useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { findManifestByMenuCodeOrRoutePath, normalizeManifestLookupPath } from "../../app/screen-registry/pageManifestIndex";
 import {
@@ -12723,7 +13082,7 @@ export function EnvironmentManagementHubPage() {
     </AdminPageShell>
   );
 }
-`,ya=`import { FormEvent, useState } from "react";
+`,fa=`import { FormEvent, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { type FunctionManagementPagePayload, fetchFunctionManagementPage } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
@@ -12978,7 +13337,7 @@ export function FunctionManagementMigrationPage() {
     </AdminPageShell>
   );
 }
-`,fa=`import { useEffect, useMemo, useState } from "react";
+`,ha=`import { useEffect, useMemo, useState } from "react";
 import { findManifestByPageId, listPageManifestOptions } from "../../app/screen-registry/pageManifestIndex";
 import {
   AuditEventSearchPayload,
@@ -13402,7 +13761,7 @@ export function HelpManagementMigrationPage() {
     </AdminPageShell>
   );
 }
-`,ha=`import { useEffect, useMemo, useState } from "react";
+`,Na=`import { useEffect, useMemo, useState } from "react";
 import {
   fetchScreenCommandPage,
   getScreenCommandChainText,
@@ -13847,7 +14206,7 @@ export function ScreenCommandCenterPanel({ initialPageId }: ScreenCommandCenterP
     </div>
   );
 }
-`,Na=`import { useEffect, useMemo, useState } from "react";
+`,ka=`import { useEffect, useMemo, useState } from "react";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { buildLocalizedPath, getNavigationEventName, isEnglish, navigate } from "../../lib/navigation/runtime";
@@ -13989,7 +14348,7 @@ export function HomeLandingPage() {
     </>
   );
 }
-`,ka=`import { buildLocalizedPath, navigate } from "../../lib/navigation/runtime";
+`,Sa=`import { buildLocalizedPath, navigate } from "../../lib/navigation/runtime";
 import { useMemo, useState } from "react";
 import { HomeButton, HomeInput, HomeLinkButton } from "../home-ui/common";
 import { HOME_ENTRY_ASSETS, LOCALIZED_CONTENT, LocalizedHomeContent } from "./homeEntryContent";
@@ -14440,7 +14799,7 @@ export function HomeFooter({ content }: { content: LocalizedHomeContent }) {
     </footer>
   );
 }
-`,Sa=`import {
+`,wa=`import {
   UserGovernmentBar,
   UserLanguageToggle,
   UserPortalFooter,
@@ -14527,7 +14886,7 @@ export function HomeMenuPlaceholderPage() {
     </div>
   );
 }
-`,wa=`export {
+`,Ca=`export {
   AppButton as HomeButton,
   AppCheckbox as HomeCheckbox,
   AppIconButton as HomeIconButton,
@@ -14538,7 +14897,7 @@ export function HomeMenuPlaceholderPage() {
   AppTable as HomeTable,
   AppTextarea as HomeTextarea
 } from "../app-ui/primitives";
-`,Ca=`import { useState } from "react";
+`,Ia=`import { useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { type IpWhitelistPagePayload, fetchIpWhitelistPage } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
@@ -14747,7 +15106,7 @@ export function IpWhitelistMigrationPage() {
     </AdminPageShell>
   );
 }
-`,Ia=`import { ChangeEvent, useEffect, useId, useState } from "react";
+`,Pa=`import { ChangeEvent, useEffect, useId, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useExternalScript } from "../../app/hooks/useExternalScript";
 import { buildLocalizedPath, getSearchParam, isEnglish, navigate } from "../../lib/navigation/runtime";
@@ -15299,7 +15658,7 @@ export function JoinCompanyReapplyMigrationPage() {
     </div>
   );
 }
-`,Pa=`import { resetJoinSession } from "../../lib/api/client";
+`,Ma=`import { resetJoinSession } from "../../lib/api/client";
 import { buildLocalizedPath, getSearchParam, isEnglish, navigate } from "../../lib/navigation/runtime";
 
 type CompanyRegisterCompletePayload = {
@@ -15495,7 +15854,7 @@ export function JoinCompanyRegisterCompleteMigrationPage() {
     </div>
   );
 }
-`,Ma=`import { ChangeEvent, KeyboardEvent, useMemo, useState } from "react";
+`,Aa=`import { ChangeEvent, KeyboardEvent, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useExternalScript } from "../../app/hooks/useExternalScript";
 import {
@@ -16189,7 +16548,7 @@ export function JoinCompanyRegisterMigrationPage() {
     </div>
   );
 }
-`,Aa=`import { useMemo, useState } from "react";
+`,Ea=`import { useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { fetchJoinCompanyStatusDetail } from "../../lib/api/client";
 import { buildLocalizedPath, getSearchParam, isEnglish, navigate } from "../../lib/navigation/runtime";
@@ -16931,7 +17290,7 @@ export function JoinCompanyStatusMigrationPage() {
     </div>
   );
 }
-`,Ea=`import { useState } from "react";
+`,Ra=`import { useState } from "react";
 import { resetJoinSession, saveJoinStep3 } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
 
@@ -17278,7 +17637,7 @@ export function JoinAuthMigrationPage() {
     </div>
   );
 }
-`,Ra=`import { resetJoinSession } from "../../lib/api/client";
+`,Ta=`import { resetJoinSession } from "../../lib/api/client";
 import { buildLocalizedPath, getSearchParam, isEnglish, navigate } from "../../lib/navigation/runtime";
 
 type JoinCompletePayload = {
@@ -17508,7 +17867,7 @@ export function JoinCompleteMigrationPage() {
     </div>
   );
 }
-`,Ta=`import { ChangeEvent, useEffect, useMemo, useState } from "react";
+`,La=`import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useJoinSession } from "../../app/hooks/useJoinSession";
 import {
@@ -18235,7 +18594,7 @@ export function JoinInfoMigrationPage() {
     </div>
   );
 }
-`,La=`import { useState } from "react";
+`,Ba=`import { useState } from "react";
 import { resetJoinSession, saveJoinStep2 } from "../../lib/api/client";
 import { useJoinSession } from "../../app/hooks/useJoinSession";
 import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
@@ -18498,7 +18857,7 @@ export function JoinTermsMigrationPage() {
     </div>
   );
 }
-`,Ba=`import { useEffect, useState } from "react";
+`,Da=`import { useEffect, useState } from "react";
 import { resetJoinSession, saveJoinStep1 } from "../../lib/api/client";
 import { useJoinSession } from "../../app/hooks/useJoinSession";
 import {
@@ -18748,7 +19107,7 @@ export function JoinWizardMigrationPage() {
     </div>
   );
 }
-`,Da=`import { fetchLoginHistoryPage } from "../../lib/api/client";
+`,Fa=`import { fetchLoginHistoryPage } from "../../lib/api/client";
 import { LoginHistorySharedPage } from "../security-history/LoginHistorySharedPage";
 
 export function LoginHistoryMigrationPage() {
@@ -18764,7 +19123,7 @@ export function LoginHistoryMigrationPage() {
     />
   );
 }
-`,Fa=`import { useState } from "react";
+`,Ua=`import { useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { CanView } from "../../components/access/CanView";
@@ -18793,6 +19152,7 @@ export function MemberApproveMigrationPage() {
   const [actionError, setActionError] = useState(() => getSearchParam("errorMessage"));
   const [message, setMessage] = useState("");
   const [reviewMemberId, setReviewMemberId] = useState("");
+  const [rejectReason, setRejectReason] = useState("");
   const sessionState = useFrontendSession();
   const pageState = useAsyncValue<MemberApprovePagePayload>(
     () => fetchMemberApprovePage({
@@ -18854,11 +19214,13 @@ export function MemberApproveMigrationPage() {
       await submitMemberApproveAction(session, {
         action,
         memberId,
-        selectedIds: memberId ? undefined : selectedIds
+        selectedIds: memberId ? undefined : selectedIds,
+        rejectReason: action.includes("reject") ? rejectReason : undefined
       });
       await pageState.reload();
       if (memberId) {
         setReviewMemberId("");
+        setRejectReason("");
       }
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "승인 처리 실패");
@@ -18913,22 +19275,40 @@ export function MemberApproveMigrationPage() {
 
         <ReviewModalFrame
           footerLeft={(
-            reviewRow ? <MemberPermissionButton allowed={!!page?.canUseMemberApproveAction} className="flex-1 sm:min-w-[100px] sm:flex-none" onClick={() => handleAction("reject", String(reviewRow.memberId || ""))} reason="전체 관리자만 반려할 수 있습니다." size="lg" type="button" variant="dangerSecondary">{MEMBER_BUTTON_LABELS.reject}</MemberPermissionButton> : null
+            reviewRow ? <MemberPermissionButton allowed={!!page?.canUseMemberApproveAction} className="flex-1 sm:min-w-[100px] sm:flex-none" onClick={() => handleAction("reject", String(reviewRow.memberId || ""))} reason="권한 있는 관리자만 반려할 수 있습니다." size="lg" type="button" variant="dangerSecondary">{MEMBER_BUTTON_LABELS.reject}</MemberPermissionButton> : null
           )}
           footerRight={(
-            reviewRow ? <MemberPermissionButton allowed={!!page?.canUseMemberApproveAction} className="flex-1 sm:flex-none" onClick={() => handleAction("approve", String(reviewRow.memberId || ""))} reason="전체 관리자만 승인할 수 있습니다." size="lg" type="button" variant="primary">{MEMBER_BUTTON_LABELS.approveDone}</MemberPermissionButton> : null
+            reviewRow ? <MemberPermissionButton allowed={!!page?.canUseMemberApproveAction} className="flex-1 sm:flex-none" onClick={() => handleAction("approve", String(reviewRow.memberId || ""))} reason="권한 있는 관리자만 승인할 수 있습니다." size="lg" type="button" variant="primary">{MEMBER_BUTTON_LABELS.approveDone}</MemberPermissionButton> : null
           )}
-          onClose={() => setReviewMemberId("")}
+          onClose={() => {
+            setReviewMemberId("");
+            setRejectReason("");
+          }}
           open={!!reviewRow}
-          title="회원가입 신청 상세 검토"
+          title="회원 가입 신청 상세 검토"
         >
-          {reviewRow ? <MemberApproveReviewContent reviewRow={reviewRow} /> : null}
+          {reviewRow ? (
+            <>
+              <MemberApproveReviewContent reviewRow={reviewRow} />
+              <section className="mt-6">
+                <label className="block">
+                  <span className="mb-2 block text-sm font-bold text-[var(--kr-gov-text-primary)]">반려 사유</span>
+                  <textarea
+                    className="gov-input min-h-[120px] py-3"
+                    onChange={(event) => setRejectReason(event.target.value)}
+                    placeholder="상세 검토 후 반려 사유를 입력하세요."
+                    value={rejectReason}
+                  />
+                </label>
+              </section>
+            </>
+          ) : null}
         </ReviewModalFrame>
       </CanView>
     </AdminPageShell>
   );
 }
-`,Ua=`import type { ReactNode } from "react";
+`,Oa=`import type { ReactNode } from "react";
 import type { MemberApprovePagePayload } from "../../lib/api/client";
 import { MemberButton, MemberButtonGroup, MemberPagination, MemberPermissionButton, MemberSectionToolbar, MEMBER_BUTTON_LABELS } from "../member/common";
 import { MEMBER_APPROVAL_STATUS_OPTIONS, MEMBER_TYPE_OPTIONS } from "../member/shared";
@@ -18959,8 +19339,14 @@ export function MemberApproveSearchSection({
   resetFilters: () => void;
 }) {
   return (
-    <section className="gov-card p-5 mb-6" data-help-id="member-approve-search">
-      <div className="grid gap-4 lg:grid-cols-[220px_220px_minmax(0,1fr)_auto_auto] lg:items-end">
+    <section className="gov-card mb-6 overflow-hidden p-0" data-help-id="member-approve-search">
+      <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
+        <MemberSectionToolbar
+          meta="회원 승인 목록은 회원구분, 상태, 검색어 조합을 같은 카드 구조 안에서 유지합니다."
+          title="검색 조건"
+        />
+      </div>
+      <div className="grid gap-4 px-6 py-6 lg:grid-cols-[220px_220px_minmax(0,1fr)] lg:items-end">
         <label>
           <span className="block text-sm font-bold mb-2">회원구분</span>
           <select className="gov-select h-10" value={draftFilters.membershipType} onChange={(e) => updateDraft("membershipType", e.target.value)}>
@@ -18977,8 +19363,17 @@ export function MemberApproveSearchSection({
           <span className="block text-sm font-bold mb-2">검색어</span>
           <input className="gov-input h-10" placeholder="신청자명, 회원 ID, 기관명 검색" value={draftFilters.searchKeyword} onChange={(e) => updateDraft("searchKeyword", e.target.value)} />
         </label>
-        <MemberButton onClick={() => applyFilters(1)} type="button" variant="primary">{MEMBER_BUTTON_LABELS.search}</MemberButton>
-        <MemberButton onClick={resetFilters} type="button" variant="secondary">{MEMBER_BUTTON_LABELS.reset}</MemberButton>
+      </div>
+      <div className="border-t border-[var(--kr-gov-border-light)] px-6 py-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
+            동일한 목록형 화면은 검색 카드, 상단 툴바, 결과 테이블 순서를 유지합니다.
+          </p>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <MemberButton onClick={resetFilters} type="button" variant="secondary">{MEMBER_BUTTON_LABELS.reset}</MemberButton>
+            <MemberButton onClick={() => applyFilters(1)} type="button" variant="primary">{MEMBER_BUTTON_LABELS.search}</MemberButton>
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -19007,13 +19402,15 @@ export function MemberApproveTableSection({
   totalPages: number;
   movePage: (pageNumber: number) => void;
 }) {
+  const canUseBatchAction = !!page?.canUseMemberApproveAction;
+  const hasSelection = selectedIds.length > 0;
   return (
     <section className="gov-card overflow-hidden" data-help-id="member-approve-table">
       <MemberSectionToolbar
         actions={(
           <MemberButtonGroup data-help-id="member-approve-batch-actions">
-            <MemberPermissionButton allowed={!!page?.canUseMemberApproveAction && selectedIds.length > 0} onClick={() => handleAction("batch_approve")} reason="전체 관리자만 승인할 수 있습니다." type="button" variant="primary">선택 승인</MemberPermissionButton>
-            <MemberPermissionButton allowed={!!page?.canUseMemberApproveAction && selectedIds.length > 0} onClick={() => handleAction("batch_reject")} reason="전체 관리자만 반려할 수 있습니다." type="button" variant="dangerSecondary">선택 반려</MemberPermissionButton>
+            <MemberPermissionButton allowed={canUseBatchAction && hasSelection} onClick={() => handleAction("batch_approve")} reason={!canUseBatchAction ? "권한 있는 관리자만 승인할 수 있습니다." : undefined} type="button" variant="primary">선택 승인</MemberPermissionButton>
+            <MemberPermissionButton allowed={canUseBatchAction && hasSelection} onClick={() => handleAction("batch_reject")} reason={!canUseBatchAction ? "권한 있는 관리자만 반려할 수 있습니다." : undefined} type="button" variant="dangerSecondary">선택 반려</MemberPermissionButton>
           </MemberButtonGroup>
         )}
         className="border-b border-[var(--kr-gov-border-light)] bg-gray-50 px-6 py-4"
@@ -19072,8 +19469,8 @@ export function MemberApproveTableSection({
                   <td className="px-4 py-4">
                     <div className="flex flex-wrap items-center justify-center gap-2">
                       <MemberButton onClick={() => openReview(id)} size="xs" type="button" variant="secondary">{MEMBER_BUTTON_LABELS.review}</MemberButton>
-                      <MemberPermissionButton allowed={!!page?.canUseMemberApproveAction} onClick={() => handleAction("approve", id)} reason="전체 관리자만 승인할 수 있습니다." size="xs" type="button" variant="primary">{MEMBER_BUTTON_LABELS.approve}</MemberPermissionButton>
-                      <MemberPermissionButton allowed={!!page?.canUseMemberApproveAction} onClick={() => handleAction("reject", id)} reason="전체 관리자만 반려할 수 있습니다." size="xs" type="button" variant="dangerSecondary">{MEMBER_BUTTON_LABELS.reject}</MemberPermissionButton>
+                      <MemberPermissionButton allowed={!!page?.canUseMemberApproveAction} onClick={() => handleAction("approve", id)} reason="권한 있는 관리자만 승인할 수 있습니다." size="xs" type="button" variant="primary">{MEMBER_BUTTON_LABELS.approve}</MemberPermissionButton>
+                      <MemberPermissionButton allowed={!!page?.canUseMemberApproveAction} onClick={() => handleAction("reject", id)} reason="권한 있는 관리자만 반려할 수 있습니다." size="xs" type="button" variant="dangerSecondary">{MEMBER_BUTTON_LABELS.reject}</MemberPermissionButton>
                     </div>
                   </td>
                 </tr>
@@ -19154,7 +19551,7 @@ export function MemberApproveReviewContent({
     </>
   );
 }
-`,Oa=`import { useState } from "react";
+`,_a=`import { useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { CanView } from "../../components/access/CanView";
@@ -19214,7 +19611,7 @@ export function MemberDetailMigrationPage() {
         { label: "회원 목록", href: buildLocalizedPath("/admin/member/list", "/en/admin/member/list") },
         { label: "상세 정보" }
       ]}
-      subtitle=""
+      subtitle="회원 기본 정보, 소속 정보, 제출 서류, 비밀번호 초기화 이력을 읽기 전용으로 확인합니다."
       title="회원 상세 정보"
       loading={pageState.loading && !page && !error}
       loadingLabel="회원 상세 정보를 불러오는 중입니다."
@@ -19380,13 +19777,21 @@ export function MemberDetailMigrationPage() {
         <MemberActionBar
           className="mt-10"
           dataHelpId="member-action-bar"
-          description="목록으로 돌아가거나 수정 화면으로 이동한 뒤, 검토 결과에 따라 승인 또는 반려를 진행합니다."
-          eyebrow="검토 작업"
+          description="목록으로 돌아가거나 수정 화면으로 이동하고, 필요할 때 비밀번호를 초기화할 수 있습니다."
+          eyebrow="상세 작업"
           primary={(
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <MemberPermissionButton allowed={true} className="w-full min-w-[160px]" size="lg" type="button" variant="dangerSecondary">{MEMBER_BUTTON_LABELS.reject}</MemberPermissionButton>
-              <MemberPermissionButton allowed={true} className="w-full min-w-[160px] shadow-lg shadow-emerald-900/10" size="lg" type="button" variant="success">{MEMBER_BUTTON_LABELS.approve}</MemberPermissionButton>
-            </div>
+            <MemberPermissionButton
+              allowed={true}
+              className="w-full max-w-[320px]"
+              icon="lock_reset"
+              onClick={handleResetPassword}
+              reason=""
+              size="lg"
+              type="button"
+              variant="secondary"
+            >
+              비밀번호 초기화
+            </MemberPermissionButton>
           )}
           secondary={{
             href: buildLocalizedPath("/admin/member/list", "/en/admin/member/list"),
@@ -19398,13 +19803,13 @@ export function MemberDetailMigrationPage() {
             icon: "edit_square",
             label: MEMBER_BUTTON_LABELS.edit
           }}
-          title="회원 상태를 최종 검토한 뒤 다음 작업을 선택하세요."
+          title="상세 정보를 확인한 뒤 다음 작업을 선택하세요."
         />
       </CanView>
     </AdminPageShell>
   );
 }
-`,_a=`import { useState } from "react";
+`,$a=`import { useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { CanView } from "../../components/access/CanView";
@@ -19690,7 +20095,7 @@ export function MemberEditMigrationPage() {
     </AdminPageShell>
   );
 }
-`,$a=`import type { Dispatch, SetStateAction } from "react";
+`,ja=`import type { Dispatch, SetStateAction } from "react";
 import type { MemberEditPagePayload } from "../../lib/api/client";
 import { AdminCheckbox, AdminInput, AdminSelect, AdminTextarea } from "../admin-ui/common";
 import { MemberLinkButton, MEMBER_BUTTON_LABELS } from "../member/common";
@@ -19993,7 +20398,7 @@ export function MemberEditMainSections({
     </div>
   );
 }
-`,ja=`import { useState } from "react";
+`,za=`import { useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { CanView } from "../../components/access/CanView";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
@@ -20022,6 +20427,42 @@ const DEFAULT_FILTERS: SearchFilters = {
   status: "",
   pageIndex: 1
 };
+
+function readInitialFilters(): SearchFilters {
+  if (typeof window === "undefined") {
+    return DEFAULT_FILTERS;
+  }
+  const params = new URLSearchParams(window.location.search);
+  return {
+    searchKeyword: params.get("searchKeyword") || "",
+    membershipType: params.get("membershipType") || "",
+    status: params.get("sbscrbSttus") || "",
+    pageIndex: Number(params.get("pageIndex") || "1") || 1
+  };
+}
+
+function resolveMemberListPageCopy(status: string) {
+  const normalizedStatus = String(status || "").trim().toUpperCase();
+  if (normalizedStatus === "D") {
+    return {
+      breadcrumb: "탈퇴 회원",
+      title: "탈퇴 회원",
+      subtitle: "삭제 상태 회원을 조회하고 상세 이력을 확인합니다."
+    };
+  }
+  if (normalizedStatus === "X") {
+    return {
+      breadcrumb: "휴면 계정",
+      title: "휴면 계정",
+      subtitle: "비활성 상태 회원을 조회하고 후속 조치 대상 여부를 확인합니다."
+    };
+  }
+  return {
+    breadcrumb: "회원 목록 조회",
+    title: "회원 목록 조회",
+    subtitle: "검색 조건과 가입 상태를 기준으로 기업 회원 신청 현황을 빠르게 확인하고 상세 관리 화면으로 이동합니다."
+  };
+}
 
 function buildAdminPath(koPath: string, enPath: string, key?: string, value?: string) {
   const params = new URLSearchParams();
@@ -20054,8 +20495,8 @@ function buildMemberListExcelPath(filters: SearchFilters) {
 }
 
 export function MemberListMigrationPage() {
-  const [filters, setFilters] = useState<SearchFilters>(DEFAULT_FILTERS);
-  const [draftFilters, setDraftFilters] = useState<SearchFilters>(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState<SearchFilters>(() => readInitialFilters());
+  const [draftFilters, setDraftFilters] = useState<SearchFilters>(() => readInitialFilters());
   const [actionError, setActionError] = useState("");
   const pageState = useAsyncValue<MemberListPagePayload>(
     () => fetchMemberListPage({
@@ -20082,6 +20523,7 @@ export function MemberListMigrationPage() {
   const error = actionError || pageState.error;
   const totalPages = Math.max(1, Number(page?.totalPages || 1));
   const currentPage = Math.max(1, Number(page?.pageIndex || filters.pageIndex || 1));
+  const pageCopy = resolveMemberListPageCopy(filters.status || page?.sbscrbSttus || "");
 
   function updateDraft<K extends keyof SearchFilters>(key: K, value: SearchFilters[K]) {
     setDraftFilters((current) => ({ ...current, [key]: value }));
@@ -20116,10 +20558,15 @@ export function MemberListMigrationPage() {
       breadcrumbs={[
         { label: "홈", href: buildLocalizedPath("/admin/", "/en/admin/") },
         { label: "회원" },
-        { label: "회원 목록 조회" }
+        { label: pageCopy.breadcrumb }
       ]}
+<<<<<<<< HEAD:src/main/resources/static/react-app/assets/ScreenBuilderMigrationPage-CZbFxIVZ.js
       subtitle="검색 조건과 가입 상태를 기준으로 기업 회원 신청 현황을 빠르게 확인하고 상세 관리 화면으로 이동합니다."
       title="회원 목록 조회"
+========
+      subtitle={pageCopy.subtitle}
+      title={pageCopy.title}
+>>>>>>>> origin/20260322-member-management-authority:src/main/resources/static/react-app/assets/ScreenBuilderMigrationPage-CHm0YpmW.js
       loading={pageState.loading && !page && !error}
       loadingLabel="회원 목록을 불러오는 중입니다."
     >
@@ -20250,13 +20697,19 @@ export function MemberListMigrationPage() {
     </AdminPageShell>
   );
 }
-`,za=`import { FormEvent, useState } from "react";
+`,Va=`import { FormEvent, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
-import { fetchMemberRegisterPage, type MemberRegisterPagePayload } from "../../lib/api/client";
-import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
+import {
+  fetchMemberRegisterPage,
+  searchAdminCompanies,
+  type CompanySearchPayload,
+  type MemberRegisterPagePayload
+} from "../../lib/api/client";
+import { CanView } from "../../components/access/CanView";
+import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { stringOf } from "../admin-system/adminSystemShared";
-import { MemberButton } from "../member/common";
+import { MemberActionBar, MemberPermissionButton } from "../member/common";
 
 type RegisterFormState = {
   userName: string;
@@ -20264,7 +20717,10 @@ type RegisterFormState = {
   userEmail: string;
   userPhone: string;
   userType: string;
+  insttId: string;
   orgName: string;
+  orgBizNo: string;
+  orgRepresentative: string;
   dept: string;
   title: string;
   permissions: string[];
@@ -20276,7 +20732,10 @@ const INITIAL_STATE: RegisterFormState = {
   userEmail: "",
   userPhone: "",
   userType: "",
+  insttId: "",
   orgName: "",
+  orgBizNo: "",
+  orgRepresentative: "",
   dept: "",
   title: "",
   permissions: []
@@ -20290,8 +20749,22 @@ export function MemberRegisterMigrationPage() {
   const permissionOptions = (page?.permissionOptions || []) as Array<Record<string, string>>;
   const [form, setForm] = useState(INITIAL_STATE);
   const [duplicateState, setDuplicateState] = useState<"idle" | "ok" | "error">("idle");
+  const [orgSearchOpen, setOrgSearchOpen] = useState(false);
+  const [orgKeyword, setOrgKeyword] = useState("");
+  const [orgSearch, setOrgSearch] = useState<CompanySearchPayload | null>(null);
+  const [orgSearchLoading, setOrgSearchLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const selectedOrgSummary = useMemo(() => {
+    if (!form.insttId || !form.orgName) {
+      return null;
+    }
+    return [
+      { label: en ? "Institution ID" : "기관 ID", value: form.insttId },
+      { label: en ? "Business Number" : "사업자등록번호", value: form.orgBizNo || "-" },
+      { label: en ? "Representative" : "대표자", value: form.orgRepresentative || "-" }
+    ];
+  }, [en, form.insttId, form.orgBizNo, form.orgName, form.orgRepresentative]);
 
   function update<K extends keyof RegisterFormState>(key: K, value: RegisterFormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -20319,9 +20792,56 @@ export function MemberRegisterMigrationPage() {
     setMessage(en ? "This username is available." : "사용 가능한 아이디입니다.");
   }
 
+  async function handleSearchOrganization(pageIndex = 1) {
+    if (!page?.canUseMemberRegisterOrgSearch) {
+      setError(en ? "You do not have permission to search organizations." : "기관 검색 권한이 없습니다.");
+      return;
+    }
+    const keyword = orgKeyword.trim();
+    if (!keyword) {
+      setError(en ? "Enter an organization keyword before searching." : "기관 검색어를 입력해 주세요.");
+      return;
+    }
+    setError("");
+    setOrgSearchLoading(true);
+    try {
+      const result = await searchAdminCompanies({ keyword, page: pageIndex, size: 5 });
+      setOrgSearch(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : (en ? "Failed to search organizations." : "기관 검색에 실패했습니다."));
+    } finally {
+      setOrgSearchLoading(false);
+    }
+  }
+
+  function applyOrganization(item: CompanySearchPayload["list"][number]) {
+    setForm((current) => ({
+      ...current,
+      insttId: String(item.insttId || ""),
+      orgName: String(item.cmpnyNm || ""),
+      orgBizNo: String(item.bizrno || ""),
+      orgRepresentative: String(item.cxfc || "")
+    }));
+    setOrgSearchOpen(false);
+  }
+
+  function resetForm() {
+    setForm(INITIAL_STATE);
+    setDuplicateState("idle");
+    setMessage("");
+    setError("");
+    setOrgKeyword("");
+    setOrgSearch(null);
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!form.userName || !form.userId || !form.userEmail || !form.userPhone || !form.userType || !form.orgName || !form.dept || !form.title || form.permissions.length === 0) {
+    if (!page?.canUseMemberRegisterSave) {
+      setError(en ? "You do not have permission to save member registrations." : "회원 등록 저장 권한이 없습니다.");
+      setMessage("");
+      return;
+    }
+    if (!form.userName || !form.userId || !form.userEmail || !form.userPhone || !form.userType || !form.insttId || !form.orgName || !form.dept || !form.title || form.permissions.length === 0) {
       setError(en ? "Please complete all required fields." : "필수 항목을 모두 입력해주세요.");
       setMessage("");
       return;
@@ -20343,8 +20863,40 @@ export function MemberRegisterMigrationPage() {
       {pageState.error || error ? <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error || pageState.error}</div> : null}
       {message ? <div className={\`mb-4 rounded-[var(--kr-gov-radius)] px-4 py-3 text-sm \${duplicateState === "error" ? "border border-red-200 bg-red-50 text-red-700" : "border border-emerald-200 bg-emerald-50 text-emerald-700"}\`}>{message}</div> : null}
 
+      <CanView
+        allowed={!!page?.canViewMemberRegister}
+        fallback={<section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm"><p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "You do not have permission to view member registration." : "회원 등록 화면을 볼 권한이 없습니다."}</p></section>}
+      >
       <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        <section className="gov-card mb-8 border border-[var(--kr-gov-border-light)] bg-[linear-gradient(135deg,rgba(239,246,255,0.9),rgba(255,255,255,0.96))]">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--kr-gov-blue)]">{en ? "Registration Flow" : "등록 흐름"}</p>
+              <h3 className="mt-2 text-xl font-black text-[var(--kr-gov-text-primary)]">{en ? "Create member first, then connect the institution." : "회원 기본 계정을 만들고 기관을 연결합니다."}</h3>
+              <p className="mt-3 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
+                {en
+                  ? "Use organization search to bind the new member to an existing institution. The selected institution context is reused in permission and approval flows."
+                  : "기관 검색으로 기존 기관을 먼저 연결한 뒤 권한과 승인 흐름을 이어서 관리합니다. 선택한 기관 정보는 저장 전까지 이 화면 상단에서 계속 확인할 수 있습니다."}
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3 xl:min-w-[420px]">
+              <div className="rounded-[var(--kr-gov-radius)] border border-blue-100 bg-white px-4 py-3">
+                <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Institution" : "기관 연결"}</p>
+                <p className="mt-1 text-sm font-bold text-[var(--kr-gov-text-primary)]">{form.orgName || (en ? "Required" : "필수")}</p>
+              </div>
+              <div className="rounded-[var(--kr-gov-radius)] border border-blue-100 bg-white px-4 py-3">
+                <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "User Type" : "회원 유형"}</p>
+                <p className="mt-1 text-sm font-bold text-[var(--kr-gov-text-primary)]">{form.userType || "-"}</p>
+              </div>
+              <div className="rounded-[var(--kr-gov-radius)] border border-blue-100 bg-white px-4 py-3">
+                <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Permissions" : "권한 수"}</p>
+                <p className="mt-1 text-sm font-bold text-[var(--kr-gov-text-primary)]">{form.permissions.length.toLocaleString()}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1.02fr_0.98fr]">
           <section className="gov-card" data-help-id="member-register-basic">
             <h3 className="text-lg font-bold mb-6 flex items-center gap-2 text-[var(--kr-gov-blue)]"><span className="material-symbols-outlined">account_circle</span>{en ? "Basic Information" : "기본 정보"}</h3>
             <div className="space-y-6">
@@ -20356,7 +20908,7 @@ export function MemberRegisterMigrationPage() {
                 <label className="form-label" htmlFor="user-id">{en ? "Username" : "아이디"} <span className="required">*</span></label>
                 <div className="flex gap-2">
                   <input className="gov-input flex-1" id="user-id" placeholder={en ? "6-12 chars, alphanumeric" : "6~12자 영문, 숫자 조합"} value={form.userId} onChange={(event) => update("userId", event.target.value)} />
-                  <MemberButton onClick={handleDuplicateCheck} type="button" variant="info">{en ? "Check Duplicates" : "중복 확인"}</MemberButton>
+                  <MemberPermissionButton allowed={!!page?.canUseMemberRegisterIdCheck} onClick={handleDuplicateCheck} reason={en ? "Only authorized roles and members can check duplicate IDs." : "권한이 부여된 롤과 회원만 아이디 중복 확인을 사용할 수 있습니다."} type="button" variant="info">{en ? "Check Duplicates" : "중복 확인"}</MemberPermissionButton>
                 </div>
                 {duplicateState === "ok" ? <p className="validation-msg success">{en ? "This username is available." : "사용 가능한 아이디입니다."}</p> : null}
                 {duplicateState === "error" ? <p className="validation-msg error">{en ? "Please use 6-12 alphanumeric characters." : "6~12자의 영문/숫자 조합으로 입력해주세요."}</p> : null}
@@ -20384,11 +20936,45 @@ export function MemberRegisterMigrationPage() {
           <section className="gov-card" data-help-id="member-register-affiliation">
             <h3 className="text-lg font-bold mb-6 flex items-center gap-2 text-[var(--kr-gov-blue)]"><span className="material-symbols-outlined">badge</span>{en ? "Affiliation & Permissions" : "소속 및 권한 정보"}</h3>
             <div className="space-y-6">
+              <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[#f8fafc] p-5">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Institution Search" : "기관 검색"}</p>
+                    <p className="mt-2 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
+                      {en
+                        ? "Select the institution first. This binds the member to an existing organization before permission assignment."
+                        : "신규 회원은 먼저 기관을 검색해 연결합니다. 선택된 기관은 권한과 승인 처리의 기준으로 사용됩니다."}
+                    </p>
+                  </div>
+                  <MemberPermissionButton allowed={!!page?.canUseMemberRegisterOrgSearch} icon="search" onClick={() => setOrgSearchOpen(true)} reason={en ? "Only authorized roles and members can search organizations." : "권한이 부여된 롤과 회원만 기관 검색을 사용할 수 있습니다."} type="button" variant="secondary">{en ? "Search Organization" : "기관 검색"}</MemberPermissionButton>
+                </div>
+              </div>
               <div>
                 <label className="form-label" htmlFor="org-name">{en ? "Organization / Company Name" : "소속 기관/기업명"} <span className="required">*</span></label>
-                <div className="flex gap-2">
-                  <input className="gov-input flex-1" id="org-name" placeholder={en ? "Search for organization or company" : "기관명 또는 기업명을 검색하세요"} value={form.orgName} onChange={(event) => update("orgName", event.target.value)} />
-                  <MemberButton icon="search" onClick={() => update("orgName", en ? "Korea CCUS Center" : "한국 CCUS 센터")} type="button" variant="secondary">{en ? "Search Org" : "기관 검색"}</MemberButton>
+                <input className="gov-input bg-gray-50" id="org-name" placeholder={en ? "Select organization from search dialog" : "기관 검색으로 소속 기관을 선택해 주세요"} readOnly value={form.orgName} />
+              </div>
+              {selectedOrgSummary ? (
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {selectedOrgSummary.map((item) => (
+                    <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-3" key={item.label}>
+                      <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{item.label}</p>
+                      <p className="mt-1 text-sm font-bold text-[var(--kr-gov-text-primary)]">{item.value}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-[var(--kr-gov-radius)] border border-dashed border-[var(--kr-gov-border-light)] bg-gray-50 px-4 py-6 text-sm text-[var(--kr-gov-text-secondary)]">
+                  {en ? "No institution selected yet. Open the search dialog and choose an institution before saving." : "아직 연결된 기관이 없습니다. 기관 검색 창에서 소속 기관을 선택한 뒤 저장하세요."}
+                </div>
+              )}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="form-label" htmlFor="instt-id">{en ? "Institution ID" : "기관 ID"} <span className="required">*</span></label>
+                  <input className="gov-input bg-gray-50" id="instt-id" readOnly value={form.insttId} />
+                </div>
+                <div>
+                  <label className="form-label" htmlFor="org-bizno">{en ? "Business Number" : "사업자등록번호"}</label>
+                  <input className="gov-input bg-gray-50" id="org-bizno" readOnly value={form.orgBizNo} />
                 </div>
               </div>
               <div>
@@ -20420,15 +21006,92 @@ export function MemberRegisterMigrationPage() {
           </section>
         </div>
 
-        <div className="mt-12 flex justify-center gap-4 border-t border-[var(--kr-gov-border-light)] pt-10">
-          <MemberButton className="px-10" onClick={() => navigate(buildLocalizedPath("/admin/member/list", "/en/admin/member/list"))} size="lg" type="button" variant="secondary">{en ? "Cancel" : "취소"}</MemberButton>
-          <MemberButton className="px-10 shadow-lg shadow-blue-900/10" size="lg" type="submit" variant="primary">{en ? "Complete Registration" : "등록 완료"}</MemberButton>
-        </div>
+        <MemberActionBar
+          dataHelpId="member-register-actions"
+          description={en ? "Review the selected institution and permission scope before completing the registration draft." : "선택한 기관과 권한 범위를 확인한 뒤 신규 회원 등록을 마무리하세요."}
+          eyebrow={en ? "Registration Actions" : "등록 작업"}
+          primary={<MemberPermissionButton allowed={!!page?.canUseMemberRegisterSave} className="w-full max-w-[320px] shadow-lg shadow-blue-900/10" reason={en ? "Only authorized roles and members can complete member registration." : "권한이 부여된 롤과 회원만 신규 회원 등록을 완료할 수 있습니다."} size="lg" type="submit" variant="primary">{en ? "Complete Registration" : "등록 완료"}</MemberPermissionButton>}
+          secondary={{ href: buildLocalizedPath("/admin/member/list", "/en/admin/member/list"), icon: "list", label: en ? "List" : "목록" }}
+          tertiary={{ icon: "refresh", label: en ? "Reset" : "초기화", onClick: resetForm }}
+          title={en ? "Check the organization binding before saving." : "기관 연결 상태를 확인한 뒤 저장하세요."}
+        />
       </form>
+      </CanView>
+
+      <div aria-labelledby="member-register-org-search-title" aria-modal="true" className={\`\${orgSearchOpen ? "fixed" : "hidden"} inset-0 z-[1000] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm\`} role="dialog">
+        <div className="w-full max-w-[960px] overflow-hidden rounded-[calc(var(--kr-gov-radius)+8px)] bg-white shadow-2xl">
+          <div className="flex items-center justify-between border-b border-[var(--kr-gov-border-light)] px-6 py-4">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--kr-gov-blue)]">{en ? "Institution Search" : "기관 검색"}</p>
+              <h3 className="mt-1 text-lg font-black" id="member-register-org-search-title">{en ? "Search and select an institution" : "기관을 검색하고 선택하세요."}</h3>
+            </div>
+            <button className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--kr-gov-border-light)] text-[var(--kr-gov-text-secondary)] hover:bg-gray-50" onClick={() => setOrgSearchOpen(false)} type="button">
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
+          <div className="space-y-5 px-6 py-6">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+              <label>
+                <span className="mb-2 block text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Keyword" : "검색어"}</span>
+                <input className="gov-input" placeholder={en ? "Enter institution name or business number" : "기관명 또는 사업자등록번호를 입력하세요"} value={orgKeyword} onChange={(event) => setOrgKeyword(event.target.value)} />
+              </label>
+              <MemberPermissionButton allowed={!!page?.canUseMemberRegisterOrgSearch} className="min-w-[148px]" icon="search" onClick={() => handleSearchOrganization(1)} reason={en ? "Only authorized roles and members can search organizations." : "권한이 부여된 롤과 회원만 기관 검색을 사용할 수 있습니다."} type="button" variant="primary">
+                {orgSearchLoading ? (en ? "Searching..." : "검색 중...") : (en ? "Search" : "검색")}
+              </MemberPermissionButton>
+            </div>
+            <div className="overflow-hidden rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)]">
+              <table className="w-full text-sm">
+                <thead className="bg-[#f8f9fa] text-left">
+                  <tr>
+                    <th className="px-4 py-3">No.</th>
+                    <th className="px-4 py-3">{en ? "Institution" : "기관명"}</th>
+                    <th className="px-4 py-3">{en ? "Business Number" : "사업자등록번호"}</th>
+                    <th className="px-4 py-3">{en ? "Representative" : "대표자"}</th>
+                    <th className="px-4 py-3 text-center">{en ? "Action" : "선택"}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {(orgSearch?.list || []).length === 0 ? (
+                    <tr>
+                      <td className="px-4 py-10 text-center text-sm text-[var(--kr-gov-text-secondary)]" colSpan={5}>
+                        {orgKeyword.trim()
+                          ? (en ? "No matching institutions were found." : "검색 결과가 없습니다.")
+                          : (en ? "Enter a keyword and search for institutions." : "검색어를 입력한 뒤 기관을 검색하세요.")}
+                      </td>
+                    </tr>
+                  ) : (orgSearch?.list || []).map((item, index) => (
+                    <tr className="hover:bg-blue-50/40" key={item.insttId}>
+                      <td className="px-4 py-4 text-[var(--kr-gov-text-secondary)]">{((orgSearch?.page || 1) - 1) * (orgSearch?.size || 5) + index + 1}</td>
+                      <td className="px-4 py-4 font-bold text-[var(--kr-gov-text-primary)]">{item.cmpnyNm}</td>
+                      <td className="px-4 py-4 text-[var(--kr-gov-text-secondary)]">{item.bizrno}</td>
+                      <td className="px-4 py-4 text-[var(--kr-gov-text-secondary)]">{item.cxfc}</td>
+                      <td className="px-4 py-4 text-center">
+                        <MemberPermissionButton allowed={!!page?.canUseMemberRegisterOrgSearch} onClick={() => applyOrganization(item)} reason={en ? "Only authorized roles and members can select institutions." : "권한이 부여된 롤과 회원만 기관을 선택할 수 있습니다."} size="xs" type="button" variant="secondary">{en ? "Select" : "선택"}</MemberPermissionButton>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className={\`\${(orgSearch?.totalPages || 0) > 1 ? "flex" : "hidden"} items-center justify-center gap-1\`}>
+              {Array.from({ length: Number(orgSearch?.totalPages || 0) }, (_, index) => index + 1).map((pageNumber) => (
+                <button
+                  className={\`min-w-[36px] rounded border px-3 py-2 text-sm \${pageNumber === Number(orgSearch?.page || 1) ? "border-[var(--kr-gov-blue)] bg-[var(--kr-gov-blue)] text-white" : "border-[var(--kr-gov-border-light)] bg-white text-[var(--kr-gov-text-secondary)]"}\`}
+                  key={pageNumber}
+                  onClick={() => handleSearchOrganization(pageNumber)}
+                  type="button"
+                >
+                  {pageNumber}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
     </AdminPageShell>
   );
 }
-`,Va=`import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+`,Ga=`import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { fetchMemberStatsPage, readBootstrappedMemberStatsPageData, type MemberStatsPagePayload } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
@@ -20548,7 +21211,7 @@ export function MemberStatsMigrationPage() {
     </AdminPageShell>
   );
 }
-`,Ga=`export {
+`,Ha=`export {
   AdminInput,
   AdminCheckbox,
   AdminRadio,
@@ -20575,7 +21238,7 @@ export function MemberStatsMigrationPage() {
   MemberToolbar,
   PageHeaderActions
 } from "../admin-ui/common";
-`,Ha=`import type { HTMLAttributes, ReactNode } from "react";
+`,Ka=`import type { HTMLAttributes, ReactNode } from "react";
 import { MemberIconButton, MemberModalFooter } from "./common";
 
 type MemberSectionCardProps = HTMLAttributes<HTMLElement> & {
@@ -20708,7 +21371,7 @@ export function ReviewModalFrame({
     </div>
   );
 }
-`,Ka=`export function resolveMemberStatusBadgeClass(rawValue: unknown) {
+`,qa=`export function resolveMemberStatusBadgeClass(rawValue: unknown) {
   switch (String(rawValue || "").trim().toUpperCase()) {
     case "P":
       return "bg-emerald-100 text-emerald-700";
@@ -20741,14 +21404,14 @@ export function resolveMemberStatusLabel(rawValue: unknown) {
       return String(rawValue || "기타");
   }
 }
-`,qa=`import { ReactNode } from "react";
+`,Ya=`import { ReactNode } from "react";
 import { MemberButtonGroup, MemberLinkButton, MemberToolbar } from "./common";
 import { MEMBER_BUTTON_LABELS, MEMBER_LIST_LABELS } from "./labels";
 
 type MemberListToolbarProps = {
   totalCount: number;
   excelHref: string;
-  registerHref: string;
+  registerHref?: string;
   registerLabel?: string;
   className?: string;
 };
@@ -20771,9 +21434,11 @@ export function MemberListTopActions({
       <MemberLinkButton href={excelHref} icon="download" variant="secondary">
         {MEMBER_BUTTON_LABELS.excelDownload}
       </MemberLinkButton>
-      <MemberLinkButton href={registerHref} icon="person_add" variant="success">
-        {registerLabel}
-      </MemberLinkButton>
+      {registerHref ? (
+        <MemberLinkButton href={registerHref} icon="person_add" variant="success">
+          {registerLabel}
+        </MemberLinkButton>
+      ) : null}
     </MemberButtonGroup>
   );
 }
@@ -22160,7 +22825,7 @@ export function FullStackManagementMigrationPage() {
     </AdminPageShell>
   );
 }
-`,Ya=`import { useEffect, useMemo, useState } from "react";
+`,Ja=`import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { fetchMenuManagementPage, refreshAdminMenuTree, type MenuManagementPagePayload } from "../../lib/api/client";
 import { buildLocalizedPath, getCsrfMeta, isEnglish } from "../../lib/navigation/runtime";
@@ -22569,7 +23234,7 @@ export function MenuManagementMigrationPage() {
     </AdminPageShell>
   );
 }
-`,Ja=`import { FormEvent, useEffect, useMemo, useState } from "react";
+`,Qa=`import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import {
@@ -23325,7 +23990,7 @@ export function MypageMigrationPage() {
     </div>
   );
 }
-`,Qa=`import { useEffect, useState } from "react";
+`,Xa=`import { useEffect, useState } from "react";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";
 import { verifyRuntimeContextKeys } from "../admin-ui/contextKeyPresets";
@@ -23572,7 +24237,7 @@ export function ObservabilityMigrationPage() {
     </AdminPageShell>
   );
 }
-`,Xa=`import { FormEvent, useMemo, useState } from "react";
+`,Za=`import { FormEvent, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { fetchPageManagementPage, type PageManagementPagePayload } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
@@ -23992,7 +24657,7 @@ function numberToText(value: unknown) {
   const parsed = Number(value || 0);
   return Number.isFinite(parsed) ? String(parsed) : "0";
 }
-`,Za=`import { useState } from "react";
+`,er=`import { useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { CanView } from "../../components/access/CanView";
@@ -24258,7 +24923,7 @@ export function PasswordResetMigrationPage() {
     </AdminPageShell>
   );
 }
-`,er=`import { useEffect, useMemo, useState } from "react";
+`,nr=`import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { findManifestByMenuCodeOrRoutePath, normalizeManifestLookupPath } from "../../app/screen-registry/pageManifestIndex";
 import {
@@ -25669,7 +26334,7 @@ export function PlatformStudioMigrationPage() {
     </AdminPageShell>
   );
 }
-`,nr=`import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
+`,tr=`import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { invalidateFrontendSessionCache } from "../../lib/api/client";
 import { buildLocalizedPath, getSearchParam, isEnglish, navigate } from "../../lib/navigation/runtime";
@@ -26901,7 +27566,7 @@ export function ForbiddenPage() {
     </PublicAuthShell>
   );
 }
-`,tr=`import { ReactNode } from "react";
+`,ar=`import { ReactNode } from "react";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 
 export type LoginResponse = {
@@ -26996,7 +27661,7 @@ export function PublicFrame(props: {
     </div>
   );
 }
-`,ar=`import { useMemo, useState } from "react";
+`,rr=`import { useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { fetchSchedulerManagementPage, readBootstrappedSchedulerManagementPageData, type SchedulerManagementPagePayload } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
@@ -27057,7 +27722,7 @@ export function SchedulerManagementMigrationPage() {
     </AdminPageShell>
   );
 }
-`,rr=`import { useEffect, useMemo, useState } from "react";
+`,sr=`import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import {
   fetchScreenCommandPage,
@@ -29535,7 +30200,7 @@ export function ScreenBuilderMigrationPage() {
     </AdminPageShell>
   );
 }
-`,sr=`import { useMemo } from "react";
+`,or=`import { useMemo } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { fetchAuditEvents, fetchScreenBuilderPage, fetchScreenBuilderPreview } from "../../lib/api/client";
 import { buildLocalizedPath, getSearchParam, isEnglish } from "../../lib/navigation/runtime";
@@ -29767,7 +30432,7 @@ export function ScreenRuntimeMigrationPage() {
     </AdminPageShell>
   );
 }
-`,or=`import type { ReactNode } from "react";
+`,ir=`import type { ReactNode } from "react";
 import type { ScreenBuilderNode } from "../../lib/api/client";
 
 export function resolveScreenBuilderQuery(searchParams: { get(name: string): string | null }): {
@@ -29895,7 +30560,7 @@ export function renderScreenBuilderNodePreview(node: ScreenBuilderNode, nodes: S
       );
   }
 }
-`,ir=`import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+`,lr=`import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { fetchSecurityAuditPage, readBootstrappedSecurityAuditPageData, type SecurityAuditPagePayload } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
@@ -29928,7 +30593,7 @@ export function SecurityAuditMigrationPage() {
     </AdminPageShell>
   );
 }
-`,lr=`import { useMemo, useState } from "react";
+`,dr=`import { useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
@@ -30101,7 +30766,7 @@ export function LoginHistorySharedPage(props: Props) {
     </AdminPageShell>
   );
 }
-`,dr=`import { fetchSecurityHistoryPage } from "../../lib/api/client";
+`,cr=`import { fetchSecurityHistoryPage } from "../../lib/api/client";
 import { LoginHistorySharedPage } from "./LoginHistorySharedPage";
 
 export function SecurityHistoryMigrationPage() {
@@ -30118,7 +30783,7 @@ export function SecurityHistoryMigrationPage() {
     />
   );
 }
-`,cr=`import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+`,mr=`import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { fetchSecurityMonitoringPage, readBootstrappedSecurityMonitoringPageData, type SecurityMonitoringPagePayload } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
@@ -30159,7 +30824,7 @@ export function SecurityMonitoringMigrationPage() {
     </AdminPageShell>
   );
 }
-`,mr=`import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+`,pr=`import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { fetchSecurityPolicyPage, readBootstrappedSecurityPolicyPageData, type SecurityPolicyPagePayload } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
@@ -30384,7 +31049,7 @@ export function SecurityPolicyMigrationPage() {
     </AdminPageShell>
   );
 }
-`,pr=`import {
+`,ur=`import {
   UserGovernmentBar,
   UserLanguageToggle,
   UserPortalFooter,
@@ -30496,7 +31161,7 @@ export function SitemapMigrationPage() {
     </div>
   );
 }
-`,ur=`import { useEffect, useMemo, useState } from "react";
+`,gr=`import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import {
   clearSrWorkbenchStack,
@@ -31301,7 +31966,7 @@ export function SrWorkbenchMigrationPage() {
     </AdminPageShell>
   );
 }
-`,gr=`import { FormEvent, useEffect, useState } from "react";
+`,vr=`import { FormEvent, useEffect, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { buildLocalizedPath, getSearchParam, isEnglish } from "../../lib/navigation/runtime";
@@ -31653,7 +32318,7 @@ export function SystemCodeMigrationPage() {
     </AdminPageShell>
   );
 }
-`,vr=`import { useEffect, useMemo, useState } from "react";
+`,br=`import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { fetchWbsManagementPage, saveWbsManagementEntry, type WbsManagementPagePayload } from "../../lib/api/client";
@@ -32177,4 +32842,4 @@ export function WbsManagementMigrationPage() {
     </AdminPageShell>
   );
 }
-`,br=Object.assign({"../../app/routes/definitions.ts":jt}),xr=Object.assign({"../../app/routes/pageRegistry.tsx":zt}),yr=Object.assign({"../admin-account-create/AdminAccountCreateMigrationPage.tsx":Vt,"../admin-entry/AdminEntryPages.tsx":Gt,"../admin-entry/AdminPageShell.tsx":Ht,"../admin-entry/adminEntryShared.tsx":Kt,"../admin-list/AdminListMigrationPage.tsx":qt,"../admin-permissions/AdminPermissionMigrationPage.tsx":Wt,"../admin-placeholder/AdminMenuPlaceholderPage.tsx":Yt,"../admin-sitemap/AdminSitemapMigrationPage.tsx":Jt,"../admin-system/adminSystemShared.tsx":Qt,"../admin-template-frame/AdminTemplateFramePage.tsx":Xt,"../admin-ui/ContextKeyStrip.tsx":Zt,"../admin-ui/common.tsx":ea,"../admin-ui/pageFrames.tsx":na,"../app-ui/primitives.tsx":ta,"../auth-change/AuthChangeMigrationPage.tsx":aa,"../auth-change/authChangeSections.tsx":ra,"../auth-groups/AuthGroupMigrationPage.tsx":sa,"../blocklist/BlocklistMigrationPage.tsx":oa,"../codex-provision/CodexProvisionMigrationPage.tsx":ia,"../company-account/CompanyAccountMigrationPage.tsx":la,"../company-account/companyAccountSections.tsx":da,"../company-approve/CompanyApproveMigrationPage.tsx":ca,"../company-approve/companyApproveSections.tsx":ma,"../company-detail/CompanyDetailMigrationPage.tsx":pa,"../company-list/CompanyListMigrationPage.tsx":ua,"../dept-role-mapping/DeptRoleMappingMigrationPage.tsx":ga,"../dept-role-mapping/deptRoleSections.tsx":va,"../emission-result-list/EmissionResultListMigrationPage.tsx":ba,"../environment-management/EnvironmentManagementHubPage.tsx":xa,"../function-management/FunctionManagementMigrationPage.tsx":ya,"../help-management/HelpManagementMigrationPage.tsx":fa,"../help-management/ScreenCommandCenterPanel.tsx":ha,"../home-entry/HomeEntryPages.tsx":Na,"../home-entry/HomeEntrySections.tsx":ka,"../home-placeholder/HomeMenuPlaceholderPage.tsx":Sa,"../home-ui/common.tsx":wa,"../ip-whitelist/IpWhitelistMigrationPage.tsx":Ca,"../join-company-reapply/JoinCompanyReapplyMigrationPage.tsx":Ia,"../join-company-register/JoinCompanyRegisterCompleteMigrationPage.tsx":Pa,"../join-company-register/JoinCompanyRegisterMigrationPage.tsx":Ma,"../join-company-status/JoinCompanyStatusMigrationPage.tsx":Aa,"../join-wizard/JoinAuthMigrationPage.tsx":Ea,"../join-wizard/JoinCompleteMigrationPage.tsx":Ra,"../join-wizard/JoinInfoMigrationPage.tsx":Ta,"../join-wizard/JoinTermsMigrationPage.tsx":La,"../join-wizard/JoinWizardMigrationPage.tsx":Ba,"../login-history/LoginHistoryMigrationPage.tsx":Da,"../member-approve/MemberApproveMigrationPage.tsx":Fa,"../member-approve/memberApproveSections.tsx":Ua,"../member-detail/MemberDetailMigrationPage.tsx":Oa,"../member-edit/MemberEditMigrationPage.tsx":_a,"../member-edit/memberEditSections.tsx":$a,"../member-list/MemberListMigrationPage.tsx":ja,"../member-register/MemberRegisterMigrationPage.tsx":za,"../member-stats/MemberStatsMigrationPage.tsx":Va,"../member/common.tsx":Ga,"../member/sections.tsx":Ha,"../member/status.tsx":Ka,"../member/toolbar.tsx":qa,"../menu-management/FullStackManagementMigrationPage.tsx":Wa,"../menu-management/MenuManagementMigrationPage.tsx":Ya,"../mypage/MypageMigrationPage.tsx":Ja,"../observability/ObservabilityMigrationPage.tsx":Qa,"../page-management/PageManagementMigrationPage.tsx":Xa,"../password-reset/PasswordResetMigrationPage.tsx":Za,"../platform-studio/PlatformStudioMigrationPage.tsx":er,"../public-entry/PublicEntryPages.tsx":nr,"../public-entry/publicEntryShared.tsx":tr,"../scheduler-management/SchedulerManagementMigrationPage.tsx":ar,"./ScreenBuilderMigrationPage.tsx":rr,"./ScreenRuntimeMigrationPage.tsx":sr,"./screenBuilderRenderer.tsx":or,"../security-audit/SecurityAuditMigrationPage.tsx":ir,"../security-history/LoginHistorySharedPage.tsx":lr,"../security-history/SecurityHistoryMigrationPage.tsx":dr,"../security-monitoring/SecurityMonitoringMigrationPage.tsx":cr,"../security-policy/SecurityPolicyMigrationPage.tsx":mr,"../sitemap/SitemapMigrationPage.tsx":pr,"../sr-workbench/SrWorkbenchMigrationPage.tsx":ur,"../system-code/SystemCodeMigrationPage.tsx":gr,"../wbs-management/WbsManagementMigrationPage.tsx":vr});function Tn(t){const l=t.trim().replace(/^\.\.\/\.\.\/features\//,"../").replace(/^\.\.\/\.\.\//,"../");return l.endsWith(".tsx")?l:`${l}.tsx`}function fr(t){return t.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,48)}function hr(){const t=Object.values(br)[0]||"",l=[],v=/\{\s*id:\s*"([^"]+)"\s*,\s*label:\s*"([^"]+)"[\s\S]*?koPath:\s*"([^"]+)"\s*,\s*enPath:\s*"([^"]+)"/g;let i;for(;(i=v.exec(t))!==null;)l.push({id:i[1],label:i[2],koPath:i[3],enPath:i[4]});return l}function Nr(){const t=Object.values(xr)[0]||"",l=new Map,v=new Map,i=/const\s+([A-Za-z0-9_]+)\s*=\s*\(\)\s*=>\s*import\("([^"]+)"\);/g;let a;for(;(a=i.exec(t))!==null;)l.set(a[1],Tn(a[2]));const f=/"([^"]+)":\s*lazyNamed\(\(\)\s*=>\s*import\("([^"]+)"\),/g;for(;(a=f.exec(t))!==null;)v.set(a[1],Tn(a[2]).replace(/[^/]+\.tsx$/,""));const g=/"([^"]+)":\s*lazyNamed\(([A-Za-z0-9_]+),/g;for(;(a=g.exec(t))!==null;){const c=l.get(a[2]);c&&v.set(a[1],c.replace(/[^/]+\.tsx$/,""))}return v}function kr(t){return t.replace(/\{[^}]*\}/g," ").replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim()}function H(t,l,v,i,a=""){const f=i.match(/\bclassName="([^"]+)"/),g=i.match(/\bvariant="([^"]+)"/),c=i.match(/\bsize="([^"]+)"/),k=i.match(/\bicon="([^"]+)"/),N=i.match(/\bplaceholder="([^"]+)"/),B=kr(a),I=[g==null?void 0:g[1],c==null?void 0:c[1],f==null?void 0:f[1],k==null?void 0:k[1],N==null?void 0:N[1]].filter(Boolean).join(" / ");t.push({route:{routeId:"",label:"",koPath:"",enPath:""},componentType:l,componentName:v,variant:(g==null?void 0:g[1])||"",size:(c==null?void 0:c[1])||"",className:(f==null?void 0:f[1])||"",icon:(k==null?void 0:k[1])||"",label:B,placeholder:(N==null?void 0:N[1])||"",summary:I})}function Sr(t){const l=[],v=/<(MemberButton|MemberLinkButton|MemberPermissionButton|MemberIconButton|AppButton|AppLinkButton|AppPermissionButton|AppIconButton)\b([\s\S]*?)(?:>([\s\S]*?)<\/\1>|\/>)/g;let i;for(;(i=v.exec(t))!==null;)H(l,"button",i[1],i[2]||"",i[3]||"");const a=/<(input|AdminInput|AppInput)\b([\s\S]*?)(?:\/>|>)/g;for(;(i=a.exec(t))!==null;)H(l,"input",i[1],i[2]||"");const f=/<(textarea|AdminTextarea|AppTextarea)\b([\s\S]*?)(?:>([\s\S]*?)<\/\1>|\/>)/g;for(;(i=f.exec(t))!==null;)H(l,"textarea",i[1],i[2]||"",i[3]||"");const g=/<(select|AdminSelect|AppSelect)\b([\s\S]*?)>/g;for(;(i=g.exec(t))!==null;)H(l,"select",i[1],i[2]||"");const c=/<(table|AdminTable|AppTable)\b([\s\S]*?)>/g,k=/<(AppCheckbox)\b([\s\S]*?)(?:\/>|>)/g;for(;(i=k.exec(t))!==null;)H(l,"input",i[1],i[2]||"");const N=/<(AppRadio)\b([\s\S]*?)(?:\/>|>)/g;for(;(i=N.exec(t))!==null;)H(l,"input",i[1],i[2]||"");for(;(i=c.exec(t))!==null;)H(l,"table",i[1],i[2]||"");const B=/<(MemberPagination)\b([\s\S]*?)(?:\/>|>([\s\S]*?)<\/\1>)/g;for(;(i=B.exec(t))!==null;)H(l,"pagination",i[1],i[2]||"",i[3]||"");return l}function wr(t){switch(t){case"button":return"BTN";case"input":return"INP";case"select":return"SEL";case"textarea":return"TXT";case"table":return"TBL";case"pagination":return"PGN";default:return"CMP"}}function Cr(){const t=Nr(),l=new Map(hr().map(i=>[i.id,i])),v=new Map;return Object.entries(yr).forEach(([i,a])=>{if(i.includes("/screen-builder/")||i.includes("/admin-ui/")||i.endsWith("/common.tsx"))return;const f=Array.from(t.entries()).filter(([,c])=>i.startsWith(c)).map(([c])=>c);if(!f.length)return;const g=Sr(a);g.length&&g.forEach(c=>{const k=[c.componentType,c.componentName,c.variant,c.size,c.className,c.icon,c.placeholder].join(":"),N=v.get(k)||{componentType:c.componentType,componentName:c.componentName,variant:c.variant,size:c.size,className:c.className,icon:c.icon,placeholder:c.placeholder,summary:c.summary,routes:new Map,instances:[]};f.forEach(B=>{const I=l.get(B);if(!I)return;const Z={routeId:B,label:I.label,koPath:I.koPath,enPath:I.enPath};N.routes.set(B,Z),N.instances.push({...c,route:Z})}),v.set(k,N)})}),Array.from(v.entries()).map(([i,a])=>({key:i,styleGroupId:`${wr(a.componentType)}-${fr(`${a.componentName}-${a.variant||"plain"}-${a.size||"md"}-${a.className||"plain"}-${a.placeholder||"noplace"}`)}`,componentType:a.componentType,componentName:a.componentName,variant:a.variant,size:a.size,className:a.className,icon:a.icon,placeholder:a.placeholder,summary:a.summary,routeCount:a.routes.size,instanceCount:a.instances.length,labels:Array.from(new Set(a.instances.map(f=>f.label||f.placeholder).filter(Boolean))).slice(0,6),routes:Array.from(a.routes.values()).sort((f,g)=>f.koPath.localeCompare(g.koPath)),instances:a.instances})).sort((i,a)=>a.instanceCount-i.instanceCount||a.routeCount-i.routeCount||i.componentType.localeCompare(a.componentType)||i.componentName.localeCompare(a.componentName)||i.className.localeCompare(a.className))}function Ir(t){switch(t){case"section":return{title:"새 섹션"};case"heading":return{text:"제목"};case"text":return{text:"설명 문구"};case"input":return{label:"입력 필드",placeholder:"값 입력",required:!1};case"textarea":return{label:"긴 입력",placeholder:"상세 내용을 입력하세요.",required:!1};case"select":return{label:"선택",placeholder:"옵션 선택",required:!1};case"checkbox":return{label:"동의 항목",required:!1};case"button":return{label:"버튼",variant:"primary"};case"table":return{title:"목록 테이블",columns:"번호|이름|상태",emptyText:"조회된 데이터가 없습니다."};case"pagination":return{summary:"1 / 1 페이지"};default:return{}}}function ze(t,l){return t.filter(i=>(i.parentNodeId||"")===l).reduce((i,a)=>(i.push(a.nodeId),i.push(...ze(t,a.nodeId)),i),[])}function Bn(t,l,v="",i=0){return E(t.filter(a=>(a.parentNodeId||"")===v)).reduce((a,f)=>{const g=t.some(c=>(c.parentNodeId||"")===f.nodeId);return a.push({node:f,depth:i,hasChildren:g}),l.has(f.nodeId)||a.push(...Bn(t,l,f.nodeId,i+1)),a},[])}function Pr(t,l,v){const i=[v,...ze(t,v)],a=new Map;i.forEach(c=>{a.set(c,`${c}-copy-${Date.now()}-${Math.floor(Math.random()*1e3)}`)});const f=E(t).filter(c=>i.includes(c.nodeId)).map((c,k)=>({...c,nodeId:String(a.get(c.nodeId)),parentNodeId:c.parentNodeId&&a.has(c.parentNodeId)?String(a.get(c.parentNodeId)):c.parentNodeId,sortOrder:t.length+k,props:{...c.props||{}}})),g=l.filter(c=>a.has(c.nodeId)).map(c=>({...c,eventBindingId:`${c.eventBindingId}-copy-${Date.now()}-${Math.floor(Math.random()*1e3)}`,nodeId:String(a.get(c.nodeId)),actionConfig:{...c.actionConfig||{}}}));return{clonedNodes:f,clonedEvents:g,topNodeId:String(a.get(v)||"")}}const Mr=["button","input","select","textarea","table","pagination"],Ar=[{value:"LIST_PAGE",label:"목록형",labelEn:"List",description:"검색, 그리드, 페이지네이션, 행 액션 중심"},{value:"DETAIL_PAGE",label:"상세형",labelEn:"Detail",description:"요약, 상세 섹션, 상단/하단 이동 액션 중심"},{value:"EDIT_PAGE",label:"수정형",labelEn:"Edit",description:"입력 폼, 저장, 하단 액션바 중심"},{value:"REVIEW_PAGE",label:"검토형",labelEn:"Review",description:"검토 요약, 승인/반려, 하단 결정 액션 중심"}],Er={LIST_PAGE:{section:["search_filters","grid_toolbar","content"],heading:["search_filters","grid_toolbar","content"],text:["grid_toolbar","content"],input:["search_filters","content"],textarea:["search_filters","content"],select:["search_filters","content"],checkbox:["search_filters","content"],button:["header_actions","grid_toolbar_left","grid_toolbar_right","row_actions","bottom_left_actions","bottom_right_actions"],table:["content"],pagination:["pagination"]},DETAIL_PAGE:{section:["summary","content"],heading:["summary","content"],text:["summary","content"],input:["content"],textarea:["content"],select:["content"],checkbox:["content"],button:["header_actions","top_actions","bottom_left_actions","bottom_right_actions"],table:["content"],pagination:["bottom_right_actions"]},EDIT_PAGE:{section:["summary","content"],heading:["summary","content"],text:["summary","content"],input:["content"],textarea:["content"],select:["content"],checkbox:["content"],button:["header_actions","top_actions","bottom_left_actions","bottom_right_actions"],table:["content"],pagination:["bottom_right_actions"]},REVIEW_PAGE:{section:["review_summary","content"],heading:["review_summary","content"],text:["review_summary","content"],input:["content"],textarea:["content"],select:["content"],checkbox:["content"],button:["header_actions","review_actions","bottom_left_actions","bottom_right_actions"],table:["content"],pagination:["bottom_right_actions"]}};function Ln(t,l){var v;return((v=Er[t])==null?void 0:v[l])||["content"]}function Rr(t,l){return t.filter(v=>l==="LIST_PAGE"?!0:v.componentType!=="table"&&v.componentType!=="pagination")}function Tr(t,l){const v=l||"Builder Page";return t==="LIST_PAGE"?E([{nodeId:"root",parentNodeId:"",componentId:"",componentType:"page",slotName:"root",sortOrder:0,props:{title:v}},{nodeId:"search-section",parentNodeId:"root",componentId:"",componentType:"section",slotName:"search_filters",sortOrder:1,props:{title:"검색 조건"}},{nodeId:"search-heading",parentNodeId:"search-section",componentId:"",componentType:"heading",slotName:"search_filters",sortOrder:2,props:{text:"검색"}},{nodeId:"search-input",parentNodeId:"search-section",componentId:"",componentType:"input",slotName:"search_filters",sortOrder:3,props:{label:"검색어",placeholder:"검색어 입력"}},{nodeId:"search-button",parentNodeId:"search-section",componentId:"",componentType:"button",slotName:"grid_toolbar_right",sortOrder:4,props:{label:"검색",variant:"primary"}},{nodeId:"toolbar-note",parentNodeId:"root",componentId:"",componentType:"text",slotName:"grid_toolbar_left",sortOrder:5,props:{text:"총 건수 및 공통 목록 액션"}},{nodeId:"result-table",parentNodeId:"root",componentId:"",componentType:"table",slotName:"content",sortOrder:6,props:{title:"목록",columns:"번호|이름|상태|관리",emptyText:"조회된 데이터가 없습니다."}},{nodeId:"result-pagination",parentNodeId:"root",componentId:"",componentType:"pagination",slotName:"pagination",sortOrder:7,props:{summary:"1 / 1 페이지"}}]):t==="DETAIL_PAGE"?E([{nodeId:"root",parentNodeId:"",componentId:"",componentType:"page",slotName:"root",sortOrder:0,props:{title:v}},{nodeId:"summary",parentNodeId:"root",componentId:"",componentType:"section",slotName:"summary",sortOrder:1,props:{title:"요약"}},{nodeId:"summary-text",parentNodeId:"summary",componentId:"",componentType:"text",slotName:"summary",sortOrder:2,props:{text:"상세 요약 정보"}},{nodeId:"detail-section",parentNodeId:"root",componentId:"",componentType:"section",slotName:"content",sortOrder:3,props:{title:"상세 정보"}},{nodeId:"detail-heading",parentNodeId:"detail-section",componentId:"",componentType:"heading",slotName:"content",sortOrder:4,props:{text:"상세 정보"}},{nodeId:"detail-actions",parentNodeId:"root",componentId:"",componentType:"button",slotName:"bottom_left_actions",sortOrder:5,props:{label:"목록",variant:"secondary"}}]):t==="REVIEW_PAGE"?E([{nodeId:"root",parentNodeId:"",componentId:"",componentType:"page",slotName:"root",sortOrder:0,props:{title:v}},{nodeId:"review-summary",parentNodeId:"root",componentId:"",componentType:"section",slotName:"review_summary",sortOrder:1,props:{title:"검토 요약"}},{nodeId:"review-text",parentNodeId:"review-summary",componentId:"",componentType:"text",slotName:"review_summary",sortOrder:2,props:{text:"검토 대상과 영향 요약"}},{nodeId:"review-section",parentNodeId:"root",componentId:"",componentType:"section",slotName:"content",sortOrder:3,props:{title:"검토 내용"}},{nodeId:"approve-button",parentNodeId:"root",componentId:"",componentType:"button",slotName:"bottom_right_actions",sortOrder:4,props:{label:"승인",variant:"primary"}},{nodeId:"reject-button",parentNodeId:"root",componentId:"",componentType:"button",slotName:"bottom_left_actions",sortOrder:5,props:{label:"반려",variant:"secondary"}}]):E([{nodeId:"root",parentNodeId:"",componentId:"",componentType:"page",slotName:"root",sortOrder:0,props:{title:v}},{nodeId:"summary",parentNodeId:"root",componentId:"",componentType:"section",slotName:"summary",sortOrder:1,props:{title:"요약"}},{nodeId:"content-section",parentNodeId:"root",componentId:"",componentType:"section",slotName:"content",sortOrder:2,props:{title:"기본 정보"}},{nodeId:"content-heading",parentNodeId:"content-section",componentId:"",componentType:"heading",slotName:"content",sortOrder:3,props:{text:"기본 정보"}},{nodeId:"content-input",parentNodeId:"content-section",componentId:"",componentType:"input",slotName:"content",sortOrder:4,props:{label:"필드명",placeholder:"값 입력"}},{nodeId:"save-button",parentNodeId:"root",componentId:"",componentType:"button",slotName:"bottom_right_actions",sortOrder:5,props:{label:"저장",variant:"primary"}},{nodeId:"list-button",parentNodeId:"root",componentId:"",componentType:"button",slotName:"bottom_left_actions",sortOrder:6,props:{label:"목록",variant:"secondary"}}])}function $e(t){return{componentId:(t==null?void 0:t.componentId)||"",alias:(t==null?void 0:t.alias)||"",parentAlias:(t==null?void 0:t.parentAlias)||"",propsJson:(t==null?void 0:t.propsJson)||"{}"}}function ke(t){const l=String(t||"secondary");return l==="primary"||l==="secondary"||l==="success"||l==="danger"||l==="dangerSecondary"||l==="info"||l==="ghost"?l:"secondary"}function Lr(t,l){switch(t){case"button":return l?"System Button Design Catalog":"시스템 버튼 디자인 카탈로그";case"input":return l?"System Input Catalog":"시스템 입력 컴포넌트 카탈로그";case"select":return l?"System Select Catalog":"시스템 셀렉트 컴포넌트 카탈로그";case"textarea":return l?"System Textarea Catalog":"시스템 텍스트영역 카탈로그";case"table":return l?"System Table Catalog":"시스템 테이블 카탈로그";case"pagination":return l?"System Pagination Catalog":"시스템 페이지네이션 카탈로그";default:return l?"System Component Catalog":"시스템 컴포넌트 카탈로그"}}function Br(t,l){switch(t){case"button":return l?"Button inventory":"버튼 인벤토리";case"input":return l?"Input inventory":"입력 인벤토리";case"select":return l?"Select inventory":"셀렉트 인벤토리";case"textarea":return l?"Textarea inventory":"텍스트영역 인벤토리";case"table":return l?"Table inventory":"테이블 인벤토리";case"pagination":return l?"Pagination inventory":"페이지네이션 인벤토리";default:return l?"Component inventory":"컴포넌트 인벤토리"}}function je(t,l){return t.componentType==="button"?t.componentName==="MemberLinkButton"?e.jsx(Y,{href:"#",onClick:v=>v.preventDefault(),size:t.size||"md",variant:ke(t.variant),children:t.label||(l?"Link":"링크")}):t.componentName==="MemberIconButton"?e.jsx(ce,{icon:t.icon||"bolt",size:t.size||"icon",variant:ke(t.variant)}):e.jsx(y,{size:t.size||"md",type:"button",variant:ke(t.variant),children:t.label||(l?"Button":"버튼")}):t.componentType==="input"?e.jsx("input",{className:`gov-input w-full ${t.className||""}`.trim(),placeholder:t.placeholder||(l?"Input value":"값 입력"),readOnly:!0,value:""}):t.componentType==="select"?e.jsx("select",{className:`gov-select w-full ${t.className||""}`.trim(),defaultValue:"",children:e.jsx("option",{value:"",children:t.placeholder||(l?"Select option":"옵션 선택")})}):t.componentType==="textarea"?e.jsx("textarea",{className:`gov-textarea w-full ${t.className||""}`.trim(),placeholder:t.placeholder||(l?"Enter details":"상세 내용을 입력하세요."),readOnly:!0,rows:3}):t.componentType==="table"?e.jsx("div",{className:"overflow-hidden rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)]",children:e.jsxs("table",{className:`w-full text-sm ${t.className||""}`.trim(),children:[e.jsx("thead",{children:e.jsxs("tr",{className:"gov-table-header",children:[e.jsx("th",{className:"px-3 py-2",children:"#"}),e.jsx("th",{className:"px-3 py-2",children:l?"Name":"이름"}),e.jsx("th",{className:"px-3 py-2",children:l?"Status":"상태"})]})}),e.jsx("tbody",{children:e.jsxs("tr",{children:[e.jsx("td",{className:"px-3 py-2",children:"1"}),e.jsx("td",{className:"px-3 py-2",children:l?"Sample row":"샘플 행"}),e.jsx("td",{className:"px-3 py-2",children:l?"Ready":"준비"})]})})]})}):t.componentType==="pagination"?e.jsxs("div",{className:"inline-flex items-center gap-2 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-3 py-2 text-sm text-[var(--kr-gov-text-secondary)]",children:[e.jsx("span",{children:l?"Prev":"이전"}),e.jsx("span",{className:"rounded bg-[var(--kr-gov-bg-muted)] px-2 py-0.5 font-bold text-[var(--kr-gov-text-primary)]",children:"1"}),e.jsx("span",{children:"/ 5"}),e.jsx("span",{children:l?"Next":"다음"})]}):e.jsx("span",{className:"text-sm text-[var(--kr-gov-text-secondary)]",children:t.componentName})}function Gr(){var un,gn,vn,bn,xn,yn,fn,hn,Nn,kn,Sn,wn,Cn,In,Pn,Mn;const t=yt(),l=m.useMemo(()=>_t({get:kt}),[]),v=m.useMemo(()=>ft(),[]),i=An(()=>ht(l),[l.menuCode,l.pageId,l.menuTitle,l.menuUrl],{initialValue:v,skipInitialLoad:!!v}),a=i.value,f=An(()=>a!=null&&a.pageId?Nt(a.pageId):Promise.resolve({selectedPageId:"",pages:[],page:{}}),[(a==null?void 0:a.pageId)||""],{enabled:!!(a!=null&&a.pageId)}),[g,c]=m.useState([]),[k,N]=m.useState([]),[B,I]=m.useState(""),[Z,Se]=m.useState(""),[Ve,Dn]=m.useState([]),[Ge,S]=m.useState(""),[He,x]=m.useState(""),[R,h]=m.useState(!1),[we,Ke]=m.useState([]),[qe,We]=m.useState(!1),[Ye,Je]=m.useState(""),[ee,Qe]=m.useState("DRAFT"),[$,Xe]=m.useState("EDIT_PAGE"),[T,ne]=m.useState([]),[te,Ce]=m.useState(""),[Ze,me]=m.useState(""),[en,pe]=m.useState(""),[ue,K]=m.useState(""),[J,Ie]=m.useState("ALL"),[D,Fn]=m.useState("ALL"),[ae,re]=m.useState([]),[ge,Un]=m.useState({}),[On,nn]=m.useState(!1),[tn,an]=m.useState(""),[rn,Pe]=m.useState(""),[sn,Me]=m.useState(""),[on,Ae]=m.useState(""),[se,Ee]=m.useState("ACTIVE"),[oe,Re]=m.useState(""),[Te,Le]=m.useState("{}"),[ve,_n]=m.useState([]),[be,$n]=m.useState([]),[xe,Be]=m.useState([$e({componentId:"core.section",alias:"basicSection",propsJson:'{ "title": "AI 기본 섹션" }'}),$e({componentId:"core.input",parentAlias:"basicSection",propsJson:'{ "label": "회사명", "placeholder": "회사명을 입력하세요." }'})]);m.useEffect(()=>{a&&(c(E(a.nodes||[])),N(a.events||[]),I(n=>{var s,d;const r=new Set((a.nodes||[]).map(p=>p.nodeId));return n&&r.has(n)?n:((s=(a.nodes||[])[1])==null?void 0:s.nodeId)||((d=(a.nodes||[])[0])==null?void 0:d.nodeId)||""}),ne(a.componentRegistry||[]),Ce(n=>{var r;return n||((r=(a.componentRegistry||[])[0])==null?void 0:r.componentId)||""}),Ke(E(a.nodes||[])),Xe(a.templateType||"EDIT_PAGE"))},[a]);const o=m.useMemo(()=>g.find(n=>n.nodeId===B)||g[0]||null,[g,B]),De=m.useMemo(()=>new Set(Ve),[Ve]),jn=m.useMemo(()=>Bn(g,De),[De,g]),ye=m.useMemo(()=>{var n,r;return((r=(n=f.value)==null?void 0:n.page)==null?void 0:r.apis)||[]},[f.value]),ln=m.useMemo(()=>new Map(T.map(n=>[n.componentId,n])),[T]),Fe=m.useMemo(()=>T.find(n=>n.componentId===ue)||null,[T,ue]),b=m.useMemo(()=>T.find(n=>n.componentId===te)||null,[T,te]),F=((un=a==null?void 0:a.registryDiagnostics)==null?void 0:un.unregisteredNodes)||[],z=((gn=a==null?void 0:a.registryDiagnostics)==null?void 0:gn.missingNodes)||[],U=((vn=a==null?void 0:a.registryDiagnostics)==null?void 0:vn.deprecatedNodes)||[],Ue=((bn=a==null?void 0:a.registryDiagnostics)==null?void 0:bn.componentPromptSurface)||[],dn=m.useMemo(()=>Array.from(new Set(((a==null?void 0:a.componentTypeOptions)||T.map(n=>n.componentType)).filter(Boolean))).sort((n,r)=>String(n).localeCompare(String(r))),[T,a==null?void 0:a.componentTypeOptions]),fe=m.useMemo(()=>T.filter(n=>{const r=J==="ALL"?!0:String(n.status||"ACTIVE")===J,s=D==="ALL"?!0:String(n.componentType||"")===D;return r&&s}),[T,J,D]),Oe=m.useMemo(()=>Cr(),[]),M=m.useMemo(()=>Mr.includes(D)?D:D==="ALL"?"ALL":"",[D]),Q=m.useMemo(()=>M==="ALL"?Oe:M?Oe.filter(n=>n.componentType===M):[],[M,Oe]),L=m.useMemo(()=>Q.flatMap(n=>n.instances.map((r,s)=>({key:`${n.key}-${r.route.routeId}-${r.label||s}`,styleGroupId:n.styleGroupId,componentType:n.componentType,componentName:r.componentName,variant:r.variant,size:r.size,className:r.className,icon:r.icon,label:r.label,placeholder:r.placeholder,summary:r.summary,route:r.route}))),[Q]),ie=m.useMemo(()=>Object.fromEntries(Object.entries(ge).map(([n,r])=>[n,Array.from(new Set((r||[]).map(s=>String(s.menuUrl||"").trim()).filter(Boolean)))])),[ge]),le=F.length+z.length+U.length,q=le===0,zn=m.useMemo(()=>Rr((a==null?void 0:a.componentPalette)||[],$),[a==null?void 0:a.componentPalette,$]);m.useEffect(()=>{var r,s,d;if(!o){me(""),pe(""),K("");return}const n=o.componentId?ln.get(String(o.componentId)):null;me(String((n==null?void 0:n.label)||((r=o.props)==null?void 0:r.label)||((s=o.props)==null?void 0:s.title)||((d=o.props)==null?void 0:d.text)||"")),pe(String((n==null?void 0:n.description)||"")),K(String(o.componentId||""))},[ln,o]),m.useEffect(()=>{if(!b){Pe(""),Me(""),Ae(""),Ee("ACTIVE"),Re(""),Le("{}"),re([]);return}Pe(String(b.componentType||"")),Me(String(b.label||"")),Ae(String(b.description||"")),Ee(String(b.status||"ACTIVE")),Re(String(b.replacementComponentId||"")),Le(JSON.stringify(b.propsTemplate||{},null,2))},[b]),m.useEffect(()=>{if(!te){re([]);return}let n=!1;return nn(!0),_e(te).then(r=>{n||re(r.items||[])}).catch(r=>{n||x(r instanceof Error?r.message:t?"Failed to load component usage.":"컴포넌트 사용 화면을 불러오지 못했습니다.")}).finally(()=>{n||nn(!1)}),()=>{n=!0}},[t,te]),m.useEffect(()=>{if(D!=="button")return;const r=fe.filter(d=>d.componentType==="button").slice(0,24).map(d=>d.componentId).filter(Boolean).filter(d=>!ge[d]);if(!r.length)return;let s=!1;return Promise.all(r.map(d=>_e(d))).then(d=>{s||Un(p=>{const u={...p};return r.forEach((w,C)=>{var j;u[w]=((j=d[C])==null?void 0:j.items)||[]}),u})}).catch(()=>{}),()=>{s=!0}},[fe,D,ge]);function Vn(n){o&&c(r=>r.map(s=>s.nodeId===o.nodeId?{...s,props:n}:s))}function O(n,r){const s={...(o==null?void 0:o.props)||{},[n]:r};Vn(s)}function Gn(n){!o||!n||(c(r=>r.map(s=>s.nodeId===o.nodeId?{...s,componentId:n.componentId,componentType:n.componentType||s.componentType,props:Object.keys(n.propsTemplate||{}).length?{...n.propsTemplate||{}}:{...s.props||{}}}:s)),K(n.componentId),me(n.label||""),pe(n.description||""),S(t?`Applied component ${n.componentId}.`:`${n.componentId} 컴포넌트로 대체했습니다.`))}function Hn(n){const r=g.find(C=>C.componentType==="page"),s=o||r||null,d=s&&(s.componentType==="page"||s.componentType==="section"),p=n.componentType==="section"?(r==null?void 0:r.nodeId)||"root":d?s==null?void 0:s.nodeId:(s==null?void 0:s.parentNodeId)||(r==null?void 0:r.nodeId)||"root",u=`${n.componentType}-${Date.now()}`,w={nodeId:u,componentId:"",parentNodeId:p,componentType:n.componentType,slotName:n.componentType==="button"?"actions":"content",sortOrder:g.length,props:Ir(n.componentType)};c(C=>E([...C,w]).map((j,xt)=>({...j,sortOrder:xt}))),I(u)}function Kn(){var s,d;if(!o||o.componentType==="page")return;const n=new Set([o.nodeId,...ze(g,o.nodeId)]),r=E(g.filter(p=>!n.has(p.nodeId))).map((p,u)=>({...p,sortOrder:u}));c(r),N(p=>p.filter(u=>!n.has(u.nodeId))),I(((s=r[1])==null?void 0:s.nodeId)||((d=r[0])==null?void 0:d.nodeId)||"")}function qn(){if(!o||o.componentType==="page")return;const{clonedNodes:n,clonedEvents:r,topNodeId:s}=Pr(g,k,o.nodeId);c(d=>E([...d,...n]).map((p,u)=>({...p,sortOrder:u}))),N(d=>[...d,...r]),I(s)}function cn(n){if(!o)return;const r=E(g),s=r.findIndex(w=>w.nodeId===o.nodeId),d=s+n;if(s<0||d<0||d>=r.length)return;const p=[...r],[u]=p.splice(s,1);p.splice(d,0,u),c(p.map((w,C)=>({...w,sortOrder:C})))}function Wn(n,r){if(!n||!r||n===r)return;const s=E(g),d=s.findIndex(C=>C.nodeId===n),p=s.findIndex(C=>C.nodeId===r);if(d<0||p<0)return;const u=[...s],[w]=u.splice(d,1);u.splice(p,0,w),c(u.map((C,j)=>({...C,sortOrder:j})))}function X(){if(!o)return null;const n=k.find(s=>s.nodeId===o.nodeId);if(n)return n;const r={eventBindingId:`event-${Date.now()}`,nodeId:o.nodeId,eventName:"onClick",actionType:"navigate",actionConfig:{target:o.componentType==="button"?"/admin/":""}};return N(s=>[...s,r]),r}const A=m.useMemo(()=>k.find(n=>n.nodeId===(o==null?void 0:o.nodeId))||null,[k,o]),V=m.useMemo(()=>ye.find(n=>{var r;return n.apiId===String(((r=A==null?void 0:A.actionConfig)==null?void 0:r.apiId)||"")})||null,[ye,A]);function mn(n,r){if(!o)return;const s=X();s&&N(d=>d.map(p=>p.eventBindingId===s.eventBindingId?{...p,[n]:r}:p))}function Yn(n){if(!o)return;const r=X();r&&N(s=>s.map(d=>d.eventBindingId===r.eventBindingId?{...d,actionConfig:{...d.actionConfig||{},target:n}}:d))}function Jn(n){if(!o)return;const r=X();if(!r)return;const s=ye.find(d=>d.apiId===n);N(d=>d.map(p=>p.eventBindingId===r.eventBindingId?{...p,actionConfig:{...p.actionConfig||{},apiId:n,endpoint:(s==null?void 0:s.endpoint)||"",method:(s==null?void 0:s.method)||""}}:p))}function Qn(n,r){if(!o)return;const s=X();s&&N(d=>d.map(p=>{var u;return p.eventBindingId===s.eventBindingId?{...p,actionConfig:{...p.actionConfig||{},requestMappings:{...((u=p.actionConfig)==null?void 0:u.requestMappings)||{},[n]:r}}}:p}))}function Xn(n){Dn(r=>r.includes(n)?r.filter(s=>s!==n):[...r,n])}async function pn(n){try{await navigator.clipboard.writeText(n),an(n),window.setTimeout(()=>{an(r=>r===n?"":r)},1500)}catch{x(t?"Failed to copy button style id.":"버튼 스타일 ID를 복사하지 못했습니다.")}}function Zn(){var r,s;const n=Tr($,(a==null?void 0:a.menuTitle)||"");c(n),N([]),I(((r=n[1])==null?void 0:r.nodeId)||((s=n[0])==null?void 0:s.nodeId)||""),S(t?"Applied template preset.":"템플릿 프리셋을 적용했습니다.")}async function et(){if(a){h(!0),x(""),S("");try{const n=await St({menuCode:a.menuCode,pageId:a.pageId,menuTitle:a.menuTitle,menuUrl:a.menuUrl,templateType:$,nodes:g,events:k});S(String(n.message||(t?"Screen builder draft saved.":"화면 빌더 초안을 저장했습니다."))),await i.reload(),await W(!0)}catch(n){x(n instanceof Error?n.message:t?"Failed to save screen builder draft.":"화면 빌더 저장 중 오류가 발생했습니다.")}finally{h(!1)}}}async function W(n=!1){if(a){We(!0),Je("");try{const r=await Ct({menuCode:a.menuCode,pageId:a.pageId,menuTitle:a.menuTitle,menuUrl:a.menuUrl,versionStatus:ee});Ke(E(r.nodes||[])),Je(n?t?"Preview refreshed from the saved draft.":"저장된 초안 기준으로 미리보기를 갱신했습니다.":ee==="PUBLISHED"?t?"Preview refreshed from the latest published snapshot.":"최근 publish 스냅샷 기준으로 미리보기를 갱신했습니다.":t?"Preview refreshed.":"미리보기를 갱신했습니다.")}catch(r){x(r instanceof Error?r.message:t?"Failed to refresh preview.":"미리보기 갱신 중 오류가 발생했습니다.")}finally{We(!1)}}}async function nt(n){if(!(!(a!=null&&a.menuCode)||!n)){h(!0),x(""),S("");try{const r=await Bt({menuCode:a.menuCode,versionId:n});S(String(r.message||(t?"Draft restored.":"초안을 복원했습니다."))),await i.reload(),await W(!0)}catch(r){x(r instanceof Error?r.message:t?"Failed to restore draft.":"초안 복원 중 오류가 발생했습니다.")}finally{h(!1)}}}async function tt(){if(a!=null&&a.menuCode){if(le>0){x(t?`Publish is blocked until validation issues are resolved. Unregistered=${F.length}, Missing=${z.length}, Deprecated=${U.length}`:`검증 이슈가 해결되기 전에는 Publish 할 수 없습니다. 미등록=${F.length}, 누락=${z.length}, Deprecated=${U.length}`);return}h(!0),x(""),S("");try{const n=await wt({menuCode:a.menuCode});S(String(n.message||(t?"Published version snapshot created.":"publish 버전 스냅샷을 만들었습니다."))),await i.reload()}catch(n){x(n instanceof Error?n.message:t?"Failed to publish draft.":"초안 publish 중 오류가 발생했습니다.")}finally{h(!1)}}}async function at(){var n,r,s;if(!(!a||!o||o.componentType==="page")){h(!0),x(""),S("");try{const d=await Lt({menuCode:a.menuCode,pageId:a.pageId,nodeId:o.nodeId,componentType:o.componentType,label:Ze||String(((n=o.props)==null?void 0:n.label)||((r=o.props)==null?void 0:r.title)||((s=o.props)==null?void 0:s.text)||o.nodeId),description:en,propsTemplate:{...o.props||{}}});ne(p=>{const u=p.filter(w=>w.componentId!==d.item.componentId);return u.push(d.item),u.sort((w,C)=>String(w.componentId||"").localeCompare(String(C.componentId||"")))}),c(p=>p.map(u=>u.nodeId===o.nodeId?{...u,componentId:d.item.componentId}:u)),K(d.item.componentId),S(String(d.message||(t?"Component registered.":"컴포넌트를 등록했습니다.")))}catch(d){x(d instanceof Error?d.message:t?"Failed to register component.":"컴포넌트 등록 중 오류가 발생했습니다.")}finally{h(!1)}}}function rt(){!Fe||!o||Gn(Fe)}async function st(n){if(n!=null&&n.componentId){h(!0),x("");try{const r=await En({componentId:n.componentId,status:"DEPRECATED",replacementComponentId:ue||n.replacementComponentId||"",menuCode:(a==null?void 0:a.menuCode)||""});ne(s=>s.map(d=>d.componentId===r.item.componentId?r.item:d)),S(String(r.message||(t?"Component deprecated.":"컴포넌트를 deprecated 처리했습니다.")))}catch(r){x(r instanceof Error?r.message:t?"Failed to update component.":"컴포넌트 수정 중 오류가 발생했습니다.")}finally{h(!1)}}}async function ot(){if(b!=null&&b.componentId){h(!0),x("");try{const n=Te.trim()?JSON.parse(Te):{},r=await En({componentId:b.componentId,componentType:rn,label:sn,description:on,status:se,replacementComponentId:oe,propsTemplate:n,menuCode:(a==null?void 0:a.menuCode)||""});ne(s=>s.map(d=>d.componentId===r.item.componentId?r.item:d)),S(String(r.message||(t?"Component updated.":"컴포넌트를 수정했습니다.")))}catch(n){x(n instanceof Error?n.message:t?"Failed to save component.":"컴포넌트 저장 중 오류가 발생했습니다.")}finally{h(!1)}}}async function it(){if(b!=null&&b.componentId){h(!0),x("");try{const n=await Et({componentId:b.componentId});ne(r=>r.filter(s=>s.componentId!==b.componentId)),Ce(r=>r===b.componentId?"":r),re([]),S(String(n.message||(t?"Component deleted.":"컴포넌트를 삭제했습니다."))),await i.reload()}catch(n){x(n instanceof Error?n.message:t?"Failed to delete component.":"컴포넌트 삭제 중 오류가 발생했습니다.")}finally{h(!1)}}}async function lt(){if(!(!(b!=null&&b.componentId)||!oe)){h(!0),x("");try{const n=await At({fromComponentId:b.componentId,toComponentId:oe});S(String(n.message||(t?"Component usage remapped.":"컴포넌트 사용처를 재매핑했습니다.")));const r=await _e(b.componentId);re(r.items||[]),await i.reload(),await W(!0)}catch(n){x(n instanceof Error?n.message:t?"Failed to remap component usage.":"컴포넌트 사용처 재매핑 중 오류가 발생했습니다.")}finally{h(!1)}}}async function dt(){if(a!=null&&a.menuCode){h(!0),x("");try{const n=await Pt({menuCode:a.menuCode});S(String(n.message||(t?"Deprecated components replaced.":"deprecated 컴포넌트를 대체했습니다."))),await i.reload(),await W(!0)}catch(n){x(n instanceof Error?n.message:t?"Failed to auto replace deprecated components.":"deprecated 컴포넌트 자동 대체 중 오류가 발생했습니다.")}finally{h(!1)}}}async function ct(){if(a!=null&&a.menuCode){h(!0),x("");try{const n=await It({menuCode:a.menuCode});$n(n.items||[]),S(t?"Loaded replacement diff preview.":"대체 diff 미리보기를 불러왔습니다.")}catch(n){x(n instanceof Error?n.message:t?"Failed to preview replacement diff.":"대체 diff 미리보기 중 오류가 발생했습니다.")}finally{h(!1)}}}async function mt(){h(!0),x("");try{const n=await Mt();_n(n.items||[]),S(t?"Registry diagnostics scanned.":"레지스트리 진단을 스캔했습니다.")}catch(n){x(n instanceof Error?n.message:t?"Failed to scan registry diagnostics.":"레지스트리 진단 스캔 중 오류가 발생했습니다.")}finally{h(!1)}}async function pt(n){if(!(!(a!=null&&a.menuCode)||!n)){h(!0),x("");try{const r=await Rt({menuCode:a.menuCode,componentId:n,parentNodeId:(o==null?void 0:o.nodeId)||""});S(String(r.message||(t?"Node added from component.":"컴포넌트로 노드를 추가했습니다."))),await i.reload(),await W(!0)}catch(r){x(r instanceof Error?r.message:t?"Failed to add node from component.":"컴포넌트 노드 추가 중 오류가 발생했습니다.")}finally{h(!1)}}}async function ut(){if(a!=null&&a.menuCode){h(!0),x("");try{const n=xe.map(s=>({componentId:s.componentId.trim(),alias:s.alias.trim()||void 0,parentAlias:s.parentAlias.trim()||void 0,props:s.propsJson.trim()?JSON.parse(s.propsJson):{}})).filter(s=>s.componentId),r=await Tt({menuCode:a.menuCode,items:n});S(String(r.message||(t?"Node tree added from AI component contracts.":"AI 컴포넌트 계약으로 노드 트리를 추가했습니다."))),await i.reload(),await W(!0)}catch(n){x(n instanceof Error?n.message:t?"Failed to add node tree from AI component contracts.":"AI 컴포넌트 계약 노드 트리 추가 중 오류가 발생했습니다.")}finally{h(!1)}}}function he(n,r,s){Be(d=>d.map((p,u)=>u===n?{...p,[r]:s}:p))}function gt(){Be(n=>[...n,$e()])}function vt(n){Be(r=>r.filter((s,d)=>d!==n))}const _=(o==null?void 0:o.props)||{},bt=G("/admin/system/environment-management","/en/admin/system/environment-management");return e.jsxs(Dt,{breadcrumbs:[{label:t?"Home":"홈",href:G("/admin/","/en/admin/")},{label:t?"System":"시스템"},{label:t?"Environment Management":"메뉴 통합 관리",href:bt},{label:t?"Screen Builder":"화면 빌더"}],title:t?"Screen Builder":"화면 빌더",subtitle:t?"Build a page draft from menu metadata, reusable components, and lightweight event bindings.":"메뉴 메타데이터를 기준으로 컴포넌트와 이벤트 연결을 조합해 화면 초안을 구성합니다.",contextStrip:e.jsx(Ft,{items:Ut}),loading:i.loading&&!a,loadingLabel:t?"Loading screen builder...":"화면 빌더를 불러오는 중입니다.",children:[i.error||He?e.jsx(Rn,{tone:"error",children:i.error||He}):null,Ge?e.jsx(Rn,{tone:"success",children:Ge}):null,e.jsxs(Ot,{children:[e.jsx(Ne,{actions:e.jsxs(e.Fragment,{children:[a!=null&&a.menuCode?e.jsx(Y,{href:G(`/admin/system/environment-management?menuCode=${encodeURIComponent(a.menuCode)}`,`/en/admin/system/environment-management?menuCode=${encodeURIComponent(a.menuCode)}`),variant:"secondary",children:t?"Open Environment Management":"환경관리 열기"}):null,a!=null&&a.menuCode?e.jsx(Y,{href:G(`/admin/system/screen-runtime?menuCode=${encodeURIComponent(a.menuCode)}&pageId=${encodeURIComponent(a.pageId||"")}&menuTitle=${encodeURIComponent(a.menuTitle||"")}&menuUrl=${encodeURIComponent(a.menuUrl||"")}`,`/en/admin/system/screen-runtime?menuCode=${encodeURIComponent(a.menuCode)}&pageId=${encodeURIComponent(a.pageId||"")}&menuTitle=${encodeURIComponent(a.menuTitle||"")}&menuUrl=${encodeURIComponent(a.menuUrl||"")}`),variant:"secondary",children:t?"Open Published Runtime":"발행 런타임 열기"}):null,e.jsx(y,{disabled:!(a!=null&&a.menuCode)||R,onClick:()=>{et()},variant:"primary",children:R?t?"Saving...":"저장 중...":t?"Save Draft":"초안 저장"}),e.jsx(y,{disabled:!(a!=null&&a.menuCode)||R||le>0,onClick:()=>{tt()},variant:"info",children:R?t?"Working...":"처리 중...":t?"Publish Snapshot":"Publish 스냅샷"}),e.jsx(y,{disabled:!(a!=null&&a.menuCode)||qe,onClick:()=>{W(!1)},variant:"secondary",children:qe?t?"Refreshing...":"갱신 중...":t?"Refresh Preview":"미리보기 갱신"})]}),description:(a==null?void 0:a.screenBuilderMessage)||(t?"Use this MVP builder to create a schema-first page draft before moving into full runtime rendering.":"이 MVP 빌더로 schema 중심 초안을 먼저 만들고, 이후 runtime 렌더링 단계로 이어갑니다."),eyebrow:(a==null?void 0:a.templateType)||"EDIT_PAGE",status:q?t?"READY":"준비 완료":t?"BLOCKED":"차단",statusTone:q?"healthy":"danger",summary:e.jsxs("div",{className:"grid grid-cols-1 gap-3 md:grid-cols-5",children:[e.jsxs("div",{className:"rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3",children:[e.jsx("p",{className:"text-xs font-bold text-[var(--kr-gov-text-secondary)]",children:"Menu Code"}),e.jsx("p",{className:"mt-2 font-mono text-sm",children:(a==null?void 0:a.menuCode)||"-"})]}),e.jsxs("div",{className:"rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3",children:[e.jsx("p",{className:"text-xs font-bold text-[var(--kr-gov-text-secondary)]",children:"pageId"}),e.jsx("p",{className:"mt-2 font-mono text-sm",children:(a==null?void 0:a.pageId)||"-"})]}),e.jsxs("div",{className:"rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3",children:[e.jsx("p",{className:"text-xs font-bold text-[var(--kr-gov-text-secondary)]",children:t?"Nodes":"노드 수"}),e.jsx("p",{className:"mt-2 text-lg font-black",children:g.length})]}),e.jsxs("div",{className:"rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3",children:[e.jsx("p",{className:"text-xs font-bold text-[var(--kr-gov-text-secondary)]",children:t?"Events":"이벤트 수"}),e.jsx("p",{className:"mt-2 text-lg font-black",children:k.length})]}),e.jsxs("div",{className:`rounded-lg border px-4 py-3 ${q?"border-emerald-200 bg-emerald-50":"border-red-200 bg-red-50"}`,children:[e.jsx("p",{className:`text-xs font-bold ${q?"text-emerald-800":"text-red-800"}`,children:t?"Publish Readiness":"Publish 준비 상태"}),e.jsx("p",{className:`mt-2 text-lg font-black ${q?"text-emerald-900":"text-red-900"}`,children:q?t?"Ready to publish":"Publish 가능":t?`${le} issues block publish`:`${le}건 이슈로 Publish 차단`})]})]}),title:(a==null?void 0:a.menuTitle)||(t?"Select a page menu first":"먼저 페이지 메뉴를 선택하세요")}),a!=null&&a.publishedVersionId?e.jsxs("section",{className:"rounded-[var(--kr-gov-radius)] border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900",children:[t?"Latest published version":"최근 publish 버전",": ",e.jsx("span",{className:"font-mono",children:a.publishedVersionId}),a.publishedSavedAt?` / ${a.publishedSavedAt}`:""]}):null,e.jsxs("section",{className:"gov-card p-0 overflow-hidden",children:[e.jsx(P,{actions:e.jsx(de,{children:e.jsx(y,{disabled:R,onClick:Zn,size:"xs",type:"button",variant:"secondary",children:t?"Apply template preset":"템플릿 프리셋 적용"})}),meta:t?"Choose a page type first so palette, slot positions, and AI component usage stay consistent.":"먼저 페이지 타입을 선택해 팔레트, 버튼 위치, AI 컴포넌트 사용 규칙을 일관되게 맞춥니다.",title:t?"Template Type":"템플릿 타입"}),e.jsx("div",{className:"grid grid-cols-1 gap-4 p-6 xl:grid-cols-4",children:Ar.map(n=>{const r=$===n.value;return e.jsxs("button",{className:`rounded-[var(--kr-gov-radius)] border px-4 py-4 text-left ${r?"border-[var(--kr-gov-blue)] bg-blue-50":"border-[var(--kr-gov-border-light)] bg-white hover:bg-gray-50"}`,onClick:()=>Xe(n.value),type:"button",children:[e.jsx("p",{className:"text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]",children:n.value}),e.jsx("p",{className:"mt-2 text-sm font-black text-[var(--kr-gov-text-primary)]",children:t?n.labelEn:n.label}),e.jsx("p",{className:"mt-2 text-[12px] leading-5 text-[var(--kr-gov-text-secondary)]",children:n.description})]},n.value)})})]}),e.jsxs("section",{className:"grid grid-cols-1 gap-4 xl:grid-cols-3",children:[e.jsx(Ne,{description:t?"Nodes without a linked componentId can be registered as reusable components or replaced with an existing one.":"componentId가 없는 노드는 재사용 컴포넌트로 등록하거나 기존 컴포넌트로 대체할 수 있습니다.",status:String(F.length),statusTone:F.length?"warning":"healthy",title:t?"Unregistered reusable candidates":"미등록 재사용 후보"}),e.jsx(Ne,{description:t?"Nodes that reference missing componentIds should be replaced or the registry item should be restored.":"없는 componentId를 참조하는 노드는 대체하거나 레지스트리 항목을 복구해야 합니다.",status:String(z.length+U.length),statusTone:z.length+U.length?"danger":"healthy",title:t?"Broken registry references":"깨진 레지스트리 참조"}),e.jsx(Ne,{description:t?"System and custom components that the AI or operators can target by componentId.":"운영자와 AI가 componentId로 재사용할 수 있는 시스템/커스텀 컴포넌트 목록입니다.",status:String(T.length),statusTone:"neutral",title:t?"Registered components":"등록 컴포넌트 수"})]}),Q.length?e.jsxs("section",{className:"gov-card p-0 overflow-hidden",children:[e.jsx(P,{meta:t?`${Q.length} detected styles / ${L.length} total component uses across React pages.`:`React 화면 기준 감지 스타일 ${Q.length}종 / 전체 사용 ${L.length}건입니다.`,title:Lr(M||"button",t)}),e.jsxs("div",{className:"border-t border-[var(--kr-gov-border-light)]",children:[e.jsx(P,{meta:t?`Every detected component use is listed below first. ${L.length} raw source-based instances.`:`아래에 감지된 컴포넌트 사용 인스턴스를 먼저 모두 나열합니다. 원본 기준 ${L.length}건입니다.`,title:t?"All Component Usage Instances":"전체 컴포넌트 사용 인스턴스"}),e.jsx("div",{className:"max-h-[520px] overflow-auto",children:e.jsxs("table",{className:"w-full text-sm text-left border-collapse",children:[e.jsx("thead",{children:e.jsxs("tr",{className:"gov-table-header",children:[e.jsx("th",{className:"px-4 py-3",children:"styleGroupId"}),e.jsx("th",{className:"px-4 py-3",children:t?"Preview":"프리뷰"}),e.jsx("th",{className:"px-4 py-3",children:t?"Component":"컴포넌트"}),e.jsx("th",{className:"px-4 py-3",children:t?"Label":"라벨"}),e.jsx("th",{className:"px-4 py-3",children:"URL"}),e.jsx("th",{className:"px-4 py-3",children:t?"Open":"열기"})]})}),e.jsx("tbody",{className:"divide-y divide-gray-100",children:L.map(n=>e.jsxs("tr",{children:[e.jsx("td",{className:"px-4 py-3",children:e.jsxs("div",{className:"flex flex-col gap-2",children:[e.jsx("span",{className:"font-mono text-[11px] text-[var(--kr-gov-text-secondary)]",children:n.styleGroupId}),e.jsx(y,{onClick:()=>{pn(n.styleGroupId)},size:"xs",type:"button",variant:"secondary",children:tn===n.styleGroupId?t?"Copied":"복사됨":t?"Copy":"복사"})]})}),e.jsx("td",{className:"px-4 py-3",children:je(n,t)}),e.jsxs("td",{className:"px-4 py-3 text-[12px]",children:[e.jsx("div",{className:"font-semibold text-[var(--kr-gov-text-primary)]",children:n.componentName}),e.jsxs("div",{className:"font-mono text-[11px] text-[var(--kr-gov-text-secondary)]",children:[n.componentType,n.variant?` / ${n.variant}`:"",n.size?` / ${n.size}`:"",n.className?` / class=${n.className}`:"",n.icon?` / icon=${n.icon}`:"",n.placeholder?` / placeholder=${n.placeholder}`:""]})]}),e.jsx("td",{className:"px-4 py-3",children:n.label||n.placeholder||"-"}),e.jsx("td",{className:"px-4 py-3 font-mono text-[11px] text-[var(--kr-gov-text-secondary)]",children:n.route.koPath}),e.jsx("td",{className:"px-4 py-3",children:e.jsx(Y,{href:G(n.route.koPath,n.route.enPath),size:"xs",variant:"secondary",children:t?"Open":"열기"})})]},n.key))})]})})]}),e.jsxs("div",{className:"border-t border-[var(--kr-gov-border-light)]",children:[e.jsx(P,{meta:t?"Grouped styles are summarized below. Same variant with different className, icon, or placeholder is separated.":"아래는 묶어서 본 스타일 요약입니다. 같은 variant여도 className, icon, placeholder가 다르면 별도 스타일로 분리합니다.",title:t?"Grouped Component Styles":"그룹형 컴포넌트 스타일 요약"}),e.jsx("div",{className:"grid grid-cols-1 gap-4 p-6 xl:grid-cols-2",children:Q.map(n=>e.jsxs("article",{className:"rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4",children:[e.jsxs("div",{className:"flex items-start justify-between gap-3",children:[e.jsxs("div",{children:[e.jsx("p",{className:"font-mono text-[11px] text-[var(--kr-gov-text-secondary)]",children:n.componentType}),e.jsx("p",{className:"mt-1 text-sm font-black text-[var(--kr-gov-text-primary)]",children:n.componentName}),e.jsx("p",{className:"mt-1 text-[12px] text-[var(--kr-gov-text-secondary)]",children:[n.variant,n.size,n.placeholder].filter(Boolean).join(" / ")||(t?"base style":"기본 스타일")})]}),e.jsxs("div",{className:"flex flex-wrap items-center justify-end gap-1",children:[e.jsx("span",{className:"rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-700",children:t?`${n.instanceCount} uses`:`${n.instanceCount}회 사용`}),e.jsx("span",{className:"rounded-full bg-blue-50 px-2 py-1 text-[10px] font-bold text-blue-700",children:t?`${n.routeCount} screens`:`${n.routeCount}개 화면`})]})]}),e.jsx("div",{className:"mt-3 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-bg-muted)] px-3 py-4",children:je(n,t)}),e.jsxs("div",{className:"mt-3 flex flex-wrap gap-2 text-[11px]",children:[e.jsx("span",{className:"rounded-full bg-indigo-50 px-2 py-1 font-mono text-indigo-800",children:n.styleGroupId}),e.jsx("span",{className:"rounded-full bg-slate-100 px-2 py-1 font-mono text-slate-700",children:n.componentName}),n.className?e.jsxs("span",{className:"rounded-full bg-amber-50 px-2 py-1 font-mono text-amber-800",children:["class: ",n.className]}):null,n.icon?e.jsxs("span",{className:"rounded-full bg-emerald-50 px-2 py-1 font-mono text-emerald-800",children:["icon: ",n.icon]}):null,n.placeholder?e.jsxs("span",{className:"rounded-full bg-cyan-50 px-2 py-1 font-mono text-cyan-800",children:["placeholder: ",n.placeholder]}):null]}),e.jsx("div",{className:"mt-3",children:e.jsx(y,{onClick:()=>{pn(n.styleGroupId)},size:"xs",type:"button",variant:"secondary",children:tn===n.styleGroupId?t?"Copied":"복사됨":t?"Copy styleGroupId":"styleGroupId 복사"})})]},n.key))})]})]}):null,e.jsxs("section",{className:"gov-card p-0 overflow-hidden",children:[e.jsx(P,{meta:q?t?"All registry validation issues are cleared. Publish can run now.":"레지스트리 검증 이슈가 없습니다. 지금 Publish 할 수 있습니다.":t?"Publish runs only when all registry validation issues are cleared.":"레지스트리 검증 이슈가 모두 없어야 Publish 됩니다.",title:t?"Publish Validation Report":"Publish 검증 리포트"}),e.jsxs("div",{className:"grid grid-cols-1 gap-4 p-6 xl:grid-cols-3",children:[e.jsxs("div",{className:"rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-4",children:[e.jsx("p",{className:"text-xs font-black uppercase tracking-[0.08em] text-amber-800",children:t?"Unregistered":"미등록"}),e.jsx("p",{className:"mt-2 text-2xl font-black text-amber-900",children:F.length})]}),e.jsxs("div",{className:"rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-4",children:[e.jsx("p",{className:"text-xs font-black uppercase tracking-[0.08em] text-red-800",children:t?"Missing":"누락"}),e.jsx("p",{className:"mt-2 text-2xl font-black text-red-900",children:z.length})]}),e.jsxs("div",{className:"rounded-[var(--kr-gov-radius)] border border-rose-200 bg-rose-50 px-4 py-4",children:[e.jsx("p",{className:"text-xs font-black uppercase tracking-[0.08em] text-rose-800",children:"Deprecated"}),e.jsx("p",{className:"mt-2 text-2xl font-black text-rose-900",children:U.length})]})]})]}),e.jsxs("section",{className:"gov-card p-0 overflow-hidden",children:[e.jsx(P,{actions:e.jsxs(de,{children:[e.jsx(y,{disabled:!U.length||R,onClick:()=>{ct()},size:"xs",type:"button",variant:"secondary",children:t?"Preview replace diff":"대체 diff 미리보기"}),e.jsx(y,{disabled:!U.length||R,onClick:()=>{dt()},size:"xs",type:"button",variant:"secondary",children:t?"Auto replace deprecated":"Deprecated 자동 대체"}),e.jsx(y,{disabled:R,onClick:()=>{mt()},size:"xs",type:"button",variant:"secondary",children:t?"Scan all drafts":"전체 draft 스캔"}),e.jsxs("label",{className:"inline-flex items-center gap-2 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-2 py-1 text-xs text-[var(--kr-gov-text-secondary)]",children:[e.jsx("span",{children:t?"Type":"종류"}),e.jsxs("select",{className:"bg-transparent text-xs outline-none",value:D,onChange:n=>Fn(n.target.value),children:[e.jsx("option",{value:"ALL",children:t?"All":"전체"}),dn.map(n=>e.jsx("option",{value:n,children:n},`registry-type-${n}`))]})]}),e.jsx(y,{onClick:()=>Ie("ALL"),size:"xs",type:"button",variant:J==="ALL"?"primary":"secondary",children:t?"All":"전체"}),e.jsx(y,{onClick:()=>Ie("ACTIVE"),size:"xs",type:"button",variant:J==="ACTIVE"?"primary":"secondary",children:"ACTIVE"}),e.jsx(y,{onClick:()=>Ie("DEPRECATED"),size:"xs",type:"button",variant:J==="DEPRECATED"?"primary":"secondary",children:"DEPRECATED"})]}),meta:t?`${T.length} registry items / ${F.length} unregistered candidates`:`레지스트리 ${T.length}건 / 미등록 후보 ${F.length}건`,title:t?"Component Registry Inventory":"컴포넌트 레지스트리 인벤토리"}),e.jsxs("div",{className:"grid grid-cols-1 gap-6 p-6 xl:grid-cols-3",children:[e.jsxs("article",{className:"rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4",children:[e.jsx("p",{className:"text-sm font-black text-[var(--kr-gov-text-primary)]",children:t?"Unregistered nodes":"미등록 노드"}),e.jsx("div",{className:"mt-3 space-y-2",children:F.length?F.map(n=>e.jsxs("button",{className:"w-full rounded border border-amber-200 bg-amber-50 px-3 py-2 text-left text-sm text-amber-900 hover:bg-amber-100",onClick:()=>I(n.nodeId),type:"button",children:[e.jsx("span",{className:"font-mono text-[11px]",children:n.componentType}),e.jsx("span",{className:"ml-2",children:n.label})]},`unregistered-${n.nodeId}`)):e.jsx("p",{className:"text-sm text-[var(--kr-gov-text-secondary)]",children:t?"No unregistered nodes.":"미등록 노드가 없습니다."})})]}),e.jsxs("article",{className:"rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4",children:[e.jsx("p",{className:"text-sm font-black text-[var(--kr-gov-text-primary)]",children:t?"Broken references":"깨진 참조"}),e.jsx("div",{className:"mt-3 space-y-2",children:[...z,...U].length?[...z,...U].map(n=>e.jsxs("div",{className:"rounded border border-red-200 bg-red-50 px-3 py-2 text-left text-sm text-red-800",children:[e.jsxs("button",{className:"w-full text-left",onClick:()=>I(n.nodeId),type:"button",children:[e.jsx("span",{className:"font-mono text-[11px]",children:String(n.componentId||"-")}),e.jsx("span",{className:"ml-2",children:n.label})]}),n.replacementComponentId?e.jsxs("div",{className:"mt-2 text-[11px] text-red-700",children:[t?"Suggested replacement":"권장 대체",": ",e.jsx("span",{className:"font-mono",children:n.replacementComponentId})]}):null]},`broken-${n.nodeId}`)):e.jsx("p",{className:"text-sm text-[var(--kr-gov-text-secondary)]",children:t?"No broken references.":"깨진 참조가 없습니다."})})]}),e.jsxs("article",{className:"rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4",children:[e.jsxs("div",{className:"flex items-center justify-between gap-3",children:[e.jsx("p",{className:"text-sm font-black text-[var(--kr-gov-text-primary)]",children:M&&M!=="ALL"?Br(M,t):t?"Registered components":"등록 컴포넌트"}),M&&M!=="ALL"?e.jsx("span",{className:"rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-bold text-indigo-700",children:t?`${L.length} detected`:`${L.length}건 감지`}):null]}),M&&M!=="ALL"?e.jsx("div",{className:"mt-3 rounded-[var(--kr-gov-radius)] border border-blue-100 bg-blue-50 px-3 py-3 text-xs text-blue-900",children:t?"This area shows all detected component usage instances in the current system first. Registered components are listed below as a secondary section.":"이 영역은 현재 시스템에서 감지된 전체 컴포넌트 사용 인스턴스를 먼저 보여주고, 등록된 컴포넌트는 아래 보조 섹션으로 보여줍니다."}):null,M&&M!=="ALL"?e.jsxs("div",{className:"mt-3 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-bg-muted)] p-3",children:[e.jsxs("div",{className:"flex items-center justify-between gap-2",children:[e.jsx("p",{className:"text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]",children:t?"All Component Usage Instances":"전체 컴포넌트 사용 인스턴스"}),e.jsx("span",{className:"rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-[var(--kr-gov-text-secondary)]",children:t?`${L.length} items`:`${L.length}건`})]}),e.jsxs("div",{className:"mt-3 max-h-[260px] space-y-2 overflow-auto",children:[L.length?L.slice(0,80).map(n=>e.jsxs("div",{className:"rounded border border-[var(--kr-gov-border-light)] bg-white px-3 py-3",children:[e.jsxs("div",{className:"flex items-start justify-between gap-3",children:[e.jsxs("div",{className:"min-w-0",children:[e.jsxs("p",{className:"truncate font-semibold text-[var(--kr-gov-text-primary)]",children:[n.label||(t?"Button":"버튼")," · ",n.route.label]}),e.jsx("p",{className:"truncate font-mono text-[11px] text-[var(--kr-gov-text-secondary)]",children:n.route.koPath})]}),e.jsx(Y,{href:G(n.route.koPath,n.route.enPath),size:"xs",variant:"secondary",children:t?"Open":"열기"})]}),e.jsxs("div",{className:"mt-2 flex flex-wrap items-center gap-2",children:[je(n,t),e.jsx("span",{className:"rounded-full bg-indigo-50 px-2 py-0.5 font-mono text-[10px] text-indigo-800",children:n.styleGroupId}),e.jsx("span",{className:"rounded-full bg-slate-100 px-2 py-0.5 font-mono text-[10px] text-slate-700",children:n.componentName})]})]},n.key)):e.jsx("p",{className:"rounded border border-dashed border-[var(--kr-gov-border-light)] bg-white px-3 py-4 text-sm text-[var(--kr-gov-text-secondary)]",children:t?"No component usage instances were detected.":"감지된 컴포넌트 사용 인스턴스가 없습니다."}),L.length>80?e.jsx("p",{className:"text-[11px] text-[var(--kr-gov-text-secondary)]",children:t?`+ ${L.length-80} more component instances are listed in the catalog section below.`:`외 ${L.length-80}건은 아래 카탈로그 섹션에서 계속 볼 수 있습니다.`}):null]})]}):null,M&&M!=="ALL"?e.jsxs("div",{className:"mt-3 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-3 py-3",children:[e.jsxs("div",{className:"flex items-center justify-between gap-2",children:[e.jsx("p",{className:"text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]",children:t?"Registered components":"등록된 컴포넌트"}),e.jsx("span",{className:"rounded-full bg-[var(--kr-gov-bg-muted)] px-2 py-0.5 text-[10px] font-bold text-[var(--kr-gov-text-secondary)]",children:fe.length})]}),e.jsx("p",{className:"mt-2 text-[11px] text-[var(--kr-gov-text-secondary)]",children:t?"This list is the DB-backed registry. It can be smaller than the detected system component inventory above.":"이 목록은 DB 기반 레지스트리라서, 위의 시스템 컴포넌트 인벤토리보다 항목 수가 적을 수 있습니다."})]}):null,e.jsx("div",{className:"mt-3 max-h-[280px] space-y-2 overflow-auto",children:fe.map(n=>{var r,s,d,p,u,w,C;return e.jsxs("div",{className:"w-full rounded border border-[var(--kr-gov-border-light)] px-3 py-2 text-left text-sm",children:[e.jsxs("button",{className:"w-full text-left hover:bg-gray-50",onClick:()=>{Ce(n.componentId),K(n.componentId),o&&I(o.nodeId)},type:"button",children:[e.jsxs("div",{className:"flex items-center justify-between gap-2",children:[e.jsx("span",{className:"font-mono text-[11px] text-[var(--kr-gov-text-secondary)]",children:n.componentId}),e.jsxs("div",{className:"flex items-center gap-1",children:[e.jsx("span",{className:`rounded-full px-2 py-0.5 text-[10px] font-bold ${n.status==="DEPRECATED"?"bg-amber-100 text-amber-800":"bg-emerald-100 text-emerald-700"}`,children:n.status||"ACTIVE"}),e.jsx("span",{className:`rounded-full px-2 py-0.5 text-[10px] font-bold ${n.sourceType==="SYSTEM"?"bg-slate-100 text-slate-700":"bg-sky-100 text-sky-700"}`,children:n.sourceType||"CUSTOM"})]})]}),e.jsx("p",{className:"mt-1 font-semibold text-[var(--kr-gov-text-primary)]",children:t&&n.labelEn||n.label}),n.description?e.jsx("p",{className:"mt-1 text-[12px] text-[var(--kr-gov-text-secondary)]",children:n.description}):null,n.componentType==="button"?e.jsxs("div",{className:"mt-3 space-y-2 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-bg-muted)] px-3 py-3",children:[e.jsxs("div",{className:"flex flex-wrap items-center gap-2",children:[e.jsx(y,{size:"xs",type:"button",variant:ke((r=n.propsTemplate)==null?void 0:r.variant),children:String(((s=n.propsTemplate)==null?void 0:s.label)||n.label||(t?"Button":"버튼"))}),e.jsxs("span",{className:"rounded-full bg-white px-2 py-0.5 font-mono text-[10px] text-[var(--kr-gov-text-secondary)]",children:["variant: ",String(((d=n.propsTemplate)==null?void 0:d.variant)||"secondary")]})]}),e.jsxs("div",{className:"space-y-1",children:[e.jsx("p",{className:"text-[11px] font-bold text-[var(--kr-gov-text-primary)]",children:t?"Included URLs":"포함 URL"}),(p=ie[n.componentId])!=null&&p.length?ie[n.componentId].slice(0,4).map(j=>e.jsx("p",{className:"truncate font-mono text-[11px] text-[var(--kr-gov-text-secondary)]",children:j},`${n.componentId}-${j}`)):e.jsx("p",{className:"text-[11px] text-[var(--kr-gov-text-secondary)]",children:t?"No linked screen URLs yet.":"연결된 화면 URL이 아직 없습니다."}),(((u=ie[n.componentId])==null?void 0:u.length)||0)>4?e.jsx("p",{className:"text-[11px] text-[var(--kr-gov-text-secondary)]",children:t?`+ ${(((w=ie[n.componentId])==null?void 0:w.length)||0)-4} more URLs`:`외 ${(((C=ie[n.componentId])==null?void 0:C.length)||0)-4}건`}):null]})]}):null,e.jsxs("p",{className:"mt-1 text-[11px] text-[var(--kr-gov-text-secondary)]",children:[t?"Usage screens":"사용 화면",": ",n.usageCount??0]}),n.replacementComponentId?e.jsxs("p",{className:"mt-1 font-mono text-[11px] text-[var(--kr-gov-text-secondary)]",children:["replacement: ",n.replacementComponentId]}):null]}),e.jsx("div",{className:"mt-2 flex flex-wrap gap-2",children:e.jsx(y,{disabled:n.sourceType==="SYSTEM"||n.status==="DEPRECATED",onClick:()=>{st(n)},size:"xs",type:"button",variant:"dangerSecondary",children:t?"Deprecate":"Deprecated 처리"})})]},n.componentId)})})]})]})]}),e.jsxs("section",{className:"gov-card p-0 overflow-hidden",children:[e.jsx(P,{meta:b?`${b.componentId} / ${ae.length}${t?" usage rows":"개 사용처"}`:t?"Select a registry component to inspect usage and replace mappings.":"레지스트리 컴포넌트를 선택하면 사용 화면과 대체 매핑을 확인할 수 있습니다.",title:t?"Registry Component Management":"레지스트리 컴포넌트 관리"}),e.jsxs("div",{className:"grid grid-cols-1 gap-6 p-6 xl:grid-cols-[0.92fr_1.08fr]",children:[e.jsx("article",{className:"rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4",children:b?e.jsxs("div",{className:"space-y-4",children:[e.jsxs("div",{className:"flex items-center justify-between gap-3",children:[e.jsxs("div",{children:[e.jsx("p",{className:"font-mono text-[11px] text-[var(--kr-gov-text-secondary)]",children:b.componentId}),e.jsx("p",{className:"mt-1 text-sm font-black text-[var(--kr-gov-text-primary)]",children:t&&b.labelEn||b.label})]}),e.jsx("span",{className:`rounded-full px-2 py-1 text-[10px] font-bold ${se==="DEPRECATED"?"bg-amber-100 text-amber-800":se==="INACTIVE"?"bg-slate-200 text-slate-700":"bg-emerald-100 text-emerald-700"}`,children:se})]}),e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Component Type":"컴포넌트 종류"}),e.jsx("select",{className:"gov-select",value:rn,onChange:n=>Pe(n.target.value),children:dn.map(n=>e.jsx("option",{value:n,children:n},`registry-editor-type-${n}`))})]}),e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Label":"이름"}),e.jsx("input",{className:"gov-input",value:sn,onChange:n=>Me(n.target.value)})]}),e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Description":"설명"}),e.jsx("textarea",{className:"gov-input min-h-[90px] py-3",rows:4,value:on,onChange:n=>Ae(n.target.value)})]}),e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Status":"상태"}),e.jsxs("select",{className:"gov-select",value:se,onChange:n=>Ee(n.target.value),children:[e.jsx("option",{value:"ACTIVE",children:"ACTIVE"}),e.jsx("option",{value:"DEPRECATED",children:"DEPRECATED"}),e.jsx("option",{value:"INACTIVE",children:"INACTIVE"})]})]}),e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Replacement Component":"대체 컴포넌트"}),e.jsxs("select",{className:"gov-select",value:oe,onChange:n=>Re(n.target.value),children:[e.jsx("option",{value:"",children:t?"Select component":"컴포넌트 선택"}),T.filter(n=>n.componentId!==b.componentId).map(n=>e.jsxs("option",{value:n.componentId,children:[n.componentId," / ",t&&n.labelEn||n.label]},`registry-replacement-${n.componentId}`))]})]}),e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Props Template JSON":"Props 템플릿 JSON"}),e.jsx("textarea",{className:"gov-input min-h-[180px] py-3 font-mono text-[12px]",rows:8,value:Te,onChange:n=>Le(n.target.value)})]}),e.jsxs("div",{className:"flex flex-wrap gap-2",children:[e.jsx(y,{disabled:R,onClick:()=>{ot()},size:"xs",type:"button",variant:"primary",children:t?"Save component":"컴포넌트 저장"}),e.jsx(y,{disabled:R||!oe,onClick:()=>{lt()},size:"xs",type:"button",variant:"secondary",children:t?"Remap usages":"사용처 재매핑"}),e.jsx(y,{disabled:R||b.sourceType==="SYSTEM",onClick:()=>{it()},size:"xs",type:"button",variant:"dangerSecondary",children:t?"Delete if unused":"미사용 시 삭제"})]})]}):e.jsx("p",{className:"text-sm text-[var(--kr-gov-text-secondary)]",children:t?"Select a registry component from the inventory first.":"먼저 인벤토리에서 레지스트리 컴포넌트를 선택하세요."})}),e.jsxs("article",{className:"rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white",children:[e.jsx(P,{meta:On?t?"Loading usage...":"사용 화면을 불러오는 중...":t?`${ae.length} usage rows`:`사용 화면 ${ae.length}건`,title:t?"Screens Using This Component":"이 컴포넌트를 사용하는 화면"}),e.jsx("div",{className:"overflow-x-auto",children:e.jsxs("table",{className:"w-full text-sm text-left border-collapse",children:[e.jsx("thead",{children:e.jsxs("tr",{className:"gov-table-header",children:[e.jsx("th",{className:"px-4 py-3",children:t?"Source":"출처"}),e.jsx("th",{className:"px-4 py-3",children:"menuCode"}),e.jsx("th",{className:"px-4 py-3",children:"pageId"}),e.jsx("th",{className:"px-4 py-3",children:t?"Title":"메뉴명"}),e.jsx("th",{className:"px-4 py-3",children:"URL"}),e.jsx("th",{className:"px-4 py-3",children:t?"Zone / Node":"영역 / 노드"}),e.jsx("th",{className:"px-4 py-3",children:t?"Open":"바로가기"})]})}),e.jsx("tbody",{className:"divide-y divide-gray-100",children:ae.length?ae.map((n,r)=>e.jsxs("tr",{children:[e.jsx("td",{className:"px-4 py-3",children:e.jsx("span",{className:`rounded-full px-2 py-0.5 text-[10px] font-bold ${n.usageSource==="PUBLISHED"?"bg-blue-100 text-blue-800":n.usageSource==="DRAFT"?"bg-amber-100 text-amber-800":"bg-slate-100 text-slate-700"}`,children:n.usageSource})}),e.jsx("td",{className:"px-4 py-3 font-mono text-[12px]",children:n.menuCode||"-"}),e.jsx("td",{className:"px-4 py-3",children:n.pageId||"-"}),e.jsx("td",{className:"px-4 py-3",children:n.menuTitle||"-"}),e.jsx("td",{className:"px-4 py-3 font-mono text-[11px] text-[var(--kr-gov-text-secondary)]",children:n.menuUrl||"-"}),e.jsx("td",{className:"px-4 py-3 text-[12px] text-[var(--kr-gov-text-secondary)]",children:n.layoutZone||n.nodeId||n.instanceKey||"-"}),e.jsx("td",{className:"px-4 py-3",children:n.menuCode?e.jsxs("div",{className:"flex flex-wrap gap-2",children:[e.jsx(Y,{href:G(`/admin/system/screen-builder?menuCode=${encodeURIComponent(n.menuCode)}&pageId=${encodeURIComponent(n.pageId||"")}&menuTitle=${encodeURIComponent(n.menuTitle||"")}&menuUrl=${encodeURIComponent(n.menuUrl||"")}`,`/en/admin/system/screen-builder?menuCode=${encodeURIComponent(n.menuCode)}&pageId=${encodeURIComponent(n.pageId||"")}&menuTitle=${encodeURIComponent(n.menuTitle||"")}&menuUrl=${encodeURIComponent(n.menuUrl||"")}`),variant:"secondary",children:t?"Builder":"빌더"}),n.usageSource==="PUBLISHED"?e.jsx(Y,{href:G(`/admin/system/screen-runtime?menuCode=${encodeURIComponent(n.menuCode)}&pageId=${encodeURIComponent(n.pageId||"")}&menuTitle=${encodeURIComponent(n.menuTitle||"")}&menuUrl=${encodeURIComponent(n.menuUrl||"")}`,`/en/admin/system/screen-runtime?menuCode=${encodeURIComponent(n.menuCode)}&pageId=${encodeURIComponent(n.pageId||"")}&menuTitle=${encodeURIComponent(n.menuTitle||"")}&menuUrl=${encodeURIComponent(n.menuUrl||"")}`),variant:"secondary",children:t?"Runtime":"런타임"}):null]}):"-"})]},`registry-usage-${n.usageSource}-${n.menuCode}-${n.pageId}-${n.nodeId||r}`)):e.jsx("tr",{children:e.jsx("td",{className:"px-4 py-8 text-center text-[var(--kr-gov-text-secondary)]",colSpan:7,children:b?t?"No screen currently uses this component.":"현재 이 컴포넌트를 사용하는 화면이 없습니다.":t?"Select a registry component first.":"먼저 레지스트리 컴포넌트를 선택하세요."})})})]})})]})]})]}),e.jsxs("section",{className:"gov-card p-0 overflow-hidden",children:[e.jsx(P,{meta:t?`${be.length} replacement candidates`:`대체 후보 ${be.length}건`,title:t?"Auto Replace Diff Preview":"자동 대체 Diff 미리보기"}),e.jsx("div",{className:"overflow-x-auto",children:e.jsxs("table",{className:"w-full text-sm text-left border-collapse",children:[e.jsx("thead",{children:e.jsxs("tr",{className:"gov-table-header",children:[e.jsx("th",{className:"px-4 py-3",children:"nodeId"}),e.jsx("th",{className:"px-4 py-3",children:t?"Label":"라벨"}),e.jsx("th",{className:"px-4 py-3",children:t?"From":"기존"}),e.jsx("th",{className:"px-4 py-3",children:t?"To":"대체"})]})}),e.jsx("tbody",{className:"divide-y divide-gray-100",children:be.length?be.map(n=>e.jsxs("tr",{children:[e.jsx("td",{className:"px-4 py-3 font-mono text-[12px]",children:n.nodeId}),e.jsx("td",{className:"px-4 py-3",children:n.label}),e.jsx("td",{className:"px-4 py-3 font-mono text-[12px] text-amber-800",children:n.fromComponentId}),e.jsx("td",{className:"px-4 py-3 font-mono text-[12px] text-emerald-800",children:n.toComponentId})]},`replace-preview-${n.nodeId}`)):e.jsx("tr",{children:e.jsx("td",{className:"px-4 py-8 text-center text-[var(--kr-gov-text-secondary)]",colSpan:4,children:t?"Run preview diff to inspect deprecated replacements before applying them.":"deprecated 대체를 적용하기 전에 diff 미리보기를 실행하세요."})})})]})})]}),e.jsxs("section",{className:"gov-card p-0 overflow-hidden",children:[e.jsx(P,{meta:t?`${ve.length} drafts scanned`:`스캔된 draft ${ve.length}건`,title:t?"All Draft Registry Scan":"전체 Draft 레지스트리 스캔"}),e.jsx("div",{className:"overflow-x-auto",children:e.jsxs("table",{className:"w-full text-sm text-left border-collapse",children:[e.jsx("thead",{children:e.jsxs("tr",{className:"gov-table-header",children:[e.jsx("th",{className:"px-4 py-3",children:"menuCode"}),e.jsx("th",{className:"px-4 py-3",children:"pageId"}),e.jsx("th",{className:"px-4 py-3",children:t?"Title":"메뉴명"}),e.jsx("th",{className:"px-4 py-3",children:t?"Unregistered":"미등록"}),e.jsx("th",{className:"px-4 py-3",children:t?"Missing":"누락"}),e.jsx("th",{className:"px-4 py-3",children:"Deprecated"})]})}),e.jsx("tbody",{className:"divide-y divide-gray-100",children:ve.length?ve.map(n=>e.jsxs("tr",{children:[e.jsx("td",{className:"px-4 py-3 font-mono text-[12px]",children:n.menuCode}),e.jsx("td",{className:"px-4 py-3",children:n.pageId}),e.jsx("td",{className:"px-4 py-3",children:n.menuTitle||"-"}),e.jsx("td",{className:"px-4 py-3",children:n.unregisteredCount}),e.jsx("td",{className:"px-4 py-3",children:n.missingCount}),e.jsx("td",{className:"px-4 py-3",children:n.deprecatedCount})]},`scan-${n.menuCode}-${n.pageId}`)):e.jsx("tr",{children:e.jsx("td",{className:"px-4 py-8 text-center text-[var(--kr-gov-text-secondary)]",colSpan:6,children:t?"Run a scan to inspect all builder drafts.":"전체 빌더 draft를 점검하려면 스캔을 실행하세요."})})})]})})]}),e.jsxs("section",{className:"gov-card p-0 overflow-hidden",children:[e.jsx(P,{meta:t?`${Ue.length} prompt-ready contracts`:`AI 입력 계약 ${Ue.length}건`,title:t?"AI Component Prompt Surface":"AI 컴포넌트 입력 표면"}),e.jsx("div",{className:"grid grid-cols-1 gap-4 p-6 xl:grid-cols-2",children:Ue.map(n=>e.jsxs("div",{className:"rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4",children:[e.jsxs("div",{className:"flex items-center justify-between gap-3",children:[e.jsx("p",{className:"font-mono text-xs text-[var(--kr-gov-text-secondary)]",children:n.componentId}),e.jsx("span",{className:`rounded-full px-2 py-0.5 text-[10px] font-bold ${n.status==="DEPRECATED"?"bg-amber-100 text-amber-800":"bg-emerald-100 text-emerald-700"}`,children:n.status||"ACTIVE"})]}),e.jsx("p",{className:"mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)]",children:n.label}),n.description?e.jsx("p",{className:"mt-1 text-[12px] text-[var(--kr-gov-text-secondary)]",children:n.description}):null,e.jsx("p",{className:"mt-3 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]",children:t?"Allowed Props":"허용 Props"}),e.jsx("p",{className:"mt-1 text-[12px] text-[var(--kr-gov-text-primary)]",children:n.allowedPropKeys.join(", ")||"-"}),e.jsx("div",{className:"mt-3",children:e.jsx(y,{disabled:R||n.status==="DEPRECATED",onClick:()=>{pt(n.componentId)},size:"xs",type:"button",variant:"secondary",children:t?"Add node from componentId":"componentId로 노드 추가"})}),e.jsx("pre",{className:"mt-3 overflow-x-auto rounded bg-slate-950 px-3 py-3 text-[11px] leading-5 text-slate-100",children:JSON.stringify({componentId:n.componentId,componentType:n.componentType,propsTemplate:n.propsTemplate},null,2)})]},`prompt-${n.componentId}`))})]}),e.jsxs("section",{className:"gov-card p-0 overflow-hidden",children:[e.jsx(P,{actions:e.jsx(y,{disabled:R,onClick:()=>{ut()},size:"sm",type:"button",variant:"secondary",children:t?"Add node tree":"노드 트리 추가"}),meta:t?"Use componentId, alias, parentAlias, and props to append a node tree in one request.":"componentId, alias, parentAlias, props로 한 번에 노드 트리를 추가합니다.",title:t?"AI Node Tree Input":"AI 노드 트리 입력"}),e.jsxs("div",{className:"space-y-4 p-6",children:[xe.map((n,r)=>e.jsxs("div",{className:"rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4",children:[e.jsxs("div",{className:"grid grid-cols-1 gap-4 xl:grid-cols-4",children:[e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:"componentId"}),e.jsx("input",{className:"gov-input font-mono",value:n.componentId,onChange:s=>he(r,"componentId",s.target.value)})]}),e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:"alias"}),e.jsx("input",{className:"gov-input",value:n.alias,onChange:s=>he(r,"alias",s.target.value)})]}),e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"parentAlias":"상위 alias"}),e.jsx("input",{className:"gov-input",value:n.parentAlias,onChange:s=>he(r,"parentAlias",s.target.value)})]}),e.jsx("div",{className:"flex items-end",children:e.jsx(y,{disabled:xe.length<=1,onClick:()=>vt(r),size:"xs",type:"button",variant:"dangerSecondary",children:t?"Remove":"제거"})})]}),e.jsxs("label",{className:"mt-4 block",children:[e.jsx("span",{className:"gov-label",children:"props JSON"}),e.jsx("textarea",{className:"gov-input min-h-[120px] py-3 font-mono text-[12px]",rows:5,value:n.propsJson,onChange:s=>he(r,"propsJson",s.target.value)})]})]},`ai-row-${r}`)),e.jsx("div",{className:"flex justify-start",children:e.jsx(y,{onClick:gt,size:"xs",type:"button",variant:"secondary",children:t?"Add Row":"행 추가"})}),e.jsxs("div",{className:"rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-4",children:[e.jsx("p",{className:"text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]",children:t?"Generated Request Preview":"생성 요청 미리보기"}),e.jsx("pre",{className:"mt-3 overflow-x-auto rounded bg-slate-950 px-3 py-3 text-[11px] leading-5 text-slate-100",children:JSON.stringify(xe.map(n=>({componentId:n.componentId.trim(),alias:n.alias.trim()||void 0,parentAlias:n.parentAlias.trim()||void 0,props:n.propsJson.trim()})),null,2)})]})]})]}),e.jsxs("section",{className:"gov-card p-0 overflow-hidden",children:[e.jsx(P,{actions:e.jsx(de,{children:zn.map(n=>e.jsx(y,{onClick:()=>Hn(n),size:"xs",type:"button",variant:"secondary",children:t&&n.labelEn||n.label},n.componentType))}),meta:t?`${$} palette. Append standardized blocks that match the selected page type.`:`${$} 팔레트입니다. 선택한 페이지 타입에 맞는 표준 블록만 추가합니다.`,title:t?"Component Palette":"컴포넌트 팔레트"}),e.jsxs("div",{className:"grid grid-cols-1 gap-6 p-6 xl:grid-cols-[0.95fr_0.95fr_1.1fr]",children:[e.jsxs("article",{className:"rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white",children:[e.jsx(P,{actions:e.jsxs(de,{children:[e.jsx(ce,{disabled:!o||o.componentType==="page",icon:"arrow_upward",onClick:()=>cn(-1),type:"button"}),e.jsx(ce,{disabled:!o||o.componentType==="page",icon:"arrow_downward",onClick:()=>cn(1),type:"button"}),e.jsx(ce,{disabled:!o||o.componentType==="page",icon:"content_copy",onClick:qn,type:"button"}),e.jsx(ce,{disabled:!o||o.componentType==="page",icon:"delete",onClick:Kn,type:"button",variant:"dangerSecondary"})]}),meta:t?`${g.length} nodes in draft. Drag cards to reorder.`:`현재 초안 노드 ${g.length}개. 카드를 드래그해 순서를 바꿀 수 있습니다.`,title:t?"Canvas Nodes":"캔버스 노드"}),e.jsxs("div",{className:"max-h-[680px] overflow-auto p-4",children:[e.jsxs("div",{className:"mb-4 rounded-[var(--kr-gov-radius)] border border-dashed border-[var(--kr-gov-border-light)] bg-gray-50 px-3 py-3",children:[e.jsx("p",{className:"text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]",children:t?"Hierarchy":"계층 트리"}),e.jsx("div",{className:"mt-3 space-y-1",children:jn.map(({node:n,depth:r,hasChildren:s})=>{var d,p,u;return e.jsxs("div",{className:"flex items-center gap-1",style:{paddingLeft:`${r*16+8}px`},children:[e.jsx("button",{className:`flex h-6 w-6 items-center justify-center rounded ${s?"hover:bg-white text-[var(--kr-gov-text-secondary)]":"text-transparent"}`,disabled:!s,onClick:()=>Xn(n.nodeId),type:"button",children:s?De.has(n.nodeId)?"+":"-":"."}),e.jsxs("button",{className:`flex min-w-0 flex-1 items-center gap-2 rounded px-2 py-1.5 text-left text-sm ${n.nodeId===(o==null?void 0:o.nodeId)?"bg-blue-100 text-[var(--kr-gov-blue)]":"hover:bg-white text-[var(--kr-gov-text-primary)]"}`,onClick:()=>I(n.nodeId),type:"button",children:[e.jsx("span",{className:"font-mono text-[10px] uppercase text-[var(--kr-gov-text-secondary)]",children:n.componentType}),e.jsx("span",{className:"truncate",children:String(((d=n.props)==null?void 0:d.label)||((p=n.props)==null?void 0:p.title)||((u=n.props)==null?void 0:u.text)||n.nodeId)})]})]},`tree-${n.nodeId}`)})})]}),e.jsx("div",{className:"space-y-2",children:E(g).map(n=>{var s,d,p;const r=n.nodeId===(o==null?void 0:o.nodeId);return e.jsx("button",{className:`w-full rounded-[var(--kr-gov-radius)] border px-4 py-3 text-left ${r?"border-[var(--kr-gov-blue)] bg-blue-50":"border-[var(--kr-gov-border-light)] bg-white hover:bg-gray-50"} ${Z===n.nodeId?"opacity-60":""}`,draggable:n.componentType!=="page",onClick:()=>I(n.nodeId),onDragEnd:()=>Se(""),onDragOver:u=>{n.componentType!=="page"&&u.preventDefault()},onDragStart:()=>Se(n.nodeId),onDrop:u=>{u.preventDefault(),n.componentType!=="page"&&(Wn(Z,n.nodeId),Se(""))},type:"button",children:e.jsxs("div",{className:"flex items-center justify-between gap-3",children:[e.jsxs("div",{children:[e.jsx("p",{className:"text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]",children:n.componentType}),e.jsx("p",{className:"mt-1 text-sm font-bold text-[var(--kr-gov-text-primary)]",children:String(((s=n.props)==null?void 0:s.label)||((d=n.props)==null?void 0:d.title)||((p=n.props)==null?void 0:p.text)||n.nodeId)})]}),e.jsx("span",{className:"font-mono text-[11px] text-[var(--kr-gov-text-secondary)]",children:n.parentNodeId||"root"})]})},n.nodeId)})})]})]}),e.jsxs("article",{className:"rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white",children:[e.jsx(P,{meta:o?`${o.componentType} / ${o.nodeId}`:t?"Select a node":"노드를 선택하세요",title:t?"Properties & Events":"속성 및 이벤트"}),e.jsx("div",{className:"space-y-5 p-4",children:o?e.jsxs(e.Fragment,{children:[o.componentType==="section"?e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Section Title":"섹션 제목"}),e.jsx("input",{className:"gov-input",value:String(_.title||""),onChange:n=>O("title",n.target.value)})]}):null,o.componentType==="heading"||o.componentType==="text"?e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Text":"문구"}),e.jsx("textarea",{className:"gov-input min-h-[110px] py-3",rows:4,value:String(_.text||""),onChange:n=>O("text",n.target.value)})]}):null,["input","textarea","select","checkbox","button"].includes(o.componentType)?e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Label":"라벨"}),e.jsx("input",{className:"gov-input",value:String(_.label||""),onChange:n=>O("label",n.target.value)})]}):null,["input","textarea","select"].includes(o.componentType)?e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Placeholder":"플레이스홀더"}),e.jsx("input",{className:"gov-input",value:String(_.placeholder||""),onChange:n=>O("placeholder",n.target.value)})]}):null,o.componentType==="button"?e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Variant":"버튼 종류"}),e.jsxs("select",{className:"gov-select",value:String(_.variant||"primary"),onChange:n=>O("variant",n.target.value),children:[e.jsx("option",{value:"primary",children:"primary"}),e.jsx("option",{value:"secondary",children:"secondary"})]})]}):null,o.componentType==="table"?e.jsxs(e.Fragment,{children:[e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Table Title":"테이블 제목"}),e.jsx("input",{className:"gov-input",value:String(_.title||""),onChange:n=>O("title",n.target.value)})]}),e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Columns":"컬럼"}),e.jsx("input",{className:"gov-input",value:String(_.columns||""),onChange:n=>O("columns",n.target.value)})]}),e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Empty Text":"빈 상태 문구"}),e.jsx("input",{className:"gov-input",value:String(_.emptyText||""),onChange:n=>O("emptyText",n.target.value)})]})]}):null,o.componentType==="pagination"?e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Summary":"요약 문구"}),e.jsx("input",{className:"gov-input",value:String(_.summary||""),onChange:n=>O("summary",n.target.value)})]}):null,o.componentType!=="page"?e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Layout Slot":"레이아웃 슬롯"}),e.jsx("select",{className:"gov-select",value:String(o.slotName||Ln($,o.componentType)[0]||"content"),onChange:n=>{c(r=>r.map(s=>s.nodeId===o.nodeId?{...s,slotName:n.target.value}:s))},children:Ln($,o.componentType).map(n=>e.jsx("option",{value:n,children:n},`${o.nodeId}-${n}`))})]}):null,["input","textarea","select","checkbox"].includes(o.componentType)?e.jsxs("label",{className:"flex items-center gap-3 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 px-4 py-3 text-sm font-medium text-[var(--kr-gov-text-primary)]",children:[e.jsx("input",{checked:!!_.required,onChange:n=>O("required",n.target.checked),type:"checkbox"}),e.jsx("span",{children:t?"Required field":"필수 입력"})]}):null,e.jsxs("div",{className:"rounded-[var(--kr-gov-radius)] border border-dashed border-[var(--kr-gov-border-light)] px-4 py-4",children:[e.jsxs("div",{className:"flex items-center justify-between gap-3",children:[e.jsx("p",{className:"text-sm font-black text-[var(--kr-gov-text-primary)]",children:t?"Component Registry":"컴포넌트 레지스트리"}),e.jsx("span",{className:`rounded-full px-2 py-1 text-[11px] font-bold ${o.componentId?"bg-emerald-100 text-emerald-800":"bg-amber-100 text-amber-900"}`,children:o.componentId?t?"Registered":"등록됨":t?"Unregistered":"미등록"})]}),e.jsxs("div",{className:"mt-4 space-y-4",children:[e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Linked componentId":"연결된 componentId"}),e.jsx("input",{className:"gov-input font-mono",readOnly:!0,value:String(o.componentId||"")})]}),e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Registry label":"레지스트리 이름"}),e.jsx("input",{className:"gov-input",value:Ze,onChange:n=>me(n.target.value)})]}),e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Description":"설명"}),e.jsx("textarea",{className:"gov-input min-h-[90px] py-3",rows:3,value:en,onChange:n=>pe(n.target.value)})]}),e.jsxs("div",{className:"flex flex-wrap gap-2",children:[e.jsx(y,{disabled:R||o.componentType==="page",onClick:()=>{at()},size:"xs",type:"button",variant:"secondary",children:t?"Register selected node":"선택 노드 등록"}),e.jsx(y,{disabled:!o.componentId,onClick:()=>{o&&(c(n=>n.map(r=>r.nodeId===o.nodeId?{...r,componentId:""}:r)),K(""),S(t?"Component link cleared.":"컴포넌트 연결을 해제했습니다."))},size:"xs",type:"button",variant:"dangerSecondary",children:t?"Clear link":"연결 해제"})]}),e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Replace with existing component":"기존 컴포넌트로 대체"}),e.jsxs("select",{className:"gov-select",value:ue,onChange:n=>K(n.target.value),children:[e.jsx("option",{value:"",children:t?"Select component":"컴포넌트 선택"}),T.filter(n=>n.componentType!=="page").map(n=>e.jsxs("option",{value:n.componentId,children:[n.componentId," / ",t&&n.labelEn||n.label]},n.componentId))]})]}),e.jsx(y,{disabled:!Fe,onClick:rt,size:"xs",type:"button",variant:"secondary",children:t?"Apply registered component":"등록 컴포넌트 적용"})]})]}),e.jsxs("div",{className:"rounded-[var(--kr-gov-radius)] border border-dashed border-[var(--kr-gov-border-light)] px-4 py-4",children:[e.jsxs("div",{className:"flex items-center justify-between gap-3",children:[e.jsx("p",{className:"text-sm font-black text-[var(--kr-gov-text-primary)]",children:t?"Event Binding":"이벤트 연결"}),e.jsx(y,{onClick:()=>{X()},size:"xs",type:"button",variant:"secondary",children:A?t?"Reset":"다시 연결":t?"Add Event":"이벤트 추가"})]}),A?e.jsxs("div",{className:"mt-4 space-y-4",children:[e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Event Name":"이벤트명"}),e.jsxs("select",{className:"gov-select",value:A.eventName,onChange:n=>mn("eventName",n.target.value),children:[e.jsx("option",{value:"onClick",children:"onClick"}),e.jsx("option",{value:"onChange",children:"onChange"}),e.jsx("option",{value:"onSubmit",children:"onSubmit"})]})]}),e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Action Type":"액션 타입"}),e.jsxs("select",{className:"gov-select",value:A.actionType,onChange:n=>mn("actionType",n.target.value),children:[e.jsx("option",{value:"navigate",children:"navigate"}),e.jsx("option",{value:"open_modal",children:"open_modal"}),e.jsx("option",{value:"api_call",children:"api_call"}),e.jsx("option",{value:"set_state",children:"set_state"})]})]}),e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Target / Config":"대상 / 설정"}),e.jsx("input",{className:"gov-input",value:String(((xn=A.actionConfig)==null?void 0:xn.target)||""),onChange:n=>Yn(n.target.value)})]}),A.actionType==="api_call"?e.jsxs(e.Fragment,{children:[e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Linked API":"연결 API"}),e.jsxs("select",{className:"gov-select",value:String(((yn=A.actionConfig)==null?void 0:yn.apiId)||""),onChange:n=>Jn(n.target.value),children:[e.jsx("option",{value:"",children:t?"Select API":"API 선택"}),ye.map(n=>e.jsxs("option",{value:n.apiId,children:[n.method," ",n.endpoint]},n.apiId))]}),e.jsx("p",{className:"mt-2 text-xs text-[var(--kr-gov-text-secondary)]",children:(fn=A.actionConfig)!=null&&fn.apiId?`${String(((hn=A.actionConfig)==null?void 0:hn.method)||"")} ${String(((Nn=A.actionConfig)==null?void 0:Nn.endpoint)||"")}`:(wn=(Sn=(kn=f.value)==null?void 0:kn.page)==null?void 0:Sn.apis)!=null&&wn.length?t?"Use the current page API catalog from screen-command metadata.":"screen-command 메타데이터의 현재 페이지 API 목록을 사용합니다.":t?"No screen-command API metadata linked yet.":"연결된 screen-command API 메타데이터가 아직 없습니다."})]}),(Cn=V==null?void 0:V.requestFields)!=null&&Cn.length?e.jsxs("div",{className:"rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 px-4 py-4",children:[e.jsx("p",{className:"text-sm font-black text-[var(--kr-gov-text-primary)]",children:t?"Request Field Mapping":"요청 필드 매핑"}),e.jsx("div",{className:"mt-3 space-y-3",children:V.requestFields.map(n=>{var r;return e.jsxs("label",{className:"block",children:[e.jsxs("span",{className:"gov-label",children:[n.fieldId," ",e.jsxs("span",{className:"text-xs font-normal text-[var(--kr-gov-text-secondary)]",children:["[",n.type,"]"]})]}),e.jsx("input",{className:"gov-input",placeholder:t?"ex) form.companyName or state.selectedId":"예) form.companyName 또는 state.selectedId",value:String((((r=A.actionConfig)==null?void 0:r.requestMappings)||{})[n.fieldId]||""),onChange:s=>Qn(n.fieldId,s.target.value)})]},`req-map-${n.fieldId}`)})})]}):null,(In=V==null?void 0:V.responseFields)!=null&&In.length?e.jsxs("div",{className:"rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 px-4 py-4",children:[e.jsx("p",{className:"text-sm font-black text-[var(--kr-gov-text-primary)]",children:t?"Response Field Binding":"응답 필드 바인딩"}),e.jsx("div",{className:"mt-3 space-y-3",children:V.responseFields.map(n=>{var r;return e.jsxs("label",{className:"block",children:[e.jsxs("span",{className:"gov-label",children:[n.fieldId," ",e.jsxs("span",{className:"text-xs font-normal text-[var(--kr-gov-text-secondary)]",children:["[",n.type,"]"]})]}),e.jsx("input",{className:"gov-input",placeholder:t?"ex) state.resultRows or form.companyName":"예) state.resultRows 또는 form.companyName",value:String((((r=A.actionConfig)==null?void 0:r.responseMappings)||{})[n.fieldId]||""),onChange:s=>{if(!o)return;const d=X();d&&N(p=>p.map(u=>{var w;return u.eventBindingId===d.eventBindingId?{...u,actionConfig:{...u.actionConfig||{},responseMappings:{...((w=u.actionConfig)==null?void 0:w.responseMappings)||{},[n.fieldId]:s.target.value}}}:u}))}})]},`res-map-${n.fieldId}`)})})]}):null]}):null]}):e.jsx("p",{className:"mt-3 text-sm text-[var(--kr-gov-text-secondary)]",children:t?"Connect a basic runtime action such as page navigation, modal open, API call, or local state update.":"페이지 이동, 모달 열기, API 호출, 로컬 상태 변경 같은 기본 런타임 액션을 연결할 수 있습니다."})]})]}):e.jsx("p",{className:"text-sm text-[var(--kr-gov-text-secondary)]",children:t?"Select a node from the canvas first.":"먼저 캔버스에서 노드를 선택하세요."})})]}),e.jsxs("article",{className:"rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white",children:[e.jsx(P,{actions:e.jsxs(de,{children:[e.jsx(y,{onClick:()=>Qe("DRAFT"),size:"xs",type:"button",variant:ee==="DRAFT"?"primary":"secondary",children:t?"Draft":"초안"}),e.jsx(y,{disabled:!(a!=null&&a.publishedVersionId),onClick:()=>Qe("PUBLISHED"),size:"xs",type:"button",variant:ee==="PUBLISHED"?"primary":"secondary",children:t?"Published":"발행본"})]}),meta:`${(a==null?void 0:a.menuUrl)||"-"} / ${ee}`,title:t?"Preview":"미리보기"}),e.jsxs("div",{className:"min-h-[680px] bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_100%)] p-4",children:[Ye?e.jsx("div",{className:"mb-4 rounded-[var(--kr-gov-radius)] border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800",children:Ye}):null,we.length?$t(E(we)[0],we,t):e.jsx("div",{className:"flex min-h-[280px] items-center justify-center rounded-[var(--kr-gov-radius)] border border-dashed border-[var(--kr-gov-border-light)] text-sm text-[var(--kr-gov-text-secondary)]",children:t?"No preview nodes yet.":"아직 미리볼 노드가 없습니다."})]})]})]})]}),e.jsxs("section",{className:"gov-card p-0 overflow-hidden",children:[e.jsx(P,{meta:t?`${((Pn=a==null?void 0:a.versionHistory)==null?void 0:Pn.length)||0} saved snapshots`:`저장된 스냅샷 ${((Mn=a==null?void 0:a.versionHistory)==null?void 0:Mn.length)||0}건`,title:t?"Draft Version History":"초안 버전 이력"}),e.jsx("div",{className:"overflow-x-auto",children:e.jsxs("table",{className:"w-full text-sm text-left border-collapse",children:[e.jsx("thead",{children:e.jsxs("tr",{className:"gov-table-header",children:[e.jsx("th",{className:"px-4 py-3",children:"Version"}),e.jsx("th",{className:"px-4 py-3",children:t?"Saved At":"저장 시각"}),e.jsx("th",{className:"px-4 py-3",children:"Template"}),e.jsx("th",{className:"px-4 py-3",children:t?"Nodes":"노드"}),e.jsx("th",{className:"px-4 py-3",children:t?"Events":"이벤트"}),e.jsx("th",{className:"px-4 py-3",children:t?"Action":"작업"})]})}),e.jsx("tbody",{className:"divide-y divide-gray-100",children:((a==null?void 0:a.versionHistory)||[]).length===0?e.jsx("tr",{children:e.jsx("td",{className:"px-4 py-8 text-center text-[var(--kr-gov-text-secondary)]",colSpan:6,children:t?"No saved draft versions yet.":"아직 저장된 초안 버전이 없습니다."})}):((a==null?void 0:a.versionHistory)||[]).map(n=>e.jsxs("tr",{children:[e.jsx("td",{className:"px-4 py-3 font-mono text-[12px]",children:n.versionId}),e.jsx("td",{className:"px-4 py-3",children:n.savedAt||"-"}),e.jsx("td",{className:"px-4 py-3",children:e.jsxs("div",{className:"flex items-center gap-2",children:[e.jsx("span",{children:n.templateType||"-"}),e.jsx("span",{className:`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-bold ${n.versionStatus==="PUBLISHED"?"bg-blue-100 text-blue-700":"bg-amber-100 text-amber-700"}`,children:n.versionStatus})]})}),e.jsx("td",{className:"px-4 py-3",children:n.nodeCount}),e.jsx("td",{className:"px-4 py-3",children:n.eventCount}),e.jsx("td",{className:"px-4 py-3",children:e.jsx(y,{disabled:R||n.versionStatus==="PUBLISHED",onClick:()=>{nt(n.versionId)},size:"xs",type:"button",variant:"secondary",children:n.versionStatus==="PUBLISHED"?t?"Protected":"보호됨":t?"Restore":"복원"})})]},n.versionId))})]})})]})]})]})}export{Gr as ScreenBuilderMigrationPage};
+`,xr=Object.assign({"../../app/routes/definitions.ts":jt}),yr=Object.assign({"../../app/routes/pageRegistry.tsx":zt}),fr=Object.assign({"../access-history/AccessHistoryMigrationPage.tsx":Vt,"../admin-account-create/AdminAccountCreateMigrationPage.tsx":Gt,"../admin-entry/AdminEntryPages.tsx":Ht,"../admin-entry/AdminPageShell.tsx":Kt,"../admin-entry/adminEntryShared.tsx":qt,"../admin-list/AdminListMigrationPage.tsx":Yt,"../admin-permissions/AdminPermissionMigrationPage.tsx":Wt,"../admin-placeholder/AdminMenuPlaceholderPage.tsx":Jt,"../admin-sitemap/AdminSitemapMigrationPage.tsx":Qt,"../admin-system/adminSystemShared.tsx":Xt,"../admin-template-frame/AdminTemplateFramePage.tsx":Zt,"../admin-ui/ContextKeyStrip.tsx":ea,"../admin-ui/common.tsx":na,"../admin-ui/pageFrames.tsx":ta,"../app-ui/primitives.tsx":aa,"../auth-change/AuthChangeMigrationPage.tsx":ra,"../auth-change/authChangeSections.tsx":sa,"../auth-groups/AuthGroupMigrationPage.tsx":oa,"../blocklist/BlocklistMigrationPage.tsx":ia,"../codex-provision/CodexProvisionMigrationPage.tsx":la,"../company-account/CompanyAccountMigrationPage.tsx":da,"../company-account/companyAccountSections.tsx":ca,"../company-approve/CompanyApproveMigrationPage.tsx":ma,"../company-approve/companyApproveSections.tsx":pa,"../company-detail/CompanyDetailMigrationPage.tsx":ua,"../company-list/CompanyListMigrationPage.tsx":ga,"../dept-role-mapping/DeptRoleMappingMigrationPage.tsx":va,"../dept-role-mapping/deptRoleSections.tsx":ba,"../emission-result-list/EmissionResultListMigrationPage.tsx":xa,"../environment-management/EnvironmentManagementHubPage.tsx":ya,"../function-management/FunctionManagementMigrationPage.tsx":fa,"../help-management/HelpManagementMigrationPage.tsx":ha,"../help-management/ScreenCommandCenterPanel.tsx":Na,"../home-entry/HomeEntryPages.tsx":ka,"../home-entry/HomeEntrySections.tsx":Sa,"../home-placeholder/HomeMenuPlaceholderPage.tsx":wa,"../home-ui/common.tsx":Ca,"../ip-whitelist/IpWhitelistMigrationPage.tsx":Ia,"../join-company-reapply/JoinCompanyReapplyMigrationPage.tsx":Pa,"../join-company-register/JoinCompanyRegisterCompleteMigrationPage.tsx":Ma,"../join-company-register/JoinCompanyRegisterMigrationPage.tsx":Aa,"../join-company-status/JoinCompanyStatusMigrationPage.tsx":Ea,"../join-wizard/JoinAuthMigrationPage.tsx":Ra,"../join-wizard/JoinCompleteMigrationPage.tsx":Ta,"../join-wizard/JoinInfoMigrationPage.tsx":La,"../join-wizard/JoinTermsMigrationPage.tsx":Ba,"../join-wizard/JoinWizardMigrationPage.tsx":Da,"../login-history/LoginHistoryMigrationPage.tsx":Fa,"../member-approve/MemberApproveMigrationPage.tsx":Ua,"../member-approve/memberApproveSections.tsx":Oa,"../member-detail/MemberDetailMigrationPage.tsx":_a,"../member-edit/MemberEditMigrationPage.tsx":$a,"../member-edit/memberEditSections.tsx":ja,"../member-list/MemberListMigrationPage.tsx":za,"../member-register/MemberRegisterMigrationPage.tsx":Va,"../member-stats/MemberStatsMigrationPage.tsx":Ga,"../member/common.tsx":Ha,"../member/sections.tsx":Ka,"../member/status.tsx":qa,"../member/toolbar.tsx":Ya,"../menu-management/FullStackManagementMigrationPage.tsx":Wa,"../menu-management/MenuManagementMigrationPage.tsx":Ja,"../mypage/MypageMigrationPage.tsx":Qa,"../observability/ObservabilityMigrationPage.tsx":Xa,"../page-management/PageManagementMigrationPage.tsx":Za,"../password-reset/PasswordResetMigrationPage.tsx":er,"../platform-studio/PlatformStudioMigrationPage.tsx":nr,"../public-entry/PublicEntryPages.tsx":tr,"../public-entry/publicEntryShared.tsx":ar,"../scheduler-management/SchedulerManagementMigrationPage.tsx":rr,"./ScreenBuilderMigrationPage.tsx":sr,"./ScreenRuntimeMigrationPage.tsx":or,"./screenBuilderRenderer.tsx":ir,"../security-audit/SecurityAuditMigrationPage.tsx":lr,"../security-history/LoginHistorySharedPage.tsx":dr,"../security-history/SecurityHistoryMigrationPage.tsx":cr,"../security-monitoring/SecurityMonitoringMigrationPage.tsx":mr,"../security-policy/SecurityPolicyMigrationPage.tsx":pr,"../sitemap/SitemapMigrationPage.tsx":ur,"../sr-workbench/SrWorkbenchMigrationPage.tsx":gr,"../system-code/SystemCodeMigrationPage.tsx":vr,"../wbs-management/WbsManagementMigrationPage.tsx":br});function Tn(t){const l=t.trim().replace(/^\.\.\/\.\.\/features\//,"../").replace(/^\.\.\/\.\.\//,"../");return l.endsWith(".tsx")?l:`${l}.tsx`}function hr(t){return t.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,48)}function Nr(){const t=Object.values(xr)[0]||"",l=[],v=/\{\s*id:\s*"([^"]+)"\s*,\s*label:\s*"([^"]+)"[\s\S]*?koPath:\s*"([^"]+)"\s*,\s*enPath:\s*"([^"]+)"/g;let i;for(;(i=v.exec(t))!==null;)l.push({id:i[1],label:i[2],koPath:i[3],enPath:i[4]});return l}function kr(){const t=Object.values(yr)[0]||"",l=new Map,v=new Map,i=/const\s+([A-Za-z0-9_]+)\s*=\s*\(\)\s*=>\s*import\("([^"]+)"\);/g;let a;for(;(a=i.exec(t))!==null;)l.set(a[1],Tn(a[2]));const f=/"([^"]+)":\s*lazyNamed\(\(\)\s*=>\s*import\("([^"]+)"\),/g;for(;(a=f.exec(t))!==null;)v.set(a[1],Tn(a[2]).replace(/[^/]+\.tsx$/,""));const g=/"([^"]+)":\s*lazyNamed\(([A-Za-z0-9_]+),/g;for(;(a=g.exec(t))!==null;){const c=l.get(a[2]);c&&v.set(a[1],c.replace(/[^/]+\.tsx$/,""))}return v}function Sr(t){return t.replace(/\{[^}]*\}/g," ").replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim()}function H(t,l,v,i,a=""){const f=i.match(/\bclassName="([^"]+)"/),g=i.match(/\bvariant="([^"]+)"/),c=i.match(/\bsize="([^"]+)"/),k=i.match(/\bicon="([^"]+)"/),N=i.match(/\bplaceholder="([^"]+)"/),B=Sr(a),I=[g==null?void 0:g[1],c==null?void 0:c[1],f==null?void 0:f[1],k==null?void 0:k[1],N==null?void 0:N[1]].filter(Boolean).join(" / ");t.push({route:{routeId:"",label:"",koPath:"",enPath:""},componentType:l,componentName:v,variant:(g==null?void 0:g[1])||"",size:(c==null?void 0:c[1])||"",className:(f==null?void 0:f[1])||"",icon:(k==null?void 0:k[1])||"",label:B,placeholder:(N==null?void 0:N[1])||"",summary:I})}function wr(t){const l=[],v=/<(MemberButton|MemberLinkButton|MemberPermissionButton|MemberIconButton|AppButton|AppLinkButton|AppPermissionButton|AppIconButton)\b([\s\S]*?)(?:>([\s\S]*?)<\/\1>|\/>)/g;let i;for(;(i=v.exec(t))!==null;)H(l,"button",i[1],i[2]||"",i[3]||"");const a=/<(input|AdminInput|AppInput)\b([\s\S]*?)(?:\/>|>)/g;for(;(i=a.exec(t))!==null;)H(l,"input",i[1],i[2]||"");const f=/<(textarea|AdminTextarea|AppTextarea)\b([\s\S]*?)(?:>([\s\S]*?)<\/\1>|\/>)/g;for(;(i=f.exec(t))!==null;)H(l,"textarea",i[1],i[2]||"",i[3]||"");const g=/<(select|AdminSelect|AppSelect)\b([\s\S]*?)>/g;for(;(i=g.exec(t))!==null;)H(l,"select",i[1],i[2]||"");const c=/<(table|AdminTable|AppTable)\b([\s\S]*?)>/g,k=/<(AppCheckbox)\b([\s\S]*?)(?:\/>|>)/g;for(;(i=k.exec(t))!==null;)H(l,"input",i[1],i[2]||"");const N=/<(AppRadio)\b([\s\S]*?)(?:\/>|>)/g;for(;(i=N.exec(t))!==null;)H(l,"input",i[1],i[2]||"");for(;(i=c.exec(t))!==null;)H(l,"table",i[1],i[2]||"");const B=/<(MemberPagination)\b([\s\S]*?)(?:\/>|>([\s\S]*?)<\/\1>)/g;for(;(i=B.exec(t))!==null;)H(l,"pagination",i[1],i[2]||"",i[3]||"");return l}function Cr(t){switch(t){case"button":return"BTN";case"input":return"INP";case"select":return"SEL";case"textarea":return"TXT";case"table":return"TBL";case"pagination":return"PGN";default:return"CMP"}}function Ir(){const t=kr(),l=new Map(Nr().map(i=>[i.id,i])),v=new Map;return Object.entries(fr).forEach(([i,a])=>{if(i.includes("/screen-builder/")||i.includes("/admin-ui/")||i.endsWith("/common.tsx"))return;const f=Array.from(t.entries()).filter(([,c])=>i.startsWith(c)).map(([c])=>c);if(!f.length)return;const g=wr(a);g.length&&g.forEach(c=>{const k=[c.componentType,c.componentName,c.variant,c.size,c.className,c.icon,c.placeholder].join(":"),N=v.get(k)||{componentType:c.componentType,componentName:c.componentName,variant:c.variant,size:c.size,className:c.className,icon:c.icon,placeholder:c.placeholder,summary:c.summary,routes:new Map,instances:[]};f.forEach(B=>{const I=l.get(B);if(!I)return;const Z={routeId:B,label:I.label,koPath:I.koPath,enPath:I.enPath};N.routes.set(B,Z),N.instances.push({...c,route:Z})}),v.set(k,N)})}),Array.from(v.entries()).map(([i,a])=>({key:i,styleGroupId:`${Cr(a.componentType)}-${hr(`${a.componentName}-${a.variant||"plain"}-${a.size||"md"}-${a.className||"plain"}-${a.placeholder||"noplace"}`)}`,componentType:a.componentType,componentName:a.componentName,variant:a.variant,size:a.size,className:a.className,icon:a.icon,placeholder:a.placeholder,summary:a.summary,routeCount:a.routes.size,instanceCount:a.instances.length,labels:Array.from(new Set(a.instances.map(f=>f.label||f.placeholder).filter(Boolean))).slice(0,6),routes:Array.from(a.routes.values()).sort((f,g)=>f.koPath.localeCompare(g.koPath)),instances:a.instances})).sort((i,a)=>a.instanceCount-i.instanceCount||a.routeCount-i.routeCount||i.componentType.localeCompare(a.componentType)||i.componentName.localeCompare(a.componentName)||i.className.localeCompare(a.className))}function Pr(t){switch(t){case"section":return{title:"새 섹션"};case"heading":return{text:"제목"};case"text":return{text:"설명 문구"};case"input":return{label:"입력 필드",placeholder:"값 입력",required:!1};case"textarea":return{label:"긴 입력",placeholder:"상세 내용을 입력하세요.",required:!1};case"select":return{label:"선택",placeholder:"옵션 선택",required:!1};case"checkbox":return{label:"동의 항목",required:!1};case"button":return{label:"버튼",variant:"primary"};case"table":return{title:"목록 테이블",columns:"번호|이름|상태",emptyText:"조회된 데이터가 없습니다."};case"pagination":return{summary:"1 / 1 페이지"};default:return{}}}function ze(t,l){return t.filter(i=>(i.parentNodeId||"")===l).reduce((i,a)=>(i.push(a.nodeId),i.push(...ze(t,a.nodeId)),i),[])}function Bn(t,l,v="",i=0){return E(t.filter(a=>(a.parentNodeId||"")===v)).reduce((a,f)=>{const g=t.some(c=>(c.parentNodeId||"")===f.nodeId);return a.push({node:f,depth:i,hasChildren:g}),l.has(f.nodeId)||a.push(...Bn(t,l,f.nodeId,i+1)),a},[])}function Mr(t,l,v){const i=[v,...ze(t,v)],a=new Map;i.forEach(c=>{a.set(c,`${c}-copy-${Date.now()}-${Math.floor(Math.random()*1e3)}`)});const f=E(t).filter(c=>i.includes(c.nodeId)).map((c,k)=>({...c,nodeId:String(a.get(c.nodeId)),parentNodeId:c.parentNodeId&&a.has(c.parentNodeId)?String(a.get(c.parentNodeId)):c.parentNodeId,sortOrder:t.length+k,props:{...c.props||{}}})),g=l.filter(c=>a.has(c.nodeId)).map(c=>({...c,eventBindingId:`${c.eventBindingId}-copy-${Date.now()}-${Math.floor(Math.random()*1e3)}`,nodeId:String(a.get(c.nodeId)),actionConfig:{...c.actionConfig||{}}}));return{clonedNodes:f,clonedEvents:g,topNodeId:String(a.get(v)||"")}}const Ar=["button","input","select","textarea","table","pagination"],Er=[{value:"LIST_PAGE",label:"목록형",labelEn:"List",description:"검색, 그리드, 페이지네이션, 행 액션 중심"},{value:"DETAIL_PAGE",label:"상세형",labelEn:"Detail",description:"요약, 상세 섹션, 상단/하단 이동 액션 중심"},{value:"EDIT_PAGE",label:"수정형",labelEn:"Edit",description:"입력 폼, 저장, 하단 액션바 중심"},{value:"REVIEW_PAGE",label:"검토형",labelEn:"Review",description:"검토 요약, 승인/반려, 하단 결정 액션 중심"}],Rr={LIST_PAGE:{section:["search_filters","grid_toolbar","content"],heading:["search_filters","grid_toolbar","content"],text:["grid_toolbar","content"],input:["search_filters","content"],textarea:["search_filters","content"],select:["search_filters","content"],checkbox:["search_filters","content"],button:["header_actions","grid_toolbar_left","grid_toolbar_right","row_actions","bottom_left_actions","bottom_right_actions"],table:["content"],pagination:["pagination"]},DETAIL_PAGE:{section:["summary","content"],heading:["summary","content"],text:["summary","content"],input:["content"],textarea:["content"],select:["content"],checkbox:["content"],button:["header_actions","top_actions","bottom_left_actions","bottom_right_actions"],table:["content"],pagination:["bottom_right_actions"]},EDIT_PAGE:{section:["summary","content"],heading:["summary","content"],text:["summary","content"],input:["content"],textarea:["content"],select:["content"],checkbox:["content"],button:["header_actions","top_actions","bottom_left_actions","bottom_right_actions"],table:["content"],pagination:["bottom_right_actions"]},REVIEW_PAGE:{section:["review_summary","content"],heading:["review_summary","content"],text:["review_summary","content"],input:["content"],textarea:["content"],select:["content"],checkbox:["content"],button:["header_actions","review_actions","bottom_left_actions","bottom_right_actions"],table:["content"],pagination:["bottom_right_actions"]}};function Ln(t,l){var v;return((v=Rr[t])==null?void 0:v[l])||["content"]}function Tr(t,l){return t.filter(v=>l==="LIST_PAGE"?!0:v.componentType!=="table"&&v.componentType!=="pagination")}function Lr(t,l){const v=l||"Builder Page";return t==="LIST_PAGE"?E([{nodeId:"root",parentNodeId:"",componentId:"",componentType:"page",slotName:"root",sortOrder:0,props:{title:v}},{nodeId:"search-section",parentNodeId:"root",componentId:"",componentType:"section",slotName:"search_filters",sortOrder:1,props:{title:"검색 조건"}},{nodeId:"search-heading",parentNodeId:"search-section",componentId:"",componentType:"heading",slotName:"search_filters",sortOrder:2,props:{text:"검색"}},{nodeId:"search-input",parentNodeId:"search-section",componentId:"",componentType:"input",slotName:"search_filters",sortOrder:3,props:{label:"검색어",placeholder:"검색어 입력"}},{nodeId:"search-button",parentNodeId:"search-section",componentId:"",componentType:"button",slotName:"grid_toolbar_right",sortOrder:4,props:{label:"검색",variant:"primary"}},{nodeId:"toolbar-note",parentNodeId:"root",componentId:"",componentType:"text",slotName:"grid_toolbar_left",sortOrder:5,props:{text:"총 건수 및 공통 목록 액션"}},{nodeId:"result-table",parentNodeId:"root",componentId:"",componentType:"table",slotName:"content",sortOrder:6,props:{title:"목록",columns:"번호|이름|상태|관리",emptyText:"조회된 데이터가 없습니다."}},{nodeId:"result-pagination",parentNodeId:"root",componentId:"",componentType:"pagination",slotName:"pagination",sortOrder:7,props:{summary:"1 / 1 페이지"}}]):t==="DETAIL_PAGE"?E([{nodeId:"root",parentNodeId:"",componentId:"",componentType:"page",slotName:"root",sortOrder:0,props:{title:v}},{nodeId:"summary",parentNodeId:"root",componentId:"",componentType:"section",slotName:"summary",sortOrder:1,props:{title:"요약"}},{nodeId:"summary-text",parentNodeId:"summary",componentId:"",componentType:"text",slotName:"summary",sortOrder:2,props:{text:"상세 요약 정보"}},{nodeId:"detail-section",parentNodeId:"root",componentId:"",componentType:"section",slotName:"content",sortOrder:3,props:{title:"상세 정보"}},{nodeId:"detail-heading",parentNodeId:"detail-section",componentId:"",componentType:"heading",slotName:"content",sortOrder:4,props:{text:"상세 정보"}},{nodeId:"detail-actions",parentNodeId:"root",componentId:"",componentType:"button",slotName:"bottom_left_actions",sortOrder:5,props:{label:"목록",variant:"secondary"}}]):t==="REVIEW_PAGE"?E([{nodeId:"root",parentNodeId:"",componentId:"",componentType:"page",slotName:"root",sortOrder:0,props:{title:v}},{nodeId:"review-summary",parentNodeId:"root",componentId:"",componentType:"section",slotName:"review_summary",sortOrder:1,props:{title:"검토 요약"}},{nodeId:"review-text",parentNodeId:"review-summary",componentId:"",componentType:"text",slotName:"review_summary",sortOrder:2,props:{text:"검토 대상과 영향 요약"}},{nodeId:"review-section",parentNodeId:"root",componentId:"",componentType:"section",slotName:"content",sortOrder:3,props:{title:"검토 내용"}},{nodeId:"approve-button",parentNodeId:"root",componentId:"",componentType:"button",slotName:"bottom_right_actions",sortOrder:4,props:{label:"승인",variant:"primary"}},{nodeId:"reject-button",parentNodeId:"root",componentId:"",componentType:"button",slotName:"bottom_left_actions",sortOrder:5,props:{label:"반려",variant:"secondary"}}]):E([{nodeId:"root",parentNodeId:"",componentId:"",componentType:"page",slotName:"root",sortOrder:0,props:{title:v}},{nodeId:"summary",parentNodeId:"root",componentId:"",componentType:"section",slotName:"summary",sortOrder:1,props:{title:"요약"}},{nodeId:"content-section",parentNodeId:"root",componentId:"",componentType:"section",slotName:"content",sortOrder:2,props:{title:"기본 정보"}},{nodeId:"content-heading",parentNodeId:"content-section",componentId:"",componentType:"heading",slotName:"content",sortOrder:3,props:{text:"기본 정보"}},{nodeId:"content-input",parentNodeId:"content-section",componentId:"",componentType:"input",slotName:"content",sortOrder:4,props:{label:"필드명",placeholder:"값 입력"}},{nodeId:"save-button",parentNodeId:"root",componentId:"",componentType:"button",slotName:"bottom_right_actions",sortOrder:5,props:{label:"저장",variant:"primary"}},{nodeId:"list-button",parentNodeId:"root",componentId:"",componentType:"button",slotName:"bottom_left_actions",sortOrder:6,props:{label:"목록",variant:"secondary"}}])}function $e(t){return{componentId:(t==null?void 0:t.componentId)||"",alias:(t==null?void 0:t.alias)||"",parentAlias:(t==null?void 0:t.parentAlias)||"",propsJson:(t==null?void 0:t.propsJson)||"{}"}}function ke(t){const l=String(t||"secondary");return l==="primary"||l==="secondary"||l==="success"||l==="danger"||l==="dangerSecondary"||l==="info"||l==="ghost"?l:"secondary"}function Br(t,l){switch(t){case"button":return l?"System Button Design Catalog":"시스템 버튼 디자인 카탈로그";case"input":return l?"System Input Catalog":"시스템 입력 컴포넌트 카탈로그";case"select":return l?"System Select Catalog":"시스템 셀렉트 컴포넌트 카탈로그";case"textarea":return l?"System Textarea Catalog":"시스템 텍스트영역 카탈로그";case"table":return l?"System Table Catalog":"시스템 테이블 카탈로그";case"pagination":return l?"System Pagination Catalog":"시스템 페이지네이션 카탈로그";default:return l?"System Component Catalog":"시스템 컴포넌트 카탈로그"}}function Dr(t,l){switch(t){case"button":return l?"Button inventory":"버튼 인벤토리";case"input":return l?"Input inventory":"입력 인벤토리";case"select":return l?"Select inventory":"셀렉트 인벤토리";case"textarea":return l?"Textarea inventory":"텍스트영역 인벤토리";case"table":return l?"Table inventory":"테이블 인벤토리";case"pagination":return l?"Pagination inventory":"페이지네이션 인벤토리";default:return l?"Component inventory":"컴포넌트 인벤토리"}}function je(t,l){return t.componentType==="button"?t.componentName==="MemberLinkButton"?e.jsx(W,{href:"#",onClick:v=>v.preventDefault(),size:t.size||"md",variant:ke(t.variant),children:t.label||(l?"Link":"링크")}):t.componentName==="MemberIconButton"?e.jsx(ce,{icon:t.icon||"bolt",size:t.size||"icon",variant:ke(t.variant)}):e.jsx(y,{size:t.size||"md",type:"button",variant:ke(t.variant),children:t.label||(l?"Button":"버튼")}):t.componentType==="input"?e.jsx("input",{className:`gov-input w-full ${t.className||""}`.trim(),placeholder:t.placeholder||(l?"Input value":"값 입력"),readOnly:!0,value:""}):t.componentType==="select"?e.jsx("select",{className:`gov-select w-full ${t.className||""}`.trim(),defaultValue:"",children:e.jsx("option",{value:"",children:t.placeholder||(l?"Select option":"옵션 선택")})}):t.componentType==="textarea"?e.jsx("textarea",{className:`gov-textarea w-full ${t.className||""}`.trim(),placeholder:t.placeholder||(l?"Enter details":"상세 내용을 입력하세요."),readOnly:!0,rows:3}):t.componentType==="table"?e.jsx("div",{className:"overflow-hidden rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)]",children:e.jsxs("table",{className:`w-full text-sm ${t.className||""}`.trim(),children:[e.jsx("thead",{children:e.jsxs("tr",{className:"gov-table-header",children:[e.jsx("th",{className:"px-3 py-2",children:"#"}),e.jsx("th",{className:"px-3 py-2",children:l?"Name":"이름"}),e.jsx("th",{className:"px-3 py-2",children:l?"Status":"상태"})]})}),e.jsx("tbody",{children:e.jsxs("tr",{children:[e.jsx("td",{className:"px-3 py-2",children:"1"}),e.jsx("td",{className:"px-3 py-2",children:l?"Sample row":"샘플 행"}),e.jsx("td",{className:"px-3 py-2",children:l?"Ready":"준비"})]})})]})}):t.componentType==="pagination"?e.jsxs("div",{className:"inline-flex items-center gap-2 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-3 py-2 text-sm text-[var(--kr-gov-text-secondary)]",children:[e.jsx("span",{children:l?"Prev":"이전"}),e.jsx("span",{className:"rounded bg-[var(--kr-gov-bg-muted)] px-2 py-0.5 font-bold text-[var(--kr-gov-text-primary)]",children:"1"}),e.jsx("span",{children:"/ 5"}),e.jsx("span",{children:l?"Next":"다음"})]}):e.jsx("span",{className:"text-sm text-[var(--kr-gov-text-secondary)]",children:t.componentName})}function Hr(){var un,gn,vn,bn,xn,yn,fn,hn,Nn,kn,Sn,wn,Cn,In,Pn,Mn;const t=yt(),l=m.useMemo(()=>_t({get:kt}),[]),v=m.useMemo(()=>ft(),[]),i=An(()=>ht(l),[l.menuCode,l.pageId,l.menuTitle,l.menuUrl],{initialValue:v,skipInitialLoad:!!v}),a=i.value,f=An(()=>a!=null&&a.pageId?Nt(a.pageId):Promise.resolve({selectedPageId:"",pages:[],page:{}}),[(a==null?void 0:a.pageId)||""],{enabled:!!(a!=null&&a.pageId)}),[g,c]=m.useState([]),[k,N]=m.useState([]),[B,I]=m.useState(""),[Z,Se]=m.useState(""),[Ve,Dn]=m.useState([]),[Ge,S]=m.useState(""),[He,x]=m.useState(""),[R,h]=m.useState(!1),[we,Ke]=m.useState([]),[qe,Ye]=m.useState(!1),[We,Je]=m.useState(""),[ee,Qe]=m.useState("DRAFT"),[$,Xe]=m.useState("EDIT_PAGE"),[T,ne]=m.useState([]),[te,Ce]=m.useState(""),[Ze,me]=m.useState(""),[en,pe]=m.useState(""),[ue,K]=m.useState(""),[J,Ie]=m.useState("ALL"),[D,Fn]=m.useState("ALL"),[ae,re]=m.useState([]),[ge,Un]=m.useState({}),[On,nn]=m.useState(!1),[tn,an]=m.useState(""),[rn,Pe]=m.useState(""),[sn,Me]=m.useState(""),[on,Ae]=m.useState(""),[se,Ee]=m.useState("ACTIVE"),[oe,Re]=m.useState(""),[Te,Le]=m.useState("{}"),[ve,_n]=m.useState([]),[be,$n]=m.useState([]),[xe,Be]=m.useState([$e({componentId:"core.section",alias:"basicSection",propsJson:'{ "title": "AI 기본 섹션" }'}),$e({componentId:"core.input",parentAlias:"basicSection",propsJson:'{ "label": "회사명", "placeholder": "회사명을 입력하세요." }'})]);m.useEffect(()=>{a&&(c(E(a.nodes||[])),N(a.events||[]),I(n=>{var s,d;const r=new Set((a.nodes||[]).map(p=>p.nodeId));return n&&r.has(n)?n:((s=(a.nodes||[])[1])==null?void 0:s.nodeId)||((d=(a.nodes||[])[0])==null?void 0:d.nodeId)||""}),ne(a.componentRegistry||[]),Ce(n=>{var r;return n||((r=(a.componentRegistry||[])[0])==null?void 0:r.componentId)||""}),Ke(E(a.nodes||[])),Xe(a.templateType||"EDIT_PAGE"))},[a]);const o=m.useMemo(()=>g.find(n=>n.nodeId===B)||g[0]||null,[g,B]),De=m.useMemo(()=>new Set(Ve),[Ve]),jn=m.useMemo(()=>Bn(g,De),[De,g]),ye=m.useMemo(()=>{var n,r;return((r=(n=f.value)==null?void 0:n.page)==null?void 0:r.apis)||[]},[f.value]),ln=m.useMemo(()=>new Map(T.map(n=>[n.componentId,n])),[T]),Fe=m.useMemo(()=>T.find(n=>n.componentId===ue)||null,[T,ue]),b=m.useMemo(()=>T.find(n=>n.componentId===te)||null,[T,te]),F=((un=a==null?void 0:a.registryDiagnostics)==null?void 0:un.unregisteredNodes)||[],z=((gn=a==null?void 0:a.registryDiagnostics)==null?void 0:gn.missingNodes)||[],U=((vn=a==null?void 0:a.registryDiagnostics)==null?void 0:vn.deprecatedNodes)||[],Ue=((bn=a==null?void 0:a.registryDiagnostics)==null?void 0:bn.componentPromptSurface)||[],dn=m.useMemo(()=>Array.from(new Set(((a==null?void 0:a.componentTypeOptions)||T.map(n=>n.componentType)).filter(Boolean))).sort((n,r)=>String(n).localeCompare(String(r))),[T,a==null?void 0:a.componentTypeOptions]),fe=m.useMemo(()=>T.filter(n=>{const r=J==="ALL"?!0:String(n.status||"ACTIVE")===J,s=D==="ALL"?!0:String(n.componentType||"")===D;return r&&s}),[T,J,D]),Oe=m.useMemo(()=>Ir(),[]),M=m.useMemo(()=>Ar.includes(D)?D:D==="ALL"?"ALL":"",[D]),Q=m.useMemo(()=>M==="ALL"?Oe:M?Oe.filter(n=>n.componentType===M):[],[M,Oe]),L=m.useMemo(()=>Q.flatMap(n=>n.instances.map((r,s)=>({key:`${n.key}-${r.route.routeId}-${r.label||s}`,styleGroupId:n.styleGroupId,componentType:n.componentType,componentName:r.componentName,variant:r.variant,size:r.size,className:r.className,icon:r.icon,label:r.label,placeholder:r.placeholder,summary:r.summary,route:r.route}))),[Q]),ie=m.useMemo(()=>Object.fromEntries(Object.entries(ge).map(([n,r])=>[n,Array.from(new Set((r||[]).map(s=>String(s.menuUrl||"").trim()).filter(Boolean)))])),[ge]),le=F.length+z.length+U.length,q=le===0,zn=m.useMemo(()=>Tr((a==null?void 0:a.componentPalette)||[],$),[a==null?void 0:a.componentPalette,$]);m.useEffect(()=>{var r,s,d;if(!o){me(""),pe(""),K("");return}const n=o.componentId?ln.get(String(o.componentId)):null;me(String((n==null?void 0:n.label)||((r=o.props)==null?void 0:r.label)||((s=o.props)==null?void 0:s.title)||((d=o.props)==null?void 0:d.text)||"")),pe(String((n==null?void 0:n.description)||"")),K(String(o.componentId||""))},[ln,o]),m.useEffect(()=>{if(!b){Pe(""),Me(""),Ae(""),Ee("ACTIVE"),Re(""),Le("{}"),re([]);return}Pe(String(b.componentType||"")),Me(String(b.label||"")),Ae(String(b.description||"")),Ee(String(b.status||"ACTIVE")),Re(String(b.replacementComponentId||"")),Le(JSON.stringify(b.propsTemplate||{},null,2))},[b]),m.useEffect(()=>{if(!te){re([]);return}let n=!1;return nn(!0),_e(te).then(r=>{n||re(r.items||[])}).catch(r=>{n||x(r instanceof Error?r.message:t?"Failed to load component usage.":"컴포넌트 사용 화면을 불러오지 못했습니다.")}).finally(()=>{n||nn(!1)}),()=>{n=!0}},[t,te]),m.useEffect(()=>{if(D!=="button")return;const r=fe.filter(d=>d.componentType==="button").slice(0,24).map(d=>d.componentId).filter(Boolean).filter(d=>!ge[d]);if(!r.length)return;let s=!1;return Promise.all(r.map(d=>_e(d))).then(d=>{s||Un(p=>{const u={...p};return r.forEach((w,C)=>{var j;u[w]=((j=d[C])==null?void 0:j.items)||[]}),u})}).catch(()=>{}),()=>{s=!0}},[fe,D,ge]);function Vn(n){o&&c(r=>r.map(s=>s.nodeId===o.nodeId?{...s,props:n}:s))}function O(n,r){const s={...(o==null?void 0:o.props)||{},[n]:r};Vn(s)}function Gn(n){!o||!n||(c(r=>r.map(s=>s.nodeId===o.nodeId?{...s,componentId:n.componentId,componentType:n.componentType||s.componentType,props:Object.keys(n.propsTemplate||{}).length?{...n.propsTemplate||{}}:{...s.props||{}}}:s)),K(n.componentId),me(n.label||""),pe(n.description||""),S(t?`Applied component ${n.componentId}.`:`${n.componentId} 컴포넌트로 대체했습니다.`))}function Hn(n){const r=g.find(C=>C.componentType==="page"),s=o||r||null,d=s&&(s.componentType==="page"||s.componentType==="section"),p=n.componentType==="section"?(r==null?void 0:r.nodeId)||"root":d?s==null?void 0:s.nodeId:(s==null?void 0:s.parentNodeId)||(r==null?void 0:r.nodeId)||"root",u=`${n.componentType}-${Date.now()}`,w={nodeId:u,componentId:"",parentNodeId:p,componentType:n.componentType,slotName:n.componentType==="button"?"actions":"content",sortOrder:g.length,props:Pr(n.componentType)};c(C=>E([...C,w]).map((j,xt)=>({...j,sortOrder:xt}))),I(u)}function Kn(){var s,d;if(!o||o.componentType==="page")return;const n=new Set([o.nodeId,...ze(g,o.nodeId)]),r=E(g.filter(p=>!n.has(p.nodeId))).map((p,u)=>({...p,sortOrder:u}));c(r),N(p=>p.filter(u=>!n.has(u.nodeId))),I(((s=r[1])==null?void 0:s.nodeId)||((d=r[0])==null?void 0:d.nodeId)||"")}function qn(){if(!o||o.componentType==="page")return;const{clonedNodes:n,clonedEvents:r,topNodeId:s}=Mr(g,k,o.nodeId);c(d=>E([...d,...n]).map((p,u)=>({...p,sortOrder:u}))),N(d=>[...d,...r]),I(s)}function cn(n){if(!o)return;const r=E(g),s=r.findIndex(w=>w.nodeId===o.nodeId),d=s+n;if(s<0||d<0||d>=r.length)return;const p=[...r],[u]=p.splice(s,1);p.splice(d,0,u),c(p.map((w,C)=>({...w,sortOrder:C})))}function Yn(n,r){if(!n||!r||n===r)return;const s=E(g),d=s.findIndex(C=>C.nodeId===n),p=s.findIndex(C=>C.nodeId===r);if(d<0||p<0)return;const u=[...s],[w]=u.splice(d,1);u.splice(p,0,w),c(u.map((C,j)=>({...C,sortOrder:j})))}function X(){if(!o)return null;const n=k.find(s=>s.nodeId===o.nodeId);if(n)return n;const r={eventBindingId:`event-${Date.now()}`,nodeId:o.nodeId,eventName:"onClick",actionType:"navigate",actionConfig:{target:o.componentType==="button"?"/admin/":""}};return N(s=>[...s,r]),r}const A=m.useMemo(()=>k.find(n=>n.nodeId===(o==null?void 0:o.nodeId))||null,[k,o]),V=m.useMemo(()=>ye.find(n=>{var r;return n.apiId===String(((r=A==null?void 0:A.actionConfig)==null?void 0:r.apiId)||"")})||null,[ye,A]);function mn(n,r){if(!o)return;const s=X();s&&N(d=>d.map(p=>p.eventBindingId===s.eventBindingId?{...p,[n]:r}:p))}function Wn(n){if(!o)return;const r=X();r&&N(s=>s.map(d=>d.eventBindingId===r.eventBindingId?{...d,actionConfig:{...d.actionConfig||{},target:n}}:d))}function Jn(n){if(!o)return;const r=X();if(!r)return;const s=ye.find(d=>d.apiId===n);N(d=>d.map(p=>p.eventBindingId===r.eventBindingId?{...p,actionConfig:{...p.actionConfig||{},apiId:n,endpoint:(s==null?void 0:s.endpoint)||"",method:(s==null?void 0:s.method)||""}}:p))}function Qn(n,r){if(!o)return;const s=X();s&&N(d=>d.map(p=>{var u;return p.eventBindingId===s.eventBindingId?{...p,actionConfig:{...p.actionConfig||{},requestMappings:{...((u=p.actionConfig)==null?void 0:u.requestMappings)||{},[n]:r}}}:p}))}function Xn(n){Dn(r=>r.includes(n)?r.filter(s=>s!==n):[...r,n])}async function pn(n){try{await navigator.clipboard.writeText(n),an(n),window.setTimeout(()=>{an(r=>r===n?"":r)},1500)}catch{x(t?"Failed to copy button style id.":"버튼 스타일 ID를 복사하지 못했습니다.")}}function Zn(){var r,s;const n=Lr($,(a==null?void 0:a.menuTitle)||"");c(n),N([]),I(((r=n[1])==null?void 0:r.nodeId)||((s=n[0])==null?void 0:s.nodeId)||""),S(t?"Applied template preset.":"템플릿 프리셋을 적용했습니다.")}async function et(){if(a){h(!0),x(""),S("");try{const n=await St({menuCode:a.menuCode,pageId:a.pageId,menuTitle:a.menuTitle,menuUrl:a.menuUrl,templateType:$,nodes:g,events:k});S(String(n.message||(t?"Screen builder draft saved.":"화면 빌더 초안을 저장했습니다."))),await i.reload(),await Y(!0)}catch(n){x(n instanceof Error?n.message:t?"Failed to save screen builder draft.":"화면 빌더 저장 중 오류가 발생했습니다.")}finally{h(!1)}}}async function Y(n=!1){if(a){Ye(!0),Je("");try{const r=await Ct({menuCode:a.menuCode,pageId:a.pageId,menuTitle:a.menuTitle,menuUrl:a.menuUrl,versionStatus:ee});Ke(E(r.nodes||[])),Je(n?t?"Preview refreshed from the saved draft.":"저장된 초안 기준으로 미리보기를 갱신했습니다.":ee==="PUBLISHED"?t?"Preview refreshed from the latest published snapshot.":"최근 publish 스냅샷 기준으로 미리보기를 갱신했습니다.":t?"Preview refreshed.":"미리보기를 갱신했습니다.")}catch(r){x(r instanceof Error?r.message:t?"Failed to refresh preview.":"미리보기 갱신 중 오류가 발생했습니다.")}finally{Ye(!1)}}}async function nt(n){if(!(!(a!=null&&a.menuCode)||!n)){h(!0),x(""),S("");try{const r=await Bt({menuCode:a.menuCode,versionId:n});S(String(r.message||(t?"Draft restored.":"초안을 복원했습니다."))),await i.reload(),await Y(!0)}catch(r){x(r instanceof Error?r.message:t?"Failed to restore draft.":"초안 복원 중 오류가 발생했습니다.")}finally{h(!1)}}}async function tt(){if(a!=null&&a.menuCode){if(le>0){x(t?`Publish is blocked until validation issues are resolved. Unregistered=${F.length}, Missing=${z.length}, Deprecated=${U.length}`:`검증 이슈가 해결되기 전에는 Publish 할 수 없습니다. 미등록=${F.length}, 누락=${z.length}, Deprecated=${U.length}`);return}h(!0),x(""),S("");try{const n=await wt({menuCode:a.menuCode});S(String(n.message||(t?"Published version snapshot created.":"publish 버전 스냅샷을 만들었습니다."))),await i.reload()}catch(n){x(n instanceof Error?n.message:t?"Failed to publish draft.":"초안 publish 중 오류가 발생했습니다.")}finally{h(!1)}}}async function at(){var n,r,s;if(!(!a||!o||o.componentType==="page")){h(!0),x(""),S("");try{const d=await Lt({menuCode:a.menuCode,pageId:a.pageId,nodeId:o.nodeId,componentType:o.componentType,label:Ze||String(((n=o.props)==null?void 0:n.label)||((r=o.props)==null?void 0:r.title)||((s=o.props)==null?void 0:s.text)||o.nodeId),description:en,propsTemplate:{...o.props||{}}});ne(p=>{const u=p.filter(w=>w.componentId!==d.item.componentId);return u.push(d.item),u.sort((w,C)=>String(w.componentId||"").localeCompare(String(C.componentId||"")))}),c(p=>p.map(u=>u.nodeId===o.nodeId?{...u,componentId:d.item.componentId}:u)),K(d.item.componentId),S(String(d.message||(t?"Component registered.":"컴포넌트를 등록했습니다.")))}catch(d){x(d instanceof Error?d.message:t?"Failed to register component.":"컴포넌트 등록 중 오류가 발생했습니다.")}finally{h(!1)}}}function rt(){!Fe||!o||Gn(Fe)}async function st(n){if(n!=null&&n.componentId){h(!0),x("");try{const r=await En({componentId:n.componentId,status:"DEPRECATED",replacementComponentId:ue||n.replacementComponentId||"",menuCode:(a==null?void 0:a.menuCode)||""});ne(s=>s.map(d=>d.componentId===r.item.componentId?r.item:d)),S(String(r.message||(t?"Component deprecated.":"컴포넌트를 deprecated 처리했습니다.")))}catch(r){x(r instanceof Error?r.message:t?"Failed to update component.":"컴포넌트 수정 중 오류가 발생했습니다.")}finally{h(!1)}}}async function ot(){if(b!=null&&b.componentId){h(!0),x("");try{const n=Te.trim()?JSON.parse(Te):{},r=await En({componentId:b.componentId,componentType:rn,label:sn,description:on,status:se,replacementComponentId:oe,propsTemplate:n,menuCode:(a==null?void 0:a.menuCode)||""});ne(s=>s.map(d=>d.componentId===r.item.componentId?r.item:d)),S(String(r.message||(t?"Component updated.":"컴포넌트를 수정했습니다.")))}catch(n){x(n instanceof Error?n.message:t?"Failed to save component.":"컴포넌트 저장 중 오류가 발생했습니다.")}finally{h(!1)}}}async function it(){if(b!=null&&b.componentId){h(!0),x("");try{const n=await Et({componentId:b.componentId});ne(r=>r.filter(s=>s.componentId!==b.componentId)),Ce(r=>r===b.componentId?"":r),re([]),S(String(n.message||(t?"Component deleted.":"컴포넌트를 삭제했습니다."))),await i.reload()}catch(n){x(n instanceof Error?n.message:t?"Failed to delete component.":"컴포넌트 삭제 중 오류가 발생했습니다.")}finally{h(!1)}}}async function lt(){if(!(!(b!=null&&b.componentId)||!oe)){h(!0),x("");try{const n=await At({fromComponentId:b.componentId,toComponentId:oe});S(String(n.message||(t?"Component usage remapped.":"컴포넌트 사용처를 재매핑했습니다.")));const r=await _e(b.componentId);re(r.items||[]),await i.reload(),await Y(!0)}catch(n){x(n instanceof Error?n.message:t?"Failed to remap component usage.":"컴포넌트 사용처 재매핑 중 오류가 발생했습니다.")}finally{h(!1)}}}async function dt(){if(a!=null&&a.menuCode){h(!0),x("");try{const n=await Pt({menuCode:a.menuCode});S(String(n.message||(t?"Deprecated components replaced.":"deprecated 컴포넌트를 대체했습니다."))),await i.reload(),await Y(!0)}catch(n){x(n instanceof Error?n.message:t?"Failed to auto replace deprecated components.":"deprecated 컴포넌트 자동 대체 중 오류가 발생했습니다.")}finally{h(!1)}}}async function ct(){if(a!=null&&a.menuCode){h(!0),x("");try{const n=await It({menuCode:a.menuCode});$n(n.items||[]),S(t?"Loaded replacement diff preview.":"대체 diff 미리보기를 불러왔습니다.")}catch(n){x(n instanceof Error?n.message:t?"Failed to preview replacement diff.":"대체 diff 미리보기 중 오류가 발생했습니다.")}finally{h(!1)}}}async function mt(){h(!0),x("");try{const n=await Mt();_n(n.items||[]),S(t?"Registry diagnostics scanned.":"레지스트리 진단을 스캔했습니다.")}catch(n){x(n instanceof Error?n.message:t?"Failed to scan registry diagnostics.":"레지스트리 진단 스캔 중 오류가 발생했습니다.")}finally{h(!1)}}async function pt(n){if(!(!(a!=null&&a.menuCode)||!n)){h(!0),x("");try{const r=await Rt({menuCode:a.menuCode,componentId:n,parentNodeId:(o==null?void 0:o.nodeId)||""});S(String(r.message||(t?"Node added from component.":"컴포넌트로 노드를 추가했습니다."))),await i.reload(),await Y(!0)}catch(r){x(r instanceof Error?r.message:t?"Failed to add node from component.":"컴포넌트 노드 추가 중 오류가 발생했습니다.")}finally{h(!1)}}}async function ut(){if(a!=null&&a.menuCode){h(!0),x("");try{const n=xe.map(s=>({componentId:s.componentId.trim(),alias:s.alias.trim()||void 0,parentAlias:s.parentAlias.trim()||void 0,props:s.propsJson.trim()?JSON.parse(s.propsJson):{}})).filter(s=>s.componentId),r=await Tt({menuCode:a.menuCode,items:n});S(String(r.message||(t?"Node tree added from AI component contracts.":"AI 컴포넌트 계약으로 노드 트리를 추가했습니다."))),await i.reload(),await Y(!0)}catch(n){x(n instanceof Error?n.message:t?"Failed to add node tree from AI component contracts.":"AI 컴포넌트 계약 노드 트리 추가 중 오류가 발생했습니다.")}finally{h(!1)}}}function he(n,r,s){Be(d=>d.map((p,u)=>u===n?{...p,[r]:s}:p))}function gt(){Be(n=>[...n,$e()])}function vt(n){Be(r=>r.filter((s,d)=>d!==n))}const _=(o==null?void 0:o.props)||{},bt=G("/admin/system/environment-management","/en/admin/system/environment-management");return e.jsxs(Dt,{breadcrumbs:[{label:t?"Home":"홈",href:G("/admin/","/en/admin/")},{label:t?"System":"시스템"},{label:t?"Environment Management":"메뉴 통합 관리",href:bt},{label:t?"Screen Builder":"화면 빌더"}],title:t?"Screen Builder":"화면 빌더",subtitle:t?"Build a page draft from menu metadata, reusable components, and lightweight event bindings.":"메뉴 메타데이터를 기준으로 컴포넌트와 이벤트 연결을 조합해 화면 초안을 구성합니다.",contextStrip:e.jsx(Ft,{items:Ut}),loading:i.loading&&!a,loadingLabel:t?"Loading screen builder...":"화면 빌더를 불러오는 중입니다.",children:[i.error||He?e.jsx(Rn,{tone:"error",children:i.error||He}):null,Ge?e.jsx(Rn,{tone:"success",children:Ge}):null,e.jsxs(Ot,{children:[e.jsx(Ne,{actions:e.jsxs(e.Fragment,{children:[a!=null&&a.menuCode?e.jsx(W,{href:G(`/admin/system/environment-management?menuCode=${encodeURIComponent(a.menuCode)}`,`/en/admin/system/environment-management?menuCode=${encodeURIComponent(a.menuCode)}`),variant:"secondary",children:t?"Open Environment Management":"환경관리 열기"}):null,a!=null&&a.menuCode?e.jsx(W,{href:G(`/admin/system/screen-runtime?menuCode=${encodeURIComponent(a.menuCode)}&pageId=${encodeURIComponent(a.pageId||"")}&menuTitle=${encodeURIComponent(a.menuTitle||"")}&menuUrl=${encodeURIComponent(a.menuUrl||"")}`,`/en/admin/system/screen-runtime?menuCode=${encodeURIComponent(a.menuCode)}&pageId=${encodeURIComponent(a.pageId||"")}&menuTitle=${encodeURIComponent(a.menuTitle||"")}&menuUrl=${encodeURIComponent(a.menuUrl||"")}`),variant:"secondary",children:t?"Open Published Runtime":"발행 런타임 열기"}):null,e.jsx(y,{disabled:!(a!=null&&a.menuCode)||R,onClick:()=>{et()},variant:"primary",children:R?t?"Saving...":"저장 중...":t?"Save Draft":"초안 저장"}),e.jsx(y,{disabled:!(a!=null&&a.menuCode)||R||le>0,onClick:()=>{tt()},variant:"info",children:R?t?"Working...":"처리 중...":t?"Publish Snapshot":"Publish 스냅샷"}),e.jsx(y,{disabled:!(a!=null&&a.menuCode)||qe,onClick:()=>{Y(!1)},variant:"secondary",children:qe?t?"Refreshing...":"갱신 중...":t?"Refresh Preview":"미리보기 갱신"})]}),description:(a==null?void 0:a.screenBuilderMessage)||(t?"Use this MVP builder to create a schema-first page draft before moving into full runtime rendering.":"이 MVP 빌더로 schema 중심 초안을 먼저 만들고, 이후 runtime 렌더링 단계로 이어갑니다."),eyebrow:(a==null?void 0:a.templateType)||"EDIT_PAGE",status:q?t?"READY":"준비 완료":t?"BLOCKED":"차단",statusTone:q?"healthy":"danger",summary:e.jsxs("div",{className:"grid grid-cols-1 gap-3 md:grid-cols-5",children:[e.jsxs("div",{className:"rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3",children:[e.jsx("p",{className:"text-xs font-bold text-[var(--kr-gov-text-secondary)]",children:"Menu Code"}),e.jsx("p",{className:"mt-2 font-mono text-sm",children:(a==null?void 0:a.menuCode)||"-"})]}),e.jsxs("div",{className:"rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3",children:[e.jsx("p",{className:"text-xs font-bold text-[var(--kr-gov-text-secondary)]",children:"pageId"}),e.jsx("p",{className:"mt-2 font-mono text-sm",children:(a==null?void 0:a.pageId)||"-"})]}),e.jsxs("div",{className:"rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3",children:[e.jsx("p",{className:"text-xs font-bold text-[var(--kr-gov-text-secondary)]",children:t?"Nodes":"노드 수"}),e.jsx("p",{className:"mt-2 text-lg font-black",children:g.length})]}),e.jsxs("div",{className:"rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3",children:[e.jsx("p",{className:"text-xs font-bold text-[var(--kr-gov-text-secondary)]",children:t?"Events":"이벤트 수"}),e.jsx("p",{className:"mt-2 text-lg font-black",children:k.length})]}),e.jsxs("div",{className:`rounded-lg border px-4 py-3 ${q?"border-emerald-200 bg-emerald-50":"border-red-200 bg-red-50"}`,children:[e.jsx("p",{className:`text-xs font-bold ${q?"text-emerald-800":"text-red-800"}`,children:t?"Publish Readiness":"Publish 준비 상태"}),e.jsx("p",{className:`mt-2 text-lg font-black ${q?"text-emerald-900":"text-red-900"}`,children:q?t?"Ready to publish":"Publish 가능":t?`${le} issues block publish`:`${le}건 이슈로 Publish 차단`})]})]}),title:(a==null?void 0:a.menuTitle)||(t?"Select a page menu first":"먼저 페이지 메뉴를 선택하세요")}),a!=null&&a.publishedVersionId?e.jsxs("section",{className:"rounded-[var(--kr-gov-radius)] border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900",children:[t?"Latest published version":"최근 publish 버전",": ",e.jsx("span",{className:"font-mono",children:a.publishedVersionId}),a.publishedSavedAt?` / ${a.publishedSavedAt}`:""]}):null,e.jsxs("section",{className:"gov-card p-0 overflow-hidden",children:[e.jsx(P,{actions:e.jsx(de,{children:e.jsx(y,{disabled:R,onClick:Zn,size:"xs",type:"button",variant:"secondary",children:t?"Apply template preset":"템플릿 프리셋 적용"})}),meta:t?"Choose a page type first so palette, slot positions, and AI component usage stay consistent.":"먼저 페이지 타입을 선택해 팔레트, 버튼 위치, AI 컴포넌트 사용 규칙을 일관되게 맞춥니다.",title:t?"Template Type":"템플릿 타입"}),e.jsx("div",{className:"grid grid-cols-1 gap-4 p-6 xl:grid-cols-4",children:Er.map(n=>{const r=$===n.value;return e.jsxs("button",{className:`rounded-[var(--kr-gov-radius)] border px-4 py-4 text-left ${r?"border-[var(--kr-gov-blue)] bg-blue-50":"border-[var(--kr-gov-border-light)] bg-white hover:bg-gray-50"}`,onClick:()=>Xe(n.value),type:"button",children:[e.jsx("p",{className:"text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]",children:n.value}),e.jsx("p",{className:"mt-2 text-sm font-black text-[var(--kr-gov-text-primary)]",children:t?n.labelEn:n.label}),e.jsx("p",{className:"mt-2 text-[12px] leading-5 text-[var(--kr-gov-text-secondary)]",children:n.description})]},n.value)})})]}),e.jsxs("section",{className:"grid grid-cols-1 gap-4 xl:grid-cols-3",children:[e.jsx(Ne,{description:t?"Nodes without a linked componentId can be registered as reusable components or replaced with an existing one.":"componentId가 없는 노드는 재사용 컴포넌트로 등록하거나 기존 컴포넌트로 대체할 수 있습니다.",status:String(F.length),statusTone:F.length?"warning":"healthy",title:t?"Unregistered reusable candidates":"미등록 재사용 후보"}),e.jsx(Ne,{description:t?"Nodes that reference missing componentIds should be replaced or the registry item should be restored.":"없는 componentId를 참조하는 노드는 대체하거나 레지스트리 항목을 복구해야 합니다.",status:String(z.length+U.length),statusTone:z.length+U.length?"danger":"healthy",title:t?"Broken registry references":"깨진 레지스트리 참조"}),e.jsx(Ne,{description:t?"System and custom components that the AI or operators can target by componentId.":"운영자와 AI가 componentId로 재사용할 수 있는 시스템/커스텀 컴포넌트 목록입니다.",status:String(T.length),statusTone:"neutral",title:t?"Registered components":"등록 컴포넌트 수"})]}),Q.length?e.jsxs("section",{className:"gov-card p-0 overflow-hidden",children:[e.jsx(P,{meta:t?`${Q.length} detected styles / ${L.length} total component uses across React pages.`:`React 화면 기준 감지 스타일 ${Q.length}종 / 전체 사용 ${L.length}건입니다.`,title:Br(M||"button",t)}),e.jsxs("div",{className:"border-t border-[var(--kr-gov-border-light)]",children:[e.jsx(P,{meta:t?`Every detected component use is listed below first. ${L.length} raw source-based instances.`:`아래에 감지된 컴포넌트 사용 인스턴스를 먼저 모두 나열합니다. 원본 기준 ${L.length}건입니다.`,title:t?"All Component Usage Instances":"전체 컴포넌트 사용 인스턴스"}),e.jsx("div",{className:"max-h-[520px] overflow-auto",children:e.jsxs("table",{className:"w-full text-sm text-left border-collapse",children:[e.jsx("thead",{children:e.jsxs("tr",{className:"gov-table-header",children:[e.jsx("th",{className:"px-4 py-3",children:"styleGroupId"}),e.jsx("th",{className:"px-4 py-3",children:t?"Preview":"프리뷰"}),e.jsx("th",{className:"px-4 py-3",children:t?"Component":"컴포넌트"}),e.jsx("th",{className:"px-4 py-3",children:t?"Label":"라벨"}),e.jsx("th",{className:"px-4 py-3",children:"URL"}),e.jsx("th",{className:"px-4 py-3",children:t?"Open":"열기"})]})}),e.jsx("tbody",{className:"divide-y divide-gray-100",children:L.map(n=>e.jsxs("tr",{children:[e.jsx("td",{className:"px-4 py-3",children:e.jsxs("div",{className:"flex flex-col gap-2",children:[e.jsx("span",{className:"font-mono text-[11px] text-[var(--kr-gov-text-secondary)]",children:n.styleGroupId}),e.jsx(y,{onClick:()=>{pn(n.styleGroupId)},size:"xs",type:"button",variant:"secondary",children:tn===n.styleGroupId?t?"Copied":"복사됨":t?"Copy":"복사"})]})}),e.jsx("td",{className:"px-4 py-3",children:je(n,t)}),e.jsxs("td",{className:"px-4 py-3 text-[12px]",children:[e.jsx("div",{className:"font-semibold text-[var(--kr-gov-text-primary)]",children:n.componentName}),e.jsxs("div",{className:"font-mono text-[11px] text-[var(--kr-gov-text-secondary)]",children:[n.componentType,n.variant?` / ${n.variant}`:"",n.size?` / ${n.size}`:"",n.className?` / class=${n.className}`:"",n.icon?` / icon=${n.icon}`:"",n.placeholder?` / placeholder=${n.placeholder}`:""]})]}),e.jsx("td",{className:"px-4 py-3",children:n.label||n.placeholder||"-"}),e.jsx("td",{className:"px-4 py-3 font-mono text-[11px] text-[var(--kr-gov-text-secondary)]",children:n.route.koPath}),e.jsx("td",{className:"px-4 py-3",children:e.jsx(W,{href:G(n.route.koPath,n.route.enPath),size:"xs",variant:"secondary",children:t?"Open":"열기"})})]},n.key))})]})})]}),e.jsxs("div",{className:"border-t border-[var(--kr-gov-border-light)]",children:[e.jsx(P,{meta:t?"Grouped styles are summarized below. Same variant with different className, icon, or placeholder is separated.":"아래는 묶어서 본 스타일 요약입니다. 같은 variant여도 className, icon, placeholder가 다르면 별도 스타일로 분리합니다.",title:t?"Grouped Component Styles":"그룹형 컴포넌트 스타일 요약"}),e.jsx("div",{className:"grid grid-cols-1 gap-4 p-6 xl:grid-cols-2",children:Q.map(n=>e.jsxs("article",{className:"rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4",children:[e.jsxs("div",{className:"flex items-start justify-between gap-3",children:[e.jsxs("div",{children:[e.jsx("p",{className:"font-mono text-[11px] text-[var(--kr-gov-text-secondary)]",children:n.componentType}),e.jsx("p",{className:"mt-1 text-sm font-black text-[var(--kr-gov-text-primary)]",children:n.componentName}),e.jsx("p",{className:"mt-1 text-[12px] text-[var(--kr-gov-text-secondary)]",children:[n.variant,n.size,n.placeholder].filter(Boolean).join(" / ")||(t?"base style":"기본 스타일")})]}),e.jsxs("div",{className:"flex flex-wrap items-center justify-end gap-1",children:[e.jsx("span",{className:"rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-700",children:t?`${n.instanceCount} uses`:`${n.instanceCount}회 사용`}),e.jsx("span",{className:"rounded-full bg-blue-50 px-2 py-1 text-[10px] font-bold text-blue-700",children:t?`${n.routeCount} screens`:`${n.routeCount}개 화면`})]})]}),e.jsx("div",{className:"mt-3 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-bg-muted)] px-3 py-4",children:je(n,t)}),e.jsxs("div",{className:"mt-3 flex flex-wrap gap-2 text-[11px]",children:[e.jsx("span",{className:"rounded-full bg-indigo-50 px-2 py-1 font-mono text-indigo-800",children:n.styleGroupId}),e.jsx("span",{className:"rounded-full bg-slate-100 px-2 py-1 font-mono text-slate-700",children:n.componentName}),n.className?e.jsxs("span",{className:"rounded-full bg-amber-50 px-2 py-1 font-mono text-amber-800",children:["class: ",n.className]}):null,n.icon?e.jsxs("span",{className:"rounded-full bg-emerald-50 px-2 py-1 font-mono text-emerald-800",children:["icon: ",n.icon]}):null,n.placeholder?e.jsxs("span",{className:"rounded-full bg-cyan-50 px-2 py-1 font-mono text-cyan-800",children:["placeholder: ",n.placeholder]}):null]}),e.jsx("div",{className:"mt-3",children:e.jsx(y,{onClick:()=>{pn(n.styleGroupId)},size:"xs",type:"button",variant:"secondary",children:tn===n.styleGroupId?t?"Copied":"복사됨":t?"Copy styleGroupId":"styleGroupId 복사"})})]},n.key))})]})]}):null,e.jsxs("section",{className:"gov-card p-0 overflow-hidden",children:[e.jsx(P,{meta:q?t?"All registry validation issues are cleared. Publish can run now.":"레지스트리 검증 이슈가 없습니다. 지금 Publish 할 수 있습니다.":t?"Publish runs only when all registry validation issues are cleared.":"레지스트리 검증 이슈가 모두 없어야 Publish 됩니다.",title:t?"Publish Validation Report":"Publish 검증 리포트"}),e.jsxs("div",{className:"grid grid-cols-1 gap-4 p-6 xl:grid-cols-3",children:[e.jsxs("div",{className:"rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-4",children:[e.jsx("p",{className:"text-xs font-black uppercase tracking-[0.08em] text-amber-800",children:t?"Unregistered":"미등록"}),e.jsx("p",{className:"mt-2 text-2xl font-black text-amber-900",children:F.length})]}),e.jsxs("div",{className:"rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-4",children:[e.jsx("p",{className:"text-xs font-black uppercase tracking-[0.08em] text-red-800",children:t?"Missing":"누락"}),e.jsx("p",{className:"mt-2 text-2xl font-black text-red-900",children:z.length})]}),e.jsxs("div",{className:"rounded-[var(--kr-gov-radius)] border border-rose-200 bg-rose-50 px-4 py-4",children:[e.jsx("p",{className:"text-xs font-black uppercase tracking-[0.08em] text-rose-800",children:"Deprecated"}),e.jsx("p",{className:"mt-2 text-2xl font-black text-rose-900",children:U.length})]})]})]}),e.jsxs("section",{className:"gov-card p-0 overflow-hidden",children:[e.jsx(P,{actions:e.jsxs(de,{children:[e.jsx(y,{disabled:!U.length||R,onClick:()=>{ct()},size:"xs",type:"button",variant:"secondary",children:t?"Preview replace diff":"대체 diff 미리보기"}),e.jsx(y,{disabled:!U.length||R,onClick:()=>{dt()},size:"xs",type:"button",variant:"secondary",children:t?"Auto replace deprecated":"Deprecated 자동 대체"}),e.jsx(y,{disabled:R,onClick:()=>{mt()},size:"xs",type:"button",variant:"secondary",children:t?"Scan all drafts":"전체 draft 스캔"}),e.jsxs("label",{className:"inline-flex items-center gap-2 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-2 py-1 text-xs text-[var(--kr-gov-text-secondary)]",children:[e.jsx("span",{children:t?"Type":"종류"}),e.jsxs("select",{className:"bg-transparent text-xs outline-none",value:D,onChange:n=>Fn(n.target.value),children:[e.jsx("option",{value:"ALL",children:t?"All":"전체"}),dn.map(n=>e.jsx("option",{value:n,children:n},`registry-type-${n}`))]})]}),e.jsx(y,{onClick:()=>Ie("ALL"),size:"xs",type:"button",variant:J==="ALL"?"primary":"secondary",children:t?"All":"전체"}),e.jsx(y,{onClick:()=>Ie("ACTIVE"),size:"xs",type:"button",variant:J==="ACTIVE"?"primary":"secondary",children:"ACTIVE"}),e.jsx(y,{onClick:()=>Ie("DEPRECATED"),size:"xs",type:"button",variant:J==="DEPRECATED"?"primary":"secondary",children:"DEPRECATED"})]}),meta:t?`${T.length} registry items / ${F.length} unregistered candidates`:`레지스트리 ${T.length}건 / 미등록 후보 ${F.length}건`,title:t?"Component Registry Inventory":"컴포넌트 레지스트리 인벤토리"}),e.jsxs("div",{className:"grid grid-cols-1 gap-6 p-6 xl:grid-cols-3",children:[e.jsxs("article",{className:"rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4",children:[e.jsx("p",{className:"text-sm font-black text-[var(--kr-gov-text-primary)]",children:t?"Unregistered nodes":"미등록 노드"}),e.jsx("div",{className:"mt-3 space-y-2",children:F.length?F.map(n=>e.jsxs("button",{className:"w-full rounded border border-amber-200 bg-amber-50 px-3 py-2 text-left text-sm text-amber-900 hover:bg-amber-100",onClick:()=>I(n.nodeId),type:"button",children:[e.jsx("span",{className:"font-mono text-[11px]",children:n.componentType}),e.jsx("span",{className:"ml-2",children:n.label})]},`unregistered-${n.nodeId}`)):e.jsx("p",{className:"text-sm text-[var(--kr-gov-text-secondary)]",children:t?"No unregistered nodes.":"미등록 노드가 없습니다."})})]}),e.jsxs("article",{className:"rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4",children:[e.jsx("p",{className:"text-sm font-black text-[var(--kr-gov-text-primary)]",children:t?"Broken references":"깨진 참조"}),e.jsx("div",{className:"mt-3 space-y-2",children:[...z,...U].length?[...z,...U].map(n=>e.jsxs("div",{className:"rounded border border-red-200 bg-red-50 px-3 py-2 text-left text-sm text-red-800",children:[e.jsxs("button",{className:"w-full text-left",onClick:()=>I(n.nodeId),type:"button",children:[e.jsx("span",{className:"font-mono text-[11px]",children:String(n.componentId||"-")}),e.jsx("span",{className:"ml-2",children:n.label})]}),n.replacementComponentId?e.jsxs("div",{className:"mt-2 text-[11px] text-red-700",children:[t?"Suggested replacement":"권장 대체",": ",e.jsx("span",{className:"font-mono",children:n.replacementComponentId})]}):null]},`broken-${n.nodeId}`)):e.jsx("p",{className:"text-sm text-[var(--kr-gov-text-secondary)]",children:t?"No broken references.":"깨진 참조가 없습니다."})})]}),e.jsxs("article",{className:"rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4",children:[e.jsxs("div",{className:"flex items-center justify-between gap-3",children:[e.jsx("p",{className:"text-sm font-black text-[var(--kr-gov-text-primary)]",children:M&&M!=="ALL"?Dr(M,t):t?"Registered components":"등록 컴포넌트"}),M&&M!=="ALL"?e.jsx("span",{className:"rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-bold text-indigo-700",children:t?`${L.length} detected`:`${L.length}건 감지`}):null]}),M&&M!=="ALL"?e.jsx("div",{className:"mt-3 rounded-[var(--kr-gov-radius)] border border-blue-100 bg-blue-50 px-3 py-3 text-xs text-blue-900",children:t?"This area shows all detected component usage instances in the current system first. Registered components are listed below as a secondary section.":"이 영역은 현재 시스템에서 감지된 전체 컴포넌트 사용 인스턴스를 먼저 보여주고, 등록된 컴포넌트는 아래 보조 섹션으로 보여줍니다."}):null,M&&M!=="ALL"?e.jsxs("div",{className:"mt-3 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-bg-muted)] p-3",children:[e.jsxs("div",{className:"flex items-center justify-between gap-2",children:[e.jsx("p",{className:"text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]",children:t?"All Component Usage Instances":"전체 컴포넌트 사용 인스턴스"}),e.jsx("span",{className:"rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-[var(--kr-gov-text-secondary)]",children:t?`${L.length} items`:`${L.length}건`})]}),e.jsxs("div",{className:"mt-3 max-h-[260px] space-y-2 overflow-auto",children:[L.length?L.slice(0,80).map(n=>e.jsxs("div",{className:"rounded border border-[var(--kr-gov-border-light)] bg-white px-3 py-3",children:[e.jsxs("div",{className:"flex items-start justify-between gap-3",children:[e.jsxs("div",{className:"min-w-0",children:[e.jsxs("p",{className:"truncate font-semibold text-[var(--kr-gov-text-primary)]",children:[n.label||(t?"Button":"버튼")," · ",n.route.label]}),e.jsx("p",{className:"truncate font-mono text-[11px] text-[var(--kr-gov-text-secondary)]",children:n.route.koPath})]}),e.jsx(W,{href:G(n.route.koPath,n.route.enPath),size:"xs",variant:"secondary",children:t?"Open":"열기"})]}),e.jsxs("div",{className:"mt-2 flex flex-wrap items-center gap-2",children:[je(n,t),e.jsx("span",{className:"rounded-full bg-indigo-50 px-2 py-0.5 font-mono text-[10px] text-indigo-800",children:n.styleGroupId}),e.jsx("span",{className:"rounded-full bg-slate-100 px-2 py-0.5 font-mono text-[10px] text-slate-700",children:n.componentName})]})]},n.key)):e.jsx("p",{className:"rounded border border-dashed border-[var(--kr-gov-border-light)] bg-white px-3 py-4 text-sm text-[var(--kr-gov-text-secondary)]",children:t?"No component usage instances were detected.":"감지된 컴포넌트 사용 인스턴스가 없습니다."}),L.length>80?e.jsx("p",{className:"text-[11px] text-[var(--kr-gov-text-secondary)]",children:t?`+ ${L.length-80} more component instances are listed in the catalog section below.`:`외 ${L.length-80}건은 아래 카탈로그 섹션에서 계속 볼 수 있습니다.`}):null]})]}):null,M&&M!=="ALL"?e.jsxs("div",{className:"mt-3 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-3 py-3",children:[e.jsxs("div",{className:"flex items-center justify-between gap-2",children:[e.jsx("p",{className:"text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]",children:t?"Registered components":"등록된 컴포넌트"}),e.jsx("span",{className:"rounded-full bg-[var(--kr-gov-bg-muted)] px-2 py-0.5 text-[10px] font-bold text-[var(--kr-gov-text-secondary)]",children:fe.length})]}),e.jsx("p",{className:"mt-2 text-[11px] text-[var(--kr-gov-text-secondary)]",children:t?"This list is the DB-backed registry. It can be smaller than the detected system component inventory above.":"이 목록은 DB 기반 레지스트리라서, 위의 시스템 컴포넌트 인벤토리보다 항목 수가 적을 수 있습니다."})]}):null,e.jsx("div",{className:"mt-3 max-h-[280px] space-y-2 overflow-auto",children:fe.map(n=>{var r,s,d,p,u,w,C;return e.jsxs("div",{className:"w-full rounded border border-[var(--kr-gov-border-light)] px-3 py-2 text-left text-sm",children:[e.jsxs("button",{className:"w-full text-left hover:bg-gray-50",onClick:()=>{Ce(n.componentId),K(n.componentId),o&&I(o.nodeId)},type:"button",children:[e.jsxs("div",{className:"flex items-center justify-between gap-2",children:[e.jsx("span",{className:"font-mono text-[11px] text-[var(--kr-gov-text-secondary)]",children:n.componentId}),e.jsxs("div",{className:"flex items-center gap-1",children:[e.jsx("span",{className:`rounded-full px-2 py-0.5 text-[10px] font-bold ${n.status==="DEPRECATED"?"bg-amber-100 text-amber-800":"bg-emerald-100 text-emerald-700"}`,children:n.status||"ACTIVE"}),e.jsx("span",{className:`rounded-full px-2 py-0.5 text-[10px] font-bold ${n.sourceType==="SYSTEM"?"bg-slate-100 text-slate-700":"bg-sky-100 text-sky-700"}`,children:n.sourceType||"CUSTOM"})]})]}),e.jsx("p",{className:"mt-1 font-semibold text-[var(--kr-gov-text-primary)]",children:t&&n.labelEn||n.label}),n.description?e.jsx("p",{className:"mt-1 text-[12px] text-[var(--kr-gov-text-secondary)]",children:n.description}):null,n.componentType==="button"?e.jsxs("div",{className:"mt-3 space-y-2 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-bg-muted)] px-3 py-3",children:[e.jsxs("div",{className:"flex flex-wrap items-center gap-2",children:[e.jsx(y,{size:"xs",type:"button",variant:ke((r=n.propsTemplate)==null?void 0:r.variant),children:String(((s=n.propsTemplate)==null?void 0:s.label)||n.label||(t?"Button":"버튼"))}),e.jsxs("span",{className:"rounded-full bg-white px-2 py-0.5 font-mono text-[10px] text-[var(--kr-gov-text-secondary)]",children:["variant: ",String(((d=n.propsTemplate)==null?void 0:d.variant)||"secondary")]})]}),e.jsxs("div",{className:"space-y-1",children:[e.jsx("p",{className:"text-[11px] font-bold text-[var(--kr-gov-text-primary)]",children:t?"Included URLs":"포함 URL"}),(p=ie[n.componentId])!=null&&p.length?ie[n.componentId].slice(0,4).map(j=>e.jsx("p",{className:"truncate font-mono text-[11px] text-[var(--kr-gov-text-secondary)]",children:j},`${n.componentId}-${j}`)):e.jsx("p",{className:"text-[11px] text-[var(--kr-gov-text-secondary)]",children:t?"No linked screen URLs yet.":"연결된 화면 URL이 아직 없습니다."}),(((u=ie[n.componentId])==null?void 0:u.length)||0)>4?e.jsx("p",{className:"text-[11px] text-[var(--kr-gov-text-secondary)]",children:t?`+ ${(((w=ie[n.componentId])==null?void 0:w.length)||0)-4} more URLs`:`외 ${(((C=ie[n.componentId])==null?void 0:C.length)||0)-4}건`}):null]})]}):null,e.jsxs("p",{className:"mt-1 text-[11px] text-[var(--kr-gov-text-secondary)]",children:[t?"Usage screens":"사용 화면",": ",n.usageCount??0]}),n.replacementComponentId?e.jsxs("p",{className:"mt-1 font-mono text-[11px] text-[var(--kr-gov-text-secondary)]",children:["replacement: ",n.replacementComponentId]}):null]}),e.jsx("div",{className:"mt-2 flex flex-wrap gap-2",children:e.jsx(y,{disabled:n.sourceType==="SYSTEM"||n.status==="DEPRECATED",onClick:()=>{st(n)},size:"xs",type:"button",variant:"dangerSecondary",children:t?"Deprecate":"Deprecated 처리"})})]},n.componentId)})})]})]})]}),e.jsxs("section",{className:"gov-card p-0 overflow-hidden",children:[e.jsx(P,{meta:b?`${b.componentId} / ${ae.length}${t?" usage rows":"개 사용처"}`:t?"Select a registry component to inspect usage and replace mappings.":"레지스트리 컴포넌트를 선택하면 사용 화면과 대체 매핑을 확인할 수 있습니다.",title:t?"Registry Component Management":"레지스트리 컴포넌트 관리"}),e.jsxs("div",{className:"grid grid-cols-1 gap-6 p-6 xl:grid-cols-[0.92fr_1.08fr]",children:[e.jsx("article",{className:"rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4",children:b?e.jsxs("div",{className:"space-y-4",children:[e.jsxs("div",{className:"flex items-center justify-between gap-3",children:[e.jsxs("div",{children:[e.jsx("p",{className:"font-mono text-[11px] text-[var(--kr-gov-text-secondary)]",children:b.componentId}),e.jsx("p",{className:"mt-1 text-sm font-black text-[var(--kr-gov-text-primary)]",children:t&&b.labelEn||b.label})]}),e.jsx("span",{className:`rounded-full px-2 py-1 text-[10px] font-bold ${se==="DEPRECATED"?"bg-amber-100 text-amber-800":se==="INACTIVE"?"bg-slate-200 text-slate-700":"bg-emerald-100 text-emerald-700"}`,children:se})]}),e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Component Type":"컴포넌트 종류"}),e.jsx("select",{className:"gov-select",value:rn,onChange:n=>Pe(n.target.value),children:dn.map(n=>e.jsx("option",{value:n,children:n},`registry-editor-type-${n}`))})]}),e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Label":"이름"}),e.jsx("input",{className:"gov-input",value:sn,onChange:n=>Me(n.target.value)})]}),e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Description":"설명"}),e.jsx("textarea",{className:"gov-input min-h-[90px] py-3",rows:4,value:on,onChange:n=>Ae(n.target.value)})]}),e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Status":"상태"}),e.jsxs("select",{className:"gov-select",value:se,onChange:n=>Ee(n.target.value),children:[e.jsx("option",{value:"ACTIVE",children:"ACTIVE"}),e.jsx("option",{value:"DEPRECATED",children:"DEPRECATED"}),e.jsx("option",{value:"INACTIVE",children:"INACTIVE"})]})]}),e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Replacement Component":"대체 컴포넌트"}),e.jsxs("select",{className:"gov-select",value:oe,onChange:n=>Re(n.target.value),children:[e.jsx("option",{value:"",children:t?"Select component":"컴포넌트 선택"}),T.filter(n=>n.componentId!==b.componentId).map(n=>e.jsxs("option",{value:n.componentId,children:[n.componentId," / ",t&&n.labelEn||n.label]},`registry-replacement-${n.componentId}`))]})]}),e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Props Template JSON":"Props 템플릿 JSON"}),e.jsx("textarea",{className:"gov-input min-h-[180px] py-3 font-mono text-[12px]",rows:8,value:Te,onChange:n=>Le(n.target.value)})]}),e.jsxs("div",{className:"flex flex-wrap gap-2",children:[e.jsx(y,{disabled:R,onClick:()=>{ot()},size:"xs",type:"button",variant:"primary",children:t?"Save component":"컴포넌트 저장"}),e.jsx(y,{disabled:R||!oe,onClick:()=>{lt()},size:"xs",type:"button",variant:"secondary",children:t?"Remap usages":"사용처 재매핑"}),e.jsx(y,{disabled:R||b.sourceType==="SYSTEM",onClick:()=>{it()},size:"xs",type:"button",variant:"dangerSecondary",children:t?"Delete if unused":"미사용 시 삭제"})]})]}):e.jsx("p",{className:"text-sm text-[var(--kr-gov-text-secondary)]",children:t?"Select a registry component from the inventory first.":"먼저 인벤토리에서 레지스트리 컴포넌트를 선택하세요."})}),e.jsxs("article",{className:"rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white",children:[e.jsx(P,{meta:On?t?"Loading usage...":"사용 화면을 불러오는 중...":t?`${ae.length} usage rows`:`사용 화면 ${ae.length}건`,title:t?"Screens Using This Component":"이 컴포넌트를 사용하는 화면"}),e.jsx("div",{className:"overflow-x-auto",children:e.jsxs("table",{className:"w-full text-sm text-left border-collapse",children:[e.jsx("thead",{children:e.jsxs("tr",{className:"gov-table-header",children:[e.jsx("th",{className:"px-4 py-3",children:t?"Source":"출처"}),e.jsx("th",{className:"px-4 py-3",children:"menuCode"}),e.jsx("th",{className:"px-4 py-3",children:"pageId"}),e.jsx("th",{className:"px-4 py-3",children:t?"Title":"메뉴명"}),e.jsx("th",{className:"px-4 py-3",children:"URL"}),e.jsx("th",{className:"px-4 py-3",children:t?"Zone / Node":"영역 / 노드"}),e.jsx("th",{className:"px-4 py-3",children:t?"Open":"바로가기"})]})}),e.jsx("tbody",{className:"divide-y divide-gray-100",children:ae.length?ae.map((n,r)=>e.jsxs("tr",{children:[e.jsx("td",{className:"px-4 py-3",children:e.jsx("span",{className:`rounded-full px-2 py-0.5 text-[10px] font-bold ${n.usageSource==="PUBLISHED"?"bg-blue-100 text-blue-800":n.usageSource==="DRAFT"?"bg-amber-100 text-amber-800":"bg-slate-100 text-slate-700"}`,children:n.usageSource})}),e.jsx("td",{className:"px-4 py-3 font-mono text-[12px]",children:n.menuCode||"-"}),e.jsx("td",{className:"px-4 py-3",children:n.pageId||"-"}),e.jsx("td",{className:"px-4 py-3",children:n.menuTitle||"-"}),e.jsx("td",{className:"px-4 py-3 font-mono text-[11px] text-[var(--kr-gov-text-secondary)]",children:n.menuUrl||"-"}),e.jsx("td",{className:"px-4 py-3 text-[12px] text-[var(--kr-gov-text-secondary)]",children:n.layoutZone||n.nodeId||n.instanceKey||"-"}),e.jsx("td",{className:"px-4 py-3",children:n.menuCode?e.jsxs("div",{className:"flex flex-wrap gap-2",children:[e.jsx(W,{href:G(`/admin/system/screen-builder?menuCode=${encodeURIComponent(n.menuCode)}&pageId=${encodeURIComponent(n.pageId||"")}&menuTitle=${encodeURIComponent(n.menuTitle||"")}&menuUrl=${encodeURIComponent(n.menuUrl||"")}`,`/en/admin/system/screen-builder?menuCode=${encodeURIComponent(n.menuCode)}&pageId=${encodeURIComponent(n.pageId||"")}&menuTitle=${encodeURIComponent(n.menuTitle||"")}&menuUrl=${encodeURIComponent(n.menuUrl||"")}`),variant:"secondary",children:t?"Builder":"빌더"}),n.usageSource==="PUBLISHED"?e.jsx(W,{href:G(`/admin/system/screen-runtime?menuCode=${encodeURIComponent(n.menuCode)}&pageId=${encodeURIComponent(n.pageId||"")}&menuTitle=${encodeURIComponent(n.menuTitle||"")}&menuUrl=${encodeURIComponent(n.menuUrl||"")}`,`/en/admin/system/screen-runtime?menuCode=${encodeURIComponent(n.menuCode)}&pageId=${encodeURIComponent(n.pageId||"")}&menuTitle=${encodeURIComponent(n.menuTitle||"")}&menuUrl=${encodeURIComponent(n.menuUrl||"")}`),variant:"secondary",children:t?"Runtime":"런타임"}):null]}):"-"})]},`registry-usage-${n.usageSource}-${n.menuCode}-${n.pageId}-${n.nodeId||r}`)):e.jsx("tr",{children:e.jsx("td",{className:"px-4 py-8 text-center text-[var(--kr-gov-text-secondary)]",colSpan:7,children:b?t?"No screen currently uses this component.":"현재 이 컴포넌트를 사용하는 화면이 없습니다.":t?"Select a registry component first.":"먼저 레지스트리 컴포넌트를 선택하세요."})})})]})})]})]})]}),e.jsxs("section",{className:"gov-card p-0 overflow-hidden",children:[e.jsx(P,{meta:t?`${be.length} replacement candidates`:`대체 후보 ${be.length}건`,title:t?"Auto Replace Diff Preview":"자동 대체 Diff 미리보기"}),e.jsx("div",{className:"overflow-x-auto",children:e.jsxs("table",{className:"w-full text-sm text-left border-collapse",children:[e.jsx("thead",{children:e.jsxs("tr",{className:"gov-table-header",children:[e.jsx("th",{className:"px-4 py-3",children:"nodeId"}),e.jsx("th",{className:"px-4 py-3",children:t?"Label":"라벨"}),e.jsx("th",{className:"px-4 py-3",children:t?"From":"기존"}),e.jsx("th",{className:"px-4 py-3",children:t?"To":"대체"})]})}),e.jsx("tbody",{className:"divide-y divide-gray-100",children:be.length?be.map(n=>e.jsxs("tr",{children:[e.jsx("td",{className:"px-4 py-3 font-mono text-[12px]",children:n.nodeId}),e.jsx("td",{className:"px-4 py-3",children:n.label}),e.jsx("td",{className:"px-4 py-3 font-mono text-[12px] text-amber-800",children:n.fromComponentId}),e.jsx("td",{className:"px-4 py-3 font-mono text-[12px] text-emerald-800",children:n.toComponentId})]},`replace-preview-${n.nodeId}`)):e.jsx("tr",{children:e.jsx("td",{className:"px-4 py-8 text-center text-[var(--kr-gov-text-secondary)]",colSpan:4,children:t?"Run preview diff to inspect deprecated replacements before applying them.":"deprecated 대체를 적용하기 전에 diff 미리보기를 실행하세요."})})})]})})]}),e.jsxs("section",{className:"gov-card p-0 overflow-hidden",children:[e.jsx(P,{meta:t?`${ve.length} drafts scanned`:`스캔된 draft ${ve.length}건`,title:t?"All Draft Registry Scan":"전체 Draft 레지스트리 스캔"}),e.jsx("div",{className:"overflow-x-auto",children:e.jsxs("table",{className:"w-full text-sm text-left border-collapse",children:[e.jsx("thead",{children:e.jsxs("tr",{className:"gov-table-header",children:[e.jsx("th",{className:"px-4 py-3",children:"menuCode"}),e.jsx("th",{className:"px-4 py-3",children:"pageId"}),e.jsx("th",{className:"px-4 py-3",children:t?"Title":"메뉴명"}),e.jsx("th",{className:"px-4 py-3",children:t?"Unregistered":"미등록"}),e.jsx("th",{className:"px-4 py-3",children:t?"Missing":"누락"}),e.jsx("th",{className:"px-4 py-3",children:"Deprecated"})]})}),e.jsx("tbody",{className:"divide-y divide-gray-100",children:ve.length?ve.map(n=>e.jsxs("tr",{children:[e.jsx("td",{className:"px-4 py-3 font-mono text-[12px]",children:n.menuCode}),e.jsx("td",{className:"px-4 py-3",children:n.pageId}),e.jsx("td",{className:"px-4 py-3",children:n.menuTitle||"-"}),e.jsx("td",{className:"px-4 py-3",children:n.unregisteredCount}),e.jsx("td",{className:"px-4 py-3",children:n.missingCount}),e.jsx("td",{className:"px-4 py-3",children:n.deprecatedCount})]},`scan-${n.menuCode}-${n.pageId}`)):e.jsx("tr",{children:e.jsx("td",{className:"px-4 py-8 text-center text-[var(--kr-gov-text-secondary)]",colSpan:6,children:t?"Run a scan to inspect all builder drafts.":"전체 빌더 draft를 점검하려면 스캔을 실행하세요."})})})]})})]}),e.jsxs("section",{className:"gov-card p-0 overflow-hidden",children:[e.jsx(P,{meta:t?`${Ue.length} prompt-ready contracts`:`AI 입력 계약 ${Ue.length}건`,title:t?"AI Component Prompt Surface":"AI 컴포넌트 입력 표면"}),e.jsx("div",{className:"grid grid-cols-1 gap-4 p-6 xl:grid-cols-2",children:Ue.map(n=>e.jsxs("div",{className:"rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4",children:[e.jsxs("div",{className:"flex items-center justify-between gap-3",children:[e.jsx("p",{className:"font-mono text-xs text-[var(--kr-gov-text-secondary)]",children:n.componentId}),e.jsx("span",{className:`rounded-full px-2 py-0.5 text-[10px] font-bold ${n.status==="DEPRECATED"?"bg-amber-100 text-amber-800":"bg-emerald-100 text-emerald-700"}`,children:n.status||"ACTIVE"})]}),e.jsx("p",{className:"mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)]",children:n.label}),n.description?e.jsx("p",{className:"mt-1 text-[12px] text-[var(--kr-gov-text-secondary)]",children:n.description}):null,e.jsx("p",{className:"mt-3 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]",children:t?"Allowed Props":"허용 Props"}),e.jsx("p",{className:"mt-1 text-[12px] text-[var(--kr-gov-text-primary)]",children:n.allowedPropKeys.join(", ")||"-"}),e.jsx("div",{className:"mt-3",children:e.jsx(y,{disabled:R||n.status==="DEPRECATED",onClick:()=>{pt(n.componentId)},size:"xs",type:"button",variant:"secondary",children:t?"Add node from componentId":"componentId로 노드 추가"})}),e.jsx("pre",{className:"mt-3 overflow-x-auto rounded bg-slate-950 px-3 py-3 text-[11px] leading-5 text-slate-100",children:JSON.stringify({componentId:n.componentId,componentType:n.componentType,propsTemplate:n.propsTemplate},null,2)})]},`prompt-${n.componentId}`))})]}),e.jsxs("section",{className:"gov-card p-0 overflow-hidden",children:[e.jsx(P,{actions:e.jsx(y,{disabled:R,onClick:()=>{ut()},size:"sm",type:"button",variant:"secondary",children:t?"Add node tree":"노드 트리 추가"}),meta:t?"Use componentId, alias, parentAlias, and props to append a node tree in one request.":"componentId, alias, parentAlias, props로 한 번에 노드 트리를 추가합니다.",title:t?"AI Node Tree Input":"AI 노드 트리 입력"}),e.jsxs("div",{className:"space-y-4 p-6",children:[xe.map((n,r)=>e.jsxs("div",{className:"rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4",children:[e.jsxs("div",{className:"grid grid-cols-1 gap-4 xl:grid-cols-4",children:[e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:"componentId"}),e.jsx("input",{className:"gov-input font-mono",value:n.componentId,onChange:s=>he(r,"componentId",s.target.value)})]}),e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:"alias"}),e.jsx("input",{className:"gov-input",value:n.alias,onChange:s=>he(r,"alias",s.target.value)})]}),e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"parentAlias":"상위 alias"}),e.jsx("input",{className:"gov-input",value:n.parentAlias,onChange:s=>he(r,"parentAlias",s.target.value)})]}),e.jsx("div",{className:"flex items-end",children:e.jsx(y,{disabled:xe.length<=1,onClick:()=>vt(r),size:"xs",type:"button",variant:"dangerSecondary",children:t?"Remove":"제거"})})]}),e.jsxs("label",{className:"mt-4 block",children:[e.jsx("span",{className:"gov-label",children:"props JSON"}),e.jsx("textarea",{className:"gov-input min-h-[120px] py-3 font-mono text-[12px]",rows:5,value:n.propsJson,onChange:s=>he(r,"propsJson",s.target.value)})]})]},`ai-row-${r}`)),e.jsx("div",{className:"flex justify-start",children:e.jsx(y,{onClick:gt,size:"xs",type:"button",variant:"secondary",children:t?"Add Row":"행 추가"})}),e.jsxs("div",{className:"rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-4",children:[e.jsx("p",{className:"text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]",children:t?"Generated Request Preview":"생성 요청 미리보기"}),e.jsx("pre",{className:"mt-3 overflow-x-auto rounded bg-slate-950 px-3 py-3 text-[11px] leading-5 text-slate-100",children:JSON.stringify(xe.map(n=>({componentId:n.componentId.trim(),alias:n.alias.trim()||void 0,parentAlias:n.parentAlias.trim()||void 0,props:n.propsJson.trim()})),null,2)})]})]})]}),e.jsxs("section",{className:"gov-card p-0 overflow-hidden",children:[e.jsx(P,{actions:e.jsx(de,{children:zn.map(n=>e.jsx(y,{onClick:()=>Hn(n),size:"xs",type:"button",variant:"secondary",children:t&&n.labelEn||n.label},n.componentType))}),meta:t?`${$} palette. Append standardized blocks that match the selected page type.`:`${$} 팔레트입니다. 선택한 페이지 타입에 맞는 표준 블록만 추가합니다.`,title:t?"Component Palette":"컴포넌트 팔레트"}),e.jsxs("div",{className:"grid grid-cols-1 gap-6 p-6 xl:grid-cols-[0.95fr_0.95fr_1.1fr]",children:[e.jsxs("article",{className:"rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white",children:[e.jsx(P,{actions:e.jsxs(de,{children:[e.jsx(ce,{disabled:!o||o.componentType==="page",icon:"arrow_upward",onClick:()=>cn(-1),type:"button"}),e.jsx(ce,{disabled:!o||o.componentType==="page",icon:"arrow_downward",onClick:()=>cn(1),type:"button"}),e.jsx(ce,{disabled:!o||o.componentType==="page",icon:"content_copy",onClick:qn,type:"button"}),e.jsx(ce,{disabled:!o||o.componentType==="page",icon:"delete",onClick:Kn,type:"button",variant:"dangerSecondary"})]}),meta:t?`${g.length} nodes in draft. Drag cards to reorder.`:`현재 초안 노드 ${g.length}개. 카드를 드래그해 순서를 바꿀 수 있습니다.`,title:t?"Canvas Nodes":"캔버스 노드"}),e.jsxs("div",{className:"max-h-[680px] overflow-auto p-4",children:[e.jsxs("div",{className:"mb-4 rounded-[var(--kr-gov-radius)] border border-dashed border-[var(--kr-gov-border-light)] bg-gray-50 px-3 py-3",children:[e.jsx("p",{className:"text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]",children:t?"Hierarchy":"계층 트리"}),e.jsx("div",{className:"mt-3 space-y-1",children:jn.map(({node:n,depth:r,hasChildren:s})=>{var d,p,u;return e.jsxs("div",{className:"flex items-center gap-1",style:{paddingLeft:`${r*16+8}px`},children:[e.jsx("button",{className:`flex h-6 w-6 items-center justify-center rounded ${s?"hover:bg-white text-[var(--kr-gov-text-secondary)]":"text-transparent"}`,disabled:!s,onClick:()=>Xn(n.nodeId),type:"button",children:s?De.has(n.nodeId)?"+":"-":"."}),e.jsxs("button",{className:`flex min-w-0 flex-1 items-center gap-2 rounded px-2 py-1.5 text-left text-sm ${n.nodeId===(o==null?void 0:o.nodeId)?"bg-blue-100 text-[var(--kr-gov-blue)]":"hover:bg-white text-[var(--kr-gov-text-primary)]"}`,onClick:()=>I(n.nodeId),type:"button",children:[e.jsx("span",{className:"font-mono text-[10px] uppercase text-[var(--kr-gov-text-secondary)]",children:n.componentType}),e.jsx("span",{className:"truncate",children:String(((d=n.props)==null?void 0:d.label)||((p=n.props)==null?void 0:p.title)||((u=n.props)==null?void 0:u.text)||n.nodeId)})]})]},`tree-${n.nodeId}`)})})]}),e.jsx("div",{className:"space-y-2",children:E(g).map(n=>{var s,d,p;const r=n.nodeId===(o==null?void 0:o.nodeId);return e.jsx("button",{className:`w-full rounded-[var(--kr-gov-radius)] border px-4 py-3 text-left ${r?"border-[var(--kr-gov-blue)] bg-blue-50":"border-[var(--kr-gov-border-light)] bg-white hover:bg-gray-50"} ${Z===n.nodeId?"opacity-60":""}`,draggable:n.componentType!=="page",onClick:()=>I(n.nodeId),onDragEnd:()=>Se(""),onDragOver:u=>{n.componentType!=="page"&&u.preventDefault()},onDragStart:()=>Se(n.nodeId),onDrop:u=>{u.preventDefault(),n.componentType!=="page"&&(Yn(Z,n.nodeId),Se(""))},type:"button",children:e.jsxs("div",{className:"flex items-center justify-between gap-3",children:[e.jsxs("div",{children:[e.jsx("p",{className:"text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]",children:n.componentType}),e.jsx("p",{className:"mt-1 text-sm font-bold text-[var(--kr-gov-text-primary)]",children:String(((s=n.props)==null?void 0:s.label)||((d=n.props)==null?void 0:d.title)||((p=n.props)==null?void 0:p.text)||n.nodeId)})]}),e.jsx("span",{className:"font-mono text-[11px] text-[var(--kr-gov-text-secondary)]",children:n.parentNodeId||"root"})]})},n.nodeId)})})]})]}),e.jsxs("article",{className:"rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white",children:[e.jsx(P,{meta:o?`${o.componentType} / ${o.nodeId}`:t?"Select a node":"노드를 선택하세요",title:t?"Properties & Events":"속성 및 이벤트"}),e.jsx("div",{className:"space-y-5 p-4",children:o?e.jsxs(e.Fragment,{children:[o.componentType==="section"?e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Section Title":"섹션 제목"}),e.jsx("input",{className:"gov-input",value:String(_.title||""),onChange:n=>O("title",n.target.value)})]}):null,o.componentType==="heading"||o.componentType==="text"?e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Text":"문구"}),e.jsx("textarea",{className:"gov-input min-h-[110px] py-3",rows:4,value:String(_.text||""),onChange:n=>O("text",n.target.value)})]}):null,["input","textarea","select","checkbox","button"].includes(o.componentType)?e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Label":"라벨"}),e.jsx("input",{className:"gov-input",value:String(_.label||""),onChange:n=>O("label",n.target.value)})]}):null,["input","textarea","select"].includes(o.componentType)?e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Placeholder":"플레이스홀더"}),e.jsx("input",{className:"gov-input",value:String(_.placeholder||""),onChange:n=>O("placeholder",n.target.value)})]}):null,o.componentType==="button"?e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Variant":"버튼 종류"}),e.jsxs("select",{className:"gov-select",value:String(_.variant||"primary"),onChange:n=>O("variant",n.target.value),children:[e.jsx("option",{value:"primary",children:"primary"}),e.jsx("option",{value:"secondary",children:"secondary"})]})]}):null,o.componentType==="table"?e.jsxs(e.Fragment,{children:[e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Table Title":"테이블 제목"}),e.jsx("input",{className:"gov-input",value:String(_.title||""),onChange:n=>O("title",n.target.value)})]}),e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Columns":"컬럼"}),e.jsx("input",{className:"gov-input",value:String(_.columns||""),onChange:n=>O("columns",n.target.value)})]}),e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Empty Text":"빈 상태 문구"}),e.jsx("input",{className:"gov-input",value:String(_.emptyText||""),onChange:n=>O("emptyText",n.target.value)})]})]}):null,o.componentType==="pagination"?e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Summary":"요약 문구"}),e.jsx("input",{className:"gov-input",value:String(_.summary||""),onChange:n=>O("summary",n.target.value)})]}):null,o.componentType!=="page"?e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Layout Slot":"레이아웃 슬롯"}),e.jsx("select",{className:"gov-select",value:String(o.slotName||Ln($,o.componentType)[0]||"content"),onChange:n=>{c(r=>r.map(s=>s.nodeId===o.nodeId?{...s,slotName:n.target.value}:s))},children:Ln($,o.componentType).map(n=>e.jsx("option",{value:n,children:n},`${o.nodeId}-${n}`))})]}):null,["input","textarea","select","checkbox"].includes(o.componentType)?e.jsxs("label",{className:"flex items-center gap-3 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 px-4 py-3 text-sm font-medium text-[var(--kr-gov-text-primary)]",children:[e.jsx("input",{checked:!!_.required,onChange:n=>O("required",n.target.checked),type:"checkbox"}),e.jsx("span",{children:t?"Required field":"필수 입력"})]}):null,e.jsxs("div",{className:"rounded-[var(--kr-gov-radius)] border border-dashed border-[var(--kr-gov-border-light)] px-4 py-4",children:[e.jsxs("div",{className:"flex items-center justify-between gap-3",children:[e.jsx("p",{className:"text-sm font-black text-[var(--kr-gov-text-primary)]",children:t?"Component Registry":"컴포넌트 레지스트리"}),e.jsx("span",{className:`rounded-full px-2 py-1 text-[11px] font-bold ${o.componentId?"bg-emerald-100 text-emerald-800":"bg-amber-100 text-amber-900"}`,children:o.componentId?t?"Registered":"등록됨":t?"Unregistered":"미등록"})]}),e.jsxs("div",{className:"mt-4 space-y-4",children:[e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Linked componentId":"연결된 componentId"}),e.jsx("input",{className:"gov-input font-mono",readOnly:!0,value:String(o.componentId||"")})]}),e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Registry label":"레지스트리 이름"}),e.jsx("input",{className:"gov-input",value:Ze,onChange:n=>me(n.target.value)})]}),e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Description":"설명"}),e.jsx("textarea",{className:"gov-input min-h-[90px] py-3",rows:3,value:en,onChange:n=>pe(n.target.value)})]}),e.jsxs("div",{className:"flex flex-wrap gap-2",children:[e.jsx(y,{disabled:R||o.componentType==="page",onClick:()=>{at()},size:"xs",type:"button",variant:"secondary",children:t?"Register selected node":"선택 노드 등록"}),e.jsx(y,{disabled:!o.componentId,onClick:()=>{o&&(c(n=>n.map(r=>r.nodeId===o.nodeId?{...r,componentId:""}:r)),K(""),S(t?"Component link cleared.":"컴포넌트 연결을 해제했습니다."))},size:"xs",type:"button",variant:"dangerSecondary",children:t?"Clear link":"연결 해제"})]}),e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Replace with existing component":"기존 컴포넌트로 대체"}),e.jsxs("select",{className:"gov-select",value:ue,onChange:n=>K(n.target.value),children:[e.jsx("option",{value:"",children:t?"Select component":"컴포넌트 선택"}),T.filter(n=>n.componentType!=="page").map(n=>e.jsxs("option",{value:n.componentId,children:[n.componentId," / ",t&&n.labelEn||n.label]},n.componentId))]})]}),e.jsx(y,{disabled:!Fe,onClick:rt,size:"xs",type:"button",variant:"secondary",children:t?"Apply registered component":"등록 컴포넌트 적용"})]})]}),e.jsxs("div",{className:"rounded-[var(--kr-gov-radius)] border border-dashed border-[var(--kr-gov-border-light)] px-4 py-4",children:[e.jsxs("div",{className:"flex items-center justify-between gap-3",children:[e.jsx("p",{className:"text-sm font-black text-[var(--kr-gov-text-primary)]",children:t?"Event Binding":"이벤트 연결"}),e.jsx(y,{onClick:()=>{X()},size:"xs",type:"button",variant:"secondary",children:A?t?"Reset":"다시 연결":t?"Add Event":"이벤트 추가"})]}),A?e.jsxs("div",{className:"mt-4 space-y-4",children:[e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Event Name":"이벤트명"}),e.jsxs("select",{className:"gov-select",value:A.eventName,onChange:n=>mn("eventName",n.target.value),children:[e.jsx("option",{value:"onClick",children:"onClick"}),e.jsx("option",{value:"onChange",children:"onChange"}),e.jsx("option",{value:"onSubmit",children:"onSubmit"})]})]}),e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Action Type":"액션 타입"}),e.jsxs("select",{className:"gov-select",value:A.actionType,onChange:n=>mn("actionType",n.target.value),children:[e.jsx("option",{value:"navigate",children:"navigate"}),e.jsx("option",{value:"open_modal",children:"open_modal"}),e.jsx("option",{value:"api_call",children:"api_call"}),e.jsx("option",{value:"set_state",children:"set_state"})]})]}),e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Target / Config":"대상 / 설정"}),e.jsx("input",{className:"gov-input",value:String(((xn=A.actionConfig)==null?void 0:xn.target)||""),onChange:n=>Wn(n.target.value)})]}),A.actionType==="api_call"?e.jsxs(e.Fragment,{children:[e.jsxs("label",{className:"block",children:[e.jsx("span",{className:"gov-label",children:t?"Linked API":"연결 API"}),e.jsxs("select",{className:"gov-select",value:String(((yn=A.actionConfig)==null?void 0:yn.apiId)||""),onChange:n=>Jn(n.target.value),children:[e.jsx("option",{value:"",children:t?"Select API":"API 선택"}),ye.map(n=>e.jsxs("option",{value:n.apiId,children:[n.method," ",n.endpoint]},n.apiId))]}),e.jsx("p",{className:"mt-2 text-xs text-[var(--kr-gov-text-secondary)]",children:(fn=A.actionConfig)!=null&&fn.apiId?`${String(((hn=A.actionConfig)==null?void 0:hn.method)||"")} ${String(((Nn=A.actionConfig)==null?void 0:Nn.endpoint)||"")}`:(wn=(Sn=(kn=f.value)==null?void 0:kn.page)==null?void 0:Sn.apis)!=null&&wn.length?t?"Use the current page API catalog from screen-command metadata.":"screen-command 메타데이터의 현재 페이지 API 목록을 사용합니다.":t?"No screen-command API metadata linked yet.":"연결된 screen-command API 메타데이터가 아직 없습니다."})]}),(Cn=V==null?void 0:V.requestFields)!=null&&Cn.length?e.jsxs("div",{className:"rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 px-4 py-4",children:[e.jsx("p",{className:"text-sm font-black text-[var(--kr-gov-text-primary)]",children:t?"Request Field Mapping":"요청 필드 매핑"}),e.jsx("div",{className:"mt-3 space-y-3",children:V.requestFields.map(n=>{var r;return e.jsxs("label",{className:"block",children:[e.jsxs("span",{className:"gov-label",children:[n.fieldId," ",e.jsxs("span",{className:"text-xs font-normal text-[var(--kr-gov-text-secondary)]",children:["[",n.type,"]"]})]}),e.jsx("input",{className:"gov-input",placeholder:t?"ex) form.companyName or state.selectedId":"예) form.companyName 또는 state.selectedId",value:String((((r=A.actionConfig)==null?void 0:r.requestMappings)||{})[n.fieldId]||""),onChange:s=>Qn(n.fieldId,s.target.value)})]},`req-map-${n.fieldId}`)})})]}):null,(In=V==null?void 0:V.responseFields)!=null&&In.length?e.jsxs("div",{className:"rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 px-4 py-4",children:[e.jsx("p",{className:"text-sm font-black text-[var(--kr-gov-text-primary)]",children:t?"Response Field Binding":"응답 필드 바인딩"}),e.jsx("div",{className:"mt-3 space-y-3",children:V.responseFields.map(n=>{var r;return e.jsxs("label",{className:"block",children:[e.jsxs("span",{className:"gov-label",children:[n.fieldId," ",e.jsxs("span",{className:"text-xs font-normal text-[var(--kr-gov-text-secondary)]",children:["[",n.type,"]"]})]}),e.jsx("input",{className:"gov-input",placeholder:t?"ex) state.resultRows or form.companyName":"예) state.resultRows 또는 form.companyName",value:String((((r=A.actionConfig)==null?void 0:r.responseMappings)||{})[n.fieldId]||""),onChange:s=>{if(!o)return;const d=X();d&&N(p=>p.map(u=>{var w;return u.eventBindingId===d.eventBindingId?{...u,actionConfig:{...u.actionConfig||{},responseMappings:{...((w=u.actionConfig)==null?void 0:w.responseMappings)||{},[n.fieldId]:s.target.value}}}:u}))}})]},`res-map-${n.fieldId}`)})})]}):null]}):null]}):e.jsx("p",{className:"mt-3 text-sm text-[var(--kr-gov-text-secondary)]",children:t?"Connect a basic runtime action such as page navigation, modal open, API call, or local state update.":"페이지 이동, 모달 열기, API 호출, 로컬 상태 변경 같은 기본 런타임 액션을 연결할 수 있습니다."})]})]}):e.jsx("p",{className:"text-sm text-[var(--kr-gov-text-secondary)]",children:t?"Select a node from the canvas first.":"먼저 캔버스에서 노드를 선택하세요."})})]}),e.jsxs("article",{className:"rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white",children:[e.jsx(P,{actions:e.jsxs(de,{children:[e.jsx(y,{onClick:()=>Qe("DRAFT"),size:"xs",type:"button",variant:ee==="DRAFT"?"primary":"secondary",children:t?"Draft":"초안"}),e.jsx(y,{disabled:!(a!=null&&a.publishedVersionId),onClick:()=>Qe("PUBLISHED"),size:"xs",type:"button",variant:ee==="PUBLISHED"?"primary":"secondary",children:t?"Published":"발행본"})]}),meta:`${(a==null?void 0:a.menuUrl)||"-"} / ${ee}`,title:t?"Preview":"미리보기"}),e.jsxs("div",{className:"min-h-[680px] bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_100%)] p-4",children:[We?e.jsx("div",{className:"mb-4 rounded-[var(--kr-gov-radius)] border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800",children:We}):null,we.length?$t(E(we)[0],we,t):e.jsx("div",{className:"flex min-h-[280px] items-center justify-center rounded-[var(--kr-gov-radius)] border border-dashed border-[var(--kr-gov-border-light)] text-sm text-[var(--kr-gov-text-secondary)]",children:t?"No preview nodes yet.":"아직 미리볼 노드가 없습니다."})]})]})]})]}),e.jsxs("section",{className:"gov-card p-0 overflow-hidden",children:[e.jsx(P,{meta:t?`${((Pn=a==null?void 0:a.versionHistory)==null?void 0:Pn.length)||0} saved snapshots`:`저장된 스냅샷 ${((Mn=a==null?void 0:a.versionHistory)==null?void 0:Mn.length)||0}건`,title:t?"Draft Version History":"초안 버전 이력"}),e.jsx("div",{className:"overflow-x-auto",children:e.jsxs("table",{className:"w-full text-sm text-left border-collapse",children:[e.jsx("thead",{children:e.jsxs("tr",{className:"gov-table-header",children:[e.jsx("th",{className:"px-4 py-3",children:"Version"}),e.jsx("th",{className:"px-4 py-3",children:t?"Saved At":"저장 시각"}),e.jsx("th",{className:"px-4 py-3",children:"Template"}),e.jsx("th",{className:"px-4 py-3",children:t?"Nodes":"노드"}),e.jsx("th",{className:"px-4 py-3",children:t?"Events":"이벤트"}),e.jsx("th",{className:"px-4 py-3",children:t?"Action":"작업"})]})}),e.jsx("tbody",{className:"divide-y divide-gray-100",children:((a==null?void 0:a.versionHistory)||[]).length===0?e.jsx("tr",{children:e.jsx("td",{className:"px-4 py-8 text-center text-[var(--kr-gov-text-secondary)]",colSpan:6,children:t?"No saved draft versions yet.":"아직 저장된 초안 버전이 없습니다."})}):((a==null?void 0:a.versionHistory)||[]).map(n=>e.jsxs("tr",{children:[e.jsx("td",{className:"px-4 py-3 font-mono text-[12px]",children:n.versionId}),e.jsx("td",{className:"px-4 py-3",children:n.savedAt||"-"}),e.jsx("td",{className:"px-4 py-3",children:e.jsxs("div",{className:"flex items-center gap-2",children:[e.jsx("span",{children:n.templateType||"-"}),e.jsx("span",{className:`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-bold ${n.versionStatus==="PUBLISHED"?"bg-blue-100 text-blue-700":"bg-amber-100 text-amber-700"}`,children:n.versionStatus})]})}),e.jsx("td",{className:"px-4 py-3",children:n.nodeCount}),e.jsx("td",{className:"px-4 py-3",children:n.eventCount}),e.jsx("td",{className:"px-4 py-3",children:e.jsx(y,{disabled:R||n.versionStatus==="PUBLISHED",onClick:()=>{nt(n.versionId)},size:"xs",type:"button",variant:"secondary",children:n.versionStatus==="PUBLISHED"?t?"Protected":"보호됨":t?"Restore":"복원"})})]},n.versionId))})]})})]})]})]})}export{Hr as ScreenBuilderMigrationPage};

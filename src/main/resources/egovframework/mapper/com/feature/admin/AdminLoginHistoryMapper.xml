@@ -29,11 +29,42 @@
 
     <sql id="loginHistoryWhere">
         <where>
+            <if test="insttId != null and insttId != ''">
+                AND (
+                    EXISTS (
+                        SELECT 1
+                        FROM COMTNEMPLYRINFO E
+                        WHERE E.EMPLYR_ID = USER_ID
+                          AND COALESCE(E.INSTT_ID, '') = #{insttId}
+                    )
+                    OR EXISTS (
+                        SELECT 1
+                        FROM COMTNENTRPRSMBER M
+                        WHERE M.ENTRPRS_MBER_ID = USER_ID
+                          AND COALESCE(M.INSTT_ID, '') = #{insttId}
+                    )
+                    OR EXISTS (
+                        SELECT 1
+                        FROM COMTNGNRLMBER G
+                        WHERE G.MBER_ID = USER_ID
+                          AND COALESCE(G.GROUP_ID, '') = #{insttId}
+                    )
+                )
+            </if>
             <if test="searchKeyword != null and searchKeyword != ''">
                 AND (
                     LOWER(COALESCE(USER_ID, '')) LIKE '%' || LOWER(#{searchKeyword}) || '%'
                     OR LOWER(COALESCE(USER_NM, '')) LIKE '%' || LOWER(#{searchKeyword}) || '%'
                     OR LOWER(COALESCE(LOGIN_IP, '')) LIKE '%' || LOWER(#{searchKeyword}) || '%'
+                    OR LOWER(COALESCE((
+                        SELECT I.INSTT_NM
+                        FROM COMTNINSTTINFO I
+                        WHERE I.INSTT_ID = COALESCE(
+                            (SELECT E.INSTT_ID FROM COMTNEMPLYRINFO E WHERE E.EMPLYR_ID = USER_ID),
+                            (SELECT M.INSTT_ID FROM COMTNENTRPRSMBER M WHERE M.ENTRPRS_MBER_ID = USER_ID),
+                            (SELECT G.GROUP_ID FROM COMTNGNRLMBER G WHERE G.MBER_ID = USER_ID)
+                        )
+                    ), '')) LIKE '%' || LOWER(#{searchKeyword}) || '%'
                 )
             </if>
             <if test="userSe != null and userSe != ''">
@@ -71,7 +102,25 @@
             LOGIN_RESULT AS loginResult,
             LOGIN_IP AS loginIp,
             COALESCE(LOGIN_MESSAGE, '') AS loginMessage,
-            TO_CHAR(LOGIN_PNTTM, 'YYYY-MM-DD HH24:MI:SS') AS loginPnttm
+            TO_CHAR(LOGIN_PNTTM, 'YYYY-MM-DD HH24:MI:SS') AS loginPnttm,
+            COALESCE(
+                (SELECT E.INSTT_ID FROM COMTNEMPLYRINFO E WHERE E.EMPLYR_ID = USER_ID),
+                (SELECT M.INSTT_ID FROM COMTNENTRPRSMBER M WHERE M.ENTRPRS_MBER_ID = USER_ID),
+                (SELECT G.GROUP_ID FROM COMTNGNRLMBER G WHERE G.MBER_ID = USER_ID),
+                ''
+            ) AS insttId,
+            COALESCE(
+                (
+                    SELECT I.INSTT_NM
+                    FROM COMTNINSTTINFO I
+                    WHERE I.INSTT_ID = COALESCE(
+                        (SELECT E.INSTT_ID FROM COMTNEMPLYRINFO E WHERE E.EMPLYR_ID = USER_ID),
+                        (SELECT M.INSTT_ID FROM COMTNENTRPRSMBER M WHERE M.ENTRPRS_MBER_ID = USER_ID),
+                        (SELECT G.GROUP_ID FROM COMTNGNRLMBER G WHERE G.MBER_ID = USER_ID)
+                    )
+                ),
+                ''
+            ) AS companyName
         FROM COMTNLOGINHIST
         <include refid="loginHistoryWhere" />
         ORDER BY LOGIN_PNTTM DESC

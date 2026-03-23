@@ -48,7 +48,7 @@ public class AdminApprovalPagePayloadService {
         response.putAll(model);
         String currentUserId = controller.extractCurrentUserId(request);
         String currentUserAuthorCode = authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
-        boolean canManage = authorityPagePayloadSupport.hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode);
+        boolean canManage = authorityPagePayloadSupport.hasMemberManagementCompanyOperatorAccess(currentUserId, currentUserAuthorCode);
         response.put("canViewMemberApprove", canManage);
         response.put("canUseMemberApproveAction", canManage);
         return response;
@@ -79,7 +79,7 @@ public class AdminApprovalPagePayloadService {
         response.putAll(model);
         String currentUserId = controller.extractCurrentUserId(request);
         String currentUserAuthorCode = authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
-        boolean canManage = authorityPagePayloadSupport.hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode);
+        boolean canManage = authorityPagePayloadSupport.hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode);
         response.put("canViewCompanyApprove", canManage);
         response.put("canUseCompanyApproveAction", canManage);
         return response;

@@ -46,6 +46,8 @@ export type MigrationPageId =
   | "screen-runtime"
   | "wbs-management"
   | "ip-whitelist"
+  | "access-history"
+  | "error-log"
   | "login-history"
   | "security-history"
   | "security-policy"
@@ -130,6 +132,8 @@ export const ROUTES: RouteDefinition[] = [
   { id: "screen-runtime", label: "발행 화면 런타임", group: "admin", koPath: "/admin/system/screen-runtime", enPath: "/en/admin/system/screen-runtime" },
   { id: "wbs-management", label: "WBS 관리", group: "admin", koPath: "/admin/system/wbs-management", enPath: "/en/admin/system/wbs-management" },
   { id: "ip-whitelist", label: "IP 화이트리스트", group: "admin", koPath: "/admin/system/ip_whitelist", enPath: "/en/admin/system/ip_whitelist" },
+  { id: "access-history", label: "접속 로그", group: "admin", koPath: "/admin/system/access_history", enPath: "/en/admin/system/access_history" },
+  { id: "error-log", label: "에러 로그", group: "admin", koPath: "/admin/system/error-log", enPath: "/en/admin/system/error-log" },
   { id: "login-history", label: "로그인 이력", group: "admin", koPath: "/admin/member/login_history", enPath: "/en/admin/member/login_history" },
   { id: "security-history", label: "보안 이력", group: "admin", koPath: "/admin/system/security", enPath: "/en/admin/system/security" },
   { id: "security-policy", label: "보안 정책", group: "admin", koPath: "/admin/system/security-policy", enPath: "/en/admin/system/security-policy" },

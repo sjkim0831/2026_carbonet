@@ -13,4 +13,5 @@ public class LoginHistorySearchVO {
     private String userSe;
     private String loginResult;
     private String blockedOnly;
+    private String insttId;
 }

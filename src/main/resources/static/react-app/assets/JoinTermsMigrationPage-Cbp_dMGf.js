@@ -1,4 +1,8 @@
+<<<<<<<< HEAD:src/main/resources/static/react-app/assets/JoinTermsMigrationPage-Cbp_dMGf.js
 import{a as i,j as e}from"./vendor-react-Ap5sJVW9.js";import{i as P,n as o,b as h,bh as B,bn as N}from"./index-lwa4BUsd.js";import{u as E}from"./useJoinSession-OBKPrqtn.js";import{a as l,c}from"./primitives-C-F0RI9K.js";import"./useAsyncValue-CBLYfvEg.js";const q={title:"회원가입",subtitle:"서비스 이용을 위해 약관에 동의해 주세요.",steps:["회원유형","약관 동의","본인 확인","정보 입력","가입 완료"],sectionTitle:"서비스 이용약관 동의",allAgree:"전체 약관에 모두 동의합니다.",required:"필수",optional:"선택",termsTitle:"서비스 이용약관",termsBody:`제1조(목적) 이 약관은 탄소중립 CCUS 통합관리 포털(이하 "포털"이라 한다)에서 제공하는 모든 서비스(이하 "서비스"라 한다)의 이용조건 및 절차, 이용자와 포털의 권리, 의무, 책임사항과 기타 필요한 사항을 규정함을 목적으로 합니다.
+========
+import{a as i,j as e}from"./vendor-react-Ap5sJVW9.js";import{i as P,n as o,b as h,bi as B,bo as N}from"./index-BUUdlsl_.js";import{u as E}from"./useJoinSession-De5F7kDp.js";import{a as l,c}from"./primitives-WQ_L76wu.js";import"./useAsyncValue-CBLYfvEg.js";const q={title:"회원가입",subtitle:"서비스 이용을 위해 약관에 동의해 주세요.",steps:["회원유형","약관 동의","본인 확인","정보 입력","가입 완료"],sectionTitle:"서비스 이용약관 동의",allAgree:"전체 약관에 모두 동의합니다.",required:"필수",optional:"선택",termsTitle:"서비스 이용약관",termsBody:`제1조(목적) 이 약관은 탄소중립 CCUS 통합관리 포털(이하 "포털"이라 한다)에서 제공하는 모든 서비스(이하 "서비스"라 한다)의 이용조건 및 절차, 이용자와 포털의 권리, 의무, 책임사항과 기타 필요한 사항을 규정함을 목적으로 합니다.
+>>>>>>>> origin/20260322-member-management-authority:src/main/resources/static/react-app/assets/JoinTermsMigrationPage-BqOxiyIY.js
 
 제2조(용어의 정의) 1. "이용자"란 포털에 접속하여 이 약관에 따라 포털이 제공하는 서비스를 받는 회원 및 비회원을 말합니다. 2. "회원"이라 함은 포털에 개인정보를 제공하여 회원등록을 한 자로서, 포털의 정보를 지속적으로 제공받으며, 포털이 제공하는 서비스를 계속적으로 이용할 수 있는 자를 말합니다.
 

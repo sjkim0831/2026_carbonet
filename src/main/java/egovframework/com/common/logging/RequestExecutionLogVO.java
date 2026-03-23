@@ -16,6 +16,7 @@ public class RequestExecutionLogVO {
     private String actorType;
     private String actorAuthorCode;
     private String actorInsttId;
+    private String remoteAddr;
     private String companyContextId;
     private String targetCompanyContextId;
     private boolean companyContextRequired;

@@ -91,6 +91,8 @@ public class AdminMemberPageModelAssembler {
             String pageIndexParam,
             String searchKeyword,
             String resetSource,
+            String requestedInsttId,
+            HttpServletRequest request,
             Model model,
             String viewName,
             boolean isEn) {
@@ -108,12 +110,26 @@ public class AdminMemberPageModelAssembler {
         int pageSize = 10;
         String keyword = controller.safeString(searchKeyword);
         String normalizedSource = controller.safeString(resetSource).toUpperCase(Locale.ROOT);
+        String currentUserId = controller.extractCurrentUserId(request);
+        String currentUserAuthorCode = controller.resolveCurrentUserAuthorCode(currentUserId);
+        boolean masterAccess = controller.hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode);
+        String currentUserInsttId = controller.resolveCurrentUserInsttId(currentUserId);
+        java.util.List<java.util.Map<String, String>> companyOptions = masterAccess
+                ? controller.loadAccessHistoryCompanyOptions()
+                : controller.buildScopedAccessHistoryCompanyOptions(currentUserInsttId);
+        String selectedInsttId = masterAccess
+                ? controller.resolveSelectedInsttId(requestedInsttId, companyOptions, true)
+                : currentUserInsttId;
+        model.addAttribute("companyOptions", companyOptions);
+        model.addAttribute("selectedInsttId", selectedInsttId);
+        model.addAttribute("canManageAllCompanies", masterAccess);
 
         Page<PasswordResetHistory> historyPage;
         try {
             historyPage = authService.searchPasswordResetHistories(
                     keyword,
                     normalizedSource,
+                    selectedInsttId,
                     PageRequest.of(Math.max(currentPage - 1, 0), pageSize, Sort.by(Sort.Direction.DESC, "resetPnttm")));
         } catch (Exception e) {
             log.error("Failed to load password reset history.", e);
@@ -276,7 +292,11 @@ public class AdminMemberPageModelAssembler {
         model.addAttribute("adminAccountReadOnly", "detail".equalsIgnoreCase(adminAccountMode == null ? "" : adminAccountMode.toString()));
         controller.populatePermissionEditorModel(
                 model,
-                authorityPagePayloadSupport.filterAuthorGroups(authGroupManageService.selectAuthorList(), "GENERAL"),
+                authorityPagePayloadSupport.filterAuthorGroups(
+                        authGroupManageService.selectAuthorList(),
+                        "GENERAL",
+                        currentUserId,
+                        authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId)),
                 controller.safeString(authGroupManageService.selectAuthorCodeByUserId(adminMember.getEmplyrId())),
                 controller.safeString(adminMember.getEsntlId()),
                 effectiveFeatureCodes,

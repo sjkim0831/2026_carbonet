@@ -4,6 +4,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import egovframework.com.common.audit.AuditEventRecordVO;
 import egovframework.com.common.audit.AuditEventSearchVO;
+import egovframework.com.common.error.ErrorEventRecordVO;
+import egovframework.com.common.error.ErrorEventSearchVO;
+import egovframework.com.common.logging.AccessEventRecordVO;
+import egovframework.com.common.logging.AccessEventSearchVO;
 import egovframework.com.feature.member.service.EnterpriseMemberService;
 import egovframework.com.feature.member.service.EmployeeMemberService;
 import egovframework.com.feature.member.model.vo.CompanyListItemVO;
@@ -44,13 +48,19 @@ import egovframework.com.feature.admin.dto.request.AdminPermissionSaveRequestDTO
 import egovframework.com.feature.admin.dto.request.AdminAdminAccountCreateRequestDTO;
 import egovframework.com.feature.admin.dto.response.MenuInfoDTO;
 import egovframework.com.feature.auth.domain.entity.EmplyrInfo;
+import egovframework.com.feature.auth.domain.entity.EntrprsMber;
+import egovframework.com.feature.auth.domain.entity.GnrlMber;
 import egovframework.com.feature.auth.domain.entity.PasswordResetHistory;
 import egovframework.com.feature.auth.domain.repository.EmployeeMemberRepository;
+import egovframework.com.feature.auth.domain.repository.EnterpriseMemberRepository;
+import egovframework.com.feature.auth.domain.repository.GeneralMemberRepository;
 import egovframework.com.feature.member.dto.response.CompanySearchResponseDTO;
 import egovframework.com.feature.auth.service.AuthService;
 import egovframework.com.feature.auth.util.JwtTokenProvider;
 import egovframework.com.feature.auth.util.ClientIpUtil;
 import egovframework.com.common.audit.AuditTrailService;
+import egovframework.com.common.logging.RequestExecutionLogService;
+import egovframework.com.common.logging.RequestExecutionLogVO;
 import egovframework.com.common.service.ObservabilityQueryService;
 import egovframework.com.common.util.FeatureCodeBitmap;
 import egovframework.com.common.util.ReactPageUrlMapper;
@@ -136,6 +146,8 @@ public class AdminMainController {
     private final EnterpriseMemberService entrprsManageService;
     private final EmployeeMemberService userManageService;
     private final EmployeeMemberRepository employMemberRepository;
+    private final EnterpriseMemberRepository enterpriseMemberRepository;
+    private final GeneralMemberRepository generalMemberRepository;
     private final CommonCodeService cmmUseService;
     private final AuthGroupManageService authGroupManageService;
     private final AdminLoginHistoryService adminLoginHistoryService;
@@ -147,6 +159,7 @@ public class AdminMainController {
     private final AuthorRoleProfileService authorRoleProfileService;
     private final AdminAuthorityPagePayloadSupport adminAuthorityPagePayloadSupport;
     private final AuditTrailService auditTrailService;
+    private final RequestExecutionLogService requestExecutionLogService;
     private final ObservabilityQueryService observabilityQueryService;
     private final ObjectMapper objectMapper;
     private final ObjectProvider<ReactAppViewSupport> reactAppViewSupportProvider;
@@ -262,6 +275,7 @@ public class AdminMainController {
             @RequestParam(value = "action", required = false) String action,
             @RequestParam(value = "memberId", required = false) String memberId,
             @RequestParam(value = "selectedMemberIds", required = false) List<String> selectedMemberIds,
+            @RequestParam(value = "rejectReason", required = false) String rejectReason,
             @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
             @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
             @RequestParam(value = "membershipType", required = false) String membershipType,
@@ -269,25 +283,84 @@ public class AdminMainController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
-        Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("action", action);
-        payload.put("memberId", memberId);
-        payload.put("selectedIds", selectedMemberIds);
-        ResponseEntity<Map<String, Object>> response = memberApproveSubmitApi(payload, request, locale);
-        String basePath = resolveMemberApprovalBasePath(request, locale);
-        StringBuilder redirect = new StringBuilder("redirect:").append(basePath);
-        boolean hasQuery = false;
-        Map<String, Object> body = response.getBody();
-        if (response.getStatusCode().is2xxSuccessful()) {
-            Object result = body == null ? null : body.get("result");
-            hasQuery = appendRedirectQuery(redirect, hasQuery, "result", safeString(result == null ? null : result.toString()));
-        } else {
-            hasQuery = appendRedirectErrorQuery(redirect, hasQuery, extractResponseErrorMessage(body));
+        boolean isEn = isEnglishRequest(request, locale);
+        String currentUserId = extractCurrentUserId(request);
+        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+        if (!hasMemberManagementCompanyOperatorAccess(currentUserId, currentUserAuthorCode)) {
+            String viewName = resolveMemberApprovalViewName(request, isEn);
+            primeCsrfToken(request);
+            model.addAttribute("memberApprovalError",
+                    isEn ? "You do not have permission to approve members." : "회원 승인 처리를 수행할 권한이 없습니다.");
+            return populateMemberApprovalList(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, null, model, viewName, isEn, request, locale);
         }
-        hasQuery = appendRedirectQuery(redirect, hasQuery, "pageIndex", pageIndexParam);
-        hasQuery = appendRedirectQuery(redirect, hasQuery, "searchKeyword", searchKeyword);
-        hasQuery = appendRedirectQuery(redirect, hasQuery, "membershipType", membershipType);
-        appendRedirectQuery(redirect, hasQuery, "sbscrbSttus", sbscrbSttus);
+        String normalizedAction = safeString(action).toLowerCase(Locale.ROOT);
+        List<String> targetMemberIds = new ArrayList<>();
+        String normalizedMemberId = safeString(memberId);
+        if (!normalizedMemberId.isEmpty()) {
+            targetMemberIds.add(normalizedMemberId);
+        } else if (selectedMemberIds != null) {
+            for (String selectedMemberId : selectedMemberIds) {
+                String value = safeString(selectedMemberId);
+                if (!value.isEmpty() && !targetMemberIds.contains(value)) {
+                    targetMemberIds.add(value);
+                }
+            }
+        }
+
+        if (targetMemberIds.isEmpty()) {
+            String viewName = resolveMemberApprovalViewName(request, isEn);
+            primeCsrfToken(request);
+            model.addAttribute("memberApprovalError",
+                    isEn ? "No approval target was selected." : "승인 처리할 회원을 선택해 주세요.");
+            return populateMemberApprovalList(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, null, model, viewName, isEn, request, locale);
+        }
+
+        String targetStatus = "approve".equals(normalizedAction) || "batch_approve".equals(normalizedAction) ? "P"
+                : ("reject".equals(normalizedAction) || "batch_reject".equals(normalizedAction) ? "R" : "");
+        if (targetStatus.isEmpty()) {
+            String viewName = resolveMemberApprovalViewName(request, isEn);
+            primeCsrfToken(request);
+            model.addAttribute("memberApprovalError",
+                    isEn ? "The requested action is not valid." : "요청한 처리 작업이 올바르지 않습니다.");
+            return populateMemberApprovalList(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, null, model, viewName, isEn, request, locale);
+        }
+        String normalizedRejectReason = trimToLen(safeString(rejectReason), 1000);
+
+        try {
+            for (String targetMemberId : targetMemberIds) {
+                EntrprsManageVO targetMember = entrprsManageService.selectEntrprsmberByMberId(targetMemberId);
+                if (!canCurrentAdminAccessMember(request, targetMember)) {
+                    throw new IllegalArgumentException(isEn
+                            ? "You can only approve members in your own company."
+                            : "본인 회사 소속 회원만 승인 처리할 수 있습니다.");
+                }
+                processMemberApprovalStatusChange(targetMemberId, targetStatus, normalizedRejectReason);
+            }
+        } catch (IllegalArgumentException e) {
+            String viewName = resolveMemberApprovalViewName(request, isEn);
+            primeCsrfToken(request);
+            model.addAttribute("memberApprovalError", e.getMessage());
+            return populateMemberApprovalList(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, null, model, viewName, isEn, request, locale);
+        } catch (Exception e) {
+            log.error("Failed to process member approval action. action={}, memberIds={}", normalizedAction, targetMemberIds, e);
+            String viewName = resolveMemberApprovalViewName(request, isEn);
+            primeCsrfToken(request);
+            model.addAttribute("memberApprovalError",
+                    isEn ? "An error occurred while processing the approval request." : "회원 승인 처리 중 오류가 발생했습니다.");
+            return populateMemberApprovalList(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, null, model, viewName, isEn, request, locale);
+        }
+
+        StringBuilder redirect = new StringBuilder();
+        redirect.append("redirect:").append(resolveMemberApprovalBasePath(request, locale)).append("?result=");
+        if ("P".equals(targetStatus)) {
+            redirect.append(targetMemberIds.size() > 1 ? "batchApproved" : "approved");
+        } else {
+            redirect.append(targetMemberIds.size() > 1 ? "batchRejected" : "rejected");
+        }
+        appendApprovalRedirectQuery(redirect, "pageIndex", pageIndexParam);
+        appendApprovalRedirectQuery(redirect, "searchKeyword", searchKeyword);
+        appendApprovalRedirectQuery(redirect, "membershipType", membershipType);
+        appendApprovalRedirectQuery(redirect, "sbscrbSttus", sbscrbSttus);
         return redirect.toString();
     }
 
@@ -296,31 +369,76 @@ public class AdminMainController {
             @RequestParam(value = "action", required = false) String action,
             @RequestParam(value = "insttId", required = false) String insttId,
             @RequestParam(value = "selectedInsttIds", required = false) List<String> selectedInsttIds,
+            @RequestParam(value = "rejectReason", required = false) String rejectReason,
             @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
             @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
             @RequestParam(value = "sbscrbSttus", required = false) String sbscrbSttus,
             HttpServletRequest request,
             Locale locale,
             Model model) {
-        Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("action", action);
-        payload.put("insttId", insttId);
-        payload.put("selectedIds", selectedInsttIds);
-        ResponseEntity<Map<String, Object>> response = companyApproveSubmitApi(payload, request, locale);
-        StringBuilder redirect = new StringBuilder("redirect:")
-                .append(adminPrefix(request, locale))
-                .append("/member/company-approve");
-        boolean hasQuery = false;
-        Map<String, Object> body = response.getBody();
-        if (response.getStatusCode().is2xxSuccessful()) {
-            Object result = body == null ? null : body.get("result");
-            hasQuery = appendRedirectQuery(redirect, hasQuery, "result", safeString(result == null ? null : result.toString()));
-        } else {
-            hasQuery = appendRedirectErrorQuery(redirect, hasQuery, extractResponseErrorMessage(body));
+        boolean isEn = isEnglishRequest(request, locale);
+        String currentUserId = extractCurrentUserId(request);
+        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+        String normalizedAction = safeString(action).toLowerCase(Locale.ROOT);
+        List<String> targetInsttIds = new ArrayList<>();
+        String normalizedInsttId = safeString(insttId);
+        if (!normalizedInsttId.isEmpty()) {
+            targetInsttIds.add(normalizedInsttId);
+        } else if (selectedInsttIds != null) {
+            for (String selectedInsttId : selectedInsttIds) {
+                String value = safeString(selectedInsttId);
+                if (!value.isEmpty() && !targetInsttIds.contains(value)) {
+                    targetInsttIds.add(value);
+                }
+            }
         }
-        hasQuery = appendRedirectQuery(redirect, hasQuery, "pageIndex", pageIndexParam);
-        hasQuery = appendRedirectQuery(redirect, hasQuery, "searchKeyword", searchKeyword);
-        appendRedirectQuery(redirect, hasQuery, "sbscrbSttus", sbscrbSttus);
+
+        String viewName = isEn ? "egovframework/com/admin/company_approve_en" : "egovframework/com/admin/company_approve";
+        if (!hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)) {
+            primeCsrfToken(request);
+            model.addAttribute("memberApprovalError",
+                    isEn ? "Only master administrators can approve companies." : "회원사 승인 처리는 마스터 관리자만 수행할 수 있습니다.");
+            return populateCompanyApprovalList(pageIndexParam, searchKeyword, sbscrbSttus, null, model, viewName, isEn, request, locale);
+        }
+        if (targetInsttIds.isEmpty()) {
+            primeCsrfToken(request);
+            model.addAttribute("memberApprovalError",
+                    isEn ? "No company was selected for approval." : "승인 처리할 회원사를 선택해 주세요.");
+            return populateCompanyApprovalList(pageIndexParam, searchKeyword, sbscrbSttus, null, model, viewName, isEn, request, locale);
+        }
+
+        String targetStatus = "approve".equals(normalizedAction) || "batch_approve".equals(normalizedAction) ? "P"
+                : ("reject".equals(normalizedAction) || "batch_reject".equals(normalizedAction) ? "R" : "");
+        if (targetStatus.isEmpty()) {
+            primeCsrfToken(request);
+            model.addAttribute("memberApprovalError",
+                    isEn ? "The requested action is not valid." : "요청한 처리 작업이 올바르지 않습니다.");
+            return populateCompanyApprovalList(pageIndexParam, searchKeyword, sbscrbSttus, null, model, viewName, isEn, request, locale);
+        }
+
+        String normalizedRejectReason = trimToLen(safeString(rejectReason), 1000);
+        try {
+            for (String targetInsttId : targetInsttIds) {
+                processCompanyApprovalStatusChange(targetInsttId, targetStatus, normalizedRejectReason);
+            }
+        } catch (Exception e) {
+            log.error("Failed to process company approval action. action={}, insttIds={}", normalizedAction, targetInsttIds, e);
+            primeCsrfToken(request);
+            model.addAttribute("memberApprovalError",
+                    isEn ? "An error occurred while processing the company approval request." : "회원사 승인 처리 중 오류가 발생했습니다.");
+            return populateCompanyApprovalList(pageIndexParam, searchKeyword, sbscrbSttus, null, model, viewName, isEn, request, locale);
+        }
+
+        StringBuilder redirect = new StringBuilder();
+        redirect.append("redirect:").append(adminPrefix(request, locale)).append("/member/company-approve?result=");
+        if ("P".equals(targetStatus)) {
+            redirect.append(targetInsttIds.size() > 1 ? "batchApproved" : "approved");
+        } else {
+            redirect.append(targetInsttIds.size() > 1 ? "batchRejected" : "rejected");
+        }
+        appendApprovalRedirectQuery(redirect, "pageIndex", pageIndexParam);
+        appendApprovalRedirectQuery(redirect, "searchKeyword", searchKeyword);
+        appendApprovalRedirectQuery(redirect, "sbscrbSttus", sbscrbSttus);
         return redirect.toString();
     }
 
@@ -334,12 +452,13 @@ public class AdminMainController {
         Map<String, Object> response = new LinkedHashMap<>();
         String currentUserId = extractCurrentUserId(request);
         String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        if (!hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        if (!hasMemberManagementCompanyOperatorAccess(currentUserId, currentUserAuthorCode)) {
             response.put("success", false);
-            response.put("message", isEn ? "Only global administrators can approve members." : "회원 승인 처리는 전체 관리자만 수행할 수 있습니다.");
+            response.put("message", isEn ? "You do not have permission to approve members." : "회원 승인 처리를 수행할 권한이 없습니다.");
             return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
         }
         String normalizedAction = safeString(payload.get("action") == null ? null : payload.get("action").toString()).toLowerCase(Locale.ROOT);
+        String normalizedRejectReason = trimToLen(safeString(payload.get("rejectReason") == null ? null : payload.get("rejectReason").toString()), 1000);
         List<String> targetMemberIds = extractPayloadIds(payload.get("selectedIds"), payload.get("memberId") == null ? null : payload.get("memberId").toString());
         if (targetMemberIds.isEmpty()) {
             response.put("success", false);
@@ -355,7 +474,13 @@ public class AdminMainController {
         }
         try {
             for (String targetMemberId : targetMemberIds) {
-                processMemberApprovalStatusChange(targetMemberId, targetStatus);
+                EntrprsManageVO targetMember = entrprsManageService.selectEntrprsmberByMberId(targetMemberId);
+                if (!canCurrentAdminAccessMember(request, targetMember)) {
+                    response.put("success", false);
+                    response.put("message", isEn ? "You can only approve members in your own company." : "본인 회사 소속 회원만 승인 처리할 수 있습니다.");
+                    return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
+                }
+                processMemberApprovalStatusChange(targetMemberId, targetStatus, normalizedRejectReason);
             }
         } catch (Exception e) {
             log.error("Failed to process member approval action api. action={}, memberIds={}", normalizedAction, targetMemberIds, e);
@@ -371,7 +496,7 @@ public class AdminMainController {
         recordApprovalAuditSafely(request, currentUserId, currentUserAuthorCode, "AMENU_MEMBER_APPROVE", "member-approve",
                 "MEMBER_APPROVAL_" + ("P".equals(targetStatus) ? "APPROVE" : "REJECT"),
                 "MEMBER", targetMemberIds.toString(), "SUCCESS",
-                "{\"action\":\"" + normalizedAction + "\",\"selectedIds\":\"" + safeJson(targetMemberIds.toString()) + "\"}",
+                "{\"action\":\"" + normalizedAction + "\",\"selectedIds\":\"" + safeJson(targetMemberIds.toString()) + "\",\"rejectReason\":\"" + safeJson(normalizedRejectReason) + "\"}",
                 "{\"targetStatus\":\"" + targetStatus + "\"}");
         return ResponseEntity.ok(response);
     }
@@ -386,12 +511,13 @@ public class AdminMainController {
         Map<String, Object> response = new LinkedHashMap<>();
         String currentUserId = extractCurrentUserId(request);
         String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        if (!hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        if (!hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)) {
             response.put("success", false);
-            response.put("message", isEn ? "Only global administrators can approve companies." : "회원사 승인 처리는 전체 관리자만 수행할 수 있습니다.");
+            response.put("message", isEn ? "Only master administrators can approve companies." : "회원사 승인 처리는 마스터 관리자만 수행할 수 있습니다.");
             return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
         }
         String normalizedAction = safeString(payload.get("action") == null ? null : payload.get("action").toString()).toLowerCase(Locale.ROOT);
+        String normalizedRejectReason = trimToLen(safeString(payload.get("rejectReason") == null ? null : payload.get("rejectReason").toString()), 1000);
         List<String> targetInsttIds = extractPayloadIds(payload.get("selectedIds"), payload.get("insttId") == null ? null : payload.get("insttId").toString());
         if (targetInsttIds.isEmpty()) {
             response.put("success", false);
@@ -407,7 +533,7 @@ public class AdminMainController {
         }
         try {
             for (String targetInsttId : targetInsttIds) {
-                processCompanyApprovalStatusChange(targetInsttId, targetStatus);
+                processCompanyApprovalStatusChange(targetInsttId, targetStatus, normalizedRejectReason);
             }
         } catch (Exception e) {
             log.error("Failed to process company approval action api. action={}, insttIds={}", normalizedAction, targetInsttIds, e);
@@ -423,7 +549,7 @@ public class AdminMainController {
         recordApprovalAuditSafely(request, currentUserId, currentUserAuthorCode, "AMENU_COMPANY_APPROVE", "company-approve",
                 "COMPANY_APPROVAL_" + ("P".equals(targetStatus) ? "APPROVE" : "REJECT"),
                 "COMPANY", targetInsttIds.toString(), "SUCCESS",
-                "{\"action\":\"" + normalizedAction + "\",\"selectedIds\":\"" + safeJson(targetInsttIds.toString()) + "\"}",
+                "{\"action\":\"" + normalizedAction + "\",\"selectedIds\":\"" + safeJson(targetInsttIds.toString()) + "\",\"rejectReason\":\"" + safeJson(normalizedRejectReason) + "\"}",
                 "{\"targetStatus\":\"" + targetStatus + "\"}");
         return ResponseEntity.ok(response);
     }
@@ -532,10 +658,19 @@ public class AdminMainController {
         try {
             Set<String> grantableFeatureCodes = resolveGrantableFeatureCodeSet(extractCurrentUserId(request),
                     isWebmaster(extractCurrentUserId(request)));
-            permissionAuthorGroups = authGroupManageService.selectAuthorList();
+            String currentAssignedAuthorCode = safeString(authGroupManageService.selectEnterpriseAuthorCodeByUserId(normalizedMemberId))
+                    .toUpperCase(Locale.ROOT);
+            permissionAuthorGroups = filterAuthorGroups(
+                    authGroupManageService.selectAuthorList(),
+                    "GENERAL",
+                    extractCurrentUserId(request),
+                    resolveCurrentUserAuthorCode(extractCurrentUserId(request)));
             if (normalizedAuthorCode.isEmpty()) {
                 errors.add(isEn ? "Please select a role." : "권한 롤을 선택해 주세요.");
-            } else if (!containsAuthorCode(permissionAuthorGroups, normalizedAuthorCode)) {
+            } else if (!adminAuthorityPagePayloadSupport.isGrantableOrCurrentAuthorCode(
+                    permissionAuthorGroups,
+                    normalizedAuthorCode,
+                    currentAssignedAuthorCode)) {
                 errors.add(isEn ? "Please select a valid role." : "유효한 권한 롤을 선택해 주세요.");
             } else {
                 baselineFeatureCodes = normalizeFeatureCodes(authGroupManageService.selectAuthorFeatureCodes(normalizedAuthorCode));
@@ -617,33 +752,147 @@ public class AdminMainController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
-        AdminMemberEditSaveRequestDTO payload = new AdminMemberEditSaveRequestDTO();
-        payload.setMemberId(memberId);
-        payload.setApplcntNm(applcntNm);
-        payload.setApplcntEmailAdres(applcntEmailAdres);
-        payload.setPhoneNumber(phoneNumber);
-        payload.setEntrprsSeCode(entrprsSeCode);
-        payload.setEntrprsMberSttus(entrprsMberSttus);
-        payload.setAuthorCode(authorCode);
-        payload.setFeatureCodes(featureCodes);
-        payload.setZip(zip);
-        payload.setAdres(adres);
-        payload.setDetailAdres(detailAdres);
-        payload.setMarketingYn(marketingYn);
-        payload.setDeptNm(deptNm);
-        ResponseEntity<Map<String, Object>> response = memberEditSubmitApi(payload, request, locale);
+        boolean isEn = isEnglishRequest(request, locale);
+        String viewName = isEn ? "egovframework/com/admin/member_edit_en" : "egovframework/com/admin/member_edit";
         String normalizedMemberId = safeString(memberId);
-        StringBuilder redirect = new StringBuilder("redirect:")
-                .append(adminPrefix(request, locale))
-                .append("/member/edit");
-        boolean hasQuery = appendRedirectQuery(redirect, false, "memberId", normalizedMemberId);
-        Map<String, Object> body = response.getBody();
-        if (response.getStatusCode().is2xxSuccessful()) {
-            appendRedirectQuery(redirect, hasQuery, "updated", "true");
-        } else {
-            appendRedirectErrorQuery(redirect, hasQuery, extractResponseErrorMessage(body));
+        model.addAttribute("memberId", normalizedMemberId);
+        primeCsrfToken(request);
+        ensureMemberEditDefaults(model, isEn);
+
+        if (normalizedMemberId.isEmpty()) {
+            model.addAttribute("member_editError", isEn ? "Member ID was not provided." : "회원 ID가 전달되지 않았습니다.");
+            return viewName;
         }
-        return redirect.toString();
+
+        EntrprsManageVO member;
+        try {
+            member = entrprsManageService.selectEntrprsmberByMberId(normalizedMemberId);
+        } catch (Exception e) {
+            log.error("Failed to load member for edit submit. memberId={}", normalizedMemberId, e);
+            model.addAttribute("member_editError", isEn ? "An error occurred while retrieving member information." : "회원 정보 조회 중 오류가 발생했습니다.");
+            return viewName;
+        }
+
+        if (member == null || safeString(member.getEntrprsmberId()).isEmpty()) {
+            model.addAttribute("member_editError", isEn ? "Member information was not found." : "회원 정보를 찾을 수 없습니다.");
+            return viewName;
+        }
+        if (!canCurrentAdminAccessMember(request, member)) {
+            model.addAttribute("member_editError", isEn
+                    ? "You can only edit members in your own company."
+                    : "본인 회사 소속 회원만 수정할 수 있습니다.");
+            return viewName;
+        }
+
+        List<String> errors = new ArrayList<>();
+        String normalizedApplicantName = safeString(applcntNm);
+        String normalizedEmail = safeString(applcntEmailAdres);
+        String normalizedZip = digitsOnly(zip);
+        String normalizedAddress = safeString(adres);
+        String normalizedDetailAddress = safeString(detailAdres);
+        String normalizedType = normalizeMembershipCode(safeString(entrprsSeCode).toUpperCase());
+        String normalizedStatus = normalizeMemberStatusCode(entrprsMberSttus);
+        String normalizedAuthorCode = safeString(authorCode).toUpperCase(Locale.ROOT);
+        List<String> normalizedFeatureCodes = normalizeFeatureCodes(featureCodes);
+        String normalizedMarketingYn = "Y".equalsIgnoreCase(safeString(marketingYn)) ? "Y" : "N";
+        String normalizedDeptNm = safeString(deptNm);
+        String[] phoneParts = splitPhoneNumber(phoneNumber);
+        List<AuthorInfoVO> permissionAuthorGroups = Collections.emptyList();
+        List<String> baselineFeatureCodes = Collections.emptyList();
+
+        if (normalizedApplicantName.isEmpty()) {
+            errors.add(isEn ? "Please enter the member name." : "회원명을 입력해 주세요.");
+        }
+        if (!isValidEmail(normalizedEmail)) {
+            errors.add(isEn ? "Please enter a valid email address." : "올바른 이메일 주소를 입력해 주세요.");
+        }
+        if (phoneParts == null) {
+            errors.add(isEn ? "Please enter a valid phone number." : "연락처 형식이 올바르지 않습니다.");
+        }
+        if (normalizedType.isEmpty()) {
+            errors.add(isEn ? "Please select a valid member type." : "유효한 회원 유형을 선택해 주세요.");
+        }
+        if (normalizedStatus.isEmpty()) {
+            errors.add(isEn ? "Please select a valid member status." : "유효한 회원 상태를 선택해 주세요.");
+        }
+        try {
+            Set<String> grantableFeatureCodes = resolveGrantableFeatureCodeSet(extractCurrentUserId(request),
+                    isWebmaster(extractCurrentUserId(request)));
+            String currentAssignedAuthorCode = safeString(authGroupManageService.selectEnterpriseAuthorCodeByUserId(normalizedMemberId))
+                    .toUpperCase(Locale.ROOT);
+            permissionAuthorGroups = filterAuthorGroups(
+                    authGroupManageService.selectAuthorList(),
+                    "GENERAL",
+                    extractCurrentUserId(request),
+                    resolveCurrentUserAuthorCode(extractCurrentUserId(request)));
+            if (normalizedAuthorCode.isEmpty()) {
+                errors.add(isEn ? "Please select a role." : "권한 롤을 선택해 주세요.");
+            } else if (!adminAuthorityPagePayloadSupport.isGrantableOrCurrentAuthorCode(
+                    permissionAuthorGroups,
+                    normalizedAuthorCode,
+                    currentAssignedAuthorCode)) {
+                errors.add(isEn ? "Please select a valid role." : "유효한 권한 롤을 선택해 주세요.");
+            } else {
+                baselineFeatureCodes = normalizeFeatureCodes(authGroupManageService.selectAuthorFeatureCodes(normalizedAuthorCode));
+                normalizedFeatureCodes = filterFeatureCodesByGrantable(normalizedFeatureCodes, grantableFeatureCodes);
+            }
+        } catch (Exception e) {
+            log.error("Failed to load permission data for member edit. memberId={}", normalizedMemberId, e);
+            errors.add(isEn ? "Failed to load role and feature information." : "권한 롤 및 기능 정보를 불러오지 못했습니다.");
+        }
+
+        member.setApplcntNm(normalizedApplicantName);
+        member.setApplcntEmailAdres(normalizedEmail);
+        if (phoneParts != null) {
+            member.setAreaNo(phoneParts[0]);
+            member.setEntrprsMiddleTelno(phoneParts[1]);
+            member.setEntrprsEndTelno(phoneParts[2]);
+        }
+        member.setEntrprsSeCode(normalizedType);
+        member.setEntrprsMberSttus(normalizedStatus);
+        member.setZip(normalizedZip);
+        member.setAdres(normalizedAddress);
+        member.setDetailAdres(normalizedDetailAddress);
+        member.setMarketingYn(normalizedMarketingYn);
+        member.setDeptNm(normalizedDeptNm);
+
+        if (!errors.isEmpty()) {
+            try {
+                populateMemberEditModel(model, member, isEn, extractCurrentUserId(request));
+                populatePermissionEditorModel(model, permissionAuthorGroups, normalizedAuthorCode, safeString(member.getUniqId()),
+                        normalizedFeatureCodes, isEn, extractCurrentUserId(request));
+            } catch (Exception e) {
+                log.error("Failed to populate member edit model (validation errors). memberId={}", normalizedMemberId, e);
+                ensureMemberEditDefaults(model, isEn);
+            }
+            model.addAttribute("member_editErrors", errors);
+            return viewName;
+        }
+
+        try {
+            entrprsManageService.updateEntrprsmber(member);
+            authGroupManageService.updateEnterpriseUserRoleAssignment(normalizedMemberId, normalizedAuthorCode);
+            savePermissionOverrides(
+                    safeString(member.getUniqId()),
+                    "USR02",
+                    baselineFeatureCodes,
+                    normalizedFeatureCodes,
+                    extractCurrentUserId(request),
+                    resolveGrantableFeatureCodeSet(extractCurrentUserId(request), isWebmaster(extractCurrentUserId(request))));
+            return "redirect:" + adminPrefix(request, locale) + "/member/edit?memberId=" + urlEncode(normalizedMemberId) + "&updated=true";
+        } catch (Exception e) {
+            log.error("Failed to save member edit. memberId={}", normalizedMemberId, e);
+            try {
+                populateMemberEditModel(model, member, isEn, extractCurrentUserId(request));
+                populatePermissionEditorModel(model, permissionAuthorGroups, normalizedAuthorCode, safeString(member.getUniqId()),
+                        normalizedFeatureCodes, isEn, extractCurrentUserId(request));
+            } catch (Exception inner) {
+                log.error("Failed to populate member edit model (save error). memberId={}", normalizedMemberId, inner);
+                ensureMemberEditDefaults(model, isEn);
+            }
+            model.addAttribute("member_editError", isEn ? "An error occurred while saving member information." : "회원 정보 저장 중 오류가 발생했습니다.");
+            return viewName;
+        }
     }
 
     @RequestMapping(value = "/member/file", method = RequestMethod.GET)
@@ -729,6 +978,7 @@ public class AdminMainController {
             @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
             @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
             @RequestParam(value = "resetSource", required = false) String resetSource,
+            @RequestParam(value = "insttId", required = false) String insttId,
             @RequestParam(value = "memberId", required = false) String memberId,
             HttpServletRequest request,
             Locale locale) {
@@ -736,6 +986,7 @@ public class AdminMainController {
                 pageIndexParam,
                 searchKeyword,
                 resetSource,
+                insttId,
                 memberId,
                 request,
                 locale));
@@ -856,6 +1107,14 @@ public class AdminMainController {
             Locale locale) {
         boolean isEn = isEnglishRequest(request, locale);
         Map<String, Object> response = new LinkedHashMap<>();
+        String currentUserId = extractCurrentUserId(request);
+        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+        if (!canCreateAdminAccounts(currentUserId, currentUserAuthorCode)) {
+            response.put("valid", false);
+            response.put("duplicated", false);
+            response.put("message", isEn ? "You do not have permission to validate administrator IDs." : "관리자 ID를 확인할 권한이 없습니다.");
+            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
+        }
         String normalizedAdminId = safeString(adminId);
         if (normalizedAdminId.isEmpty()) {
             response.put("valid", false);
@@ -903,7 +1162,7 @@ public class AdminMainController {
         boolean isEn = isEnglishRequest(request, locale);
         String currentUserId = extractCurrentUserId(request);
         String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        if (!isWebmaster(currentUserId) && !hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        if (!hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)) {
             return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN)
                     .body(new CompanySearchResponseDTO(Collections.emptyList(), 0, 1, 1, 0));
         }
@@ -940,11 +1199,12 @@ public class AdminMainController {
         boolean isEn = isEnglishRequest(request, locale);
         Map<String, Object> response = new LinkedHashMap<>();
         String currentUserId = extractCurrentUserId(request);
-        if (!isWebmaster(currentUserId)) {
+        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+        if (!canCreateAdminAccounts(currentUserId, currentUserAuthorCode)) {
             response.put("success", false);
             response.put("message", isEn
-                    ? "Only webmaster can create administrator accounts."
-                    : "webmaster만 관리자 계정을 생성할 수 있습니다.");
+                    ? "You do not have permission to create administrator accounts."
+                    : "관리자 계정을 생성할 권한이 없습니다.");
             return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
         }
 
@@ -961,6 +1221,16 @@ public class AdminMainController {
         String rolePreset = safeString(payload == null ? null : payload.getRolePreset()).toUpperCase(Locale.ROOT);
         String authorCode = resolveAdminPresetAuthorCode(rolePreset);
         List<String> featureCodes = normalizeFeatureCodes(payload == null ? null : payload.getFeatureCodes());
+        if (!canCreateAdminRolePreset(currentUserId, currentUserAuthorCode, rolePreset)) {
+            response.put("success", false);
+            response.put("message", isEn
+                    ? "You cannot create the selected administrator type."
+                    : "선택한 관리자 유형을 생성할 수 없습니다.");
+            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
+        }
+        String scopedInsttId = hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)
+                ? insttId
+                : resolveCurrentUserInsttId(currentUserId);
 
         List<String> errors = new ArrayList<>();
         if (!adminId.matches("^[A-Za-z0-9]{6,16}$")) {
@@ -984,7 +1254,7 @@ public class AdminMainController {
         if (authorCode.isEmpty()) {
             errors.add(isEn ? "Please select a valid administrator role preset." : "유효한 관리자 권한 프리셋을 선택해 주세요.");
         }
-        if (!"MASTER".equals(rolePreset) && insttId.isEmpty()) {
+        if (!"MASTER".equals(rolePreset) && scopedInsttId.isEmpty()) {
             errors.add(isEn ? "Please select an affiliated company or institution." : "소속 기관 또는 기업을 선택해 주세요.");
         }
 
@@ -998,8 +1268,8 @@ public class AdminMainController {
         }
 
         InstitutionStatusVO institutionInfo = null;
-        if (!insttId.isEmpty()) {
-            institutionInfo = loadInstitutionInfoByInsttId(insttId);
+        if (!scopedInsttId.isEmpty()) {
+            institutionInfo = loadInstitutionInfoByInsttId(scopedInsttId);
             if (institutionInfo == null || institutionInfo.isEmpty()) {
                 errors.add(isEn ? "The selected company or institution was not found." : "선택한 기관 또는 기업 정보를 찾을 수 없습니다.");
             }
@@ -1034,9 +1304,9 @@ public class AdminMainController {
             userManageVO.setMoblphonNo(fullPhone);
             userManageVO.setOffmTelno(fullPhone);
             userManageVO.setEmplyrSttusCode("P");
-            userManageVO.setOrgnztId(insttId);
+            userManageVO.setOrgnztId(scopedInsttId);
             userManageVO.setOfcpsNm(deptNm);
-            userManageVO.setGroupId(insttId);
+            userManageVO.setGroupId(scopedInsttId);
             userManageVO.setLockAt("N");
             userManageVO.setPasswordHint("");
             userManageVO.setPasswordCnsr("");
@@ -1047,9 +1317,9 @@ public class AdminMainController {
                 throw new IllegalStateException("Administrator account insert verification failed.");
             }
             EmplyrInfo savedAdmin = savedAdminOpt.get();
-            savedAdmin.setInsttId(insttId);
-            savedAdmin.setOrgnztId(insttId);
-            savedAdmin.setGroupId(insttId);
+            savedAdmin.setInsttId(scopedInsttId);
+            savedAdmin.setOrgnztId(scopedInsttId);
+            savedAdmin.setGroupId(scopedInsttId);
             savedAdmin.setUserNm(adminName);
             savedAdmin.setEmailAdres(adminEmail);
             savedAdmin.setAreaNo(phone1);
@@ -1071,7 +1341,7 @@ public class AdminMainController {
             response.put("success", true);
             response.put("emplyrId", adminId);
             response.put("authorCode", authorCode);
-            response.put("insttId", insttId);
+            response.put("insttId", scopedInsttId);
             response.put("companyName", institutionInfo == null ? "" : safeString(institutionInfo.getInsttNm()));
             recordAdminActionAudit(request,
                     currentUserId,
@@ -1081,7 +1351,7 @@ public class AdminMainController {
                     "ADMIN_ACCOUNT_CREATE",
                     "ADMIN",
                     adminId,
-                    "{\"adminId\":\"" + safeJson(adminId) + "\",\"authorCode\":\"" + safeJson(authorCode) + "\",\"insttId\":\"" + safeJson(insttId) + "\"}",
+                    "{\"adminId\":\"" + safeJson(adminId) + "\",\"authorCode\":\"" + safeJson(authorCode) + "\",\"insttId\":\"" + safeJson(scopedInsttId) + "\"}",
                     "{\"status\":\"SUCCESS\"}");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -1109,6 +1379,8 @@ public class AdminMainController {
         model.addAttribute("adminPermissionUpdated", "true".equalsIgnoreCase(safeString(updated)));
         model.addAttribute("adminAccountMode", safeString(mode));
         String normalizedEmplyrId = safeString(emplyrId);
+        boolean canView = false;
+        boolean canSave = false;
         if (!normalizedEmplyrId.isEmpty()) {
             try {
                 Optional<EmplyrInfo> adminMemberOpt = employMemberRepository.findById(normalizedEmplyrId);
@@ -1116,8 +1388,17 @@ public class AdminMainController {
                     model.addAttribute("adminPermissionError", isEn
                             ? "Administrator information was not found."
                             : "관리자 정보를 찾을 수 없습니다.");
+                } else if (!canCurrentAdminAccessAdmin(request, adminMemberOpt.get())) {
+                    model.addAttribute("adminPermissionError", isEn
+                            ? "You can only view administrators in your own company."
+                            : "본인 회사에 속한 관리자만 조회할 수 있습니다.");
                 } else {
                     populateAdminAccountEditModel(model, adminMemberOpt.get(), isEn, null, extractCurrentUserId(request));
+                    canView = true;
+                    String currentUserId = extractCurrentUserId(request);
+                    String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+                    canSave = !Boolean.TRUE.equals(model.getAttribute("adminAccountReadOnly"))
+                            && hasMemberManagementCompanyAdminAccess(currentUserId, currentUserAuthorCode);
                 }
             } catch (Exception e) {
                 log.error("Failed to load admin account edit page api. emplyrId={}", normalizedEmplyrId, e);
@@ -1128,8 +1409,8 @@ public class AdminMainController {
         }
         Map<String, Object> response = new LinkedHashMap<>();
         response.putAll(model);
-        response.put("canViewAdminPermissionEdit", !normalizedEmplyrId.isEmpty());
-        response.put("canUseAdminPermissionSave", isWebmaster(extractCurrentUserId(request)) && !Boolean.TRUE.equals(model.getAttribute("adminAccountReadOnly")));
+        response.put("canViewAdminPermissionEdit", canView);
+        response.put("canUseAdminPermissionSave", canSave);
         return ResponseEntity.ok(response);
     }
 
@@ -1142,11 +1423,12 @@ public class AdminMainController {
         boolean isEn = isEnglishRequest(request, locale);
         Map<String, Object> response = new LinkedHashMap<>();
         String currentUserId = extractCurrentUserId(request);
-        if (!isWebmaster(currentUserId)) {
+        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+        if (!hasMemberManagementCompanyAdminAccess(currentUserId, currentUserAuthorCode)) {
             response.put("success", false);
             response.put("message", isEn
-                    ? "Only webmaster can change administrator permissions."
-                    : "webmaster만 관리자 권한을 변경할 수 있습니다.");
+                    ? "You do not have permission to change administrator permissions."
+                    : "관리자 권한을 변경할 권한이 없습니다.");
             return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
         }
 
@@ -1177,14 +1459,30 @@ public class AdminMainController {
         }
 
         EmplyrInfo adminMember = adminMemberOpt.get();
+        if (!canCurrentAdminAccessAdmin(request, adminMember)) {
+            response.put("success", false);
+            response.put("message", isEn
+                    ? "You can only update administrators in your own company."
+                    : "본인 회사에 속한 관리자만 수정할 수 있습니다.");
+            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
+        }
         List<String> errors = new ArrayList<>();
         List<AuthorInfoVO> authorGroups = Collections.emptyList();
         List<String> baselineFeatureCodes = Collections.emptyList();
         try {
-            authorGroups = filterAuthorGroups(authGroupManageService.selectAuthorList(), "GENERAL");
+            String currentAssignedAuthorCode = safeString(authGroupManageService.selectAuthorCodeByUserId(normalizedEmplyrId))
+                    .toUpperCase(Locale.ROOT);
+            authorGroups = filterAuthorGroups(
+                    authGroupManageService.selectAuthorList(),
+                    "GENERAL",
+                    currentUserId,
+                    resolveCurrentUserAuthorCode(currentUserId));
             if (normalizedAuthorCode.isEmpty()) {
                 errors.add(isEn ? "Please select an administrator role." : "관리자 권한 롤을 선택해 주세요.");
-            } else if (!containsAuthorCode(authorGroups, normalizedAuthorCode)) {
+            } else if (!adminAuthorityPagePayloadSupport.isGrantableOrCurrentAuthorCode(
+                    authorGroups,
+                    normalizedAuthorCode,
+                    currentAssignedAuthorCode)) {
                 errors.add(isEn ? "Please select a valid administrator role." : "유효한 관리자 권한 롤을 선택해 주세요.");
             } else {
                 baselineFeatureCodes = normalizeFeatureCodes(authGroupManageService.selectAuthorFeatureCodes(normalizedAuthorCode));
@@ -1210,7 +1508,7 @@ public class AdminMainController {
                     baselineFeatureCodes,
                     normalizedFeatureCodes,
                     currentUserId,
-                    resolveGrantableFeatureCodeSet(currentUserId, true));
+                    resolveGrantableFeatureCodeSet(currentUserId, isWebmaster(currentUserId)));
         } catch (Exception e) {
             log.error("Failed to save admin account permissions api. emplyrId={}, authorCode={}", normalizedEmplyrId, normalizedAuthorCode, e);
             response.put("success", false);
@@ -1245,23 +1543,119 @@ public class AdminMainController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
-        AdminPermissionSaveRequestDTO payload = new AdminPermissionSaveRequestDTO();
-        payload.setEmplyrId(emplyrId);
-        payload.setAuthorCode(authorCode);
-        payload.setFeatureCodes(featureCodes);
-        ResponseEntity<Map<String, Object>> response = adminAccountPermissionsSubmitApi(payload, request, locale);
-        StringBuilder redirect = new StringBuilder("redirect:")
-                .append(adminPrefix(request, locale))
-                .append("/member/admin_account");
-        boolean hasQuery = appendRedirectQuery(redirect, false, "emplyrId", emplyrId);
-        hasQuery = appendRedirectQuery(redirect, hasQuery, "mode", "edit");
-        Map<String, Object> body = response.getBody();
-        if (response.getStatusCode().is2xxSuccessful()) {
-            appendRedirectQuery(redirect, hasQuery, "updated", "true");
-        } else {
-            appendRedirectErrorQuery(redirect, hasQuery, extractResponseErrorMessage(body));
+        boolean isEn = isEnglishRequest(request, locale) || "en".equalsIgnoreCase(safeString(language));
+        String viewName = isEn
+                ? "egovframework/com/admin/admin_account_en"
+                : "egovframework/com/admin/admin_account";
+        primeCsrfToken(request);
+        ensureAdminAccountDefaults(model, isEn);
+
+        String currentUserId = extractCurrentUserId(request);
+        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+        if (!hasMemberManagementCompanyAdminAccess(currentUserId, currentUserAuthorCode)) {
+            model.addAttribute("adminPermissionError", isEn
+                    ? "You do not have permission to change administrator permissions."
+                    : "관리자 권한을 변경할 권한이 없습니다.");
+            return viewName;
         }
-        return redirect.toString();
+
+        String normalizedEmplyrId = safeString(emplyrId);
+        String normalizedAuthorCode = safeString(authorCode).toUpperCase(Locale.ROOT);
+        List<String> normalizedFeatureCodes = normalizeFeatureCodes(featureCodes);
+        if (normalizedEmplyrId.isEmpty()) {
+            model.addAttribute("adminPermissionError", isEn
+                    ? "Administrator ID was not provided."
+                    : "관리자 ID가 전달되지 않았습니다.");
+            return viewName;
+        }
+
+        Optional<EmplyrInfo> adminMemberOpt;
+        try {
+            adminMemberOpt = employMemberRepository.findById(normalizedEmplyrId);
+        } catch (Exception e) {
+            log.error("Failed to load admin for permission submit. emplyrId={}", normalizedEmplyrId, e);
+            model.addAttribute("adminPermissionError", isEn
+                    ? "An error occurred while retrieving administrator information."
+                    : "관리자 정보 조회 중 오류가 발생했습니다.");
+            return viewName;
+        }
+        if (!adminMemberOpt.isPresent()) {
+            model.addAttribute("adminPermissionError", isEn
+                    ? "Administrator information was not found."
+                    : "관리자 정보를 찾을 수 없습니다.");
+            return viewName;
+        }
+
+        EmplyrInfo adminMember = adminMemberOpt.get();
+        if (!canCurrentAdminAccessAdmin(request, adminMember)) {
+            model.addAttribute("adminPermissionError", isEn
+                    ? "You can only update administrators in your own company."
+                    : "본인 회사에 속한 관리자만 수정할 수 있습니다.");
+            return viewName;
+        }
+        List<String> errors = new ArrayList<>();
+        List<AuthorInfoVO> authorGroups = Collections.emptyList();
+        List<String> baselineFeatureCodes = Collections.emptyList();
+        try {
+            String currentAssignedAuthorCode = safeString(authGroupManageService.selectAuthorCodeByUserId(normalizedEmplyrId))
+                    .toUpperCase(Locale.ROOT);
+            authorGroups = filterAuthorGroups(
+                    authGroupManageService.selectAuthorList(),
+                    "GENERAL",
+                    currentUserId,
+                    resolveCurrentUserAuthorCode(currentUserId));
+            if (normalizedAuthorCode.isEmpty()) {
+                errors.add(isEn ? "Please select an administrator role." : "관리자 권한 롤을 선택해 주세요.");
+            } else if (!adminAuthorityPagePayloadSupport.isGrantableOrCurrentAuthorCode(
+                    authorGroups,
+                    normalizedAuthorCode,
+                    currentAssignedAuthorCode)) {
+                errors.add(isEn ? "Please select a valid administrator role." : "유효한 관리자 권한 롤을 선택해 주세요.");
+            } else {
+                baselineFeatureCodes = normalizeFeatureCodes(authGroupManageService.selectAuthorFeatureCodes(normalizedAuthorCode));
+            }
+            if ("webmaster".equalsIgnoreCase(normalizedEmplyrId) && !ROLE_SYSTEM_MASTER.equalsIgnoreCase(normalizedAuthorCode)) {
+                errors.add(isEn ? "webmaster must keep ROLE_SYSTEM_MASTER." : "webmaster 계정은 ROLE_SYSTEM_MASTER만 유지할 수 있습니다.");
+            }
+        } catch (Exception e) {
+            log.error("Failed to load permission data for admin edit. emplyrId={}", normalizedEmplyrId, e);
+            errors.add(isEn ? "Failed to load role and feature information." : "권한 롤 및 기능 정보를 불러오지 못했습니다.");
+        }
+
+        if (!errors.isEmpty()) {
+            try {
+                populateAdminAccountEditModel(model, adminMember, isEn, normalizedFeatureCodes, currentUserId);
+            } catch (Exception e) {
+                log.error("Failed to populate admin account edit model (validation errors). emplyrId={}", normalizedEmplyrId, e);
+                ensureAdminAccountDefaults(model, isEn);
+            }
+            model.addAttribute("adminPermissionErrors", errors);
+            return viewName;
+        }
+
+        try {
+            authGroupManageService.updateAdminRoleAssignment(normalizedEmplyrId, normalizedAuthorCode);
+            savePermissionOverrides(
+                    safeString(adminMember.getEsntlId()),
+                    "USR03",
+                    baselineFeatureCodes,
+                    normalizedFeatureCodes,
+                    currentUserId,
+                    resolveGrantableFeatureCodeSet(currentUserId, isWebmaster(currentUserId)));
+            return "redirect:" + adminPrefix(request, locale) + "/member/admin_account?emplyrId=" + urlEncode(normalizedEmplyrId) + "&updated=true";
+        } catch (Exception e) {
+            log.error("Failed to save admin account permissions. emplyrId={}, authorCode={}", normalizedEmplyrId, normalizedAuthorCode, e);
+            try {
+                populateAdminAccountEditModel(model, adminMember, isEn, normalizedFeatureCodes, currentUserId);
+            } catch (Exception inner) {
+                log.error("Failed to populate admin account edit model (save error). emplyrId={}", normalizedEmplyrId, inner);
+                ensureAdminAccountDefaults(model, isEn);
+            }
+            model.addAttribute("adminPermissionError", isEn
+                    ? "An error occurred while saving administrator permissions."
+                    : "관리자 권한 저장 중 오류가 발생했습니다.");
+            return viewName;
+        }
     }
 
     @RequestMapping(value = "/member/list", method = { RequestMethod.GET, RequestMethod.POST })
@@ -1460,9 +1854,9 @@ public class AdminMainController {
         String currentUserId = extractCurrentUserId(request);
         String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
         Map<String, Object> response = new LinkedHashMap<>();
-        if (!hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        if (!hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)) {
             response.put("success", false);
-            response.put("message", isEn ? "Only global administrators can manage company accounts." : "회원사 관리는 전체 관리자만 처리할 수 있습니다.");
+            response.put("message", isEn ? "Only master administrators can manage company accounts." : "회원사 관리는 마스터 관리자만 처리할 수 있습니다.");
             return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
         }
 
@@ -1588,37 +1982,140 @@ public class AdminMainController {
             HttpSession session,
             Locale locale,
             Model model) {
-        ResponseEntity<Map<String, Object>> response = companyAccountSubmitApi(
-                insttId,
-                membershipType,
-                agencyName,
-                representativeName,
-                bizRegistrationNumber,
-                zipCode,
-                companyAddress,
-                companyAddressDetail,
-                chargerName,
-                chargerEmail,
-                chargerTel,
-                fileUploads,
-                request,
-                locale);
-        Map<String, Object> body = response.getBody();
-        Object insttIdValue = body == null ? null : body.get("insttId");
-        String targetInsttId = safeString(insttIdValue == null ? null : insttIdValue.toString());
-        if (targetInsttId.isEmpty()) {
-            targetInsttId = safeString(insttId);
+        primeCsrfToken(request);
+        boolean isEn = isEnglishRequest(request, locale);
+        if (!hasGlobalDeptRoleAccess(extractCurrentUserId(request), resolveCurrentUserAuthorCode(extractCurrentUserId(request)))) {
+            model.addAttribute("companyAccountErrors", Collections.singletonList(
+                    isEn ? "Only global administrators can manage company accounts." : "회원사 관리는 전체 관리자만 처리할 수 있습니다."));
+            return isEn ? "egovframework/com/admin/company_account_en" : "egovframework/com/admin/company_account";
         }
-        StringBuilder redirect = new StringBuilder("redirect:")
-                .append(adminPrefix(request, locale))
-                .append("/member/company_account");
-        boolean hasQuery = appendRedirectQuery(redirect, false, "insttId", targetInsttId);
-        if (response.getStatusCode().is2xxSuccessful()) {
-            appendRedirectQuery(redirect, hasQuery, "saved", "Y");
-        } else {
-            appendRedirectErrorQuery(redirect, hasQuery, extractResponseErrorMessage(body));
+        String normalizedInsttId = safeString(insttId);
+        String normalizedMembershipType = normalizeMembershipCode(membershipType);
+        String normalizedAgencyName = trimToLen(safeString(agencyName), 100);
+        String normalizedRepresentativeName = trimToLen(safeString(representativeName), 60);
+        String normalizedBizNo = trimToLen(digitsOnly(bizRegistrationNumber), 10);
+        String normalizedZipCode = trimToLen(digitsOnly(zipCode), 6);
+        String normalizedAddress = trimToLen(safeString(companyAddress), 200);
+        String normalizedAddressDetail = trimToLen(safeString(companyAddressDetail), 200);
+        String normalizedChargerName = trimToLen(safeString(chargerName), 60);
+        String normalizedChargerEmail = trimToLen(safeString(chargerEmail), 100);
+        String normalizedChargerTel = trimToLen(safeString(chargerTel), 30);
+
+        List<String> errors = new ArrayList<>();
+        if (normalizedMembershipType.isEmpty()) {
+            errors.add(isEn ? "Please select a valid membership type." : "유효한 회원 유형을 선택해 주세요.");
         }
-        return redirect.toString();
+        if (normalizedAgencyName.isEmpty()) {
+            errors.add(isEn ? "Please enter the institution or company name." : "기관/기업명을 입력해 주세요.");
+        }
+        if (normalizedRepresentativeName.isEmpty()) {
+            errors.add(isEn ? "Please enter the representative name." : "대표자명을 입력해 주세요.");
+        }
+        if (normalizedBizNo.length() != 10) {
+            errors.add(isEn ? "Please enter a 10-digit business registration number." : "사업자등록번호 10자리를 입력해 주세요.");
+        }
+        if (normalizedZipCode.isEmpty()) {
+            errors.add(isEn ? "Please search and enter the postal code." : "우편번호를 입력해 주세요.");
+        }
+        if (normalizedAddress.isEmpty()) {
+            errors.add(isEn ? "Please enter the business address." : "사업장 주소를 입력해 주세요.");
+        }
+        if (normalizedChargerName.isEmpty()) {
+            errors.add(isEn ? "Please enter the contact name." : "담당자 성명을 입력해 주세요.");
+        }
+        if (!isValidEmail(normalizedChargerEmail)) {
+            errors.add(isEn ? "Please enter a valid email address." : "올바른 담당자 이메일을 입력해 주세요.");
+        }
+        if (digitsOnly(normalizedChargerTel).length() < 9) {
+            errors.add(isEn ? "Please enter a valid contact number." : "올바른 담당자 연락처를 입력해 주세요.");
+        }
+
+        InstitutionStatusVO existingInstitution = loadInstitutionInfoByInsttId(normalizedInsttId);
+        List<InsttFileVO> existingFiles = loadInsttFilesByInsttId(normalizedInsttId);
+        boolean hasExistingFiles = existingFiles != null && !existingFiles.isEmpty();
+        if (!hasValidInsttEvidenceFiles(fileUploads) && !hasExistingFiles) {
+            errors.add(isEn ? "Please upload at least one supporting document." : "증빙 서류를 1개 이상 업로드해 주세요.");
+        }
+
+        if (!errors.isEmpty()) {
+            populateCompanyAccountModelFromValues(
+                    normalizedInsttId,
+                    normalizedMembershipType,
+                    normalizedAgencyName,
+                    normalizedRepresentativeName,
+                    normalizedBizNo,
+                    normalizedZipCode,
+                    normalizedAddress,
+                    normalizedAddressDetail,
+                    normalizedChargerName,
+                    normalizedChargerEmail,
+                    normalizedChargerTel,
+                    isEn,
+                    model);
+            model.addAttribute("companyAccountFiles", existingFiles == null ? Collections.emptyList() : existingFiles);
+            model.addAttribute("companyAccountErrors", errors);
+            return isEn ? "egovframework/com/admin/company_account_en" : "egovframework/com/admin/company_account";
+        }
+
+        try {
+            String targetInsttId = normalizedInsttId;
+            boolean exists = existingInstitution != null && !existingInstitution.isEmpty();
+            if (targetInsttId.isEmpty()) {
+                targetInsttId = createInstitutionId();
+            }
+
+            InsttInfoVO vo = new InsttInfoVO();
+            vo.setInsttId(targetInsttId);
+            vo.setInsttNm(normalizedAgencyName);
+            vo.setReprsntNm(normalizedRepresentativeName);
+            vo.setBizrno(normalizedBizNo);
+            vo.setZip(normalizedZipCode);
+            vo.setAdres(normalizedAddress);
+            vo.setDetailAdres(normalizedAddressDetail);
+            vo.setChargerNm(normalizedChargerName);
+            vo.setChargerEmail(normalizedChargerEmail);
+            vo.setChargerTel(normalizedChargerTel);
+            vo.setEntrprsSeCode(normalizedMembershipType);
+            vo.setInsttSttus(exists
+                    ? safeString(existingInstitution.getInsttSttus()).isEmpty() ? "A" : safeString(existingInstitution.getInsttSttus())
+                    : "A");
+
+            int nextFileSn = hasExistingFiles ? existingFiles.size() + 1 : 1;
+            List<InsttFileVO> newFiles = saveAdminInsttEvidenceFiles(targetInsttId, fileUploads, nextFileSn);
+            if (!newFiles.isEmpty()) {
+                vo.setBizRegFilePath(joinInsttEvidencePaths(newFiles));
+            } else if (exists) {
+                vo.setBizRegFilePath(existingInstitution.getBizRegFilePath());
+            }
+
+            if (exists) {
+                entrprsManageService.updateInsttInfo(vo);
+            } else {
+                entrprsManageService.insertInsttInfo(vo);
+            }
+            entrprsManageService.insertInsttFiles(newFiles);
+            return "redirect:" + adminPrefix(request, locale) + "/member/company_account?insttId=" + urlEncode(targetInsttId) + "&saved=Y";
+        } catch (Exception e) {
+            log.error("Failed to save admin company account. insttId={}", normalizedInsttId, e);
+            populateCompanyAccountModelFromValues(
+                    normalizedInsttId,
+                    normalizedMembershipType,
+                    normalizedAgencyName,
+                    normalizedRepresentativeName,
+                    normalizedBizNo,
+                    normalizedZipCode,
+                    normalizedAddress,
+                    normalizedAddressDetail,
+                    normalizedChargerName,
+                    normalizedChargerEmail,
+                    normalizedChargerTel,
+                    isEn,
+                    model);
+            model.addAttribute("companyAccountFiles", existingFiles == null ? Collections.emptyList() : existingFiles);
+            model.addAttribute("companyAccountErrors", Collections.singletonList(
+                    isEn ? "An error occurred while saving the company registration." : "회원사 등록 저장 중 오류가 발생했습니다."));
+            return isEn ? "egovframework/com/admin/company_account_en" : "egovframework/com/admin/company_account";
+        }
     }
 
     @RequestMapping(value = "/member/company-file", method = RequestMethod.GET)
@@ -1676,14 +2173,67 @@ public class AdminMainController {
             @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
             @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
             @RequestParam(value = "userSe", required = false) String userSe,
+            @RequestParam(value = "insttId", required = false) String insttId,
             HttpServletRequest request,
             Locale locale) {
         primeCsrfToken(request);
         boolean isEn = isEnglishRequest(request, locale);
         ExtendedModelMap model = new ExtendedModelMap();
-        populateBlockedLoginHistory(pageIndexParam, searchKeyword, userSe, model, isEn ? "egovframework/com/admin/security_history_en" : "egovframework/com/admin/security_history");
+        populateBlockedLoginHistory(pageIndexParam, searchKeyword, userSe, insttId, model, isEn ? "egovframework/com/admin/security_history_en" : "egovframework/com/admin/security_history", request);
         model.addAttribute("isEn", isEn);
         return ResponseEntity.ok(new LinkedHashMap<>(model));
+    }
+
+    @RequestMapping(value = "/system/access_history", method = { RequestMethod.GET, RequestMethod.POST })
+    public String access_history(
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "insttId", required = false) String insttId,
+            HttpServletRequest request,
+            Locale locale,
+            Model model) {
+        return redirectReactMigration(request, locale, "access-history");
+    }
+
+    @GetMapping("/system/access_history/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> accessHistoryPageApi(
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "insttId", required = false) String insttId,
+            HttpServletRequest request,
+            Locale locale) {
+        primeCsrfToken(request);
+        boolean isEn = isEnglishRequest(request, locale);
+        return ResponseEntity.ok(buildAccessHistoryPagePayload(pageIndexParam, searchKeyword, insttId, request, isEn));
+    }
+
+    @RequestMapping(value = "/system/error-log", method = { RequestMethod.GET, RequestMethod.POST })
+    public String error_log(
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "insttId", required = false) String insttId,
+            @RequestParam(value = "sourceType", required = false) String sourceType,
+            @RequestParam(value = "errorType", required = false) String errorType,
+            HttpServletRequest request,
+            Locale locale,
+            Model model) {
+        return redirectReactMigration(request, locale, "error-log");
+    }
+
+    @GetMapping("/system/error-log/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> errorLogPageApi(
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "insttId", required = false) String insttId,
+            @RequestParam(value = "sourceType", required = false) String sourceType,
+            @RequestParam(value = "errorType", required = false) String errorType,
+            HttpServletRequest request,
+            Locale locale) {
+        primeCsrfToken(request);
+        boolean isEn = isEnglishRequest(request, locale);
+        return ResponseEntity.ok(buildErrorLogPagePayload(pageIndexParam, searchKeyword, insttId, sourceType, errorType, request, isEn));
     }
 
     @RequestMapping(value = "/system/security-policy", method = { RequestMethod.GET, RequestMethod.POST })
@@ -1820,12 +2370,13 @@ public class AdminMainController {
             @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
             @RequestParam(value = "userSe", required = false) String userSe,
             @RequestParam(value = "loginResult", required = false) String loginResult,
+            @RequestParam(value = "insttId", required = false) String insttId,
             HttpServletRequest request,
             Locale locale) {
         primeCsrfToken(request);
         boolean isEn = isEnglishRequest(request, locale);
         ExtendedModelMap model = new ExtendedModelMap();
-        populateLoginHistory(pageIndexParam, searchKeyword, userSe, loginResult, model, isEn ? "egovframework/com/admin/login_history_en" : "egovframework/com/admin/login_history");
+        populateLoginHistory(pageIndexParam, searchKeyword, userSe, loginResult, insttId, model, isEn ? "egovframework/com/admin/login_history_en" : "egovframework/com/admin/login_history", request);
         model.addAttribute("isEn", isEn);
         return ResponseEntity.ok(new LinkedHashMap<>(model));
     }
@@ -1960,9 +2511,9 @@ public class AdminMainController {
         searchVO.setSbscrbSttus(status);
         String currentUserId = extractCurrentUserId(request);
         String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        if (!hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        if (!hasMemberManagementCompanyOperatorAccess(currentUserId, currentUserAuthorCode)) {
             model.addAttribute("memberApprovalError",
-                    isEn ? "Only global administrators can view member approvals." : "회원 승인 목록은 전체 관리자만 조회할 수 있습니다.");
+                    isEn ? "You do not have permission to view member approvals." : "회원 승인 목록을 조회할 권한이 없습니다.");
             model.addAttribute("approvalRows", Collections.emptyList());
             model.addAttribute("memberApprovalTotalCount", 0);
             model.addAttribute("pageIndex", 1);
@@ -1981,6 +2532,9 @@ public class AdminMainController {
             model.addAttribute("memberApprovalStatusOptions", buildApprovalStatusOptions(isEn));
             model.addAttribute("memberTypeOptions", buildMemberTypeOptions(isEn));
             return viewName;
+        }
+        if (requiresMemberManagementCompanyScope(currentUserId, currentUserAuthorCode)) {
+            searchVO.setInsttId(resolveCurrentUserInsttId(currentUserId));
         }
 
         List<EntrprsManageVO> memberList;
@@ -2082,9 +2636,9 @@ public class AdminMainController {
         }
         String currentUserId = extractCurrentUserId(request);
         String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        if (!hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        if (!hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)) {
             model.addAttribute("memberApprovalError",
-                    isEn ? "Only global administrators can view company approvals." : "회원사 승인 목록은 전체 관리자만 조회할 수 있습니다.");
+                    isEn ? "Only master administrators can view company approvals." : "회원사 승인 목록은 마스터 관리자만 조회할 수 있습니다.");
             model.addAttribute("approvalRows", Collections.emptyList());
             model.addAttribute("memberApprovalTotalCount", 0);
             model.addAttribute("pageIndex", 1);
@@ -2215,7 +2769,7 @@ public class AdminMainController {
         return viewName;
     }
 
-    private void processMemberApprovalStatusChange(String memberId, String targetStatus) throws Exception {
+    private void processMemberApprovalStatusChange(String memberId, String targetStatus, String rejectReason) throws Exception {
         String normalizedMemberId = safeString(memberId);
         String normalizedTargetStatus = normalizeMemberStatusCode(targetStatus);
         if (normalizedMemberId.isEmpty() || normalizedTargetStatus.isEmpty()) {
@@ -2232,7 +2786,7 @@ public class AdminMainController {
         }
     }
 
-    private void processCompanyApprovalStatusChange(String insttId, String targetStatus) throws Exception {
+    private void processCompanyApprovalStatusChange(String insttId, String targetStatus, String rejectReason) throws Exception {
         String normalizedInsttId = safeString(insttId);
         String normalizedTargetStatus = normalizeMemberStatusCode(targetStatus);
         if (normalizedInsttId.isEmpty() || normalizedTargetStatus.isEmpty()) {
@@ -2253,8 +2807,13 @@ public class AdminMainController {
         vo.setBizRegFilePath(current.getBizRegFilePath());
         vo.setInsttSttus(normalizedTargetStatus);
         vo.setEntrprsSeCode(current.getEntrprsSeCode());
-        vo.setRjctRsn(current.getRjctRsn());
-        vo.setRjctPnttm(current.getRjctPnttm());
+        if ("R".equals(normalizedTargetStatus)) {
+            vo.setRjctRsn(trimToLen(safeString(rejectReason), 1000));
+            vo.setRjctPnttm(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        } else {
+            vo.setRjctRsn("");
+            vo.setRjctPnttm("");
+        }
         vo.setChargerNm(current.getChargerNm());
         vo.setChargerEmail(current.getChargerEmail());
         vo.setChargerTel(current.getChargerTel());
@@ -2267,43 +2826,6 @@ public class AdminMainController {
             return;
         }
         redirect.append('&').append(name).append('=').append(urlEncode(normalized));
-    }
-
-    private boolean appendRedirectQuery(StringBuilder redirect, boolean hasQuery, String name, String value) {
-        String normalized = safeString(value);
-        if (normalized.isEmpty()) {
-            return hasQuery;
-        }
-        redirect.append(hasQuery ? '&' : '?')
-                .append(name)
-                .append('=')
-                .append(urlEncode(normalized));
-        return true;
-    }
-
-    private boolean appendRedirectErrorQuery(StringBuilder redirect, boolean hasQuery, String errorMessage) {
-        return appendRedirectQuery(redirect, hasQuery, "errorMessage", errorMessage);
-    }
-
-    private String extractResponseErrorMessage(Map<String, Object> body) {
-        if (body == null || body.isEmpty()) {
-            return "";
-        }
-        Object message = body.get("message");
-        String normalizedMessage = safeString(message == null ? null : message.toString());
-        if (!normalizedMessage.isEmpty()) {
-            return normalizedMessage;
-        }
-        Object errors = body.get("errors");
-        if (errors instanceof Collection<?>) {
-            for (Object error : (Collection<?>) errors) {
-                String value = safeString(error == null ? null : error.toString());
-                if (!value.isEmpty()) {
-                    return value;
-                }
-            }
-        }
-        return "";
     }
 
     private String resolveMemberApprovalBasePath(HttpServletRequest request, Locale locale) {
@@ -2375,7 +2897,8 @@ public class AdminMainController {
             String searchKeyword,
             String sbscrbSttus,
             Model model,
-            String viewName) {
+            String viewName,
+            HttpServletRequest request) {
         int pageIndex = 1;
         if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
             try {
@@ -2389,17 +2912,27 @@ public class AdminMainController {
 
         String keyword = safeString(searchKeyword);
         String status = safeString(sbscrbSttus).toUpperCase(Locale.ROOT);
-        Sort sort = Sort.by(Sort.Direction.DESC, "sbscrbDe");
-        Page<EmplyrInfo> page;
+        String currentUserId = extractCurrentUserId(request);
+        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+        boolean canView = adminAuthorityPagePayloadSupport.hasMemberManagementCompanyAdminAccess(currentUserId, currentUserAuthorCode);
+        if (!canView) {
+            model.addAttribute("member_listError", "관리자 목록을 조회할 권한이 없습니다.");
+            model.addAttribute("member_list", Collections.emptyList());
+            model.addAttribute("totalCount", 0);
+            model.addAttribute("pageIndex", 1);
+            model.addAttribute("pageSize", pageSize);
+            model.addAttribute("totalPages", 1);
+            model.addAttribute("startPage", 1);
+            model.addAttribute("endPage", 1);
+            model.addAttribute("searchKeyword", keyword);
+            model.addAttribute("sbscrbSttus", status);
+            model.addAttribute("canUseAdminListActions", false);
+            return viewName;
+        }
+
+        List<EmplyrInfo> visibleAdmins;
         try {
-            page = employMemberRepository.searchAdminMembers(keyword, status,
-                    PageRequest.of(currentPage - 1, pageSize, sort));
-            int totalPages = page.getTotalPages();
-            if (totalPages > 0 && currentPage > totalPages) {
-                currentPage = totalPages;
-                page = employMemberRepository.searchAdminMembers(keyword, status,
-                        PageRequest.of(currentPage - 1, pageSize, sort));
-            }
+            visibleAdmins = selectVisibleAdminMembers(currentUserId, currentUserAuthorCode, keyword, status);
         } catch (Exception e) {
             log.error("Failed to load admin member list.", e);
             model.addAttribute("member_listError", e.getMessage());
@@ -2412,14 +2945,18 @@ public class AdminMainController {
             model.addAttribute("endPage", 1);
             model.addAttribute("searchKeyword", keyword);
             model.addAttribute("sbscrbSttus", status);
+            model.addAttribute("canUseAdminListActions", false);
             return viewName;
         }
 
-        int totalCount = (int) page.getTotalElements();
-        int totalPages = Math.max(page.getTotalPages(), 1);
+        int totalCount = visibleAdmins.size();
+        int totalPages = Math.max((int) Math.ceil(totalCount / (double) pageSize), 1);
         if (currentPage > totalPages) {
             currentPage = totalPages;
         }
+        int fromIndex = Math.max(0, Math.min((currentPage - 1) * pageSize, totalCount));
+        int toIndex = Math.max(fromIndex, Math.min(fromIndex + pageSize, totalCount));
+        List<EmplyrInfo> pageItems = totalCount == 0 ? Collections.emptyList() : visibleAdmins.subList(fromIndex, toIndex);
         int startPage = Math.max(1, currentPage - 4);
         int endPage = Math.min(totalPages, startPage + 9);
         if (endPage - startPage < 9) {
@@ -2428,7 +2965,7 @@ public class AdminMainController {
         int prevPage = Math.max(1, currentPage - 1);
         int nextPage = Math.min(totalPages, currentPage + 1);
 
-        model.addAttribute("member_list", page.getContent());
+        model.addAttribute("member_list", pageItems);
         model.addAttribute("totalCount", totalCount);
         model.addAttribute("pageIndex", currentPage);
         model.addAttribute("pageSize", pageSize);
@@ -2439,6 +2976,7 @@ public class AdminMainController {
         model.addAttribute("nextPage", nextPage);
         model.addAttribute("searchKeyword", keyword);
         model.addAttribute("sbscrbSttus", status);
+        model.addAttribute("canUseAdminListActions", canCreateAdminAccounts(currentUserId, currentUserAuthorCode));
         return viewName;
     }
 
@@ -2658,8 +3196,10 @@ public class AdminMainController {
             String searchKeyword,
             String userSe,
             String loginResult,
+            String requestedInsttId,
             Model model,
-            String viewName) {
+            String viewName,
+            HttpServletRequest request) {
         int pageIndex = 1;
         if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
             try {
@@ -2674,11 +3214,22 @@ public class AdminMainController {
         String keyword = safeString(searchKeyword);
         String normalizedUserSe = safeString(userSe).toUpperCase(Locale.ROOT);
         String normalizedLoginResult = safeString(loginResult).toUpperCase(Locale.ROOT);
+        String currentUserId = extractCurrentUserId(request);
+        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+        boolean masterAccess = hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode);
+        String currentUserInsttId = resolveCurrentUserInsttId(currentUserId);
+        List<Map<String, String>> companyOptions = masterAccess
+                ? loadAccessHistoryCompanyOptions()
+                : buildScopedAccessHistoryCompanyOptions(currentUserInsttId);
+        String selectedInsttId = masterAccess
+                ? resolveSelectedInsttId(requestedInsttId, companyOptions, true)
+                : currentUserInsttId;
 
         LoginHistorySearchVO searchVO = new LoginHistorySearchVO();
         searchVO.setSearchKeyword(keyword);
         searchVO.setUserSe(normalizedUserSe);
         searchVO.setLoginResult(normalizedLoginResult);
+        searchVO.setInsttId(selectedInsttId);
         searchVO.setRecordCountPerPage(pageSize);
 
         List<LoginHistoryVO> pageItems;
@@ -2722,6 +3273,9 @@ public class AdminMainController {
         model.addAttribute("searchKeyword", keyword);
         model.addAttribute("userSe", normalizedUserSe);
         model.addAttribute("loginResult", normalizedLoginResult);
+        model.addAttribute("companyOptions", companyOptions);
+        model.addAttribute("selectedInsttId", selectedInsttId);
+        model.addAttribute("canManageAllCompanies", masterAccess);
         return viewName;
     }
 
@@ -2729,9 +3283,11 @@ public class AdminMainController {
             String pageIndexParam,
             String searchKeyword,
             String userSe,
+            String requestedInsttId,
             Model model,
-            String viewName) {
-        return populateLoginHistoryInternal(pageIndexParam, searchKeyword, userSe, "FAIL", "Y", model, viewName);
+            String viewName,
+            HttpServletRequest request) {
+        return populateLoginHistoryInternal(pageIndexParam, searchKeyword, userSe, "FAIL", "Y", requestedInsttId, model, viewName, request);
     }
 
     private String populateLoginHistoryInternal(
@@ -2740,8 +3296,10 @@ public class AdminMainController {
             String userSe,
             String loginResult,
             String blockedOnly,
+            String requestedInsttId,
             Model model,
-            String viewName) {
+            String viewName,
+            HttpServletRequest request) {
         int pageIndex = 1;
         if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
             try {
@@ -2757,12 +3315,23 @@ public class AdminMainController {
         String normalizedUserSe = safeString(userSe).toUpperCase(Locale.ROOT);
         String normalizedLoginResult = safeString(loginResult).toUpperCase(Locale.ROOT);
         String normalizedBlockedOnly = safeString(blockedOnly).toUpperCase(Locale.ROOT);
+        String currentUserId = extractCurrentUserId(request);
+        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+        boolean masterAccess = hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode);
+        String currentUserInsttId = resolveCurrentUserInsttId(currentUserId);
+        List<Map<String, String>> companyOptions = masterAccess
+                ? loadAccessHistoryCompanyOptions()
+                : buildScopedAccessHistoryCompanyOptions(currentUserInsttId);
+        String selectedInsttId = masterAccess
+                ? resolveSelectedInsttId(requestedInsttId, companyOptions, true)
+                : currentUserInsttId;
 
         LoginHistorySearchVO searchVO = new LoginHistorySearchVO();
         searchVO.setSearchKeyword(keyword);
         searchVO.setUserSe(normalizedUserSe);
         searchVO.setLoginResult(normalizedLoginResult);
         searchVO.setBlockedOnly(normalizedBlockedOnly);
+        searchVO.setInsttId(selectedInsttId);
         searchVO.setRecordCountPerPage(pageSize);
 
         List<LoginHistoryVO> pageItems;
@@ -2806,13 +3375,466 @@ public class AdminMainController {
         model.addAttribute("searchKeyword", keyword);
         model.addAttribute("userSe", normalizedUserSe);
         model.addAttribute("loginResult", normalizedLoginResult);
+        model.addAttribute("companyOptions", companyOptions);
+        model.addAttribute("selectedInsttId", selectedInsttId);
+        model.addAttribute("canManageAllCompanies", masterAccess);
         return viewName;
+    }
+
+    private Map<String, Object> buildAccessHistoryPagePayload(
+            String pageIndexParam,
+            String searchKeyword,
+            String requestedInsttId,
+            HttpServletRequest request,
+            boolean isEn) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        int pageIndex = 1;
+        if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
+            try {
+                pageIndex = Integer.parseInt(pageIndexParam.trim());
+            } catch (NumberFormatException ignored) {
+                pageIndex = 1;
+            }
+        }
+
+        String currentUserId = extractCurrentUserId(request);
+        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+        boolean masterAccess = ROLE_SYSTEM_MASTER.equalsIgnoreCase(currentUserAuthorCode);
+        boolean systemAccess = ROLE_SYSTEM_ADMIN.equalsIgnoreCase(currentUserAuthorCode);
+        boolean canView = masterAccess || systemAccess;
+        payload.put("canViewAccessHistory", canView);
+        payload.put("canManageAllCompanies", masterAccess);
+        payload.put("searchKeyword", safeString(searchKeyword));
+
+        String currentUserInsttId = resolveCurrentUserInsttId(currentUserId);
+        List<Map<String, String>> companyOptions = masterAccess
+                ? loadAccessHistoryCompanyOptions()
+                : buildScopedAccessHistoryCompanyOptions(currentUserInsttId);
+        String selectedInsttId = masterAccess
+                ? resolveSelectedInsttId(requestedInsttId, companyOptions, true)
+                : currentUserInsttId;
+        payload.put("companyOptions", companyOptions);
+        payload.put("selectedInsttId", selectedInsttId);
+
+        if (!masterAccess && currentUserInsttId.isEmpty()) {
+            payload.put("accessHistoryError", isEn
+                    ? "Your administrator account is missing company information."
+                    : "관리자 계정에 회사 정보가 없습니다.");
+            payload.put("accessHistoryList", Collections.emptyList());
+            payload.put("totalCount", 0);
+            payload.put("pageIndex", 1);
+            payload.put("pageSize", 10);
+            payload.put("totalPages", 1);
+            payload.put("startPage", 1);
+            payload.put("endPage", 1);
+            payload.put("prevPage", 1);
+            payload.put("nextPage", 1);
+            payload.put("isEn", isEn);
+            return payload;
+        }
+
+        if (!canView) {
+            payload.put("accessHistoryError", isEn
+                    ? "Only master administrators and system administrators can view access history."
+                    : "접속 로그는 마스터 관리자와 시스템 관리자만 조회할 수 있습니다.");
+            payload.put("accessHistoryList", Collections.emptyList());
+            payload.put("totalCount", 0);
+            payload.put("pageIndex", 1);
+            payload.put("pageSize", 10);
+            payload.put("totalPages", 1);
+            payload.put("startPage", 1);
+            payload.put("endPage", 1);
+            payload.put("prevPage", 1);
+            payload.put("nextPage", 1);
+            payload.put("isEn", isEn);
+            return payload;
+        }
+
+        Map<String, String> companyNameById = new LinkedHashMap<>();
+        for (Map<String, String> option : companyOptions) {
+            companyNameById.put(safeString(option.get("insttId")), safeString(option.get("cmpnyNm")));
+        }
+
+        String forcedInsttId = masterAccess ? selectedInsttId : currentUserInsttId;
+        String errorMessage = "";
+        int pageSize = 10;
+        List<Map<String, Object>> rows = new ArrayList<>();
+        int totalCount = 0;
+        int totalPages = 1;
+        int currentPage = 1;
+        try {
+            AccessEventSearchVO searchVO = new AccessEventSearchVO();
+            searchVO.setFirstIndex(Math.max(pageIndex - 1, 0) * pageSize);
+            searchVO.setRecordCountPerPage(pageSize);
+            searchVO.setSearchKeyword(safeString(searchKeyword));
+            searchVO.setInsttId(forcedInsttId);
+            searchVO.setFeatureType("PAGE_VIEW");
+            totalCount = observabilityQueryService.selectAccessEventCount(searchVO);
+            totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
+            currentPage = Math.max(1, Math.min(pageIndex, totalPages));
+            searchVO.setFirstIndex(Math.max(currentPage - 1, 0) * pageSize);
+            for (AccessEventRecordVO item : observabilityQueryService.selectAccessEventList(searchVO)) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                String scopedInsttId = firstNonBlank(
+                        safeString(item.getTargetCompanyContextId()),
+                        safeString(item.getCompanyContextId()),
+                        safeString(item.getActorInsttId())
+                );
+                if (scopedInsttId.isEmpty()) {
+                    scopedInsttId = "__GLOBAL__";
+                }
+                row.put("executedAt", safeString(item.getCreatedAt()));
+                row.put("insttId", scopedInsttId);
+                row.put("companyName", companyNameById.getOrDefault(scopedInsttId, "__GLOBAL__".equals(scopedInsttId) ? (isEn ? "Global" : "공통/전체") : resolveCompanyNameByInsttId(scopedInsttId)));
+                row.put("actorUserId", safeString(item.getActorId()));
+                row.put("actorType", safeString(item.getActorType()));
+                row.put("actorAuthorCode", safeString(item.getActorRole()));
+                row.put("requestUri", safeString(item.getRequestUri()));
+                row.put("httpMethod", safeString(item.getHttpMethod()));
+                row.put("responseStatus", item.getResponseStatus());
+                row.put("durationMs", item.getDurationMs());
+                row.put("remoteAddr", safeString(item.getRemoteAddr()));
+                row.put("featureType", safeString(item.getFeatureType()));
+                row.put("companyScopeDecision", safeString(item.getCompanyScopeDecision()));
+                row.put("pageId", safeString(item.getPageId()));
+                row.put("apiId", safeString(item.getApiId()));
+                rows.add(row);
+            }
+        } catch (Exception e) {
+            log.error("Failed to load persisted access history. Falling back to recent file logs.", e);
+            errorMessage = isEn
+                    ? "Persistent access history is not ready yet. Showing recent log file data."
+                    : "영구 접속 로그가 아직 준비되지 않아 최근 파일 로그를 대신 표시합니다.";
+            List<RequestExecutionLogVO> filtered = new ArrayList<>();
+            String normalizedKeyword = safeString(searchKeyword).toLowerCase(Locale.ROOT);
+            try {
+                for (RequestExecutionLogVO item : requestExecutionLogService.readRecent(20000)) {
+                    if (isAccessHistorySelfNoise(item)) {
+                        continue;
+                    }
+                    if (!isFallbackPageAccessCandidate(item)) {
+                        continue;
+                    }
+                    String scopedInsttId = resolveAccessHistoryInsttId(item);
+                    if (scopedInsttId.isEmpty() && !masterAccess) {
+                        continue;
+                    }
+                    if (scopedInsttId.isEmpty()) {
+                        scopedInsttId = "__GLOBAL__";
+                    }
+                    if (!forcedInsttId.isEmpty() && !forcedInsttId.equals(scopedInsttId)) {
+                        continue;
+                    }
+                    if (!normalizedKeyword.isEmpty()
+                            && !matchesAccessHistoryKeyword(item, normalizedKeyword, companyNameById.get(scopedInsttId))) {
+                        continue;
+                    }
+                    filtered.add(item);
+                }
+            } catch (Exception inner) {
+                log.error("Failed to load fallback access history.", inner);
+            }
+            totalCount = filtered.size();
+            totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
+            currentPage = Math.max(1, Math.min(pageIndex, totalPages));
+            int fromIndex = Math.max(0, (currentPage - 1) * pageSize);
+            int toIndex = Math.min(totalCount, fromIndex + pageSize);
+            for (RequestExecutionLogVO item : filtered.subList(fromIndex, toIndex)) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                String scopedInsttId = resolveAccessHistoryInsttId(item);
+                if (scopedInsttId.isEmpty()) {
+                    scopedInsttId = "__GLOBAL__";
+                }
+                row.put("executedAt", safeString(item.getExecutedAt()));
+                row.put("insttId", scopedInsttId);
+                row.put("companyName", companyNameById.getOrDefault(scopedInsttId, "__GLOBAL__".equals(scopedInsttId) ? (isEn ? "Global" : "공통/전체") : scopedInsttId));
+                row.put("actorUserId", safeString(item.getActorUserId()));
+                row.put("actorType", safeString(item.getActorType()));
+                row.put("actorAuthorCode", safeString(item.getActorAuthorCode()));
+                row.put("requestUri", safeString(item.getRequestUri()));
+                row.put("httpMethod", safeString(item.getHttpMethod()));
+                row.put("responseStatus", item.getResponseStatus());
+                row.put("durationMs", item.getDurationMs());
+                row.put("remoteAddr", safeString(item.getRemoteAddr()));
+                row.put("featureType", safeString(item.getFeatureType()));
+                row.put("companyScopeDecision", safeString(item.getCompanyScopeDecision()));
+                rows.add(row);
+            }
+        }
+
+        int startPage = Math.max(1, currentPage - 4);
+        int endPage = Math.min(totalPages, startPage + 9);
+        if (endPage - startPage < 9) {
+            startPage = Math.max(1, endPage - 9);
+        }
+        payload.put("accessHistoryError", errorMessage);
+        payload.put("accessHistoryList", rows);
+        payload.put("totalCount", totalCount);
+        payload.put("pageIndex", currentPage);
+        payload.put("pageSize", pageSize);
+        payload.put("totalPages", totalPages);
+        payload.put("startPage", startPage);
+        payload.put("endPage", endPage);
+        payload.put("prevPage", Math.max(1, currentPage - 1));
+        payload.put("nextPage", Math.min(totalPages, currentPage + 1));
+        payload.put("isEn", isEn);
+        return payload;
+    }
+
+    private Map<String, Object> buildErrorLogPagePayload(
+            String pageIndexParam,
+            String searchKeyword,
+            String requestedInsttId,
+            String sourceType,
+            String errorType,
+            HttpServletRequest request,
+            boolean isEn) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        int pageIndex = 1;
+        if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
+            try {
+                pageIndex = Integer.parseInt(pageIndexParam.trim());
+            } catch (NumberFormatException ignored) {
+                pageIndex = 1;
+            }
+        }
+        String currentUserId = extractCurrentUserId(request);
+        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+        boolean masterAccess = ROLE_SYSTEM_MASTER.equalsIgnoreCase(currentUserAuthorCode);
+        boolean systemAccess = ROLE_SYSTEM_ADMIN.equalsIgnoreCase(currentUserAuthorCode);
+        boolean canView = masterAccess || systemAccess;
+        payload.put("canViewErrorLog", canView);
+        payload.put("canManageAllCompanies", masterAccess);
+        payload.put("searchKeyword", safeString(searchKeyword));
+        payload.put("selectedSourceType", safeString(sourceType));
+        payload.put("selectedErrorType", safeString(errorType));
+
+        String currentUserInsttId = resolveCurrentUserInsttId(currentUserId);
+        List<Map<String, String>> companyOptions = masterAccess
+                ? loadAccessHistoryCompanyOptions()
+                : buildScopedAccessHistoryCompanyOptions(currentUserInsttId);
+        String selectedInsttId = masterAccess
+                ? resolveSelectedInsttId(requestedInsttId, companyOptions, true)
+                : currentUserInsttId;
+        payload.put("companyOptions", companyOptions);
+        payload.put("selectedInsttId", selectedInsttId);
+
+        if (!masterAccess && currentUserInsttId.isEmpty()) {
+            payload.put("errorLogError", isEn ? "Your administrator account is missing company information." : "관리자 계정에 회사 정보가 없습니다.");
+            payload.put("errorLogList", Collections.emptyList());
+            payload.put("totalCount", 0);
+            payload.put("pageIndex", 1);
+            payload.put("pageSize", 10);
+            payload.put("totalPages", 1);
+            payload.put("startPage", 1);
+            payload.put("endPage", 1);
+            payload.put("prevPage", 1);
+            payload.put("nextPage", 1);
+            payload.put("isEn", isEn);
+            return payload;
+        }
+
+        if (!canView) {
+            payload.put("errorLogError", isEn ? "Only master administrators and system administrators can view error logs." : "에러 로그는 마스터 관리자와 시스템 관리자만 조회할 수 있습니다.");
+            payload.put("errorLogList", Collections.emptyList());
+            payload.put("totalCount", 0);
+            payload.put("pageIndex", 1);
+            payload.put("pageSize", 10);
+            payload.put("totalPages", 1);
+            payload.put("startPage", 1);
+            payload.put("endPage", 1);
+            payload.put("prevPage", 1);
+            payload.put("nextPage", 1);
+            payload.put("isEn", isEn);
+            return payload;
+        }
+
+        String forcedInsttId = masterAccess ? selectedInsttId : currentUserInsttId;
+        int pageSize = 10;
+        int totalCount = 0;
+        int totalPages = 1;
+        int currentPage = 1;
+        List<Map<String, Object>> rows = new ArrayList<>();
+        String errorMessage = "";
+        try {
+            ErrorEventSearchVO searchVO = new ErrorEventSearchVO();
+            searchVO.setFirstIndex(Math.max(pageIndex - 1, 0) * pageSize);
+            searchVO.setRecordCountPerPage(pageSize);
+            searchVO.setSearchKeyword(safeString(searchKeyword));
+            searchVO.setInsttId(forcedInsttId);
+            searchVO.setSourceType(safeString(sourceType));
+            searchVO.setErrorType(safeString(errorType));
+            totalCount = observabilityQueryService.selectErrorEventCount(searchVO);
+            totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
+            currentPage = Math.max(1, Math.min(pageIndex, totalPages));
+            searchVO.setFirstIndex(Math.max(currentPage - 1, 0) * pageSize);
+            for (ErrorEventRecordVO item : observabilityQueryService.selectErrorEventList(searchVO)) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                String scopedInsttId = safeString(item.getActorInsttId());
+                row.put("createdAt", safeString(item.getCreatedAt()));
+                row.put("insttId", scopedInsttId);
+                row.put("companyName", scopedInsttId.isEmpty() ? "-" : resolveCompanyNameByInsttId(scopedInsttId));
+                row.put("sourceType", safeString(item.getSourceType()));
+                row.put("errorType", safeString(item.getErrorType()));
+                row.put("actorId", safeString(item.getActorId()));
+                row.put("actorRole", safeString(item.getActorRole()));
+                row.put("requestUri", safeString(item.getRequestUri()));
+                row.put("pageId", safeString(item.getPageId()));
+                row.put("apiId", safeString(item.getApiId()));
+                row.put("remoteAddr", safeString(item.getRemoteAddr()));
+                row.put("message", safeString(item.getMessage()));
+                row.put("resultStatus", safeString(item.getResultStatus()));
+                rows.add(row);
+            }
+        } catch (Exception e) {
+            log.error("Failed to load error log page.", e);
+            errorMessage = isEn ? "An error occurred while retrieving error logs." : "에러 로그 조회 중 오류가 발생했습니다.";
+        }
+
+        int startPage = Math.max(1, currentPage - 4);
+        int endPage = Math.min(totalPages, startPage + 9);
+        if (endPage - startPage < 9) {
+            startPage = Math.max(1, endPage - 9);
+        }
+        payload.put("errorLogError", errorMessage);
+        payload.put("errorLogList", rows);
+        payload.put("totalCount", totalCount);
+        payload.put("pageIndex", currentPage);
+        payload.put("pageSize", pageSize);
+        payload.put("totalPages", totalPages);
+        payload.put("startPage", startPage);
+        payload.put("endPage", endPage);
+        payload.put("prevPage", Math.max(1, currentPage - 1));
+        payload.put("nextPage", Math.min(totalPages, currentPage + 1));
+        payload.put("sourceTypeOptions", buildObservabilityOptionList("", "BACKEND_ERROR_CONTROLLER", "PAGE_EXCEPTION_ADVICE", "FRONTEND_REPORT", "FRONTEND_TELEMETRY"));
+        payload.put("errorTypeOptions", buildObservabilityOptionList("", "UI_ERROR", "ERROR_DISPATCH", "PAGE_EXCEPTION"));
+        payload.put("isEn", isEn);
+        return payload;
+    }
+
+    List<Map<String, String>> loadAccessHistoryCompanyOptions() {
+        try {
+            Map<String, Object> searchParams = new LinkedHashMap<>();
+            searchParams.put("keyword", "");
+            searchParams.put("status", "");
+            searchParams.put("offset", 0);
+            searchParams.put("pageSize", 500);
+            List<?> companies = entrprsManageService.searchCompanyListPaged(searchParams);
+            Map<String, String> dedup = new LinkedHashMap<>();
+            for (Object item : companies) {
+                String insttId = "";
+                String cmpnyNm = "";
+                if (item instanceof CompanyListItemVO) {
+                    CompanyListItemVO company = (CompanyListItemVO) item;
+                    insttId = safeString(company.getInsttId());
+                    cmpnyNm = safeString(company.getCmpnyNm());
+                } else if (item instanceof Map) {
+                    Map<?, ?> row = (Map<?, ?>) item;
+                    insttId = stringValue(row.get("insttId"));
+                    if (insttId.isEmpty()) {
+                        insttId = stringValue(row.get("INSTT_ID"));
+                    }
+                    cmpnyNm = stringValue(row.get("cmpnyNm"));
+                    if (cmpnyNm.isEmpty()) {
+                        cmpnyNm = stringValue(row.get("CMPNY_NM"));
+                    }
+                }
+                if (!insttId.isEmpty() && !dedup.containsKey(insttId)) {
+                    dedup.put(insttId, cmpnyNm);
+                }
+            }
+            List<Map<String, String>> options = new ArrayList<>();
+            for (Map.Entry<String, String> entry : dedup.entrySet()) {
+                Map<String, String> option = new LinkedHashMap<>();
+                option.put("insttId", entry.getKey());
+                option.put("cmpnyNm", entry.getValue());
+                options.add(option);
+            }
+            return options;
+        } catch (Exception e) {
+            log.warn("Failed to load access history company options.", e);
+            return Collections.emptyList();
+        }
+    }
+
+    List<Map<String, String>> buildScopedAccessHistoryCompanyOptions(String insttId) {
+        String normalizedInsttId = safeString(insttId);
+        if (normalizedInsttId.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<Map<String, String>> masterOptions = loadAccessHistoryCompanyOptions();
+        if (masterOptions.isEmpty()) {
+            Map<String, String> fallback = new LinkedHashMap<>();
+            fallback.put("insttId", normalizedInsttId);
+            fallback.put("cmpnyNm", normalizedInsttId);
+            return Collections.singletonList(fallback);
+        }
+        return masterOptions.stream()
+                .filter(option -> normalizedInsttId.equals(option.get("insttId")))
+                .collect(Collectors.toList());
+    }
+
+    private String resolveAccessHistoryInsttId(RequestExecutionLogVO item) {
+        if (item == null) {
+            return "";
+        }
+        String[] candidates = {
+                safeString(item.getCompanyContextId()),
+                safeString(item.getTargetCompanyContextId()),
+                safeString(item.getActorInsttId())
+        };
+        for (String candidate : candidates) {
+            if (!candidate.isEmpty()) {
+                return candidate;
+            }
+        }
+        return "";
+    }
+
+    private boolean matchesAccessHistoryKeyword(RequestExecutionLogVO item, String keyword, String companyName) {
+        String normalizedKeyword = safeString(keyword).toLowerCase(Locale.ROOT);
+        if (normalizedKeyword.isEmpty()) {
+            return true;
+        }
+        return safeString(item.getActorUserId()).toLowerCase(Locale.ROOT).contains(normalizedKeyword)
+                || safeString(item.getRequestUri()).toLowerCase(Locale.ROOT).contains(normalizedKeyword)
+                || safeString(item.getRemoteAddr()).toLowerCase(Locale.ROOT).contains(normalizedKeyword)
+                || safeString(item.getActorAuthorCode()).toLowerCase(Locale.ROOT).contains(normalizedKeyword)
+                || safeString(companyName).toLowerCase(Locale.ROOT).contains(normalizedKeyword);
+    }
+
+    private boolean isAccessHistorySelfNoise(RequestExecutionLogVO item) {
+        String uri = safeString(item == null ? null : item.getRequestUri());
+        return "/admin/system/access_history".equals(uri)
+                || "/en/admin/system/access_history".equals(uri)
+                || "/admin/system/access_history/page-data".equals(uri)
+                || "/en/admin/system/access_history/page-data".equals(uri);
+    }
+
+    private boolean isFallbackPageAccessCandidate(RequestExecutionLogVO item) {
+        String uri = safeString(item == null ? null : item.getRequestUri()).toLowerCase(Locale.ROOT);
+        String method = safeString(item == null ? null : item.getHttpMethod()).toUpperCase(Locale.ROOT);
+        if (!"GET".equals(method)) {
+            return false;
+        }
+        if (uri.isEmpty()
+                || uri.startsWith("/api/")
+                || uri.contains("/api/")
+                || uri.endsWith("/page-data")
+                || uri.startsWith("/css/")
+                || uri.startsWith("/js/")
+                || uri.startsWith("/images/")) {
+            return false;
+        }
+        return uri.startsWith("/admin/") || uri.startsWith("/en/admin/");
     }
 
     String populatePasswordResetHistory(
             String pageIndexParam,
             String searchKeyword,
             String resetSource,
+            String insttId,
+            HttpServletRequest request,
             Model model,
             String viewName,
             boolean isEn) {
@@ -2820,6 +3842,8 @@ public class AdminMainController {
                 pageIndexParam,
                 searchKeyword,
                 resetSource,
+                insttId,
+                request,
                 model,
                 viewName,
                 isEn);
@@ -2902,6 +3926,13 @@ public class AdminMainController {
             response.put("success", false);
             response.put("message", isEn ? "Role code is required." : "Role 코드를 확인해 주세요.");
             return ResponseEntity.badRequest().body(response);
+        }
+        if (!adminAuthorityPagePayloadSupport.canAssignAuthorCode(currentUserId, currentUserAuthorCode, normalizedAuthorCode)) {
+            response.put("success", false);
+            response.put("message", isEn
+                    ? "You can only update role profiles lower than your own authority."
+                    : "본인 권한보다 낮은 권한 그룹 프로필만 수정할 수 있습니다.");
+            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
         }
         if (!webmaster) {
             if ("GENERAL".equals(selectedRoleCategory)) {
@@ -2994,6 +4025,13 @@ public class AdminMainController {
             response.put("message", isEn ? "Role code and role name are required." : "Role 코드와 Role 명은 필수입니다.");
             return ResponseEntity.badRequest().body(response);
         }
+        if (!adminAuthorityPagePayloadSupport.canAssignAuthorCode(currentUserId, currentUserAuthorCode, normalizedCode)) {
+            response.put("success", false);
+            response.put("message", isEn
+                    ? "You can only create authority groups lower than your own authority."
+                    : "본인 권한보다 낮은 권한 그룹만 생성할 수 있습니다.");
+            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
+        }
 
         try {
             if (authGroupManageService.countAuthorCode(normalizedCode) > 0) {
@@ -3054,6 +4092,13 @@ public class AdminMainController {
             response.put("success", false);
             response.put("message", isEn ? "Role code is required." : "Role 코드를 확인해 주세요.");
             return ResponseEntity.badRequest().body(response);
+        }
+        if (!adminAuthorityPagePayloadSupport.canAssignAuthorCode(currentUserId, currentUserAuthorCode, normalizedAuthorCode)) {
+            response.put("success", false);
+            response.put("message", isEn
+                    ? "You can only update authority groups lower than your own authority."
+                    : "본인 권한보다 낮은 권한 그룹만 수정할 수 있습니다.");
+            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
         }
         if (!webmaster) {
             if ("GENERAL".equals(selectedRoleCategory)) {
@@ -3165,8 +4210,17 @@ public class AdminMainController {
             return ResponseEntity.badRequest().body(response);
         }
         try {
-            List<AuthorInfoVO> generalAuthorGroups = filterAuthorGroups(authGroupManageService.selectAuthorList(), "GENERAL");
-            if (!containsAuthorCode(generalAuthorGroups, normalizedAuthorCode)) {
+            String currentAssignedAuthorCode = safeString(authGroupManageService.selectAuthorCodeByUserId(normalizedEmplyrId))
+                    .toUpperCase(Locale.ROOT);
+            List<AuthorInfoVO> generalAuthorGroups = filterAuthorGroups(
+                    authGroupManageService.selectAuthorList(),
+                    "GENERAL",
+                    currentUserId,
+                    resolveCurrentUserAuthorCode(currentUserId));
+            if (!adminAuthorityPagePayloadSupport.isGrantableOrCurrentAuthorCode(
+                    generalAuthorGroups,
+                    normalizedAuthorCode,
+                    currentAssignedAuthorCode)) {
                 response.put("success", false);
                 response.put("message", isEn
                         ? "Only valid general administrator roles can be assigned here."
@@ -3238,6 +4292,31 @@ public class AdminMainController {
             model.addAttribute("authChangeError", isEn
                     ? "webmaster must keep ROLE_SYSTEM_MASTER."
                     : "webmaster 계정은 ROLE_SYSTEM_MASTER만 유지할 수 있습니다.");
+            return auth_change(null, null, null, request, locale, model);
+        }
+
+        try {
+            String currentAssignedAuthorCode = safeString(authGroupManageService.selectAuthorCodeByUserId(normalizedEmplyrId))
+                    .toUpperCase(Locale.ROOT);
+            List<AuthorInfoVO> generalAuthorGroups = filterAuthorGroups(
+                    authGroupManageService.selectAuthorList(),
+                    "GENERAL",
+                    currentUserId,
+                    resolveCurrentUserAuthorCode(currentUserId));
+            if (!adminAuthorityPagePayloadSupport.isGrantableOrCurrentAuthorCode(
+                    generalAuthorGroups,
+                    normalizedAuthorCode,
+                    currentAssignedAuthorCode)) {
+                model.addAttribute("authChangeError", isEn
+                        ? "Only valid lower administrator roles can be assigned here."
+                        : "이 화면에서는 본인보다 낮은 유효한 관리자 권한 그룹만 지정할 수 있습니다.");
+                return auth_change(null, null, null, request, locale, model);
+            }
+        } catch (Exception e) {
+            log.error("Failed to validate auth-change target role. authorCode={}", normalizedAuthorCode, e);
+            model.addAttribute("authChangeError", isEn
+                    ? "Failed to validate the target role."
+                    : "대상 권한 그룹 검증에 실패했습니다.");
             return auth_change(null, null, null, request, locale, model);
         }
 
@@ -3852,18 +4931,17 @@ public class AdminMainController {
     @RequestMapping(value = { "/member/admin_list/excel", "/member/admin-list/excel" }, method = { RequestMethod.GET, RequestMethod.POST })
     public ResponseEntity<byte[]> adminListExcel(
             @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
-            @RequestParam(value = "sbscrbSttus", required = false) String sbscrbSttus) throws Exception {
+            @RequestParam(value = "sbscrbSttus", required = false) String sbscrbSttus,
+            HttpServletRequest request) throws Exception {
         String keyword = safeString(searchKeyword);
         String status = safeString(sbscrbSttus).toUpperCase(Locale.ROOT);
-        Sort sort = Sort.by(Sort.Direction.DESC, "sbscrbDe");
-
-        Page<EmplyrInfo> countPage = employMemberRepository.searchAdminMembers(keyword, status,
-                PageRequest.of(0, 1, sort));
-        int totalCount = (int) countPage.getTotalElements();
-        int pageSize = Math.max(totalCount, 1);
-        Page<EmplyrInfo> listPage = employMemberRepository.searchAdminMembers(keyword, status,
-                PageRequest.of(0, pageSize, sort));
-        List<EmplyrInfo> member_list = listPage.getContent();
+        String currentUserId = extractCurrentUserId(request);
+        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+        if (!hasMemberManagementCompanyAdminAccess(currentUserId, currentUserAuthorCode)) {
+            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).build();
+        }
+        List<EmplyrInfo> member_list = selectVisibleAdminMembers(currentUserId, currentUserAuthorCode, keyword, status);
+        int totalCount = member_list.size();
 
         byte[] content;
         try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
@@ -3943,7 +5021,7 @@ public class AdminMainController {
         String status = safeString(sbscrbSttus).toUpperCase(Locale.ROOT);
         String currentUserId = extractCurrentUserId(request);
         String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        if (!hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        if (!hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)) {
             return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).build();
         }
 
@@ -4266,11 +5344,14 @@ public class AdminMainController {
 
         List<Map<String, String>> rows = new ArrayList<>();
         for (PasswordResetHistory history : histories) {
+            String scopedInsttId = resolveHistoryTargetInsttId(safeString(history.getTargetUserId()), safeString(history.getTargetUserSe()));
             Map<String, String> row = new LinkedHashMap<>();
             row.put("resetAt", formatDateTime(history.getResetPnttm()));
             row.put("targetUserId", safeString(history.getTargetUserId()));
             row.put("targetUserSe", safeString(history.getTargetUserSe()));
             row.put("targetUserSeLabel", resolveUserSeLabel(history.getTargetUserSe(), isEn));
+            row.put("insttId", scopedInsttId);
+            row.put("companyName", resolveCompanyNameByInsttId(scopedInsttId));
             row.put("resetBy", safeString(history.getResetByUserId()));
             row.put("resetIp", safeString(history.getResetIp()));
             row.put("resetSource", safeString(history.getResetSource()));
@@ -4279,6 +5360,77 @@ public class AdminMainController {
             rows.add(row);
         }
         return rows;
+    }
+
+    String resolveHistoryTargetInsttId(String userId, String userSe) {
+        String normalizedUserId = safeString(userId);
+        String normalizedUserSe = safeString(userSe).toUpperCase(Locale.ROOT);
+        if (normalizedUserId.isEmpty()) {
+            return "";
+        }
+        try {
+            if ("USR".equals(normalizedUserSe)) {
+                return employMemberRepository.findById(normalizedUserId)
+                        .map(EmplyrInfo::getInsttId)
+                        .map(this::safeString)
+                        .orElse("");
+            }
+            if ("ENT".equals(normalizedUserSe)) {
+                return enterpriseMemberRepository.findById(normalizedUserId)
+                        .map(EntrprsMber::getInsttId)
+                        .map(this::safeString)
+                        .orElse("");
+            }
+            if ("GNR".equals(normalizedUserSe)) {
+                return generalMemberRepository.findById(normalizedUserId)
+                        .map(GnrlMber::getGroupId)
+                        .map(this::safeString)
+                        .orElse("");
+            }
+        } catch (Exception e) {
+            log.warn("Failed to resolve history target company. userId={}, userSe={}", normalizedUserId, normalizedUserSe, e);
+        }
+        return "";
+    }
+
+    String resolveCompanyNameByInsttId(String insttId) {
+        String normalizedInsttId = safeString(insttId);
+        if (normalizedInsttId.isEmpty()) {
+            return "";
+        }
+        InstitutionStatusVO institution = loadInstitutionInfoByInsttId(normalizedInsttId);
+        if (institution == null) {
+            return normalizedInsttId;
+        }
+        String companyName = safeString(institution.getInsttNm());
+        return companyName.isEmpty() ? normalizedInsttId : companyName;
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return "";
+        }
+        for (String value : values) {
+            String normalized = safeString(value);
+            if (!normalized.isEmpty()) {
+                return normalized;
+            }
+        }
+        return "";
+    }
+
+    private List<Map<String, String>> buildObservabilityOptionList(String... values) {
+        List<Map<String, String>> items = new ArrayList<>();
+        if (values == null) {
+            return items;
+        }
+        for (String value : values) {
+            Map<String, String> option = new LinkedHashMap<>();
+            option.put("value", safeString(value));
+            option.put("label", safeString(value).isEmpty() ? "전체" : safeString(value));
+            items.add(option);
+        }
+        return items;
     }
 
     List<Map<String, String>> buildPasswordResetHistoryRows(List<PasswordResetHistory> histories) {
@@ -4603,13 +5755,55 @@ public class AdminMainController {
         return adminAuthorityPagePayloadSupport.filterAuthorGroups(authorGroups, selectedRoleCategory);
     }
 
+    List<AuthorInfoVO> filterAuthorGroups(
+            List<AuthorInfoVO> authorGroups,
+            String selectedRoleCategory,
+            String currentUserId,
+            String currentUserAuthorCode) {
+        return adminAuthorityPagePayloadSupport.filterAuthorGroups(
+                authorGroups,
+                selectedRoleCategory,
+                currentUserId,
+                currentUserAuthorCode);
+    }
+
     List<AuthorInfoVO> filterAuthorGroupsByScope(List<AuthorInfoVO> authorGroups, String selectedRoleCategory,
                                                          String insttId, boolean globalAccess) {
         return adminAuthorityPagePayloadSupport.filterAuthorGroupsByScope(authorGroups, selectedRoleCategory, insttId, globalAccess);
     }
 
+    List<AuthorInfoVO> filterAuthorGroupsByScope(
+            List<AuthorInfoVO> authorGroups,
+            String selectedRoleCategory,
+            String insttId,
+            boolean globalAccess,
+            String currentUserId,
+            String currentUserAuthorCode) {
+        return adminAuthorityPagePayloadSupport.filterAuthorGroupsByScope(
+                authorGroups,
+                selectedRoleCategory,
+                insttId,
+                globalAccess,
+                currentUserId,
+                currentUserAuthorCode);
+    }
+
     List<AuthorInfoVO> buildDeptMemberAssignableGroups(List<AuthorInfoVO> authorGroups, String insttId, boolean globalAccess) {
         return adminAuthorityPagePayloadSupport.buildDeptMemberAssignableGroups(authorGroups, insttId, globalAccess);
+    }
+
+    List<AuthorInfoVO> buildDeptMemberAssignableGroups(
+            List<AuthorInfoVO> authorGroups,
+            String insttId,
+            boolean globalAccess,
+            String currentUserId,
+            String currentUserAuthorCode) {
+        return adminAuthorityPagePayloadSupport.buildDeptMemberAssignableGroups(
+                authorGroups,
+                insttId,
+                globalAccess,
+                currentUserId,
+                currentUserAuthorCode);
     }
 
     private boolean matchesRoleCategory(String authorCode, String selectedRoleCategory) {
@@ -4780,6 +5974,8 @@ public class AdminMainController {
                         insttId,
                         userSearchKeyword,
                         selectedRoleCategory,
+                        currentUserId,
+                        resolveCurrentUserAuthorCode(currentUserId),
                         resolveCurrentUserInsttId(currentUserId),
                         webmaster,
                         webmaster || hasGlobalDeptRoleAccess(currentUserId, resolveCurrentUserAuthorCode(currentUserId)),
@@ -4815,6 +6011,145 @@ public class AdminMainController {
 
     boolean requiresOwnCompanyAccess(String currentUserId, String authorCode) {
         return adminAuthorityPagePayloadSupport.requiresOwnCompanyAccess(currentUserId, authorCode);
+    }
+
+    boolean hasMemberManagementMasterAccess(String currentUserId, String authorCode) {
+        return adminAuthorityPagePayloadSupport.hasMemberManagementMasterAccess(currentUserId, authorCode);
+    }
+
+    boolean hasMemberManagementCompanyAdminAccess(String currentUserId, String authorCode) {
+        return adminAuthorityPagePayloadSupport.hasMemberManagementCompanyAdminAccess(currentUserId, authorCode);
+    }
+
+    boolean hasMemberManagementCompanyOperatorAccess(String currentUserId, String authorCode) {
+        return adminAuthorityPagePayloadSupport.hasMemberManagementCompanyOperatorAccess(currentUserId, authorCode);
+    }
+
+    boolean requiresMemberManagementCompanyScope(String currentUserId, String authorCode) {
+        return adminAuthorityPagePayloadSupport.requiresMemberManagementCompanyScope(currentUserId, authorCode);
+    }
+
+    boolean canCreateAdminAccounts(String currentUserId, String currentUserAuthorCode) {
+        return hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)
+                || canCreateOperationAdminAccounts(currentUserId, currentUserAuthorCode);
+    }
+
+    private boolean canCreateOperationAdminAccounts(String currentUserId, String currentUserAuthorCode) {
+        if (hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)) {
+            return true;
+        }
+        String normalizedAuthorCode = safeString(currentUserAuthorCode).toUpperCase(Locale.ROOT);
+        return ROLE_SYSTEM_ADMIN.equals(normalizedAuthorCode)
+                || ROLE_ADMIN.equals(normalizedAuthorCode);
+    }
+
+    boolean canCreateAdminRolePreset(String currentUserId, String currentUserAuthorCode, String rolePreset) {
+        String normalizedRolePreset = safeString(rolePreset).toUpperCase(Locale.ROOT);
+        if (normalizedRolePreset.isEmpty()) {
+            return false;
+        }
+        if ("MASTER".equals(normalizedRolePreset)) {
+            return isWebmaster(currentUserId);
+        }
+        if ("SYSTEM".equals(normalizedRolePreset)) {
+            return hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode);
+        }
+        if ("OPERATION".equals(normalizedRolePreset)) {
+            return canCreateOperationAdminAccounts(currentUserId, currentUserAuthorCode);
+        }
+        return false;
+    }
+
+    private boolean canCurrentAdminAccessAdmin(HttpServletRequest request, EmplyrInfo adminMember) {
+        if (adminMember == null) {
+            return false;
+        }
+        String currentUserId = extractCurrentUserId(request);
+        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+        if (hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)) {
+            return true;
+        }
+        if (!hasMemberManagementCompanyAdminAccess(currentUserId, currentUserAuthorCode)) {
+            return false;
+        }
+        String targetAdminId = safeString(adminMember.getEmplyrId());
+        if ("webmaster".equalsIgnoreCase(targetAdminId)) {
+            return false;
+        }
+        String actorInsttId = resolveCurrentUserInsttId(currentUserId);
+        String targetInsttId = safeString(adminMember.getInsttId());
+        if (actorInsttId.isEmpty() || !actorInsttId.equals(targetInsttId)) {
+            return false;
+        }
+        try {
+            String targetAuthorCode = safeString(authGroupManageService.selectAuthorCodeByUserId(targetAdminId)).toUpperCase(Locale.ROOT);
+            return !ROLE_SYSTEM_MASTER.equals(targetAuthorCode);
+        } catch (Exception e) {
+            log.warn("Failed to resolve target admin author code. emplyrId={}", targetAdminId, e);
+            return false;
+        }
+    }
+
+    private List<EmplyrInfo> selectVisibleAdminMembers(
+            String currentUserId,
+            String currentUserAuthorCode,
+            String keyword,
+            String status) throws Exception {
+        List<EmplyrInfo> employees = new ArrayList<>(employMemberRepository.findAll());
+        Map<String, String> authorCodeByUserId = new LinkedHashMap<>();
+        for (AdminRoleAssignmentVO assignment : authGroupManageService.selectAdminRoleAssignments()) {
+            authorCodeByUserId.put(
+                    safeString(assignment.getEmplyrId()),
+                    safeString(assignment.getAuthorCode()).toUpperCase(Locale.ROOT));
+        }
+        String actorInsttId = resolveCurrentUserInsttId(currentUserId);
+        boolean masterAccess = hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode);
+        String normalizedKeyword = safeString(keyword).toLowerCase(Locale.ROOT);
+        String normalizedStatus = safeString(status).toUpperCase(Locale.ROOT);
+        List<EmplyrInfo> visible = employees.stream()
+                .filter(item -> {
+                    String userId = safeString(item.getEmplyrId());
+                    String authorCode = authorCodeByUserId.getOrDefault(userId, "");
+                    if (authorCode.isEmpty()) {
+                        return false;
+                    }
+                    if (!masterAccess) {
+                        String targetInsttId = safeString(item.getInsttId());
+                        if (actorInsttId.isEmpty() || !actorInsttId.equals(targetInsttId)) {
+                            return false;
+                        }
+                        if (ROLE_SYSTEM_MASTER.equals(authorCode)) {
+                            return false;
+                        }
+                    }
+                    if (!normalizedStatus.isEmpty() && !normalizedStatus.equalsIgnoreCase(safeString(item.getEmplyrStusCode()))) {
+                        return false;
+                    }
+                    if (normalizedKeyword.isEmpty()) {
+                        return true;
+                    }
+                    return safeString(item.getEmplyrId()).toLowerCase(Locale.ROOT).contains(normalizedKeyword)
+                            || safeString(item.getUserNm()).toLowerCase(Locale.ROOT).contains(normalizedKeyword)
+                            || safeString(item.getOrgnztId()).toLowerCase(Locale.ROOT).contains(normalizedKeyword)
+                            || safeString(item.getEmailAdres()).toLowerCase(Locale.ROOT).contains(normalizedKeyword);
+                })
+                .sorted((left, right) -> {
+                    LocalDateTime leftDate = left.getSbscrbDe();
+                    LocalDateTime rightDate = right.getSbscrbDe();
+                    if (leftDate == null && rightDate == null) {
+                        return safeString(left.getEmplyrId()).compareToIgnoreCase(safeString(right.getEmplyrId()));
+                    }
+                    if (leftDate == null) {
+                        return 1;
+                    }
+                    if (rightDate == null) {
+                        return -1;
+                    }
+                    int compared = rightDate.compareTo(leftDate);
+                    return compared != 0 ? compared : safeString(left.getEmplyrId()).compareToIgnoreCase(safeString(right.getEmplyrId()));
+                })
+                .collect(Collectors.toList());
+        return visible;
     }
 
     boolean canCurrentAdminAccessMember(HttpServletRequest request, EntrprsManageVO member) {
@@ -6068,6 +7403,7 @@ public class AdminMainController {
                                                boolean isEn, String currentUserId) throws Exception {
         ensurePermissionEditorDefaults(model, isEn);
         List<AuthorInfoVO> safeAuthorGroups = authorGroups == null ? Collections.emptyList() : authorGroups;
+        safeAuthorGroups = adminAuthorityPagePayloadSupport.appendCurrentAuthorGroup(safeAuthorGroups, selectedAuthorCode);
         Set<String> grantableFeatureCodes = resolveGrantableFeatureCodeSet(currentUserId, isWebmaster(currentUserId));
         List<FeatureCatalogSectionVO> featureSections = filterFeatureCatalogSectionsByGrantable(
                 buildFeatureCatalogSections(authGroupManageService.selectFeatureCatalog(), isEn),

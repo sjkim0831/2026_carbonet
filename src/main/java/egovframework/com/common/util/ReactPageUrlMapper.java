@@ -44,6 +44,7 @@ public final class ReactPageUrlMapper {
         registerAdmin(adminPathToRoute, adminRouteToPath, "function_management", "/admin/system/feature-management", "/admin/system/feature-management");
         registerAdmin(adminPathToRoute, adminRouteToPath, "menu_management", "/admin/system/menu-management", "/admin/system/menu-management");
         registerAdmin(adminPathToRoute, adminRouteToPath, "ip_whitelist", "/admin/system/ip_whitelist", "/admin/system/ip_whitelist");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "access_history", "/admin/system/access_history", "/admin/system/access_history");
         registerAdmin(adminPathToRoute, adminRouteToPath, "login_history", "/admin/member/login_history", "/admin/member/login_history");
         registerAdmin(adminPathToRoute, adminRouteToPath, "security_history", "/admin/system/security", "/admin/system/security");
         registerAdmin(adminPathToRoute, adminRouteToPath, "security_policy", "/admin/system/security-policy", "/admin/system/security-policy");
@@ -67,6 +68,7 @@ public final class ReactPageUrlMapper {
         registerAdmin(adminPathToRoute, adminRouteToPath, "environment_management", "/admin/system/environment-management", "/admin/system/environment-management");
         registerAdmin(adminPathToRoute, adminRouteToPath, "wbs_management", "/admin/system/wbs-management", "/admin/system/wbs-management");
         registerAdmin(adminPathToRoute, adminRouteToPath, "sr_workbench", "/admin/system/sr-workbench", "/admin/system/sr-workbench");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "error_log", "/admin/system/error-log", "/admin/system/error-log");
 
         registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "mypage", "/mypage", "/en/mypage", "/mypage");
         registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "join_wizard", "/join/step1", "/join/en/step1", "/join/step1", "/join/overseas/step1");

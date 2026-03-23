@@ -15,4 +15,6 @@ public class LoginHistoryVO {
     private String loginIp;
     private String loginMessage;
     private String loginPnttm;
+    private String insttId;
+    private String companyName;
 }

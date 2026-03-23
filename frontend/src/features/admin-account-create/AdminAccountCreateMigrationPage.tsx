@@ -79,13 +79,23 @@ export function AdminAccountCreateMigrationPage() {
   const [idCheckMessage, setIdCheckMessage] = useState("");
   const [error, setError] = useState("");
   const [searchingCompanies, setSearchingCompanies] = useState(false);
+  const canUseCreate = !!page?.canUseAdminAccountCreate;
+  const allowedPresets = ((page?.adminAccountCreateAllowedPresets as string[] | undefined) || []).map((item) => String(item));
+  const canSearchCompanies = Boolean(page?.adminAccountCreateCanSearchCompanies);
 
   useEffect(() => {
     Promise.all([fetchFrontendSession(), fetchAdminAccountCreatePage()])
       .then(([sessionPayload, pagePayload]) => {
         setSession(sessionPayload);
         setPage(pagePayload);
-        setRolePreset(String(pagePayload.adminAccountCreatePreset || "MASTER"));
+        const presetOptions = ((pagePayload.adminAccountCreateAllowedPresets as string[] | undefined) || []).map((item) => String(item));
+        setRolePreset(presetOptions[0] || String(pagePayload.adminAccountCreatePreset || "MASTER"));
+        if (!Boolean(pagePayload.adminAccountCreateCanSearchCompanies)) {
+          setInsttId(String(pagePayload.adminAccountCreateCurrentInsttId || ""));
+          setCompanyName(String(pagePayload.adminAccountCreateCurrentCompanyName || ""));
+          setBizrno(String(pagePayload.adminAccountCreateCurrentBizrno || ""));
+          setRepresentativeName(String(pagePayload.adminAccountCreateCurrentRepresentativeName || ""));
+        }
       })
       .catch((err: Error) => setError(err.message));
   }, []);
@@ -97,10 +107,14 @@ export function AdminAccountCreateMigrationPage() {
       setCompanyName("");
       setBizrno("");
       setRepresentativeName("");
+    } else if (!canSearchCompanies) {
+      setInsttId(String(page?.adminAccountCreateCurrentInsttId || ""));
+      setCompanyName(String(page?.adminAccountCreateCurrentCompanyName || ""));
+      setBizrno(String(page?.adminAccountCreateCurrentBizrno || ""));
+      setRepresentativeName(String(page?.adminAccountCreateCurrentRepresentativeName || ""));
     }
-  }, [page, rolePreset]);
+  }, [canSearchCompanies, page, rolePreset]);
 
-  const canUseCreate = !!page?.canUseAdminAccountCreate;
   const filteredCompanyResults = useMemo(() => {
     const rows = companySearch?.list || [];
     if (!membershipType) return rows;
@@ -168,7 +182,7 @@ export function AdminAccountCreateMigrationPage() {
     if (!session) return;
     setError("");
     try {
-      if (rolePreset !== "MASTER" && !membershipType) {
+      if (rolePreset !== "MASTER" && canSearchCompanies && !membershipType) {
         throw new Error("시스템 관리자와 운영 관리자는 회사 타입을 선택해야 합니다.");
       }
       if (rolePreset !== "MASTER" && !insttId) {
@@ -226,7 +240,7 @@ export function AdminAccountCreateMigrationPage() {
             />
             <div className="p-6">
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                {ROLE_PRESETS.map((preset) => (
+                {ROLE_PRESETS.filter((preset) => allowedPresets.length === 0 || allowedPresets.includes(preset.code)).map((preset) => (
                   <button
                     className={roleChipClass(rolePreset === preset.code)}
                     disabled={!canUseCreate}
@@ -319,13 +333,17 @@ export function AdminAccountCreateMigrationPage() {
                 <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="md:col-span-2 space-y-1">
                     <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="affiliation-type">회사 타입 <span className="text-red-500">*</span></label>
-                    <AdminSelect disabled={!canUseCreate} id="affiliation-type" value={membershipType} onChange={(e) => setMembershipType(e.target.value)}>
+                    <AdminSelect disabled={!canUseCreate || !canSearchCompanies} id="affiliation-type" value={membershipType} onChange={(e) => setMembershipType(e.target.value)}>
                       <option value="">회사 타입을 선택하세요</option>
                       {MEMBERSHIP_TYPE_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>{option.label}</option>
                       ))}
                     </AdminSelect>
-                    <p className="text-xs text-[var(--kr-gov-text-secondary)]">시스템 관리자와 운영 관리자는 선택한 회사 타입 기준으로 기관 검색을 진행합니다.</p>
+                    <p className="text-xs text-[var(--kr-gov-text-secondary)]">
+                      {canSearchCompanies
+                        ? "시스템 관리자와 운영 관리자는 선택한 회사 타입 기준으로 기관 검색을 진행합니다."
+                        : "회원사 시스템 관리자는 본인 회사에 속한 운영 관리자만 생성할 수 있습니다."}
+                    </p>
                   </div>
                   <div className="space-y-1">
                     <label className="form-label block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2" htmlFor="department">부서명</label>
@@ -340,13 +358,17 @@ export function AdminAccountCreateMigrationPage() {
                         allowed={canUseCreate}
                         className="shrink-0 whitespace-nowrap sm:min-w-[132px]"
                         onClick={() => {
+                          if (!canSearchCompanies) {
+                            setError("회원사 시스템 관리자는 본인 회사만 사용할 수 있습니다.");
+                            return;
+                          }
                           if (!membershipType) {
                             setError("회사 타입을 먼저 선택해 주세요.");
                             return;
                           }
                           setCompanySearchOpen(true);
                         }}
-                        reason="생성 권한이 있어야 기관 검색을 사용할 수 있습니다."
+                        reason={canSearchCompanies ? "생성 권한이 있어야 기관 검색을 사용할 수 있습니다." : "회원사 시스템 관리자는 본인 회사만 사용할 수 있습니다."}
                         type="button"
                         variant="primary"
                       >

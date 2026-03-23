@@ -482,6 +482,15 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
       { id: "requests", title: "승인 요청 현황", body: "새로운 허용 요청과 요청 사유, 상태를 검토합니다.", anchorSelector: '[data-help-id="ip-whitelist-requests"]' }
     ]
   },
+  "access-history": {
+    pageId: "access-history",
+    title: "접속 로그 도움말",
+    summary: "회사 범위 기준으로 관리자 접속 이력을 조회하는 화면입니다.",
+    items: [
+      { id: "search", title: "접속 로그 검색", body: "회사와 검색어 기준으로 접속 로그를 좁혀서 조회합니다.", anchorSelector: '[data-help-id="access-history-search"]' },
+      { id: "table", title: "접속 로그 목록", body: "접속 시각, 회사, 계정, IP, 요청 URI와 응답 상태를 표로 확인합니다.", anchorSelector: '[data-help-id="access-history-table"]' }
+    ]
+  },
   "login-history": {
     pageId: "login-history",
     title: "로그인 이력 도움말",
