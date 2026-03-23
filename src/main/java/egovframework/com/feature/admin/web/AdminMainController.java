@@ -3313,26 +3313,6 @@ public class AdminMainController {
                 locale));
     }
 
-    Map<String, Object> buildAuthGroupPagePayload(
-            String authorCode,
-            String roleCategory,
-            String insttId,
-            String menuCode,
-            String featureCode,
-            String userSearchKeyword,
-            HttpServletRequest request,
-            Locale locale) {
-        return adminHotPathPagePayloadService().buildAuthGroupPagePayload(
-                authorCode,
-                roleCategory,
-                insttId,
-                menuCode,
-                featureCode,
-                userSearchKeyword,
-                request,
-                locale);
-    }
-
     @PostMapping("/api/admin/auth-groups/profile-save")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> saveAuthGroupProfileApi(
@@ -3801,24 +3781,6 @@ public class AdminMainController {
                 error,
                 request,
                 locale));
-    }
-
-    Map<String, Object> buildDeptRolePagePayload(
-            String updated,
-            String insttId,
-            String memberSearchKeyword,
-            Integer memberPageIndex,
-            String error,
-            HttpServletRequest request,
-            Locale locale) {
-        return adminHotPathPagePayloadService().buildDeptRolePagePayload(
-                updated,
-                insttId,
-                memberSearchKeyword,
-                memberPageIndex,
-                error,
-                request,
-                locale);
     }
 
     @PostMapping("/api/admin/dept-role-mapping/save")
