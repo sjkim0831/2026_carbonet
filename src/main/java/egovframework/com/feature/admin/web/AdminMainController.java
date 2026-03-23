@@ -2179,7 +2179,7 @@ public class AdminMainController {
         primeCsrfToken(request);
         boolean isEn = isEnglishRequest(request, locale);
         ExtendedModelMap model = new ExtendedModelMap();
-        populateBlockedLoginHistory(pageIndexParam, searchKeyword, userSe, insttId, model, isEn ? "egovframework/com/admin/security_history_en" : "egovframework/com/admin/security_history", request);
+        populateBlockedLoginHistory(pageIndexParam, searchKeyword, userSe, insttId, model, request);
         model.addAttribute("isEn", isEn);
         return ResponseEntity.ok(new LinkedHashMap<>(model));
     }
@@ -2252,7 +2252,7 @@ public class AdminMainController {
         primeCsrfToken(request);
         boolean isEn = isEnglishRequest(request, locale);
         ExtendedModelMap model = new ExtendedModelMap();
-        populateSecurityPolicyPage(model, isEn ? "egovframework/com/admin/security_policy_en" : "egovframework/com/admin/security_policy", isEn);
+        populateSecurityPolicyPage(model, isEn);
         model.addAttribute("isEn", isEn);
         return ResponseEntity.ok(new LinkedHashMap<>(model));
     }
@@ -2273,7 +2273,7 @@ public class AdminMainController {
         primeCsrfToken(request);
         boolean isEn = isEnglishRequest(request, locale);
         ExtendedModelMap model = new ExtendedModelMap();
-        populateSecurityMonitoringPage(model, isEn ? "egovframework/com/admin/security_monitoring_en" : "egovframework/com/admin/security_monitoring", isEn);
+        populateSecurityMonitoringPage(model, isEn);
         model.addAttribute("isEn", isEn);
         return ResponseEntity.ok(new LinkedHashMap<>(model));
     }
@@ -2300,7 +2300,7 @@ public class AdminMainController {
         primeCsrfToken(request);
         boolean isEn = isEnglishRequest(request, locale);
         ExtendedModelMap model = new ExtendedModelMap();
-        populateBlocklistPage(searchKeyword, blockType, status, model, isEn ? "egovframework/com/admin/blocklist_en" : "egovframework/com/admin/blocklist", isEn);
+        populateBlocklistPage(searchKeyword, blockType, status, model, isEn);
         model.addAttribute("isEn", isEn);
         return ResponseEntity.ok(new LinkedHashMap<>(model));
     }
@@ -2321,7 +2321,7 @@ public class AdminMainController {
         primeCsrfToken(request);
         boolean isEn = isEnglishRequest(request, locale);
         ExtendedModelMap model = new ExtendedModelMap();
-        populateSecurityAuditPage(model, isEn ? "egovframework/com/admin/security_audit_en" : "egovframework/com/admin/security_audit", isEn);
+        populateSecurityAuditPage(model, isEn);
         model.addAttribute("isEn", isEn);
         return ResponseEntity.ok(new LinkedHashMap<>(model));
     }
@@ -2346,7 +2346,7 @@ public class AdminMainController {
         primeCsrfToken(request);
         boolean isEn = isEnglishRequest(request, locale);
         ExtendedModelMap model = new ExtendedModelMap();
-        populateSchedulerPage(jobStatus, executionType, model, isEn ? "egovframework/com/admin/scheduler_management_en" : "egovframework/com/admin/scheduler_management", isEn);
+        populateSchedulerPage(jobStatus, executionType, model, isEn);
         model.addAttribute("isEn", isEn);
         return ResponseEntity.ok(new LinkedHashMap<>(model));
     }
@@ -2376,18 +2376,17 @@ public class AdminMainController {
         primeCsrfToken(request);
         boolean isEn = isEnglishRequest(request, locale);
         ExtendedModelMap model = new ExtendedModelMap();
-        populateLoginHistory(pageIndexParam, searchKeyword, userSe, loginResult, insttId, model, isEn ? "egovframework/com/admin/login_history_en" : "egovframework/com/admin/login_history", request);
+        populateLoginHistory(pageIndexParam, searchKeyword, userSe, loginResult, insttId, model, request);
         model.addAttribute("isEn", isEn);
         return ResponseEntity.ok(new LinkedHashMap<>(model));
     }
 
-    String populateMemberList(
+    void populateMemberList(
             String pageIndexParam,
             String searchKeyword,
             String membershipType,
             String sbscrbSttus,
             Model model,
-            String viewName,
             HttpServletRequest request) {
         int pageIndex = 1;
         if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
@@ -2463,7 +2462,6 @@ public class AdminMainController {
         model.addAttribute("searchKeyword", keyword);
         model.addAttribute("membershipType", memberType);
         model.addAttribute("sbscrbSttus", status);
-        return viewName;
     }
 
     String populateMemberApprovalList(
@@ -2836,14 +2834,6 @@ public class AdminMainController {
         return adminPrefix(request, locale) + "/member/approve";
     }
 
-    private String resolveMemberApprovalViewName(HttpServletRequest request, boolean isEn) {
-        String requestUri = request == null ? "" : safeString(request.getRequestURI());
-        if (requestUri.endsWith("/member/company-approve")) {
-            return isEn ? "egovframework/com/admin/company_approve_en" : "egovframework/com/admin/company_approve";
-        }
-        return isEn ? "egovframework/com/admin/member_approve_en" : "egovframework/com/admin/member_approve";
-    }
-
     private String resolveApprovalResultMessage(String result, boolean isEn) {
         String normalized = safeString(result);
         if (normalized.isEmpty()) {
@@ -2892,12 +2882,13 @@ public class AdminMainController {
         return options;
     }
 
-    String populateAdminMemberList(
+    void populateAdminMemberList(
             String pageIndexParam,
             String searchKeyword,
             String sbscrbSttus,
             Model model,
-            String viewName,
+            HttpServletRequest request) {
+            Model model,
             HttpServletRequest request) {
         int pageIndex = 1;
         if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
@@ -2927,7 +2918,7 @@ public class AdminMainController {
             model.addAttribute("searchKeyword", keyword);
             model.addAttribute("sbscrbSttus", status);
             model.addAttribute("canUseAdminListActions", false);
-            return viewName;
+            return;
         }
 
         List<EmplyrInfo> visibleAdmins;
@@ -2946,7 +2937,7 @@ public class AdminMainController {
             model.addAttribute("searchKeyword", keyword);
             model.addAttribute("sbscrbSttus", status);
             model.addAttribute("canUseAdminListActions", false);
-            return viewName;
+            return;
         }
 
         int totalCount = visibleAdmins.size();
@@ -2977,15 +2968,13 @@ public class AdminMainController {
         model.addAttribute("searchKeyword", keyword);
         model.addAttribute("sbscrbSttus", status);
         model.addAttribute("canUseAdminListActions", canCreateAdminAccounts(currentUserId, currentUserAuthorCode));
-        return viewName;
     }
 
-    String populateCompanyList(
+    void populateCompanyList(
             String pageIndexParam,
             String searchKeyword,
             String sbscrbSttus,
             Model model,
-            String viewName,
             HttpServletRequest request) {
         int pageIndex = 1;
         if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
@@ -3052,7 +3041,6 @@ public class AdminMainController {
         model.addAttribute("nextPage", nextPage);
         model.addAttribute("searchKeyword", keyword);
         model.addAttribute("sbscrbSttus", status);
-        return viewName;
     }
 
     Map<String, Object> buildMemberStatsPageData(boolean isEn) {
@@ -3191,14 +3179,15 @@ public class AdminMainController {
         return viewName;
     }
 
-    private String populateLoginHistory(
+    private void populateLoginHistory(
             String pageIndexParam,
             String searchKeyword,
             String userSe,
             String loginResult,
             String requestedInsttId,
             Model model,
-            String viewName,
+            HttpServletRequest request) {
+            Model model,
             HttpServletRequest request) {
         int pageIndex = 1;
         if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
@@ -3276,21 +3265,21 @@ public class AdminMainController {
         model.addAttribute("companyOptions", companyOptions);
         model.addAttribute("selectedInsttId", selectedInsttId);
         model.addAttribute("canManageAllCompanies", masterAccess);
-        return viewName;
     }
 
-    private String populateBlockedLoginHistory(
+    private void populateBlockedLoginHistory(
             String pageIndexParam,
             String searchKeyword,
             String userSe,
             String requestedInsttId,
             Model model,
-            String viewName,
             HttpServletRequest request) {
-        return populateLoginHistoryInternal(pageIndexParam, searchKeyword, userSe, "FAIL", "Y", requestedInsttId, model, viewName, request);
+            Model model,
+            HttpServletRequest request) {
+        populateLoginHistoryInternal(pageIndexParam, searchKeyword, userSe, "FAIL", "Y", requestedInsttId, model, request);
     }
 
-    private String populateLoginHistoryInternal(
+    private void populateLoginHistoryInternal(
             String pageIndexParam,
             String searchKeyword,
             String userSe,
@@ -3298,7 +3287,8 @@ public class AdminMainController {
             String blockedOnly,
             String requestedInsttId,
             Model model,
-            String viewName,
+            HttpServletRequest request) {
+            Model model,
             HttpServletRequest request) {
         int pageIndex = 1;
         if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
@@ -3378,7 +3368,6 @@ public class AdminMainController {
         model.addAttribute("companyOptions", companyOptions);
         model.addAttribute("selectedInsttId", selectedInsttId);
         model.addAttribute("canManageAllCompanies", masterAccess);
-        return viewName;
     }
 
     private Map<String, Object> buildAccessHistoryPagePayload(
@@ -6915,12 +6904,11 @@ public class AdminMainController {
         return scopes;
     }
 
-    private String populateIpWhitelistPage(
+    private void populateIpWhitelistPage(
             String searchIp,
             String accessScope,
             String status,
             Model model,
-            String viewName,
             boolean isEn) {
         model.addAttribute("searchIp", safeString(searchIp));
         model.addAttribute("accessScope", safeString(accessScope).toUpperCase(Locale.ROOT));
@@ -6928,10 +6916,9 @@ public class AdminMainController {
         model.addAttribute("ipWhitelistSummary", adminSummaryService.getIpWhitelistSummary(isEn));
         model.addAttribute("ipWhitelistRows", buildIpWhitelistRows(isEn));
         model.addAttribute("ipWhitelistRequestRows", buildIpWhitelistRequestRows(isEn));
-        return viewName;
     }
 
-    private String populateSecurityPolicyPage(Model model, String viewName, boolean isEn) {
+    private void populateSecurityPolicyPage(Model model, boolean isEn) {
         model.addAttribute("securityPolicySummary", adminSummaryService.getSecurityPolicySummary(isEn));
         model.addAttribute("securityPolicyRows", buildSecurityPolicyRows(isEn));
         model.addAttribute("securityPolicyPlaybooks", buildSecurityPolicyPlaybooks(isEn));
@@ -6939,23 +6926,20 @@ public class AdminMainController {
         model.addAttribute("menuPermissionDiagnosticSqlDownloadUrl", "/downloads/menu-permission-diagnostics.sql");
         model.addAttribute("menuPermissionAuthGroupUrl", adminPrefix(null, null) + "/auth/group");
         model.addAttribute("menuPermissionEnvironmentUrl", adminPrefix(null, null) + "/system/environment-management");
-        return viewName;
     }
 
-    private String populateSecurityMonitoringPage(Model model, String viewName, boolean isEn) {
+    private void populateSecurityMonitoringPage(Model model, boolean isEn) {
         model.addAttribute("securityMonitoringCards", adminSummaryService.getSecurityMonitoringCards(isEn));
         model.addAttribute("securityMonitoringTargets", buildSecurityMonitoringTargets(isEn));
         model.addAttribute("securityMonitoringIps", buildSecurityMonitoringIps(isEn));
         model.addAttribute("securityMonitoringEvents", buildSecurityMonitoringEvents(isEn));
-        return viewName;
     }
 
-    private String populateBlocklistPage(
+    private void populateBlocklistPage(
             String searchKeyword,
             String blockType,
             String status,
             Model model,
-            String viewName,
             boolean isEn) {
         model.addAttribute("searchKeyword", safeString(searchKeyword));
         model.addAttribute("blockType", safeString(blockType).toUpperCase(Locale.ROOT));
@@ -6963,21 +6947,18 @@ public class AdminMainController {
         model.addAttribute("blocklistSummary", adminSummaryService.getBlocklistSummary(isEn));
         model.addAttribute("blocklistRows", buildBlocklistRows(isEn));
         model.addAttribute("blocklistReleaseQueue", buildBlocklistReleaseQueue(isEn));
-        return viewName;
     }
 
-    private String populateSecurityAuditPage(Model model, String viewName, boolean isEn) {
+    private void populateSecurityAuditPage(Model model, boolean isEn) {
         SecurityAuditSnapshot auditSnapshot = adminSummaryService.loadSecurityAuditSnapshot();
         model.addAttribute("securityAuditSummary", adminSummaryService.getSecurityAuditSummary(auditSnapshot, isEn));
         model.addAttribute("securityAuditRows", adminSummaryService.buildSecurityAuditRows(auditSnapshot.getAuditLogs(), isEn));
-        return viewName;
     }
 
-    private String populateSchedulerPage(
+    private void populateSchedulerPage(
             String jobStatus,
             String executionType,
             Model model,
-            String viewName,
             boolean isEn) {
         String normalizedJobStatus = safeString(jobStatus).toUpperCase(Locale.ROOT);
         String normalizedExecutionType = safeString(executionType).toUpperCase(Locale.ROOT);
@@ -6999,7 +6980,6 @@ public class AdminMainController {
         model.addAttribute("schedulerNodeRows", buildSchedulerNodeRows(isEn));
         model.addAttribute("schedulerExecutionRows", buildSchedulerExecutionRows(isEn));
         model.addAttribute("schedulerPlaybooks", buildSchedulerPlaybooks(isEn));
-        return viewName;
     }
 
     private List<Map<String, String>> buildIpWhitelistSummary(boolean isEn) {
