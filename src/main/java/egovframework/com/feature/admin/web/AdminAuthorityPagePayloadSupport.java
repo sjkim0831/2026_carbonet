@@ -618,21 +618,22 @@ public class AdminAuthorityPagePayloadSupport {
             String mappedAuthorCode = safeString(mapping.getAuthorCode());
             String companyName = safeString(mapping.getCmpnyNm());
             String insttId = safeString(mapping.getInsttId());
+            FrameworkAuthorityPolicyService.DepartmentRoleDescriptor descriptor = mappedAuthorCode.isEmpty()
+                    ? frameworkAuthorityPolicyService.resolveDepartmentRole(insttId, companyName, deptName, isEn)
+                    : frameworkAuthorityPolicyService.describeDepartmentRole(mappedAuthorCode, isEn);
             row.put("cmpnyNm", companyName);
             row.put("insttId", insttId);
             row.put("deptNm", deptName.isEmpty() ? (isEn ? "Unassigned" : "미지정") : deptName);
             row.put("memberCount", String.valueOf(mapping.getMemberCount()));
-            String recommendedRoleCode = mappedAuthorCode.isEmpty()
-                    ? resolveDepartmentRoleCode(insttId, companyName, deptName)
-                    : mappedAuthorCode;
+            String recommendedRoleCode = descriptor.getCode();
             row.put("recommendedRoleCode", recommendedRoleCode);
             row.put("recommendedRoleName",
                     safeString(mapping.getAuthorNm()).isEmpty()
-                            ? resolveDepartmentRoleName(recommendedRoleCode, isEn)
+                            ? descriptor.getName()
                             : safeString(mapping.getAuthorNm()));
             row.put("status",
                     mappedAuthorCode.isEmpty()
-                            ? (isUnknownDepartmentRole(recommendedRoleCode) ? "review" : "ready")
+                            ? (descriptor.isUnknown() ? "review" : "ready")
                             : "mapped");
             rows.add(row);
         }
@@ -925,11 +926,13 @@ public class AdminAuthorityPagePayloadSupport {
             if (roleCode.isEmpty() || dedup.containsKey(roleCode)) {
                 continue;
             }
+            FrameworkAuthorityPolicyService.DepartmentRoleDescriptor descriptor =
+                    frameworkAuthorityPolicyService.describeDepartmentRole(roleCode, isEn);
             Map<String, String> summary = new LinkedHashMap<>();
-            summary.put("code", roleCode);
+            summary.put("code", descriptor.getCode());
             summary.put("name", safeString(row.get("recommendedRoleName")));
-            summary.put("description", resolveDepartmentRoleDescription(roleCode, isEn));
-            summary.put("status", isUnknownDepartmentRole(roleCode) ? "missing" : "existing");
+            summary.put("description", descriptor.getDescription());
+            summary.put("status", descriptor.getStatus());
             dedup.put(roleCode, summary);
         }
         return new ArrayList<>(dedup.values());
