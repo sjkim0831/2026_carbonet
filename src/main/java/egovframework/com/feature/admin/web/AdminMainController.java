@@ -154,6 +154,7 @@ public class AdminMainController {
     private final ObjectProvider<AdminHotPathPagePayloadService> adminHotPathPagePayloadServiceProvider;
     private final ObjectProvider<AdminApprovalPageModelAssembler> adminApprovalPageModelAssemblerProvider;
     private final ObjectProvider<AdminListPageModelAssembler> adminListPageModelAssemblerProvider;
+    private final ObjectProvider<AdminSystemPageModelAssembler> adminSystemPageModelAssemblerProvider;
     private final ObjectProvider<AdminMemberPageModelAssembler> adminMemberPageModelAssemblerProvider;
     private final AuthService authService;
     private final MenuInfoService menuInfoService;
@@ -176,6 +177,10 @@ public class AdminMainController {
 
     private AdminListPageModelAssembler adminListPageModelAssembler() {
         return adminListPageModelAssemblerProvider.getObject();
+    }
+
+    private AdminSystemPageModelAssembler adminSystemPageModelAssembler() {
+        return adminSystemPageModelAssemblerProvider.getObject();
     }
 
     private AdminApprovalPageModelAssembler adminApprovalPageModelAssembler() {
@@ -6358,20 +6363,11 @@ public class AdminMainController {
     }
 
     private void populateSecurityPolicyPage(Model model, boolean isEn) {
-        model.addAttribute("securityPolicySummary", adminSummaryService.getSecurityPolicySummary(isEn));
-        model.addAttribute("securityPolicyRows", buildSecurityPolicyRows(isEn));
-        model.addAttribute("securityPolicyPlaybooks", buildSecurityPolicyPlaybooks(isEn));
-        model.addAttribute("menuPermissionDiagnostics", adminSummaryService.buildMenuPermissionDiagnosticSummary(isEn));
-        model.addAttribute("menuPermissionDiagnosticSqlDownloadUrl", "/downloads/menu-permission-diagnostics.sql");
-        model.addAttribute("menuPermissionAuthGroupUrl", adminPrefix(null, null) + "/auth/group");
-        model.addAttribute("menuPermissionEnvironmentUrl", adminPrefix(null, null) + "/system/environment-management");
+        adminSystemPageModelAssembler().populateSecurityPolicyPage(model, isEn);
     }
 
     private void populateSecurityMonitoringPage(Model model, boolean isEn) {
-        model.addAttribute("securityMonitoringCards", adminSummaryService.getSecurityMonitoringCards(isEn));
-        model.addAttribute("securityMonitoringTargets", buildSecurityMonitoringTargets(isEn));
-        model.addAttribute("securityMonitoringIps", buildSecurityMonitoringIps(isEn));
-        model.addAttribute("securityMonitoringEvents", buildSecurityMonitoringEvents(isEn));
+        adminSystemPageModelAssembler().populateSecurityMonitoringPage(model, isEn);
     }
 
     private void populateBlocklistPage(
@@ -6380,18 +6376,11 @@ public class AdminMainController {
             String status,
             Model model,
             boolean isEn) {
-        model.addAttribute("searchKeyword", safeString(searchKeyword));
-        model.addAttribute("blockType", safeString(blockType).toUpperCase(Locale.ROOT));
-        model.addAttribute("status", safeString(status).toUpperCase(Locale.ROOT));
-        model.addAttribute("blocklistSummary", adminSummaryService.getBlocklistSummary(isEn));
-        model.addAttribute("blocklistRows", buildBlocklistRows(isEn));
-        model.addAttribute("blocklistReleaseQueue", buildBlocklistReleaseQueue(isEn));
+        adminSystemPageModelAssembler().populateBlocklistPage(searchKeyword, blockType, status, model, isEn);
     }
 
     private void populateSecurityAuditPage(Model model, boolean isEn) {
-        SecurityAuditSnapshot auditSnapshot = adminSummaryService.loadSecurityAuditSnapshot();
-        model.addAttribute("securityAuditSummary", adminSummaryService.getSecurityAuditSummary(auditSnapshot, isEn));
-        model.addAttribute("securityAuditRows", adminSummaryService.buildSecurityAuditRows(auditSnapshot.getAuditLogs(), isEn));
+        adminSystemPageModelAssembler().populateSecurityAuditPage(model, isEn);
     }
 
     private void populateSchedulerPage(
@@ -6399,26 +6388,7 @@ public class AdminMainController {
             String executionType,
             Model model,
             boolean isEn) {
-        String normalizedJobStatus = safeString(jobStatus).toUpperCase(Locale.ROOT);
-        String normalizedExecutionType = safeString(executionType).toUpperCase(Locale.ROOT);
-        List<Map<String, String>> jobRows = buildSchedulerJobRows(isEn);
-        List<Map<String, String>> filteredRows = new ArrayList<>();
-        for (Map<String, String> row : jobRows) {
-            String rowStatus = safeString(row.get("jobStatus")).toUpperCase(Locale.ROOT);
-            String rowType = safeString(row.get("executionTypeCode")).toUpperCase(Locale.ROOT);
-            boolean matchesStatus = normalizedJobStatus.isEmpty() || normalizedJobStatus.equals(rowStatus);
-            boolean matchesType = normalizedExecutionType.isEmpty() || normalizedExecutionType.equals(rowType);
-            if (matchesStatus && matchesType) {
-                filteredRows.add(row);
-            }
-        }
-        model.addAttribute("jobStatus", normalizedJobStatus);
-        model.addAttribute("executionType", normalizedExecutionType);
-        model.addAttribute("schedulerSummary", adminSummaryService.getSchedulerSummary(isEn));
-        model.addAttribute("schedulerJobRows", filteredRows);
-        model.addAttribute("schedulerNodeRows", buildSchedulerNodeRows(isEn));
-        model.addAttribute("schedulerExecutionRows", buildSchedulerExecutionRows(isEn));
-        model.addAttribute("schedulerPlaybooks", buildSchedulerPlaybooks(isEn));
+        adminSystemPageModelAssembler().populateSchedulerPage(jobStatus, executionType, model, isEn);
     }
 
     private List<Map<String, String>> buildIpWhitelistSummary(boolean isEn) {
@@ -6515,7 +6485,7 @@ public class AdminMainController {
         return rows;
     }
 
-    private List<Map<String, String>> buildSecurityPolicyRows(boolean isEn) {
+    List<Map<String, String>> buildSecurityPolicyRows(boolean isEn) {
         List<Map<String, String>> rows = new ArrayList<>();
         rows.add(mapOf(
                 "policyId", "POL-001",
@@ -6547,7 +6517,7 @@ public class AdminMainController {
         return rows;
     }
 
-    private List<Map<String, String>> buildSecurityPolicyPlaybooks(boolean isEn) {
+    List<Map<String, String>> buildSecurityPolicyPlaybooks(boolean isEn) {
         List<Map<String, String>> rows = new ArrayList<>();
         rows.add(mapOf("title", isEn ? "Login attack playbook" : "로그인 공격 플레이북",
                 "body", isEn ? "Raise admin login threshold only after verifying WAF and captcha counters." : "WAF 및 CAPTCHA 지표 확인 후에만 관리자 로그인 임계치를 상향합니다."));
@@ -6572,7 +6542,7 @@ public class AdminMainController {
     }
 
 
-    private List<Map<String, String>> buildSecurityMonitoringTargets(boolean isEn) {
+    List<Map<String, String>> buildSecurityMonitoringTargets(boolean isEn) {
         List<Map<String, String>> rows = new ArrayList<>();
         rows.add(mapOf("url", "/admin/login/actionLogin", "rps", "88", "status", isEn ? "Escalated" : "경계", "rule", isEn ? "Admin login hardening" : "관리자 로그인 강화"));
         rows.add(mapOf("url", "/signin/actionLogin", "rps", "240", "status", isEn ? "Protected" : "방어중", "rule", isEn ? "User login protection" : "사용자 로그인 보호"));
@@ -6580,7 +6550,7 @@ public class AdminMainController {
         return rows;
     }
 
-    private List<Map<String, String>> buildSecurityMonitoringIps(boolean isEn) {
+    List<Map<String, String>> buildSecurityMonitoringIps(boolean isEn) {
         List<Map<String, String>> rows = new ArrayList<>();
         rows.add(mapOf("ip", "198.51.100.42", "country", "US", "requestCount", "4,120", "action", isEn ? "Temp blocked" : "임시차단"));
         rows.add(mapOf("ip", "203.0.113.78", "country", "KR", "requestCount", "2,844", "action", isEn ? "Captcha enforced" : "CAPTCHA 전환"));
@@ -6588,7 +6558,7 @@ public class AdminMainController {
         return rows;
     }
 
-    private List<Map<String, String>> buildSecurityMonitoringEvents(boolean isEn) {
+    List<Map<String, String>> buildSecurityMonitoringEvents(boolean isEn) {
         List<Map<String, String>> rows = new ArrayList<>();
         rows.add(mapOf("detectedAt", "2026-03-12 09:18", "title", isEn ? "Burst login attack detected" : "로그인 버스트 공격 감지", "detail", isEn ? "Admin login burst exceeded threshold from 3 IPs." : "3개 IP에서 관리자 로그인 burst 임계치 초과", "severity", "HIGH"));
         rows.add(mapOf("detectedAt", "2026-03-12 09:12", "title", isEn ? "Search API abuse pattern" : "검색 API 남용 패턴", "detail", isEn ? "Single token generated 429 for 6 consecutive minutes." : "단일 토큰에서 6분 연속 429 다발", "severity", "MEDIUM"));
@@ -6608,7 +6578,7 @@ public class AdminMainController {
         return rows;
     }
 
-    private List<Map<String, String>> buildBlocklistRows(boolean isEn) {
+    List<Map<String, String>> buildBlocklistRows(boolean isEn) {
         List<Map<String, String>> rows = new ArrayList<>();
         rows.add(mapOf("blockId", "BL-240312-01", "target", "198.51.100.42", "blockType", "IP", "reason", isEn ? "Admin login burst" : "관리자 로그인 버스트", "status", "ACTIVE", "expiresAt", "2026-03-12 10:00", "owner", isEn ? "Auto Rule" : "자동 룰"));
         rows.add(mapOf("blockId", "BL-240312-02", "target", "203.0.113.0/24", "blockType", "CIDR", "reason", isEn ? "Credential stuffing pattern" : "Credential stuffing 패턴", "status", "ACTIVE", "expiresAt", "2026-03-12 18:00", "owner", isEn ? "Security Operator" : "보안운영자"));
@@ -6616,7 +6586,7 @@ public class AdminMainController {
         return rows;
     }
 
-    private List<Map<String, String>> buildBlocklistReleaseQueue(boolean isEn) {
+    List<Map<String, String>> buildBlocklistReleaseQueue(boolean isEn) {
         List<Map<String, String>> rows = new ArrayList<>();
         rows.add(mapOf("target", "198.51.100.42", "releaseAt", "2026-03-12 10:00", "condition", isEn ? "Auto release if no re-hit for 30 min" : "30분 재탐지 없으면 자동 해제"));
         rows.add(mapOf("target", "203.0.113.0/24", "releaseAt", "2026-03-12 18:00", "condition", isEn ? "Operator approval required" : "운영자 승인 후 해제"));
@@ -6636,7 +6606,7 @@ public class AdminMainController {
         return rows;
     }
 
-    private List<Map<String, String>> buildSchedulerJobRows(boolean isEn) {
+    List<Map<String, String>> buildSchedulerJobRows(boolean isEn) {
         List<Map<String, String>> rows = new ArrayList<>();
         rows.add(mapOf(
                 "jobId", "SCH-001",
@@ -6681,7 +6651,7 @@ public class AdminMainController {
         return rows;
     }
 
-    private List<Map<String, String>> buildSchedulerNodeRows(boolean isEn) {
+    List<Map<String, String>> buildSchedulerNodeRows(boolean isEn) {
         List<Map<String, String>> rows = new ArrayList<>();
         rows.add(mapOf("nodeId", "batch-node-01", "role", isEn ? "Primary scheduler" : "주 스케줄러", "status", "HEALTHY", "runningJobs", "5", "heartbeatAt", "2026-03-13 11:46:11"));
         rows.add(mapOf("nodeId", "batch-node-02", "role", isEn ? "Failover worker" : "대기 워커", "status", "STANDBY", "runningJobs", "0", "heartbeatAt", "2026-03-13 11:46:04"));
@@ -6689,7 +6659,7 @@ public class AdminMainController {
         return rows;
     }
 
-    private List<Map<String, String>> buildSchedulerExecutionRows(boolean isEn) {
+    List<Map<String, String>> buildSchedulerExecutionRows(boolean isEn) {
         List<Map<String, String>> rows = new ArrayList<>();
         rows.add(mapOf("executedAt", "2026-03-13 11:30", "jobId", "SCH-002", "result", "SUCCESS", "duration", "18s", "message", isEn ? "Certificate expiration cache synchronized." : "인증서 만료 캐시 동기화 완료"));
         rows.add(mapOf("executedAt", "2026-03-13 11:10", "jobId", "SCH-003", "result", "FAILED", "duration", "47s", "message", isEn ? "Token endpoint timeout. Retry queued." : "토큰 엔드포인트 타임아웃, 재시도 대기"));
@@ -6698,7 +6668,7 @@ public class AdminMainController {
         return rows;
     }
 
-    private List<Map<String, String>> buildSchedulerPlaybooks(boolean isEn) {
+    List<Map<String, String>> buildSchedulerPlaybooks(boolean isEn) {
         List<Map<String, String>> rows = new ArrayList<>();
         rows.add(mapOf("title", isEn ? "Cron expression review" : "Cron 표현식 점검",
                 "body", isEn ? "Validate time zone, duplicate trigger windows, and collision with settlement cut-off times before enabling a new job."
