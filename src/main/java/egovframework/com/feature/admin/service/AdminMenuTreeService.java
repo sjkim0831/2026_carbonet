@@ -8,7 +8,8 @@ import egovframework.com.feature.admin.dto.response.MenuInfoDTO;
 import egovframework.com.feature.auth.util.JwtTokenProvider;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
 
@@ -22,13 +23,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AdminMenuTreeService {
 
     private static final String ROLE_SYSTEM_MASTER = "ROLE_SYSTEM_MASTER";
     private static final String ROLE_OPERATION_ADMIN = "ROLE_OPERATION_ADMIN";
+    private static final Logger log = LoggerFactory.getLogger(AdminMenuTreeService.class);
 
     private final MenuInfoService menuInfoService;
     private final AuthGroupManageService authGroupManageService;

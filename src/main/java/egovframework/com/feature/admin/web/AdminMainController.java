@@ -4,6 +4,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import egovframework.com.common.audit.AuditEventRecordVO;
 import egovframework.com.common.audit.AuditEventSearchVO;
+import egovframework.com.common.error.ErrorEventRecordVO;
+import egovframework.com.common.error.ErrorEventSearchVO;
+import egovframework.com.common.logging.AccessEventRecordVO;
+import egovframework.com.common.logging.AccessEventSearchVO;
 import egovframework.com.common.logging.RequestExecutionLogService;
 import egovframework.com.common.logging.RequestExecutionLogVO;
 import egovframework.com.feature.member.service.EnterpriseMemberService;
@@ -55,11 +59,10 @@ import egovframework.com.feature.auth.service.AuthService;
 import egovframework.com.feature.auth.util.JwtTokenProvider;
 import egovframework.com.feature.auth.util.ClientIpUtil;
 import egovframework.com.common.audit.AuditTrailService;
-import egovframework.com.common.logging.RequestExecutionLogService;
-import egovframework.com.common.logging.RequestExecutionLogVO;
 import egovframework.com.common.service.ObservabilityQueryService;
 import egovframework.com.common.util.FeatureCodeBitmap;
 import egovframework.com.common.util.ReactPageUrlMapper;
+import egovframework.com.framework.authority.service.FrameworkAuthorityPolicyService;
 import egovframework.com.feature.home.web.ReactAppViewSupport;
 import io.jsonwebtoken.Claims;
 import egovframework.com.common.service.CmmnDetailCode;
@@ -162,11 +165,11 @@ public class AdminMainController {
     private final AuthorRoleProfileService authorRoleProfileService;
     private final AdminAuthorityPagePayloadSupport adminAuthorityPagePayloadSupport;
     private final AuditTrailService auditTrailService;
+    private final FrameworkAuthorityPolicyService frameworkAuthorityPolicyService;
     private final RequestExecutionLogService requestExecutionLogService;
     private final ObservabilityQueryService observabilityQueryService;
     private final ObjectMapper objectMapper;
     private final ObjectProvider<ReactAppViewSupport> reactAppViewSupportProvider;
-    private final RequestExecutionLogService requestExecutionLogService;
 
     private AdminHotPathPagePayloadService adminHotPathPagePayloadService() {
         return adminHotPathPagePayloadServiceProvider.getObject();
@@ -1931,34 +1934,6 @@ public class AdminMainController {
         populateLoginHistory(pageIndexParam, searchKeyword, userSe, loginResult, insttId, model, request);
         model.addAttribute("isEn", isEn);
         return ResponseEntity.ok(new LinkedHashMap<>(model));
-    }
-
-    @RequestMapping(value = "/system/error-log", method = { RequestMethod.GET, RequestMethod.POST })
-    public String error_log(
-            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
-            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
-            @RequestParam(value = "insttId", required = false) String insttId,
-            @RequestParam(value = "sourceType", required = false) String sourceType,
-            @RequestParam(value = "errorType", required = false) String errorType,
-            HttpServletRequest request,
-            Locale locale,
-            Model model) {
-        return redirectReactMigration(request, locale, "error-log");
-    }
-
-    @GetMapping("/system/error-log/page-data")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> errorLogPageApi(
-            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
-            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
-            @RequestParam(value = "insttId", required = false) String insttId,
-            @RequestParam(value = "sourceType", required = false) String sourceType,
-            @RequestParam(value = "errorType", required = false) String errorType,
-            HttpServletRequest request,
-            Locale locale) {
-        primeCsrfToken(request);
-        boolean isEn = isEnglishRequest(request, locale);
-        return ResponseEntity.ok(buildErrorLogPagePayload(pageIndexParam, searchKeyword, insttId, sourceType, errorType, request, isEn));
     }
 
     void populateMemberList(
@@ -4722,19 +4697,7 @@ public class AdminMainController {
     }
 
     private boolean matchesRoleCategory(String authorCode, String selectedRoleCategory) {
-        String normalizedCode = safeString(authorCode).toUpperCase(Locale.ROOT);
-        if ("DEPARTMENT".equals(selectedRoleCategory)) {
-            return normalizedCode.startsWith("ROLE_DEPT_");
-        }
-        if ("USER".equals(selectedRoleCategory)) {
-            return normalizedCode.startsWith("ROLE_USER_")
-                    || normalizedCode.startsWith("ROLE_MEMBER_")
-                    || normalizedCode.startsWith("ROLE_ACCOUNT_");
-        }
-        return !normalizedCode.startsWith("ROLE_DEPT_")
-                && !normalizedCode.startsWith("ROLE_USER_")
-                && !normalizedCode.startsWith("ROLE_MEMBER_")
-                && !normalizedCode.startsWith("ROLE_ACCOUNT_");
+        return frameworkAuthorityPolicyService.matchesRoleCategory(authorCode, selectedRoleCategory);
     }
 
     String resolveRoleCategory(String roleCategory) {
@@ -4764,11 +4727,13 @@ public class AdminMainController {
             if (roleCode.isEmpty() || dedup.containsKey(roleCode)) {
                 continue;
             }
+            FrameworkAuthorityPolicyService.DepartmentRoleDescriptor descriptor =
+                    frameworkAuthorityPolicyService.describeDepartmentRole(roleCode, isEn);
             Map<String, String> summary = new LinkedHashMap<>();
-            summary.put("code", roleCode);
+            summary.put("code", descriptor.getCode());
             summary.put("name", safeString(row.get("recommendedRoleName")));
-            summary.put("description", resolveDepartmentRoleDescription(roleCode, isEn));
-            summary.put("status", isUnknownDepartmentRole(roleCode) ? "missing" : "existing");
+            summary.put("description", descriptor.getDescription());
+            summary.put("status", descriptor.getStatus());
             dedup.put(roleCode, summary);
         }
         return new ArrayList<>(dedup.values());
@@ -5101,123 +5066,6 @@ public class AdminMainController {
             log.warn("Failed to resolve member file institution. fileId={}", normalizedFileId, e);
             return "";
         }
-    }
-
-    private String resolveDepartmentRoleCode(String insttId, String companyName, String deptName) {
-        String departmentRoleType = resolveDepartmentRoleTypeFromDeptName(companyName, deptName);
-        if ("UNKNOWN".equals(departmentRoleType)) {
-            return "ROLE_DEPT_UNKNOWN";
-        }
-        String scopedPrefix = buildScopedAuthorPrefix("DEPARTMENT", insttId);
-        if (!scopedPrefix.isEmpty()) {
-            return scopedPrefix + departmentRoleType;
-        }
-        return "ROLE_DEPT_" + departmentRoleType;
-    }
-
-    private String resolveDepartmentRoleName(String roleCode, boolean isEn) {
-        String roleType = resolveDepartmentRoleType(roleCode);
-        if ("CS".equals(roleType)) {
-            return isEn ? "Department CS baseline" : "부서 CS 기본권한";
-        }
-        if ("OPS".equals(roleType) || "OPERATION".equals(roleType)) {
-            return isEn ? "Department operation baseline" : "부서 운영 기본권한";
-        }
-        if ("ESG".equals(roleType) || "SUSTAINABILITY".equals(roleType)) {
-            return isEn ? "Department sustainability baseline" : "부서 탄소/ESG 기본권한";
-        }
-        if ("PROD".equals(roleType) || "PRODUCTION".equals(roleType)) {
-            return isEn ? "Department production baseline" : "부서 생산 기본권한";
-        }
-        if ("PROC".equals(roleType) || "PROCUREMENT".equals(roleType)) {
-            return isEn ? "Department procurement baseline" : "부서 구매 기본권한";
-        }
-        if ("QUAL".equals(roleType) || "QUALITY".equals(roleType)) {
-            return isEn ? "Department quality baseline" : "부서 품질 기본권한";
-        }
-        if ("SALE".equals(roleType) || "SALES".equals(roleType)) {
-            return isEn ? "Department sales baseline" : "부서 영업 기본권한";
-        }
-        if ("MGMT".equals(roleType) || "MANAGEMENT".equals(roleType)) {
-            return isEn ? "Department management baseline" : "부서 경영지원 기본권한";
-        }
-        return isEn ? "Needs review" : "검토 필요";
-    }
-
-    private String resolveDepartmentRoleDescription(String roleCode, boolean isEn) {
-        String roleType = resolveDepartmentRoleType(roleCode);
-        if ("CS".equals(roleType)) {
-            return isEn ? "Baseline authority for customer support departments." : "CS부서 기본 권한 베이스라인";
-        }
-        if ("OPS".equals(roleType) || "OPERATION".equals(roleType)) {
-            return isEn ? "Baseline authority for operations and technical departments." : "운영/기술 부서 기본 권한 베이스라인";
-        }
-        if ("ESG".equals(roleType) || "SUSTAINABILITY".equals(roleType)) {
-            return isEn ? "Baseline authority for carbon, ESG, and sustainability departments." : "탄소/ESG/지속가능경영 부서 기본 권한 베이스라인";
-        }
-        if ("PROD".equals(roleType) || "PRODUCTION".equals(roleType)) {
-            return isEn ? "Baseline authority for production and manufacturing departments." : "생산/공정 부서 기본 권한 베이스라인";
-        }
-        if ("PROC".equals(roleType) || "PROCUREMENT".equals(roleType)) {
-            return isEn ? "Baseline authority for procurement and SCM departments." : "구매/SCM 부서 기본 권한 베이스라인";
-        }
-        if ("QUAL".equals(roleType) || "QUALITY".equals(roleType)) {
-            return isEn ? "Baseline authority for quality, certification, and audit departments." : "품질/인증/심사 부서 기본 권한 베이스라인";
-        }
-        if ("SALE".equals(roleType) || "SALES".equals(roleType)) {
-            return isEn ? "Baseline authority for sales and account management departments." : "영업/고객사 관리 부서 기본 권한 베이스라인";
-        }
-        if ("MGMT".equals(roleType) || "MANAGEMENT".equals(roleType)) {
-            return isEn ? "Baseline authority for management support, finance, and HR departments." : "경영지원/재무/인사 부서 기본 권한 베이스라인";
-        }
-        return isEn ? "Department role needs review." : "회사/부서 기준 검토가 필요한 권한입니다.";
-    }
-
-    private String resolveDepartmentRoleTypeFromDeptName(String companyName, String deptName) {
-        String searchText = (safeString(companyName) + " " + safeString(deptName)).toUpperCase(Locale.ROOT);
-        if (containsAny(searchText, "탄소", "ESG", "환경", "지속가능", "NETZERO", "SUSTAIN")) {
-            return "ESG";
-        }
-        if (containsAny(searchText, "생산", "제조", "공정", "설비", "PLANT", "PRODUCTION", "MANUFACTUR", "FACTORY")) {
-            return "PROD";
-        }
-        if (containsAny(searchText, "구매", "자재", "조달", "SCM", "PROCUREMENT", "PURCHASE", "MATERIAL")) {
-            return "PROC";
-        }
-        if (containsAny(searchText, "품질", "QA", "QC", "인증", "심사", "QUALITY", "AUDIT", "CERT")) {
-            return "QUAL";
-        }
-        if (containsAny(searchText, "영업", "마케팅", "사업", "SALES", "ACCOUNT", "BIZDEV", "BUSINESS")) {
-            return "SALE";
-        }
-        if (containsAny(searchText, "고객", "문의", "CS", "VOC", "SUPPORT", "HELPDESK")) {
-            return "CS";
-        }
-        if (containsAny(searchText, "운영", "기술", "개발", "IT", "시스템", "플랫폼", "INFRA", "DEVOPS", "ENGINEER")) {
-            return "OPS";
-        }
-        if (containsAny(searchText, "경영", "지원", "재무", "회계", "인사", "총무", "HR", "FINANCE", "ACCOUNTING", "MANAGEMENT")) {
-            return "MGMT";
-        }
-        return "UNKNOWN";
-    }
-
-    private String resolveDepartmentRoleType(String roleCode) {
-        String normalizedRoleCode = safeString(roleCode).toUpperCase(Locale.ROOT);
-        if (normalizedRoleCode.startsWith("ROLE_DEPT_I")) {
-            int lastUnderscore = normalizedRoleCode.lastIndexOf('_');
-            if (lastUnderscore > "ROLE_DEPT_I".length()) {
-                return normalizedRoleCode.substring(lastUnderscore + 1);
-            }
-        }
-        if (normalizedRoleCode.startsWith("ROLE_DEPT_")) {
-            return normalizedRoleCode.substring("ROLE_DEPT_".length());
-        }
-        return "UNKNOWN";
-    }
-
-    private boolean isUnknownDepartmentRole(String roleCode) {
-        return "UNKNOWN".equals(resolveDepartmentRoleType(roleCode));
     }
 
     private boolean containsAny(String source, String... keywords) {
@@ -5871,323 +5719,6 @@ public class AdminMainController {
             Model model,
             boolean isEn) {
         adminSystemPageModelAssembler().populateSchedulerPage(jobStatus, executionType, model, isEn);
-    }
-
-    private Map<String, Object> buildErrorLogPagePayload(
-            String pageIndexParam,
-            String searchKeyword,
-            String requestedInsttId,
-            String sourceType,
-            String errorType,
-            HttpServletRequest request,
-            boolean isEn) {
-        Map<String, Object> payload = new LinkedHashMap<>();
-        int pageIndex = safeParseInt(pageIndexParam, 1);
-        String currentUserId = extractCurrentUserId(request);
-        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        boolean masterAccess = ROLE_SYSTEM_MASTER.equalsIgnoreCase(currentUserAuthorCode);
-        boolean systemAccess = ROLE_SYSTEM_ADMIN.equalsIgnoreCase(currentUserAuthorCode);
-        boolean adminAccess = ROLE_ADMIN.equalsIgnoreCase(currentUserAuthorCode);
-        boolean operationAccess = ROLE_OPERATION_ADMIN.equalsIgnoreCase(currentUserAuthorCode);
-        boolean canView = masterAccess || systemAccess || adminAccess || operationAccess;
-
-        payload.put("canViewErrorLog", canView);
-        payload.put("canManageAllCompanies", masterAccess);
-        payload.put("searchKeyword", safeString(searchKeyword));
-        payload.put("selectedSourceType", safeString(sourceType));
-        payload.put("selectedErrorType", safeString(errorType));
-
-        String currentUserInsttId = resolveCurrentUserInsttId(currentUserId);
-        List<Map<String, String>> companyOptions = masterAccess
-                ? loadAccessHistoryCompanyOptions()
-                : buildScopedAccessHistoryCompanyOptions(currentUserInsttId);
-        String selectedInsttId = masterAccess
-                ? resolveSelectedInsttId(requestedInsttId, companyOptions, true)
-                : currentUserInsttId;
-        payload.put("companyOptions", companyOptions);
-        payload.put("selectedInsttId", selectedInsttId);
-
-        if (!masterAccess && currentUserInsttId.isEmpty()) {
-            payload.put("errorLogError", isEn
-                    ? "Your administrator account is missing company information."
-                    : "관리자 계정에 회사 정보가 없습니다.");
-            payload.put("errorLogList", Collections.emptyList());
-            payload.put("totalCount", 0);
-            payload.put("pageIndex", 1);
-            payload.put("pageSize", 10);
-            payload.put("totalPages", 1);
-            payload.put("startPage", 1);
-            payload.put("endPage", 1);
-            payload.put("prevPage", 1);
-            payload.put("nextPage", 1);
-            payload.put("sourceTypeOptions", buildObservabilityOptionList("", "BACKEND_ERROR_CONTROLLER", "PAGE_EXCEPTION_ADVICE", "FRONTEND_REPORT", "FRONTEND_TELEMETRY"));
-            payload.put("errorTypeOptions", buildObservabilityOptionList("", "UI_ERROR", "ERROR_DISPATCH", "PAGE_EXCEPTION"));
-            payload.put("isEn", isEn);
-            return payload;
-        }
-
-        if (!canView) {
-            payload.put("errorLogError", isEn
-                    ? "Only master administrators, system administrators, administrators, and operations administrators can view error logs."
-                    : "에러 로그는 마스터 관리자, 시스템 관리자, 관리자, 운영 관리자만 조회할 수 있습니다.");
-            payload.put("errorLogList", Collections.emptyList());
-            payload.put("totalCount", 0);
-            payload.put("pageIndex", 1);
-            payload.put("pageSize", 10);
-            payload.put("totalPages", 1);
-            payload.put("startPage", 1);
-            payload.put("endPage", 1);
-            payload.put("prevPage", 1);
-            payload.put("nextPage", 1);
-            payload.put("sourceTypeOptions", buildObservabilityOptionList("", "BACKEND_ERROR_CONTROLLER", "PAGE_EXCEPTION_ADVICE", "FRONTEND_REPORT", "FRONTEND_TELEMETRY"));
-            payload.put("errorTypeOptions", buildObservabilityOptionList("", "UI_ERROR", "ERROR_DISPATCH", "PAGE_EXCEPTION"));
-            payload.put("isEn", isEn);
-            return payload;
-        }
-
-        String forcedInsttId = masterAccess ? selectedInsttId : currentUserInsttId;
-        int pageSize = 10;
-        int totalCount = 0;
-        int totalPages = 1;
-        int currentPage = 1;
-        List<Map<String, Object>> rows = new ArrayList<>();
-        String errorMessage = "";
-        try {
-            List<RequestExecutionLogVO> filtered = new ArrayList<>();
-            String normalizedKeyword = safeString(searchKeyword).toLowerCase(Locale.ROOT);
-            String normalizedSourceType = safeString(sourceType).toUpperCase(Locale.ROOT);
-            String normalizedErrorType = safeString(errorType).toUpperCase(Locale.ROOT);
-            for (RequestExecutionLogVO item : requestExecutionLogService.readRecent(5000)) {
-                if (!isErrorLogCandidate(item)) {
-                    continue;
-                }
-                String scopedInsttId = firstNonBlank(
-                        safeString(item.getCompanyContextId()),
-                        safeString(item.getTargetCompanyContextId()),
-                        safeString(item.getActorInsttId())
-                );
-                if (!forcedInsttId.isEmpty() && !forcedInsttId.equals(scopedInsttId)) {
-                    continue;
-                }
-                String rowSourceType = resolveErrorSourceType(item);
-                String rowErrorType = resolveErrorType(item);
-                if (!normalizedSourceType.isEmpty() && !normalizedSourceType.equalsIgnoreCase(rowSourceType)) {
-                    continue;
-                }
-                if (!normalizedErrorType.isEmpty() && !normalizedErrorType.equalsIgnoreCase(rowErrorType)) {
-                    continue;
-                }
-                if (!matchesErrorLogKeyword(item, normalizedKeyword, resolveCompanyNameByInsttId(scopedInsttId))) {
-                    continue;
-                }
-                filtered.add(item);
-            }
-            totalCount = filtered.size();
-            totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
-            currentPage = Math.max(1, Math.min(pageIndex, totalPages));
-            int fromIndex = Math.max(0, (currentPage - 1) * pageSize);
-            int toIndex = Math.min(totalCount, fromIndex + pageSize);
-            for (RequestExecutionLogVO item : filtered.subList(fromIndex, toIndex)) {
-                Map<String, Object> row = new LinkedHashMap<>();
-                String scopedInsttId = firstNonBlank(
-                        safeString(item.getActorInsttId()),
-                        safeString(item.getCompanyContextId()),
-                        safeString(item.getTargetCompanyContextId())
-                );
-                row.put("createdAt", safeString(item.getExecutedAt()));
-                row.put("insttId", scopedInsttId);
-                row.put("companyName", scopedInsttId.isEmpty() ? "-" : resolveCompanyNameByInsttId(scopedInsttId));
-                row.put("sourceType", resolveErrorSourceType(item));
-                row.put("errorType", resolveErrorType(item));
-                row.put("actorId", safeString(item.getActorUserId()));
-                row.put("actorRole", safeString(item.getActorAuthorCode()));
-                row.put("requestUri", safeString(item.getRequestUri()));
-                row.put("remoteAddr", safeString(item.getRemoteAddr()));
-                row.put("message", safeString(item.getErrorMessage()));
-                row.put("resultStatus", String.valueOf(item.getResponseStatus()));
-                rows.add(row);
-            }
-        } catch (Exception e) {
-            log.error("Failed to load error log page.", e);
-            errorMessage = isEn
-                    ? "An error occurred while retrieving error logs."
-                    : "에러 로그 조회 중 오류가 발생했습니다.";
-        }
-
-        int startPage = Math.max(1, currentPage - 4);
-        int endPage = Math.min(totalPages, startPage + 9);
-        if (endPage - startPage < 9) {
-            startPage = Math.max(1, endPage - 9);
-        }
-        payload.put("errorLogError", errorMessage);
-        payload.put("errorLogList", rows);
-        payload.put("totalCount", totalCount);
-        payload.put("pageIndex", currentPage);
-        payload.put("pageSize", pageSize);
-        payload.put("totalPages", totalPages);
-        payload.put("startPage", startPage);
-        payload.put("endPage", endPage);
-        payload.put("prevPage", Math.max(1, currentPage - 1));
-        payload.put("nextPage", Math.min(totalPages, currentPage + 1));
-        payload.put("sourceTypeOptions", buildObservabilityOptionList("", "BACKEND_ERROR_CONTROLLER", "PAGE_EXCEPTION_ADVICE", "FRONTEND_REPORT", "FRONTEND_TELEMETRY"));
-        payload.put("errorTypeOptions", buildObservabilityOptionList("", "UI_ERROR", "ERROR_DISPATCH", "PAGE_EXCEPTION"));
-        payload.put("isEn", isEn);
-        return payload;
-    }
-
-    private boolean isErrorLogCandidate(RequestExecutionLogVO item) {
-        if (item == null) {
-            return false;
-        }
-        String status = String.valueOf(item.getResponseStatus());
-        return status.startsWith("4")
-                || status.startsWith("5")
-                || !safeString(item.getErrorMessage()).isEmpty();
-    }
-
-    private String resolveErrorSourceType(RequestExecutionLogVO item) {
-        String requestUri = safeString(item == null ? null : item.getRequestUri()).toLowerCase(Locale.ROOT);
-        if (requestUri.contains("/api/")) {
-            return "BACKEND_ERROR_CONTROLLER";
-        }
-        if (requestUri.contains("/admin/") || requestUri.contains("/signin/") || requestUri.contains("/join/")) {
-            return "PAGE_EXCEPTION_ADVICE";
-        }
-        return "FRONTEND_REPORT";
-    }
-
-    private String resolveErrorType(RequestExecutionLogVO item) {
-        int status = 0;
-        try {
-            status = Integer.parseInt(String.valueOf(item == null ? 0 : item.getResponseStatus()));
-        } catch (NumberFormatException ignored) {
-        }
-        if (status >= 500) {
-            return "ERROR_DISPATCH";
-        }
-        if (status >= 400) {
-            return "PAGE_EXCEPTION";
-        }
-        return "UI_ERROR";
-    }
-
-    private boolean matchesErrorLogKeyword(RequestExecutionLogVO item, String keyword, String companyName) {
-        if (keyword.isEmpty()) {
-            return true;
-        }
-        return safeString(item.getErrorMessage()).toLowerCase(Locale.ROOT).contains(keyword)
-                || safeString(item.getActorUserId()).toLowerCase(Locale.ROOT).contains(keyword)
-                || safeString(item.getRequestUri()).toLowerCase(Locale.ROOT).contains(keyword)
-                || safeString(item.getRemoteAddr()).toLowerCase(Locale.ROOT).contains(keyword)
-                || safeString(companyName).toLowerCase(Locale.ROOT).contains(keyword);
-    }
-
-    private int safeParseInt(String value, int fallback) {
-        try {
-            return Integer.parseInt(safeString(value));
-        } catch (NumberFormatException ignored) {
-            return fallback;
-        }
-    }
-
-    private List<Map<String, String>> loadAccessHistoryCompanyOptions() {
-        try {
-            Map<String, Object> searchParams = new LinkedHashMap<>();
-            searchParams.put("keyword", "");
-            searchParams.put("status", "");
-            searchParams.put("offset", 0);
-            searchParams.put("pageSize", 500);
-            List<?> companies = entrprsManageService.searchCompanyListPaged(searchParams);
-            Map<String, String> dedup = new LinkedHashMap<>();
-            for (Object item : companies) {
-                String insttId = "";
-                String cmpnyNm = "";
-                if (item instanceof CompanyListItemVO) {
-                    CompanyListItemVO company = (CompanyListItemVO) item;
-                    insttId = safeString(company.getInsttId());
-                    cmpnyNm = safeString(company.getCmpnyNm());
-                } else if (item instanceof Map) {
-                    Map<?, ?> row = (Map<?, ?>) item;
-                    insttId = stringValue(row.get("insttId"));
-                    if (insttId.isEmpty()) {
-                        insttId = stringValue(row.get("INSTT_ID"));
-                    }
-                    cmpnyNm = stringValue(row.get("cmpnyNm"));
-                    if (cmpnyNm.isEmpty()) {
-                        cmpnyNm = stringValue(row.get("CMPNY_NM"));
-                    }
-                }
-                if (!insttId.isEmpty() && !dedup.containsKey(insttId)) {
-                    dedup.put(insttId, cmpnyNm);
-                }
-            }
-            List<Map<String, String>> options = new ArrayList<>();
-            for (Map.Entry<String, String> entry : dedup.entrySet()) {
-                Map<String, String> option = new LinkedHashMap<>();
-                option.put("insttId", entry.getKey());
-                option.put("cmpnyNm", entry.getValue());
-                options.add(option);
-            }
-            return options;
-        } catch (Exception e) {
-            log.warn("Failed to load access history company options.", e);
-            return Collections.emptyList();
-        }
-    }
-
-    private List<Map<String, String>> buildScopedAccessHistoryCompanyOptions(String insttId) {
-        String normalizedInsttId = safeString(insttId);
-        if (normalizedInsttId.isEmpty()) {
-            return Collections.emptyList();
-        }
-        List<Map<String, String>> masterOptions = loadAccessHistoryCompanyOptions();
-        if (masterOptions.isEmpty()) {
-            Map<String, String> fallback = new LinkedHashMap<>();
-            fallback.put("insttId", normalizedInsttId);
-            fallback.put("cmpnyNm", normalizedInsttId);
-            return Collections.singletonList(fallback);
-        }
-        return masterOptions.stream()
-                .filter(option -> normalizedInsttId.equals(option.get("insttId")))
-                .collect(Collectors.toList());
-    }
-
-    private String resolveCompanyNameByInsttId(String insttId) {
-        String normalizedInsttId = safeString(insttId);
-        if (normalizedInsttId.isEmpty()) {
-            return "-";
-        }
-        for (Map<String, String> option : loadAccessHistoryCompanyOptions()) {
-            if (normalizedInsttId.equals(safeString(option.get("insttId")))) {
-                String companyName = safeString(option.get("cmpnyNm"));
-                return companyName.isEmpty() ? normalizedInsttId : companyName;
-            }
-        }
-        return normalizedInsttId;
-    }
-
-    private String firstNonBlank(String... values) {
-        if (values == null) {
-            return "";
-        }
-        for (String value : values) {
-            String normalized = safeString(value);
-            if (!normalized.isEmpty()) {
-                return normalized;
-            }
-        }
-        return "";
-    }
-
-    private List<Map<String, String>> buildObservabilityOptionList(String... values) {
-        List<Map<String, String>> options = new ArrayList<>();
-        for (String value : values) {
-            Map<String, String> option = new LinkedHashMap<>();
-            option.put("value", safeString(value));
-            option.put("label", safeString(value).isEmpty() ? "전체" : safeString(value));
-            options.add(option);
-        }
-        return options;
     }
 
     private List<Map<String, String>> buildIpWhitelistSummary(boolean isEn) {

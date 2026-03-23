@@ -9,7 +9,8 @@ import egovframework.com.feature.auth.dto.response.FrontendSessionResponseDTO;
 import egovframework.com.feature.auth.util.JwtTokenProvider;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
@@ -22,7 +23,6 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class FrontendSessionService {
@@ -31,6 +31,7 @@ public class FrontendSessionService {
     private static final String ROLE_SYSTEM_ADMIN = "ROLE_SYSTEM_ADMIN";
     private static final String ROLE_ADMIN = "ROLE_ADMIN";
     private static final String ROLE_OPERATION_ADMIN = "ROLE_OPERATION_ADMIN";
+    private static final Logger log = LoggerFactory.getLogger(FrontendSessionService.class);
 
     private final JwtTokenProvider jwtProvider;
     private final AuthGroupManageService authGroupManageService;

@@ -24,9 +24,16 @@
 - 이 경우 운영자가 중지, 번호 변경, 범위 변경을 말하기 전까지 `03` 레인의 마지막 미완료 템플릿 라인, 테마 세트, 디자인 시스템 문서와 프로토타입을 1분 간격으로 계속 재확인합니다
 - 특히 `4번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`도 별도 해석 없이 항상 `04` 레인의 상시 반복 지시로 고정합니다
 - 이 경우 운영자가 중지, 번호 변경, 범위 변경을 말하기 전까지 `04` 레인의 마지막 미완료 화면 빌더, 자산 스튜디오, 유도 흐름 문서와 프로토타입을 1분 간격으로 계속 재확인합니다
+- 특히 `5번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`도 별도 해석 없이 항상 `05` 레인의 상시 반복 지시로 고정합니다
+- 이 경우 운영자가 중지, 번호 변경, 범위 변경을 말하기 전까지 `05` 레인의 마지막 미완료 프런트엔드 런타임 화면, 운영자 UI, 공통 기본 구성요소 연결 상태를 1분 간격으로 계속 재확인합니다
+- 특히 `6번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`도 별도 해석 없이 항상 `06` 레인의 상시 반복 지시로 고정합니다
+- 이 경우 운영자가 중지, 번호 변경, 범위 변경을 말하기 전까지 `06` 레인의 마지막 미완료 백엔드 제어 평면 인터페이스, 서비스, 매퍼 작업을 1분 간격으로 계속 재확인합니다
 - 특히 `7번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`도 별도 해석 없이 항상 `07` 레인의 상시 반복 지시로 고정합니다
 - 이 경우 운영자가 중지, 번호 변경, 범위 변경을 말하기 전까지 `07` 레인의 마지막 미완료 SQL draft, migration draft, rollback draft, DB 노트를 1분 간격으로 계속 재확인합니다
 - 이 지시는 `07` 레인 안에서 이전 루프의 마지막 작업 위치를 최대한 이어받고, 더 이상 이어갈 미완료 항목이 없을 때만 같은 범위를 처음부터 재실행하는 뜻으로 고정합니다
+- 특히 `9번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`도 별도 해석 없이 항상 `09` 레인의 상시 반복 지시로 고정합니다
+- 이 경우 운영자가 중지, 번호 변경, 범위 변경을 말하기 전까지 `09` 레인의 마지막 미완료 compare, parity, repair, smoke verification 문서와 프로토타입, 연결된 검증 구현 범위를 1분 간격으로 계속 재확인합니다
+- 이 지시는 `09` 레인 안에서 이전 루프의 마지막 작업 위치를 최대한 이어받고, 더 이상 이어갈 미완료 검증 항목이 없을 때만 같은 범위를 처음부터 재실행하는 뜻으로 고정합니다
 
 ## 상태 코드
 
@@ -308,11 +315,37 @@
 - 추정 진행률: `15%`
 - 운영 메모: `01` 동결 이후 `03`의 template/theme 기준과 `04`의 guided-build-flow, screen-builder, asset-studio, page-assembly 입력물을 받아 리액트 기반 화면 작업을 시작합니다
 - 다음 1개 행동: 첫 구현 대상 화면과 공통 기본 구성요소 목록을 `03` 기준과 `04`의 guided-build-flow, screen-builder, asset-studio, page-assembly 입력물 기준으로 고정합니다
+- 상시 운영 해석: 운영자가 `5번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`라고 말한 상태로 간주하고, 중지 지시가 없으면 이 레인을 계속 순환합니다
 - 목적: 리액트 운영 화면, 런타임 관리자 UI와 공개 UI의 일관성, 공통 기본 구성요소를 구현합니다
 - 최근 변경 파일:
   - `docs/architecture/screen-family-ui-consistency-contract.md`
+  - `docs/architecture/lane-start-instructions-05-06-08-09.md`
   - `docs/prototypes/resonance-ui/index.html`
   - `docs/prototypes/resonance-ui/project-runtime.html`
+- 붙기/반복 기준:
+  - 운영자가 `5번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`라고 말하면 항상 이 레인으로 해석합니다
+  - 새 레인을 만들지 않고 현재 `05` 레인의 마지막 미완료 화면 구현, 운영자 UI 정리, 공통 기본 구성요소 작업부터 이어갑니다
+  - 중지 지시가 없으면 1회성 작업으로 끝내지 않고 같은 `05` 레인 안에서 계속 순환합니다
+  - 각 루프는 먼저 `이어서 진행` 가능 여부를 확인하고, 직전 미완료 지점이 닫혔을 때만 같은 체크 순서를 기준으로 `재실행` 단계로 넘어갑니다
+  - 약 1분마다 아래 반복 체크 순서대로 다시 확인합니다
+- 반복 체크 순서:
+  - `docs/architecture/lane-start-instructions-05-06-08-09.md`
+  - `docs/architecture/screen-family-ui-consistency-contract.md`
+  - `docs/frontend/admin-template-parity-inventory.md`
+  - `docs/prototypes/resonance-ui/index.html`
+  - `docs/prototypes/resonance-ui/project-runtime.html`
+  - `/opt/projects/carbonet/frontend/src`
+  - `/opt/projects/carbonet/frontend/scripts`
+- 반복 실행 규칙:
+  - 직전 루프의 마지막 작업 위치, 미완료 메모, 열린 화면/컴포넌트/일관성 불일치 목록을 그대로 이어받아 다음 루프 시작점으로 사용합니다
+  - 이어서 진행할 수 있는 미완료 항목이 있으면 재탐색보다 해당 프런트엔드 구현의 직전 중단 지점 복구를 우선합니다
+  - 가장 마지막으로 수정한 운영자 UI 또는 런타임 화면에서 이어서, 누락된 구성요소 연결과 governed identity field 유지 여부를 먼저 닫습니다
+  - 직전 루프에서 더 진행할 내용이 없으면 같은 범위 문서, 프로토타입, 프런트엔드 소스를 다시 훑어 새 누락이나 드리프트가 없는지 재실행 확인합니다
+  - 재실행 루프에서는 `03`의 template/theme/parity 기준과 `04`의 guided-build-flow, screen-builder, asset-studio, page-assembly 입력물이 현재 구현과 다시 벌어지지 않았는지 먼저 확인합니다
+  - 새 공통 계약이 필요해 `01` 소유 범위를 건드리거나 `04` 입력물 정의가 다시 바뀌어야 하면 즉시 `BLOCKED` 또는 `HANDOFF`로 바꿉니다
+  - `09`가 구현 결과를 바로 검증할 수 있을 정도로 운영자 UI, 런타임 화면, 공통 기본 구성요소 출력이 정리되면 `HANDOFF`로 넘깁니다
+  - `HANDOFF` 뒤에도 운영자가 계속 `5번`에 붙으라고 유지하면, 인계 수신 확인 여부와 후속 UI 수정 필요성만 1분마다 같은 레인에서 다시 점검합니다
+  - 반복은 운영자가 중지, 번호 변경, 범위 변경을 말할 때만 종료하고, 그 전까지는 `05` 내부 미완료 항목 확인과 동일 범위 재점검을 계속 유지합니다
 - 허용 경로:
   - `/opt/projects/carbonet/frontend/src`
   - `/opt/projects/carbonet/frontend/scripts`
@@ -334,11 +367,32 @@
 - 추정 진행률: `10%`
 - 운영 메모: 계약은 있으나 구현은 아직 본격 시작 전입니다
 - 다음 1개 행동: 첫 구현 대상 인터페이스와 서비스 뼈대를 현재 계약 문서 기준으로 확정합니다
+- 상시 운영 해석: 운영자가 `6번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`라고 말한 상태로 간주하고, 중지 지시가 없으면 이 레인을 계속 순환합니다
 - 목적: 제어 평면 인터페이스, 레지스트리, 수명주기, 비교, 보정, 릴리스 서비스를 구현합니다
 - 최근 변경 파일:
   - `docs/architecture/module-selection-api-contracts.md`
   - `docs/architecture/repair-and-verification-api-contracts.md`
   - `docs/prototypes/resonance-ui/backend-chain-explorer.html`
+- 붙기/반복 기준:
+  - 운영자가 `6번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`라고 말하면 항상 이 레인으로 해석합니다
+  - 새 레인을 만들지 않고 현재 `06` 레인의 마지막 미완료 백엔드 제어 평면 인터페이스, 서비스, 매퍼 작업부터 이어갑니다
+  - 중지 지시가 없으면 1회성 작업으로 끝내지 않고 같은 `06` 레인 안에서 계속 순환합니다
+  - 각 루프는 먼저 `이어서 진행` 가능 여부를 확인하고, 직전 미완료 지점이 닫혔을 때만 같은 체크 순서를 기준으로 `재실행` 단계로 넘어갑니다
+  - 약 1분마다 아래 반복 체크 순서대로 다시 확인합니다
+- 반복 체크 순서:
+  - `docs/architecture/module-selection-api-contracts.md`
+  - `docs/architecture/repair-and-verification-api-contracts.md`
+  - `src/main/java`
+  - `src/main/resources/egovframework/mapper`
+- 반복 실행 규칙:
+  - 직전 루프의 마지막 작업 위치, 미완료 메모, 열린 인터페이스/서비스/매퍼 불일치 목록을 그대로 이어받아 다음 루프 시작점으로 사용합니다
+  - 이어서 진행할 수 있는 미완료 항목이 있으면 재탐색보다 해당 백엔드 제어 평면 구현의 직전 중단 지점 복구를 우선합니다
+  - 가장 마지막으로 수정한 인터페이스, 서비스, 매퍼에서 이어서 구현하고, 누락 계약 연결과 이름 정합성을 먼저 닫습니다
+  - 직전 루프에서 더 진행할 내용이 없으면 같은 범위 문서와 백엔드 소스를 다시 훑어 새 누락이나 드리프트가 없는지 재실행 확인합니다
+  - 재실행 루프에서는 제어 평면 계약, Java 서비스, MyBatis 매퍼 사이의 이름, 파라미터, lifecycle 연결이 다시 벌어지지 않았는지 먼저 확인합니다
+  - `01`이 아직 고정하지 않은 공통 계약이나 identity 이름이 필요해지면 즉시 `BLOCKED` 또는 `HANDOFF`로 바꿉니다
+  - `07`과 `09`가 바로 이어받을 수 있을 정도로 제어 평면 구현과 계약 연결이 안정화되면 `HANDOFF READY`로 넘깁니다
+  - 반복은 운영자가 중지, 번호 변경, 범위 변경을 말할 때만 종료하고, 그 전까지는 `06` 내부 미완료 항목 확인과 동일 범위 재점검을 계속 유지합니다
 - 허용 경로:
   - `/opt/projects/carbonet/src/main/java`
   - `/opt/projects/carbonet/src/main/resources/egovframework/mapper`
@@ -445,12 +499,38 @@
 - 추정 진행률: `60%`
 - 운영 메모: 점검표, 복구 계약, 누락 자산/비교 프로토타입 정리가 진행 중이며 `04`의 guided-build-flow, screen-builder, asset-studio, page-assembly 입력물과 `05`의 구현 결과를 같은 검증 기준으로 묶는 단계입니다
 - 다음 1개 행동: 정합성 점검표와 복구 계약 문서가 `04` 입력물과 `05` 구현 결과를 기준으로 비교/검증 프로토타입에 바로 매핑되도록 기준을 닫습니다
+- 상시 운영 해석: 운영자가 `9번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`라고 말한 상태로 간주하고, 중지 지시가 없으면 이 레인을 계속 순환합니다
 - 목적: 비교, 스모크 점검, 누락 자산 대기열, 복구 작업대, 정합성 및 일관성 검증을 정리합니다
 - 최근 변경 파일:
   - `docs/architecture/parity-and-smoke-checklists.md`
   - `docs/architecture/repair-and-verification-api-examples.md`
   - `docs/prototypes/resonance-ui/current-runtime-compare.html`
   - `docs/prototypes/resonance-ui/repair-workbench.html`
+- 붙기/반복 기준:
+  - 운영자가 `9번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`라고 말하면 항상 이 레인으로 해석합니다
+  - 새 레인을 만들지 않고 현재 `09` 레인의 마지막 미완료 compare, parity, repair, verification 항목부터 이어갑니다
+  - 중지 지시가 없으면 1회성 작업으로 끝내지 않고 같은 `09` 레인 안에서 계속 순환합니다
+  - 각 루프는 먼저 `이어서 진행` 가능 여부를 확인하고, 직전 미완료 지점이 닫혔을 때만 같은 체크 순서를 기준으로 `재실행` 단계로 넘어갑니다
+  - 약 1분마다 아래 반복 체크 순서대로 다시 확인합니다
+- 반복 체크 순서:
+  - `docs/architecture/lane-start-instructions-05-06-08-09.md`
+  - `docs/architecture/lane-code-start-checklists-05-06-08-09.md`
+  - `docs/architecture/parity-and-smoke-checklists.md`
+  - `docs/architecture/repair-and-verification-api-examples.md`
+  - `docs/architecture/implementation-handoff-health-checklist.md`
+  - `docs/prototypes/resonance-ui/current-runtime-compare.html`
+  - `docs/prototypes/resonance-ui/repair-workbench.html`
+  - `/opt/projects/carbonet/frontend/src/features`
+- 반복 실행 규칙:
+  - 직전 루프의 마지막 작업 위치, 미완료 메모, 열린 compare/parity/repair 불일치 목록을 그대로 이어받아 다음 루프 시작점으로 사용합니다
+  - 이어서 진행할 수 있는 미완료 항목이 있으면 재탐색보다 해당 검증 기준, 비교 프로토타입, 복구 워크벤치의 직전 중단 지점 복구를 우선합니다
+  - 가장 마지막으로 수정한 비교 기준 또는 검증 산출물에서 이어서, `04`의 guided-build-flow, screen-builder, asset-studio, page-assembly 입력물과 `05`의 구현 결과 사이에 남은 연결 누락을 먼저 닫습니다
+  - 직전 루프에서 더 진행할 내용이 없으면 같은 범위 문서, 프로토타입, 연결된 검증 구현 범위를 다시 훑어 새 누락이나 드리프트가 없는지 재실행 확인합니다
+  - 재실행 루프에서는 `03`의 template-line/theme-set/parity 기준, `06`의 repair and verification 계약, `08`의 deploy/session-loop 운영 산출물이 현재 compare/repair 흐름과 다시 벌어지지 않았는지 먼저 확인합니다
+  - 새 공통 계약이 필요해 `01` 소유 범위를 건드리거나 `04`, `05`, `06`, `08` 입력물 정의를 다시 바꿔야 하면 즉시 `BLOCKED` 또는 `HANDOFF`로 바꿉니다
+  - `01`이 바로 종합 검토를 이어받을 수 있을 정도로 parity, compare, repair, smoke verification 출력이 정리되면 `HANDOFF READY`로 넘깁니다
+  - `HANDOFF` 뒤에도 운영자가 계속 `9번`에 붙으라고 유지하면, 인계 수신 확인 여부와 후속 검증 drift만 1분마다 같은 레인에서 다시 점검합니다
+  - 반복은 운영자가 중지, 번호 변경, 범위 변경을 말할 때만 종료하고, 그 전까지는 `09` 내부 미완료 항목 확인과 동일 범위 재점검을 계속 유지합니다
 - 허용 경로:
   - `/opt/projects/carbonet/docs/architecture`
   - `/opt/projects/carbonet/docs/prototypes/resonance-ui`

@@ -154,3 +154,15 @@ AI builder outputs should be treated as publishable only if they can be reduced 
 4. authority role policy entries
 
 If an output cannot be expressed through this contract, it is not yet framework-compliant.
+
+## Regeneration Rule
+
+Framework-compliant outputs should also follow the regeneration model in
+`docs/architecture/builder-regeneration-without-derived-asset-edits.md`.
+
+In practice this means:
+
+- source contracts remain authoritative
+- approved overlays remain declarative
+- generated frontend, backend, DB, and deploy artifacts remain derived outputs
+- builder evolution should prefer regeneration over hand-editing generated files

@@ -16,4 +16,12 @@ public class FeatureCatalogSummarySnapshot {
     public static FeatureCatalogSummarySnapshot empty() {
         return new FeatureCatalogSummarySnapshot(0, 0);
     }
+
+    public int getTotalFeatureCount() {
+        return totalFeatureCount;
+    }
+
+    public int getUnassignedFeatureCount() {
+        return unassignedFeatureCount;
+    }
 }

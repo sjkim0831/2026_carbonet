@@ -4,7 +4,9 @@ import { fetchAuditEvents } from "../../lib/api/observability";
 import { fetchScreenBuilderPage, fetchScreenBuilderPreview } from "../../lib/api/screenBuilder";
 import { buildLocalizedPath, getSearchParam, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";
 import { DiagnosticCard, GridToolbar, MemberLinkButton } from "../admin-ui/common";
+import { runtimeSurfaceContextKeys } from "../admin-ui/contextKeyPresets";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 import { renderScreenBuilderNodePreview } from "./shared/screenBuilderPreview";
 import { resolveScreenBuilderQuery, sortScreenBuilderNodes } from "./shared/screenBuilderUtils";
@@ -53,6 +55,7 @@ export function ScreenRuntimeMigrationPage() {
       ]}
       title={en ? "Published Screen Runtime" : "발행 화면 런타임"}
       subtitle={en ? "Review the latest published screen-builder snapshot as a read-only runtime surface." : "최신 publish 스냅샷을 읽기 전용 런타임 화면으로 확인합니다."}
+      contextStrip={<ContextKeyStrip items={runtimeSurfaceContextKeys} />}
       loading={(pageState.loading && !page) || (previewState.loading && !preview)}
       loadingLabel={en ? "Loading published runtime..." : "발행 런타임을 불러오는 중입니다."}
     >

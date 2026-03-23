@@ -120,7 +120,9 @@ public class FrameworkBuilderContractService {
                 merged.put(safe(row.getComponentId()), fromRegistryRow(row));
             }
         }
-        for (ScreenBuilderComponentRegistryItemVO row : builderRows == null ? Collections.emptyList() : builderRows) {
+        List<ScreenBuilderComponentRegistryItemVO> safeBuilderRows =
+                builderRows == null ? Collections.<ScreenBuilderComponentRegistryItemVO>emptyList() : builderRows;
+        for (ScreenBuilderComponentRegistryItemVO row : safeBuilderRows) {
             if (row == null || safe(row.getComponentId()).isEmpty()) {
                 continue;
             }
@@ -248,4 +250,3 @@ public class FrameworkBuilderContractService {
         return value == null ? "" : value.trim();
     }
 }
-

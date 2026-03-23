@@ -18,6 +18,7 @@ import egovframework.com.feature.admin.model.vo.UserAuthorityTargetVO;
 import egovframework.com.feature.admin.service.AuthGroupManageService;
 import egovframework.com.feature.auth.domain.entity.EmplyrInfo;
 import egovframework.com.feature.auth.domain.repository.EmployeeMemberRepository;
+import egovframework.com.framework.authority.service.FrameworkAuthorityPolicyService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,6 +51,7 @@ public class AdminAuthorityPagePayloadSupport {
     private final AuthGroupManageService authGroupManageService;
     private final EmployeeMemberRepository employMemberRepository;
     private final ObservabilityQueryService observabilityQueryService;
+    private final FrameworkAuthorityPolicyService frameworkAuthorityPolicyService;
     private final ObjectMapper objectMapper;
 
     public List<FeatureCatalogSectionVO> buildFeatureCatalogSections(List<FeatureCatalogItemVO> featureRows, boolean isEn) {
@@ -987,44 +989,6 @@ public class AdminAuthorityPagePayloadSupport {
         return token.substring(token.length() - 8);
     }
 
-    private String resolveDepartmentRoleCode(String insttId, String companyName, String deptName) {
-        String departmentRoleType = resolveDepartmentRoleTypeFromDeptName(companyName, deptName);
-        if ("UNKNOWN".equals(departmentRoleType)) {
-            return "ROLE_DEPT_UNKNOWN";
-        }
-        String scopedPrefix = buildScopedAuthorPrefix("DEPARTMENT", insttId);
-        if (!scopedPrefix.isEmpty()) {
-            return scopedPrefix + departmentRoleType;
-        }
-        return "ROLE_DEPT_" + departmentRoleType;
-    }
-
-    private String resolveDepartmentRoleName(String roleCode, boolean isEn) {
-        String roleType = resolveDepartmentRoleType(roleCode);
-        if ("CS".equals(roleType)) return isEn ? "Department CS baseline" : "부서 CS 기본권한";
-        if ("OPS".equals(roleType) || "OPERATION".equals(roleType)) return isEn ? "Department operation baseline" : "부서 운영 기본권한";
-        if ("ESG".equals(roleType) || "SUSTAINABILITY".equals(roleType)) return isEn ? "Department sustainability baseline" : "부서 탄소/ESG 기본권한";
-        if ("PROD".equals(roleType) || "PRODUCTION".equals(roleType)) return isEn ? "Department production baseline" : "부서 생산 기본권한";
-        if ("PROC".equals(roleType) || "PROCUREMENT".equals(roleType)) return isEn ? "Department procurement baseline" : "부서 구매 기본권한";
-        if ("QUAL".equals(roleType) || "QUALITY".equals(roleType)) return isEn ? "Department quality baseline" : "부서 품질 기본권한";
-        if ("SALE".equals(roleType) || "SALES".equals(roleType)) return isEn ? "Department sales baseline" : "부서 영업 기본권한";
-        if ("MGMT".equals(roleType) || "MANAGEMENT".equals(roleType)) return isEn ? "Department management baseline" : "부서 경영지원 기본권한";
-        return isEn ? "Needs review" : "검토 필요";
-    }
-
-    private String resolveDepartmentRoleDescription(String roleCode, boolean isEn) {
-        String roleType = resolveDepartmentRoleType(roleCode);
-        if ("CS".equals(roleType)) return isEn ? "Baseline authority for customer support departments." : "CS부서 기본 권한 베이스라인";
-        if ("OPS".equals(roleType) || "OPERATION".equals(roleType)) return isEn ? "Baseline authority for operations and technical departments." : "운영/기술 부서 기본 권한 베이스라인";
-        if ("ESG".equals(roleType) || "SUSTAINABILITY".equals(roleType)) return isEn ? "Baseline authority for carbon, ESG, and sustainability departments." : "탄소/ESG/지속가능경영 부서 기본 권한 베이스라인";
-        if ("PROD".equals(roleType) || "PRODUCTION".equals(roleType)) return isEn ? "Baseline authority for production and manufacturing departments." : "생산/공정 부서 기본 권한 베이스라인";
-        if ("PROC".equals(roleType) || "PROCUREMENT".equals(roleType)) return isEn ? "Baseline authority for procurement and SCM departments." : "구매/SCM 부서 기본 권한 베이스라인";
-        if ("QUAL".equals(roleType) || "QUALITY".equals(roleType)) return isEn ? "Baseline authority for quality, certification, and audit departments." : "품질/인증/심사 부서 기본 권한 베이스라인";
-        if ("SALE".equals(roleType) || "SALES".equals(roleType)) return isEn ? "Baseline authority for sales and account management departments." : "영업/고객사 관리 부서 기본 권한 베이스라인";
-        if ("MGMT".equals(roleType) || "MANAGEMENT".equals(roleType)) return isEn ? "Baseline authority for management support, finance, and HR departments." : "경영지원/재무/인사 부서 기본 권한 베이스라인";
-        return isEn ? "Department role needs review." : "회사/부서 기준 검토가 필요한 권한입니다.";
-    }
-
     private AuthorInfoVO findAuthorGroupByCode(String authorCode) {
         String normalizedAuthorCode = safeString(authorCode).toUpperCase(Locale.ROOT);
         if (normalizedAuthorCode.isEmpty()) {
@@ -1086,37 +1050,6 @@ public class AdminAuthorityPagePayloadSupport {
             return 400;
         }
         return 0;
-    }
-
-    private String resolveDepartmentRoleTypeFromDeptName(String companyName, String deptName) {
-        String searchText = (safeString(companyName) + " " + safeString(deptName)).toUpperCase(Locale.ROOT);
-        if (containsAny(searchText, "탄소", "ESG", "환경", "지속가능", "NETZERO", "SUSTAIN")) return "ESG";
-        if (containsAny(searchText, "생산", "제조", "공정", "설비", "PLANT", "PRODUCTION", "MANUFACTUR", "FACTORY")) return "PROD";
-        if (containsAny(searchText, "구매", "자재", "조달", "SCM", "PROCUREMENT", "PURCHASE", "MATERIAL")) return "PROC";
-        if (containsAny(searchText, "품질", "QA", "QC", "인증", "심사", "QUALITY", "AUDIT", "CERT")) return "QUAL";
-        if (containsAny(searchText, "영업", "마케팅", "사업", "SALES", "ACCOUNT", "BIZDEV", "BUSINESS")) return "SALE";
-        if (containsAny(searchText, "고객", "문의", "CS", "VOC", "SUPPORT", "HELPDESK")) return "CS";
-        if (containsAny(searchText, "운영", "기술", "개발", "IT", "시스템", "플랫폼", "INFRA", "DEVOPS", "ENGINEER")) return "OPS";
-        if (containsAny(searchText, "경영", "지원", "재무", "회계", "인사", "총무", "HR", "FINANCE", "ACCOUNTING", "MANAGEMENT")) return "MGMT";
-        return "UNKNOWN";
-    }
-
-    private String resolveDepartmentRoleType(String roleCode) {
-        String normalizedRoleCode = safeString(roleCode).toUpperCase(Locale.ROOT);
-        if (normalizedRoleCode.startsWith("ROLE_DEPT_I")) {
-            int lastUnderscore = normalizedRoleCode.lastIndexOf('_');
-            if (lastUnderscore > "ROLE_DEPT_I".length()) {
-                return normalizedRoleCode.substring(lastUnderscore + 1);
-            }
-        }
-        if (normalizedRoleCode.startsWith("ROLE_DEPT_")) {
-            return normalizedRoleCode.substring("ROLE_DEPT_".length());
-        }
-        return "UNKNOWN";
-    }
-
-    private boolean isUnknownDepartmentRole(String roleCode) {
-        return "UNKNOWN".equals(resolveDepartmentRoleType(roleCode));
     }
 
     private boolean containsAny(String source, String... keywords) {

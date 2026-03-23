@@ -30,6 +30,13 @@ export const verifyRuntimeContextKeys = toContextKeyItems({
   ownerLane: "res-09-verify"
 });
 
+export const runtimeSurfaceContextKeys = toContextKeyItems({
+  guidedStateId: "guided-build-07-runtime-binding",
+  templateLineId: "admin-line-02",
+  screenFamilyRuleId: "ADMIN_LIST_REVIEW",
+  ownerLane: "res-05-frontend"
+});
+
 export const codexWorkbenchContextKeys = toContextKeyItems({
   guidedStateId: "guided-build-prepare-plan-build",
   templateLineId: "admin-line-02",

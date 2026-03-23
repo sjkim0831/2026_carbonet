@@ -20,4 +20,12 @@ public class SecurityAuditSnapshot {
     public static SecurityAuditSnapshot empty() {
         return new SecurityAuditSnapshot(Collections.emptyList(), SecurityAuditAggregate.empty());
     }
+
+    public List<RequestExecutionLogVO> getAuditLogs() {
+        return auditLogs;
+    }
+
+    public SecurityAuditAggregate getAggregate() {
+        return aggregate;
+    }
 }

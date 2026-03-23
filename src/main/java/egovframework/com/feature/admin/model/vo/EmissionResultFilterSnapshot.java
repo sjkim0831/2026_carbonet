@@ -21,4 +21,16 @@ public class EmissionResultFilterSnapshot {
     public int getTotalCount() {
         return items.size();
     }
+
+    public List<EmissionResultSummaryView> getItems() {
+        return items;
+    }
+
+    public long getReviewCount() {
+        return reviewCount;
+    }
+
+    public long getVerifiedCount() {
+        return verifiedCount;
+    }
 }

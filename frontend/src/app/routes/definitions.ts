@@ -46,6 +46,7 @@ export type MigrationPageId =
   | "environment-management"
   | "screen-builder"
   | "screen-runtime"
+  | "current-runtime-compare"
   | "wbs-management"
   | "ip-whitelist"
   | "access-history"
@@ -134,6 +135,7 @@ export const ROUTES: RouteDefinition[] = [
   { id: "environment-management", label: "메뉴 통합 관리", group: "admin", koPath: "/admin/system/environment-management", enPath: "/en/admin/system/environment-management" },
   { id: "screen-builder", label: "화면 빌더", group: "admin", koPath: "/admin/system/screen-builder", enPath: "/en/admin/system/screen-builder" },
   { id: "screen-runtime", label: "발행 화면 런타임", group: "admin", koPath: "/admin/system/screen-runtime", enPath: "/en/admin/system/screen-runtime" },
+  { id: "current-runtime-compare", label: "현재 런타임 비교", group: "admin", koPath: "/admin/system/current-runtime-compare", enPath: "/en/admin/system/current-runtime-compare" },
   { id: "wbs-management", label: "WBS 관리", group: "admin", koPath: "/admin/system/wbs-management", enPath: "/en/admin/system/wbs-management" },
   { id: "ip-whitelist", label: "IP 화이트리스트", group: "admin", koPath: "/admin/system/ip_whitelist", enPath: "/en/admin/system/ip_whitelist" },
   { id: "access-history", label: "접속 로그", group: "admin", koPath: "/admin/system/access_history", enPath: "/en/admin/system/access_history" },

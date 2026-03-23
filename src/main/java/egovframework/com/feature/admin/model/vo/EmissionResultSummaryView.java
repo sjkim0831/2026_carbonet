@@ -30,4 +30,15 @@ public class EmissionResultSummaryView {
         this.verificationStatusLabel = verificationStatusLabel;
         this.detailUrl = detailUrl;
     }
+
+    public String getResultId() { return resultId; }
+    public String getProjectName() { return projectName; }
+    public String getCompanyName() { return companyName; }
+    public String getCalculatedAt() { return calculatedAt; }
+    public String getTotalEmission() { return totalEmission; }
+    public String getResultStatusCode() { return resultStatusCode; }
+    public String getResultStatusLabel() { return resultStatusLabel; }
+    public String getVerificationStatusCode() { return verificationStatusCode; }
+    public String getVerificationStatusLabel() { return verificationStatusLabel; }
+    public String getDetailUrl() { return detailUrl; }
 }
