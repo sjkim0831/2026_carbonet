@@ -1825,18 +1825,17 @@ public class AdminMainController {
         primeCsrfToken(request);
         boolean isEn = isEnglishRequest(request, locale);
         ExtendedModelMap model = new ExtendedModelMap();
-        populateLoginHistory(pageIndexParam, searchKeyword, userSe, loginResult, model, isEn ? "egovframework/com/admin/login_history_en" : "egovframework/com/admin/login_history");
+        populateLoginHistory(pageIndexParam, searchKeyword, userSe, loginResult, model);
         model.addAttribute("isEn", isEn);
         return ResponseEntity.ok(new LinkedHashMap<>(model));
     }
 
-    String populateMemberList(
+    void populateMemberList(
             String pageIndexParam,
             String searchKeyword,
             String membershipType,
             String sbscrbSttus,
             Model model,
-            String viewName,
             HttpServletRequest request) {
         int pageIndex = 1;
         if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
@@ -1912,7 +1911,6 @@ public class AdminMainController {
         model.addAttribute("searchKeyword", keyword);
         model.addAttribute("membershipType", memberType);
         model.addAttribute("sbscrbSttus", status);
-        return viewName;
     }
 
     String populateMemberApprovalList(
@@ -2362,12 +2360,11 @@ public class AdminMainController {
         return options;
     }
 
-    String populateAdminMemberList(
+    void populateAdminMemberList(
             String pageIndexParam,
             String searchKeyword,
             String sbscrbSttus,
-            Model model,
-            String viewName) {
+            Model model) {
         int pageIndex = 1;
         if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
             try {
@@ -2404,7 +2401,7 @@ public class AdminMainController {
             model.addAttribute("endPage", 1);
             model.addAttribute("searchKeyword", keyword);
             model.addAttribute("sbscrbSttus", status);
-            return viewName;
+            return;
         }
 
         int totalCount = (int) page.getTotalElements();
@@ -2431,15 +2428,13 @@ public class AdminMainController {
         model.addAttribute("nextPage", nextPage);
         model.addAttribute("searchKeyword", keyword);
         model.addAttribute("sbscrbSttus", status);
-        return viewName;
     }
 
-    String populateCompanyList(
+    void populateCompanyList(
             String pageIndexParam,
             String searchKeyword,
             String sbscrbSttus,
             Model model,
-            String viewName,
             HttpServletRequest request) {
         int pageIndex = 1;
         if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
@@ -2506,7 +2501,6 @@ public class AdminMainController {
         model.addAttribute("nextPage", nextPage);
         model.addAttribute("searchKeyword", keyword);
         model.addAttribute("sbscrbSttus", status);
-        return viewName;
     }
 
     Map<String, Object> buildMemberStatsPageData(boolean isEn) {
@@ -2645,13 +2639,12 @@ public class AdminMainController {
         return viewName;
     }
 
-    private String populateLoginHistory(
+    private void populateLoginHistory(
             String pageIndexParam,
             String searchKeyword,
             String userSe,
             String loginResult,
-            Model model,
-            String viewName) {
+            Model model) {
         int pageIndex = 1;
         if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
             try {
@@ -2714,7 +2707,6 @@ public class AdminMainController {
         model.addAttribute("searchKeyword", keyword);
         model.addAttribute("userSe", normalizedUserSe);
         model.addAttribute("loginResult", normalizedLoginResult);
-        return viewName;
     }
 
     private void populateBlockedLoginHistory(
@@ -2722,17 +2714,16 @@ public class AdminMainController {
             String searchKeyword,
             String userSe,
             Model model) {
-        populateLoginHistoryInternal(pageIndexParam, searchKeyword, userSe, "FAIL", "Y", model, "");
+        populateLoginHistoryInternal(pageIndexParam, searchKeyword, userSe, "FAIL", "Y", model);
     }
 
-    private String populateLoginHistoryInternal(
+    private void populateLoginHistoryInternal(
             String pageIndexParam,
             String searchKeyword,
             String userSe,
             String loginResult,
             String blockedOnly,
-            Model model,
-            String viewName) {
+            Model model) {
         int pageIndex = 1;
         if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
             try {
@@ -2797,7 +2788,6 @@ public class AdminMainController {
         model.addAttribute("searchKeyword", keyword);
         model.addAttribute("userSe", normalizedUserSe);
         model.addAttribute("loginResult", normalizedLoginResult);
-        return viewName;
     }
 
     String populatePasswordResetHistory(

@@ -95,7 +95,6 @@ public class AdminMemberPagePayloadService {
                 membershipType,
                 sbscrbSttus,
                 model,
-                isEn ? "egovframework/com/admin/member_list_en" : "egovframework/com/admin/member_list",
                 request);
         Map<String, Object> response = new LinkedHashMap<>();
         response.putAll(model);
@@ -123,7 +122,6 @@ public class AdminMemberPagePayloadService {
                     searchKeyword,
                     sbscrbSttus,
                     model,
-                    isEn ? "egovframework/com/admin/company_list_en" : "egovframework/com/admin/company_list",
                     request);
         } else {
             model.addAttribute("company_listError", isEn ? "Only global administrators can view the company list." : "회원사 목록은 전체 관리자만 조회할 수 있습니다.");
@@ -207,8 +205,7 @@ public class AdminMemberPagePayloadService {
                 pageIndexParam,
                 searchKeyword,
                 sbscrbSttus,
-                model,
-                isEn ? "egovframework/com/admin/admin_list_en" : "egovframework/com/admin/admin_list");
+                model);
         Map<String, Object> response = new LinkedHashMap<>();
         response.putAll(model);
         response.put("canViewAdminList", true);
