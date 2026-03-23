@@ -18,7 +18,7 @@ import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";
 import { authorDesignContextKeys } from "../admin-ui/contextKeyPresets";
 import { SummaryMetricCard, WarningPanel } from "../admin-ui/common";
-import { numberOf, stringOf } from "../admin-system/adminSystemShared";
+import { numberOf, readRedirectedErrorMessage, stringOf } from "../admin-system/adminSystemShared";
 import { toDisplayMenuUrl } from "./menuUrlDisplay";
 
 type MenuNode = {
@@ -602,6 +602,10 @@ export function FullStackManagementMigrationPage() {
     });
     if (!response.ok) {
       throw new Error(`Failed to save menu order: ${response.status}`);
+    }
+    const redirectedError = readRedirectedErrorMessage(response);
+    if (redirectedError) {
+      throw new Error(redirectedError);
     }
     await pageState.reload();
     setActionMessage(en ? "Menu order has been saved." : "메뉴 순서를 저장했습니다.");

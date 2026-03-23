@@ -36,12 +36,7 @@ public class AdminSrWorkbenchController {
     @RequestMapping(value = "/system/sr-workbench", method = RequestMethod.GET)
     public String srWorkbenchPage(HttpServletRequest request, Locale locale, Model model) {
         boolean en = isEnglishRequest(request, locale);
-        reactAppViewSupportProvider.getObject().populate(model, "sr-workbench", en, true);
-        model.addAttribute("pageTitle", en ? "SR Workbench" : "SR 워크벤치");
-        model.addAttribute("pageSubtitle", en
-                ? "Issue SR tickets, review approvals, and prepare Codex execution in the shared admin workspace."
-                : "공통 관리자 작업공간에서 SR 티켓 발행, 승인 검토, Codex 실행 준비를 처리합니다.");
-        return en ? "egovframework/com/admin/sr_workbench_en" : "egovframework/com/admin/sr_workbench";
+        return reactAppViewSupportProvider.getObject().render(model, "sr-workbench", en, true);
     }
 
     @GetMapping("/api/admin/sr-workbench/page")

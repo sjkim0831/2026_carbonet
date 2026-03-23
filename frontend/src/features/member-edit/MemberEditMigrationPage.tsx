@@ -3,7 +3,7 @@ import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { CanView } from "../../components/access/CanView";
 import { fetchMemberEditPage, MemberEditPagePayload, readBootstrappedMemberEditPageData, saveMemberEdit } from "../../lib/api/client";
-import { buildLocalizedPath } from "../../lib/navigation/runtime";
+import { buildLocalizedPath, getSearchParam } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { MemberActionBar, MemberLinkButton, MemberPermissionButton, MEMBER_BUTTON_LABELS } from "../member/common";
 import { MemberEditMainSections, MemberEditSummarySection, MemberEditFormState } from "./memberEditSections";
@@ -35,6 +35,7 @@ function resolvePermissionChipType(
 
 export function MemberEditMigrationPage() {
   const initialMemberId = resolveInitialMemberId();
+  const initialUpdated = getSearchParam("updated");
   const bootstrappedPage = readBootstrappedMemberEditPageData();
   const memberIdInput = initialMemberId;
   const [featureCodes, setFeatureCodes] = useState<string[]>((bootstrappedPage?.permissionEffectiveFeatureCodes as string[] | undefined) || []);
@@ -52,11 +53,11 @@ export function MemberEditMigrationPage() {
     marketingYn: "N",
     deptNm: ""
   });
-  const [actionError, setActionError] = useState("");
+  const [actionError, setActionError] = useState(() => getSearchParam("errorMessage"));
   const [message, setMessage] = useState("");
   const sessionState = useFrontendSession();
   const pageState = useAsyncValue<MemberEditPagePayload>(
-    () => fetchMemberEditPage(memberIdInput),
+    () => fetchMemberEditPage(memberIdInput, { updated: initialUpdated }),
     [],
     {
       enabled: Boolean(memberIdInput.trim()),

@@ -3,7 +3,7 @@ import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { fetchMenuManagementPage, refreshAdminMenuTree, type MenuManagementPagePayload } from "../../lib/api/client";
 import { buildLocalizedPath, getCsrfMeta, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
-import { numberOf, stringOf } from "../admin-system/adminSystemShared";
+import { numberOf, readRedirectedErrorMessage, stringOf } from "../admin-system/adminSystemShared";
 import { toDisplayMenuUrl } from "./menuUrlDisplay";
 
 type MenuNode = {
@@ -177,6 +177,10 @@ export function MenuManagementMigrationPage() {
     });
     if (!response.ok) {
       throw new Error(`Failed to save menu order: ${response.status}`);
+    }
+    const redirectedError = readRedirectedErrorMessage(response);
+    if (redirectedError) {
+      throw new Error(redirectedError);
     }
     refreshAdminMenuTree();
     await pageState.reload();

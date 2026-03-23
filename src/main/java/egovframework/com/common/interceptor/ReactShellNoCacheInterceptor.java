@@ -11,9 +11,6 @@ import javax.servlet.http.HttpServletResponse;
 @Component
 public class ReactShellNoCacheInterceptor implements HandlerInterceptor {
 
-    private static final String SHELL_VIEW_KO = "egovframework/com/home/react_app_shell";
-    private static final String SHELL_VIEW_EN = "egovframework/com/home/react_app_shell_en";
-
     @Override
     public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler,
             @Nullable ModelAndView modelAndView) {
@@ -22,7 +19,7 @@ public class ReactShellNoCacheInterceptor implements HandlerInterceptor {
         }
 
         String viewName = modelAndView.getViewName();
-        if (!SHELL_VIEW_KO.equals(viewName) && !SHELL_VIEW_EN.equals(viewName)) {
+        if (viewName == null || !viewName.startsWith("forward:/react-shell/")) {
             return;
         }
 

@@ -1663,10 +1663,14 @@ export async function fetchDeptRolePage(params?: {
   });
 }
 
-export async function fetchMemberEditPage(memberId: string): Promise<MemberEditPagePayload> {
+export async function fetchMemberEditPage(memberId: string, options?: { updated?: string }): Promise<MemberEditPagePayload> {
+  const search = new URLSearchParams();
+  search.set("memberId", memberId);
+  if (options?.updated) search.set("updated", options.updated);
+  const query = search.toString();
   return fetchCachedJson<MemberEditPagePayload>({
-    cacheKey: buildPageCacheKey(`member-edit/page?memberId=${encodeURIComponent(memberId)}`),
-    url: `${buildAdminApiPath("/api/admin/member/edit")}?memberId=${encodeURIComponent(memberId)}`,
+    cacheKey: buildPageCacheKey(`member-edit/page?${query}`),
+    url: `${buildAdminApiPath("/api/admin/member/edit")}?${query}`,
     mapError: (_body, status) => `Failed to load member edit page: ${status}`
   });
 }
@@ -1693,7 +1697,7 @@ export function prefetchRoutePageData(route: MigrationPageId, search = ""): Prom
       });
     case "member-edit": {
       const memberId = params.get("memberId") || "";
-      return memberId ? fetchMemberEditPage(memberId) : Promise.resolve(null);
+      return memberId ? fetchMemberEditPage(memberId, { updated: params.get("updated") || "" }) : Promise.resolve(null);
     }
     case "member-stats":
       return fetchMemberStatsPage();
@@ -1733,10 +1737,15 @@ export async function fetchPasswordResetPage(params?: { memberId?: string; pageI
   return response.json() as Promise<PasswordResetPagePayload>;
 }
 
-export async function fetchAdminPermissionPage(emplyrId: string) {
+export async function fetchAdminPermissionPage(emplyrId: string, options?: { updated?: string; mode?: string }) {
+  const search = new URLSearchParams();
+  search.set("emplyrId", emplyrId);
+  if (options?.updated) search.set("updated", options.updated);
+  if (options?.mode) search.set("mode", options.mode);
+  const query = search.toString();
   return fetchCachedJson<AdminPermissionPagePayload>({
-    cacheKey: buildPageCacheKey(`admin-permission/page?emplyrId=${encodeURIComponent(emplyrId)}`),
-    url: `${buildAdminApiPath("/api/admin/member/admin-account/permissions")}?emplyrId=${encodeURIComponent(emplyrId)}`,
+    cacheKey: buildPageCacheKey(`admin-permission/page?${query}`),
+    url: `${buildAdminApiPath("/api/admin/member/admin-account/permissions")}?${query}`,
     mapError: (_body, status) => `Failed to load admin permission page: ${status}`
   });
 }
@@ -1813,11 +1822,14 @@ export async function checkJoinEmail(email: string) {
   };
 }
 
-export async function fetchCompanyAccountPage(insttId?: string) {
-  const query = insttId ? `?insttId=${encodeURIComponent(insttId)}` : "";
+export async function fetchCompanyAccountPage(insttId?: string, options?: { saved?: string }) {
+  const search = new URLSearchParams();
+  if (insttId) search.set("insttId", insttId);
+  if (options?.saved) search.set("saved", options.saved);
+  const query = search.toString();
   return fetchCachedJson<CompanyAccountPagePayload>({
-    cacheKey: buildPageCacheKey(`company-account/page${query}`),
-    url: `${buildAdminApiPath("/api/admin/member/company-account/page")}${query}`,
+    cacheKey: buildPageCacheKey(`company-account/page${query ? `?${query}` : ""}`),
+    url: `${buildAdminApiPath("/api/admin/member/company-account/page")}${query ? `?${query}` : ""}`,
     mapError: (body, status) => body.companyAccountErrors?.[0] || `Failed to load company account page: ${status}`
   });
 }

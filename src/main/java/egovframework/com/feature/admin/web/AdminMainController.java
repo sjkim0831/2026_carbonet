@@ -269,72 +269,25 @@ public class AdminMainController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
-        boolean isEn = isEnglishRequest(request, locale);
-        String currentUserId = extractCurrentUserId(request);
-        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        if (!hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
-            String viewName = resolveMemberApprovalViewName(request, isEn);
-            primeCsrfToken(request);
-            model.addAttribute("memberApprovalError",
-                    isEn ? "Only global administrators can approve members." : "회원 승인 처리는 전체 관리자만 수행할 수 있습니다.");
-            return populateMemberApprovalList(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, null, model, viewName, isEn, request, locale);
-        }
-        String normalizedAction = safeString(action).toLowerCase(Locale.ROOT);
-        List<String> targetMemberIds = new ArrayList<>();
-        String normalizedMemberId = safeString(memberId);
-        if (!normalizedMemberId.isEmpty()) {
-            targetMemberIds.add(normalizedMemberId);
-        } else if (selectedMemberIds != null) {
-            for (String selectedMemberId : selectedMemberIds) {
-                String value = safeString(selectedMemberId);
-                if (!value.isEmpty() && !targetMemberIds.contains(value)) {
-                    targetMemberIds.add(value);
-                }
-            }
-        }
-
-        if (targetMemberIds.isEmpty()) {
-            String viewName = resolveMemberApprovalViewName(request, isEn);
-            primeCsrfToken(request);
-            model.addAttribute("memberApprovalError",
-                    isEn ? "No approval target was selected." : "승인 처리할 회원을 선택해 주세요.");
-            return populateMemberApprovalList(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, null, model, viewName, isEn, request, locale);
-        }
-
-        String targetStatus = "approve".equals(normalizedAction) || "batch_approve".equals(normalizedAction) ? "P"
-                : ("reject".equals(normalizedAction) || "batch_reject".equals(normalizedAction) ? "R" : "");
-        if (targetStatus.isEmpty()) {
-            String viewName = resolveMemberApprovalViewName(request, isEn);
-            primeCsrfToken(request);
-            model.addAttribute("memberApprovalError",
-                    isEn ? "The requested action is not valid." : "요청한 처리 작업이 올바르지 않습니다.");
-            return populateMemberApprovalList(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, null, model, viewName, isEn, request, locale);
-        }
-
-        try {
-            for (String targetMemberId : targetMemberIds) {
-                processMemberApprovalStatusChange(targetMemberId, targetStatus);
-            }
-        } catch (Exception e) {
-            log.error("Failed to process member approval action. action={}, memberIds={}", normalizedAction, targetMemberIds, e);
-            String viewName = resolveMemberApprovalViewName(request, isEn);
-            primeCsrfToken(request);
-            model.addAttribute("memberApprovalError",
-                    isEn ? "An error occurred while processing the approval request." : "회원 승인 처리 중 오류가 발생했습니다.");
-            return populateMemberApprovalList(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, null, model, viewName, isEn, request, locale);
-        }
-
-        StringBuilder redirect = new StringBuilder();
-        redirect.append("redirect:").append(resolveMemberApprovalBasePath(request, locale)).append("?result=");
-        if ("P".equals(targetStatus)) {
-            redirect.append(targetMemberIds.size() > 1 ? "batchApproved" : "approved");
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("action", action);
+        payload.put("memberId", memberId);
+        payload.put("selectedIds", selectedMemberIds);
+        ResponseEntity<Map<String, Object>> response = memberApproveSubmitApi(payload, request, locale);
+        String basePath = resolveMemberApprovalBasePath(request, locale);
+        StringBuilder redirect = new StringBuilder("redirect:").append(basePath);
+        boolean hasQuery = false;
+        Map<String, Object> body = response.getBody();
+        if (response.getStatusCode().is2xxSuccessful()) {
+            Object result = body == null ? null : body.get("result");
+            hasQuery = appendRedirectQuery(redirect, hasQuery, "result", safeString(result == null ? null : result.toString()));
         } else {
-            redirect.append(targetMemberIds.size() > 1 ? "batchRejected" : "rejected");
+            hasQuery = appendRedirectErrorQuery(redirect, hasQuery, extractResponseErrorMessage(body));
         }
-        appendApprovalRedirectQuery(redirect, "pageIndex", pageIndexParam);
-        appendApprovalRedirectQuery(redirect, "searchKeyword", searchKeyword);
-        appendApprovalRedirectQuery(redirect, "membershipType", membershipType);
-        appendApprovalRedirectQuery(redirect, "sbscrbSttus", sbscrbSttus);
+        hasQuery = appendRedirectQuery(redirect, hasQuery, "pageIndex", pageIndexParam);
+        hasQuery = appendRedirectQuery(redirect, hasQuery, "searchKeyword", searchKeyword);
+        hasQuery = appendRedirectQuery(redirect, hasQuery, "membershipType", membershipType);
+        appendRedirectQuery(redirect, hasQuery, "sbscrbSttus", sbscrbSttus);
         return redirect.toString();
     }
 
@@ -349,68 +302,25 @@ public class AdminMainController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
-        boolean isEn = isEnglishRequest(request, locale);
-        String currentUserId = extractCurrentUserId(request);
-        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        String normalizedAction = safeString(action).toLowerCase(Locale.ROOT);
-        List<String> targetInsttIds = new ArrayList<>();
-        String normalizedInsttId = safeString(insttId);
-        if (!normalizedInsttId.isEmpty()) {
-            targetInsttIds.add(normalizedInsttId);
-        } else if (selectedInsttIds != null) {
-            for (String selectedInsttId : selectedInsttIds) {
-                String value = safeString(selectedInsttId);
-                if (!value.isEmpty() && !targetInsttIds.contains(value)) {
-                    targetInsttIds.add(value);
-                }
-            }
-        }
-
-        String viewName = isEn ? "egovframework/com/admin/company_approve_en" : "egovframework/com/admin/company_approve";
-        if (!hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
-            primeCsrfToken(request);
-            model.addAttribute("memberApprovalError",
-                    isEn ? "Only global administrators can approve companies." : "회원사 승인 처리는 전체 관리자만 수행할 수 있습니다.");
-            return populateCompanyApprovalList(pageIndexParam, searchKeyword, sbscrbSttus, null, model, viewName, isEn, request, locale);
-        }
-        if (targetInsttIds.isEmpty()) {
-            primeCsrfToken(request);
-            model.addAttribute("memberApprovalError",
-                    isEn ? "No company was selected for approval." : "승인 처리할 회원사를 선택해 주세요.");
-            return populateCompanyApprovalList(pageIndexParam, searchKeyword, sbscrbSttus, null, model, viewName, isEn, request, locale);
-        }
-
-        String targetStatus = "approve".equals(normalizedAction) || "batch_approve".equals(normalizedAction) ? "P"
-                : ("reject".equals(normalizedAction) || "batch_reject".equals(normalizedAction) ? "R" : "");
-        if (targetStatus.isEmpty()) {
-            primeCsrfToken(request);
-            model.addAttribute("memberApprovalError",
-                    isEn ? "The requested action is not valid." : "요청한 처리 작업이 올바르지 않습니다.");
-            return populateCompanyApprovalList(pageIndexParam, searchKeyword, sbscrbSttus, null, model, viewName, isEn, request, locale);
-        }
-
-        try {
-            for (String targetInsttId : targetInsttIds) {
-                processCompanyApprovalStatusChange(targetInsttId, targetStatus);
-            }
-        } catch (Exception e) {
-            log.error("Failed to process company approval action. action={}, insttIds={}", normalizedAction, targetInsttIds, e);
-            primeCsrfToken(request);
-            model.addAttribute("memberApprovalError",
-                    isEn ? "An error occurred while processing the company approval request." : "회원사 승인 처리 중 오류가 발생했습니다.");
-            return populateCompanyApprovalList(pageIndexParam, searchKeyword, sbscrbSttus, null, model, viewName, isEn, request, locale);
-        }
-
-        StringBuilder redirect = new StringBuilder();
-        redirect.append("redirect:").append(adminPrefix(request, locale)).append("/member/company-approve?result=");
-        if ("P".equals(targetStatus)) {
-            redirect.append(targetInsttIds.size() > 1 ? "batchApproved" : "approved");
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("action", action);
+        payload.put("insttId", insttId);
+        payload.put("selectedIds", selectedInsttIds);
+        ResponseEntity<Map<String, Object>> response = companyApproveSubmitApi(payload, request, locale);
+        StringBuilder redirect = new StringBuilder("redirect:")
+                .append(adminPrefix(request, locale))
+                .append("/member/company-approve");
+        boolean hasQuery = false;
+        Map<String, Object> body = response.getBody();
+        if (response.getStatusCode().is2xxSuccessful()) {
+            Object result = body == null ? null : body.get("result");
+            hasQuery = appendRedirectQuery(redirect, hasQuery, "result", safeString(result == null ? null : result.toString()));
         } else {
-            redirect.append(targetInsttIds.size() > 1 ? "batchRejected" : "rejected");
+            hasQuery = appendRedirectErrorQuery(redirect, hasQuery, extractResponseErrorMessage(body));
         }
-        appendApprovalRedirectQuery(redirect, "pageIndex", pageIndexParam);
-        appendApprovalRedirectQuery(redirect, "searchKeyword", searchKeyword);
-        appendApprovalRedirectQuery(redirect, "sbscrbSttus", sbscrbSttus);
+        hasQuery = appendRedirectQuery(redirect, hasQuery, "pageIndex", pageIndexParam);
+        hasQuery = appendRedirectQuery(redirect, hasQuery, "searchKeyword", searchKeyword);
+        appendRedirectQuery(redirect, hasQuery, "sbscrbSttus", sbscrbSttus);
         return redirect.toString();
     }
 
@@ -707,138 +617,33 @@ public class AdminMainController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
-        boolean isEn = isEnglishRequest(request, locale);
-        String viewName = isEn ? "egovframework/com/admin/member_edit_en" : "egovframework/com/admin/member_edit";
+        AdminMemberEditSaveRequestDTO payload = new AdminMemberEditSaveRequestDTO();
+        payload.setMemberId(memberId);
+        payload.setApplcntNm(applcntNm);
+        payload.setApplcntEmailAdres(applcntEmailAdres);
+        payload.setPhoneNumber(phoneNumber);
+        payload.setEntrprsSeCode(entrprsSeCode);
+        payload.setEntrprsMberSttus(entrprsMberSttus);
+        payload.setAuthorCode(authorCode);
+        payload.setFeatureCodes(featureCodes);
+        payload.setZip(zip);
+        payload.setAdres(adres);
+        payload.setDetailAdres(detailAdres);
+        payload.setMarketingYn(marketingYn);
+        payload.setDeptNm(deptNm);
+        ResponseEntity<Map<String, Object>> response = memberEditSubmitApi(payload, request, locale);
         String normalizedMemberId = safeString(memberId);
-        model.addAttribute("memberId", normalizedMemberId);
-        primeCsrfToken(request);
-        ensureMemberEditDefaults(model, isEn);
-
-        if (normalizedMemberId.isEmpty()) {
-            model.addAttribute("member_editError", isEn ? "Member ID was not provided." : "회원 ID가 전달되지 않았습니다.");
-            return viewName;
+        StringBuilder redirect = new StringBuilder("redirect:")
+                .append(adminPrefix(request, locale))
+                .append("/member/edit");
+        boolean hasQuery = appendRedirectQuery(redirect, false, "memberId", normalizedMemberId);
+        Map<String, Object> body = response.getBody();
+        if (response.getStatusCode().is2xxSuccessful()) {
+            appendRedirectQuery(redirect, hasQuery, "updated", "true");
+        } else {
+            appendRedirectErrorQuery(redirect, hasQuery, extractResponseErrorMessage(body));
         }
-
-        EntrprsManageVO member;
-        try {
-            member = entrprsManageService.selectEntrprsmberByMberId(normalizedMemberId);
-        } catch (Exception e) {
-            log.error("Failed to load member for edit submit. memberId={}", normalizedMemberId, e);
-            model.addAttribute("member_editError", isEn ? "An error occurred while retrieving member information." : "회원 정보 조회 중 오류가 발생했습니다.");
-            return viewName;
-        }
-
-        if (member == null || safeString(member.getEntrprsmberId()).isEmpty()) {
-            model.addAttribute("member_editError", isEn ? "Member information was not found." : "회원 정보를 찾을 수 없습니다.");
-            return viewName;
-        }
-        if (!canCurrentAdminAccessMember(request, member)) {
-            model.addAttribute("member_editError", isEn
-                    ? "You can only edit members in your own company."
-                    : "본인 회사 소속 회원만 수정할 수 있습니다.");
-            return viewName;
-        }
-
-        List<String> errors = new ArrayList<>();
-        String normalizedApplicantName = safeString(applcntNm);
-        String normalizedEmail = safeString(applcntEmailAdres);
-        String normalizedZip = digitsOnly(zip);
-        String normalizedAddress = safeString(adres);
-        String normalizedDetailAddress = safeString(detailAdres);
-        String normalizedType = normalizeMembershipCode(safeString(entrprsSeCode).toUpperCase());
-        String normalizedStatus = normalizeMemberStatusCode(entrprsMberSttus);
-        String normalizedAuthorCode = safeString(authorCode).toUpperCase(Locale.ROOT);
-        List<String> normalizedFeatureCodes = normalizeFeatureCodes(featureCodes);
-        String normalizedMarketingYn = "Y".equalsIgnoreCase(safeString(marketingYn)) ? "Y" : "N";
-        String normalizedDeptNm = safeString(deptNm);
-        String[] phoneParts = splitPhoneNumber(phoneNumber);
-        List<AuthorInfoVO> permissionAuthorGroups = Collections.emptyList();
-        List<String> baselineFeatureCodes = Collections.emptyList();
-
-        if (normalizedApplicantName.isEmpty()) {
-            errors.add(isEn ? "Please enter the member name." : "회원명을 입력해 주세요.");
-        }
-        if (!isValidEmail(normalizedEmail)) {
-            errors.add(isEn ? "Please enter a valid email address." : "올바른 이메일 주소를 입력해 주세요.");
-        }
-        if (phoneParts == null) {
-            errors.add(isEn ? "Please enter a valid phone number." : "연락처 형식이 올바르지 않습니다.");
-        }
-        if (normalizedType.isEmpty()) {
-            errors.add(isEn ? "Please select a valid member type." : "유효한 회원 유형을 선택해 주세요.");
-        }
-        if (normalizedStatus.isEmpty()) {
-            errors.add(isEn ? "Please select a valid member status." : "유효한 회원 상태를 선택해 주세요.");
-        }
-        try {
-            Set<String> grantableFeatureCodes = resolveGrantableFeatureCodeSet(extractCurrentUserId(request),
-                    isWebmaster(extractCurrentUserId(request)));
-            permissionAuthorGroups = authGroupManageService.selectAuthorList();
-            if (normalizedAuthorCode.isEmpty()) {
-                errors.add(isEn ? "Please select a role." : "권한 롤을 선택해 주세요.");
-            } else if (!containsAuthorCode(permissionAuthorGroups, normalizedAuthorCode)) {
-                errors.add(isEn ? "Please select a valid role." : "유효한 권한 롤을 선택해 주세요.");
-            } else {
-                baselineFeatureCodes = normalizeFeatureCodes(authGroupManageService.selectAuthorFeatureCodes(normalizedAuthorCode));
-                normalizedFeatureCodes = filterFeatureCodesByGrantable(normalizedFeatureCodes, grantableFeatureCodes);
-            }
-        } catch (Exception e) {
-            log.error("Failed to load permission data for member edit. memberId={}", normalizedMemberId, e);
-            errors.add(isEn ? "Failed to load role and feature information." : "권한 롤 및 기능 정보를 불러오지 못했습니다.");
-        }
-
-        member.setApplcntNm(normalizedApplicantName);
-        member.setApplcntEmailAdres(normalizedEmail);
-        if (phoneParts != null) {
-            member.setAreaNo(phoneParts[0]);
-            member.setEntrprsMiddleTelno(phoneParts[1]);
-            member.setEntrprsEndTelno(phoneParts[2]);
-        }
-        member.setEntrprsSeCode(normalizedType);
-        member.setEntrprsMberSttus(normalizedStatus);
-        member.setZip(normalizedZip);
-        member.setAdres(normalizedAddress);
-        member.setDetailAdres(normalizedDetailAddress);
-        member.setMarketingYn(normalizedMarketingYn);
-        member.setDeptNm(normalizedDeptNm);
-
-        if (!errors.isEmpty()) {
-            try {
-                populateMemberEditModel(model, member, isEn, extractCurrentUserId(request));
-                populatePermissionEditorModel(model, permissionAuthorGroups, normalizedAuthorCode, safeString(member.getUniqId()),
-                        normalizedFeatureCodes, isEn, extractCurrentUserId(request));
-            } catch (Exception e) {
-                log.error("Failed to populate member edit model (validation errors). memberId={}", normalizedMemberId, e);
-                ensureMemberEditDefaults(model, isEn);
-            }
-            model.addAttribute("member_editErrors", errors);
-            return viewName;
-        }
-
-        try {
-            entrprsManageService.updateEntrprsmber(member);
-            authGroupManageService.updateEnterpriseUserRoleAssignment(normalizedMemberId, normalizedAuthorCode);
-            savePermissionOverrides(
-                    safeString(member.getUniqId()),
-                    "USR02",
-                    baselineFeatureCodes,
-                    normalizedFeatureCodes,
-                    extractCurrentUserId(request),
-                    resolveGrantableFeatureCodeSet(extractCurrentUserId(request), isWebmaster(extractCurrentUserId(request))));
-            return "redirect:" + adminPrefix(request, locale) + "/member/edit?memberId=" + urlEncode(normalizedMemberId) + "&updated=true";
-        } catch (Exception e) {
-            log.error("Failed to save member edit. memberId={}", normalizedMemberId, e);
-            try {
-                populateMemberEditModel(model, member, isEn, extractCurrentUserId(request));
-                populatePermissionEditorModel(model, permissionAuthorGroups, normalizedAuthorCode, safeString(member.getUniqId()),
-                        normalizedFeatureCodes, isEn, extractCurrentUserId(request));
-            } catch (Exception inner) {
-                log.error("Failed to populate member edit model (save error). memberId={}", normalizedMemberId, inner);
-                ensureMemberEditDefaults(model, isEn);
-            }
-            model.addAttribute("member_editError", isEn ? "An error occurred while saving member information." : "회원 정보 저장 중 오류가 발생했습니다.");
-            return viewName;
-        }
+        return redirect.toString();
     }
 
     @RequestMapping(value = "/member/file", method = RequestMethod.GET)
@@ -1440,103 +1245,23 @@ public class AdminMainController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
-        boolean isEn = isEnglishRequest(request, locale) || "en".equalsIgnoreCase(safeString(language));
-        String viewName = isEn
-                ? "egovframework/com/admin/admin_account_en"
-                : "egovframework/com/admin/admin_account";
-        primeCsrfToken(request);
-        ensureAdminAccountDefaults(model, isEn);
-
-        String currentUserId = extractCurrentUserId(request);
-        if (!isWebmaster(currentUserId)) {
-            model.addAttribute("adminPermissionError", isEn
-                    ? "Only webmaster can change administrator permissions."
-                    : "webmaster만 관리자 권한을 변경할 수 있습니다.");
-            return viewName;
+        AdminPermissionSaveRequestDTO payload = new AdminPermissionSaveRequestDTO();
+        payload.setEmplyrId(emplyrId);
+        payload.setAuthorCode(authorCode);
+        payload.setFeatureCodes(featureCodes);
+        ResponseEntity<Map<String, Object>> response = adminAccountPermissionsSubmitApi(payload, request, locale);
+        StringBuilder redirect = new StringBuilder("redirect:")
+                .append(adminPrefix(request, locale))
+                .append("/member/admin_account");
+        boolean hasQuery = appendRedirectQuery(redirect, false, "emplyrId", emplyrId);
+        hasQuery = appendRedirectQuery(redirect, hasQuery, "mode", "edit");
+        Map<String, Object> body = response.getBody();
+        if (response.getStatusCode().is2xxSuccessful()) {
+            appendRedirectQuery(redirect, hasQuery, "updated", "true");
+        } else {
+            appendRedirectErrorQuery(redirect, hasQuery, extractResponseErrorMessage(body));
         }
-
-        String normalizedEmplyrId = safeString(emplyrId);
-        String normalizedAuthorCode = safeString(authorCode).toUpperCase(Locale.ROOT);
-        List<String> normalizedFeatureCodes = normalizeFeatureCodes(featureCodes);
-        if (normalizedEmplyrId.isEmpty()) {
-            model.addAttribute("adminPermissionError", isEn
-                    ? "Administrator ID was not provided."
-                    : "관리자 ID가 전달되지 않았습니다.");
-            return viewName;
-        }
-
-        Optional<EmplyrInfo> adminMemberOpt;
-        try {
-            adminMemberOpt = employMemberRepository.findById(normalizedEmplyrId);
-        } catch (Exception e) {
-            log.error("Failed to load admin for permission submit. emplyrId={}", normalizedEmplyrId, e);
-            model.addAttribute("adminPermissionError", isEn
-                    ? "An error occurred while retrieving administrator information."
-                    : "관리자 정보 조회 중 오류가 발생했습니다.");
-            return viewName;
-        }
-        if (!adminMemberOpt.isPresent()) {
-            model.addAttribute("adminPermissionError", isEn
-                    ? "Administrator information was not found."
-                    : "관리자 정보를 찾을 수 없습니다.");
-            return viewName;
-        }
-
-        EmplyrInfo adminMember = adminMemberOpt.get();
-        List<String> errors = new ArrayList<>();
-        List<AuthorInfoVO> authorGroups = Collections.emptyList();
-        List<String> baselineFeatureCodes = Collections.emptyList();
-        try {
-            authorGroups = filterAuthorGroups(authGroupManageService.selectAuthorList(), "GENERAL");
-            if (normalizedAuthorCode.isEmpty()) {
-                errors.add(isEn ? "Please select an administrator role." : "관리자 권한 롤을 선택해 주세요.");
-            } else if (!containsAuthorCode(authorGroups, normalizedAuthorCode)) {
-                errors.add(isEn ? "Please select a valid administrator role." : "유효한 관리자 권한 롤을 선택해 주세요.");
-            } else {
-                baselineFeatureCodes = normalizeFeatureCodes(authGroupManageService.selectAuthorFeatureCodes(normalizedAuthorCode));
-            }
-            if ("webmaster".equalsIgnoreCase(normalizedEmplyrId) && !ROLE_SYSTEM_MASTER.equalsIgnoreCase(normalizedAuthorCode)) {
-                errors.add(isEn ? "webmaster must keep ROLE_SYSTEM_MASTER." : "webmaster 계정은 ROLE_SYSTEM_MASTER만 유지할 수 있습니다.");
-            }
-        } catch (Exception e) {
-            log.error("Failed to load permission data for admin edit. emplyrId={}", normalizedEmplyrId, e);
-            errors.add(isEn ? "Failed to load role and feature information." : "권한 롤 및 기능 정보를 불러오지 못했습니다.");
-        }
-
-        if (!errors.isEmpty()) {
-            try {
-                populateAdminAccountEditModel(model, adminMember, isEn, normalizedFeatureCodes, currentUserId);
-            } catch (Exception e) {
-                log.error("Failed to populate admin account edit model (validation errors). emplyrId={}", normalizedEmplyrId, e);
-                ensureAdminAccountDefaults(model, isEn);
-            }
-            model.addAttribute("adminPermissionErrors", errors);
-            return viewName;
-        }
-
-        try {
-            authGroupManageService.updateAdminRoleAssignment(normalizedEmplyrId, normalizedAuthorCode);
-            savePermissionOverrides(
-                    safeString(adminMember.getEsntlId()),
-                    "USR03",
-                    baselineFeatureCodes,
-                    normalizedFeatureCodes,
-                    currentUserId,
-                    resolveGrantableFeatureCodeSet(currentUserId, true));
-            return "redirect:" + adminPrefix(request, locale) + "/member/admin_account?emplyrId=" + urlEncode(normalizedEmplyrId) + "&updated=true";
-        } catch (Exception e) {
-            log.error("Failed to save admin account permissions. emplyrId={}, authorCode={}", normalizedEmplyrId, normalizedAuthorCode, e);
-            try {
-                populateAdminAccountEditModel(model, adminMember, isEn, normalizedFeatureCodes, currentUserId);
-            } catch (Exception inner) {
-                log.error("Failed to populate admin account edit model (save error). emplyrId={}", normalizedEmplyrId, inner);
-                ensureAdminAccountDefaults(model, isEn);
-            }
-            model.addAttribute("adminPermissionError", isEn
-                    ? "An error occurred while saving administrator permissions."
-                    : "관리자 권한 저장 중 오류가 발생했습니다.");
-            return viewName;
-        }
+        return redirect.toString();
     }
 
     @RequestMapping(value = "/member/list", method = { RequestMethod.GET, RequestMethod.POST })
@@ -1863,140 +1588,37 @@ public class AdminMainController {
             HttpSession session,
             Locale locale,
             Model model) {
-        primeCsrfToken(request);
-        boolean isEn = isEnglishRequest(request, locale);
-        if (!hasGlobalDeptRoleAccess(extractCurrentUserId(request), resolveCurrentUserAuthorCode(extractCurrentUserId(request)))) {
-            model.addAttribute("companyAccountErrors", Collections.singletonList(
-                    isEn ? "Only global administrators can manage company accounts." : "회원사 관리는 전체 관리자만 처리할 수 있습니다."));
-            return isEn ? "egovframework/com/admin/company_account_en" : "egovframework/com/admin/company_account";
+        ResponseEntity<Map<String, Object>> response = companyAccountSubmitApi(
+                insttId,
+                membershipType,
+                agencyName,
+                representativeName,
+                bizRegistrationNumber,
+                zipCode,
+                companyAddress,
+                companyAddressDetail,
+                chargerName,
+                chargerEmail,
+                chargerTel,
+                fileUploads,
+                request,
+                locale);
+        Map<String, Object> body = response.getBody();
+        Object insttIdValue = body == null ? null : body.get("insttId");
+        String targetInsttId = safeString(insttIdValue == null ? null : insttIdValue.toString());
+        if (targetInsttId.isEmpty()) {
+            targetInsttId = safeString(insttId);
         }
-        String normalizedInsttId = safeString(insttId);
-        String normalizedMembershipType = normalizeMembershipCode(membershipType);
-        String normalizedAgencyName = trimToLen(safeString(agencyName), 100);
-        String normalizedRepresentativeName = trimToLen(safeString(representativeName), 60);
-        String normalizedBizNo = trimToLen(digitsOnly(bizRegistrationNumber), 10);
-        String normalizedZipCode = trimToLen(digitsOnly(zipCode), 6);
-        String normalizedAddress = trimToLen(safeString(companyAddress), 200);
-        String normalizedAddressDetail = trimToLen(safeString(companyAddressDetail), 200);
-        String normalizedChargerName = trimToLen(safeString(chargerName), 60);
-        String normalizedChargerEmail = trimToLen(safeString(chargerEmail), 100);
-        String normalizedChargerTel = trimToLen(safeString(chargerTel), 30);
-
-        List<String> errors = new ArrayList<>();
-        if (normalizedMembershipType.isEmpty()) {
-            errors.add(isEn ? "Please select a valid membership type." : "유효한 회원 유형을 선택해 주세요.");
+        StringBuilder redirect = new StringBuilder("redirect:")
+                .append(adminPrefix(request, locale))
+                .append("/member/company_account");
+        boolean hasQuery = appendRedirectQuery(redirect, false, "insttId", targetInsttId);
+        if (response.getStatusCode().is2xxSuccessful()) {
+            appendRedirectQuery(redirect, hasQuery, "saved", "Y");
+        } else {
+            appendRedirectErrorQuery(redirect, hasQuery, extractResponseErrorMessage(body));
         }
-        if (normalizedAgencyName.isEmpty()) {
-            errors.add(isEn ? "Please enter the institution or company name." : "기관/기업명을 입력해 주세요.");
-        }
-        if (normalizedRepresentativeName.isEmpty()) {
-            errors.add(isEn ? "Please enter the representative name." : "대표자명을 입력해 주세요.");
-        }
-        if (normalizedBizNo.length() != 10) {
-            errors.add(isEn ? "Please enter a 10-digit business registration number." : "사업자등록번호 10자리를 입력해 주세요.");
-        }
-        if (normalizedZipCode.isEmpty()) {
-            errors.add(isEn ? "Please search and enter the postal code." : "우편번호를 입력해 주세요.");
-        }
-        if (normalizedAddress.isEmpty()) {
-            errors.add(isEn ? "Please enter the business address." : "사업장 주소를 입력해 주세요.");
-        }
-        if (normalizedChargerName.isEmpty()) {
-            errors.add(isEn ? "Please enter the contact name." : "담당자 성명을 입력해 주세요.");
-        }
-        if (!isValidEmail(normalizedChargerEmail)) {
-            errors.add(isEn ? "Please enter a valid email address." : "올바른 담당자 이메일을 입력해 주세요.");
-        }
-        if (digitsOnly(normalizedChargerTel).length() < 9) {
-            errors.add(isEn ? "Please enter a valid contact number." : "올바른 담당자 연락처를 입력해 주세요.");
-        }
-
-        InstitutionStatusVO existingInstitution = loadInstitutionInfoByInsttId(normalizedInsttId);
-        List<InsttFileVO> existingFiles = loadInsttFilesByInsttId(normalizedInsttId);
-        boolean hasExistingFiles = existingFiles != null && !existingFiles.isEmpty();
-        if (!hasValidInsttEvidenceFiles(fileUploads) && !hasExistingFiles) {
-            errors.add(isEn ? "Please upload at least one supporting document." : "증빙 서류를 1개 이상 업로드해 주세요.");
-        }
-
-        if (!errors.isEmpty()) {
-            populateCompanyAccountModelFromValues(
-                    normalizedInsttId,
-                    normalizedMembershipType,
-                    normalizedAgencyName,
-                    normalizedRepresentativeName,
-                    normalizedBizNo,
-                    normalizedZipCode,
-                    normalizedAddress,
-                    normalizedAddressDetail,
-                    normalizedChargerName,
-                    normalizedChargerEmail,
-                    normalizedChargerTel,
-                    isEn,
-                    model);
-            model.addAttribute("companyAccountFiles", existingFiles == null ? Collections.emptyList() : existingFiles);
-            model.addAttribute("companyAccountErrors", errors);
-            return isEn ? "egovframework/com/admin/company_account_en" : "egovframework/com/admin/company_account";
-        }
-
-        try {
-            String targetInsttId = normalizedInsttId;
-            boolean exists = existingInstitution != null && !existingInstitution.isEmpty();
-            if (targetInsttId.isEmpty()) {
-                targetInsttId = createInstitutionId();
-            }
-
-            InsttInfoVO vo = new InsttInfoVO();
-            vo.setInsttId(targetInsttId);
-            vo.setInsttNm(normalizedAgencyName);
-            vo.setReprsntNm(normalizedRepresentativeName);
-            vo.setBizrno(normalizedBizNo);
-            vo.setZip(normalizedZipCode);
-            vo.setAdres(normalizedAddress);
-            vo.setDetailAdres(normalizedAddressDetail);
-            vo.setChargerNm(normalizedChargerName);
-            vo.setChargerEmail(normalizedChargerEmail);
-            vo.setChargerTel(normalizedChargerTel);
-            vo.setEntrprsSeCode(normalizedMembershipType);
-            vo.setInsttSttus(exists
-                    ? safeString(existingInstitution.getInsttSttus()).isEmpty() ? "A" : safeString(existingInstitution.getInsttSttus())
-                    : "A");
-
-            int nextFileSn = hasExistingFiles ? existingFiles.size() + 1 : 1;
-            List<InsttFileVO> newFiles = saveAdminInsttEvidenceFiles(targetInsttId, fileUploads, nextFileSn);
-            if (!newFiles.isEmpty()) {
-                vo.setBizRegFilePath(joinInsttEvidencePaths(newFiles));
-            } else if (exists) {
-                vo.setBizRegFilePath(existingInstitution.getBizRegFilePath());
-            }
-
-            if (exists) {
-                entrprsManageService.updateInsttInfo(vo);
-            } else {
-                entrprsManageService.insertInsttInfo(vo);
-            }
-            entrprsManageService.insertInsttFiles(newFiles);
-            return "redirect:" + adminPrefix(request, locale) + "/member/company_account?insttId=" + urlEncode(targetInsttId) + "&saved=Y";
-        } catch (Exception e) {
-            log.error("Failed to save admin company account. insttId={}", normalizedInsttId, e);
-            populateCompanyAccountModelFromValues(
-                    normalizedInsttId,
-                    normalizedMembershipType,
-                    normalizedAgencyName,
-                    normalizedRepresentativeName,
-                    normalizedBizNo,
-                    normalizedZipCode,
-                    normalizedAddress,
-                    normalizedAddressDetail,
-                    normalizedChargerName,
-                    normalizedChargerEmail,
-                    normalizedChargerTel,
-                    isEn,
-                    model);
-            model.addAttribute("companyAccountFiles", existingFiles == null ? Collections.emptyList() : existingFiles);
-            model.addAttribute("companyAccountErrors", Collections.singletonList(
-                    isEn ? "An error occurred while saving the company registration." : "회원사 등록 저장 중 오류가 발생했습니다."));
-            return isEn ? "egovframework/com/admin/company_account_en" : "egovframework/com/admin/company_account";
-        }
+        return redirect.toString();
     }
 
     @RequestMapping(value = "/member/company-file", method = RequestMethod.GET)
@@ -2645,6 +2267,43 @@ public class AdminMainController {
             return;
         }
         redirect.append('&').append(name).append('=').append(urlEncode(normalized));
+    }
+
+    private boolean appendRedirectQuery(StringBuilder redirect, boolean hasQuery, String name, String value) {
+        String normalized = safeString(value);
+        if (normalized.isEmpty()) {
+            return hasQuery;
+        }
+        redirect.append(hasQuery ? '&' : '?')
+                .append(name)
+                .append('=')
+                .append(urlEncode(normalized));
+        return true;
+    }
+
+    private boolean appendRedirectErrorQuery(StringBuilder redirect, boolean hasQuery, String errorMessage) {
+        return appendRedirectQuery(redirect, hasQuery, "errorMessage", errorMessage);
+    }
+
+    private String extractResponseErrorMessage(Map<String, Object> body) {
+        if (body == null || body.isEmpty()) {
+            return "";
+        }
+        Object message = body.get("message");
+        String normalizedMessage = safeString(message == null ? null : message.toString());
+        if (!normalizedMessage.isEmpty()) {
+            return normalizedMessage;
+        }
+        Object errors = body.get("errors");
+        if (errors instanceof Collection<?>) {
+            for (Object error : (Collection<?>) errors) {
+                String value = safeString(error == null ? null : error.toString());
+                if (!value.isEmpty()) {
+                    return value;
+                }
+            }
+        }
+        return "";
     }
 
     private String resolveMemberApprovalBasePath(HttpServletRequest request, Locale locale) {

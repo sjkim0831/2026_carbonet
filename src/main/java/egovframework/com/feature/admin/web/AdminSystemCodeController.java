@@ -84,7 +84,10 @@ public class AdminSystemCodeController {
             HttpServletRequest request,
             Locale locale) {
         boolean isEn = isEnglishRequest(request, locale);
-        return buildPageDataResponse(request, model -> populateCodeManagementPage(detailCodeId, isEn, model));
+        return buildPageDataResponse(request, model -> {
+            populateCodeManagementPage(detailCodeId, isEn, model);
+            applyQueryError(model, "codeMgmtError", request);
+        });
     }
 
     @RequestMapping(value = "/page-management", method = RequestMethod.GET)
@@ -122,6 +125,7 @@ public class AdminSystemCodeController {
         return buildPageDataResponse(request, model -> {
             populatePageManagementModel(model, isEn, normalizedMenuType, codeId, searchKeyword, searchUrl);
             applyPageManagementMessage(model, isEn, autoFeature, updated, deleted, deletedRoleRefs, deletedUserOverrides);
+            applyQueryError(model, "pageMgmtError", request);
         });
     }
 
@@ -170,7 +174,10 @@ public class AdminSystemCodeController {
         boolean isEn = isEnglishRequest(request, locale);
         String normalizedMenuType = normalizeMenuType(menuType);
         String codeId = resolveMenuCodeId(normalizedMenuType);
-        return buildPageDataResponse(request, model -> populateFunctionManagementModel(model, isEn, normalizedMenuType, codeId, searchMenuCode, searchKeyword));
+        return buildPageDataResponse(request, model -> {
+            populateFunctionManagementModel(model, isEn, normalizedMenuType, codeId, searchMenuCode, searchKeyword);
+            applyQueryError(model, "featureMgmtError", request);
+        });
     }
 
     @RequestMapping(value = "/menu-management", method = RequestMethod.GET)
@@ -196,6 +203,7 @@ public class AdminSystemCodeController {
         return buildPageDataResponse(request, model -> {
             populateMenuManagementModel(model, isEn, normalizedMenuType, codeId);
             applyMenuManagementMessage(model, isEn, saved, false);
+            applyQueryError(model, "menuMgmtError", request);
         });
     }
 
@@ -258,6 +266,7 @@ public class AdminSystemCodeController {
             populateMenuManagementModel(model, isEn, normalizedMenuType, codeId);
             model.addAttribute("fullStackSummaryRows", buildFullStackSummaryRows(codeId));
             applyMenuManagementMessage(model, isEn, saved, true);
+            applyQueryError(model, "menuMgmtError", request);
         });
     }
 
@@ -336,9 +345,7 @@ public class AdminSystemCodeController {
         List<MenuInfoDTO> menuRows = loadMenuTreeRows(codeId);
         String error = validateMenuOrderPayload(normalizedMenuType, orderPayload, menuRows, isEn);
         if (!error.isEmpty()) {
-            model.addAttribute("menuMgmtError", error);
-            populateMenuManagementModel(model, isEn, normalizedMenuType, codeId);
-            return isEn ? "egovframework/com/admin/menu_management_en" : "egovframework/com/admin/menu_management";
+            return redirectMenuManagementError(request, locale, normalizedMenuType, error);
         }
 
         try {
@@ -360,9 +367,8 @@ public class AdminSystemCodeController {
                     "{\"orderPayload\":\"" + safeJson(orderPayload) + "\"}");
         } catch (Exception e) {
             log.error("Failed to save menu order. menuType={}, payload={}", normalizedMenuType, orderPayload, e);
-            model.addAttribute("menuMgmtError", isEn ? "Failed to save menu order." : "메뉴 순서 저장에 실패했습니다.");
-            populateMenuManagementModel(model, isEn, normalizedMenuType, codeId);
-            return isEn ? "egovframework/com/admin/menu_management_en" : "egovframework/com/admin/menu_management";
+            return redirectMenuManagementError(request, locale, normalizedMenuType,
+                    isEn ? "Failed to save menu order." : "메뉴 순서 저장에 실패했습니다.");
         }
 
         return "redirect:" + adminPrefix(request, locale) + "/system/menu-management?menuType=" + normalizedMenuType + "&saved=Y";
@@ -662,23 +668,19 @@ public class AdminSystemCodeController {
 
         String error = validateFeatureManagementInput(normalizedMenuCode, normalizedFeatureCode, normalizedFeatureNm, normalizedFeatureNmEn, normalizedMenuType, isEn);
         if (!error.isEmpty()) {
-            model.addAttribute("featureMgmtError", error);
-            populateFunctionManagementModel(model, isEn, normalizedMenuType, codeId, normalizedMenuCode, null);
-            return isEn ? "egovframework/com/admin/function_management_en" : "egovframework/com/admin/function_management";
+            return redirectFunctionManagementError(request, locale, normalizedMenuType, normalizedMenuCode, null, error);
         }
 
         try {
             if (menuFeatureManageService.countFeatureCode(normalizedFeatureCode) > 0) {
-                model.addAttribute("featureMgmtError", isEn ? "The feature code already exists." : "이미 등록된 기능 코드입니다.");
-                populateFunctionManagementModel(model, isEn, normalizedMenuType, codeId, normalizedMenuCode, null);
-                return isEn ? "egovframework/com/admin/function_management_en" : "egovframework/com/admin/function_management";
+                return redirectFunctionManagementError(request, locale, normalizedMenuType, normalizedMenuCode, null,
+                        isEn ? "The feature code already exists." : "이미 등록된 기능 코드입니다.");
             }
             menuFeatureManageService.insertMenuFeature(normalizedMenuCode, normalizedFeatureCode, normalizedFeatureNm, normalizedFeatureNmEn, normalizedFeatureDc, normalizedUseAt);
         } catch (Exception e) {
             log.error("Failed to create feature management. featureCode={}", normalizedFeatureCode, e);
-            model.addAttribute("featureMgmtError", isEn ? "Failed to register the feature." : "기능 등록에 실패했습니다.");
-            populateFunctionManagementModel(model, isEn, normalizedMenuType, codeId, normalizedMenuCode, null);
-            return isEn ? "egovframework/com/admin/function_management_en" : "egovframework/com/admin/function_management";
+            return redirectFunctionManagementError(request, locale, normalizedMenuType, normalizedMenuCode, null,
+                    isEn ? "Failed to register the feature." : "기능 등록에 실패했습니다.");
         }
 
         return "redirect:" + adminPrefix(request, locale) + "/system/feature-management?menuType=" + normalizedMenuType + "&searchMenuCode=" + urlEncode(normalizedMenuCode);
@@ -788,18 +790,16 @@ public class AdminSystemCodeController {
         String normalizedFeatureCode = safeString(featureCode).toUpperCase(Locale.ROOT);
 
         if (normalizedFeatureCode.isEmpty()) {
-            model.addAttribute("featureMgmtError", isEn ? "Feature code is required." : "기능 코드를 확인해 주세요.");
-            populateFunctionManagementModel(model, isEn, normalizedMenuType, codeId, searchMenuCode, searchKeyword);
-            return isEn ? "egovframework/com/admin/function_management_en" : "egovframework/com/admin/function_management";
+            return redirectFunctionManagementError(request, locale, normalizedMenuType, searchMenuCode, searchKeyword,
+                    isEn ? "Feature code is required." : "기능 코드를 확인해 주세요.");
         }
 
         try {
             deleteFeatureWithAssignments(normalizedFeatureCode);
         } catch (Exception e) {
             log.error("Failed to delete feature management. featureCode={}", normalizedFeatureCode, e);
-            model.addAttribute("featureMgmtError", isEn ? "Failed to delete the feature." : "기능 삭제에 실패했습니다.");
-            populateFunctionManagementModel(model, isEn, normalizedMenuType, codeId, searchMenuCode, searchKeyword);
-            return isEn ? "egovframework/com/admin/function_management_en" : "egovframework/com/admin/function_management";
+            return redirectFunctionManagementError(request, locale, normalizedMenuType, searchMenuCode, searchKeyword,
+                    isEn ? "Failed to delete the feature." : "기능 삭제에 실패했습니다.");
         }
 
         return "redirect:" + adminPrefix(request, locale) + "/system/feature-management?menuType=" + normalizedMenuType + "&searchMenuCode=" + urlEncode(searchMenuCode) + "&searchKeyword=" + urlEncode(searchKeyword);
@@ -875,24 +875,20 @@ public class AdminSystemCodeController {
         String codeId = resolveMenuCodeId(normalizedMenuType);
         String error = validatePageManagementInput(normalizedCode, normalizedName, normalizedNameEn, normalizedUrl, normalizedDomainCode, normalizedMenuType, isEn);
         if (!error.isEmpty()) {
-            model.addAttribute("pageMgmtError", error);
-            populatePageManagementModel(model, isEn, normalizedMenuType, codeId, null, null);
-            return isEn ? "egovframework/com/admin/page_management_en" : "egovframework/com/admin/page_management";
+            return redirectPageManagementError(request, locale, normalizedMenuType, null, null, error, null, null);
         }
 
         try {
             if (adminCodeManageService.countPageManagementByCode(codeId, normalizedCode) > 0) {
-                model.addAttribute("pageMgmtError", isEn ? "The page code already exists." : "이미 등록된 페이지 코드입니다.");
-                populatePageManagementModel(model, isEn, normalizedMenuType, codeId, null, null);
-                return isEn ? "egovframework/com/admin/page_management_en" : "egovframework/com/admin/page_management";
+                return redirectPageManagementError(request, locale, normalizedMenuType, null, null,
+                        isEn ? "The page code already exists." : "이미 등록된 페이지 코드입니다.", null, null);
             }
             adminCodeManageService.insertPageManagement(codeId, normalizedCode, normalizedName, normalizedNameEn, normalizedUrl, normalizedIcon, normalizedUseAt, "admin");
             ensureDefaultViewFeature(normalizedCode, normalizedName, normalizedNameEn, normalizedUseAt);
         } catch (Exception e) {
             log.error("Failed to create page management. code={}", normalizedCode, e);
-            model.addAttribute("pageMgmtError", isEn ? "Failed to register the page." : "페이지 등록에 실패했습니다.");
-            populatePageManagementModel(model, isEn, normalizedMenuType, codeId, null, null);
-            return isEn ? "egovframework/com/admin/page_management_en" : "egovframework/com/admin/page_management";
+            return redirectPageManagementError(request, locale, normalizedMenuType, null, null,
+                    isEn ? "Failed to register the page." : "페이지 등록에 실패했습니다.", null, null);
         }
         return "redirect:" + adminPrefix(request, locale) + "/system/page-management?menuType=" + normalizedMenuType + "&autoFeature=Y";
     }
@@ -922,20 +918,20 @@ public class AdminSystemCodeController {
         String normalizedMenuType = normalizeMenuType(menuType);
         String codeId = resolveMenuCodeId(normalizedMenuType);
         if (normalizedCode.isEmpty() || normalizedName.isEmpty() || normalizedNameEn.isEmpty() || normalizedUrl.isEmpty()) {
-            model.addAttribute("pageMgmtError", isEn ? "Page code, page names, and URL are required." : "페이지 코드, 페이지명, 영문 페이지명, URL은 필수입니다.");
-            populatePageManagementModel(model, isEn, normalizedMenuType, codeId, searchKeyword, searchUrl);
-            return isEn ? "egovframework/com/admin/page_management_en" : "egovframework/com/admin/page_management";
+            return redirectPageManagementError(request, locale, normalizedMenuType, searchKeyword, searchUrl,
+                    isEn ? "Page code, page names, and URL are required." : "페이지 코드, 페이지명, 영문 페이지명, URL은 필수입니다.",
+                    null, null);
         }
         if (!isValidPageManagementUrl(normalizedUrl, normalizedMenuType)) {
-            model.addAttribute("pageMgmtError", isEn
-                    ? ("USER".equals(normalizedMenuType)
-                        ? "Home page URLs must start with /home or /en/home."
-                        : "Admin page URLs must start with /admin/ or /en/admin/.")
-                    : ("USER".equals(normalizedMenuType)
-                        ? "홈 화면 URL은 /home 또는 /en/home 으로 시작해야 합니다."
-                        : "관리자 화면 URL은 /admin/ 또는 /en/admin/ 으로 시작해야 합니다."));
-            populatePageManagementModel(model, isEn, normalizedMenuType, codeId, searchKeyword, searchUrl);
-            return isEn ? "egovframework/com/admin/page_management_en" : "egovframework/com/admin/page_management";
+            return redirectPageManagementError(request, locale, normalizedMenuType, searchKeyword, searchUrl,
+                    isEn
+                            ? ("USER".equals(normalizedMenuType)
+                            ? "Home page URLs must start with /home or /en/home."
+                            : "Admin page URLs must start with /admin/ or /en/admin/.")
+                            : ("USER".equals(normalizedMenuType)
+                            ? "홈 화면 URL은 /home 또는 /en/home 으로 시작해야 합니다."
+                            : "관리자 화면 URL은 /admin/ 또는 /en/admin/ 으로 시작해야 합니다."),
+                    null, null);
         }
 
         try {
@@ -943,9 +939,8 @@ public class AdminSystemCodeController {
             syncDefaultViewFeatureMetadata(normalizedCode, normalizedUseAt, normalizedMenuType);
         } catch (Exception e) {
             log.error("Failed to update page management. code={}", normalizedCode, e);
-            model.addAttribute("pageMgmtError", isEn ? "Failed to update the page URL." : "페이지 URL 수정에 실패했습니다.");
-            populatePageManagementModel(model, isEn, normalizedMenuType, codeId, searchKeyword, searchUrl);
-            return isEn ? "egovframework/com/admin/page_management_en" : "egovframework/com/admin/page_management";
+            return redirectPageManagementError(request, locale, normalizedMenuType, searchKeyword, searchUrl,
+                    isEn ? "Failed to update the page URL." : "페이지 URL 수정에 실패했습니다.", null, null);
         }
         return "redirect:" + adminPrefix(request, locale) + "/system/page-management?menuType=" + normalizedMenuType + "&searchKeyword=" + urlEncode(searchKeyword) + "&searchUrl=" + urlEncode(searchUrl) + "&updated=Y";
     }
@@ -964,9 +959,8 @@ public class AdminSystemCodeController {
         String normalizedMenuType = normalizeMenuType(menuType);
         String codeId = resolveMenuCodeId(normalizedMenuType);
         if (normalizedCode.isEmpty()) {
-            model.addAttribute("pageMgmtError", isEn ? "Page code is required." : "페이지 코드를 확인해 주세요.");
-            populatePageManagementModel(model, isEn, normalizedMenuType, codeId, searchKeyword, searchUrl);
-            return isEn ? "egovframework/com/admin/page_management_en" : "egovframework/com/admin/page_management";
+            return redirectPageManagementError(request, locale, normalizedMenuType, searchKeyword, searchUrl,
+                    isEn ? "Page code is required." : "페이지 코드를 확인해 주세요.", null, null);
         }
 
         int defaultViewRoleRefCount = 0;
@@ -985,17 +979,16 @@ public class AdminSystemCodeController {
             }
             if (!nonDefaultFeatureCodes.isEmpty()) {
                 String featureCodeSummary = String.join(", ", nonDefaultFeatureCodes);
-                model.addAttribute("pageMgmtError", isEn
-                        ? "Delete the page-specific action features first. Remaining features: " + featureCodeSummary
-                            + " | Default VIEW cleanup impact: role mappings " + defaultViewRoleRefCount
-                            + ", user overrides " + defaultViewUserOverrideCount
-                        : "페이지 전용 액션 기능을 먼저 삭제해 주세요. 남아 있는 기능: " + featureCodeSummary
-                            + " | 기본 VIEW 정리 영향: 권한그룹 매핑 " + defaultViewRoleRefCount
-                            + "건, 사용자 예외권한 " + defaultViewUserOverrideCount + "건");
-                model.addAttribute("pageMgmtBlockedFeatureLinks",
-                        buildPageManagementBlockedFeatureLinks(nonDefaultFeatureCodes, normalizedMenuType, normalizedCode, request, locale));
-                populatePageManagementModel(model, isEn, normalizedMenuType, codeId, searchKeyword, searchUrl);
-                return isEn ? "egovframework/com/admin/page_management_en" : "egovframework/com/admin/page_management";
+                return redirectPageManagementError(request, locale, normalizedMenuType, searchKeyword, searchUrl,
+                        isEn
+                                ? "Delete the page-specific action features first. Remaining features: " + featureCodeSummary
+                                + " | Default VIEW cleanup impact: role mappings " + defaultViewRoleRefCount
+                                + ", user overrides " + defaultViewUserOverrideCount
+                                : "페이지 전용 액션 기능을 먼저 삭제해 주세요. 남아 있는 기능: " + featureCodeSummary
+                                + " | 기본 VIEW 정리 영향: 권한그룹 매핑 " + defaultViewRoleRefCount
+                                + "건, 사용자 예외권한 " + defaultViewUserOverrideCount + "건",
+                        defaultViewRoleRefCount,
+                        defaultViewUserOverrideCount);
             }
             if (linkedFeatureCodes.stream().anyMatch(featureCode -> defaultViewFeatureCode.equalsIgnoreCase(safeString(featureCode)))) {
                 deleteFeatureWithAssignments(defaultViewFeatureCode);
@@ -1003,9 +996,8 @@ public class AdminSystemCodeController {
             adminCodeManageService.deletePageManagement(codeId, normalizedCode);
         } catch (Exception e) {
             log.error("Failed to delete page management. code={}", normalizedCode, e);
-            model.addAttribute("pageMgmtError", isEn ? "Failed to delete the page." : "페이지 삭제에 실패했습니다.");
-            populatePageManagementModel(model, isEn, normalizedMenuType, codeId, searchKeyword, searchUrl);
-            return isEn ? "egovframework/com/admin/page_management_en" : "egovframework/com/admin/page_management";
+            return redirectPageManagementError(request, locale, normalizedMenuType, searchKeyword, searchUrl,
+                    isEn ? "Failed to delete the page." : "페이지 삭제에 실패했습니다.", null, null);
         }
         return "redirect:" + adminPrefix(request, locale) + "/system/page-management?menuType=" + normalizedMenuType
                 + "&searchKeyword=" + urlEncode(searchKeyword)
@@ -1031,16 +1023,16 @@ public class AdminSystemCodeController {
         String use = normalizeUseAt(useAt);
 
         if (code.isEmpty() || name.isEmpty()) {
-            model.addAttribute("codeMgmtError", isEn ? "Class code and name are required." : "분류 코드와 분류명은 필수입니다.");
-            return populateCodeManagementPage(null, isEn, model);
+            return redirectCodeManagementError(request, locale, null,
+                    isEn ? "Class code and name are required." : "분류 코드와 분류명은 필수입니다.");
         }
 
         try {
             adminCodeManageService.insertClassCode(code, name, desc, use, "admin");
         } catch (Exception e) {
             log.error("Failed to create class code. clCode={}", code, e);
-            model.addAttribute("codeMgmtError", isEn ? "Failed to create class code." : "분류 코드 등록에 실패했습니다.");
-            return populateCodeManagementPage(null, isEn, model);
+            return redirectCodeManagementError(request, locale, null,
+                    isEn ? "Failed to create class code." : "분류 코드 등록에 실패했습니다.");
         }
 
         return "redirect:" + adminPrefix(request, locale) + "/system/code";
@@ -1062,16 +1054,16 @@ public class AdminSystemCodeController {
         String use = normalizeUseAt(useAt);
 
         if (code.isEmpty() || name.isEmpty()) {
-            model.addAttribute("codeMgmtError", isEn ? "Class code and name are required." : "분류 코드와 분류명은 필수입니다.");
-            return populateCodeManagementPage(null, isEn, model);
+            return redirectCodeManagementError(request, locale, null,
+                    isEn ? "Class code and name are required." : "분류 코드와 분류명은 필수입니다.");
         }
 
         try {
             adminCodeManageService.updateClassCode(code, name, desc, use, "admin");
         } catch (Exception e) {
             log.error("Failed to update class code. clCode={}", code, e);
-            model.addAttribute("codeMgmtError", isEn ? "Failed to update class code." : "분류 코드 수정에 실패했습니다.");
-            return populateCodeManagementPage(null, isEn, model);
+            return redirectCodeManagementError(request, locale, null,
+                    isEn ? "Failed to update class code." : "분류 코드 수정에 실패했습니다.");
         }
 
         return "redirect:" + adminPrefix(request, locale) + "/system/code";
@@ -1086,21 +1078,21 @@ public class AdminSystemCodeController {
         boolean isEn = isEnglishRequest(request, locale);
         String code = safeString(clCode).toUpperCase(Locale.ROOT);
         if (code.isEmpty()) {
-            model.addAttribute("codeMgmtError", isEn ? "Class code is required." : "분류 코드를 입력해 주세요.");
-            return populateCodeManagementPage(null, isEn, model);
+            return redirectCodeManagementError(request, locale, null,
+                    isEn ? "Class code is required." : "분류 코드를 입력해 주세요.");
         }
 
         try {
             int refCount = adminCodeManageService.countCodesByClass(code);
             if (refCount > 0) {
-                model.addAttribute("codeMgmtError", isEn ? "Cannot delete: codes are still linked." : "연결된 코드가 있어 삭제할 수 없습니다.");
-                return populateCodeManagementPage(null, isEn, model);
+                return redirectCodeManagementError(request, locale, null,
+                        isEn ? "Cannot delete: codes are still linked." : "연결된 코드가 있어 삭제할 수 없습니다.");
             }
             adminCodeManageService.deleteClassCode(code);
         } catch (Exception e) {
             log.error("Failed to delete class code. clCode={}", code, e);
-            model.addAttribute("codeMgmtError", isEn ? "Failed to delete class code." : "분류 코드 삭제에 실패했습니다.");
-            return populateCodeManagementPage(null, isEn, model);
+            return redirectCodeManagementError(request, locale, null,
+                    isEn ? "Failed to delete class code." : "분류 코드 삭제에 실패했습니다.");
         }
 
         return "redirect:" + adminPrefix(request, locale) + "/system/code";
@@ -1124,16 +1116,16 @@ public class AdminSystemCodeController {
         String use = normalizeUseAt(useAt);
 
         if (id.isEmpty() || name.isEmpty() || cl.isEmpty()) {
-            model.addAttribute("codeMgmtError", isEn ? "Code ID, name, and class code are required." : "코드 ID, 코드명, 분류 코드는 필수입니다.");
-            return populateCodeManagementPage(null, isEn, model);
+            return redirectCodeManagementError(request, locale, null,
+                    isEn ? "Code ID, name, and class code are required." : "코드 ID, 코드명, 분류 코드는 필수입니다.");
         }
 
         try {
             adminCodeManageService.insertCommonCode(id, name, desc, use, cl, "admin");
         } catch (Exception e) {
             log.error("Failed to create common code. codeId={}", id, e);
-            model.addAttribute("codeMgmtError", isEn ? "Failed to create code ID." : "코드 ID 등록에 실패했습니다.");
-            return populateCodeManagementPage(null, isEn, model);
+            return redirectCodeManagementError(request, locale, null,
+                    isEn ? "Failed to create code ID." : "코드 ID 등록에 실패했습니다.");
         }
 
         return "redirect:" + adminPrefix(request, locale) + "/system/code";
@@ -1157,16 +1149,16 @@ public class AdminSystemCodeController {
         String use = normalizeUseAt(useAt);
 
         if (id.isEmpty() || name.isEmpty() || cl.isEmpty()) {
-            model.addAttribute("codeMgmtError", isEn ? "Code ID, name, and class code are required." : "코드 ID, 코드명, 분류 코드는 필수입니다.");
-            return populateCodeManagementPage(null, isEn, model);
+            return redirectCodeManagementError(request, locale, null,
+                    isEn ? "Code ID, name, and class code are required." : "코드 ID, 코드명, 분류 코드는 필수입니다.");
         }
 
         try {
             adminCodeManageService.updateCommonCode(id, name, desc, use, cl, "admin");
         } catch (Exception e) {
             log.error("Failed to update common code. codeId={}", id, e);
-            model.addAttribute("codeMgmtError", isEn ? "Failed to update code ID." : "코드 ID 수정에 실패했습니다.");
-            return populateCodeManagementPage(null, isEn, model);
+            return redirectCodeManagementError(request, locale, null,
+                    isEn ? "Failed to update code ID." : "코드 ID 수정에 실패했습니다.");
         }
 
         return "redirect:" + adminPrefix(request, locale) + "/system/code";
@@ -1182,21 +1174,21 @@ public class AdminSystemCodeController {
         String id = safeString(codeId).toUpperCase(Locale.ROOT);
 
         if (id.isEmpty()) {
-            model.addAttribute("codeMgmtError", isEn ? "Code ID is required." : "코드 ID를 입력해 주세요.");
-            return populateCodeManagementPage(null, isEn, model);
+            return redirectCodeManagementError(request, locale, null,
+                    isEn ? "Code ID is required." : "코드 ID를 입력해 주세요.");
         }
 
         try {
             int refCount = adminCodeManageService.countDetailCodesByCodeId(id);
             if (refCount > 0) {
-                model.addAttribute("codeMgmtError", isEn ? "Cannot delete: detail codes are linked." : "연결된 상세 코드가 있어 삭제할 수 없습니다.");
-                return populateCodeManagementPage(id, isEn, model);
+                return redirectCodeManagementError(request, locale, id,
+                        isEn ? "Cannot delete: detail codes are linked." : "연결된 상세 코드가 있어 삭제할 수 없습니다.");
             }
             adminCodeManageService.deleteCommonCode(id);
         } catch (Exception e) {
             log.error("Failed to delete common code. codeId={}", id, e);
-            model.addAttribute("codeMgmtError", isEn ? "Failed to delete code ID." : "코드 ID 삭제에 실패했습니다.");
-            return populateCodeManagementPage(id, isEn, model);
+            return redirectCodeManagementError(request, locale, id,
+                    isEn ? "Failed to delete code ID." : "코드 ID 삭제에 실패했습니다.");
         }
 
         return "redirect:" + adminPrefix(request, locale) + "/system/code";
@@ -1220,16 +1212,16 @@ public class AdminSystemCodeController {
         String use = normalizeUseAt(useAt);
 
         if (id.isEmpty() || c.isEmpty() || name.isEmpty()) {
-            model.addAttribute("codeMgmtError", isEn ? "Code ID, code, and name are required." : "코드 ID, 코드, 코드명은 필수입니다.");
-            return populateCodeManagementPage(id, isEn, model);
+            return redirectCodeManagementError(request, locale, id,
+                    isEn ? "Code ID, code, and name are required." : "코드 ID, 코드, 코드명은 필수입니다.");
         }
 
         try {
             adminCodeManageService.insertDetailCode(id, c, name, desc, use, "admin");
         } catch (Exception e) {
             log.error("Failed to create detail code. codeId={}, code={}", id, c, e);
-            model.addAttribute("codeMgmtError", isEn ? "Failed to create detail code." : "상세 코드 등록에 실패했습니다.");
-            return populateCodeManagementPage(id, isEn, model);
+            return redirectCodeManagementError(request, locale, id,
+                    isEn ? "Failed to create detail code." : "상세 코드 등록에 실패했습니다.");
         }
 
         return "redirect:" + adminPrefix(request, locale) + "/system/code?detailCodeId=" + urlEncode(id);
@@ -1253,16 +1245,16 @@ public class AdminSystemCodeController {
         String use = normalizeUseAt(useAt);
 
         if (id.isEmpty() || c.isEmpty() || name.isEmpty()) {
-            model.addAttribute("codeMgmtError", isEn ? "Code ID, code, and name are required." : "코드 ID, 코드, 코드명은 필수입니다.");
-            return populateCodeManagementPage(id, isEn, model);
+            return redirectCodeManagementError(request, locale, id,
+                    isEn ? "Code ID, code, and name are required." : "코드 ID, 코드, 코드명은 필수입니다.");
         }
 
         try {
             adminCodeManageService.updateDetailCode(id, c, name, desc, use, "admin");
         } catch (Exception e) {
             log.error("Failed to update detail code. codeId={}, code={}", id, c, e);
-            model.addAttribute("codeMgmtError", isEn ? "Failed to update detail code." : "상세 코드 수정에 실패했습니다.");
-            return populateCodeManagementPage(id, isEn, model);
+            return redirectCodeManagementError(request, locale, id,
+                    isEn ? "Failed to update detail code." : "상세 코드 수정에 실패했습니다.");
         }
 
         return "redirect:" + adminPrefix(request, locale) + "/system/code?detailCodeId=" + urlEncode(id);
@@ -1280,23 +1272,22 @@ public class AdminSystemCodeController {
         String c = safeString(code).toUpperCase(Locale.ROOT);
 
         if (id.isEmpty() || c.isEmpty()) {
-            model.addAttribute("codeMgmtError", isEn ? "Code ID and code are required." : "코드 ID와 코드값을 입력해 주세요.");
-            return populateCodeManagementPage(id, isEn, model);
+            return redirectCodeManagementError(request, locale, id,
+                    isEn ? "Code ID and code are required." : "코드 ID와 코드값을 입력해 주세요.");
         }
 
         try {
             adminCodeManageService.deleteDetailCode(id, c);
         } catch (Exception e) {
             log.error("Failed to delete detail code. codeId={}, code={}", id, c, e);
-            model.addAttribute("codeMgmtError", isEn ? "Failed to delete detail code." : "상세 코드 삭제에 실패했습니다.");
-            return populateCodeManagementPage(id, isEn, model);
+            return redirectCodeManagementError(request, locale, id,
+                    isEn ? "Failed to delete detail code." : "상세 코드 삭제에 실패했습니다.");
         }
 
         return "redirect:" + adminPrefix(request, locale) + "/system/code?detailCodeId=" + urlEncode(id);
     }
 
     private String populateCodeManagementPage(String detailCodeId, boolean isEn, Model model) {
-        String viewName = isEn ? "egovframework/com/admin/system_code_en" : "egovframework/com/admin/system_code";
         List<ClassCodeVO> clCodeList = Collections.emptyList();
         List<CommonCodeVO> codeList = Collections.emptyList();
         try {
@@ -1324,7 +1315,89 @@ public class AdminSystemCodeController {
         model.addAttribute("detailCodeList", detailCodeList);
         model.addAttribute("detailCodeId", selectedCodeId);
         model.addAttribute("useAtOptions", List.of("Y", "N"));
-        return viewName;
+        return "";
+    }
+
+    private void applyQueryError(Model model, String attributeName, HttpServletRequest request) {
+        String errorMessage = safeString(request == null ? null : request.getParameter("errorMessage"));
+        if (!errorMessage.isEmpty()) {
+            model.addAttribute(attributeName, errorMessage);
+        }
+    }
+
+    private String redirectCodeManagementError(HttpServletRequest request, Locale locale, String detailCodeId, String errorMessage) {
+        StringBuilder redirect = new StringBuilder("redirect:")
+                .append(adminPrefix(request, locale))
+                .append("/system/code");
+        boolean hasQuery = false;
+        String normalizedDetailCodeId = safeString(detailCodeId);
+        if (!normalizedDetailCodeId.isEmpty()) {
+            redirect.append("?detailCodeId=").append(urlEncode(normalizedDetailCodeId));
+            hasQuery = true;
+        }
+        return appendErrorQuery(redirect, hasQuery, errorMessage);
+    }
+
+    private String redirectMenuManagementError(HttpServletRequest request, Locale locale, String menuType, String errorMessage) {
+        StringBuilder redirect = new StringBuilder("redirect:")
+                .append(adminPrefix(request, locale))
+                .append("/system/menu-management?menuType=")
+                .append(urlEncode(menuType));
+        return appendErrorQuery(redirect, true, errorMessage);
+    }
+
+    private String redirectFunctionManagementError(
+            HttpServletRequest request,
+            Locale locale,
+            String menuType,
+            String searchMenuCode,
+            String searchKeyword,
+            String errorMessage) {
+        StringBuilder redirect = new StringBuilder("redirect:")
+                .append(adminPrefix(request, locale))
+                .append("/system/feature-management?menuType=")
+                .append(urlEncode(menuType));
+        appendRedirectQuery(redirect, "searchMenuCode", searchMenuCode);
+        appendRedirectQuery(redirect, "searchKeyword", searchKeyword);
+        return appendErrorQuery(redirect, true, errorMessage);
+    }
+
+    private String redirectPageManagementError(
+            HttpServletRequest request,
+            Locale locale,
+            String menuType,
+            String searchKeyword,
+            String searchUrl,
+            String errorMessage,
+            Integer deletedRoleRefs,
+            Integer deletedUserOverrides) {
+        StringBuilder redirect = new StringBuilder("redirect:")
+                .append(adminPrefix(request, locale))
+                .append("/system/page-management?menuType=")
+                .append(urlEncode(menuType));
+        appendRedirectQuery(redirect, "searchKeyword", searchKeyword);
+        appendRedirectQuery(redirect, "searchUrl", searchUrl);
+        if (deletedRoleRefs != null) {
+            appendRedirectQuery(redirect, "deletedRoleRefs", String.valueOf(deletedRoleRefs));
+        }
+        if (deletedUserOverrides != null) {
+            appendRedirectQuery(redirect, "deletedUserOverrides", String.valueOf(deletedUserOverrides));
+        }
+        return appendErrorQuery(redirect, true, errorMessage);
+    }
+
+    private void appendRedirectQuery(StringBuilder redirect, String name, String value) {
+        String normalizedValue = safeString(value);
+        if (!normalizedValue.isEmpty()) {
+            redirect.append('&').append(name).append('=').append(urlEncode(normalizedValue));
+        }
+    }
+
+    private String appendErrorQuery(StringBuilder redirect, boolean hasQuery, String errorMessage) {
+        redirect.append(hasQuery ? '&' : '?')
+                .append("errorMessage=")
+                .append(urlEncode(errorMessage));
+        return redirect.toString();
     }
 
     private void populatePageManagementModel(Model model, boolean isEn, String menuType, String codeId, String searchKeyword, String searchUrl) {

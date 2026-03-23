@@ -19,17 +19,19 @@ function resolveInitialEmplyrId() {
 
 export function AdminPermissionMigrationPage() {
   const initialEmplyrId = resolveInitialEmplyrId();
+  const initialUpdated = getSearchParam("updated");
+  const initialMode = getSearchParam("mode") || "edit";
   const [session, setSession] = useState<FrontendSession | null>(null);
   const [page, setPage] = useState<AdminPermissionPagePayload | null>(null);
   const [authorCode, setAuthorCode] = useState("");
   const [featureCodes, setFeatureCodes] = useState<string[]>([]);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(() => getSearchParam("errorMessage"));
   const [message, setMessage] = useState("");
 
   async function load(target: string) {
     const [sessionPayload, pagePayload] = await Promise.all([
       session ? Promise.resolve(session) : fetchFrontendSession(),
-      fetchAdminPermissionPage(target)
+      fetchAdminPermissionPage(target, { updated: initialUpdated, mode: initialMode })
     ]);
     setSession(sessionPayload);
     setPage(pagePayload);

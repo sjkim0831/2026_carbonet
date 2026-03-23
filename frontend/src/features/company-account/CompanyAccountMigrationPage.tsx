@@ -49,16 +49,17 @@ function resolveInitialInsttId() {
 
 export function CompanyAccountMigrationPage() {
   const initialInsttId = resolveInitialInsttId();
+  const initialSaved = getSearchParam("saved");
   const [form, setForm] = useState<CompanyFormState>(EMPTY_FORM);
   const [activeInsttId, setActiveInsttId] = useState(initialInsttId);
   const [uploadRows, setUploadRows] = useState<UploadRow[]>([createUploadRow()]);
-  const [actionError, setActionError] = useState("");
+  const [actionError, setActionError] = useState(() => getSearchParam("errorMessage"));
   const [message, setMessage] = useState("");
   const [nameCheckMessage, setNameCheckMessage] = useState("");
   const [isNameChecked, setIsNameChecked] = useState(false);
   const sessionState = useFrontendSession();
   const pageState = useAsyncValue<CompanyAccountPagePayload>(
-    () => fetchCompanyAccountPage(activeInsttId || undefined),
+    () => fetchCompanyAccountPage(activeInsttId || undefined, { saved: initialSaved }),
     [activeInsttId],
     {
       initialValue: null,

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { CanView } from "../../components/access/CanView";
-import { buildLocalizedPath } from "../../lib/navigation/runtime";
+import { buildLocalizedPath, getSearchParam } from "../../lib/navigation/runtime";
 import {
   CompanyApprovePagePayload,
   fetchCompanyApprovePage,
@@ -14,10 +14,16 @@ import { ReviewModalFrame } from "../member/sections";
 import { CompanyApproveFilters, CompanyApproveReviewContent, CompanyApproveSearchSection, CompanyApproveTableSection, DEFAULT_COMPANY_APPROVE_FILTERS } from "./companyApproveSections";
 
 export function CompanyApproveMigrationPage() {
+  const initialFilters = {
+    searchKeyword: getSearchParam("searchKeyword"),
+    status: getSearchParam("sbscrbSttus") || DEFAULT_COMPANY_APPROVE_FILTERS.status,
+    pageIndex: Number(getSearchParam("pageIndex") || DEFAULT_COMPANY_APPROVE_FILTERS.pageIndex)
+  };
+  const initialResult = getSearchParam("result");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [filters, setFilters] = useState<CompanyApproveFilters>(DEFAULT_COMPANY_APPROVE_FILTERS);
-  const [draftFilters, setDraftFilters] = useState<CompanyApproveFilters>(DEFAULT_COMPANY_APPROVE_FILTERS);
-  const [actionError, setActionError] = useState("");
+  const [filters, setFilters] = useState<CompanyApproveFilters>(initialFilters);
+  const [draftFilters, setDraftFilters] = useState<CompanyApproveFilters>(initialFilters);
+  const [actionError, setActionError] = useState(() => getSearchParam("errorMessage"));
   const [message, setMessage] = useState("");
   const [reviewInsttId, setReviewInsttId] = useState("");
   const sessionState = useFrontendSession();
@@ -25,7 +31,8 @@ export function CompanyApproveMigrationPage() {
     () => fetchCompanyApprovePage({
       pageIndex: filters.pageIndex,
       searchKeyword: filters.searchKeyword,
-      sbscrbSttus: filters.status
+      sbscrbSttus: filters.status,
+      result: initialResult
     }),
     [filters.pageIndex, filters.searchKeyword, filters.status],
     {

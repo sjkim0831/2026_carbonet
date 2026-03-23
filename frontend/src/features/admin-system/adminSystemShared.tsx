@@ -22,6 +22,18 @@ export function numberOf(record: Record<string, unknown> | null | undefined, ...
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+export function readRedirectedErrorMessage(response: Response) {
+  if (!response.redirected || !response.url) {
+    return "";
+  }
+  try {
+    const params = new URL(response.url, window.location.origin).searchParams;
+    return params.get("errorMessage") || "";
+  } catch {
+    return "";
+  }
+}
+
 export async function submitFormRequest(form: HTMLFormElement) {
   const formData = new FormData(form);
   const body = new URLSearchParams();
@@ -31,7 +43,8 @@ export async function submitFormRequest(form: HTMLFormElement) {
 
   const { token, headerName } = getCsrfMeta();
   const headers: Record<string, string> = {
-    "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
+    "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+    "X-Requested-With": "XMLHttpRequest"
   };
   if (token) {
     headers[headerName] = token;
@@ -47,6 +60,11 @@ export async function submitFormRequest(form: HTMLFormElement) {
   if (!response.ok) {
     const text = await response.text().catch(() => "");
     throw new Error(text || `Request failed: ${response.status}`);
+  }
+
+  const redirectedError = readRedirectedErrorMessage(response);
+  if (redirectedError) {
+    throw new Error(redirectedError);
   }
 
   return response;

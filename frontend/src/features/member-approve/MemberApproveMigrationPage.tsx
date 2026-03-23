@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { CanView } from "../../components/access/CanView";
-import { buildLocalizedPath } from "../../lib/navigation/runtime";
+import { buildLocalizedPath, getSearchParam } from "../../lib/navigation/runtime";
 import {
   fetchMemberApprovePage,
   MemberApprovePagePayload,
@@ -14,10 +14,17 @@ import { ReviewModalFrame } from "../member/sections";
 import { DEFAULT_MEMBER_APPROVE_FILTERS, MemberApproveFilters, MemberApproveReviewContent, MemberApproveSearchSection, MemberApproveTableSection } from "./memberApproveSections";
 
 export function MemberApproveMigrationPage() {
+  const initialFilters = {
+    searchKeyword: getSearchParam("searchKeyword"),
+    membershipType: getSearchParam("membershipType"),
+    status: getSearchParam("sbscrbSttus") || DEFAULT_MEMBER_APPROVE_FILTERS.status,
+    pageIndex: Number(getSearchParam("pageIndex") || DEFAULT_MEMBER_APPROVE_FILTERS.pageIndex)
+  };
+  const initialResult = getSearchParam("result");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [filters, setFilters] = useState<MemberApproveFilters>(DEFAULT_MEMBER_APPROVE_FILTERS);
-  const [draftFilters, setDraftFilters] = useState<MemberApproveFilters>(DEFAULT_MEMBER_APPROVE_FILTERS);
-  const [actionError, setActionError] = useState("");
+  const [filters, setFilters] = useState<MemberApproveFilters>(initialFilters);
+  const [draftFilters, setDraftFilters] = useState<MemberApproveFilters>(initialFilters);
+  const [actionError, setActionError] = useState(() => getSearchParam("errorMessage"));
   const [message, setMessage] = useState("");
   const [reviewMemberId, setReviewMemberId] = useState("");
   const sessionState = useFrontendSession();
@@ -26,7 +33,8 @@ export function MemberApproveMigrationPage() {
       pageIndex: filters.pageIndex,
       searchKeyword: filters.searchKeyword,
       membershipType: filters.membershipType,
-      sbscrbSttus: filters.status
+      sbscrbSttus: filters.status,
+      result: initialResult
     }),
     [filters.pageIndex, filters.searchKeyword, filters.membershipType, filters.status],
     {
