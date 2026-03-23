@@ -153,6 +153,7 @@ public class AdminMainController {
     private final AdminLoginHistoryService adminLoginHistoryService;
     private final ObjectProvider<AdminHotPathPagePayloadService> adminHotPathPagePayloadServiceProvider;
     private final ObjectProvider<AdminApprovalPageModelAssembler> adminApprovalPageModelAssemblerProvider;
+    private final ObjectProvider<AdminListPageModelAssembler> adminListPageModelAssemblerProvider;
     private final ObjectProvider<AdminMemberPageModelAssembler> adminMemberPageModelAssemblerProvider;
     private final AuthService authService;
     private final MenuInfoService menuInfoService;
@@ -171,6 +172,10 @@ public class AdminMainController {
 
     private AdminMemberPageModelAssembler adminMemberPageModelAssembler() {
         return adminMemberPageModelAssemblerProvider.getObject();
+    }
+
+    private AdminListPageModelAssembler adminListPageModelAssembler() {
+        return adminListPageModelAssemblerProvider.getObject();
     }
 
     private AdminApprovalPageModelAssembler adminApprovalPageModelAssembler() {
@@ -2399,80 +2404,13 @@ public class AdminMainController {
             String sbscrbSttus,
             Model model,
             HttpServletRequest request) {
-        int pageIndex = 1;
-        if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
-            try {
-                pageIndex = Integer.parseInt(pageIndexParam.trim());
-            } catch (NumberFormatException ignored) {
-                pageIndex = 1;
-            }
-        }
-        int currentPage = Math.max(pageIndex, 1);
-        int pageSize = 10;
-
-        EntrprsManageVO searchVO = new EntrprsManageVO();
-        searchVO.setPageIndex(currentPage);
-        searchVO.setRecordCountPerPage(pageSize);
-
-        String keyword = searchKeyword == null ? "" : searchKeyword.trim();
-        searchVO.setSearchKeyword(keyword);
-        searchVO.setSearchCondition("all");
-
-        String memberType = membershipType == null ? "" : membershipType.trim().toUpperCase();
-        if (!memberType.isEmpty()) {
-            String dbTypeCode = normalizeMembershipCode(memberType);
-            if (!dbTypeCode.isEmpty()) {
-                searchVO.setEntrprsSeCode(dbTypeCode);
-            }
-        }
-
-        String status = sbscrbSttus == null ? "" : sbscrbSttus.trim();
-        if (!status.isEmpty()) {
-            searchVO.setSbscrbSttus(status);
-        }
-        String currentUserId = extractCurrentUserId(request);
-        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        if (requiresOwnCompanyAccess(currentUserId, currentUserAuthorCode)) {
-            searchVO.setInsttId(resolveCurrentUserInsttId(currentUserId));
-        }
-
-        List<EntrprsManageVO> member_list;
-        int totalCount;
-        try {
-            totalCount = entrprsManageService.selectEntrprsMberListTotCnt(searchVO);
-            int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
-            if (currentPage > totalPages) {
-                currentPage = totalPages;
-            }
-            searchVO.setPageIndex(currentPage);
-            searchVO.setFirstIndex((currentPage - 1) * pageSize);
-            member_list = entrprsManageService.selectEntrprsMberList(searchVO);
-        } catch (Exception e) {
-            member_list = Collections.emptyList();
-            totalCount = 0;
-            model.addAttribute("member_listError", e.getMessage());
-        }
-
-        int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
-        if (currentPage > totalPages) {
-            currentPage = totalPages;
-        }
-        int startPage = Math.max(1, currentPage - 4);
-        int endPage = Math.min(totalPages, startPage + 9);
-        if (endPage - startPage < 9) {
-            startPage = Math.max(1, endPage - 9);
-        }
-
-        model.addAttribute("member_list", member_list);
-        model.addAttribute("totalCount", totalCount);
-        model.addAttribute("pageIndex", currentPage);
-        model.addAttribute("pageSize", pageSize);
-        model.addAttribute("totalPages", totalPages);
-        model.addAttribute("startPage", startPage);
-        model.addAttribute("endPage", endPage);
-        model.addAttribute("searchKeyword", keyword);
-        model.addAttribute("membershipType", memberType);
-        model.addAttribute("sbscrbSttus", status);
+        adminListPageModelAssembler().populateMemberList(
+                pageIndexParam,
+                searchKeyword,
+                membershipType,
+                sbscrbSttus,
+                model,
+                request);
     }
 
     void populateMemberApprovalList(
@@ -2683,84 +2621,12 @@ public class AdminMainController {
             String sbscrbSttus,
             Model model,
             HttpServletRequest request) {
-        int pageIndex = 1;
-        if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
-            try {
-                pageIndex = Integer.parseInt(pageIndexParam.trim());
-            } catch (NumberFormatException ignored) {
-                pageIndex = 1;
-            }
-        }
-        int currentPage = Math.max(pageIndex, 1);
-        int pageSize = 10;
-
-        String keyword = safeString(searchKeyword);
-        String status = safeString(sbscrbSttus).toUpperCase(Locale.ROOT);
-        String currentUserId = extractCurrentUserId(request);
-        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        boolean canView = adminAuthorityPagePayloadSupport.hasMemberManagementCompanyAdminAccess(currentUserId, currentUserAuthorCode);
-        if (!canView) {
-            model.addAttribute("member_listError", "관리자 목록을 조회할 권한이 없습니다.");
-            model.addAttribute("member_list", Collections.emptyList());
-            model.addAttribute("totalCount", 0);
-            model.addAttribute("pageIndex", 1);
-            model.addAttribute("pageSize", pageSize);
-            model.addAttribute("totalPages", 1);
-            model.addAttribute("startPage", 1);
-            model.addAttribute("endPage", 1);
-            model.addAttribute("searchKeyword", keyword);
-            model.addAttribute("sbscrbSttus", status);
-            model.addAttribute("canUseAdminListActions", false);
-            return;
-        }
-
-        List<EmplyrInfo> visibleAdmins;
-        try {
-            visibleAdmins = selectVisibleAdminMembers(currentUserId, currentUserAuthorCode, keyword, status);
-        } catch (Exception e) {
-            log.error("Failed to load admin member list.", e);
-            model.addAttribute("member_listError", e.getMessage());
-            model.addAttribute("member_list", Collections.emptyList());
-            model.addAttribute("totalCount", 0);
-            model.addAttribute("pageIndex", 1);
-            model.addAttribute("pageSize", pageSize);
-            model.addAttribute("totalPages", 1);
-            model.addAttribute("startPage", 1);
-            model.addAttribute("endPage", 1);
-            model.addAttribute("searchKeyword", keyword);
-            model.addAttribute("sbscrbSttus", status);
-            model.addAttribute("canUseAdminListActions", false);
-            return;
-        }
-
-        int totalCount = visibleAdmins.size();
-        int totalPages = Math.max((int) Math.ceil(totalCount / (double) pageSize), 1);
-        if (currentPage > totalPages) {
-            currentPage = totalPages;
-        }
-        int fromIndex = Math.max(0, Math.min((currentPage - 1) * pageSize, totalCount));
-        int toIndex = Math.max(fromIndex, Math.min(fromIndex + pageSize, totalCount));
-        List<EmplyrInfo> pageItems = totalCount == 0 ? Collections.emptyList() : visibleAdmins.subList(fromIndex, toIndex);
-        int startPage = Math.max(1, currentPage - 4);
-        int endPage = Math.min(totalPages, startPage + 9);
-        if (endPage - startPage < 9) {
-            startPage = Math.max(1, endPage - 9);
-        }
-        int prevPage = Math.max(1, currentPage - 1);
-        int nextPage = Math.min(totalPages, currentPage + 1);
-
-        model.addAttribute("member_list", pageItems);
-        model.addAttribute("totalCount", totalCount);
-        model.addAttribute("pageIndex", currentPage);
-        model.addAttribute("pageSize", pageSize);
-        model.addAttribute("totalPages", totalPages);
-        model.addAttribute("startPage", startPage);
-        model.addAttribute("endPage", endPage);
-        model.addAttribute("prevPage", prevPage);
-        model.addAttribute("nextPage", nextPage);
-        model.addAttribute("searchKeyword", keyword);
-        model.addAttribute("sbscrbSttus", status);
-        model.addAttribute("canUseAdminListActions", canCreateAdminAccounts(currentUserId, currentUserAuthorCode));
+        adminListPageModelAssembler().populateAdminMemberList(
+                pageIndexParam,
+                searchKeyword,
+                sbscrbSttus,
+                model,
+                request);
     }
 
     void populateCompanyList(
@@ -2769,71 +2635,12 @@ public class AdminMainController {
             String sbscrbSttus,
             Model model,
             HttpServletRequest request) {
-        int pageIndex = 1;
-        if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
-            try {
-                pageIndex = Integer.parseInt(pageIndexParam.trim());
-            } catch (NumberFormatException ignored) {
-                pageIndex = 1;
-            }
-        }
-        int currentPage = Math.max(pageIndex, 1);
-        int pageSize = 10;
-
-        String keyword = safeString(searchKeyword);
-        String status = safeString(sbscrbSttus).toUpperCase(Locale.ROOT);
-        String currentUserId = extractCurrentUserId(request);
-        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        String scopedInsttId = requiresOwnCompanyAccess(currentUserId, currentUserAuthorCode)
-                ? resolveCurrentUserInsttId(currentUserId)
-                : "";
-
-        List<CompanyListItemVO> company_list;
-        int totalCount;
-        try {
-            Map<String, Object> searchParams = new LinkedHashMap<>();
-            searchParams.put("keyword", keyword);
-            searchParams.put("status", status);
-            searchParams.put("insttId", scopedInsttId);
-            totalCount = entrprsManageService.searchCompanyListTotCnt(searchParams);
-            int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
-            if (currentPage > totalPages) {
-                currentPage = totalPages;
-            }
-            int offset = (currentPage - 1) * pageSize;
-            searchParams.put("offset", offset);
-            searchParams.put("pageSize", pageSize);
-            company_list = entrprsManageService.searchCompanyListPaged(searchParams);
-        } catch (Exception e) {
-            log.error("Failed to load company list.", e);
-            company_list = Collections.emptyList();
-            totalCount = 0;
-            model.addAttribute("company_listError", e.getMessage());
-        }
-
-        int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
-        if (currentPage > totalPages) {
-            currentPage = totalPages;
-        }
-        int startPage = Math.max(1, currentPage - 4);
-        int endPage = Math.min(totalPages, startPage + 9);
-        if (endPage - startPage < 9) {
-            startPage = Math.max(1, endPage - 9);
-        }
-        int prevPage = Math.max(1, currentPage - 1);
-        int nextPage = Math.min(totalPages, currentPage + 1);
-
-        model.addAttribute("company_list", company_list);
-        model.addAttribute("totalCount", totalCount);
-        model.addAttribute("pageIndex", currentPage);
-        model.addAttribute("pageSize", pageSize);
-        model.addAttribute("totalPages", totalPages);
-        model.addAttribute("startPage", startPage);
-        model.addAttribute("endPage", endPage);
-        model.addAttribute("prevPage", prevPage);
-        model.addAttribute("nextPage", nextPage);
-        model.addAttribute("searchKeyword", keyword);
-        model.addAttribute("sbscrbSttus", status);
+        adminListPageModelAssembler().populateCompanyList(
+                pageIndexParam,
+                searchKeyword,
+                sbscrbSttus,
+                model,
+                request);
     }
 
     Map<String, Object> buildMemberStatsPageData(boolean isEn) {
@@ -2978,82 +2785,14 @@ public class AdminMainController {
             String requestedInsttId,
             Model model,
             HttpServletRequest request) {
-        int pageIndex = 1;
-        if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
-            try {
-                pageIndex = Integer.parseInt(pageIndexParam.trim());
-            } catch (NumberFormatException ignored) {
-                pageIndex = 1;
-            }
-        }
-
-        int currentPage = Math.max(pageIndex, 1);
-        int pageSize = 10;
-        String keyword = safeString(searchKeyword);
-        String normalizedUserSe = safeString(userSe).toUpperCase(Locale.ROOT);
-        String normalizedLoginResult = safeString(loginResult).toUpperCase(Locale.ROOT);
-        String currentUserId = extractCurrentUserId(request);
-        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        boolean masterAccess = hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode);
-        String currentUserInsttId = resolveCurrentUserInsttId(currentUserId);
-        List<Map<String, String>> companyOptions = masterAccess
-                ? loadAccessHistoryCompanyOptions()
-                : buildScopedAccessHistoryCompanyOptions(currentUserInsttId);
-        String selectedInsttId = masterAccess
-                ? resolveSelectedInsttId(requestedInsttId, companyOptions, true)
-                : currentUserInsttId;
-
-        LoginHistorySearchVO searchVO = new LoginHistorySearchVO();
-        searchVO.setSearchKeyword(keyword);
-        searchVO.setUserSe(normalizedUserSe);
-        searchVO.setLoginResult(normalizedLoginResult);
-        searchVO.setInsttId(selectedInsttId);
-        searchVO.setRecordCountPerPage(pageSize);
-
-        List<LoginHistoryVO> pageItems;
-        int totalCount;
-        try {
-            totalCount = adminLoginHistoryService.selectLoginHistoryListTotCnt(searchVO);
-            int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
-            if (currentPage > totalPages) {
-                currentPage = totalPages;
-            }
-            searchVO.setFirstIndex((currentPage - 1) * pageSize);
-            pageItems = adminLoginHistoryService.selectLoginHistoryList(searchVO);
-        } catch (Exception e) {
-            log.error("Failed to load login history.", e);
-            totalCount = 0;
-            pageItems = Collections.emptyList();
-            model.addAttribute("loginHistoryError", e.getMessage());
-        }
-
-        int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
-        if (currentPage > totalPages) {
-            currentPage = totalPages;
-        }
-        int startPage = Math.max(1, currentPage - 4);
-        int endPage = Math.min(totalPages, startPage + 9);
-        if (endPage - startPage < 9) {
-            startPage = Math.max(1, endPage - 9);
-        }
-        int prevPage = Math.max(1, currentPage - 1);
-        int nextPage = Math.min(totalPages, currentPage + 1);
-
-        model.addAttribute("loginHistoryList", pageItems);
-        model.addAttribute("totalCount", totalCount);
-        model.addAttribute("pageIndex", currentPage);
-        model.addAttribute("pageSize", pageSize);
-        model.addAttribute("totalPages", totalPages);
-        model.addAttribute("startPage", startPage);
-        model.addAttribute("endPage", endPage);
-        model.addAttribute("prevPage", prevPage);
-        model.addAttribute("nextPage", nextPage);
-        model.addAttribute("searchKeyword", keyword);
-        model.addAttribute("userSe", normalizedUserSe);
-        model.addAttribute("loginResult", normalizedLoginResult);
-        model.addAttribute("companyOptions", companyOptions);
-        model.addAttribute("selectedInsttId", selectedInsttId);
-        model.addAttribute("canManageAllCompanies", masterAccess);
+        adminListPageModelAssembler().populateLoginHistory(
+                pageIndexParam,
+                searchKeyword,
+                userSe,
+                loginResult,
+                requestedInsttId,
+                model,
+                request);
     }
 
     private void populateBlockedLoginHistory(
@@ -3063,96 +2802,13 @@ public class AdminMainController {
             String requestedInsttId,
             Model model,
             HttpServletRequest request) {
-        populateLoginHistoryInternal(pageIndexParam, searchKeyword, userSe, "FAIL", "Y", requestedInsttId, model, request);
-    }
-
-    private void populateLoginHistoryInternal(
-            String pageIndexParam,
-            String searchKeyword,
-            String userSe,
-            String loginResult,
-            String blockedOnly,
-            String requestedInsttId,
-            Model model,
-            HttpServletRequest request) {
-        int pageIndex = 1;
-        if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
-            try {
-                pageIndex = Integer.parseInt(pageIndexParam.trim());
-            } catch (NumberFormatException ignored) {
-                pageIndex = 1;
-            }
-        }
-
-        int currentPage = Math.max(pageIndex, 1);
-        int pageSize = 10;
-        String keyword = safeString(searchKeyword);
-        String normalizedUserSe = safeString(userSe).toUpperCase(Locale.ROOT);
-        String normalizedLoginResult = safeString(loginResult).toUpperCase(Locale.ROOT);
-        String normalizedBlockedOnly = safeString(blockedOnly).toUpperCase(Locale.ROOT);
-        String currentUserId = extractCurrentUserId(request);
-        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        boolean masterAccess = hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode);
-        String currentUserInsttId = resolveCurrentUserInsttId(currentUserId);
-        List<Map<String, String>> companyOptions = masterAccess
-                ? loadAccessHistoryCompanyOptions()
-                : buildScopedAccessHistoryCompanyOptions(currentUserInsttId);
-        String selectedInsttId = masterAccess
-                ? resolveSelectedInsttId(requestedInsttId, companyOptions, true)
-                : currentUserInsttId;
-
-        LoginHistorySearchVO searchVO = new LoginHistorySearchVO();
-        searchVO.setSearchKeyword(keyword);
-        searchVO.setUserSe(normalizedUserSe);
-        searchVO.setLoginResult(normalizedLoginResult);
-        searchVO.setBlockedOnly(normalizedBlockedOnly);
-        searchVO.setInsttId(selectedInsttId);
-        searchVO.setRecordCountPerPage(pageSize);
-
-        List<LoginHistoryVO> pageItems;
-        int totalCount;
-        try {
-            totalCount = adminLoginHistoryService.selectLoginHistoryListTotCnt(searchVO);
-            int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
-            if (currentPage > totalPages) {
-                currentPage = totalPages;
-            }
-            searchVO.setFirstIndex((currentPage - 1) * pageSize);
-            pageItems = adminLoginHistoryService.selectLoginHistoryList(searchVO);
-        } catch (Exception e) {
-            log.error("Failed to load login history.", e);
-            totalCount = 0;
-            pageItems = Collections.emptyList();
-            model.addAttribute("loginHistoryError", e.getMessage());
-        }
-
-        int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
-        if (currentPage > totalPages) {
-            currentPage = totalPages;
-        }
-        int startPage = Math.max(1, currentPage - 4);
-        int endPage = Math.min(totalPages, startPage + 9);
-        if (endPage - startPage < 9) {
-            startPage = Math.max(1, endPage - 9);
-        }
-        int prevPage = Math.max(1, currentPage - 1);
-        int nextPage = Math.min(totalPages, currentPage + 1);
-
-        model.addAttribute("loginHistoryList", pageItems);
-        model.addAttribute("totalCount", totalCount);
-        model.addAttribute("pageIndex", currentPage);
-        model.addAttribute("pageSize", pageSize);
-        model.addAttribute("totalPages", totalPages);
-        model.addAttribute("startPage", startPage);
-        model.addAttribute("endPage", endPage);
-        model.addAttribute("prevPage", prevPage);
-        model.addAttribute("nextPage", nextPage);
-        model.addAttribute("searchKeyword", keyword);
-        model.addAttribute("userSe", normalizedUserSe);
-        model.addAttribute("loginResult", normalizedLoginResult);
-        model.addAttribute("companyOptions", companyOptions);
-        model.addAttribute("selectedInsttId", selectedInsttId);
-        model.addAttribute("canManageAllCompanies", masterAccess);
+        adminListPageModelAssembler().populateBlockedLoginHistory(
+                pageIndexParam,
+                searchKeyword,
+                userSe,
+                requestedInsttId,
+                model,
+                request);
     }
 
     private Map<String, Object> buildAccessHistoryPagePayload(
@@ -5862,7 +5518,7 @@ public class AdminMainController {
         }
     }
 
-    private List<EmplyrInfo> selectVisibleAdminMembers(
+    List<EmplyrInfo> selectVisibleAdminMembers(
             String currentUserId,
             String currentUserAuthorCode,
             String keyword,
