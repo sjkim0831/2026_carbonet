@@ -80,15 +80,19 @@ export function AdminAccountCreateMigrationPage() {
   const [error, setError] = useState("");
   const [searchingCompanies, setSearchingCompanies] = useState(false);
   const canUseCreate = !!page?.canUseAdminAccountCreate;
-  const allowedPresets = ((page?.adminAccountCreateAllowedPresets as string[] | undefined) || []).map((item) => String(item));
-  const canSearchCompanies = Boolean(page?.adminAccountCreateCanSearchCompanies);
+  const presetAuthorCodes = (page?.adminAccountCreatePresetAuthorCodes || {}) as Record<string, string>;
+  const allowedPresets = (((page?.adminAccountCreateAllowedPresets as string[] | undefined) || Object.keys(presetAuthorCodes))).map((item) => String(item));
+  const canSearchCompanies = page?.adminAccountCreateCanSearchCompanies == null
+    ? true
+    : Boolean(page.adminAccountCreateCanSearchCompanies);
 
   useEffect(() => {
     Promise.all([fetchFrontendSession(), fetchAdminAccountCreatePage()])
       .then(([sessionPayload, pagePayload]) => {
         setSession(sessionPayload);
         setPage(pagePayload);
-        const presetOptions = ((pagePayload.adminAccountCreateAllowedPresets as string[] | undefined) || []).map((item) => String(item));
+        const presetOptions = (((pagePayload.adminAccountCreateAllowedPresets as string[] | undefined)
+          || Object.keys((pagePayload.adminAccountCreatePresetAuthorCodes || {}) as Record<string, string>))).map((item) => String(item));
         setRolePreset(presetOptions[0] || String(pagePayload.adminAccountCreatePreset || "MASTER"));
         if (!Boolean(pagePayload.adminAccountCreateCanSearchCompanies)) {
           setInsttId(String(pagePayload.adminAccountCreateCurrentInsttId || ""));
@@ -220,6 +224,7 @@ export function AdminAccountCreateMigrationPage() {
       title="관리자 사용자 추가"
     >
       {error ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</section> : null}
+
       <CanView
         allowed={!!page?.canViewAdminAccountCreate}
         fallback={<section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm"><p className="text-sm text-[var(--kr-gov-text-secondary)]">이 화면을 볼 권한이 없습니다.</p></section>}

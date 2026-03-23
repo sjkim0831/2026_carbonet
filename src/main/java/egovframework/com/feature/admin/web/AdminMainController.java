@@ -1384,6 +1384,30 @@ public class AdminMainController {
         return redirectReactMigration(request, locale, "member-list");
     }
 
+    @RequestMapping(value = "/member/withdrawn", method = { RequestMethod.GET, RequestMethod.POST })
+    public String withdrawn_member_list(
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "membershipType", required = false) String membershipType,
+            @RequestParam(value = "sbscrbSttus", required = false) String sbscrbSttus,
+            HttpServletRequest request,
+            Locale locale,
+            Model model) {
+        return redirectReactMigration(request, locale, "member-list");
+    }
+
+    @RequestMapping(value = "/member/activate", method = { RequestMethod.GET, RequestMethod.POST })
+    public String activate_member_list(
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "membershipType", required = false) String membershipType,
+            @RequestParam(value = "sbscrbSttus", required = false) String sbscrbSttus,
+            HttpServletRequest request,
+            Locale locale,
+            Model model) {
+        return redirectReactMigration(request, locale, "member-list");
+    }
+
     @GetMapping("/api/admin/member/list/page")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> memberListPageApi(

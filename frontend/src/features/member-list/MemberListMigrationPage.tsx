@@ -21,27 +21,31 @@ type SearchFilters = {
   pageIndex: number;
 };
 
-const DEFAULT_FILTERS: SearchFilters = {
-  searchKeyword: "",
-  membershipType: "",
-  status: "",
-  pageIndex: 1
-};
-
-function readInitialFilters(): SearchFilters {
+function resolveDefaultFilters(): SearchFilters {
   if (typeof window === "undefined") {
-    return DEFAULT_FILTERS;
+    return {
+      searchKeyword: "",
+      membershipType: "",
+      status: "",
+      pageIndex: 1
+    };
   }
   const params = new URLSearchParams(window.location.search);
+  const pathname = window.location.pathname;
+  const pathStatus = pathname.endsWith("/member/withdrawn")
+    ? "D"
+    : pathname.endsWith("/member/activate")
+      ? "X"
+      : "";
   return {
     searchKeyword: params.get("searchKeyword") || "",
     membershipType: params.get("membershipType") || "",
-    status: params.get("sbscrbSttus") || "",
+    status: params.get("sbscrbSttus") || pathStatus,
     pageIndex: Number(params.get("pageIndex") || "1") || 1
   };
 }
 
-function resolveMemberListPageCopy(status: string) {
+function resolvePageCopy(status: string) {
   const normalizedStatus = String(status || "").trim().toUpperCase();
   if (normalizedStatus === "D") {
     return {
@@ -95,8 +99,8 @@ function buildMemberListExcelPath(filters: SearchFilters) {
 }
 
 export function MemberListMigrationPage() {
-  const [filters, setFilters] = useState<SearchFilters>(() => readInitialFilters());
-  const [draftFilters, setDraftFilters] = useState<SearchFilters>(() => readInitialFilters());
+  const [filters, setFilters] = useState<SearchFilters>(resolveDefaultFilters);
+  const [draftFilters, setDraftFilters] = useState<SearchFilters>(resolveDefaultFilters);
   const [actionError, setActionError] = useState("");
   const pageState = useAsyncValue<MemberListPagePayload>(
     () => fetchMemberListPage({
@@ -123,7 +127,7 @@ export function MemberListMigrationPage() {
   const error = actionError || pageState.error;
   const totalPages = Math.max(1, Number(page?.totalPages || 1));
   const currentPage = Math.max(1, Number(page?.pageIndex || filters.pageIndex || 1));
-  const pageCopy = resolveMemberListPageCopy(filters.status || page?.sbscrbSttus || "");
+  const pageCopy = resolvePageCopy(filters.status || page?.sbscrbSttus || "");
 
   function updateDraft<K extends keyof SearchFilters>(key: K, value: SearchFilters[K]) {
     setDraftFilters((current) => ({ ...current, [key]: value }));
@@ -149,8 +153,9 @@ export function MemberListMigrationPage() {
 
   function resetFilters() {
     setActionError("");
-    setDraftFilters(DEFAULT_FILTERS);
-    setFilters(DEFAULT_FILTERS);
+    const nextFilters = resolveDefaultFilters();
+    setDraftFilters(nextFilters);
+    setFilters(nextFilters);
   }
 
   return (
