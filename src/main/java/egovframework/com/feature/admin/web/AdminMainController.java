@@ -4,10 +4,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import egovframework.com.common.audit.AuditEventRecordVO;
 import egovframework.com.common.audit.AuditEventSearchVO;
-import egovframework.com.common.error.ErrorEventRecordVO;
-import egovframework.com.common.error.ErrorEventSearchVO;
-import egovframework.com.common.logging.AccessEventRecordVO;
-import egovframework.com.common.logging.AccessEventSearchVO;
+import egovframework.com.common.logging.RequestExecutionLogService;
+import egovframework.com.common.logging.RequestExecutionLogVO;
 import egovframework.com.feature.member.service.EnterpriseMemberService;
 import egovframework.com.feature.member.service.EmployeeMemberService;
 import egovframework.com.feature.member.model.vo.CompanyListItemVO;
@@ -168,6 +166,7 @@ public class AdminMainController {
     private final ObservabilityQueryService observabilityQueryService;
     private final ObjectMapper objectMapper;
     private final ObjectProvider<ReactAppViewSupport> reactAppViewSupportProvider;
+    private final RequestExecutionLogService requestExecutionLogService;
 
     private AdminHotPathPagePayloadService adminHotPathPagePayloadService() {
         return adminHotPathPagePayloadServiceProvider.getObject();
@@ -1908,6 +1907,34 @@ public class AdminMainController {
         populateLoginHistory(pageIndexParam, searchKeyword, userSe, loginResult, insttId, model, request);
         model.addAttribute("isEn", isEn);
         return ResponseEntity.ok(new LinkedHashMap<>(model));
+    }
+
+    @RequestMapping(value = "/system/error-log", method = { RequestMethod.GET, RequestMethod.POST })
+    public String error_log(
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "insttId", required = false) String insttId,
+            @RequestParam(value = "sourceType", required = false) String sourceType,
+            @RequestParam(value = "errorType", required = false) String errorType,
+            HttpServletRequest request,
+            Locale locale,
+            Model model) {
+        return redirectReactMigration(request, locale, "error-log");
+    }
+
+    @GetMapping("/system/error-log/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> errorLogPageApi(
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "insttId", required = false) String insttId,
+            @RequestParam(value = "sourceType", required = false) String sourceType,
+            @RequestParam(value = "errorType", required = false) String errorType,
+            HttpServletRequest request,
+            Locale locale) {
+        primeCsrfToken(request);
+        boolean isEn = isEnglishRequest(request, locale);
+        return ResponseEntity.ok(buildErrorLogPagePayload(pageIndexParam, searchKeyword, insttId, sourceType, errorType, request, isEn));
     }
 
     void populateMemberList(
@@ -5820,6 +5847,323 @@ public class AdminMainController {
             Model model,
             boolean isEn) {
         adminSystemPageModelAssembler().populateSchedulerPage(jobStatus, executionType, model, isEn);
+    }
+
+    private Map<String, Object> buildErrorLogPagePayload(
+            String pageIndexParam,
+            String searchKeyword,
+            String requestedInsttId,
+            String sourceType,
+            String errorType,
+            HttpServletRequest request,
+            boolean isEn) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        int pageIndex = safeParseInt(pageIndexParam, 1);
+        String currentUserId = extractCurrentUserId(request);
+        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+        boolean masterAccess = ROLE_SYSTEM_MASTER.equalsIgnoreCase(currentUserAuthorCode);
+        boolean systemAccess = ROLE_SYSTEM_ADMIN.equalsIgnoreCase(currentUserAuthorCode);
+        boolean adminAccess = ROLE_ADMIN.equalsIgnoreCase(currentUserAuthorCode);
+        boolean operationAccess = ROLE_OPERATION_ADMIN.equalsIgnoreCase(currentUserAuthorCode);
+        boolean canView = masterAccess || systemAccess || adminAccess || operationAccess;
+
+        payload.put("canViewErrorLog", canView);
+        payload.put("canManageAllCompanies", masterAccess);
+        payload.put("searchKeyword", safeString(searchKeyword));
+        payload.put("selectedSourceType", safeString(sourceType));
+        payload.put("selectedErrorType", safeString(errorType));
+
+        String currentUserInsttId = resolveCurrentUserInsttId(currentUserId);
+        List<Map<String, String>> companyOptions = masterAccess
+                ? loadAccessHistoryCompanyOptions()
+                : buildScopedAccessHistoryCompanyOptions(currentUserInsttId);
+        String selectedInsttId = masterAccess
+                ? resolveSelectedInsttId(requestedInsttId, companyOptions, true)
+                : currentUserInsttId;
+        payload.put("companyOptions", companyOptions);
+        payload.put("selectedInsttId", selectedInsttId);
+
+        if (!masterAccess && currentUserInsttId.isEmpty()) {
+            payload.put("errorLogError", isEn
+                    ? "Your administrator account is missing company information."
+                    : "관리자 계정에 회사 정보가 없습니다.");
+            payload.put("errorLogList", Collections.emptyList());
+            payload.put("totalCount", 0);
+            payload.put("pageIndex", 1);
+            payload.put("pageSize", 10);
+            payload.put("totalPages", 1);
+            payload.put("startPage", 1);
+            payload.put("endPage", 1);
+            payload.put("prevPage", 1);
+            payload.put("nextPage", 1);
+            payload.put("sourceTypeOptions", buildObservabilityOptionList("", "BACKEND_ERROR_CONTROLLER", "PAGE_EXCEPTION_ADVICE", "FRONTEND_REPORT", "FRONTEND_TELEMETRY"));
+            payload.put("errorTypeOptions", buildObservabilityOptionList("", "UI_ERROR", "ERROR_DISPATCH", "PAGE_EXCEPTION"));
+            payload.put("isEn", isEn);
+            return payload;
+        }
+
+        if (!canView) {
+            payload.put("errorLogError", isEn
+                    ? "Only master administrators, system administrators, administrators, and operations administrators can view error logs."
+                    : "에러 로그는 마스터 관리자, 시스템 관리자, 관리자, 운영 관리자만 조회할 수 있습니다.");
+            payload.put("errorLogList", Collections.emptyList());
+            payload.put("totalCount", 0);
+            payload.put("pageIndex", 1);
+            payload.put("pageSize", 10);
+            payload.put("totalPages", 1);
+            payload.put("startPage", 1);
+            payload.put("endPage", 1);
+            payload.put("prevPage", 1);
+            payload.put("nextPage", 1);
+            payload.put("sourceTypeOptions", buildObservabilityOptionList("", "BACKEND_ERROR_CONTROLLER", "PAGE_EXCEPTION_ADVICE", "FRONTEND_REPORT", "FRONTEND_TELEMETRY"));
+            payload.put("errorTypeOptions", buildObservabilityOptionList("", "UI_ERROR", "ERROR_DISPATCH", "PAGE_EXCEPTION"));
+            payload.put("isEn", isEn);
+            return payload;
+        }
+
+        String forcedInsttId = masterAccess ? selectedInsttId : currentUserInsttId;
+        int pageSize = 10;
+        int totalCount = 0;
+        int totalPages = 1;
+        int currentPage = 1;
+        List<Map<String, Object>> rows = new ArrayList<>();
+        String errorMessage = "";
+        try {
+            List<RequestExecutionLogVO> filtered = new ArrayList<>();
+            String normalizedKeyword = safeString(searchKeyword).toLowerCase(Locale.ROOT);
+            String normalizedSourceType = safeString(sourceType).toUpperCase(Locale.ROOT);
+            String normalizedErrorType = safeString(errorType).toUpperCase(Locale.ROOT);
+            for (RequestExecutionLogVO item : requestExecutionLogService.readRecent(5000)) {
+                if (!isErrorLogCandidate(item)) {
+                    continue;
+                }
+                String scopedInsttId = firstNonBlank(
+                        safeString(item.getCompanyContextId()),
+                        safeString(item.getTargetCompanyContextId()),
+                        safeString(item.getActorInsttId())
+                );
+                if (!forcedInsttId.isEmpty() && !forcedInsttId.equals(scopedInsttId)) {
+                    continue;
+                }
+                String rowSourceType = resolveErrorSourceType(item);
+                String rowErrorType = resolveErrorType(item);
+                if (!normalizedSourceType.isEmpty() && !normalizedSourceType.equalsIgnoreCase(rowSourceType)) {
+                    continue;
+                }
+                if (!normalizedErrorType.isEmpty() && !normalizedErrorType.equalsIgnoreCase(rowErrorType)) {
+                    continue;
+                }
+                if (!matchesErrorLogKeyword(item, normalizedKeyword, resolveCompanyNameByInsttId(scopedInsttId))) {
+                    continue;
+                }
+                filtered.add(item);
+            }
+            totalCount = filtered.size();
+            totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
+            currentPage = Math.max(1, Math.min(pageIndex, totalPages));
+            int fromIndex = Math.max(0, (currentPage - 1) * pageSize);
+            int toIndex = Math.min(totalCount, fromIndex + pageSize);
+            for (RequestExecutionLogVO item : filtered.subList(fromIndex, toIndex)) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                String scopedInsttId = firstNonBlank(
+                        safeString(item.getActorInsttId()),
+                        safeString(item.getCompanyContextId()),
+                        safeString(item.getTargetCompanyContextId())
+                );
+                row.put("createdAt", safeString(item.getExecutedAt()));
+                row.put("insttId", scopedInsttId);
+                row.put("companyName", scopedInsttId.isEmpty() ? "-" : resolveCompanyNameByInsttId(scopedInsttId));
+                row.put("sourceType", resolveErrorSourceType(item));
+                row.put("errorType", resolveErrorType(item));
+                row.put("actorId", safeString(item.getActorUserId()));
+                row.put("actorRole", safeString(item.getActorAuthorCode()));
+                row.put("requestUri", safeString(item.getRequestUri()));
+                row.put("remoteAddr", safeString(item.getRemoteAddr()));
+                row.put("message", safeString(item.getErrorMessage()));
+                row.put("resultStatus", String.valueOf(item.getResponseStatus()));
+                rows.add(row);
+            }
+        } catch (Exception e) {
+            log.error("Failed to load error log page.", e);
+            errorMessage = isEn
+                    ? "An error occurred while retrieving error logs."
+                    : "에러 로그 조회 중 오류가 발생했습니다.";
+        }
+
+        int startPage = Math.max(1, currentPage - 4);
+        int endPage = Math.min(totalPages, startPage + 9);
+        if (endPage - startPage < 9) {
+            startPage = Math.max(1, endPage - 9);
+        }
+        payload.put("errorLogError", errorMessage);
+        payload.put("errorLogList", rows);
+        payload.put("totalCount", totalCount);
+        payload.put("pageIndex", currentPage);
+        payload.put("pageSize", pageSize);
+        payload.put("totalPages", totalPages);
+        payload.put("startPage", startPage);
+        payload.put("endPage", endPage);
+        payload.put("prevPage", Math.max(1, currentPage - 1));
+        payload.put("nextPage", Math.min(totalPages, currentPage + 1));
+        payload.put("sourceTypeOptions", buildObservabilityOptionList("", "BACKEND_ERROR_CONTROLLER", "PAGE_EXCEPTION_ADVICE", "FRONTEND_REPORT", "FRONTEND_TELEMETRY"));
+        payload.put("errorTypeOptions", buildObservabilityOptionList("", "UI_ERROR", "ERROR_DISPATCH", "PAGE_EXCEPTION"));
+        payload.put("isEn", isEn);
+        return payload;
+    }
+
+    private boolean isErrorLogCandidate(RequestExecutionLogVO item) {
+        if (item == null) {
+            return false;
+        }
+        String status = String.valueOf(item.getResponseStatus());
+        return status.startsWith("4")
+                || status.startsWith("5")
+                || !safeString(item.getErrorMessage()).isEmpty();
+    }
+
+    private String resolveErrorSourceType(RequestExecutionLogVO item) {
+        String requestUri = safeString(item == null ? null : item.getRequestUri()).toLowerCase(Locale.ROOT);
+        if (requestUri.contains("/api/")) {
+            return "BACKEND_ERROR_CONTROLLER";
+        }
+        if (requestUri.contains("/admin/") || requestUri.contains("/signin/") || requestUri.contains("/join/")) {
+            return "PAGE_EXCEPTION_ADVICE";
+        }
+        return "FRONTEND_REPORT";
+    }
+
+    private String resolveErrorType(RequestExecutionLogVO item) {
+        int status = 0;
+        try {
+            status = Integer.parseInt(String.valueOf(item == null ? 0 : item.getResponseStatus()));
+        } catch (NumberFormatException ignored) {
+        }
+        if (status >= 500) {
+            return "ERROR_DISPATCH";
+        }
+        if (status >= 400) {
+            return "PAGE_EXCEPTION";
+        }
+        return "UI_ERROR";
+    }
+
+    private boolean matchesErrorLogKeyword(RequestExecutionLogVO item, String keyword, String companyName) {
+        if (keyword.isEmpty()) {
+            return true;
+        }
+        return safeString(item.getErrorMessage()).toLowerCase(Locale.ROOT).contains(keyword)
+                || safeString(item.getActorUserId()).toLowerCase(Locale.ROOT).contains(keyword)
+                || safeString(item.getRequestUri()).toLowerCase(Locale.ROOT).contains(keyword)
+                || safeString(item.getRemoteAddr()).toLowerCase(Locale.ROOT).contains(keyword)
+                || safeString(companyName).toLowerCase(Locale.ROOT).contains(keyword);
+    }
+
+    private int safeParseInt(String value, int fallback) {
+        try {
+            return Integer.parseInt(safeString(value));
+        } catch (NumberFormatException ignored) {
+            return fallback;
+        }
+    }
+
+    private List<Map<String, String>> loadAccessHistoryCompanyOptions() {
+        try {
+            Map<String, Object> searchParams = new LinkedHashMap<>();
+            searchParams.put("keyword", "");
+            searchParams.put("status", "");
+            searchParams.put("offset", 0);
+            searchParams.put("pageSize", 500);
+            List<?> companies = entrprsManageService.searchCompanyListPaged(searchParams);
+            Map<String, String> dedup = new LinkedHashMap<>();
+            for (Object item : companies) {
+                String insttId = "";
+                String cmpnyNm = "";
+                if (item instanceof CompanyListItemVO) {
+                    CompanyListItemVO company = (CompanyListItemVO) item;
+                    insttId = safeString(company.getInsttId());
+                    cmpnyNm = safeString(company.getCmpnyNm());
+                } else if (item instanceof Map) {
+                    Map<?, ?> row = (Map<?, ?>) item;
+                    insttId = stringValue(row.get("insttId"));
+                    if (insttId.isEmpty()) {
+                        insttId = stringValue(row.get("INSTT_ID"));
+                    }
+                    cmpnyNm = stringValue(row.get("cmpnyNm"));
+                    if (cmpnyNm.isEmpty()) {
+                        cmpnyNm = stringValue(row.get("CMPNY_NM"));
+                    }
+                }
+                if (!insttId.isEmpty() && !dedup.containsKey(insttId)) {
+                    dedup.put(insttId, cmpnyNm);
+                }
+            }
+            List<Map<String, String>> options = new ArrayList<>();
+            for (Map.Entry<String, String> entry : dedup.entrySet()) {
+                Map<String, String> option = new LinkedHashMap<>();
+                option.put("insttId", entry.getKey());
+                option.put("cmpnyNm", entry.getValue());
+                options.add(option);
+            }
+            return options;
+        } catch (Exception e) {
+            log.warn("Failed to load access history company options.", e);
+            return Collections.emptyList();
+        }
+    }
+
+    private List<Map<String, String>> buildScopedAccessHistoryCompanyOptions(String insttId) {
+        String normalizedInsttId = safeString(insttId);
+        if (normalizedInsttId.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<Map<String, String>> masterOptions = loadAccessHistoryCompanyOptions();
+        if (masterOptions.isEmpty()) {
+            Map<String, String> fallback = new LinkedHashMap<>();
+            fallback.put("insttId", normalizedInsttId);
+            fallback.put("cmpnyNm", normalizedInsttId);
+            return Collections.singletonList(fallback);
+        }
+        return masterOptions.stream()
+                .filter(option -> normalizedInsttId.equals(option.get("insttId")))
+                .collect(Collectors.toList());
+    }
+
+    private String resolveCompanyNameByInsttId(String insttId) {
+        String normalizedInsttId = safeString(insttId);
+        if (normalizedInsttId.isEmpty()) {
+            return "-";
+        }
+        for (Map<String, String> option : loadAccessHistoryCompanyOptions()) {
+            if (normalizedInsttId.equals(safeString(option.get("insttId")))) {
+                String companyName = safeString(option.get("cmpnyNm"));
+                return companyName.isEmpty() ? normalizedInsttId : companyName;
+            }
+        }
+        return normalizedInsttId;
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return "";
+        }
+        for (String value : values) {
+            String normalized = safeString(value);
+            if (!normalized.isEmpty()) {
+                return normalized;
+            }
+        }
+        return "";
+    }
+
+    private List<Map<String, String>> buildObservabilityOptionList(String... values) {
+        List<Map<String, String>> options = new ArrayList<>();
+        for (String value : values) {
+            Map<String, String> option = new LinkedHashMap<>();
+            option.put("value", safeString(value));
+            option.put("label", safeString(value).isEmpty() ? "전체" : safeString(value));
+            options.add(option);
+        }
+        return options;
     }
 
     private List<Map<String, String>> buildIpWhitelistSummary(boolean isEn) {

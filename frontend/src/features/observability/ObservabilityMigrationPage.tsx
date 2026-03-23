@@ -3,7 +3,8 @@ import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";
 import { verifyRuntimeContextKeys } from "../admin-ui/contextKeyPresets";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
-import { fetchAuditEvents, fetchTraceEvents, AuditEventSearchPayload, TraceEventSearchPayload } from "../../lib/api/client";
+import type { AuditEventSearchPayload, TraceEventSearchPayload } from "../../lib/api/client";
+import { fetchAuditEvents, fetchTraceEvents } from "../../lib/api/observability";
 import { AdminInput, AdminTable, MemberButton, MemberSectionToolbar } from "../member/common";
 
 type ObservabilityTab = "audit" | "trace";

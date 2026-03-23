@@ -90,6 +90,20 @@ export type HomeMenuPlaceholderPagePayload = {
 export type AdminMenuPlaceholderPagePayload = HomeMenuPlaceholderPagePayload;
 
 async function readJsonResponse<T>(response: Response): Promise<T> {
+  if (response.redirected && response.url && typeof window !== "undefined") {
+    try {
+      const redirectedUrl = new URL(response.url, window.location.origin);
+      if (redirectedUrl.pathname === "/admin/login/loginView"
+        || redirectedUrl.pathname === "/en/admin/login/loginView"
+        || redirectedUrl.pathname === "/signin/loginView"
+        || redirectedUrl.pathname === "/en/signin/loginView") {
+        window.location.replace(response.url);
+        throw new Error("Authentication required. Redirecting to login.");
+      }
+    } catch {
+      // Fall through to the normal response parser.
+    }
+  }
   const contentType = response.headers.get("content-type") || "";
   if (contentType.includes("application/json")) {
     return response.json() as Promise<T>;
@@ -2554,9 +2568,9 @@ export async function fetchAccessHistoryPage(params?: { pageIndex?: number; sear
   const response = await fetch(buildLocalizedPath(`/admin/system/access_history/page-data${search.toString() ? `?${search.toString()}` : ""}`, `/en/admin/system/access_history/page-data${search.toString() ? `?${search.toString()}` : ""}`), {
     credentials: "include"
   });
-  const body = await response.json();
+  const body = await readJsonResponse<AccessHistoryPagePayload>(response);
   if (!response.ok) throw new Error(body.accessHistoryError || `Failed to load access history page: ${response.status}`);
-  return body as AccessHistoryPagePayload;
+  return body;
 }
 
 export async function fetchErrorLogPage(params?: { pageIndex?: number; searchKeyword?: string; insttId?: string; sourceType?: string; errorType?: string; }) {
@@ -2569,9 +2583,9 @@ export async function fetchErrorLogPage(params?: { pageIndex?: number; searchKey
   const response = await fetch(buildLocalizedPath(`/admin/system/error-log/page-data${search.toString() ? `?${search.toString()}` : ""}`, `/en/admin/system/error-log/page-data${search.toString() ? `?${search.toString()}` : ""}`), {
     credentials: "include"
   });
-  const body = await response.json();
+  const body = await readJsonResponse<ErrorLogPagePayload>(response);
   if (!response.ok) throw new Error(body.errorLogError || `Failed to load error log page: ${response.status}`);
-  return body as ErrorLogPagePayload;
+  return body;
 }
 
 export async function fetchSecurityHistoryPage(params?: { pageIndex?: number; searchKeyword?: string; userSe?: string; insttId?: string; }) {
