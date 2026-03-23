@@ -141,6 +141,25 @@ public final class ReactPageUrlMapper {
             String mapped = HOME_ROUTE_TO_PATH.get(extractRoute(path));
             return mapped == null || mapped.isEmpty() ? stripQuery(path) : mapped;
         }
+        String querySuffix = extractQuerySuffix(path);
+        String basePath = stripQuery(path);
+
+        String adminRoute = ADMIN_PATH_TO_ROUTE.get(basePath);
+        if (adminRoute != null && !adminRoute.isEmpty()) {
+            String canonical = ADMIN_ROUTE_TO_PATH.get(adminRoute);
+            if (canonical != null && !canonical.isEmpty()) {
+                return querySuffix.isEmpty() ? canonical : canonical + "?" + querySuffix;
+            }
+        }
+
+        String homeRoute = HOME_PATH_TO_ROUTE.get(basePath);
+        if (homeRoute != null && !homeRoute.isEmpty()) {
+            String canonical = HOME_ROUTE_TO_PATH.get(homeRoute);
+            if (canonical != null && !canonical.isEmpty()) {
+                return querySuffix.isEmpty() ? canonical : canonical + "?" + querySuffix;
+            }
+        }
+
         return path;
     }
 
@@ -216,6 +235,14 @@ public final class ReactPageUrlMapper {
     private static String stripQuery(String value) {
         int queryIndex = value.indexOf('?');
         return queryIndex >= 0 ? value.substring(0, queryIndex) : value;
+    }
+
+    private static String extractQuerySuffix(String value) {
+        int queryIndex = value.indexOf('?');
+        if (queryIndex < 0 || queryIndex == value.length() - 1) {
+            return "";
+        }
+        return value.substring(queryIndex + 1);
     }
 
     private static String stripEnglishPrefix(String value) {
