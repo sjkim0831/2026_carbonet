@@ -152,6 +152,7 @@ public class AdminMainController {
     private final AuthGroupManageService authGroupManageService;
     private final AdminLoginHistoryService adminLoginHistoryService;
     private final ObjectProvider<AdminHotPathPagePayloadService> adminHotPathPagePayloadServiceProvider;
+    private final ObjectProvider<AdminApprovalPageModelAssembler> adminApprovalPageModelAssemblerProvider;
     private final ObjectProvider<AdminMemberPageModelAssembler> adminMemberPageModelAssemblerProvider;
     private final AuthService authService;
     private final MenuInfoService menuInfoService;
@@ -170,6 +171,10 @@ public class AdminMainController {
 
     private AdminMemberPageModelAssembler adminMemberPageModelAssembler() {
         return adminMemberPageModelAssemblerProvider.getObject();
+    }
+
+    private AdminApprovalPageModelAssembler adminApprovalPageModelAssembler() {
+        return adminApprovalPageModelAssemblerProvider.getObject();
     }
 
     @RequestMapping(value = { "", "/" }, method = { RequestMethod.GET, RequestMethod.POST })
@@ -2480,134 +2485,16 @@ public class AdminMainController {
             boolean isEn,
             HttpServletRequest request,
             Locale locale) {
-        int pageIndex = 1;
-        if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
-            try {
-                pageIndex = Integer.parseInt(pageIndexParam.trim());
-            } catch (NumberFormatException ignored) {
-                pageIndex = 1;
-            }
-        }
-        int currentPage = Math.max(pageIndex, 1);
-        int pageSize = 10;
-
-        EntrprsManageVO searchVO = new EntrprsManageVO();
-        searchVO.setPageIndex(currentPage);
-        searchVO.setRecordCountPerPage(pageSize);
-
-        String keyword = safeString(searchKeyword);
-        searchVO.setSearchKeyword(keyword);
-        searchVO.setSearchCondition("all");
-
-        String memberType = safeString(membershipType).toUpperCase(Locale.ROOT);
-        if (!memberType.isEmpty()) {
-            String dbTypeCode = normalizeMembershipCode(memberType);
-            if (!dbTypeCode.isEmpty()) {
-                searchVO.setEntrprsSeCode(dbTypeCode);
-            }
-        }
-
-        String status = safeString(sbscrbSttus).toUpperCase(Locale.ROOT);
-        if (status.isEmpty()) {
-            status = "A";
-        }
-        searchVO.setSbscrbSttus(status);
-        String currentUserId = extractCurrentUserId(request);
-        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        if (!hasMemberManagementCompanyOperatorAccess(currentUserId, currentUserAuthorCode)) {
-            model.addAttribute("memberApprovalError",
-                    isEn ? "You do not have permission to view member approvals." : "회원 승인 목록을 조회할 권한이 없습니다.");
-            model.addAttribute("approvalRows", Collections.emptyList());
-            model.addAttribute("memberApprovalTotalCount", 0);
-            model.addAttribute("pageIndex", 1);
-            model.addAttribute("pageSize", pageSize);
-            model.addAttribute("totalPages", 1);
-            model.addAttribute("startPage", 1);
-            model.addAttribute("endPage", 1);
-            model.addAttribute("searchKeyword", keyword);
-            model.addAttribute("membershipType", memberType);
-            model.addAttribute("sbscrbSttus", status);
-            String approvalBasePath = resolveMemberApprovalBasePath(request, locale);
-            model.addAttribute("memberApprovalAction", approvalBasePath);
-            model.addAttribute("memberApprovalListUrl", approvalBasePath);
-            model.addAttribute("memberApprovalResult", safeString(result));
-            model.addAttribute("memberApprovalResultMessage", resolveApprovalResultMessage(result, isEn));
-            model.addAttribute("memberApprovalStatusOptions", buildApprovalStatusOptions(isEn));
-            model.addAttribute("memberTypeOptions", buildMemberTypeOptions(isEn));
-            return;
-        }
-        if (requiresMemberManagementCompanyScope(currentUserId, currentUserAuthorCode)) {
-            searchVO.setInsttId(resolveCurrentUserInsttId(currentUserId));
-        }
-
-        List<EntrprsManageVO> memberList;
-        int totalCount;
-        try {
-            totalCount = entrprsManageService.selectEntrprsMberListTotCnt(searchVO);
-            int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
-            if (currentPage > totalPages) {
-                currentPage = totalPages;
-            }
-            searchVO.setPageIndex(currentPage);
-            searchVO.setFirstIndex((currentPage - 1) * pageSize);
-            memberList = entrprsManageService.selectEntrprsMberList(searchVO);
-        } catch (Exception e) {
-            log.error("Failed to load member approval list.", e);
-            memberList = Collections.emptyList();
-            totalCount = 0;
-            model.addAttribute("memberApprovalError",
-                    isEn ? "An error occurred while retrieving the approval list." : "승인 대기 목록 조회 중 오류가 발생했습니다.");
-        }
-
-        List<Map<String, Object>> approvalRows = new ArrayList<>();
-        for (EntrprsManageVO member : memberList) {
-            Map<String, Object> row = new LinkedHashMap<>();
-            row.put("member", member);
-            row.put("memberId", safeString(member.getEntrprsmberId()));
-            row.put("memberName", safeString(member.getApplcntNm()));
-            row.put("companyName", safeString(member.getCmpnyNm()));
-            row.put("joinDate", safeString(member.getSbscrbDe()));
-            row.put("membershipTypeLabel", isEn
-                    ? resolveMembershipTypeLabelEn(member.getEntrprsSeCode())
-                    : resolveMembershipTypeLabel(member.getEntrprsSeCode()));
-            row.put("statusLabel", isEn
-                    ? resolveStatusLabelEn(member.getEntrprsMberSttus())
-                    : resolveStatusLabel(member.getEntrprsMberSttus()));
-            row.put("statusBadgeClass", resolveStatusBadgeClass(member.getEntrprsMberSttus()));
-            row.put("detailUrl", adminPrefix(request, locale) + "/member/detail?memberId=" + urlEncode(member.getEntrprsmberId()));
-            List<EvidenceFileView> evidenceFiles = loadEvidenceFiles(member);
-            row.put("evidenceFiles", evidenceFiles);
-            row.put("hasEvidenceFiles", !evidenceFiles.isEmpty());
-            approvalRows.add(row);
-        }
-
-        int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
-        if (currentPage > totalPages) {
-            currentPage = totalPages;
-        }
-        int startPage = Math.max(1, currentPage - 4);
-        int endPage = Math.min(totalPages, startPage + 9);
-        if (endPage - startPage < 9) {
-            startPage = Math.max(1, endPage - 9);
-        }
-
-        model.addAttribute("approvalRows", approvalRows);
-        model.addAttribute("memberApprovalTotalCount", totalCount);
-        model.addAttribute("pageIndex", currentPage);
-        model.addAttribute("pageSize", pageSize);
-        model.addAttribute("totalPages", totalPages);
-        model.addAttribute("startPage", startPage);
-        model.addAttribute("endPage", endPage);
-        model.addAttribute("searchKeyword", keyword);
-        model.addAttribute("membershipType", memberType);
-        model.addAttribute("sbscrbSttus", status);
-        String approvalBasePath = resolveMemberApprovalBasePath(request, locale);
-        model.addAttribute("memberApprovalAction", approvalBasePath);
-        model.addAttribute("memberApprovalListUrl", approvalBasePath);
-        model.addAttribute("memberApprovalResult", safeString(result));
-        model.addAttribute("memberApprovalResultMessage", resolveApprovalResultMessage(result, isEn));
-        model.addAttribute("memberApprovalStatusOptions", buildApprovalStatusOptions(isEn));
-        model.addAttribute("memberTypeOptions", buildMemberTypeOptions(isEn));
+        adminApprovalPageModelAssembler().populateMemberApprovalList(
+                pageIndexParam,
+                searchKeyword,
+                membershipType,
+                sbscrbSttus,
+                result,
+                model,
+                isEn,
+                request,
+                locale);
     }
 
     void populateCompanyApprovalList(
@@ -2619,154 +2506,15 @@ public class AdminMainController {
             boolean isEn,
             HttpServletRequest request,
             Locale locale) {
-        int pageIndex = 1;
-        if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
-            try {
-                pageIndex = Integer.parseInt(pageIndexParam.trim());
-            } catch (NumberFormatException ignored) {
-                pageIndex = 1;
-            }
-        }
-        int currentPage = Math.max(pageIndex, 1);
-        int pageSize = 10;
-
-        String keyword = safeString(searchKeyword);
-        String status = safeString(sbscrbSttus).toUpperCase(Locale.ROOT);
-        if (status.isEmpty()) {
-            status = "A";
-        }
-        String currentUserId = extractCurrentUserId(request);
-        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        if (!hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)) {
-            model.addAttribute("memberApprovalError",
-                    isEn ? "Only master administrators can view company approvals." : "회원사 승인 목록은 마스터 관리자만 조회할 수 있습니다.");
-            model.addAttribute("approvalRows", Collections.emptyList());
-            model.addAttribute("memberApprovalTotalCount", 0);
-            model.addAttribute("pageIndex", 1);
-            model.addAttribute("pageSize", pageSize);
-            model.addAttribute("totalPages", 1);
-            model.addAttribute("startPage", 1);
-            model.addAttribute("endPage", 1);
-            model.addAttribute("searchKeyword", keyword);
-            model.addAttribute("sbscrbSttus", status);
-            model.addAttribute("memberApprovalAction", adminPrefix(request, locale) + "/member/company-approve");
-            model.addAttribute("memberApprovalListUrl", adminPrefix(request, locale) + "/member/company-approve");
-            model.addAttribute("memberApprovalResult", safeString(result));
-            model.addAttribute("memberApprovalResultMessage", resolveCompanyApprovalResultMessage(result, isEn));
-            model.addAttribute("memberApprovalStatusOptions", buildApprovalStatusOptions(isEn));
-            return;
-        }
-
-        List<?> companyList;
-        int totalCount;
-        try {
-            Map<String, Object> searchParams = new LinkedHashMap<>();
-            searchParams.put("keyword", keyword);
-            searchParams.put("status", status);
-            totalCount = entrprsManageService.searchCompanyListTotCnt(searchParams);
-            int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
-            if (currentPage > totalPages) {
-                currentPage = totalPages;
-            }
-            int offset = (currentPage - 1) * pageSize;
-            searchParams.put("offset", offset);
-            searchParams.put("pageSize", pageSize);
-            companyList = entrprsManageService.searchCompanyListPaged(searchParams);
-        } catch (Exception e) {
-            log.error("Failed to load company approval list.", e);
-            companyList = Collections.emptyList();
-            totalCount = 0;
-            model.addAttribute("memberApprovalError",
-                    isEn ? "An error occurred while retrieving the company approval list." : "회원사 승인 목록 조회 중 오류가 발생했습니다.");
-        }
-
-        List<Map<String, Object>> approvalRows = new ArrayList<>();
-        for (Object company : companyList) {
-            Map<String, Object> row = new LinkedHashMap<>();
-            String insttId;
-            String companyName;
-            String businessNumber;
-            String representativeName;
-            String membershipTypeCode;
-            String joinStat;
-
-            if (company instanceof CompanyListItemVO) {
-                CompanyListItemVO companyVO = (CompanyListItemVO) company;
-                insttId = safeString(companyVO.getInsttId());
-                companyName = safeString(companyVO.getCmpnyNm());
-                businessNumber = safeString(companyVO.getBizrno());
-                representativeName = safeString(companyVO.getCxfc());
-                membershipTypeCode = safeString(companyVO.getEntrprsSeCode());
-                joinStat = safeString(companyVO.getJoinStat());
-            } else if (company instanceof Map) {
-                Map<?, ?> companyMap = (Map<?, ?>) company;
-                insttId = stringValue(companyMap.get("insttId"));
-                if (insttId.isEmpty()) insttId = stringValue(companyMap.get("INSTT_ID"));
-                companyName = stringValue(companyMap.get("cmpnyNm"));
-                if (companyName.isEmpty()) companyName = stringValue(companyMap.get("CMPNY_NM"));
-                businessNumber = stringValue(companyMap.get("bizrno"));
-                if (businessNumber.isEmpty()) businessNumber = stringValue(companyMap.get("BIZRNO"));
-                representativeName = stringValue(companyMap.get("cxfc"));
-                if (representativeName.isEmpty()) representativeName = stringValue(companyMap.get("CXFC"));
-                membershipTypeCode = stringValue(companyMap.get("entrprsSeCode"));
-                if (membershipTypeCode.isEmpty()) membershipTypeCode = stringValue(companyMap.get("ENTRPRS_SE_CODE"));
-                joinStat = stringValue(companyMap.get("joinStat"));
-                if (joinStat.isEmpty()) joinStat = stringValue(companyMap.get("JOIN_STAT"));
-            } else {
-                continue;
-            }
-            row.put("insttId", insttId);
-            row.put("companyName", companyName);
-            row.put("businessNumber", businessNumber);
-            row.put("representativeName", representativeName);
-            row.put("membershipTypeLabel", isEn
-                    ? resolveMembershipTypeLabelEn(membershipTypeCode)
-                    : resolveMembershipTypeLabel(membershipTypeCode));
-            row.put("statusLabel", isEn
-                    ? resolveInstitutionStatusLabelEn(joinStat)
-                    : resolveInstitutionStatusLabel(joinStat));
-            row.put("statusBadgeClass", resolveInstitutionStatusBadgeClass(joinStat));
-            row.put("detailUrl", adminPrefix(request, locale) + "/member/company_detail?insttId=" + urlEncode(insttId));
-            row.put("editUrl", adminPrefix(request, locale) + "/member/company_account?insttId=" + urlEncode(insttId));
-
-            List<InsttFileVO> fileList = loadInsttFilesByInsttId(insttId);
-            List<Map<String, String>> evidenceFiles = new ArrayList<>();
-            for (InsttFileVO file : fileList) {
-                Map<String, String> fileRow = new LinkedHashMap<>();
-                fileRow.put("fileName", safeString(file.getOrignlFileNm()));
-                fileRow.put("downloadUrl",
-                        adminPrefix(request, locale) + "/member/company-file?fileId=" + urlEncode(file.getFileId()) + "&download=true");
-                evidenceFiles.add(fileRow);
-            }
-            row.put("evidenceFiles", evidenceFiles);
-            row.put("hasEvidenceFiles", !evidenceFiles.isEmpty());
-            approvalRows.add(row);
-        }
-
-        int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
-        if (currentPage > totalPages) {
-            currentPage = totalPages;
-        }
-        int startPage = Math.max(1, currentPage - 4);
-        int endPage = Math.min(totalPages, startPage + 9);
-        if (endPage - startPage < 9) {
-            startPage = Math.max(1, endPage - 9);
-        }
-
-        model.addAttribute("approvalRows", approvalRows);
-        model.addAttribute("memberApprovalTotalCount", totalCount);
-        model.addAttribute("pageIndex", currentPage);
-        model.addAttribute("pageSize", pageSize);
-        model.addAttribute("totalPages", totalPages);
-        model.addAttribute("startPage", startPage);
-        model.addAttribute("endPage", endPage);
-        model.addAttribute("searchKeyword", keyword);
-        model.addAttribute("sbscrbSttus", status);
-        model.addAttribute("memberApprovalAction", adminPrefix(request, locale) + "/member/company-approve");
-        model.addAttribute("memberApprovalListUrl", adminPrefix(request, locale) + "/member/company-approve");
-        model.addAttribute("memberApprovalResult", safeString(result));
-        model.addAttribute("memberApprovalResultMessage", resolveCompanyApprovalResultMessage(result, isEn));
-        model.addAttribute("memberApprovalStatusOptions", buildApprovalStatusOptions(isEn));
+        adminApprovalPageModelAssembler().populateCompanyApprovalList(
+                pageIndexParam,
+                searchKeyword,
+                sbscrbSttus,
+                result,
+                model,
+                isEn,
+                request,
+                locale);
     }
 
     private void processMemberApprovalStatusChange(String memberId, String targetStatus, String rejectReason) throws Exception {
@@ -2828,7 +2576,44 @@ public class AdminMainController {
         redirect.append('&').append(name).append('=').append(urlEncode(normalized));
     }
 
-    private String resolveMemberApprovalBasePath(HttpServletRequest request, Locale locale) {
+    private boolean appendRedirectQuery(StringBuilder redirect, boolean hasQuery, String name, String value) {
+        String normalized = safeString(value);
+        if (normalized.isEmpty()) {
+            return hasQuery;
+        }
+        redirect.append(hasQuery ? '&' : '?')
+                .append(name)
+                .append('=')
+                .append(urlEncode(normalized));
+        return true;
+    }
+
+    private boolean appendRedirectErrorQuery(StringBuilder redirect, boolean hasQuery, String errorMessage) {
+        return appendRedirectQuery(redirect, hasQuery, "errorMessage", errorMessage);
+    }
+
+    private String extractResponseErrorMessage(Map<String, Object> body) {
+        if (body == null || body.isEmpty()) {
+            return "";
+        }
+        Object message = body.get("message");
+        String normalizedMessage = safeString(message == null ? null : message.toString());
+        if (!normalizedMessage.isEmpty()) {
+            return normalizedMessage;
+        }
+        Object errors = body.get("errors");
+        if (errors instanceof Collection<?>) {
+            for (Object error : (Collection<?>) errors) {
+                String value = safeString(error == null ? null : error.toString());
+                if (!value.isEmpty()) {
+                    return value;
+                }
+            }
+        }
+        return "";
+    }
+
+    String resolveMemberApprovalBasePath(HttpServletRequest request, Locale locale) {
         String requestUri = request == null ? "" : safeString(request.getRequestURI());
         if (requestUri.endsWith("/member/company-approve")) {
             return adminPrefix(request, locale) + "/member/company-approve";
@@ -2844,7 +2629,7 @@ public class AdminMainController {
         return isEn ? "egovframework/com/admin/member_approve_en" : "egovframework/com/admin/member_approve";
     }
 
-    private String resolveApprovalResultMessage(String result, boolean isEn) {
+    String resolveApprovalResultMessage(String result, boolean isEn) {
         String normalized = safeString(result);
         if (normalized.isEmpty()) {
             return "";
@@ -2864,7 +2649,7 @@ public class AdminMainController {
         return "";
     }
 
-    private String resolveCompanyApprovalResultMessage(String result, boolean isEn) {
+    String resolveCompanyApprovalResultMessage(String result, boolean isEn) {
         String normalized = safeString(result);
         if (normalized.isEmpty()) {
             return "";
@@ -2884,7 +2669,7 @@ public class AdminMainController {
         return "";
     }
 
-    private List<Map<String, String>> buildApprovalStatusOptions(boolean isEn) {
+    List<Map<String, String>> buildApprovalStatusOptions(boolean isEn) {
         List<Map<String, String>> options = new ArrayList<>();
         options.add(buildOption("A", isEn ? "Pending Approval" : "승인 대기"));
         options.add(buildOption("P", isEn ? "Active" : "활성"));
@@ -6739,7 +6524,7 @@ public class AdminMainController {
         return false;
     }
 
-    private String normalizeMembershipCode(String membershipType) {
+    String normalizeMembershipCode(String membershipType) {
         if ("EMITTER".equals(membershipType)) return "E";
         if ("PERFORMER".equals(membershipType)) return "P";
         if ("CENTER".equals(membershipType)) return "C";
@@ -7549,7 +7334,7 @@ public class AdminMainController {
                 actorId);
     }
 
-    private List<Map<String, String>> buildMemberTypeOptions(boolean isEn) {
+    List<Map<String, String>> buildMemberTypeOptions(boolean isEn) {
         List<CmmnDetailCode> codes = loadCommonCodes("MBTYPE");
         if (codes.isEmpty()) {
             return defaultMemberTypeOptions(isEn);
@@ -7950,7 +7735,7 @@ public class AdminMainController {
         return safeString(value).replaceAll("[^0-9]", "");
     }
 
-    private String stringValue(Object value) {
+    String stringValue(Object value) {
         return value == null ? "" : String.valueOf(value).trim();
     }
 
