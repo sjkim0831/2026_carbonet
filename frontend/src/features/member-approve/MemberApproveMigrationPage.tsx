@@ -9,7 +9,7 @@ import {
   submitMemberApproveAction
 } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
-import { MemberPermissionButton, MEMBER_BUTTON_LABELS } from "../member/common";
+import { MemberPermissionButton, MEMBER_BUTTON_LABELS, PageStatusNotice } from "../member/common";
 import { MemberStateCard, ReviewModalFrame } from "../member/sections";
 import { DEFAULT_MEMBER_APPROVE_FILTERS, MemberApproveFilters, MemberApproveReviewContent, MemberApproveSearchSection, MemberApproveTableSection } from "./memberApproveSections";
 
@@ -127,8 +127,8 @@ export function MemberApproveMigrationPage() {
       loading={pageState.loading && !page && !error}
       loadingLabel="회원 승인 대상을 불러오는 중입니다."
     >
-      {message ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</section> : null}
-      {error ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</section> : null}
+      {message ? <PageStatusNotice tone="success">{message}</PageStatusNotice> : null}
+      {error ? <PageStatusNotice tone="error">{error}</PageStatusNotice> : null}
       {!pageState.loading && !!page && !page?.canViewMemberApprove ? (
         <MemberStateCard description="현재 계정으로는 회원 승인 관리 화면을 조회할 수 없습니다." icon="lock" title="권한이 없습니다." tone="warning" />
       ) : null}
@@ -155,10 +155,10 @@ export function MemberApproveMigrationPage() {
 
         <ReviewModalFrame
           footerLeft={(
-            reviewRow ? <MemberPermissionButton allowed={!!page?.canUseMemberApproveAction} className="flex-1 sm:min-w-[100px] sm:flex-none" onClick={() => handleAction("reject", String(reviewRow.memberId || ""))} reason="권한 있는 관리자만 반려할 수 있습니다." size="lg" type="button" variant="dangerSecondary">{MEMBER_BUTTON_LABELS.reject}</MemberPermissionButton> : null
+            reviewRow ? <MemberPermissionButton allowed={!!page?.canUseMemberApproveAction} className="flex-1 sm:min-w-[160px] sm:flex-none justify-center whitespace-nowrap" onClick={() => handleAction("reject", String(reviewRow.memberId || ""))} reason="권한 있는 관리자만 반려할 수 있습니다." size="lg" type="button" variant="dangerSecondary">{MEMBER_BUTTON_LABELS.reject}</MemberPermissionButton> : null
           )}
           footerRight={(
-            reviewRow ? <MemberPermissionButton allowed={!!page?.canUseMemberApproveAction} className="flex-1 sm:flex-none" onClick={() => handleAction("approve", String(reviewRow.memberId || ""))} reason="권한 있는 관리자만 승인할 수 있습니다." size="lg" type="button" variant="primary">{MEMBER_BUTTON_LABELS.approveDone}</MemberPermissionButton> : null
+            reviewRow ? <MemberPermissionButton allowed={!!page?.canUseMemberApproveAction} className="flex-1 sm:min-w-[160px] sm:flex-none justify-center whitespace-nowrap" onClick={() => handleAction("approve", String(reviewRow.memberId || ""))} reason="권한 있는 관리자만 승인할 수 있습니다." size="lg" type="button" variant="primary">{MEMBER_BUTTON_LABELS.approveDone}</MemberPermissionButton> : null
           )}
           onClose={() => {
             setReviewMemberId("");

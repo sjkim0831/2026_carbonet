@@ -22,7 +22,8 @@ import {
   MemberButton,
   MemberIconButton,
   MemberModalFooter,
-  MemberPermissionButton
+  MemberPermissionButton,
+  PageStatusNotice
 } from "../admin-ui/common";
 import { AdminEditPageFrame } from "../admin-ui/pageFrames";
 import { MemberStateCard } from "../member/sections";
@@ -224,7 +225,7 @@ export function AdminAccountCreateMigrationPage() {
       subtitle="관리자 계정 정보와 권한, 소속 정보를 입력합니다."
       title="관리자 사용자 추가"
     >
-      {error ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</section> : null}
+      {error ? <PageStatusNotice tone="error">{error}</PageStatusNotice> : null}
       {!!page && !page?.canViewAdminAccountCreate ? (
         <MemberStateCard description="현재 계정으로는 관리자 생성 화면을 조회할 수 없습니다." icon="lock" title="권한이 없습니다." tone="warning" />
       ) : null}

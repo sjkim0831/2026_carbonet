@@ -22,7 +22,6 @@ public class AdminCodeCommandDTO {
     private String searchKeyword;
     private String searchUrl;
     private String useAt;
-    private String expsrAt;
     private String registerId;
     private String updaterId;
     private Integer sortOrdr;

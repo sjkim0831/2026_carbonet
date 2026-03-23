@@ -10,7 +10,6 @@ import egovframework.com.feature.admin.model.vo.UserAuthorityTargetVO;
 import egovframework.com.feature.admin.model.vo.UserFeatureOverrideVO;
 
 import java.util.List;
-import java.util.Map;
 
 public interface AuthGroupManageService {
 
@@ -21,8 +20,6 @@ public interface AuthGroupManageService {
     List<FeatureAssignmentStatVO> selectFeatureAssignmentStats() throws Exception;
 
     List<String> selectAuthorFeatureCodes(String authorCode) throws Exception;
-
-    List<Map<String, String>> selectActiveMenuViewFeatureRows() throws Exception;
 
     int countAuthorCode(String authorCode) throws Exception;
 

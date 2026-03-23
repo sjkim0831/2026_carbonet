@@ -68,8 +68,8 @@
       "_platformStudio-CSxTyLQN.js"
     ]
   },
-  "_screenBuilderGovernance-fmNCEWyy.js": {
-    "file": "assets/screenBuilderGovernance-fmNCEWyy.js",
+  "_screenBuilderGovernance-ClZdae1Z.js": {
+    "file": "assets/screenBuilderGovernance-ClZdae1Z.js",
     "name": "screenBuilderGovernance",
     "isDynamicEntry": true,
     "imports": [
@@ -144,14 +144,14 @@
     "name": "vendor-react"
   },
   "index.html": {
-    "file": "assets/index-wyGki3at.js",
+    "file": "assets/index-Bo1-GJmm.js",
     "name": "index",
     "src": "index.html",
     "isEntry": true,
     "imports": [
       "_vendor-react-DqRFKgSg.js",
       "_platformStudio-CSxTyLQN.js",
-      "_screenBuilderGovernance-fmNCEWyy.js",
+      "_screenBuilderGovernance-ClZdae1Z.js",
       "_screenBuilderApi-BeEhN_j6.js",
       "_screenBuilderWorkspace-7hyBbOH1.js",
       "_screenBuilderCatalogPreview-C2YOCQYx.js"
@@ -263,7 +263,7 @@
       "src/features/home-placeholder/HomeMenuPlaceholderPage.tsx"
     ],
     "css": [
-      "assets/index-DXWMW7LR.css"
+      "assets/index-CcU3q4nZ.css"
     ]
   },
   "src/features/access-history/AccessHistoryMigrationPage.tsx": {
@@ -278,7 +278,7 @@
     ]
   },
   "src/features/admin-account-create/AdminAccountCreateMigrationPage.tsx": {
-    "file": "assets/AdminAccountCreateMigrationPage-Cp-DW8X6.js",
+    "file": "assets/AdminAccountCreateMigrationPage-C3D_sgnL.js",
     "name": "AdminAccountCreateMigrationPage",
     "src": "src/features/admin-account-create/AdminAccountCreateMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -410,7 +410,7 @@
     ]
   },
   "src/features/company-approve/CompanyApproveMigrationPage.tsx": {
-    "file": "assets/CompanyApproveMigrationPage-DtKMQb6C.js",
+    "file": "assets/CompanyApproveMigrationPage-BkaRkHU2.js",
     "name": "CompanyApproveMigrationPage",
     "src": "src/features/company-approve/CompanyApproveMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -650,7 +650,7 @@
     ]
   },
   "src/features/member-approve/MemberApproveMigrationPage.tsx": {
-    "file": "assets/MemberApproveMigrationPage-VS4E7gXU.js",
+    "file": "assets/MemberApproveMigrationPage-D5QCpus5.js",
     "name": "MemberApproveMigrationPage",
     "src": "src/features/member-approve/MemberApproveMigrationPage.tsx",
     "isDynamicEntry": true,
@@ -730,14 +730,14 @@
     ]
   },
   "src/features/menu-management/FullStackManagementMigrationPage.tsx": {
-    "file": "assets/FullStackManagementMigrationPage-X4jWFdE4.js",
+    "file": "assets/FullStackManagementMigrationPage-CSsZjNiI.js",
     "name": "FullStackManagementMigrationPage",
     "src": "src/features/menu-management/FullStackManagementMigrationPage.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_vendor-react-DqRFKgSg.js",
       "_platformStudio-CSxTyLQN.js",
-      "_screenBuilderGovernance-fmNCEWyy.js",
+      "_screenBuilderGovernance-ClZdae1Z.js",
       "_environmentManagement-DKKWgFNW.js",
       "_screenBuilderApi-BeEhN_j6.js",
       "_screenBuilderWorkspace-7hyBbOH1.js",
@@ -824,12 +824,12 @@
     ]
   },
   "src/features/screen-builder/ScreenBuilderMigrationPage.tsx": {
-    "file": "assets/ScreenBuilderMigrationPage-BtnqUJOM.js",
+    "file": "assets/ScreenBuilderMigrationPage-Bpkl7RJV.js",
     "name": "ScreenBuilderMigrationPage",
     "src": "src/features/screen-builder/ScreenBuilderMigrationPage.tsx",
     "isDynamicEntry": true,
     "imports": [
-      "_screenBuilderGovernance-fmNCEWyy.js",
+      "_screenBuilderGovernance-ClZdae1Z.js",
       "_vendor-react-DqRFKgSg.js",
       "_platformStudio-CSxTyLQN.js",
       "_screenBuilderApi-BeEhN_j6.js",
@@ -839,7 +839,7 @@
       "_screenBuilderCatalogPreview-C2YOCQYx.js"
     ],
     "dynamicImports": [
-      "_screenBuilderGovernance-fmNCEWyy.js",
+      "_screenBuilderGovernance-ClZdae1Z.js",
       "_screenBuilderEditor-BvmCFKOV.js",
       "_screenBuilderWorkspace-7hyBbOH1.js"
     ]
@@ -859,7 +859,7 @@
     ]
   },
   "src/features/screen-builder/catalog/buttonCatalogCore.ts": {
-    "file": "assets/screenBuilderCatalogSource-C5A8_XZD.js",
+    "file": "assets/screenBuilderCatalogSource-DABHEcjB.js",
     "name": "screenBuilderCatalogSource",
     "src": "src/features/screen-builder/catalog/buttonCatalogCore.ts",
     "isDynamicEntry": true

@@ -60,7 +60,6 @@ import egovframework.com.common.logging.RequestExecutionLogVO;
 import egovframework.com.common.service.ObservabilityQueryService;
 import egovframework.com.common.util.FeatureCodeBitmap;
 import egovframework.com.common.util.ReactPageUrlMapper;
-import egovframework.com.framework.authority.service.FrameworkAuthorityPolicyService;
 import egovframework.com.feature.home.web.ReactAppViewSupport;
 import io.jsonwebtoken.Claims;
 import egovframework.com.common.service.CmmnDetailCode;
@@ -132,6 +131,10 @@ import java.util.stream.Collectors;
 public class AdminMainController {
 
     private static final String AUTH_GROUP_GENERAL_VIEW_FEATURE_CODE = "AUTH_GROUP_GENERAL_VIEW";
+    private static final String ROLE_SYSTEM_MASTER = "ROLE_SYSTEM_MASTER";
+    private static final String ROLE_SYSTEM_ADMIN = "ROLE_SYSTEM_ADMIN";
+    private static final String ROLE_ADMIN = "ROLE_ADMIN";
+    private static final String ROLE_OPERATION_ADMIN = "ROLE_OPERATION_ADMIN";
 
     private static final Logger log = LoggerFactory.getLogger(AdminMainController.class);
 
@@ -158,7 +161,6 @@ public class AdminMainController {
     private final AdminSummaryService adminSummaryService;
     private final AuthorRoleProfileService authorRoleProfileService;
     private final AdminAuthorityPagePayloadSupport adminAuthorityPagePayloadSupport;
-    private final FrameworkAuthorityPolicyService frameworkAuthorityPolicyService;
     private final AuditTrailService auditTrailService;
     private final RequestExecutionLogService requestExecutionLogService;
     private final ObservabilityQueryService observabilityQueryService;
@@ -1391,7 +1393,7 @@ public class AdminMainController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
-        return redirectReactMigration(request, locale, "member-withdrawn");
+        return redirectReactMigration(request, locale, "member-list");
     }
 
     @RequestMapping(value = "/member/activate", method = { RequestMethod.GET, RequestMethod.POST })
@@ -1403,7 +1405,7 @@ public class AdminMainController {
             HttpServletRequest request,
             Locale locale,
             Model model) {
-        return redirectReactMigration(request, locale, "member-activate");
+        return redirectReactMigration(request, locale, "member-list");
     }
 
     @GetMapping("/api/admin/member/list/page")
@@ -2352,8 +2354,9 @@ public class AdminMainController {
 
         String currentUserId = extractCurrentUserId(request);
         String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        boolean masterAccess = frameworkAuthorityPolicyService.isSystemMaster(currentUserAuthorCode);
-        boolean canView = adminAuthorityPagePayloadSupport.canViewAdminAccessHistory(currentUserAuthorCode);
+        boolean masterAccess = ROLE_SYSTEM_MASTER.equalsIgnoreCase(currentUserAuthorCode);
+        boolean systemAccess = ROLE_SYSTEM_ADMIN.equalsIgnoreCase(currentUserAuthorCode);
+        boolean canView = masterAccess || systemAccess;
         payload.put("canViewAccessHistory", canView);
         payload.put("canManageAllCompanies", masterAccess);
         payload.put("searchKeyword", safeString(searchKeyword));
@@ -2552,8 +2555,9 @@ public class AdminMainController {
         }
         String currentUserId = extractCurrentUserId(request);
         String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        boolean masterAccess = frameworkAuthorityPolicyService.isSystemMaster(currentUserAuthorCode);
-        boolean canView = adminAuthorityPagePayloadSupport.canViewErrorLog(currentUserAuthorCode);
+        boolean masterAccess = ROLE_SYSTEM_MASTER.equalsIgnoreCase(currentUserAuthorCode);
+        boolean systemAccess = ROLE_SYSTEM_ADMIN.equalsIgnoreCase(currentUserAuthorCode);
+        boolean canView = masterAccess || systemAccess;
         payload.put("canViewErrorLog", canView);
         payload.put("canManageAllCompanies", masterAccess);
         payload.put("searchKeyword", safeString(searchKeyword));
@@ -3131,12 +3135,11 @@ public class AdminMainController {
                     : "관리자 ID와 권한 그룹을 확인해 주세요.");
             return ResponseEntity.badRequest().body(response);
         }
-        if (frameworkAuthorityPolicyService.isWebmaster(normalizedEmplyrId)
-                && !frameworkAuthorityPolicyService.isSystemMaster(normalizedAuthorCode)) {
+        if ("webmaster".equalsIgnoreCase(normalizedEmplyrId) && !"ROLE_SYSTEM_MASTER".equalsIgnoreCase(normalizedAuthorCode)) {
             response.put("success", false);
             response.put("message", isEn
-                    ? "webmaster must keep " + FrameworkAuthorityPolicyService.ROLE_SYSTEM_MASTER + "."
-                    : "webmaster 계정은 " + FrameworkAuthorityPolicyService.ROLE_SYSTEM_MASTER + "만 유지할 수 있습니다.");
+                    ? "webmaster must keep ROLE_SYSTEM_MASTER."
+                    : "webmaster 계정은 ROLE_SYSTEM_MASTER만 유지할 수 있습니다.");
             return ResponseEntity.badRequest().body(response);
         }
         try {
@@ -3218,11 +3221,10 @@ public class AdminMainController {
                     : "관리자 ID와 권한 그룹을 확인해 주세요.");
             return auth_change(null, null, null, request, locale, model);
         }
-        if (frameworkAuthorityPolicyService.isWebmaster(normalizedEmplyrId)
-                && !frameworkAuthorityPolicyService.isSystemMaster(normalizedAuthorCode)) {
+        if ("webmaster".equalsIgnoreCase(normalizedEmplyrId) && !"ROLE_SYSTEM_MASTER".equalsIgnoreCase(normalizedAuthorCode)) {
             model.addAttribute("authChangeError", isEn
-                    ? "webmaster must keep " + FrameworkAuthorityPolicyService.ROLE_SYSTEM_MASTER + "."
-                    : "webmaster 계정은 " + FrameworkAuthorityPolicyService.ROLE_SYSTEM_MASTER + "만 유지할 수 있습니다.");
+                    ? "webmaster must keep ROLE_SYSTEM_MASTER."
+                    : "webmaster 계정은 ROLE_SYSTEM_MASTER만 유지할 수 있습니다.");
             return auth_change(null, null, null, request, locale, model);
         }
 
@@ -4642,6 +4644,24 @@ public class AdminMainController {
         return adminAuthorityPagePayloadSupport.buildRecommendedRoleSections(authorGroups, isEn);
     }
 
+    private Map<String, String> recommendedRole(String code, String name, String description, java.util.Set<String> existingCodes) {
+        Map<String, String> row = new java.util.LinkedHashMap<>();
+        row.put("code", code);
+        row.put("name", name);
+        row.put("description", description);
+        row.put("status", existingCodes.contains(code) ? "existing" : "missing");
+        return row;
+    }
+
+    private Map<String, Object> recommendedRoleSection(String category, String title, String description, List<Map<String, String>> roles) {
+        Map<String, Object> row = new java.util.LinkedHashMap<>();
+        row.put("category", category);
+        row.put("title", title);
+        row.put("description", description);
+        row.put("roles", roles);
+        return row;
+    }
+
     List<Map<String, Object>> filterRecommendedRoleSections(List<Map<String, Object>> sections, String selectedRoleCategory) {
         return adminAuthorityPagePayloadSupport.filterRecommendedRoleSections(sections, selectedRoleCategory);
     }
@@ -4702,7 +4722,19 @@ public class AdminMainController {
     }
 
     private boolean matchesRoleCategory(String authorCode, String selectedRoleCategory) {
-        return frameworkAuthorityPolicyService.matchesRoleCategory(authorCode, selectedRoleCategory);
+        String normalizedCode = safeString(authorCode).toUpperCase(Locale.ROOT);
+        if ("DEPARTMENT".equals(selectedRoleCategory)) {
+            return normalizedCode.startsWith("ROLE_DEPT_");
+        }
+        if ("USER".equals(selectedRoleCategory)) {
+            return normalizedCode.startsWith("ROLE_USER_")
+                    || normalizedCode.startsWith("ROLE_MEMBER_")
+                    || normalizedCode.startsWith("ROLE_ACCOUNT_");
+        }
+        return !normalizedCode.startsWith("ROLE_DEPT_")
+                && !normalizedCode.startsWith("ROLE_USER_")
+                && !normalizedCode.startsWith("ROLE_MEMBER_")
+                && !normalizedCode.startsWith("ROLE_ACCOUNT_");
     }
 
     String resolveRoleCategory(String roleCategory) {
@@ -4747,39 +4779,98 @@ public class AdminMainController {
     }
 
     private boolean canAssignDepartmentAuthorCode(String authorCode, String insttId, boolean globalAccess) {
-        return matchesRoleCategory(authorCode, FrameworkAuthorityPolicyService.ROLE_CATEGORY_DEPARTMENT)
-                && (globalAccess || frameworkAuthorityPolicyService.isVisibleScopedAuthorCode(
-                authorCode,
-                FrameworkAuthorityPolicyService.ROLE_CATEGORY_DEPARTMENT,
-                insttId));
+        return matchesRoleCategory(authorCode, "DEPARTMENT")
+                && (globalAccess || isVisibleScopedAuthorCode(authorCode, "DEPARTMENT", insttId));
     }
 
     private boolean canAssignMemberAuthorCode(String authorCode, String insttId, boolean globalAccess) {
         String normalizedCode = safeString(authorCode).toUpperCase(Locale.ROOT);
-        if (FrameworkAuthorityPolicyService.ROLE_USER.equals(normalizedCode)) {
+        if ("ROLE_USER".equals(normalizedCode)) {
             return true;
         }
-        if (matchesRoleCategory(authorCode, FrameworkAuthorityPolicyService.ROLE_CATEGORY_DEPARTMENT)) {
-            return globalAccess || frameworkAuthorityPolicyService.isVisibleScopedAuthorCode(
-                    authorCode,
-                    FrameworkAuthorityPolicyService.ROLE_CATEGORY_DEPARTMENT,
-                    insttId);
+        if (matchesRoleCategory(authorCode, "DEPARTMENT")) {
+            return globalAccess || isVisibleScopedAuthorCode(authorCode, "DEPARTMENT", insttId);
         }
-        if (matchesRoleCategory(authorCode, FrameworkAuthorityPolicyService.ROLE_CATEGORY_USER)) {
-            return globalAccess || frameworkAuthorityPolicyService.isVisibleScopedAuthorCode(
-                    authorCode,
-                    FrameworkAuthorityPolicyService.ROLE_CATEGORY_USER,
-                    insttId);
+        if (matchesRoleCategory(authorCode, "USER")) {
+            return globalAccess || isVisibleScopedAuthorCode(authorCode, "USER", insttId);
         }
         return false;
     }
 
+    private boolean isVisibleScopedAuthorCode(String authorCode, String roleCategory, String insttId) {
+        String normalizedCode = safeString(authorCode).toUpperCase(Locale.ROOT);
+        if (normalizedCode.isEmpty()) {
+            return false;
+        }
+        String scopedPrefix = buildScopedAuthorPrefix(roleCategory, insttId);
+        if (scopedPrefix.isEmpty()) {
+            return !isCompanyScopedAuthorCode(normalizedCode, roleCategory);
+        }
+        return !isCompanyScopedAuthorCode(normalizedCode, roleCategory) || normalizedCode.startsWith(scopedPrefix);
+    }
+
     private boolean isCompanyScopedAuthorCodeForInstt(String authorCode, String roleCategory, String insttId) {
-        return frameworkAuthorityPolicyService.isCompanyScopedAuthorCodeForInstt(authorCode, roleCategory, insttId);
+        String scopedPrefix = buildScopedAuthorPrefix(roleCategory, insttId);
+        return !scopedPrefix.isEmpty() && safeString(authorCode).toUpperCase(Locale.ROOT).startsWith(scopedPrefix);
+    }
+
+    private boolean isCompanyScopedAuthorCode(String authorCode, String roleCategory) {
+        String normalizedCode = safeString(authorCode).toUpperCase(Locale.ROOT);
+        if ("DEPARTMENT".equals(roleCategory)) {
+            return normalizedCode.startsWith("ROLE_DEPT_I");
+        }
+        if ("USER".equals(roleCategory)) {
+            return normalizedCode.startsWith("ROLE_USER_I");
+        }
+        return false;
     }
 
     private String normalizeScopedAuthorCode(String authorCode, String roleCategory, String insttId, boolean forceScoped) {
-        return frameworkAuthorityPolicyService.normalizeScopedAuthorCode(authorCode, roleCategory, insttId, forceScoped);
+        String normalizedCode = safeString(authorCode).toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9_]", "_");
+        if (!forceScoped || (!"DEPARTMENT".equals(roleCategory) && !"USER".equals(roleCategory))) {
+            return normalizedCode;
+        }
+        String prefix = buildScopedAuthorPrefix(roleCategory, insttId);
+        if (prefix.isEmpty()) {
+            return normalizedCode;
+        }
+        String suffix = normalizedCode;
+        if (suffix.startsWith(prefix)) {
+            return suffix;
+        }
+        suffix = suffix.replaceFirst("^ROLE_[A-Z0-9]+_", "");
+        suffix = suffix.replaceFirst("^COMPANY_[A-Z0-9]+_", "");
+        suffix = suffix.replaceAll("^_+", "");
+        if (suffix.isEmpty()) {
+            suffix = "CUSTOM";
+        }
+        return prefix + suffix;
+    }
+
+    private String buildScopedAuthorPrefix(String roleCategory, String insttId) {
+        String token = normalizeInsttScopeToken(insttId);
+        if (token.isEmpty()) {
+            return "";
+        }
+        if ("DEPARTMENT".equals(roleCategory)) {
+            return "ROLE_DEPT_I" + shortenInsttScopeToken(token) + "_";
+        }
+        if ("USER".equals(roleCategory)) {
+            return "ROLE_USER_I" + shortenInsttScopeToken(token) + "_";
+        }
+        return "";
+    }
+
+    private String normalizeInsttScopeToken(String insttId) {
+        return safeString(insttId).toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]", "");
+    }
+
+    private String shortenInsttScopeToken(String normalizedToken) {
+        String token = safeString(normalizedToken);
+        if (token.length() <= 8) {
+            return token;
+        }
+        return token.substring(token.length() - 8);
     }
 
     String resolveSelectedInsttId(String insttId, List<Map<String, String>> companyOptions) {
@@ -4859,11 +4950,29 @@ public class AdminMainController {
     }
 
     private boolean canCreateOperationAdminAccounts(String currentUserId, String currentUserAuthorCode) {
-        return adminAuthorityPagePayloadSupport.canCreateOperationAdminAccounts(currentUserId, currentUserAuthorCode);
+        if (hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)) {
+            return true;
+        }
+        String normalizedAuthorCode = safeString(currentUserAuthorCode).toUpperCase(Locale.ROOT);
+        return ROLE_SYSTEM_ADMIN.equals(normalizedAuthorCode)
+                || ROLE_ADMIN.equals(normalizedAuthorCode);
     }
 
     boolean canCreateAdminRolePreset(String currentUserId, String currentUserAuthorCode, String rolePreset) {
-        return adminAuthorityPagePayloadSupport.canCreateAdminRolePreset(currentUserId, currentUserAuthorCode, rolePreset);
+        String normalizedRolePreset = safeString(rolePreset).toUpperCase(Locale.ROOT);
+        if (normalizedRolePreset.isEmpty()) {
+            return false;
+        }
+        if ("MASTER".equals(normalizedRolePreset)) {
+            return isWebmaster(currentUserId);
+        }
+        if ("SYSTEM".equals(normalizedRolePreset)) {
+            return hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode);
+        }
+        if ("OPERATION".equals(normalizedRolePreset)) {
+            return canCreateOperationAdminAccounts(currentUserId, currentUserAuthorCode);
+        }
+        return false;
     }
 
     boolean canCurrentAdminAccessAdmin(HttpServletRequest request, EmplyrInfo adminMember) {
@@ -4879,18 +4988,17 @@ public class AdminMainController {
             return false;
         }
         String targetAdminId = safeString(adminMember.getEmplyrId());
+        if ("webmaster".equalsIgnoreCase(targetAdminId)) {
+            return false;
+        }
         String actorInsttId = resolveCurrentUserInsttId(currentUserId);
         String targetInsttId = safeString(adminMember.getInsttId());
+        if (actorInsttId.isEmpty() || !actorInsttId.equals(targetInsttId)) {
+            return false;
+        }
         try {
             String targetAuthorCode = safeString(authGroupManageService.selectAuthorCodeByUserId(targetAdminId)).toUpperCase(Locale.ROOT);
-            return adminAuthorityPagePayloadSupport.canAccessAdminMember(
-                    currentUserId,
-                    currentUserAuthorCode,
-                    actorInsttId,
-                    targetAdminId,
-                    targetInsttId,
-                    targetAuthorCode
-            );
+            return !ROLE_SYSTEM_MASTER.equals(targetAuthorCode);
         } catch (Exception e) {
             log.warn("Failed to resolve target admin author code. emplyrId={}", targetAdminId, e);
             return false;
@@ -4925,7 +5033,7 @@ public class AdminMainController {
                         if (actorInsttId.isEmpty() || !actorInsttId.equals(targetInsttId)) {
                             return false;
                         }
-                        if (frameworkAuthorityPolicyService.isSystemMaster(authorCode)) {
+                        if (ROLE_SYSTEM_MASTER.equals(authorCode)) {
                             return false;
                         }
                     }
@@ -5000,9 +5108,7 @@ public class AdminMainController {
         if ("UNKNOWN".equals(departmentRoleType)) {
             return "ROLE_DEPT_UNKNOWN";
         }
-        String scopedPrefix = frameworkAuthorityPolicyService.buildScopedAuthorPrefix(
-                FrameworkAuthorityPolicyService.ROLE_CATEGORY_DEPARTMENT,
-                insttId);
+        String scopedPrefix = buildScopedAuthorPrefix("DEPARTMENT", insttId);
         if (!scopedPrefix.isEmpty()) {
             return scopedPrefix + departmentRoleType;
         }
@@ -5779,8 +5885,11 @@ public class AdminMainController {
         int pageIndex = safeParseInt(pageIndexParam, 1);
         String currentUserId = extractCurrentUserId(request);
         String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        boolean masterAccess = frameworkAuthorityPolicyService.isSystemMaster(currentUserAuthorCode);
-        boolean canView = adminAuthorityPagePayloadSupport.canViewErrorLog(currentUserAuthorCode);
+        boolean masterAccess = ROLE_SYSTEM_MASTER.equalsIgnoreCase(currentUserAuthorCode);
+        boolean systemAccess = ROLE_SYSTEM_ADMIN.equalsIgnoreCase(currentUserAuthorCode);
+        boolean adminAccess = ROLE_ADMIN.equalsIgnoreCase(currentUserAuthorCode);
+        boolean operationAccess = ROLE_OPERATION_ADMIN.equalsIgnoreCase(currentUserAuthorCode);
+        boolean canView = masterAccess || systemAccess || adminAccess || operationAccess;
 
         payload.put("canViewErrorLog", canView);
         payload.put("canManageAllCompanies", masterAccess);
@@ -6542,7 +6651,12 @@ public class AdminMainController {
     }
 
     Map<String, String> defaultAdminPresetAuthorCodes() {
-        return adminAuthorityPagePayloadSupport.defaultAdminPresetAuthorCodes();
+        Map<String, String> presetAuthorCodes = new LinkedHashMap<>();
+        presetAuthorCodes.put("MASTER", ROLE_SYSTEM_MASTER);
+        presetAuthorCodes.put("SYSTEM", ROLE_SYSTEM_ADMIN);
+        presetAuthorCodes.put("OPERATION", ROLE_OPERATION_ADMIN);
+        presetAuthorCodes.put("GENERAL", ROLE_ADMIN);
+        return presetAuthorCodes;
     }
 
     private String resolveAdminPresetAuthorCode(String rolePreset) {

@@ -16,7 +16,5 @@ public interface MenuInfoService {
 
     void saveMenuOrder(String menuCode, int sortOrdr) throws Exception;
 
-    void saveMenuExposure(String menuCode, String expsrAt) throws Exception;
-
     long getMenuTreeVersion();
 }

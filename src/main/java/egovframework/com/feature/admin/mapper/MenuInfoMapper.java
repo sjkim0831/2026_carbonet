@@ -51,11 +51,4 @@ public class MenuInfoMapper extends BaseMapperSupport {
         params.setSortOrdr(sortOrdr);
         update("MenuInfoMapper.updateMenuOrder", params);
     }
-
-    public void updateMenuExposure(String menuCode, String expsrAt) {
-        AdminCodeCommandDTO params = new AdminCodeCommandDTO();
-        params.setCode(menuCode);
-        params.setExpsrAt(expsrAt);
-        update("MenuInfoMapper.updateMenuExposure", params);
-    }
 }

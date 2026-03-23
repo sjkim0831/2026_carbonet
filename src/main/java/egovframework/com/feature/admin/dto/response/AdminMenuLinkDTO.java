@@ -6,7 +6,6 @@ import lombok.Setter;
 @Getter
 @Setter
 public class AdminMenuLinkDTO {
-    private String code;
     private String text;
     private String tEn;
     private String u;

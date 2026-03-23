@@ -6,7 +6,7 @@
 <mapper namespace="MenuInfoMapper">
 
     <select id="selectMenuUrlListByPrefix" parameterType="string" resultType="egovframework.com.feature.admin.dto.response.MenuInfoDTO">
-        SELECT MENU_CODE, MENU_URL, COALESCE(EXPSR_AT, 'Y') AS EXPSR_AT
+        SELECT MENU_CODE, MENU_URL
         FROM COMTNMENUINFO
         WHERE MENU_CODE LIKE #{_parameter} || '%'
     </select>
@@ -19,7 +19,6 @@
             D.USE_AT,
             M.MENU_URL,
             M.MENU_ICON,
-            COALESCE(M.EXPSR_AT, 'Y') AS EXPSR_AT,
             O.SORT_ORDR
         FROM COMTCCMMNDETAILCODE D
         LEFT JOIN COMTNMENUINFO M ON D.CODE = M.MENU_CODE
@@ -42,7 +41,6 @@
             M.MENU_CODE,
             M.MENU_URL,
             M.MENU_ICON,
-            COALESCE(M.EXPSR_AT, 'Y') AS EXPSR_AT,
             O.SORT_ORDR
         FROM COMTCCMMNDETAILCODE D
         LEFT JOIN COMTNMENUINFO M ON D.CODE = M.MENU_CODE
@@ -60,8 +58,7 @@
             D.USE_AT,
             M.MENU_CODE,
             M.MENU_URL,
-            M.MENU_ICON,
-            COALESCE(M.EXPSR_AT, 'Y') AS EXPSR_AT
+            M.MENU_ICON
         FROM COMTNMENUINFO M
         LEFT JOIN COMTCCMMNDETAILCODE D ON D.CODE = M.MENU_CODE
         WHERE COALESCE(D.USE_AT, 'Y') = 'Y'
@@ -143,13 +140,6 @@
     <update id="updateMenuOrder" parameterType="egovframework.com.feature.admin.dto.request.AdminCodeCommandDTO">
         UPDATE COMTNMENUORDER
         SET SORT_ORDR = #{sortOrdr},
-            LAST_UPDT_PNTTM = CURRENT_DATETIME
-        WHERE MENU_CODE = #{code}
-    </update>
-
-    <update id="updateMenuExposure" parameterType="egovframework.com.feature.admin.dto.request.AdminCodeCommandDTO">
-        UPDATE COMTNMENUINFO
-        SET EXPSR_AT = #{expsrAt},
             LAST_UPDT_PNTTM = CURRENT_DATETIME
         WHERE MENU_CODE = #{code}
     </update>

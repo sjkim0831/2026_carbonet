@@ -14871,81 +14871,16 @@
     ]
   },
   {
-    "key": "button:MemberPermissionButton:primary:lg:flex-1 sm:flex-none::",
-    "styleGroupId": "BTN-memberpermissionbutton-primary-lg-flex-1-sm-flex",
-    "componentType": "button",
-    "componentName": "MemberPermissionButton",
-    "variant": "primary",
-    "size": "lg",
-    "className": "flex-1 sm:flex-none",
-    "icon": "",
-    "placeholder": "",
-    "summary": "primary / lg / flex-1 sm:flex-none",
-    "routeCount": 2,
-    "instanceCount": 2,
-    "labels": [],
-    "routes": [
-      {
-        "routeId": "member-approve",
-        "label": "회원 승인",
-        "koPath": "/admin/member/approve",
-        "enPath": "/en/admin/member/approve"
-      },
-      {
-        "routeId": "company-approve",
-        "label": "회원사 승인",
-        "koPath": "/admin/member/company-approve",
-        "enPath": "/en/admin/member/company-approve"
-      }
-    ],
-    "instances": [
-      {
-        "route": {
-          "routeId": "company-approve",
-          "label": "회원사 승인",
-          "koPath": "/admin/member/company-approve",
-          "enPath": "/en/admin/member/company-approve"
-        },
-        "componentType": "button",
-        "componentName": "MemberPermissionButton",
-        "variant": "primary",
-        "size": "lg",
-        "className": "flex-1 sm:flex-none",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "primary / lg / flex-1 sm:flex-none"
-      },
-      {
-        "route": {
-          "routeId": "member-approve",
-          "label": "회원 승인",
-          "koPath": "/admin/member/approve",
-          "enPath": "/en/admin/member/approve"
-        },
-        "componentType": "button",
-        "componentName": "MemberPermissionButton",
-        "variant": "primary",
-        "size": "lg",
-        "className": "flex-1 sm:flex-none",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "primary / lg / flex-1 sm:flex-none"
-      }
-    ]
-  },
-  {
-    "key": "button:MemberPermissionButton:dangerSecondary:lg:flex-1 sm:min-w-[100px] sm:flex-none::",
+    "key": "button:MemberPermissionButton:dangerSecondary:lg:flex-1 sm:min-w-[160px] sm:flex-none justify-center whitespace-nowrap::",
     "styleGroupId": "BTN-memberpermissionbutton-dangersecondary-lg-flex-1",
     "componentType": "button",
     "componentName": "MemberPermissionButton",
     "variant": "dangerSecondary",
     "size": "lg",
-    "className": "flex-1 sm:min-w-[100px] sm:flex-none",
+    "className": "flex-1 sm:min-w-[160px] sm:flex-none justify-center whitespace-nowrap",
     "icon": "",
     "placeholder": "",
-    "summary": "dangerSecondary / lg / flex-1 sm:min-w-[100px] sm:flex-none",
+    "summary": "dangerSecondary / lg / flex-1 sm:min-w-[160px] sm:flex-none justify-center whitespace-nowrap",
     "routeCount": 2,
     "instanceCount": 2,
     "labels": [],
@@ -14975,11 +14910,11 @@
         "componentName": "MemberPermissionButton",
         "variant": "dangerSecondary",
         "size": "lg",
-        "className": "flex-1 sm:min-w-[100px] sm:flex-none",
+        "className": "flex-1 sm:min-w-[160px] sm:flex-none justify-center whitespace-nowrap",
         "icon": "",
         "label": "",
         "placeholder": "",
-        "summary": "dangerSecondary / lg / flex-1 sm:min-w-[100px] sm:flex-none"
+        "summary": "dangerSecondary / lg / flex-1 sm:min-w-[160px] sm:flex-none justify-center whitespace-nowrap"
       },
       {
         "route": {
@@ -14992,11 +14927,76 @@
         "componentName": "MemberPermissionButton",
         "variant": "dangerSecondary",
         "size": "lg",
-        "className": "flex-1 sm:min-w-[100px] sm:flex-none",
+        "className": "flex-1 sm:min-w-[160px] sm:flex-none justify-center whitespace-nowrap",
         "icon": "",
         "label": "",
         "placeholder": "",
-        "summary": "dangerSecondary / lg / flex-1 sm:min-w-[100px] sm:flex-none"
+        "summary": "dangerSecondary / lg / flex-1 sm:min-w-[160px] sm:flex-none justify-center whitespace-nowrap"
+      }
+    ]
+  },
+  {
+    "key": "button:MemberPermissionButton:primary:lg:flex-1 sm:min-w-[160px] sm:flex-none justify-center whitespace-nowrap::",
+    "styleGroupId": "BTN-memberpermissionbutton-primary-lg-flex-1-sm-min-",
+    "componentType": "button",
+    "componentName": "MemberPermissionButton",
+    "variant": "primary",
+    "size": "lg",
+    "className": "flex-1 sm:min-w-[160px] sm:flex-none justify-center whitespace-nowrap",
+    "icon": "",
+    "placeholder": "",
+    "summary": "primary / lg / flex-1 sm:min-w-[160px] sm:flex-none justify-center whitespace-nowrap",
+    "routeCount": 2,
+    "instanceCount": 2,
+    "labels": [],
+    "routes": [
+      {
+        "routeId": "member-approve",
+        "label": "회원 승인",
+        "koPath": "/admin/member/approve",
+        "enPath": "/en/admin/member/approve"
+      },
+      {
+        "routeId": "company-approve",
+        "label": "회원사 승인",
+        "koPath": "/admin/member/company-approve",
+        "enPath": "/en/admin/member/company-approve"
+      }
+    ],
+    "instances": [
+      {
+        "route": {
+          "routeId": "company-approve",
+          "label": "회원사 승인",
+          "koPath": "/admin/member/company-approve",
+          "enPath": "/en/admin/member/company-approve"
+        },
+        "componentType": "button",
+        "componentName": "MemberPermissionButton",
+        "variant": "primary",
+        "size": "lg",
+        "className": "flex-1 sm:min-w-[160px] sm:flex-none justify-center whitespace-nowrap",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary / lg / flex-1 sm:min-w-[160px] sm:flex-none justify-center whitespace-nowrap"
+      },
+      {
+        "route": {
+          "routeId": "member-approve",
+          "label": "회원 승인",
+          "koPath": "/admin/member/approve",
+          "enPath": "/en/admin/member/approve"
+        },
+        "componentType": "button",
+        "componentName": "MemberPermissionButton",
+        "variant": "primary",
+        "size": "lg",
+        "className": "flex-1 sm:min-w-[160px] sm:flex-none justify-center whitespace-nowrap",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary / lg / flex-1 sm:min-w-[160px] sm:flex-none justify-center whitespace-nowrap"
       }
     ]
   },
@@ -17056,90 +17056,6 @@
     ]
   },
   {
-    "key": "button:MemberPermissionButton:primary:lg:w-full max-w-[320px] shadow-lg shadow-blue-900/10:save:",
-    "styleGroupId": "BTN-memberpermissionbutton-primary-lg-w-full-max-w-3",
-    "componentType": "button",
-    "componentName": "MemberPermissionButton",
-    "variant": "primary",
-    "size": "lg",
-    "className": "w-full max-w-[320px] shadow-lg shadow-blue-900/10",
-    "icon": "save",
-    "placeholder": "",
-    "summary": "primary / lg / w-full max-w-[320px] shadow-lg shadow-blue-900/10 / save",
-    "routeCount": 1,
-    "instanceCount": 1,
-    "labels": [],
-    "routes": [
-      {
-        "routeId": "member-edit",
-        "label": "회원 수정",
-        "koPath": "/admin/member/edit",
-        "enPath": "/en/admin/member/edit"
-      }
-    ],
-    "instances": [
-      {
-        "route": {
-          "routeId": "member-edit",
-          "label": "회원 수정",
-          "koPath": "/admin/member/edit",
-          "enPath": "/en/admin/member/edit"
-        },
-        "componentType": "button",
-        "componentName": "MemberPermissionButton",
-        "variant": "primary",
-        "size": "lg",
-        "className": "w-full max-w-[320px] shadow-lg shadow-blue-900/10",
-        "icon": "save",
-        "label": "",
-        "placeholder": "",
-        "summary": "primary / lg / w-full max-w-[320px] shadow-lg shadow-blue-900/10 / save"
-      }
-    ]
-  },
-  {
-    "key": "button:MemberPermissionButton:primary:lg:w-full max-w-[320px] shadow-lg shadow-blue-900/10::",
-    "styleGroupId": "BTN-memberpermissionbutton-primary-lg-w-full-max-w-3",
-    "componentType": "button",
-    "componentName": "MemberPermissionButton",
-    "variant": "primary",
-    "size": "lg",
-    "className": "w-full max-w-[320px] shadow-lg shadow-blue-900/10",
-    "icon": "",
-    "placeholder": "",
-    "summary": "primary / lg / w-full max-w-[320px] shadow-lg shadow-blue-900/10",
-    "routeCount": 1,
-    "instanceCount": 1,
-    "labels": [],
-    "routes": [
-      {
-        "routeId": "member-register",
-        "label": "회원 등록",
-        "koPath": "/admin/member/register",
-        "enPath": "/en/admin/member/register"
-      }
-    ],
-    "instances": [
-      {
-        "route": {
-          "routeId": "member-register",
-          "label": "회원 등록",
-          "koPath": "/admin/member/register",
-          "enPath": "/en/admin/member/register"
-        },
-        "componentType": "button",
-        "componentName": "MemberPermissionButton",
-        "variant": "primary",
-        "size": "lg",
-        "className": "w-full max-w-[320px] shadow-lg shadow-blue-900/10",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "primary / lg / w-full max-w-[320px] shadow-lg shadow-blue-900/10"
-      }
-    ]
-  },
-  {
     "key": "button:MemberPermissionButton:dangerSecondary:lg:w-full min-w-[160px]::",
     "styleGroupId": "BTN-memberpermissionbutton-dangersecondary-lg-w-full",
     "componentType": "button",
@@ -17304,6 +17220,90 @@
         "label": "",
         "placeholder": "",
         "summary": "primary / lg / w-full sm:w-auto sm:min-w-[220px] justify-center whitespace-nowrap shadow-lg shadow-blue-900/10 / arrow_forward"
+      }
+    ]
+  },
+  {
+    "key": "button:MemberPermissionButton:primary:lg:w-full sm:w-auto sm:min-w-[220px] justify-center whitespace-nowrap shadow-lg shadow-blue-900/10:save:",
+    "styleGroupId": "BTN-memberpermissionbutton-primary-lg-w-full-sm-w-au",
+    "componentType": "button",
+    "componentName": "MemberPermissionButton",
+    "variant": "primary",
+    "size": "lg",
+    "className": "w-full sm:w-auto sm:min-w-[220px] justify-center whitespace-nowrap shadow-lg shadow-blue-900/10",
+    "icon": "save",
+    "placeholder": "",
+    "summary": "primary / lg / w-full sm:w-auto sm:min-w-[220px] justify-center whitespace-nowrap shadow-lg shadow-blue-900/10 / save",
+    "routeCount": 1,
+    "instanceCount": 1,
+    "labels": [],
+    "routes": [
+      {
+        "routeId": "member-edit",
+        "label": "회원 수정",
+        "koPath": "/admin/member/edit",
+        "enPath": "/en/admin/member/edit"
+      }
+    ],
+    "instances": [
+      {
+        "route": {
+          "routeId": "member-edit",
+          "label": "회원 수정",
+          "koPath": "/admin/member/edit",
+          "enPath": "/en/admin/member/edit"
+        },
+        "componentType": "button",
+        "componentName": "MemberPermissionButton",
+        "variant": "primary",
+        "size": "lg",
+        "className": "w-full sm:w-auto sm:min-w-[220px] justify-center whitespace-nowrap shadow-lg shadow-blue-900/10",
+        "icon": "save",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary / lg / w-full sm:w-auto sm:min-w-[220px] justify-center whitespace-nowrap shadow-lg shadow-blue-900/10 / save"
+      }
+    ]
+  },
+  {
+    "key": "button:MemberPermissionButton:primary:lg:w-full sm:w-auto sm:min-w-[220px] justify-center whitespace-nowrap shadow-lg shadow-blue-900/10::",
+    "styleGroupId": "BTN-memberpermissionbutton-primary-lg-w-full-sm-w-au",
+    "componentType": "button",
+    "componentName": "MemberPermissionButton",
+    "variant": "primary",
+    "size": "lg",
+    "className": "w-full sm:w-auto sm:min-w-[220px] justify-center whitespace-nowrap shadow-lg shadow-blue-900/10",
+    "icon": "",
+    "placeholder": "",
+    "summary": "primary / lg / w-full sm:w-auto sm:min-w-[220px] justify-center whitespace-nowrap shadow-lg shadow-blue-900/10",
+    "routeCount": 1,
+    "instanceCount": 1,
+    "labels": [],
+    "routes": [
+      {
+        "routeId": "member-register",
+        "label": "회원 등록",
+        "koPath": "/admin/member/register",
+        "enPath": "/en/admin/member/register"
+      }
+    ],
+    "instances": [
+      {
+        "route": {
+          "routeId": "member-register",
+          "label": "회원 등록",
+          "koPath": "/admin/member/register",
+          "enPath": "/en/admin/member/register"
+        },
+        "componentType": "button",
+        "componentName": "MemberPermissionButton",
+        "variant": "primary",
+        "size": "lg",
+        "className": "w-full sm:w-auto sm:min-w-[220px] justify-center whitespace-nowrap shadow-lg shadow-blue-900/10",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary / lg / w-full sm:w-auto sm:min-w-[220px] justify-center whitespace-nowrap shadow-lg shadow-blue-900/10"
       }
     ]
   },

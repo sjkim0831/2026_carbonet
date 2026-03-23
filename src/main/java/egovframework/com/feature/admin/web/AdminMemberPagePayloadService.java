@@ -264,7 +264,7 @@ public class AdminMemberPagePayloadService {
             log.error("Failed to resolve member-register feature grants. userId={}", controller.safeString(currentUserId), e);
             grantableFeatureCodes = Collections.emptySet();
         }
-        response.put("canViewMemberRegister", true);
+        response.put("canViewMemberRegister", webmaster || hasFeature(grantableFeatureCodes, MEMBER_REGISTER_VIEW_FEATURE_CODE));
         response.put("canUseMemberRegisterIdCheck", webmaster || hasFeature(grantableFeatureCodes, MEMBER_REGISTER_ID_CHECK_FEATURE_CODE));
         response.put("canUseMemberRegisterOrgSearch", webmaster || hasFeature(grantableFeatureCodes, MEMBER_REGISTER_ORG_SEARCH_FEATURE_CODE));
         response.put("canUseMemberRegisterSave", webmaster || hasFeature(grantableFeatureCodes, MEMBER_REGISTER_SAVE_FEATURE_CODE));
