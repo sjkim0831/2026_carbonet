@@ -26,7 +26,9 @@ public final class ReactPageUrlMapper {
         registerAdmin(adminPathToRoute, adminRouteToPath, "member_edit", "/admin/member/edit", "/admin/member/edit");
         registerAdmin(adminPathToRoute, adminRouteToPath, "member_detail", "/admin/member/detail", "/admin/member/detail");
         registerAdmin(adminPathToRoute, adminRouteToPath, "password_reset", "/admin/member/reset_password", "/admin/member/reset_password");
-        registerAdmin(adminPathToRoute, adminRouteToPath, "member_list", "/admin/member/list", "/admin/member/list", "/admin/member/withdrawn", "/admin/member/activate");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "member_list", "/admin/member/list", "/admin/member/list");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "member_withdrawn", "/admin/member/withdrawn", "/admin/member/withdrawn");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "member_activate", "/admin/member/activate", "/admin/member/activate");
         registerAdmin(adminPathToRoute, adminRouteToPath, "admin_list", "/admin/member/admin_list", "/admin/member/admin_list", "/admin/member/admin-list");
         registerAdmin(adminPathToRoute, adminRouteToPath, "company_list", "/admin/member/company_list", "/admin/member/company_list");
         registerAdmin(adminPathToRoute, adminRouteToPath, "company_detail", "/admin/member/company_detail", "/admin/member/company_detail");

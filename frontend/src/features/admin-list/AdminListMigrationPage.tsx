@@ -116,7 +116,7 @@ export function AdminListMigrationPage() {
                 <option value="X">차단</option>
               </AdminSelect>
             </div>
-            <div className="md:col-span-3">
+            <div className="md:col-span-2">
               <label className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2" htmlFor="keyword">검색어</label>
               <div className="flex gap-2">
                 <AdminInput

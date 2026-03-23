@@ -6,6 +6,7 @@ import egovframework.com.feature.admin.service.AuthGroupManageService;
 import egovframework.com.feature.auth.domain.entity.EmplyrInfo;
 import egovframework.com.feature.auth.domain.repository.EmployeeMemberRepository;
 import egovframework.com.feature.auth.util.JwtTokenProvider;
+import egovframework.com.framework.authority.service.FrameworkAuthorityPolicyService;
 import egovframework.com.feature.member.model.vo.EntrprsManageVO;
 import egovframework.com.feature.member.model.vo.EntrprsMberFileVO;
 import egovframework.com.feature.member.service.EnterpriseMemberService;
@@ -28,15 +29,11 @@ import java.util.Locale;
 @RequiredArgsConstructor
 public class AdminMainAuthInterceptor implements HandlerInterceptor {
 
-    private static final String ROLE_SYSTEM_MASTER = "ROLE_SYSTEM_MASTER";
-    private static final String ROLE_SYSTEM_ADMIN = "ROLE_SYSTEM_ADMIN";
-    private static final String ROLE_ADMIN = "ROLE_ADMIN";
-    private static final String ROLE_OPERATION_ADMIN = "ROLE_OPERATION_ADMIN";
-
     private final JwtTokenProvider jwtProvider;
     private final AuthGroupManageService authGroupManageService;
     private final EnterpriseMemberService enterpriseMemberService;
     private final EmployeeMemberRepository employeeMemberRepository;
+    private final FrameworkAuthorityPolicyService frameworkAuthorityPolicyService;
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
@@ -63,7 +60,7 @@ public class AdminMainAuthInterceptor implements HandlerInterceptor {
             deny(response);
             return false;
         }
-        if (ROLE_SYSTEM_MASTER.equalsIgnoreCase(authorCode)) {
+        if (frameworkAuthorityPolicyService.isSystemMaster(authorCode)) {
             markCompanyScope(request, "ALLOW_MASTER", "System master bypassed company scope validation.",
                     resolveTargetInsttId(request, normalizeMenuUrl(requestUri)));
             return true;
@@ -399,7 +396,7 @@ public class AdminMainAuthInterceptor implements HandlerInterceptor {
     private boolean checkMemberManagementScope(HttpServletRequest request, HttpServletResponse response,
                                                String userId, String authorCode, String normalizedUri) throws Exception {
         String targetInsttId = resolveTargetInsttId(request, normalizedUri);
-        if (ROLE_SYSTEM_MASTER.equalsIgnoreCase(safeString(authorCode))) {
+        if (frameworkAuthorityPolicyService.isSystemMaster(authorCode)) {
             markCompanyScope(request, "ALLOW_MEMBER_MASTER", "", targetInsttId);
             return true;
         }
@@ -454,26 +451,22 @@ public class AdminMainAuthInterceptor implements HandlerInterceptor {
     }
 
     private boolean hasGlobalCompanyAccess(String authorCode) {
-        String normalizedAuthorCode = safeString(authorCode).toUpperCase(Locale.ROOT);
-        return ROLE_SYSTEM_MASTER.equals(normalizedAuthorCode)
-                || ROLE_SYSTEM_ADMIN.equals(normalizedAuthorCode)
-                || ROLE_ADMIN.equals(normalizedAuthorCode);
+        return frameworkAuthorityPolicyService.isGlobalCompanyRole(authorCode);
     }
 
     private boolean requiresOwnCompanyAccess(String authorCode) {
-        return ROLE_OPERATION_ADMIN.equals(safeString(authorCode).toUpperCase(Locale.ROOT));
+        return frameworkAuthorityPolicyService.isOperationAdmin(authorCode);
     }
 
     private boolean hasMemberManagementCompanyAdminAccess(String authorCode) {
-        String normalizedAuthorCode = safeString(authorCode).toUpperCase(Locale.ROOT);
-        return ROLE_SYSTEM_MASTER.equals(normalizedAuthorCode)
-                || ROLE_SYSTEM_ADMIN.equals(normalizedAuthorCode)
-                || ROLE_ADMIN.equals(normalizedAuthorCode);
+        return frameworkAuthorityPolicyService.isSystemMaster(authorCode)
+                || frameworkAuthorityPolicyService.isSystemAdmin(authorCode)
+                || frameworkAuthorityPolicyService.isGeneralAdmin(authorCode);
     }
 
     private boolean hasMemberManagementCompanyOperatorAccess(String authorCode) {
         return hasMemberManagementCompanyAdminAccess(authorCode)
-                || ROLE_OPERATION_ADMIN.equals(safeString(authorCode).toUpperCase(Locale.ROOT));
+                || frameworkAuthorityPolicyService.isOperationAdmin(authorCode);
     }
 
     private String resolveCurrentAdminInsttId(String userId) {

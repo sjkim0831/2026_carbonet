@@ -84,6 +84,7 @@ export async function saveScreenBuilderDraft(payload: {
   menuTitle: string;
   menuUrl: string;
   templateType: string;
+  authorityProfile?: ScreenBuilderPagePayload["authorityProfile"];
   nodes: ScreenBuilderNode[];
   events: ScreenBuilderEventBinding[];
 }) {

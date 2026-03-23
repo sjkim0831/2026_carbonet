@@ -8,6 +8,7 @@ export {
   ADMIN_BUTTON_LABELS,
   CopyableCodeBlock,
   DiagnosticCard,
+  LookupContextStrip,
   getMemberButtonClassName,
   GridToolbar,
   MEMBER_BUTTON_LABELS,
@@ -22,6 +23,7 @@ export {
   MemberPagination,
   MemberPermissionButton,
   MemberSectionToolbar,
+  PageStatusNotice,
   MemberToolbar,
   PageHeaderActions
 } from "../admin-ui/common";

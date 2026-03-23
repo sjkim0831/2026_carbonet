@@ -45,6 +45,11 @@ public class AuthGroupManageServiceImpl extends EgovAbstractServiceImpl implemen
     }
 
     @Override
+    public List<Map<String, String>> selectActiveMenuViewFeatureRows() {
+        return authGroupManageMapper.selectActiveMenuViewFeatureRows();
+    }
+
+    @Override
     public List<FeatureAssignmentStatVO> selectFeatureAssignmentStats() {
         return authGroupManageMapper.selectFeatureAssignmentStats();
     }

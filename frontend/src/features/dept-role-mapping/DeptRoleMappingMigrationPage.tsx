@@ -4,6 +4,7 @@ import { DeptRolePagePayload, FrontendSession, fetchDeptRolePage, fetchFrontendS
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { AdminAuthorityPageFrame } from "../admin-ui/pageFrames";
+import { PageStatusNotice } from "../member/common";
 import { MemberStateCard } from "../member/sections";
 import { DeptRoleCompanySection, DeptRoleDepartmentTable, DeptRoleMemberTable } from "./deptRoleSections";
 
@@ -117,9 +118,9 @@ export function DeptRoleMappingMigrationPage() {
       loading={!page && !error}
       loadingLabel={t(page, "부서 권한 정보를 불러오는 중입니다.", "Loading department role data.")}
     >
-      {(page?.deptRoleError || error) ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{page?.deptRoleError || error}</section> : null}
-      {page?.deptRoleUpdated || message ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message || (page?.deptRoleTargetInsttId ? t(page, `${page.deptRoleTargetInsttId} 부서 권한 맵핑이 저장되었습니다.`, `Saved department role mappings for ${page.deptRoleTargetInsttId}.`) : t(page, "부서 권한 맵핑이 저장되었습니다.", "Department role mappings have been saved."))}</section> : null}
-      {page?.deptRoleMessage && !message ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">{page.deptRoleMessage}</section> : null}
+      {(page?.deptRoleError || error) ? <PageStatusNotice tone="error">{page?.deptRoleError || error}</PageStatusNotice> : null}
+      {page?.deptRoleUpdated || message ? <PageStatusNotice tone="success">{message || (page?.deptRoleTargetInsttId ? t(page, `${page.deptRoleTargetInsttId} 부서 권한 맵핑이 저장되었습니다.`, `Saved department role mappings for ${page.deptRoleTargetInsttId}.`) : t(page, "부서 권한 맵핑이 저장되었습니다.", "Department role mappings have been saved."))}</PageStatusNotice> : null}
+      {page?.deptRoleMessage && !message ? <PageStatusNotice tone="warning">{page.deptRoleMessage}</PageStatusNotice> : null}
       {!page && !error && !session ? null : !canViewCompanySelector ? (
         <MemberStateCard description={t(page, "현재 계정으로는 부서 권한 맵핑 화면을 조회할 수 없습니다.", "The current account cannot access the department role mapping screen.")} icon="lock" title={t(page, "권한이 없습니다.", "Permission denied.")} tone="warning" />
       ) : null}

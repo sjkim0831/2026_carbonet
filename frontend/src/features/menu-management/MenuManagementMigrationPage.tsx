@@ -12,6 +12,7 @@ type MenuNode = {
   url: string;
   icon: string;
   useAt: string;
+  expsrAt: string;
   sortOrdr: number;
   children: MenuNode[];
 };
@@ -35,6 +36,7 @@ function buildTree(rows: Array<Record<string, unknown>>) {
       url: toDisplayMenuUrl(stringOf(row, "menuUrl")),
       icon: stringOf(row, "menuIcon") || "menu",
       useAt: stringOf(row, "useAt") || "Y",
+      expsrAt: stringOf(row, "expsrAt") || "Y",
       sortOrdr: numberOf(row, "sortOrdr"),
       children: []
     });
@@ -101,6 +103,7 @@ export function MenuManagementMigrationPage() {
   const groupMenuOptions = ((page?.groupMenuOptions || []) as Array<Record<string, string>>);
   const iconOptions = ((page?.iconOptions || []) as string[]);
   const useAtOptions = ((page?.useAtOptions || []) as string[]);
+  const expsrAtOptions = ((page?.expsrAtOptions || []) as string[]);
 
   useEffect(() => {
     setTreeData(buildTree(rows));
@@ -187,6 +190,45 @@ export function MenuManagementMigrationPage() {
     setActionMessage(en ? "Menu order has been saved." : "메뉴 순서를 저장했습니다.");
   }
 
+  async function saveExposure(code: string, expsrAt: string) {
+    setActionError("");
+    setActionMessage("");
+    const body = new URLSearchParams();
+    body.set("menuType", menuType);
+    body.set("menuCode", code);
+    body.set("expsrAt", expsrAt);
+    const { token, headerName } = getCsrfMeta();
+    const headers: Record<string, string> = { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" };
+    if (token) {
+      headers[headerName] = token;
+    }
+    const response = await fetch(buildLocalizedPath("/admin/system/menu-management/exposure", "/en/admin/system/menu-management/exposure"), {
+      method: "POST",
+      credentials: "include",
+      headers,
+      body: body.toString()
+    });
+    const responseBody = await response.json() as { success?: boolean; message?: string; };
+    if (!response.ok || !responseBody.success) {
+      throw new Error(responseBody.message || `Failed to save menu exposure: ${response.status}`);
+    }
+    refreshAdminMenuTree();
+    await pageState.reload();
+    setActionMessage(responseBody.message || (en ? "Menu exposure has been updated." : "메뉴 노출 상태를 저장했습니다."));
+  }
+
+  function updateExposureValue(path: number[], value: string) {
+    setTreeData((current) => {
+      const clone = JSON.parse(JSON.stringify(current)) as MenuNode[];
+      let level = clone;
+      for (let i = 0; i < path.length - 1; i += 1) {
+        level = level[path[i]].children;
+      }
+      level[path[path.length - 1]].expsrAt = value;
+      return clone;
+    });
+  }
+
   function findSuggestedPageCode() {
     if (!parentCodeValue || parentCodeValue.length !== 6) {
       return "";
@@ -259,10 +301,33 @@ export function MenuManagementMigrationPage() {
                       <strong className="text-base">{node.label}</strong>
                       <span className={`gov-chip ${chipClass}`}>{node.code}</span>
                       <span className={`gov-chip ${node.useAt === "Y" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>{node.useAt === "Y" ? (en ? "Use" : "사용") : (en ? "Unused" : "미사용")}</span>
+                      <span className={`gov-chip ${node.expsrAt === "Y" ? "bg-blue-100 text-blue-700" : "bg-red-100 text-red-700"}`}>{node.expsrAt === "Y" ? (en ? "Visible" : "노출") : (en ? "Hidden" : "숨김")}</span>
                     </div>
                     <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)] break-all">{node.url || (en ? "No linked URL" : "연결 URL 없음")}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
+                    {node.code.length === 8 ? (
+                      <>
+                        <select
+                          className="gov-select min-w-[110px]"
+                          value={node.expsrAt}
+                          onChange={(event) => updateExposureValue(currentPath, event.target.value)}
+                        >
+                          {(expsrAtOptions.length > 0 ? expsrAtOptions : ["Y", "N"]).map((option) => (
+                            <option key={option} value={option}>
+                              {option === "Y" ? (en ? "Visible" : "노출") : (en ? "Hidden" : "숨김")}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          className="gov-btn gov-btn-outline"
+                          onClick={() => { void saveExposure(node.code, node.expsrAt).catch((error: Error) => setActionError(error.message)); }}
+                          type="button"
+                        >
+                          {en ? "Save Visibility" : "숨김 저장"}
+                        </button>
+                      </>
+                    ) : null}
                     <button className="gov-btn gov-btn-outline" disabled={index === 0} onClick={() => updateLevel(currentPath, -1)} type="button">{en ? "Up" : "위로"}</button>
                     <button className="gov-btn gov-btn-outline" disabled={index === nodes.length - 1} onClick={() => updateLevel(currentPath, 1)} type="button">{en ? "Down" : "아래로"}</button>
                   </div>
@@ -400,6 +465,12 @@ export function MenuManagementMigrationPage() {
             <p className="font-bold text-[#196c2e]">{en ? "Page Menu" : "페이지 메뉴"}</p>
             <p className="text-[var(--kr-gov-text-secondary)]">{en ? "8-digit code" : "8자리 코드"}</p>
           </div>
+        </div>
+
+        <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[#f8fbff] px-4 py-3 text-sm text-[var(--kr-gov-text-secondary)]">
+          {en
+            ? "Visibility only affects sidebar/menu exposure. Hidden menus remain accessible by direct route and linked buttons."
+            : "숨김은 좌측 메뉴 노출만 제어합니다. 숨김 처리된 메뉴도 직접 경로 접근과 연결 버튼 동작은 유지됩니다."}
         </div>
 
         {renderNodes(treeData)}

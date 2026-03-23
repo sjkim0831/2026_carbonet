@@ -144,8 +144,10 @@ export function CompanyApproveMigrationPage() {
       <CanView allowed={!!page?.canViewCompanyApprove} fallback={null}>
         <CompanyApproveSearchSection
           applyFilters={applyFilters}
+          currentPage={currentPage}
           draftFilters={draftFilters}
           resetFilters={() => { setDraftFilters(DEFAULT_COMPANY_APPROVE_FILTERS); setFilters(DEFAULT_COMPANY_APPROVE_FILTERS); }}
+          totalPages={totalPages}
           updateDraft={updateDraft}
         />
 

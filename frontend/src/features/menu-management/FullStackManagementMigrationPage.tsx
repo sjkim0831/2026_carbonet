@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { findManifestByMenuCodeOrRoutePath, normalizeManifestLookupPath } from "../../app/screen-registry/pageManifestIndex";
+import { fetchFrameworkAuthorityContract, type FrameworkAuthorityRoleContract } from "../../framework";
 import {
   autoCollectFullStackGovernanceRegistry,
   fetchFullStackGovernanceRegistry,
@@ -153,6 +154,14 @@ function splitLines(value: string) {
     .filter(Boolean);
 }
 
+function uniqueLines(values: string[]) {
+  return Array.from(new Set(values.map((item) => item.trim()).filter(Boolean)));
+}
+
+function mergeLineBlock(current: string, additions: string[]) {
+  return uniqueLines([...splitLines(current), ...additions]).join("\n");
+}
+
 function validateRegistryEditor(editor: RegistryEditorState, en: boolean) {
   const errors: string[] = [];
   const tablePattern = /^[A-Z][A-Z0-9_]*$/;
@@ -275,6 +284,8 @@ export function FullStackManagementMigrationPage() {
   const [registrySaving, setRegistrySaving] = useState(false);
   const [registryCollecting, setRegistryCollecting] = useState(false);
   const [lastAutoCollectedKey, setLastAutoCollectedKey] = useState("");
+  const [authorityRoles, setAuthorityRoles] = useState<FrameworkAuthorityRoleContract[]>([]);
+  const [authorityLoading, setAuthorityLoading] = useState(false);
 
   const rows = useMemo(() => (page?.menuRows || []) as Array<Record<string, unknown>>, [page?.menuRows]);
   const menuTypes = ((page?.menuTypes || []) as Array<Record<string, unknown>>);
@@ -341,6 +352,31 @@ export function FullStackManagementMigrationPage() {
     const missingView = fullStackSummaryRows.filter((row) => !stringOf(row, "requiredViewFeatureCode")).length;
     return { total, strong, weak, missingView };
   }, [fullStackSummaryRows]);
+  const governanceFeatureCodes = useMemo(() => uniqueLines([
+    ...splitLines(registryEditor.featureCodes),
+    ...((governanceDetail?.menuPermission?.featureCodes || []).map((item) => String(item || ""))),
+    ...((governanceDetail?.menuPermission?.featureRows || []).map((item) => String(item.featureCode || "")))
+  ].map((item) => item.toUpperCase())), [governanceDetail, registryEditor.featureCodes]);
+  const recommendedAuthorityRoles = useMemo(() => {
+    const currentFeatures = new Set(governanceFeatureCodes);
+    return authorityRoles
+      .map((role) => {
+        const explicitFeatureCodes = (role.featureCodes || []).filter((item) => item && item !== "*");
+        const overlapCount = explicitFeatureCodes.filter((item) => currentFeatures.has(String(item).toUpperCase())).length;
+        return {
+          role,
+          overlapCount
+        };
+      })
+      .filter(({ role, overlapCount }) => role.builtIn || overlapCount > 0)
+      .sort((left, right) => {
+        if (right.overlapCount !== left.overlapCount) {
+          return right.overlapCount - left.overlapCount;
+        }
+        return (right.role.hierarchyLevel || 0) - (left.role.hierarchyLevel || 0);
+      })
+      .slice(0, 8);
+  }, [authorityRoles, governanceFeatureCodes]);
 
   useEffect(() => {
     setTreeData(buildTree(rows));
@@ -409,6 +445,30 @@ export function FullStackManagementMigrationPage() {
       cancelled = true;
     };
   }, [en, menuType]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setAuthorityLoading(true);
+    fetchFrameworkAuthorityContract()
+      .then((contract) => {
+        if (!cancelled) {
+          setAuthorityRoles((contract.authorityRoles || []).filter((item) => item.builderReady));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAuthorityRoles([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setAuthorityLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -715,6 +775,25 @@ export function FullStackManagementMigrationPage() {
     } finally {
       setRegistrySaving(false);
     }
+  }
+
+  function applyAuthorityRoleTemplate(role: FrameworkAuthorityRoleContract) {
+    const roleFeatureCodes = (role.featureCodes || []).filter((item) => item && item !== "*");
+    setRegistryEditor((current) => ({
+      ...current,
+      ownerScope: current.ownerScope.trim() || `${role.scopePolicy}/${role.authorCode}`,
+      featureCodes: mergeLineBlock(current.featureCodes, roleFeatureCodes),
+      tags: mergeLineBlock(current.tags, [`role-template:${role.authorCode}`, `role-tier:${role.tier}`]),
+      notes: current.notes.trim()
+        ? current.notes
+        : (en
+          ? `Recommended authority template: ${role.authorCode} (${role.label})`
+          : `권장 권한 템플릿: ${role.authorCode} (${role.label})`)
+    }));
+    setActionError("");
+    setActionMessage(en
+      ? `Applied authority template ${role.authorCode}.`
+      : `${role.authorCode} 권한 템플릿을 반영했습니다.`);
   }
 
   async function autoCollectRegistry() {
@@ -1097,6 +1176,57 @@ export function FullStackManagementMigrationPage() {
                 <input className="gov-input" id="registry-owner" placeholder={en ? "ex) platform-console/admin-core" : "예) platform-console/admin-core"} value={registryEditor.ownerScope} onChange={(event) => setRegistryEditor((current) => ({ ...current, ownerScope: event.target.value }))} />
                 <label className="gov-label mt-4" htmlFor="registry-notes">{en ? "Notes" : "운영 메모"}</label>
                 <textarea className="gov-textarea min-h-[92px]" id="registry-notes" value={registryEditor.notes} onChange={(event) => setRegistryEditor((current) => ({ ...current, notes: event.target.value }))} />
+              </div>
+            </div>
+
+            <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[#f8fbff] p-4">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                  <h5 className="font-bold">{en ? "Recommended Authority Templates" : "권장 권한 템플릿"}</h5>
+                  <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+                    {authorityLoading
+                      ? (en ? "Loading framework authority contract..." : "프레임워크 권한 계약을 불러오는 중입니다.")
+                      : (en ? "Apply role templates to seed owner scope, feature grants, and tags for this page registry." : "이 페이지 레지스트리에 role template을 반영해 owner scope, 기능 권한, 태그를 빠르게 채웁니다.")}
+                  </p>
+                </div>
+                <div className="text-sm text-[var(--kr-gov-text-secondary)]">
+                  {en ? `${recommendedAuthorityRoles.length} recommended roles` : `권장 role ${recommendedAuthorityRoles.length}건`}
+                </div>
+              </div>
+              <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
+                {recommendedAuthorityRoles.length === 0 ? (
+                  <div className="rounded-[var(--kr-gov-radius)] border border-dashed border-[var(--kr-gov-border-light)] bg-white px-4 py-4 text-sm text-[var(--kr-gov-text-secondary)]">
+                    {en ? "No role templates matched the current feature set yet." : "현재 기능 세트와 직접 매칭된 role template이 아직 없습니다."}
+                  </div>
+                ) : recommendedAuthorityRoles.map(({ role, overlapCount }) => (
+                  <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4" key={role.authorCode}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-mono text-[11px] text-[var(--kr-gov-text-secondary)]">{role.authorCode}</p>
+                        <p className="mt-1 text-sm font-black text-[var(--kr-gov-text-primary)]">{role.label}</p>
+                        <p className="mt-1 text-[12px] text-[var(--kr-gov-text-secondary)]">{role.description || "-"}</p>
+                      </div>
+                      <div className="flex flex-wrap justify-end gap-1 text-[10px] font-bold">
+                        <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-700">{role.tier}</span>
+                        <span className="rounded-full bg-blue-50 px-2 py-1 text-blue-700">{role.scopePolicy}</span>
+                        <span className="rounded-full bg-emerald-50 px-2 py-1 text-emerald-700">
+                          {en ? `${overlapCount} overlap` : `${overlapCount}개 일치`}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-3 font-mono text-[11px] text-[var(--kr-gov-text-secondary)]">
+                      {(role.featureCodes || []).filter((item) => item && item !== "*").slice(0, 8).join(", ") || (en ? "No explicit feature grants" : "명시된 기능 권한 없음")}
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button className="gov-btn gov-btn-outline" onClick={() => applyAuthorityRoleTemplate(role)} type="button">
+                        {en ? "Apply Template" : "템플릿 반영"}
+                      </button>
+                      <button className="gov-btn gov-btn-outline" onClick={() => { void navigator.clipboard.writeText(role.authorCode); }} type="button">
+                        {en ? "Copy Role" : "Role 복사"}
+                      </button>
+                    </div>
+                  </article>
+                ))}
               </div>
             </div>
 

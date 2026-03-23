@@ -7,6 +7,7 @@ import egovframework.com.feature.admin.dto.response.MenuInfoDTO;
 import egovframework.com.feature.admin.service.AuthGroupManageService;
 import egovframework.com.feature.admin.service.MenuInfoService;
 import egovframework.com.feature.auth.util.JwtTokenProvider;
+import egovframework.com.framework.authority.service.FrameworkAuthorityPolicyService;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,8 +30,6 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class SiteMapServiceImpl implements SiteMapService {
 
-    private static final String ROLE_SYSTEM_MASTER = "ROLE_SYSTEM_MASTER";
-    private static final String ROLE_OPERATION_ADMIN = "ROLE_OPERATION_ADMIN";
     private static final int PUBLIC_ENTRY_SORT = 5;
     private static final int PUBLIC_SIGNIN_SORT = 10;
     private static final int PUBLIC_JOIN_SORT = 20;
@@ -40,6 +39,7 @@ public class SiteMapServiceImpl implements SiteMapService {
     private final MenuInfoService menuInfoService;
     private final AuthGroupManageService authGroupManageService;
     private final JwtTokenProvider jwtTokenProvider;
+    private final FrameworkAuthorityPolicyService frameworkAuthorityPolicyService;
     private final Object snapshotMonitor = new Object();
     private volatile CachedSiteMapSnapshot userKoreanSnapshot;
     private volatile CachedSiteMapSnapshot userEnglishSnapshot;
@@ -383,32 +383,21 @@ public class SiteMapServiceImpl implements SiteMapService {
     }
 
     private AuthorPermissionContext buildAuthorPermissionContext(String authorCode) {
-        String normalizedAuthorCode = safeString(authorCode).toUpperCase(Locale.ROOT);
-        if (normalizedAuthorCode.isEmpty()) {
+        FrameworkAuthorityPolicyService.AuthorityPolicyContext policyContext;
+        try {
+            policyContext = frameworkAuthorityPolicyService.buildContext(authorCode);
+        } catch (Exception e) {
+            log.warn("Failed to load authority policy context for sitemap. authorCode={}", safeString(authorCode), e);
             return new AuthorPermissionContext("", Collections.emptySet(), false, false);
         }
-        if (ROLE_SYSTEM_MASTER.equals(normalizedAuthorCode)) {
-            return new AuthorPermissionContext(normalizedAuthorCode, Collections.emptySet(), true, false);
-        }
-        Set<String> featureCodes = new LinkedHashSet<>();
-        try {
-            List<String> authorFeatureCodes = authGroupManageService.selectAuthorFeatureCodes(normalizedAuthorCode);
-            if (authorFeatureCodes != null) {
-                for (String featureCode : authorFeatureCodes) {
-                    String normalizedFeatureCode = safeString(featureCode).toUpperCase(Locale.ROOT);
-                    if (!normalizedFeatureCode.isEmpty()) {
-                        featureCodes.add(normalizedFeatureCode);
-                    }
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Failed to load author feature codes for sitemap. authorCode={}", normalizedAuthorCode, e);
+        if (policyContext.getAuthorCode().isEmpty()) {
+            return new AuthorPermissionContext("", Collections.emptySet(), false, false);
         }
         return new AuthorPermissionContext(
-                normalizedAuthorCode,
-                featureCodes,
-                false,
-                ROLE_OPERATION_ADMIN.equals(normalizedAuthorCode));
+                policyContext.getAuthorCode(),
+                policyContext.getFeatureCodes(),
+                policyContext.isSystemMaster(),
+                policyContext.isOperationAdmin());
     }
 
     private String resolveRequiredViewFeatureCode(String menuUrl) {

@@ -389,6 +389,18 @@ export type ScreenBuilderPagePayload = {
   versionId: string;
   versionStatus: string;
   templateType: string;
+  authorityProfile?: {
+    roleKey?: string;
+    authorCode?: string;
+    label?: string;
+    description?: string;
+    tier?: string;
+    actorType?: string;
+    scopePolicy?: string;
+    hierarchyLevel?: number;
+    featureCodes?: string[];
+    tags?: string[];
+  };
   componentPalette: ScreenBuilderPaletteItem[];
   componentRegistry: ScreenBuilderComponentRegistryItem[];
   componentTypeOptions?: string[];
@@ -414,6 +426,7 @@ export type ScreenBuilderPreviewPayload = {
   menuTitle: string;
   menuUrl: string;
   templateType: string;
+  authorityProfile?: ScreenBuilderPagePayload["authorityProfile"];
   versionStatus?: string;
   registryDiagnostics?: {
     unregisteredNodes?: ScreenBuilderRegistryIssue[];
@@ -1029,6 +1042,7 @@ export type MenuManagementPagePayload = Record<string, unknown> & {
   groupMenuOptions?: Array<Record<string, string>>;
   iconOptions?: string[];
   useAtOptions?: string[];
+  expsrAtOptions?: string[];
   fullStackSummaryRows?: Array<Record<string, unknown>>;
   menuMgmtError?: string;
   menuMgmtMessage?: string;
@@ -1463,6 +1477,23 @@ export function getAdminMenuTreeRefreshEventName() {
   return ADMIN_MENU_TREE_REFRESH_EVENT;
 }
 
+export function readAdminMenuTreeSnapshot(): AdminMenuTreePayload | null {
+  const bootstrappedMenuTree = consumeRuntimeBootstrap<AdminMenuTreePayload>("adminMenuTree");
+  if (bootstrappedMenuTree) {
+    adminMenuTreeCache = bootstrappedMenuTree;
+    writeSessionStorageCache(ADMIN_MENU_TREE_STORAGE_KEY, bootstrappedMenuTree, SESSION_CACHE_TTL_MS);
+    return bootstrappedMenuTree;
+  }
+
+  const storedMenuTree = readSessionStorageCache<AdminMenuTreePayload>(ADMIN_MENU_TREE_STORAGE_KEY);
+  if (storedMenuTree) {
+    adminMenuTreeCache = storedMenuTree;
+    return storedMenuTree;
+  }
+
+  return adminMenuTreeCache;
+}
+
 export function refreshAdminMenuTree() {
   invalidateFrontendSessionCache();
   if (typeof window !== "undefined") {
@@ -1594,20 +1625,9 @@ async function buildMypageUrl(path: string) {
 }
 
 export async function fetchAdminMenuTree(): Promise<AdminMenuTreePayload> {
-  const bootstrappedMenuTree = consumeRuntimeBootstrap<AdminMenuTreePayload>("adminMenuTree");
-  if (bootstrappedMenuTree) {
-    adminMenuTreeCache = bootstrappedMenuTree;
-    writeSessionStorageCache(ADMIN_MENU_TREE_STORAGE_KEY, bootstrappedMenuTree, SESSION_CACHE_TTL_MS);
-    return bootstrappedMenuTree;
-  }
-
-  const storedMenuTree = readSessionStorageCache<AdminMenuTreePayload>(ADMIN_MENU_TREE_STORAGE_KEY);
-  if (storedMenuTree) {
-    adminMenuTreeCache = storedMenuTree;
-  }
-
-  if (adminMenuTreeCache) {
-    return adminMenuTreeCache;
+  const cachedMenuTree = readAdminMenuTreeSnapshot();
+  if (cachedMenuTree) {
+    return cachedMenuTree;
   }
 
   if (!adminMenuTreePromise) {

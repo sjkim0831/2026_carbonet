@@ -14,5 +14,6 @@ public class MenuInfoDTO {
     private String codeDc;
     private String menuIcon;
     private String useAt;
+    private String expsrAt;
     private Integer sortOrdr;
 }

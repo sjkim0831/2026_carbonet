@@ -406,6 +406,60 @@ public class AdminSystemCodeController {
         return "redirect:" + adminPrefix(request, locale) + "/system/menu-management?menuType=" + normalizedMenuType + "&saved=Y";
     }
 
+    @PostMapping("/menu-management/exposure")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> updateMenuManagementExposure(
+            @RequestParam(value = "menuType", defaultValue = "ADMIN") String menuType,
+            @RequestParam(value = "menuCode", required = false) String menuCode,
+            @RequestParam(value = "expsrAt", required = false) String expsrAt,
+            HttpServletRequest request,
+            Locale locale) {
+        boolean isEn = isEnglishRequest(request, locale);
+        String normalizedMenuType = normalizeMenuType(menuType);
+        String codeId = resolveMenuCodeId(normalizedMenuType);
+        String normalizedMenuCode = safeString(menuCode).toUpperCase(Locale.ROOT);
+        String normalizedExposure = normalizeExposure(expsrAt);
+        Map<String, Object> response = new LinkedHashMap<>();
+
+        if (normalizedMenuCode.length() != 8) {
+            response.put("success", false);
+            response.put("message", isEn ? "Select a valid 8-digit page menu." : "유효한 8자리 페이지 메뉴를 선택하세요.");
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        MenuInfoDTO currentRow = loadMenuTreeRows(codeId).stream()
+                .filter(item -> normalizedMenuCode.equalsIgnoreCase(safeString(item.getCode())))
+                .findFirst()
+                .orElse(null);
+        if (currentRow == null) {
+            response.put("success", false);
+            response.put("message", isEn ? "Menu code was not found in the selected scope." : "선택한 범위에서 메뉴 코드를 찾지 못했습니다.");
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        try {
+            menuInfoService.saveMenuExposure(normalizedMenuCode, normalizedExposure);
+            recordMenuManagementAudit(
+                    request,
+                    normalizedMenuCode,
+                    "ADMIN-MENU-MANAGEMENT-EXPOSURE",
+                    normalizedMenuCode,
+                    "{\"beforeExpsrAt\":\"" + safeJson(defaultExposure(currentRow.getExpsrAt())) + "\"}",
+                    "{\"afterExpsrAt\":\"" + safeJson(normalizedExposure) + "\"}");
+        } catch (Exception e) {
+            log.error("Failed to update menu exposure. menuCode={}, expsrAt={}", normalizedMenuCode, normalizedExposure, e);
+            response.put("success", false);
+            response.put("message", isEn ? "Failed to update menu exposure." : "메뉴 노출 상태 변경에 실패했습니다.");
+            return ResponseEntity.internalServerError().body(response);
+        }
+
+        response.put("success", true);
+        response.put("message", "Y".equalsIgnoreCase(normalizedExposure)
+                ? (isEn ? "The menu is now visible in navigation." : "메뉴를 다시 노출하도록 변경했습니다.")
+                : (isEn ? "The menu is now hidden from navigation." : "메뉴를 숨김 처리했습니다."));
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/menu-management/create-page")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> createMenuManagedPageApi(
@@ -1501,9 +1555,10 @@ public class AdminSystemCodeController {
         model.addAttribute("groupMenuOptions", buildGroupMenuOptions(menuRows));
         model.addAttribute("iconOptions", buildPageIconOptions());
         model.addAttribute("useAtOptions", List.of("Y", "N"));
+        model.addAttribute("expsrAtOptions", List.of("Y", "N"));
         model.addAttribute("menuMgmtGuide", isEn
-                ? "Create page menus here first. Existing legacy screens can stay registered and be hidden later with useAt."
-                : "새 페이지 메뉴는 여기서 먼저 등록하고, 기존 동작 중인 화면은 그대로 두고 나중에 useAt으로 숨김 처리합니다.");
+                ? "Create page menus here first. Existing legacy screens can stay registered and their sidebar exposure can be managed later."
+                : "새 페이지 메뉴는 여기서 먼저 등록하고, 기존 동작 중인 화면은 그대로 두고 좌측 메뉴 노출만 별도로 제어할 수 있습니다.");
         model.addAttribute("siteMapMgmtGuide", isEn
                 ? "Site map exposure should be managed separately through a dedicated site-map management menu."
                 : "사이트맵 노출은 별도 사이트맵 관리 메뉴에서 분리해서 운영하는 것을 기본 원칙으로 둡니다.");
@@ -3070,6 +3125,15 @@ public class AdminSystemCodeController {
     private String normalizeUseAt(String useAt) {
         String value = safeString(useAt).toUpperCase(Locale.ROOT);
         return "N".equals(value) ? "N" : "Y";
+    }
+
+    private String normalizeExposure(String expsrAt) {
+        String value = safeString(expsrAt).toUpperCase(Locale.ROOT);
+        return "N".equals(value) ? "N" : "Y";
+    }
+
+    private String defaultExposure(String expsrAt) {
+        return "N".equalsIgnoreCase(safeString(expsrAt)) ? "N" : "Y";
     }
 
     private String safeString(String value) {

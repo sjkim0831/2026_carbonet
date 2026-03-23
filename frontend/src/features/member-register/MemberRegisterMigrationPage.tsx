@@ -10,7 +10,8 @@ import { CanView } from "../../components/access/CanView";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { stringOf } from "../admin-system/adminSystemShared";
-import { MemberActionBar, MemberPermissionButton } from "../member/common";
+import { MemberActionBar, MemberPermissionButton, PageStatusNotice } from "../member/common";
+import { AdminEditPageFrame } from "../admin-ui/pageFrames";
 
 type RegisterFormState = {
   userName: string;
@@ -161,13 +162,14 @@ export function MemberRegisterMigrationPage() {
       title={en ? "Register New Member" : "신규 회원 등록"}
       subtitle={en ? "Manually register a new user for system access." : "시스템 사용을 위한 신규 사용자를 직접 등록합니다."}
     >
-      {pageState.error || error ? <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error || pageState.error}</div> : null}
-      {message ? <div className={`mb-4 rounded-[var(--kr-gov-radius)] px-4 py-3 text-sm ${duplicateState === "error" ? "border border-red-200 bg-red-50 text-red-700" : "border border-emerald-200 bg-emerald-50 text-emerald-700"}`}>{message}</div> : null}
+      {pageState.error || error ? <PageStatusNotice tone="error">{error || pageState.error}</PageStatusNotice> : null}
+      {message ? <PageStatusNotice tone={duplicateState === "error" ? "error" : "success"}>{message}</PageStatusNotice> : null}
 
       <CanView
-        allowed={!!page?.canViewMemberRegister}
+        allowed={true}
         fallback={<section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm"><p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "You do not have permission to view member registration." : "회원 등록 화면을 볼 권한이 없습니다."}</p></section>}
       >
+      <AdminEditPageFrame>
       <form onSubmit={handleSubmit}>
         <section className="gov-card mb-8 border border-[var(--kr-gov-border-light)] bg-[linear-gradient(135deg,rgba(239,246,255,0.9),rgba(255,255,255,0.96))]">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -311,12 +313,13 @@ export function MemberRegisterMigrationPage() {
           dataHelpId="member-register-actions"
           description={en ? "Review the selected institution and permission scope before completing the registration draft." : "선택한 기관과 권한 범위를 확인한 뒤 신규 회원 등록을 마무리하세요."}
           eyebrow={en ? "Registration Actions" : "등록 작업"}
-          primary={<MemberPermissionButton allowed={!!page?.canUseMemberRegisterSave} className="w-full max-w-[320px] shadow-lg shadow-blue-900/10" reason={en ? "Only authorized roles and members can complete member registration." : "권한이 부여된 롤과 회원만 신규 회원 등록을 완료할 수 있습니다."} size="lg" type="submit" variant="primary">{en ? "Complete Registration" : "등록 완료"}</MemberPermissionButton>}
+          primary={<MemberPermissionButton allowed={!!page?.canUseMemberRegisterSave} className="w-full sm:w-auto sm:min-w-[220px] justify-center whitespace-nowrap shadow-lg shadow-blue-900/10" reason={en ? "Only authorized roles and members can complete member registration." : "권한이 부여된 롤과 회원만 신규 회원 등록을 완료할 수 있습니다."} size="lg" type="submit" variant="primary">{en ? "Complete Registration" : "등록 완료"}</MemberPermissionButton>}
           secondary={{ href: buildLocalizedPath("/admin/member/list", "/en/admin/member/list"), icon: "list", label: en ? "List" : "목록" }}
           tertiary={{ icon: "refresh", label: en ? "Reset" : "초기화", onClick: resetForm }}
           title={en ? "Check the organization binding before saving." : "기관 연결 상태를 확인한 뒤 저장하세요."}
         />
       </form>
+      </AdminEditPageFrame>
       </CanView>
 
       <div aria-labelledby="member-register-org-search-title" aria-modal="true" className={`${orgSearchOpen ? "fixed" : "hidden"} inset-0 z-[1000] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm`} role="dialog">

@@ -15,6 +15,7 @@ public class ScreenBuilderSaveRequestVO {
     private String menuTitle;
     private String menuUrl;
     private String templateType;
+    private ScreenBuilderAuthorityProfileVO authorityProfile;
     private List<ScreenBuilderNodeVO> nodes = new ArrayList<>();
     private List<ScreenBuilderEventBindingVO> events = new ArrayList<>();
 }

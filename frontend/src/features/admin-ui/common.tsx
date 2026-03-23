@@ -282,6 +282,33 @@ export function PageStatusNotice({
   );
 }
 
+export function LookupContextStrip({
+  label = "Lookup Context",
+  value,
+  action,
+  className = "",
+  ...props
+}: HTMLAttributes<HTMLElement> & {
+  label?: ReactNode;
+  value: ReactNode;
+  action?: ReactNode;
+}) {
+  return (
+    <section
+      {...props}
+      className={`mb-6 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-5 py-4 shadow-sm ${className}`.trim()}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">{label}</p>
+          <div className="mt-1 text-sm text-[var(--kr-gov-text-primary)]">{value}</div>
+        </div>
+        {action ? <div className="shrink-0">{action}</div> : null}
+      </div>
+    </section>
+  );
+}
+
 export function SummaryMetricCard({
   title,
   value,

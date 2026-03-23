@@ -70,6 +70,12 @@ public class MenuInfoServiceImpl extends EgovAbstractServiceImpl implements Menu
     }
 
     @Override
+    public void saveMenuExposure(String menuCode, String expsrAt) {
+        menuInfoMapper.updateMenuExposure(menuCode, safeFlag(expsrAt));
+        invalidateMenuTreeCache();
+    }
+
+    @Override
     public long getMenuTreeVersion() {
         return menuTreeVersion.get();
     }
@@ -176,8 +182,13 @@ public class MenuInfoServiceImpl extends EgovAbstractServiceImpl implements Menu
         clone.setCodeDc(row.getCodeDc());
         clone.setMenuIcon(row.getMenuIcon());
         clone.setUseAt(row.getUseAt());
+        clone.setExpsrAt(row.getExpsrAt());
         clone.setSortOrdr(row.getSortOrdr());
         return clone;
+    }
+
+    private String safeFlag(String value) {
+        return "N".equalsIgnoreCase(safeString(value)) ? "N" : "Y";
     }
 
     private void invalidateMenuTreeCache() {

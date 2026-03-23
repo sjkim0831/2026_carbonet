@@ -1,4 +1,5 @@
-import { lazy, Suspense, useMemo } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import type { FrameworkAuthorityRoleContract } from "../../framework";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import {
   readBootstrappedScreenBuilderPageData,
@@ -15,17 +16,17 @@ import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";
 import { authorDesignContextKeys } from "../admin-ui/contextKeyPresets";
 import { DiagnosticCard, MemberButton, MemberLinkButton, PageStatusNotice } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
-import { resolveScreenBuilderQuery } from "./screenBuilderUtils";
+import { resolveScreenBuilderQuery } from "./shared/screenBuilderUtils";
 import {
-} from "./screenBuilderShared";
-import { useScreenBuilderEditor } from "./useScreenBuilderEditor";
-import { useScreenBuilderGovernanceState } from "./useScreenBuilderGovernanceState";
-import { useScreenBuilderMutations } from "./useScreenBuilderMutations";
-import { useScreenBuilderWorkspaceState } from "./useScreenBuilderWorkspaceState";
+} from "./shared/screenBuilderShared";
+import { useScreenBuilderEditor } from "./hooks/useScreenBuilderEditor";
+import { useScreenBuilderGovernanceState } from "./hooks/useScreenBuilderGovernanceState";
+import { useScreenBuilderMutations } from "./hooks/useScreenBuilderMutations";
+import { useScreenBuilderWorkspaceState } from "./hooks/useScreenBuilderWorkspaceState";
 
-const ScreenBuilderGovernancePanels = lazy(() => import("./ScreenBuilderGovernancePanels"));
-const ScreenBuilderEditorPanels = lazy(() => import("./ScreenBuilderEditorPanels"));
-const ScreenBuilderOverviewPanels = lazy(() => import("./ScreenBuilderOverviewPanels"));
+const ScreenBuilderGovernancePanels = lazy(() => import("./panels/ScreenBuilderGovernancePanels"));
+const ScreenBuilderEditorPanels = lazy(() => import("./panels/ScreenBuilderEditorPanels"));
+const ScreenBuilderOverviewPanels = lazy(() => import("./panels/ScreenBuilderOverviewPanels"));
 
 export function ScreenBuilderMigrationPage() {
   const en = isEnglish();
@@ -40,6 +41,7 @@ export function ScreenBuilderMigrationPage() {
     }
   );
   const page = pageState.value;
+  const [draftAuthorityProfile, setDraftAuthorityProfile] = useState<ScreenBuilderPagePayload["authorityProfile"] | null>(null);
   const commandState = useAsyncValue<ScreenCommandPagePayload>(
     () => (page?.pageId ? fetchScreenCommandPage(page.pageId) : Promise.resolve({ selectedPageId: "", pages: [], page: {} as ScreenCommandPagePayload["page"] })),
     [page?.pageId || ""],
@@ -102,6 +104,8 @@ export function ScreenBuilderMigrationPage() {
 
   const availableApis = useMemo(() => commandState.value?.page?.apis || [], [commandState.value]);
   const {
+    authorityLoading,
+    authorityRoleTemplates,
     backendDeprecatedNodes,
     backendMissingNodes,
     backendUnregisteredNodes,
@@ -136,6 +140,9 @@ export function ScreenBuilderMigrationPage() {
     setSelectedRegistryComponentId,
     setSelectedTemplateType
   });
+  useEffect(() => {
+    setDraftAuthorityProfile(page?.authorityProfile || null);
+  }, [page?.authorityProfile]);
   const publishIssueCount = backendUnregisteredNodes.length + backendMissingNodes.length + backendDeprecatedNodes.length;
   const publishReady = publishIssueCount === 0;
 
@@ -214,6 +221,7 @@ export function ScreenBuilderMigrationPage() {
     pageReload: pageState.reload,
     previewMode,
     publishIssueCount,
+    draftAuthorityProfile,
     registryEditorDescription,
     registryEditorLabel,
     registryEditorPropsJson,
@@ -240,6 +248,22 @@ export function ScreenBuilderMigrationPage() {
   });
 
   const rootMenuHref = buildLocalizedPath("/admin/system/environment-management", "/en/admin/system/environment-management");
+
+  function applyAuthorityRoleToDraft(role: FrameworkAuthorityRoleContract) {
+    setDraftAuthorityProfile({
+      roleKey: role.roleKey,
+      authorCode: role.authorCode,
+      label: role.label,
+      description: role.description,
+      tier: role.tier,
+      actorType: role.actorType,
+      scopePolicy: role.scopePolicy,
+      hierarchyLevel: role.hierarchyLevel,
+      featureCodes: role.featureCodes || [],
+      tags: [`role-template:${role.authorCode}`, `role-tier:${role.tier}`]
+    });
+    setMessage(en ? `Authority profile ${role.authorCode} applied to the draft.` : `${role.authorCode} 권한 프로필을 draft에 반영했습니다.`);
+  }
 
   return (
     <AdminPageShell
@@ -310,6 +334,29 @@ export function ScreenBuilderMigrationPage() {
           statusTone={publishReady ? "healthy" : "danger"}
           title={en ? "Builder Actions" : "빌더 액션"}
         />
+        <DiagnosticCard
+          description={en ? "Authority profile embedded in the current draft artifact." : "현재 draft 산출물에 포함되는 권한 프로필입니다."}
+          eyebrow={draftAuthorityProfile?.tier || (en ? "UNASSIGNED" : "미지정")}
+          status={draftAuthorityProfile?.authorCode || (en ? "MISSING" : "없음")}
+          statusTone={draftAuthorityProfile?.authorCode ? "healthy" : "warning"}
+          summary={(
+            <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
+              <div>
+                <div className="text-[var(--kr-gov-text-secondary)]">{en ? "Scope" : "범위"}</div>
+                <div className="font-semibold text-[var(--kr-gov-text-primary)]">{draftAuthorityProfile?.scopePolicy || "-"}</div>
+              </div>
+              <div>
+                <div className="text-[var(--kr-gov-text-secondary)]">{en ? "Actor" : "주체"}</div>
+                <div className="font-semibold text-[var(--kr-gov-text-primary)]">{draftAuthorityProfile?.actorType || "-"}</div>
+              </div>
+              <div>
+                <div className="text-[var(--kr-gov-text-secondary)]">{en ? "Feature Grants" : "기능 권한"}</div>
+                <div className="font-semibold text-[var(--kr-gov-text-primary)]">{draftAuthorityProfile?.featureCodes?.length || 0}</div>
+              </div>
+            </div>
+          )}
+          title={draftAuthorityProfile?.label || (en ? "Draft Authority Profile" : "Draft 권한 프로필")}
+        />
         <Suspense
           fallback={(
             <section className="gov-card px-6 py-8 text-sm text-[var(--kr-gov-text-secondary)]">
@@ -346,6 +393,9 @@ export function ScreenBuilderMigrationPage() {
           <ScreenBuilderGovernancePanels
             aiNodeTreeRows={aiNodeTreeRows}
             addAiNodeTreeRow={addAiNodeTreeRow}
+            authorityLoading={authorityLoading}
+            authorityRoleTemplates={authorityRoleTemplates}
+            applyAuthorityRoleToDraft={applyAuthorityRoleToDraft}
             autoReplacePreviewItems={autoReplacePreviewItems}
             backendDeprecatedNodes={backendDeprecatedNodes}
             backendMissingNodes={backendMissingNodes}
@@ -355,6 +405,7 @@ export function ScreenBuilderMigrationPage() {
             componentTypeOptions={componentTypeOptions}
             copiedButtonStyleId={copiedButtonStyleId}
             copyButtonStyleId={copyButtonStyleId}
+            draftAuthorityAuthorCode={String(draftAuthorityProfile?.authorCode || "")}
             en={en}
             filteredComponentRegistry={filteredComponentRegistry}
             filteredSystemCatalog={filteredSystemCatalog}

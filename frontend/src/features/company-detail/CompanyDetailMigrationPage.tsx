@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { buildLocalizedPath, getSearchParam } from "../../lib/navigation/runtime";
 import { CompanyDetailPagePayload, fetchCompanyDetailPage } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
-import { MemberLinkButton, MemberButtonGroup, MEMBER_BUTTON_LABELS } from "../member/common";
+import { LookupContextStrip, MemberLinkButton, MemberButtonGroup, MEMBER_BUTTON_LABELS, PageStatusNotice } from "../member/common";
 import { DetailSummaryCard, MemberSectionCard, MemberStateCard } from "../member/sections";
 
 function resolveInitialInsttId() {
@@ -69,8 +69,8 @@ export function CompanyDetailMigrationPage() {
         </MemberButtonGroup>
       )}
     >
-      {error ? <section className="mb-4 text-sm font-medium text-red-600">{error}</section> : null}
-      {page?.companyDetailError ? <section className="mb-4 text-sm font-medium text-red-600">{String(page.companyDetailError)}</section> : null}
+      {error ? <PageStatusNotice tone="error">{error}</PageStatusNotice> : null}
+      {page?.companyDetailError ? <PageStatusNotice tone="error">{String(page.companyDetailError)}</PageStatusNotice> : null}
       {!loading && !initialInsttId.trim() ? (
         <MemberStateCard description="전달된 기관 ID 또는 조회 결과를 확인해 주세요." icon="person_search" title="회원사 정보를 찾을 수 없습니다." />
       ) : null}
@@ -82,17 +82,15 @@ export function CompanyDetailMigrationPage() {
       ) : null}
       {canView && hasCompany ? (
         <>
-        <section className="gov-card mb-6" data-help-id="company-detail-lookup">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">Lookup Context</p>
-              <p className="mt-1 text-sm text-[var(--kr-gov-text-primary)]">insttId: {insttId || "-"}</p>
-            </div>
+        <LookupContextStrip
+          action={(
             <MemberLinkButton href={buildLocalizedPath(`/admin/member/company_account?insttId=${encodeURIComponent(insttId)}`, `/en/admin/member/company_account?insttId=${encodeURIComponent(insttId)}`)} variant="secondary">
               {MEMBER_BUTTON_LABELS.edit}
             </MemberLinkButton>
-          </div>
-        </section>
+          )}
+          data-help-id="company-detail-lookup"
+          value={<>insttId: {insttId || "-"}</>}
+        />
         <div className="grid grid-cols-1 gap-8 xl:grid-cols-3">
           <DetailSummaryCard
             className="gov-card xl:col-span-1"

@@ -10,7 +10,8 @@ import {
   saveCompanyAccount
 } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
-import { MemberActionBar, MemberLinkButton, MemberPermissionButton, MEMBER_BUTTON_LABELS } from "../member/common";
+import { MemberActionBar, MemberLinkButton, MemberPermissionButton, MEMBER_BUTTON_LABELS, PageStatusNotice } from "../member/common";
+import { AdminEditPageFrame } from "../admin-ui/pageFrames";
 import {
   CompanyBusinessSection,
   CompanyContactSection,
@@ -263,8 +264,8 @@ export function CompanyAccountMigrationPage() {
       subtitle={form.insttId ? "기존 회원사 신청 정보를 수정합니다." : "회원사 신청 정보를 관리자 화면에서 직접 등록합니다."}
       title={form.insttId ? "회원사 수정" : "신규 회원사 등록"}
     >
-      {message ? <section className="mb-6 rounded-[var(--kr-gov-radius)] border border-green-200 bg-green-50 px-4 py-3 text-sm text-emerald-700">{message}</section> : null}
-      {error ? <section className="mb-6 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</section> : null}
+      {message ? <PageStatusNotice tone="success">{message}</PageStatusNotice> : null}
+      {error ? <PageStatusNotice tone="error">{error}</PageStatusNotice> : null}
       {!pageState.loading && !!page && !page?.canViewCompanyAccount ? (
         <MemberStateCard description="현재 계정으로는 회원사 관리 화면을 조회할 수 없습니다." icon="lock" title="권한이 없습니다." tone="warning" />
       ) : null}
@@ -272,6 +273,7 @@ export function CompanyAccountMigrationPage() {
         allowed={!!page?.canViewCompanyAccount}
         fallback={null}
       >
+        <AdminEditPageFrame>
         <div className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-8 shadow-sm" data-help-id="company-account-page">
           {form.insttId ? (
             <div className="mb-8 flex items-center justify-between rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
@@ -292,6 +294,12 @@ export function CompanyAccountMigrationPage() {
 
             <MemberActionBar
               dataHelpId="company-account-actions"
+              description={
+                form.insttId
+                  ? "회원사 목록으로 돌아가거나 현재 수정 내용을 검토한 뒤 저장할 수 있습니다."
+                  : "회원사 목록으로 돌아가거나 입력한 회원사 정보를 검토한 뒤 저장할 수 있습니다."
+              }
+              eyebrow="작업 흐름"
               primary={(
                 <MemberPermissionButton
                   allowed={!!page?.canUseCompanyAccountSave}
@@ -311,9 +319,15 @@ export function CompanyAccountMigrationPage() {
                 href: buildLocalizedPath("/admin/member/company_list", "/en/admin/member/company_list"),
                 label: MEMBER_BUTTON_LABELS.list
               }}
+              title={
+                form.insttId
+                  ? "회원사 정보를 검토한 뒤 수정 내용을 저장하세요."
+                  : "입력한 회원사 정보를 검토한 뒤 등록 내용을 저장하세요."
+              }
             />
           </div>
         </div>
+        </AdminEditPageFrame>
       </CanView>
     </AdminPageShell>
   );

@@ -5,7 +5,8 @@ import { CanView } from "../../components/access/CanView";
 import { fetchMemberEditPage, MemberEditPagePayload, readBootstrappedMemberEditPageData, saveMemberEdit } from "../../lib/api/client";
 import { buildLocalizedPath, getSearchParam } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
-import { MemberActionBar, MemberLinkButton, MemberPermissionButton, MEMBER_BUTTON_LABELS } from "../member/common";
+import { MemberActionBar, MemberLinkButton, MemberPermissionButton, MEMBER_BUTTON_LABELS, PageStatusNotice } from "../member/common";
+import { AdminEditPageFrame } from "../admin-ui/pageFrames";
 import { MemberStateCard } from "../member/sections";
 import { MemberEditMainSections, MemberEditSummarySection, MemberEditFormState } from "./memberEditSections";
 
@@ -147,26 +148,24 @@ export function MemberEditMigrationPage() {
       title={text(page, "회원 정보 수정", "Edit Member Information")}
     >
       {page?.member_editError || error ? (
-        <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {String(page?.member_editError || error)}
-        </section>
+        <PageStatusNotice tone="error">{String(page?.member_editError || error)}</PageStatusNotice>
       ) : null}
       {validationErrors.length > 0 ? (
-        <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <PageStatusNotice tone="warning">
           <p className="font-bold mb-1">{text(page, "입력값을 확인해 주세요.", "Please check the input values.")}</p>
           <ul className="list-disc pl-5 space-y-1">
             {validationErrors.map((item, index) => (
               <li key={`${item}-${index}`}>{item}</li>
             ))}
           </ul>
-        </section>
+        </PageStatusNotice>
       ) : null}
       {page?.member_editUpdated ? (
-        <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <PageStatusNotice tone="success">
           {text(page, "회원 정보가 저장되었습니다.", "Member information has been saved.")}
-        </section>
+        </PageStatusNotice>
       ) : null}
-      {message ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{message}</section> : null}
+      {message ? <PageStatusNotice tone="success">{message}</PageStatusNotice> : null}
       {!memberIdInput.trim() ? (
         <MemberStateCard
           actions={<MemberLinkButton href={buildLocalizedPath("/admin/member/list", "/en/admin/member/list")} icon="arrow_back" variant="secondary">{text(page, MEMBER_BUTTON_LABELS.list, "List")}</MemberLinkButton>}
@@ -188,6 +187,7 @@ export function MemberEditMigrationPage() {
         allowed={canView && hasMember}
         fallback={memberIdInput.trim() && hasMember && !pageState.loading ? <MemberStateCard description={String(page?.member_editError || "현재 계정으로는 회원 수정 화면을 조회할 수 없습니다.")} icon="lock" title={text(page, "권한이 없습니다.", "Permission denied.")} tone="warning" /> : null}
       >
+        <AdminEditPageFrame>
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start" data-help-id="member-edit-page">
           <MemberEditSummarySection
             accessScopes={accessScopes}
@@ -230,7 +230,7 @@ export function MemberEditMigrationPage() {
           primary={(
             <MemberPermissionButton
               allowed={canUse}
-              className="w-full max-w-[320px] shadow-lg shadow-blue-900/10"
+              className="w-full sm:w-auto sm:min-w-[220px] justify-center whitespace-nowrap shadow-lg shadow-blue-900/10"
               data-action="save"
               icon="save"
               onClick={handleSave}
@@ -258,6 +258,7 @@ export function MemberEditMigrationPage() {
             "Review the changes, then save them."
           )}
         />
+        </AdminEditPageFrame>
       </CanView>
     </AdminPageShell>
   );

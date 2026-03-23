@@ -17,6 +17,7 @@ public class ScreenBuilderDraftDocumentVO {
     private String menuTitle;
     private String menuUrl;
     private String templateType;
+    private ScreenBuilderAuthorityProfileVO authorityProfile;
     private String versionStatus;
     private List<ScreenBuilderNodeVO> nodes = new ArrayList<>();
     private List<ScreenBuilderEventBindingVO> events = new ArrayList<>();

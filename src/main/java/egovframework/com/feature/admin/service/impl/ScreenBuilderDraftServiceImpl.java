@@ -5,6 +5,7 @@ import egovframework.com.common.mapper.ObservabilityMapper;
 import egovframework.com.common.trace.UiComponentRegistryVO;
 import egovframework.com.common.trace.UiComponentUsageVO;
 import egovframework.com.feature.admin.dto.response.MenuInfoDTO;
+import egovframework.com.feature.admin.model.ScreenBuilderAuthorityProfileVO;
 import egovframework.com.feature.admin.model.ScreenBuilderComponentRegistryItemVO;
 import egovframework.com.feature.admin.model.ScreenBuilderComponentRegistrySaveRequestVO;
 import egovframework.com.feature.admin.model.ScreenBuilderComponentUsageVO;
@@ -15,7 +16,10 @@ import egovframework.com.feature.admin.model.ScreenBuilderNodeVO;
 import egovframework.com.feature.admin.model.ScreenBuilderSaveRequestVO;
 import egovframework.com.feature.admin.model.ScreenBuilderVersionSummaryVO;
 import egovframework.com.feature.admin.service.MenuInfoService;
+import egovframework.com.feature.admin.service.ScreenCommandCenterService;
 import egovframework.com.feature.admin.service.ScreenBuilderDraftService;
+import egovframework.com.framework.authority.model.FrameworkAuthorityRoleContractVO;
+import egovframework.com.framework.authority.service.FrameworkAuthorityContractService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -30,11 +34,14 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -62,6 +69,8 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
     private final ObjectMapper objectMapper;
     private final MenuInfoService menuInfoService;
     private final ObservabilityMapper observabilityMapper;
+    private final FrameworkAuthorityContractService frameworkAuthorityContractService;
+    private final ScreenCommandCenterService screenCommandCenterService;
 
     @Override
     public Map<String, Object> getPagePayload(String menuCode, String pageId, String menuTitle, String menuUrl, boolean isEn) throws Exception {
@@ -76,6 +85,7 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
         payload.put("versionId", safe(draft.getVersionId()));
         payload.put("versionStatus", safe(draft.getVersionStatus().isEmpty() ? "DRAFT" : draft.getVersionStatus()));
         payload.put("templateType", safe(draft.getTemplateType().isEmpty() ? DEFAULT_TEMPLATE_TYPE : draft.getTemplateType()));
+        payload.put("authorityProfile", draft.getAuthorityProfile());
         payload.put("componentPalette", COMPONENT_PALETTE);
         payload.put("componentRegistry", getComponentRegistry(isEn));
         payload.put("componentTypeOptions", getComponentRegistry(isEn).stream()
@@ -218,6 +228,14 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
         int unregisteredCount = sizeOfList(diagnostics.get("unregisteredNodes"));
         int missingCount = sizeOfList(diagnostics.get("missingNodes"));
         int deprecatedCount = sizeOfList(diagnostics.get("deprecatedNodes"));
+        List<String> authorityValidationErrors = validateAuthorityProfile(currentDraft, true);
+        if (!authorityValidationErrors.isEmpty()) {
+            throw new IllegalArgumentException(firstNonBlank(authorityValidationErrors.get(0), "Authority profile is invalid."));
+        }
+        List<String> authorityAlignmentErrors = validateAuthorityEventAlignment(currentDraft, true);
+        if (!authorityAlignmentErrors.isEmpty()) {
+            throw new IllegalArgumentException(firstNonBlank(authorityAlignmentErrors.get(0), "Authority profile is not aligned with builder actions."));
+        }
         if (unregisteredCount > 0 || missingCount > 0 || deprecatedCount > 0) {
             throw new IllegalArgumentException(isEn
                     ? String.format("Publish is blocked. Unregistered=%d, Missing=%d, Deprecated=%d", unregisteredCount, missingCount, deprecatedCount)
@@ -613,6 +631,7 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
         draft.setMenuCode(firstNonBlank(request == null ? "" : request.getMenuCode(), draft.getMenuCode()));
         draft.setMenuTitle(firstNonBlank(request == null ? "" : request.getMenuTitle(), draft.getMenuTitle()));
         draft.setMenuUrl(firstNonBlank(request == null ? "" : request.getMenuUrl(), draft.getMenuUrl()));
+        draft.setAuthorityProfile(normalizeAuthorityProfile(request == null ? null : request.getAuthorityProfile(), draft.getAuthorityProfile()));
         draft.setVersionStatus("DRAFT");
         draft.setVersionId(UUID.randomUUID().toString());
         draft.setNodes(normalizeNodes(request == null ? null : request.getNodes()));
@@ -649,6 +668,164 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
         if (rootCount != 1) {
             throw new IllegalArgumentException("Exactly one page root node is required");
         }
+        List<String> authorityErrors = validateAuthorityProfile(draft, false);
+        if (!authorityErrors.isEmpty()) {
+            throw new IllegalArgumentException(authorityErrors.get(0));
+        }
+    }
+
+    private List<String> validateAuthorityProfile(ScreenBuilderDraftDocumentVO draft, boolean publishing) {
+        ScreenBuilderAuthorityProfileVO profile = draft == null ? null : draft.getAuthorityProfile();
+        if (profile == null || safe(profile.getAuthorCode()).isEmpty()) {
+            return Collections.singletonList(publishing
+                    ? "Publish is blocked until an authority profile is assigned."
+                    : "authorityProfile.authorCode is required");
+        }
+        try {
+            FrameworkAuthorityRoleContractVO contractRole = findAuthorityRoleByAuthorCode(profile.getAuthorCode());
+            if (contractRole == null) {
+                return Collections.singletonList("authorityProfile.authorCode is not registered in the framework authority contract");
+            }
+            List<String> errors = new ArrayList<>();
+            if (!safe(profile.getRoleKey()).isEmpty() && !safe(profile.getRoleKey()).equalsIgnoreCase(safe(contractRole.getRoleKey()))) {
+                errors.add("authorityProfile.roleKey does not match the framework authority contract");
+            }
+            if (!safe(profile.getTier()).isEmpty() && !safe(profile.getTier()).equalsIgnoreCase(safe(contractRole.getTier()))) {
+                errors.add("authorityProfile.tier does not match the framework authority contract");
+            }
+            if (!safe(profile.getScopePolicy()).isEmpty() && !safe(profile.getScopePolicy()).equalsIgnoreCase(safe(contractRole.getScopePolicy()))) {
+                errors.add("authorityProfile.scopePolicy does not match the framework authority contract");
+            }
+            List<String> requestedFeatureCodes = normalizeStringList(profile.getFeatureCodes(), true);
+            List<String> allowedFeatureCodes = normalizeStringList(contractRole.getFeatureCodes(), true);
+            boolean wildcard = allowedFeatureCodes.contains("*");
+            for (String featureCode : requestedFeatureCodes) {
+                if (!wildcard && !allowedFeatureCodes.contains(featureCode)) {
+                    errors.add("authorityProfile.featureCodes contains codes not granted by the selected role");
+                    break;
+                }
+            }
+            return errors;
+        } catch (Exception e) {
+            return Collections.singletonList("Failed to validate authorityProfile against the framework authority contract");
+        }
+    }
+
+    private List<String> validateAuthorityEventAlignment(ScreenBuilderDraftDocumentVO draft, boolean publishing) {
+        ScreenBuilderAuthorityProfileVO profile = draft == null ? null : draft.getAuthorityProfile();
+        List<String> featureCodes = profile == null ? Collections.emptyList() : normalizeStringList(profile.getFeatureCodes(), true);
+        String authorCode = profile == null ? "" : safe(profile.getAuthorCode()).toUpperCase(Locale.ROOT);
+        boolean wildcard = featureCodes.contains("*") || "ROLE_SYSTEM_MASTER".equals(authorCode);
+        if (draft == null || draft.getEvents() == null || draft.getEvents().isEmpty()) {
+            return Collections.emptyList();
+        }
+        CommandAuthorityContext commandAuthorityContext = resolveCommandAuthorityContext(draft);
+        List<String> errors = new ArrayList<>();
+        for (ScreenBuilderEventBindingVO event : draft.getEvents()) {
+            if (event == null) {
+                continue;
+            }
+            String actionType = safe(event.getActionType()).toLowerCase(Locale.ROOT);
+            Map<String, Object> actionConfig = event.getActionConfig() == null ? Collections.emptyMap() : event.getActionConfig();
+            String explicitFeatureCode = safe(asString(actionConfig.get("featureCode"))).toUpperCase(Locale.ROOT);
+            String explicitRequiredFeatureCode = safe(asString(actionConfig.get("requiredFeatureCode"))).toUpperCase(Locale.ROOT);
+            String apiId = safe(asString(actionConfig.get("apiId")));
+            boolean mutatingAction = isMutatingActionType(actionType);
+
+            if (!apiId.isEmpty() && !commandAuthorityContext.allowedApiIds.isEmpty() && !commandAuthorityContext.allowedApiIds.contains(apiId)) {
+                errors.add(publishing
+                        ? "Publish is blocked because an event references an API that is not registered in the screen-command page."
+                        : "event.actionConfig.apiId is not registered in the screen-command page");
+                break;
+            }
+            if (!explicitFeatureCode.isEmpty() && !wildcard && !featureCodes.contains(explicitFeatureCode)) {
+                errors.add(publishing
+                        ? "Publish is blocked because an event requires a feature code outside the assigned authority profile."
+                        : "event.actionConfig.featureCode is outside authorityProfile.featureCodes");
+                break;
+            }
+            if (!explicitRequiredFeatureCode.isEmpty() && !wildcard && !featureCodes.contains(explicitRequiredFeatureCode)) {
+                errors.add(publishing
+                        ? "Publish is blocked because an event requires a requiredFeatureCode outside the assigned authority profile."
+                        : "event.actionConfig.requiredFeatureCode is outside authorityProfile.featureCodes");
+                break;
+            }
+            if ((mutatingAction || !apiId.isEmpty()) && !wildcard && featureCodes.isEmpty()) {
+                errors.add(publishing
+                        ? "Publish is blocked because API or mutating actions require an authority profile with feature grants."
+                        : "authorityProfile.featureCodes must not be empty for API or mutating actions");
+                break;
+            }
+            if ((mutatingAction || !apiId.isEmpty())
+                    && !wildcard
+                    && !commandAuthorityContext.menuFeatureCodes.isEmpty()
+                    && Collections.disjoint(featureCodes, commandAuthorityContext.menuFeatureCodes)) {
+                errors.add(publishing
+                        ? "Publish is blocked because the authority profile does not overlap with the page menu permission feature set."
+                        : "authorityProfile.featureCodes must overlap with screen-command menuPermission.featureCodes for API or mutating actions");
+                break;
+            }
+        }
+        return errors;
+    }
+
+    private CommandAuthorityContext resolveCommandAuthorityContext(ScreenBuilderDraftDocumentVO draft) {
+        if (draft == null || safe(draft.getPageId()).isEmpty()) {
+            return CommandAuthorityContext.empty();
+        }
+        try {
+            Map<String, Object> response = screenCommandCenterService.getScreenCommandPage(draft.getPageId());
+            Map<String, Object> page = safeMap(response.get("page"));
+            Set<String> allowedApiIds = new LinkedHashSet<>();
+            for (Map<String, Object> api : safeMapList(page.get("apis"))) {
+                String apiId = safe(asString(api.get("apiId")));
+                if (!apiId.isEmpty()) {
+                    allowedApiIds.add(apiId);
+                }
+            }
+            Map<String, Object> menuPermission = safeMap(page.get("menuPermission"));
+            Set<String> menuFeatureCodes = new LinkedHashSet<>();
+            for (String featureCode : safeStringList(menuPermission.get("featureCodes"))) {
+                String normalized = safe(featureCode).toUpperCase(Locale.ROOT);
+                if (!normalized.isEmpty()) {
+                    menuFeatureCodes.add(normalized);
+                }
+            }
+            String requiredViewFeatureCode = safe(asString(menuPermission.get("requiredViewFeatureCode"))).toUpperCase(Locale.ROOT);
+            if (!requiredViewFeatureCode.isEmpty()) {
+                menuFeatureCodes.add(requiredViewFeatureCode);
+            }
+            return new CommandAuthorityContext(allowedApiIds, menuFeatureCodes);
+        } catch (Exception e) {
+            return CommandAuthorityContext.empty();
+        }
+    }
+
+    private boolean isMutatingActionType(String actionType) {
+        String normalized = safe(actionType).toLowerCase(Locale.ROOT);
+        return "api_call".equals(normalized)
+                || "submit".equals(normalized)
+                || "set_state".equals(normalized)
+                || "toggle_section".equals(normalized)
+                || "open_modal".equals(normalized)
+                || "close_modal".equals(normalized);
+    }
+
+    private FrameworkAuthorityRoleContractVO findAuthorityRoleByAuthorCode(String authorCode) throws Exception {
+        String normalizedAuthorCode = safe(authorCode).toUpperCase(Locale.ROOT);
+        if (normalizedAuthorCode.isEmpty()) {
+            return null;
+        }
+        List<FrameworkAuthorityRoleContractVO> roles = frameworkAuthorityContractService.getAuthorityContract().getAuthorityRoles();
+        if (roles == null || roles.isEmpty()) {
+            return null;
+        }
+        for (FrameworkAuthorityRoleContractVO role : roles) {
+            if (role != null && normalizedAuthorCode.equalsIgnoreCase(safe(role.getAuthorCode()))) {
+                return role;
+            }
+        }
+        return null;
     }
 
     private List<ScreenBuilderNodeVO> normalizeNodes(List<ScreenBuilderNodeVO> source) {
@@ -701,10 +878,48 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
         draft.setMenuTitle(firstNonBlank(menuTitle, menu == null ? "" : menu.getCodeNm()));
         draft.setMenuUrl(firstNonBlank(menuUrl, menu == null ? "" : menu.getMenuUrl()));
         draft.setTemplateType(resolveDefaultTemplateType(draft.getPageId(), draft.getMenuUrl()));
+        draft.setAuthorityProfile(new ScreenBuilderAuthorityProfileVO());
         draft.setVersionStatus("DRAFT");
         draft.setNodes(createDefaultNodes(draft.getTemplateType(), draft.getPageId(), draft.getMenuTitle()));
         draft.setEvents(new ArrayList<>());
         return draft;
+    }
+
+    private ScreenBuilderAuthorityProfileVO normalizeAuthorityProfile(ScreenBuilderAuthorityProfileVO requested,
+                                                                     ScreenBuilderAuthorityProfileVO current) {
+        ScreenBuilderAuthorityProfileVO source = requested != null ? requested : current;
+        ScreenBuilderAuthorityProfileVO profile = new ScreenBuilderAuthorityProfileVO();
+        if (source == null) {
+            return profile;
+        }
+        profile.setRoleKey(safe(source.getRoleKey()));
+        profile.setAuthorCode(safe(source.getAuthorCode()).toUpperCase(Locale.ROOT));
+        profile.setLabel(safe(source.getLabel()));
+        profile.setDescription(safe(source.getDescription()));
+        profile.setTier(safe(source.getTier()));
+        profile.setActorType(safe(source.getActorType()));
+        profile.setScopePolicy(safe(source.getScopePolicy()));
+        profile.setHierarchyLevel(source.getHierarchyLevel() == null ? 0 : source.getHierarchyLevel());
+        profile.setFeatureCodes(normalizeStringList(source.getFeatureCodes(), true));
+        profile.setTags(normalizeStringList(source.getTags(), false));
+        return profile;
+    }
+
+    private List<String> normalizeStringList(List<String> source, boolean uppercase) {
+        if (source == null || source.isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<String> items = new ArrayList<>();
+        for (String item : source) {
+            String normalized = safe(item);
+            if (uppercase) {
+                normalized = normalized.toUpperCase(Locale.ROOT);
+            }
+            if (!normalized.isEmpty() && !items.contains(normalized)) {
+                items.add(normalized);
+            }
+        }
+        return items;
     }
 
     private List<ScreenBuilderNodeVO> createDefaultNodes(String templateType, String pageId, String menuTitle) {
@@ -1104,6 +1319,55 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
 
     private String asString(Object value) {
         return value == null ? "" : String.valueOf(value).trim();
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> safeMap(Object value) {
+        if (!(value instanceof Map)) {
+            return Collections.emptyMap();
+        }
+        return (Map<String, Object>) value;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> safeMapList(Object value) {
+        if (!(value instanceof List)) {
+            return Collections.emptyList();
+        }
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (Object item : (List<?>) value) {
+            if (item instanceof Map) {
+                rows.add((Map<String, Object>) item);
+            }
+        }
+        return rows;
+    }
+
+    private List<String> safeStringList(Object value) {
+        if (!(value instanceof List)) {
+            return Collections.emptyList();
+        }
+        List<String> rows = new ArrayList<>();
+        for (Object item : (List<?>) value) {
+            if (item != null) {
+                rows.add(String.valueOf(item));
+            }
+        }
+        return rows;
+    }
+
+    private static final class CommandAuthorityContext {
+        private final Set<String> allowedApiIds;
+        private final Set<String> menuFeatureCodes;
+
+        private CommandAuthorityContext(Set<String> allowedApiIds, Set<String> menuFeatureCodes) {
+            this.allowedApiIds = allowedApiIds == null ? Collections.emptySet() : allowedApiIds;
+            this.menuFeatureCodes = menuFeatureCodes == null ? Collections.emptySet() : menuFeatureCodes;
+        }
+
+        private static CommandAuthorityContext empty() {
+            return new CommandAuthorityContext(Collections.emptySet(), Collections.emptySet());
+        }
     }
 
     private Map<String, Object> buildRegistryDiagnostics(ScreenBuilderDraftDocumentVO draft, List<ScreenBuilderComponentRegistryItemVO> registry) {

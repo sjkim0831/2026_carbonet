@@ -5,7 +5,7 @@ import { CanView } from "../../components/access/CanView";
 import { buildLocalizedPath, getSearchParam } from "../../lib/navigation/runtime";
 import { fetchMemberDetailPage, MemberDetailPagePayload, resetMemberPasswordAction } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
-import { MemberActionBar, MemberLinkButton, MemberPermissionButton, MEMBER_BUTTON_LABELS } from "../member/common";
+import { LookupContextStrip, MemberActionBar, MemberLinkButton, MemberPermissionButton, MEMBER_BUTTON_LABELS, PageStatusNotice } from "../member/common";
 import { DetailSummaryCard, MemberSectionCard, MemberStateCard } from "../member/sections";
 
 function resolveInitialMemberId() {
@@ -67,8 +67,8 @@ export function MemberDetailMigrationPage() {
       loading={pageState.loading && !page && !error}
       loadingLabel="회원 상세 정보를 불러오는 중입니다."
     >
-      {error ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</section> : null}
-      {message ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</section> : null}
+      {error ? <PageStatusNotice tone="error">{error}</PageStatusNotice> : null}
+      {message ? <PageStatusNotice tone="success">{message}</PageStatusNotice> : null}
       {showUnavailable ? (
         <MemberStateCard
           actions={<MemberLinkButton href={buildLocalizedPath("/admin/member/list", "/en/admin/member/list")} icon="arrow_back" variant="secondary">{MEMBER_BUTTON_LABELS.list}</MemberLinkButton>}
@@ -81,17 +81,15 @@ export function MemberDetailMigrationPage() {
         <MemberStateCard description="현재 계정으로는 회원 상세 화면을 조회할 수 없습니다." icon="lock" title="권한이 없습니다." tone="warning" />
       ) : null}
       <CanView allowed={canView && hasMember} fallback={null}>
-        <section className="mb-6 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-5 py-4 shadow-sm" data-help-id="member-detail-lookup">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">Lookup Context</p>
-              <p className="mt-1 text-sm text-[var(--kr-gov-text-primary)]">memberId: {initialMemberId}</p>
-            </div>
+        <LookupContextStrip
+          action={(
             <MemberLinkButton href={buildLocalizedPath(`/admin/member/edit?memberId=${encodeURIComponent(initialMemberId)}`, `/en/admin/member/edit?memberId=${encodeURIComponent(initialMemberId)}`)} variant="secondary">
               {MEMBER_BUTTON_LABELS.edit}
             </MemberLinkButton>
-          </div>
-        </section>
+          )}
+          data-help-id="member-detail-lookup"
+          value={<>memberId: {initialMemberId}</>}
+        />
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           <div className="xl:col-span-1 flex flex-col gap-8">
             <DetailSummaryCard

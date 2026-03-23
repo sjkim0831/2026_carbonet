@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { CompanyApprovePagePayload } from "../../lib/api/client";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
-import { MemberButton, MemberButtonGroup, MemberPagination, MemberPermissionButton, MemberSectionToolbar, MEMBER_BUTTON_LABELS } from "../member/common";
+import { AdminInput, AdminSelect, MemberButton, MemberButtonGroup, MemberPagination, MemberPermissionButton, MemberSectionToolbar, MEMBER_BUTTON_LABELS } from "../member/common";
 
 export type CompanyApproveFilters = {
   searchKeyword: string;
@@ -26,32 +26,45 @@ export function CompanyApproveSearchSection({
   draftFilters,
   updateDraft,
   applyFilters,
-  resetFilters
+  resetFilters,
+  currentPage,
+  totalPages
 }: {
   draftFilters: CompanyApproveFilters;
   updateDraft: <K extends keyof CompanyApproveFilters>(key: K, value: CompanyApproveFilters[K]) => void;
   applyFilters: (nextPageIndex?: number) => void;
   resetFilters: () => void;
+  currentPage: number;
+  totalPages: number;
 }) {
   return (
     <section className="gov-card mb-6 overflow-hidden p-0" data-help-id="company-approve-search">
       <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
         <MemberSectionToolbar
+          actions={(
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
+                현재 페이지 {currentPage} / {totalPages}
+              </span>
+            </div>
+          )}
           meta="회원사 승인 목록은 상태와 검색어 조합을 같은 카드 구조 안에서 유지합니다."
           title="검색 조건"
         />
       </div>
-      <div className="grid gap-4 px-6 py-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-end">
-        <label>
-          <span className="block text-sm font-bold mb-2">상태</span>
-          <select className="w-full rounded border-gray-300 text-sm" value={draftFilters.status} onChange={(e) => updateDraft("status", e.target.value)}>
+      <div className="grid grid-cols-1 gap-6 px-6 py-6 md:grid-cols-4">
+        <div>
+          <span className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">상태</span>
+          <AdminSelect value={draftFilters.status} onChange={(e) => updateDraft("status", e.target.value)}>
             {COMPANY_APPROVE_STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
-        </label>
-        <label>
-          <span className="block text-sm font-bold mb-2">검색어</span>
-          <input className="w-full rounded border-gray-300 text-sm" placeholder="회원사명, 사업자등록번호 검색" value={draftFilters.searchKeyword} onChange={(e) => updateDraft("searchKeyword", e.target.value)} />
-        </label>
+          </AdminSelect>
+        </div>
+        <div className="md:col-span-3">
+          <span className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">검색어</span>
+          <div className="flex gap-2">
+            <AdminInput className="flex-1" placeholder="회원사명, 사업자등록번호 검색" value={draftFilters.searchKeyword} onChange={(e) => updateDraft("searchKeyword", e.target.value)} />
+          </div>
+        </div>
       </div>
       <div className="border-t border-[var(--kr-gov-border-light)] px-6 py-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

@@ -6,8 +6,8 @@ import { buildLocalizedPath, getSearchParam, isEnglish } from "../../lib/navigat
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { DiagnosticCard, GridToolbar, MemberLinkButton } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
-import { renderScreenBuilderNodePreview } from "./screenBuilderPreview";
-import { resolveScreenBuilderQuery, sortScreenBuilderNodes } from "./screenBuilderUtils";
+import { renderScreenBuilderNodePreview } from "./shared/screenBuilderPreview";
+import { resolveScreenBuilderQuery, sortScreenBuilderNodes } from "./shared/screenBuilderUtils";
 
 export function ScreenRuntimeMigrationPage() {
   const en = isEnglish();

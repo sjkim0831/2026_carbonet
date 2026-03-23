@@ -4,6 +4,7 @@ import { AuthChangePagePayload, FrontendSession, fetchAuthChangePage, fetchFront
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { AdminAuthorityPageFrame } from "../admin-ui/pageFrames";
+import { PageStatusNotice } from "../member/common";
 import { MemberStateCard } from "../member/sections";
 import { AuthChangeHistorySection, AuthChangeOverview, AuthChangeSelectedCard, AuthChangeTableSection } from "./authChangeSections";
 
@@ -153,8 +154,8 @@ export function AuthChangeMigrationPage() {
       loading={!page && !error}
       loadingLabel={t(page, "관리자 권한 데이터를 불러오는 중입니다.", "Loading administrator authority data.")}
     >
-      {(page?.authChangeError || error) ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{page?.authChangeError || error}</section> : null}
-      {(message || page?.authChangeMessage) ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message || page?.authChangeMessage}</section> : null}
+      {(page?.authChangeError || error) ? <PageStatusNotice tone="error">{page?.authChangeError || error}</PageStatusNotice> : null}
+      {(message || page?.authChangeMessage) ? <PageStatusNotice tone="success">{message || page?.authChangeMessage}</PageStatusNotice> : null}
       {!page && !error && !session ? null : !canView ? (
         <MemberStateCard description={t(page, "현재 계정으로는 권한 변경 화면을 조회할 수 없습니다.", "The current account cannot access the authority change screen.")} icon="lock" title={t(page, "권한이 없습니다.", "Permission denied.")} tone="warning" />
       ) : null}
