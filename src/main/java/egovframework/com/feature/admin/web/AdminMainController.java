@@ -21,8 +21,6 @@ import egovframework.com.feature.admin.model.vo.AdminRoleAssignmentVO;
 import egovframework.com.feature.admin.model.vo.AuthorRoleProfileVO;
 import egovframework.com.feature.admin.model.vo.AuthorInfoVO;
 import egovframework.com.feature.admin.model.vo.DepartmentRoleMappingVO;
-import egovframework.com.feature.admin.model.vo.EmissionResultFilterSnapshot;
-import egovframework.com.feature.admin.model.vo.EmissionResultSummaryView;
 import egovframework.com.feature.admin.model.vo.FeatureAssignmentStatVO;
 import egovframework.com.feature.admin.model.vo.FeatureCatalogItemVO;
 import egovframework.com.feature.admin.model.vo.FeatureCatalogSectionVO;
@@ -156,6 +154,7 @@ public class AdminMainController {
     private final ObjectProvider<AdminListPageModelAssembler> adminListPageModelAssemblerProvider;
     private final ObjectProvider<AdminSystemPageModelAssembler> adminSystemPageModelAssemblerProvider;
     private final ObjectProvider<AdminMemberPageModelAssembler> adminMemberPageModelAssemblerProvider;
+    private final ObjectProvider<AdminEmissionResultPageModelAssembler> adminEmissionResultPageModelAssemblerProvider;
     private final AdminCompanyAccountService adminCompanyAccountService;
     private final AuthService authService;
     private final MenuInfoService menuInfoService;
@@ -186,6 +185,10 @@ public class AdminMainController {
 
     private AdminApprovalPageModelAssembler adminApprovalPageModelAssembler() {
         return adminApprovalPageModelAssemblerProvider.getObject();
+    }
+
+    private AdminEmissionResultPageModelAssembler adminEmissionResultPageModelAssembler() {
+        return adminEmissionResultPageModelAssemblerProvider.getObject();
     }
 
     @RequestMapping(value = { "", "/" }, method = { RequestMethod.GET, RequestMethod.POST })
@@ -2548,56 +2551,13 @@ public class AdminMainController {
             String verificationStatus,
             Model model,
             boolean isEn) {
-        int pageIndex = 1;
-        if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
-            try {
-                pageIndex = Integer.parseInt(pageIndexParam.trim());
-            } catch (NumberFormatException ignored) {
-                pageIndex = 1;
-            }
-        }
-
-        String keyword = safeString(searchKeyword).toLowerCase(Locale.ROOT);
-        String normalizedResultStatus = safeString(resultStatus).toUpperCase(Locale.ROOT);
-        String normalizedVerificationStatus = safeString(verificationStatus).toUpperCase(Locale.ROOT);
-
-        EmissionResultFilterSnapshot filterSnapshot = adminSummaryService.buildEmissionResultFilterSnapshot(
-                isEn,
-                keyword,
-                normalizedResultStatus,
-                normalizedVerificationStatus);
-        List<EmissionResultSummaryView> filteredItems = filterSnapshot.getItems();
-
-        int pageSize = 10;
-        int totalCount = filterSnapshot.getTotalCount();
-        int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
-        int currentPage = Math.max(1, Math.min(pageIndex, totalPages));
-        int fromIndex = Math.min((currentPage - 1) * pageSize, totalCount);
-        int toIndex = Math.min(fromIndex + pageSize, totalCount);
-        List<EmissionResultSummaryView> pageItems = filteredItems.subList(fromIndex, toIndex);
-        long reviewCount = filterSnapshot.getReviewCount();
-        long verifiedCount = filterSnapshot.getVerifiedCount();
-
-        int startPage = Math.max(1, currentPage - 4);
-        int endPage = Math.min(totalPages, startPage + 9);
-        if (endPage - startPage < 9) {
-            startPage = Math.max(1, endPage - 9);
-        }
-
-        model.addAttribute("emissionResultList", pageItems);
-        model.addAttribute("totalCount", totalCount);
-        model.addAttribute("reviewCount", reviewCount);
-        model.addAttribute("verifiedCount", verifiedCount);
-        model.addAttribute("pageIndex", currentPage);
-        model.addAttribute("pageSize", pageSize);
-        model.addAttribute("totalPages", totalPages);
-        model.addAttribute("startPage", startPage);
-        model.addAttribute("endPage", endPage);
-        model.addAttribute("prevPage", Math.max(1, currentPage - 1));
-        model.addAttribute("nextPage", Math.min(totalPages, currentPage + 1));
-        model.addAttribute("searchKeyword", safeString(searchKeyword));
-        model.addAttribute("resultStatus", normalizedResultStatus);
-        model.addAttribute("verificationStatus", normalizedVerificationStatus);
+        adminEmissionResultPageModelAssembler().populateEmissionResultList(
+                pageIndexParam,
+                searchKeyword,
+                resultStatus,
+                verificationStatus,
+                model,
+                isEn);
     }
 
     private void populateLoginHistory(
