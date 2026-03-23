@@ -3,9 +3,10 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 BRANCH="${BRANCH:-main}"
-WORKSPACE_DIR="${WORKSPACE_DIR:-$ROOT_DIR/.jenkins-workspace}"
 REPO_URL="${REPO_URL:-https://github.com/sjkim0831/2026_carbonet.git}"
-BUILD_DIR="${BUILD_DIR:-$WORKSPACE_DIR/repo}"
+WORKSPACE_ROOT="${WORKSPACE_ROOT:-${TMPDIR:-/tmp}}"
+BUILD_ROOT=""
+BUILD_DIR=""
 ARTIFACT_DIR="${ARTIFACT_DIR:-$ROOT_DIR/var/artifacts/jenkins}"
 ARTIFACT_NAME="${ARTIFACT_NAME:-carbonet.jar}"
 GIT_CREDENTIALS_HEADER="${GIT_CREDENTIALS_HEADER:-}"
@@ -16,6 +17,8 @@ MAIN_SSH_PASSWORD="${MAIN_SSH_PASSWORD:-$MAIN_REMOTE_PASSWORD}"
 IDLE_SCALE_ENABLED="${IDLE_SCALE_ENABLED:-true}"
 IDLE_RESTORE_ENABLED="${IDLE_RESTORE_ENABLED:-true}"
 IDLE_SSH_PASSWORD="${IDLE_SSH_PASSWORD:-}"
+LAST_DEPLOYED_COMMIT_FILE="${LAST_DEPLOYED_COMMIT_FILE:-$ARTIFACT_DIR/last-deployed-${BRANCH}.txt}"
+CURRENT_COMMIT_SHA=""
 
 log() {
   printf '[jenkins-deploy-carbonet] %s\n' "$*"
@@ -29,23 +32,43 @@ require_command() {
   fi
 }
 
-git_fetch() {
-  if [[ -d "$BUILD_DIR/.git" ]]; then
-    if [[ -n "$GIT_CREDENTIALS_HEADER" ]]; then
-      git -C "$BUILD_DIR" -c "http.https://github.com/.extraheader=${GIT_CREDENTIALS_HEADER}" fetch origin "$BRANCH"
-    else
-      git -C "$BUILD_DIR" fetch origin "$BRANCH"
-    fi
-    git -C "$BUILD_DIR" checkout -f FETCH_HEAD
-    return 0
+cleanup() {
+  if [[ -n "$BUILD_ROOT" && -d "$BUILD_ROOT" ]]; then
+    rm -rf "$BUILD_ROOT"
   fi
+}
 
-  mkdir -p "$WORKSPACE_DIR"
+clone_branch() {
+  mkdir -p "$WORKSPACE_ROOT"
+  BUILD_ROOT="$(mktemp -d "$WORKSPACE_ROOT/carbonet-jenkins-${BRANCH}-XXXXXX")"
+  BUILD_DIR="$BUILD_ROOT/repo"
   if [[ -n "$GIT_CREDENTIALS_HEADER" ]]; then
     git -c "http.https://github.com/.extraheader=${GIT_CREDENTIALS_HEADER}" clone --branch "$BRANCH" --single-branch "$REPO_URL" "$BUILD_DIR"
   else
     git clone --branch "$BRANCH" --single-branch "$REPO_URL" "$BUILD_DIR"
   fi
+  CURRENT_COMMIT_SHA="$(git -C "$BUILD_DIR" rev-parse HEAD)"
+  log "checked out branch=${BRANCH} commit=${CURRENT_COMMIT_SHA}"
+}
+
+should_skip_deploy() {
+  if [[ ! -f "$LAST_DEPLOYED_COMMIT_FILE" ]]; then
+    return 1
+  fi
+
+  local last_deployed_commit=""
+  last_deployed_commit="$(tr -d '[:space:]' < "$LAST_DEPLOYED_COMMIT_FILE")"
+  if [[ -z "$last_deployed_commit" || "$last_deployed_commit" != "$CURRENT_COMMIT_SHA" ]]; then
+    return 1
+  fi
+
+  if [[ -n "${DRAIN_IDLE_TARGET_IP:-}" ]]; then
+    log "commit unchanged but idle drain requested; skip disabled"
+    return 1
+  fi
+
+  log "commit unchanged (${CURRENT_COMMIT_SHA}); build and deploy skipped"
+  return 0
 }
 
 build_artifact() {
@@ -60,6 +83,7 @@ archive_artifact() {
   mkdir -p "$ARTIFACT_DIR"
   cp "$BUILD_DIR/target/$ARTIFACT_NAME" "$ARTIFACT_DIR/$ARTIFACT_NAME"
   cp "$BUILD_DIR/target/$ARTIFACT_NAME" "$ARTIFACT_DIR/carbonet-$(date +%Y%m%d-%H%M%S).jar"
+  printf '%s\n' "$CURRENT_COMMIT_SHA" > "$LAST_DEPLOYED_COMMIT_FILE"
 }
 
 deploy_main() {
@@ -99,11 +123,16 @@ restore_idle_if_requested() {
 }
 
 main() {
+  trap cleanup EXIT
   require_command git
   require_command npm
   require_command mvn
 
-  git_fetch
+  clone_branch
+  if should_skip_deploy; then
+    restore_idle_if_requested
+    exit 0
+  fi
   build_artifact
   archive_artifact
   deploy_main

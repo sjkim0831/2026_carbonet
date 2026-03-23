@@ -1,11 +1,13 @@
 import { useMemo } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
-import { fetchAuditEvents, fetchScreenBuilderPage, fetchScreenBuilderPreview } from "../../lib/api/client";
+import { fetchAuditEvents } from "../../lib/api/observability";
+import { fetchScreenBuilderPage, fetchScreenBuilderPreview } from "../../lib/api/screenBuilder";
 import { buildLocalizedPath, getSearchParam, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { DiagnosticCard, GridToolbar, MemberLinkButton } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
-import { renderScreenBuilderNodePreview, resolveScreenBuilderQuery, sortScreenBuilderNodes } from "./screenBuilderRenderer";
+import { renderScreenBuilderNodePreview } from "./screenBuilderPreview";
+import { resolveScreenBuilderQuery, sortScreenBuilderNodes } from "./screenBuilderUtils";
 
 export function ScreenRuntimeMigrationPage() {
   const en = isEnglish();

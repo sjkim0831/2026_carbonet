@@ -22,6 +22,8 @@ export type MigrationPageId =
   | "member-approve"
   | "company-approve"
   | "member-list"
+  | "member-withdrawn"
+  | "member-activate"
   | "member-detail"
   | "company-detail"
   | "member-stats"
@@ -108,6 +110,8 @@ export const ROUTES: RouteDefinition[] = [
   { id: "member-approve", label: "회원 승인", group: "admin", koPath: "/admin/member/approve", enPath: "/en/admin/member/approve" },
   { id: "company-approve", label: "회원사 승인", group: "admin", koPath: "/admin/member/company-approve", enPath: "/en/admin/member/company-approve" },
   { id: "member-list", label: "회원 목록", group: "admin", koPath: "/admin/member/list", enPath: "/en/admin/member/list" },
+  { id: "member-withdrawn", label: "탈퇴 회원", group: "admin", koPath: "/admin/member/withdrawn", enPath: "/en/admin/member/withdrawn" },
+  { id: "member-activate", label: "휴면 계정", group: "admin", koPath: "/admin/member/activate", enPath: "/en/admin/member/activate" },
   { id: "member-detail", label: "회원 상세", group: "admin", koPath: "/admin/member/detail", enPath: "/en/admin/member/detail" },
   { id: "company-detail", label: "회원사 상세", group: "admin", koPath: "/admin/member/company_detail", enPath: "/en/admin/member/company_detail" },
   { id: "member-stats", label: "회원 통계", group: "admin", koPath: "/admin/member/stats", enPath: "/en/admin/member/stats" },

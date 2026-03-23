@@ -10,13 +10,7 @@ SOURCE_JAR_PATH="${SOURCE_JAR_PATH:-$ROOT_DIR/target/carbonet.jar}"
 JAR_PATH="${JAR_PATH:-$RUN_DIR/carbonet-${PORT}.jar}"
 PID_FILE="$RUN_DIR/carbonet-${PORT}.pid"
 LOG_FILE="$LOG_DIR/carbonet-${PORT}.log"
-
-DB_HOST="${CUBRID_HOST:-127.0.0.1}"
-DB_PORT="${CUBRID_PORT:-33000}"
-DB_NAME="${CUBRID_DB:-carbonet}"
-DB_USER="${CUBRID_USER:-dba}"
-DB_PASSWORD="${CUBRID_PASSWORD:-}"
-DB_URL="jdbc:cubrid:${DB_HOST}:${DB_PORT}:${DB_NAME}:::?charset=UTF-8"
+LOCK_FILE="$RUN_DIR/carbonet-${PORT}.lock"
 STARTUP_WAIT_SECONDS="${STARTUP_WAIT_SECONDS:-60}"
 START_RETRY_COUNT="${START_RETRY_COUNT:-10}"
 RETRY_DELAY_SECONDS="${RETRY_DELAY_SECONDS:-5}"
@@ -35,6 +29,18 @@ load_optional_env "$CONFIG_DIR/carbonet-${PORT}.env"
 load_optional_env "$CONFIG_DIR/codex-runner.env"
 
 mkdir -p "$LOG_DIR" "$RUN_DIR"
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+  echo "[start-18000] another startup is already in progress: port=$PORT lock=$LOCK_FILE" >&2
+  exit 1
+fi
+
+DB_HOST="${CUBRID_HOST:-127.0.0.1}"
+DB_PORT="${CUBRID_PORT:-33000}"
+DB_NAME="${CUBRID_DB:-carbonet}"
+DB_USER="${CUBRID_USER:-dba}"
+DB_PASSWORD="${CUBRID_PASSWORD:-}"
+DB_URL="jdbc:cubrid:${DB_HOST}:${DB_PORT}:${DB_NAME}:::?charset=UTF-8"
 
 if [[ ! -f "$SOURCE_JAR_PATH" ]]; then
   echo "[start-18000] missing source jar: $SOURCE_JAR_PATH" >&2
@@ -56,6 +62,11 @@ if [[ -f "$PID_FILE" ]]; then
     exit 0
   fi
   rm -f "$PID_FILE"
+fi
+
+if ss -ltn "( sport = :$PORT )" 2>/dev/null | grep -q ":$PORT"; then
+  echo "[start-18000] port already in use: $PORT" >&2
+  exit 1
 fi
 
 for attempt in $(seq 1 "$START_RETRY_COUNT"); do

@@ -10,7 +10,7 @@ import {
 } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { MemberPermissionButton, MEMBER_BUTTON_LABELS } from "../member/common";
-import { ReviewModalFrame } from "../member/sections";
+import { MemberStateCard, ReviewModalFrame } from "../member/sections";
 import { DEFAULT_MEMBER_APPROVE_FILTERS, MemberApproveFilters, MemberApproveReviewContent, MemberApproveSearchSection, MemberApproveTableSection } from "./memberApproveSections";
 
 export function MemberApproveMigrationPage() {
@@ -124,10 +124,15 @@ export function MemberApproveMigrationPage() {
       ]}
       subtitle="기업회원 가입 신청을 검토하고 승인 또는 반려 상태를 처리합니다."
       title="회원 가입 승인 관리"
+      loading={pageState.loading && !page && !error}
+      loadingLabel="회원 승인 대상을 불러오는 중입니다."
     >
       {message ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</section> : null}
       {error ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</section> : null}
-      <CanView allowed={!!page?.canViewMemberApprove} fallback={<section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm"><p className="text-sm text-[var(--kr-gov-text-secondary)]">회원 승인 화면을 볼 권한이 없습니다.</p></section>}>
+      {!pageState.loading && !!page && !page?.canViewMemberApprove ? (
+        <MemberStateCard description="현재 계정으로는 회원 승인 관리 화면을 조회할 수 없습니다." icon="lock" title="권한이 없습니다." tone="warning" />
+      ) : null}
+      <CanView allowed={!!page?.canViewMemberApprove} fallback={null}>
         <MemberApproveSearchSection
           applyFilters={applyFilters}
           draftFilters={draftFilters}

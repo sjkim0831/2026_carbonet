@@ -6,7 +6,7 @@ Generated on 2026-03-21 for the Resonance initial runtime rollout track.
 
 Define the concrete build-first rollout order where:
 
-- `34.82.141.193` acts as the `Resonance Control Plane`
+- `136.109.238.233` acts as the `Resonance Control Plane`
 - `136.117.100.221` acts as the initial runtime consumer
 
 ## Project-Unit Rule
@@ -29,6 +29,19 @@ Do not mix unrelated project units in one deploy execution.
 
 ### `34.82.141.193`
 
+This host is the dedicated DB control target for Carbonet runtime operations.
+
+Owns:
+
+- CUBRID
+- CAS / broker
+- backup and restore
+- DB connectivity checks
+
+It does not own Jenkins, Nomad control, or artifact build authority.
+
+### `136.109.238.233`
+
 Owns:
 
 - scaffold authoring
@@ -50,13 +63,13 @@ Owns:
 
 ## Core Rule
 
-Build on `193`. Run on `221`.
+Build on `233`. Run on `221`.
 
 Do not treat `221` as a source-of-truth build host.
 
 DB rule:
 
-- `193` may use a local control-plane DB for Resonance operations
+- `193` is the dedicated project DB target for Carbonet runtime operations
 - `221` may initially connect to a copied or newly attached project DB target
 - when a dedicated project DB server is added later, `221` should switch to that DB target through a governed release and verification flow
 
@@ -64,7 +77,7 @@ DB rule:
 
 ### Step 0. Prepare
 
-Verify on `193`:
+Verify on `233`:
 
 - project exists
 - scenario and scaffold request are approved
@@ -72,7 +85,7 @@ Verify on `193`:
 - target runtime binding points to `221`
 - current project DB attachment target is recorded
 
-### Step 1. Build On `193`
+### Step 1. Build On `233`
 
 Run:
 
@@ -90,7 +103,7 @@ Record:
 
 ### Step 2. Publish Artifact
 
-Publish the built artifact from `193` into the governed artifact registry.
+Publish the built artifact from `233` into the governed artifact registry.
 
 Minimum metadata:
 
@@ -136,7 +149,7 @@ When the release includes a DB-target switch, verify additionally:
 
 ### Step 5. Record Runtime Result
 
-Write back to Resonance on `193`:
+Write back to Resonance on `233`:
 
 - deploy target
 - runtime status

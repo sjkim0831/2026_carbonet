@@ -150,7 +150,7 @@ export function PublicLoginPage() {
               </div>
               <div className="flex border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] overflow-hidden">
                 <AppButton
-                  className={`px-3 py-1 text-xs font-bold ${en ? "bg-white text-[var(--kr-gov-text-secondary)] hover:bg-gray-100" : "bg-[var(--kr-gov-blue)] text-white"}`}
+                  className={`px-3 py-1 text-xs font-bold ${en ? "!bg-white !text-[var(--kr-gov-text-secondary)] hover:!bg-gray-100" : "!bg-[var(--kr-gov-blue)] !text-white hover:!bg-[var(--kr-gov-blue-hover)]"}`}
                   onClick={() => navigate("/signin/loginView")}
                   size="xs"
                   type="button"
@@ -159,7 +159,7 @@ export function PublicLoginPage() {
                   KO
                 </AppButton>
                 <AppButton
-                  className={`px-3 py-1 text-xs font-bold border-l border-[var(--kr-gov-border-light)] ${en ? "bg-[var(--kr-gov-blue)] text-white" : "bg-white text-[var(--kr-gov-text-secondary)] hover:bg-gray-100"}`}
+                  className={`px-3 py-1 text-xs font-bold border-l border-[var(--kr-gov-border-light)] ${en ? "!bg-[var(--kr-gov-blue)] !text-white hover:!bg-[var(--kr-gov-blue-hover)]" : "!bg-white !text-[var(--kr-gov-text-secondary)] hover:!bg-gray-100"}`}
                   onClick={() => navigate("/en/signin/loginView")}
                   size="xs"
                   type="button"

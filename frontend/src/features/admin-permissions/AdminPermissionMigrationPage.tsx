@@ -7,6 +7,7 @@ import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { ADMIN_BUTTON_LABELS } from "../admin-ui/labels";
 import { GridToolbar, MemberActionBar } from "../admin-ui/common";
 import { AdminEditPageFrame } from "../admin-ui/pageFrames";
+import { MemberStateCard } from "../member/sections";
 
 function text(page: AdminPermissionPagePayload | null, ko: string, en: string) {
   return page?.isEn ? en : ko;
@@ -93,7 +94,10 @@ export function AdminPermissionMigrationPage() {
       ) : null}
       {page?.adminPermissionUpdated ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{text(page, "관리자 권한이 저장되었습니다.", "Administrator permissions have been saved.")}</section> : null}
       {message ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{message}</section> : null}
-      <CanView allowed={!!page?.canViewAdminPermissionEdit} fallback={<section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm"><p className="text-sm text-[var(--kr-gov-text-secondary)]">{text(page, "편집 대상 관리자를 조회하세요.", "Look up an administrator to edit.")}</p></section>}>
+      {!!page && !page?.canViewAdminPermissionEdit ? (
+        <MemberStateCard description={text(page, "편집 대상 관리자를 다시 조회하거나 현재 권한 범위를 확인해 주세요.", "Look up an administrator again or review the current permission scope.")} icon="lock" title={text(page, "권한이 없습니다.", "Permission denied.")} tone="warning" />
+      ) : null}
+      <CanView allowed={!!page?.canViewAdminPermissionEdit} fallback={null}>
         <AdminEditPageFrame>
         <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm mb-6" data-help-id="admin-permission-summary">
           <GridToolbar

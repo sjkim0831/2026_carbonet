@@ -44,8 +44,13 @@ export default defineConfig({
     manifest: true,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react/jsx-runtime']
+        manualChunks(id) {
+          if (id.includes("node_modules/react") || id.includes("react/jsx-runtime")) {
+            return "vendor-react";
+          }
+          if (id.includes("/src/lib/api/screenBuilder") || id.includes("/src/lib/api/screenGovernance")) {
+            return "screenBuilderApi";
+          }
         }
       }
     }

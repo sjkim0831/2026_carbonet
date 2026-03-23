@@ -4,7 +4,76 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PORT="${PORT:-18000}"
 RUN_DIR="${RUN_DIR:-$ROOT_DIR/var/run}"
+CONFIG_DIR="${CONFIG_DIR:-$ROOT_DIR/ops/config}"
 PID_FILE="$RUN_DIR/carbonet-${PORT}.pid"
+
+load_optional_env() {
+  local env_file="$1"
+  if [[ -f "$env_file" ]]; then
+    # shellcheck disable=SC1090
+    set -a
+    source "$env_file"
+    set +a
+  fi
+}
+
+is_truthy() {
+  case "${1:-}" in
+    1|Y|y|YES|yes|TRUE|true|ON|on) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+purge_remote_cas_if_requested() {
+  if ! is_truthy "${REMOTE_CUBRID_CONNECTION_PURGE_ON_STOP:-false}"; then
+    return 0
+  fi
+
+  local remote_user="${REMOTE_CUBRID_SSH_USER:-}"
+  local remote_host="${REMOTE_CUBRID_SSH_HOST:-${CUBRID_HOST:-}}"
+  local remote_port="${REMOTE_CUBRID_SSH_PORT:-22}"
+  local remote_password="${REMOTE_CUBRID_SSH_PASSWORD:-}"
+  local broker_port="${CUBRID_PORT:-33000}"
+  local client_ips="${REMOTE_CUBRID_CLIENT_IPS:-}"
+
+  if [[ -z "$remote_user" || -z "$remote_host" || -z "$client_ips" ]]; then
+    echo "[stop-18000] remote CAS purge skipped: ssh target or client IPs are not configured"
+    return 0
+  fi
+
+  local remote_target="${remote_user}@${remote_host}"
+  local remote_cmd='set -e; for ip in '"$client_ips"'; do sudo -n ss -K dst "$ip" dport = '"$broker_port"' >/dev/null 2>&1 || true; done'
+  local ssh_cmd=(ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p "$remote_port" "$remote_target" "$remote_cmd")
+
+  if [[ -n "$remote_password" ]]; then
+    local askpass_script
+    askpass_script="$(mktemp)"
+    chmod 700 "$askpass_script"
+    cat >"$askpass_script" <<EOF
+#!/usr/bin/env bash
+printf '%s\n' '${remote_password}'
+EOF
+    if DISPLAY=:0 SSH_ASKPASS="$askpass_script" SSH_ASKPASS_REQUIRE=force setsid "${ssh_cmd[@]}" </dev/null; then
+      rm -f "$askpass_script"
+      echo "[stop-18000] remote CAS purge completed for: $client_ips"
+      return 0
+    fi
+    rm -f "$askpass_script"
+    echo "[stop-18000] remote CAS purge failed for: $client_ips"
+    return 0
+  fi
+
+  if ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p "$remote_port" "$remote_target" "$remote_cmd"; then
+    echo "[stop-18000] remote CAS purge completed for: $client_ips"
+    return 0
+  fi
+
+  echo "[stop-18000] remote CAS purge failed for: $client_ips"
+  return 0
+}
+
+load_optional_env "$CONFIG_DIR/carbonet-${PORT}.env"
+load_optional_env "$CONFIG_DIR/codex-runner.env"
 
 if [[ ! -f "$PID_FILE" ]]; then
   echo "[stop-18000] pid file not found: $PID_FILE"
@@ -29,6 +98,7 @@ kill "$APP_PID" 2>/dev/null || true
 for _ in $(seq 1 20); do
   if ! kill -0 "$APP_PID" 2>/dev/null; then
     rm -f "$PID_FILE"
+    purge_remote_cas_if_requested
     echo "[stop-18000] stopped: pid=$APP_PID"
     exit 0
   fi
@@ -37,4 +107,5 @@ done
 
 kill -9 "$APP_PID" 2>/dev/null || true
 rm -f "$PID_FILE"
+purge_remote_cas_if_requested
 echo "[stop-18000] force stopped: pid=$APP_PID"

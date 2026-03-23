@@ -54,6 +54,13 @@ export function useTelemetryTransport() {
           // Keep best-effort telemetry transport non-blocking.
         }
       }
+      if (!token) {
+        sendingRef.current = false;
+        if (queueRef.current.length > 0) {
+          scheduleFlush();
+        }
+        return;
+      }
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (token) {
         headers[headerName] = token;

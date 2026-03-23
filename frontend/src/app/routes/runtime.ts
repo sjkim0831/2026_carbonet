@@ -28,6 +28,10 @@ export function isReactManagedPath(pathname: string): boolean {
     return true;
   }
 
+  if (koComparable === "/admin/member/withdrawn" || koComparable === "/admin/member/activate") {
+    return true;
+  }
+
   return routeByComparablePath.has(koComparable) || routeByComparablePath.has(normalizedPath);
 }
 
@@ -63,6 +67,9 @@ export function resolveCanonicalRuntimePath(): string {
 export function resolvePageFromPath(pathname: string, search = ""): MigrationPageId {
   const normalizedCurrentPath = normalizeComparablePath(pathname);
   const normalizedKoPath = normalizeComparablePath(pathname.replace(/^\/en/, "") || "/home");
+  if (normalizedKoPath === "/admin/member/withdrawn" || normalizedKoPath === "/admin/member/activate") {
+    return "member-list";
+  }
   const matched = routeByComparablePath.get(normalizedKoPath) || routeByComparablePath.get(normalizedCurrentPath);
   if (matched) {
     return matched;

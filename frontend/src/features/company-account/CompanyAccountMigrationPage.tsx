@@ -19,6 +19,7 @@ import {
   CompanyMembershipSection,
   UploadRow
 } from "./companyAccountSections";
+import { MemberStateCard } from "../member/sections";
 
 const EMPTY_FORM: CompanyFormState = {
   insttId: "",
@@ -264,9 +265,12 @@ export function CompanyAccountMigrationPage() {
     >
       {message ? <section className="mb-6 rounded-[var(--kr-gov-radius)] border border-green-200 bg-green-50 px-4 py-3 text-sm text-emerald-700">{message}</section> : null}
       {error ? <section className="mb-6 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</section> : null}
+      {!pageState.loading && !!page && !page?.canViewCompanyAccount ? (
+        <MemberStateCard description="현재 계정으로는 회원사 관리 화면을 조회할 수 없습니다." icon="lock" title="권한이 없습니다." tone="warning" />
+      ) : null}
       <CanView
         allowed={!!page?.canViewCompanyAccount}
-        fallback={<section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm"><p className="text-sm text-[var(--kr-gov-text-secondary)]">회원사 관리 화면을 볼 권한이 없습니다.</p></section>}
+        fallback={null}
       >
         <div className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-8 shadow-sm" data-help-id="company-account-page">
           {form.insttId ? (
@@ -291,7 +295,7 @@ export function CompanyAccountMigrationPage() {
               primary={(
                 <MemberPermissionButton
                   allowed={!!page?.canUseCompanyAccountSave}
-                  className="w-full max-w-[320px] shadow-lg shadow-blue-900/10"
+                  className="w-full sm:w-auto sm:min-w-[220px] justify-center whitespace-nowrap shadow-lg shadow-blue-900/10"
                   data-action="save"
                   icon="arrow_forward"
                   onClick={handleSave}

@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { CanView } from "../../components/access/CanView";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import { AdminListPagePayload, fetchAdminListPage } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
-import { AdminInput, AdminSelect, AdminTable, MemberButton, MemberLinkButton, MemberPagination, MemberSectionToolbar } from "../member/common";
+import { AdminInput, AdminSelect, AdminTable, MemberButton, MemberPagination, MemberSectionToolbar } from "../member/common";
 import { MEMBER_BUTTON_LABELS } from "../member/labels";
+import { MemberStateCard } from "../member/sections";
 import { MemberCountSummary, MemberListEmptyRow, MemberListTopActions } from "../member/toolbar";
 
 function statusLabel(code: string) {
@@ -46,8 +46,10 @@ export function AdminListMigrationPage() {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
-  const currentPage = Math.max(1, Number(page?.pageIndex || 1));
+  const loading = !page && !error;
+  const canView = !!page?.canViewAdminList;
   const totalPages = Math.max(1, Number(page?.totalPages || 1));
+  const currentPage = Math.max(1, Number(page?.pageIndex || 1));
 
   async function load(next?: { pageIndex?: number; searchKeyword?: string; sbscrbSttus?: string; }) {
     const payload = await fetchAdminListPage(next);
@@ -60,13 +62,6 @@ export function AdminListMigrationPage() {
     load().catch((err: Error) => setError(err.message));
   }, []);
 
-  function resetFilters() {
-    setError("");
-    setSearchKeyword("");
-    setStatus("");
-    load({ pageIndex: 1, searchKeyword: "", sbscrbSttus: "" }).catch((err: Error) => setError(err.message));
-  }
-
   return (
     <AdminPageShell
       breadcrumbs={[
@@ -74,14 +69,22 @@ export function AdminListMigrationPage() {
         { label: "관리자" },
         { label: "관리자 회원 목록 조회" }
       ]}
-      subtitle="관리자 계정 상태와 조직 정보를 같은 목록 기준으로 조회하고 권한 관리 화면으로 이어집니다."
       title="관리자 회원 목록 조회"
-      loading={!page && !error}
+      loading={loading}
       loadingLabel="관리자 목록을 불러오는 중입니다."
     >
-      {error ? <section className="mb-4 text-sm text-red-600 font-medium"><p>{error}</p></section> : null}
-      <CanView allowed={!!page?.canViewAdminList} fallback={<section className="panel"><p className="state-text">관리자 목록을 불러올 수 없습니다.</p></section>}>
-        <section className="gov-card mb-8 p-0 overflow-hidden" data-help-id="admin-list-search">
+      {error ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"><p>조회 중 오류: {error}</p></section> : null}
+      {!loading && page && !canView ? (
+        <MemberStateCard
+          description="현재 계정으로는 관리자 회원 목록을 조회할 수 없습니다."
+          icon="lock"
+          title="권한이 없습니다."
+          tone="warning"
+        />
+      ) : null}
+      {canView ? (
+        <>
+        <section className="gov-card mb-8" data-help-id="admin-list-search">
           <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
             <MemberSectionToolbar
               actions={(
@@ -91,12 +94,12 @@ export function AdminListMigrationPage() {
                   </span>
                 </div>
               )}
-              meta="상태와 검색어를 조합해 관리자 목록 기준 화면의 정보 밀도를 동일하게 유지합니다."
+              meta="상태와 검색어를 같은 카드에서 조합해 관리자 계정 목록을 조회합니다."
               title="검색 조건"
             />
           </div>
           <form
-            className="grid grid-cols-1 gap-6 px-6 py-6 md:grid-cols-3"
+            className="grid grid-cols-1 gap-6 px-6 py-6 md:grid-cols-4"
             onSubmit={(e) => {
               e.preventDefault();
               load({ pageIndex: 1, searchKeyword, sbscrbSttus: status }).catch((err: Error) => setError(err.message));
@@ -113,17 +116,34 @@ export function AdminListMigrationPage() {
                 <option value="X">차단</option>
               </AdminSelect>
             </div>
-            <div className="md:col-span-2">
-              <label className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2" htmlFor="keyword">검색어</label>
-              <AdminInput id="keyword" placeholder="성명, 아이디, 조직ID, 이메일 검색" value={searchKeyword} onChange={(e) => setSearchKeyword(e.target.value)} />
-            </div>
             <div className="md:col-span-3">
+              <label className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2" htmlFor="keyword">검색어</label>
+              <div className="flex gap-2">
+                <AdminInput
+                  className="flex-1"
+                  id="keyword"
+                  placeholder="성명, 아이디, 조직ID, 이메일 검색"
+                  value={searchKeyword}
+                  onChange={(e) => setSearchKeyword(e.target.value)}
+                />
+                <MemberButton icon="search" type="submit" variant="primary">검색</MemberButton>
+              </div>
+            </div>
+            <div className="md:col-span-4">
               <div className="flex flex-col gap-3 border-t border-[var(--kr-gov-border-light)] pt-5 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
-                  동일한 목록형 화면은 검색 카드, 상단 툴바, 결과 테이블 순서를 유지합니다.
+                  회원 목록 화면과 같은 검색 카드, 상단 툴바, 결과 테이블 구조로 관리자 목록을 정렬합니다.
                 </p>
                 <div className="flex flex-wrap items-center justify-end gap-2">
-                  <MemberButton onClick={resetFilters} type="button" variant="secondary">
+                  <MemberButton
+                    onClick={() => {
+                      setSearchKeyword("");
+                      setStatus("");
+                      load({ pageIndex: 1, searchKeyword: "", sbscrbSttus: "" }).catch((err: Error) => setError(err.message));
+                    }}
+                    type="button"
+                    variant="secondary"
+                  >
                     {MEMBER_BUTTON_LABELS.reset}
                   </MemberButton>
                   <MemberButton icon="search" type="submit" variant="primary">
@@ -134,24 +154,21 @@ export function AdminListMigrationPage() {
             </div>
           </form>
         </section>
-        <section className="gov-card p-0 overflow-hidden" data-help-id="admin-list-table">
+        <div className="gov-card p-0 overflow-hidden" data-help-id="admin-list-table">
           <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
             <MemberSectionToolbar
               actions={(
                 <MemberListTopActions
-                  excelHref={buildLocalizedPath(
-                    `/admin/member/admin_list/excel?searchKeyword=${encodeURIComponent(searchKeyword)}&sbscrbSttus=${encodeURIComponent(status)}`,
-                    `/en/admin/member/admin_list/excel?searchKeyword=${encodeURIComponent(searchKeyword)}&sbscrbSttus=${encodeURIComponent(status)}`
-                  )}
-                  registerHref={page?.canUseAdminListActions ? buildLocalizedPath("/admin/member/admin_account", "/en/admin/member/admin_account") : undefined}
+                  excelHref={`/admin/member/admin_list/excel?searchKeyword=${encodeURIComponent(searchKeyword)}&sbscrbSttus=${encodeURIComponent(status)}`}
+                  registerHref={buildLocalizedPath("/admin/member/admin_account", "/en/admin/member/admin_account")}
                   registerLabel="신규 관리자 등록"
                 />
               )}
-              meta="관리자 목록 화면은 전체 건수, 다운로드, 신규 등록 버튼의 순서와 높이를 동일하게 유지합니다."
+              meta="전체 건수, 엑셀 다운로드, 신규 관리자 등록 동선을 회원 목록 화면과 같은 위치에 둡니다."
               title={<MemberCountSummary totalCount={Number(page?.totalCount || 0)} />}
             />
           </div>
-          <div className="overflow-x-auto">
+            <div className="overflow-x-auto">
               <AdminTable>
                 <thead>
                   <tr className="bg-gray-50 border-y border-[var(--kr-gov-border-light)] text-[14px] font-bold text-[var(--kr-gov-text-secondary)]">
@@ -169,7 +186,7 @@ export function AdminListMigrationPage() {
                     <MemberListEmptyRow colSpan={7} message="조회된 관리자 계정이 없습니다." />
                   ) : (page?.member_list || []).map((row, index) => (
                     <tr className="hover:bg-gray-50/50 transition-colors" key={`${String(row.emplyrId || "admin")}-${index}`}>
-                      <td className="px-6 py-4 text-center text-gray-500">{Number(page?.totalCount || 0) - (((currentPage - 1) * 10) + index)}</td>
+                      <td className="px-6 py-4 text-center text-gray-500">{Number(page?.totalCount || 0) - (((Number(page?.pageIndex || 1) - 1) * 10) + index)}</td>
                       <td className="px-6 py-4">
                         <div className="font-bold text-[var(--kr-gov-text-primary)]">{String(row.userNm || "-")}</div>
                         <div className="text-xs text-gray-400">{String(row.emplyrId || "-")}</div>
@@ -182,24 +199,19 @@ export function AdminListMigrationPage() {
                           {statusLabel(String(row.emplyrStusCode || ""))}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-wrap items-center justify-center gap-2">
-                          <MemberLinkButton href={buildLocalizedPath(`/admin/member/admin_account/permissions?emplyrId=${encodeURIComponent(String(row.emplyrId || ""))}`, `/en/admin/member/admin_account/permissions?emplyrId=${encodeURIComponent(String(row.emplyrId || ""))}`)} size="xs" variant="secondary">수정</MemberLinkButton>
-                          <MemberLinkButton href={buildLocalizedPath(`/admin/member/admin_account/permissions?emplyrId=${encodeURIComponent(String(row.emplyrId || ""))}&mode=detail`, `/en/admin/member/admin_account/permissions?emplyrId=${encodeURIComponent(String(row.emplyrId || ""))}&mode=detail`)} size="xs" variant="primary">상세</MemberLinkButton>
-                        </div>
+                      <td className="px-6 py-4 text-center space-x-1">
+                        <a className="inline-flex px-3 py-1.5 border border-[var(--kr-gov-border-light)] text-[12px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-gray-100" href={buildLocalizedPath(`/admin/member/admin_account/permissions?emplyrId=${encodeURIComponent(String(row.emplyrId || ""))}`, `/en/admin/member/admin_account/permissions?emplyrId=${encodeURIComponent(String(row.emplyrId || ""))}`)}>수정</a>
+                        <a className="inline-flex px-3 py-1.5 bg-[var(--kr-gov-blue)] text-white text-[12px] font-bold rounded-[var(--kr-gov-radius)] hover:bg-[var(--kr-gov-blue-hover)]" href={buildLocalizedPath(`/admin/member/admin_account/permissions?emplyrId=${encodeURIComponent(String(row.emplyrId || ""))}&mode=detail`, `/en/admin/member/admin_account/permissions?emplyrId=${encodeURIComponent(String(row.emplyrId || ""))}&mode=detail`)}>상세</a>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </AdminTable>
             </div>
-          <MemberPagination
-            currentPage={currentPage}
-            onPageChange={(pageNumber) => load({ pageIndex: pageNumber, searchKeyword, sbscrbSttus: status }).catch((err: Error) => setError(err.message))}
-            totalPages={totalPages}
-          />
-        </section>
-      </CanView>
+          <MemberPagination currentPage={currentPage} onPageChange={(nextPage) => load({ pageIndex: nextPage, searchKeyword, sbscrbSttus: status }).catch((err: Error) => setError(err.message))} totalPages={totalPages} />
+        </div>
+        </>
+      ) : null}
     </AdminPageShell>
   );
 }

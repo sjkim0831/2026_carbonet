@@ -129,6 +129,24 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
       { id: "table-card", title: "목록 카드", body: "조회 건수, 엑셀 다운로드, 신규 회원 등록 진입과 목록 테이블을 함께 확인합니다.", anchorSelector: '[data-help-id="member-table"]' }
     ]
   },
+  "member-withdrawn": {
+    pageId: "member-withdrawn",
+    title: "탈퇴 회원 도움말",
+    summary: "탈퇴 처리된 회원을 별도 페이지에서 조회합니다.",
+    items: [
+      { id: "search-card", title: "검색 카드", body: "회원 유형과 검색어를 조합해 탈퇴 회원 대상을 좁힙니다.", anchorSelector: '[data-help-id="member-search-form"]' },
+      { id: "table", title: "탈퇴 회원 목록", body: "탈퇴 상태 회원의 기본 정보와 상세 이동 버튼을 확인합니다.", anchorSelector: '[data-help-id="member-list-table"]' }
+    ]
+  },
+  "member-activate": {
+    pageId: "member-activate",
+    title: "휴면 계정 도움말",
+    summary: "휴면 상태 회원을 별도 페이지에서 조회합니다.",
+    items: [
+      { id: "search-card", title: "검색 카드", body: "회원 유형과 검색어를 조합해 휴면 계정 대상을 좁힙니다.", anchorSelector: '[data-help-id="member-search-form"]' },
+      { id: "table", title: "휴면 계정 목록", body: "휴면 상태 회원의 기본 정보와 상세 이동 버튼을 확인합니다.", anchorSelector: '[data-help-id="member-list-table"]' }
+    ]
+  },
   "member-detail": {
     pageId: "member-detail",
     title: "회원 상세 도움말",

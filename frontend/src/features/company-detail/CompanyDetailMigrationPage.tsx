@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
-import { CanView } from "../../components/access/CanView";
 import { buildLocalizedPath, getSearchParam } from "../../lib/navigation/runtime";
 import { CompanyDetailPagePayload, fetchCompanyDetailPage } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { MemberLinkButton, MemberButtonGroup, MEMBER_BUTTON_LABELS } from "../member/common";
-import { DetailSummaryCard, MemberSectionCard } from "../member/sections";
+import { DetailSummaryCard, MemberSectionCard, MemberStateCard } from "../member/sections";
 
 function resolveInitialInsttId() {
   if (typeof window === "undefined") return "";
@@ -44,6 +43,9 @@ export function CompanyDetailMigrationPage() {
 
   const company = (page?.company || {}) as Record<string, unknown>;
   const companyFiles = (page?.companyFiles || []) as Array<Record<string, unknown>>;
+  const loading = !page && !error;
+  const canView = !!page?.canViewCompanyDetail;
+  const hasCompany = !!page?.company;
 
   return (
     <AdminPageShell
@@ -54,7 +56,7 @@ export function CompanyDetailMigrationPage() {
       ]}
       subtitle="회원사 신청 정보와 첨부파일을 읽기 전용으로 확인합니다."
       title="회원사 상세"
-      loading={!page && !error}
+      loading={loading}
       loadingLabel="회원사 상세 정보를 불러오는 중입니다."
       actions={(
         <MemberButtonGroup>
@@ -69,8 +71,17 @@ export function CompanyDetailMigrationPage() {
     >
       {error ? <section className="mb-4 text-sm font-medium text-red-600">{error}</section> : null}
       {page?.companyDetailError ? <section className="mb-4 text-sm font-medium text-red-600">{String(page.companyDetailError)}</section> : null}
-
-      <CanView allowed={!!page?.canViewCompanyDetail} fallback={<section className="gov-card"><p className="text-sm text-[var(--kr-gov-text-secondary)]">회원사 상세를 볼 권한이 없거나 대상이 없습니다.</p></section>}>
+      {!loading && !initialInsttId.trim() ? (
+        <MemberStateCard description="전달된 기관 ID 또는 조회 결과를 확인해 주세요." icon="person_search" title="회원사 정보를 찾을 수 없습니다." />
+      ) : null}
+      {!loading && initialInsttId.trim() && !hasCompany ? (
+        <MemberStateCard description={`요청한 기관 ID: ${initialInsttId}`} icon="person_search" title="회원사 정보를 찾을 수 없습니다." />
+      ) : null}
+      {!loading && !!page && hasCompany && !canView ? (
+        <MemberStateCard description="현재 계정으로는 회원사 상세 화면을 조회할 수 없습니다." icon="lock" title="권한이 없습니다." tone="warning" />
+      ) : null}
+      {canView && hasCompany ? (
+        <>
         <section className="gov-card mb-6" data-help-id="company-detail-lookup">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -200,7 +211,8 @@ export function CompanyDetailMigrationPage() {
             </MemberSectionCard>
           </div>
         </div>
-      </CanView>
+        </>
+      ) : null}
     </AdminPageShell>
   );
 }

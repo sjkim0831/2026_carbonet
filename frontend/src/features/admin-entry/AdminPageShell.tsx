@@ -33,6 +33,13 @@ type GnbItem = {
   domain: string;
 };
 
+type MenuLinkLike = {
+  code?: string;
+  text?: string;
+  tEn?: string;
+  u?: string;
+};
+
 const GOV_SYMBOL = "/img/egovframework/kr_gov_symbol.png";
 const GOV_FOOTER_SYMBOL = "/img/egovframework/kr_gov_symbol.png";
 const GOV_SYMBOL_FALLBACK = "/img/egovframework/kr_gov_symbol.svg";
@@ -109,7 +116,21 @@ function getFallbackGnbItems(en: boolean): GnbItem[] {
       domain: "회원관리"
     },
     { key: "배출/인증", label: en ? "Emission / Certification" : "배출/인증", href: "#", domain: "배출/인증" },
-    { key: "거래/정산", label: en ? "Trade / Settlement" : "거래/정산", href: "#", domain: "거래/정산" }
+    { key: "거래/정산", label: en ? "Trade / Settlement" : "거래/정산", href: "#", domain: "거래/정산" },
+    { key: "콘텐츠", label: en ? "Content" : "콘텐츠", href: "#", domain: "콘텐츠" },
+    { key: "외부연계", label: en ? "External Linkage" : "외부연계", href: "#", domain: "외부연계" },
+    {
+      key: "시스템",
+      label: en ? "System" : "시스템",
+      href: buildLocalizedPath("/admin/system/code", "/en/admin/system/code"),
+      domain: "시스템"
+    },
+    {
+      key: "모니터링",
+      label: en ? "Monitoring" : "모니터링",
+      href: buildLocalizedPath("/admin/member/login_history", "/en/admin/member/login_history"),
+      domain: "모니터링"
+    }
   ];
 }
 
@@ -141,33 +162,86 @@ function getFallbackMenuTree(): Record<string, AdminMenuDomain> {
           icon: "group",
           links: [
             { text: "회원 목록", tEn: "Member List", u: buildLocalizedPath("/admin/member/list", "/en/admin/member/list"), icon: "badge" },
-            { text: "신규 회원 등록", tEn: "New Member Registration", u: buildLocalizedPath("/admin/member/company_account", "/en/admin/member/company_account"), icon: "person_add" },
-            { text: "가입 승인", tEn: "Sign-up Approval", u: buildLocalizedPath("/admin/member/approve", "/en/admin/member/approve"), icon: "task" },
+            { text: "회원 승인", tEn: "Member Approval", u: buildLocalizedPath("/admin/member/approve", "/en/admin/member/approve"), icon: "task" },
             { text: "탈퇴 회원", tEn: "Withdrawn Members", u: buildLocalizedPath("/admin/member/list?sbscrbSttus=D", "/en/admin/member/list?sbscrbSttus=D"), icon: "person_remove" },
-            { text: "휴면 계정", tEn: "Dormant Accounts", u: buildLocalizedPath("/admin/member/list?sbscrbSttus=X", "/en/admin/member/list?sbscrbSttus=X"), icon: "bedtime" }
-          ]
-        },
-        {
-          title: "회원사",
-          titleEn: "Companies",
-          icon: "apartment",
-          links: [
+            { text: "휴면 계정", tEn: "Dormant Accounts", u: buildLocalizedPath("/admin/member/list?sbscrbSttus=X", "/en/admin/member/list?sbscrbSttus=X"), icon: "bedtime" },
             { text: "회원사 목록", tEn: "Company List", u: buildLocalizedPath("/admin/member/company_list", "/en/admin/member/company_list"), icon: "apartment" },
-            { text: "회원사 승인", tEn: "Company Approval", u: buildLocalizedPath("/admin/member/company-approve", "/en/admin/member/company-approve"), icon: "domain_verification" }
-          ]
-        },
-        {
-          title: "관리자",
-          titleEn: "Administrators",
-          icon: "admin_panel_settings",
-          links: [
-            { text: "관리자 목록", tEn: "Admin List", u: buildLocalizedPath("/admin/member/admin_list", "/en/admin/member/admin_list"), icon: "admin_panel_settings" },
-            { text: "관리자 계정 생성", tEn: "Admin Account Create", u: buildLocalizedPath("/admin/member/admin_account", "/en/admin/member/admin_account"), icon: "person_add_alt" },
-            { text: "권한 변경", tEn: "Permission Changes", u: buildLocalizedPath("/admin/member/auth-change", "/en/admin/member/auth-change"), icon: "swap_horiz" },
-            { text: "권한 그룹", tEn: "Permission Groups", u: buildLocalizedPath("/admin/auth/group", "/en/admin/auth/group"), icon: "shield" },
-            { text: "부서 권한 맵핑", tEn: "Department Permission Mapping", u: buildLocalizedPath("/admin/member/dept-role-mapping", "/en/admin/member/dept-role-mapping"), icon: "account_tree" }
+            { text: "회원사 승인", tEn: "Company Approval", u: buildLocalizedPath("/admin/member/company-approve", "/en/admin/member/company-approve"), icon: "domain_verification" },
+            { text: "관리자 목록", tEn: "Admin List", u: buildLocalizedPath("/admin/member/admin_list", "/en/admin/member/admin_list"), icon: "admin_panel_settings" }
           ]
         }
+      ]
+    },
+    시스템: {
+      label: "시스템",
+      labelEn: "System",
+      summary: "",
+      groups: [
+        {
+          title: "환경",
+          titleEn: "Environment",
+          icon: "settings",
+          links: [
+            { text: "코드 관리", tEn: "Code Management", u: buildLocalizedPath("/admin/system/code", "/en/admin/system/code"), icon: "category" },
+            { text: "페이지 관리", tEn: "Page Management", u: buildLocalizedPath("/admin/system/page-management", "/en/admin/system/page-management"), icon: "web" },
+            { text: "기능 관리", tEn: "Function Management", u: buildLocalizedPath("/admin/system/feature-management", "/en/admin/system/feature-management"), icon: "extension" },
+            { text: "메뉴 관리", tEn: "Menu Management", u: buildLocalizedPath("/admin/system/menu-management", "/en/admin/system/menu-management"), icon: "account_tree" },
+            { text: "메뉴 통합 관리", tEn: "Menu Unified Management", u: buildLocalizedPath("/admin/system/environment-management", "/en/admin/system/environment-management"), icon: "tune" },
+            { text: "풀스택 관리", tEn: "Full-Stack Management", u: buildLocalizedPath("/admin/system/full-stack-management", "/en/admin/system/full-stack-management"), icon: "hub" },
+            { text: "플랫폼 스튜디오", tEn: "Platform Studio", u: buildLocalizedPath("/admin/system/platform-studio", "/en/admin/system/platform-studio"), icon: "dashboard_customize" },
+            { text: "화면 요소 관리", tEn: "Screen Elements", u: buildLocalizedPath("/admin/system/screen-elements-management?focus=surfaces", "/en/admin/system/screen-elements-management?focus=surfaces"), icon: "crop_landscape" },
+            { text: "이벤트 관리", tEn: "Event Management", u: buildLocalizedPath("/admin/system/event-management-console?focus=events", "/en/admin/system/event-management-console?focus=events"), icon: "bolt" },
+            { text: "함수 콘솔", tEn: "Function Console", u: buildLocalizedPath("/admin/system/function-management-console?focus=functions", "/en/admin/system/function-management-console?focus=functions"), icon: "functions" },
+            { text: "API 관리", tEn: "API Management", u: buildLocalizedPath("/admin/system/api-management-console?focus=apis", "/en/admin/system/api-management-console?focus=apis"), icon: "api" },
+            { text: "컨트롤러 관리", tEn: "Controller Management", u: buildLocalizedPath("/admin/system/controller-management-console?focus=controllers", "/en/admin/system/controller-management-console?focus=controllers"), icon: "account_tree" },
+            { text: "DB 테이블 관리", tEn: "DB Table Management", u: buildLocalizedPath("/admin/system/db-table-management?focus=db", "/en/admin/system/db-table-management?focus=db"), icon: "database" },
+            { text: "컬럼 관리", tEn: "Column Management", u: buildLocalizedPath("/admin/system/column-management-console?focus=columns", "/en/admin/system/column-management-console?focus=columns"), icon: "view_column" },
+            { text: "자동화 스튜디오", tEn: "Automation Studio", u: buildLocalizedPath("/admin/system/automation-studio?focus=automation", "/en/admin/system/automation-studio?focus=automation"), icon: "smart_toy" }
+          ]
+        },
+        {
+          title: "AI 운영",
+          titleEn: "AI Operations",
+          icon: "smart_toy",
+          links: [
+            { text: "도움말 운영", tEn: "Help Management", u: buildLocalizedPath("/admin/system/help-management", "/en/admin/system/help-management"), icon: "help_center" },
+            { text: "SR 워크벤치", tEn: "SR Workbench", u: buildLocalizedPath("/admin/system/sr-workbench", "/en/admin/system/sr-workbench"), icon: "assignment" },
+            { text: "Codex 요청", tEn: "Codex Request", u: buildLocalizedPath("/admin/system/codex-request", "/en/admin/system/codex-request"), icon: "smart_toy" },
+            { text: "WBS 관리", tEn: "WBS Management", u: buildLocalizedPath("/admin/system/wbs-management", "/en/admin/system/wbs-management"), icon: "calendar_month" }
+          ]
+        }
+      ]
+    },
+    콘텐츠: {
+      label: "콘텐츠",
+      labelEn: "Content",
+      summary: "",
+      groups: [
+        {
+          title: "콘텐츠 운영",
+          titleEn: "Content Operations",
+          icon: "inventory_2",
+          links: [
+            { text: "사이트맵", tEn: "Sitemap", u: buildLocalizedPath("/admin/content/sitemap", "/en/admin/content/sitemap"), icon: "map" }
+          ]
+        }
+      ]
+    },
+    모니터링: {
+      label: "모니터링",
+      labelEn: "Monitoring",
+      summary: "",
+      groups: [
+        {
+          title: "로그",
+          titleEn: "Logs",
+          icon: "monitoring",
+          links: [
+            { text: "로그인 이력", tEn: "Login History", u: buildLocalizedPath("/admin/member/login_history", "/en/admin/member/login_history"), icon: "history" },
+            { text: "보안 이력", tEn: "Security History", u: buildLocalizedPath("/admin/system/security", "/en/admin/system/security"), icon: "policy" },
+            { text: "보안 정책", tEn: "Security Policy", u: buildLocalizedPath("/admin/system/security-policy", "/en/admin/system/security-policy"), icon: "shield" }
+          ]
+        },
       ]
     }
   };
@@ -225,7 +299,7 @@ function ensureCurrentPageInMenuTree(
   for (const domain of Object.values(nextTree)) {
     for (const group of domain.groups || []) {
       const matched = (group.links || []).some((link) => {
-        const targetFull = resolveMenuComparablePath(link.u || "", true);
+        const targetFull = resolveMenuComparablePath(resolveMenuLinkRuntimeUrl(link), true);
         const targetBase = pathOnly(targetFull);
         return targetFull === currentFull || targetBase === currentBase;
       });
@@ -276,6 +350,18 @@ function normalizeComparablePath(value: string) {
   try {
     const url = new URL(value, window.location.origin);
     const normalizedPath = url.pathname.length > 1 && url.pathname.endsWith("/") ? url.pathname.slice(0, -1) : url.pathname;
+    if (normalizedPath === "/admin/member/withdrawn") {
+      return "/admin/member/list?sbscrbSttus=D";
+    }
+    if (normalizedPath === "/en/admin/member/withdrawn") {
+      return "/en/admin/member/list?sbscrbSttus=D";
+    }
+    if (normalizedPath === "/admin/member/activate") {
+      return "/admin/member/list?sbscrbSttus=X";
+    }
+    if (normalizedPath === "/en/admin/member/activate") {
+      return "/en/admin/member/list?sbscrbSttus=X";
+    }
     return `${normalizedPath}${url.search}`;
   } catch {
     return value;
@@ -287,7 +373,6 @@ function resolveMenuComparablePath(value: string, preserveDirectMenu = true) {
   try {
     const url = new URL(normalized, window.location.origin);
     const pathname = pathOnly(url.pathname);
-    const search = new URLSearchParams(url.search);
 
     if (pathname === "/admin/member/edit"
       || pathname === "/en/admin/member/edit"
@@ -300,15 +385,12 @@ function resolveMenuComparablePath(value: string, preserveDirectMenu = true) {
       return pathname.startsWith("/en/") ? "/en/admin/member/company_list" : "/admin/member/company_list";
     }
 
-    if (pathname === "/admin/member/company_account" || pathname === "/en/admin/member/company_account") {
-      if (!preserveDirectMenu && search.get("insttId")) {
-        return pathname.startsWith("/en/") ? "/en/admin/member/company_list" : "/admin/member/company_list";
-      }
-      return normalized;
-    }
-
     if (pathname === "/admin/member/admin_account/permissions" || pathname === "/en/admin/member/admin_account/permissions") {
       return pathname.startsWith("/en/") ? "/en/admin/member/admin_list" : "/admin/member/admin_list";
+    }
+
+    if (!preserveDirectMenu) {
+      return `${pathname}${url.search}`;
     }
 
     return normalized;
@@ -322,14 +404,33 @@ function pathOnly(value: string) {
   return pathname;
 }
 
+function resolveMenuLinkRuntimeUrl(link: MenuLinkLike | undefined) {
+  const rawUrl = String(link?.u || "").trim();
+  const code = String(link?.code || "").trim().toUpperCase();
+  if (code === "A0010102") {
+    return buildLocalizedPath("/admin/member/register", "/en/admin/member/register");
+  }
+  if (code === "A0010203") {
+    return buildLocalizedPath("/admin/member/company_account", "/en/admin/member/company_account");
+  }
+  if (code === "A0010106") {
+    return buildLocalizedPath("/admin/member/withdrawn", "/en/admin/member/withdrawn");
+  }
+  if (code === "A0010107") {
+    return buildLocalizedPath("/admin/member/activate", "/en/admin/member/activate");
+  }
+  return rawUrl;
+}
+
 function resolveFirstDomainPath(domain: AdminMenuDomain | undefined) {
   if (!domain) {
     return "#";
   }
   for (const group of domain.groups || []) {
     for (const link of group.links || []) {
-      if (link.u && link.u !== "#") {
-        return link.u;
+      const runtimeUrl = resolveMenuLinkRuntimeUrl(link);
+      if (runtimeUrl && runtimeUrl !== "#") {
+        return runtimeUrl;
       }
     }
   }
@@ -343,7 +444,7 @@ function resolveActiveDomainKey(menuTree: Record<string, AdminMenuDomain>, curre
   for (const [domainKey, domain] of Object.entries(menuTree)) {
     for (const group of domain.groups || []) {
       for (const link of group.links || []) {
-        const targetFull = resolveMenuComparablePath(link.u || "", true);
+        const targetFull = resolveMenuComparablePath(resolveMenuLinkRuntimeUrl(link), true);
         const targetBase = pathOnly(targetFull);
         if (targetFull === currentFull || targetBase === currentBase) {
           return domainKey;
@@ -355,14 +456,14 @@ function resolveActiveDomainKey(menuTree: Record<string, AdminMenuDomain>, curre
   return Object.keys(menuTree)[0] || "";
 }
 
-function resolveActiveLinkIndex(links: Array<{ u?: string }>, currentPath: string) {
+function resolveActiveLinkIndex(links: MenuLinkLike[], currentPath: string) {
   const currentFull = resolveMenuComparablePath(currentPath, false);
   const currentBase = pathOnly(currentFull);
-  const exactIndex = links.findIndex((link) => resolveMenuComparablePath(link.u || "", true) === currentFull);
+  const exactIndex = links.findIndex((link) => resolveMenuComparablePath(resolveMenuLinkRuntimeUrl(link), true) === currentFull);
   if (exactIndex >= 0) {
     return exactIndex;
   }
-  return links.findIndex((link) => pathOnly(resolveMenuComparablePath(link.u || "", true)) === currentBase);
+  return links.findIndex((link) => pathOnly(resolveMenuComparablePath(resolveMenuLinkRuntimeUrl(link), true)) === currentBase);
 }
 
 function normalizeMenuSearchText(value: string | undefined) {
@@ -536,13 +637,12 @@ export function AdminPageShell({
     if (!selectedDomain) {
       return;
     }
-    const currentComparable = resolveMenuComparablePath(currentPath, false);
     const nextState: Record<string, boolean> = {};
     (selectedDomain.groups || []).forEach((group, index) => {
       const hasActiveLink = (group.links || []).some((link) => {
-        const targetFull = resolveMenuComparablePath(link.u || "", true);
+        const targetFull = resolveMenuComparablePath(resolveMenuLinkRuntimeUrl(link), true);
         const targetBase = pathOnly(targetFull);
-        return targetFull === currentComparable || targetBase === pathOnly(currentComparable);
+        return targetFull === resolveMenuComparablePath(currentPath, false) || targetBase === pathOnly(resolveMenuComparablePath(currentPath, false));
       });
       nextState[group.title || `group-${index}`] = hasActiveLink || index === 0;
     });
@@ -857,15 +957,16 @@ export function AdminPageShell({
                     <div className={`gnb-tree-links space-y-1 ${expanded ? "" : "hidden"}`} id={`${groupKey}-links`}>
                     {(group.links || []).map((link, linkIndex) => {
                       const active = linkIndex === activeLinkIndex;
+                      const runtimeUrl = resolveMenuLinkRuntimeUrl(link);
                       return (
                         <a
                           className={`admin-sidebar-link ${active ? "active" : ""}`}
-                          href={link.u || "#"}
+                          href={runtimeUrl || "#"}
                           onClick={(e) => {
                             e.preventDefault();
-                            if (link.u) navigate(link.u);
+                            if (runtimeUrl) navigate(runtimeUrl);
                           }}
-                          key={`${groupKey}-${link.u}-${linkIndex}`}
+                          key={`${groupKey}-${link.code || runtimeUrl}-${linkIndex}`}
                         >
                           <span className="material-symbols-outlined text-[20px]">{link.icon || (active ? "check_circle" : "chevron_right")}</span>
                           {en ? (link.tEn || link.text) : link.text}

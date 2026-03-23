@@ -34,3 +34,4 @@ startup.log
 
 # Migration scratch files
 /tmp/
+/ops/state/

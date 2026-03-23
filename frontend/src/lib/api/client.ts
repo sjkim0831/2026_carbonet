@@ -35,6 +35,7 @@ type MypageContext = {
 };
 
 export type AdminMenuLink = {
+  code?: string;
   text: string;
   tEn: string;
   u: string;

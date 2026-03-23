@@ -47,6 +47,51 @@ export function MemberInsetNotice({
   );
 }
 
+type MemberStateCardProps = HTMLAttributes<HTMLElement> & {
+  title: ReactNode;
+  description: ReactNode;
+  icon?: string;
+  tone?: "neutral" | "warning" | "danger";
+  actions?: ReactNode;
+};
+
+export function MemberStateCard({
+  title,
+  description,
+  icon = "info",
+  tone = "neutral",
+  actions,
+  className = "",
+  ...props
+}: MemberStateCardProps) {
+  const toneClassName = tone === "danger"
+    ? "border-red-200 bg-red-50"
+    : tone === "warning"
+      ? "border-amber-200 bg-amber-50"
+      : "border-slate-200 bg-slate-50";
+  const iconClassName = tone === "danger"
+    ? "text-red-500"
+    : tone === "warning"
+      ? "text-amber-500"
+      : "text-[var(--kr-gov-blue)]";
+
+  return (
+    <section
+      {...props}
+      className={`rounded-[var(--kr-gov-radius)] border px-6 py-6 shadow-sm ${toneClassName} ${className}`.trim()}
+    >
+      <div className="flex items-start gap-3">
+        <span className={`material-symbols-outlined text-[28px] ${iconClassName}`.trim()}>{icon}</span>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-lg font-bold text-[var(--kr-gov-text-primary)]">{title}</h3>
+          <p className="mt-2 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">{description}</p>
+          {actions ? <div className="mt-4 flex flex-wrap gap-2">{actions}</div> : null}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 type DetailSummaryCardProps = HTMLAttributes<HTMLElement> & {
   icon: string;
   title: ReactNode;

@@ -194,6 +194,30 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "MemberTable", instanceKey: "member-list-table", layoutZone: "content", propsSummary: ["rows", "pagination"] }
     ]
   },
+  "member-withdrawn": {
+    pageId: "member-withdrawn",
+    routePath: "/admin/member/withdrawn",
+    menuCode: "A0010106",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "MemberSearchForm", instanceKey: "member-withdrawn-search", layoutZone: "actions", propsSummary: ["searchKeyword", "membershipType", "status"] },
+      { componentId: "MemberTable", instanceKey: "member-withdrawn-table", layoutZone: "content", propsSummary: ["rows", "pagination"] }
+    ]
+  },
+  "member-activate": {
+    pageId: "member-activate",
+    routePath: "/admin/member/activate",
+    menuCode: "A0010107",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "MemberSearchForm", instanceKey: "member-activate-search", layoutZone: "actions", propsSummary: ["searchKeyword", "membershipType", "status"] },
+      { componentId: "MemberTable", instanceKey: "member-activate-table", layoutZone: "content", propsSummary: ["rows", "pagination"] }
+    ]
+  },
   "member-detail": {
     pageId: "member-detail",
     routePath: "/admin/member/detail",

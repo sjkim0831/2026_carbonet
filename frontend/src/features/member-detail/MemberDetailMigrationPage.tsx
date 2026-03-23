@@ -6,7 +6,7 @@ import { buildLocalizedPath, getSearchParam } from "../../lib/navigation/runtime
 import { fetchMemberDetailPage, MemberDetailPagePayload, resetMemberPasswordAction } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { MemberActionBar, MemberLinkButton, MemberPermissionButton, MEMBER_BUTTON_LABELS } from "../member/common";
-import { DetailSummaryCard, MemberSectionCard } from "../member/sections";
+import { DetailSummaryCard, MemberSectionCard, MemberStateCard } from "../member/sections";
 
 function resolveInitialMemberId() {
   if (typeof window === "undefined") return "TEST1";
@@ -32,6 +32,10 @@ export function MemberDetailMigrationPage() {
   const authorGroups = (page?.permissionAuthorGroups || []) as Array<{ authorCode: string; authorNm: string }>;
   const effectiveFeatureCodes = (page?.permissionEffectiveFeatureCodes || []) as string[];
   const memberEvidenceFiles = (page?.memberEvidenceFiles || []) as Array<Record<string, unknown>>;
+  const canView = !!page?.canViewMemberDetail;
+  const hasMember = !!page?.member;
+  const showUnavailable = !pageState.loading && (!initialMemberId.trim() || !hasMember);
+  const showDenied = !pageState.loading && !!page && hasMember && !canView;
 
   async function handleResetPassword() {
     const session = sessionState.value;
@@ -65,7 +69,18 @@ export function MemberDetailMigrationPage() {
     >
       {error ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</section> : null}
       {message ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</section> : null}
-      <CanView allowed={!!page?.canViewMemberDetail} fallback={<section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm"><p className="text-sm text-[var(--kr-gov-text-secondary)]">회원 상세를 볼 권한이 없거나 대상이 없습니다.</p></section>}>
+      {showUnavailable ? (
+        <MemberStateCard
+          actions={<MemberLinkButton href={buildLocalizedPath("/admin/member/list", "/en/admin/member/list")} icon="arrow_back" variant="secondary">{MEMBER_BUTTON_LABELS.list}</MemberLinkButton>}
+          description={initialMemberId.trim() ? `요청한 회원 ID: ${initialMemberId}` : "전달된 회원 ID 또는 조회 결과를 확인해 주세요."}
+          icon="person_search"
+          title="회원 정보를 찾을 수 없습니다."
+        />
+      ) : null}
+      {showDenied ? (
+        <MemberStateCard description="현재 계정으로는 회원 상세 화면을 조회할 수 없습니다." icon="lock" title="권한이 없습니다." tone="warning" />
+      ) : null}
+      <CanView allowed={canView && hasMember} fallback={null}>
         <section className="mb-6 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-5 py-4 shadow-sm" data-help-id="member-detail-lookup">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>

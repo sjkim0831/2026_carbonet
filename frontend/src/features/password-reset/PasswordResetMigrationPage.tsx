@@ -6,6 +6,7 @@ import { PermissionButton } from "../../components/access/CanUse";
 import { fetchPasswordResetPage, resetMemberPasswordAction, type PasswordResetPagePayload } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { MemberPagination } from "../member/common";
+import { MemberStateCard } from "../member/sections";
 
 type PasswordResetHistoryRow = {
   resetAt?: string;
@@ -142,14 +143,13 @@ export function PasswordResetMigrationPage() {
           {message}
         </section>
       ) : null}
+      {!pageState.loading && !!page && !page?.canViewResetHistory ? (
+        <MemberStateCard description={en ? "You do not have permission to view password reset history." : "현재 계정으로는 비밀번호 초기화 이력을 조회할 수 없습니다."} icon="lock" title={en ? "Permission denied." : "권한이 없습니다."} tone="warning" />
+      ) : null}
 
       <CanView
         allowed={!!page?.canViewResetHistory}
-        fallback={(
-          <section className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-6 text-sm text-[var(--kr-gov-text-secondary)]">
-            {en ? "You do not have permission to view password reset history." : "비밀번호 초기화 이력을 조회할 권한이 없습니다."}
-          </section>
-        )}
+        fallback={null}
       >
         <section className="mb-6 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-6 shadow-sm" data-help-id="password-reset-search">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-5">

@@ -8,6 +8,7 @@ import { AdminInput, AdminSelect, AdminTable, MemberButton, MemberLinkButton, Me
 import { MEMBER_BUTTON_LABELS, MEMBER_LIST_LABELS } from "../member/labels";
 import { resolveMemberStatusBadgeClass, resolveMemberStatusLabel } from "../member/status";
 import { MemberListEmptyRow, MemberListToolbar } from "../member/toolbar";
+import { MemberStateCard } from "../member/sections";
 
 type SearchFilters = {
   searchKeyword: string;
@@ -57,6 +58,7 @@ export function CompanyListMigrationPage() {
   const error = actionError || pageState.error;
   const totalPages = Math.max(1, Number(page?.totalPages || 1));
   const currentPage = Math.max(1, Number(page?.pageIndex || filters.pageIndex || 1));
+  const canView = !!page?.canViewCompanyList;
   const exportQuery = useMemo(() => {
     const params = new URLSearchParams();
     const keyword = String(filters.searchKeyword || "").trim();
@@ -101,7 +103,10 @@ export function CompanyListMigrationPage() {
       loadingLabel="회원사 목록을 불러오는 중입니다."
     >
       {error ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">조회 중 오류: {error}</section> : null}
-      <CanView allowed={!!page?.canViewCompanyList} fallback={<section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm"><p className="text-sm text-[var(--kr-gov-text-secondary)]">회원사 목록을 볼 권한이 없습니다.</p></section>}>
+      {!pageState.loading && !!page && !canView ? (
+        <MemberStateCard description="현재 계정으로는 회원사 목록을 조회할 수 없습니다." icon="lock" title="권한이 없습니다." tone="warning" />
+      ) : null}
+      <CanView allowed={canView} fallback={null}>
         <section className="gov-card mb-8" data-help-id="company-list-search">
           <form className="grid grid-cols-1 md:grid-cols-3 gap-6" onSubmit={handleSearchSubmit}>
             <label>

@@ -25,6 +25,7 @@ import {
   MemberPermissionButton
 } from "../admin-ui/common";
 import { AdminEditPageFrame } from "../admin-ui/pageFrames";
+import { MemberStateCard } from "../member/sections";
 
 const ROLE_PRESETS = [
   { code: "MASTER", label: "마스터 관리자" },
@@ -224,10 +225,13 @@ export function AdminAccountCreateMigrationPage() {
       title="관리자 사용자 추가"
     >
       {error ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</section> : null}
+      {!!page && !page?.canViewAdminAccountCreate ? (
+        <MemberStateCard description="현재 계정으로는 관리자 생성 화면을 조회할 수 없습니다." icon="lock" title="권한이 없습니다." tone="warning" />
+      ) : null}
 
       <CanView
         allowed={!!page?.canViewAdminAccountCreate}
-        fallback={<section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm"><p className="text-sm text-[var(--kr-gov-text-secondary)]">이 화면을 볼 권한이 없습니다.</p></section>}
+        fallback={null}
       >
         <form
           className=""
@@ -401,7 +405,7 @@ export function AdminAccountCreateMigrationPage() {
             primary={(
               <MemberPermissionButton
                 allowed={canUseCreate}
-                className="w-full max-w-[320px] shadow-lg shadow-blue-900/10"
+                className="w-full sm:w-auto sm:min-w-[220px] justify-center whitespace-nowrap shadow-lg shadow-blue-900/10"
                 icon="person_add"
                 onClick={handleSave}
                 reason="webmaster만 관리자 계정을 생성할 수 있습니다."

@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { CanView } from "../../components/access/CanView";
-import { buildLocalizedPath } from "../../lib/navigation/runtime";
+import { buildLocalizedPath, getNavigationEventName } from "../../lib/navigation/runtime";
 import { fetchMemberListPage, MemberListPagePayload } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import {
@@ -13,6 +13,7 @@ import { resolveMemberStatusBadgeClass, resolveMemberStatusLabel } from "../memb
 import { AdminInput, AdminSelect, AdminTable, MemberButton, MemberLinkButton, MemberPagination, MemberSectionToolbar } from "../member/common";
 import { MEMBER_BUTTON_LABELS, MEMBER_LIST_LABELS } from "../member/labels";
 import { MemberCountSummary, MemberListEmptyRow, MemberListTopActions } from "../member/toolbar";
+import { MemberStateCard } from "../member/sections";
 
 type SearchFilters = {
   searchKeyword: string;
@@ -21,40 +22,48 @@ type SearchFilters = {
   pageIndex: number;
 };
 
-function resolveDefaultFilters(): SearchFilters {
+type MemberListPageVariant = "default" | "withdrawn" | "activate";
+
+const DEFAULT_FILTERS: SearchFilters = {
+  searchKeyword: "",
+  membershipType: "",
+  status: "",
+  pageIndex: 1
+};
+
+function getDefaultFiltersForVariant(variant: MemberListPageVariant): SearchFilters {
+  if (variant === "withdrawn") {
+    return { ...DEFAULT_FILTERS, status: "D" };
+  }
+  if (variant === "activate") {
+    return { ...DEFAULT_FILTERS, status: "X" };
+  }
+  return DEFAULT_FILTERS;
+}
+
+function readInitialFilters(variant: MemberListPageVariant): SearchFilters {
   if (typeof window === "undefined") {
-    return {
-      searchKeyword: "",
-      membershipType: "",
-      status: "",
-      pageIndex: 1
-    };
+    return getDefaultFiltersForVariant(variant);
   }
   const params = new URLSearchParams(window.location.search);
-  const pathname = window.location.pathname;
-  const pathStatus = pathname.endsWith("/member/withdrawn")
-    ? "D"
-    : pathname.endsWith("/member/activate")
-      ? "X"
-      : "";
+  const defaultFilters = getDefaultFiltersForVariant(variant);
   return {
     searchKeyword: params.get("searchKeyword") || "",
     membershipType: params.get("membershipType") || "",
-    status: params.get("sbscrbSttus") || pathStatus,
+    status: defaultFilters.status || params.get("sbscrbSttus") || "",
     pageIndex: Number(params.get("pageIndex") || "1") || 1
   };
 }
 
-function resolvePageCopy(status: string) {
-  const normalizedStatus = String(status || "").trim().toUpperCase();
-  if (normalizedStatus === "D") {
+function resolveMemberListPageCopy(variant: MemberListPageVariant) {
+  if (variant === "withdrawn") {
     return {
       breadcrumb: "탈퇴 회원",
       title: "탈퇴 회원",
       subtitle: "삭제 상태 회원을 조회하고 상세 이력을 확인합니다."
     };
   }
-  if (normalizedStatus === "X") {
+  if (variant === "activate") {
     return {
       breadcrumb: "휴면 계정",
       title: "휴면 계정",
@@ -98,9 +107,9 @@ function buildMemberListExcelPath(filters: SearchFilters) {
   );
 }
 
-export function MemberListMigrationPage() {
-  const [filters, setFilters] = useState<SearchFilters>(resolveDefaultFilters);
-  const [draftFilters, setDraftFilters] = useState<SearchFilters>(resolveDefaultFilters);
+function MemberListPageScreen({ variant }: { variant: MemberListPageVariant }) {
+  const [filters, setFilters] = useState<SearchFilters>(() => readInitialFilters(variant));
+  const [draftFilters, setDraftFilters] = useState<SearchFilters>(() => readInitialFilters(variant));
   const [actionError, setActionError] = useState("");
   const pageState = useAsyncValue<MemberListPagePayload>(
     () => fetchMemberListPage({
@@ -112,10 +121,11 @@ export function MemberListMigrationPage() {
     [filters.pageIndex, filters.searchKeyword, filters.membershipType, filters.status],
     {
       onSuccess(payload) {
+        const variantDefaults = getDefaultFiltersForVariant(variant);
         const nextFilters = {
           searchKeyword: String(payload.searchKeyword || ""),
           membershipType: String(payload.membershipType || ""),
-          status: String(payload.sbscrbSttus || ""),
+          status: variantDefaults.status || String(payload.sbscrbSttus || ""),
           pageIndex: Number(payload.pageIndex || 1)
         };
         setFilters(nextFilters);
@@ -127,7 +137,29 @@ export function MemberListMigrationPage() {
   const error = actionError || pageState.error;
   const totalPages = Math.max(1, Number(page?.totalPages || 1));
   const currentPage = Math.max(1, Number(page?.pageIndex || filters.pageIndex || 1));
-  const pageCopy = resolvePageCopy(filters.status || page?.sbscrbSttus || "");
+  const pageCopy = resolveMemberListPageCopy(variant);
+  const canView = !!page?.canViewMemberList;
+  const showAccessDenied = !pageState.loading && !!page && !canView;
+  const registerHref = variant === "default"
+    ? buildLocalizedPath("/admin/member/register", "/en/admin/member/register")
+    : undefined;
+
+  useEffect(() => {
+    function syncFiltersFromLocation() {
+      const nextFilters = readInitialFilters(variant);
+      setActionError("");
+      setFilters(nextFilters);
+      setDraftFilters(nextFilters);
+    }
+
+    const eventName = getNavigationEventName();
+    window.addEventListener(eventName, syncFiltersFromLocation);
+    window.addEventListener("popstate", syncFiltersFromLocation);
+    return () => {
+      window.removeEventListener(eventName, syncFiltersFromLocation);
+      window.removeEventListener("popstate", syncFiltersFromLocation);
+    };
+  }, []);
 
   function updateDraft<K extends keyof SearchFilters>(key: K, value: SearchFilters[K]) {
     setDraftFilters((current) => ({ ...current, [key]: value }));
@@ -153,7 +185,7 @@ export function MemberListMigrationPage() {
 
   function resetFilters() {
     setActionError("");
-    const nextFilters = resolveDefaultFilters();
+    const nextFilters = getDefaultFiltersForVariant(variant);
     setDraftFilters(nextFilters);
     setFilters(nextFilters);
   }
@@ -171,7 +203,15 @@ export function MemberListMigrationPage() {
       loadingLabel="회원 목록을 불러오는 중입니다."
     >
       {error ? <section className="border border-red-200 bg-red-50 rounded-[var(--kr-gov-radius)] px-4 py-3 mb-4"><p className="text-sm text-red-700">조회 중 오류: {error}</p></section> : null}
-      <CanView allowed={!!page?.canViewMemberList} fallback={<section className="bg-white border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] px-6 py-8"><p className="text-sm text-[var(--kr-gov-text-secondary)]">회원 목록을 불러올 수 없습니다.</p></section>}>
+      {showAccessDenied ? (
+        <MemberStateCard
+          description="현재 계정으로는 이 회원 관리 화면을 조회할 수 없습니다."
+          icon="lock"
+          title="권한이 없습니다."
+          tone="warning"
+        />
+      ) : null}
+      <CanView allowed={canView} fallback={null}>
         <div className="gov-card mb-8" data-help-id="member-search-form">
           <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
             <MemberSectionToolbar
@@ -233,7 +273,7 @@ export function MemberListMigrationPage() {
               actions={(
                 <MemberListTopActions
                   excelHref={buildMemberListExcelPath(filters)}
-                  registerHref={buildLocalizedPath("/admin/member/register", "/en/admin/member/register")}
+                  registerHref={registerHref}
                 />
               )}
               meta="회원 목록형 화면은 전체 건수, 다운로드, 신규 등록 버튼의 순서와 높이를 동일하게 유지합니다."
@@ -296,4 +336,16 @@ export function MemberListMigrationPage() {
       </CanView>
     </AdminPageShell>
   );
+}
+
+export function MemberListMigrationPage() {
+  return <MemberListPageScreen variant="default" />;
+}
+
+export function WithdrawnMemberListMigrationPage() {
+  return <MemberListPageScreen variant="withdrawn" />;
+}
+
+export function ActivateMemberListMigrationPage() {
+  return <MemberListPageScreen variant="activate" />;
 }

@@ -167,8 +167,8 @@ function renderActionButton(button: MemberActionBarButton, baseClassName: string
 }
 
 export function MemberActionBar({ primary, secondary, tertiary, eyebrow, title, description, className = "", dataHelpId }: MemberActionBarProps) {
-  const secondaryBaseClassName = `${getMemberButtonClassName({ variant: "secondary", size: "lg" })} min-w-[160px]`;
-  const tertiaryBaseClassName = `${getMemberButtonClassName({ variant: "secondary", size: "lg" })} min-w-[160px]`;
+  const secondaryBaseClassName = `${getMemberButtonClassName({ variant: "secondary", size: "lg" })} min-w-[160px] justify-center`;
+  const tertiaryBaseClassName = `${getMemberButtonClassName({ variant: "secondary", size: "lg" })} min-w-[160px] justify-center`;
   const hasGuide = Boolean(eyebrow || title || description);
   return (
     <div className={`mt-8 border-t border-[var(--kr-gov-border-light)] pt-6 ${className}`.trim()} data-help-id={dataHelpId}>
@@ -176,12 +176,12 @@ export function MemberActionBar({ primary, secondary, tertiary, eyebrow, title, 
         <div className="flex flex-col gap-5 px-5 py-5 lg:flex-row lg:items-center lg:justify-between lg:px-6">
           <div className="flex flex-1 flex-col gap-4">
             {hasGuide ? <div className="space-y-1">{eyebrow ? <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--kr-gov-blue)]">{eyebrow}</p> : null}{title ? <h3 className="text-lg font-bold text-[var(--kr-gov-text-primary)]">{title}</h3> : null}{description ? <div className="text-sm leading-6 text-[var(--kr-gov-text-secondary)]">{description}</div> : null}</div> : null}
-            <div className="flex flex-1 flex-col gap-3 sm:flex-row">
+            <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:flex-wrap">
               {secondary ? renderActionButton(secondary, secondaryBaseClassName) : null}
               {tertiary ? renderActionButton(tertiary, tertiaryBaseClassName) : null}
             </div>
           </div>
-          <div className="flex flex-1 items-stretch justify-end">{primary}</div>
+          <div className="flex items-stretch justify-end lg:flex-none lg:shrink-0">{primary}</div>
         </div>
       </div>
     </div>
