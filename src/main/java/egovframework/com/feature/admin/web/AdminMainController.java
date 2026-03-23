@@ -2834,6 +2834,14 @@ public class AdminMainController {
         return adminPrefix(request, locale) + "/member/approve";
     }
 
+    private String resolveMemberApprovalViewName(HttpServletRequest request, boolean isEn) {
+        String requestUri = request == null ? "" : safeString(request.getRequestURI());
+        if (requestUri.endsWith("/member/company-approve")) {
+            return isEn ? "egovframework/com/admin/company_approve_en" : "egovframework/com/admin/company_approve";
+        }
+        return isEn ? "egovframework/com/admin/member_approve_en" : "egovframework/com/admin/member_approve";
+    }
+
     private String resolveApprovalResultMessage(String result, boolean isEn) {
         String normalized = safeString(result);
         if (normalized.isEmpty()) {
