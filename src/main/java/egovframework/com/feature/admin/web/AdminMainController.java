@@ -157,6 +157,7 @@ public class AdminMainController {
     private final ObjectProvider<AdminEmissionResultPageModelAssembler> adminEmissionResultPageModelAssemblerProvider;
     private final AdminCompanyAccountService adminCompanyAccountService;
     private final AdminAdminPermissionService adminAdminPermissionService;
+    private final AdminApprovalActionService adminApprovalActionService;
     private final AuthService authService;
     private final MenuInfoService menuInfoService;
     private final AdminSummaryService adminSummaryService;
@@ -306,82 +307,23 @@ public class AdminMainController {
         boolean isEn = isEnglishRequest(request, locale);
         String currentUserId = extractCurrentUserId(request);
         String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        if (!hasMemberManagementCompanyOperatorAccess(currentUserId, currentUserAuthorCode)) {
+        AdminApprovalActionService.ActionResult result = adminApprovalActionService.submitMemberApproval(
+                action,
+                memberId,
+                selectedMemberIds,
+                rejectReason,
+                request,
+                isEn,
+                hasMemberManagementCompanyOperatorAccess(currentUserId, currentUserAuthorCode));
+        if (!result.isSuccess()) {
             String viewName = resolveMemberApprovalViewName(request, isEn);
             primeCsrfToken(request);
-            model.addAttribute("memberApprovalError",
-                    isEn ? "You do not have permission to approve members." : "회원 승인 처리를 수행할 권한이 없습니다.");
+            model.addAttribute("memberApprovalError", result.getMessage());
             populateMemberApprovalList(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, null, model, isEn, request, locale);
             return viewName;
         }
-        String normalizedAction = safeString(action).toLowerCase(Locale.ROOT);
-        List<String> targetMemberIds = new ArrayList<>();
-        String normalizedMemberId = safeString(memberId);
-        if (!normalizedMemberId.isEmpty()) {
-            targetMemberIds.add(normalizedMemberId);
-        } else if (selectedMemberIds != null) {
-            for (String selectedMemberId : selectedMemberIds) {
-                String value = safeString(selectedMemberId);
-                if (!value.isEmpty() && !targetMemberIds.contains(value)) {
-                    targetMemberIds.add(value);
-                }
-            }
-        }
-
-        if (targetMemberIds.isEmpty()) {
-            String viewName = resolveMemberApprovalViewName(request, isEn);
-            primeCsrfToken(request);
-            model.addAttribute("memberApprovalError",
-                    isEn ? "No approval target was selected." : "승인 처리할 회원을 선택해 주세요.");
-            populateMemberApprovalList(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, null, model, isEn, request, locale);
-            return viewName;
-        }
-
-        String targetStatus = "approve".equals(normalizedAction) || "batch_approve".equals(normalizedAction) ? "P"
-                : ("reject".equals(normalizedAction) || "batch_reject".equals(normalizedAction) ? "R" : "");
-        if (targetStatus.isEmpty()) {
-            String viewName = resolveMemberApprovalViewName(request, isEn);
-            primeCsrfToken(request);
-            model.addAttribute("memberApprovalError",
-                    isEn ? "The requested action is not valid." : "요청한 처리 작업이 올바르지 않습니다.");
-            populateMemberApprovalList(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, null, model, isEn, request, locale);
-            return viewName;
-        }
-        String normalizedRejectReason = trimToLen(safeString(rejectReason), 1000);
-
-        try {
-            for (String targetMemberId : targetMemberIds) {
-                EntrprsManageVO targetMember = entrprsManageService.selectEntrprsmberByMberId(targetMemberId);
-                if (!canCurrentAdminAccessMember(request, targetMember)) {
-                    throw new IllegalArgumentException(isEn
-                            ? "You can only approve members in your own company."
-                            : "본인 회사 소속 회원만 승인 처리할 수 있습니다.");
-                }
-                processMemberApprovalStatusChange(targetMemberId, targetStatus, normalizedRejectReason);
-            }
-        } catch (IllegalArgumentException e) {
-            String viewName = resolveMemberApprovalViewName(request, isEn);
-            primeCsrfToken(request);
-            model.addAttribute("memberApprovalError", e.getMessage());
-            populateMemberApprovalList(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, null, model, isEn, request, locale);
-            return viewName;
-        } catch (Exception e) {
-            log.error("Failed to process member approval action. action={}, memberIds={}", normalizedAction, targetMemberIds, e);
-            String viewName = resolveMemberApprovalViewName(request, isEn);
-            primeCsrfToken(request);
-            model.addAttribute("memberApprovalError",
-                    isEn ? "An error occurred while processing the approval request." : "회원 승인 처리 중 오류가 발생했습니다.");
-            populateMemberApprovalList(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, null, model, isEn, request, locale);
-            return viewName;
-        }
-
         StringBuilder redirect = new StringBuilder();
-        redirect.append("redirect:").append(resolveMemberApprovalBasePath(request, locale)).append("?result=");
-        if ("P".equals(targetStatus)) {
-            redirect.append(targetMemberIds.size() > 1 ? "batchApproved" : "approved");
-        } else {
-            redirect.append(targetMemberIds.size() > 1 ? "batchRejected" : "rejected");
-        }
+        redirect.append("redirect:").append(resolveMemberApprovalBasePath(request, locale)).append("?result=").append(result.getResultCode());
         appendApprovalRedirectQuery(redirect, "pageIndex", pageIndexParam);
         appendApprovalRedirectQuery(redirect, "searchKeyword", searchKeyword);
         appendApprovalRedirectQuery(redirect, "membershipType", membershipType);
@@ -404,67 +346,22 @@ public class AdminMainController {
         boolean isEn = isEnglishRequest(request, locale);
         String currentUserId = extractCurrentUserId(request);
         String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        String normalizedAction = safeString(action).toLowerCase(Locale.ROOT);
-        List<String> targetInsttIds = new ArrayList<>();
-        String normalizedInsttId = safeString(insttId);
-        if (!normalizedInsttId.isEmpty()) {
-            targetInsttIds.add(normalizedInsttId);
-        } else if (selectedInsttIds != null) {
-            for (String selectedInsttId : selectedInsttIds) {
-                String value = safeString(selectedInsttId);
-                if (!value.isEmpty() && !targetInsttIds.contains(value)) {
-                    targetInsttIds.add(value);
-                }
-            }
-        }
-
         String viewName = isEn ? "egovframework/com/admin/company_approve_en" : "egovframework/com/admin/company_approve";
-        if (!hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)) {
+        AdminApprovalActionService.ActionResult result = adminApprovalActionService.submitCompanyApproval(
+                action,
+                insttId,
+                selectedInsttIds,
+                rejectReason,
+                isEn,
+                hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode));
+        if (!result.isSuccess()) {
             primeCsrfToken(request);
-            model.addAttribute("memberApprovalError",
-                    isEn ? "Only master administrators can approve companies." : "회원사 승인 처리는 마스터 관리자만 수행할 수 있습니다.");
+            model.addAttribute("memberApprovalError", result.getMessage());
             populateCompanyApprovalList(pageIndexParam, searchKeyword, sbscrbSttus, null, model, isEn, request, locale);
             return viewName;
         }
-        if (targetInsttIds.isEmpty()) {
-            primeCsrfToken(request);
-            model.addAttribute("memberApprovalError",
-                    isEn ? "No company was selected for approval." : "승인 처리할 회원사를 선택해 주세요.");
-            populateCompanyApprovalList(pageIndexParam, searchKeyword, sbscrbSttus, null, model, isEn, request, locale);
-            return viewName;
-        }
-
-        String targetStatus = "approve".equals(normalizedAction) || "batch_approve".equals(normalizedAction) ? "P"
-                : ("reject".equals(normalizedAction) || "batch_reject".equals(normalizedAction) ? "R" : "");
-        if (targetStatus.isEmpty()) {
-            primeCsrfToken(request);
-            model.addAttribute("memberApprovalError",
-                    isEn ? "The requested action is not valid." : "요청한 처리 작업이 올바르지 않습니다.");
-            populateCompanyApprovalList(pageIndexParam, searchKeyword, sbscrbSttus, null, model, isEn, request, locale);
-            return viewName;
-        }
-
-        String normalizedRejectReason = trimToLen(safeString(rejectReason), 1000);
-        try {
-            for (String targetInsttId : targetInsttIds) {
-                processCompanyApprovalStatusChange(targetInsttId, targetStatus, normalizedRejectReason);
-            }
-        } catch (Exception e) {
-            log.error("Failed to process company approval action. action={}, insttIds={}", normalizedAction, targetInsttIds, e);
-            primeCsrfToken(request);
-            model.addAttribute("memberApprovalError",
-                    isEn ? "An error occurred while processing the company approval request." : "회원사 승인 처리 중 오류가 발생했습니다.");
-            populateCompanyApprovalList(pageIndexParam, searchKeyword, sbscrbSttus, null, model, isEn, request, locale);
-            return viewName;
-        }
-
         StringBuilder redirect = new StringBuilder();
-        redirect.append("redirect:").append(adminPrefix(request, locale)).append("/member/company-approve?result=");
-        if ("P".equals(targetStatus)) {
-            redirect.append(targetInsttIds.size() > 1 ? "batchApproved" : "approved");
-        } else {
-            redirect.append(targetInsttIds.size() > 1 ? "batchRejected" : "rejected");
-        }
+        redirect.append("redirect:").append(adminPrefix(request, locale)).append("/member/company-approve?result=").append(result.getResultCode());
         appendApprovalRedirectQuery(redirect, "pageIndex", pageIndexParam);
         appendApprovalRedirectQuery(redirect, "searchKeyword", searchKeyword);
         appendApprovalRedirectQuery(redirect, "sbscrbSttus", sbscrbSttus);
@@ -478,56 +375,25 @@ public class AdminMainController {
             HttpServletRequest request,
             Locale locale) {
         boolean isEn = isEnglishRequest(request, locale);
-        Map<String, Object> response = new LinkedHashMap<>();
         String currentUserId = extractCurrentUserId(request);
         String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        if (!hasMemberManagementCompanyOperatorAccess(currentUserId, currentUserAuthorCode)) {
-            response.put("success", false);
-            response.put("message", isEn ? "You do not have permission to approve members." : "회원 승인 처리를 수행할 권한이 없습니다.");
-            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
+        AdminApprovalActionService.ActionResult result = adminApprovalActionService.submitMemberApproval(
+                payload == null ? null : payload.get("action"),
+                payload == null ? null : payload.get("memberId"),
+                payload == null ? null : payload.get("selectedIds"),
+                payload == null ? null : payload.get("rejectReason"),
+                request,
+                isEn,
+                hasMemberManagementCompanyOperatorAccess(currentUserId, currentUserAuthorCode));
+        if (!result.isSuccess()) {
+            return result.toResponseEntity();
         }
-        String normalizedAction = safeString(payload.get("action") == null ? null : payload.get("action").toString()).toLowerCase(Locale.ROOT);
-        String normalizedRejectReason = trimToLen(safeString(payload.get("rejectReason") == null ? null : payload.get("rejectReason").toString()), 1000);
-        List<String> targetMemberIds = extractPayloadIds(payload.get("selectedIds"), payload.get("memberId") == null ? null : payload.get("memberId").toString());
-        if (targetMemberIds.isEmpty()) {
-            response.put("success", false);
-            response.put("message", isEn ? "No approval target was selected." : "승인 처리할 회원을 선택해 주세요.");
-            return ResponseEntity.badRequest().body(response);
-        }
-        String targetStatus = "approve".equals(normalizedAction) || "batch_approve".equals(normalizedAction) ? "P"
-                : ("reject".equals(normalizedAction) || "batch_reject".equals(normalizedAction) ? "R" : "");
-        if (targetStatus.isEmpty()) {
-            response.put("success", false);
-            response.put("message", isEn ? "The requested action is not valid." : "요청한 처리 작업이 올바르지 않습니다.");
-            return ResponseEntity.badRequest().body(response);
-        }
-        try {
-            for (String targetMemberId : targetMemberIds) {
-                EntrprsManageVO targetMember = entrprsManageService.selectEntrprsmberByMberId(targetMemberId);
-                if (!canCurrentAdminAccessMember(request, targetMember)) {
-                    response.put("success", false);
-                    response.put("message", isEn ? "You can only approve members in your own company." : "본인 회사 소속 회원만 승인 처리할 수 있습니다.");
-                    return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
-                }
-                processMemberApprovalStatusChange(targetMemberId, targetStatus, normalizedRejectReason);
-            }
-        } catch (Exception e) {
-            log.error("Failed to process member approval action api. action={}, memberIds={}", normalizedAction, targetMemberIds, e);
-            response.put("success", false);
-            response.put("message", isEn ? "An error occurred while processing the approval request." : "회원 승인 처리 중 오류가 발생했습니다.");
-            return ResponseEntity.internalServerError().body(response);
-        }
-        response.put("success", true);
-        response.put("result", "P".equals(targetStatus)
-                ? (targetMemberIds.size() > 1 ? "batchApproved" : "approved")
-                : (targetMemberIds.size() > 1 ? "batchRejected" : "rejected"));
-        response.put("selectedIds", targetMemberIds);
         recordApprovalAuditSafely(request, currentUserId, currentUserAuthorCode, "AMENU_MEMBER_APPROVE", "member-approve",
-                "MEMBER_APPROVAL_" + ("P".equals(targetStatus) ? "APPROVE" : "REJECT"),
-                "MEMBER", targetMemberIds.toString(), "SUCCESS",
-                "{\"action\":\"" + normalizedAction + "\",\"selectedIds\":\"" + safeJson(targetMemberIds.toString()) + "\",\"rejectReason\":\"" + safeJson(normalizedRejectReason) + "\"}",
-                "{\"targetStatus\":\"" + targetStatus + "\"}");
-        return ResponseEntity.ok(response);
+                "MEMBER_APPROVAL_" + ("P".equals(result.getTargetStatus()) ? "APPROVE" : "REJECT"),
+                "MEMBER", result.getSelectedIds().toString(), "SUCCESS",
+                "{\"action\":\"" + safeJson(result.getAction()) + "\",\"selectedIds\":\"" + safeJson(result.getSelectedIds().toString()) + "\",\"rejectReason\":\"" + safeJson(result.getRejectReason()) + "\"}",
+                "{\"targetStatus\":\"" + result.getTargetStatus() + "\"}");
+        return result.toResponseEntity();
     }
 
     @PostMapping("/api/admin/member/company-approve/action")
@@ -537,50 +403,24 @@ public class AdminMainController {
             HttpServletRequest request,
             Locale locale) {
         boolean isEn = isEnglishRequest(request, locale);
-        Map<String, Object> response = new LinkedHashMap<>();
         String currentUserId = extractCurrentUserId(request);
         String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        if (!hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)) {
-            response.put("success", false);
-            response.put("message", isEn ? "Only master administrators can approve companies." : "회원사 승인 처리는 마스터 관리자만 수행할 수 있습니다.");
-            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
+        AdminApprovalActionService.ActionResult result = adminApprovalActionService.submitCompanyApproval(
+                payload == null ? null : payload.get("action"),
+                payload == null ? null : payload.get("insttId"),
+                payload == null ? null : payload.get("selectedIds"),
+                payload == null ? null : payload.get("rejectReason"),
+                isEn,
+                hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode));
+        if (!result.isSuccess()) {
+            return result.toResponseEntity();
         }
-        String normalizedAction = safeString(payload.get("action") == null ? null : payload.get("action").toString()).toLowerCase(Locale.ROOT);
-        String normalizedRejectReason = trimToLen(safeString(payload.get("rejectReason") == null ? null : payload.get("rejectReason").toString()), 1000);
-        List<String> targetInsttIds = extractPayloadIds(payload.get("selectedIds"), payload.get("insttId") == null ? null : payload.get("insttId").toString());
-        if (targetInsttIds.isEmpty()) {
-            response.put("success", false);
-            response.put("message", isEn ? "No company was selected for approval." : "승인 처리할 회원사를 선택해 주세요.");
-            return ResponseEntity.badRequest().body(response);
-        }
-        String targetStatus = "approve".equals(normalizedAction) || "batch_approve".equals(normalizedAction) ? "P"
-                : ("reject".equals(normalizedAction) || "batch_reject".equals(normalizedAction) ? "R" : "");
-        if (targetStatus.isEmpty()) {
-            response.put("success", false);
-            response.put("message", isEn ? "The requested action is not valid." : "요청한 처리 작업이 올바르지 않습니다.");
-            return ResponseEntity.badRequest().body(response);
-        }
-        try {
-            for (String targetInsttId : targetInsttIds) {
-                processCompanyApprovalStatusChange(targetInsttId, targetStatus, normalizedRejectReason);
-            }
-        } catch (Exception e) {
-            log.error("Failed to process company approval action api. action={}, insttIds={}", normalizedAction, targetInsttIds, e);
-            response.put("success", false);
-            response.put("message", isEn ? "An error occurred while processing the company approval request." : "회원사 승인 처리 중 오류가 발생했습니다.");
-            return ResponseEntity.internalServerError().body(response);
-        }
-        response.put("success", true);
-        response.put("result", "P".equals(targetStatus)
-                ? (targetInsttIds.size() > 1 ? "batchApproved" : "approved")
-                : (targetInsttIds.size() > 1 ? "batchRejected" : "rejected"));
-        response.put("selectedIds", targetInsttIds);
         recordApprovalAuditSafely(request, currentUserId, currentUserAuthorCode, "AMENU_COMPANY_APPROVE", "company-approve",
-                "COMPANY_APPROVAL_" + ("P".equals(targetStatus) ? "APPROVE" : "REJECT"),
-                "COMPANY", targetInsttIds.toString(), "SUCCESS",
-                "{\"action\":\"" + normalizedAction + "\",\"selectedIds\":\"" + safeJson(targetInsttIds.toString()) + "\",\"rejectReason\":\"" + safeJson(normalizedRejectReason) + "\"}",
-                "{\"targetStatus\":\"" + targetStatus + "\"}");
-        return ResponseEntity.ok(response);
+                "COMPANY_APPROVAL_" + ("P".equals(result.getTargetStatus()) ? "APPROVE" : "REJECT"),
+                "COMPANY", result.getSelectedIds().toString(), "SUCCESS",
+                "{\"action\":\"" + safeJson(result.getAction()) + "\",\"selectedIds\":\"" + safeJson(result.getSelectedIds().toString()) + "\",\"rejectReason\":\"" + safeJson(result.getRejectReason()) + "\"}",
+                "{\"targetStatus\":\"" + result.getTargetStatus() + "\"}");
+        return result.toResponseEntity();
     }
 
     @RequestMapping(value = "/member/edit", method = RequestMethod.GET)
@@ -2128,7 +1968,11 @@ public class AdminMainController {
                 locale);
     }
 
-    private void processMemberApprovalStatusChange(String memberId, String targetStatus, String rejectReason) throws Exception {
+    EntrprsManageVO loadMemberById(String memberId) throws Exception {
+        return entrprsManageService.selectEntrprsmberByMberId(memberId);
+    }
+
+    void processMemberApprovalStatusChange(String memberId, String targetStatus, String rejectReason) throws Exception {
         String normalizedMemberId = safeString(memberId);
         String normalizedTargetStatus = normalizeMemberStatusCode(targetStatus);
         if (normalizedMemberId.isEmpty() || normalizedTargetStatus.isEmpty()) {
@@ -2145,7 +1989,7 @@ public class AdminMainController {
         }
     }
 
-    private void processCompanyApprovalStatusChange(String insttId, String targetStatus, String rejectReason) throws Exception {
+    void processCompanyApprovalStatusChange(String insttId, String targetStatus, String rejectReason) throws Exception {
         String normalizedInsttId = safeString(insttId);
         String normalizedTargetStatus = normalizeMemberStatusCode(targetStatus);
         if (normalizedInsttId.isEmpty() || normalizedTargetStatus.isEmpty()) {
@@ -6464,7 +6308,7 @@ public class AdminMainController {
         return containsAuthorCode(authorGroups, normalizedAuthorCode) ? normalizedAuthorCode : "";
     }
 
-    private List<String> extractPayloadIds(Object selectedIds, String singleId) {
+    List<String> extractPayloadIds(Object selectedIds, String singleId) {
         Set<String> ids = new LinkedHashSet<>();
         String normalizedSingleId = safeString(singleId);
         if (!normalizedSingleId.isEmpty()) {
