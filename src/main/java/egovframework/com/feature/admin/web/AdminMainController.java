@@ -2888,8 +2888,6 @@ public class AdminMainController {
             String sbscrbSttus,
             Model model,
             HttpServletRequest request) {
-            Model model,
-            HttpServletRequest request) {
         int pageIndex = 1;
         if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
             try {
@@ -3187,8 +3185,6 @@ public class AdminMainController {
             String requestedInsttId,
             Model model,
             HttpServletRequest request) {
-            Model model,
-            HttpServletRequest request) {
         int pageIndex = 1;
         if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
             try {
@@ -3274,8 +3270,6 @@ public class AdminMainController {
             String requestedInsttId,
             Model model,
             HttpServletRequest request) {
-            Model model,
-            HttpServletRequest request) {
         populateLoginHistoryInternal(pageIndexParam, searchKeyword, userSe, "FAIL", "Y", requestedInsttId, model, request);
     }
 
@@ -3286,8 +3280,6 @@ public class AdminMainController {
             String loginResult,
             String blockedOnly,
             String requestedInsttId,
-            Model model,
-            HttpServletRequest request) {
             Model model,
             HttpServletRequest request) {
         int pageIndex = 1;
