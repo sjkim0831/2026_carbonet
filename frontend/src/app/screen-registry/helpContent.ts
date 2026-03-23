@@ -418,7 +418,9 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
     summary: "신규 회원 기본 정보와 소속/권한을 입력하는 등록 화면입니다.",
     items: [
       { id: "basic", title: "기본 정보", body: "성명, 아이디, 이메일, 연락처, 회원 유형을 입력합니다.", anchorSelector: '[data-help-id="member-register-basic"]' },
-      { id: "affiliation", title: "소속 및 권한", body: "기관명, 부서, 직함과 시스템 접근 권한을 설정합니다.", anchorSelector: '[data-help-id="member-register-affiliation"]' }
+      { id: "affiliation", title: "소속 및 권한", body: "기관 검색으로 소속 기관을 연결하고 부서, 직함과 시스템 접근 권한을 설정합니다.", anchorSelector: '[data-help-id="member-register-affiliation"]' },
+      { id: "actions", title: "등록 액션", body: "하단에서 목록 이동, 초기화, 등록 완료 버튼을 실행합니다.", anchorSelector: '[data-help-id="member-register-actions"]' },
+      { id: "org-search", title: "기관 검색 다이얼로그", body: "기관명 또는 사업자등록번호로 기존 기관을 검색하고 선택합니다.", anchorSelector: '#member-register-org-search-title' }
     ]
   },
   "emission-result-list": {

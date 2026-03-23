@@ -22,6 +22,10 @@ import java.util.Map;
 public class AdminMemberPagePayloadService {
 
     private static final Logger log = LoggerFactory.getLogger(AdminMemberPagePayloadService.class);
+    private static final String MEMBER_REGISTER_VIEW_FEATURE_CODE = "MEMBER_REGISTER_VIEW";
+    private static final String MEMBER_REGISTER_ID_CHECK_FEATURE_CODE = "MEMBER_REGISTER_ID_CHECK";
+    private static final String MEMBER_REGISTER_ORG_SEARCH_FEATURE_CODE = "MEMBER_REGISTER_ORG_SEARCH";
+    private static final String MEMBER_REGISTER_SAVE_FEATURE_CODE = "MEMBER_REGISTER_SAVE";
 
     private final ObjectProvider<AdminMainController> adminMainControllerProvider;
     private final EnterpriseMemberService entrprsManageService;
@@ -250,7 +254,33 @@ public class AdminMemberPagePayloadService {
         AdminMainController controller = adminMainController();
         boolean isEn = controller.isEnglishRequest(request, locale);
         controller.primeCsrfToken(request);
-        return controller.buildMemberRegisterPageData(isEn);
+        Map<String, Object> response = new LinkedHashMap<>(controller.buildMemberRegisterPageData(isEn));
+        String currentUserId = controller.extractCurrentUserId(request);
+        boolean webmaster = "webmaster".equalsIgnoreCase(controller.safeString(currentUserId));
+        java.util.Set<String> grantableFeatureCodes;
+        try {
+            grantableFeatureCodes = authorityPagePayloadSupport.resolveGrantableFeatureCodeSet(currentUserId, webmaster);
+        } catch (Exception e) {
+            log.error("Failed to resolve member-register feature grants. userId={}", controller.safeString(currentUserId), e);
+            grantableFeatureCodes = Collections.emptySet();
+        }
+        response.put("canViewMemberRegister", webmaster || hasFeature(grantableFeatureCodes, MEMBER_REGISTER_VIEW_FEATURE_CODE));
+        response.put("canUseMemberRegisterIdCheck", webmaster || hasFeature(grantableFeatureCodes, MEMBER_REGISTER_ID_CHECK_FEATURE_CODE));
+        response.put("canUseMemberRegisterOrgSearch", webmaster || hasFeature(grantableFeatureCodes, MEMBER_REGISTER_ORG_SEARCH_FEATURE_CODE));
+        response.put("canUseMemberRegisterSave", webmaster || hasFeature(grantableFeatureCodes, MEMBER_REGISTER_SAVE_FEATURE_CODE));
+        response.put("memberRegisterFeatureCodes", java.util.List.of(
+                MEMBER_REGISTER_VIEW_FEATURE_CODE,
+                MEMBER_REGISTER_ID_CHECK_FEATURE_CODE,
+                MEMBER_REGISTER_ORG_SEARCH_FEATURE_CODE,
+                MEMBER_REGISTER_SAVE_FEATURE_CODE));
+        return response;
+    }
+
+    private boolean hasFeature(java.util.Set<String> featureCodes, String featureCode) {
+        if (featureCodes == null) {
+            return true;
+        }
+        return featureCodes.contains(featureCode);
     }
 
     public Map<String, Object> buildPasswordResetPagePayload(

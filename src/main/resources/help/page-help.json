@@ -1521,8 +1521,20 @@
       {
         "id": "affiliation",
         "title": "소속 및 권한",
-        "body": "기관명, 부서, 직함과 시스템 접근 권한을 설정합니다.",
+        "body": "기관 검색으로 소속 기관을 연결하고 부서, 직함과 시스템 접근 권한을 설정합니다.",
         "anchorSelector": "[data-help-id=\"member-register-affiliation\"]"
+      },
+      {
+        "id": "actions",
+        "title": "등록 액션",
+        "body": "하단에서 목록 이동, 초기화, 등록 완료 버튼을 실행합니다.",
+        "anchorSelector": "[data-help-id=\"member-register-actions\"]"
+      },
+      {
+        "id": "org-search",
+        "title": "기관 검색 다이얼로그",
+        "body": "기관명 또는 사업자등록번호로 기존 기관을 검색하고 선택합니다.",
+        "anchorSelector": "#member-register-org-search-title"
       }
     ]
   },
