@@ -1,13 +1,10 @@
 package egovframework.com.feature.home.service;
 
-import org.springframework.ui.Model;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Map;
 
 public interface HomeMypageService {
-
-    String resolveMypageView(boolean en, Model model, HttpServletRequest request);
 
     Map<String, Object> buildMypageContext(boolean en, HttpServletRequest request);
 

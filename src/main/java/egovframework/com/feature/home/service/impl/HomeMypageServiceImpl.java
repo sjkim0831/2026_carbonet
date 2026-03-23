@@ -40,47 +40,6 @@ public class HomeMypageServiceImpl implements HomeMypageService {
     private final EnterpriseMemberService entrprsManageService;
     private final AuthService authService;
 
-    @Override
-    public String resolveMypageView(boolean en, Model model, HttpServletRequest request) {
-        String accessToken = jwtProvider.getCookie(request, "accessToken");
-        if (ObjectUtils.isEmpty(accessToken)) {
-            return en ? "redirect:/en/signin/loginView" : "redirect:/signin/loginView";
-        }
-
-        String userId = extractUserId(accessToken);
-        if (ObjectUtils.isEmpty(userId)) {
-            return en ? "redirect:/en/signin/loginView" : "redirect:/signin/loginView";
-        }
-
-        model.addAttribute("isLoggedIn", true);
-        Optional<EntrprsMber> enterpriseOpt = enterpriseMemberRepository.findById(userId);
-        if (enterpriseOpt.isEmpty()) {
-            return en ? "egovframework/com/home/mypage_en" : "egovframework/com/home/mypage";
-        }
-
-        EntrprsMber enterprise = enterpriseOpt.get();
-        String entrprsMberSttus = ObjectUtils.isEmpty(enterprise.getEntrprsMberStus())
-                ? ""
-                : enterprise.getEntrprsMberStus().trim();
-
-        if ("X".equalsIgnoreCase(entrprsMberSttus)) {
-            model.addAttribute("userId", userId);
-            model.addAttribute("companyName", ObjectUtils.isEmpty(enterprise.getCmpnyNm()) ? "-" : enterprise.getCmpnyNm());
-            model.addAttribute("memberStatus", entrprsMberSttus.toUpperCase(Locale.ROOT));
-            return en ? "egovframework/com/home/mypage_blocked_en" : "egovframework/com/home/mypage_blocked";
-        }
-
-        if ("A".equalsIgnoreCase(entrprsMberSttus) || "R".equalsIgnoreCase(entrprsMberSttus)) {
-            model.addAttribute("submittedAt", formatSubmittedAt(enterprise));
-            model.addAttribute("userId", userId);
-            model.addAttribute("companyName", ObjectUtils.isEmpty(enterprise.getCmpnyNm()) ? "-" : enterprise.getCmpnyNm());
-            model.addAttribute("pendingStatus", entrprsMberSttus.toUpperCase(Locale.ROOT));
-            populateInstitutionReviewInfo(model, enterprise);
-            return en ? "egovframework/com/home/mypage_pending_en" : "egovframework/com/home/mypage_pending";
-        }
-
-        return en ? "egovframework/com/home/mypage_en" : "egovframework/com/home/mypage";
-    }
 
     @Override
     public Map<String, Object> buildMypageContext(boolean en, HttpServletRequest request) {

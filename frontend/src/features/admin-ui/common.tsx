@@ -75,7 +75,7 @@ export function MemberSectionToolbar({
   actions,
   className = "",
   ...props
-}: HTMLAttributes<HTMLDivElement> & { title?: ReactNode; meta?: ReactNode; actions?: ReactNode }) {
+}: Omit<HTMLAttributes<HTMLDivElement>, "title"> & { title?: ReactNode; meta?: ReactNode; actions?: ReactNode }) {
   return (
     <MemberToolbar
       {...props}
@@ -92,7 +92,7 @@ export function GridToolbar({
   actions,
   className = "",
   ...props
-}: HTMLAttributes<HTMLDivElement> & { title?: ReactNode; meta?: ReactNode; actions?: ReactNode }) {
+}: Omit<HTMLAttributes<HTMLDivElement>, "title"> & { title?: ReactNode; meta?: ReactNode; actions?: ReactNode }) {
   return <div {...props} className={`border-b border-[var(--kr-gov-border-light)] px-6 py-5 ${className}`.trim()}><MemberSectionToolbar actions={actions} meta={meta} title={title} /></div>;
 }
 
