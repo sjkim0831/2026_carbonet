@@ -40,7 +40,6 @@ public class AdminApprovalPagePayloadService {
                 sbscrbSttus,
                 result,
                 model,
-                isEn ? "egovframework/com/admin/member_approve_en" : "egovframework/com/admin/member_approve",
                 isEn,
                 request,
                 locale);
@@ -71,7 +70,6 @@ public class AdminApprovalPagePayloadService {
                 sbscrbSttus,
                 result,
                 model,
-                isEn ? "egovframework/com/admin/company_approve_en" : "egovframework/com/admin/company_approve",
                 isEn,
                 request,
                 locale);
