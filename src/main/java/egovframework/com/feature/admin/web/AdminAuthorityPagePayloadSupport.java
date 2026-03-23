@@ -16,8 +16,7 @@ import egovframework.com.feature.admin.model.vo.FeatureCatalogItemVO;
 import egovframework.com.feature.admin.model.vo.FeatureCatalogSectionVO;
 import egovframework.com.feature.admin.model.vo.UserAuthorityTargetVO;
 import egovframework.com.feature.admin.service.AuthGroupManageService;
-import egovframework.com.feature.auth.domain.entity.EmplyrInfo;
-import egovframework.com.feature.auth.domain.repository.EmployeeMemberRepository;
+import egovframework.com.feature.auth.service.CurrentUserContextService;
 import egovframework.com.framework.authority.service.FrameworkAuthorityPolicyService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -49,9 +48,9 @@ public class AdminAuthorityPagePayloadSupport {
     private static final String ROLE_OPERATION_ADMIN = "ROLE_OPERATION_ADMIN";
 
     private final AuthGroupManageService authGroupManageService;
-    private final EmployeeMemberRepository employMemberRepository;
     private final ObservabilityQueryService observabilityQueryService;
     private final FrameworkAuthorityPolicyService frameworkAuthorityPolicyService;
+    private final CurrentUserContextService currentUserContextService;
     private final ObjectMapper objectMapper;
 
     public List<FeatureCatalogSectionVO> buildFeatureCatalogSections(List<FeatureCatalogItemVO> featureRows, boolean isEn) {
@@ -152,31 +151,11 @@ public class AdminAuthorityPagePayloadSupport {
     }
 
     public String resolveCurrentUserAuthorCode(String currentUserId) {
-        if (isWebmaster(currentUserId)) {
-            return ROLE_SYSTEM_MASTER;
-        }
-        try {
-            return safeString(authGroupManageService.selectAuthorCodeByUserId(currentUserId)).toUpperCase(Locale.ROOT);
-        } catch (Exception e) {
-            log.error("Failed to resolve current admin role. userId={}", safeString(currentUserId), e);
-            return "";
-        }
+        return currentUserContextService.resolve(currentUserId).getAuthorCode();
     }
 
     public String resolveCurrentUserInsttId(String currentUserId) {
-        String normalizedUserId = safeString(currentUserId);
-        if (normalizedUserId.isEmpty() || isWebmaster(normalizedUserId)) {
-            return "";
-        }
-        try {
-            return employMemberRepository.findById(normalizedUserId)
-                    .map(EmplyrInfo::getInsttId)
-                    .map(this::safeString)
-                    .orElse("");
-        } catch (Exception e) {
-            log.error("Failed to resolve current admin institution. userId={}", normalizedUserId, e);
-            return "";
-        }
+        return currentUserContextService.resolve(currentUserId).getInsttId();
     }
 
     public boolean hasGlobalDeptRoleAccess(String currentUserId, String authorCode) {
@@ -592,13 +571,9 @@ public class AdminAuthorityPagePayloadSupport {
     }
 
     public List<Map<String, String>> buildRoleCategoryOptions(boolean isEn, boolean canViewGeneralAuthorityGroups) {
-        List<Map<String, String>> rows = new ArrayList<>();
-        if (canViewGeneralAuthorityGroups) {
-            rows.add(roleCategoryOption("GENERAL", isEn ? "General groups" : "일반 권한 그룹"));
-        }
-        rows.add(roleCategoryOption("DEPARTMENT", isEn ? "Department groups" : "부서 권한 그룹"));
-        rows.add(roleCategoryOption("USER", isEn ? "User groups" : "사용자 권한 그룹"));
-        return rows;
+        return frameworkAuthorityPolicyService.buildRoleCategoryOptions(isEn, canViewGeneralAuthorityGroups).stream()
+                .map(item -> roleCategoryOption(item.getCode(), item.getName()))
+                .collect(Collectors.toList());
     }
 
     public boolean hasGeneralAuthorityGroupAccess(String currentUserId, boolean webmaster) throws Exception {
@@ -765,37 +740,15 @@ public class AdminAuthorityPagePayloadSupport {
     }
 
     public List<Map<String, String>> buildAssignmentAuthorities(boolean isEn) {
-        List<Map<String, String>> items = new ArrayList<>();
-        items.add(assignmentAuthority(
-                isEn ? "Role assignment authority" : "권한 할당 권한",
-                isEn ? "Controls which role groups the current administrator can assign on the member edit page." : "회원 수정 화면에서 현재 관리자가 어떤 Role을 부여할 수 있는지 제어합니다."
-        ));
-        items.add(assignmentAuthority(
-                isEn ? "Grant authority" : "권한 부여 권한",
-                isEn ? "Separates execution authority from authority to delegate that execution authority to others." : "실행 권한과 타인에게 그 권한을 위임할 수 있는 권한을 분리합니다."
-        ));
-        items.add(assignmentAuthority(
-                isEn ? "Department baseline authority" : "부서 기본 권한",
-                isEn ? "Provides default roles by department, then merges them with user-specific roles." : "부서별 기본 Role을 부여하고 사용자별 직접 권한과 합산합니다."
-        ));
-        return items;
+        return frameworkAuthorityPolicyService.buildAssignmentAuthorities(isEn).stream()
+                .map(item -> assignmentAuthority(item.getTitle(), item.getDescription()))
+                .collect(Collectors.toList());
     }
 
     public List<Map<String, String>> buildRoleCategories(boolean isEn) {
-        List<Map<String, String>> rows = new ArrayList<>();
-        rows.add(roleCategory(
-                isEn ? "General authority list" : "일반 권한 목록",
-                isEn ? "Master feature catalog. All VIEW and action permissions are defined here." : "기능 마스터 카탈로그입니다. 모든 VIEW 및 액션 권한의 원본입니다."
-        ));
-        rows.add(roleCategory(
-                isEn ? "Department authority list" : "부서 권한 목록",
-                isEn ? "Department-level baseline roles for operation, CS, audit and similar teams." : "운영, CS, 감사 등 부서 단위 기본 Role 목록입니다."
-        ));
-        rows.add(roleCategory(
-                isEn ? "User authority list" : "사용자 권한 목록",
-                isEn ? "Direct user-specific role assignments and exceptions managed from member edit." : "회원 수정 화면에서 관리하는 사용자 직접 Role 및 예외 권한입니다."
-        ));
-        return rows;
+        return frameworkAuthorityPolicyService.buildRoleCategories(isEn).stream()
+                .map(item -> roleCategory(item.getTitle(), item.getDescription()))
+                .collect(Collectors.toList());
     }
 
     public String resolveDeptRoleMessage(String error, boolean isEn) {

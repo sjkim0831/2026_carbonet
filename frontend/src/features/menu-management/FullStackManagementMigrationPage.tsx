@@ -1,7 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { findManifestByMenuCodeOrRoutePath, normalizeManifestLookupPath } from "../../app/screen-registry/pageManifestIndex";
-import { fetchFrameworkAuthorityContract, type FrameworkAuthorityRoleContract } from "../../framework";
+import {
+  fetchFrameworkAuthorityContract,
+  type FrameworkAuthorityOption,
+  type FrameworkAuthorityRoleContract,
+  type FrameworkAuthorityText
+} from "../../framework";
 import {
   autoCollectFullStackGovernanceRegistry,
   fetchFullStackGovernanceRegistry,
@@ -14,12 +19,13 @@ import {
   type MenuManagementPagePayload,
   type ScreenCommandPagePayload
 } from "../../lib/api/client";
-import { buildLocalizedPath, getCsrfMeta, isEnglish } from "../../lib/navigation/runtime";
+import { postFormUrlEncoded } from "../../lib/api/core";
+import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";
 import { authorDesignContextKeys } from "../admin-ui/contextKeyPresets";
 import { SummaryMetricCard, WarningPanel } from "../admin-ui/common";
-import { numberOf, readRedirectedErrorMessage, stringOf } from "../admin-system/adminSystemShared";
+import { numberOf, stringOf } from "../admin-system/adminSystemShared";
 import { toDisplayMenuUrl } from "./menuUrlDisplay";
 
 type MenuNode = {
@@ -285,7 +291,11 @@ export function FullStackManagementMigrationPage() {
   const [registryCollecting, setRegistryCollecting] = useState(false);
   const [lastAutoCollectedKey, setLastAutoCollectedKey] = useState("");
   const [authorityRoles, setAuthorityRoles] = useState<FrameworkAuthorityRoleContract[]>([]);
+  const [authorityRoleCategoryOptions, setAuthorityRoleCategoryOptions] = useState<FrameworkAuthorityOption[]>([]);
+  const [authorityAssignmentAuthorities, setAuthorityAssignmentAuthorities] = useState<FrameworkAuthorityText[]>([]);
+  const [authorityRoleCategories, setAuthorityRoleCategories] = useState<FrameworkAuthorityText[]>([]);
   const [authorityLoading, setAuthorityLoading] = useState(false);
+  const deferredMenuSearch = useDeferredValue(menuSearch);
 
   const rows = useMemo(() => (page?.menuRows || []) as Array<Record<string, unknown>>, [page?.menuRows]);
   const menuTypes = ((page?.menuTypes || []) as Array<Record<string, unknown>>);
@@ -357,12 +367,18 @@ export function FullStackManagementMigrationPage() {
     ...((governanceDetail?.menuPermission?.featureCodes || []).map((item) => String(item || ""))),
     ...((governanceDetail?.menuPermission?.featureRows || []).map((item) => String(item.featureCode || "")))
   ].map((item) => item.toUpperCase())), [governanceDetail, registryEditor.featureCodes]);
+  const deferredGovernanceFeatureCodes = useDeferredValue(governanceFeatureCodes);
+  const authorityRoleFeatureIndex = useMemo(() => authorityRoles.map((role) => ({
+    role,
+    explicitFeatureCodes: (role.featureCodes || [])
+      .map((item) => String(item || "").toUpperCase())
+      .filter((item) => item && item !== "*")
+  })), [authorityRoles]);
   const recommendedAuthorityRoles = useMemo(() => {
-    const currentFeatures = new Set(governanceFeatureCodes);
-    return authorityRoles
-      .map((role) => {
-        const explicitFeatureCodes = (role.featureCodes || []).filter((item) => item && item !== "*");
-        const overlapCount = explicitFeatureCodes.filter((item) => currentFeatures.has(String(item).toUpperCase())).length;
+    const currentFeatures = new Set(deferredGovernanceFeatureCodes);
+    return authorityRoleFeatureIndex
+      .map(({ role, explicitFeatureCodes }) => {
+        const overlapCount = explicitFeatureCodes.filter((item) => currentFeatures.has(item)).length;
         return {
           role,
           overlapCount
@@ -376,14 +392,14 @@ export function FullStackManagementMigrationPage() {
         return (right.role.hierarchyLevel || 0) - (left.role.hierarchyLevel || 0);
       })
       .slice(0, 8);
-  }, [authorityRoles, governanceFeatureCodes]);
+  }, [authorityRoleFeatureIndex, deferredGovernanceFeatureCodes]);
 
   useEffect(() => {
     setTreeData(buildTree(rows));
   }, [rows]);
 
   const filteredTreeData = useMemo(() => {
-    const keyword = menuSearch.trim().toLowerCase();
+    const keyword = deferredMenuSearch.trim().toLowerCase();
     if (!keyword) {
       return treeData;
     }
@@ -396,7 +412,7 @@ export function FullStackManagementMigrationPage() {
       return acc;
     }, []);
     return filterNodes(treeData);
-  }, [menuSearch, treeData]);
+  }, [deferredMenuSearch, treeData]);
 
   useEffect(() => {
     const selectedExists = rows.some((row) => stringOf(row, "code").toUpperCase() === selectedMenuCode);
@@ -453,11 +469,17 @@ export function FullStackManagementMigrationPage() {
       .then((contract) => {
         if (!cancelled) {
           setAuthorityRoles((contract.authorityRoles || []).filter((item) => item.builderReady));
+          setAuthorityRoleCategoryOptions(contract.roleCategoryOptions || []);
+          setAuthorityAssignmentAuthorities(contract.assignmentAuthorities || []);
+          setAuthorityRoleCategories(contract.roleCategories || []);
         }
       })
       .catch(() => {
         if (!cancelled) {
           setAuthorityRoles([]);
+          setAuthorityRoleCategoryOptions([]);
+          setAuthorityAssignmentAuthorities([]);
+          setAuthorityRoleCategories([]);
         }
       })
       .finally(() => {
@@ -649,24 +671,10 @@ export function FullStackManagementMigrationPage() {
     const body = new URLSearchParams();
     body.set("menuType", menuType);
     body.set("orderPayload", flattenPayload(treeData).join(","));
-    const { token, headerName } = getCsrfMeta();
-    const headers: Record<string, string> = { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" };
-    if (token) {
-      headers[headerName] = token;
-    }
-    const response = await fetch(buildLocalizedPath("/admin/system/menu-management/order", "/en/admin/system/menu-management/order"), {
-      method: "POST",
-      credentials: "include",
-      headers,
-      body: body.toString()
-    });
-    if (!response.ok) {
-      throw new Error(`Failed to save menu order: ${response.status}`);
-    }
-    const redirectedError = readRedirectedErrorMessage(response);
-    if (redirectedError) {
-      throw new Error(redirectedError);
-    }
+    await postFormUrlEncoded(
+      buildLocalizedPath("/admin/system/menu-management/order", "/en/admin/system/menu-management/order"),
+      body
+    );
     await pageState.reload();
     setActionMessage(en ? "Menu order has been saved." : "메뉴 순서를 저장했습니다.");
   }
@@ -703,20 +711,12 @@ export function FullStackManagementMigrationPage() {
     body.set("menuUrl", menuUrl);
     body.set("menuIcon", menuIcon);
     body.set("useAt", useAt);
-    const { token, headerName } = getCsrfMeta();
-    const headers: Record<string, string> = { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" };
-    if (token) {
-      headers[headerName] = token;
-    }
-    const response = await fetch(buildLocalizedPath("/admin/system/menu-management/create-page", "/en/admin/system/menu-management/create-page"), {
-      method: "POST",
-      credentials: "include",
-      headers,
-      body: body.toString()
-    });
-    const responseBody = await response.json() as { success?: boolean; message?: string; createdCode?: string; };
-    if (!response.ok || !responseBody.success) {
-      throw new Error(responseBody.message || `Failed to create page menu: ${response.status}`);
+    const responseBody = await postFormUrlEncoded<{ success?: boolean; message?: string; createdCode?: string }>(
+      buildLocalizedPath("/admin/system/menu-management/create-page", "/en/admin/system/menu-management/create-page"),
+      body
+    );
+    if (!responseBody.success) {
+      throw new Error(responseBody.message || "Failed to create page menu.");
     }
     await pageState.reload();
     setActionMessage(responseBody.message || (en ? "The page has been created." : "페이지를 생성했습니다."));
@@ -1227,6 +1227,41 @@ export function FullStackManagementMigrationPage() {
                     </div>
                   </article>
                 ))}
+              </div>
+            </div>
+
+            <div className="mb-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
+              <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4">
+                <h5 className="font-bold">{en ? "Role Category Options" : "Role Category 옵션"}</h5>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {authorityRoleCategoryOptions.map((item) => (
+                    <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-700" key={item.code}>
+                      {item.code} · {item.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4">
+                <h5 className="font-bold">{en ? "Assignment Authorities" : "권한 할당 가이드"}</h5>
+                <div className="mt-3 space-y-3">
+                  {authorityAssignmentAuthorities.map((item) => (
+                    <div className="rounded border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-bg-muted)] px-3 py-3" key={item.title}>
+                      <p className="text-xs font-black">{item.title}</p>
+                      <p className="mt-1 text-[12px] text-[var(--kr-gov-text-secondary)]">{item.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4">
+                <h5 className="font-bold">{en ? "Role Category Guides" : "권한 카테고리 가이드"}</h5>
+                <div className="mt-3 space-y-3">
+                  {authorityRoleCategories.map((item) => (
+                    <div className="rounded border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-bg-muted)] px-3 py-3" key={item.title}>
+                      <p className="text-xs font-black">{item.title}</p>
+                      <p className="mt-1 text-[12px] text-[var(--kr-gov-text-secondary)]">{item.description}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 

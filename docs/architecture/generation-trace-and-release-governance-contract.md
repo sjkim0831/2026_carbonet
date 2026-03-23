@@ -42,6 +42,12 @@ No governed edit should be allowed to disappear just because it started as JSON.
 
 JSON working revisions, AI-assisted patches, user edits, and published artifacts must all remain connected through one lineage.
 
+Thin-output release rule:
+
+- generated outputs should remain thin and traceable
+- release units should primarily bind approved common artifacts plus project-specific page, authority, route, and schema definitions
+- each published page must remain traceable by stable `pageId` and its authority or feature binding lineage
+
 ## Required Trace Objects
 
 ### `GENERATION_RUN`
@@ -57,6 +63,15 @@ JSON working revisions, AI-assisted patches, user edits, and published artifacts
 - `menuCode`
 - `pageId`
 - `scaffoldRequestId`
+- `builderVersion`
+- `builderRulePackVersion`
+- `templatePackVersion`
+- `sourceContractVersion`
+- `overlaySchemaVersion`
+- `overlaySetId`
+- `overlayHash`
+- `compatibilityVerdict`
+- `migrationPlanId`
 - `generationMode`
   - `FRONTEND_ONLY`
   - `FULL_STACK`
@@ -153,9 +168,25 @@ JSON working revisions, AI-assisted patches, user edits, and published artifacts
 - `scenarioId`
 - `publishedAssetSet`
 - `jsonRevisionSet`
+- `overlayIdSet`
 - `publishedVersionRef`
 - `releaseUnitId`
 - `boundAt`
+
+## Builder Overlay And Compatibility Rule
+
+Generation lineage should also remain compatible with:
+
+- `docs/architecture/builder-overlay-schema-and-governance-contract.md`
+- `docs/architecture/builder-version-compatibility-and-upgrade-contract.md`
+
+This means:
+
+- regeneration must record which approved overlay set participated
+- publish must record which builder version and compatibility verdict produced
+  the asset set
+- unsupported source or overlay versions must fail before publish, not after
+  runtime deployment
 
 ### `RELEASE_UNIT_BINDING_TRACE`
 

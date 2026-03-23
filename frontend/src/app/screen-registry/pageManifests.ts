@@ -944,6 +944,48 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "EnvironmentManagementCards", instanceKey: "environment-management-cards", layoutZone: "content", propsSummary: ["system-code", "page-management", "function-management", "menu-management"] }
     ]
   },
+  "screen-builder": {
+    pageId: "screen-builder",
+    routePath: "/admin/system/screen-builder",
+    menuCode: "A1900106",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "ScreenBuilderSummaryCard", instanceKey: "screen-builder-summary", layoutZone: "actions", propsSummary: ["menuCode", "pageId", "templateType", "publishIssueCount"] },
+      { componentId: "ScreenBuilderOverviewPanels", instanceKey: "screen-builder-overview", layoutZone: "content", propsSummary: ["publishReady", "versionHistory", "registryDiagnostics"] },
+      { componentId: "ScreenBuilderEditorPanels", instanceKey: "screen-builder-editor", layoutZone: "content", propsSummary: ["selectedNodeId", "selectedTemplateType", "previewMode"] },
+      { componentId: "ScreenBuilderGovernancePanels", instanceKey: "screen-builder-governance", layoutZone: "content", propsSummary: ["authorityProfile", "registryUsageRows", "registryIssueCount"] }
+    ]
+  },
+  "screen-runtime": {
+    pageId: "screen-runtime",
+    routePath: "/admin/system/screen-runtime",
+    menuCode: "A1900107",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "ScreenRuntimeSummaryCard", instanceKey: "screen-runtime-summary", layoutZone: "actions", propsSummary: ["menuCode", "pageId", "publishedVersionId", "snapshotCount"] },
+      { componentId: "ScreenRuntimePublishAudit", instanceKey: "screen-runtime-publish-audit", layoutZone: "content", propsSummary: ["actionCode", "actorId", "createdAt"] },
+      { componentId: "ScreenRuntimePreview", instanceKey: "screen-runtime-preview", layoutZone: "content", propsSummary: ["menuUrl", "templateType", "runtimeBlocked", "nodeCount"] },
+      { componentId: "ScreenRuntimeBuilderActivity", instanceKey: "screen-runtime-builder-activity", layoutZone: "content", propsSummary: ["recentActivityCount", "traceId"] }
+    ]
+  },
+  "current-runtime-compare": {
+    pageId: "current-runtime-compare",
+    routePath: "/admin/system/current-runtime-compare",
+    menuCode: "A1900108",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "RuntimeCompareSummaryMetrics", instanceKey: "runtime-compare-metrics", layoutZone: "actions", propsSummary: ["compareRowCount", "mismatchCount", "gapCount", "recentAuditCount"] },
+      { componentId: "RuntimeCompareScopePanel", instanceKey: "runtime-compare-scope", layoutZone: "content", propsSummary: ["menuCode", "pageId", "publishedVersionId", "draftVersionId"] },
+      { componentId: "RuntimeCompareMatrix", instanceKey: "runtime-compare-matrix", layoutZone: "content", propsSummary: ["templateLineId", "screenFamilyRuleId", "currentNodeCount", "generatedNodeCount"] },
+      { componentId: "RuntimeCompareRecentEvents", instanceKey: "runtime-compare-events", layoutZone: "content", propsSummary: ["latestPublishAt", "traceId", "actionCode"] }
+    ]
+  },
   "wbs-management": {
     pageId: "wbs-management",
     routePath: "/admin/system/wbs-management",

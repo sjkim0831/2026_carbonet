@@ -9,6 +9,11 @@ Carbonet front and back must expose one recognizable framework contract so an AI
 - export builder drafts as governed framework artifacts
 - treat admin, home, and join as domains on one platform instead of separate products
 
+Operating ownership split:
+
+- `carbonet-ops` owns builder rules, publish policy, compatibility, and regeneration control
+- `carbonet-general` consumes approved generated outputs as the runtime target system
+
 ## Canonical Directories
 
 Frontend canonical layer:
@@ -155,6 +160,13 @@ AI builder outputs should be treated as publishable only if they can be reduced 
 
 If an output cannot be expressed through this contract, it is not yet framework-compliant.
 
+Thin output rule:
+
+- generated project outputs should stay as thin as possible
+- normal runtime behavior should resolve from approved common jars, shared frontend bundles, and governed registries
+- project outputs should primarily carry page identity, route binding, authority binding, manifest data, JSON or DB-backed schema, and project-local business deltas
+- repeated shared behavior should move back into common artifacts instead of accumulating inside project output files
+
 ## Regeneration Rule
 
 Framework-compliant outputs should also follow the regeneration model in
@@ -166,3 +178,33 @@ In practice this means:
 - approved overlays remain declarative
 - generated frontend, backend, DB, and deploy artifacts remain derived outputs
 - builder evolution should prefer regeneration over hand-editing generated files
+- overlay behavior should follow
+  `docs/architecture/builder-overlay-schema-and-governance-contract.md`
+- builder upgrades should follow
+  `docs/architecture/builder-version-compatibility-and-upgrade-contract.md`
+
+Additional fixed rule:
+
+- all normal output configuration should be expressed in builder-controlled inputs, rules, profiles, or overlays
+- runtime target systems should receive regenerated outputs rather than hand-maintained generated files
+
+## Enforcement Priorities
+
+Framework standardization is not complete until these enforcement steps exist:
+
+1. builder and compatibility versions are persisted and queryable
+2. overlay precedence is executable and deterministic
+3. thin-output minimum-unit validation blocks publish when identity, authority,
+   schema, manifest, or lineage data is incomplete
+4. generated-output direct-edit detection runs in CI
+5. common runtime artifact version compatibility is tracked against generated
+   outputs
+6. operator control-plane UI exposes builder version, overlay set, compatibility
+   verdict, and publish readiness
+
+Near-term rollout order:
+
+1. `06` control-plane DB and mapper completion
+2. `09` regenerate parity and repair verification
+3. `08` common-jar and release-unit deployment closure
+4. `05` builder-only regeneration proof on one real page

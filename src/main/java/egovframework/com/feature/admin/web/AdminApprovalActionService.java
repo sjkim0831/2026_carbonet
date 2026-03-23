@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpServletRequest;
@@ -22,7 +23,11 @@ class AdminApprovalActionService {
 
     private static final Logger log = LoggerFactory.getLogger(AdminApprovalActionService.class);
 
-    private final AdminMainController adminMainController;
+    private final ObjectProvider<AdminMainController> adminMainControllerProvider;
+
+    private AdminMainController adminMainController() {
+        return adminMainControllerProvider.getObject();
+    }
 
     ActionResult submitMemberApproval(
             Object action,
@@ -34,7 +39,7 @@ class AdminApprovalActionService {
             boolean hasAccess) {
         ActionResult result = ActionResult.member(
                 normalizeAction(action),
-                adminMainController.extractPayloadIds(selectedMemberIds, stringValue(memberId)),
+                adminMainController().extractPayloadIds(selectedMemberIds, stringValue(memberId)),
                 normalizeRejectReason(rejectReason));
         if (!hasAccess) {
             return result.forbidden(isEn
@@ -53,13 +58,13 @@ class AdminApprovalActionService {
         }
         try {
             for (String targetMemberId : result.selectedIds) {
-                EntrprsManageVO targetMember = adminMainController.loadMemberById(targetMemberId);
-                if (!adminMainController.canCurrentAdminAccessMember(request, targetMember)) {
+                EntrprsManageVO targetMember = adminMainController().loadMemberById(targetMemberId);
+                if (!adminMainController().canCurrentAdminAccessMember(request, targetMember)) {
                     return result.forbidden(isEn
                             ? "You can only approve members in your own company."
                             : "본인 회사 소속 회원만 승인 처리할 수 있습니다.");
                 }
-                adminMainController.processMemberApprovalStatusChange(targetMemberId, result.targetStatus, result.rejectReason);
+                adminMainController().processMemberApprovalStatusChange(targetMemberId, result.targetStatus, result.rejectReason);
             }
             return result.success();
         } catch (Exception e) {
@@ -80,7 +85,7 @@ class AdminApprovalActionService {
             boolean hasAccess) {
         ActionResult result = ActionResult.company(
                 normalizeAction(action),
-                adminMainController.extractPayloadIds(selectedInsttIds, stringValue(insttId)),
+                adminMainController().extractPayloadIds(selectedInsttIds, stringValue(insttId)),
                 normalizeRejectReason(rejectReason));
         if (!hasAccess) {
             return result.forbidden(isEn
@@ -99,7 +104,7 @@ class AdminApprovalActionService {
         }
         try {
             for (String targetInsttId : result.selectedIds) {
-                adminMainController.processCompanyApprovalStatusChange(targetInsttId, result.targetStatus, result.rejectReason);
+                adminMainController().processCompanyApprovalStatusChange(targetInsttId, result.targetStatus, result.rejectReason);
             }
             return result.success();
         } catch (Exception e) {
@@ -116,7 +121,7 @@ class AdminApprovalActionService {
     }
 
     private String normalizeRejectReason(Object rejectReason) {
-        return adminMainController.trimToLen(adminMainController.safeString(stringValue(rejectReason)), 1000);
+        return adminMainController().trimToLen(adminMainController().safeString(stringValue(rejectReason)), 1000);
     }
 
     private String stringValue(Object value) {

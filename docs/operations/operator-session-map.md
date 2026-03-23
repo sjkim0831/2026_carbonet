@@ -6,6 +6,27 @@ Last updated: 2026-03-23
 
 운영 분산 작업 시 서버별 세션 경계를 고정하고, 로그인 자격증명 처리 방식과 공통 보고 형식을 표준화합니다.
 
+## 시스템 경계
+
+운영 기준의 기본 분리는 다음과 같습니다.
+
+- `carbonet-ops`
+  - 빌더
+  - control plane
+  - 운영 승인
+  - 배포/검증 orchestration
+- `carbonet-general`
+  - 빌더가 생성하는 산출물 대상 시스템
+  - runtime 배포 대상
+  - publish 결과 소비 시스템
+
+규칙:
+
+- 빌더 설정, 생성 규칙, overlay, compatibility, publish 판단은 `carbonet-ops`에서 소유합니다.
+- `carbonet-general`은 승인된 산출물과 release unit을 소비하는 대상 시스템입니다.
+- `carbonet-general` 쪽에서 generated artifact를 수동 수정하는 운영 방식은 기본 모델로 허용하지 않습니다.
+- 설정 변경이 필요하면 `carbonet-ops`의 빌더/overlay/control-plane 경로에서 수정 후 재생성해야 합니다.
+
 ## 세션 맵
 
 ### `ops-control`

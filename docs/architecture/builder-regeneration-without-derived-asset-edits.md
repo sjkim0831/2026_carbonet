@@ -24,6 +24,13 @@ The durable sources of truth must stay outside the generated files:
 3. approved overlays and extension bindings
 4. trace, approval, and publish lineage
 
+Operating ownership split:
+
+- `carbonet-ops` is the builder and control-plane owner
+- `carbonet-general` is the generated-output target runtime system
+- builder-side configuration belongs in `carbonet-ops`
+- generated outputs deployed to `carbonet-general` remain replaceable derived assets
+
 If a change requires editing a generated file directly, that change should be
 classified as one of:
 
@@ -33,6 +40,20 @@ classified as one of:
 
 Normal product evolution should be handled by updating the builder-side source
 layers and regenerating.
+
+This also means:
+
+- do not fix `carbonet-general` by hand-editing generated outputs as the normal workflow
+- fix builder rules, builder inputs, overlays, or compatibility policy in `carbonet-ops`
+- regenerate and republish to `carbonet-general`
+
+Target output shape:
+
+- generated outputs should be intentionally thin
+- common runtime behavior should execute from approved common jars and shared bundles
+- page rendering should prefer governed DB or JSON definitions where possible
+- generated project files should mostly declare page IDs, authority bindings, route bindings, manifest references, and project-specific deltas
+- if a generated file starts owning large reusable behavior, that behavior should be considered for promotion back into common artifacts
 
 ## Five-Layer Architecture
 
@@ -101,6 +122,8 @@ Rules:
 - overlays must not bypass registry or manifest governance
 - if a customization cannot be expressed as overlay data, add a governed
   extension point before allowing manual edits
+- all normal customization should be entered through the builder or governed
+  overlay flows, not by editing generated artifacts in the target runtime system
 
 ## 4. Derived Artifact Layer
 
@@ -121,6 +144,10 @@ Rules:
 - publishable outputs must always be reproducible from layers 1 to 3
 - builder upgrades should prefer regeneration over direct patching
 - hand-edited derived files create drift and should be treated as governance debt
+- `carbonet-general` should be treated as a deployment target for regenerated
+  outputs, not as the place where output truth is maintained
+- page-level identity and authority should remain explicit even when most runtime
+  behavior is delegated to common artifacts
 
 ## 5. Verification And Runtime Lineage Layer
 
@@ -232,6 +259,50 @@ must expose explicit extension points such as:
 - theme token hooks
 - release-unit packaging hooks
 
+## Execution Checklist
+
+Use this checklist when moving Carbonet from documented regeneration intent to
+an enforceable operating model.
+
+1. Persist `builderVersion`, `sourceContractVersion`, and `overlaySchemaVersion`
+   in control-plane storage for every generation and compatibility run.
+2. Move compatibility-check results from file-backed storage into governed
+   control-plane tables and query APIs.
+3. Implement overlay precedence and conflict-resolution rules in service code,
+   not only in documentation.
+4. Add regenerate regression checks that prove `pageId`, `menuCode`,
+   `routePath`, and authority bindings remain stable across rebuilds.
+5. Enforce generated-output no-hand-edit policy in CI for
+   `carbonet-general`-bound derived areas.
+6. Record a compatibility matrix between common jar versions and generated
+   output manifest versions.
+7. Provision real menu, page, feature, and author bindings for
+   `screen-builder`, `screen-runtime`, and `current-runtime-compare`.
+8. Ensure menu-code bootstrap and authority bootstrap stay aligned for every
+   builder-owned admin page.
+9. Block publish when the thin-output minimum unit is incomplete:
+   `pageId`, authority binding, schema reference, manifest binding, and lineage.
+10. Wire a `compare -> blocker -> repair -> recheck` loop so regeneration
+    failures produce governed repair input rather than direct output edits.
+11. Fix the publish boundary between `carbonet-ops` and `carbonet-general`
+    around explicit `release unit` packages.
+12. Compute impact automatically when common jars or shared bundles change.
+13. Add a governance rule that promotes duplicated generated behavior back into
+    common artifacts.
+14. Prove one real screen can be created, updated, and republished using only
+    builder-side configuration and overlays.
+15. Show builder version, overlay set, compatibility verdict, and publish
+    readiness in operator-facing control-plane UI.
+
+## Priority Order
+
+Close the execution checklist in this order:
+
+1. backend control-plane persistence and mapper binding
+2. regenerate parity and repair automation
+3. common-jar plus release-unit deployment enforcement
+4. one end-to-end builder-only regeneration proof
+
 A missing extension point should be fixed in the builder, not worked around by
 editing generated artifacts forever.
 
@@ -245,6 +316,10 @@ This model should align with existing Carbonet contracts:
   - `docs/architecture/page-assembly-schema.md`
 - builder contract:
   - `docs/architecture/framework-builder-standard.md`
+- overlay contract:
+  - `docs/architecture/builder-overlay-schema-and-governance-contract.md`
+- version compatibility contract:
+  - `docs/architecture/builder-version-compatibility-and-upgrade-contract.md`
 - trace and release lineage:
   - `docs/architecture/generation-trace-and-release-governance-contract.md`
 - builder surface:
@@ -258,6 +333,8 @@ Default policy should be:
 - builder rules versioned
 - derived outputs regenerable
 - publish guarded by verification
+- target runtime systems consume regenerated outputs only
+- all normal output settings are controlled in the builder side
 - runtime hotfixes allowed only as traced exceptions
 
 ## Practical Completion Criteria

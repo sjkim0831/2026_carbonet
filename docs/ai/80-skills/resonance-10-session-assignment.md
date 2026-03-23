@@ -28,6 +28,7 @@
 - 이 경우 운영자가 중지, 번호 변경, 범위 변경을 말하기 전까지 `05` 레인의 마지막 미완료 프런트엔드 런타임 화면, 운영자 UI, 공통 기본 구성요소 연결 상태를 1분 간격으로 계속 재확인합니다
 - 특히 `6번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`도 별도 해석 없이 항상 `06` 레인의 상시 반복 지시로 고정합니다
 - 이 경우 운영자가 중지, 번호 변경, 범위 변경을 말하기 전까지 `06` 레인의 마지막 미완료 백엔드 제어 평면 인터페이스, 서비스, 매퍼 작업을 1분 간격으로 계속 재확인합니다
+- 이 지시는 `06` 레인 안에서 이전 루프의 마지막 작업 위치를 최대한 이어받고, 더 이상 이어갈 미완료 항목이 없을 때만 같은 범위를 처음부터 재실행하는 뜻으로 고정합니다
 - 특히 `7번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`도 별도 해석 없이 항상 `07` 레인의 상시 반복 지시로 고정합니다
 - 이 경우 운영자가 중지, 번호 변경, 범위 변경을 말하기 전까지 `07` 레인의 마지막 미완료 SQL draft, migration draft, rollback draft, DB 노트를 1분 간격으로 계속 재확인합니다
 - 이 지시는 `07` 레인 안에서 이전 루프의 마지막 작업 위치를 최대한 이어받고, 더 이상 이어갈 미완료 항목이 없을 때만 같은 범위를 처음부터 재실행하는 뜻으로 고정합니다
@@ -61,7 +62,7 @@
 | `03` 테마, 셸, 디자인 시스템 | `HANDOFF` | `96%` | `미지정` | `2026-03-21` | `05/09` 수신 이후 예외 parity와 custom route drift만 추적 |
 | `04` 빌더 및 자산 스튜디오 | `IN_PROGRESS` | `68%` | `미지정` | `2026-03-21` | guided-build-flow, screen-builder, asset-studio, page-assembly 입력물 정합성 마감 |
 | `05` 프런트엔드 런타임 및 운영자 UI | `READY` | `15%` | `미지정` | `2026-03-21` | `03/04` 입력물 수신 뒤 첫 리액트 구현 범위 고정 |
-| `06` 백엔드 제어 평면 | `READY` | `10%` | `미지정` | `2026-03-21` | 동결 이후 인터페이스와 서비스 구현 시작 대기 |
+| `06` 백엔드 제어 평면 | `IN_PROGRESS` | `28%` | `미지정` | `2026-03-21` | 계약 필드 정합성과 서비스 테스트 고정, 남은 mapper/DB drift 정리 |
 | `07` DB, SQL, 마이그레이션, 롤백 | `HANDOFF` | `92%` | `미지정` | `2026-03-21` | `06/08` 수신 확인과 후속 DB drift 유무만 1분 간격으로 재점검 |
 | `08` 배포, 런타임 패키지, 서버 | `IN_PROGRESS` | `55%` | `미지정` | `2026-03-21` | deploy-console과 session-loop 번호 세션 라우팅 기준 정렬 |
 | `09` 정합성, 비교, 복구, 검증 | `IN_PROGRESS` | `60%` | `미지정` | `2026-03-21` | `04` 입력물과 `05` 구현 결과를 같은 검증 기준으로 정리 |
@@ -363,16 +364,18 @@
 
 ### 06. 백엔드 제어 평면
 
-- 상태: `READY`
-- 추정 진행률: `10%`
-- 운영 메모: 계약은 있으나 구현은 아직 본격 시작 전입니다
-- 다음 1개 행동: 첫 구현 대상 인터페이스와 서비스 뼈대를 현재 계약 문서 기준으로 확정합니다
+- 상태: `IN_PROGRESS`
+- 추정 진행률: `28%`
+- 운영 메모: 제어 평면 API 골격과 파일/DB 적재 경로가 살아 있으며, 계약 필드 정합성과 서비스 테스트 고정 작업이 진행 중입니다
+- 다음 1개 행동: module-selection, repair, verification 응답/적재 payload를 기준으로 남은 mapper/DB drift를 한 번 더 닫습니다
 - 상시 운영 해석: 운영자가 `6번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`라고 말한 상태로 간주하고, 중지 지시가 없으면 이 레인을 계속 순환합니다
 - 목적: 제어 평면 인터페이스, 레지스트리, 수명주기, 비교, 보정, 릴리스 서비스를 구현합니다
 - 최근 변경 파일:
   - `docs/architecture/module-selection-api-contracts.md`
   - `docs/architecture/repair-and-verification-api-contracts.md`
   - `docs/prototypes/resonance-ui/backend-chain-explorer.html`
+  - `src/main/java/egovframework/com/feature/admin/service/impl/ResonanceControlPlaneServiceImpl.java`
+  - `src/test/java/egovframework/com/feature/admin/service/impl/ResonanceControlPlaneServiceImplTest.java`
 - 붙기/반복 기준:
   - 운영자가 `6번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`라고 말하면 항상 이 레인으로 해석합니다
   - 새 레인을 만들지 않고 현재 `06` 레인의 마지막 미완료 백엔드 제어 평면 인터페이스, 서비스, 매퍼 작업부터 이어갑니다
@@ -390,8 +393,10 @@
   - 가장 마지막으로 수정한 인터페이스, 서비스, 매퍼에서 이어서 구현하고, 누락 계약 연결과 이름 정합성을 먼저 닫습니다
   - 직전 루프에서 더 진행할 내용이 없으면 같은 범위 문서와 백엔드 소스를 다시 훑어 새 누락이나 드리프트가 없는지 재실행 확인합니다
   - 재실행 루프에서는 제어 평면 계약, Java 서비스, MyBatis 매퍼 사이의 이름, 파라미터, lifecycle 연결이 다시 벌어지지 않았는지 먼저 확인합니다
+  - 재실행 루프에서는 module-selection, repair, verification 응답/적재 payload와 서비스 테스트 고정 상태를 먼저 다시 대조하고, 그 다음 mapper/DB drift를 닫습니다
   - `01`이 아직 고정하지 않은 공통 계약이나 identity 이름이 필요해지면 즉시 `BLOCKED` 또는 `HANDOFF`로 바꿉니다
   - `07`과 `09`가 바로 이어받을 수 있을 정도로 제어 평면 구현과 계약 연결이 안정화되면 `HANDOFF READY`로 넘깁니다
+  - `HANDOFF READY` 뒤에도 운영자가 계속 `6번`에 붙으라고 유지하면, 인계 수신 확인 여부와 후속 서비스/매퍼 수정 필요성만 1분마다 같은 레인에서 다시 점검합니다
   - 반복은 운영자가 중지, 번호 변경, 범위 변경을 말할 때만 종료하고, 그 전까지는 `06` 내부 미완료 항목 확인과 동일 범위 재점검을 계속 유지합니다
 - 허용 경로:
   - `/opt/projects/carbonet/src/main/java`
@@ -405,6 +410,8 @@
   - `01`
 - 인계 대상:
   - `07`, `09`
+- 공식 handoff 문구:
+  - `HANDOFF READY: 07 and 09 may continue from stabilized control-plane interfaces, services, mapper bindings, and verified payload naming; blocker count is 0 for the current backend control-plane scope.`
 
 ### 07. DB, SQL, 마이그레이션, 롤백
 

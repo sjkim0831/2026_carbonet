@@ -226,6 +226,50 @@ public class FrameworkAuthorityPolicyService {
         return sections;
     }
 
+    public List<OptionDescriptor> buildRoleCategoryOptions(boolean isEn, boolean canViewGeneralAuthorityGroups) {
+        List<OptionDescriptor> items = new ArrayList<>();
+        if (canViewGeneralAuthorityGroups) {
+            items.add(new OptionDescriptor(ROLE_CATEGORY_GENERAL, isEn ? "General groups" : "일반 권한 그룹"));
+        }
+        items.add(new OptionDescriptor(ROLE_CATEGORY_DEPARTMENT, isEn ? "Department groups" : "부서 권한 그룹"));
+        items.add(new OptionDescriptor(ROLE_CATEGORY_USER, isEn ? "User groups" : "사용자 권한 그룹"));
+        return items;
+    }
+
+    public List<TextDescriptor> buildAssignmentAuthorities(boolean isEn) {
+        List<TextDescriptor> items = new ArrayList<>();
+        items.add(new TextDescriptor(
+                isEn ? "Role assignment authority" : "권한 할당 권한",
+                isEn ? "Controls which role groups the current administrator can assign on the member edit page." : "회원 수정 화면에서 현재 관리자가 어떤 Role을 부여할 수 있는지 제어합니다."
+        ));
+        items.add(new TextDescriptor(
+                isEn ? "Grant authority" : "권한 부여 권한",
+                isEn ? "Separates execution authority from authority to delegate that execution authority to others." : "실행 권한과 타인에게 그 권한을 위임할 수 있는 권한을 분리합니다."
+        ));
+        items.add(new TextDescriptor(
+                isEn ? "Department baseline authority" : "부서 기본 권한",
+                isEn ? "Provides default roles by department, then merges them with user-specific roles." : "부서별 기본 Role을 부여하고 사용자별 직접 권한과 합산합니다."
+        ));
+        return items;
+    }
+
+    public List<TextDescriptor> buildRoleCategories(boolean isEn) {
+        List<TextDescriptor> items = new ArrayList<>();
+        items.add(new TextDescriptor(
+                isEn ? "General authority list" : "일반 권한 목록",
+                isEn ? "Master feature catalog. All VIEW and action permissions are defined here." : "기능 마스터 카탈로그입니다. 모든 VIEW 및 액션 권한의 원본입니다."
+        ));
+        items.add(new TextDescriptor(
+                isEn ? "Department authority list" : "부서 권한 목록",
+                isEn ? "Department-level baseline roles for operation, CS, audit and similar teams." : "운영, CS, 감사 등 부서 단위 기본 Role 목록입니다."
+        ));
+        items.add(new TextDescriptor(
+                isEn ? "User authority list" : "사용자 권한 목록",
+                isEn ? "Direct user-specific role assignments and exceptions managed from member edit." : "회원 수정 화면에서 관리하는 사용자 직접 Role 및 예외 권한입니다."
+        ));
+        return items;
+    }
+
     public String resolveRoleCategory(String roleCategory) {
         String normalized = roleCategory == null ? "" : roleCategory.trim().toUpperCase(Locale.ROOT);
         if (ROLE_CATEGORY_GENERAL.equals(normalized)
@@ -585,6 +629,42 @@ public class FrameworkAuthorityPolicyService {
 
         public boolean isUnknown() {
             return unknown;
+        }
+    }
+
+    public static final class OptionDescriptor {
+        private final String code;
+        private final String name;
+
+        public OptionDescriptor(String code, String name) {
+            this.code = code;
+            this.name = name;
+        }
+
+        public String getCode() {
+            return code;
+        }
+
+        public String getName() {
+            return name;
+        }
+    }
+
+    public static final class TextDescriptor {
+        private final String title;
+        private final String description;
+
+        public TextDescriptor(String title, String description) {
+            this.title = title;
+            this.description = description;
+        }
+
+        public String getTitle() {
+            return title;
+        }
+
+        public String getDescription() {
+            return description;
         }
     }
 }

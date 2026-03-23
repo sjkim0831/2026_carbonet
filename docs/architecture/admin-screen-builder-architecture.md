@@ -20,6 +20,12 @@ This is not a simple extension of `/admin/system/environment-management`. It is 
 - runtime page rendering
 - component registry governance
 
+Operating split:
+
+- `carbonet-ops` owns the builder, governed settings, and publish control
+- `carbonet-general` receives generated outputs as the runtime target
+- operators should configure normal behavior in the builder rather than patching generated runtime files
+
 ## Non-Goals
 
 The first version should not attempt:
@@ -126,6 +132,9 @@ GUI-first rules:
 - property panels must prefer guided selectors and approved enums over free-text fields
 - theme, spacing, density, slot profile, actor policy, and help-anchor selection should be available without source editing
 - property panels must show parity, accessibility, security, and binding blockers inline
+- normal page, field, layout, authority, and theme settings should be editable
+  here or through equivalent governed builder surfaces instead of requiring edits
+  to generated output files
 
 ### 4. Event Binding Panel
 
@@ -212,6 +221,8 @@ Rendering approach:
 - menu route resolves `pageId`
 - `pageId` resolves published builder schema
 - runtime renderer maps schema node type to approved React component
+- page-level authority and feature policy should resolve from governed page IDs
+  and binding metadata, not from ad hoc page-local code
 
 ### 8. Governance and Validation
 
@@ -233,6 +244,13 @@ Validation examples:
 - invalid menu linkage
 - component deleted while still referenced by draft/published pages
 - component standardization audit should report remaining raw tags and legacy class names by admin/home surface
+
+Thin-runtime rules:
+
+- every published page should have one stable `pageId`
+- every published page should have explicit authority or feature binding metadata
+- runtime should prefer rendering from governed DB or JSON definitions plus approved common component/runtime layers
+- builder output should not duplicate common runtime behavior on a page-by-page basis unless a project-specific delta is truly required
 
 ### 9. GUI-First Builder Completion
 

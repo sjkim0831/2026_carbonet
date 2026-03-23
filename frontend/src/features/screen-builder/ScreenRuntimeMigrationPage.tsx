@@ -6,7 +6,7 @@ import { buildLocalizedPath, getSearchParam, isEnglish } from "../../lib/navigat
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";
 import { DiagnosticCard, GridToolbar, MemberLinkButton } from "../admin-ui/common";
-import { runtimeSurfaceContextKeys } from "../admin-ui/contextKeyPresets";
+import { resolveRuntimeSurfaceContextKeys } from "../admin-ui/contextKeyPresets";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 import { renderScreenBuilderNodePreview } from "./shared/screenBuilderPreview";
 import { resolveScreenBuilderQuery, sortScreenBuilderNodes } from "./shared/screenBuilderUtils";
@@ -34,6 +34,10 @@ export function ScreenRuntimeMigrationPage() {
   const runtimeDiagnostics = preview?.registryDiagnostics || page?.registryDiagnostics || {};
   const runtimeIssueCount = (runtimeDiagnostics?.missingNodes?.length || 0) + (runtimeDiagnostics?.deprecatedNodes?.length || 0);
   const runtimeBlocked = runtimeIssueCount > 0;
+  const runtimeContextKeys = useMemo(() => resolveRuntimeSurfaceContextKeys({
+    menuUrl: page?.menuUrl || query.menuUrl,
+    templateType: preview?.templateType || page?.templateType
+  }), [page?.menuUrl, page?.templateType, preview?.templateType, query.menuUrl]);
   const screenBuilderAudits = useMemo(
     () => (auditState.value?.items || [])
       .filter((row) => String(row.actionCode || "").startsWith("SCREEN_BUILDER_"))
@@ -55,7 +59,7 @@ export function ScreenRuntimeMigrationPage() {
       ]}
       title={en ? "Published Screen Runtime" : "발행 화면 런타임"}
       subtitle={en ? "Review the latest published screen-builder snapshot as a read-only runtime surface." : "최신 publish 스냅샷을 읽기 전용 런타임 화면으로 확인합니다."}
-      contextStrip={<ContextKeyStrip items={runtimeSurfaceContextKeys} />}
+      contextStrip={<ContextKeyStrip items={runtimeContextKeys} />}
       loading={(pageState.loading && !page) || (previewState.loading && !preview)}
       loadingLabel={en ? "Loading published runtime..." : "발행 런타임을 불러오는 중입니다."}
     >
@@ -65,75 +69,77 @@ export function ScreenRuntimeMigrationPage() {
         </section>
       ) : null}
       <AdminWorkspacePageFrame>
-        <DiagnosticCard
-          actions={(
-            <>
-              {page?.menuCode ? (
-                <MemberLinkButton
-                  href={buildLocalizedPath(
-                    `/admin/system/environment-management?menuCode=${encodeURIComponent(page.menuCode)}`,
-                    `/en/admin/system/environment-management?menuCode=${encodeURIComponent(page.menuCode)}`
-                  )}
-                  variant="secondary"
-                >
-                  {en ? "Open Environment Management" : "환경관리 열기"}
-                </MemberLinkButton>
-              ) : null}
-              {page?.menuCode ? (
-                <MemberLinkButton
-                  href={buildLocalizedPath(
-                    `/admin/system/screen-builder?menuCode=${encodeURIComponent(page.menuCode)}&pageId=${encodeURIComponent(page.pageId || "")}&menuTitle=${encodeURIComponent(page.menuTitle || "")}&menuUrl=${encodeURIComponent(page.menuUrl || "")}`,
-                    `/en/admin/system/screen-builder?menuCode=${encodeURIComponent(page.menuCode)}&pageId=${encodeURIComponent(page.pageId || "")}&menuTitle=${encodeURIComponent(page.menuTitle || "")}&menuUrl=${encodeURIComponent(page.menuUrl || "")}`
-                  )}
-                  variant="secondary"
-                >
-                  {en ? "Open Builder" : "빌더 열기"}
-                </MemberLinkButton>
-              ) : null}
-            </>
-          )}
-          description={page?.publishedVersionId
-            ? (en ? "This surface renders the latest published snapshot only. Draft-only edits remain in the builder." : "이 화면은 최신 publish 스냅샷만 렌더링합니다. 초안 수정은 빌더에만 남습니다.")
-            : (en ? "No published snapshot exists yet. Publish from the screen builder first." : "아직 publish 스냅샷이 없습니다. 먼저 화면 빌더에서 publish 하세요.")}
-          eyebrow={preview?.templateType || page?.templateType || "EDIT_PAGE"}
-          status={page?.publishedVersionId ? "PUBLISHED" : "DRAFT_ONLY"}
-          statusTone={page?.publishedVersionId ? "healthy" : "warning"}
-          summary={(
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-6">
-              <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3">
-                <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">Menu Code</p>
-                <p className="mt-2 font-mono text-sm">{page?.menuCode || query.menuCode || "-"}</p>
+        <div data-help-id="screen-runtime-summary">
+          <DiagnosticCard
+            actions={(
+              <>
+                {page?.menuCode ? (
+                  <MemberLinkButton
+                    href={buildLocalizedPath(
+                      `/admin/system/environment-management?menuCode=${encodeURIComponent(page.menuCode)}`,
+                      `/en/admin/system/environment-management?menuCode=${encodeURIComponent(page.menuCode)}`
+                    )}
+                    variant="secondary"
+                  >
+                    {en ? "Open Environment Management" : "환경관리 열기"}
+                  </MemberLinkButton>
+                ) : null}
+                {page?.menuCode ? (
+                  <MemberLinkButton
+                    href={buildLocalizedPath(
+                      `/admin/system/screen-builder?menuCode=${encodeURIComponent(page.menuCode)}&pageId=${encodeURIComponent(page.pageId || "")}&menuTitle=${encodeURIComponent(page.menuTitle || "")}&menuUrl=${encodeURIComponent(page.menuUrl || "")}`,
+                      `/en/admin/system/screen-builder?menuCode=${encodeURIComponent(page.menuCode)}&pageId=${encodeURIComponent(page.pageId || "")}&menuTitle=${encodeURIComponent(page.menuTitle || "")}&menuUrl=${encodeURIComponent(page.menuUrl || "")}`
+                    )}
+                    variant="secondary"
+                  >
+                    {en ? "Open Builder" : "빌더 열기"}
+                  </MemberLinkButton>
+                ) : null}
+              </>
+            )}
+            description={page?.publishedVersionId
+              ? (en ? "This surface renders the latest published snapshot only. Draft-only edits remain in the builder." : "이 화면은 최신 publish 스냅샷만 렌더링합니다. 초안 수정은 빌더에만 남습니다.")
+              : (en ? "No published snapshot exists yet. Publish from the screen builder first." : "아직 publish 스냅샷이 없습니다. 먼저 화면 빌더에서 publish 하세요.")}
+            eyebrow={preview?.templateType || page?.templateType || "EDIT_PAGE"}
+            status={page?.publishedVersionId ? "PUBLISHED" : "DRAFT_ONLY"}
+            statusTone={page?.publishedVersionId ? "healthy" : "warning"}
+            summary={(
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-6">
+                <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3">
+                  <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">Menu Code</p>
+                  <p className="mt-2 font-mono text-sm">{page?.menuCode || query.menuCode || "-"}</p>
+                </div>
+                <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3">
+                  <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">pageId</p>
+                  <p className="mt-2 font-mono text-sm">{page?.pageId || query.pageId || "-"}</p>
+                </div>
+                <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3">
+                  <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Published Version" : "발행 버전"}</p>
+                  <p className="mt-2 font-mono text-sm">{page?.publishedVersionId || "-"}</p>
+                </div>
+                <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3">
+                  <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Nodes" : "노드 수"}</p>
+                  <p className="mt-2 text-lg font-black">{previewNodes.length}</p>
+                </div>
+                <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3">
+                  <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Published At" : "발행 시각"}</p>
+                  <p className="mt-2 text-sm font-semibold">{String(page?.publishedSavedAt || "-")}</p>
+                </div>
+                <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3">
+                  <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Snapshots" : "스냅샷 수"}</p>
+                  <p className="mt-2 text-lg font-black">{Array.isArray(page?.versionHistory) ? page.versionHistory.length : 0}</p>
+                </div>
+                <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3">
+                  <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Recent Builder Events" : "최근 빌더 활동"}</p>
+                  <p className="mt-2 text-lg font-black">{screenBuilderAudits.length}</p>
+                </div>
               </div>
-              <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3">
-                <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">pageId</p>
-                <p className="mt-2 font-mono text-sm">{page?.pageId || query.pageId || "-"}</p>
-              </div>
-              <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3">
-                <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Published Version" : "발행 버전"}</p>
-                <p className="mt-2 font-mono text-sm">{page?.publishedVersionId || "-"}</p>
-              </div>
-              <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3">
-                <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Nodes" : "노드 수"}</p>
-                <p className="mt-2 text-lg font-black">{previewNodes.length}</p>
-              </div>
-              <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3">
-                <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Published At" : "발행 시각"}</p>
-                <p className="mt-2 text-sm font-semibold">{String(page?.publishedSavedAt || "-")}</p>
-              </div>
-              <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3">
-                <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Snapshots" : "스냅샷 수"}</p>
-                <p className="mt-2 text-lg font-black">{Array.isArray(page?.versionHistory) ? page.versionHistory.length : 0}</p>
-              </div>
-              <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3">
-                <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Recent Builder Events" : "최근 빌더 활동"}</p>
-                <p className="mt-2 text-lg font-black">{screenBuilderAudits.length}</p>
-              </div>
-            </div>
-          )}
-          title={page?.menuTitle || query.menuTitle || (en ? "Published runtime" : "발행 런타임")}
-        />
+            )}
+            title={page?.menuTitle || query.menuTitle || (en ? "Published runtime" : "발행 런타임")}
+          />
+        </div>
         {publishedActionAudit ? (
-          <section className="rounded-[var(--kr-gov-radius)] border border-blue-200 bg-blue-50 px-4 py-3">
+          <section className="rounded-[var(--kr-gov-radius)] border border-blue-200 bg-blue-50 px-4 py-3" data-help-id="screen-runtime-publish-audit">
             <div className="grid gap-3 md:grid-cols-3">
               <div>
                 <p className="text-[11px] font-black uppercase tracking-[0.08em] text-blue-700">{en ? "Publish Action" : "발행 액션"}</p>
@@ -161,7 +167,7 @@ export function ScreenRuntimeMigrationPage() {
           </section>
         ) : null}
 
-        <section className="gov-card p-0 overflow-hidden">
+        <section className="gov-card p-0 overflow-hidden" data-help-id="screen-runtime-preview">
           <GridToolbar
             meta={`${page?.menuUrl || query.menuUrl || "-"} / PUBLISHED`}
             title={en ? "Runtime Preview" : "런타임 미리보기"}
@@ -179,7 +185,7 @@ export function ScreenRuntimeMigrationPage() {
           </div>
         </section>
 
-        <section className="gov-card p-0 overflow-hidden">
+        <section className="gov-card p-0 overflow-hidden" data-help-id="screen-runtime-builder-activity">
           <GridToolbar
             actions={page?.menuCode ? (
               <MemberLinkButton

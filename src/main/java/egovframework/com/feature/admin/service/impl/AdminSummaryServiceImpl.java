@@ -2,6 +2,7 @@ package egovframework.com.feature.admin.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import egovframework.com.common.logging.RequestExecutionLogPage;
 import egovframework.com.common.logging.RequestExecutionLogService;
 import egovframework.com.common.logging.RequestExecutionLogVO;
 import egovframework.com.feature.admin.mapper.AuthGroupManageMapper;
@@ -114,10 +115,8 @@ public class AdminSummaryServiceImpl extends EgovAbstractServiceImpl implements 
         try {
             List<RequestExecutionLogVO> auditLogs = new ArrayList<>();
             SecurityAuditAggregate aggregate = new SecurityAuditAggregate();
-            for (RequestExecutionLogVO item : requestExecutionLogService.readRecent(300)) {
-                if (!isSecurityAuditTarget(item)) {
-                    continue;
-                }
+            RequestExecutionLogPage auditPage = requestExecutionLogService.searchRecent(this::isSecurityAuditTarget, 1, 300);
+            for (RequestExecutionLogVO item : auditPage.getItems()) {
                 auditLogs.add(item);
                 aggregate.accept(item);
             }

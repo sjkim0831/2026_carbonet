@@ -258,6 +258,24 @@ Key fields:
 - `platformVersion`
 - `projectModuleVersion`
 - `lastAppliedAt`
+
+## Builder Governance Extension
+
+Builder regeneration governance should also use common-DB tables for:
+
+- `BUILDER_OVERLAY_REGISTRY`
+- `BUILDER_OVERLAY_PAYLOAD_REVISION`
+- `BUILDER_OVERLAY_SET`
+- `BUILDER_OVERLAY_SET_ITEM`
+- `BUILDER_COMPATIBILITY_DECLARATION`
+- `BUILDER_MIGRATION_PLAN`
+- `BUILDER_COMPATIBILITY_CHECK_RUN`
+- `BUILDER_COMPATIBILITY_CHECK_RESULT`
+
+These tables are described in:
+
+- `docs/architecture/builder-overlay-and-compatibility-control-plane-extension.md`
+- `docs/sql/20260324_builder_overlay_and_compatibility_control_plane.sql`
 - `lastVerifiedAt`
 - `status`
 - `driftYn`

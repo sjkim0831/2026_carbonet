@@ -1,6 +1,7 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { invalidateFrontendSessionCache } from "../../lib/api/client";
+import { fetchJson } from "../../lib/api/core";
 import { buildLocalizedPath, getSearchParam, isEnglish, navigate } from "../../lib/navigation/runtime";
 import { postJsonWithSession } from "./publicEntryApi";
 import { LoginResponse, PublicFrame } from "./publicEntryShared";
@@ -820,12 +821,11 @@ export function FindIdResultPage() {
   const email = getSearchParam("email");
   const tab = getPublicTab();
   const resultState = useAsyncValue<FindIdResultPayload>(
-    async () => {
+    () => {
       const search = new URLSearchParams({ applcntNm: name, email, tab });
-      const response = await fetch(`${buildLocalizedPath("/signin/api/findId/result", "/en/signin/api/findId/result")}?${search.toString()}`, {
-        credentials: "include"
-      });
-      return response.json() as Promise<FindIdResultPayload>;
+      return fetchJson<FindIdResultPayload>(
+        `${buildLocalizedPath("/signin/api/findId/result", "/en/signin/api/findId/result")}?${search.toString()}`
+      );
     },
     [name, email, tab, en],
     {

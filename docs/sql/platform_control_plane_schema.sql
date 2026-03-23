@@ -198,3 +198,6 @@ CREATE TABLE DELETE_PLAN_ITEM (
 );
 
 CREATE INDEX IDX_DELETE_PLAN_ITEM_PLAN_ID ON DELETE_PLAN_ITEM (DELETE_PLAN_ID);
+
+-- Builder overlay and compatibility control-plane extension lives in:
+-- docs/sql/20260324_builder_overlay_and_compatibility_control_plane.sql

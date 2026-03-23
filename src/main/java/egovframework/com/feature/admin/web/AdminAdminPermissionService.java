@@ -3,10 +3,9 @@ package egovframework.com.feature.admin.web;
 import egovframework.com.feature.admin.model.vo.AuthorInfoVO;
 import egovframework.com.feature.auth.domain.entity.EmplyrInfo;
 import egovframework.com.feature.auth.domain.repository.EmployeeMemberRepository;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -21,14 +20,24 @@ import java.util.Map;
 import java.util.Optional;
 
 @Service
-@RequiredArgsConstructor
 class AdminAdminPermissionService {
 
     private static final Logger log = LoggerFactory.getLogger(AdminAdminPermissionService.class);
     private static final String ROLE_SYSTEM_MASTER = "ROLE_SYSTEM_MASTER";
 
     private final EmployeeMemberRepository employMemberRepository;
-    private final AdminMainController adminMainController;
+    private final ObjectProvider<AdminMainController> adminMainControllerProvider;
+
+    AdminAdminPermissionService(
+            EmployeeMemberRepository employMemberRepository,
+            ObjectProvider<AdminMainController> adminMainControllerProvider) {
+        this.employMemberRepository = employMemberRepository;
+        this.adminMainControllerProvider = adminMainControllerProvider;
+    }
+
+    private AdminMainController adminMainController() {
+        return adminMainControllerProvider.getObject();
+    }
 
     SaveResult saveAdminPermission(
             String emplyrId,
@@ -39,7 +48,7 @@ class AdminAdminPermissionService {
             String currentUserId,
             String currentUserAuthorCode,
             boolean hasAccess) {
-        SaveResult result = SaveResult.normalize(adminMainController, emplyrId, authorCode, featureCodes);
+        SaveResult result = SaveResult.normalize(adminMainController(), emplyrId, authorCode, featureCodes);
         if (!hasAccess) {
             return result.forbidden(isEn
                     ? "You do not have permission to change administrator permissions."
@@ -67,7 +76,7 @@ class AdminAdminPermissionService {
         }
 
         result.adminMember = adminMemberOpt.get();
-        if (!adminMainController.canCurrentAdminAccessAdmin(request, result.adminMember)) {
+        if (!adminMainController().canCurrentAdminAccessAdmin(request, result.adminMember)) {
             return result.forbidden(isEn
                     ? "You can only update administrators in your own company."
                     : "본인 회사에 속한 관리자만 수정할 수 있습니다.");
@@ -76,17 +85,17 @@ class AdminAdminPermissionService {
         List<AuthorInfoVO> authorGroups;
         List<String> baselineFeatureCodes = Collections.emptyList();
         try {
-            String currentAssignedAuthorCode = adminMainController.loadAssignedAuthorCode(result.emplyrId);
-            authorGroups = adminMainController.loadGrantableAdminAuthorGroups(currentUserId, currentUserAuthorCode);
+            String currentAssignedAuthorCode = adminMainController().loadAssignedAuthorCode(result.emplyrId);
+            authorGroups = adminMainController().loadGrantableAdminAuthorGroups(currentUserId, currentUserAuthorCode);
             if (result.authorCode.isEmpty()) {
                 result.errors.add(isEn ? "Please select an administrator role." : "관리자 권한 롤을 선택해 주세요.");
-            } else if (!adminMainController.isGrantableOrCurrentAdminAuthorCode(
+            } else if (!adminMainController().isGrantableOrCurrentAdminAuthorCode(
                     authorGroups,
                     result.authorCode,
                     currentAssignedAuthorCode)) {
                 result.errors.add(isEn ? "Please select a valid administrator role." : "유효한 관리자 권한 롤을 선택해 주세요.");
             } else {
-                baselineFeatureCodes = adminMainController.loadAuthorFeatureCodes(result.authorCode);
+                baselineFeatureCodes = adminMainController().loadAuthorFeatureCodes(result.authorCode);
             }
             if ("webmaster".equalsIgnoreCase(result.emplyrId)
                     && !ROLE_SYSTEM_MASTER.equalsIgnoreCase(result.authorCode)) {
@@ -105,16 +114,16 @@ class AdminAdminPermissionService {
         }
 
         try {
-            adminMainController.updateAdminRoleAssignment(result.emplyrId, result.authorCode);
-            adminMainController.savePermissionOverrides(
-                    adminMainController.safeString(result.adminMember.getEsntlId()),
+            adminMainController().updateAdminRoleAssignment(result.emplyrId, result.authorCode);
+            adminMainController().savePermissionOverrides(
+                    adminMainController().safeString(result.adminMember.getEsntlId()),
                     "USR03",
                     baselineFeatureCodes,
                     result.featureCodes,
                     currentUserId,
-                    adminMainController.resolveGrantableFeatureCodeSet(
+                    adminMainController().resolveGrantableFeatureCodeSet(
                             currentUserId,
-                            adminMainController.isWebmaster(currentUserId)));
+                            adminMainController().isWebmaster(currentUserId)));
             result.success = true;
             return result;
         } catch (Exception e) {
@@ -125,7 +134,6 @@ class AdminAdminPermissionService {
         }
     }
 
-    @Getter
     static class SaveResult {
         private boolean success;
         private boolean forbidden;
@@ -191,6 +199,46 @@ class AdminAdminPermissionService {
                 response.put("message", message);
             }
             return ResponseEntity.status(statusCode).body(response);
+        }
+
+        boolean isSuccess() {
+            return success;
+        }
+
+        boolean isForbidden() {
+            return forbidden;
+        }
+
+        boolean isInvalid() {
+            return invalid;
+        }
+
+        boolean isServerError() {
+            return serverError;
+        }
+
+        String getMessage() {
+            return message;
+        }
+
+        List<String> getErrors() {
+            return errors;
+        }
+
+        String getEmplyrId() {
+            return emplyrId;
+        }
+
+        String getAuthorCode() {
+            return authorCode;
+        }
+
+        List<String> getFeatureCodes() {
+            return featureCodes;
+        }
+
+        EmplyrInfo getAdminMember() {
+            return adminMember;
         }
     }
 }

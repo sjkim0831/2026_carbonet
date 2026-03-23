@@ -9,6 +9,7 @@ import egovframework.com.common.error.ErrorEventSearchVO;
 import egovframework.com.common.logging.AccessEventRecordVO;
 import egovframework.com.common.logging.AccessEventSearchVO;
 import egovframework.com.common.logging.RequestExecutionLogService;
+import egovframework.com.common.logging.RequestExecutionLogPage;
 import egovframework.com.common.logging.RequestExecutionLogVO;
 import egovframework.com.feature.member.service.EnterpriseMemberService;
 import egovframework.com.feature.member.service.EmployeeMemberService;
@@ -126,6 +127,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.Collection;
 import java.util.BitSet;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 @Controller
@@ -170,6 +173,7 @@ public class AdminMainController {
     private final ObservabilityQueryService observabilityQueryService;
     private final ObjectMapper objectMapper;
     private final ObjectProvider<ReactAppViewSupport> reactAppViewSupportProvider;
+    private final ConcurrentMap<String, String> companyNameCache = new ConcurrentHashMap<>();
 
     private AdminHotPathPagePayloadService adminHotPathPagePayloadService() {
         return adminHotPathPagePayloadServiceProvider.getObject();
@@ -1710,232 +1714,6 @@ public class AdminMainController {
         }
     }
 
-    @RequestMapping(value = "/system/security", method = { RequestMethod.GET, RequestMethod.POST })
-    public String security_history(
-            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
-            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
-            @RequestParam(value = "userSe", required = false) String userSe,
-            @RequestParam(value = "loginResult", required = false) String loginResult,
-            HttpServletRequest request,
-            Locale locale,
-            Model model) {
-        return redirectReactMigration(request, locale, "security-history");
-    }
-
-    @GetMapping("/system/security/page-data")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> securityHistoryPageApi(
-            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
-            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
-            @RequestParam(value = "userSe", required = false) String userSe,
-            @RequestParam(value = "insttId", required = false) String insttId,
-            HttpServletRequest request,
-            Locale locale) {
-        primeCsrfToken(request);
-        boolean isEn = isEnglishRequest(request, locale);
-        ExtendedModelMap model = new ExtendedModelMap();
-        populateBlockedLoginHistory(pageIndexParam, searchKeyword, userSe, insttId, model, request);
-        model.addAttribute("isEn", isEn);
-        return ResponseEntity.ok(new LinkedHashMap<>(model));
-    }
-
-    @RequestMapping(value = "/system/access_history", method = { RequestMethod.GET, RequestMethod.POST })
-    public String access_history(
-            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
-            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
-            @RequestParam(value = "insttId", required = false) String insttId,
-            HttpServletRequest request,
-            Locale locale,
-            Model model) {
-        return redirectReactMigration(request, locale, "access-history");
-    }
-
-    @GetMapping("/system/access_history/page-data")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> accessHistoryPageApi(
-            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
-            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
-            @RequestParam(value = "insttId", required = false) String insttId,
-            HttpServletRequest request,
-            Locale locale) {
-        primeCsrfToken(request);
-        boolean isEn = isEnglishRequest(request, locale);
-        return ResponseEntity.ok(buildAccessHistoryPagePayload(pageIndexParam, searchKeyword, insttId, request, isEn));
-    }
-
-    @RequestMapping(value = "/system/error-log", method = { RequestMethod.GET, RequestMethod.POST })
-    public String error_log(
-            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
-            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
-            @RequestParam(value = "insttId", required = false) String insttId,
-            @RequestParam(value = "sourceType", required = false) String sourceType,
-            @RequestParam(value = "errorType", required = false) String errorType,
-            HttpServletRequest request,
-            Locale locale,
-            Model model) {
-        return redirectReactMigration(request, locale, "error-log");
-    }
-
-    @GetMapping("/system/error-log/page-data")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> errorLogPageApi(
-            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
-            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
-            @RequestParam(value = "insttId", required = false) String insttId,
-            @RequestParam(value = "sourceType", required = false) String sourceType,
-            @RequestParam(value = "errorType", required = false) String errorType,
-            HttpServletRequest request,
-            Locale locale) {
-        primeCsrfToken(request);
-        boolean isEn = isEnglishRequest(request, locale);
-        return ResponseEntity.ok(buildErrorLogPagePayload(pageIndexParam, searchKeyword, insttId, sourceType, errorType, request, isEn));
-    }
-
-    @RequestMapping(value = "/system/security-policy", method = { RequestMethod.GET, RequestMethod.POST })
-    public String security_policy(
-            HttpServletRequest request,
-            Locale locale,
-            Model model) {
-        return redirectReactMigration(request, locale, "security-policy");
-    }
-
-    @GetMapping("/system/security-policy/page-data")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> securityPolicyPageApi(
-            HttpServletRequest request,
-            Locale locale) {
-        primeCsrfToken(request);
-        boolean isEn = isEnglishRequest(request, locale);
-        ExtendedModelMap model = new ExtendedModelMap();
-        populateSecurityPolicyPage(model, isEn);
-        model.addAttribute("isEn", isEn);
-        return ResponseEntity.ok(new LinkedHashMap<>(model));
-    }
-
-    @RequestMapping(value = "/system/security-monitoring", method = { RequestMethod.GET, RequestMethod.POST })
-    public String security_monitoring(
-            HttpServletRequest request,
-            Locale locale,
-            Model model) {
-        return redirectReactMigration(request, locale, "security-monitoring");
-    }
-
-    @GetMapping("/system/security-monitoring/page-data")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> securityMonitoringPageApi(
-            HttpServletRequest request,
-            Locale locale) {
-        primeCsrfToken(request);
-        boolean isEn = isEnglishRequest(request, locale);
-        ExtendedModelMap model = new ExtendedModelMap();
-        populateSecurityMonitoringPage(model, isEn);
-        model.addAttribute("isEn", isEn);
-        return ResponseEntity.ok(new LinkedHashMap<>(model));
-    }
-
-    @RequestMapping(value = "/system/blocklist", method = { RequestMethod.GET, RequestMethod.POST })
-    public String security_blocklist(
-            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
-            @RequestParam(value = "blockType", required = false) String blockType,
-            @RequestParam(value = "status", required = false) String status,
-            HttpServletRequest request,
-            Locale locale,
-            Model model) {
-        return redirectReactMigration(request, locale, "blocklist");
-    }
-
-    @GetMapping("/system/blocklist/page-data")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> blocklistPageApi(
-            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
-            @RequestParam(value = "blockType", required = false) String blockType,
-            @RequestParam(value = "status", required = false) String status,
-            HttpServletRequest request,
-            Locale locale) {
-        primeCsrfToken(request);
-        boolean isEn = isEnglishRequest(request, locale);
-        ExtendedModelMap model = new ExtendedModelMap();
-        populateBlocklistPage(searchKeyword, blockType, status, model, isEn);
-        model.addAttribute("isEn", isEn);
-        return ResponseEntity.ok(new LinkedHashMap<>(model));
-    }
-
-    @RequestMapping(value = "/system/security-audit", method = { RequestMethod.GET, RequestMethod.POST })
-    public String security_audit(
-            HttpServletRequest request,
-            Locale locale,
-            Model model) {
-        return redirectReactMigration(request, locale, "security-audit");
-    }
-
-    @GetMapping("/system/security-audit/page-data")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> securityAuditPageApi(
-            HttpServletRequest request,
-            Locale locale) {
-        primeCsrfToken(request);
-        boolean isEn = isEnglishRequest(request, locale);
-        ExtendedModelMap model = new ExtendedModelMap();
-        populateSecurityAuditPage(model, isEn);
-        model.addAttribute("isEn", isEn);
-        return ResponseEntity.ok(new LinkedHashMap<>(model));
-    }
-
-    @RequestMapping(value = "/system/scheduler", method = { RequestMethod.GET, RequestMethod.POST })
-    public String scheduler_management(
-            @RequestParam(value = "jobStatus", required = false) String jobStatus,
-            @RequestParam(value = "executionType", required = false) String executionType,
-            HttpServletRequest request,
-            Locale locale,
-            Model model) {
-        return redirectReactMigration(request, locale, "scheduler-management");
-    }
-
-    @GetMapping("/system/scheduler/page-data")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> schedulerPageApi(
-            @RequestParam(value = "jobStatus", required = false) String jobStatus,
-            @RequestParam(value = "executionType", required = false) String executionType,
-            HttpServletRequest request,
-            Locale locale) {
-        primeCsrfToken(request);
-        boolean isEn = isEnglishRequest(request, locale);
-        ExtendedModelMap model = new ExtendedModelMap();
-        populateSchedulerPage(jobStatus, executionType, model, isEn);
-        model.addAttribute("isEn", isEn);
-        return ResponseEntity.ok(new LinkedHashMap<>(model));
-    }
-
-    @RequestMapping(value = "/member/login_history", method = { RequestMethod.GET, RequestMethod.POST })
-    public String login_history(
-            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
-            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
-            @RequestParam(value = "userSe", required = false) String userSe,
-            @RequestParam(value = "loginResult", required = false) String loginResult,
-            HttpServletRequest request,
-            Locale locale,
-            Model model) {
-        return redirectReactMigration(request, locale, "login-history");
-    }
-
-    @GetMapping("/api/admin/member/login-history/page")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> loginHistoryPageApi(
-            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
-            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
-            @RequestParam(value = "userSe", required = false) String userSe,
-            @RequestParam(value = "loginResult", required = false) String loginResult,
-            @RequestParam(value = "insttId", required = false) String insttId,
-            HttpServletRequest request,
-            Locale locale) {
-        primeCsrfToken(request);
-        boolean isEn = isEnglishRequest(request, locale);
-        ExtendedModelMap model = new ExtendedModelMap();
-        populateLoginHistory(pageIndexParam, searchKeyword, userSe, loginResult, insttId, model, request);
-        model.addAttribute("isEn", isEn);
-        return ResponseEntity.ok(new LinkedHashMap<>(model));
-    }
-
     void populateMemberList(
             String pageIndexParam,
             String searchKeyword,
@@ -2311,7 +2089,7 @@ public class AdminMainController {
                 request);
     }
 
-    private Map<String, Object> buildAccessHistoryPagePayload(
+    Map<String, Object> buildAccessHistoryPagePayload(
             String pageIndexParam,
             String searchKeyword,
             String requestedInsttId,
@@ -2388,7 +2166,7 @@ public class AdminMainController {
         String forcedInsttId = masterAccess ? selectedInsttId : currentUserInsttId;
         String errorMessage = "";
         int pageSize = 10;
-        List<Map<String, Object>> rows = new ArrayList<>();
+        List<AccessHistoryRow> rows = new ArrayList<>();
         int totalCount = 0;
         int totalPages = 1;
         int currentPage = 1;
@@ -2404,7 +2182,6 @@ public class AdminMainController {
             currentPage = Math.max(1, Math.min(pageIndex, totalPages));
             searchVO.setFirstIndex(Math.max(currentPage - 1, 0) * pageSize);
             for (AccessEventRecordVO item : observabilityQueryService.selectAccessEventList(searchVO)) {
-                Map<String, Object> row = new LinkedHashMap<>();
                 String scopedInsttId = firstNonBlank(
                         safeString(item.getTargetCompanyContextId()),
                         safeString(item.getCompanyContextId()),
@@ -2413,82 +2190,55 @@ public class AdminMainController {
                 if (scopedInsttId.isEmpty()) {
                     scopedInsttId = "__GLOBAL__";
                 }
-                row.put("executedAt", safeString(item.getCreatedAt()));
-                row.put("insttId", scopedInsttId);
-                row.put("companyName", companyNameById.getOrDefault(scopedInsttId, "__GLOBAL__".equals(scopedInsttId) ? (isEn ? "Global" : "공통/전체") : resolveCompanyNameByInsttId(scopedInsttId)));
-                row.put("actorUserId", safeString(item.getActorId()));
-                row.put("actorType", safeString(item.getActorType()));
-                row.put("actorAuthorCode", safeString(item.getActorRole()));
-                row.put("requestUri", safeString(item.getRequestUri()));
-                row.put("httpMethod", safeString(item.getHttpMethod()));
-                row.put("responseStatus", item.getResponseStatus());
-                row.put("durationMs", item.getDurationMs());
-                row.put("remoteAddr", safeString(item.getRemoteAddr()));
-                row.put("featureType", safeString(item.getFeatureType()));
-                row.put("companyScopeDecision", safeString(item.getCompanyScopeDecision()));
-                row.put("pageId", safeString(item.getPageId()));
-                row.put("apiId", safeString(item.getApiId()));
-                rows.add(row);
+                rows.add(createAccessHistoryRowFromAccessEvent(
+                        item,
+                        scopedInsttId,
+                        companyNameById.getOrDefault(scopedInsttId, "__GLOBAL__".equals(scopedInsttId) ? (isEn ? "Global" : "공통/전체") : resolveCompanyNameByInsttId(scopedInsttId))
+                ));
             }
         } catch (Exception e) {
             log.error("Failed to load persisted access history. Falling back to recent file logs.", e);
             errorMessage = isEn
                     ? "Persistent access history is not ready yet. Showing recent log file data."
                     : "영구 접속 로그가 아직 준비되지 않아 최근 파일 로그를 대신 표시합니다.";
-            List<RequestExecutionLogVO> filtered = new ArrayList<>();
             String normalizedKeyword = safeString(searchKeyword).toLowerCase(Locale.ROOT);
             try {
-                for (RequestExecutionLogVO item : requestExecutionLogService.readRecent(20000)) {
+                RequestExecutionLogPage fallbackPage = requestExecutionLogService.searchRecent(item -> {
                     if (isAccessHistorySelfNoise(item)) {
-                        continue;
+                        return false;
                     }
                     if (!isFallbackPageAccessCandidate(item)) {
-                        continue;
+                        return false;
                     }
                     String scopedInsttId = resolveAccessHistoryInsttId(item);
                     if (scopedInsttId.isEmpty() && !masterAccess) {
-                        continue;
+                        return false;
                     }
                     if (scopedInsttId.isEmpty()) {
                         scopedInsttId = "__GLOBAL__";
                     }
                     if (!forcedInsttId.isEmpty() && !forcedInsttId.equals(scopedInsttId)) {
-                        continue;
+                        return false;
                     }
-                    if (!normalizedKeyword.isEmpty()
-                            && !matchesAccessHistoryKeyword(item, normalizedKeyword, companyNameById.get(scopedInsttId))) {
-                        continue;
+                    return normalizedKeyword.isEmpty()
+                            || matchesAccessHistoryKeyword(item, normalizedKeyword, companyNameById.get(scopedInsttId));
+                }, pageIndex, pageSize);
+                totalCount = fallbackPage.getTotalCount();
+                totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
+                currentPage = Math.max(1, Math.min(pageIndex, totalPages));
+                for (RequestExecutionLogVO item : fallbackPage.getItems()) {
+                    String scopedInsttId = resolveAccessHistoryInsttId(item);
+                    if (scopedInsttId.isEmpty()) {
+                        scopedInsttId = "__GLOBAL__";
                     }
-                    filtered.add(item);
+                    rows.add(createAccessHistoryRowFromExecutionLog(
+                            item,
+                            scopedInsttId,
+                            companyNameById.getOrDefault(scopedInsttId, "__GLOBAL__".equals(scopedInsttId) ? (isEn ? "Global" : "공통/전체") : scopedInsttId)
+                    ));
                 }
             } catch (Exception inner) {
                 log.error("Failed to load fallback access history.", inner);
-            }
-            totalCount = filtered.size();
-            totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
-            currentPage = Math.max(1, Math.min(pageIndex, totalPages));
-            int fromIndex = Math.max(0, (currentPage - 1) * pageSize);
-            int toIndex = Math.min(totalCount, fromIndex + pageSize);
-            for (RequestExecutionLogVO item : filtered.subList(fromIndex, toIndex)) {
-                Map<String, Object> row = new LinkedHashMap<>();
-                String scopedInsttId = resolveAccessHistoryInsttId(item);
-                if (scopedInsttId.isEmpty()) {
-                    scopedInsttId = "__GLOBAL__";
-                }
-                row.put("executedAt", safeString(item.getExecutedAt()));
-                row.put("insttId", scopedInsttId);
-                row.put("companyName", companyNameById.getOrDefault(scopedInsttId, "__GLOBAL__".equals(scopedInsttId) ? (isEn ? "Global" : "공통/전체") : scopedInsttId));
-                row.put("actorUserId", safeString(item.getActorUserId()));
-                row.put("actorType", safeString(item.getActorType()));
-                row.put("actorAuthorCode", safeString(item.getActorAuthorCode()));
-                row.put("requestUri", safeString(item.getRequestUri()));
-                row.put("httpMethod", safeString(item.getHttpMethod()));
-                row.put("responseStatus", item.getResponseStatus());
-                row.put("durationMs", item.getDurationMs());
-                row.put("remoteAddr", safeString(item.getRemoteAddr()));
-                row.put("featureType", safeString(item.getFeatureType()));
-                row.put("companyScopeDecision", safeString(item.getCompanyScopeDecision()));
-                rows.add(row);
             }
         }
 
@@ -2498,7 +2248,7 @@ public class AdminMainController {
             startPage = Math.max(1, endPage - 9);
         }
         payload.put("accessHistoryError", errorMessage);
-        payload.put("accessHistoryList", rows);
+        payload.put("accessHistoryList", mapRows(rows));
         payload.put("totalCount", totalCount);
         payload.put("pageIndex", currentPage);
         payload.put("pageSize", pageSize);
@@ -2511,7 +2261,7 @@ public class AdminMainController {
         return payload;
     }
 
-    private Map<String, Object> buildErrorLogPagePayload(
+    Map<String, Object> buildErrorLogPagePayload(
             String pageIndexParam,
             String searchKeyword,
             String requestedInsttId,
@@ -2584,7 +2334,7 @@ public class AdminMainController {
         int totalCount = 0;
         int totalPages = 1;
         int currentPage = 1;
-        List<Map<String, Object>> rows = new ArrayList<>();
+        List<ErrorLogRow> rows = new ArrayList<>();
         String errorMessage = "";
         try {
             ErrorEventSearchVO searchVO = new ErrorEventSearchVO();
@@ -2599,22 +2349,12 @@ public class AdminMainController {
             currentPage = Math.max(1, Math.min(pageIndex, totalPages));
             searchVO.setFirstIndex(Math.max(currentPage - 1, 0) * pageSize);
             for (ErrorEventRecordVO item : observabilityQueryService.selectErrorEventList(searchVO)) {
-                Map<String, Object> row = new LinkedHashMap<>();
                 String scopedInsttId = safeString(item.getActorInsttId());
-                row.put("createdAt", safeString(item.getCreatedAt()));
-                row.put("insttId", scopedInsttId);
-                row.put("companyName", scopedInsttId.isEmpty() ? "-" : resolveCompanyNameByInsttId(scopedInsttId));
-                row.put("sourceType", safeString(item.getSourceType()));
-                row.put("errorType", safeString(item.getErrorType()));
-                row.put("actorId", safeString(item.getActorId()));
-                row.put("actorRole", safeString(item.getActorRole()));
-                row.put("requestUri", safeString(item.getRequestUri()));
-                row.put("pageId", safeString(item.getPageId()));
-                row.put("apiId", safeString(item.getApiId()));
-                row.put("remoteAddr", safeString(item.getRemoteAddr()));
-                row.put("message", safeString(item.getMessage()));
-                row.put("resultStatus", safeString(item.getResultStatus()));
-                rows.add(row);
+                rows.add(createErrorLogRow(
+                        item,
+                        scopedInsttId,
+                        scopedInsttId.isEmpty() ? "-" : resolveCompanyNameByInsttId(scopedInsttId)
+                ));
             }
         } catch (Exception e) {
             log.error("Failed to load error log page.", e);
@@ -2627,7 +2367,7 @@ public class AdminMainController {
             startPage = Math.max(1, endPage - 9);
         }
         payload.put("errorLogError", errorMessage);
-        payload.put("errorLogList", rows);
+        payload.put("errorLogList", mapRows(rows));
         payload.put("totalCount", totalCount);
         payload.put("pageIndex", currentPage);
         payload.put("pageSize", pageSize);
@@ -4288,6 +4028,10 @@ public class AdminMainController {
         if (normalizedInsttId.isEmpty()) {
             return "";
         }
+        return companyNameCache.computeIfAbsent(normalizedInsttId, this::lookupCompanyNameByInsttId);
+    }
+
+    private String lookupCompanyNameByInsttId(String normalizedInsttId) {
         InstitutionStatusVO institution = loadInstitutionInfoByInsttId(normalizedInsttId);
         if (institution == null) {
             return normalizedInsttId;
@@ -4307,6 +4051,212 @@ public class AdminMainController {
             }
         }
         return "";
+    }
+
+    private List<Map<String, Object>> mapRows(List<? extends RowView> rows) {
+        List<Map<String, Object>> items = new ArrayList<>();
+        if (rows == null || rows.isEmpty()) {
+            return items;
+        }
+        for (RowView row : rows) {
+            items.add(row.toMap());
+        }
+        return items;
+    }
+
+    private AccessHistoryRow createAccessHistoryRowFromAccessEvent(AccessEventRecordVO item, String insttId, String companyName) {
+        return new AccessHistoryRow(
+                safeString(item.getCreatedAt()),
+                insttId,
+                companyName,
+                safeString(item.getActorId()),
+                safeString(item.getActorType()),
+                safeString(item.getActorRole()),
+                safeString(item.getRequestUri()),
+                safeString(item.getHttpMethod()),
+                item.getResponseStatus(),
+                item.getDurationMs(),
+                safeString(item.getRemoteAddr()),
+                safeString(item.getFeatureType()),
+                safeString(item.getCompanyScopeDecision()),
+                safeString(item.getPageId()),
+                safeString(item.getApiId()));
+    }
+
+    private AccessHistoryRow createAccessHistoryRowFromExecutionLog(RequestExecutionLogVO item, String insttId, String companyName) {
+        return new AccessHistoryRow(
+                safeString(item.getExecutedAt()),
+                insttId,
+                companyName,
+                safeString(item.getActorUserId()),
+                safeString(item.getActorType()),
+                safeString(item.getActorAuthorCode()),
+                safeString(item.getRequestUri()),
+                safeString(item.getHttpMethod()),
+                item.getResponseStatus(),
+                item.getDurationMs(),
+                safeString(item.getRemoteAddr()),
+                safeString(item.getFeatureType()),
+                safeString(item.getCompanyScopeDecision()),
+                "",
+                "");
+    }
+
+    private ErrorLogRow createErrorLogRow(ErrorEventRecordVO item, String insttId, String companyName) {
+        return new ErrorLogRow(
+                safeString(item.getCreatedAt()),
+                insttId,
+                companyName,
+                safeString(item.getSourceType()),
+                safeString(item.getErrorType()),
+                safeString(item.getActorId()),
+                safeString(item.getActorRole()),
+                safeString(item.getRequestUri()),
+                safeString(item.getPageId()),
+                safeString(item.getApiId()),
+                safeString(item.getRemoteAddr()),
+                safeString(item.getMessage()),
+                safeString(item.getResultStatus()));
+    }
+
+    private interface RowView {
+        Map<String, Object> toMap();
+    }
+
+    private final class AccessHistoryRow implements RowView {
+        private final String executedAt;
+        private final String insttId;
+        private final String companyName;
+        private final String actorUserId;
+        private final String actorType;
+        private final String actorAuthorCode;
+        private final String requestUri;
+        private final String httpMethod;
+        private final Object responseStatus;
+        private final Object durationMs;
+        private final String remoteAddr;
+        private final String featureType;
+        private final String companyScopeDecision;
+        private final String pageId;
+        private final String apiId;
+
+        private AccessHistoryRow(
+                String executedAt,
+                String insttId,
+                String companyName,
+                String actorUserId,
+                String actorType,
+                String actorAuthorCode,
+                String requestUri,
+                String httpMethod,
+                Object responseStatus,
+                Object durationMs,
+                String remoteAddr,
+                String featureType,
+                String companyScopeDecision,
+                String pageId,
+                String apiId) {
+            this.executedAt = executedAt;
+            this.insttId = insttId;
+            this.companyName = companyName;
+            this.actorUserId = actorUserId;
+            this.actorType = actorType;
+            this.actorAuthorCode = actorAuthorCode;
+            this.requestUri = requestUri;
+            this.httpMethod = httpMethod;
+            this.responseStatus = responseStatus;
+            this.durationMs = durationMs;
+            this.remoteAddr = remoteAddr;
+            this.featureType = featureType;
+            this.companyScopeDecision = companyScopeDecision;
+            this.pageId = pageId;
+            this.apiId = apiId;
+        }
+
+        @Override
+        public Map<String, Object> toMap() {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("executedAt", executedAt);
+            row.put("insttId", insttId);
+            row.put("companyName", companyName);
+            row.put("actorUserId", actorUserId);
+            row.put("actorType", actorType);
+            row.put("actorAuthorCode", actorAuthorCode);
+            row.put("requestUri", requestUri);
+            row.put("httpMethod", httpMethod);
+            row.put("responseStatus", responseStatus);
+            row.put("durationMs", durationMs);
+            row.put("remoteAddr", remoteAddr);
+            row.put("featureType", featureType);
+            row.put("companyScopeDecision", companyScopeDecision);
+            row.put("pageId", pageId);
+            row.put("apiId", apiId);
+            return row;
+        }
+    }
+
+    private final class ErrorLogRow implements RowView {
+        private final String createdAt;
+        private final String insttId;
+        private final String companyName;
+        private final String sourceType;
+        private final String errorType;
+        private final String actorId;
+        private final String actorRole;
+        private final String requestUri;
+        private final String pageId;
+        private final String apiId;
+        private final String remoteAddr;
+        private final String message;
+        private final String resultStatus;
+
+        private ErrorLogRow(
+                String createdAt,
+                String insttId,
+                String companyName,
+                String sourceType,
+                String errorType,
+                String actorId,
+                String actorRole,
+                String requestUri,
+                String pageId,
+                String apiId,
+                String remoteAddr,
+                String message,
+                String resultStatus) {
+            this.createdAt = createdAt;
+            this.insttId = insttId;
+            this.companyName = companyName;
+            this.sourceType = sourceType;
+            this.errorType = errorType;
+            this.actorId = actorId;
+            this.actorRole = actorRole;
+            this.requestUri = requestUri;
+            this.pageId = pageId;
+            this.apiId = apiId;
+            this.remoteAddr = remoteAddr;
+            this.message = message;
+            this.resultStatus = resultStatus;
+        }
+
+        @Override
+        public Map<String, Object> toMap() {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("createdAt", createdAt);
+            row.put("insttId", insttId);
+            row.put("companyName", companyName);
+            row.put("sourceType", sourceType);
+            row.put("errorType", errorType);
+            row.put("actorId", actorId);
+            row.put("actorRole", actorRole);
+            row.put("requestUri", requestUri);
+            row.put("pageId", pageId);
+            row.put("apiId", apiId);
+            row.put("remoteAddr", remoteAddr);
+            row.put("message", message);
+            row.put("resultStatus", resultStatus);
+            return row;
+        }
     }
 
     private List<Map<String, String>> buildObservabilityOptionList(String... values) {
@@ -4975,17 +4925,19 @@ public class AdminMainController {
             String currentUserAuthorCode,
             String keyword,
             String status) throws Exception {
-        List<EmplyrInfo> employees = new ArrayList<>(employMemberRepository.findAll());
+        String actorInsttId = resolveCurrentUserInsttId(currentUserId);
+        boolean masterAccess = hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode);
+        List<EmplyrInfo> employees = employMemberRepository.searchAdminMembersForManagement(
+                safeString(keyword),
+                safeString(status).toUpperCase(Locale.ROOT),
+                masterAccess ? "" : actorInsttId,
+                Sort.by(Sort.Order.desc("sbscrbDe"), Sort.Order.asc("emplyrId")));
         Map<String, String> authorCodeByUserId = new LinkedHashMap<>();
         for (AdminRoleAssignmentVO assignment : authGroupManageService.selectAdminRoleAssignments()) {
             authorCodeByUserId.put(
                     safeString(assignment.getEmplyrId()),
                     safeString(assignment.getAuthorCode()).toUpperCase(Locale.ROOT));
         }
-        String actorInsttId = resolveCurrentUserInsttId(currentUserId);
-        boolean masterAccess = hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode);
-        String normalizedKeyword = safeString(keyword).toLowerCase(Locale.ROOT);
-        String normalizedStatus = safeString(status).toUpperCase(Locale.ROOT);
         List<EmplyrInfo> visible = employees.stream()
                 .filter(item -> {
                     String userId = safeString(item.getEmplyrId());
@@ -5002,31 +4954,7 @@ public class AdminMainController {
                             return false;
                         }
                     }
-                    if (!normalizedStatus.isEmpty() && !normalizedStatus.equalsIgnoreCase(safeString(item.getEmplyrStusCode()))) {
-                        return false;
-                    }
-                    if (normalizedKeyword.isEmpty()) {
-                        return true;
-                    }
-                    return safeString(item.getEmplyrId()).toLowerCase(Locale.ROOT).contains(normalizedKeyword)
-                            || safeString(item.getUserNm()).toLowerCase(Locale.ROOT).contains(normalizedKeyword)
-                            || safeString(item.getOrgnztId()).toLowerCase(Locale.ROOT).contains(normalizedKeyword)
-                            || safeString(item.getEmailAdres()).toLowerCase(Locale.ROOT).contains(normalizedKeyword);
-                })
-                .sorted((left, right) -> {
-                    LocalDateTime leftDate = left.getSbscrbDe();
-                    LocalDateTime rightDate = right.getSbscrbDe();
-                    if (leftDate == null && rightDate == null) {
-                        return safeString(left.getEmplyrId()).compareToIgnoreCase(safeString(right.getEmplyrId()));
-                    }
-                    if (leftDate == null) {
-                        return 1;
-                    }
-                    if (rightDate == null) {
-                        return -1;
-                    }
-                    int compared = rightDate.compareTo(leftDate);
-                    return compared != 0 ? compared : safeString(left.getEmplyrId()).compareToIgnoreCase(safeString(right.getEmplyrId()));
+                    return true;
                 })
                 .collect(Collectors.toList());
         return visible;
@@ -5079,13 +5007,6 @@ public class AdminMainController {
             }
         }
         return false;
-    }
-
-    private Map<String, String> roleCategoryOption(String code, String name) {
-        Map<String, String> row = new java.util.LinkedHashMap<>();
-        row.put("code", code);
-        row.put("name", name);
-        return row;
     }
 
     static final class AuthGroupScopeContext {
@@ -5171,22 +5092,8 @@ public class AdminMainController {
         return adminAuthorityPagePayloadSupport.buildAssignmentAuthorities(isEn);
     }
 
-    private Map<String, String> assignmentAuthority(String title, String description) {
-        Map<String, String> row = new java.util.LinkedHashMap<>();
-        row.put("title", title);
-        row.put("description", description);
-        return row;
-    }
-
     List<Map<String, String>> buildRoleCategories(boolean isEn) {
         return adminAuthorityPagePayloadSupport.buildRoleCategories(isEn);
-    }
-
-    private Map<String, String> roleCategory(String title, String description) {
-        Map<String, String> row = new java.util.LinkedHashMap<>();
-        row.put("title", title);
-        row.put("description", description);
-        return row;
     }
 
     String adminPrefix(HttpServletRequest request, Locale locale) {

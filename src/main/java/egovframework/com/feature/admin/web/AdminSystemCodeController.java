@@ -2,6 +2,7 @@ package egovframework.com.feature.admin.web;
 
 import egovframework.com.common.audit.AuditTrailService;
 import egovframework.com.common.logging.RequestExecutionLogService;
+import egovframework.com.common.logging.RequestExecutionLogPage;
 import egovframework.com.common.logging.RequestExecutionLogVO;
 import egovframework.com.common.trace.UiManifestRegistryService;
 import egovframework.com.common.util.ReactPageUrlMapper;
@@ -53,6 +54,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.LinkedHashSet;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
 
 @Controller
@@ -81,6 +84,7 @@ public class AdminSystemCodeController {
     private final RequestExecutionLogService requestExecutionLogService;
     private final EmployeeMemberRepository employeeMemberRepository;
     private final EnterpriseMemberRepository enterpriseMemberRepository;
+    private final ConcurrentMap<String, String> companyNameCache = new ConcurrentHashMap<>();
 
     @RequestMapping(value = "/code", method = { RequestMethod.GET, RequestMethod.POST })
     public String system_codeManagement(
@@ -1923,14 +1927,12 @@ public class AdminSystemCodeController {
             selectedInsttId = currentUserInsttId;
         }
 
-        List<Map<String, Object>> allRows = canViewAccessHistory
-                ? buildAccessHistoryRows(normalizedKeyword, selectedInsttId, canManageAllCompanies)
-                : Collections.emptyList();
-        int totalCount = allRows.size();
+        AccessHistoryRowsPage accessHistoryPage = canViewAccessHistory
+                ? buildAccessHistoryPage(normalizedKeyword, selectedInsttId, canManageAllCompanies, requestedPageIndex)
+                : new AccessHistoryRowsPage(Collections.emptyList(), 0);
+        int totalCount = accessHistoryPage.getTotalCount();
         int totalPages = Math.max(1, (int) Math.ceil(totalCount / (double) ACCESS_HISTORY_PAGE_SIZE));
         int pageIndex = Math.min(requestedPageIndex, totalPages);
-        int fromIndex = Math.min((pageIndex - 1) * ACCESS_HISTORY_PAGE_SIZE, totalCount);
-        int toIndex = Math.min(fromIndex + ACCESS_HISTORY_PAGE_SIZE, totalCount);
         int startPage = Math.max(1, ((pageIndex - 1) / 10) * 10 + 1);
         int endPage = Math.min(totalPages, startPage + 9);
 
@@ -1947,31 +1949,32 @@ public class AdminSystemCodeController {
         model.addAttribute("endPage", endPage);
         model.addAttribute("prevPage", startPage > 1 ? startPage - 1 : 1);
         model.addAttribute("nextPage", endPage < totalPages ? endPage + 1 : totalPages);
-        model.addAttribute("accessHistoryList", allRows.subList(fromIndex, toIndex));
+        model.addAttribute("accessHistoryList", accessHistoryPage.getRows());
         model.addAttribute("isEn", isEn);
     }
 
-    private List<Map<String, Object>> buildAccessHistoryRows(String normalizedKeyword,
-                                                             String selectedInsttId,
-                                                             boolean canManageAllCompanies) {
-        List<RequestExecutionLogVO> logs = requestExecutionLogService.readRecent(ACCESS_HISTORY_RECENT_LIMIT);
-        if (logs == null || logs.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        Map<String, String> companyNameByInsttId = buildCompanyNameMap(logs);
-        List<Map<String, Object>> rows = new ArrayList<>();
-        for (RequestExecutionLogVO item : logs) {
+    private AccessHistoryRowsPage buildAccessHistoryPage(String normalizedKeyword,
+                                                         String selectedInsttId,
+                                                         boolean canManageAllCompanies,
+                                                         int pageIndex) {
+        Map<String, String> companyNameByInsttId = buildAccessHistoryCompanyNameMap();
+        RequestExecutionLogPage logPage = requestExecutionLogService.searchRecent(item -> {
             String effectiveInsttId = resolveEffectiveInsttId(item);
             if (!canManageAllCompanies && !selectedInsttId.isEmpty() && !selectedInsttId.equals(effectiveInsttId)) {
-                continue;
+                return false;
             }
             if (canManageAllCompanies && !safeString(selectedInsttId).isEmpty() && !selectedInsttId.equals(effectiveInsttId)) {
-                continue;
+                return false;
             }
-            if (!matchesAccessHistoryKeyword(item, normalizedKeyword, effectiveInsttId, companyNameByInsttId.get(effectiveInsttId))) {
-                continue;
-            }
+            return matchesAccessHistoryKeyword(item, normalizedKeyword, effectiveInsttId, companyNameByInsttId.get(effectiveInsttId));
+        }, pageIndex, ACCESS_HISTORY_PAGE_SIZE);
+        if (logPage.getItems().isEmpty()) {
+            return new AccessHistoryRowsPage(Collections.emptyList(), logPage.getTotalCount());
+        }
+
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (RequestExecutionLogVO item : logPage.getItems()) {
+            String effectiveInsttId = resolveEffectiveInsttId(item);
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("logId", safeString(item.getLogId()));
             row.put("executedAt", safeString(item.getExecutedAt()));
@@ -1992,7 +1995,7 @@ public class AdminSystemCodeController {
             row.put("companyName", safeString(companyNameByInsttId.get(effectiveInsttId)));
             rows.add(row);
         }
-        return rows;
+        return new AccessHistoryRowsPage(rows, logPage.getTotalCount());
     }
 
     private boolean matchesAccessHistoryKeyword(RequestExecutionLogVO item,
@@ -2011,7 +2014,9 @@ public class AdminSystemCodeController {
     }
 
     private List<Map<String, String>> buildAccessHistoryCompanyOptions() {
-        List<RequestExecutionLogVO> logs = requestExecutionLogService.readRecent(ACCESS_HISTORY_RECENT_LIMIT);
+        List<RequestExecutionLogVO> logs = requestExecutionLogService
+                .searchRecent(item -> true, 1, ACCESS_HISTORY_RECENT_LIMIT)
+                .getItems();
         if (logs == null || logs.isEmpty()) {
             return Collections.emptyList();
         }
@@ -2027,6 +2032,31 @@ public class AdminSystemCodeController {
             options.add(option);
         }
         return options;
+    }
+
+    private Map<String, String> buildAccessHistoryCompanyNameMap() {
+        return buildCompanyNameMap(requestExecutionLogService
+                .searchRecent(item -> true, 1, ACCESS_HISTORY_RECENT_LIMIT)
+                .getItems());
+    }
+
+    private static final class AccessHistoryRowsPage {
+
+        private final List<Map<String, Object>> rows;
+        private final int totalCount;
+
+        private AccessHistoryRowsPage(List<Map<String, Object>> rows, int totalCount) {
+            this.rows = rows == null ? Collections.emptyList() : rows;
+            this.totalCount = Math.max(totalCount, 0);
+        }
+
+        private List<Map<String, Object>> getRows() {
+            return rows;
+        }
+
+        private int getTotalCount() {
+            return totalCount;
+        }
     }
 
     private List<Map<String, String>> buildScopedAccessHistoryCompanyOptions(String currentUserInsttId) {
@@ -2056,6 +2086,10 @@ public class AdminSystemCodeController {
         if (normalizedInsttId.isEmpty()) {
             return "";
         }
+        return companyNameCache.computeIfAbsent(normalizedInsttId, this::lookupCompanyName);
+    }
+
+    private String lookupCompanyName(String normalizedInsttId) {
         try {
             List<UserAuthorityTargetVO> targets = authGroupManageService.selectUserAuthorityTargets(normalizedInsttId, "");
             if (targets != null) {

@@ -7,7 +7,7 @@ import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";
 import { GridToolbar, KeyValueGridPanel, MemberLinkButton, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
-import { verifyRuntimeContextKeys } from "../admin-ui/contextKeyPresets";
+import { resolveRuntimeCompareContextKeys } from "../admin-ui/contextKeyPresets";
 import { resolveScreenBuilderQuery, sortScreenBuilderNodes } from "./shared/screenBuilderUtils";
 
 type CompareRow = {
@@ -21,6 +21,10 @@ type CompareRow = {
 function stringifyValue(value: unknown, empty = "-") {
   const normalized = String(value || "").trim();
   return normalized || empty;
+}
+
+function findContextKeyValue(items: Array<{ label: string; value: string }>, label: string, empty = "-") {
+  return items.find((item) => item.label === label)?.value || empty;
 }
 
 function buildCompareRows(options: {
@@ -124,21 +128,27 @@ export function CurrentRuntimeCompareMigrationPage() {
   const generatedDiagnostics = currentPreview?.registryDiagnostics || page?.registryDiagnostics;
   const currentIssueCount = (currentDiagnostics?.missingNodes?.length || 0) + (currentDiagnostics?.deprecatedNodes?.length || 0);
   const generatedIssueCount = (generatedDiagnostics?.missingNodes?.length || 0) + (generatedDiagnostics?.deprecatedNodes?.length || 0);
+  const compareContextKeys = useMemo(() => resolveRuntimeCompareContextKeys({
+    menuUrl: page?.menuUrl || query.menuUrl,
+    templateType: currentPreview?.templateType || publishedPreview?.templateType || page?.templateType
+  }), [currentPreview?.templateType, page?.menuUrl, page?.templateType, publishedPreview?.templateType, query.menuUrl]);
+  const templateLineId = findContextKeyValue(compareContextKeys, "Template Line");
+  const screenFamilyRuleId = findContextKeyValue(compareContextKeys, "Screen Family Rule");
   const compareRows = useMemo(() => buildCompareRows({
-    currentTemplateLine: "admin-line-02",
-    currentFamilyRule: "ADMIN_LIST_REVIEW",
+    currentTemplateLine: templateLineId,
+    currentFamilyRule: screenFamilyRuleId,
     currentScope: stringifyValue(publishedPreview?.authorityProfile?.scopePolicy || page?.authorityProfile?.scopePolicy, "GLOBAL"),
     currentNodeCount: currentNodes.length,
     currentIssueCount,
-    generatedTemplateLine: "admin-line-02",
-    generatedFamilyRule: "ADMIN_LIST_REVIEW",
+    generatedTemplateLine: templateLineId,
+    generatedFamilyRule: screenFamilyRuleId,
     generatedScope: stringifyValue(currentPreview?.authorityProfile?.scopePolicy || page?.authorityProfile?.scopePolicy, "GLOBAL"),
     generatedNodeCount: generatedNodes.length,
     generatedIssueCount,
-    baselineTemplateLine: "admin-line-02",
-    baselineFamilyRule: "ADMIN_LIST_REVIEW",
+    baselineTemplateLine: templateLineId,
+    baselineFamilyRule: screenFamilyRuleId,
     baselineScope: "GLOBAL"
-  }), [currentIssueCount, currentNodes.length, currentPreview?.authorityProfile?.scopePolicy, generatedIssueCount, generatedNodes.length, page?.authorityProfile?.scopePolicy, publishedPreview?.authorityProfile?.scopePolicy]);
+  }), [currentIssueCount, currentNodes.length, currentPreview?.authorityProfile?.scopePolicy, generatedIssueCount, generatedNodes.length, page?.authorityProfile?.scopePolicy, publishedPreview?.authorityProfile?.scopePolicy, screenFamilyRuleId, templateLineId]);
   const mismatchCount = compareRows.filter((row) => row.result === "MISMATCH").length;
   const gapCount = compareRows.filter((row) => row.result === "GAP").length;
   const recentAuditCount = (auditState.value?.items || []).length;
@@ -154,7 +164,7 @@ export function CurrentRuntimeCompareMigrationPage() {
       ]}
       title={en ? "Current Runtime Compare" : "현재 런타임 비교"}
       subtitle={en ? "Compare the published runtime against the current generated snapshot and the governed baseline." : "발행 런타임을 현재 생성 스냅샷과 governed baseline에 맞춰 비교합니다."}
-      contextStrip={<ContextKeyStrip items={verifyRuntimeContextKeys} />}
+      contextStrip={<ContextKeyStrip items={compareContextKeys} />}
       loading={(pageState.loading && !page) || (currentPreviewState.loading && !currentPreview)}
       loadingLabel={en ? "Loading runtime compare..." : "런타임 비교를 불러오는 중입니다."}
     >
@@ -173,27 +183,29 @@ export function CurrentRuntimeCompareMigrationPage() {
       ) : null}
 
       <AdminWorkspacePageFrame>
-        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4" data-help-id="runtime-compare-metrics">
           <SummaryMetricCard title={en ? "Compare Rows" : "비교 항목"} value={compareRows.length} description={en ? "Governed checks" : "governed 점검 항목"} />
           <SummaryMetricCard title={en ? "Mismatches" : "불일치"} value={mismatchCount} description={en ? "Current vs generated vs baseline" : "current / generated / baseline 비교"} accentClassName="text-red-700" surfaceClassName="bg-red-50" />
           <SummaryMetricCard title={en ? "Gaps" : "누락"} value={gapCount} description={en ? "Missing current evidence" : "현재 증거 부족"} accentClassName="text-amber-700" surfaceClassName="bg-amber-50" />
           <SummaryMetricCard title={en ? "Recent Builder Events" : "최근 빌더 이벤트"} value={recentAuditCount} description={en ? "Recent save/publish traces" : "최근 저장 / 발행 흔적"} />
         </section>
 
-        <KeyValueGridPanel
-          description={en ? "Baseline values are derived from the governed context keys for the current lane." : "baseline 값은 현재 레인의 governed context key 기준으로 계산합니다."}
-          items={[
-            { label: en ? "Menu Code" : "메뉴 코드", value: page?.menuCode || query.menuCode || "-" },
-            { label: "pageId", value: page?.pageId || query.pageId || "-" },
-            { label: en ? "Published Version" : "발행 버전", value: page?.publishedVersionId || "-" },
-            { label: en ? "Draft Version" : "초안 버전", value: page?.versionId || "-" },
-            { label: en ? "Runtime URL" : "런타임 URL", value: page?.menuUrl || query.menuUrl || "-" },
-            { label: en ? "Latest Publish" : "최근 발행", value: latestPublishAudit ? String(latestPublishAudit.createdAt || "-") : "-" }
-          ]}
-          title={en ? "Compare Scope" : "비교 범위"}
-        />
+        <div data-help-id="runtime-compare-scope">
+          <KeyValueGridPanel
+            description={en ? "Baseline values are derived from the governed context keys for the current lane." : "baseline 값은 현재 레인의 governed context key 기준으로 계산합니다."}
+            items={[
+              { label: en ? "Menu Code" : "메뉴 코드", value: page?.menuCode || query.menuCode || "-" },
+              { label: "pageId", value: page?.pageId || query.pageId || "-" },
+              { label: en ? "Published Version" : "발행 버전", value: page?.publishedVersionId || "-" },
+              { label: en ? "Draft Version" : "초안 버전", value: page?.versionId || "-" },
+              { label: en ? "Runtime URL" : "런타임 URL", value: page?.menuUrl || query.menuUrl || "-" },
+              { label: en ? "Latest Publish" : "최근 발행", value: latestPublishAudit ? String(latestPublishAudit.createdAt || "-") : "-" }
+            ]}
+            title={en ? "Compare Scope" : "비교 범위"}
+          />
+        </div>
 
-        <section className="gov-card overflow-hidden p-0">
+        <section className="gov-card overflow-hidden p-0" data-help-id="runtime-compare-matrix">
           <GridToolbar
             actions={(
               <>
@@ -249,6 +261,28 @@ export function CurrentRuntimeCompareMigrationPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </section>
+        <section className="gov-card overflow-hidden p-0" data-help-id="runtime-compare-events">
+          <GridToolbar
+            meta={en ? "Latest compare-linked publish evidence and recent builder activity." : "비교와 연결된 최근 publish 증거와 빌더 활동입니다."}
+            title={en ? "Recent Compare Events" : "최근 비교 이벤트"}
+          />
+          <div className="divide-y divide-[var(--kr-gov-border-light)] bg-white">
+            <div className="px-5 py-4 text-sm">
+              <p className="font-bold text-[var(--kr-gov-text-primary)]">{en ? "Latest Publish Evidence" : "최근 발행 증거"}</p>
+              <p className="mt-1 text-[var(--kr-gov-text-secondary)]">
+                {latestPublishAudit
+                  ? `${String(latestPublishAudit.actionCode || "-")} / ${String(latestPublishAudit.createdAt || "-")}`
+                  : (en ? "No publish audit was found yet." : "아직 publish audit 이력이 없습니다.")}
+              </p>
+            </div>
+            <div className="px-5 py-4 text-sm">
+              <p className="font-bold text-[var(--kr-gov-text-primary)]">{en ? "Recent Builder Event Count" : "최근 빌더 이벤트 수"}</p>
+              <p className="mt-1 text-[var(--kr-gov-text-secondary)]">
+                {recentAuditCount} {en ? "event(s) linked to this compare scope." : "건의 이벤트가 현재 비교 범위에 연결되어 있습니다."}
+              </p>
+            </div>
           </div>
         </section>
       </AdminWorkspacePageFrame>

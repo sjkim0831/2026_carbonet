@@ -26,13 +26,25 @@ export type FrameworkAuthorityRoleContract = {
   builderReady: boolean;
 };
 
+export type FrameworkAuthorityOption = {
+  code: string;
+  name: string;
+};
+
+export type FrameworkAuthorityText = {
+  title: string;
+  description: string;
+};
+
 export type FrameworkAuthorityContract = {
   policyId: string;
   frameworkId: string;
   contractVersion: string;
   generatedAt: string;
   authorityRoles: FrameworkAuthorityRoleContract[];
+  roleCategoryOptions: FrameworkAuthorityOption[];
+  assignmentAuthorities: FrameworkAuthorityText[];
+  roleCategories: FrameworkAuthorityText[];
   allowedScopePolicies: string[];
   tierOrder: FrameworkAuthorityTier[];
 };
-

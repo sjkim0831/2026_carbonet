@@ -7,14 +7,15 @@ import egovframework.com.common.audit.AuditEventSearchVO;
 import egovframework.com.common.service.ObservabilityQueryService;
 import egovframework.com.common.trace.TraceEventSearchVO;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.http.ResponseEntity;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.security.web.csrf.CsrfToken;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
@@ -35,6 +36,8 @@ public class AdminObservabilityController {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<Map<String, Object>>() {};
     private final ObservabilityQueryService observabilityQueryService;
+    private final AdminObservabilityPageService adminObservabilityPageService;
+    private final AdminMainController adminMainController;
 
     @RequestMapping(value = "/system/observability", method = RequestMethod.GET)
     public String observabilityPage(HttpServletRequest request, Locale locale, Model model) {
@@ -46,6 +49,219 @@ public class AdminObservabilityController {
             builder.append("&").append(query);
         }
         return builder.toString();
+    }
+
+    @RequestMapping(value = "/system/security", method = { RequestMethod.GET, RequestMethod.POST })
+    public String securityHistoryPage(
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "userSe", required = false) String userSe,
+            @RequestParam(value = "loginResult", required = false) String loginResult,
+            HttpServletRequest request,
+            Locale locale,
+            Model model) {
+        return forwardReactMigration(request, locale, "security-history");
+    }
+
+    @RequestMapping(value = "/system/access_history", method = { RequestMethod.GET, RequestMethod.POST })
+    public String accessHistoryPage(
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "insttId", required = false) String insttId,
+            HttpServletRequest request,
+            Locale locale,
+            Model model) {
+        return forwardReactMigration(request, locale, "access-history");
+    }
+
+    @GetMapping("/system/access_history/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> accessHistoryPageApi(
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "insttId", required = false) String insttId,
+            HttpServletRequest request,
+            Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminMainController.buildAccessHistoryPagePayload(
+                pageIndexParam,
+                searchKeyword,
+                insttId,
+                request,
+                isEnglishRequest(request, locale)));
+    }
+
+    @RequestMapping(value = "/system/error-log", method = { RequestMethod.GET, RequestMethod.POST })
+    public String errorLogPage(
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "insttId", required = false) String insttId,
+            @RequestParam(value = "sourceType", required = false) String sourceType,
+            @RequestParam(value = "errorType", required = false) String errorType,
+            HttpServletRequest request,
+            Locale locale,
+            Model model) {
+        return forwardReactMigration(request, locale, "error-log");
+    }
+
+    @GetMapping("/system/error-log/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> errorLogPageApi(
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "insttId", required = false) String insttId,
+            @RequestParam(value = "sourceType", required = false) String sourceType,
+            @RequestParam(value = "errorType", required = false) String errorType,
+            HttpServletRequest request,
+            Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminMainController.buildErrorLogPagePayload(
+                pageIndexParam,
+                searchKeyword,
+                insttId,
+                sourceType,
+                errorType,
+                request,
+                isEnglishRequest(request, locale)));
+    }
+
+    @GetMapping("/system/security/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> securityHistoryPageApi(
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "userSe", required = false) String userSe,
+            @RequestParam(value = "insttId", required = false) String insttId,
+            HttpServletRequest request,
+            Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminObservabilityPageService.buildSecurityHistoryPagePayload(
+                pageIndexParam,
+                searchKeyword,
+                userSe,
+                insttId,
+                request,
+                isEnglishRequest(request, locale)));
+    }
+
+    @RequestMapping(value = "/system/security-policy", method = { RequestMethod.GET, RequestMethod.POST })
+    public String securityPolicyPage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardReactMigration(request, locale, "security-policy");
+    }
+
+    @GetMapping("/system/security-policy/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> securityPolicyPageApi(HttpServletRequest request, Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminObservabilityPageService.buildSecurityPolicyPagePayload(isEnglishRequest(request, locale)));
+    }
+
+    @RequestMapping(value = "/system/security-monitoring", method = { RequestMethod.GET, RequestMethod.POST })
+    public String securityMonitoringPage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardReactMigration(request, locale, "security-monitoring");
+    }
+
+    @GetMapping("/system/security-monitoring/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> securityMonitoringPageApi(HttpServletRequest request, Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminObservabilityPageService.buildSecurityMonitoringPagePayload(isEnglishRequest(request, locale)));
+    }
+
+    @RequestMapping(value = "/system/blocklist", method = { RequestMethod.GET, RequestMethod.POST })
+    public String blocklistPage(
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "blockType", required = false) String blockType,
+            @RequestParam(value = "status", required = false) String status,
+            HttpServletRequest request,
+            Locale locale,
+            Model model) {
+        return forwardReactMigration(request, locale, "blocklist");
+    }
+
+    @GetMapping("/system/blocklist/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> blocklistPageApi(
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "blockType", required = false) String blockType,
+            @RequestParam(value = "status", required = false) String status,
+            HttpServletRequest request,
+            Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminObservabilityPageService.buildBlocklistPagePayload(
+                searchKeyword,
+                blockType,
+                status,
+                isEnglishRequest(request, locale)));
+    }
+
+    @RequestMapping(value = "/system/security-audit", method = { RequestMethod.GET, RequestMethod.POST })
+    public String securityAuditPage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardReactMigration(request, locale, "security-audit");
+    }
+
+    @GetMapping("/system/security-audit/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> securityAuditPageApi(HttpServletRequest request, Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminObservabilityPageService.buildSecurityAuditPagePayload(isEnglishRequest(request, locale)));
+    }
+
+    @RequestMapping(value = "/system/scheduler", method = { RequestMethod.GET, RequestMethod.POST })
+    public String schedulerPage(
+            @RequestParam(value = "jobStatus", required = false) String jobStatus,
+            @RequestParam(value = "executionType", required = false) String executionType,
+            HttpServletRequest request,
+            Locale locale,
+            Model model) {
+        return forwardReactMigration(request, locale, "scheduler-management");
+    }
+
+    @GetMapping("/system/scheduler/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> schedulerPageApi(
+            @RequestParam(value = "jobStatus", required = false) String jobStatus,
+            @RequestParam(value = "executionType", required = false) String executionType,
+            HttpServletRequest request,
+            Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminObservabilityPageService.buildSchedulerPagePayload(
+                jobStatus,
+                executionType,
+                isEnglishRequest(request, locale)));
+    }
+
+    @RequestMapping(value = "/member/login_history", method = { RequestMethod.GET, RequestMethod.POST })
+    public String loginHistoryPage(
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "userSe", required = false) String userSe,
+            @RequestParam(value = "loginResult", required = false) String loginResult,
+            HttpServletRequest request,
+            Locale locale,
+            Model model) {
+        return forwardReactMigration(request, locale, "login-history");
+    }
+
+    @GetMapping("/api/admin/member/login-history/page")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> loginHistoryPageApi(
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "userSe", required = false) String userSe,
+            @RequestParam(value = "loginResult", required = false) String loginResult,
+            @RequestParam(value = "insttId", required = false) String insttId,
+            HttpServletRequest request,
+            Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminObservabilityPageService.buildLoginHistoryPagePayload(
+                pageIndexParam,
+                searchKeyword,
+                userSe,
+                loginResult,
+                insttId,
+                request,
+                isEnglishRequest(request, locale)));
     }
 
     @GetMapping("/api/admin/observability/audit-events")
@@ -121,6 +337,27 @@ public class AdminObservabilityController {
             return true;
         }
         return locale != null && "en".equalsIgnoreCase(locale.getLanguage());
+    }
+
+    private String forwardReactMigration(HttpServletRequest request, Locale locale, String route) {
+        StringBuilder builder = new StringBuilder("forward:");
+        builder.append(isEnglishRequest(request, locale) ? "/en/admin/app?route=" : "/admin/app?route=");
+        builder.append(route);
+        String query = request == null ? "" : safe(request.getQueryString());
+        if (!query.isEmpty()) {
+            builder.append("&").append(query);
+        }
+        return builder.toString();
+    }
+
+    private void primeCsrfToken(HttpServletRequest request) {
+        if (request == null) {
+            return;
+        }
+        Object token = request.getAttribute("_csrf");
+        if (token instanceof CsrfToken) {
+            ((CsrfToken) token).getToken();
+        }
     }
 
     private List<Map<String, Object>> enrichAuditItems(List<AuditEventRecordVO> items) {

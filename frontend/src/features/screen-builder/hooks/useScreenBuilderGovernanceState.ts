@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { fetchFrameworkAuthorityContract, type FrameworkAuthorityRoleContract } from "../../../framework";
+import {
+  fetchFrameworkAuthorityContract,
+  type FrameworkAuthorityOption,
+  type FrameworkAuthorityRoleContract,
+  type FrameworkAuthorityText
+} from "../../../framework";
 import type {
   ScreenBuilderComponentRegistryItem,
   ScreenBuilderComponentUsage,
@@ -61,6 +66,9 @@ export function useScreenBuilderGovernanceState({
 }: Params) {
   const [systemComponentCatalog, setSystemComponentCatalog] = useState<SystemComponentCatalogItem[]>([]);
   const [authorityRoleTemplates, setAuthorityRoleTemplates] = useState<FrameworkAuthorityRoleContract[]>([]);
+  const [authorityRoleCategoryOptions, setAuthorityRoleCategoryOptions] = useState<FrameworkAuthorityOption[]>([]);
+  const [authorityAssignmentAuthorities, setAuthorityAssignmentAuthorities] = useState<FrameworkAuthorityText[]>([]);
+  const [authorityRoleCategories, setAuthorityRoleCategories] = useState<FrameworkAuthorityText[]>([]);
   const [authorityLoading, setAuthorityLoading] = useState(false);
   const selectedRegistryInventoryItem = useMemo(
     () => componentRegistry.find((item) => item.componentId === selectedRegistryComponentId) || null,
@@ -150,11 +158,17 @@ export function useScreenBuilderGovernanceState({
       .then((contract) => {
         if (!cancelled) {
           setAuthorityRoleTemplates((contract.authorityRoles || []).filter((item) => item.builderReady));
+          setAuthorityRoleCategoryOptions(contract.roleCategoryOptions || []);
+          setAuthorityAssignmentAuthorities(contract.assignmentAuthorities || []);
+          setAuthorityRoleCategories(contract.roleCategories || []);
         }
       })
       .catch(() => {
         if (!cancelled) {
           setAuthorityRoleTemplates([]);
+          setAuthorityRoleCategoryOptions([]);
+          setAuthorityAssignmentAuthorities([]);
+          setAuthorityRoleCategories([]);
         }
       })
       .finally(() => {
@@ -269,7 +283,10 @@ export function useScreenBuilderGovernanceState({
   }, [filteredComponentRegistry, registryTypeFilter, registryUsagePreviewMap, setRegistryUsagePreviewMap]);
 
   return {
+    authorityAssignmentAuthorities,
     authorityLoading,
+    authorityRoleCategories,
+    authorityRoleCategoryOptions,
     authorityRoleTemplates,
     backendDeprecatedNodes,
     backendMissingNodes,

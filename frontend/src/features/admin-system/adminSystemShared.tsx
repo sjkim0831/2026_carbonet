@@ -1,4 +1,4 @@
-import { getCsrfMeta } from "../../lib/navigation/runtime";
+import { submitFormUrlEncoded } from "../../lib/api/core";
 
 export function valueOf(record: Record<string, unknown> | null | undefined, ...keys: string[]) {
   if (!record) {
@@ -40,21 +40,8 @@ export async function submitFormRequest(form: HTMLFormElement) {
   formData.forEach((value, key) => {
     body.append(key, String(value));
   });
-
-  const { token, headerName } = getCsrfMeta();
-  const headers: Record<string, string> = {
-    "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-    "X-Requested-With": "XMLHttpRequest"
-  };
-  if (token) {
-    headers[headerName] = token;
-  }
-
-  const response = await fetch(form.action, {
-    method: (form.method || "post").toUpperCase(),
-    credentials: "include",
-    headers,
-    body: body.toString()
+  const response = await submitFormUrlEncoded(form.action, body, {
+    method: (form.method || "post").toUpperCase()
   });
 
   if (!response.ok) {

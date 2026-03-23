@@ -3,6 +3,11 @@ import { buildLocalizedPath, getCsrfMeta } from "../navigation/runtime";
 
 export const apiFetch = tracedFetch;
 
+export function buildPublicApiPath(path: string): string {
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  return buildLocalizedPath(normalized, `/en${normalized}`);
+}
+
 export function buildAdminApiPath(path: string): string {
   const normalized = path.startsWith("/") ? path : `/${path}`;
   if (normalized.startsWith("/api/admin/")) {
@@ -86,4 +91,68 @@ export async function buildResilientCsrfHeaders(extraHeaders?: Record<string, st
     // Keep request handling deterministic. The server will still reject if no token is available.
   }
   return headers;
+}
+
+export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
+  const response = await apiFetch(url, {
+    credentials: "include",
+    ...(init || {})
+  });
+  return readJsonResponse<T>(response);
+}
+
+export async function postJson<T>(url: string, payload: unknown, init?: RequestInit): Promise<T> {
+  const response = await apiFetch(url, {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/json",
+      ...(init?.headers as Record<string, string> | undefined)
+    }),
+    body: JSON.stringify(payload),
+    ...init
+  });
+  return readJsonResponse<T>(response);
+}
+
+export async function postFormUrlEncoded<T>(
+  url: string,
+  payload: URLSearchParams,
+  init?: RequestInit
+): Promise<T> {
+  const response = await apiFetch(url, {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+      "X-Requested-With": "XMLHttpRequest",
+      ...(init?.headers as Record<string, string> | undefined)
+    }),
+    body: payload.toString(),
+    ...init
+  });
+  return readJsonResponse<T>(response);
+}
+
+export async function submitFormUrlEncoded(
+  url: string,
+  payload: URLSearchParams,
+  init?: RequestInit
+): Promise<Response> {
+  const response = await apiFetch(url, {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+      "X-Requested-With": "XMLHttpRequest",
+      ...(init?.headers as Record<string, string> | undefined)
+    }),
+    body: payload.toString(),
+    ...init
+  });
+
+  if (isLoginRedirectResponse(response)) {
+    redirectToLogin(response);
+  }
+  return response;
 }

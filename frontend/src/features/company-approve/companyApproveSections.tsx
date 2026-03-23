@@ -246,7 +246,7 @@ export function CompanyApproveReviewContent({
                 <span className="material-symbols-outlined text-gray-500">description</span>
                 <span className="text-sm font-medium">{String(file.fileName || "-")}</span>
               </div>
-              <MemberButton className="text-[var(--kr-gov-blue)]" icon="visibility" onClick={() => { window.location.href = String(file.downloadUrl || "#"); }} size="xs" type="button" variant="info">
+              <MemberButton className="text-[var(--kr-gov-blue)]" icon="visibility" onClick={() => { window.open(String(file.downloadUrl || "#"), "_blank", "noopener,noreferrer"); }} size="xs" type="button" variant="info">
                 {MEMBER_BUTTON_LABELS.preview}
               </MemberButton>
             </div>

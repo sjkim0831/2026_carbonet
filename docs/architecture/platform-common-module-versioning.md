@@ -171,6 +171,9 @@ Product delivery rule:
 - projects should consume approved common artifacts through release-unit selection, not through source copying
 - when a product package is built, common jars and shared frontend bundles should be assembled together with project-local thin code into one governed runtime package
 - module additions should not introduce a second styling dialect or a second structural pattern family into the same runtime package without explicit approval
+- generated runtime outputs should be minimized to project-specific bindings, identifiers, authority metadata, route/page registration, and declared JSON or DB-backed definitions wherever possible
+- common behavior, rendering helpers, authority enforcement helpers, trace helpers, and other reusable runtime logic should stay in centrally versioned common jars or shared bundles
+- the target runtime system should primarily execute approved common artifacts plus thin project-specific definitions
 
 ### `install-unit`
 

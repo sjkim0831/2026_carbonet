@@ -1,5 +1,6 @@
 import { FormEvent, SyntheticEvent, useState } from "react";
-import { fetchFrontendSession, readBootstrappedAdminHomePageData } from "../../lib/api/client";
+import { readBootstrappedAdminHomePageData } from "../../lib/api/client";
+import { postJson } from "../../lib/api/core";
 import { buildLocalizedPath, navigate } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "./AdminPageShell";
 import { AdminLoginFrame } from "./adminEntryShared";
@@ -41,18 +42,10 @@ export function AdminLoginPage() {
     }
     setSubmitting(true);
     try {
-      const session = await fetchFrontendSession();
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (session.csrfHeaderName && session.csrfToken) {
-        headers[session.csrfHeaderName] = session.csrfToken;
-      }
-      const response = await fetch(buildLocalizedPath("/admin/login/actionLogin", "/en/admin/login/actionLogin"), {
-        method: "POST",
-        credentials: "include",
-        headers,
-        body: JSON.stringify({ userId: userId.trim(), userPw, userSe: "USR" })
-      });
-      const body = await response.json() as { status?: string; errors?: string };
+      const body = await postJson<{ status?: string; errors?: string }>(
+        buildLocalizedPath("/admin/login/actionLogin", "/en/admin/login/actionLogin"),
+        { userId: userId.trim(), userPw, userSe: "USR" }
+      );
       if (body.status === "loginFailure") {
         window.alert(body.errors || (en ? "Login failed." : "로그인에 실패했습니다."));
         return;

@@ -104,7 +104,10 @@ export function ScreenBuilderMigrationPage() {
 
   const availableApis = useMemo(() => commandState.value?.page?.apis || [], [commandState.value]);
   const {
+    authorityAssignmentAuthorities,
     authorityLoading,
+    authorityRoleCategories,
+    authorityRoleCategoryOptions,
     authorityRoleTemplates,
     backendDeprecatedNodes,
     backendMissingNodes,
@@ -292,48 +295,50 @@ export function ScreenBuilderMigrationPage() {
         </PageStatusNotice>
       ) : null}
       <AdminWorkspacePageFrame>
-        <DiagnosticCard
-          actions={(
-            <>
-              {page?.menuCode ? (
-                <MemberLinkButton
-                  href={buildLocalizedPath(
-                    `/admin/system/environment-management?menuCode=${encodeURIComponent(page.menuCode)}`,
-                    `/en/admin/system/environment-management?menuCode=${encodeURIComponent(page.menuCode)}`
-                  )}
-                  variant="secondary"
-                >
-                  {en ? "Open Environment Management" : "환경관리 열기"}
-                </MemberLinkButton>
-              ) : null}
-              {page?.menuCode ? (
-                <MemberLinkButton
-                  href={buildLocalizedPath(
-                    `/admin/system/screen-runtime?menuCode=${encodeURIComponent(page.menuCode)}&pageId=${encodeURIComponent(page.pageId || "")}&menuTitle=${encodeURIComponent(page.menuTitle || "")}&menuUrl=${encodeURIComponent(page.menuUrl || "")}`,
-                    `/en/admin/system/screen-runtime?menuCode=${encodeURIComponent(page.menuCode)}&pageId=${encodeURIComponent(page.pageId || "")}&menuTitle=${encodeURIComponent(page.menuTitle || "")}&menuUrl=${encodeURIComponent(page.menuUrl || "")}`
-                  )}
-                  variant="secondary"
-                >
-                  {en ? "Open Published Runtime" : "발행 런타임 열기"}
-                </MemberLinkButton>
-              ) : null}
-              <MemberButton disabled={!page?.menuCode || saving} onClick={() => { void handleSave(); }} variant="primary">
-                {saving ? (en ? "Saving..." : "저장 중...") : (en ? "Save Draft" : "초안 저장")}
-              </MemberButton>
-              <MemberButton disabled={!page?.menuCode || saving || publishIssueCount > 0} onClick={() => { void handlePublish(); }} variant="info">
-                {saving ? (en ? "Working..." : "처리 중...") : (en ? "Publish Snapshot" : "Publish 스냅샷")}
-              </MemberButton>
-              <MemberButton disabled={!page?.menuCode || previewLoading} onClick={() => { void handlePreviewRefresh(false); }} variant="secondary">
-                {previewLoading ? (en ? "Refreshing..." : "갱신 중...") : (en ? "Refresh Preview" : "미리보기 갱신")}
-              </MemberButton>
-            </>
-          )}
-          description={en ? "Draft save, publish, and runtime verification actions for the current menu." : "현재 메뉴의 draft 저장, publish, runtime 검증 액션입니다."}
-          eyebrow={page?.templateType || "EDIT_PAGE"}
-          status={publishReady ? (en ? "READY" : "준비 완료") : (en ? "BLOCKED" : "차단")}
-          statusTone={publishReady ? "healthy" : "danger"}
-          title={en ? "Builder Actions" : "빌더 액션"}
-        />
+        <div data-help-id="screen-builder-summary">
+          <DiagnosticCard
+            actions={(
+              <>
+                {page?.menuCode ? (
+                  <MemberLinkButton
+                    href={buildLocalizedPath(
+                      `/admin/system/environment-management?menuCode=${encodeURIComponent(page.menuCode)}`,
+                      `/en/admin/system/environment-management?menuCode=${encodeURIComponent(page.menuCode)}`
+                    )}
+                    variant="secondary"
+                  >
+                    {en ? "Open Environment Management" : "환경관리 열기"}
+                  </MemberLinkButton>
+                ) : null}
+                {page?.menuCode ? (
+                  <MemberLinkButton
+                    href={buildLocalizedPath(
+                      `/admin/system/screen-runtime?menuCode=${encodeURIComponent(page.menuCode)}&pageId=${encodeURIComponent(page.pageId || "")}&menuTitle=${encodeURIComponent(page.menuTitle || "")}&menuUrl=${encodeURIComponent(page.menuUrl || "")}`,
+                      `/en/admin/system/screen-runtime?menuCode=${encodeURIComponent(page.menuCode)}&pageId=${encodeURIComponent(page.pageId || "")}&menuTitle=${encodeURIComponent(page.menuTitle || "")}&menuUrl=${encodeURIComponent(page.menuUrl || "")}`
+                    )}
+                    variant="secondary"
+                  >
+                    {en ? "Open Published Runtime" : "발행 런타임 열기"}
+                  </MemberLinkButton>
+                ) : null}
+                <MemberButton disabled={!page?.menuCode || saving} onClick={() => { void handleSave(); }} variant="primary">
+                  {saving ? (en ? "Saving..." : "저장 중...") : (en ? "Save Draft" : "초안 저장")}
+                </MemberButton>
+                <MemberButton disabled={!page?.menuCode || saving || publishIssueCount > 0} onClick={() => { void handlePublish(); }} variant="info">
+                  {saving ? (en ? "Working..." : "처리 중...") : (en ? "Publish Snapshot" : "Publish 스냅샷")}
+                </MemberButton>
+                <MemberButton disabled={!page?.menuCode || previewLoading} onClick={() => { void handlePreviewRefresh(false); }} variant="secondary">
+                  {previewLoading ? (en ? "Refreshing..." : "갱신 중...") : (en ? "Refresh Preview" : "미리보기 갱신")}
+                </MemberButton>
+              </>
+            )}
+            description={en ? "Draft save, publish, and runtime verification actions for the current menu." : "현재 메뉴의 draft 저장, publish, runtime 검증 액션입니다."}
+            eyebrow={page?.templateType || "EDIT_PAGE"}
+            status={publishReady ? (en ? "READY" : "준비 완료") : (en ? "BLOCKED" : "차단")}
+            statusTone={publishReady ? "healthy" : "danger"}
+            title={en ? "Builder Actions" : "빌더 액션"}
+          />
+        </div>
         <DiagnosticCard
           description={en ? "Authority profile embedded in the current draft artifact." : "현재 draft 산출물에 포함되는 권한 프로필입니다."}
           eyebrow={draftAuthorityProfile?.tier || (en ? "UNASSIGNED" : "미지정")}
@@ -357,156 +362,165 @@ export function ScreenBuilderMigrationPage() {
           )}
           title={draftAuthorityProfile?.label || (en ? "Draft Authority Profile" : "Draft 권한 프로필")}
         />
-        <Suspense
-          fallback={(
-            <section className="gov-card px-6 py-8 text-sm text-[var(--kr-gov-text-secondary)]">
-              {en ? "Loading overview panels..." : "개요 패널을 불러오는 중입니다."}
-            </section>
-          )}
-        >
-          <ScreenBuilderOverviewPanels
-            backendDeprecatedCount={backendDeprecatedNodes.length}
-            backendMissingCount={backendMissingNodes.length}
-            backendUnregisteredCount={backendUnregisteredNodes.length}
-            componentRegistryLength={componentRegistry.length}
-            en={en}
-            eventsLength={events.length}
-            handleApplyTemplatePreset={handleApplyTemplatePreset}
-            handleRestoreVersion={handleRestoreVersion}
-            nodesLength={nodes.length}
-            page={page}
-            publishIssueCount={publishIssueCount}
-            publishReady={publishReady}
-            saving={saving}
-            selectedTemplateType={selectedTemplateType}
-            setSelectedTemplateType={setSelectedTemplateType}
-          />
-        </Suspense>
+        <div data-help-id="screen-builder-overview">
+          <Suspense
+            fallback={(
+              <section className="gov-card px-6 py-8 text-sm text-[var(--kr-gov-text-secondary)]">
+                {en ? "Loading overview panels..." : "개요 패널을 불러오는 중입니다."}
+              </section>
+            )}
+          >
+            <ScreenBuilderOverviewPanels
+              backendDeprecatedCount={backendDeprecatedNodes.length}
+              backendMissingCount={backendMissingNodes.length}
+              backendUnregisteredCount={backendUnregisteredNodes.length}
+              componentRegistryLength={componentRegistry.length}
+              en={en}
+              eventsLength={events.length}
+              handleApplyTemplatePreset={handleApplyTemplatePreset}
+              handleRestoreVersion={handleRestoreVersion}
+              nodesLength={nodes.length}
+              page={page}
+              publishIssueCount={publishIssueCount}
+              publishReady={publishReady}
+              saving={saving}
+              selectedTemplateType={selectedTemplateType}
+              setSelectedTemplateType={setSelectedTemplateType}
+            />
+          </Suspense>
+        </div>
 
-        <Suspense
-          fallback={(
-            <section className="gov-card px-6 py-8 text-sm text-[var(--kr-gov-text-secondary)]">
-              {en ? "Loading governance workspace..." : "거버넌스 작업 영역을 불러오는 중입니다."}
-            </section>
-          )}
-        >
-          <ScreenBuilderGovernancePanels
-            aiNodeTreeRows={aiNodeTreeRows}
-            addAiNodeTreeRow={addAiNodeTreeRow}
-            authorityLoading={authorityLoading}
-            authorityRoleTemplates={authorityRoleTemplates}
-            applyAuthorityRoleToDraft={applyAuthorityRoleToDraft}
-            autoReplacePreviewItems={autoReplacePreviewItems}
-            backendDeprecatedNodes={backendDeprecatedNodes}
-            backendMissingNodes={backendMissingNodes}
-            backendUnregisteredNodes={backendUnregisteredNodes}
-            componentPromptSurface={componentPromptSurface}
-            componentRegistry={componentRegistry}
-            componentTypeOptions={componentTypeOptions}
-            copiedButtonStyleId={copiedButtonStyleId}
-            copyButtonStyleId={copyButtonStyleId}
-            draftAuthorityAuthorCode={String(draftAuthorityProfile?.authorCode || "")}
-            en={en}
-            filteredComponentRegistry={filteredComponentRegistry}
-            filteredSystemCatalog={filteredSystemCatalog}
-            handleAddNodeFromComponent={handleAddNodeFromComponent}
-            handleAddNodeTreeFromAiSurface={handleAddNodeTreeFromAiSurface}
-            handleAutoReplaceDeprecated={handleAutoReplaceDeprecated}
-            handleDeleteRegistryItem={handleDeleteRegistryItem}
-            handleDeprecateComponent={handleDeprecateComponent}
-            handlePreviewAutoReplaceDeprecated={handlePreviewAutoReplaceDeprecated}
-            handleRemapRegistryUsage={handleRemapRegistryUsage}
-            handleSaveRegistryItem={handleSaveRegistryItem}
-            handleScanRegistryDiagnostics={handleScanRegistryDiagnostics}
-            registryEditorDescription={registryEditorDescription}
-            registryEditorPropsJson={registryEditorPropsJson}
-            registryEditorLabel={registryEditorLabel}
-            registryEditorReplacementId={registryEditorReplacementId}
-            registryEditorStatus={registryEditorStatus}
-            registryEditorType={registryEditorType}
-            registryScanRows={registryScanRows}
-            registryStatusFilter={registryStatusFilter}
-            registryTypeFilter={registryTypeFilter}
-            registryUsageLoading={registryUsageLoading}
-            registryUsageRows={registryUsageRows}
-            removeAiNodeTreeRow={removeAiNodeTreeRow}
-            saving={saving}
-            selectedCatalogType={selectedCatalogType}
-            selectedRegistryInventoryItem={selectedRegistryInventoryItem}
-            setRegistryEditorDescription={setRegistryEditorDescription}
-            setRegistryEditorLabel={setRegistryEditorLabel}
-            setRegistryEditorPropsJson={setRegistryEditorPropsJson}
-            setRegistryEditorReplacementId={setRegistryEditorReplacementId}
-            setRegistryEditorStatus={setRegistryEditorStatus}
-            setRegistryEditorType={setRegistryEditorType}
-            setRegistryStatusFilter={setRegistryStatusFilter}
-            setRegistryTypeFilter={setRegistryTypeFilter}
-            setReplacementComponentId={setReplacementComponentId}
-            setSelectedNodeId={setSelectedNodeId}
-            setSelectedRegistryComponentId={setSelectedRegistryComponentId}
-            systemCatalogInstances={systemCatalogInstances}
-            uniqueUsageUrlsByComponent={uniqueUsageUrlsByComponent}
-            updateAiNodeTreeRow={updateAiNodeTreeRow}
-          />
-        </Suspense>
+        <div data-help-id="screen-builder-governance">
+          <Suspense
+            fallback={(
+              <section className="gov-card px-6 py-8 text-sm text-[var(--kr-gov-text-secondary)]">
+                {en ? "Loading governance workspace..." : "거버넌스 작업 영역을 불러오는 중입니다."}
+              </section>
+            )}
+          >
+            <ScreenBuilderGovernancePanels
+              aiNodeTreeRows={aiNodeTreeRows}
+              addAiNodeTreeRow={addAiNodeTreeRow}
+              authorityLoading={authorityLoading}
+              authorityAssignmentAuthorities={authorityAssignmentAuthorities}
+              authorityRoleCategories={authorityRoleCategories}
+              authorityRoleCategoryOptions={authorityRoleCategoryOptions}
+              authorityRoleTemplates={authorityRoleTemplates}
+              applyAuthorityRoleToDraft={applyAuthorityRoleToDraft}
+              autoReplacePreviewItems={autoReplacePreviewItems}
+              backendDeprecatedNodes={backendDeprecatedNodes}
+              backendMissingNodes={backendMissingNodes}
+              backendUnregisteredNodes={backendUnregisteredNodes}
+              componentPromptSurface={componentPromptSurface}
+              componentRegistry={componentRegistry}
+              componentTypeOptions={componentTypeOptions}
+              copiedButtonStyleId={copiedButtonStyleId}
+              copyButtonStyleId={copyButtonStyleId}
+              draftAuthorityAuthorCode={String(draftAuthorityProfile?.authorCode || "")}
+              en={en}
+              filteredComponentRegistry={filteredComponentRegistry}
+              filteredSystemCatalog={filteredSystemCatalog}
+              handleAddNodeFromComponent={handleAddNodeFromComponent}
+              handleAddNodeTreeFromAiSurface={handleAddNodeTreeFromAiSurface}
+              handleAutoReplaceDeprecated={handleAutoReplaceDeprecated}
+              handleDeleteRegistryItem={handleDeleteRegistryItem}
+              handleDeprecateComponent={handleDeprecateComponent}
+              handlePreviewAutoReplaceDeprecated={handlePreviewAutoReplaceDeprecated}
+              handleRemapRegistryUsage={handleRemapRegistryUsage}
+              handleSaveRegistryItem={handleSaveRegistryItem}
+              handleScanRegistryDiagnostics={handleScanRegistryDiagnostics}
+              registryEditorDescription={registryEditorDescription}
+              registryEditorPropsJson={registryEditorPropsJson}
+              registryEditorLabel={registryEditorLabel}
+              registryEditorReplacementId={registryEditorReplacementId}
+              registryEditorStatus={registryEditorStatus}
+              registryEditorType={registryEditorType}
+              registryScanRows={registryScanRows}
+              registryStatusFilter={registryStatusFilter}
+              registryTypeFilter={registryTypeFilter}
+              registryUsageLoading={registryUsageLoading}
+              registryUsageRows={registryUsageRows}
+              removeAiNodeTreeRow={removeAiNodeTreeRow}
+              saving={saving}
+              selectedCatalogType={selectedCatalogType}
+              selectedRegistryInventoryItem={selectedRegistryInventoryItem}
+              setRegistryEditorDescription={setRegistryEditorDescription}
+              setRegistryEditorLabel={setRegistryEditorLabel}
+              setRegistryEditorPropsJson={setRegistryEditorPropsJson}
+              setRegistryEditorReplacementId={setRegistryEditorReplacementId}
+              setRegistryEditorStatus={setRegistryEditorStatus}
+              setRegistryEditorType={setRegistryEditorType}
+              setRegistryStatusFilter={setRegistryStatusFilter}
+              setRegistryTypeFilter={setRegistryTypeFilter}
+              setReplacementComponentId={setReplacementComponentId}
+              setSelectedNodeId={setSelectedNodeId}
+              setSelectedRegistryComponentId={setSelectedRegistryComponentId}
+              systemCatalogInstances={systemCatalogInstances}
+              uniqueUsageUrlsByComponent={uniqueUsageUrlsByComponent}
+              updateAiNodeTreeRow={updateAiNodeTreeRow}
+            />
+          </Suspense>
+        </div>
 
-        <Suspense
-          fallback={(
-            <section className="gov-card px-6 py-8 text-sm text-[var(--kr-gov-text-secondary)]">
-              {en ? "Loading editor panels..." : "편집 패널을 불러오는 중입니다."}
-            </section>
-          )}
-        >
-          <ScreenBuilderEditorPanels
-            addNode={addNode}
-            availableApis={availableApis}
-            collapsedNodeIdSet={collapsedNodeIdSet}
-            commandHasApis={Boolean(commandState.value?.page?.apis?.length)}
-            componentDescription={componentDescription}
-            componentLabel={componentLabel}
-            componentRegistry={componentRegistry}
-            dragNodeId={dragNodeId}
-            duplicateSelectedNode={duplicateSelectedNode}
-            en={en}
-            ensureSelectedEvent={ensureSelectedEvent}
-            filteredPalette={filteredPalette}
-            handleRegisterSelectedComponent={handleRegisterSelectedComponent}
-            handleReplaceSelectedComponent={handleReplaceSelectedComponent}
-            menuUrl={page?.menuUrl}
-            moveSelectedNode={moveSelectedNode}
-            nodeTreeRows={nodeTreeRows}
-            nodes={nodes}
-            previewMessage={previewMessage}
-            previewMode={previewMode}
-            previewNodes={previewNodes}
-            publishedVersionId={page?.publishedVersionId}
-            removeSelectedNode={removeSelectedNode}
-            reorderNodes={reorderNodes}
-            replacementComponentId={replacementComponentId}
-            saving={saving}
-            selectedApi={selectedApi}
-            selectedEvent={selectedEvent}
-            selectedNode={selectedNode}
-            selectedNodeProps={selectedNodeProps}
-            selectedRegistryComponent={selectedRegistryComponent}
-            selectedTemplateType={selectedTemplateType}
-            setComponentDescription={setComponentDescription}
-            setComponentLabel={setComponentLabel}
-            setDragNodeId={setDragNodeId}
-            setEvents={setEvents}
-            setMessage={setMessage}
-            setNodes={setNodes}
-            setPreviewMode={setPreviewMode}
-            setReplacementComponentId={setReplacementComponentId}
-            setSelectedNodeId={setSelectedNodeId}
-            toggleCollapsedNode={toggleCollapsedNode}
-            updateSelectedEvent={updateSelectedEvent}
-            updateSelectedEventApi={updateSelectedEventApi}
-            updateSelectedEventRequestMapping={updateSelectedEventRequestMapping}
-            updateSelectedEventTarget={updateSelectedEventTarget}
-            updateSelectedNodeField={updateSelectedNodeField}
-          />
-        </Suspense>
+        <div data-help-id="screen-builder-editor">
+          <Suspense
+            fallback={(
+              <section className="gov-card px-6 py-8 text-sm text-[var(--kr-gov-text-secondary)]">
+                {en ? "Loading editor panels..." : "편집 패널을 불러오는 중입니다."}
+              </section>
+            )}
+          >
+            <ScreenBuilderEditorPanels
+              addNode={addNode}
+              availableApis={availableApis}
+              collapsedNodeIdSet={collapsedNodeIdSet}
+              commandHasApis={Boolean(commandState.value?.page?.apis?.length)}
+              componentDescription={componentDescription}
+              componentLabel={componentLabel}
+              componentRegistry={componentRegistry}
+              dragNodeId={dragNodeId}
+              duplicateSelectedNode={duplicateSelectedNode}
+              en={en}
+              ensureSelectedEvent={ensureSelectedEvent}
+              filteredPalette={filteredPalette}
+              handleRegisterSelectedComponent={handleRegisterSelectedComponent}
+              handleReplaceSelectedComponent={handleReplaceSelectedComponent}
+              menuUrl={page?.menuUrl}
+              moveSelectedNode={moveSelectedNode}
+              nodeTreeRows={nodeTreeRows}
+              nodes={nodes}
+              previewMessage={previewMessage}
+              previewMode={previewMode}
+              previewNodes={previewNodes}
+              publishedVersionId={page?.publishedVersionId}
+              removeSelectedNode={removeSelectedNode}
+              reorderNodes={reorderNodes}
+              replacementComponentId={replacementComponentId}
+              saving={saving}
+              selectedApi={selectedApi}
+              selectedEvent={selectedEvent}
+              selectedNode={selectedNode}
+              selectedNodeProps={selectedNodeProps}
+              selectedRegistryComponent={selectedRegistryComponent}
+              selectedTemplateType={selectedTemplateType}
+              setComponentDescription={setComponentDescription}
+              setComponentLabel={setComponentLabel}
+              setDragNodeId={setDragNodeId}
+              setEvents={setEvents}
+              setMessage={setMessage}
+              setNodes={setNodes}
+              setPreviewMode={setPreviewMode}
+              setReplacementComponentId={setReplacementComponentId}
+              setSelectedNodeId={setSelectedNodeId}
+              toggleCollapsedNode={toggleCollapsedNode}
+              updateSelectedEvent={updateSelectedEvent}
+              updateSelectedEventApi={updateSelectedEventApi}
+              updateSelectedEventRequestMapping={updateSelectedEventRequestMapping}
+              updateSelectedEventTarget={updateSelectedEventTarget}
+              updateSelectedNodeField={updateSelectedNodeField}
+            />
+          </Suspense>
+        </div>
       </AdminWorkspacePageFrame>
     </AdminPageShell>
   );

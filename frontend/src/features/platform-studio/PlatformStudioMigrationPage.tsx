@@ -16,8 +16,9 @@ import {
   type ScreenCommandPagePayload,
   type SrWorkbenchPagePayload
 } from "../../lib/api/client";
+import { postFormUrlEncoded } from "../../lib/api/core";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
-import { buildLocalizedPath, getCsrfMeta, isEnglish } from "../../lib/navigation/runtime";
+import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";
 import { KeyValueGridPanel, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
 import { authorDesignContextKeys } from "../admin-ui/contextKeyPresets";
@@ -660,17 +661,11 @@ export function PlatformStudioMigrationPage() {
     const body = new URLSearchParams();
     body.set("menuType", menuType);
     ["parentCode", "codeNm", "codeDc", "menuUrl", "menuIcon", "useAt"].forEach((key) => body.set(key, String(formData.get(key) || "")));
-    const { token, headerName } = getCsrfMeta();
-    const headers: Record<string, string> = { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" };
-    if (token) headers[headerName] = token;
-    const response = await fetch(buildLocalizedPath("/admin/system/menu-management/create-page", "/en/admin/system/menu-management/create-page"), {
-      method: "POST",
-      credentials: "include",
-      headers,
-      body: body.toString()
-    });
-    const result = await response.json() as { success?: boolean; message?: string; createdCode?: string };
-    if (!response.ok || !result.success) {
+    const result = await postFormUrlEncoded<{ success?: boolean; message?: string; createdCode?: string }>(
+      buildLocalizedPath("/admin/system/menu-management/create-page", "/en/admin/system/menu-management/create-page"),
+      body
+    );
+    if (!result.success) {
       setActionError(result.message || (en ? "Failed to create page menu." : "페이지 메뉴를 생성하지 못했습니다."));
       return;
     }
@@ -690,17 +685,11 @@ export function PlatformStudioMigrationPage() {
     body.set("menuType", menuType);
     body.set("menuCode", selectedMenuCode);
     body.set("useAt", nextUseAt);
-    const { token, headerName } = getCsrfMeta();
-    const headers: Record<string, string> = { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" };
-    if (token) headers[headerName] = token;
-    const response = await fetch(buildLocalizedPath("/admin/system/full-stack-management/menu-visibility", "/en/admin/system/full-stack-management/menu-visibility"), {
-      method: "POST",
-      credentials: "include",
-      headers,
-      body: body.toString()
-    });
-    const result = await response.json() as { success?: boolean; message?: string };
-    if (!response.ok || !result.success) {
+    const result = await postFormUrlEncoded<{ success?: boolean; message?: string }>(
+      buildLocalizedPath("/admin/system/full-stack-management/menu-visibility", "/en/admin/system/full-stack-management/menu-visibility"),
+      body
+    );
+    if (!result.success) {
       setActionError(result.message || (en ? "Failed to change menu visibility." : "메뉴 표시 상태를 변경하지 못했습니다."));
       return;
     }

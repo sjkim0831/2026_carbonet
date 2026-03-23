@@ -3,7 +3,9 @@ package egovframework.com.framework.authority.service;
 import egovframework.com.feature.admin.model.vo.AuthorInfoVO;
 import egovframework.com.feature.admin.service.AuthGroupManageService;
 import egovframework.com.framework.authority.model.FrameworkAuthorityContractVO;
+import egovframework.com.framework.authority.model.FrameworkAuthorityOptionVO;
 import egovframework.com.framework.authority.model.FrameworkAuthorityRoleContractVO;
+import egovframework.com.framework.authority.model.FrameworkAuthorityTextVO;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
@@ -27,9 +29,13 @@ public class FrameworkAuthorityContractService {
     private static final String ROLE_COMPANY_ADMIN = "ROLE_COMPANY_ADMIN";
 
     private final AuthGroupManageService authGroupManageService;
+    private final FrameworkAuthorityPolicyService frameworkAuthorityPolicyService;
 
-    public FrameworkAuthorityContractService(AuthGroupManageService authGroupManageService) {
+    public FrameworkAuthorityContractService(
+            AuthGroupManageService authGroupManageService,
+            FrameworkAuthorityPolicyService frameworkAuthorityPolicyService) {
         this.authGroupManageService = authGroupManageService;
+        this.frameworkAuthorityPolicyService = frameworkAuthorityPolicyService;
     }
 
     public FrameworkAuthorityContractVO getAuthorityContract() throws Exception {
@@ -39,6 +45,9 @@ public class FrameworkAuthorityContractService {
         contract.setContractVersion("2026-03-23");
         contract.setGeneratedAt(OffsetDateTime.now().toString());
         contract.setAuthorityRoles(buildAuthorityRoles());
+        contract.setRoleCategoryOptions(buildRoleCategoryOptions());
+        contract.setAssignmentAuthorities(buildAssignmentAuthorities());
+        contract.setRoleCategories(buildRoleCategories());
         contract.setAllowedScopePolicies(new ArrayList<>(List.of("global", "own-company", "department", "self", "role-scoped")));
         contract.setTierOrder(new ArrayList<>(List.of(
                 "MASTER",
@@ -52,6 +61,42 @@ public class FrameworkAuthorityContractService {
                 "CUSTOM"
         )));
         return contract;
+    }
+
+    private List<FrameworkAuthorityOptionVO> buildRoleCategoryOptions() {
+        List<FrameworkAuthorityOptionVO> items = new ArrayList<>();
+        for (FrameworkAuthorityPolicyService.OptionDescriptor descriptor
+                : frameworkAuthorityPolicyService.buildRoleCategoryOptions(false, true)) {
+            FrameworkAuthorityOptionVO item = new FrameworkAuthorityOptionVO();
+            item.setCode(descriptor.getCode());
+            item.setName(descriptor.getName());
+            items.add(item);
+        }
+        return items;
+    }
+
+    private List<FrameworkAuthorityTextVO> buildAssignmentAuthorities() {
+        List<FrameworkAuthorityTextVO> items = new ArrayList<>();
+        for (FrameworkAuthorityPolicyService.TextDescriptor descriptor
+                : frameworkAuthorityPolicyService.buildAssignmentAuthorities(false)) {
+            FrameworkAuthorityTextVO item = new FrameworkAuthorityTextVO();
+            item.setTitle(descriptor.getTitle());
+            item.setDescription(descriptor.getDescription());
+            items.add(item);
+        }
+        return items;
+    }
+
+    private List<FrameworkAuthorityTextVO> buildRoleCategories() {
+        List<FrameworkAuthorityTextVO> items = new ArrayList<>();
+        for (FrameworkAuthorityPolicyService.TextDescriptor descriptor
+                : frameworkAuthorityPolicyService.buildRoleCategories(false)) {
+            FrameworkAuthorityTextVO item = new FrameworkAuthorityTextVO();
+            item.setTitle(descriptor.getTitle());
+            item.setDescription(descriptor.getDescription());
+            items.add(item);
+        }
+        return items;
     }
 
     private List<FrameworkAuthorityRoleContractVO> buildAuthorityRoles() throws Exception {
@@ -284,4 +329,3 @@ public class FrameworkAuthorityContractService {
         }
     }
 }
-

@@ -38,6 +38,9 @@ LOOP_MODE="${LOOP_MODE:-auto}"
 LOOP_TRANSPORT="${LOOP_TRANSPORT:-auto}"
 LOG_FILE="${LOOP_LOG_FILE:-}"
 TMUX_SOCKET="${TMUX_SOCKET:-}"
+LOCK_ROOT="${LOOP_LOCK_ROOT:-/tmp/resonance-session-loop-locks}"
+LOCK_DIR=""
+LOCK_OWNER=0
 
 tmux_cmd() {
   if [ -n "$TMUX_SOCKET" ]; then
@@ -76,8 +79,19 @@ resolve_default_prompt() {
   esac
 }
 
+sanitize_name() {
+  printf '%s' "$1" | tr -c 'A-Za-z0-9._-' '_'
+}
+
+release_lock() {
+  if [ "${LOCK_OWNER:-0}" -eq 1 ] && [ -n "${LOCK_DIR:-}" ] && [ -d "$LOCK_DIR" ]; then
+    rm -rf "$LOCK_DIR"
+  fi
+}
+
 SESSION_NAME="$(resolve_session_name "$SESSION_INPUT")"
 DEFAULT_PROMPT="$(resolve_default_prompt "$SESSION_INPUT")"
+LOCK_DIR="${LOCK_ROOT}/$(sanitize_name "$SESSION_NAME")"
 
 PROMPT="${LOOP_PROMPT:-$DEFAULT_PROMPT}"
 COMMAND="${LOOP_COMMAND:-}"
@@ -100,6 +114,22 @@ fi
 if [ "$LOOP_TRANSPORT" != "auto" ] && [ "$LOOP_TRANSPORT" != "tmux" ] && [ "$LOOP_TRANSPORT" != "direct" ]; then
   echo "LOOP_TRANSPORT must be auto, tmux, or direct: $LOOP_TRANSPORT" >&2
   exit 6
+fi
+
+mkdir -p "$LOCK_ROOT"
+if mkdir "$LOCK_DIR" 2>/dev/null; then
+  printf '%s\n' "$$" > "${LOCK_DIR}/pid"
+  LOCK_OWNER=1
+  trap release_lock EXIT INT TERM
+elif [ -f "${LOCK_DIR}/pid" ] && kill -0 "$(cat "${LOCK_DIR}/pid")" 2>/dev/null; then
+  echo "loop already running for ${SESSION_NAME} (pid $(cat "${LOCK_DIR}/pid"))" >&2
+  exit 7
+else
+  rm -rf "$LOCK_DIR"
+  mkdir "$LOCK_DIR"
+  printf '%s\n' "$$" > "${LOCK_DIR}/pid"
+  LOCK_OWNER=1
+  trap release_lock EXIT INT TERM
 fi
 
 log_line() {
@@ -188,11 +218,15 @@ log_line "starting loop for $SESSION_NAME every ${INTERVAL_SECONDS}s via ${TRANS
 
 while true; do
   if [ "$TRANSPORT" = "tmux" ]; then
-    ensure_session
-    ensure_target
-    send_prompt
+    if ! ensure_session || ! ensure_target || ! send_prompt; then
+      loop_status=$?
+      log_line "loop iteration failed for ${SESSION_NAME} via tmux; exit=${loop_status}; retrying after ${INTERVAL_SECONDS}s"
+    fi
   else
-    run_direct
+    if ! run_direct; then
+      loop_status=$?
+      log_line "loop iteration failed for ${SESSION_NAME} via direct; exit=${loop_status}; retrying after ${INTERVAL_SECONDS}s"
+    fi
   fi
   sleep "$INTERVAL_SECONDS"
 done

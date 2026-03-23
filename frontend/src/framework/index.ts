@@ -11,6 +11,8 @@ export type {
 export type {
   FrameworkAuthorityContract,
   FrameworkAuthorityActorType,
+  FrameworkAuthorityOption,
   FrameworkAuthorityRoleContract,
+  FrameworkAuthorityText,
   FrameworkAuthorityTier
 } from "./contracts/authorityContract";

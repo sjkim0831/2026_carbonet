@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { fetchMenuManagementPage, refreshAdminMenuTree, type MenuManagementPagePayload } from "../../lib/api/client";
-import { buildLocalizedPath, getCsrfMeta, isEnglish } from "../../lib/navigation/runtime";
+import { postFormUrlEncoded } from "../../lib/api/core";
+import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
-import { numberOf, readRedirectedErrorMessage, stringOf } from "../admin-system/adminSystemShared";
+import { numberOf, stringOf } from "../admin-system/adminSystemShared";
 import { toDisplayMenuUrl } from "./menuUrlDisplay";
 
 type MenuNode = {
@@ -167,24 +168,10 @@ export function MenuManagementMigrationPage() {
     const body = new URLSearchParams();
     body.set("menuType", menuType);
     body.set("orderPayload", flattenPayload(treeData).join(","));
-    const { token, headerName } = getCsrfMeta();
-    const headers: Record<string, string> = { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" };
-    if (token) {
-      headers[headerName] = token;
-    }
-    const response = await fetch(buildLocalizedPath("/admin/system/menu-management/order", "/en/admin/system/menu-management/order"), {
-      method: "POST",
-      credentials: "include",
-      headers,
-      body: body.toString()
-    });
-    if (!response.ok) {
-      throw new Error(`Failed to save menu order: ${response.status}`);
-    }
-    const redirectedError = readRedirectedErrorMessage(response);
-    if (redirectedError) {
-      throw new Error(redirectedError);
-    }
+    await postFormUrlEncoded(
+      buildLocalizedPath("/admin/system/menu-management/order", "/en/admin/system/menu-management/order"),
+      body
+    );
     refreshAdminMenuTree();
     await pageState.reload();
     setActionMessage(en ? "Menu order has been saved." : "메뉴 순서를 저장했습니다.");
@@ -197,20 +184,12 @@ export function MenuManagementMigrationPage() {
     body.set("menuType", menuType);
     body.set("menuCode", code);
     body.set("expsrAt", expsrAt);
-    const { token, headerName } = getCsrfMeta();
-    const headers: Record<string, string> = { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" };
-    if (token) {
-      headers[headerName] = token;
-    }
-    const response = await fetch(buildLocalizedPath("/admin/system/menu-management/exposure", "/en/admin/system/menu-management/exposure"), {
-      method: "POST",
-      credentials: "include",
-      headers,
-      body: body.toString()
-    });
-    const responseBody = await response.json() as { success?: boolean; message?: string; };
-    if (!response.ok || !responseBody.success) {
-      throw new Error(responseBody.message || `Failed to save menu exposure: ${response.status}`);
+    const responseBody = await postFormUrlEncoded<{ success?: boolean; message?: string }>(
+      buildLocalizedPath("/admin/system/menu-management/exposure", "/en/admin/system/menu-management/exposure"),
+      body
+    );
+    if (!responseBody.success) {
+      throw new Error(responseBody.message || "Failed to save menu exposure.");
     }
     refreshAdminMenuTree();
     await pageState.reload();
@@ -261,20 +240,12 @@ export function MenuManagementMigrationPage() {
     body.set("menuUrl", menuUrl);
     body.set("menuIcon", menuIcon);
     body.set("useAt", useAt);
-    const { token, headerName } = getCsrfMeta();
-    const headers: Record<string, string> = { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" };
-    if (token) {
-      headers[headerName] = token;
-    }
-    const response = await fetch(buildLocalizedPath("/admin/system/menu-management/create-page", "/en/admin/system/menu-management/create-page"), {
-      method: "POST",
-      credentials: "include",
-      headers,
-      body: body.toString()
-    });
-    const responseBody = await response.json() as { success?: boolean; message?: string; createdCode?: string; };
-    if (!response.ok || !responseBody.success) {
-      throw new Error(responseBody.message || `Failed to create page menu: ${response.status}`);
+    const responseBody = await postFormUrlEncoded<{ success?: boolean; message?: string; createdCode?: string }>(
+      buildLocalizedPath("/admin/system/menu-management/create-page", "/en/admin/system/menu-management/create-page"),
+      body
+    );
+    if (!responseBody.success) {
+      throw new Error(responseBody.message || "Failed to create page menu.");
     }
     refreshAdminMenuTree();
     await pageState.reload();

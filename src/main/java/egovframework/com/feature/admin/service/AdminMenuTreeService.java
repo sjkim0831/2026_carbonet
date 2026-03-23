@@ -5,13 +5,11 @@ import egovframework.com.feature.admin.dto.response.AdminMenuDomainDTO;
 import egovframework.com.feature.admin.dto.response.AdminMenuGroupDTO;
 import egovframework.com.feature.admin.dto.response.AdminMenuLinkDTO;
 import egovframework.com.feature.admin.dto.response.MenuInfoDTO;
-import egovframework.com.feature.auth.util.JwtTokenProvider;
-import io.jsonwebtoken.Claims;
+import egovframework.com.feature.auth.service.CurrentUserContextService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.util.ObjectUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Collections;
@@ -33,7 +31,7 @@ public class AdminMenuTreeService {
 
     private final MenuInfoService menuInfoService;
     private final AuthGroupManageService authGroupManageService;
-    private final JwtTokenProvider jwtTokenProvider;
+    private final CurrentUserContextService currentUserContextService;
 
     public Map<String, AdminMenuDomainDTO> buildAdminMenuTree(boolean isEn, HttpServletRequest request) {
         return buildAdminMenuTree(isEn, resolveAuthorCode(request));
@@ -180,28 +178,7 @@ public class AdminMenuTreeService {
     }
 
     private String resolveAuthorCode(HttpServletRequest request) {
-        if (request == null) {
-            return "";
-        }
-        try {
-            String accessToken = jwtTokenProvider.getCookie(request, "accessToken");
-            if (ObjectUtils.isEmpty(accessToken) || jwtTokenProvider.accessValidateToken(accessToken) != 200) {
-                return "";
-            }
-            Claims claims = jwtTokenProvider.accessExtractClaims(accessToken);
-            Object encryptedUserId = claims.get("userId");
-            if (ObjectUtils.isEmpty(encryptedUserId)) {
-                return "";
-            }
-            String userId = safeString(jwtTokenProvider.decrypt(encryptedUserId.toString()));
-            if (userId.isEmpty()) {
-                return "";
-            }
-            return safeString(authGroupManageService.selectAuthorCodeByUserId(userId)).toUpperCase(Locale.ROOT);
-        } catch (Exception e) {
-            log.warn("Failed to resolve author code for admin menu data.", e);
-            return "";
-        }
+        return currentUserContextService.resolve(request).getAuthorCode();
     }
 
     private boolean shouldExposeMenu(String authorCode, String menuUrl) {

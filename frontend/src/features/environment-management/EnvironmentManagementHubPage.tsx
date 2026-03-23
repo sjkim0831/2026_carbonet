@@ -14,8 +14,9 @@ import {
   updateEnvironmentFeature,
   updateEnvironmentManagedPage
 } from "../../lib/api/environmentManagement";
+import { postFormUrlEncoded } from "../../lib/api/core";
 import { fetchAuditEvents } from "../../lib/api/observability";
-import { buildLocalizedPath, getCsrfMeta, isEnglish } from "../../lib/navigation/runtime";
+import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { numberOf, stringOf, submitFormRequest } from "../admin-system/adminSystemShared";
 import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";
@@ -570,20 +571,12 @@ export function EnvironmentManagementHubPage() {
     body.set("menuUrl", menuUrl);
     body.set("menuIcon", menuIcon);
     body.set("useAt", useAt);
-    const { token, headerName } = getCsrfMeta();
-    const headers: Record<string, string> = { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" };
-    if (token) {
-      headers[headerName] = token;
-    }
-    const response = await fetch(buildLocalizedPath("/admin/system/menu-management/create-page", "/en/admin/system/menu-management/create-page"), {
-      method: "POST",
-      credentials: "include",
-      headers,
-      body: body.toString()
-    });
-    const responseBody = await response.json() as { success?: boolean; message?: string; createdCode?: string };
-    if (!response.ok || !responseBody.success) {
-      throw new Error(responseBody.message || `Failed to create page menu: ${response.status}`);
+    const responseBody = await postFormUrlEncoded<{ success?: boolean; message?: string; createdCode?: string }>(
+      buildLocalizedPath("/admin/system/menu-management/create-page", "/en/admin/system/menu-management/create-page"),
+      body
+    );
+    if (!responseBody.success) {
+      throw new Error(responseBody.message || "Failed to create page menu.");
     }
     await menuPageState.reload();
     await featurePageState.reload();
@@ -831,12 +824,12 @@ export function EnvironmentManagementHubPage() {
     }
     if (item.actionKind === "permissions") {
       if (item.href) {
-        window.location.href = item.href;
+        navigate(item.href);
       }
       return;
     }
     if (item.href) {
-      window.location.href = item.href;
+      navigate(item.href);
     }
   }
 
