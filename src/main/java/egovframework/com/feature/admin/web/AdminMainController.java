@@ -156,6 +156,7 @@ public class AdminMainController {
     private final ObjectProvider<AdminListPageModelAssembler> adminListPageModelAssemblerProvider;
     private final ObjectProvider<AdminSystemPageModelAssembler> adminSystemPageModelAssemblerProvider;
     private final ObjectProvider<AdminMemberPageModelAssembler> adminMemberPageModelAssemblerProvider;
+    private final AdminCompanyAccountService adminCompanyAccountService;
     private final AuthService authService;
     private final MenuInfoService menuInfoService;
     private final AdminSummaryService adminSummaryService;
@@ -1874,115 +1875,23 @@ public class AdminMainController {
         boolean isEn = isEnglishRequest(request, locale);
         String currentUserId = extractCurrentUserId(request);
         String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
-        Map<String, Object> response = new LinkedHashMap<>();
-        if (!hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)) {
-            response.put("success", false);
-            response.put("message", isEn ? "Only master administrators can manage company accounts." : "회원사 관리는 마스터 관리자만 처리할 수 있습니다.");
-            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
-        }
-
-        String normalizedInsttId = safeString(insttId);
-        String normalizedMembershipType = normalizeMembershipCode(membershipType);
-        String normalizedAgencyName = trimToLen(safeString(agencyName), 100);
-        String normalizedRepresentativeName = trimToLen(safeString(representativeName), 60);
-        String normalizedBizNo = trimToLen(digitsOnly(bizRegistrationNumber), 10);
-        String normalizedZipCode = trimToLen(digitsOnly(zipCode), 6);
-        String normalizedAddress = trimToLen(safeString(companyAddress), 200);
-        String normalizedAddressDetail = trimToLen(safeString(companyAddressDetail), 200);
-        String normalizedChargerName = trimToLen(safeString(chargerName), 60);
-        String normalizedChargerEmail = trimToLen(safeString(chargerEmail), 100);
-        String normalizedChargerTel = trimToLen(safeString(chargerTel), 30);
-
-        List<String> errors = new ArrayList<>();
-        if (normalizedMembershipType.isEmpty()) {
-            errors.add(isEn ? "Please select a valid membership type." : "유효한 회원 유형을 선택해 주세요.");
-        }
-        if (normalizedAgencyName.isEmpty()) {
-            errors.add(isEn ? "Please enter the institution or company name." : "기관/기업명을 입력해 주세요.");
-        }
-        if (normalizedRepresentativeName.isEmpty()) {
-            errors.add(isEn ? "Please enter the representative name." : "대표자명을 입력해 주세요.");
-        }
-        if (normalizedBizNo.length() != 10) {
-            errors.add(isEn ? "Please enter a 10-digit business registration number." : "사업자등록번호 10자리를 입력해 주세요.");
-        }
-        if (normalizedZipCode.isEmpty()) {
-            errors.add(isEn ? "Please search and enter the postal code." : "우편번호를 입력해 주세요.");
-        }
-        if (normalizedAddress.isEmpty()) {
-            errors.add(isEn ? "Please enter the business address." : "사업장 주소를 입력해 주세요.");
-        }
-        if (normalizedChargerName.isEmpty()) {
-            errors.add(isEn ? "Please enter the contact name." : "담당자 성명을 입력해 주세요.");
-        }
-        if (!isValidEmail(normalizedChargerEmail)) {
-            errors.add(isEn ? "Please enter a valid email address." : "올바른 담당자 이메일을 입력해 주세요.");
-        }
-        if (digitsOnly(normalizedChargerTel).length() < 9) {
-            errors.add(isEn ? "Please enter a valid contact number." : "올바른 담당자 연락처를 입력해 주세요.");
-        }
-
-        InstitutionStatusVO existingInstitution = loadInstitutionInfoByInsttId(normalizedInsttId);
-        List<InsttFileVO> existingFiles = loadInsttFilesByInsttId(normalizedInsttId);
-        boolean hasExistingFiles = existingFiles != null && !existingFiles.isEmpty();
-        if (!hasValidInsttEvidenceFiles(fileUploads) && !hasExistingFiles) {
-            errors.add(isEn ? "Please upload at least one supporting document." : "증빙 서류를 1개 이상 업로드해 주세요.");
-        }
-
-        if (!errors.isEmpty()) {
-            response.put("success", false);
-            response.put("errors", errors);
-            return ResponseEntity.badRequest().body(response);
-        }
-
-        try {
-            String targetInsttId = normalizedInsttId;
-            boolean exists = existingInstitution != null && !existingInstitution.isEmpty();
-            if (targetInsttId.isEmpty()) {
-                targetInsttId = createInstitutionId();
-            }
-
-            InsttInfoVO vo = new InsttInfoVO();
-            vo.setInsttId(targetInsttId);
-            vo.setInsttNm(normalizedAgencyName);
-            vo.setReprsntNm(normalizedRepresentativeName);
-            vo.setBizrno(normalizedBizNo);
-            vo.setZip(normalizedZipCode);
-            vo.setAdres(normalizedAddress);
-            vo.setDetailAdres(normalizedAddressDetail);
-            vo.setChargerNm(normalizedChargerName);
-            vo.setChargerEmail(normalizedChargerEmail);
-            vo.setChargerTel(normalizedChargerTel);
-            vo.setEntrprsSeCode(normalizedMembershipType);
-            vo.setInsttSttus(exists
-                    ? safeString(existingInstitution.getInsttSttus()).isEmpty() ? "A" : safeString(existingInstitution.getInsttSttus())
-                    : "A");
-
-            int nextFileSn = hasExistingFiles ? existingFiles.size() + 1 : 1;
-            List<InsttFileVO> newFiles = saveAdminInsttEvidenceFiles(targetInsttId, fileUploads, nextFileSn);
-            if (!newFiles.isEmpty()) {
-                vo.setBizRegFilePath(joinInsttEvidencePaths(newFiles));
-            } else if (exists) {
-                vo.setBizRegFilePath(existingInstitution.getBizRegFilePath());
-            }
-
-            if (exists) {
-                entrprsManageService.updateInsttInfo(vo);
-            } else {
-                entrprsManageService.insertInsttInfo(vo);
-            }
-            entrprsManageService.insertInsttFiles(newFiles);
-
-            response.put("success", true);
-            response.put("insttId", targetInsttId);
-            response.put("saved", true);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Failed to save admin company account api. insttId={}", normalizedInsttId, e);
-            response.put("success", false);
-            response.put("message", isEn ? "An error occurred while saving the company registration." : "회원사 등록 저장 중 오류가 발생했습니다.");
-            return ResponseEntity.internalServerError().body(response);
-        }
+        AdminCompanyAccountService.SaveResult result = adminCompanyAccountService.saveCompanyAccount(
+                insttId,
+                membershipType,
+                agencyName,
+                representativeName,
+                bizRegistrationNumber,
+                zipCode,
+                companyAddress,
+                companyAddressDetail,
+                chargerName,
+                chargerEmail,
+                chargerTel,
+                fileUploads,
+                isEn,
+                hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode),
+                true);
+        return result.toResponseEntity();
     }
 
     @RequestMapping(value = "/member/company_account", method = RequestMethod.POST, params = "agencyName")
@@ -2005,138 +1914,47 @@ public class AdminMainController {
             Model model) {
         primeCsrfToken(request);
         boolean isEn = isEnglishRequest(request, locale);
-        if (!hasGlobalDeptRoleAccess(extractCurrentUserId(request), resolveCurrentUserAuthorCode(extractCurrentUserId(request)))) {
-            model.addAttribute("companyAccountErrors", Collections.singletonList(
-                    isEn ? "Only global administrators can manage company accounts." : "회원사 관리는 전체 관리자만 처리할 수 있습니다."));
+        String currentUserId = extractCurrentUserId(request);
+        AdminCompanyAccountService.SaveResult result = adminCompanyAccountService.saveCompanyAccount(
+                insttId,
+                membershipType,
+                agencyName,
+                representativeName,
+                bizRegistrationNumber,
+                zipCode,
+                companyAddress,
+                companyAddressDetail,
+                chargerName,
+                chargerEmail,
+                chargerTel,
+                fileUploads,
+                isEn,
+                hasGlobalDeptRoleAccess(currentUserId, resolveCurrentUserAuthorCode(currentUserId)),
+                false);
+        if (result.isForbidden()) {
+            model.addAttribute("companyAccountErrors", Collections.singletonList(result.getMessage()));
             return isEn ? "egovframework/com/admin/company_account_en" : "egovframework/com/admin/company_account";
         }
-        String normalizedInsttId = safeString(insttId);
-        String normalizedMembershipType = normalizeMembershipCode(membershipType);
-        String normalizedAgencyName = trimToLen(safeString(agencyName), 100);
-        String normalizedRepresentativeName = trimToLen(safeString(representativeName), 60);
-        String normalizedBizNo = trimToLen(digitsOnly(bizRegistrationNumber), 10);
-        String normalizedZipCode = trimToLen(digitsOnly(zipCode), 6);
-        String normalizedAddress = trimToLen(safeString(companyAddress), 200);
-        String normalizedAddressDetail = trimToLen(safeString(companyAddressDetail), 200);
-        String normalizedChargerName = trimToLen(safeString(chargerName), 60);
-        String normalizedChargerEmail = trimToLen(safeString(chargerEmail), 100);
-        String normalizedChargerTel = trimToLen(safeString(chargerTel), 30);
-
-        List<String> errors = new ArrayList<>();
-        if (normalizedMembershipType.isEmpty()) {
-            errors.add(isEn ? "Please select a valid membership type." : "유효한 회원 유형을 선택해 주세요.");
-        }
-        if (normalizedAgencyName.isEmpty()) {
-            errors.add(isEn ? "Please enter the institution or company name." : "기관/기업명을 입력해 주세요.");
-        }
-        if (normalizedRepresentativeName.isEmpty()) {
-            errors.add(isEn ? "Please enter the representative name." : "대표자명을 입력해 주세요.");
-        }
-        if (normalizedBizNo.length() != 10) {
-            errors.add(isEn ? "Please enter a 10-digit business registration number." : "사업자등록번호 10자리를 입력해 주세요.");
-        }
-        if (normalizedZipCode.isEmpty()) {
-            errors.add(isEn ? "Please search and enter the postal code." : "우편번호를 입력해 주세요.");
-        }
-        if (normalizedAddress.isEmpty()) {
-            errors.add(isEn ? "Please enter the business address." : "사업장 주소를 입력해 주세요.");
-        }
-        if (normalizedChargerName.isEmpty()) {
-            errors.add(isEn ? "Please enter the contact name." : "담당자 성명을 입력해 주세요.");
-        }
-        if (!isValidEmail(normalizedChargerEmail)) {
-            errors.add(isEn ? "Please enter a valid email address." : "올바른 담당자 이메일을 입력해 주세요.");
-        }
-        if (digitsOnly(normalizedChargerTel).length() < 9) {
-            errors.add(isEn ? "Please enter a valid contact number." : "올바른 담당자 연락처를 입력해 주세요.");
-        }
-
-        InstitutionStatusVO existingInstitution = loadInstitutionInfoByInsttId(normalizedInsttId);
-        List<InsttFileVO> existingFiles = loadInsttFilesByInsttId(normalizedInsttId);
-        boolean hasExistingFiles = existingFiles != null && !existingFiles.isEmpty();
-        if (!hasValidInsttEvidenceFiles(fileUploads) && !hasExistingFiles) {
-            errors.add(isEn ? "Please upload at least one supporting document." : "증빙 서류를 1개 이상 업로드해 주세요.");
-        }
-
-        if (!errors.isEmpty()) {
+        if (!result.isSuccess()) {
             populateCompanyAccountModelFromValues(
-                    normalizedInsttId,
-                    normalizedMembershipType,
-                    normalizedAgencyName,
-                    normalizedRepresentativeName,
-                    normalizedBizNo,
-                    normalizedZipCode,
-                    normalizedAddress,
-                    normalizedAddressDetail,
-                    normalizedChargerName,
-                    normalizedChargerEmail,
-                    normalizedChargerTel,
+                    result.getInsttId(),
+                    result.getMembershipType(),
+                    result.getAgencyName(),
+                    result.getRepresentativeName(),
+                    result.getBizRegistrationNumber(),
+                    result.getZipCode(),
+                    result.getCompanyAddress(),
+                    result.getCompanyAddressDetail(),
+                    result.getChargerName(),
+                    result.getChargerEmail(),
+                    result.getChargerTel(),
                     isEn,
                     model);
-            model.addAttribute("companyAccountFiles", existingFiles == null ? Collections.emptyList() : existingFiles);
-            model.addAttribute("companyAccountErrors", errors);
+            model.addAttribute("companyAccountFiles", result.getExistingFiles());
+            model.addAttribute("companyAccountErrors", result.getErrors());
             return isEn ? "egovframework/com/admin/company_account_en" : "egovframework/com/admin/company_account";
         }
-
-        try {
-            String targetInsttId = normalizedInsttId;
-            boolean exists = existingInstitution != null && !existingInstitution.isEmpty();
-            if (targetInsttId.isEmpty()) {
-                targetInsttId = createInstitutionId();
-            }
-
-            InsttInfoVO vo = new InsttInfoVO();
-            vo.setInsttId(targetInsttId);
-            vo.setInsttNm(normalizedAgencyName);
-            vo.setReprsntNm(normalizedRepresentativeName);
-            vo.setBizrno(normalizedBizNo);
-            vo.setZip(normalizedZipCode);
-            vo.setAdres(normalizedAddress);
-            vo.setDetailAdres(normalizedAddressDetail);
-            vo.setChargerNm(normalizedChargerName);
-            vo.setChargerEmail(normalizedChargerEmail);
-            vo.setChargerTel(normalizedChargerTel);
-            vo.setEntrprsSeCode(normalizedMembershipType);
-            vo.setInsttSttus(exists
-                    ? safeString(existingInstitution.getInsttSttus()).isEmpty() ? "A" : safeString(existingInstitution.getInsttSttus())
-                    : "A");
-
-            int nextFileSn = hasExistingFiles ? existingFiles.size() + 1 : 1;
-            List<InsttFileVO> newFiles = saveAdminInsttEvidenceFiles(targetInsttId, fileUploads, nextFileSn);
-            if (!newFiles.isEmpty()) {
-                vo.setBizRegFilePath(joinInsttEvidencePaths(newFiles));
-            } else if (exists) {
-                vo.setBizRegFilePath(existingInstitution.getBizRegFilePath());
-            }
-
-            if (exists) {
-                entrprsManageService.updateInsttInfo(vo);
-            } else {
-                entrprsManageService.insertInsttInfo(vo);
-            }
-            entrprsManageService.insertInsttFiles(newFiles);
-            return "redirect:" + adminPrefix(request, locale) + "/member/company_account?insttId=" + urlEncode(targetInsttId) + "&saved=Y";
-        } catch (Exception e) {
-            log.error("Failed to save admin company account. insttId={}", normalizedInsttId, e);
-            populateCompanyAccountModelFromValues(
-                    normalizedInsttId,
-                    normalizedMembershipType,
-                    normalizedAgencyName,
-                    normalizedRepresentativeName,
-                    normalizedBizNo,
-                    normalizedZipCode,
-                    normalizedAddress,
-                    normalizedAddressDetail,
-                    normalizedChargerName,
-                    normalizedChargerEmail,
-                    normalizedChargerTel,
-                    isEn,
-                    model);
-            model.addAttribute("companyAccountFiles", existingFiles == null ? Collections.emptyList() : existingFiles);
-            model.addAttribute("companyAccountErrors", Collections.singletonList(
-                    isEn ? "An error occurred while saving the company registration." : "회원사 등록 저장 중 오류가 발생했습니다."));
-            return isEn ? "egovframework/com/admin/company_account_en" : "egovframework/com/admin/company_account";
-        }
+        return "redirect:" + adminPrefix(request, locale) + "/member/company_account?insttId=" + urlEncode(result.getInsttId()) + "&saved=Y";
     }
 
     @RequestMapping(value = "/member/company-file", method = RequestMethod.GET)
@@ -5892,7 +5710,7 @@ public class AdminMainController {
         adminMemberPageModelAssembler().populateCompanyDetailModel(insttId, isEn, request, locale, model);
     }
 
-    private boolean hasValidInsttEvidenceFiles(List<MultipartFile> fileUploads) {
+    boolean hasValidInsttEvidenceFiles(List<MultipartFile> fileUploads) {
         if (fileUploads == null || fileUploads.isEmpty()) {
             return false;
         }
@@ -5911,7 +5729,7 @@ public class AdminMainController {
         return hasRealFile;
     }
 
-    private List<InsttFileVO> saveAdminInsttEvidenceFiles(String insttId, List<MultipartFile> fileUploads, int startFileSn) throws Exception {
+    List<InsttFileVO> saveAdminInsttEvidenceFiles(String insttId, List<MultipartFile> fileUploads, int startFileSn) throws Exception {
         if (fileUploads == null || fileUploads.isEmpty()) {
             return Collections.emptyList();
         }
@@ -5959,7 +5777,7 @@ public class AdminMainController {
         return savedFiles;
     }
 
-    private String joinInsttEvidencePaths(List<InsttFileVO> fileList) {
+    String joinInsttEvidencePaths(List<InsttFileVO> fileList) {
         if (fileList == null || fileList.isEmpty()) {
             return "";
         }
@@ -5983,7 +5801,7 @@ public class AdminMainController {
         return new File(path).getAbsoluteFile();
     }
 
-    private String createInstitutionId() {
+    String createInstitutionId() {
         String generated = "INSTT_" + System.currentTimeMillis();
         return generated.length() > 20 ? generated.substring(0, 20) : generated;
     }
@@ -7314,12 +7132,12 @@ public class AdminMainController {
         return null;
     }
 
-    private boolean isValidEmail(String email) {
+    boolean isValidEmail(String email) {
         String value = safeString(email);
         return !value.isEmpty() && value.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
     }
 
-    private String digitsOnly(String value) {
+    String digitsOnly(String value) {
         return safeString(value).replaceAll("[^0-9]", "");
     }
 
@@ -7327,7 +7145,7 @@ public class AdminMainController {
         return value == null ? "" : String.valueOf(value).trim();
     }
 
-    private String trimToLen(String value, int maxLen) {
+    String trimToLen(String value, int maxLen) {
         String normalized = safeString(value);
         if (normalized.length() <= maxLen) {
             return normalized;
