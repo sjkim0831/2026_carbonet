@@ -224,7 +224,6 @@ public class AdminMemberPagePayloadService {
         controller.populateMemberDetailModel(memberId, request, model, isEn);
         Map<String, Object> response = new LinkedHashMap<>();
         response.putAll(model);
-        response.put("viewName", isEn ? "egovframework/com/admin/member_detail_en" : "egovframework/com/admin/member_detail");
         boolean canView = model.getAttribute("member") != null && model.getAttribute("member_detailError") == null;
         response.put("canViewMemberDetail", canView);
         response.put("canUseMemberEditLink", canView);
