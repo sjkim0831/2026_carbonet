@@ -291,7 +291,8 @@ public class AdminMainController {
             primeCsrfToken(request);
             model.addAttribute("memberApprovalError",
                     isEn ? "You do not have permission to approve members." : "회원 승인 처리를 수행할 권한이 없습니다.");
-            return populateMemberApprovalList(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, null, model, viewName, isEn, request, locale);
+            populateMemberApprovalList(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, null, model, isEn, request, locale);
+            return viewName;
         }
         String normalizedAction = safeString(action).toLowerCase(Locale.ROOT);
         List<String> targetMemberIds = new ArrayList<>();
@@ -312,7 +313,8 @@ public class AdminMainController {
             primeCsrfToken(request);
             model.addAttribute("memberApprovalError",
                     isEn ? "No approval target was selected." : "승인 처리할 회원을 선택해 주세요.");
-            return populateMemberApprovalList(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, null, model, viewName, isEn, request, locale);
+            populateMemberApprovalList(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, null, model, isEn, request, locale);
+            return viewName;
         }
 
         String targetStatus = "approve".equals(normalizedAction) || "batch_approve".equals(normalizedAction) ? "P"
@@ -322,7 +324,8 @@ public class AdminMainController {
             primeCsrfToken(request);
             model.addAttribute("memberApprovalError",
                     isEn ? "The requested action is not valid." : "요청한 처리 작업이 올바르지 않습니다.");
-            return populateMemberApprovalList(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, null, model, viewName, isEn, request, locale);
+            populateMemberApprovalList(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, null, model, isEn, request, locale);
+            return viewName;
         }
         String normalizedRejectReason = trimToLen(safeString(rejectReason), 1000);
 
@@ -340,14 +343,16 @@ public class AdminMainController {
             String viewName = resolveMemberApprovalViewName(request, isEn);
             primeCsrfToken(request);
             model.addAttribute("memberApprovalError", e.getMessage());
-            return populateMemberApprovalList(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, null, model, viewName, isEn, request, locale);
+            populateMemberApprovalList(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, null, model, isEn, request, locale);
+            return viewName;
         } catch (Exception e) {
             log.error("Failed to process member approval action. action={}, memberIds={}", normalizedAction, targetMemberIds, e);
             String viewName = resolveMemberApprovalViewName(request, isEn);
             primeCsrfToken(request);
             model.addAttribute("memberApprovalError",
                     isEn ? "An error occurred while processing the approval request." : "회원 승인 처리 중 오류가 발생했습니다.");
-            return populateMemberApprovalList(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, null, model, viewName, isEn, request, locale);
+            populateMemberApprovalList(pageIndexParam, searchKeyword, membershipType, sbscrbSttus, null, model, isEn, request, locale);
+            return viewName;
         }
 
         StringBuilder redirect = new StringBuilder();
@@ -398,13 +403,15 @@ public class AdminMainController {
             primeCsrfToken(request);
             model.addAttribute("memberApprovalError",
                     isEn ? "Only master administrators can approve companies." : "회원사 승인 처리는 마스터 관리자만 수행할 수 있습니다.");
-            return populateCompanyApprovalList(pageIndexParam, searchKeyword, sbscrbSttus, null, model, viewName, isEn, request, locale);
+            populateCompanyApprovalList(pageIndexParam, searchKeyword, sbscrbSttus, null, model, isEn, request, locale);
+            return viewName;
         }
         if (targetInsttIds.isEmpty()) {
             primeCsrfToken(request);
             model.addAttribute("memberApprovalError",
                     isEn ? "No company was selected for approval." : "승인 처리할 회원사를 선택해 주세요.");
-            return populateCompanyApprovalList(pageIndexParam, searchKeyword, sbscrbSttus, null, model, viewName, isEn, request, locale);
+            populateCompanyApprovalList(pageIndexParam, searchKeyword, sbscrbSttus, null, model, isEn, request, locale);
+            return viewName;
         }
 
         String targetStatus = "approve".equals(normalizedAction) || "batch_approve".equals(normalizedAction) ? "P"
@@ -413,7 +420,8 @@ public class AdminMainController {
             primeCsrfToken(request);
             model.addAttribute("memberApprovalError",
                     isEn ? "The requested action is not valid." : "요청한 처리 작업이 올바르지 않습니다.");
-            return populateCompanyApprovalList(pageIndexParam, searchKeyword, sbscrbSttus, null, model, viewName, isEn, request, locale);
+            populateCompanyApprovalList(pageIndexParam, searchKeyword, sbscrbSttus, null, model, isEn, request, locale);
+            return viewName;
         }
 
         String normalizedRejectReason = trimToLen(safeString(rejectReason), 1000);
@@ -426,7 +434,8 @@ public class AdminMainController {
             primeCsrfToken(request);
             model.addAttribute("memberApprovalError",
                     isEn ? "An error occurred while processing the company approval request." : "회원사 승인 처리 중 오류가 발생했습니다.");
-            return populateCompanyApprovalList(pageIndexParam, searchKeyword, sbscrbSttus, null, model, viewName, isEn, request, locale);
+            populateCompanyApprovalList(pageIndexParam, searchKeyword, sbscrbSttus, null, model, isEn, request, locale);
+            return viewName;
         }
 
         StringBuilder redirect = new StringBuilder();
