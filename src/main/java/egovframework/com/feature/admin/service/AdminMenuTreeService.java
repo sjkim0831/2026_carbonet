@@ -358,7 +358,6 @@ public class AdminMenuTreeService {
         }
         return "";
     }
-
     private boolean shouldHideMenu(String code, String menuUrl) {
         String normalizedCode = safeString(code);
         String normalizedMenuUrl = normalizeMenuUrl(menuUrl);
