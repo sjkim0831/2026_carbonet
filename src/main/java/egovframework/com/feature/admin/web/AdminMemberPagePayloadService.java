@@ -274,7 +274,6 @@ public class AdminMemberPagePayloadService {
                     controller.preferredResetHistoryKeyword(memberId, searchKeyword),
                     resetSource,
                     model,
-                    "",
                     isEn);
         }
         Map<String, Object> response = new LinkedHashMap<>();

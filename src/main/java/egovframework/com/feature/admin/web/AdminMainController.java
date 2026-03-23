@@ -1374,10 +1374,7 @@ public class AdminMainController {
         boolean isEn = isEnglishRequest(request, locale);
         primeCsrfToken(request);
         ExtendedModelMap model = new ExtendedModelMap();
-        populateEmissionResultList(pageIndexParam, searchKeyword, resultStatus, verificationStatus, model,
-                isEn ? "egovframework/com/admin/emission_result_list_en"
-                        : "egovframework/com/admin/emission_result_list",
-                isEn);
+        populateEmissionResultList(pageIndexParam, searchKeyword, resultStatus, verificationStatus, model, isEn);
         Map<String, Object> response = new LinkedHashMap<>();
         response.putAll(model);
         response.put("isEn", isEn);
@@ -1913,14 +1910,13 @@ public class AdminMainController {
         model.addAttribute("sbscrbSttus", status);
     }
 
-    String populateMemberApprovalList(
+    void populateMemberApprovalList(
             String pageIndexParam,
             String searchKeyword,
             String membershipType,
             String sbscrbSttus,
             String result,
             Model model,
-            String viewName,
             boolean isEn,
             HttpServletRequest request,
             Locale locale) {
@@ -1978,7 +1974,7 @@ public class AdminMainController {
             model.addAttribute("memberApprovalResultMessage", resolveApprovalResultMessage(result, isEn));
             model.addAttribute("memberApprovalStatusOptions", buildApprovalStatusOptions(isEn));
             model.addAttribute("memberTypeOptions", buildMemberTypeOptions(isEn));
-            return viewName;
+            return;
         }
 
         List<EntrprsManageVO> memberList;
@@ -2049,16 +2045,14 @@ public class AdminMainController {
         model.addAttribute("memberApprovalResultMessage", resolveApprovalResultMessage(result, isEn));
         model.addAttribute("memberApprovalStatusOptions", buildApprovalStatusOptions(isEn));
         model.addAttribute("memberTypeOptions", buildMemberTypeOptions(isEn));
-        return viewName;
     }
 
-    String populateCompanyApprovalList(
+    void populateCompanyApprovalList(
             String pageIndexParam,
             String searchKeyword,
             String sbscrbSttus,
             String result,
             Model model,
-            String viewName,
             boolean isEn,
             HttpServletRequest request,
             Locale locale) {
@@ -2097,7 +2091,7 @@ public class AdminMainController {
             model.addAttribute("memberApprovalResult", safeString(result));
             model.addAttribute("memberApprovalResultMessage", resolveCompanyApprovalResultMessage(result, isEn));
             model.addAttribute("memberApprovalStatusOptions", buildApprovalStatusOptions(isEn));
-            return viewName;
+            return;
         }
 
         List<?> companyList;
@@ -2210,7 +2204,6 @@ public class AdminMainController {
         model.addAttribute("memberApprovalResult", safeString(result));
         model.addAttribute("memberApprovalResultMessage", resolveCompanyApprovalResultMessage(result, isEn));
         model.addAttribute("memberApprovalStatusOptions", buildApprovalStatusOptions(isEn));
-        return viewName;
     }
 
     private void processMemberApprovalStatusChange(String memberId, String targetStatus) throws Exception {
@@ -2578,13 +2571,12 @@ public class AdminMainController {
         return row;
     }
 
-    private String populateEmissionResultList(
+    private void populateEmissionResultList(
             String pageIndexParam,
             String searchKeyword,
             String resultStatus,
             String verificationStatus,
             Model model,
-            String viewName,
             boolean isEn) {
         int pageIndex = 1;
         if (pageIndexParam != null && !pageIndexParam.trim().isEmpty()) {
@@ -2636,7 +2628,6 @@ public class AdminMainController {
         model.addAttribute("searchKeyword", safeString(searchKeyword));
         model.addAttribute("resultStatus", normalizedResultStatus);
         model.addAttribute("verificationStatus", normalizedVerificationStatus);
-        return viewName;
     }
 
     private void populateLoginHistory(
@@ -2790,19 +2781,17 @@ public class AdminMainController {
         model.addAttribute("loginResult", normalizedLoginResult);
     }
 
-    String populatePasswordResetHistory(
+    void populatePasswordResetHistory(
             String pageIndexParam,
             String searchKeyword,
             String resetSource,
             Model model,
-            String viewName,
             boolean isEn) {
-        return adminMemberPageModelAssembler().populatePasswordResetHistory(
+        adminMemberPageModelAssembler().populatePasswordResetHistory(
                 pageIndexParam,
                 searchKeyword,
                 resetSource,
                 model,
-                viewName,
                 isEn);
     }
 

@@ -87,12 +87,11 @@ public class AdminMemberPageModelAssembler {
         model.addAttribute("companyListUrl", controller.adminPrefix(request, locale) + "/member/company_list");
     }
 
-    public String populatePasswordResetHistory(
+    public void populatePasswordResetHistory(
             String pageIndexParam,
             String searchKeyword,
             String resetSource,
             Model model,
-            String viewName,
             boolean isEn) {
         AdminMainController controller = adminMainController();
         int pageIndex = 1;
@@ -146,7 +145,6 @@ public class AdminMemberPageModelAssembler {
         model.addAttribute("nextPage", nextPage);
         model.addAttribute("searchKeyword", keyword);
         model.addAttribute("resetSource", normalizedSource);
-        return viewName;
     }
 
     public void populateMemberEditModel(Model model, EntrprsManageVO member, boolean isEn, String currentUserId) throws Exception {
