@@ -1,0 +1,4 @@
+interface:
+  display_name: "Admin Screen Unifier"
+  short_description: "Normalize admin screens to one design system"
+  default_prompt: "Use $admin-screen-unifier to unify existing Carbonet admin screens by page type, shared status messages, field controls, bottom action bars, and menu active or hidden-screen rules."

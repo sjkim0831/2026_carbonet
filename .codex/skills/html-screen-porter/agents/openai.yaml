@@ -1,0 +1,4 @@
+interface:
+  display_name: "HTML Screen Porter"
+  short_description: "Port HTML designs into governed React pages"
+  default_prompt: "Use $html-screen-porter to classify HTML designs by page type, assign screen family and menu context rules, and rebuild them into Carbonet React migration pages with shared frames."

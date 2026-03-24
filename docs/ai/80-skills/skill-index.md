@@ -19,6 +19,12 @@ See also:
   - Use for: design-driven page work, menu IA interpretation, duplicated HTML source conflicts.
   - Boundary: stop after the canonical design source, route/workflow meaning, and conflict resolution are clear; implementation belongs to `carbonet-feature-builder`.
   - Key references: workspace root `1.`, `2.`, `3.`, `4.` HTML files and design mapping text files.
+- `html-screen-porter`
+  - Purpose: convert HTML design inputs into Carbonet React migration pages using page-type classification, screen family assignment, and shared-frame reconstruction.
+  - Group: source interpretation plus implementation bridge
+  - Use for: large-volume HTML-to-React porting, page-type classification, hidden detail/edit context mapping, and design-source-driven screen reconstruction without shipping raw HTML.
+  - Boundary: use after canonical source selection is clear; pair with `carbonet-feature-builder` when repository implementation and menu metadata wiring are required.
+  - Key references: `.codex/skills/html-screen-porter/SKILL.md`, `docs/architecture/html-to-react-page-contract.md`, `docs/architecture/screen-family-model.md`
 - `carbonet-audit-trace-architecture`
   - Purpose: design and extend audit, trace, UI manifest, and operational metadata.
   - Group: cross-cutting architecture
@@ -37,6 +43,12 @@ See also:
   - Use for: page management, feature management, menu metadata, bilingual admin templates, admin shell bootstrap pages, author-role profile management, `PAGE_CODE_VIEW` authority-chain work, and the five-screen admin permission restoration set (`auth_group`, `auth_change`, `dept_role_mapping`, `member_edit`, `admin_account`).
   - Boundary: this is the default implementation skill for normal app features, but not for Codex runner internals, refresh/cache policy, or system-wide audit architecture.
   - Key references: `.codex/skills/carbonet-feature-builder/references/*`, `docs/ai/40-backend/auth-policy.csv`, `docs/ai/50-data/table-screen-api-map.csv`
+- `admin-screen-unifier`
+  - Purpose: normalize existing admin screens to one governed design system across list, detail, edit, create, approve, and authority pages.
+  - Group: feature implementation
+  - Use for: button size drift, field height drift, inconsistent search cards, divergent status messages, and menu active or hidden-screen consistency issues.
+  - Boundary: use when the screen already exists and the main problem is design drift rather than feature creation from scratch.
+  - Key references: `.codex/skills/admin-screen-unifier/SKILL.md`, `docs/architecture/screen-context-and-flow.md`, `docs/architecture/screen-family-model.md`
 - `carbonet-codex-execution-console`
   - Purpose: continue or extend the Carbonet Codex execution console and SR Workbench execution lifecycle.
   - Group: specialized admin execution
