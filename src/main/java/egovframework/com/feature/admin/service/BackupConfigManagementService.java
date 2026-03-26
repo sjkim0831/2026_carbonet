@@ -1121,7 +1121,7 @@ public class BackupConfigManagementService {
         gitCommand.add("core.compression=0");
         String effectiveUsername = resolveGitUsername(settings, command, repoPath, remoteName, isEn);
         String effectiveToken = resolveConfiguredGitAuthToken(settings);
-        String pushTarget = resolveGitPushTargetFromCommand(command);
+        String pushTarget = resolveEffectiveGitPushTarget(settings, command, repoPath, remoteName, isEn);
         if (isHttpRemote(pushTarget) && !effectiveUsername.isEmpty() && !effectiveToken.isEmpty()) {
             gitCommand.add("-c");
             gitCommand.add("credential.helper=");
@@ -1193,6 +1193,25 @@ public class BackupConfigManagementService {
             return "";
         }
         return safe(command.get(4));
+    }
+
+    private String resolveEffectiveGitPushTarget(BackupSettings settings, List<String> command, Path repoPath, String remoteName, boolean isEn) {
+        String pushTarget = resolveGitPushTargetFromCommand(command);
+        if (isHttpRemote(pushTarget)) {
+            return pushTarget;
+        }
+        String configuredTarget = resolveGitPushTarget(settings, remoteName);
+        if (isHttpRemote(configuredTarget)) {
+            return configuredTarget;
+        }
+        if (!pushTarget.isEmpty()) {
+            String remoteUrl = resolveGitRemoteUrlFromRepository(repoPath, pushTarget, isEn);
+            if (isHttpRemote(remoteUrl)) {
+                return remoteUrl;
+            }
+        }
+        String fallbackRemoteUrl = resolveGitRemoteUrlFromRepository(repoPath, remoteName, isEn);
+        return isHttpRemote(fallbackRemoteUrl) ? fallbackRemoteUrl : pushTarget;
     }
 
     private String redactGitPushCommandForLog(List<String> gitCommand) {
