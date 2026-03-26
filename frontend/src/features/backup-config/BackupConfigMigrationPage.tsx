@@ -450,6 +450,11 @@ export function BackupConfigMigrationPage() {
       title={preset.title}
       subtitle={preset.subtitle}
     >
+      {pageState.loading ? (
+        <PageStatusNotice tone="warning">
+          {en ? "Loading backup screen data." : "백업 화면 데이터를 불러오는 중입니다."}
+        </PageStatusNotice>
+      ) : null}
       {pageState.error ? <PageStatusNotice tone="error">{pageState.error}</PageStatusNotice> : null}
       {message ? <PageStatusNotice tone={message.includes("오류") || message.includes("Failed") ? "error" : "success"}>{message}</PageStatusNotice> : null}
 
@@ -543,24 +548,29 @@ export function BackupConfigMigrationPage() {
           <section className="gov-card mb-6" data-help-id="backup-config-run-actions">
             <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
               <h3 className="text-lg font-bold">{en ? "Backup Run Actions" : "백업 실행 작업"}</h3>
-              <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Use the saved backup settings to execute database backup immediately." : "저장된 백업 설정을 기준으로 DB 백업을 즉시 실행합니다."}</p>
+              <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Use the primary action below to automatically clean artifacts, commit current changes, and push the base branch." : "아래 주 작업 버튼으로 산출물 정리, 현재 변경 커밋, 기준 브랜치 Push를 한 번에 실행합니다."}</p>
             </div>
             <div className="px-6 py-6">
+              <div className="mb-5 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
+                {en
+                  ? `Recommended: Auto Commit And Push Base Branch (${valueOf(form, "gitBranchPattern") || "main"})`
+                  : `권장 작업: 자동 커밋 후 기준 브랜치 Push (${valueOf(form, "gitBranchPattern") || "main"})`}
+              </div>
               <MemberPageActions>
+                <MemberButton type="button" variant="primary" disabled={backupJobActive || Boolean(runningGitExecution) || !page?.canUseGitBackupExecution} onClick={() => handleRunGitExecution("COMMIT_BASE")}>
+                  {runningGitExecution === "COMMIT_BASE" ? (en ? "Auto Committing And Pushing..." : "자동 커밋 후 Push 실행 중...") : (en ? `Auto Commit And Push Base Branch (${valueOf(form, "gitBranchPattern") || "main"})` : `자동 커밋 후 기준 브랜치 Push (${valueOf(form, "gitBranchPattern") || "main"})`)}
+                </MemberButton>
                 <MemberButton type="button" variant="secondary" disabled={backupJobActive || Boolean(runningGitExecution) || !page?.canUseGitBackupExecution} onClick={() => handleRunGitExecution("PRECHECK")}>
                   {runningGitExecution === "PRECHECK" ? (en ? "Running Git Push Precheck..." : "Git Push 사전 점검 실행 중...") : (en ? "Run Git Push Precheck" : "Git Push 사전 점검")}
                 </MemberButton>
                 <MemberButton type="button" variant="secondary" disabled={backupJobActive || Boolean(runningGitExecution) || !page?.canUseGitBackupExecution} onClick={() => handleRunGitExecution("CLEANUP")}>
                   {runningGitExecution === "CLEANUP" ? (en ? "Running Safe Cleanup..." : "산출물 자동 정리 실행 중...") : (en ? "Run Safe Artifact Cleanup" : "산출물 자동 정리")}
                 </MemberButton>
+                <MemberButton type="button" variant="secondary" disabled={backupJobActive || Boolean(runningGitExecution) || !page?.canUseGitBackupExecution} onClick={() => handleRunGitExecution("BASE")}>
+                  {runningGitExecution === "BASE" ? (en ? "Pushing Base Branch..." : "Git 기준 브랜치 Push 실행 중...") : (en ? `Push Base Branch Only (${valueOf(form, "gitBranchPattern") || "main"})` : `기준 브랜치 Push만 실행 (${valueOf(form, "gitBranchPattern") || "main"})`)}
+                </MemberButton>
                 <MemberButton type="button" variant="secondary" disabled={backupJobActive || Boolean(runningGitExecution) || !page?.canUseGitBackupExecution} onClick={() => handleRunGitExecution("BUNDLE")}>
                   {runningGitExecution === "BUNDLE" ? (en ? "Running Git Bundle..." : "Git 번들 백업 실행 중...") : (en ? "Run Git Bundle" : "Git 번들 백업 실행")}
-                </MemberButton>
-                <MemberButton type="button" variant="secondary" disabled={backupJobActive || Boolean(runningGitExecution) || !page?.canUseGitBackupExecution} onClick={() => handleRunGitExecution("COMMIT_BASE")}>
-                  {runningGitExecution === "COMMIT_BASE" ? (en ? "Committing And Pushing Base Branch..." : "Git 전체 커밋 후 기준 브랜치 Push 실행 중...") : (en ? `Commit All And Push Base Branch (${valueOf(form, "gitBranchPattern") || "main"})` : `Git 전체 커밋 후 기준 브랜치 Push 실행 (${valueOf(form, "gitBranchPattern") || "main"})`)}
-                </MemberButton>
-                <MemberButton type="button" variant="secondary" disabled={backupJobActive || Boolean(runningGitExecution) || !page?.canUseGitBackupExecution} onClick={() => handleRunGitExecution("BASE")}>
-                  {runningGitExecution === "BASE" ? (en ? "Pushing Base Branch..." : "Git 기준 브랜치 Push 실행 중...") : (en ? `Push Base Branch (${valueOf(form, "gitBranchPattern") || "main"})` : `Git 기준 브랜치 Push 실행 (${valueOf(form, "gitBranchPattern") || "main"})`)}
                 </MemberButton>
                 <MemberButton type="button" variant="secondary" disabled={backupJobActive || Boolean(runningGitExecution) || !page?.canUseGitBackupExecution} onClick={() => handleRunGitExecution("PUSH")}>
                   {runningGitExecution === "PUSH" ? (en ? "Pushing Restore Branch..." : "Git 복구 브랜치 Push 실행 중...") : (en ? "Push Restore Branch" : "Git 복구 브랜치 Push 실행")}

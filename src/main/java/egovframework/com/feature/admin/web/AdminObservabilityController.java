@@ -282,7 +282,7 @@ public class AdminObservabilityController {
         return forwardReactMigration(request, locale, "version-management");
     }
 
-    @GetMapping("/system/backup_config/page-data")
+    @GetMapping({ "/system/backup_config/page-data", "/system/backup/page-data", "/system/restore/page-data", "/system/version/page-data" })
     @ResponseBody
     public ResponseEntity<Map<String, Object>> backupConfigPageApi(HttpServletRequest request, Locale locale) {
         primeCsrfToken(request);

@@ -2084,6 +2084,14 @@ export function prefetchRoutePageData(route: MigrationPageId, search = ""): Prom
         jobStatus: params.get("jobStatus") || "",
         executionType: params.get("executionType") || ""
       });
+    case "backup-config":
+      return fetchBackupConfigPage("/admin/system/backup_config");
+    case "backup-execution":
+      return fetchBackupConfigPage("/admin/system/backup");
+    case "restore-execution":
+      return fetchBackupConfigPage("/admin/system/restore");
+    case "version-management":
+      return fetchBackupConfigPage("/admin/system/version");
     case "emission-result-list":
       return fetchEmissionResultListPage({
         pageIndex: params.get("pageIndex") ? Number(params.get("pageIndex")) : undefined,
@@ -2990,9 +2998,16 @@ export async function fetchSchedulerManagementPage(params?: { jobStatus?: string
 export async function fetchBackupConfigPage(pathname?: string) {
   const currentPath = pathname || (typeof window === "undefined" ? "/admin/system/backup_config" : window.location.pathname);
   const normalizedPath = currentPath.replace(/\/page-data$/, "");
-  const url = normalizedPath.startsWith("/en/")
-    ? `${normalizedPath}/page-data`
-    : buildLocalizedPath(`${normalizedPath}/page-data`, `/en${normalizedPath}/page-data`);
+  const sharedPath = normalizedPath
+    .replace(/\/admin\/system\/backup$/, "/admin/system/backup_config")
+    .replace(/\/admin\/system\/restore$/, "/admin/system/backup_config")
+    .replace(/\/admin\/system\/version$/, "/admin/system/backup_config")
+    .replace(/\/en\/admin\/system\/backup$/, "/en/admin/system/backup_config")
+    .replace(/\/en\/admin\/system\/restore$/, "/en/admin/system/backup_config")
+    .replace(/\/en\/admin\/system\/version$/, "/en/admin/system/backup_config");
+  const url = sharedPath.startsWith("/en/")
+    ? `${sharedPath}/page-data`
+    : buildLocalizedPath(`${sharedPath}/page-data`, `/en${sharedPath}/page-data`);
   const response = await fetch(url, {
     credentials: "include"
   });

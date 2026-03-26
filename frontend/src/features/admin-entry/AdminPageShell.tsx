@@ -68,6 +68,7 @@ const GOV_SYMBOL_FALLBACK = "/img/egovframework/kr_gov_symbol.svg";
 const ADMIN_SESSION_STORAGE_KEY = "adminSessionExpireAt";
 const ADMIN_SIMULATOR_EXPANDED_STORAGE_KEY = "adminDevSimulatorExpanded";
 const ADMIN_SIDEBAR_SCROLL_STORAGE_KEY = "adminSidebarScrollTop";
+const ADMIN_SIDEBAR_OPEN_GROUPS_STORAGE_KEY = "adminSidebarOpenGroups";
 const ADMIN_SESSION_DURATION_MS = 60 * 60 * 1000;
 const ADMIN_SESSION_WARNING_MS = 5 * 60 * 1000;
 const ADMIN_SESSION_DANGER_MS = 60 * 1000;
@@ -217,8 +218,41 @@ function visibleLinks(links: AdminMenuLink[] | undefined): AdminMenuLink[] {
   return (links || []).filter((link) => !shouldHideSidebarLink(link));
 }
 
-function getMenuGroupKey(group: AdminMenuGroup, index: number) {
-  return group.title || `group-${index}`;
+function slugifyGroupKey(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "group";
+}
+
+function getStableGroupToken(group: AdminMenuGroup) {
+  const links = visibleLinks(group.links);
+  const linkCodes = links
+    .map((link) => link.code || resolveMenuLinkRuntimeUrl(link) || link.text || link.tEn || "")
+    .filter(Boolean)
+    .join("|");
+  return slugifyGroupKey(linkCodes || group.title || group.titleEn || "group");
+}
+
+function getMenuGroupKey(domainKey: string, group: AdminMenuGroup, index: number) {
+  const base = slugifyGroupKey(group.title || group.titleEn || `group-${index}`);
+  return `${domainKey}:${base}:${getStableGroupToken(group)}`;
+}
+
+function readStoredOpenGroups() {
+  if (typeof window === "undefined") {
+    return {};
+  }
+  try {
+    const raw = window.sessionStorage.getItem(ADMIN_SIDEBAR_OPEN_GROUPS_STORAGE_KEY);
+    if (!raw) {
+      return {};
+    }
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed as Record<string, boolean> : {};
+  } catch {
+    return {};
+  }
 }
 
 function buildMenuIndex(menuTree: Record<string, AdminMenuDomain>): MenuIndex {
@@ -227,7 +261,7 @@ function buildMenuIndex(menuTree: Record<string, AdminMenuDomain>): MenuIndex {
 
   Object.entries(menuTree).forEach(([domainKey, domain]) => {
     (domain.groups || []).forEach((group, groupIndex) => {
-      const groupKey = getMenuGroupKey(group, groupIndex);
+      const groupKey = getMenuGroupKey(domainKey, group, groupIndex);
       visibleLinks(group.links).forEach((link, linkIndex) => {
         const runtimeUrl = resolveMenuLinkRuntimeUrl(link);
         if (!runtimeUrl || runtimeUrl === "#") {
@@ -401,7 +435,7 @@ export function AdminPageShell({
   const [menuFilter, setMenuFilter] = useState("");
   const deferredMenuFilter = useDeferredValue(menuFilter);
   const selectedDomain = menuTree[selectedDomainKey] || menuTree[activeDomainKey];
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => readStoredOpenGroups());
   const [sessionRemainingMs, setSessionRemainingMs] = useState(() => Math.max(0, ensureAdminSessionExpireAt() - Date.now()));
   const [sessionRefreshPending, setSessionRefreshPending] = useState(false);
   const [devSession, setDevSession] = useState<FrontendSession | null>(bootstrappedSession);
@@ -479,9 +513,9 @@ export function AdminPageShell({
       return;
     }
     setOpenGroups((current) => {
-      const nextState: Record<string, boolean> = {};
+      const nextState: Record<string, boolean> = { ...current };
       (selectedDomain.groups || []).forEach((group, index) => {
-        const groupKey = getMenuGroupKey(group, index);
+        const groupKey = getMenuGroupKey(selectedDomainKey, group, index);
         const hasActiveLink = activeMenuEntry?.domainKey === selectedDomainKey && activeMenuEntry.groupKey === groupKey;
         if (typeof current[groupKey] === "boolean") {
           nextState[groupKey] = current[groupKey];
@@ -498,6 +532,13 @@ export function AdminPageShell({
       return nextState;
     });
   }, [activeMenuEntry, selectedDomain, selectedDomainKey]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    window.sessionStorage.setItem(ADMIN_SIDEBAR_OPEN_GROUPS_STORAGE_KEY, JSON.stringify(openGroups));
+  }, [openGroups]);
 
   useEffect(() => {
     let expired = false;
@@ -994,7 +1035,8 @@ export function AdminPageShell({
           >
             {filteredSelectedDomain.groups.map((group: AdminMenuGroup, index) => {
               const groupLinks = visibleLinks(group.links);
-              const groupKey = getMenuGroupKey(group, index);
+              const groupKey = getMenuGroupKey(selectedDomainKey, group, index);
+              const groupDomId = `sidebar-group-${groupKey.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
               const activeLinkIndex = activeMenuEntry?.domainKey === selectedDomainKey && activeMenuEntry.groupKey === groupKey
                 ? activeMenuEntry.linkIndex
                 : -1;
@@ -1003,7 +1045,7 @@ export function AdminPageShell({
               return (
                 <div className="gnb-tree-group" key={groupKey}>
                   <button
-                    aria-controls={`${groupKey}-links`}
+                    aria-controls={`${groupDomId}-links`}
                     aria-expanded={expanded ? "true" : "false"}
                     className={`gnb-tree-title ${groupHasActive || index === 0 ? "active" : "inactive"}`}
                     onClick={() => toggleGroup(groupKey)}
@@ -1015,7 +1057,7 @@ export function AdminPageShell({
                     </span>
                     <span className={`material-symbols-outlined text-[18px] transition-transform ${expanded ? "" : "-rotate-90"}`}>expand_more</span>
                   </button>
-                  <div className={`gnb-tree-links space-y-1 ${expanded ? "" : "hidden"}`} id={`${groupKey}-links`}>
+                  <div className={`gnb-tree-links space-y-1 ${expanded ? "" : "hidden"}`} id={`${groupDomId}-links`}>
                     {groupLinks.map((link, linkIndex) => {
                       const active = linkIndex === activeLinkIndex;
                       const runtimeUrl = resolveMenuLinkRuntimeUrl(link);

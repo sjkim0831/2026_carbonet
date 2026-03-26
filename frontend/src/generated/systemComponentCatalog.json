@@ -7308,7 +7308,7 @@
     "placeholder": "",
     "summary": "secondary",
     "routeCount": 15,
-    "instanceCount": 42,
+    "instanceCount": 38,
     "labels": [
       "초기화"
     ],
@@ -7428,74 +7428,6 @@
           "label": "관리자 목록",
           "koPath": "/admin/member/admin_list",
           "enPath": "/en/admin/member/admin_list"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "secondary",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "secondary"
-      },
-      {
-        "route": {
-          "routeId": "backup-config",
-          "label": "백업 설정",
-          "koPath": "/admin/system/backup_config",
-          "enPath": "/en/admin/system/backup_config"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "secondary",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "secondary"
-      },
-      {
-        "route": {
-          "routeId": "backup-execution",
-          "label": "백업 실행",
-          "koPath": "/admin/system/backup",
-          "enPath": "/en/admin/system/backup"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "secondary",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "secondary"
-      },
-      {
-        "route": {
-          "routeId": "restore-execution",
-          "label": "복구 실행",
-          "koPath": "/admin/system/restore",
-          "enPath": "/en/admin/system/restore"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "secondary",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "secondary"
-      },
-      {
-        "route": {
-          "routeId": "version-management",
-          "label": "버전 관리",
-          "koPath": "/admin/system/version",
-          "enPath": "/en/admin/system/version"
         },
         "componentType": "button",
         "componentName": "MemberButton",
@@ -10360,6 +10292,494 @@
     ]
   },
   {
+    "key": "button:MemberButton:primary::::",
+    "styleGroupId": "BTN-memberbutton-primary-md-plain-noplace",
+    "componentType": "button",
+    "componentName": "MemberButton",
+    "variant": "primary",
+    "size": "",
+    "className": "",
+    "icon": "",
+    "placeholder": "",
+    "summary": "primary",
+    "routeCount": 13,
+    "instanceCount": 23,
+    "labels": [],
+    "routes": [
+      {
+        "routeId": "member-approve",
+        "label": "회원 승인",
+        "koPath": "/admin/member/approve",
+        "enPath": "/en/admin/member/approve"
+      },
+      {
+        "routeId": "company-approve",
+        "label": "회원사 승인",
+        "koPath": "/admin/member/company-approve",
+        "enPath": "/en/admin/member/company-approve"
+      },
+      {
+        "routeId": "backup-execution",
+        "label": "백업 실행",
+        "koPath": "/admin/system/backup",
+        "enPath": "/en/admin/system/backup"
+      },
+      {
+        "routeId": "backup-config",
+        "label": "백업 설정",
+        "koPath": "/admin/system/backup_config",
+        "enPath": "/en/admin/system/backup_config"
+      },
+      {
+        "routeId": "system-code",
+        "label": "시스템 코드",
+        "koPath": "/admin/system/code",
+        "enPath": "/en/admin/system/code"
+      },
+      {
+        "routeId": "environment-management",
+        "label": "메뉴 통합 관리",
+        "koPath": "/admin/system/environment-management",
+        "enPath": "/en/admin/system/environment-management"
+      },
+      {
+        "routeId": "function-management",
+        "label": "기능 관리",
+        "koPath": "/admin/system/feature-management",
+        "enPath": "/en/admin/system/feature-management"
+      },
+      {
+        "routeId": "help-management",
+        "label": "도움말 운영",
+        "koPath": "/admin/system/help-management",
+        "enPath": "/en/admin/system/help-management"
+      },
+      {
+        "routeId": "observability",
+        "label": "추적 조회",
+        "koPath": "/admin/system/observability",
+        "enPath": "/en/admin/system/observability"
+      },
+      {
+        "routeId": "restore-execution",
+        "label": "복구 실행",
+        "koPath": "/admin/system/restore",
+        "enPath": "/en/admin/system/restore"
+      },
+      {
+        "routeId": "sr-workbench",
+        "label": "SR 워크벤치",
+        "koPath": "/admin/system/sr-workbench",
+        "enPath": "/en/admin/system/sr-workbench"
+      },
+      {
+        "routeId": "unified-log",
+        "label": "통합 로그",
+        "koPath": "/admin/system/unified_log",
+        "enPath": "/en/admin/system/unified_log"
+      },
+      {
+        "routeId": "version-management",
+        "label": "버전 관리",
+        "koPath": "/admin/system/version",
+        "enPath": "/en/admin/system/version"
+      }
+    ],
+    "instances": [
+      {
+        "route": {
+          "routeId": "backup-config",
+          "label": "백업 설정",
+          "koPath": "/admin/system/backup_config",
+          "enPath": "/en/admin/system/backup_config"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "primary",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary"
+      },
+      {
+        "route": {
+          "routeId": "backup-execution",
+          "label": "백업 실행",
+          "koPath": "/admin/system/backup",
+          "enPath": "/en/admin/system/backup"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "primary",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary"
+      },
+      {
+        "route": {
+          "routeId": "restore-execution",
+          "label": "복구 실행",
+          "koPath": "/admin/system/restore",
+          "enPath": "/en/admin/system/restore"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "primary",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary"
+      },
+      {
+        "route": {
+          "routeId": "version-management",
+          "label": "버전 관리",
+          "koPath": "/admin/system/version",
+          "enPath": "/en/admin/system/version"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "primary",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary"
+      },
+      {
+        "route": {
+          "routeId": "backup-config",
+          "label": "백업 설정",
+          "koPath": "/admin/system/backup_config",
+          "enPath": "/en/admin/system/backup_config"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "primary",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary"
+      },
+      {
+        "route": {
+          "routeId": "backup-execution",
+          "label": "백업 실행",
+          "koPath": "/admin/system/backup",
+          "enPath": "/en/admin/system/backup"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "primary",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary"
+      },
+      {
+        "route": {
+          "routeId": "restore-execution",
+          "label": "복구 실행",
+          "koPath": "/admin/system/restore",
+          "enPath": "/en/admin/system/restore"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "primary",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary"
+      },
+      {
+        "route": {
+          "routeId": "version-management",
+          "label": "버전 관리",
+          "koPath": "/admin/system/version",
+          "enPath": "/en/admin/system/version"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "primary",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary"
+      },
+      {
+        "route": {
+          "routeId": "backup-config",
+          "label": "백업 설정",
+          "koPath": "/admin/system/backup_config",
+          "enPath": "/en/admin/system/backup_config"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "primary",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary"
+      },
+      {
+        "route": {
+          "routeId": "backup-execution",
+          "label": "백업 실행",
+          "koPath": "/admin/system/backup",
+          "enPath": "/en/admin/system/backup"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "primary",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary"
+      },
+      {
+        "route": {
+          "routeId": "restore-execution",
+          "label": "복구 실행",
+          "koPath": "/admin/system/restore",
+          "enPath": "/en/admin/system/restore"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "primary",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary"
+      },
+      {
+        "route": {
+          "routeId": "version-management",
+          "label": "버전 관리",
+          "koPath": "/admin/system/version",
+          "enPath": "/en/admin/system/version"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "primary",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary"
+      },
+      {
+        "route": {
+          "routeId": "company-approve",
+          "label": "회원사 승인",
+          "koPath": "/admin/member/company-approve",
+          "enPath": "/en/admin/member/company-approve"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "primary",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary"
+      },
+      {
+        "route": {
+          "routeId": "environment-management",
+          "label": "메뉴 통합 관리",
+          "koPath": "/admin/system/environment-management",
+          "enPath": "/en/admin/system/environment-management"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "primary",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary"
+      },
+      {
+        "route": {
+          "routeId": "function-management",
+          "label": "기능 관리",
+          "koPath": "/admin/system/feature-management",
+          "enPath": "/en/admin/system/feature-management"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "primary",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary"
+      },
+      {
+        "route": {
+          "routeId": "help-management",
+          "label": "도움말 운영",
+          "koPath": "/admin/system/help-management",
+          "enPath": "/en/admin/system/help-management"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "primary",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary"
+      },
+      {
+        "route": {
+          "routeId": "member-approve",
+          "label": "회원 승인",
+          "koPath": "/admin/member/approve",
+          "enPath": "/en/admin/member/approve"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "primary",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary"
+      },
+      {
+        "route": {
+          "routeId": "unified-log",
+          "label": "통합 로그",
+          "koPath": "/admin/system/unified_log",
+          "enPath": "/en/admin/system/unified_log"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "primary",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary"
+      },
+      {
+        "route": {
+          "routeId": "observability",
+          "label": "추적 조회",
+          "koPath": "/admin/system/observability",
+          "enPath": "/en/admin/system/observability"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "primary",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary"
+      },
+      {
+        "route": {
+          "routeId": "sr-workbench",
+          "label": "SR 워크벤치",
+          "koPath": "/admin/system/sr-workbench",
+          "enPath": "/en/admin/system/sr-workbench"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "primary",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary"
+      },
+      {
+        "route": {
+          "routeId": "system-code",
+          "label": "시스템 코드",
+          "koPath": "/admin/system/code",
+          "enPath": "/en/admin/system/code"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "primary",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary"
+      },
+      {
+        "route": {
+          "routeId": "system-code",
+          "label": "시스템 코드",
+          "koPath": "/admin/system/code",
+          "enPath": "/en/admin/system/code"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "primary",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary"
+      },
+      {
+        "route": {
+          "routeId": "system-code",
+          "label": "시스템 코드",
+          "koPath": "/admin/system/code",
+          "enPath": "/en/admin/system/code"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "primary",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary"
+      }
+    ]
+  },
+  {
     "key": "button:MemberButton:::::",
     "styleGroupId": "BTN-memberbutton-plain-md-plain-noplace",
     "componentType": "button",
@@ -11140,426 +11560,6 @@
         "label": "",
         "placeholder": "",
         "summary": "secondary / xs"
-      }
-    ]
-  },
-  {
-    "key": "button:MemberButton:primary::::",
-    "styleGroupId": "BTN-memberbutton-primary-md-plain-noplace",
-    "componentType": "button",
-    "componentName": "MemberButton",
-    "variant": "primary",
-    "size": "",
-    "className": "",
-    "icon": "",
-    "placeholder": "",
-    "summary": "primary",
-    "routeCount": 13,
-    "instanceCount": 19,
-    "labels": [],
-    "routes": [
-      {
-        "routeId": "member-approve",
-        "label": "회원 승인",
-        "koPath": "/admin/member/approve",
-        "enPath": "/en/admin/member/approve"
-      },
-      {
-        "routeId": "company-approve",
-        "label": "회원사 승인",
-        "koPath": "/admin/member/company-approve",
-        "enPath": "/en/admin/member/company-approve"
-      },
-      {
-        "routeId": "backup-execution",
-        "label": "백업 실행",
-        "koPath": "/admin/system/backup",
-        "enPath": "/en/admin/system/backup"
-      },
-      {
-        "routeId": "backup-config",
-        "label": "백업 설정",
-        "koPath": "/admin/system/backup_config",
-        "enPath": "/en/admin/system/backup_config"
-      },
-      {
-        "routeId": "system-code",
-        "label": "시스템 코드",
-        "koPath": "/admin/system/code",
-        "enPath": "/en/admin/system/code"
-      },
-      {
-        "routeId": "environment-management",
-        "label": "메뉴 통합 관리",
-        "koPath": "/admin/system/environment-management",
-        "enPath": "/en/admin/system/environment-management"
-      },
-      {
-        "routeId": "function-management",
-        "label": "기능 관리",
-        "koPath": "/admin/system/feature-management",
-        "enPath": "/en/admin/system/feature-management"
-      },
-      {
-        "routeId": "help-management",
-        "label": "도움말 운영",
-        "koPath": "/admin/system/help-management",
-        "enPath": "/en/admin/system/help-management"
-      },
-      {
-        "routeId": "observability",
-        "label": "추적 조회",
-        "koPath": "/admin/system/observability",
-        "enPath": "/en/admin/system/observability"
-      },
-      {
-        "routeId": "restore-execution",
-        "label": "복구 실행",
-        "koPath": "/admin/system/restore",
-        "enPath": "/en/admin/system/restore"
-      },
-      {
-        "routeId": "sr-workbench",
-        "label": "SR 워크벤치",
-        "koPath": "/admin/system/sr-workbench",
-        "enPath": "/en/admin/system/sr-workbench"
-      },
-      {
-        "routeId": "unified-log",
-        "label": "통합 로그",
-        "koPath": "/admin/system/unified_log",
-        "enPath": "/en/admin/system/unified_log"
-      },
-      {
-        "routeId": "version-management",
-        "label": "버전 관리",
-        "koPath": "/admin/system/version",
-        "enPath": "/en/admin/system/version"
-      }
-    ],
-    "instances": [
-      {
-        "route": {
-          "routeId": "backup-config",
-          "label": "백업 설정",
-          "koPath": "/admin/system/backup_config",
-          "enPath": "/en/admin/system/backup_config"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "primary",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "primary"
-      },
-      {
-        "route": {
-          "routeId": "backup-execution",
-          "label": "백업 실행",
-          "koPath": "/admin/system/backup",
-          "enPath": "/en/admin/system/backup"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "primary",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "primary"
-      },
-      {
-        "route": {
-          "routeId": "restore-execution",
-          "label": "복구 실행",
-          "koPath": "/admin/system/restore",
-          "enPath": "/en/admin/system/restore"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "primary",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "primary"
-      },
-      {
-        "route": {
-          "routeId": "version-management",
-          "label": "버전 관리",
-          "koPath": "/admin/system/version",
-          "enPath": "/en/admin/system/version"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "primary",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "primary"
-      },
-      {
-        "route": {
-          "routeId": "backup-config",
-          "label": "백업 설정",
-          "koPath": "/admin/system/backup_config",
-          "enPath": "/en/admin/system/backup_config"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "primary",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "primary"
-      },
-      {
-        "route": {
-          "routeId": "backup-execution",
-          "label": "백업 실행",
-          "koPath": "/admin/system/backup",
-          "enPath": "/en/admin/system/backup"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "primary",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "primary"
-      },
-      {
-        "route": {
-          "routeId": "restore-execution",
-          "label": "복구 실행",
-          "koPath": "/admin/system/restore",
-          "enPath": "/en/admin/system/restore"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "primary",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "primary"
-      },
-      {
-        "route": {
-          "routeId": "version-management",
-          "label": "버전 관리",
-          "koPath": "/admin/system/version",
-          "enPath": "/en/admin/system/version"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "primary",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "primary"
-      },
-      {
-        "route": {
-          "routeId": "company-approve",
-          "label": "회원사 승인",
-          "koPath": "/admin/member/company-approve",
-          "enPath": "/en/admin/member/company-approve"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "primary",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "primary"
-      },
-      {
-        "route": {
-          "routeId": "environment-management",
-          "label": "메뉴 통합 관리",
-          "koPath": "/admin/system/environment-management",
-          "enPath": "/en/admin/system/environment-management"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "primary",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "primary"
-      },
-      {
-        "route": {
-          "routeId": "function-management",
-          "label": "기능 관리",
-          "koPath": "/admin/system/feature-management",
-          "enPath": "/en/admin/system/feature-management"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "primary",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "primary"
-      },
-      {
-        "route": {
-          "routeId": "help-management",
-          "label": "도움말 운영",
-          "koPath": "/admin/system/help-management",
-          "enPath": "/en/admin/system/help-management"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "primary",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "primary"
-      },
-      {
-        "route": {
-          "routeId": "member-approve",
-          "label": "회원 승인",
-          "koPath": "/admin/member/approve",
-          "enPath": "/en/admin/member/approve"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "primary",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "primary"
-      },
-      {
-        "route": {
-          "routeId": "unified-log",
-          "label": "통합 로그",
-          "koPath": "/admin/system/unified_log",
-          "enPath": "/en/admin/system/unified_log"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "primary",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "primary"
-      },
-      {
-        "route": {
-          "routeId": "observability",
-          "label": "추적 조회",
-          "koPath": "/admin/system/observability",
-          "enPath": "/en/admin/system/observability"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "primary",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "primary"
-      },
-      {
-        "route": {
-          "routeId": "sr-workbench",
-          "label": "SR 워크벤치",
-          "koPath": "/admin/system/sr-workbench",
-          "enPath": "/en/admin/system/sr-workbench"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "primary",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "primary"
-      },
-      {
-        "route": {
-          "routeId": "system-code",
-          "label": "시스템 코드",
-          "koPath": "/admin/system/code",
-          "enPath": "/en/admin/system/code"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "primary",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "primary"
-      },
-      {
-        "route": {
-          "routeId": "system-code",
-          "label": "시스템 코드",
-          "koPath": "/admin/system/code",
-          "enPath": "/en/admin/system/code"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "primary",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "primary"
-      },
-      {
-        "route": {
-          "routeId": "system-code",
-          "label": "시스템 코드",
-          "koPath": "/admin/system/code",
-          "enPath": "/en/admin/system/code"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "primary",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "primary"
       }
     ]
   },

@@ -42,3 +42,4 @@ startup.log
 /BOOT-INF/
 /frontend/test-results/
 /frontend/.codex-state/
+/data/backup-config/settings.json

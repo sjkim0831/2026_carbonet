@@ -641,6 +641,31 @@ public class BackupConfigManagementService {
                     ? "Backup root must be outside the Git repository for bundle generation. Update the backup root path and retry."
                     : "번들 생성 시 백업 루트는 Git 저장소 외부 경로여야 합니다. 백업 루트 경로를 수정한 뒤 다시 시도하세요.");
         }
+        if ("PUSH_RESTORE_BRANCH".equals(mode)
+                || "BUNDLE_AND_PUSH".equals(mode)
+                || "PUSH_BASE_BRANCH".equals(mode)
+                || "COMMIT_AND_PUSH_BASE_BRANCH".equals(mode)
+                || "TAG_PUSH".equals(mode)) {
+            String remoteTarget = resolveGitPushTarget(settings, safe(settings.gitRemoteName).isEmpty() ? "origin" : safe(settings.gitRemoteName));
+            boolean httpPush = remoteTarget.startsWith("http://") || remoteTarget.startsWith("https://");
+            if (httpPush) {
+                String username = resolveConfiguredGitUsername(settings);
+                String token = resolveConfiguredGitAuthToken(settings);
+                if (username.isEmpty()) {
+                    username = inferUsernameFromRemoteUrl(remoteTarget);
+                }
+                if (token.isEmpty()) {
+                    throw new IllegalStateException(isEn
+                            ? "Git auth token is not configured. Save a Git token in Backup Settings before push."
+                            : "Git 인증 토큰이 설정되지 않았습니다. 백업 설정에서 Git 토큰을 저장한 뒤 다시 Push 하세요.");
+                }
+                if (username.isEmpty()) {
+                    throw new IllegalStateException(isEn
+                            ? "Git username is not configured. Save a Git username in Backup Settings before push."
+                            : "Git 사용자명이 설정되지 않았습니다. 백업 설정에서 Git 사용자명을 저장한 뒤 다시 Push 하세요.");
+                }
+            }
+        }
     }
 
     private String sanitizeBackupRootPath(String backupRootPath, String gitRepositoryPath) {
