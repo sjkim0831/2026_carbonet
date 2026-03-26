@@ -21,10 +21,12 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -32,6 +34,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -50,6 +53,32 @@ public class BackupConfigManagementService {
             "target",
             "frontend/test-results",
             "frontend/.codex-state"
+    );
+    private static final List<String> GIT_COMMIT_ALLOWED_PREFIXES = Arrays.asList(
+            ".gitignore",
+            "frontend/",
+            "src/main/java/",
+            "src/main/resources/static/react-app/",
+            "src/main/resources/egovframework/mapper/"
+    );
+    private static final List<String> GIT_COMMIT_BLOCKED_PREFIXES = Arrays.asList(
+            "data/backup-config/",
+            "var/",
+            "target/",
+            "BOOT-INF/",
+            "frontend/node_modules/",
+            "frontend/dist/",
+            "frontend/test-results/",
+            "frontend/.codex-state/"
+    );
+    private static final long GITHUB_FILE_SIZE_LIMIT_BYTES = 100L * 1024L * 1024L;
+    private static final List<Pattern> SECRET_PATTERNS = Arrays.asList(
+            Pattern.compile("ghp_[A-Za-z0-9]{20,}"),
+            Pattern.compile("github_pat_[A-Za-z0-9_]{20,}"),
+            Pattern.compile("gho_[A-Za-z0-9]{20,}"),
+            Pattern.compile("ghu_[A-Za-z0-9]{20,}"),
+            Pattern.compile("ghs_[A-Za-z0-9]{20,}"),
+            Pattern.compile("-----BEGIN (?:RSA|OPENSSH|EC|DSA) PRIVATE KEY-----")
     );
     private final ObjectMapper objectMapper;
     private final Path documentPath = Paths.get("data", "backup-config", "settings.json");
@@ -540,6 +569,7 @@ public class BackupConfigManagementService {
             throw new IllegalStateException(isEn ? "Git repository path does not exist." : "Git 저장소 경로가 존재하지 않습니다.");
         }
         validateGitExecutionSettings(settings, mode, isEn);
+        GitPreflightReport preflight = buildGitPreflightReport(settings, repoPath, mode, isEn, logger);
         List<String> notes = new ArrayList<>();
         String stamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
         if ("BUNDLE".equals(mode) || "BUNDLE_AND_PUSH".equals(mode)) {
@@ -562,6 +592,11 @@ public class BackupConfigManagementService {
         if ("PUSH_BASE_BRANCH".equals(mode)) {
             String remoteName = safe(settings.gitRemoteName).isEmpty() ? "origin" : safe(settings.gitRemoteName);
             String targetBranch = safe(settings.gitBranchPattern).isEmpty() ? "main" : safe(settings.gitBranchPattern);
+            String conflictBranch = syncLocalBranchForPush(settings, repoPath, remoteName, targetBranch, isEn, logger);
+            if (!conflictBranch.isEmpty()) {
+                notes.add("conflict-branch=" + conflictBranch);
+                return String.join(", ", notes);
+            }
             String localHead = resolveLocalHeadSha(repoPath, isEn);
             String remoteHeadBefore = resolveRemoteBranchSha(repoPath, remoteName, targetBranch, isEn);
             logger.accept((isEn ? "Pushing base branch: " : "기준 브랜치를 Push 합니다: ") + targetBranch);
@@ -572,20 +607,24 @@ public class BackupConfigManagementService {
         if ("COMMIT_AND_PUSH_BASE_BRANCH".equals(mode)) {
             String remoteName = safe(settings.gitRemoteName).isEmpty() ? "origin" : safe(settings.gitRemoteName);
             String targetBranch = safe(settings.gitBranchPattern).isEmpty() ? "main" : safe(settings.gitBranchPattern);
-            logger.accept(isEn ? "Checking working tree changes before commit." : "커밋 전 작업 트리 변경사항을 확인합니다.");
-            String changedFiles = resolveGitStatus(repoPath, isEn);
-            boolean hasChanges = !changedFiles.isEmpty();
-            if (hasChanges) {
+            if (!preflight.allowedCommitPaths.isEmpty()) {
                 executeGitSafeCleanup(settings, isEn, logger);
-                logger.accept(isEn ? "Running git add -A." : "git add -A 를 실행합니다.");
-                runCommand(Arrays.asList("git", "-C", repoPath.toString(), "add", "-A"), isEn, logger);
+                logger.accept((isEn ? "Running git add for allowed paths: " : "허용된 경로만 git add 합니다: ") + String.join(", ", preflight.allowedCommitPaths));
+                List<String> addCommand = new ArrayList<>(Arrays.asList("git", "-C", repoPath.toString(), "add", "--"));
+                addCommand.addAll(preflight.allowedCommitPaths);
+                runCommand(addCommand, isEn, logger);
                 String commitMessage = "backup: snapshot " + LocalDateTime.now().format(TIME_FORMAT);
                 logger.accept((isEn ? "Creating commit: " : "커밋을 생성합니다: ") + commitMessage);
                 runCommand(Arrays.asList("git", "-C", repoPath.toString(), "commit", "-m", commitMessage), isEn, logger);
                 notes.add("commit-created=true");
             } else {
-                logger.accept(isEn ? "No local changes detected. Skipping commit." : "로컬 변경사항이 없어 커밋을 생략합니다.");
+                logger.accept(isEn ? "No allowed local changes detected. Skipping commit." : "허용된 로컬 변경사항이 없어 커밋을 생략합니다.");
                 notes.add("commit-created=false");
+            }
+            String conflictBranch = syncLocalBranchForPush(settings, repoPath, remoteName, targetBranch, isEn, logger);
+            if (!conflictBranch.isEmpty()) {
+                notes.add("conflict-branch=" + conflictBranch);
+                return String.join(", ", notes);
             }
             String localHead = resolveLocalHeadSha(repoPath, isEn);
             String remoteHeadBefore = resolveRemoteBranchSha(repoPath, remoteName, targetBranch, isEn);
@@ -668,6 +707,43 @@ public class BackupConfigManagementService {
         }
     }
 
+    private GitPreflightReport buildGitPreflightReport(BackupSettings settings, Path repoPath, String mode, boolean isEn, Consumer<String> logger) throws Exception {
+        GitPreflightReport report = new GitPreflightReport();
+        if (!"COMMIT_AND_PUSH_BASE_BRANCH".equals(mode)) {
+            return report;
+        }
+        logger.accept(isEn ? "Running git preflight checks." : "Git 사전 점검을 실행합니다.");
+        report.statusEntries = readGitStatusEntries(repoPath, isEn);
+        report.disallowedPaths = report.statusEntries.stream()
+                .map(entry -> entry.path)
+                .filter(path -> !isCommitAllowedPath(path))
+                .collect(Collectors.toList());
+        if (!report.disallowedPaths.isEmpty()) {
+            throw new IllegalStateException((isEn ? "Disallowed local changes detected: " : "자동 커밋 금지 경로 변경이 감지되었습니다: ")
+                    + String.join(", ", report.disallowedPaths));
+        }
+        report.allowedCommitPaths = report.statusEntries.stream()
+                .map(entry -> entry.path)
+                .filter(this::isCommitAllowedPath)
+                .distinct()
+                .collect(Collectors.toList());
+        if (!report.allowedCommitPaths.isEmpty()) {
+            report.secretPaths = scanSecretCandidatePaths(repoPath, report.allowedCommitPaths, isEn);
+            if (!report.secretPaths.isEmpty()) {
+                throw new IllegalStateException((isEn ? "Secret-like content detected in commit candidates: " : "커밋 후보 파일에서 secret 유사 문자열이 감지되었습니다: ")
+                        + String.join(", ", report.secretPaths));
+            }
+            report.largePaths = scanLargeCommitCandidatePaths(repoPath, report.allowedCommitPaths);
+            if (!report.largePaths.isEmpty()) {
+                throw new IllegalStateException((isEn ? "Large tracked files exceed GitHub limit: " : "GitHub 제한을 초과하는 대용량 파일이 감지되었습니다: ")
+                        + String.join(", ", report.largePaths));
+            }
+        }
+        String remoteName = safe(settings.gitRemoteName).isEmpty() ? "origin" : safe(settings.gitRemoteName);
+        String targetBranch = safe(settings.gitBranchPattern).isEmpty() ? "main" : safe(settings.gitBranchPattern);
+        return report;
+    }
+
     private String sanitizeBackupRootPath(String backupRootPath, String gitRepositoryPath) {
         String normalized = safe(backupRootPath);
         if (normalized.isEmpty()) {
@@ -739,6 +815,10 @@ public class BackupConfigManagementService {
     }
 
     private String runCommand(List<String> command, boolean isEn, Consumer<String> logger) throws Exception {
+        return runCommand(command, isEn, logger, true);
+    }
+
+    private String runCommand(List<String> command, boolean isEn, Consumer<String> logger, boolean trimOutput) throws Exception {
         ProcessBuilder builder = new ProcessBuilder(command);
         builder.directory(Paths.get(".").toAbsolutePath().normalize().toFile());
         builder.redirectErrorStream(true);
@@ -754,7 +834,7 @@ public class BackupConfigManagementService {
                     ? (isEn ? "Backup command failed." : "백업 명령 실행에 실패했습니다.")
                     : output);
         }
-        return output;
+        return trimOutput ? output.trim() : output;
     }
 
     private String resolveLocalHeadSha(Path repoPath, boolean isEn) {
@@ -767,7 +847,7 @@ public class BackupConfigManagementService {
 
     private String resolveGitStatus(Path repoPath, boolean isEn) {
         try {
-            return runCommand(Arrays.asList("git", "-C", repoPath.toString(), "status", "--porcelain"), isEn);
+            return runCommand(Arrays.asList("git", "-C", repoPath.toString(), "status", "--porcelain"), isEn, null, false);
         } catch (Exception ignored) {
             return "";
         }
@@ -784,6 +864,162 @@ public class BackupConfigManagementService {
         } catch (Exception ignored) {
             return "";
         }
+    }
+
+    private String syncLocalBranchForPush(BackupSettings settings, Path repoPath, String remoteName, String targetBranch, boolean isEn, Consumer<String> logger) throws Exception {
+        logger.accept((isEn ? "Fetching remote branch before push: " : "Push 전 원격 브랜치를 조회합니다: ") + remoteName + "/" + targetBranch);
+        runCommand(Arrays.asList("git", "-C", repoPath.toString(), "fetch", remoteName, targetBranch), isEn, logger);
+        String localHead = resolveLocalHeadSha(repoPath, isEn);
+        String remoteHead = resolveRemoteTrackingHeadSha(repoPath, remoteName, targetBranch, isEn);
+        if (remoteHead.isEmpty() || localHead.isEmpty()) {
+            return "";
+        }
+        if (localHead.equals(remoteHead)) {
+            logger.accept(isEn ? "Local branch already matches remote head." : "로컬 브랜치가 이미 원격 HEAD와 같습니다.");
+            return "";
+        }
+        String mergeBase = resolveMergeBaseSha(repoPath, "HEAD", remoteHead, isEn);
+        if (mergeBase.isEmpty()) {
+            return "";
+        }
+        if (mergeBase.equals(remoteHead)) {
+            logger.accept(isEn ? "Local branch is already ahead of remote head." : "로컬 브랜치가 이미 원격 HEAD보다 앞서 있습니다.");
+            return "";
+        }
+        logger.accept(isEn
+                ? "Remote branch moved. Rebasing local commits onto latest remote head."
+                : "원격 브랜치가 이동해 최신 원격 HEAD 기준으로 로컬 커밋을 rebase 합니다.");
+        try {
+            runCommand(Arrays.asList("git", "-C", repoPath.toString(), "rebase", "FETCH_HEAD"), isEn, logger);
+            return "";
+        } catch (Exception rebaseError) {
+            try {
+                runCommand(Arrays.asList("git", "-C", repoPath.toString(), "rebase", "--abort"), isEn, logger);
+            } catch (Exception ignored) {
+            }
+            String conflictBranch = pushConflictPreservationBranch(settings, repoPath, remoteName, targetBranch, isEn, logger);
+            if (!conflictBranch.isEmpty()) {
+                logger.accept((isEn
+                        ? "Auto rebase conflict preserved on branch: "
+                        : "자동 rebase 충돌 내용을 보존 브랜치로 Push 했습니다: ") + conflictBranch);
+                return conflictBranch;
+            }
+            throw new IllegalStateException(safe(rebaseError.getMessage()).isEmpty()
+                    ? (isEn ? "Auto rebase failed. Resolve conflicts and retry backup push." : "자동 rebase에 실패했습니다. 충돌을 정리한 뒤 backup push를 다시 실행하세요.")
+                    : rebaseError.getMessage());
+        }
+    }
+
+    private String pushConflictPreservationBranch(BackupSettings settings, Path repoPath, String remoteName, String targetBranch, boolean isEn, Consumer<String> logger) {
+        String stamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        String sanitizedBranch = targetBranch.replaceAll("[^a-zA-Z0-9/_-]", "-");
+        String conflictBranch = "backup/conflict/" + sanitizedBranch + "/" + stamp;
+        try {
+            logger.accept((isEn ? "Pushing conflict preservation branch: " : "충돌 보존 브랜치를 Push 합니다: ") + conflictBranch);
+            runGitPushCommand(
+                    Arrays.asList("git", "-C", repoPath.toString(), "push", resolveGitPushTarget(settings, remoteName), "HEAD:refs/heads/" + conflictBranch),
+                    settings,
+                    repoPath,
+                    remoteName,
+                    isEn,
+                    logger);
+            return conflictBranch;
+        } catch (Exception pushError) {
+            logger.accept(safe(pushError.getMessage()).isEmpty()
+                    ? (isEn ? "Failed to push conflict preservation branch." : "충돌 보존 브랜치 Push에 실패했습니다.")
+                    : safe(pushError.getMessage()));
+            return "";
+        }
+    }
+
+    private String resolveRemoteTrackingHeadSha(Path repoPath, String remoteName, String branchName, boolean isEn) {
+        try {
+            return runCommand(Arrays.asList("git", "-C", repoPath.toString(), "rev-parse", remoteName + "/" + branchName), isEn);
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private String resolveMergeBaseSha(Path repoPath, String leftRef, String rightRef, boolean isEn) {
+        try {
+            return runCommand(Arrays.asList("git", "-C", repoPath.toString(), "merge-base", leftRef, rightRef), isEn);
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private List<GitStatusEntry> readGitStatusEntries(Path repoPath, boolean isEn) {
+        String output = resolveGitStatus(repoPath, isEn);
+        if (output.isEmpty()) {
+            return List.of();
+        }
+        List<GitStatusEntry> entries = new ArrayList<>();
+        for (String rawLine : output.split("\\R")) {
+            String line = rawLine == null ? "" : rawLine;
+            if (line.trim().isEmpty() || line.length() < 4) {
+                continue;
+            }
+            String path = line.substring(3).trim();
+            int renameSeparator = path.indexOf(" -> ");
+            if (renameSeparator >= 0) {
+                path = path.substring(renameSeparator + 4).trim();
+            }
+            if (path.isEmpty()) {
+                continue;
+            }
+            entries.add(new GitStatusEntry(line.substring(0, 2), path));
+        }
+        return entries;
+    }
+
+    private boolean isCommitAllowedPath(String path) {
+        String normalized = safe(path);
+        if (normalized.isEmpty()) {
+            return false;
+        }
+        for (String blockedPrefix : GIT_COMMIT_BLOCKED_PREFIXES) {
+            if (normalized.equals(blockedPrefix) || normalized.startsWith(blockedPrefix)) {
+                return false;
+            }
+        }
+        for (String allowedPrefix : GIT_COMMIT_ALLOWED_PREFIXES) {
+            if (normalized.equals(allowedPrefix) || normalized.startsWith(allowedPrefix)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private List<String> scanSecretCandidatePaths(Path repoPath, List<String> paths, boolean isEn) throws Exception {
+        List<String> matches = new ArrayList<>();
+        for (String path : paths) {
+            Path filePath = repoPath.resolve(path).normalize();
+            if (!Files.exists(filePath) || Files.isDirectory(filePath)) {
+                continue;
+            }
+            String content = Files.readString(filePath, StandardCharsets.UTF_8);
+            for (Pattern pattern : SECRET_PATTERNS) {
+                if (pattern.matcher(content).find()) {
+                    matches.add(path);
+                    break;
+                }
+            }
+        }
+        return matches;
+    }
+
+    private List<String> scanLargeCommitCandidatePaths(Path repoPath, List<String> paths) throws Exception {
+        List<String> matches = new ArrayList<>();
+        for (String path : paths) {
+            Path filePath = repoPath.resolve(path).normalize();
+            if (!Files.exists(filePath) || Files.isDirectory(filePath)) {
+                continue;
+            }
+            if (Files.size(filePath) > GITHUB_FILE_SIZE_LIMIT_BYTES) {
+                matches.add(path + " (" + formatBytes(Files.size(filePath)) + ")");
+            }
+        }
+        return matches;
     }
 
     private boolean isCleanupCandidatePath(String path) {
@@ -847,12 +1083,16 @@ public class BackupConfigManagementService {
         try {
             Path gitignorePath = repoPath.resolve(".gitignore");
             List<String> lines = Files.exists(gitignorePath) ? Files.readAllLines(gitignorePath) : new ArrayList<String>();
-            List<String> appendLines = new ArrayList<>();
+            Set<String> appendLines = new LinkedHashSet<>();
             for (String path : GIT_CLEANUP_PATHS) {
                 String pattern = "/" + path + "/";
-                if (!lines.contains(pattern) && !appendLines.contains(pattern)) {
+                if (!lines.contains(pattern)) {
                     appendLines.add(pattern);
                 }
+            }
+            String settingsPattern = "/data/backup-config/settings.json";
+            if (!lines.contains(settingsPattern)) {
+                appendLines.add(settingsPattern);
             }
             if (!appendLines.isEmpty()) {
                 List<String> next = new ArrayList<>(lines);
@@ -944,7 +1184,7 @@ public class BackupConfigManagementService {
             throw new IllegalStateException(timeoutMessage);
         }
         outputReader.join(1000L);
-        return new CommandResult(process.exitValue(), outputStream.toString(StandardCharsets.UTF_8).trim());
+        return new CommandResult(process.exitValue(), outputStream.toString(StandardCharsets.UTF_8));
     }
 
     private void copyProcessOutput(InputStream inputStream, ByteArrayOutputStream outputStream, Consumer<String> logger) {
@@ -1122,6 +1362,24 @@ public class BackupConfigManagementService {
             this.exitCode = exitCode;
             this.output = output;
         }
+    }
+
+    private static final class GitStatusEntry {
+        private final String status;
+        private final String path;
+
+        private GitStatusEntry(String status, String path) {
+            this.status = status;
+            this.path = path;
+        }
+    }
+
+    private static final class GitPreflightReport {
+        private List<GitStatusEntry> statusEntries = List.of();
+        private List<String> allowedCommitPaths = List.of();
+        private List<String> disallowedPaths = List.of();
+        private List<String> secretPaths = List.of();
+        private List<String> largePaths = List.of();
     }
 
     private String resolveTargetBranchName(List<String> command) {
