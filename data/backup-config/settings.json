@@ -26,6 +26,24 @@
   "updatedAt" : "2026-03-26 20:42:59",
   "updatedBy" : "webmaster",
   "executionRows" : [ {
+    "executedAt" : "2026-03-26 23:16:46",
+    "profileName" : "Git 전체 커밋 후 기준 브랜치 Push 실행",
+    "result" : "실패",
+    "duration" : "4s",
+    "note" : "fatal: could not read Username for 'https://github.com': terminal prompts disabled"
+  }, {
+    "executedAt" : "2026-03-26 23:16:40",
+    "profileName" : "산출물 자동 정리",
+    "result" : "성공",
+    "duration" : "0s",
+    "note" : "자동 정리 범위를 index에서 갱신했습니다: var/backup, var/backups, BOOT-INF, target, frontend/test-results"
+  }, {
+    "executedAt" : "2026-03-26 23:16:36",
+    "profileName" : "Git Push 사전 점검",
+    "result" : "성공",
+    "duration" : "0s",
+    "note" : "추적 중인 백업/빌드 산출물 감지: 20"
+  }, {
     "executedAt" : "2026-03-26 23:12:10",
     "profileName" : "Git 전체 커밋 후 기준 브랜치 Push 실행",
     "result" : "실패",
@@ -127,24 +145,6 @@
     "result" : "성공",
     "duration" : "0s",
     "note" : "추적 중인 백업/빌드 산출물이 없습니다."
-  }, {
-    "executedAt" : "2026-03-26 21:40:00",
-    "profileName" : "Git 전체 커밋 후 기준 브랜치 Push 실행",
-    "result" : "실패",
-    "duration" : "45s",
-    "note" : "error: RPC failed; HTTP 408 curl 22 The requested URL returned error: 408\nsend-pack: unexpected disconnect while reading sideband packet\nfatal: the remote end hung up unexpectedly\nEverything up-to-date"
-  }, {
-    "executedAt" : "2026-03-26 21:39:44",
-    "profileName" : "산출물 자동 정리",
-    "result" : "성공",
-    "duration" : "0s",
-    "note" : "자동 정리 범위를 index에서 갱신했습니다: var/backup, var/backups, BOOT-INF, target, frontend/test-results"
-  }, {
-    "executedAt" : "2026-03-26 21:39:41",
-    "profileName" : "Git Push 사전 점검",
-    "result" : "성공",
-    "duration" : "0s",
-    "note" : "추적 중인 백업/빌드 산출물 감지: 20"
   } ],
   "versionRows" : [ {
     "versionId" : "cfg-0eccadd8",

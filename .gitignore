@@ -41,3 +41,4 @@ startup.log
 /var/backups/
 /BOOT-INF/
 /frontend/test-results/
+/frontend/.codex-state/

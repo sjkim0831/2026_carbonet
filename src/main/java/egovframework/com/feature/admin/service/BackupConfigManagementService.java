@@ -48,7 +48,8 @@ public class BackupConfigManagementService {
             "var/backups",
             "BOOT-INF",
             "target",
-            "frontend/test-results"
+            "frontend/test-results",
+            "frontend/.codex-state"
     );
     private final ObjectMapper objectMapper;
     private final Path documentPath = Paths.get("data", "backup-config", "settings.json");
@@ -331,10 +332,10 @@ public class BackupConfigManagementService {
         form.put("gitRepositoryPath", safe(settings.gitRepositoryPath));
         form.put("gitRemoteName", safe(settings.gitRemoteName));
         form.put("gitRemoteUrl", safe(settings.gitRemoteUrl));
-        form.put("gitUsername", safe(settings.gitUsername));
+        form.put("gitUsername", resolveConfiguredGitUsername(settings));
         form.put("gitAuthToken", "");
-        form.put("gitAuthTokenMasked", maskSecret(settings.gitAuthToken));
-        form.put("gitAuthTokenConfigured", safe(settings.gitAuthToken).isEmpty() ? "N" : "Y");
+        form.put("gitAuthTokenMasked", maskSecret(resolveConfiguredGitAuthToken(settings)));
+        form.put("gitAuthTokenConfigured", resolveConfiguredGitAuthToken(settings).isEmpty() ? "N" : "Y");
         form.put("gitBranchPattern", safe(settings.gitBranchPattern));
         form.put("gitBundlePrefix", safe(settings.gitBundlePrefix));
         form.put("gitBackupMode", safe(settings.gitBackupMode));
@@ -354,7 +355,7 @@ public class BackupConfigManagementService {
         List<Map<String, String>> rows = new ArrayList<>();
         rows.add(storageRow(isEn ? "Backup Root" : "백업 루트", safe(settings.backupRootPath), isEn ? "Operator configured path" : "운영자 설정 경로", isEn ? "Primary backup bundle output" : "주 백업 번들 저장 위치"));
         rows.add(storageRow(isEn ? "Git Source" : "Git 소스", safe(settings.gitRepositoryPath), isEn ? "Git snapshot target" : "Git 스냅샷 대상", safe(settings.gitEnabled).equals("Y") ? (safe(settings.gitBackupMode).isEmpty() ? (isEn ? "Enabled" : "사용") : safe(settings.gitBackupMode)) : (isEn ? "Disabled" : "미사용")));
-        rows.add(storageRow(isEn ? "Git Push Target" : "Git Push 대상", safe(settings.gitRemoteUrl).isEmpty() ? safe(settings.gitRemoteName) : safe(settings.gitRemoteUrl), isEn ? "Git remote target" : "Git 원격 대상", safe(settings.gitAuthToken).isEmpty() ? (isEn ? "No token" : "토큰 없음") : (isEn ? "Token configured" : "토큰 설정됨")));
+        rows.add(storageRow(isEn ? "Git Push Target" : "Git Push 대상", safe(settings.gitRemoteUrl).isEmpty() ? safe(settings.gitRemoteName) : safe(settings.gitRemoteUrl), isEn ? "Git remote target" : "Git 원격 대상", resolveConfiguredGitAuthToken(settings).isEmpty() ? (isEn ? "No token" : "토큰 없음") : (isEn ? "Token configured" : "토큰 설정됨")));
         rows.add(storageRow(isEn ? "Database Dump" : "DB 덤프", safe(settings.dbDumpCommand), isEn ? "DB export command" : "DB export 명령", safe(settings.dbEnabled).equals("Y") ? (isEn ? "Enabled" : "사용") : (isEn ? "Disabled" : "미사용")));
         return rows;
     }
@@ -575,6 +576,7 @@ public class BackupConfigManagementService {
             String changedFiles = resolveGitStatus(repoPath, isEn);
             boolean hasChanges = !changedFiles.isEmpty();
             if (hasChanges) {
+                executeGitSafeCleanup(settings, isEn, logger);
                 logger.accept(isEn ? "Running git add -A." : "git add -A 를 실행합니다.");
                 runCommand(Arrays.asList("git", "-C", repoPath.toString(), "add", "-A"), isEn, logger);
                 String commitMessage = "backup: snapshot " + LocalDateTime.now().format(TIME_FORMAT);
@@ -859,7 +861,8 @@ public class BackupConfigManagementService {
         environment.put("GIT_TERMINAL_PROMPT", "0");
         Path askPassPath = null;
         String effectiveUsername = resolveGitUsername(settings, command, repoPath, remoteName, isEn);
-        if (!effectiveUsername.isEmpty() && !safe(settings.gitAuthToken).isEmpty()) {
+        String effectiveToken = resolveConfiguredGitAuthToken(settings);
+        if (!effectiveUsername.isEmpty() && !effectiveToken.isEmpty()) {
             askPassPath = Files.createTempFile("carbonet-git-askpass", ".sh");
             Files.writeString(askPassPath,
                     "#!/usr/bin/env bash\n" +
@@ -873,7 +876,7 @@ public class BackupConfigManagementService {
             }
             environment.put("GIT_ASKPASS", askPassPath.toAbsolutePath().toString());
             environment.put("GIT_BACKUP_USERNAME", effectiveUsername);
-            environment.put("GIT_BACKUP_TOKEN", safe(settings.gitAuthToken));
+            environment.put("GIT_BACKUP_TOKEN", effectiveToken);
         }
         try {
             logger.accept("$ " + String.join(" ", gitCommand));
@@ -1106,7 +1109,7 @@ public class BackupConfigManagementService {
     }
 
     private String resolveGitUsername(BackupSettings settings, List<String> command, Path repoPath, String remoteName, boolean isEn) {
-        String configured = safe(settings.gitUsername);
+        String configured = resolveConfiguredGitUsername(settings);
         if (!configured.isEmpty()) {
             return configured;
         }
@@ -1169,6 +1172,22 @@ public class BackupConfigManagementService {
             return "";
         }
         return "********";
+    }
+
+    private String resolveConfiguredGitUsername(BackupSettings settings) {
+        String configured = safe(settings == null ? null : settings.gitUsername);
+        if (!configured.isEmpty()) {
+            return configured;
+        }
+        return safe(System.getenv("BACKUP_GIT_USERNAME"));
+    }
+
+    private String resolveConfiguredGitAuthToken(BackupSettings settings) {
+        String configured = safe(settings == null ? null : settings.gitAuthToken);
+        if (!configured.isEmpty()) {
+            return configured;
+        }
+        return safe(System.getenv("BACKUP_GIT_AUTH_TOKEN"));
     }
 
     private void trim(List<Map<String, String>> rows, int maxSize) {
