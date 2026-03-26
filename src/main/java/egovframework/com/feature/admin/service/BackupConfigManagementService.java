@@ -20,6 +20,7 @@ import java.time.Duration;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
@@ -1118,6 +1119,15 @@ public class BackupConfigManagementService {
         gitCommand.add("http.postBuffer=524288000");
         gitCommand.add("-c");
         gitCommand.add("core.compression=0");
+        String effectiveUsername = resolveGitUsername(settings, command, repoPath, remoteName, isEn);
+        String effectiveToken = resolveConfiguredGitAuthToken(settings);
+        String pushTarget = resolveGitPushTargetFromCommand(command);
+        if (isHttpRemote(pushTarget) && !effectiveUsername.isEmpty() && !effectiveToken.isEmpty()) {
+            gitCommand.add("-c");
+            gitCommand.add("credential.helper=");
+            gitCommand.add("-c");
+            gitCommand.add("http.extraheader=" + buildBasicAuthHeader(effectiveUsername, effectiveToken));
+        }
         gitCommand.addAll(command.subList(3, command.size()));
         ProcessBuilder builder = new ProcessBuilder(gitCommand);
         builder.directory(Paths.get(".").toAbsolutePath().normalize().toFile());
@@ -1125,8 +1135,6 @@ public class BackupConfigManagementService {
         Map<String, String> environment = builder.environment();
         environment.put("GIT_TERMINAL_PROMPT", "0");
         Path askPassPath = null;
-        String effectiveUsername = resolveGitUsername(settings, command, repoPath, remoteName, isEn);
-        String effectiveToken = resolveConfiguredGitAuthToken(settings);
         if (!effectiveUsername.isEmpty() && !effectiveToken.isEmpty()) {
             askPassPath = Files.createTempFile("carbonet-git-askpass", ".sh");
             Files.writeString(askPassPath,
@@ -1144,7 +1152,7 @@ public class BackupConfigManagementService {
             environment.put("GIT_BACKUP_TOKEN", effectiveToken);
         }
         try {
-            logger.accept("$ " + String.join(" ", gitCommand));
+            logger.accept("$ " + redactGitPushCommandForLog(gitCommand));
             CommandResult result = executeProcess(builder, GIT_PUSH_TIMEOUT_SECONDS,
                     isEn
                             ? "Git push timed out after " + GIT_PUSH_TIMEOUT_SECONDS + " seconds. Check remote connectivity and retry."
@@ -1168,6 +1176,33 @@ public class BackupConfigManagementService {
                 Files.deleteIfExists(askPassPath);
             }
         }
+    }
+
+    private String buildBasicAuthHeader(String username, String token) {
+        String credentials = username + ":" + token;
+        return "AUTHORIZATION: basic " + Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private boolean isHttpRemote(String value) {
+        String normalized = safe(value);
+        return normalized.startsWith("http://") || normalized.startsWith("https://");
+    }
+
+    private String resolveGitPushTargetFromCommand(List<String> command) {
+        if (command == null || command.size() < 5) {
+            return "";
+        }
+        return safe(command.get(4));
+    }
+
+    private String redactGitPushCommandForLog(List<String> gitCommand) {
+        List<String> redacted = new ArrayList<>(gitCommand);
+        for (int i = 0; i < redacted.size(); i++) {
+            if (redacted.get(i).startsWith("http.extraheader=AUTHORIZATION: basic ")) {
+                redacted.set(i, "http.extraheader=AUTHORIZATION: basic ********");
+            }
+        }
+        return String.join(" ", redacted);
     }
 
     private CommandResult executeProcess(ProcessBuilder builder, long timeoutSeconds, String timeoutMessage, Consumer<String> logger) throws Exception {
