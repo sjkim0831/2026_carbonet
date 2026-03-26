@@ -112,6 +112,10 @@ public class AuthorRoleProfileService {
         normalized.setDisplayTitle(normalize(profile == null ? null : profile.getDisplayTitle()));
         normalized.setDescription(normalize(profile == null ? null : profile.getDescription()));
         normalized.setMemberEditVisibleYn("N".equalsIgnoreCase(normalize(profile == null ? null : profile.getMemberEditVisibleYn())) ? "N" : "Y");
+        normalized.setRoleType(normalize(profile == null ? null : profile.getRoleType()).toUpperCase(Locale.ROOT));
+        normalized.setBaseRoleYn("Y".equalsIgnoreCase(normalize(profile == null ? null : profile.getBaseRoleYn())) ? "Y" : "N");
+        normalized.setParentAuthorCode(normalize(profile == null ? null : profile.getParentAuthorCode()).toUpperCase(Locale.ROOT));
+        normalized.setAssignmentScope(normalize(profile == null ? null : profile.getAssignmentScope()).toUpperCase(Locale.ROOT));
         normalized.setUpdatedAt(normalize(profile == null ? null : profile.getUpdatedAt()));
         LinkedHashSet<String> uniqueWorks = new LinkedHashSet<>();
         if (profile != null && profile.getPriorityWorks() != null) {
@@ -123,6 +127,16 @@ public class AuthorRoleProfileService {
             }
         }
         normalized.setPriorityWorks(new ArrayList<>(uniqueWorks));
+        LinkedHashSet<String> uniqueMemberTypes = new LinkedHashSet<>();
+        if (profile != null && profile.getDefaultMemberTypes() != null) {
+            for (String item : profile.getDefaultMemberTypes()) {
+                String normalizedItem = normalize(item).toUpperCase(Locale.ROOT);
+                if (!normalizedItem.isEmpty()) {
+                    uniqueMemberTypes.add(normalizedItem);
+                }
+            }
+        }
+        normalized.setDefaultMemberTypes(new ArrayList<>(uniqueMemberTypes));
         return normalized;
     }
 

@@ -1,5 +1,6 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { logGovernanceScope } from "../../app/policy/debug";
 import {
   fetchSecurityAuditPage,
   readBootstrappedSecurityAuditPageData,
@@ -77,6 +78,21 @@ export function SecurityAuditMigrationPage() {
   const error = pageState.error;
   const summary = (page?.securityAuditSummary || []) as SecurityAuditCard[];
   const rows = (page?.securityAuditRows || []) as SecurityAuditRow[];
+
+  useEffect(() => {
+    if (!page) {
+      return;
+    }
+    logGovernanceScope("PAGE", "security-audit", {
+      route: window.location.pathname,
+      summaryCardCount: summary.length,
+      auditRowCount: rows.length
+    });
+    logGovernanceScope("COMPONENT", "security-audit-table", {
+      component: "security-audit-table",
+      rowCount: rows.length
+    });
+  }, [page, rows.length, summary.length]);
 
   return (
     <AdminPageShell

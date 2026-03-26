@@ -1,5 +1,10 @@
 import { useMemo } from "react";
-import { fetchFrontendSession, FrontendSession, invalidateFrontendSessionCache } from "../../lib/api/client";
+import {
+  fetchFrontendSession,
+  FrontendSession,
+  invalidateFrontendSessionCache,
+  readFrontendSessionSnapshot
+} from "../../lib/api/client";
 import { buildLocalizedPath, getCsrfMeta, getNavigationEventName, isEnglish, navigate } from "../../lib/navigation/runtime";
 import { useAsyncValue } from "./useAsyncValue";
 
@@ -9,7 +14,12 @@ type UseFrontendSessionOptions = {
 
 export function useFrontendSession(options: UseFrontendSessionOptions = {}) {
   const { enabled = true } = options;
-  const sessionState = useAsyncValue<FrontendSession>(fetchFrontendSession, [], { enabled });
+  const initialSession = readFrontendSessionSnapshot();
+  const sessionState = useAsyncValue<FrontendSession>(fetchFrontendSession, [], {
+    enabled,
+    initialValue: initialSession,
+    skipInitialLoad: Boolean(initialSession)
+  });
   const logoutMessage = isEnglish()
     ? "Do you want to log out?"
     : "로그아웃 하시겠습니까?";

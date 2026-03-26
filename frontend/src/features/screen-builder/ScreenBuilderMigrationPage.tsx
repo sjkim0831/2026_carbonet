@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import type { FrameworkAuthorityRoleContract } from "../../framework";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { logGovernanceScope } from "../../app/policy/debug";
 import {
   readBootstrappedScreenBuilderPageData,
   type ScreenCommandPagePayload,
@@ -251,6 +252,53 @@ export function ScreenBuilderMigrationPage() {
   });
 
   const rootMenuHref = buildLocalizedPath("/admin/system/environment-management", "/en/admin/system/environment-management");
+  const screenFlowHref = buildLocalizedPath("/admin/system/screen-flow-management", "/en/admin/system/screen-flow-management");
+  const screenMenuAssignmentHref = buildLocalizedPath("/admin/system/screen-menu-assignment-management", "/en/admin/system/screen-menu-assignment-management");
+  const screenGovernanceSummary = useMemo(() => ({
+    requiredViewFeatureCode: String(commandState.value?.page?.menuPermission?.requiredViewFeatureCode || ""),
+    featureCodeCount: commandState.value?.page?.menuPermission?.featureCodes?.length || 0,
+    relationTableCount: commandState.value?.page?.menuPermission?.relationTables?.length || 0,
+    surfaceCount: commandState.value?.page?.surfaces?.length || 0,
+    eventCount: commandState.value?.page?.events?.length || 0,
+    apiCount: commandState.value?.page?.apis?.length || 0,
+    schemaCount: commandState.value?.page?.schemas?.length || 0,
+    changeTargetCount: commandState.value?.page?.changeTargets?.length || 0,
+    routePath: String(commandState.value?.page?.routePath || page?.menuUrl || ""),
+    menuLookupUrl: String(commandState.value?.page?.menuLookupUrl || "")
+  }), [commandState.value?.page, page?.menuUrl]);
+  useEffect(() => {
+    if (!page) {
+      return;
+    }
+    logGovernanceScope("PAGE", "screen-builder", {
+      route: window.location.pathname,
+      pageId: page.pageId || "",
+      menuCode: page.menuCode || "",
+      nodeCount: nodes.length,
+      eventCount: events.length,
+      publishIssueCount,
+      componentRegistryCount: componentRegistry.length
+    });
+    logGovernanceScope("COMPONENT", "screen-builder-governance", {
+      component: "screen-builder-governance",
+      selectedNodeId: selectedNode?.nodeId || "",
+      selectedRegistryComponentId,
+      registryIssueCount: backendUnregisteredNodes.length + backendMissingNodes.length + backendDeprecatedNodes.length,
+      previewNodeCount: previewNodes.length
+    });
+  }, [
+    backendDeprecatedNodes.length,
+    backendMissingNodes.length,
+    backendUnregisteredNodes.length,
+    componentRegistry.length,
+    events.length,
+    nodes.length,
+    page,
+    previewNodes.length,
+    publishIssueCount,
+    selectedNode,
+    selectedRegistryComponentId
+  ]);
 
   function applyAuthorityRoleToDraft(role: FrameworkAuthorityRoleContract) {
     setDraftAuthorityProfile({
@@ -321,6 +369,12 @@ export function ScreenBuilderMigrationPage() {
                     {en ? "Open Published Runtime" : "발행 런타임 열기"}
                   </MemberLinkButton>
                 ) : null}
+                <MemberLinkButton href={screenFlowHref} variant="secondary">
+                  {en ? "Open Screen Flow" : "화면 흐름 관리"}
+                </MemberLinkButton>
+                <MemberLinkButton href={screenMenuAssignmentHref} variant="secondary">
+                  {en ? "Open Screen Assignment" : "화면-메뉴 귀속 관리"}
+                </MemberLinkButton>
                 <MemberButton disabled={!page?.menuCode || saving} onClick={() => { void handleSave(); }} variant="primary">
                   {saving ? (en ? "Saving..." : "저장 중...") : (en ? "Save Draft" : "초안 저장")}
                 </MemberButton>
@@ -380,7 +434,10 @@ export function ScreenBuilderMigrationPage() {
               handleApplyTemplatePreset={handleApplyTemplatePreset}
               handleRestoreVersion={handleRestoreVersion}
               nodesLength={nodes.length}
-              page={page}
+              page={page ? {
+                ...page,
+                screenGovernance: screenGovernanceSummary
+              } : null}
               publishIssueCount={publishIssueCount}
               publishReady={publishReady}
               saving={saving}

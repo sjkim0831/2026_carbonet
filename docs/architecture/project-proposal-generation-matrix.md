@@ -14,6 +14,9 @@ Every matrix snapshot must retain the same:
 - `projectId`
 - `synthesisRunId`
 - `mappingDraftId`
+- `builderInputReadyYn`
+- `verifyInputReadyYn`
+- `consumerLaneSet`
 
 used by the mapping draft, inventory, scenario output, and design-output
 package views.
@@ -58,6 +61,8 @@ package views.
 - `templateBoundYn`
 - `familyRuleBoundYn`
 - `buildReadyYn`
+- `builderInputReadyYn`
+- `verifyInputReadyYn`
 - `deployReadyYn`
 - `parityReadyYn`
 - `runtimeComparableYn`
@@ -111,3 +116,5 @@ inventory and output views:
 - matrix state should be preserved per project and per proposal baseline
 - matrix header counts must be reconcilable with inventory and scenario/design
   output views without changing identity keys
+- the same matrix export must tell `04` and `09` whether builder and verify
+  intake is ready without opening another identity context

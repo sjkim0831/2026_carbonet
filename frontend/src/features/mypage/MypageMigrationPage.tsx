@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
+import { logGovernanceScope } from "../../app/policy/debug";
 import {
   UserGovernmentBar,
   UserLanguageToggle,
@@ -263,6 +264,11 @@ export function MypageMigrationPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const session = sessionState.value;
+    logGovernanceScope("ACTION", "mypage-save-profile", {
+      actorInsttId: session?.insttId || "",
+      email,
+      jobTitle
+    });
     if (!session) {
       setError(copy.saveUnavailable);
       return;
@@ -295,6 +301,10 @@ export function MypageMigrationPage() {
 
   async function handleEmailVerify() {
     const session = sessionState.value;
+    logGovernanceScope("ACTION", "mypage-save-email", {
+      actorInsttId: session?.insttId || "",
+      email
+    });
     if (!session) {
       setError(copy.saveUnavailable);
       return;
@@ -336,6 +346,28 @@ export function MypageMigrationPage() {
   const companyName = stringValue(member.cmpnyNm) || "-";
   const businessNumber = stringValue(member.bizrno) || "-";
   const phoneNumber = formatPhone(areaNo, middleTelno, endTelno);
+
+  useEffect(() => {
+    if (!page) {
+      return;
+    }
+    logGovernanceScope("PAGE", "mypage", {
+      route: window.location.pathname,
+      actorUserId: sessionState.value?.userId || "",
+      actorAuthorCode: sessionState.value?.authorCode || "",
+      actorInsttId: sessionState.value?.insttId || "",
+      authenticated: page.authenticated !== false,
+      pageType: page.pageType || "",
+      memberStatus: stringValue(page.memberStatus)
+    });
+    logGovernanceScope("COMPONENT", "mypage-profile-form", {
+      component: "mypage-profile-form",
+      userId,
+      companyName,
+      email,
+      phoneNumber
+    });
+  }, [companyName, email, page, phoneNumber, sessionState.value, userId]);
 
   if (!page) {
     return (

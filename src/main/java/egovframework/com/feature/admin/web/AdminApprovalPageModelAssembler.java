@@ -77,9 +77,12 @@ public class AdminApprovalPageModelAssembler {
         searchVO.setSbscrbSttus(status);
         String currentUserId = controller.extractCurrentUserId(request);
         String currentUserAuthorCode = controller.resolveCurrentUserAuthorCode(currentUserId);
-        if (!controller.hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        if (!controller.hasMemberManagementCompanyOperatorAccess(currentUserId, currentUserAuthorCode)) {
             populateMemberApprovalForbidden(model, keyword, memberType, status, result, isEn, request, locale, controller, pageSize);
             return;
+        }
+        if (controller.requiresMemberManagementCompanyScope(currentUserId, currentUserAuthorCode)) {
+            searchVO.setInsttId(controller.resolveCurrentUserInsttId(currentUserId));
         }
 
         List<EntrprsManageVO> memberList;
@@ -104,10 +107,12 @@ public class AdminApprovalPageModelAssembler {
         List<Map<String, Object>> approvalRows = new ArrayList<>();
         for (EntrprsManageVO member : memberList) {
             Map<String, Object> row = new LinkedHashMap<>();
-            row.put("member", member);
             row.put("memberId", controller.safeString(member.getEntrprsmberId()));
             row.put("memberName", controller.safeString(member.getApplcntNm()));
             row.put("companyName", controller.safeString(member.getCmpnyNm()));
+            row.put("businessNumber", controller.safeString(member.getBizrno()));
+            row.put("departmentName", controller.safeString(member.getDeptNm()));
+            row.put("representativeName", controller.safeString(member.getCxfc()));
             row.put("joinDate", controller.safeString(member.getSbscrbDe()));
             row.put("membershipTypeLabel", isEn
                     ? controller.resolveMembershipTypeLabelEn(member.getEntrprsSeCode())
@@ -116,10 +121,20 @@ public class AdminApprovalPageModelAssembler {
                     ? controller.resolveStatusLabelEn(member.getEntrprsMberSttus())
                     : controller.resolveStatusLabel(member.getEntrprsMberSttus()));
             row.put("statusBadgeClass", controller.resolveStatusBadgeClass(member.getEntrprsMberSttus()));
+            row.put("rejectReason", controller.safeString(member.getRjctRsn()));
             row.put("detailUrl", controller.adminPrefix(request, locale) + "/member/detail?memberId="
                     + controller.urlEncode(member.getEntrprsmberId()));
             List<AdminMainController.EvidenceFileView> evidenceFiles = controller.loadEvidenceFiles(member);
-            row.put("evidenceFiles", evidenceFiles);
+            List<Map<String, Object>> evidencePreviewFiles = new ArrayList<>();
+            for (int fileIndex = 0; fileIndex < Math.min(evidenceFiles.size(), 2); fileIndex++) {
+                AdminMainController.EvidenceFileView file = evidenceFiles.get(fileIndex);
+                Map<String, Object> preview = new LinkedHashMap<>();
+                preview.put("fileName", controller.safeString(file.getFileName()));
+                preview.put("downloadUrl", controller.safeString(file.getDownloadUrl()));
+                evidencePreviewFiles.add(preview);
+            }
+            row.put("evidenceFiles", evidencePreviewFiles);
+            row.put("evidenceFileCount", evidenceFiles.size());
             row.put("hasEvidenceFiles", !evidenceFiles.isEmpty());
             approvalRows.add(row);
         }
@@ -181,7 +196,7 @@ public class AdminApprovalPageModelAssembler {
         }
         String currentUserId = controller.extractCurrentUserId(request);
         String currentUserAuthorCode = controller.resolveCurrentUserAuthorCode(currentUserId);
-        if (!controller.hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
+        if (!controller.hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)) {
             populateCompanyApprovalForbidden(model, keyword, status, result, isEn, request, locale, controller, pageSize);
             return;
         }
@@ -257,6 +272,15 @@ public class AdminApprovalPageModelAssembler {
             row.put("statusBadgeClass", controller.resolveInstitutionStatusBadgeClass(joinStat));
             row.put("detailUrl", controller.adminPrefix(request, locale) + "/member/company_detail?insttId=" + controller.urlEncode(insttId));
             row.put("editUrl", controller.adminPrefix(request, locale) + "/member/company_account?insttId=" + controller.urlEncode(insttId));
+            row.put("rejectReason", "");
+
+            if (!insttId.isEmpty()) {
+                try {
+                    row.put("rejectReason", controller.safeString(controller.loadInstitutionInfoByInsttId(insttId).getRjctRsn()));
+                } catch (Exception e) {
+                    log.warn("Failed to load company rejection reason. insttId={}", insttId, e);
+                }
+            }
 
             List<InsttFileVO> fileList = controller.loadInsttFilesByInsttId(insttId);
             List<Map<String, String>> evidenceFiles = new ArrayList<>();

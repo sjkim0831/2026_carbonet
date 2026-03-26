@@ -44,6 +44,7 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
 
     private static final DateTimeFormatter TS_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final TypeReference<LinkedHashMap<String, Object>> MAP_TYPE = new TypeReference<LinkedHashMap<String, Object>>() {};
+    private static final TypeReference<List<Object>> LIST_TYPE = new TypeReference<List<Object>>() {};
 
     private final ObjectMapper objectMapper;
     private final ResonanceControlPlaneMapper resonanceControlPlaneMapper;
@@ -77,6 +78,23 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
         requireField(request == null ? null : request.getOwnerLane(), "ownerLane");
         requireField(request == null ? null : request.getSelectedScreenId(), "selectedScreenId");
 
+        List<String> selectedElementSet = normalizeList(request == null ? null : request.getSelectedElementSet());
+        Map<String, Object> requestedBuilderInput = request == null ? Collections.<String, Object>emptyMap()
+                : normalizeObjectMap(request.getBuilderInput());
+        Map<String, Object> requestedRuntimeEvidence = request == null ? Collections.<String, Object>emptyMap()
+                : normalizeObjectMap(request.getRuntimeEvidence());
+        Map<String, Object> builderInput = mergeMap(buildDefaultBuilderInput(
+                request == null ? null : request.getTemplateLineId(),
+                request == null ? null : request.getSelectedScreenId(),
+                request == null ? null : request.getSelectedScreenId(),
+                request == null ? null : request.getSelectedScreenId(),
+                ""),
+                requestedBuilderInput);
+        Map<String, Object> runtimeEvidence = mergeMap(buildDefaultRuntimeEvidence(
+                request == null ? null : request.getReleaseUnitId(),
+                firstNonBlank(request == null ? null : request.getCompareBaseline(), "CURRENT_RUNTIME"),
+                selectedElementSet.size()),
+                requestedRuntimeEvidence);
         List<ControlPlaneCompareRow> compareTargetSet = buildCompareTargetSet(request);
         List<String> blockerSet = buildCompareBlockerSet(compareTargetSet);
         List<String> repairCandidateSet = buildRepairCandidateSet(compareTargetSet);
@@ -98,6 +116,9 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
         response.put("selectedScreenId", safe(request.getSelectedScreenId()));
         response.put("releaseUnitId", safe(request.getReleaseUnitId()));
         response.put("compareBaseline", firstNonBlank(safe(request.getCompareBaseline()), "CURRENT_RUNTIME"));
+        response.put("builderInput", builderInput);
+        response.put("runtimeEvidence", runtimeEvidence);
+        response.put("selectedElementSet", selectedElementSet);
         response.put("compareTargetSet", compareTargetSet);
         response.put("parityScore", Math.max(0, 100 - (mismatchCount * 3)));
         response.put("uniformityScore", Math.max(0, 100 - (blockerSet.size() * 4)));
@@ -110,6 +131,7 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
         response.put("traceId", buildTraceId());
 
         appendJsonLine(resolvePath(parityCompareFilePath), response);
+        insertParityCompareRunDb(response);
         return response;
     }
 
@@ -182,10 +204,13 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
 
         String previewId = buildId("mbp");
         String traceId = buildTraceId();
+        String releaseUnitId = firstNonBlank(request.getReleaseUnitId(), buildReleaseUnitId(request.getProjectId()));
         List<String> selectedModuleSet = normalizeList(request.getSelectedModuleSet());
         ModuleProfile primaryProfile = resolveModuleProfile(selectedModuleSet.isEmpty() ? "" : selectedModuleSet.get(0));
         List<String> blockingIssues = new ArrayList<String>();
         List<String> impactParts = new ArrayList<String>();
+        List<ModuleProfile> selectedProfiles = resolveModuleProfiles(selectedModuleSet);
+        List<String> missingRequiredModuleSet = findMissingRequiredModules(selectedModuleSet, selectedProfiles);
 
         for (String moduleId : selectedModuleSet) {
             ModuleProfile profile = resolveModuleProfile(moduleId);
@@ -196,9 +221,12 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
             blockingIssues.addAll(profile.blockingIssueSet);
         }
 
+        for (String missingModuleId : missingRequiredModuleSet) {
+            blockingIssues.add(missingModuleId + ": required module missing");
+        }
+
         blockingIssues = normalizeList(blockingIssues);
         boolean readyForScaffold = blockingIssues.isEmpty();
-        List<ModuleProfile> selectedProfiles = resolveModuleProfiles(selectedModuleSet);
 
         Map<String, Object> previewRecord = new LinkedHashMap<String, Object>();
         previewRecord.put("moduleBindingPreviewId", previewId);
@@ -210,6 +238,8 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
         previewRecord.put("pageAssemblyId", derivePageAssemblyId(request.getScenarioId()));
         previewRecord.put("templateLineId", safe(request.getTemplateLineId()));
         previewRecord.put("screenFamilyRuleId", safe(request.getScreenFamilyRuleId()));
+        previewRecord.put("ownerLane", safe(request.getOwnerLane()));
+        previewRecord.put("releaseUnitId", releaseUnitId);
         previewRecord.put("themeSetId", deriveThemeSetId(request.getTemplateLineId()));
         previewRecord.put("installableModuleId", primaryProfile.installableModuleId);
         previewRecord.put("modulePatternFamilyId", primaryProfile.modulePatternFamilyId);
@@ -237,6 +267,8 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
         response.put("guidedStateId", safe(request.getGuidedStateId()));
         response.put("templateLineId", safe(request.getTemplateLineId()));
         response.put("screenFamilyRuleId", safe(request.getScreenFamilyRuleId()));
+        response.put("ownerLane", safe(request.getOwnerLane()));
+        response.put("releaseUnitId", releaseUnitId);
         response.put("selectedModuleSet", selectedModuleSet);
         response.put("runtimePackageImpactSummary", previewRecord.get("runtimePackageImpactSummary"));
         response.put("blockingIssueCount", blockingIssues.size());
@@ -254,11 +286,11 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
         Map<String, Object> existing = findLastRecord(resolvePath(moduleResultFilePath),
                 "moduleBindingPreviewId", safe(request.getModuleBindingPreviewId()));
         if (!existing.isEmpty()) {
-            return existing;
+            return mergeModuleBindingResultRequestContext(enrichModuleBindingResult(existing), request);
         }
         existing = findExistingModuleBindingResult(safe(request.getModuleBindingPreviewId()));
         if (!existing.isEmpty()) {
-            return existing;
+            return mergeModuleBindingResultRequestContext(existing, request);
         }
 
         Map<String, Object> preview = findLastRecord(resolvePath(modulePreviewFilePath),
@@ -288,13 +320,18 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
 
         boolean repairNeeded = !normalizeObjectList(preview.get("blockingIssueSet")).isEmpty();
         String traceId = firstNonBlank(safe(preview.get("traceId")), buildTraceId());
-        String releaseUnitId = buildReleaseUnitId(safe(request.getProjectId()));
+        String releaseUnitId = firstNonBlank(safe(preview.get("releaseUnitId")),
+                safe(request.getReleaseUnitId()),
+                buildReleaseUnitId(safe(request.getProjectId())));
         String runtimePackageId = deriveRuntimePackageId(safe(request.getScenarioId()));
         String generationRunId = buildGenerationRunId(safe(request.getScenarioId()));
         String compareContextId = "cmpctx-" + normalizeToken(safe(request.getModuleBindingPreviewId()));
         String repairSessionCandidateId = repairNeeded
                 ? "repair-candidate-" + normalizeToken(safe(request.getModuleBindingPreviewId()))
                 : "";
+        String ownerLane = firstNonBlank(safe(preview.get("ownerLane")), safe(request.getOwnerLane()));
+        String occurredAt = now();
+        String releaseBindingTraceId = buildReleaseBindingTraceId(releaseUnitId, request.getGuidedStateId());
         Map<String, Object> result = new LinkedHashMap<String, Object>();
         result.put("moduleBindingResultId", buildId("mbr"));
         result.put("traceId", traceId);
@@ -305,6 +342,7 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
         result.put("guidedStateId", safe(request.getGuidedStateId()));
         result.put("templateLineId", safe(preview.get("templateLineId")));
         result.put("screenFamilyRuleId", safe(preview.get("screenFamilyRuleId")));
+        result.put("ownerLane", ownerLane);
         result.put("selectionAppliedYn", true);
         result.put("appliedModuleSet", selectedModuleSet);
         result.put("attachedPageAssetSet", attachedPageAssetSet);
@@ -327,11 +365,15 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
         result.put("repairQueueCount", repairNeeded ? normalizeObjectList(preview.get("blockingIssueSet")).size() : 0);
         result.put("nextRecommendedAction", repairNeeded ? "Open repair workbench" : "Continue to scaffold generate");
         result.put("traceLinkSet", traceLinkSet);
-        result.put("occurredAt", now());
+        result.put("releaseBindingTraceId", releaseBindingTraceId);
+        result.put("assetTraceSet", publishedAssetTraceSet);
+        result.put("rollbackAnchorYn", true);
+        result.put("boundAt", occurredAt);
+        result.put("occurredAt", occurredAt);
 
         appendJsonLine(resolvePath(moduleResultFilePath), result);
         insertModuleBindingResultDb(result, preview);
-        return result;
+        return mergeModuleBindingResultRequestContext(result, request);
     }
 
     @Override
@@ -339,6 +381,7 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
         requireField(request == null ? null : request.getProjectId(), "projectId");
         requireField(request == null ? null : request.getReleaseUnitId(), "releaseUnitId");
         requireField(request == null ? null : request.getGuidedStateId(), "guidedStateId");
+        requireField(request == null ? null : request.getTemplateLineId(), "templateLineId");
         requireField(request == null ? null : request.getScreenFamilyRuleId(), "screenFamilyRuleId");
         requireField(request == null ? null : request.getOwnerLane(), "ownerLane");
         requireField(request == null ? null : request.getSelectedScreenId(), "selectedScreenId");
@@ -359,13 +402,28 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
         }
 
         String repairSessionId = buildId("repair");
+        Map<String, Object> builderInput = mergeMap(buildDefaultBuilderInput(
+                request == null ? null : request.getTemplateLineId(),
+                request == null ? null : request.getSelectedScreenId(),
+                request == null ? null : request.getSelectedScreenId(),
+                "",
+                ""),
+                request == null ? null : request.getBuilderInput());
+        Map<String, Object> runtimeEvidence = mergeMap(buildDefaultRuntimeEvidence(
+                request == null ? null : request.getReleaseUnitId(),
+                "CURRENT_RUNTIME",
+                normalizeList(request == null ? null : request.getSelectedElementSet()).size()),
+                request == null ? null : request.getRuntimeEvidence());
         Map<String, Object> response = new LinkedHashMap<String, Object>();
         response.put("repairSessionId", repairSessionId);
         response.put("projectId", safe(request.getProjectId()));
         response.put("guidedStateId", safe(request.getGuidedStateId()));
+        response.put("templateLineId", safe(request.getTemplateLineId()));
         response.put("screenFamilyRuleId", safe(request.getScreenFamilyRuleId()));
         response.put("ownerLane", safe(request.getOwnerLane()));
         response.put("selectedScreenId", safe(request.getSelectedScreenId()));
+        response.put("builderInput", builderInput);
+        response.put("runtimeEvidence", runtimeEvidence);
         response.put("selectedElementSet", normalizeList(request.getSelectedElementSet()));
         response.put("compareSnapshotId", buildId("cmp"));
         response.put("blockingGapSet", blockingGapSet);
@@ -392,6 +450,7 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
         requireField(request == null ? null : request.getRepairSessionId(), "repairSessionId");
         requireField(request == null ? null : request.getProjectId(), "projectId");
         requireField(request == null ? null : request.getGuidedStateId(), "guidedStateId");
+        requireField(request == null ? null : request.getTemplateLineId(), "templateLineId");
         requireField(request == null ? null : request.getScreenFamilyRuleId(), "screenFamilyRuleId");
         requireField(request == null ? null : request.getOwnerLane(), "ownerLane");
         requireField(request == null ? null : request.getSelectedScreenId(), "selectedScreenId");
@@ -417,6 +476,19 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
         String releaseUnitId = firstNonBlank(request.getReleaseUnitId(),
                 safe(repairSession.get("releaseUnitId")));
         requireField(releaseUnitId, "releaseUnitId");
+        Map<String, Object> builderInput = mergeMap(
+                buildDefaultBuilderInput(
+                        request == null ? null : request.getTemplateLineId(),
+                        request == null ? null : request.getSelectedScreenId(),
+                        request == null ? null : request.getSelectedScreenId(),
+                        "",
+                        ""),
+                normalizeObjectMap(repairSession.get("builderInput")),
+                request == null ? null : request.getBuilderInput());
+        Map<String, Object> runtimeEvidence = mergeMap(
+                normalizeObjectMap(repairSession.get("runtimeEvidence")),
+                buildDefaultRuntimeEvidence(releaseUnitId, "PATCH_TARGET", selectedElementSet.size()),
+                request == null ? null : request.getRuntimeEvidence());
         String updatedReleaseCandidateId = buildUpdatedReleaseCandidateId(request.getProjectId(), releaseUnitId);
 
         boolean smokeRequired = !"DRAFT_ONLY".equalsIgnoreCase(safe(request.getPublishMode()));
@@ -425,7 +497,10 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
         response.put("repairApplyRunId", buildId("repair-apply"));
         response.put("repairSessionId", safe(request.getRepairSessionId()));
         response.put("guidedStateId", safe(request.getGuidedStateId()));
+        response.put("templateLineId", safe(request.getTemplateLineId()));
         response.put("ownerLane", safe(request.getOwnerLane()));
+        response.put("builderInput", builderInput);
+        response.put("runtimeEvidence", runtimeEvidence);
         response.put("updatedAssetTraceSet", updatedAssetTraceSet);
         response.put("updatedReleaseCandidateId", updatedReleaseCandidateId);
         response.put("parityRecheckRequiredYn", true);
@@ -459,6 +534,8 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
         requireField(request == null ? null : request.getProjectId(), "projectId");
         requireField(request == null ? null : request.getMenuId(), "menuId");
         requireField(request == null ? null : request.getGuidedStateId(), "guidedStateId");
+        requireField(request == null ? null : request.getTemplateLineId(), "templateLineId");
+        requireField(request == null ? null : request.getScreenFamilyRuleId(), "screenFamilyRuleId");
         requireField(request == null ? null : request.getOwnerLane(), "ownerLane");
         requireField(request == null ? null : request.getTargetRuntime(), "targetRuntime");
         requireField(request == null ? null : request.getReleaseUnitId(), "releaseUnitId");
@@ -470,14 +547,31 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
         requireFlag(request == null ? null : request.getVerifyBackendYn(), "verifyBackendYn");
         requireFlag(request == null ? null : request.getVerifyHelpSecurityYn(), "verifyHelpSecurityYn");
 
-        String selectedScreenId = firstNonBlank(request.getSelectedScreenId(), derivePageIdFromMenuId(request.getMenuId()));
-        String pageId = derivePageIdFromMenuId(request.getMenuId());
-        String routeId = deriveRouteId(pageId);
+        Map<String, Object> requestedBuilderInput = request == null ? Collections.<String, Object>emptyMap()
+                : normalizeObjectMap(request.getBuilderInput());
+        String selectedScreenId = firstNonBlank(request.getSelectedScreenId(),
+                safe(requestedBuilderInput.get("pageId")),
+                derivePageIdFromMenuId(request.getMenuId()));
+        String pageId = firstNonBlank(safe(requestedBuilderInput.get("pageId")), selectedScreenId,
+                derivePageIdFromMenuId(request.getMenuId()));
+        String routeId = firstNonBlank(safe(requestedBuilderInput.get("menuUrl")), deriveRouteId(pageId));
         String componentCoverageState = coverageState(request.getVerifyComponentYn());
         String bindingCoverageState = coverageState(request.getVerifyBindingYn());
         String backendChainState = coverageState(request.getVerifyBackendYn());
         String helpSecurityState = coverageState(request.getVerifyHelpSecurityYn());
         List<String> selectedElementSet = normalizeList(request.getSelectedElementSet());
+        Map<String, Object> builderInput = mergeMap(buildDefaultBuilderInput(
+                request == null ? null : request.getTemplateLineId(),
+                selectedScreenId,
+                pageId,
+                safe(request.getMenuId()),
+                deriveRouteId(pageId)),
+                requestedBuilderInput);
+        Map<String, Object> runtimeEvidence = mergeMap(buildDefaultRuntimeEvidence(
+                request == null ? null : request.getReleaseUnitId(),
+                request == null ? null : request.getTargetRuntime(),
+                selectedElementSet.size()),
+                request == null ? null : request.getRuntimeEvidence());
         List<String> blockerSet = new ArrayList<String>();
 
         if (!Boolean.TRUE.equals(request.getVerifyShellYn())) {
@@ -502,9 +596,12 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
         response.put("menuId", safe(request.getMenuId()));
         response.put("pageId", pageId);
         response.put("routeId", routeId);
-        response.put("screenFamilyRuleId", firstNonBlank(request.getScreenFamilyRuleId(), deriveScreenFamilyRuleId(pageId)));
+        response.put("templateLineId", safe(request.getTemplateLineId()));
+        response.put("screenFamilyRuleId", safe(request.getScreenFamilyRuleId()));
         response.put("shellProfileId", deriveShellProfileId(request.getTargetRuntime()));
         response.put("pageFrameId", derivePageFrameId(pageId));
+        response.put("builderInput", builderInput);
+        response.put("runtimeEvidence", runtimeEvidence);
         response.put("componentCoverageState", componentCoverageState);
         response.put("bindingCoverageState", bindingCoverageState);
         response.put("backendChainState", backendChainState);
@@ -602,6 +699,33 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
                 Collections.<String>emptyList(),
                 false
         );
+    }
+
+    private List<String> findMissingRequiredModules(List<String> selectedModuleSet, List<ModuleProfile> selectedProfiles) {
+        LinkedHashSet<String> requiredModuleSet = new LinkedHashSet<String>();
+        requiredModuleSet.add("popup-member-selector");
+        if (selectedProfiles != null) {
+            for (ModuleProfile profile : selectedProfiles) {
+                if (profile == null) {
+                    continue;
+                }
+                requiredModuleSet.addAll(normalizeList(profile.dependencySet));
+            }
+        }
+
+        LinkedHashSet<String> selectedModuleIdSet = new LinkedHashSet<String>();
+        for (String moduleId : normalizeList(selectedModuleSet)) {
+            selectedModuleIdSet.add(normalizeToken(moduleId));
+        }
+
+        List<String> missingModuleSet = new ArrayList<String>();
+        for (String requiredModuleId : requiredModuleSet) {
+            String normalizedRequired = normalizeToken(requiredModuleId);
+            if (!normalizedRequired.isEmpty() && !selectedModuleIdSet.contains(normalizedRequired)) {
+                missingModuleSet.add(requiredModuleId);
+            }
+        }
+        return missingModuleSet;
     }
 
     private List<String> deriveBlockingGapSet(String reasonCode, List<String> selectedElementSet) {
@@ -766,7 +890,38 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
             params.put("updatedBy", safe(previewRecord.get("operator")));
             resonanceControlPlaneMapper.insertModuleBindingPreview(params);
         } catch (Exception e) {
-            log.debug("RSN_MODULE_BINDING_PREVIEW insert skipped: {}", e.getMessage());
+            logPersistenceSkip("RSN_MODULE_BINDING_PREVIEW insert", previewRecord, e);
+        }
+    }
+
+    private void insertParityCompareRunDb(Map<String, Object> response) {
+        try {
+            Map<String, Object> params = new LinkedHashMap<String, Object>();
+            params.put("compareContextId", safe(response.get("compareContextId")));
+            params.put("traceId", safe(response.get("traceId")));
+            params.put("projectId", safe(response.get("projectId")));
+            params.put("guidedStateId", safe(response.get("guidedStateId")));
+            params.put("templateLineId", safe(response.get("templateLineId")));
+            params.put("screenFamilyRuleId", safe(response.get("screenFamilyRuleId")));
+            params.put("ownerLane", safe(response.get("ownerLane")));
+            params.put("selectedScreenId", safe(response.get("selectedScreenId")));
+            params.put("releaseUnitId", safe(response.get("releaseUnitId")));
+            params.put("compareBaseline", safe(response.get("compareBaseline")));
+            params.put("parityScore", response.get("parityScore"));
+            params.put("uniformityScore", response.get("uniformityScore"));
+            params.put("result", safe(response.get("result")));
+            params.put("compareTargetSetJson", toJson(response.get("compareTargetSet")));
+            params.put("blockerSetJson", toJson(response.get("blockerSet")));
+            params.put("repairCandidateSetJson", toJson(response.get("repairCandidateSet")));
+            params.put("requestedBy", safe(response.get("requestedBy")));
+            params.put("requestedByType", safe(response.get("requestedByType")));
+            params.put("resultPayloadJson", toJson(response));
+            params.put("occurredAt", safe(response.get("occurredAt")));
+            params.put("createdBy", firstNonBlank(safe(response.get("requestedBy")), "res-09-verify"));
+            params.put("updatedBy", firstNonBlank(safe(response.get("requestedBy")), "res-09-verify"));
+            resonanceControlPlaneMapper.insertParityCompareRun(params);
+        } catch (Exception e) {
+            logPersistenceSkip("RSN_PARITY_COMPARE_RUN insert", response, e);
         }
     }
 
@@ -805,13 +960,14 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
             params.put("publishedAssetTraceSetJson", toJson(result.get("publishedAssetTraceSet")));
             params.put("traceLinkSetJson", toJson(result.get("traceLinkSet")));
             params.put("nextRecommendedAction", safe(result.get("nextRecommendedAction")));
-            params.put("rollbackAnchorYn", yn(Boolean.TRUE.equals(result.get("repairNeededYn"))));
+            params.put("rollbackAnchorYn", yn(Boolean.TRUE.equals(result.get("rollbackAnchorYn"))));
+            params.put("occurredAt", safe(result.get("occurredAt")));
             params.put("resultPayloadJson", toJson(result));
             params.put("createdBy", firstNonBlank(safe(preview.get("operator")), "res-06-backend"));
             params.put("updatedBy", firstNonBlank(safe(preview.get("operator")), "res-06-backend"));
             resonanceControlPlaneMapper.insertModuleBindingResult(params);
         } catch (Exception e) {
-            log.debug("RSN_MODULE_BINDING_RESULT insert skipped: {}", e.getMessage());
+            logPersistenceSkip("RSN_MODULE_BINDING_RESULT insert", result, e);
         }
     }
 
@@ -824,13 +980,134 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
             }
             String payload = safe(existing.get("resultPayloadJson"));
             if (!payload.isEmpty()) {
-                return objectMapper.readValue(payload, MAP_TYPE);
+                return enrichModuleBindingResult(objectMapper.readValue(payload, MAP_TYPE));
             }
-            return existing;
+            return rehydrateModuleBindingResult(existing);
         } catch (Exception e) {
             log.debug("RSN_MODULE_BINDING_RESULT lookup skipped: {}", e.getMessage());
             return Collections.emptyMap();
         }
+    }
+
+    private Map<String, Object> rehydrateModuleBindingResult(Map<String, Object> existing) throws Exception {
+        if (existing == null || existing.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        String moduleBindingPreviewId = safe(existing.get("moduleBindingPreviewId"));
+        Map<String, Object> result = new LinkedHashMap<String, Object>();
+        result.put("moduleBindingResultId", safe(existing.get("moduleBindingResultId")));
+        result.put("moduleBindingPreviewId", moduleBindingPreviewId);
+        result.put("traceId", safe(existing.get("traceId")));
+        result.put("projectId", safe(existing.get("projectId")));
+        result.put("scenarioId", safe(existing.get("scenarioId")));
+        result.put("pageAssemblyId", safe(existing.get("pageAssemblyId")));
+        result.put("guidedStateId", safe(existing.get("guidedStateId")));
+        result.put("templateLineId", safe(existing.get("templateLineId")));
+        result.put("screenFamilyRuleId", safe(existing.get("screenFamilyRuleId")));
+        result.put("ownerLane", resolveModuleBindingOwnerLane(existing, moduleBindingPreviewId));
+        result.put("releaseUnitId", safe(existing.get("releaseUnitId")));
+        result.put("runtimePackageId", safe(existing.get("runtimePackageId")));
+        result.put("generationRunId", safe(existing.get("generationRunId")));
+        result.put("selectionAppliedYn", isYnTrue(existing.get("selectionAppliedYn")));
+        result.put("appliedModuleSet", parseJsonStringList(existing.get("appliedModuleSetJson")));
+        result.put("attachedPageAssetSet", parseJsonStringList(existing.get("attachedPageAssetSetJson")));
+        result.put("attachedComponentAssetSet", parseJsonStringList(existing.get("attachedComponentAssetSetJson")));
+        result.put("attachedBackendAssetSet", parseJsonStringList(existing.get("attachedBackendAssetSetJson")));
+        result.put("attachedDbAssetSet", parseJsonStringList(existing.get("attachedDbAssetSetJson")));
+        result.put("runtimePackageImpactSummary", safe(existing.get("runtimePackageImpactSummary")));
+        result.put("releaseBlockerDelta", parseJsonStringList(existing.get("releaseBlockerDeltaJson")));
+        result.put("followUpChecklistSummary", safe(existing.get("followUpChecklistSummary")));
+        result.put("repairNeededYn", isYnTrue(existing.get("repairNeededYn")));
+        result.put("repairQueueCount", parseInteger(existing.get("repairQueueCount")));
+        result.put("repairSessionCandidateId", safe(existing.get("repairSessionCandidateId")));
+        result.put("compareContextId", safe(existing.get("compareContextId")));
+        result.put("publishedAssetTraceSet", parseJsonStringList(existing.get("publishedAssetTraceSetJson")));
+        result.put("releaseBindingTraceId", buildReleaseBindingTraceId(existing.get("releaseUnitId"),
+                existing.get("guidedStateId")));
+        result.put("assetTraceSet", parseJsonStringList(existing.get("publishedAssetTraceSetJson")));
+        result.put("rollbackAnchorYn", isYnTrue(existing.get("rollbackAnchorYn")));
+        result.put("traceLinkSet", parseJsonStringList(existing.get("traceLinkSetJson")));
+        result.put("nextRecommendedAction", safe(existing.get("nextRecommendedAction")));
+        result.put("boundAt", safe(existing.get("occurredAt")));
+        result.put("occurredAt", safe(existing.get("occurredAt")));
+        return enrichModuleBindingResult(result);
+    }
+
+    private String resolveModuleBindingOwnerLane(Map<String, Object> existing, String moduleBindingPreviewId) {
+        String ownerLane = safe(existing.get("ownerLane"));
+        if (!ownerLane.isEmpty()) {
+            return ownerLane;
+        }
+        if (moduleBindingPreviewId.isEmpty()) {
+            return "";
+        }
+        try {
+            Map<String, Object> preview = resonanceControlPlaneMapper.selectModuleBindingPreviewById(moduleBindingPreviewId);
+            if (preview == null || preview.isEmpty()) {
+                return "";
+            }
+            String payload = safe(preview.get("previewPayloadJson"));
+            if (payload.isEmpty()) {
+                return "";
+            }
+            return safe(objectMapper.readValue(payload, MAP_TYPE).get("ownerLane"));
+        } catch (Exception e) {
+            log.debug("RSN_MODULE_BINDING_PREVIEW ownerLane lookup skipped: {}", e.getMessage());
+            return "";
+        }
+    }
+
+    private Map<String, Object> enrichModuleBindingResult(Map<String, Object> record) {
+        if (record == null || record.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, Object> enriched = new LinkedHashMap<String, Object>(record);
+        List<String> publishedAssetTraceSet = normalizeObjectList(firstNonEmpty(record.get("publishedAssetTraceSet"),
+                record.get("assetTraceSet")));
+
+        if (!publishedAssetTraceSet.isEmpty()) {
+            enriched.put("publishedAssetTraceSet", publishedAssetTraceSet);
+        }
+        if (safe(enriched.get("releaseBindingTraceId")).isEmpty()) {
+            enriched.put("releaseBindingTraceId", buildReleaseBindingTraceId(enriched.get("releaseUnitId"),
+                    enriched.get("guidedStateId")));
+        }
+        if (safe(enriched.get("boundAt")).isEmpty()) {
+            enriched.put("boundAt", firstNonBlank(safe(enriched.get("occurredAt")), now()));
+        }
+        if (safe(enriched.get("occurredAt")).isEmpty()) {
+            enriched.put("occurredAt", safe(enriched.get("boundAt")));
+        }
+        if (enriched.get("assetTraceSet") == null && !publishedAssetTraceSet.isEmpty()) {
+            enriched.put("assetTraceSet", publishedAssetTraceSet);
+        }
+        return enriched;
+    }
+
+    private Map<String, Object> mergeModuleBindingResultRequestContext(Map<String, Object> record,
+                                                                       ModuleSelectionApplyResultRequest request) {
+        if (record == null || record.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, Object> enriched = new LinkedHashMap<String, Object>(record);
+        String releaseUnitId = firstNonBlank(safe(enriched.get("releaseUnitId")),
+                request == null ? "" : safe(request.getReleaseUnitId()));
+        String ownerLane = firstNonBlank(safe(enriched.get("ownerLane")),
+                request == null ? "" : safe(request.getOwnerLane()));
+
+        if (!releaseUnitId.isEmpty()) {
+            enriched.put("releaseUnitId", releaseUnitId);
+            enriched.put("releaseBindingTraceId", buildReleaseBindingTraceId(releaseUnitId,
+                    firstNonBlank(safe(enriched.get("guidedStateId")),
+                            request == null ? "" : safe(request.getGuidedStateId()))));
+        }
+        if (!ownerLane.isEmpty()) {
+            enriched.put("ownerLane", ownerLane);
+        }
+        return enriched;
     }
 
     private void insertRepairSessionDb(Map<String, Object> response, RepairOpenRequest request) {
@@ -843,6 +1120,7 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
                     safe(response.get("selectedScreenId"))));
             params.put("releaseUnitId", safe(response.get("releaseUnitId")));
             params.put("guidedStateId", safe(response.get("guidedStateId")));
+            params.put("templateLineId", safe(response.get("templateLineId")));
             params.put("screenFamilyRuleId", safe(response.get("screenFamilyRuleId")));
             params.put("ownerLane", safe(response.get("ownerLane")));
             params.put("selectedScreenId", safe(response.get("selectedScreenId")));
@@ -865,7 +1143,7 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
             params.put("updatedBy", safe(response.get("requestedBy")));
             resonanceControlPlaneMapper.insertRepairSession(params);
         } catch (Exception e) {
-            log.debug("RSN_REPAIR_SESSION insert skipped: {}", e.getMessage());
+            logPersistenceSkip("RSN_REPAIR_SESSION insert", response, e);
         }
     }
 
@@ -880,6 +1158,7 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
                     safe(response.get("selectedScreenId"))));
             params.put("releaseUnitId", safe(response.get("releaseUnitId")));
             params.put("guidedStateId", safe(response.get("guidedStateId")));
+            params.put("templateLineId", safe(response.get("templateLineId")));
             params.put("screenFamilyRuleId", safe(response.get("screenFamilyRuleId")));
             params.put("ownerLane", safe(response.get("ownerLane")));
             params.put("selectedScreenId", safe(response.get("selectedScreenId")));
@@ -905,7 +1184,7 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
             params.put("updatedBy", safe(response.get("requestedBy")));
             resonanceControlPlaneMapper.insertRepairApplyRun(params);
         } catch (Exception e) {
-            log.debug("RSN_REPAIR_APPLY_RUN insert skipped: {}", e.getMessage());
+            logPersistenceSkip("RSN_REPAIR_APPLY_RUN insert", response, e);
         }
     }
 
@@ -919,6 +1198,7 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
                     safe(response.get("pageId"))));
             params.put("menuId", safe(response.get("menuId")));
             params.put("guidedStateId", safe(response.get("guidedStateId")));
+            params.put("templateLineId", safe(response.get("templateLineId")));
             params.put("ownerLane", safe(response.get("ownerLane")));
             params.put("targetRuntime", safe(response.get("targetRuntime")));
             params.put("releaseUnitId", safe(response.get("releaseUnitId")));
@@ -950,8 +1230,59 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
             params.put("updatedBy", firstNonBlank(safe(response.get("requestedBy")), "res-06-backend"));
             resonanceControlPlaneMapper.insertVerificationRun(params);
         } catch (Exception e) {
-            log.debug("RSN_VERIFICATION_RUN insert skipped: {}", e.getMessage());
+            logPersistenceSkip("RSN_VERIFICATION_RUN insert", response, e);
         }
+    }
+
+    private void logPersistenceSkip(String operation, Map<String, Object> record, Exception e) {
+        log.warn("{} skipped; control-plane persistence drift likely. context={}; reason={}",
+                operation,
+                summarizePersistenceContext(record),
+                e == null ? "" : e.getMessage());
+        if (e != null) {
+            log.debug("{} stack trace", operation, e);
+        }
+    }
+
+    private Map<String, Object> summarizePersistenceContext(Map<String, Object> record) {
+        Map<String, Object> summary = new LinkedHashMap<String, Object>();
+        if (record == null || record.isEmpty()) {
+            return summary;
+        }
+        putIfPresent(summary, "projectId", record.get("projectId"));
+        putIfPresent(summary, "guidedStateId", record.get("guidedStateId"));
+        putIfPresent(summary, "templateLineId", record.get("templateLineId"));
+        putIfPresent(summary, "screenFamilyRuleId", record.get("screenFamilyRuleId"));
+        putIfPresent(summary, "releaseUnitId", record.get("releaseUnitId"));
+        putIfPresent(summary, "ownerLane", record.get("ownerLane"));
+        putIfPresent(summary, "menuId", record.get("menuId"));
+        putIfPresent(summary, "selectedScreenId", record.get("selectedScreenId"));
+        putIfPresent(summary, "moduleBindingPreviewId", record.get("moduleBindingPreviewId"));
+        putIfPresent(summary, "repairSessionId", record.get("repairSessionId"));
+        putIfPresent(summary, "verificationRunId", record.get("verificationRunId"));
+        return summary;
+    }
+
+    private void putIfPresent(Map<String, Object> summary, String key, Object value) {
+        String safeValue = safe(value);
+        if (!safeValue.isEmpty()) {
+            summary.put(key, safeValue);
+        }
+    }
+
+    private Object firstNonEmpty(Object... values) {
+        if (values == null) {
+            return null;
+        }
+        for (Object value : values) {
+            if (value instanceof List && !((List<?>) value).isEmpty()) {
+                return value;
+            }
+            if (!safe(value).isEmpty()) {
+                return value;
+            }
+        }
+        return null;
     }
 
     private void appendJsonLine(Path file, Map<String, Object> record) throws Exception {
@@ -1003,6 +1334,41 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
         return Paths.get(safe(pathValue)).toAbsolutePath().normalize();
     }
 
+    private List<String> parseJsonStringList(Object value) throws Exception {
+        String json = safe(value);
+        if (json.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<Object> parsed = objectMapper.readValue(json, LIST_TYPE);
+        List<String> values = new ArrayList<String>();
+        for (Object item : parsed) {
+            String normalized = safe(item);
+            if (!normalized.isEmpty()) {
+                values.add(normalized);
+            }
+        }
+        return values;
+    }
+
+    private Integer parseInteger(Object value) {
+        if (value instanceof Number) {
+            return Integer.valueOf(((Number) value).intValue());
+        }
+        String normalized = safe(value);
+        if (normalized.isEmpty()) {
+            return Integer.valueOf(0);
+        }
+        try {
+            return Integer.valueOf(Integer.parseInt(normalized));
+        } catch (NumberFormatException e) {
+            return Integer.valueOf(0);
+        }
+    }
+
+    private boolean isYnTrue(Object value) {
+        return "Y".equalsIgnoreCase(safe(value)) || Boolean.TRUE.equals(value);
+    }
+
     private void requireField(String value, String fieldName) {
         if (safe(value).isEmpty()) {
             throw new IllegalArgumentException(fieldName + " is required.");
@@ -1037,6 +1403,31 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
 
     private String derivePageFrameId(String pageId) {
         return "frame-" + normalizeToken(pageId);
+    }
+
+    private Map<String, Object> buildDefaultBuilderInput(String templateLineId,
+                                                         String selectedScreenId,
+                                                         String pageId,
+                                                         String menuCode,
+                                                         String menuUrl) {
+        Map<String, Object> defaults = new LinkedHashMap<String, Object>();
+        defaults.put("builderId", "builder-" + normalizeToken(firstNonBlank(selectedScreenId, pageId, templateLineId)));
+        defaults.put("draftVersionId", "draft-" + normalizeToken(firstNonBlank(selectedScreenId, pageId, templateLineId)));
+        defaults.put("menuCode", firstNonBlank(menuCode, selectedScreenId));
+        defaults.put("pageId", firstNonBlank(pageId, selectedScreenId));
+        defaults.put("menuUrl", firstNonBlank(menuUrl, "/" + normalizeToken(firstNonBlank(pageId, selectedScreenId))));
+        return defaults;
+    }
+
+    private Map<String, Object> buildDefaultRuntimeEvidence(String releaseUnitId,
+                                                            String runtimeTarget,
+                                                            int selectedElementCount) {
+        Map<String, Object> defaults = new LinkedHashMap<String, Object>();
+        defaults.put("publishedVersionId", "published-" + normalizeToken(firstNonBlank(releaseUnitId, runtimeTarget)));
+        defaults.put("currentRuntimeTraceId", "runtime-" + normalizeToken(firstNonBlank(releaseUnitId, runtimeTarget)));
+        defaults.put("currentNodeCount", Math.max(1, selectedElementCount));
+        defaults.put("currentEventCount", Math.max(1, selectedElementCount));
+        return defaults;
     }
 
     private String deriveScenarioFamilyId(String token) {
@@ -1100,6 +1491,12 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
         return buildReleaseUnitId(projectId);
     }
 
+    private String buildReleaseBindingTraceId(Object releaseUnitId, Object guidedStateId) {
+        String releaseKey = normalizeToken(firstNonBlank(safe(releaseUnitId), "release"));
+        String guidedKey = normalizeToken(firstNonBlank(safe(guidedStateId), "guided"));
+        return "rbt-" + releaseKey + "-" + guidedKey;
+    }
+
     private String buildId(String prefix) {
         return prefix + "-" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toLowerCase(Locale.ROOT);
     }
@@ -1137,6 +1534,41 @@ public class ResonanceControlPlaneServiceImpl implements ResonanceControlPlaneSe
             return normalized;
         }
         return Collections.singletonList(safe(value));
+    }
+
+    private Map<String, Object> normalizeObjectMap(Object value) {
+        if (value instanceof Map<?, ?>) {
+            Map<?, ?> raw = (Map<?, ?>) value;
+            Map<String, Object> normalized = new LinkedHashMap<String, Object>();
+            for (Map.Entry<?, ?> entry : raw.entrySet()) {
+                String key = safe(entry.getKey());
+                if (!key.isEmpty()) {
+                    normalized.put(key, entry.getValue());
+                }
+            }
+            return normalized;
+        }
+        return Collections.emptyMap();
+    }
+
+    @SafeVarargs
+    private final Map<String, Object> mergeMap(Map<String, Object>... candidates) {
+        Map<String, Object> merged = new LinkedHashMap<String, Object>();
+        if (candidates == null) {
+            return merged;
+        }
+        for (Map<String, Object> candidate : candidates) {
+            if (candidate == null || candidate.isEmpty()) {
+                continue;
+            }
+            for (Map.Entry<String, Object> entry : candidate.entrySet()) {
+                String key = safe(entry.getKey());
+                if (!key.isEmpty() && entry.getValue() != null) {
+                    merged.put(key, entry.getValue());
+                }
+            }
+        }
+        return merged;
     }
 
     private String toJson(Object value) {

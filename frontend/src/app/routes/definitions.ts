@@ -29,6 +29,7 @@ export type MigrationPageId =
   | "member-stats"
   | "member-register"
   | "emission-result-list"
+  | "emission-site-management"
   | "system-code"
   | "page-management"
   | "function-management"
@@ -47,18 +48,27 @@ export type MigrationPageId =
   | "screen-builder"
   | "screen-runtime"
   | "current-runtime-compare"
+  | "repair-workbench"
+  | "screen-flow-management"
+  | "screen-menu-assignment-management"
   | "wbs-management"
   | "ip-whitelist"
   | "access-history"
   | "error-log"
   | "login-history"
+  | "member-security-history"
   | "security-history"
   | "security-policy"
   | "security-monitoring"
   | "blocklist"
   | "security-audit"
   | "scheduler-management"
+  | "backup-config"
+  | "backup-execution"
+  | "restore-execution"
+  | "version-management"
   | "codex-request"
+  | "unified-log"
   | "observability"
   | "help-management"
   | "sr-workbench"
@@ -70,6 +80,7 @@ export type MigrationPageId =
   | "join-company-status-guide"
   | "join-company-status-detail"
   | "join-company-reapply"
+  | "emission-project-list"
   | "join-wizard"
   | "join-terms"
   | "join-auth"
@@ -118,8 +129,9 @@ export const ROUTES: RouteDefinition[] = [
   { id: "member-stats", label: "회원 통계", group: "admin", koPath: "/admin/member/stats", enPath: "/en/admin/member/stats" },
   { id: "member-register", label: "회원 등록", group: "admin", koPath: "/admin/member/register", enPath: "/en/admin/member/register" },
   { id: "emission-result-list", label: "배출 결과 목록", group: "admin", koPath: "/admin/emission/result_list", enPath: "/en/admin/emission/result_list" },
+  { id: "emission-site-management", label: "배출지 관리", group: "admin", koPath: "/admin/emission/site-management", enPath: "/en/admin/emission/site-management" },
   { id: "system-code", label: "시스템 코드", group: "admin", koPath: "/admin/system/code", enPath: "/en/admin/system/code" },
-  { id: "page-management", label: "페이지 관리", group: "admin", koPath: "/admin/system/page-management", enPath: "/en/admin/system/page-management" },
+  { id: "page-management", label: "화면 관리", group: "admin", koPath: "/admin/system/page-management", enPath: "/en/admin/system/page-management" },
   { id: "function-management", label: "기능 관리", group: "admin", koPath: "/admin/system/feature-management", enPath: "/en/admin/system/feature-management" },
   { id: "menu-management", label: "메뉴 관리", group: "admin", koPath: "/admin/system/menu-management", enPath: "/en/admin/system/menu-management" },
   { id: "full-stack-management", label: "풀스택 관리", group: "admin", koPath: "/admin/system/full-stack-management", enPath: "/en/admin/system/full-stack-management" },
@@ -136,18 +148,27 @@ export const ROUTES: RouteDefinition[] = [
   { id: "screen-builder", label: "화면 빌더", group: "admin", koPath: "/admin/system/screen-builder", enPath: "/en/admin/system/screen-builder" },
   { id: "screen-runtime", label: "발행 화면 런타임", group: "admin", koPath: "/admin/system/screen-runtime", enPath: "/en/admin/system/screen-runtime" },
   { id: "current-runtime-compare", label: "현재 런타임 비교", group: "admin", koPath: "/admin/system/current-runtime-compare", enPath: "/en/admin/system/current-runtime-compare" },
+  { id: "repair-workbench", label: "복구 워크벤치", group: "admin", koPath: "/admin/system/repair-workbench", enPath: "/en/admin/system/repair-workbench" },
+  { id: "screen-flow-management", label: "화면 흐름 관리", group: "admin", koPath: "/admin/system/screen-flow-management", enPath: "/en/admin/system/screen-flow-management" },
+  { id: "screen-menu-assignment-management", label: "화면-메뉴 귀속 관리", group: "admin", koPath: "/admin/system/screen-menu-assignment-management", enPath: "/en/admin/system/screen-menu-assignment-management" },
   { id: "wbs-management", label: "WBS 관리", group: "admin", koPath: "/admin/system/wbs-management", enPath: "/en/admin/system/wbs-management" },
   { id: "ip-whitelist", label: "IP 화이트리스트", group: "admin", koPath: "/admin/system/ip_whitelist", enPath: "/en/admin/system/ip_whitelist" },
   { id: "access-history", label: "접속 로그", group: "admin", koPath: "/admin/system/access_history", enPath: "/en/admin/system/access_history" },
   { id: "error-log", label: "에러 로그", group: "admin", koPath: "/admin/system/error-log", enPath: "/en/admin/system/error-log" },
   { id: "login-history", label: "로그인 이력", group: "admin", koPath: "/admin/member/login_history", enPath: "/en/admin/member/login_history" },
+  { id: "member-security-history", label: "회원 접근 차단 이력", group: "admin", koPath: "/admin/member/security", enPath: "/en/admin/member/security" },
   { id: "security-history", label: "보안 이력", group: "admin", koPath: "/admin/system/security", enPath: "/en/admin/system/security" },
   { id: "security-policy", label: "보안 정책", group: "admin", koPath: "/admin/system/security-policy", enPath: "/en/admin/system/security-policy" },
   { id: "security-monitoring", label: "보안 모니터링", group: "admin", koPath: "/admin/system/security-monitoring", enPath: "/en/admin/system/security-monitoring" },
   { id: "blocklist", label: "차단 목록", group: "admin", koPath: "/admin/system/blocklist", enPath: "/en/admin/system/blocklist" },
   { id: "security-audit", label: "보안 감사", group: "admin", koPath: "/admin/system/security-audit", enPath: "/en/admin/system/security-audit" },
   { id: "scheduler-management", label: "스케줄러 관리", group: "admin", koPath: "/admin/system/scheduler", enPath: "/en/admin/system/scheduler" },
+  { id: "backup-config", label: "백업 설정", group: "admin", koPath: "/admin/system/backup_config", enPath: "/en/admin/system/backup_config" },
+  { id: "backup-execution", label: "백업 실행", group: "admin", koPath: "/admin/system/backup", enPath: "/en/admin/system/backup" },
+  { id: "restore-execution", label: "복구 실행", group: "admin", koPath: "/admin/system/restore", enPath: "/en/admin/system/restore" },
+  { id: "version-management", label: "버전 관리", group: "admin", koPath: "/admin/system/version", enPath: "/en/admin/system/version" },
   { id: "codex-request", label: "Codex Execution Console", group: "admin", koPath: "/admin/system/codex-request", enPath: "/en/admin/system/codex-request" },
+  { id: "unified-log", label: "통합 로그", group: "admin", koPath: "/admin/system/unified_log", enPath: "/en/admin/system/unified_log" },
   { id: "observability", label: "추적 조회", group: "admin", koPath: "/admin/system/observability", enPath: "/en/admin/system/observability" },
   { id: "help-management", label: "도움말 운영", group: "admin", koPath: "/admin/system/help-management", enPath: "/en/admin/system/help-management" },
   { id: "sr-workbench", label: "SR 워크벤치", group: "admin", koPath: "/admin/system/sr-workbench", enPath: "/en/admin/system/sr-workbench" },
@@ -159,6 +180,7 @@ export const ROUTES: RouteDefinition[] = [
   { id: "join-company-status-guide", label: "가입 현황 안내", group: "join", koPath: "/join/companyJoinStatusGuide", enPath: "/join/en/companyJoinStatusGuide" },
   { id: "join-company-status-detail", label: "가입 현황 상세", group: "join", koPath: "/join/companyJoinStatusDetail", enPath: "/join/en/companyJoinStatusDetail" },
   { id: "join-company-reapply", label: "반려 재신청", group: "join", koPath: "/join/companyReapply", enPath: "/join/en/companyReapply" },
+  { id: "emission-project-list", label: "배출량 관리", group: "home", koPath: "/emission/project_list", enPath: "/en/emission/project_list" },
   { id: "join-wizard", label: "회원가입 위저드", group: "join", koPath: "/join/step1", enPath: "/join/en/step1" },
   { id: "join-terms", label: "회원가입 약관", group: "join", koPath: "/join/step2", enPath: "/join/en/step2" },
   { id: "join-auth", label: "회원가입 본인확인", group: "join", koPath: "/join/step3", enPath: "/join/en/step3" },

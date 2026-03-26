@@ -26,15 +26,27 @@
 - 이 경우 운영자가 중지, 번호 변경, 범위 변경을 말하기 전까지 `04` 레인의 마지막 미완료 화면 빌더, 자산 스튜디오, 유도 흐름 문서와 프로토타입을 1분 간격으로 계속 재확인합니다
 - 특히 `5번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`도 별도 해석 없이 항상 `05` 레인의 상시 반복 지시로 고정합니다
 - 이 경우 운영자가 중지, 번호 변경, 범위 변경을 말하기 전까지 `05` 레인의 마지막 미완료 프런트엔드 런타임 화면, 운영자 UI, 공통 기본 구성요소 연결 상태를 1분 간격으로 계속 재확인합니다
+- 이 지시는 새 `05` 세션을 추가로 파는 뜻이 아니라, 이미 붙어 있던 `05` 작업 컨텍스트와 마지막 미완료 메모를 그대로 이어받아 계속 진행하는 뜻으로 고정합니다
+- 이 지시는 `05` 레인 안에서 이전 루프의 마지막 작업 위치를 최대한 이어받고, 더 이상 이어갈 미완료 항목이 없을 때만 같은 범위를 처음부터 재실행하는 뜻으로 고정합니다
+- 운영자가 이 문서 경로를 직접 지정한 뒤 같은 표현으로 지시해도 해석은 바뀌지 않으며, 항상 현재 `05` 레인 컨텍스트에 붙어서 이어가기 우선으로 처리합니다
+- 따라서 `5번에 붙는다`는 말은 항상 `05` 고정, `이어서 진행` 우선, 미완료 항목 소진 시 동일 범위 `재실행`, 약 `1분` 간격 반복 순서로 해석합니다
 - 특히 `6번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`도 별도 해석 없이 항상 `06` 레인의 상시 반복 지시로 고정합니다
 - 이 경우 운영자가 중지, 번호 변경, 범위 변경을 말하기 전까지 `06` 레인의 마지막 미완료 백엔드 제어 평면 인터페이스, 서비스, 매퍼 작업을 1분 간격으로 계속 재확인합니다
+- 이 지시는 새 `06` 세션을 추가로 파는 뜻이 아니라, 이미 붙어 있던 `06` 작업 컨텍스트와 마지막 미완료 메모를 그대로 이어받아 계속 진행하는 뜻으로 고정합니다
 - 이 지시는 `06` 레인 안에서 이전 루프의 마지막 작업 위치를 최대한 이어받고, 더 이상 이어갈 미완료 항목이 없을 때만 같은 범위를 처음부터 재실행하는 뜻으로 고정합니다
+- 운영자가 이 문서 경로를 직접 지정한 뒤 같은 표현으로 지시해도 해석은 바뀌지 않으며, 항상 현재 `06` 레인 컨텍스트에 붙어서 이어가기 우선으로 처리합니다
+- 따라서 `6번에 붙는다`는 말은 항상 `06` 고정, `이어서 진행` 우선, 미완료 항목 소진 시 동일 범위 `재실행`, 약 `1분` 간격 반복 순서로 해석합니다
 - 특히 `7번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`도 별도 해석 없이 항상 `07` 레인의 상시 반복 지시로 고정합니다
 - 이 경우 운영자가 중지, 번호 변경, 범위 변경을 말하기 전까지 `07` 레인의 마지막 미완료 SQL draft, migration draft, rollback draft, DB 노트를 1분 간격으로 계속 재확인합니다
 - 이 지시는 `07` 레인 안에서 이전 루프의 마지막 작업 위치를 최대한 이어받고, 더 이상 이어갈 미완료 항목이 없을 때만 같은 범위를 처음부터 재실행하는 뜻으로 고정합니다
+- 특히 `8번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`도 별도 해석 없이 항상 `08` 레인의 상시 반복 지시로 고정합니다
+- 이 경우 운영자가 중지, 번호 변경, 범위 변경을 말하기 전까지 `08` 레인의 마지막 미완료 deploy-console, runtime-package, session-loop 운영 기준과 서버 역할 드리프트를 1분 간격으로 계속 재확인합니다
+- 이 지시는 `08` 레인 안에서 이전 루프의 마지막 작업 위치를 최대한 이어받고, 더 이상 이어갈 미완료 운영 항목이 없을 때만 같은 범위를 처음부터 재실행하는 뜻으로 고정합니다
 - 특히 `9번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`도 별도 해석 없이 항상 `09` 레인의 상시 반복 지시로 고정합니다
 - 이 경우 운영자가 중지, 번호 변경, 범위 변경을 말하기 전까지 `09` 레인의 마지막 미완료 compare, parity, repair, smoke verification 문서와 프로토타입, 연결된 검증 구현 범위를 1분 간격으로 계속 재확인합니다
+- 이 지시는 새 `09` 세션을 추가로 파는 뜻이 아니라, 이미 붙어 있던 `09` 작업 컨텍스트와 마지막 미완료 메모를 그대로 이어받아 계속 진행하는 뜻으로 고정합니다
 - 이 지시는 `09` 레인 안에서 이전 루프의 마지막 작업 위치를 최대한 이어받고, 더 이상 이어갈 미완료 검증 항목이 없을 때만 같은 범위를 처음부터 재실행하는 뜻으로 고정합니다
+- 따라서 `9번에 붙는다`는 말은 항상 `09` 고정, `이어서 진행` 우선, 미완료 항목 소진 시 동일 범위 `재실행`, 약 `1분` 간격 반복 순서로 해석합니다
 
 ## 상태 코드
 
@@ -57,16 +69,16 @@
 
 | 세션 | 현재 상태 | 추정 진행률 | 담당 계정 | 최종 갱신 | 오늘 목표 |
 | --- | --- | ---: | --- | --- | --- |
-| `01` 계약 조정 | `HANDOFF` | `96%` | `미지정` | `2026-03-21` | 구현 세션 착수 관찰 및 예외 blocker 대응 |
-| `02` 제안 및 요구 접수 | `IN_PROGRESS` | `78%` | `미지정` | `2026-03-21` | 제안 흐름 계약과 프로토타입 연결 마감 |
-| `03` 테마, 셸, 디자인 시스템 | `HANDOFF` | `96%` | `미지정` | `2026-03-21` | `05/09` 수신 이후 예외 parity와 custom route drift만 추적 |
-| `04` 빌더 및 자산 스튜디오 | `IN_PROGRESS` | `68%` | `미지정` | `2026-03-21` | guided-build-flow, screen-builder, asset-studio, page-assembly 입력물 정합성 마감 |
-| `05` 프런트엔드 런타임 및 운영자 UI | `READY` | `15%` | `미지정` | `2026-03-21` | `03/04` 입력물 수신 뒤 첫 리액트 구현 범위 고정 |
-| `06` 백엔드 제어 평면 | `IN_PROGRESS` | `28%` | `미지정` | `2026-03-21` | 계약 필드 정합성과 서비스 테스트 고정, 남은 mapper/DB drift 정리 |
-| `07` DB, SQL, 마이그레이션, 롤백 | `HANDOFF` | `92%` | `미지정` | `2026-03-21` | `06/08` 수신 확인과 후속 DB drift 유무만 1분 간격으로 재점검 |
-| `08` 배포, 런타임 패키지, 서버 | `IN_PROGRESS` | `55%` | `미지정` | `2026-03-21` | deploy-console과 session-loop 번호 세션 라우팅 기준 정렬 |
-| `09` 정합성, 비교, 복구, 검증 | `IN_PROGRESS` | `60%` | `미지정` | `2026-03-21` | `04` 입력물과 `05` 구현 결과를 같은 검증 기준으로 정리 |
-| `10` 설치형 모듈 및 공통 계열 | `IN_PROGRESS` | `65%` | `미지정` | `2026-03-21` | 모듈 선택 결과와 추적 연계 규칙 마감 |
+| `01` 계약 조정 | `HANDOFF` | `96%` | `미지정` | `2026-03-24` | 구현 세션 착수 관찰 및 예외 blocker 대응 |
+| `02` 제안 및 요구 접수 | `HANDOFF` | `92%` | `미지정` | `2026-03-25` | `04/09`가 바로 consume할 governed proposal baseline 유지와 drift 감시 |
+| `03` 테마, 셸, 디자인 시스템 | `HANDOFF` | `96%` | `미지정` | `2026-03-24` | `05/09` 수신 이후 예외 parity와 custom route drift만 추적 |
+| `04` 빌더 및 자산 스튜디오 | `HANDOFF` | `88%` | `미지정` | `2026-03-24` | `05/09`가 바로 consume할 builder, asset, page-assembly 입력물 유지와 drift 감시 |
+| `05` 프런트엔드 런타임 및 운영자 UI | `HANDOFF` | `88%` | `미지정` | `2026-03-24` | `09`가 바로 consume할 runtime/operator UI 출력 유지와 drift 감시 |
+| `06` 백엔드 제어 평면 | `IN_PROGRESS` | `90%` | `미지정` | `2026-03-25` | `07/09`가 바로 받을 수 있는 stable payload naming과 trace linkage 유지 |
+| `07` DB, SQL, 마이그레이션, 롤백 | `HANDOFF` | `92%` | `미지정` | `2026-03-24` | `06/08` 수신 확인과 후속 DB drift 유무만 1분 간격으로 재점검 |
+| `08` 배포, 런타임 패키지, 서버 | `HANDOFF` | `72%` | `미지정` | `2026-03-24` | `09`가 바로 받을 수 있는 deploy evidence와 번호 세션 라우팅 기준 유지 |
+| `09` 정합성, 비교, 복구, 검증 | `HANDOFF` | `90%` | `미지정` | `2026-03-24` | `01`이 종합 검토를 이어받을 수 있도록 parity/compare/repair/smoke 출력 유지 |
+| `10` 설치형 모듈 및 공통 계열 | `HANDOFF` | `86%` | `미지정` | `2026-03-25` | `08/09`가 바로 consume할 module result, trace, runtime-package linkage 유지 |
 
 ## 비가역 기본 규칙
 
@@ -160,17 +172,21 @@
 
 ### 02. 제안 및 요구 접수
 
-- 상태: `IN_PROGRESS`
-- 추정 진행률: `78%`
-- 운영 메모: 제안 매핑, 인벤토리, 산출 흐름 문서와 프로토타입 연결이 진행 중입니다
-- 다음 1개 행동: 제안 흐름 계약 문서와 프로토타입 사이의 필드/단계/카운트 불일치를 한 번 더 맞춥니다
+- 상태: `HANDOFF`
+- 추정 진행률: `92%`
+- 운영 메모: 제안 매핑, 인벤토리, 매트릭스, 시나리오/설계 산출 흐름이 같은 proposal identity와 `04/09` 소비 기준으로 정렬되어 handoff-ready 상태입니다
+- 다음 1개 행동: `04/09` 수신 이후 proposal baseline drift나 누락 evidence만 재점검합니다
 - 상시 운영 해석: 운영자가 `2번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`라고 말한 상태로 간주하고, 중지 지시가 없으면 이 레인을 계속 순환합니다
 - 목적: 제안 업로드, 매핑 초안, 인벤토리, 매트릭스, 시나리오/설계 산출 흐름을 정리합니다
 - 최근 변경 파일:
   - `docs/architecture/project-proposal-generation-api-contracts.md`
   - `docs/architecture/project-proposal-generation-inventory-checklist.md`
+  - `docs/architecture/project-proposal-generation-matrix.md`
+  - `docs/architecture/proposal-to-mapping-ai-output-schema.md`
+  - `docs/architecture/project-scenario-and-design-output-contract.md`
   - `docs/prototypes/resonance-ui/proposal-mapping-draft.html`
   - `docs/prototypes/resonance-ui/project-proposal-inventory.html`
+  - `docs/prototypes/resonance-ui/project-proposal-matrix.html`
 - 붙기/반복 기준:
   - 운영자가 `2번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`라고 말하면 항상 이 레인으로 해석합니다
   - 새 레인을 만들지 않고 현재 `02` 레인의 마지막 미완료 문서부터 이어갑니다
@@ -206,6 +222,8 @@
   - 새로운 공통 계약이 생기면 `01`
 - 인계 대상:
   - `04`, `09`
+- 공식 handoff 문구:
+  - `HANDOFF READY: 04 and 09 may continue from governed proposal mapping, inventory, matrix, and scenario/design outputs; proposal consumer blocker count is 0.`
 
 ### 03. 테마, 셸, 디자인 시스템
 
@@ -258,10 +276,10 @@
 
 ### 04. 빌더 및 자산 스튜디오
 
-- 상태: `IN_PROGRESS`
-- 추정 진행률: `68%`
-- 운영 메모: 빌더/자산/화면 빌더 프로토타입이 계속 수정 중이라 아직 넘기기 완료 전입니다
-- 다음 1개 행동: 화면 빌더, 자산 스튜디오, 유도 흐름 프로토타입 사이의 누락 연결을 닫습니다
+- 상태: `HANDOFF`
+- 추정 진행률: `88%`
+- 운영 메모: builder, asset-studio, design guide, page-assembly 입력물이 `05/09` 소비 기준으로 문서와 프로토타입에 연결됐고, 현재는 수신 확인과 drift 감시 단계입니다
+- 다음 1개 행동: `05/09` 수신 확인과 후속 builder linkage drift 유무만 유지 점검합니다
 - 상시 운영 해석: 운영자가 `4번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`라고 말한 상태로 간주하고, 중지 지시가 없으면 이 레인을 계속 순환합니다
 - 목적: 테마 세트 스튜디오, 증분 자산 스튜디오, 화면 빌더, 페이지/요소/조합 거버넌스를 정리합니다
 - 최근 변경 파일:
@@ -312,10 +330,10 @@
 
 ### 05. 프런트엔드 런타임 및 운영자 UI
 
-- 상태: `READY`
-- 추정 진행률: `15%`
-- 운영 메모: `01` 동결 이후 `03`의 template/theme 기준과 `04`의 guided-build-flow, screen-builder, asset-studio, page-assembly 입력물을 받아 리액트 기반 화면 작업을 시작합니다
-- 다음 1개 행동: 첫 구현 대상 화면과 공통 기본 구성요소 목록을 `03` 기준과 `04`의 guided-build-flow, screen-builder, asset-studio, page-assembly 입력물 기준으로 고정합니다
+- 상태: `HANDOFF`
+- 추정 진행률: `88%`
+- 운영 메모: 운영자 UI, screen-runtime, current-runtime-compare 화면과 공통 셸이 실제 프런트 코드에 올라와 있고, `09`가 consume하는 runtime/operator UI 출력 형태도 문서와 프로토타입 기준으로 고정했습니다
+- 다음 1개 행동: `09` 수신 확인과 후속 UI drift 유무만 유지 점검합니다
 - 상시 운영 해석: 운영자가 `5번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`라고 말한 상태로 간주하고, 중지 지시가 없으면 이 레인을 계속 순환합니다
 - 목적: 리액트 운영 화면, 런타임 관리자 UI와 공개 UI의 일관성, 공통 기본 구성요소를 구현합니다
 - 최근 변경 파일:
@@ -323,8 +341,12 @@
   - `docs/architecture/lane-start-instructions-05-06-08-09.md`
   - `docs/prototypes/resonance-ui/index.html`
   - `docs/prototypes/resonance-ui/project-runtime.html`
+- 실행 명령:
+  - 무한 반복: `cd /opt/projects/carbonet/frontend && npm run lane:05:loop`
+  - 1회 점검: `cd /opt/projects/carbonet/frontend && npm run lane:05:loop -- --once`
 - 붙기/반복 기준:
   - 운영자가 `5번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`라고 말하면 항상 이 레인으로 해석합니다
+  - 운영자가 이 파일 경로를 직접 찍고 같은 문구를 말해도 새 작업 지시로 갈라 읽지 않고, 이미 열려 있는 `05` 레인 컨텍스트에 그대로 붙는 뜻으로 해석합니다
   - 새 레인을 만들지 않고 현재 `05` 레인의 마지막 미완료 화면 구현, 운영자 UI 정리, 공통 기본 구성요소 작업부터 이어갑니다
   - 중지 지시가 없으면 1회성 작업으로 끝내지 않고 같은 `05` 레인 안에서 계속 순환합니다
   - 각 루프는 먼저 `이어서 진행` 가능 여부를 확인하고, 직전 미완료 지점이 닫혔을 때만 같은 체크 순서를 기준으로 `재실행` 단계로 넘어갑니다
@@ -339,6 +361,7 @@
   - `/opt/projects/carbonet/frontend/scripts`
 - 반복 실행 규칙:
   - 직전 루프의 마지막 작업 위치, 미완료 메모, 열린 화면/컴포넌트/일관성 불일치 목록을 그대로 이어받아 다음 루프 시작점으로 사용합니다
+  - 이 지시는 새 `05` 세션 생성이나 범위 확장을 뜻하지 않고, 이미 열려 있던 `05` 컨텍스트의 마지막 미완료 지점을 그대로 복구해 이어가는 뜻으로 고정합니다
   - 이어서 진행할 수 있는 미완료 항목이 있으면 재탐색보다 해당 프런트엔드 구현의 직전 중단 지점 복구를 우선합니다
   - 가장 마지막으로 수정한 운영자 UI 또는 런타임 화면에서 이어서, 누락된 구성요소 연결과 governed identity field 유지 여부를 먼저 닫습니다
   - 직전 루프에서 더 진행할 내용이 없으면 같은 범위 문서, 프로토타입, 프런트엔드 소스를 다시 훑어 새 누락이나 드리프트가 없는지 재실행 확인합니다
@@ -347,6 +370,7 @@
   - `09`가 구현 결과를 바로 검증할 수 있을 정도로 운영자 UI, 런타임 화면, 공통 기본 구성요소 출력이 정리되면 `HANDOFF`로 넘깁니다
   - `HANDOFF` 뒤에도 운영자가 계속 `5번`에 붙으라고 유지하면, 인계 수신 확인 여부와 후속 UI 수정 필요성만 1분마다 같은 레인에서 다시 점검합니다
   - 반복은 운영자가 중지, 번호 변경, 범위 변경을 말할 때만 종료하고, 그 전까지는 `05` 내부 미완료 항목 확인과 동일 범위 재점검을 계속 유지합니다
+  - 따라서 해석 우선순서는 항상 `기존 05 마지막 미완료 지점 이어가기 -> 같은 범위 재점검 -> 동일 체크 순서 재실행`입니다
 - 허용 경로:
   - `/opt/projects/carbonet/frontend/src`
   - `/opt/projects/carbonet/frontend/scripts`
@@ -365,9 +389,9 @@
 ### 06. 백엔드 제어 평면
 
 - 상태: `IN_PROGRESS`
-- 추정 진행률: `28%`
-- 운영 메모: 제어 평면 API 골격과 파일/DB 적재 경로가 살아 있으며, 계약 필드 정합성과 서비스 테스트 고정 작업이 진행 중입니다
-- 다음 1개 행동: module-selection, repair, verification 응답/적재 payload를 기준으로 남은 mapper/DB drift를 한 번 더 닫습니다
+- 추정 진행률: `90%`
+- 운영 메모: 제어 평면 API, 서비스, 매퍼, XML, 테스트가 실제 코드로 연결돼 있고 `07/09`가 바로 받을 수 있는 stable payload naming과 release-unit trace linkage 기준도 문서로 고정했습니다. 현재 루프 기준 `mvn -o -Dtest=ResonanceControlPlaneServiceImplTest,ResonanceControlPlaneMapperXmlContractTest test`는 `org.apache.maven.surefire:surefire-junit-platform:2.22.2` 로컬 부재 때문에 `BLOCKED`이며, XML `occurredAt` 바인딩 카운트는 현재 `4`로 mapper contract test 기대치와 맞췄습니다
+- 다음 1개 행동: `src/test/java`를 포함한 현재 `06` 범위에서 mapper/DB drift를 다시 훑고, 로컬 Maven surefire 아티팩트를 복구할 수 있는지 확인한 뒤 제어 평면 테스트를 재실행합니다
 - 상시 운영 해석: 운영자가 `6번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`라고 말한 상태로 간주하고, 중지 지시가 없으면 이 레인을 계속 순환합니다
 - 목적: 제어 평면 인터페이스, 레지스트리, 수명주기, 비교, 보정, 릴리스 서비스를 구현합니다
 - 최근 변경 파일:
@@ -376,31 +400,43 @@
   - `docs/prototypes/resonance-ui/backend-chain-explorer.html`
   - `src/main/java/egovframework/com/feature/admin/service/impl/ResonanceControlPlaneServiceImpl.java`
   - `src/test/java/egovframework/com/feature/admin/service/impl/ResonanceControlPlaneServiceImplTest.java`
+- 실행 명령:
+  - 무한 반복: `cd /opt/projects/carbonet/frontend && npm run lane:06:loop`
+  - 1회 점검: `cd /opt/projects/carbonet/frontend && npm run lane:06:loop -- --once`
 - 붙기/반복 기준:
   - 운영자가 `6번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`라고 말하면 항상 이 레인으로 해석합니다
+  - 운영자가 이 파일 경로를 직접 찍고 같은 문구를 말해도 새 작업 지시로 갈라 읽지 않고, 이미 열려 있는 `06` 레인 컨텍스트에 그대로 붙는 뜻으로 해석합니다
   - 새 레인을 만들지 않고 현재 `06` 레인의 마지막 미완료 백엔드 제어 평면 인터페이스, 서비스, 매퍼 작업부터 이어갑니다
   - 중지 지시가 없으면 1회성 작업으로 끝내지 않고 같은 `06` 레인 안에서 계속 순환합니다
   - 각 루프는 먼저 `이어서 진행` 가능 여부를 확인하고, 직전 미완료 지점이 닫혔을 때만 같은 체크 순서를 기준으로 `재실행` 단계로 넘어갑니다
   - 약 1분마다 아래 반복 체크 순서대로 다시 확인합니다
 - 반복 체크 순서:
+  - `docs/architecture/lane-start-instructions-05-06-08-09.md`
+  - `docs/architecture/lane-code-start-checklists-05-06-08-09.md`
   - `docs/architecture/module-selection-api-contracts.md`
   - `docs/architecture/repair-and-verification-api-contracts.md`
-  - `src/main/java`
-  - `src/main/resources/egovframework/mapper`
+  - `src/main/java/egovframework/com/feature/admin/web/ResonanceControlPlaneApiController.java`
+  - `src/main/java/egovframework/com/feature/admin/service/impl/ResonanceControlPlaneServiceImpl.java`
+  - `src/main/resources/egovframework/mapper/com/feature/admin/ResonanceControlPlaneMapper.xml`
+  - `src/test/java/egovframework/com/feature/admin/service/impl/ResonanceControlPlaneServiceImplTest.java`
+  - `src/test/java/egovframework/com/feature/admin/mapper/ResonanceControlPlaneMapperXmlContractTest.java`
 - 반복 실행 규칙:
   - 직전 루프의 마지막 작업 위치, 미완료 메모, 열린 인터페이스/서비스/매퍼 불일치 목록을 그대로 이어받아 다음 루프 시작점으로 사용합니다
+  - 이 지시는 새 `06` 세션 생성이나 범위 확장을 뜻하지 않고, 이미 열려 있던 `06` 컨텍스트의 마지막 미완료 지점을 그대로 복구해 이어가는 뜻으로 고정합니다
   - 이어서 진행할 수 있는 미완료 항목이 있으면 재탐색보다 해당 백엔드 제어 평면 구현의 직전 중단 지점 복구를 우선합니다
   - 가장 마지막으로 수정한 인터페이스, 서비스, 매퍼에서 이어서 구현하고, 누락 계약 연결과 이름 정합성을 먼저 닫습니다
   - 직전 루프에서 더 진행할 내용이 없으면 같은 범위 문서와 백엔드 소스를 다시 훑어 새 누락이나 드리프트가 없는지 재실행 확인합니다
   - 재실행 루프에서는 제어 평면 계약, Java 서비스, MyBatis 매퍼 사이의 이름, 파라미터, lifecycle 연결이 다시 벌어지지 않았는지 먼저 확인합니다
-  - 재실행 루프에서는 module-selection, repair, verification 응답/적재 payload와 서비스 테스트 고정 상태를 먼저 다시 대조하고, 그 다음 mapper/DB drift를 닫습니다
+  - 재실행 루프에서는 module-selection, repair, verification 응답/적재 payload와 서비스 테스트, mapper contract test 고정 상태를 먼저 다시 대조하고, 그 다음 mapper/DB drift를 닫습니다
   - `01`이 아직 고정하지 않은 공통 계약이나 identity 이름이 필요해지면 즉시 `BLOCKED` 또는 `HANDOFF`로 바꿉니다
   - `07`과 `09`가 바로 이어받을 수 있을 정도로 제어 평면 구현과 계약 연결이 안정화되면 `HANDOFF READY`로 넘깁니다
   - `HANDOFF READY` 뒤에도 운영자가 계속 `6번`에 붙으라고 유지하면, 인계 수신 확인 여부와 후속 서비스/매퍼 수정 필요성만 1분마다 같은 레인에서 다시 점검합니다
   - 반복은 운영자가 중지, 번호 변경, 범위 변경을 말할 때만 종료하고, 그 전까지는 `06` 내부 미완료 항목 확인과 동일 범위 재점검을 계속 유지합니다
+  - 따라서 해석 우선순서는 항상 `기존 06 마지막 미완료 지점 이어가기 -> 같은 범위 재점검 -> 동일 체크 순서 재실행`입니다
 - 허용 경로:
   - `/opt/projects/carbonet/src/main/java`
   - `/opt/projects/carbonet/src/main/resources/egovframework/mapper`
+  - `/opt/projects/carbonet/src/test/java`
 - 금지 경로:
   - 프런트엔드 소스
   - 넘겨받지 않은 공통 계약
@@ -417,8 +453,8 @@
 
 - 상태: `HANDOFF`
 - 추정 진행률: `92%`
-- 운영 메모: `06` 시작 문서, release-governance 계약, naming 규약 대조 결과 `RELEASE_UNIT_BINDING_TRACE / releaseBindingTraceId / releaseUnitId / projectId / guidedStateId / assetTraceSet / boundAt` 조합에 충돌이 없었고, 현재는 `06/08` 수신 확인과 후속 drift 감시만 남아 있습니다
-- 다음 1개 행동: `06/08`이 release-unit binding placeholder와 rollback detach placeholder를 그대로 수신하는지 확인하고, 새 DB drift가 생기면 같은 draft family 안에서만 보수합니다
+- 운영 메모: `06` 시작 문서, release-governance 계약, naming 규약 대조 결과 `RELEASE_UNIT_BINDING_TRACE / releaseBindingTraceId / releaseUnitId / projectId / guidedStateId / assetTraceSet / boundAt` 조합에 충돌이 없었고, `06` 매퍼가 요구하는 `TEMPLATE_LINE_ID` drift를 `RSN_REPAIR_SESSION / RSN_REPAIR_APPLY_RUN / RSN_VERIFICATION_RUN` draft family에 반영했습니다. 현재는 `08` 수신 확인과 후속 drift 감시만 남아 있습니다
+- 다음 1개 행동: `08` 문서와 운영 산출물이 release-unit binding placeholder, rollback detach placeholder, `TEMPLATE_LINE_ID` 보존 규칙을 그대로 수신하는지 확인하고, 새 DB drift가 생기면 같은 draft family 안에서만 보수합니다
 - 상시 운영 해석: 운영자가 `7번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`라고 말한 상태로 간주하고, 중지 지시가 없으면 이 레인을 계속 순환합니다
 - 목적: SQL 초안, 데이터베이스 기준, 마이그레이션, 롤백, 공통/프로젝트 DB 분리를 정리합니다
 - 최근 변경 파일:
@@ -474,16 +510,41 @@
 
 ### 08. 배포, 런타임 패키지, 서버
 
-- 상태: `IN_PROGRESS`
-- 추정 진행률: `55%`
-- 운영 메모: 운영 흐름 문서, 배포 콘솔, 반복 스크립트 기준 정리가 진행 중이며 `ops/scripts/resonance-session-loop.sh`는 번호 세션 라우팅 프롬프트를 `tmux`에 반복 주입하는 운영 도구로 정리하는 단계입니다
-- 다음 1개 행동: 배포 콘솔 문서와 `ops/scripts/resonance-session-loop.sh`가 같은 번호 세션 라우팅 규칙과 반복 실행 기준을 사용하도록 역할 경계를 맞춥니다
+- 상태: `HANDOFF`
+- 추정 진행률: `72%`
+- 운영 메모: 운영 흐름 문서, 배포 콘솔, runtime package matrix, 반복 스크립트에 `releaseUnitId`, `runtimePackageId`, `deployTraceId`, `ownerLane`, `rollbackAnchorYn` 기준을 맞췄고 `09`가 바로 받을 deploy evidence를 정리했습니다
+- 다음 1개 행동: `09` 수신 확인과 후속 운영 drift 유무만 유지 점검합니다
+- 상시 운영 해석: 운영자가 `8번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`라고 말한 상태로 간주하고, 중지 지시가 없으면 이 레인을 계속 순환합니다
 - 목적: Jenkins/Nomad/Nginx, 런타임 패키지 매트릭스, 193->221 배포 흐름, 서버 세트 소유를 정리합니다
 - 최근 변경 파일:
   - `docs/architecture/runtime-package-matrix-and-deploy-ia.md`
   - `docs/prototypes/resonance-ui/deploy-console.html`
   - `docs/prototypes/resonance-ui/runtime-package-matrix.html`
   - `ops/scripts/resonance-session-loop.sh`
+- 붙기/반복 기준:
+  - 운영자가 `8번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`라고 말하면 항상 이 레인으로 해석합니다
+  - 새 레인을 만들지 않고 현재 `08` 레인의 마지막 미완료 deploy/session-loop 항목부터 이어갑니다
+  - 중지 지시가 없으면 1회성 작업으로 끝내지 않고 같은 `08` 레인 안에서 계속 순환합니다
+  - 각 루프는 먼저 `이어서 진행` 가능 여부를 확인하고, 직전 미완료 지점이 닫혔을 때만 같은 체크 순서를 기준으로 `재실행` 단계로 넘어갑니다
+  - 약 1분마다 아래 반복 체크 순서대로 다시 확인합니다
+- 반복 체크 순서:
+  - `docs/architecture/lane-start-instructions-05-06-08-09.md`
+  - `docs/architecture/lane-code-start-checklists-05-06-08-09.md`
+  - `docs/architecture/runtime-package-matrix-and-deploy-ia.md`
+  - `docs/architecture/two-host-build-deploy-runbook.md`
+  - `docs/prototypes/resonance-ui/runtime-package-matrix.html`
+  - `docs/prototypes/resonance-ui/deploy-console.html`
+  - `ops/scripts/resonance-session-loop.sh`
+- 반복 실행 규칙:
+  - 직전 루프의 마지막 작업 위치, 열린 서버 역할 드리프트, 번호 세션 라우팅 메모를 그대로 이어받아 다음 루프 시작점으로 사용합니다
+  - 이어서 진행할 수 있는 미완료 항목이 있으면 재탐색보다 해당 deploy-console, runtime-package, session-loop 정렬 작업의 직전 중단 지점 복구를 우선합니다
+  - 가장 마지막으로 수정한 운영 산출물에서 이어서, `233 build / 221 run / 193 DB` 역할 구분과 번호 세션 라우팅 프롬프트 드리프트를 먼저 닫습니다
+  - 직전 루프에서 더 진행할 내용이 없으면 같은 범위 문서, 프로토타입, 반복 스크립트를 다시 훑어 새 누락이나 드리프트가 없는지 재실행 확인합니다
+  - 재실행 루프에서는 `06`의 release-unit 및 artifact naming, `07`의 DB target 및 rollback note, `09`가 소비할 deploy evidence 기준과 다시 벌어지지 않았는지 먼저 확인합니다
+  - 새 공통 계약이 필요해 `01` 소유 범위를 건드리거나 `06`, `07`, `09` 입력물 정의를 다시 바꿔야 하면 즉시 `BLOCKED` 또는 `HANDOFF`로 바꿉니다
+  - `09`가 바로 받을 수 있을 정도로 deploy-console, runtime-package, session-loop 운영 산출물이 번호 세션 라우팅과 서버 역할 기준까지 정리되면 `HANDOFF READY`로 넘깁니다
+  - `HANDOFF` 뒤에도 운영자가 계속 `8번`에 붙으라고 유지하면, 인계 수신 확인 여부와 후속 운영 drift만 1분마다 같은 레인에서 다시 점검합니다
+  - 반복은 운영자가 중지, 번호 변경, 범위 변경을 말할 때만 종료하고, 그 전까지는 `08` 내부 미완료 항목 확인과 동일 범위 재점검을 계속 유지합니다
 - 허용 경로:
   - `/opt/projects/carbonet/ops`
   - `/opt/projects/carbonet/docs/architecture`
@@ -502,10 +563,10 @@
 
 ### 09. 정합성, 비교, 복구, 검증
 
-- 상태: `IN_PROGRESS`
-- 추정 진행률: `60%`
-- 운영 메모: 점검표, 복구 계약, 누락 자산/비교 프로토타입 정리가 진행 중이며 `04`의 guided-build-flow, screen-builder, asset-studio, page-assembly 입력물과 `05`의 구현 결과를 같은 검증 기준으로 묶는 단계입니다
-- 다음 1개 행동: 정합성 점검표와 복구 계약 문서가 `04` 입력물과 `05` 구현 결과를 기준으로 비교/검증 프로토타입에 바로 매핑되도록 기준을 닫습니다
+- 상태: `HANDOFF`
+- 추정 진행률: `90%`
+- 운영 메모: current-runtime-compare, repair-workbench, parity checklist에 `08` deploy evidence와 smoke closure 기준까지 연결했고, 현재는 `01`이 바로 종합 검토를 이어받을 수 있는 상태입니다
+- 다음 1개 행동: `01` 수신 확인과 후속 drift 유무만 유지 점검합니다
 - 상시 운영 해석: 운영자가 `9번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`라고 말한 상태로 간주하고, 중지 지시가 없으면 이 레인을 계속 순환합니다
 - 목적: 비교, 스모크 점검, 누락 자산 대기열, 복구 작업대, 정합성 및 일관성 검증을 정리합니다
 - 최근 변경 파일:
@@ -516,7 +577,9 @@
 - 붙기/반복 기준:
   - 운영자가 `9번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`라고 말하면 항상 이 레인으로 해석합니다
   - 새 레인을 만들지 않고 현재 `09` 레인의 마지막 미완료 compare, parity, repair, verification 항목부터 이어갑니다
+  - 이미 `09`를 수행 중인 세션이 있으면 같은 세션에 그대로 붙고, 직전 루프의 마지막 작업 위치와 메모를 기본 시작점으로 사용합니다
   - 중지 지시가 없으면 1회성 작업으로 끝내지 않고 같은 `09` 레인 안에서 계속 순환합니다
+  - `09` 레인에 이미 작업 중인 세션이 있으면 그 세션의 직전 미완료 지점과 메모를 이어받아 계속 진행하고, 비어 있거나 끊긴 경우에만 같은 레인 기준으로 다시 붙습니다
   - 각 루프는 먼저 `이어서 진행` 가능 여부를 확인하고, 직전 미완료 지점이 닫혔을 때만 같은 체크 순서를 기준으로 `재실행` 단계로 넘어갑니다
   - 약 1분마다 아래 반복 체크 순서대로 다시 확인합니다
 - 반복 체크 순서:
@@ -530,6 +593,8 @@
   - `/opt/projects/carbonet/frontend/src/features`
 - 반복 실행 규칙:
   - 직전 루프의 마지막 작업 위치, 미완료 메모, 열린 compare/parity/repair 불일치 목록을 그대로 이어받아 다음 루프 시작점으로 사용합니다
+  - 루프 시작 순서는 항상 `현재 09 세션 생존 여부 확인 -> 직전 미완료 지점 복구 -> 이어서 진행 -> 필요 시 동일 범위 재실행`으로 고정합니다
+  - 매 1분 루프 시작 시 가장 먼저 현재 `09` 세션이 살아 있는지, 직전 작업 컨텍스트를 그대로 복구할 수 있는지 확인하고 가능하면 항상 `이어서 진행`을 우선합니다
   - 이어서 진행할 수 있는 미완료 항목이 있으면 재탐색보다 해당 검증 기준, 비교 프로토타입, 복구 워크벤치의 직전 중단 지점 복구를 우선합니다
   - 가장 마지막으로 수정한 비교 기준 또는 검증 산출물에서 이어서, `04`의 guided-build-flow, screen-builder, asset-studio, page-assembly 입력물과 `05`의 구현 결과 사이에 남은 연결 누락을 먼저 닫습니다
   - 직전 루프에서 더 진행할 내용이 없으면 같은 범위 문서, 프로토타입, 연결된 검증 구현 범위를 다시 훑어 새 누락이나 드리프트가 없는지 재실행 확인합니다
@@ -538,6 +603,7 @@
   - `01`이 바로 종합 검토를 이어받을 수 있을 정도로 parity, compare, repair, smoke verification 출력이 정리되면 `HANDOFF READY`로 넘깁니다
   - `HANDOFF` 뒤에도 운영자가 계속 `9번`에 붙으라고 유지하면, 인계 수신 확인 여부와 후속 검증 drift만 1분마다 같은 레인에서 다시 점검합니다
   - 반복은 운영자가 중지, 번호 변경, 범위 변경을 말할 때만 종료하고, 그 전까지는 `09` 내부 미완료 항목 확인과 동일 범위 재점검을 계속 유지합니다
+  - 운영 해석상 `9번에 붙는다`는 말은 항상 `재실행 가능 여부 확인 -> 가능하면 이어서 진행 -> 더 이상 이어갈 것이 없으면 동일 범위 재실행` 순서를 무한 반복하는 뜻으로 고정합니다
 - 허용 경로:
   - `/opt/projects/carbonet/docs/architecture`
   - `/opt/projects/carbonet/docs/prototypes/resonance-ui`
@@ -555,10 +621,10 @@
 
 ### 10. 설치형 모듈 및 공통 계열
 
-- 상태: `IN_PROGRESS`
-- 추정 진행률: `65%`
-- 운영 메모: 모듈 선택 문서와 프로토타입은 많이 진행됐고 백엔드 연계가 남아 있습니다
-- 다음 1개 행동: 모듈 선택 결과, 적용 결과, 추적 연계 문서를 한 흐름으로 묶고 백엔드 연계 지점을 고정합니다
+- 상태: `HANDOFF`
+- 추정 진행률: `86%`
+- 운영 메모: 모듈 선택 결과, 적용 결과, trace linkage가 runtime-package와 repair 흐름까지 연결됐고, 현재는 `08/09` 수신 확인과 drift 감시 단계입니다
+- 다음 1개 행동: `08/09` 수신 확인과 후속 module linkage drift 유무만 유지 점검합니다
 - 목적: 모듈 수집, 선택 팝업, 공통 JAR 구성 체계, 메일/SMS/인증/결재/인장 공통 연동기를 정리합니다
 - 최근 변경 파일:
   - `docs/architecture/module-selection-apply-result-contract.md`
@@ -604,6 +670,8 @@
 반복 스크립트 예시:
 - `ops/scripts/resonance-session-loop.sh 02`
 - `ops/scripts/resonance-session-loop.sh 04 60`
+- `ops/scripts/resonance-session-loop.sh 08 60`
+- `ops/scripts/resonance-session-loop.sh 09 60`
 - `LOOP_MODE=rerun ops/scripts/resonance-session-loop.sh res-09-verify 30`
 
 숫자 레인으로 스크립트를 실행하면 기본 프롬프트는 자동으로

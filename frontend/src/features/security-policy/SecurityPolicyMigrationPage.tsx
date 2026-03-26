@@ -1,4 +1,5 @@
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { fetchSecurityPolicyPage, readBootstrappedSecurityPolicyPageData, type SecurityPolicyPagePayload } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
@@ -7,7 +8,7 @@ import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";
 import { verifyRuntimeContextKeys } from "../admin-ui/contextKeyPresets";
 import { CopyableCodeBlock, DiagnosticCard, GridToolbar, MemberLinkButton, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
 import { AdminPolicyPageFrame, AdminSummaryStrip } from "../admin-ui/pageFrames";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export function SecurityPolicyMigrationPage() {
   const en = isEnglish();
@@ -24,6 +25,23 @@ export function SecurityPolicyMigrationPage() {
   const diagnostics = (page?.menuPermissionDiagnostics || {}) as Record<string, unknown>;
   const duplicatedMenuUrls = (diagnostics.duplicatedMenuUrls || []) as Array<Record<string, string>>;
   const duplicatedViewMappings = (diagnostics.duplicatedViewMappings || []) as Array<Record<string, string>>;
+  useEffect(() => {
+    if (!page) {
+      return;
+    }
+    logGovernanceScope("PAGE", "security-policy", {
+      route: window.location.pathname,
+      summaryCardCount: cards.length,
+      policyRowCount: rows.length,
+      duplicatedMenuUrlCount: duplicatedMenuUrls.length,
+      duplicatedViewMappingCount: duplicatedViewMappings.length
+    });
+    logGovernanceScope("COMPONENT", "security-policy-table", {
+      component: "security-policy-table",
+      rowCount: rows.length,
+      playbookCount: playbooks.length
+    });
+  }, [cards.length, duplicatedMenuUrls.length, duplicatedViewMappings.length, page, playbooks.length, rows.length]);
   function buildEnvironmentUrl(menuCode: string) {
     const normalizedMenuCode = (menuCode || "").trim();
     const query = normalizedMenuCode ? `?menuCode=${encodeURIComponent(normalizedMenuCode)}` : "";

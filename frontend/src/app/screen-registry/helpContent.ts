@@ -265,6 +265,206 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
       }
     ]
   },
+  "screen-runtime": {
+    pageId: "screen-runtime",
+    title: "발행 화면 런타임 도움말",
+    summary: "발행된 화면 스냅샷, registry 상태, 최근 publish 활동을 읽기 전용으로 검토합니다.",
+    items: [
+      {
+        id: "summary",
+        title: "런타임 요약 카드",
+        body: "menuCode, pageId, 발행 버전, 노드 수, 최근 빌더 활동 수를 먼저 확인합니다.",
+        anchorSelector: '[data-help-id="screen-runtime-summary"]',
+        placement: "top",
+        iconName: "dashboard",
+        highlightStyle: "focus"
+      },
+      {
+        id: "publish-audit",
+        title: "최근 발행 증거",
+        body: "가장 최근 publish actionCode, 작업자, 시각을 확인해 현재 런타임의 근거를 검토합니다.",
+        anchorSelector: '[data-help-id="screen-runtime-publish-audit"]',
+        placement: "right",
+        iconName: "history",
+        highlightStyle: "success"
+      },
+      {
+        id: "preview",
+        title: "런타임 미리보기",
+        body: "현재 발행 스냅샷이 실제로 렌더링 가능한지와 missing 또는 deprecated 컴포넌트 차단 여부를 확인합니다.",
+        anchorSelector: '[data-help-id="screen-runtime-preview"]',
+        placement: "left",
+        iconName: "preview",
+        highlightStyle: "warning"
+      },
+      {
+        id: "activity",
+        title: "빌더 활동 이력",
+        body: "최근 save, publish, restore 흔적을 보고 observability로 이어서 추적할 수 있습니다.",
+        anchorSelector: '[data-help-id="screen-runtime-builder-activity"]',
+        placement: "bottom",
+        iconName: "monitoring",
+        highlightStyle: "neutral"
+      }
+    ]
+  },
+  "current-runtime-compare": {
+    pageId: "current-runtime-compare",
+    title: "현재 런타임 비교 도움말",
+    summary: "발행 런타임, 현재 생성 스냅샷, governed baseline 사이의 차이를 같은 화면에서 검토합니다.",
+    items: [
+      {
+        id: "metrics",
+        title: "비교 요약 지표",
+        body: "비교 항목 수, 불일치 수, 누락 수, 최근 빌더 이벤트 수를 요약해 현재 위험도를 먼저 판단합니다.",
+        anchorSelector: '[data-help-id="runtime-compare-metrics"]',
+        placement: "top",
+        iconName: "analytics",
+        highlightStyle: "focus"
+      },
+      {
+        id: "scope",
+        title: "비교 범위",
+        body: "menuCode, pageId, 발행 버전, 초안 버전, compare context를 확인해 현재 비교 기준이 맞는지 점검합니다.",
+        anchorSelector: '[data-help-id="runtime-compare-scope"]',
+        placement: "right",
+        iconName: "rule",
+        highlightStyle: "neutral"
+      },
+      {
+        id: "matrix",
+        title: "비교 매트릭스",
+        body: "current runtime, generated, baseline 값을 행 단위로 비교해 mismatch와 gap을 식별합니다.",
+        anchorSelector: '[data-help-id="runtime-compare-matrix"]',
+        placement: "left",
+        iconName: "table_view",
+        highlightStyle: "warning"
+      },
+      {
+        id: "events",
+        title: "최근 비교 이벤트",
+        body: "최근 publish evidence, builder event count, parity trace를 통해 검증 이력을 이어서 확인합니다.",
+        anchorSelector: '[data-help-id="runtime-compare-events"]',
+        placement: "bottom",
+        iconName: "receipt_long",
+        highlightStyle: "success"
+      }
+    ]
+  },
+  "repair-workbench": {
+    pageId: "repair-workbench",
+    title: "복구 워크벤치 도움말",
+    summary: "compare 차단 항목을 repair/open, repair/apply 흐름으로 넘기기 위한 범위와 증거를 확인합니다.",
+    items: [
+      {
+        id: "scope",
+        title: "복구 범위",
+        body: "메뉴 코드, pageId, 릴리즈 유닛, compare 및 repair trace를 확인해 현재 복구 범위를 고정합니다.",
+        anchorSelector: '[data-help-id="repair-workbench-scope"]'
+      },
+      {
+        id: "linkage",
+        title: "빌더 / 런타임 증거",
+        body: "선택된 복구 대상이 어떤 빌더 초안과 발행 런타임 스냅샷에 연결되는지 검토합니다.",
+        anchorSelector: '[data-help-id="repair-workbench-linkage"]'
+      }
+    ]
+  },
+  "screen-flow-management": {
+    pageId: "screen-flow-management",
+    title: "화면 흐름 관리 도움말",
+    summary: "등록된 화면을 surface, event, API, schema, 권한 변경 체인으로 점검합니다.",
+    items: [
+      {
+        id: "summary",
+        title: "등록 현황 요약",
+        body: "현재 등록된 화면 수와 선택 화면의 surface, event, API 및 schema 수를 먼저 확인합니다.",
+        anchorSelector: '[data-help-id="screen-flow-summary"]',
+        placement: "top",
+        iconName: "dashboard",
+        highlightStyle: "focus"
+      },
+      {
+        id: "catalog",
+        title: "화면 카탈로그",
+        body: "pageId, routePath, menuCode 기준으로 화면을 검색하고 현재 점검 대상을 선택합니다.",
+        anchorSelector: '[data-help-id="screen-flow-catalog"]',
+        placement: "left",
+        iconName: "view_list",
+        highlightStyle: "neutral"
+      },
+      {
+        id: "surface-chain",
+        title: "화면 요소 흐름",
+        body: "surface별 selector, layout zone, 연결 이벤트 수와 API 수를 확인해 UI 진입점을 검토합니다.",
+        anchorSelector: '[data-help-id="screen-flow-surface-chain"]',
+        placement: "right",
+        iconName: "widgets",
+        highlightStyle: "success"
+      },
+      {
+        id: "event-chain",
+        title: "이벤트와 API 체인",
+        body: "프런트 함수 입력과 결과값, 연결 API를 행 단위로 따라가며 실제 처리 흐름을 확인합니다.",
+        anchorSelector: '[data-help-id="screen-flow-event-chain"]',
+        placement: "left",
+        iconName: "route",
+        highlightStyle: "warning"
+      },
+      {
+        id: "schema-permission",
+        title: "스키마 및 권한 변경 대상",
+        body: "schema, required view feature, relation table, change target을 함께 보고 운영 영향 범위를 판단합니다.",
+        anchorSelector: '[data-help-id="screen-flow-schema-permission"]',
+        placement: "bottom",
+        iconName: "schema",
+        highlightStyle: "neutral"
+      }
+    ]
+  },
+  "screen-menu-assignment-management": {
+    pageId: "screen-menu-assignment-management",
+    title: "화면-메뉴 귀속 관리 도움말",
+    summary: "메뉴 관리 기준 페이지 메뉴와 screen command 페이지의 귀속 상태를 점검합니다.",
+    items: [
+      {
+        id: "summary",
+        title: "귀속 현황 요약",
+        body: "페이지 메뉴 수, 귀속 완료 수, 미귀속 수, 고아 화면 수를 한 번에 확인합니다.",
+        anchorSelector: '[data-help-id="screen-menu-assignment-summary"]',
+        placement: "top",
+        iconName: "fact_check",
+        highlightStyle: "focus"
+      },
+      {
+        id: "catalog",
+        title: "귀속 목록",
+        body: "메뉴 코드, 경로, pageId 기준으로 검색해 현재 확인할 메뉴 귀속 대상을 선택합니다.",
+        anchorSelector: '[data-help-id="screen-menu-assignment-catalog"]',
+        placement: "left",
+        iconName: "list_alt",
+        highlightStyle: "neutral"
+      },
+      {
+        id: "detail",
+        title: "귀속 상세",
+        body: "선택 메뉴가 어느 pageId와 layoutVersion, permission binding으로 연결됐는지 확인합니다.",
+        anchorSelector: '[data-help-id="screen-menu-assignment-detail"]',
+        placement: "right",
+        iconName: "link",
+        highlightStyle: "success"
+      },
+      {
+        id: "orphan-pages",
+        title: "고아 화면 목록",
+        body: "메뉴와 연결되지 않은 screen command 페이지를 route와 menuCode 기준으로 재검토합니다.",
+        anchorSelector: '[data-help-id="screen-menu-assignment-orphans"]',
+        placement: "bottom",
+        iconName: "warning",
+        highlightStyle: "warning"
+      }
+    ]
+  },
   "sr-workbench": {
     pageId: "sr-workbench",
     title: "SR 워크벤치 도움말",
@@ -518,10 +718,19 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
       { id: "table", title: "로그인 이력 목록", body: "로그인 시각, 결과, 사용자, IP, 비고를 표로 확인합니다.", anchorSelector: '[data-help-id="login-history-table"]' }
     ]
   },
+  "member-security-history": {
+    pageId: "member-security-history",
+    title: "회원 접근 차단 이력 도움말",
+    summary: "회원 접근 차단 이력과 차단 사유를 조회하는 화면입니다.",
+    items: [
+      { id: "search", title: "차단 이력 검색", body: "사용자 구분과 키워드로 회원 차단 이력을 조회합니다.", anchorSelector: '[data-help-id="login-history-search"]' },
+      { id: "table", title: "차단 이력 목록", body: "차단 시각, 사용자, IP, 차단 사유를 표로 검토합니다.", anchorSelector: '[data-help-id="login-history-table"]' }
+    ]
+  },
   "security-history": {
     pageId: "security-history",
-    title: "접근 차단 이력 도움말",
-    summary: "차단된 접근 이벤트만 필터링해서 조회하는 화면입니다.",
+    title: "시스템 접근 차단 이력 도움말",
+    summary: "IP, 계정 잠금 등 시스템 차단 이벤트를 조회하는 화면입니다.",
     items: [
       { id: "search", title: "차단 이력 검색", body: "사용자 구분과 키워드로 차단 이력을 조회합니다.", anchorSelector: '[data-help-id="login-history-search"]' },
       { id: "table", title: "차단 이력 목록", body: "차단 시각, 사용자, IP, 차단 사유를 표로 검토합니다.", anchorSelector: '[data-help-id="login-history-table"]' }

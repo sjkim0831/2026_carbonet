@@ -459,6 +459,7 @@ public class SiteMapServiceImpl implements SiteMapService {
                 || "/admin/member/company_list".equals(value)
                 || "/admin/member/company_detail".equals(value)
                 || "/admin/member/company_account".equals(value)
+                || "/admin/member/security".equals(value)
                 || "/admin/member/company-file".equals(value)
                 || value.startsWith("/admin/content/")
                 || value.startsWith("/admin/external/")

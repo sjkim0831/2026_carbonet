@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { type LoginHistoryPagePayload } from "../../lib/api/client";
@@ -71,6 +72,26 @@ export function LoginHistorySharedPage(props: Props) {
   const startPage = Number(page?.startPage || 1);
   const endPage = Number(page?.endPage || totalPages);
 
+  useEffect(() => {
+    if (!page) {
+      return;
+    }
+    logGovernanceScope("PAGE", "login-history-shared", {
+      route: window.location.pathname,
+      title: en ? props.titleEn : props.titleKo,
+      rowCount: rows.length,
+      currentPage,
+      totalPages,
+      userSe: filters.userSe,
+      loginResult: filters.loginResult
+    });
+    logGovernanceScope("COMPONENT", "login-history-table", {
+      component: "login-history-table",
+      rowCount: rows.length,
+      fixedLoginResult: props.fixedLoginResult || ""
+    });
+  }, [currentPage, en, filters.loginResult, filters.userSe, page, props.fixedLoginResult, props.titleEn, props.titleKo, rows.length, totalPages]);
+
   return (
     <AdminPageShell
       breadcrumbs={[
@@ -89,6 +110,11 @@ export function LoginHistorySharedPage(props: Props) {
       <section className="gov-card mb-6" data-help-id="login-history-search">
         <form className="grid grid-cols-1 md:grid-cols-4 gap-4" onSubmit={(event) => {
           event.preventDefault();
+          logGovernanceScope("ACTION", "login-history-search", {
+            searchKeyword: draft.searchKeyword,
+            userSe: draft.userSe,
+            loginResult: draft.loginResult || props.fixedLoginResult || ""
+          });
           setFilters({ ...draft, pageIndex: 1 });
         }}>
           <div>

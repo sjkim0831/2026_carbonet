@@ -23,9 +23,9 @@
       <main class="content">
         <div class="topbar">
           <div class="page-title">
-            <div class="breadcrumbs">Resonance / Ops / 193 → 221</div>
+            <div class="breadcrumbs">Resonance / Ops / 233 build → 221 run</div>
             <h1>배포 및 재시작 콘솔</h1>
-            <p>193에서 빌드, 221에서 실행하는 기본 배포 경로와 sub-first rollout, idle node attach, post-deploy verify, rollback checkpoint를 관리합니다.</p>
+            <p>233에서 빌드하고 221에서 실행하며 193을 DB 제어 대상으로 유지하는 기본 배포 경로와 sub-first rollout, idle node attach, post-deploy verify, rollback checkpoint를 관리합니다.</p>
           </div>
           <div class="header-actions">
             <div class="btn secondary">Build Only</div>
@@ -35,7 +35,7 @@
         </div>
 
         <div class="grid cols-4">
-          <div class="kpi"><span>Pipeline</span><strong>build-main-193</strong><span>Jenkins authority</span></div>
+          <div class="kpi"><span>Pipeline</span><strong>build-main-233</strong><span>Jenkins authority</span></div>
           <div class="kpi"><span>Nomad Jobs</span><strong>5</strong><span>main/sub/idle attached</span></div>
           <div class="kpi"><span>Post Verify</span><strong>11/12</strong><span>one warning</span></div>
           <div class="kpi"><span>Rollback Window</span><strong>7d</strong><span>release-unit governed</span></div>
@@ -48,9 +48,13 @@
           <div class="card-body">
             <div class="two-col">
               <div><span class="label">Guided State</span><div class="value">guided-build-12-package-deploy</div></div>
-              <div><span class="label">Template Lines</span><div class="value">public-line-01 / admin-line-02</div></div>
-              <div><span class="label">Screen Family Rules</span><div class="value">public-home-shell / admin-list-review / admin-edit-form</div></div>
-              <div><span class="label">Owner Lane</span><div class="value">res-deploy / res-verify / res-frontend</div></div>
+              <div><span class="label">Template Line</span><div class="value">public-line-01 / admin-line-02</div></div>
+              <div><span class="label">Screen Family Rule</span><div class="value">public-home-shell / admin-list-review / admin-edit-form</div></div>
+              <div><span class="label">Owner Lane</span><div class="value">res-08-deploy</div></div>
+              <div><span class="label">Release Unit</span><div class="value">ru-2026.03.24-08</div></div>
+              <div><span class="label">Runtime Package</span><div class="value">runtime-package-join-member-info</div></div>
+              <div><span class="label">Deploy Trace</span><div class="value">deploy-trace-20260324-08-main</div></div>
+              <div><span class="label">Rollback Anchor</span><div class="value">Y</div></div>
             </div>
           </div>
         </div>
@@ -76,10 +80,10 @@
                 <table>
                   <thead><tr><th>Stage</th><th>Target</th><th>Status</th><th>Notes</th></tr></thead>
                   <tbody>
-                    <tr><td>Build</td><td>34.82.141.193</td><td><span class="chip ok">Done</span></td><td>jar + manifest + security checklist + template/family snapshot</td></tr>
+                    <tr><td>Build</td><td>136.109.238.233</td><td><span class="chip ok">Done</span></td><td>jar + manifest + security checklist + template/family snapshot</td></tr>
                     <tr><td>Sub-first</td><td>idle-web-03</td><td><span class="chip ok">Passed</span></td><td>health + DB pool OK + admin-list-review parity OK</td></tr>
                     <tr><td>Main switch</td><td>136.117.100.221</td><td><span class="chip warn">Pending</span></td><td>Nginx upstream swap not yet executed; guided state 12 active</td></tr>
-                    <tr><td>Rollback</td><td>ru-2026.03.19-07</td><td><span class="chip">Prepared</span></td><td>checkpoint retained with public/admin template line snapshot</td></tr>
+                    <tr><td>Rollback</td><td>ru-2026.03.19-07</td><td><span class="chip">Prepared</span></td><td>checkpoint retained with public/admin template line snapshot and rollbackAnchorYn=Y</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -96,6 +100,20 @@
                   <span class="chip">START_ONLY</span>
                   <span class="chip">POST_DEPLOY_VERIFY</span>
                 </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><div><h2>Session Loop Routing</h2><p>08 lane repeat command stays attached to the numbered deploy lane</p></div></div>
+              <div class="card-body">
+                <ul class="timeline">
+                  <li>tmux session: res-08-deploy</li>
+                  <li>repeat prompt: docs/ai/80-skills/resonance-10-session-assignment.md 8번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘</li>
+                  <li>loop script: ops/scripts/resonance-session-loop.sh 08 60</li>
+                  <li>evidence keys: releaseUnitId / runtimePackageId / ownerLane / deployTraceId</li>
+                  <li>lane rule: keep the last unfinished deploy item first, rerun the full 08 checklist only after that item closes</li>
+                  <li>auto mode: continue current run when busy, rerun only when the prior loop is closed</li>
+                </ul>
               </div>
             </div>
           </section>
@@ -126,6 +144,19 @@
                   <li>Screen family rule drift: none detected</li>
                   <li>Help manifest sync: OK</li>
                   <li>Security log ingest: delayed 18s</li>
+                </ul>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div><h3>09 Handoff Evidence</h3><p>verify lane가 consume할 배포 기준</p></div></div>
+              <div class="card-body">
+                <ul class="timeline">
+                  <li>releaseUnitId: ru-2026.03.24-08</li>
+                  <li>runtimePackageId: runtime-package-join-member-info</li>
+                  <li>ownerLane: res-08-deploy</li>
+                  <li>deployTraceId: deploy-trace-20260324-08-main</li>
+                  <li>main server truth: 221</li>
+                  <li>rollbackAnchorYn: Y</li>
                 </ul>
               </div>
             </div>

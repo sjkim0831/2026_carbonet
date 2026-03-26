@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { resetJoinSession, saveJoinStep2 } from "../../lib/api/client";
 import { useJoinSession } from "../../app/hooks/useJoinSession";
 import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
@@ -67,6 +68,19 @@ export function JoinTermsMigrationPage() {
   const session = sessionState.value;
   const error = actionError || sessionState.error;
 
+  useEffect(() => {
+    logGovernanceScope("PAGE", "join-step2", {
+      route: window.location.pathname,
+      canViewStep2: !!session?.canViewStep2
+    });
+    logGovernanceScope("COMPONENT", "join-step2-required-terms", {
+      component: "join-step2-required-terms",
+      agreeTerms,
+      agreePrivacy,
+      marketingAgree
+    });
+  }, [agreePrivacy, agreeTerms, marketingAgree, session?.canViewStep2]);
+
   async function handleHome() {
     await resetJoinSession();
     navigate(buildLocalizedPath("/home", "/en/home"));
@@ -77,6 +91,9 @@ export function JoinTermsMigrationPage() {
   }
 
   async function handleMarketingChange(checked: boolean) {
+    logGovernanceScope("ACTION", "join-step2-marketing", {
+      marketingAgree: checked
+    });
     setMarketingAgree(checked);
     try {
       await saveJoinStep2(checked ? "Y" : "N");
@@ -86,6 +103,11 @@ export function JoinTermsMigrationPage() {
   }
 
   async function handleNext() {
+    logGovernanceScope("ACTION", "join-step2-next", {
+      agreeTerms,
+      agreePrivacy,
+      marketingAgree
+    });
     if (!agreeTerms || !agreePrivacy) {
       setActionError(en ? "Please agree to the required terms." : "필수 약관에 동의해 주세요.");
       return;

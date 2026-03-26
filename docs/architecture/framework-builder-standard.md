@@ -33,6 +33,21 @@ Backend canonical layer:
 
 Existing feature folders remain valid. They are implementation folders, not contract folders.
 
+Canonical shared metadata source:
+
+- `src/main/resources/framework/contracts/framework-contract-metadata.json`
+
+Frontend should consume generated metadata copied from that source:
+
+- `frontend/src/generated/frameworkContractMetadata.json`
+
+Do not hand-edit frontend metadata first. Update the canonical resource and regenerate.
+
+CI or local verification should fail when these two drift:
+
+- `npm --prefix frontend run audit:framework-contract-metadata`
+- `npm --prefix frontend run audit:generated-output`
+
 ## Contract Rules
 
 Every builder-facing export must resolve through the same top-level contract:
@@ -208,3 +223,16 @@ Near-term rollout order:
 2. `09` regenerate parity and repair verification
 3. `08` common-jar and release-unit deployment closure
 4. `05` builder-only regeneration proof on one real page
+
+## Additional Governance Gaps To Watch
+
+Even after the priorities above, the framework is still incomplete if these are
+not addressed:
+
+1. generation must stay deterministic across reruns and across operators
+2. rollback must restore the same builder, overlay, and release-unit state
+3. secrets and environment bindings must stay outside generated outputs
+4. partial publish must not bypass release-unit compatibility decisions
+5. emergency runtime patches must be tracked, expired, and regenerated away
+6. project boundaries must prevent overlay, schema, or authority leakage across
+   target systems

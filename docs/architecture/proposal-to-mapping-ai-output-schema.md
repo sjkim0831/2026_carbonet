@@ -38,6 +38,9 @@ Recommended shape:
 {
   "projectId": "carbonet-member",
   "synthesisRunId": "SYN-20260321-01",
+  "builderInputReadyYn": true,
+  "verifyInputReadyYn": true,
+  "consumerLaneSet": ["04", "09"],
   "sourceDocumentSet": [
     {
       "designSourceId": "DS-001",
@@ -115,6 +118,9 @@ Recommended shape:
 - `projectId`
 - `synthesisRunId`
 - `sourceDocumentSet`
+- `builderInputReadyYn`
+- `verifyInputReadyYn`
+- `consumerLaneSet`
 - `requirementItemSet`
 - `menuTreeCandidate`
 - `surfacePlan`
@@ -138,3 +144,5 @@ Recommended shape:
 - every page-family candidate should propose one or more screen-family-rule candidates
 - common-versus-project candidate split must be explicit
 - the draft must remain reviewable and repairable before canonical approval
+- the draft must tell downstream lanes whether `04` builder input and `09`
+  verification input are ready without changing identity keys

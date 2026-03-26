@@ -54,6 +54,10 @@ public class ReactAppViewSupport {
     }
 
     public Map<String, Object> createBootstrapPayload(String route, boolean en, boolean admin) {
+        return createBootstrapPayload(route, en, admin, currentRequest());
+    }
+
+    public Map<String, Object> createBootstrapPayload(String route, boolean en, boolean admin, HttpServletRequest request) {
         ReactAppAssetResolver.ReactAppAssets assets = reactAppAssetResolver.resolveAssets();
         String jsPath = adaptAssetPath(assets.getJsPath(), admin, en);
         String cssPath = adaptAssetPath(assets.getCssPath(), admin, en);
@@ -70,15 +74,16 @@ public class ReactAppViewSupport {
         payload.put("reactAppDevUrl", reactAppDevUrl);
         payload.put("reactAppProdJs", jsPath);
         payload.put("reactAppProdCss", cssPath);
+        payload.put("reactBootstrapPayload", reactAppBootstrapService.buildBootstrapPayload(route, en, admin, request));
         return payload;
     }
 
     private String normalizeRoute(String route, boolean admin) {
         String normalized = route == null ? "" : route.trim();
         if (normalized.isEmpty()) {
-            return admin ? "auth_group" : "mypage";
+            return admin ? "auth-group" : "mypage";
         }
-        return normalized.replace('-', '_');
+        return normalized.replace('_', '-');
     }
 
     private HttpServletRequest currentRequest() {
@@ -90,7 +95,6 @@ public class ReactAppViewSupport {
     }
 
     private String adaptAssetPath(String path, boolean admin, boolean en) {
-        String normalized = path == null ? "" : path.trim();
-        return normalized;
+        return path == null ? "" : path.trim();
     }
 }

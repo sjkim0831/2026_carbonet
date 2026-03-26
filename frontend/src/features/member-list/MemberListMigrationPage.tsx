@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { useFrontendSession } from "../../app/hooks/useFrontendSession";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { CanView } from "../../components/access/CanView";
 import { buildLocalizedPath, getNavigationEventName } from "../../lib/navigation/runtime";
 import { fetchMemberListPage, MemberListPagePayload } from "../../lib/api/client";
@@ -111,6 +113,7 @@ function MemberListPageScreen({ variant }: { variant: MemberListPageVariant }) {
   const [filters, setFilters] = useState<SearchFilters>(() => readInitialFilters(variant));
   const [draftFilters, setDraftFilters] = useState<SearchFilters>(() => readInitialFilters(variant));
   const [actionError, setActionError] = useState("");
+  const sessionState = useFrontendSession();
   const pageState = useAsyncValue<MemberListPagePayload>(
     () => fetchMemberListPage({
       pageIndex: filters.pageIndex,
@@ -139,6 +142,14 @@ function MemberListPageScreen({ variant }: { variant: MemberListPageVariant }) {
   const currentPage = Math.max(1, Number(page?.pageIndex || filters.pageIndex || 1));
   const pageCopy = resolveMemberListPageCopy(variant);
   const canView = !!page?.canViewMemberList;
+  const memberTypeOptions = (page?.memberTypeOptions || []).length > 0
+    ? (page?.memberTypeOptions || []).map((option) => ({ value: option.code, label: option.label }))
+    : MEMBER_TYPE_OPTIONS;
+  const memberStatusOptions = (page?.memberStatusOptions || []).length > 0
+    ? (page?.memberStatusOptions || []).map((option) => ({ value: option.code, label: option.label }))
+    : MEMBER_STATUS_OPTIONS;
+  const currentUserInsttId = String(page?.currentUserInsttId || "");
+  const companyScopedAccess = !!page?.canManageOwnCompany && !page?.canManageAllCompanies;
   const showAccessDenied = !pageState.loading && !!page && !canView;
   const registerHref = variant === "default"
     ? buildLocalizedPath("/admin/member/register", "/en/admin/member/register")
@@ -161,12 +172,51 @@ function MemberListPageScreen({ variant }: { variant: MemberListPageVariant }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!page || !sessionState.value) {
+      return;
+    }
+    logGovernanceScope("PAGE", "member-list", {
+      route: window.location.pathname,
+      actorUserId: sessionState.value.userId || "",
+      actorAuthorCode: sessionState.value.authorCode || "",
+      actorInsttId: sessionState.value.insttId || "",
+      actorMemberType: (sessionState.value.capabilityCodes || []).join(","),
+      canManageAllCompanies: !!page.canManageAllCompanies,
+      canManageOwnCompany: !!page.canManageOwnCompany,
+      pageScopeMode: String(page.memberManagementScopeMode || ""),
+      resolvedInsttId: String(page.currentUserInsttId || ""),
+      filters: JSON.stringify(filters)
+    });
+    logGovernanceScope("COMPONENT", "member-list-search-form", {
+      component: "member-search-form",
+      allowed: !!page.canViewMemberList,
+      interaction: page.canViewMemberList ? "ENABLED" : "DISABLED",
+      membershipTypes: (page.memberTypeOptions || []).map((item) => item.code).join(","),
+      statuses: (page.memberStatusOptions || []).map((item) => item.code).join(",")
+    });
+    logGovernanceScope("COMPONENT", "member-list-table", {
+      component: "member-list-table",
+      allowed: !!page.canViewMemberList,
+      rowCount: Number(page.totalCount || 0),
+      currentPage: Number(page.pageIndex || 1),
+      resolvedInsttId: String(page.currentUserInsttId || "")
+    });
+  }, [filters, page, sessionState.value]);
+
   function updateDraft<K extends keyof SearchFilters>(key: K, value: SearchFilters[K]) {
     setDraftFilters((current) => ({ ...current, [key]: value }));
   }
 
   function applyFilters(nextPageIndex = 1) {
     setActionError("");
+    logGovernanceScope("ACTION", "member-list-search", {
+      requestedPageIndex: nextPageIndex,
+      searchKeyword: draftFilters.searchKeyword,
+      membershipType: draftFilters.membershipType,
+      status: draftFilters.status,
+      resolvedInsttId: String(page?.currentUserInsttId || "")
+    });
     setFilters({
       ...draftFilters,
       pageIndex: nextPageIndex
@@ -186,6 +236,10 @@ function MemberListPageScreen({ variant }: { variant: MemberListPageVariant }) {
   function resetFilters() {
     setActionError("");
     const nextFilters = getDefaultFiltersForVariant(variant);
+    logGovernanceScope("ACTION", "member-list-reset", {
+      variant,
+      resolvedInsttId: String(page?.currentUserInsttId || "")
+    });
     setDraftFilters(nextFilters);
     setFilters(nextFilters);
   }
@@ -212,6 +266,13 @@ function MemberListPageScreen({ variant }: { variant: MemberListPageVariant }) {
         />
       ) : null}
       <CanView allowed={canView} fallback={null}>
+        {companyScopedAccess ? (
+          <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-[var(--kr-gov-blue)]">
+            본인 회원사 범위로만 조회합니다. {currentUserInsttId ? `기관 ID: ${currentUserInsttId}` : "회원사 정보가 없는 계정은 조회가 제한됩니다."}
+          </section>
+        ) : null}
+        {variant === "withdrawn" ? <div data-help-id="member-withdrawn-search" /> : null}
+        {variant === "activate" ? <div data-help-id="member-activate-search" /> : null}
         <div className="gov-card mb-8" data-help-id="member-search-form">
           <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
             <MemberSectionToolbar
@@ -230,7 +291,7 @@ function MemberListPageScreen({ variant }: { variant: MemberListPageVariant }) {
             <div>
               <span className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">회원 유형</span>
               <AdminSelect id="member-type" value={draftFilters.membershipType} onChange={(event) => updateDraft("membershipType", event.target.value)}>
-                {MEMBER_TYPE_OPTIONS.map((option) => (
+                {memberTypeOptions.map((option) => (
                   <option key={option.value || "all"} value={option.value}>{option.label}</option>
                 ))}
               </AdminSelect>
@@ -238,7 +299,7 @@ function MemberListPageScreen({ variant }: { variant: MemberListPageVariant }) {
             <div>
               <span className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">상태</span>
               <AdminSelect id="status" value={draftFilters.status} onChange={(event) => updateDraft("status", event.target.value)}>
-                {MEMBER_STATUS_OPTIONS.map((option) => (
+                {memberStatusOptions.map((option) => (
                   <option key={option.value || "all"} value={option.value}>{option.label}</option>
                 ))}
               </AdminSelect>
@@ -267,6 +328,8 @@ function MemberListPageScreen({ variant }: { variant: MemberListPageVariant }) {
           </form>
         </div>
 
+        {variant === "withdrawn" ? <div data-help-id="member-withdrawn-table" /> : null}
+        {variant === "activate" ? <div data-help-id="member-activate-table" /> : null}
         <div className="gov-card p-0 overflow-hidden" data-help-id="member-table">
           <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
             <MemberSectionToolbar

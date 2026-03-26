@@ -1,6 +1,7 @@
 export { fetchFrameworkBuilderContract } from "./api/builderContract";
 export { fetchFrameworkAuthorityContract } from "./api/authorityContract";
 export { buildFrameworkBuilderContract } from "./builderContract";
+export { getFrameworkContractMetadata } from "./contractMetadata";
 export type {
   FrameworkBuilderComponentContract,
   FrameworkBuilderContract,
@@ -16,3 +17,4 @@ export type {
   FrameworkAuthorityText,
   FrameworkAuthorityTier
 } from "./contracts/authorityContract";
+export type { FrameworkContractMetadata } from "./contracts/contractMetadata";

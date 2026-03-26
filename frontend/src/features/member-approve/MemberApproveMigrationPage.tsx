@@ -1,98 +1,180 @@
-import { useState } from "react";
-import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { useCallback, useEffect, useState } from "react";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { CanView } from "../../components/access/CanView";
 import { buildLocalizedPath, getSearchParam } from "../../lib/navigation/runtime";
-import {
-  fetchMemberApprovePage,
-  MemberApprovePagePayload,
-  submitMemberApproveAction
-} from "../../lib/api/client";
+import { fetchMemberApprovePage, submitMemberApproveAction } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { MemberPermissionButton, MEMBER_BUTTON_LABELS, PageStatusNotice } from "../member/common";
 import { MemberStateCard, ReviewModalFrame } from "../member/sections";
 import { DEFAULT_MEMBER_APPROVE_FILTERS, MemberApproveFilters, MemberApproveReviewContent, MemberApproveSearchSection, MemberApproveTableSection } from "./memberApproveSections";
 
+function readInitialPageIndex() {
+  const raw = Number(getSearchParam("pageIndex") || DEFAULT_MEMBER_APPROVE_FILTERS.pageIndex);
+  return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_MEMBER_APPROVE_FILTERS.pageIndex;
+}
+
 export function MemberApproveMigrationPage() {
-  const initialFilters = {
+  const [pageData, setPageData] = useState<{
+    searchKeyword: string;
+    membershipType: string;
+    status: string;
+    pageIndex: number;
+  }>({
     searchKeyword: getSearchParam("searchKeyword"),
     membershipType: getSearchParam("membershipType"),
     status: getSearchParam("sbscrbSttus") || DEFAULT_MEMBER_APPROVE_FILTERS.status,
-    pageIndex: Number(getSearchParam("pageIndex") || DEFAULT_MEMBER_APPROVE_FILTERS.pageIndex)
-  };
-  const initialResult = getSearchParam("result");
+    pageIndex: readInitialPageIndex()
+  });
+  const [result, setResult] = useState<{
+    approvalRows: Array<Record<string, unknown>>;
+    totalPages: number;
+    totalCount: number;
+    pageIndex: number;
+    canView: boolean;
+    canUseAction: boolean;
+    resultMessage: string;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [filters, setFilters] = useState<MemberApproveFilters>(initialFilters);
-  const [draftFilters, setDraftFilters] = useState<MemberApproveFilters>(initialFilters);
+  const [draftFilters, setDraftFilters] = useState<MemberApproveFilters>({
+    searchKeyword: getSearchParam("searchKeyword"),
+    membershipType: getSearchParam("membershipType"),
+    status: getSearchParam("sbscrbSttus") || DEFAULT_MEMBER_APPROVE_FILTERS.status,
+    pageIndex: readInitialPageIndex()
+  });
   const [actionError, setActionError] = useState(() => getSearchParam("errorMessage"));
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(() => {
+    const r = getSearchParam("result");
+    return r === "success" ? "승인이 완료되었습니다." : r === "reject" ? "반려가 완료되었습니다." : "";
+  });
   const [reviewMemberId, setReviewMemberId] = useState("");
   const [rejectReason, setRejectReason] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
+  
   const sessionState = useFrontendSession();
-  const pageState = useAsyncValue<MemberApprovePagePayload>(
-    () => fetchMemberApprovePage({
-      pageIndex: filters.pageIndex,
-      searchKeyword: filters.searchKeyword,
-      membershipType: filters.membershipType,
-      sbscrbSttus: filters.status,
-      result: initialResult
-    }),
-    [filters.pageIndex, filters.searchKeyword, filters.membershipType, filters.status],
-    {
-      onSuccess(pagePayload) {
-        const nextFilters = {
-          searchKeyword: String(pagePayload.searchKeyword || ""),
-          membershipType: String(pagePayload.membershipType || ""),
-          status: String(pagePayload.sbscrbSttus || "A"),
-          pageIndex: Number(pagePayload.pageIndex || 1)
-        };
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+    
+    fetchMemberApprovePage({
+      pageIndex: pageData.pageIndex,
+      searchKeyword: pageData.searchKeyword,
+      membershipType: pageData.membershipType,
+      sbscrbSttus: pageData.status,
+      result: getSearchParam("result") || ""
+    })
+      .then(data => {
+        if (cancelled) return;
+        setResult({
+          approvalRows: data.approvalRows || [],
+          totalPages: Number(data.totalPages || 1),
+          totalCount: Number(data.memberApprovalTotalCount || 0),
+          pageIndex: Number(data.pageIndex || 1),
+          canView: data.canViewMemberApprove !== false,
+          canUseAction: data.canUseMemberApproveAction === true,
+          resultMessage: String(data.memberApprovalResultMessage || "")
+        });
+        setDraftFilters({
+          searchKeyword: String(data.searchKeyword || ""),
+          membershipType: String(data.membershipType || ""),
+          status: String(data.sbscrbSttus || "A"),
+          pageIndex: Number(data.pageIndex || 1)
+        });
         setSelectedIds([]);
-        setFilters(nextFilters);
-        setDraftFilters(nextFilters);
-        setMessage(String(pagePayload.memberApprovalResultMessage || ""));
-      }
+        if (data.memberApprovalResultMessage) {
+          setMessage(String(data.memberApprovalResultMessage));
+        }
+        setLoading(false);
+      })
+      .catch(err => {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : "데이터 로딩 실패");
+        setLoading(false);
+      });
+    
+    return () => { cancelled = true; };
+  }, [pageData.pageIndex, pageData.searchKeyword, pageData.membershipType, pageData.status, reloadKey]);
+
+  const reviewRow = result?.approvalRows.find(r => String(r.memberId || "") === reviewMemberId) || null;
+
+  useEffect(() => {
+    if (!result || !sessionState.value) {
+      return;
     }
-  );
-  const page = pageState.value;
-  const error = actionError || sessionState.error || pageState.error;
-  const totalPages = Math.max(1, Number(page?.totalPages || 1));
-  const currentPage = Math.max(1, Number(page?.pageIndex || filters.pageIndex || 1));
-  const approvalRows = (page?.approvalRows || []) as Array<Record<string, unknown>>;
-  const reviewRow = approvalRows.find((row) => String(row.memberId || "") === reviewMemberId) || null;
+    logGovernanceScope("PAGE", "member-approve", {
+      route: window.location.pathname,
+      actorUserId: sessionState.value.userId || "",
+      actorAuthorCode: sessionState.value.authorCode || "",
+      actorInsttId: sessionState.value.insttId || "",
+      canUseAction: result.canUseAction,
+      selectedCount: selectedIds.length,
+      totalCount: result.totalCount,
+      membershipType: pageData.membershipType
+    });
+    logGovernanceScope("COMPONENT", "member-approve-table", {
+      component: "member-approve-table",
+      rowCount: result.approvalRows.length,
+      selectedCount: selectedIds.length,
+      currentPage: result.pageIndex
+    });
+  }, [pageData.membershipType, result, selectedIds.length, sessionState.value]);
 
-  function updateDraft<K extends keyof MemberApproveFilters>(key: K, value: MemberApproveFilters[K]) {
-    setDraftFilters((current) => ({ ...current, [key]: value }));
-  }
+  useEffect(() => {
+    if (!reviewRow) {
+      setRejectReason("");
+      return;
+    }
+    setRejectReason(String(reviewRow.rejectReason || ""));
+  }, [reviewRow]);
 
-  function applyFilters(nextPageIndex = 1) {
+  const updateDraft = useCallback((key: keyof MemberApproveFilters, value: string | number) => {
+    setDraftFilters(prev => ({ ...prev, [key]: value }));
+  }, []);
+
+  const applyFilters = useCallback((nextPageIndex = 1) => {
     setActionError("");
-    setFilters({
-      ...draftFilters,
+    logGovernanceScope("ACTION", "member-approve-search", {
+      actorInsttId: sessionState.value?.insttId || "",
+      searchKeyword: draftFilters.searchKeyword,
+      membershipType: draftFilters.membershipType,
+      status: draftFilters.status,
       pageIndex: nextPageIndex
     });
-  }
+    setPageData(prev => ({ ...prev, ...draftFilters, pageIndex: nextPageIndex }));
+  }, [draftFilters, sessionState.value?.insttId]);
 
-  function movePage(nextPageIndex: number) {
+  const movePage = useCallback((nextPageIndex: number) => {
     setActionError("");
-    setFilters((current) => ({ ...current, pageIndex: nextPageIndex }));
-  }
+    setPageData(prev => ({ ...prev, pageIndex: nextPageIndex }));
+  }, []);
 
-  function toggleSelection(id: string) {
-    setSelectedIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
-  }
+  const toggleSelection = useCallback((id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  }, []);
 
-  async function handleAction(action: string, memberId?: string) {
+  const handleAction = useCallback(async (action: string, memberId?: string) => {
     const session = sessionState.value;
     if (!session) return;
     setActionError("");
+    logGovernanceScope("ACTION", "member-approve-submit", {
+      actorInsttId: session.insttId || "",
+      action,
+      memberId: memberId || "",
+      selectedCount: selectedIds.length
+    });
     try {
       await submitMemberApproveAction(session, {
         action,
         memberId,
         selectedIds: memberId ? undefined : selectedIds,
-        rejectReason: action.includes("reject") ? rejectReason : undefined
+        rejectReason
       });
-      await pageState.reload();
+      setReloadKey((current) => current + 1);
+      setSelectedIds([]);
       if (memberId) {
         setReviewMemberId("");
         setRejectReason("");
@@ -100,21 +182,26 @@ export function MemberApproveMigrationPage() {
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "승인 처리 실패");
     }
-  }
+  }, [sessionState.value, selectedIds, rejectReason]);
 
-  function toggleSelectAll(checked: boolean) {
+  const toggleSelectAll = useCallback((checked: boolean) => {
     if (!checked) {
       setSelectedIds([]);
       return;
     }
-    setSelectedIds(approvalRows.map((row, index) => String(row.memberId || `member-${index}`)));
-  }
+    setSelectedIds(result?.approvalRows.map((row, i) => String(row.memberId || `member-${i}`)) || []);
+  }, [result?.approvalRows]);
+
+  const handleResetFilters = useCallback(() => {
+    setDraftFilters(DEFAULT_MEMBER_APPROVE_FILTERS);
+    setPageData(prev => ({ ...prev, ...DEFAULT_MEMBER_APPROVE_FILTERS }));
+  }, []);
 
   return (
     <AdminPageShell
       actions={(
         <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-blue-50 text-[var(--kr-gov-blue)]">
-          총 {Number(page?.memberApprovalTotalCount || 0).toLocaleString()}건
+          총 {result?.totalCount?.toLocaleString() || 0}건
         </span>
       )}
       breadcrumbs={[
@@ -124,41 +211,41 @@ export function MemberApproveMigrationPage() {
       ]}
       subtitle="기업회원 가입 신청을 검토하고 승인 또는 반려 상태를 처리합니다."
       title="회원 가입 승인 관리"
-      loading={pageState.loading && !page && !error}
+      loading={loading && !result}
       loadingLabel="회원 승인 대상을 불러오는 중입니다."
     >
       {message ? <PageStatusNotice tone="success">{message}</PageStatusNotice> : null}
-      {error ? <PageStatusNotice tone="error">{error}</PageStatusNotice> : null}
-      {!pageState.loading && !!page && !page?.canViewMemberApprove ? (
+      {error || actionError ? <PageStatusNotice tone="error">{error || actionError}</PageStatusNotice> : null}
+      {!loading && result && !result.canView ? (
         <MemberStateCard description="현재 계정으로는 회원 승인 관리 화면을 조회할 수 없습니다." icon="lock" title="권한이 없습니다." tone="warning" />
       ) : null}
-      <CanView allowed={!!page?.canViewMemberApprove} fallback={null}>
+      <CanView allowed={result?.canView ?? false} fallback={null}>
         <MemberApproveSearchSection
           applyFilters={applyFilters}
           draftFilters={draftFilters}
-          resetFilters={() => { setDraftFilters(DEFAULT_MEMBER_APPROVE_FILTERS); setFilters(DEFAULT_MEMBER_APPROVE_FILTERS); }}
+          resetFilters={handleResetFilters}
           updateDraft={updateDraft}
         />
 
         <MemberApproveTableSection
-          approvalRows={approvalRows}
-          currentPage={currentPage}
+          approvalRows={result?.approvalRows || []}
+          currentPage={result?.pageIndex || 1}
           handleAction={handleAction}
           movePage={movePage}
           openReview={setReviewMemberId}
-          page={page}
+          page={result ? { canUseMemberApproveAction: result.canUseAction, memberApprovalTotalCount: result.totalCount } : null}
           selectedIds={selectedIds}
           toggleSelectAll={toggleSelectAll}
           toggleSelection={toggleSelection}
-          totalPages={totalPages}
+          totalPages={result?.totalPages || 1}
         />
 
         <ReviewModalFrame
           footerLeft={(
-            reviewRow ? <MemberPermissionButton allowed={!!page?.canUseMemberApproveAction} className="flex-1 sm:min-w-[160px] sm:flex-none justify-center whitespace-nowrap" onClick={() => handleAction("reject", String(reviewRow.memberId || ""))} reason="권한 있는 관리자만 반려할 수 있습니다." size="lg" type="button" variant="dangerSecondary">{MEMBER_BUTTON_LABELS.reject}</MemberPermissionButton> : null
+            reviewRow ? <MemberPermissionButton allowed={result?.canUseAction ?? false} className="flex-1 sm:min-w-[160px] sm:flex-none justify-center whitespace-nowrap" onClick={() => handleAction("reject", String(reviewRow.memberId || ""))} reason="권한 있는 관리자만 반려할 수 있습니다." size="lg" type="button" variant="dangerSecondary">{MEMBER_BUTTON_LABELS.reject}</MemberPermissionButton> : null
           )}
           footerRight={(
-            reviewRow ? <MemberPermissionButton allowed={!!page?.canUseMemberApproveAction} className="flex-1 sm:min-w-[160px] sm:flex-none justify-center whitespace-nowrap" onClick={() => handleAction("approve", String(reviewRow.memberId || ""))} reason="권한 있는 관리자만 승인할 수 있습니다." size="lg" type="button" variant="primary">{MEMBER_BUTTON_LABELS.approveDone}</MemberPermissionButton> : null
+            reviewRow ? <MemberPermissionButton allowed={result?.canUseAction ?? false} className="flex-1 sm:min-w-[160px] sm:flex-none justify-center whitespace-nowrap" onClick={() => handleAction("approve", String(reviewRow.memberId || ""))} reason="권한 있는 관리자만 승인할 수 있습니다." size="lg" type="button" variant="primary">{MEMBER_BUTTON_LABELS.approveDone}</MemberPermissionButton> : null
           )}
           onClose={() => {
             setReviewMemberId("");

@@ -17,14 +17,42 @@ function buildAdminApiPath(path: string): string {
 
 export type FrontendSession = {
   authenticated: boolean;
+  actualUserId: string;
   userId: string;
   authorCode: string;
   insttId: string;
   companyScope: string;
+  simulationAvailable: boolean;
+  simulationActive: boolean;
   csrfToken: string;
   csrfHeaderName: string;
   featureCodes: string[];
   capabilityCodes: string[];
+};
+
+export type AdminSessionSimulationOption = {
+  insttId?: string;
+  cmpnyNm?: string;
+  emplyrId?: string;
+  userNm?: string;
+  orgnztId?: string;
+  authorCode?: string;
+  authorNm?: string;
+};
+
+export type AdminSessionSimulationPayload = {
+  available: boolean;
+  active: boolean;
+  actualUserId: string;
+  effectiveUserId: string;
+  effectiveAuthorCode: string;
+  effectiveInsttId: string;
+  companyOptions: AdminSessionSimulationOption[];
+  adminAccountOptions: AdminSessionSimulationOption[];
+  authorOptions: AdminSessionSimulationOption[];
+  selectedInsttId: string;
+  selectedEmplyrId: string;
+  selectedAuthorCode: string;
 };
 
 type MypageContext = {
@@ -127,18 +155,15 @@ function buildCsrfHeaders(extraHeaders?: Record<string, string>): Record<string,
 }
 
 async function buildResilientCsrfHeaders(extraHeaders?: Record<string, string>): Promise<Record<string, string>> {
-  const headers = buildCsrfHeaders(extraHeaders);
-  const { token } = getCsrfMeta();
-  if (token) {
-    return headers;
-  }
+  const headers: Record<string, string> = { ...(extraHeaders || {}) };
   try {
-    const session = await fetchFrontendSession();
+    const session = await fetchFreshFrontendSession();
     if (session.csrfHeaderName && session.csrfToken) {
       headers[session.csrfHeaderName] = session.csrfToken;
     }
   } catch {
-    // Keep request handling deterministic. The server will still reject if no token is available.
+    const fallbackHeaders = buildCsrfHeaders(extraHeaders);
+    Object.assign(headers, fallbackHeaders);
   }
   return headers;
 }
@@ -154,12 +179,23 @@ export type AuthorGroup = {
   authorDc: string;
 };
 
+export type AuthorGroupSection = {
+  layerKey: string;
+  sectionLabel: string;
+  groups: AuthorGroup[];
+};
+
 export type AuthorRoleProfile = {
   authorCode: string;
   displayTitle: string;
   priorityWorks: string[];
   description: string;
   memberEditVisibleYn: string;
+  roleType?: string;
+  baseRoleYn?: string;
+  parentAuthorCode?: string;
+  assignmentScope?: string;
+  defaultMemberTypes?: string[];
   updatedAt?: string;
 };
 
@@ -203,6 +239,8 @@ export type AuthGroupPagePayload = {
   pageCount: number;
   unassignedFeatureCount: number;
   canManageScopedAuthorityGroups: boolean;
+  canManageAllCompanies?: boolean;
+  canManageOwnCompany?: boolean;
   authGroupCompanyOptions: Array<{ insttId: string; cmpnyNm: string }>;
   authGroupSelectedInsttId: string;
   authGroupDepartmentRows?: Array<Record<string, string>>;
@@ -212,6 +250,7 @@ export type AuthGroupPagePayload = {
   focusedMenuCode?: string;
   focusedFeatureCode?: string;
   selectedAuthorProfile?: AuthorRoleProfile;
+  referenceAuthorProfilesByCode?: Record<string, AuthorRoleProfile>;
   authGroupError: string;
 };
 
@@ -228,23 +267,44 @@ export type AuthChangePagePayload = {
   isEn: boolean;
   currentUserId: string;
   isWebmaster: boolean;
+  canEditAuthChange?: boolean;
   roleAssignments: AdminRoleAssignment[];
   authorGroups: AuthorGroup[];
-  recentRoleChangeHistory: Array<{
-    changedAt: string;
-    changedBy: string;
-    targetUserId: string;
-    beforeAuthorCode: string;
-    beforeAuthorName: string;
-    afterAuthorCode: string;
-    afterAuthorName: string;
-    resultStatus: string;
-  }>;
+  authorGroupSections?: AuthorGroupSection[];
+  recentRoleChangeHistory: AuthChangeHistoryRow[];
   assignmentCount: number;
+  assignmentPageIndex: number;
+  assignmentPageSize: number;
+  assignmentTotalPages: number;
+  assignmentSearchKeyword: string;
   authChangeUpdated: boolean;
   authChangeTargetUserId: string;
   authChangeMessage: string;
   authChangeError: string;
+};
+
+export type AuthChangeHistoryRow = {
+  changedAt: string;
+  changedBy: string;
+  targetUserId: string;
+  beforeAuthorCode: string;
+  beforeAuthorName: string;
+  afterAuthorCode: string;
+  afterAuthorName: string;
+  resultStatus: string;
+};
+
+export type EmissionSiteManagementPagePayload = {
+  isEn?: boolean;
+  menuCode?: string;
+  menuUrl?: string;
+  homeReferenceUrl?: string;
+  referenceFolder?: string;
+  summaryCards?: Array<Record<string, string>>;
+  quickLinks?: Array<Record<string, string>>;
+  operationCards?: Array<Record<string, string>>;
+  featureRows?: Array<Record<string, string>>;
+  referenceRows?: Array<Record<string, string>>;
 };
 
 export type DeptRolePagePayload = {
@@ -456,11 +516,19 @@ export type MemberEditPagePayload = Record<string, unknown> & {
   permissionFeatureSections?: FeatureCatalogSection[];
   permissionSelectedAuthorCode?: string;
   permissionEffectiveFeatureCodes?: string[];
+  permissionRoleFeatureCodesByAuthorCode?: Record<string, string[]>;
   assignedRoleProfile?: AuthorRoleProfile;
   member_editError?: string;
   member_editUpdated?: boolean;
   canViewMemberEdit?: boolean;
   canUseMemberSave?: boolean;
+  currentUserInsttId?: string;
+  canManageAllCompanies?: boolean;
+  canManageOwnCompany?: boolean;
+  memberManagementScopeMode?: string;
+  memberManagementRequiresInsttId?: boolean;
+  targetMemberInsttId?: string;
+  targetMemberType?: string;
 };
 
 export type PasswordResetPagePayload = Record<string, unknown> & {
@@ -987,6 +1055,14 @@ export type MemberListPagePayload = Record<string, unknown> & {
   member_listError?: string;
   canViewMemberList?: boolean;
   canUseMemberListActions?: boolean;
+  currentUserInsttId?: string;
+  canManageAllCompanies?: boolean;
+  canManageOwnCompany?: boolean;
+  memberManagementScopeMode?: string;
+  memberManagementRequiresInsttId?: boolean;
+  allowedMembershipTypes?: string[];
+  memberTypeOptions?: Array<{ code: string; label: string }>;
+  memberStatusOptions?: Array<{ code: string; label: string }>;
 };
 
 export type MemberDetailPagePayload = Record<string, unknown> & {
@@ -1001,6 +1077,13 @@ export type MemberDetailPagePayload = Record<string, unknown> & {
   member_detailError?: string;
   canViewMemberDetail?: boolean;
   canUseMemberEditLink?: boolean;
+  currentUserInsttId?: string;
+  canManageAllCompanies?: boolean;
+  canManageOwnCompany?: boolean;
+  memberManagementScopeMode?: string;
+  memberManagementRequiresInsttId?: boolean;
+  targetMemberInsttId?: string;
+  targetMemberType?: string;
 };
 
 export type CompanyDetailPagePayload = Record<string, unknown> & {
@@ -1167,6 +1250,13 @@ export type MemberRegisterPagePayload = Record<string, unknown> & {
   memberTypeOptions?: Array<Record<string, string>>;
   permissionOptions?: Array<Record<string, string>>;
   defaultOrganizationName?: string;
+  departmentMappings?: Array<Record<string, string>>;
+  memberAssignableAuthorGroups?: AuthorGroup[];
+  memberAssignableAuthorGroupSections?: AuthorGroupSection[];
+  roleProfilesByAuthorCode?: Record<string, AuthorRoleProfile>;
+  currentUserInsttId?: string;
+  canManageAllCompanies?: boolean;
+  canManageOwnCompany?: boolean;
   canViewMemberRegister?: boolean;
   canUseMemberRegisterIdCheck?: boolean;
   canUseMemberRegisterOrgSearch?: boolean;
@@ -1226,6 +1316,27 @@ export type SchedulerManagementPagePayload = Record<string, unknown> & {
   schedulerNodeRows?: Array<Record<string, string>>;
   schedulerExecutionRows?: Array<Record<string, string>>;
   schedulerPlaybooks?: Array<Record<string, string>>;
+  isEn?: boolean;
+};
+
+export type BackupConfigPagePayload = Record<string, unknown> & {
+  backupConfigSummary?: Array<Record<string, string>>;
+  backupConfigForm?: Record<string, string>;
+  backupStorageRows?: Array<Record<string, string>>;
+  backupExecutionRows?: Array<Record<string, string>>;
+  backupVersionRows?: Array<Record<string, string>>;
+  backupGitPrecheckRows?: Array<Record<string, string>>;
+  backupRecoveryPlaybooks?: Array<Record<string, string>>;
+  backupCurrentJob?: Record<string, unknown> | null;
+  backupRecentJobs?: Array<Record<string, unknown>>;
+  canUseBackupConfigSave?: boolean;
+  canUseBackupExecution?: boolean;
+  canUseDbBackupExecution?: boolean;
+  canUseGitBackupExecution?: boolean;
+  backupConfigUpdated?: boolean;
+  backupConfigMessage?: string;
+  backupJobStarted?: boolean;
+  backupJobId?: string;
   isEn?: boolean;
 };
 
@@ -1341,6 +1452,28 @@ let mypageContextCache: MypageContext | null = null;
 let mypageContextPromise: Promise<MypageContext> | null = null;
 let joinSessionCache: JoinSessionPayload | null = null;
 let joinSessionPromise: Promise<JoinSessionPayload> | null = null;
+type BootstrapPayloadKey =
+  | "frontendSession"
+  | "adminMenuTree"
+  | "adminHomePageData"
+  | "authGroupPageData"
+  | "authChangePageData"
+  | "deptRolePageData"
+  | "memberEditPageData"
+  | "homePayload"
+  | "mypagePayload"
+  | "mypageContext"
+  | "memberStatsPageData"
+  | "securityPolicyPageData"
+  | "securityMonitoringPageData"
+  | "securityAuditPageData"
+  | "schedulerManagementPageData"
+  | "backupConfigPageData"
+  | "emissionResultListPageData"
+  | "emissionSiteManagementPageData"
+  | "screenBuilderPageData";
+let runtimeBootstrapCache: Partial<Record<BootstrapPayloadKey, unknown>> = {};
+let runtimeBootstrapCachePath = "";
 const SESSION_STORAGE_CACHE_PREFIX = "carbonet:api-cache:v2:";
 const FRONTEND_SESSION_STORAGE_KEY = `${SESSION_STORAGE_CACHE_PREFIX}frontend-session`;
 const ADMIN_MENU_TREE_STORAGE_KEY = `${SESSION_STORAGE_CACHE_PREFIX}admin-menu-tree`;
@@ -1403,14 +1536,35 @@ function buildPageCacheKey(path: string) {
   return `${SESSION_STORAGE_CACHE_PREFIX}${path}`;
 }
 
-function consumeRuntimeBootstrap<T>(key: "frontendSession" | "adminMenuTree" | "adminHomePageData" | "authGroupPageData" | "deptRolePageData" | "memberEditPageData" | "homePayload" | "mypagePayload" | "mypageContext" | "memberStatsPageData" | "securityPolicyPageData" | "securityMonitoringPageData" | "securityAuditPageData" | "schedulerManagementPageData" | "emissionResultListPageData" | "screenBuilderPageData"): T | null {
-  if (typeof window === "undefined" || !window.__CARBONET_REACT_BOOTSTRAP__) {
+function currentBootstrapScopePath() {
+  if (typeof window === "undefined") {
+    return "";
+  }
+  return `${window.location.pathname}${window.location.search}`;
+}
+
+function syncRuntimeBootstrapCacheScope() {
+  const nextPath = currentBootstrapScopePath();
+  if (runtimeBootstrapCachePath === nextPath) {
+    return;
+  }
+  runtimeBootstrapCache = {};
+  runtimeBootstrapCachePath = nextPath;
+}
+
+function consumeRuntimeBootstrap<T>(key: BootstrapPayloadKey): T | null {
+  if (typeof window === "undefined") {
     return null;
+  }
+  syncRuntimeBootstrapCacheScope();
+  if (!window.__CARBONET_REACT_BOOTSTRAP__) {
+    return (runtimeBootstrapCache[key] as T | undefined) ?? null;
   }
   const payload = window.__CARBONET_REACT_BOOTSTRAP__[key] as T | undefined;
   if (typeof payload === "undefined") {
-    return null;
+    return (runtimeBootstrapCache[key] as T | undefined) ?? null;
   }
+  runtimeBootstrapCache[key] = payload;
   delete window.__CARBONET_REACT_BOOTSTRAP__[key];
   return payload ?? null;
 }
@@ -1462,6 +1616,20 @@ async function fetchCachedJson<T>(options: {
   return body as T;
 }
 
+async function fetchJsonWithoutCache<T>(options: {
+  url: string;
+  mapError?: (body: any, status: number) => string;
+}): Promise<T> {
+  const response = await fetch(options.url, {
+    credentials: "include"
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(options.mapError?.(body, response.status) || `Failed to load page: ${response.status}`);
+  }
+  return body as T;
+}
+
 export function invalidateFrontendSessionCache() {
   frontendSessionCache = null;
   frontendSessionPromise = null;
@@ -1492,6 +1660,23 @@ export function readAdminMenuTreeSnapshot(): AdminMenuTreePayload | null {
   }
 
   return adminMenuTreeCache;
+}
+
+export function readFrontendSessionSnapshot(): FrontendSession | null {
+  const bootstrappedSession = consumeRuntimeBootstrap<FrontendSession>("frontendSession");
+  if (bootstrappedSession) {
+    frontendSessionCache = bootstrappedSession;
+    writeSessionStorageCache(FRONTEND_SESSION_STORAGE_KEY, bootstrappedSession, SESSION_CACHE_TTL_MS);
+    return bootstrappedSession;
+  }
+
+  const storedSession = readSessionStorageCache<FrontendSession>(FRONTEND_SESSION_STORAGE_KEY);
+  if (storedSession) {
+    frontendSessionCache = storedSession;
+    return storedSession;
+  }
+
+  return frontendSessionCache;
 }
 
 export function refreshAdminMenuTree() {
@@ -1546,6 +1731,69 @@ export async function fetchFrontendSession(): Promise<FrontendSession> {
   }
 
   return frontendSessionPromise;
+}
+
+export async function fetchAdminSessionSimulator(insttId?: string): Promise<AdminSessionSimulationPayload> {
+  const url = new URL(buildAdminApiPath("/api/admin/dev/session-simulator"), window.location.origin);
+  if (insttId) {
+    url.searchParams.set("insttId", insttId);
+  }
+  const response = await fetch(url.toString(), {
+    credentials: "include",
+    headers: {
+      "X-Requested-With": "XMLHttpRequest"
+    }
+  });
+  return readJsonResponse<AdminSessionSimulationPayload>(response);
+}
+
+export async function applyAdminSessionSimulator(
+  _session: FrontendSession,
+  payload: { insttId: string; emplyrId: string; authorCode: string; }
+): Promise<AdminSessionSimulationPayload> {
+  const headers = await buildResilientCsrfHeaders({
+    "Content-Type": "application/json",
+    "X-Requested-With": "XMLHttpRequest"
+  });
+  const response = await fetch(buildAdminApiPath("/api/admin/dev/session-simulator"), {
+    method: "POST",
+    credentials: "include",
+    headers,
+    body: JSON.stringify(payload)
+  });
+  invalidateFrontendSessionCache();
+  return readJsonResponse<AdminSessionSimulationPayload>(response);
+}
+
+export async function resetAdminSessionSimulator(session: FrontendSession): Promise<AdminSessionSimulationPayload> {
+  void session;
+  const headers = await buildResilientCsrfHeaders({
+    "X-Requested-With": "XMLHttpRequest"
+  });
+  const response = await fetch(buildAdminApiPath("/api/admin/dev/session-simulator"), {
+    method: "DELETE",
+    credentials: "include",
+    headers
+  });
+  invalidateFrontendSessionCache();
+  return readJsonResponse<AdminSessionSimulationPayload>(response);
+}
+
+async function fetchFreshFrontendSession(): Promise<FrontendSession> {
+  const response = await globalThis.fetch("/api/frontend/session", {
+    credentials: "include",
+    cache: "no-store",
+    headers: {
+      "X-Requested-With": "XMLHttpRequest"
+    }
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to load session: ${response.status}`);
+  }
+  const session = await response.json() as FrontendSession;
+  frontendSessionCache = session;
+  writeSessionStorageCache(FRONTEND_SESSION_STORAGE_KEY, session, SESSION_CACHE_TTL_MS);
+  return session;
 }
 
 export async function fetchSitemapPage(): Promise<SitemapPagePayload> {
@@ -1626,19 +1874,27 @@ async function buildMypageUrl(path: string) {
 
 export async function fetchAdminMenuTree(): Promise<AdminMenuTreePayload> {
   const cachedMenuTree = readAdminMenuTreeSnapshot();
-  if (cachedMenuTree) {
-    return cachedMenuTree;
-  }
 
   if (!adminMenuTreePromise) {
     adminMenuTreePromise = fetch(buildLocalizedPath("/admin/system/menu-data", "/en/admin/system/menu-data"), {
-      credentials: "include"
+      credentials: "include",
+      cache: "no-store",
+      headers: {
+        "X-Requested-With": "XMLHttpRequest"
+      }
     })
       .then((response) => readJsonResponse<AdminMenuTreePayload>(response))
       .then((payload) => {
         adminMenuTreeCache = payload;
         writeSessionStorageCache(ADMIN_MENU_TREE_STORAGE_KEY, payload, SESSION_CACHE_TTL_MS);
         return payload;
+      })
+      .catch((error) => {
+        if (cachedMenuTree) {
+          adminMenuTreeCache = cachedMenuTree;
+          return cachedMenuTree;
+        }
+        throw error;
       })
       .finally(() => {
         adminMenuTreePromise = null;
@@ -1662,6 +1918,10 @@ export function readBootstrappedAdminHomePageData(): AdminHomePagePayload | null
 
 export function readBootstrappedAuthGroupPageData(): AuthGroupPagePayload | null {
   return consumeRuntimeBootstrap<AuthGroupPagePayload>("authGroupPageData");
+}
+
+export function readBootstrappedAuthChangePageData(): AuthChangePagePayload | null {
+  return consumeRuntimeBootstrap<AuthChangePagePayload>("authChangePageData");
 }
 
 export function readBootstrappedDeptRolePageData(): DeptRolePagePayload | null {
@@ -1696,8 +1956,16 @@ export function readBootstrappedSchedulerManagementPageData(): SchedulerManageme
   return consumeRuntimeBootstrap<SchedulerManagementPagePayload>("schedulerManagementPageData");
 }
 
+export function readBootstrappedBackupConfigPageData(): BackupConfigPagePayload | null {
+  return consumeRuntimeBootstrap<BackupConfigPagePayload>("backupConfigPageData");
+}
+
 export function readBootstrappedEmissionResultListPageData(): EmissionResultListPagePayload | null {
   return consumeRuntimeBootstrap<EmissionResultListPagePayload>("emissionResultListPageData");
+}
+
+export function readBootstrappedEmissionSiteManagementPageData(): EmissionSiteManagementPagePayload | null {
+  return consumeRuntimeBootstrap<EmissionSiteManagementPagePayload>("emissionSiteManagementPageData");
 }
 
 export function readBootstrappedScreenBuilderPageData(): ScreenBuilderPagePayload | null {
@@ -1727,12 +1995,25 @@ export async function fetchAuthGroupPage(params: {
   });
 }
 
-export async function fetchAuthChangePage(): Promise<AuthChangePagePayload> {
+export async function fetchAuthChangePage(params?: { searchKeyword?: string; pageIndex?: number }): Promise<AuthChangePagePayload> {
+  const search = new URLSearchParams();
+  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
+  if (params?.pageIndex && params.pageIndex > 1) search.set("pageIndex", String(params.pageIndex));
+  const query = search.toString() ? `?${search.toString()}` : "";
   return fetchCachedJson<AuthChangePagePayload>({
-    cacheKey: buildPageCacheKey("auth-change/page"),
-    url: buildAdminApiPath("/api/admin/auth-change/page"),
+    cacheKey: buildPageCacheKey(`auth-change/page${query}`),
+    url: `${buildAdminApiPath("/api/admin/auth-change/page")}${query}`,
     mapError: (_body, status) => `Failed to load auth-change page: ${status}`
   });
+}
+
+export async function fetchAuthChangeHistory(): Promise<AuthChangeHistoryRow[]> {
+  const response = await fetchCachedJson<{ items?: AuthChangeHistoryRow[] }>({
+    cacheKey: buildPageCacheKey("auth-change/history"),
+    url: buildAdminApiPath("/api/admin/auth-change/history"),
+    mapError: (_body, status) => `Failed to load auth-change history: ${status}`
+  });
+  return Array.isArray(response.items) ? response.items : [];
 }
 
 export async function fetchDeptRolePage(params?: {
@@ -1757,8 +2038,7 @@ export async function fetchMemberEditPage(memberId: string, options?: { updated?
   search.set("memberId", memberId);
   if (options?.updated) search.set("updated", options.updated);
   const query = search.toString();
-  return fetchCachedJson<MemberEditPagePayload>({
-    cacheKey: buildPageCacheKey(`member-edit/page?${query}`),
+  return fetchJsonWithoutCache<MemberEditPagePayload>({
     url: `${buildAdminApiPath("/api/admin/member/edit")}?${query}`,
     mapError: (_body, status) => `Failed to load member edit page: ${status}`
   });
@@ -1777,7 +2057,10 @@ export function prefetchRoutePageData(route: MigrationPageId, search = ""): Prom
         userSearchKeyword: params.get("userSearchKeyword") || ""
       });
     case "auth-change":
-      return fetchAuthChangePage();
+      return fetchAuthChangePage({
+        searchKeyword: params.get("searchKeyword") || "",
+        pageIndex: params.get("pageIndex") ? Number(params.get("pageIndex")) : undefined
+      });
     case "dept-role":
       return fetchDeptRolePage({
         insttId: params.get("insttId") || "",
@@ -2012,9 +2295,23 @@ export async function fetchMemberRegisterPage() {
   return body as MemberRegisterPagePayload;
 }
 
+export async function checkMemberRegisterId(memberId: string) {
+  const response = await fetch(`${buildAdminApiPath("/api/admin/member/register/check-id")}?memberId=${encodeURIComponent(memberId)}`, {
+    credentials: "include"
+  });
+  const body = await response.json() as { valid?: boolean; duplicated?: boolean; message?: string };
+  if (!response.ok) {
+    throw new Error(body.message || `Failed to check member ID: ${response.status}`);
+  }
+  return {
+    valid: Boolean(body.valid),
+    duplicated: Boolean(body.duplicated),
+    message: String(body.message || "")
+  };
+}
+
 export async function fetchMemberDetailPage(memberId: string) {
-  return fetchCachedJson<MemberDetailPagePayload>({
-    cacheKey: buildPageCacheKey(`member-detail/page?memberId=${encodeURIComponent(memberId)}`),
+  return fetchJsonWithoutCache<MemberDetailPagePayload>({
     url: `${buildAdminApiPath("/api/admin/member/detail/page")}?memberId=${encodeURIComponent(memberId)}`,
     mapError: (body, status) => body.member_detailError || `Failed to load member detail page: ${status}`
   });
@@ -2624,6 +2921,20 @@ export async function fetchSecurityHistoryPage(params?: { pageIndex?: number; se
   return body as LoginHistoryPagePayload;
 }
 
+export async function fetchMemberSecurityHistoryPage(params?: { pageIndex?: number; searchKeyword?: string; userSe?: string; insttId?: string; }) {
+  const search = new URLSearchParams();
+  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
+  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
+  if (params?.userSe) search.set("userSe", params.userSe);
+  if (params?.insttId) search.set("insttId", params.insttId);
+  const response = await fetch(buildLocalizedPath(`/admin/member/security/page-data${search.toString() ? `?${search.toString()}` : ""}`, `/en/admin/member/security/page-data${search.toString() ? `?${search.toString()}` : ""}`), {
+    credentials: "include"
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(body.loginHistoryError || `Failed to load member security history page: ${response.status}`);
+  return body as LoginHistoryPagePayload;
+}
+
 export async function fetchSecurityPolicyPage() {
   const response = await fetch("/admin/system/security-policy/page-data", {
     credentials: "include"
@@ -2676,6 +2987,50 @@ export async function fetchSchedulerManagementPage(params?: { jobStatus?: string
   return body as SchedulerManagementPagePayload;
 }
 
+export async function fetchBackupConfigPage(pathname?: string) {
+  const currentPath = pathname || (typeof window === "undefined" ? "/admin/system/backup_config" : window.location.pathname);
+  const normalizedPath = currentPath.replace(/\/page-data$/, "");
+  const url = normalizedPath.startsWith("/en/")
+    ? `${normalizedPath}/page-data`
+    : buildLocalizedPath(`${normalizedPath}/page-data`, `/en${normalizedPath}/page-data`);
+  const response = await fetch(url, {
+    credentials: "include"
+  });
+  const body = await readJsonResponse<BackupConfigPagePayload>(response);
+  if (!response.ok) throw new Error(`Failed to load backup config page: ${response.status}`);
+  return body;
+}
+
+export async function saveBackupConfig(payload: Record<string, string>) {
+  const response = await fetch(buildLocalizedPath("/admin/system/backup_config/save", "/en/admin/system/backup_config/save"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload)
+  });
+  const body = await readJsonResponse<BackupConfigPagePayload>(response);
+  if (!response.ok) throw new Error(body.backupConfigMessage || `Failed to save backup config: ${response.status}`);
+  return body;
+}
+
+export async function runBackupExecution(executionType: "DB" | "GIT" | "GIT_PRECHECK" | "GIT_CLEANUP_SAFE" | "GIT_BUNDLE" | "GIT_COMMIT_AND_PUSH_BASE" | "GIT_PUSH_BASE" | "GIT_PUSH_RESTORE" | "GIT_TAG_PUSH") {
+  const response = await fetch(buildLocalizedPath("/admin/system/backup/run", "/en/admin/system/backup/run"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify({ executionType })
+  });
+  const body = await readJsonResponse<BackupConfigPagePayload>(response);
+  if (!response.ok) throw new Error(body.backupConfigMessage || `Failed to run backup execution: ${response.status}`);
+  return body;
+}
+
 export async function fetchCodexProvisionPage() {
   const response = await fetch(buildLocalizedPath("/admin/system/codex-request/page-data", "/en/admin/system/codex-request/page-data"), {
     credentials: "include"
@@ -2698,6 +3053,15 @@ export async function fetchEmissionResultListPage(params?: { pageIndex?: number;
   const body = await response.json();
   if (!response.ok) throw new Error(`Failed to load emission result list page: ${response.status}`);
   return body as EmissionResultListPagePayload;
+}
+
+export async function fetchEmissionSiteManagementPage() {
+  const response = await fetch(buildLocalizedPath("/admin/emission/site-management/page-data", "/en/admin/emission/site-management/page-data"), {
+    credentials: "include"
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(`Failed to load emission site management page: ${response.status}`);
+  return body as EmissionSiteManagementPagePayload;
 }
 
 export async function runCodexLoginCheck() {
@@ -3500,6 +3864,11 @@ export async function saveAuthorRoleProfile(
     priorityWorks: string[];
     description: string;
     memberEditVisibleYn: string;
+    roleType?: string;
+    baseRoleYn?: string;
+    parentAuthorCode?: string;
+    assignmentScope?: string;
+    defaultMemberTypes?: string[];
   }
 ) {
   const response = await fetch(buildAdminApiPath("/api/admin/auth-groups/profile-save"), {
@@ -3562,7 +3931,7 @@ export async function saveDeptRoleMember(
 }
 
 export async function saveMemberEdit(
-  session: FrontendSession,
+  _session: FrontendSession,
   payload: {
     memberId: string;
     applcntNm: string;
@@ -3582,12 +3951,50 @@ export async function saveMemberEdit(
   const response = await fetch(buildAdminApiPath("/api/admin/member/edit"), {
     method: "POST",
     credentials: "include",
-    headers: buildJsonHeaders(session),
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
     body: JSON.stringify(payload)
   });
   const body = await response.json();
   if (!response.ok || !body.success) {
     throw new Error(body.message || (body.errors ? body.errors.join(", ") : `Failed to save member edit: ${response.status}`));
+  }
+  invalidateAdminPageCaches();
+  return body;
+}
+
+export async function saveMemberRegister(
+  _session: FrontendSession,
+  payload: {
+    memberId: string;
+    applcntNm: string;
+    password: string;
+    passwordConfirm: string;
+    applcntEmailAdres: string;
+    phoneNumber: string;
+    entrprsSeCode: string;
+    insttId: string;
+    deptNm: string;
+    authorCode: string;
+    zip: string;
+    adres: string;
+    detailAdres: string;
+  }
+) {
+  const response = await fetch(buildAdminApiPath("/api/admin/member/register"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload)
+  });
+  const body = await response.json();
+  if (!response.ok || !body.success) {
+    throw new Error(body.message || (body.errors ? body.errors.join(", ") : `Failed to save member register: ${response.status}`));
   }
   invalidateAdminPageCaches();
   return body;
@@ -3612,11 +4019,14 @@ export async function resetMemberPasswordAction(session: FrontendSession, member
   return body;
 }
 
-export async function saveAdminPermission(session: FrontendSession, payload: { emplyrId: string; authorCode: string; featureCodes: string[]; }) {
+export async function saveAdminPermission(_session: FrontendSession, payload: { emplyrId: string; authorCode: string; featureCodes: string[]; }) {
   const response = await fetch(buildAdminApiPath("/api/admin/member/admin-account/permissions"), {
     method: "POST",
     credentials: "include",
-    headers: buildJsonHeaders(session),
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
     body: JSON.stringify(payload)
   });
   const body = await response.json();
@@ -3628,7 +4038,7 @@ export async function saveAdminPermission(session: FrontendSession, payload: { e
 }
 
 export async function createAdminAccount(
-  session: FrontendSession,
+  _session: FrontendSession,
   payload: {
     rolePreset: string;
     adminId: string;
@@ -3641,13 +4051,19 @@ export async function createAdminAccount(
     phone3: string;
     deptNm: string;
     insttId: string;
+    zip: string;
+    adres: string;
+    detailAdres: string;
     featureCodes: string[];
   }
 ) {
   const response = await fetch(buildAdminApiPath("/api/admin/member/admin-account"), {
     method: "POST",
     credentials: "include",
-    headers: buildJsonHeaders(session),
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
     body: JSON.stringify(payload)
   });
   const body = await response.json();
@@ -3663,9 +4079,9 @@ export async function saveCompanyAccount(
   payload: {
     insttId?: string;
     membershipType: string;
-    agencyName: string;
-    representativeName: string;
-    bizRegistrationNumber: string;
+    agencyName?: string;
+    representativeName?: string;
+    bizRegistrationNumber?: string;
     zipCode: string;
     companyAddress: string;
     companyAddressDetail?: string;
@@ -3678,9 +4094,9 @@ export async function saveCompanyAccount(
   const form = new FormData();
   if (payload.insttId) form.set("insttId", payload.insttId);
   form.set("membershipType", payload.membershipType);
-  form.set("agencyName", payload.agencyName);
-  form.set("representativeName", payload.representativeName);
-  form.set("bizRegistrationNumber", payload.bizRegistrationNumber);
+  if (typeof payload.agencyName === "string") form.set("agencyName", payload.agencyName);
+  if (typeof payload.representativeName === "string") form.set("representativeName", payload.representativeName);
+  if (typeof payload.bizRegistrationNumber === "string") form.set("bizRegistrationNumber", payload.bizRegistrationNumber);
   form.set("zipCode", payload.zipCode);
   form.set("companyAddress", payload.companyAddress);
   form.set("companyAddressDetail", payload.companyAddressDetail || "");

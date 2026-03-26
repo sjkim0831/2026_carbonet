@@ -44,6 +44,8 @@
                   <div><span class="label">Guided State</span><div class="value">guided-build-11-screen-builder</div></div>
                   <div><span class="label">Template Line</span><div class="value">public-line-01</div></div>
                   <div><span class="label">Family Rule</span><div class="value">JOIN_INFO</div></div>
+                  <div><span class="label">Design Guide</span><div class="value">dg-join-info-public-v2</div></div>
+                  <div><span class="label">Page Assembly</span><div class="value">pa-join-info-v4</div></div>
                   <div><span class="label">Scenario Family</span><div class="value">join-public-company</div></div>
                   <div><span class="label">Scenario</span><div class="value">join-info</div></div>
                   <div><span class="label">Actor Policy</span><div class="value">public-join-basic</div></div>
@@ -72,6 +74,7 @@
                   <tbody>
                     <tr><td>Menu / Page / Feature</td><td>JOIN_STEP4 / join-info / JOIN_INFO_SUBMIT</td><td><span class="chip ok">Ready</span></td></tr>
                     <tr><td>Template / Rule</td><td>public-line-01 / JOIN_INFO</td><td><span class="chip ok">Locked</span></td></tr>
+                    <tr><td>Design Guide / Assembly</td><td>dg-join-info-public-v2 / pa-join-info-v4</td><td><span class="chip ok">Linked</span></td></tr>
                     <tr><td>Frontend</td><td>screen-layout.json + component-binding.json</td><td><span class="chip ok">Ready</span></td></tr>
                     <tr><td>Backend</td><td>Controller / Service / DTO / Mapper / XML</td><td><span class="chip ok">Scaffold</span></td></tr>
                     <tr><td>DB</td><td>JOIN_COMPANY_DRAFT / ATCH_FILE</td><td><span class="chip warn">Index Review</span></td></tr>
@@ -100,6 +103,19 @@
                   <li>Help anchors present for search, grid, action bar</li>
                   <li>Security profile and audit hooks attached</li>
                   <li>Function ids generated with governed hash suffix</li>
+                </ul>
+              </div>
+            </div>
+            <div class="card soft">
+              <div class="card-header"><div><h3>04 Handoff Evidence</h3><p>05 / 09가 바로 consume할 입력물</p></div><span class="chip ok">handoff-ready</span></div>
+              <div class="card-body">
+                <ul class="timeline">
+                  <li>guidedStateId: guided-build-11-screen-builder</li>
+                  <li>templateLineId: public-line-01</li>
+                  <li>screenFamilyRuleId: JOIN_INFO</li>
+                  <li>designGuideProfileId: dg-join-info-public-v2</li>
+                  <li>pageAssemblyId: pa-join-info-v4</li>
+                  <li>consumer lanes: res-05-frontend / res-09-verify</li>
                 </ul>
               </div>
             </div>

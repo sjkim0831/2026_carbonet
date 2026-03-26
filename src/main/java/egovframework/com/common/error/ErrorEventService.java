@@ -109,8 +109,34 @@ public class ErrorEventService {
         try {
             observabilityMapper.insertErrorEvent(record);
         } catch (Exception e) {
+            if (isClobBindingIssue(e)) {
+                log.warn("Error event persistence failed due to CLOB binding. Retrying with compact text. source={}, type={}",
+                        record.getSourceType(), record.getErrorType());
+                record.setMessage(truncate(record.getMessage(), 500));
+                record.setStackSummary("");
+                try {
+                    observabilityMapper.insertErrorEvent(record);
+                    return;
+                } catch (Exception retryException) {
+                    log.warn("Failed to persist error event after compact retry. source={}, type={}",
+                            record.getSourceType(), record.getErrorType(), retryException);
+                    return;
+                }
+            }
             log.warn("Failed to persist error event. source={}, type={}", record.getSourceType(), record.getErrorType(), e);
         }
+    }
+
+    private boolean isClobBindingIssue(Exception exception) {
+        Throwable current = exception;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null && message.toLowerCase(Locale.ROOT).contains("type clob")) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     private String buildStackSummary(Throwable throwable) {

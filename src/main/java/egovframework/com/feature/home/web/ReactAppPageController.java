@@ -21,7 +21,7 @@ public class ReactAppPageController {
     private final ReactAppViewSupport reactAppViewSupport;
 
     private String normalizeRoute(String route) {
-        return route == null ? "" : route.trim().replace('-', '_');
+        return route == null ? "" : route.trim().replace('_', '-');
     }
 
     private Object renderHomeShell(String route, Model model, boolean english) {
@@ -29,7 +29,7 @@ public class ReactAppPageController {
         if ("mypage".equals(normalizedRoute)) {
             return new RedirectView(english ? "/en/mypage" : "/mypage");
         }
-        if ("join_wizard".equals(normalizedRoute)) {
+        if ("join-wizard".equals(normalizedRoute)) {
             return new RedirectView(english ? "/join/en/step1" : "/join/step1");
         }
         return reactAppViewSupport.render(model, normalizedRoute, english, false);
@@ -55,14 +55,14 @@ public class ReactAppPageController {
 
     @GetMapping("/admin/app")
     public String adminReactMigration(
-            @RequestParam(value = "route", required = false, defaultValue = "auth_group") String route,
+            @RequestParam(value = "route", required = false, defaultValue = "auth-group") String route,
             Model model) {
         return renderAdminShell(route, model, false);
     }
 
     @GetMapping("/en/admin/app")
     public String adminReactMigrationEn(
-            @RequestParam(value = "route", required = false, defaultValue = "auth_group") String route,
+            @RequestParam(value = "route", required = false, defaultValue = "auth-group") String route,
             Model model) {
         return renderAdminShell(route, model, true);
     }
@@ -79,7 +79,7 @@ public class ReactAppPageController {
     @GetMapping({"/api/admin/app/bootstrap", "/en/api/admin/app/bootstrap"})
     @ResponseBody
     public ResponseEntity<Map<String, Object>> adminAppBootstrap(
-            @RequestParam(value = "route", required = false, defaultValue = "auth_group") String route,
+            @RequestParam(value = "route", required = false, defaultValue = "auth-group") String route,
             @RequestParam(value = "path", required = false) String path,
             HttpServletRequest request) {
         return ResponseEntity.ok(buildBootstrapPayload(route, path, request, true));
@@ -87,10 +87,17 @@ public class ReactAppPageController {
 
     private Map<String, Object> buildBootstrapPayload(String route, String path, HttpServletRequest request, boolean admin) {
         String resolvedRoute = normalizeRoute(route);
-        if (resolvedRoute.isEmpty() || "mypage".equals(resolvedRoute) || "auth_group".equals(resolvedRoute)) {
-            String routeByPath = ReactPageUrlMapper.resolveRouteIdForPath(path == null || path.isBlank()
-                    ? request != null ? request.getHeader("X-Carbonet-Path") : ""
-                    : path);
+        String requestedPath = path == null || path.isBlank()
+                ? request != null ? request.getHeader("X-Carbonet-Path") : ""
+                : path;
+        String normalizedRequestedPath = requestedPath == null ? "" : requestedPath.trim();
+        if ("/signin/findId/overseas".equals(normalizedRequestedPath) || "/en/signin/findId/overseas".equals(normalizedRequestedPath)) {
+            resolvedRoute = "signin_find_id";
+        } else if ("/signin/findPassword/overseas".equals(normalizedRequestedPath) || "/en/signin/findPassword/overseas".equals(normalizedRequestedPath)) {
+            resolvedRoute = "signin_find_password";
+        }
+        if (resolvedRoute.isEmpty() || "mypage".equals(resolvedRoute) || "auth-group".equals(resolvedRoute)) {
+            String routeByPath = ReactPageUrlMapper.resolveRouteIdForPath(requestedPath);
             if (!routeByPath.isBlank()) {
                 resolvedRoute = routeByPath;
             }

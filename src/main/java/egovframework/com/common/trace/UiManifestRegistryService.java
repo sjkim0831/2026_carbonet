@@ -3,6 +3,7 @@ package egovframework.com.common.trace;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import egovframework.com.common.mapper.ObservabilityMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +15,7 @@ import java.util.Locale;
 import java.util.Map;
 
 @Service
+@Slf4j
 public class UiManifestRegistryService {
 
     private final ObservabilityMapper observabilityMapper;
@@ -67,11 +69,7 @@ public class UiManifestRegistryService {
                 component.setPropsSchemaJson(toJson(buildComponentProps(surface)));
                 component.setDesignReference(stringValue(surface.get("selector")));
                 component.setActiveYn("Y");
-                if (observabilityMapper.countUiComponentRegistry(componentId) > 0) {
-                    observabilityMapper.updateUiComponentRegistry(component);
-                } else {
-                    observabilityMapper.insertUiComponentRegistry(component);
-                }
+                upsertUiComponentRegistry(component);
             }
 
             UiPageComponentMapVO map = new UiPageComponentMapVO();
@@ -230,6 +228,39 @@ public class UiManifestRegistryService {
         return props;
     }
 
+    private void upsertUiComponentRegistry(UiComponentRegistryVO component) {
+        boolean exists = observabilityMapper.countUiComponentRegistry(component.getComponentId()) > 0;
+        try {
+            if (exists) {
+                observabilityMapper.updateUiComponentRegistry(component);
+            } else {
+                observabilityMapper.insertUiComponentRegistry(component);
+            }
+            return;
+        } catch (Exception ex) {
+            if (!isClobBindingIssue(ex)) {
+                throw ex;
+            }
+            log.warn("UI component registry persistence failed due to CLOB binding. Retrying without props schema. componentId={}",
+                    component.getComponentId());
+        }
+
+        String originalPropsSchemaJson = component.getPropsSchemaJson();
+        try {
+            component.setPropsSchemaJson(null);
+            if (exists) {
+                observabilityMapper.updateUiComponentRegistry(component);
+            } else {
+                observabilityMapper.insertUiComponentRegistry(component);
+            }
+        } catch (Exception retryEx) {
+            log.warn("Failed to persist UI component registry after compact retry. componentId={}",
+                    component.getComponentId(), retryEx);
+        } finally {
+            component.setPropsSchemaJson(originalPropsSchemaJson);
+        }
+    }
+
     @SuppressWarnings("unchecked")
     private List<Map<String, Object>> safeMapList(Object value) {
         if (!(value instanceof List)) {
@@ -281,5 +312,17 @@ public class UiManifestRegistryService {
 
     private String stringValue(Object value) {
         return value == null ? "" : String.valueOf(value).trim();
+    }
+
+    private boolean isClobBindingIssue(Exception exception) {
+        Throwable current = exception;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null && message.toLowerCase(Locale.ROOT).contains("type clob")) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 }

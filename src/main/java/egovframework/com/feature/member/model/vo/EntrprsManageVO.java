@@ -133,7 +133,14 @@ public class EntrprsManageVO extends UserDefaultVO {
 	 * 신청자 이메일주소
 	 */
 	private String applcntEmailAdres;
-
+	/**
+	 * 반려 사유
+	 */
+	private String rjctRsn;
+	/**
+	 * 반려 시점
+	 */
+	private String rjctPnttm;
 	/** 로그인인증제한여부 */
 	private String lockAt;
 
@@ -716,6 +723,22 @@ public class EntrprsManageVO extends UserDefaultVO {
 	 */
 	public void setApplcntEmailAdres(String applcntEmailAdres) {
 		this.applcntEmailAdres = applcntEmailAdres;
+	}
+
+	public String getRjctRsn() {
+		return rjctRsn;
+	}
+
+	public void setRjctRsn(String rjctRsn) {
+		this.rjctRsn = rjctRsn;
+	}
+
+	public String getRjctPnttm() {
+		return rjctPnttm;
+	}
+
+	public void setRjctPnttm(String rjctPnttm) {
+		this.rjctPnttm = rjctPnttm;
 	}
 
 }

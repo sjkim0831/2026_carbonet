@@ -35,8 +35,8 @@
             #{actionCode},
             #{entityType},
             #{entityId},
-            #{beforeSummaryJson},
-            #{afterSummaryJson},
+            #{beforeSummaryJson, typeHandler=egovframework.com.config.data.CubridClobStringTypeHandler},
+            #{afterSummaryJson, typeHandler=egovframework.com.config.data.CubridClobStringTypeHandler},
             #{resultStatus},
             #{reasonSummary},
             #{ipAddress},
@@ -72,7 +72,7 @@
             #{apiId},
             #{resultCode},
             #{durationMs},
-            #{payloadSummaryJson},
+            #{payloadSummaryJson, typeHandler=egovframework.com.config.data.CubridClobStringTypeHandler},
             CURRENT_DATETIME
         )
     </insert>
@@ -97,7 +97,7 @@
             RESPONSE_STATUS,
             DURATION_MS,
             REQUEST_CONTENT_TYPE,
-            QUERY_STRING,
+            "QUERY_STRING",
             PARAMETER_SUMMARY,
             ERROR_MESSAGE,
             COMPANY_SCOPE_DECISION,
@@ -123,10 +123,10 @@
             #{durationMs},
             #{requestContentType},
             #{queryString},
-            #{parameterSummary},
-            #{errorMessage},
+            #{parameterSummary, typeHandler=egovframework.com.config.data.CubridClobStringTypeHandler},
+            #{errorMessage, typeHandler=egovframework.com.config.data.CubridClobStringTypeHandler},
             #{companyScopeDecision},
-            #{companyScopeReason},
+            #{companyScopeReason, typeHandler=egovframework.com.config.data.CubridClobStringTypeHandler},
             CURRENT_DATETIME
         )
     </insert>
@@ -163,8 +163,8 @@
             #{actorInsttId},
             #{requestUri},
             #{remoteAddr},
-            #{message},
-            #{stackSummary},
+            #{message, typeHandler=egovframework.com.config.data.CubridClobStringTypeHandler},
+            #{stackSummary, typeHandler=egovframework.com.config.data.CubridClobStringTypeHandler},
             #{resultStatus},
             #{userAgent},
             CURRENT_DATETIME
@@ -363,7 +363,7 @@
             RESPONSE_STATUS AS responseStatus,
             DURATION_MS AS durationMs,
             REQUEST_CONTENT_TYPE AS requestContentType,
-            QUERY_STRING AS queryString,
+            "QUERY_STRING" AS queryString,
             PARAMETER_SUMMARY AS parameterSummary,
             ERROR_MESSAGE AS errorMessage,
             COMPANY_SCOPE_DECISION AS companyScopeDecision,
@@ -422,6 +422,28 @@
             RESULT_CODE AS resultCode,
             DURATION_MS AS durationMs,
             PAYLOAD_SUMMARY AS payloadSummaryJson,
+            TO_CHAR(CREATED_AT, 'YYYY-MM-DD HH24:MI:SS') AS createdAt
+        FROM TRACE_EVENT
+        <include refid="traceEventWhere" />
+        ORDER BY CREATED_AT DESC
+        LIMIT #{recordCountPerPage}
+        OFFSET #{firstIndex}
+    </select>
+
+    <select id="selectTraceEventListCompact" parameterType="egovframework.com.common.trace.TraceEventSearchVO" resultType="egovframework.com.common.trace.TraceEventRecordVO">
+        SELECT
+            EVENT_ID AS eventId,
+            TRACE_ID AS traceId,
+            SPAN_ID AS spanId,
+            PARENT_SPAN_ID AS parentSpanId,
+            EVENT_TYPE AS eventType,
+            PAGE_ID AS pageId,
+            COMPONENT_ID AS componentId,
+            FUNCTION_ID AS functionId,
+            API_ID AS apiId,
+            RESULT_CODE AS resultCode,
+            DURATION_MS AS durationMs,
+            '' AS payloadSummaryJson,
             TO_CHAR(CREATED_AT, 'YYYY-MM-DD HH24:MI:SS') AS createdAt
         FROM TRACE_EVENT
         <include refid="traceEventWhere" />
@@ -527,7 +549,7 @@
             #{componentName},
             #{componentType},
             #{ownerDomain},
-            #{propsSchemaJson},
+            #{propsSchemaJson, typeHandler=egovframework.com.config.data.CubridClobStringTypeHandler},
             #{designReference},
             #{activeYn},
             CURRENT_DATETIME,
@@ -571,7 +593,7 @@
             COMPONENT_NAME = #{componentName},
             COMPONENT_TYPE = #{componentType},
             OWNER_DOMAIN = #{ownerDomain},
-            PROPS_SCHEMA_JSON = #{propsSchemaJson},
+            PROPS_SCHEMA_JSON = #{propsSchemaJson, typeHandler=egovframework.com.config.data.CubridClobStringTypeHandler},
             DESIGN_REFERENCE = #{designReference},
             ACTIVE_YN = #{activeYn},
             UPDATED_AT = CURRENT_DATETIME

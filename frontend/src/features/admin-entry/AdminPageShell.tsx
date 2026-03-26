@@ -1,12 +1,19 @@
-import { ReactNode, SyntheticEvent, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { ReactNode, SyntheticEvent, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
+  applyAdminSessionSimulator,
   invalidateFrontendSessionCache,
   fetchAdminMenuTree,
+  fetchAdminSessionSimulator,
+  fetchFrontendSession,
   getAdminMenuTreeRefreshEventName,
   readAdminMenuTreeSnapshot,
+  readFrontendSessionSnapshot,
+  resetAdminSessionSimulator,
   type AdminMenuDomain,
   type AdminMenuGroup,
-  type AdminMenuLink
+  type AdminMenuLink,
+  type AdminSessionSimulationPayload,
+  type FrontendSession
 } from "../../lib/api/client";
 import { fetchJson } from "../../lib/api/core";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
@@ -59,6 +66,8 @@ const GOV_SYMBOL = "/img/egovframework/kr_gov_symbol.png";
 const GOV_FOOTER_SYMBOL = "/img/egovframework/kr_gov_symbol.png";
 const GOV_SYMBOL_FALLBACK = "/img/egovframework/kr_gov_symbol.svg";
 const ADMIN_SESSION_STORAGE_KEY = "adminSessionExpireAt";
+const ADMIN_SIMULATOR_EXPANDED_STORAGE_KEY = "adminDevSimulatorExpanded";
+const ADMIN_SIDEBAR_SCROLL_STORAGE_KEY = "adminSidebarScrollTop";
 const ADMIN_SESSION_DURATION_MS = 60 * 60 * 1000;
 const ADMIN_SESSION_WARNING_MS = 5 * 60 * 1000;
 const ADMIN_SESSION_DANGER_MS = 60 * 1000;
@@ -115,208 +124,18 @@ function formatAdminSessionRemaining(ms: number) {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
-function getFallbackGnbItems(en: boolean): GnbItem[] {
-  return [
-    { key: "대시보드", label: en ? "Dashboard" : "대시보드", href: buildLocalizedPath("/admin/", "/en/admin/"), domain: "대시보드" },
-    { key: "회원관리", label: en ? "Members" : "회원관리", href: buildLocalizedPath("/admin/member/list", "/en/admin/member/list"), domain: "회원관리" },
-    { key: "시스템", label: en ? "System" : "시스템", href: buildLocalizedPath("/admin/system/code", "/en/admin/system/code"), domain: "시스템" },
-    { key: "모니터링", label: en ? "Monitoring" : "모니터링", href: buildLocalizedPath("/admin/member/login_history", "/en/admin/member/login_history"), domain: "모니터링" }
-  ];
-}
-
-function getFallbackMenuTree(): Record<string, AdminMenuDomain> {
-  return {
-    대시보드: {
-      label: "대시보드",
-      labelEn: "Dashboard",
-      summary: "",
-      groups: [
-        {
-          title: "대시보드",
-          titleEn: "Dashboard",
-          icon: "dashboard",
-          links: [
-            { text: "운영 대시보드", tEn: "Operations Dashboard", u: buildLocalizedPath("/admin/", "/en/admin/"), icon: "dashboard" }
-          ]
-        }
-      ]
-    },
-    회원관리: {
-      label: "회원관리",
-      labelEn: "Members",
-      summary: "",
-      groups: [
-        {
-          title: "회원",
-          titleEn: "Members",
-          icon: "group",
-          links: [
-            { text: "회원 목록", tEn: "Member List", u: buildLocalizedPath("/admin/member/list", "/en/admin/member/list"), icon: "list_alt" },
-            { text: "신규 회원 등록", tEn: "New Member Registration", u: buildLocalizedPath("/admin/member/register", "/en/admin/member/register"), icon: "person_add" },
-            { text: "가입 승인", tEn: "Sign-up Approval", u: buildLocalizedPath("/admin/member/approve", "/en/admin/member/approve"), icon: "how_to_reg" },
-            { text: "탈퇴 회원", tEn: "Withdrawn Members", u: buildLocalizedPath("/admin/member/withdrawn", "/en/admin/member/withdrawn"), icon: "person_off" },
-            { text: "휴면 계정", tEn: "Dormant Accounts", u: buildLocalizedPath("/admin/member/activate", "/en/admin/member/activate"), icon: "bedtime" }
-          ]
-        },
-        {
-          title: "회원사",
-          titleEn: "Companies",
-          icon: "apartment",
-          links: [
-            { text: "회원사 목록", tEn: "Company List", u: buildLocalizedPath("/admin/member/company_list", "/en/admin/member/company_list"), icon: "apartment" },
-            { text: "회원사 추가", tEn: "Company Create", u: buildLocalizedPath("/admin/member/company_account", "/en/admin/member/company_account"), icon: "domain_add" },
-            { text: "회원사 승인", tEn: "Company Approval", u: buildLocalizedPath("/admin/member/company-approve", "/en/admin/member/company-approve"), icon: "domain_verification" }
-          ]
-        },
-        {
-          title: "관리자",
-          titleEn: "Administrators",
-          icon: "admin_panel_settings",
-          links: [
-            { text: "관리자 목록", tEn: "Admin List", u: buildLocalizedPath("/admin/member/admin_list", "/en/admin/member/admin_list"), icon: "admin_panel_settings" },
-            { text: "관리자 계정 생성", tEn: "Admin Account Create", u: buildLocalizedPath("/admin/member/admin_account", "/en/admin/member/admin_account"), icon: "person_add_alt" },
-            { text: "권한 변경", tEn: "Permission Changes", u: buildLocalizedPath("/admin/member/auth-change", "/en/admin/member/auth-change"), icon: "swap_horiz" },
-            { text: "부서 권한 맵핑", tEn: "Department Permission Mapping", u: buildLocalizedPath("/admin/member/dept-role-mapping", "/en/admin/member/dept-role-mapping"), icon: "account_tree" }
-          ]
-        }
-      ]
-    },
-    시스템: {
-      label: "시스템",
-      labelEn: "System",
-      summary: "",
-      groups: [
-        {
-          title: "시스템",
-          titleEn: "System",
-          icon: "settings",
-          links: [
-            { text: "코드 관리", tEn: "Code Management", u: buildLocalizedPath("/admin/system/code", "/en/admin/system/code"), icon: "category" },
-            { text: "접속 로그", tEn: "Access History", u: buildLocalizedPath("/admin/system/access_history", "/en/admin/system/access_history"), icon: "history" },
-            { text: "에러 로그", tEn: "Error Log", u: buildLocalizedPath("/admin/system/error-log", "/en/admin/system/error-log"), icon: "error" },
-            { text: "보안 감사", tEn: "Security Audit", u: buildLocalizedPath("/admin/system/security-audit", "/en/admin/system/security-audit"), icon: "shield" },
-            { text: "감사 로그", tEn: "Observability", u: buildLocalizedPath("/admin/system/observability", "/en/admin/system/observability"), icon: "monitoring" }
-          ]
-        }
-      ]
-    },
-    모니터링: {
-      label: "모니터링",
-      labelEn: "Monitoring",
-      summary: "",
-      groups: [
-        {
-          title: "로그",
-          titleEn: "Logs",
-          icon: "monitoring",
-          links: [
-            { text: "로그인 이력", tEn: "Login History", u: buildLocalizedPath("/admin/member/login_history", "/en/admin/member/login_history"), icon: "history" }
-          ]
-        }
-      ]
-    }
-  };
-}
-
-function cloneMenuTree(source: Record<string, AdminMenuDomain>): Record<string, AdminMenuDomain> {
-  return Object.fromEntries(
-    Object.entries(source).map(([domainKey, domain]) => [
-      domainKey,
-      {
-        ...domain,
-        groups: (domain.groups || []).map((group) => ({
-          ...group,
-          links: [...(group.links || [])]
-        }))
-      }
-    ])
-  );
-}
-
-const MEMBER_GROUP_ORDER = ["회원", "회원사", "관리자"];
-
-const MEMBER_LINK_ORDER: Record<string, string[]> = {
-  회원: [
-    "회원 목록",
-    "신규 회원 등록",
-    "가입 승인",
-    "탈퇴 회원",
-    "휴면 계정"
-  ],
-  회원사: [
-    "회원사 목록",
-    "회원사 추가",
-    "회원사 승인"
-  ],
-  관리자: [
-    "관리자 목록",
-    "관리자 계정 생성",
-    "권한 변경",
-    "부서 권한 맵핑"
-  ]
-};
-
-function sortByPreferredOrder<T>(items: T[], resolveKey: (item: T) => string, preferred: string[]) {
-  const indexByKey = new Map(preferred.map((key, index) => [key, index]));
-  return [...items].sort((left, right) => {
-    const leftKey = resolveKey(left);
-    const rightKey = resolveKey(right);
-    const leftOrder = indexByKey.has(leftKey) ? indexByKey.get(leftKey)! : Number.MAX_SAFE_INTEGER;
-    const rightOrder = indexByKey.has(rightKey) ? indexByKey.get(rightKey)! : Number.MAX_SAFE_INTEGER;
-    if (leftOrder !== rightOrder) {
-      return leftOrder - rightOrder;
-    }
-    return leftKey.localeCompare(rightKey);
-  });
-}
-
-function normalizeMemberManagementMenuTree(source: Record<string, AdminMenuDomain>) {
-  const nextTree = cloneMenuTree(source);
-  const memberDomain = nextTree["회원관리"];
-  if (!memberDomain) {
-    return nextTree;
+function readStoredAdminSimulatorExpanded() {
+  if (typeof window === "undefined") {
+    return false;
   }
-
-  memberDomain.groups = sortByPreferredOrder(
-    memberDomain.groups || [],
-    (group) => String(group.title || "").trim(),
-    MEMBER_GROUP_ORDER
-  ).map((group) => {
-    const preferredLinks = MEMBER_LINK_ORDER[String(group.title || "").trim()];
-    if (!preferredLinks) {
-      return group;
-    }
-    return {
-      ...group,
-      links: sortByPreferredOrder(
-        group.links || [],
-        (link) => String(link.text || "").trim(),
-        preferredLinks
-      )
-    };
-  });
-
-  return nextTree;
-}
-
-function resolveFallbackDomainKey(label: string) {
-  const normalized = label.trim();
-  if (!normalized) {
-    return "회원관리";
+  const stored = window.localStorage.getItem(ADMIN_SIMULATOR_EXPANDED_STORAGE_KEY);
+  if (stored === "Y") {
+    return true;
   }
-  if (normalized === "회원" || normalized === "회원사" || normalized === "관리자") {
-    return "회원관리";
+  if (stored === "N") {
+    return false;
   }
-  if (normalized === "시스템") {
-    return "시스템";
-  }
-  if (normalized === "모니터링") {
-    return "모니터링";
-  }
-  if (normalized === "홈" || normalized === "대시보드") {
-    return "대시보드";
-  }
-  return "회원관리";
+  return false;
 }
 
 function normalizeComparablePath(value: string) {
@@ -386,21 +205,7 @@ function resolveMenuComparablePath(value: string, preserveDirectMenu = true) {
 }
 
 function resolveMenuLinkRuntimeUrl(link: MenuLinkLike | undefined) {
-  const rawUrl = String(link?.u || "").trim();
-  const code = String(link?.code || "").trim().toUpperCase();
-  if (code === "A0010102") {
-    return buildLocalizedPath("/admin/member/register", "/en/admin/member/register");
-  }
-  if (code === "A0010203") {
-    return buildLocalizedPath("/admin/member/company_account", "/en/admin/member/company_account");
-  }
-  if (code === "A0010106") {
-    return buildLocalizedPath("/admin/member/withdrawn", "/en/admin/member/withdrawn");
-  }
-  if (code === "A0010107") {
-    return buildLocalizedPath("/admin/member/activate", "/en/admin/member/activate");
-  }
-  return rawUrl;
+  return String(link?.u || "").trim();
 }
 
 function shouldHideSidebarLink(link: MenuLinkLike | undefined) {
@@ -448,45 +253,6 @@ function resolveMenuIndexEntry(menuIndex: MenuIndex, currentPath: string) {
   const currentFull = resolveMenuComparablePath(currentPath, false);
   const currentBase = pathOnly(currentFull);
   return menuIndex.exactPathMap[currentFull] || menuIndex.basePathMap[currentBase] || null;
-}
-
-function ensureCurrentPageInMenuTree(
-  source: Record<string, AdminMenuDomain>,
-  currentPath: string,
-  title: string,
-  breadcrumbs?: BreadcrumbItem[],
-  en?: boolean
-) {
-  const nextTree = cloneMenuTree(source);
-  const existingEntry = resolveMenuIndexEntry(buildMenuIndex(nextTree), currentPath);
-  if (existingEntry) {
-    return nextTree;
-  }
-
-  const sectionLabel = breadcrumbs?.[1]?.label || "";
-  const currentFull = resolveMenuComparablePath(currentPath, false);
-  const currentBase = pathOnly(currentFull);
-  const pageLabel = breadcrumbs?.[breadcrumbs.length - 1]?.label || title || currentBase;
-  const domainKey = resolveFallbackDomainKey(sectionLabel);
-  const domain = nextTree[domainKey];
-  if (!domain) {
-    return nextTree;
-  }
-
-  const groupIndex = (domain.groups || []).findIndex((group) => {
-    const groupTitle = en ? (group.titleEn || group.title) : group.title;
-    return groupTitle === sectionLabel || group.title === sectionLabel;
-  });
-  const targetGroup = groupIndex >= 0 ? domain.groups[groupIndex] : domain.groups[0];
-  if (!targetGroup) {
-    return nextTree;
-  }
-
-  targetGroup.links = [
-    { code: "", text: pageLabel, tEn: pageLabel, u: currentFull, icon: "radio_button_checked" },
-    ...visibleLinks(targetGroup.links)
-  ];
-  return nextTree;
 }
 
 function resolveFirstDomainPath(domain: AdminMenuDomain | undefined) {
@@ -605,6 +371,7 @@ export function AdminPageShell({
 }: AdminPageShellProps) {
   const en = isEnglish();
   const [initialMenuTree] = useState(() => readAdminMenuTreeSnapshot());
+  const [bootstrappedSession] = useState<FrontendSession | null>(() => readFrontendSessionSnapshot());
   const embeddedInLegacyAdminShell = typeof document !== "undefined" && (() => {
     const root = document.getElementById("root");
     if (!root) {
@@ -617,19 +384,17 @@ export function AdminPageShell({
   })();
   const currentPath = `${window.location.pathname}${window.location.search}`;
   const menuState = useAsyncValue(fetchAdminMenuTree, [], {
-    initialValue: initialMenuTree,
-    skipInitialLoad: initialMenuTree !== null
+    initialValue: initialMenuTree
   });
   const fallbackMenuTree = useMemo(
-    () => normalizeMemberManagementMenuTree(ensureCurrentPageInMenuTree(getFallbackMenuTree(), currentPath, title, breadcrumbs, en)),
-    [breadcrumbs, currentPath, en, title]
+    () => (initialMenuTree && Object.keys(initialMenuTree).length ? initialMenuTree : {}),
+    [initialMenuTree]
   );
   const menuTree = useMemo(
-    () => normalizeMemberManagementMenuTree(Object.keys(menuState.value || {}).length ? (menuState.value || {}) : fallbackMenuTree),
+    () => Object.keys(menuState.value || {}).length ? (menuState.value || {}) : fallbackMenuTree,
     [fallbackMenuTree, menuState.value]
   );
   const menuIndex = useMemo(() => buildMenuIndex(menuTree), [menuTree]);
-  const fallbackGnbItems = getFallbackGnbItems(en);
   const activeMenuEntry = useMemo(() => resolveMenuIndexEntry(menuIndex, currentPath), [menuIndex, currentPath]);
   const activeDomainKey = activeMenuEntry?.domainKey || Object.keys(menuTree)[0] || "";
   const [selectedDomainKey, setSelectedDomainKey] = useState(activeDomainKey);
@@ -639,10 +404,58 @@ export function AdminPageShell({
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [sessionRemainingMs, setSessionRemainingMs] = useState(() => Math.max(0, ensureAdminSessionExpireAt() - Date.now()));
   const [sessionRefreshPending, setSessionRefreshPending] = useState(false);
+  const [devSession, setDevSession] = useState<FrontendSession | null>(bootstrappedSession);
+  const [simulatorPayload, setSimulatorPayload] = useState<AdminSessionSimulationPayload | null>(null);
+  const [simulatorLoading, setSimulatorLoading] = useState(false);
+  const [simulatorSubmitting, setSimulatorSubmitting] = useState(false);
+  const [simulatorMessage, setSimulatorMessage] = useState("");
+  const [simulatorExpanded, setSimulatorExpanded] = useState(() => readStoredAdminSimulatorExpanded());
+  const [selectedSimulatorInsttId, setSelectedSimulatorInsttId] = useState("");
+  const [selectedSimulatorEmplyrId, setSelectedSimulatorEmplyrId] = useState("");
+  const [selectedSimulatorAuthorCode, setSelectedSimulatorAuthorCode] = useState("");
+  const sidebarBodyRef = useRef<HTMLDivElement | null>(null);
+  const sidebarScrollRestoringRef = useRef(false);
   const filteredSelectedDomain = useMemo(
     () => filterMenuGroups(selectedDomain?.groups, deferredMenuFilter, en),
     [selectedDomain?.groups, deferredMenuFilter, en]
   );
+  const showDevSimulator = Boolean(devSession?.simulationAvailable || bootstrappedSession?.simulationAvailable);
+  const selectedSimulatorAccount = useMemo(
+    () => simulatorPayload?.adminAccountOptions.find((option) => option.emplyrId === selectedSimulatorEmplyrId) || null,
+    [selectedSimulatorEmplyrId, simulatorPayload?.adminAccountOptions]
+  );
+
+  function syncSimulatorSelection(payload: AdminSessionSimulationPayload, options?: { keepAccount?: boolean; keepRole?: boolean }) {
+    const keepAccount = Boolean(options?.keepAccount);
+    const keepRole = Boolean(options?.keepRole);
+    const insttId = payload.selectedInsttId || payload.companyOptions[0]?.insttId || "";
+    const accountIds = new Set((payload.adminAccountOptions || []).map((option) => option.emplyrId || ""));
+    const roleCodes = new Set((payload.authorOptions || []).map((option) => option.authorCode || ""));
+    const nextEmplyrId = keepAccount && accountIds.has(selectedSimulatorEmplyrId)
+      ? selectedSimulatorEmplyrId
+      : (payload.selectedEmplyrId || payload.adminAccountOptions[0]?.emplyrId || "");
+    const defaultRoleCode = payload.adminAccountOptions.find((option) => option.emplyrId === nextEmplyrId)?.authorCode || "";
+    const nextAuthorCode = keepRole && roleCodes.has(selectedSimulatorAuthorCode)
+      ? selectedSimulatorAuthorCode
+      : (payload.selectedAuthorCode || defaultRoleCode || "");
+    setSelectedSimulatorInsttId(insttId);
+    setSelectedSimulatorEmplyrId(nextEmplyrId);
+    setSelectedSimulatorAuthorCode(nextAuthorCode);
+  }
+
+  async function loadSimulator(nextInsttId?: string, options?: { keepAccount?: boolean; keepRole?: boolean }) {
+    setSimulatorLoading(true);
+    setSimulatorMessage("");
+    try {
+      const payload = await fetchAdminSessionSimulator(nextInsttId);
+      setSimulatorPayload(payload);
+      syncSimulatorSelection(payload, options);
+    } catch (error) {
+      setSimulatorMessage(error instanceof Error ? error.message : (en ? "Failed to load simulator." : "시뮬레이터를 불러오지 못했습니다."));
+    } finally {
+      setSimulatorLoading(false);
+    }
+  }
 
   useEffect(() => {
     const eventName = getAdminMenuTreeRefreshEventName();
@@ -665,13 +478,25 @@ export function AdminPageShell({
     if (!selectedDomain) {
       return;
     }
-    const nextState: Record<string, boolean> = {};
-    (selectedDomain.groups || []).forEach((group, index) => {
-      const groupKey = getMenuGroupKey(group, index);
-      const hasActiveLink = activeMenuEntry?.domainKey === selectedDomainKey && activeMenuEntry.groupKey === groupKey;
-      nextState[groupKey] = hasActiveLink || index === 0;
+    setOpenGroups((current) => {
+      const nextState: Record<string, boolean> = {};
+      (selectedDomain.groups || []).forEach((group, index) => {
+        const groupKey = getMenuGroupKey(group, index);
+        const hasActiveLink = activeMenuEntry?.domainKey === selectedDomainKey && activeMenuEntry.groupKey === groupKey;
+        if (typeof current[groupKey] === "boolean") {
+          nextState[groupKey] = current[groupKey];
+          return;
+        }
+        nextState[groupKey] = hasActiveLink || index === 0;
+      });
+
+      // Keep the active menu group expanded without collapsing groups the user opened manually.
+      if (activeMenuEntry?.domainKey === selectedDomainKey && nextState[activeMenuEntry.groupKey] === false) {
+        nextState[activeMenuEntry.groupKey] = true;
+      }
+
+      return nextState;
     });
-    setOpenGroups(nextState);
   }, [activeMenuEntry, selectedDomain, selectedDomainKey]);
 
   useEffect(() => {
@@ -712,10 +537,80 @@ export function AdminPageShell({
     };
   }, [en]);
 
+  useEffect(() => {
+    let cancelled = false;
+    fetchFrontendSession()
+      .then((session) => {
+        if (cancelled) {
+          return;
+        }
+        setDevSession(session);
+        if (session.simulationAvailable) {
+          void loadSimulator();
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    window.localStorage.setItem(ADMIN_SIMULATOR_EXPANDED_STORAGE_KEY, simulatorExpanded ? "Y" : "N");
+  }, [simulatorExpanded]);
+
+  useLayoutEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const container = sidebarBodyRef.current;
+    if (!container) {
+      return;
+    }
+    const stored = window.sessionStorage.getItem(ADMIN_SIDEBAR_SCROLL_STORAGE_KEY) || "";
+    const scrollTop = Number.parseInt(stored, 10);
+    if (!Number.isFinite(scrollTop) || scrollTop <= 0) {
+      return;
+    }
+    sidebarScrollRestoringRef.current = true;
+    container.scrollTop = scrollTop;
+    const rafId = window.requestAnimationFrame(() => {
+      if (sidebarBodyRef.current) {
+        sidebarBodyRef.current.scrollTop = scrollTop;
+      }
+    });
+    const timeoutIds = [
+      window.setTimeout(() => {
+        if (sidebarBodyRef.current) {
+          sidebarBodyRef.current.scrollTop = scrollTop;
+        }
+      }, 0),
+      window.setTimeout(() => {
+        if (sidebarBodyRef.current) {
+          sidebarBodyRef.current.scrollTop = scrollTop;
+        }
+      }, 50),
+      window.setTimeout(() => {
+        if (sidebarBodyRef.current) {
+          sidebarBodyRef.current.scrollTop = scrollTop;
+        }
+        sidebarScrollRestoringRef.current = false;
+      }, 150)
+    ];
+    return () => {
+      sidebarScrollRestoringRef.current = false;
+      window.cancelAnimationFrame(rafId);
+      timeoutIds.forEach((timeoutId) => window.clearTimeout(timeoutId));
+    };
+  }, [selectedDomainKey, activeMenuEntry?.groupKey, filteredSelectedDomain.groups.length]);
+
   const gnbItems: GnbItem[] = useMemo(() => {
     const domainEntries = Object.entries(menuTree);
     if (!domainEntries.length) {
-      return fallbackGnbItems;
+      return [];
     }
     return domainEntries.map(([domainKey, domain]) => ({
       key: domainKey,
@@ -723,7 +618,7 @@ export function AdminPageShell({
       href: resolveFirstDomainPath(domain),
       domain: domainKey
     }));
-  }, [en, fallbackGnbItems, menuTree]);
+  }, [en, menuTree]);
 
   function toggleGroup(groupId: string) {
     setOpenGroups((current) => ({ ...current, [groupId]: !current[groupId] }));
@@ -759,6 +654,46 @@ export function AdminPageShell({
       await handleAdminLogout();
     } finally {
       setSessionRefreshPending(false);
+    }
+  }
+
+  async function handleApplySimulator() {
+    if (!selectedSimulatorEmplyrId || !selectedSimulatorAuthorCode) {
+      setSimulatorMessage(en ? "Select an account and role first." : "관리자 계정과 권한 롤을 먼저 선택하세요.");
+      return;
+    }
+    setSimulatorSubmitting(true);
+    setSimulatorMessage("");
+    try {
+      const session = devSession || await fetchFrontendSession();
+      setDevSession(session);
+      await applyAdminSessionSimulator(session, {
+        insttId: selectedSimulatorInsttId,
+        emplyrId: selectedSimulatorEmplyrId,
+        authorCode: selectedSimulatorAuthorCode
+      });
+      invalidateFrontendSessionCache();
+      window.location.reload();
+    } catch (error) {
+      setSimulatorMessage(error instanceof Error ? error.message : (en ? "Failed to apply simulator." : "시뮬레이터 적용에 실패했습니다."));
+    } finally {
+      setSimulatorSubmitting(false);
+    }
+  }
+
+  async function handleResetSimulator() {
+    setSimulatorSubmitting(true);
+    setSimulatorMessage("");
+    try {
+      const session = devSession || await fetchFrontendSession();
+      setDevSession(session);
+      await resetAdminSessionSimulator(session);
+      invalidateFrontendSessionCache();
+      window.location.reload();
+    } catch (error) {
+      setSimulatorMessage(error instanceof Error ? error.message : (en ? "Failed to reset simulator." : "시뮬레이터 초기화에 실패했습니다."));
+    } finally {
+      setSimulatorSubmitting(false);
     }
   }
 
@@ -833,12 +768,11 @@ export function AdminPageShell({
               </div>
             </a>
 
-            <nav aria-label={en ? "Admin Main Menu" : "관리자 주 메뉴"} className="hidden self-stretch items-start space-x-2 pt-2 xl:flex" id="adminGnbMenu">
+            <nav aria-label={en ? "Admin Main Menu" : "관리자 주 메뉴"} className="hidden h-full items-stretch space-x-1 xl:flex" id="adminGnbMenu">
               {gnbItems.map((item) => {
                 const active = item.domain === (selectedDomainKey || activeDomainKey);
                 return (
                   <a
-                    className={`js-gnb-menu px-5 py-1.5 text-[16px] font-bold hover:text-[var(--kr-gov-blue)] ${active ? "text-[var(--kr-gov-blue)]" : "text-[var(--kr-gov-text-secondary)]"}`}
                     data-domain={item.domain}
                     href={item.href}
                     key={item.label}
@@ -846,8 +780,13 @@ export function AdminPageShell({
                       event.preventDefault();
                       setSelectedDomainKey(item.domain);
                     }}
+                    className={`js-gnb-menu inline-flex h-full items-center border-b-[3px] px-5 text-[16px] font-bold transition-colors ${
+                      active
+                        ? "border-[var(--kr-gov-blue)] text-[var(--kr-gov-blue)]"
+                        : "border-transparent text-[var(--kr-gov-text-secondary)] hover:border-[var(--kr-gov-border-light)] hover:text-[var(--kr-gov-blue)]"
+                    }`}
                   >
-                    {item.label}
+                    <span className="inline-flex items-center leading-none">{item.label}</span>
                   </a>
                 );
               })}
@@ -873,6 +812,156 @@ export function AdminPageShell({
         </div>
       </header>
 
+      {showDevSimulator ? (
+        simulatorExpanded ? (
+          <div className="z-30 shrink-0 border-b border-amber-200 bg-[linear-gradient(90deg,#fff7e6,#fffdf5)]">
+            <div className="mx-auto max-w-full px-6 py-3">
+              <div className="space-y-3">
+                <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-black tracking-wide text-amber-700">
+                        {en ? "DEV SESSION SIMULATOR" : "개발 세션 시뮬레이터"}
+                      </span>
+                      {simulatorPayload?.active ? (
+                        <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-black text-red-700">
+                          {en ? "SIMULATION ACTIVE" : "시뮬레이션 적용 중"}
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)]">
+                      {en
+                        ? `Actual ${devSession?.actualUserId || bootstrappedSession?.actualUserId || "-"} -> Effective ${simulatorPayload?.effectiveUserId || devSession?.userId || "-"}`
+                        : `실제 ${devSession?.actualUserId || bootstrappedSession?.actualUserId || "-"} -> 적용 ${simulatorPayload?.effectiveUserId || devSession?.userId || "-"}`}
+                    </p>
+                    <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">
+                      {en
+                        ? "Use local webmaster only. Company, admin account, and role are overridden in session until reset."
+                        : "local webmaster 전용입니다. 회사, 관리자 계정, 권한 롤을 세션에서만 덮어쓰고 원복 전까지 유지합니다."}
+                    </p>
+                    {simulatorMessage ? <p className="mt-2 text-xs font-bold text-red-600">{simulatorMessage}</p> : null}
+                  </div>
+
+                  <div className="flex items-center justify-end">
+                    <button
+                      aria-expanded={simulatorExpanded}
+                      className="inline-flex min-h-[44px] min-w-[132px] items-center justify-center gap-1.5 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-2 text-[13px] font-bold text-[var(--kr-gov-text-primary)] transition-colors hover:bg-gray-50"
+                      onClick={() => setSimulatorExpanded(false)}
+                      type="button"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">expand_less</span>
+                      {en ? "Hide Simulator" : "시뮬레이터 숨기기"}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2 xl:min-w-[840px]">
+                  <div className="grid gap-2 lg:grid-cols-[minmax(180px,1fr)_minmax(260px,1.3fr)_minmax(260px,1.3fr)_auto_auto]">
+                    <label className="flex flex-col gap-1">
+                      <span className="text-[11px] font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Company" : "회사"}</span>
+                      <select
+                        className="h-11 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-3 text-sm"
+                        onChange={(event) => {
+                          const nextInsttId = event.target.value;
+                          setSelectedSimulatorInsttId(nextInsttId);
+                          setSelectedSimulatorEmplyrId("");
+                          void loadSimulator(nextInsttId, { keepRole: true });
+                        }}
+                        value={selectedSimulatorInsttId}
+                      >
+                        {(simulatorPayload?.companyOptions || []).map((option) => (
+                          <option key={option.insttId || ""} value={option.insttId || ""}>
+                            {option.cmpnyNm || option.insttId}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="flex flex-col gap-1">
+                      <span className="text-[11px] font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Admin Account" : "관리자 계정"}</span>
+                      <select
+                        className="h-11 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-3 text-sm"
+                        onChange={(event) => {
+                          const nextEmplyrId = event.target.value;
+                          setSelectedSimulatorEmplyrId(nextEmplyrId);
+                          const matched = simulatorPayload?.adminAccountOptions.find((option) => option.emplyrId === nextEmplyrId);
+                          if (matched?.authorCode) {
+                            setSelectedSimulatorAuthorCode(matched.authorCode);
+                          }
+                        }}
+                        value={selectedSimulatorEmplyrId}
+                      >
+                        {(simulatorPayload?.adminAccountOptions || []).map((option) => (
+                          <option key={option.emplyrId || ""} value={option.emplyrId || ""}>
+                            {`${option.userNm || option.emplyrId} (${option.emplyrId || "-"})`}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="flex flex-col gap-1">
+                      <span className="text-[11px] font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Role" : "권한 롤"}</span>
+                      <select
+                        className="h-11 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-3 text-sm"
+                        onChange={(event) => setSelectedSimulatorAuthorCode(event.target.value)}
+                        value={selectedSimulatorAuthorCode}
+                      >
+                        {(simulatorPayload?.authorOptions || []).map((option) => (
+                          <option key={option.authorCode || ""} value={option.authorCode || ""}>
+                            {`${option.authorNm || option.authorCode} (${option.authorCode || "-"})`}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <button
+                      className="inline-flex min-h-[44px] items-center justify-center rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-blue)] bg-[var(--kr-gov-blue)] px-4 py-2 text-sm font-bold text-white hover:bg-[var(--kr-gov-blue-hover)] disabled:opacity-60"
+                      disabled={simulatorLoading || simulatorSubmitting || !selectedSimulatorEmplyrId || !selectedSimulatorAuthorCode}
+                      onClick={() => void handleApplySimulator()}
+                      type="button"
+                    >
+                      {simulatorSubmitting ? "..." : (en ? "Apply" : "적용")}
+                    </button>
+
+                    <button
+                      className="inline-flex min-h-[44px] items-center justify-center rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-2 text-sm font-bold text-[var(--kr-gov-text-primary)] hover:bg-gray-50 disabled:opacity-60"
+                      disabled={simulatorSubmitting || !simulatorPayload?.active}
+                      onClick={() => void handleResetSimulator()}
+                      type="button"
+                    >
+                      {en ? "Reset" : "원복"}
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-4 text-[12px] text-[var(--kr-gov-text-secondary)]">
+                    <span>{simulatorLoading ? (en ? "Loading options..." : "옵션 불러오는 중...") : (en ? `Accounts ${simulatorPayload?.adminAccountOptions.length || 0}` : `계정 ${simulatorPayload?.adminAccountOptions.length || 0}건`)}</span>
+                    {selectedSimulatorAccount ? (
+                      <span>
+                        {en ? "Selected account role:" : "선택 계정 현재 롤:"} <strong className="text-[var(--kr-gov-text-primary)]">{selectedSimulatorAccount.authorNm || selectedSimulatorAccount.authorCode || "-"}</strong>
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="pointer-events-none absolute right-6 top-[116px] z-30">
+            <div className="flex justify-end">
+              <button
+                aria-expanded={simulatorExpanded}
+                className="pointer-events-auto inline-flex min-h-[44px] min-w-[132px] items-center justify-center gap-1.5 rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-2 text-[13px] font-bold text-amber-800 shadow-sm transition-colors hover:bg-amber-100"
+                onClick={() => setSimulatorExpanded(true)}
+                type="button"
+              >
+                <span className="material-symbols-outlined text-[18px]">expand_more</span>
+                {en ? "Show Simulator" : "시뮬레이터 펼치기"}
+              </button>
+            </div>
+          </div>
+        )
+      ) : null}
+
       <div className="js-admin-layout-shell flex min-h-0 flex-1">
         <aside aria-label={en ? "Admin Side Menu" : "관리자 사이드 메뉴"} className="js-admin-lnb flex w-72 flex-col bg-white p-5">
           <div className="mb-6">
@@ -889,7 +978,20 @@ export function AdminPageShell({
             </div>
           </div>
 
-          <div className="js-admin-lnb-body space-y-5" id="gnbTreeWrap">
+          <div
+            className="js-admin-lnb-body space-y-5"
+            id="gnbTreeWrap"
+            onScroll={(event) => {
+              if (sidebarScrollRestoringRef.current) {
+                return;
+              }
+              window.sessionStorage.setItem(
+                ADMIN_SIDEBAR_SCROLL_STORAGE_KEY,
+                String(event.currentTarget.scrollTop)
+              );
+            }}
+            ref={sidebarBodyRef}
+          >
             {filteredSelectedDomain.groups.map((group: AdminMenuGroup, index) => {
               const groupLinks = visibleLinks(group.links);
               const groupKey = getMenuGroupKey(group, index);
@@ -925,6 +1027,13 @@ export function AdminPageShell({
                           onClick={(e) => {
                             e.preventDefault();
                             if (runtimeUrl) {
+                              (e.currentTarget as HTMLAnchorElement).blur();
+                              if (sidebarBodyRef.current) {
+                                window.sessionStorage.setItem(
+                                  ADMIN_SIDEBAR_SCROLL_STORAGE_KEY,
+                                  String(sidebarBodyRef.current.scrollTop)
+                                );
+                              }
                               navigate(runtimeUrl);
                             }
                           }}

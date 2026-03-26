@@ -62,11 +62,7 @@ public class AccessEventService {
         record.setCompanyScopeDecision(safe(item.getCompanyScopeDecision()));
         record.setCompanyScopeReason(truncate(item.getCompanyScopeReason(), 1000));
 
-        try {
-            observabilityMapper.insertAccessEvent(record);
-        } catch (Exception e) {
-            log.warn("Failed to persist access event. uri={}", item.getRequestUri(), e);
-        }
+        tryInsertAccessEvent(record, "uri=" + item.getRequestUri());
     }
 
     public void recordFrontendPageViews(List<FrontendTelemetryEvent> events, HttpServletRequest request) {
@@ -99,17 +95,47 @@ public class AccessEventService {
             record.setDurationMs(0);
             record.setRequestContentType("frontend/page_view");
             record.setQueryString(extractQueryString(record.getRequestUri()));
-            record.setParameterSummary("");
-            record.setErrorMessage("");
+            record.setParameterSummary(null);
+            record.setErrorMessage(null);
             record.setCompanyScopeDecision("");
-            record.setCompanyScopeReason("");
-            try {
-                observabilityMapper.insertAccessEvent(record);
-            } catch (Exception e) {
-                log.warn("Failed to persist frontend page-view access event. pageId={}, traceId={}",
-                        event.getPageId(), event.getTraceId(), e);
-            }
+            record.setCompanyScopeReason(null);
+            tryInsertAccessEvent(record, "pageId=" + event.getPageId() + ", traceId=" + event.getTraceId());
         }
+    }
+
+    private boolean tryInsertAccessEvent(AccessEventRecordVO record, String contextSummary) {
+        try {
+            observabilityMapper.insertAccessEvent(record);
+            return true;
+        } catch (Exception e) {
+            if (isClobBindingIssue(e)) {
+                log.warn("Access event persistence failed due to CLOB binding. Retrying with compact text fields. {}", contextSummary);
+                record.setParameterSummary(null);
+                record.setErrorMessage(null);
+                record.setCompanyScopeReason(null);
+                try {
+                    observabilityMapper.insertAccessEvent(record);
+                    return true;
+                } catch (Exception retryException) {
+                    log.warn("Failed to persist access event after compact retry. {}", contextSummary, retryException);
+                    return false;
+                }
+            }
+            log.warn("Failed to persist access event. {}", contextSummary, e);
+            return false;
+        }
+    }
+
+    private boolean isClobBindingIssue(Exception exception) {
+        Throwable current = exception;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null && message.toLowerCase(Locale.ROOT).contains("type clob")) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     private boolean isPageViewEvent(FrontendTelemetryEvent event) {

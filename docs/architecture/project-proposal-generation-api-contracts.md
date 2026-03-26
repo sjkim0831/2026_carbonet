@@ -65,6 +65,9 @@ Required response fields:
 
 - `mappingDraftId`
 - `mappingDraftStatus`
+- `builderInputReadyYn`
+- `verifyInputReadyYn`
+- `consumerLaneSet`
 - `requirementItemSet`
 - `menuTreeCandidate`
 - `surfacePlan`
@@ -89,6 +92,9 @@ Required request fields:
 Required response fields:
 
 - `mappingDraftId`
+- `builderInputReadyYn`
+- `verifyInputReadyYn`
+- `consumerLaneSet`
 - `homeMenuNodeCount`
 - `adminMenuNodeCount`
 - `templateLineCount`
@@ -130,6 +136,9 @@ Required request fields:
 Required response fields:
 
 - `mappingDraftId`
+- `builderInputReadyYn`
+- `verifyInputReadyYn`
+- `consumerLaneSet`
 - `matrixRowSet`
   - `assetFamily`
   - `assetId`
@@ -163,6 +172,9 @@ Required request fields:
 Required response fields:
 
 - `mappingDraftId`
+- `builderInputReadyYn`
+- `verifyInputReadyYn`
+- `consumerLaneSet`
 - `scenarioFamilySet`
 - `publicScenarioFamilySet`
 - `adminScenarioFamilySet`
@@ -196,6 +208,9 @@ Required request fields:
 Required response fields:
 
 - `mappingDraftId`
+- `builderInputReadyYn`
+- `verifyInputReadyYn`
+- `consumerLaneSet`
 - `designOutputPackageSet`
   - `packageFamily`
   - `packageId`
@@ -218,7 +233,26 @@ Required response fields:
 - no proposal-generated project may proceed to build without a green inventory
 - matrix and inventory must use the same `projectId` and `synthesisRunId`
 - mapping draft, inventory, matrix, and design outputs must use the same `projectId`, `synthesisRunId`, and `mappingDraftId`
+- mapping draft, inventory, matrix, scenario outputs, and design outputs must expose the same `builderInputReadyYn`, `verifyInputReadyYn`, and `consumerLaneSet`
 - scenario outputs and design outputs must remain queryable from the same
   project onboarding flow
 - template lines and screen family rules must remain queryable from the same
   project onboarding flow
+
+## 02 Handoff Rule
+
+Lane `02` remains handoff-ready only while the proposal onboarding chain keeps
+one governed identity and exposes the same downstream readiness signals for the
+next consumers:
+
+- `04` builder lane receives governed proposal mapping, page-family candidates,
+  template-line candidates, and screen-family-rule candidates from the same
+  `projectId`, `synthesisRunId`, and `mappingDraftId`
+- `09` verification lane receives the same inventory and matrix baseline with
+  `builderInputReadyYn`, `verifyInputReadyYn`, and `parityGapCount`
+- `05`, `06`, and `08` may consume proposal outputs only through the canonical
+  scenario/design package identities already attached to the same synthesis run
+
+Recommended operator phrase:
+
+- `HANDOFF READY: 04 and 09 may continue from governed proposal mapping, inventory, matrix, and scenario/design outputs; proposal consumer blocker count is 0.`

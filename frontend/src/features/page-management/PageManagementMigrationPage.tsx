@@ -1,5 +1,6 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { fetchPageManagementPage, type PageManagementPagePayload } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
@@ -138,11 +139,11 @@ export function PageManagementMigrationPage() {
       };
       setDraft(next);
       const rows = (payload.pageRows || []) as Array<Record<string, unknown>>;
-      setEditForms((current) => {
-        const nextState: Record<string, RowFormState> = { ...current };
+      setEditForms(() => {
+        const nextState: Record<string, RowFormState> = {};
         rows.forEach((row) => {
           const code = stringOf(row, "code");
-          if (!code || nextState[code]) {
+          if (!code) {
             return;
           }
           nextState[code] = {
@@ -164,8 +165,31 @@ export function PageManagementMigrationPage() {
   const useAtOptions = ((page?.useAtOptions || []) as string[]).length > 0 ? (page?.useAtOptions as string[]) : ["Y", "N"];
   const blockedLinks = (page?.pageMgmtBlockedFeatureLinks || []) as Array<Record<string, string>>;
 
+  useEffect(() => {
+    if (!page) {
+      return;
+    }
+    logGovernanceScope("PAGE", "page-management", {
+      route: window.location.pathname,
+      menuType: filters.menuType,
+      rowCount: rows.length,
+      domainOptionCount: domainOptions.length,
+      blockedFeatureLinkCount: blockedLinks.length
+    });
+    logGovernanceScope("COMPONENT", "page-management-table", {
+      component: "page-management-table",
+      rowCount: rows.length,
+      openCode
+    });
+  }, [blockedLinks.length, domainOptions.length, filters.menuType, openCode, page, rows.length]);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>, nextState?: Partial<Filters>) {
     event.preventDefault();
+    logGovernanceScope("ACTION", "page-management-submit", {
+      menuType: draft.menuType,
+      searchKeyword: draft.searchKeyword,
+      searchUrl: draft.searchUrl
+    });
     setActionError("");
     try {
       const response = await submitFormRequest(event.currentTarget);
@@ -194,10 +218,10 @@ export function PageManagementMigrationPage() {
         { label: en ? "Home" : "홈", href: buildLocalizedPath("/admin/", "/en/admin/") },
         { label: en ? "System" : "시스템" },
         { label: en ? "Code Management" : "코드 관리" },
-        { label: en ? "Page Management" : "페이지 관리" }
+        { label: en ? "Screen Management" : "화면 관리" }
       ]}
-      title={en ? "Page Management" : "페이지 관리"}
-      subtitle={en ? "Manage page codes and URLs used in the admin menu based on common-code records." : "관리자 메뉴에 등록되는 페이지 코드와 URL을 공통코드 기준으로 관리합니다."}
+      title={en ? "Screen Management" : "화면 관리"}
+      subtitle={en ? "Manage screen codes and URLs used in the admin menu based on common-code records." : "관리자 메뉴에 등록되는 화면 코드와 URL을 공통코드 기준으로 관리합니다."}
     >
       {page?.pageMgmtError || actionError || pageState.error ? (
         <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

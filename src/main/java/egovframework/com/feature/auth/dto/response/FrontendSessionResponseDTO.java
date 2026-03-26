@@ -6,10 +6,13 @@ import java.util.List;
 public class FrontendSessionResponseDTO {
 
     private boolean authenticated;
+    private String actualUserId;
     private String userId;
     private String authorCode;
     private String insttId;
     private String companyScope;
+    private boolean simulationAvailable;
+    private boolean simulationActive;
     private String csrfToken;
     private String csrfHeaderName;
     private List<String> featureCodes = new ArrayList<>();
@@ -29,6 +32,14 @@ public class FrontendSessionResponseDTO {
 
     public void setUserId(String userId) {
         this.userId = userId;
+    }
+
+    public String getActualUserId() {
+        return actualUserId;
+    }
+
+    public void setActualUserId(String actualUserId) {
+        this.actualUserId = actualUserId;
     }
 
     public String getAuthorCode() {
@@ -53,6 +64,22 @@ public class FrontendSessionResponseDTO {
 
     public void setCompanyScope(String companyScope) {
         this.companyScope = companyScope;
+    }
+
+    public boolean isSimulationAvailable() {
+        return simulationAvailable;
+    }
+
+    public void setSimulationAvailable(boolean simulationAvailable) {
+        this.simulationAvailable = simulationAvailable;
+    }
+
+    public boolean isSimulationActive() {
+        return simulationActive;
+    }
+
+    public void setSimulationActive(boolean simulationActive) {
+        this.simulationActive = simulationActive;
     }
 
     public String getCsrfToken() {

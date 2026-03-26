@@ -199,13 +199,17 @@ export default function App() {
 
   useEffect(() => {
     setHelpContent(getPageHelp(page));
+    let cancelled = false;
     fetchPageHelp(page)
       .then((payload) => {
-        if (payload) {
+        if (!cancelled && payload) {
           setHelpContent(payload);
         }
       })
       .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
   }, [page, locationState]);
 
   useEffect(() => {
@@ -458,7 +462,7 @@ export default function App() {
 
       <ErrorBoundary resetKey={boundaryResetKey}>
         <Suspense fallback={<PageLoadingFallback />}>
-          <CurrentPage />
+          <CurrentPage key={boundaryResetKey} />
         </Suspense>
       </ErrorBoundary>
     </>

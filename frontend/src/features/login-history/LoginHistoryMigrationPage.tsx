@@ -1,7 +1,16 @@
+import { useEffect } from "react";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { fetchLoginHistoryPage } from "../../lib/api/client";
 import { LoginHistorySharedPage } from "../security-history/LoginHistorySharedPage";
 
 export function LoginHistoryMigrationPage() {
+  useEffect(() => {
+    logGovernanceScope("PAGE", "login-history", {
+      wrapper: "LoginHistoryMigrationPage",
+      fixedLoginResult: ""
+    });
+  }, []);
+
   return (
     <LoginHistorySharedPage
       titleKo="로그인 이력"

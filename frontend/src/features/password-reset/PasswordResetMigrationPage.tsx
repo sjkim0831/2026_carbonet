@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { CanView } from "../../components/access/CanView";
 import { PermissionButton } from "../../components/access/CanUse";
 import { fetchPasswordResetPage, resetMemberPasswordAction, type PasswordResetPagePayload } from "../../lib/api/client";
@@ -74,6 +75,29 @@ export function PasswordResetMigrationPage() {
   const currentPage = Number(page?.pageIndex || pageIndex || 1);
   const totalPages = Number(page?.totalPages || 1);
 
+  useEffect(() => {
+    if (!page) {
+      return;
+    }
+    logGovernanceScope("PAGE", "password-reset", {
+      route: window.location.pathname,
+      actorUserId: sessionState.value?.userId || "",
+      actorAuthorCode: sessionState.value?.authorCode || "",
+      actorInsttId: sessionState.value?.insttId || "",
+      canView: !!page.canViewResetHistory,
+      canUseResetPassword: !!page.canUseResetPassword,
+      memberId,
+      searchKeyword,
+      resetSource
+    });
+    logGovernanceScope("COMPONENT", "password-reset-history", {
+      component: "password-reset-history",
+      rowCount: historyRows.length,
+      currentPage,
+      totalPages
+    });
+  }, [currentPage, historyRows.length, memberId, page, resetSource, searchKeyword, sessionState.value, totalPages]);
+
   async function reload() {
     setActionError("");
     if (!await pageState.reload()) {
@@ -86,6 +110,11 @@ export function PasswordResetMigrationPage() {
     if (!session) {
       return;
     }
+    logGovernanceScope("ACTION", "password-reset-submit", {
+      actorInsttId: session.insttId || "",
+      memberId: memberId.trim(),
+      resetSource
+    });
     if (!memberId.trim()) {
       setActionError(en ? "Enter a member ID to reset the password." : "비밀번호를 초기화할 회원 ID를 입력하세요.");
       return;
@@ -104,6 +133,12 @@ export function PasswordResetMigrationPage() {
   }
 
   function handleSearch() {
+    logGovernanceScope("ACTION", "password-reset-search", {
+      memberId: memberId.trim(),
+      searchKeyword,
+      resetSource,
+      pageIndex: 1
+    });
     setActionError("");
     setMessage("");
     setPageIndex(1);

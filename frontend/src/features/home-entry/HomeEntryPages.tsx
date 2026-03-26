@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { buildPublicApiPath, fetchJson } from "../../lib/api/core";
 import { buildLocalizedPath, getNavigationEventName, isEnglish, navigate } from "../../lib/navigation/runtime";
 import { LOCALIZED_CONTENT, HOME_ENTRY_ASSETS } from "./homeEntryContent";
@@ -53,6 +54,20 @@ export function HomeLandingPage() {
 
   const payload = payloadState.value || { isLoggedIn: false, isEn: en, homeMenu: [] };
   const homeMenu = payload.homeMenu || [];
+
+  useEffect(() => {
+    logGovernanceScope("PAGE", "home-landing", {
+      language: en ? "en" : "ko",
+      isLoggedIn: Boolean(payload.isLoggedIn),
+      mobileMenuOpen,
+      menuCount: homeMenu.length
+    });
+    logGovernanceScope("COMPONENT", "home-landing-navigation", {
+      mobileMenuOpen,
+      menuCount: homeMenu.length,
+      sessionLoaded: Boolean(sessionState.value)
+    });
+  }, [en, homeMenu.length, mobileMenuOpen, payload.isLoggedIn, sessionState.value]);
 
   return (
     <>

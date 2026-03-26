@@ -75,6 +75,10 @@ public class ObservabilityMapper extends BaseMapperSupport {
         return selectList("ObservabilityMapper.selectTraceEventList", searchVO);
     }
 
+    public List<TraceEventRecordVO> selectTraceEventListCompact(TraceEventSearchVO searchVO) {
+        return selectList("ObservabilityMapper.selectTraceEventListCompact", searchVO);
+    }
+
     public int countUiPageManifest(String pageId) {
         Integer count = selectOne("ObservabilityMapper.countUiPageManifest", pageId);
         return count == null ? 0 : count;

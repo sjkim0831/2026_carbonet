@@ -38,7 +38,7 @@
           <div class="kpi"><span>Parity Score</span><strong>94%</strong><span>join family</span></div>
           <div class="kpi"><span>Uniformity Score</span><strong>91%</strong><span>theme/public-join-trust</span></div>
           <div class="kpi"><span>Main Server</span><strong>221</strong><span>truth source</span></div>
-          <div class="kpi"><span>Open Gaps</span><strong>4</strong><span>2 blockers / 2 warnings</span></div>
+          <div class="kpi"><span>Open Gaps</span><strong>0</strong><span>handoff ready</span></div>
         </div>
 
         <section class="card soft" style="margin-top:18px">
@@ -47,26 +47,149 @@
             <div class="two-col">
               <div class="meta-row"><span class="label">Guided State</span><div class="value">guided-build-14-runtime-compare</div></div>
               <div class="meta-row"><span class="label">Template Line</span><div class="value">public-line-01</div></div>
-              <div class="meta-row"><span class="label">Screen Family Rule</span><div class="value">JOIN_INFO</div></div>
-              <div class="meta-row"><span class="label">Owner Lane</span><div class="value">res-verify / res-builder</div></div>
+              <div class="meta-row"><span class="label">Screen Family Rule</span><div class="value">PUBLIC_JOIN_STEP</div></div>
+              <div class="meta-row"><span class="label">Owner Lane</span><div class="value">res-verify</div></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card soft" style="margin-top:18px">
+          <div class="card-header"><div><h2>Builder / Runtime Evidence</h2><p>04 input + 05 runtime linkage</p></div></div>
+          <div class="card-body">
+            <div class="two-col">
+              <div class="meta-row"><span class="label">Builder ID</span><div class="value">sb-join-member-info</div></div>
+              <div class="meta-row"><span class="label">Draft Version</span><div class="value">draft-join-20260321-005</div></div>
+              <div class="meta-row"><span class="label">Published Runtime</span><div class="value">publish-join-20260321-002</div></div>
+              <div class="meta-row"><span class="label">Published At</span><div class="value">2026-03-21 17:20 KST</div></div>
+              <div class="meta-row"><span class="label">Generated Nodes</span><div class="value">18</div></div>
+              <div class="meta-row"><span class="label">Current Nodes</span><div class="value">18</div></div>
+              <div class="meta-row"><span class="label">Generated Events</span><div class="value">4</div></div>
+              <div class="meta-row"><span class="label">Current Events</span><div class="value">4</div></div>
+              <div class="meta-row"><span class="label">Generated Issues</span><div class="value">1</div></div>
+              <div class="meta-row"><span class="label">Current Issues</span><div class="value">2</div></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card soft" style="margin-top:18px">
+          <div class="card-header"><div><h2>08 Deploy Evidence</h2><p>release-unit evidence consumed by 09</p></div></div>
+          <div class="card-body">
+            <div class="two-col">
+              <div class="meta-row"><span class="label">releaseUnitId</span><div class="value">ru-2026.03.24-08</div></div>
+              <div class="meta-row"><span class="label">runtimePackageId</span><div class="value">runtime-package-join-member-info</div></div>
+              <div class="meta-row"><span class="label">deployTraceId</span><div class="value">deploy-trace-20260324-08-main</div></div>
+              <div class="meta-row"><span class="label">ownerLane</span><div class="value">res-08-deploy</div></div>
+              <div class="meta-row"><span class="label">rollbackAnchorYn</span><div class="value">Y</div></div>
+              <div class="meta-row"><span class="label">main server truth</span><div class="value">221</div></div>
+            </div>
+          </div>
+        </section>
+
+        <div class="grid main" style="margin-top:18px">
+          <section class="section-stack">
+            <div class="card">
+              <div class="card-header"><div><h2>Verify Closure</h2><p>04 builder input + 05 runtime evidence</p></div><span class="chip ok">ready</span></div>
+              <div class="card-body">
+                <table>
+                  <thead><tr><th>Check</th><th>State</th><th>Evidence</th></tr></thead>
+                  <tbody>
+                    <tr><td>menuCode / pageId / menuUrl align</td><td><span class="chip ok">PASS</span></td><td>MENU_JOIN_MEMBER_INFO / join-member-info-page / /member/join/info</td></tr>
+                    <tr><td>guidedStateId + templateLineId + screenFamilyRuleId fixed</td><td><span class="chip ok">PASS</span></td><td>guided-build-14-runtime-compare / public-line-01 / PUBLIC_JOIN_STEP</td></tr>
+                    <tr><td>draft + published version visible</td><td><span class="chip ok">PASS</span></td><td>draft-join-20260321-005 / publish-join-20260321-002</td></tr>
+                    <tr><td>node + event counts comparable</td><td><span class="chip ok">PASS</span></td><td>18 vs 18 nodes, 4 vs 4 events</td></tr>
+                    <tr><td>publish evidence attached</td><td><span class="chip ok">PASS</span></td><td>trace-compare-20260324-021 + 2026-03-24 publish evidence</td></tr>
+                    <tr><td>08 deploy evidence attached</td><td><span class="chip ok">PASS</span></td><td>ru-2026.03.24-08 / runtime-package-join-member-info / deploy-trace-20260324-08-main</td></tr>
+                    <tr><td>smoke closure attached</td><td><span class="chip ok">PASS</span></td><td>main truth 221 / post-deploy smoke passed / rollbackAnchorYn=Y</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+          <aside class="section-stack">
+            <div class="card soft">
+              <div class="card-header"><div><h3>repair/open Payload</h3><p>compare 결과를 바로 인계</p></div></div>
+              <div class="card-body">
+                <div class="two-col">
+                  <div class="meta-row"><span class="label">projectId</span><div class="value">carbonet-main</div></div>
+                  <div class="meta-row"><span class="label">releaseUnitId</span><div class="value">ru-2026.03.24-08</div></div>
+                  <div class="meta-row"><span class="label">runtimePackageId</span><div class="value">runtime-package-join-member-info</div></div>
+                  <div class="meta-row"><span class="label">deployTraceId</span><div class="value">deploy-trace-20260324-08-main</div></div>
+                  <div class="meta-row"><span class="label">ownerLane</span><div class="value">res-08-deploy</div></div>
+                  <div class="meta-row"><span class="label">selectedScreenId</span><div class="value">join-member-info-page</div></div>
+                  <div class="meta-row"><span class="label">compareBaseline</span><div class="value">CURRENT_RUNTIME</div></div>
+                  <div class="meta-row"><span class="label">builderInput</span><div class="value">sb-join-member-info / draft-join-20260321-005</div></div>
+                  <div class="meta-row"><span class="label">runtimeEvidence</span><div class="value">publish-join-20260321-002 / 18 nodes / 4 events</div></div>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <section class="card soft" style="margin-top:18px">
+          <div class="card-header"><div><h2>Lane 09 Loop Continuation</h2><p>1분 반복 이어가기 기준</p></div><span class="chip warn">CONTINUE_UNFINISHED</span></div>
+          <div class="card-body">
+            <div class="two-col">
+              <div class="meta-row"><span class="label">Loop Cadence</span><div class="value">60 seconds</div></div>
+              <div class="meta-row"><span class="label">Loop Mode</span><div class="value">CONTINUE_UNFINISHED</div></div>
+              <div class="meta-row"><span class="label">Last Unfinished Scope</span><div class="value">none</div></div>
+              <div class="meta-row"><span class="label">Next Recheck Entry</span><div class="value">HANDOFF_CONFIRMATION</div></div>
+              <div class="meta-row"><span class="label">Recovery Order</span><div class="value">session alive -&gt; confirm zero blockers -&gt; confirm smoke closure -&gt; keep handoff output stable</div></div>
+              <div class="meta-row"><span class="label">Stop Condition</span><div class="value">operator stop / DONE / BLOCKED / ownership change</div></div>
             </div>
           </div>
         </section>
 
         <section class="card" style="margin-top:18px">
-          <div class="card-header"><div><h2>Compare Matrix</h2><p>generated vs current vs baseline</p></div><span class="chip warn">drift</span></div>
+          <div class="card-header"><div><h2>Compare Matrix</h2><p>generated vs current vs baseline</p></div><span class="chip ok">aligned</span></div>
           <div class="card-body">
             <table>
-              <thead><tr><th>Target</th><th>Current Runtime</th><th>Generated</th><th>Baseline</th><th>Result</th></tr></thead>
+              <thead><tr><th>Target</th><th>Current Runtime</th><th>Generated</th><th>Baseline</th><th>Patch Target</th><th>Result</th></tr></thead>
               <tbody>
-                <tr><td>Template Line</td><td>public-line-01</td><td>public-line-01</td><td>public-line-01</td><td><span class="chip ok">Match</span></td></tr>
-                <tr><td>Screen Family Rule</td><td>JOIN_INFO</td><td>JOIN_INFO</td><td>JOIN_INFO</td><td><span class="chip ok">Match</span></td></tr>
-                <tr><td>Shell Profile</td><td>public-join-compact</td><td>public-join-compact</td><td>public-join-compact</td><td><span class="chip ok">Match</span></td></tr>
-                <tr><td>Action Layout</td><td>detail-footer-left/right</td><td>detail-footer-standard</td><td>detail-footer-standard</td><td><span class="chip danger">Mismatch</span></td></tr>
-                <tr><td>Help Anchors</td><td>12</td><td>10</td><td>12</td><td><span class="chip warn">Gap</span></td></tr>
-                <tr><td>Binding Chain</td><td>PASS</td><td>PASS</td><td>PASS</td><td><span class="chip ok">Match</span></td></tr>
+                <tr><td>Template Line</td><td>public-line-01</td><td>public-line-01</td><td>public-line-01</td><td>public-line-01</td><td><span class="chip ok">Match</span></td></tr>
+                <tr><td>Screen Family Rule</td><td>PUBLIC_JOIN_STEP</td><td>PUBLIC_JOIN_STEP</td><td>PUBLIC_JOIN_STEP</td><td>PUBLIC_JOIN_STEP</td><td><span class="chip ok">Match</span></td></tr>
+                <tr><td>Shell Profile</td><td>public-join-compact</td><td>public-join-compact</td><td>public-join-compact</td><td>public-join-compact</td><td><span class="chip ok">Match</span></td></tr>
+                <tr><td>Action Layout</td><td>detail-footer-standard</td><td>detail-footer-standard</td><td>detail-footer-standard</td><td>detail-footer-standard</td><td><span class="chip ok">Match</span></td></tr>
+                <tr><td>Help Anchors</td><td>12</td><td>12</td><td>12</td><td>12</td><td><span class="chip ok">Match</span></td></tr>
+                <tr><td>Binding Chain</td><td>PASS</td><td>PASS</td><td>PASS</td><td>PASS</td><td><span class="chip ok">Match</span></td></tr>
               </tbody>
             </table>
+          </div>
+        </section>
+
+        <div class="grid main" style="margin-top:18px">
+          <section class="section-stack">
+            <div class="card">
+              <div class="card-header"><div><h2>Blocker List</h2><p>owner lane 유지</p></div><span class="chip ok">0 blockers</span></div>
+              <div class="card-body">
+                <table>
+                  <thead><tr><th>Blocker</th><th>Owner Lane</th><th>Source</th></tr></thead>
+                  <tbody>
+                    <tr><td colspan="3">No blocking gaps remain in the current compare scope.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+          <aside class="section-stack">
+            <div class="card soft">
+              <div class="card-header"><div><h3>Repair Queue</h3><p>repair/open handoff payload</p></div></div>
+              <div class="card-body">
+                <table>
+                  <thead><tr><th>Candidate</th><th>guidedStateId</th><th>templateLineId</th><th>screenFamilyRuleId</th><th>Owner Lane</th></tr></thead>
+                  <tbody>
+                    <tr><td>None pending</td><td>guided-build-14-runtime-compare</td><td>public-line-01</td><td>PUBLIC_JOIN_STEP</td><td>res-verify</td></tr>
+                  </tbody>
+                </table>
+                <div class="meta-row" style="margin-top:14px"><span class="label">Deploy carry-over</span><div class="value">ru-2026.03.24-08 / runtime-package-join-member-info / deploy-trace-20260324-08-main</div></div>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <section class="card soft" style="margin-top:18px">
+          <div class="card-header"><div><h2>01 Handoff Note</h2><p>final verify summary for contract lane review</p></div><span class="chip ok">HANDOFF READY</span></div>
+          <div class="card-body">
+            <div class="meta-row"><span class="label">Status Note</span><div class="value">HANDOFF READY: 01 may continue from parity, compare, repair, and verification outputs cross-checked against 04 builder inputs, 05 frontend runtime results, and 08 deploy evidence; blocker count is 0 for current verification scope.</div></div>
           </div>
         </section>
 

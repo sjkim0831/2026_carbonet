@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { findManifestByMenuCodeOrRoutePath, normalizeManifestLookupPath } from "../../app/screen-registry/pageManifestIndex";
 import {
   autoCollectFullStackGovernanceRegistry,
@@ -515,6 +516,37 @@ export function PlatformStudioMigrationPage() {
   const commandDetail = commandPage?.page;
   const governanceOverview = useMemo(() => buildGovernanceOverview(registryEntry, commandDetail || null), [commandDetail, registryEntry]);
   const governanceSurfaceChains = useMemo(() => buildSurfaceChains(commandDetail || null), [commandDetail]);
+  useEffect(() => {
+    if (!page) {
+      return;
+    }
+    logGovernanceScope("PAGE", "platform-studio", {
+      route: window.location.pathname,
+      selectedMenuCode,
+      pageId,
+      summaryRowCount: summaryRows.length,
+      surfaceChainCount: governanceSurfaceChains.length,
+      functionCount: governanceOverview.functionIds.length
+    });
+    logGovernanceScope("COMPONENT", "platform-studio-governance", {
+      component: "platform-studio-governance",
+      selectedMenuCode,
+      pageId,
+      apiCount: governanceOverview.apiIds.length,
+      schemaCount: governanceOverview.schemaIds.length,
+      eventCount: governanceOverview.eventIds.length
+    });
+  }, [
+    governanceOverview.apiIds.length,
+    governanceOverview.eventIds.length,
+    governanceOverview.functionIds.length,
+    governanceOverview.schemaIds.length,
+    governanceSurfaceChains.length,
+    page,
+    pageId,
+    selectedMenuCode,
+    summaryRows.length
+  ]);
   const governanceSurfaceEventRows = useMemo(() => buildSurfaceEventTableRows(governanceSurfaceChains), [governanceSurfaceChains]);
   const selectedGaps = useMemo(() => summaryListOf(selectedSummary, "gaps"), [selectedSummary]);
   const qualityCards = useMemo(() => ([

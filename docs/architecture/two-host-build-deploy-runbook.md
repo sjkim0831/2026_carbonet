@@ -17,6 +17,10 @@ Every run should declare:
 
 - `projectId`
 - `releaseUnitId`
+- `runtimePackageId`
+- `deployTraceId`
+- `ownerLane`
+- `rollbackAnchorYn`
 - `mainServerId`
 - `subServerId` when present
 - `dbServerId`
@@ -99,6 +103,8 @@ Record:
 - build artifact id
 - artifact checksum
 - release-unit id
+- runtime-package id
+- deploy trace id seed
 - selected module and framework lines
 
 ### Step 2. Publish Artifact
@@ -112,6 +118,7 @@ Minimum metadata:
 - build timestamp
 - build host
 - release-unit id
+- runtime-package id
 - rollback base artifact id
 
 ### Step 3. Ship To `221`
@@ -156,6 +163,11 @@ Write back to Resonance on `233`:
 - active artifact version
 - verification result
 - rollback checkpoint
+- release-unit id
+- runtime-package id
+- deploy trace id
+- owner lane
+- rollback anchor state
 
 ### Step 6. Rollback If Needed
 
@@ -188,6 +200,28 @@ After deploy:
 - active artifact version recorded
 - main-server current-runtime state recorded as the default runtime truth source
 - active DB attachment target recorded for the project unit
+- `releaseUnitId`, `runtimePackageId`, and `deployTraceId` are visible in the deploy evidence
+- `ownerLane=res-08-deploy` is preserved in the handoff output to `09`
+- `rollbackAnchorYn=Y` is visible before the handoff note is emitted
+
+## 08 To 09 Handoff Output
+
+`08` is handoff-ready only when the deploy result can be summarized in one note
+without opening extra files.
+
+Minimum note content:
+
+- `releaseUnitId`
+- `runtimePackageId`
+- `deployTraceId`
+- `ownerLane`
+- runtime truth host `221`
+- DB control host `193`
+- `rollbackAnchorYn`
+
+Recommended phrase:
+
+- `HANDOFF READY: 09 may continue from deploy-console, runtime-package, and session-loop operating outputs aligned to numbered-lane routing prompts; blocker count is 0 for current deployment operations scope.`
 
 ## Non-Goals
 

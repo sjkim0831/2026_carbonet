@@ -6,15 +6,22 @@ function t(page: DeptRolePagePayload | null, ko: string, en: string) {
   return page?.isEn ? en : ko;
 }
 
-export function renderRoleProfilePreview(page: DeptRolePagePayload | null, profile?: { displayTitle?: string; priorityWorks?: string[]; description?: string } | null) {
-  if (!profile || (!profile.displayTitle && !(profile.priorityWorks || []).length && !profile.description)) {
+export function renderRoleProfilePreview(page: DeptRolePagePayload | null, profile?: { displayTitle?: string; priorityWorks?: string[]; description?: string; baseRoleYn?: string; assignmentScope?: string; parentAuthorCode?: string } | null) {
+  if (!profile || (!profile.displayTitle && !(profile.priorityWorks || []).length && !profile.description && !profile.assignmentScope)) {
     return <div className="mt-2 rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-[var(--kr-gov-text-secondary)]">{t(page, "연결된 프로필 메타데이터가 없습니다.", "No linked role profile metadata.")}</div>;
   }
   return (
     <div className="mt-2 rounded-[var(--kr-gov-radius)] border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-[var(--kr-gov-text-secondary)]" data-help-id="dept-role-role-profile">
       <p className="font-bold text-[var(--kr-gov-blue)]">{profile.displayTitle || "-"}</p>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        <span className="rounded-full bg-white px-2 py-0.5 font-bold text-[var(--kr-gov-blue)]">
+          {profile.baseRoleYn === "Y" ? t(page, "기본 롤", "Base role") : t(page, "서브 롤", "Sub role")}
+        </span>
+        {profile.assignmentScope ? <span className="rounded-full bg-white px-2 py-0.5 font-bold text-[var(--kr-gov-blue)]">{profile.assignmentScope}</span> : null}
+      </div>
       {(profile.priorityWorks || []).length > 0 ? <div className="mt-2 flex flex-wrap gap-1.5">{(profile.priorityWorks || []).map((item) => <span className="rounded-full bg-white px-2 py-0.5 font-bold text-[var(--kr-gov-blue)]" key={item}>{item}</span>)}</div> : null}
       {profile.description ? <p className="mt-2">{profile.description}</p> : null}
+      {profile.parentAuthorCode ? <p className="mt-2">{t(page, "상위 기본 롤", "Parent base role")}: {profile.parentAuthorCode}</p> : null}
     </div>
   );
 }
@@ -33,7 +40,7 @@ export function DeptRoleCompanySection({ page, insttId, canUseAllCompanies, canU
   );
 }
 
-export function DeptRoleDepartmentTable({ page, canUseAllCompanies, canUseOwnCompany, deptDrafts, setDeptDrafts, roleProfilesByAuthorCode, onDeptSave }: { page: DeptRolePagePayload | null; canUseAllCompanies: boolean; canUseOwnCompany: boolean; deptDrafts: Record<string, string>; setDeptDrafts: Dispatch<SetStateAction<Record<string, string>>>; roleProfilesByAuthorCode: Record<string, { displayTitle?: string; priorityWorks?: string[]; description?: string }>; onDeptSave: (row: Record<string, string>) => void; }) {
+export function DeptRoleDepartmentTable({ page, canUseAllCompanies, canUseOwnCompany, deptDrafts, setDeptDrafts, roleProfilesByAuthorCode, onDeptSave }: { page: DeptRolePagePayload | null; canUseAllCompanies: boolean; canUseOwnCompany: boolean; deptDrafts: Record<string, string>; setDeptDrafts: Dispatch<SetStateAction<Record<string, string>>>; roleProfilesByAuthorCode: Record<string, { displayTitle?: string; priorityWorks?: string[]; description?: string; baseRoleYn?: string; assignmentScope?: string; parentAuthorCode?: string }>; onDeptSave: (row: Record<string, string>) => void; }) {
   return (
     <div className="mb-6 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] overflow-hidden" data-help-id="dept-role-departments">
       <GridToolbar actions={<span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 text-xs font-bold text-[var(--kr-gov-text-secondary)]">{page?.mappingCount ?? 0}{t(page, "개 부서", " departments")}</span>} title={t(page, "선택 회사 부서 기본 권한", "Default department roles for the selected company")} />
@@ -74,7 +81,7 @@ export function DeptRoleDepartmentTable({ page, canUseAllCompanies, canUseOwnCom
   );
 }
 
-export function DeptRoleMemberTable({ page, canUseAllCompanies, canUseOwnCompany, memberSearchDraft, setMemberSearchDraft, onMemberSearchSubmit, currentMemberPage, totalMemberPages, memberDrafts, setMemberDrafts, roleProfilesByAuthorCode, onMemberSave, setMemberPageIndex }: { page: DeptRolePagePayload | null; canUseAllCompanies: boolean; canUseOwnCompany: boolean; memberSearchDraft: string; setMemberSearchDraft: (value: string) => void; onMemberSearchSubmit: () => void; currentMemberPage: number; totalMemberPages: number; memberDrafts: Record<string, string>; setMemberDrafts: Dispatch<SetStateAction<Record<string, string>>>; roleProfilesByAuthorCode: Record<string, { displayTitle?: string; priorityWorks?: string[]; description?: string }>; onMemberSave: (userId: string) => void; setMemberPageIndex: (value: number) => void; }) {
+export function DeptRoleMemberTable({ page, canUseAllCompanies, canUseOwnCompany, memberSearchDraft, setMemberSearchDraft, onMemberSearchSubmit, currentMemberPage, totalMemberPages, memberDrafts, setMemberDrafts, roleProfilesByAuthorCode, onMemberSave, setMemberPageIndex }: { page: DeptRolePagePayload | null; canUseAllCompanies: boolean; canUseOwnCompany: boolean; memberSearchDraft: string; setMemberSearchDraft: (value: string) => void; onMemberSearchSubmit: () => void; currentMemberPage: number; totalMemberPages: number; memberDrafts: Record<string, string>; setMemberDrafts: Dispatch<SetStateAction<Record<string, string>>>; roleProfilesByAuthorCode: Record<string, { displayTitle?: string; priorityWorks?: string[]; description?: string; baseRoleYn?: string; assignmentScope?: string; parentAuthorCode?: string }>; onMemberSave: (userId: string) => void; setMemberPageIndex: (value: number) => void; }) {
   return (
     <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] overflow-hidden" data-help-id="dept-role-members">
       <GridToolbar actions={<span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 text-xs font-bold text-[var(--kr-gov-text-secondary)]">{page?.companyMemberCount ?? 0}{t(page, "명", " members")}</span>} title={t(page, "선택 회사 회원 권한 목록", "Member roles for the selected company")} />

@@ -66,7 +66,9 @@ public class AdminAccessHistoryMenuBootstrap {
         ));
         request.setAuthors(Arrays.asList(
                 authorRequest("ROLE_SYSTEM_MASTER", "시스템 마스터", "System Master", MENU_CODE + "_VIEW"),
-                authorRequest("ROLE_SYSTEM_ADMIN", "시스템 관리자", "System Administrator", MENU_CODE + "_VIEW")
+                authorRequest("ROLE_SYSTEM_ADMIN", "시스템 관리자", "System Administrator", MENU_CODE + "_VIEW"),
+                authorRequest("ROLE_ADMIN", "일반 관리자", "General Administrator", MENU_CODE + "_VIEW"),
+                authorRequest("ROLE_OPERATION_ADMIN", "운영 관리자", "Operations Administrator", MENU_CODE + "_VIEW")
         ));
         return request;
     }

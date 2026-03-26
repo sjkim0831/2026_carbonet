@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { CanView } from "../../components/access/CanView";
 import { buildLocalizedPath, getSearchParam } from "../../lib/navigation/runtime";
 import { fetchMemberDetailPage, MemberDetailPagePayload, resetMemberPasswordAction } from "../../lib/api/client";
@@ -30,12 +31,47 @@ export function MemberDetailMigrationPage() {
   const member = (page?.member || {}) as Record<string, unknown>;
   const historyRows = (page?.passwordResetHistoryRows || []) as Array<Record<string, unknown>>;
   const authorGroups = (page?.permissionAuthorGroups || []) as Array<{ authorCode: string; authorNm: string }>;
+  const selectedAuthorCode = String(page?.permissionSelectedAuthorCode || "");
+  const assignedRoleProfile = (page?.assignedRoleProfile || {}) as { displayTitle?: string };
+  const assignedAuthorGroup = authorGroups.find((group) => group.authorCode === selectedAuthorCode);
+  const assignedAuthorName = String(assignedRoleProfile.displayTitle || assignedAuthorGroup?.authorNm || selectedAuthorCode || "");
   const effectiveFeatureCodes = (page?.permissionEffectiveFeatureCodes || []) as string[];
+  const effectiveFeatureLabels = ((page?.permissionEffectiveFeatureLabels as string[] | undefined) || []).map((label, index) => ({
+    code: effectiveFeatureCodes[index] || `feature-${index}`,
+    label: String(label || effectiveFeatureCodes[index] || "-")
+  }));
   const memberEvidenceFiles = (page?.memberEvidenceFiles || []) as Array<Record<string, unknown>>;
   const canView = !!page?.canViewMemberDetail;
   const hasMember = !!page?.member;
+  const currentUserInsttId = String(page?.currentUserInsttId || "");
+  const targetMemberInsttId = String(page?.targetMemberInsttId || "");
+  const companyScopedAccess = !!page?.canManageOwnCompany && !page?.canManageAllCompanies;
   const showUnavailable = !pageState.loading && (!initialMemberId.trim() || !hasMember);
   const showDenied = !pageState.loading && !!page && hasMember && !canView;
+
+  useEffect(() => {
+    if (!page || !sessionState.value) {
+      return;
+    }
+    logGovernanceScope("PAGE", "member-detail", {
+      route: window.location.pathname,
+      actorUserId: sessionState.value.userId || "",
+      actorAuthorCode: sessionState.value.authorCode || "",
+      actorInsttId: sessionState.value.insttId || "",
+      canManageAllCompanies: !!page.canManageAllCompanies,
+      canManageOwnCompany: !!page.canManageOwnCompany,
+      pageScopeMode: String(page.memberManagementScopeMode || ""),
+      targetMemberId: initialMemberId,
+      targetInsttId: targetMemberInsttId,
+      targetMemberType: String(page.targetMemberType || "")
+    });
+    logGovernanceScope("COMPONENT", "member-detail-summary", {
+      component: "member-detail-summary",
+      allowed: canView && hasMember,
+      assignedAuthorCode: String(page.permissionSelectedAuthorCode || ""),
+      effectiveFeatureCount: effectiveFeatureCodes.length
+    });
+  }, [canView, effectiveFeatureCodes.length, hasMember, initialMemberId, page, sessionState.value, targetMemberInsttId]);
 
   async function handleResetPassword() {
     const session = sessionState.value;
@@ -45,6 +81,12 @@ export function MemberDetailMigrationPage() {
     }
     setActionError("");
     setMessage("");
+    logGovernanceScope("ACTION", "member-detail-reset-password", {
+      targetMemberId: initialMemberId,
+      actorInsttId: session?.insttId || "",
+      targetInsttId: targetMemberInsttId,
+      canManageAllCompanies: !!page?.canManageAllCompanies
+    });
     try {
       const result = await resetMemberPasswordAction(session, initialMemberId);
       setMessage(`임시 비밀번호가 발급되었습니다: ${String(result.temporaryPassword || "-")}`);
@@ -81,6 +123,11 @@ export function MemberDetailMigrationPage() {
         <MemberStateCard description="현재 계정으로는 회원 상세 화면을 조회할 수 없습니다." icon="lock" title="권한이 없습니다." tone="warning" />
       ) : null}
       <CanView allowed={canView && hasMember} fallback={null}>
+        {companyScopedAccess ? (
+          <PageStatusNotice tone="warning">
+            본인 회원사 범위로 조회 중입니다. 현재 기관 ID {currentUserInsttId || "-"} / 대상 기관 ID {targetMemberInsttId || "-"}
+          </PageStatusNotice>
+        ) : null}
         <LookupContextStrip
           action={(
             <MemberLinkButton href={buildLocalizedPath(`/admin/member/edit?memberId=${encodeURIComponent(initialMemberId)}`, `/en/admin/member/edit?memberId=${encodeURIComponent(initialMemberId)}`)} variant="secondary">
@@ -119,18 +166,18 @@ export function MemberDetailMigrationPage() {
                 <div>
                   <p className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">배정 권한 그룹</p>
                   <div className="flex flex-wrap gap-2">
-                    {authorGroups.length === 0 ? <span className="px-3 py-1 bg-gray-100 text-[13px] rounded-full font-medium">-</span> : authorGroups.map((group) => (
-                      <span className="px-3 py-1 bg-gray-100 text-[13px] rounded-full font-medium" key={group.authorCode}>{group.authorNm}</span>
-                    ))}
+                    {!assignedAuthorName ? <span className="px-3 py-1 bg-gray-100 text-[13px] rounded-full font-medium">-</span> : (
+                      <span className="px-3 py-1 bg-gray-100 text-[13px] rounded-full font-medium">{assignedAuthorName}</span>
+                    )}
                   </div>
                 </div>
                 <div>
                   <p className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">메뉴 접근 권한 요약</p>
                   <div className="p-3 bg-gray-50 rounded text-[13px] text-[var(--kr-gov-text-secondary)] space-y-1">
-                    {effectiveFeatureCodes.length === 0 ? <p className="flex items-center gap-2"><span className="text-red-600 font-black">✕</span> 부여된 기능이 없습니다.</p> : effectiveFeatureCodes.slice(0, 5).map((featureCode) => (
-                      <p className="flex items-center gap-2" key={featureCode}><span className="text-green-600 font-black">✓</span> {featureCode}</p>
+                    {effectiveFeatureLabels.length === 0 ? <p className="flex items-center gap-2"><span className="text-red-600 font-black">✕</span> 부여된 기능이 없습니다.</p> : effectiveFeatureLabels.slice(0, 5).map((feature) => (
+                      <p className="flex items-center gap-2" key={feature.code}><span className="text-green-600 font-black">✓</span> {feature.label}</p>
                     ))}
-                    {effectiveFeatureCodes.length > 5 ? <p className="flex items-center gap-2"><span className="text-gray-400 font-black">•</span> 외 {effectiveFeatureCodes.length - 5}건</p> : null}
+                    {effectiveFeatureLabels.length > 5 ? <p className="flex items-center gap-2"><span className="text-gray-400 font-black">•</span> 외 {effectiveFeatureLabels.length - 5}건</p> : null}
                   </div>
                 </div>
               </div>
@@ -234,29 +281,31 @@ export function MemberDetailMigrationPage() {
           </div>
         </div>
 
-        <MemberActionBar
-          className="mt-10"
-          dataHelpId="member-action-bar"
-          description="목록으로 돌아가거나 수정 화면으로 이동한 뒤, 검토 결과에 따라 승인 또는 반려를 진행합니다."
-          eyebrow="검토 작업"
-          primary={(
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <MemberPermissionButton allowed={true} className="w-full min-w-[160px]" size="lg" type="button" variant="dangerSecondary">{MEMBER_BUTTON_LABELS.reject}</MemberPermissionButton>
-              <MemberPermissionButton allowed={true} className="w-full min-w-[160px] shadow-lg shadow-emerald-900/10" size="lg" type="button" variant="success">{MEMBER_BUTTON_LABELS.approve}</MemberPermissionButton>
-            </div>
-          )}
-          secondary={{
-            href: buildLocalizedPath("/admin/member/list", "/en/admin/member/list"),
-            icon: "list",
-            label: MEMBER_BUTTON_LABELS.list,
-          }}
-          tertiary={{
-            href: buildLocalizedPath(`/admin/member/edit?memberId=${encodeURIComponent(initialMemberId)}`, `/en/admin/member/edit?memberId=${encodeURIComponent(initialMemberId)}`),
-            icon: "edit_square",
-            label: MEMBER_BUTTON_LABELS.edit
-          }}
-          title="회원 상태를 최종 검토한 뒤 다음 작업을 선택하세요."
-        />
+        <div data-help-id="member-action-bar">
+          <MemberActionBar
+            className="mt-10"
+            dataHelpId="member-action-bar"
+            description="목록으로 돌아가거나 수정 화면으로 이동한 뒤, 검토 결과에 따라 승인 또는 반려를 진행합니다."
+            eyebrow="검토 작업"
+            primary={(
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <MemberPermissionButton allowed={true} className="w-full min-w-[160px]" size="lg" type="button" variant="dangerSecondary">{MEMBER_BUTTON_LABELS.reject}</MemberPermissionButton>
+                <MemberPermissionButton allowed={true} className="w-full min-w-[160px] shadow-lg shadow-emerald-900/10" size="lg" type="button" variant="success">{MEMBER_BUTTON_LABELS.approve}</MemberPermissionButton>
+              </div>
+            )}
+            secondary={{
+              href: buildLocalizedPath("/admin/member/list", "/en/admin/member/list"),
+              icon: "list",
+              label: MEMBER_BUTTON_LABELS.list,
+            }}
+            tertiary={{
+              href: buildLocalizedPath(`/admin/member/edit?memberId=${encodeURIComponent(initialMemberId)}`, `/en/admin/member/edit?memberId=${encodeURIComponent(initialMemberId)}`),
+              icon: "edit_square",
+              label: MEMBER_BUTTON_LABELS.edit
+            }}
+            title="회원 상태를 최종 검토한 뒤 다음 작업을 선택하세요."
+          />
+        </div>
       </CanView>
     </AdminPageShell>
   );

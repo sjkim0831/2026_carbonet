@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { resetJoinSession } from "../../lib/api/client";
 import { buildLocalizedPath, getSearchParam, isEnglish, navigate } from "../../lib/navigation/runtime";
 
@@ -28,13 +30,33 @@ export function JoinCompanyRegisterCompleteMigrationPage() {
   const en = isEnglish();
   const payload = readPayload();
 
+  useEffect(() => {
+    logGovernanceScope("PAGE", "join-company-register-complete", {
+      language: en ? "en" : "ko",
+      insttNm: payload.insttNm || "",
+      bizrno: payload.bizrno || "",
+      regDate: payload.regDate || ""
+    });
+    logGovernanceScope("COMPONENT", "join-company-register-complete-summary", {
+      insttNm: payload.insttNm || "",
+      bizrnoPresent: Boolean(payload.bizrno),
+      regDatePresent: Boolean(payload.regDate)
+    });
+  }, [en, payload.bizrno, payload.insttNm, payload.regDate]);
+
   async function handleHome() {
+    logGovernanceScope("ACTION", "join-company-register-complete-home", {
+      insttNm: payload.insttNm || ""
+    });
     window.sessionStorage.removeItem(STORAGE_KEY);
     await resetJoinSession();
     navigate(buildLocalizedPath("/home", "/en/home"));
   }
 
   function handleStatus() {
+    logGovernanceScope("ACTION", "join-company-register-complete-status", {
+      insttNm: payload.insttNm || ""
+    });
     navigate(buildLocalizedPath("/join/companyJoinStatusGuide", "/join/en/companyJoinStatusGuide"));
   }
 

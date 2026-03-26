@@ -26,22 +26,6 @@ export function useRuntimeNavigation() {
   }, [page]);
 
   useEffect(() => {
-    const prefetchedHrefSet = new Set<string>();
-
-    function scheduleRoutePrefetch(url: URL) {
-      if (url.origin !== window.location.origin || !isReactManagedPath(url.pathname)) {
-        return;
-      }
-      const cacheKey = `${url.pathname}${url.search}`;
-      if (prefetchedHrefSet.has(cacheKey)) {
-        return;
-      }
-      prefetchedHrefSet.add(cacheKey);
-      const nextPage = resolvePageFromPath(url.pathname, url.search);
-      void preloadPageModule(nextPage);
-      void prefetchRoutePageData(nextPage, url.search).catch(() => undefined);
-    }
-
     function syncLocation() {
       setLocationState(getCurrentLocationState());
       setRouteLoading(false);
@@ -58,22 +42,6 @@ export function useRuntimeNavigation() {
       } finally {
         navigate(`${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`);
       }
-    }
-
-    function handleDocumentHover(event: Event) {
-      const target = event.target;
-      if (!(target instanceof Element)) {
-        return;
-      }
-      const anchor = target.closest("a");
-      if (!(anchor instanceof HTMLAnchorElement)) {
-        return;
-      }
-      const href = anchor.getAttribute("href");
-      if (!href || href.startsWith("#") || anchor.hasAttribute("download") || anchor.target === "_blank") {
-        return;
-      }
-      scheduleRoutePrefetch(new URL(anchor.href, window.location.origin));
     }
 
     function handleDocumentClick(event: MouseEvent) {
@@ -106,14 +74,10 @@ export function useRuntimeNavigation() {
     window.addEventListener("popstate", syncLocation);
     window.addEventListener(getNavigationEventName(), syncLocation);
     document.addEventListener("click", handleDocumentClick);
-    document.addEventListener("mouseover", handleDocumentHover);
-    document.addEventListener("focusin", handleDocumentHover);
     return () => {
       window.removeEventListener("popstate", syncLocation);
       window.removeEventListener(getNavigationEventName(), syncLocation);
       document.removeEventListener("click", handleDocumentClick);
-      document.removeEventListener("mouseover", handleDocumentHover);
-      document.removeEventListener("focusin", handleDocumentHover);
     };
   }, []);
 

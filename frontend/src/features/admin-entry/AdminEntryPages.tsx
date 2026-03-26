@@ -1,4 +1,5 @@
-import { FormEvent, SyntheticEvent, useState } from "react";
+import { FormEvent, SyntheticEvent, useEffect, useState } from "react";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { readBootstrappedAdminHomePageData } from "../../lib/api/client";
 import { postJson } from "../../lib/api/core";
 import { buildLocalizedPath, navigate } from "../../lib/navigation/runtime";
@@ -30,8 +31,25 @@ export function AdminLoginPage() {
   const [userPw, setUserPw] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    logGovernanceScope("PAGE", "admin-login", {
+      language: en ? "en" : "ko",
+      userId: userId.trim(),
+      submitting
+    });
+    logGovernanceScope("COMPONENT", "admin-login-form", {
+      submitting,
+      hasUserId: Boolean(userId.trim()),
+      hasPassword: Boolean(userPw)
+    });
+  }, [en, submitting, userId, userPw]);
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    logGovernanceScope("ACTION", "admin-login-submit", {
+      userId: userId.trim(),
+      language: en ? "en" : "ko"
+    });
     if (!userId.trim()) {
       window.alert(en ? "Enter administrator ID." : "관리자 아이디를 입력하세요.");
       return;
@@ -238,6 +256,22 @@ export function AdminHomePage() {
   const reviewProgressRows = page?.reviewProgressRows || [];
   const operationalStatusRows = page?.operationalStatusRows || [];
   const systemLogs = page?.systemLogs || [];
+
+  useEffect(() => {
+    logGovernanceScope("PAGE", "admin-home", {
+      language: en ? "en" : "ko",
+      summaryCardCount: summaryCards.length,
+      reviewQueueCount: reviewQueueRows.length,
+      operationalStatusCount: operationalStatusRows.length,
+      systemLogCount: systemLogs.length
+    });
+    logGovernanceScope("COMPONENT", "admin-home-dashboard", {
+      summaryCardCount: summaryCards.length,
+      reviewQueueCount: reviewQueueRows.length,
+      reviewProgressCount: reviewProgressRows.length,
+      operationalStatusCount: operationalStatusRows.length
+    });
+  }, [en, operationalStatusRows.length, reviewProgressRows.length, reviewQueueRows.length, summaryCards.length, systemLogs.length]);
 
   function statusBoxClass(status: string) {
     if (status === "WARNING") return "bg-orange-50 border-orange-100";

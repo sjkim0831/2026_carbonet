@@ -18,6 +18,7 @@ public class AdminSystemPageModelAssembler {
 
     private final ObjectProvider<AdminMainController> adminMainControllerProvider;
     private final AdminSummaryService adminSummaryService;
+    private final egovframework.com.feature.admin.service.AdminShellBootstrapPageService adminShellBootstrapPageService;
 
     private AdminMainController adminMainController() {
         return adminMainControllerProvider.getObject();
@@ -89,5 +90,12 @@ public class AdminSystemPageModelAssembler {
         model.addAttribute("schedulerNodeRows", controller.buildSchedulerNodeRows(isEn));
         model.addAttribute("schedulerExecutionRows", controller.buildSchedulerExecutionRows(isEn));
         model.addAttribute("schedulerPlaybooks", controller.buildSchedulerPlaybooks(isEn));
+    }
+
+    public void populateBackupConfigPage(Model model, boolean isEn) {
+        Map<String, Object> payload = adminShellBootstrapPageService.buildBackupConfigPageData(isEn);
+        for (Map.Entry<String, Object> entry : payload.entrySet()) {
+            model.addAttribute(entry.getKey(), entry.getValue());
+        }
     }
 }

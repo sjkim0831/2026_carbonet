@@ -516,6 +516,192 @@ public class AdminAuthorityPagePayloadSupport {
                 .collect(Collectors.toList());
     }
 
+    public List<AuthorInfoVO> filterMemberRegisterGeneralAuthorGroups(
+            List<AuthorInfoVO> authorGroups,
+            String membershipType) {
+        if (authorGroups == null || authorGroups.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return authorGroups.stream()
+                .filter(group -> isMemberRegisterGeneralAuthorCode(group == null ? null : group.getAuthorCode(), membershipType))
+                .collect(Collectors.toList());
+    }
+
+    public List<Map<String, Object>> buildMemberRoleLayerSections(
+            List<AuthorInfoVO> authorGroups,
+            String membershipType,
+            boolean isEn) {
+        if (authorGroups == null || authorGroups.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<Map<String, Object>> sections = new ArrayList<>();
+        addAuthorGroupLayerSection(
+                sections,
+                "BASE",
+                isEn ? "Type-based Member Roles" : "회원 유형 기준 권한 롤",
+                filterMembershipSpecificMemberAuthorGroups(authorGroups, membershipType));
+        addAuthorGroupLayerSection(
+                sections,
+                "GENERAL",
+                isEn ? "General Member Roles" : "일반 권한 롤",
+                filterMemberRegisterGeneralAuthorGroups(authorGroups, membershipType).stream()
+                        .filter(group -> !isMembershipSpecificMemberAuthorCode(group == null ? null : group.getAuthorCode()))
+                        .collect(Collectors.toList()));
+        addAuthorGroupLayerSection(
+                sections,
+                "DEPARTMENT",
+                isEn ? "Company Department Roles" : "소속 회원사 부서 권한",
+                Collections.emptyList());
+        addAuthorGroupLayerSection(
+                sections,
+                "USER_OVERRIDE",
+                isEn ? "User Overrides" : "개별 권한 예외",
+                Collections.emptyList());
+        return sections;
+    }
+
+    public List<Map<String, Object>> buildAdminRoleLayerSections(List<AuthorInfoVO> authorGroups, boolean isEn) {
+        if (authorGroups == null || authorGroups.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<Map<String, Object>> sections = new ArrayList<>();
+        addAuthorGroupLayerSection(
+                sections,
+                "BASE",
+                isEn ? "Base Admin Roles" : "기준 관리자 권한 롤",
+                authorGroups.stream()
+                        .filter(group -> isAdminBaseAuthorCode(group == null ? null : group.getAuthorCode()))
+                        .collect(Collectors.toList()));
+        addAuthorGroupLayerSection(
+                sections,
+                "GENERAL",
+                isEn ? "General Admin Roles" : "일반 관리자 권한 롤",
+                authorGroups.stream()
+                        .filter(group -> !isAdminBaseAuthorCode(group == null ? null : group.getAuthorCode()))
+                        .collect(Collectors.toList()));
+        addAuthorGroupLayerSection(
+                sections,
+                "DEPARTMENT",
+                isEn ? "Department Roles" : "부서 권한 롤",
+                Collections.emptyList());
+        addAuthorGroupLayerSection(
+                sections,
+                "USER_OVERRIDE",
+                isEn ? "User Overrides" : "개별 권한 예외",
+                Collections.emptyList());
+        return sections;
+    }
+
+    public boolean isMemberRegisterGeneralAuthorCode(String authorCode, String membershipType) {
+        String normalizedCode = safeString(authorCode).toUpperCase(Locale.ROOT);
+        if (normalizedCode.isEmpty()) {
+            return false;
+        }
+        if ("ROLE_USER".equals(normalizedCode)
+                || normalizedCode.startsWith("ROLE_MEMBER_")
+                || normalizedCode.startsWith("ROLE_ACCOUNT_")) {
+            return true;
+        }
+        if (!normalizedCode.startsWith("ROLE_USER_")) {
+            return false;
+        }
+        if (!isKnownMembershipSpecificUserRoleCode(normalizedCode)) {
+            return true;
+        }
+        String expectedSuffix = resolveMembershipTypeRoleSuffix(membershipType);
+        if (expectedSuffix.isEmpty()) {
+            return false;
+        }
+        return normalizedCode.equals("ROLE_USER_" + expectedSuffix);
+    }
+
+    public boolean isMembershipSpecificMemberAuthorCode(String authorCode) {
+        return isKnownMembershipSpecificUserRoleCode(authorCode);
+    }
+
+    public List<AuthorInfoVO> filterMembershipSpecificMemberAuthorGroups(
+            List<AuthorInfoVO> authorGroups,
+            String membershipType) {
+        if (authorGroups == null || authorGroups.isEmpty()) {
+            return Collections.emptyList();
+        }
+        String expectedSuffix = resolveMembershipTypeRoleSuffix(membershipType);
+        if (expectedSuffix.isEmpty()) {
+            return Collections.emptyList();
+        }
+        String expectedCode = "ROLE_USER_" + expectedSuffix;
+        return authorGroups.stream()
+                .filter(group -> expectedCode.equals(safeString(group == null ? null : group.getAuthorCode()).toUpperCase(Locale.ROOT)))
+                .collect(Collectors.toList());
+    }
+
+    private boolean isKnownMembershipSpecificUserRoleCode(String authorCode) {
+        String normalizedCode = safeString(authorCode).toUpperCase(Locale.ROOT);
+        return normalizedCode.equals("ROLE_USER_EMITTER")
+                || normalizedCode.equals("ROLE_USER_PERFORMER")
+                || normalizedCode.equals("ROLE_USER_CENTER")
+                || normalizedCode.equals("ROLE_USER_GOV")
+                || normalizedCode.equals("ROLE_USER_ENTERPRISE")
+                || normalizedCode.equals("ROLE_USER_AUTHORITY");
+    }
+
+    private String resolveMembershipTypeRoleSuffix(String membershipType) {
+        String normalizedMembershipType = safeString(membershipType).toUpperCase(Locale.ROOT);
+        if ("E".equals(normalizedMembershipType) || "EMITTER".equals(normalizedMembershipType)) {
+            return "EMITTER";
+        }
+        if ("P".equals(normalizedMembershipType) || "PERFORMER".equals(normalizedMembershipType)) {
+            return "PERFORMER";
+        }
+        if ("C".equals(normalizedMembershipType) || "CENTER".equals(normalizedMembershipType)) {
+            return "CENTER";
+        }
+        if ("G".equals(normalizedMembershipType) || "GOV".equals(normalizedMembershipType)) {
+            return "GOV";
+        }
+        return "";
+    }
+
+    private boolean isAdminBaseAuthorCode(String authorCode) {
+        String normalizedCode = safeString(authorCode).toUpperCase(Locale.ROOT);
+        return "ROLE_COMPANY_ADMIN".equals(normalizedCode)
+                || normalizedCode.startsWith("ROLE_COMPANY_ADMIN_");
+    }
+
+    private void addAuthorGroupLayerSection(
+            List<Map<String, Object>> sections,
+            String layerKey,
+            String sectionLabel,
+            List<AuthorInfoVO> groups) {
+        if (groups == null || groups.isEmpty()) {
+            return;
+        }
+        Map<String, Object> section = new LinkedHashMap<>();
+        section.put("layerKey", safeString(layerKey).toUpperCase(Locale.ROOT));
+        section.put("sectionLabel", sectionLabel);
+        section.put("groups", groups);
+        sections.add(section);
+    }
+
+    public boolean canAssignDepartmentAuthorCode(String authorCode, String insttId, boolean globalAccess) {
+        return matchesRoleCategory(authorCode, "DEPARTMENT")
+                && (globalAccess || isVisibleScopedAuthorCode(authorCode, "DEPARTMENT", insttId));
+    }
+
+    public boolean canAssignMemberAuthorCode(String authorCode, String insttId, boolean globalAccess) {
+        String normalizedCode = safeString(authorCode).toUpperCase(Locale.ROOT);
+        if ("ROLE_USER".equals(normalizedCode)) {
+            return true;
+        }
+        if (matchesRoleCategory(authorCode, "DEPARTMENT")) {
+            return globalAccess || isVisibleScopedAuthorCode(authorCode, "DEPARTMENT", insttId);
+        }
+        if (matchesRoleCategory(authorCode, "USER")) {
+            return globalAccess || isVisibleScopedAuthorCode(authorCode, "USER", insttId);
+        }
+        return false;
+    }
+
     public List<AuthorInfoVO> appendCurrentAuthorGroup(List<AuthorInfoVO> authorGroups, String currentAuthorCode) {
         List<AuthorInfoVO> safeAuthorGroups = authorGroups == null ? Collections.emptyList() : authorGroups;
         String normalizedCurrentAuthorCode = safeString(currentAuthorCode).toUpperCase(Locale.ROOT);
@@ -857,7 +1043,8 @@ public class AdminAuthorityPagePayloadSupport {
             return normalizedCode.startsWith("ROLE_DEPT_");
         }
         if ("USER".equals(selectedRoleCategory)) {
-            return normalizedCode.startsWith("ROLE_USER_")
+            return "ROLE_USER".equals(normalizedCode)
+                    || normalizedCode.startsWith("ROLE_USER_")
                     || normalizedCode.startsWith("ROLE_MEMBER_")
                     || normalizedCode.startsWith("ROLE_ACCOUNT_");
         }

@@ -41,11 +41,7 @@ public class TraceEventService {
         traceEvent.setPayloadSummaryJson("{\"uri\":\"" + safe(traceContext.getRequestUri())
                 + "\",\"method\":\"" + safe(traceContext.getHttpMethod())
                 + "\",\"status\":" + responseStatus + "}");
-        try {
-            observabilityMapper.insertTraceEvent(traceEvent);
-        } catch (Exception e) {
-            log.warn("Failed to persist trace event. uri={}, status={}", traceContext.getRequestUri(), responseStatus, e);
-        }
+        tryInsertTraceEvent(traceEvent, "uri=" + traceContext.getRequestUri() + ", status=" + responseStatus);
     }
 
     public int recordFrontendEvents(List<FrontendTelemetryEvent> events) {
@@ -77,14 +73,44 @@ public class TraceEventService {
             traceEvent.setResultCode(safe(event.getResult()));
             traceEvent.setDurationMs(event.getDurationMs());
             traceEvent.setPayloadSummaryJson(toPayloadJson(event));
-            try {
-                observabilityMapper.insertTraceEvent(traceEvent);
+            if (tryInsertTraceEvent(traceEvent, "traceId=" + traceId + ", eventType=" + eventType)) {
                 accepted++;
-            } catch (Exception e) {
-                log.warn("Failed to persist frontend trace event. traceId={}, eventType={}", traceId, eventType, e);
             }
         }
         return accepted;
+    }
+
+    private boolean tryInsertTraceEvent(TraceEventRecordVO traceEvent, String contextSummary) {
+        try {
+            observabilityMapper.insertTraceEvent(traceEvent);
+            return true;
+        } catch (Exception e) {
+            if (isClobBindingIssue(e) && traceEvent.getPayloadSummaryJson() != null) {
+                log.warn("Trace payload persistence failed due to CLOB binding. Retrying without payload. {}", contextSummary);
+                traceEvent.setPayloadSummaryJson(null);
+                try {
+                    observabilityMapper.insertTraceEvent(traceEvent);
+                    return true;
+                } catch (Exception retryException) {
+                    log.warn("Failed to persist trace event after retry without payload. {}", contextSummary, retryException);
+                    return false;
+                }
+            }
+            log.warn("Failed to persist trace event. {}", contextSummary, e);
+            return false;
+        }
+    }
+
+    private boolean isClobBindingIssue(Exception exception) {
+        Throwable current = exception;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null && message.toLowerCase().contains("type clob")) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     private String toPayloadJson(FrontendTelemetryEvent event) {

@@ -46,6 +46,41 @@ public class AdminListPageModelAssembler {
         int pageIndex = parsePageIndex(pageIndexParam);
         int currentPage = Math.max(pageIndex, 1);
         int pageSize = 10;
+        String currentUserId = controller.extractCurrentUserId(request);
+        String currentUserAuthorCode = controller.resolveCurrentUserAuthorCode(currentUserId);
+        boolean canView = controller.hasMemberManagementCompanyOperatorAccess(currentUserId, currentUserAuthorCode);
+        boolean companyScopedAccess = controller.requiresMemberManagementCompanyScope(currentUserId, currentUserAuthorCode);
+        String currentUserInsttId = controller.resolveCurrentUserInsttId(currentUserId);
+
+        if (!canView) {
+            model.addAttribute("member_listError", "회원 목록을 조회할 권한이 없습니다.");
+            model.addAttribute("member_list", Collections.emptyList());
+            model.addAttribute("totalCount", 0);
+            model.addAttribute("pageIndex", 1);
+            model.addAttribute("pageSize", pageSize);
+            model.addAttribute("totalPages", 1);
+            model.addAttribute("startPage", 1);
+            model.addAttribute("endPage", 1);
+            model.addAttribute("searchKeyword", controller.safeString(searchKeyword).trim());
+            model.addAttribute("membershipType", controller.safeString(membershipType).trim().toUpperCase(Locale.ROOT));
+            model.addAttribute("sbscrbSttus", controller.safeString(sbscrbSttus).trim());
+            return;
+        }
+
+        if (companyScopedAccess && currentUserInsttId.isEmpty()) {
+            model.addAttribute("member_listError", "회원사 정보가 없는 관리자 계정은 회원 목록을 조회할 수 없습니다.");
+            model.addAttribute("member_list", Collections.emptyList());
+            model.addAttribute("totalCount", 0);
+            model.addAttribute("pageIndex", 1);
+            model.addAttribute("pageSize", pageSize);
+            model.addAttribute("totalPages", 1);
+            model.addAttribute("startPage", 1);
+            model.addAttribute("endPage", 1);
+            model.addAttribute("searchKeyword", controller.safeString(searchKeyword).trim());
+            model.addAttribute("membershipType", controller.safeString(membershipType).trim().toUpperCase(Locale.ROOT));
+            model.addAttribute("sbscrbSttus", controller.safeString(sbscrbSttus).trim());
+            return;
+        }
 
         EntrprsManageVO searchVO = new EntrprsManageVO();
         searchVO.setPageIndex(currentPage);
@@ -67,10 +102,8 @@ public class AdminListPageModelAssembler {
         if (!status.isEmpty()) {
             searchVO.setSbscrbSttus(status);
         }
-        String currentUserId = controller.extractCurrentUserId(request);
-        String currentUserAuthorCode = controller.resolveCurrentUserAuthorCode(currentUserId);
-        if (controller.requiresOwnCompanyAccess(currentUserId, currentUserAuthorCode)) {
-            searchVO.setInsttId(controller.resolveCurrentUserInsttId(currentUserId));
+        if (companyScopedAccess) {
+            searchVO.setInsttId(currentUserInsttId);
         }
 
         List<EntrprsManageVO> memberList;
@@ -100,7 +133,12 @@ public class AdminListPageModelAssembler {
             startPage = Math.max(1, endPage - 9);
         }
 
-        model.addAttribute("member_list", memberList);
+        List<Map<String, Object>> memberRows = new java.util.ArrayList<>();
+        for (EntrprsManageVO member : memberList) {
+            memberRows.add(toMemberListRow(controller, member));
+        }
+
+        model.addAttribute("member_list", memberRows);
         model.addAttribute("totalCount", totalCount);
         model.addAttribute("pageIndex", currentPage);
         model.addAttribute("pageSize", pageSize);
@@ -110,6 +148,17 @@ public class AdminListPageModelAssembler {
         model.addAttribute("searchKeyword", keyword);
         model.addAttribute("membershipType", memberType);
         model.addAttribute("sbscrbSttus", status);
+    }
+
+    private Map<String, Object> toMemberListRow(AdminMainController controller, EntrprsManageVO member) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("entrprsmberId", controller.safeString(member.getEntrprsmberId()));
+        row.put("applcntNm", controller.safeString(member.getApplcntNm()));
+        row.put("entrprsSeCode", controller.safeString(member.getEntrprsSeCode()));
+        row.put("cmpnyNm", controller.safeString(member.getCmpnyNm()));
+        row.put("sbscrbDe", controller.safeString(member.getSbscrbDe()));
+        row.put("entrprsMberSttus", controller.safeString(member.getEntrprsMberSttus()));
+        return row;
     }
 
     public void populateAdminMemberList(

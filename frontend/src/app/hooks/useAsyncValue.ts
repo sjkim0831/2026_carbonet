@@ -18,7 +18,22 @@ export function useAsyncValue<T>(
   const [loading, setLoading] = useState(enabled && !(skipInitialLoad && initialValue !== null));
   const [error, setError] = useState("");
   const requestIdRef = useRef(0);
-  const initialLoadSkippedRef = useRef(false);
+  const isMountedRef = useRef(true);
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+  const appliedInitialValueRef = useRef<T | null>(null);
+
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+    onErrorRef.current = onError;
+  }, [onError, onSuccess]);
+  
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   async function reload() {
     if (!enabled) {
@@ -33,33 +48,42 @@ export function useAsyncValue<T>(
 
     try {
       const nextValue = await load();
-      if (requestIdRef.current !== requestId) {
+      if (!isMountedRef.current || requestIdRef.current !== requestId) {
         return nextValue;
       }
       setValue(nextValue);
-      onSuccess?.(nextValue);
+      if (isMountedRef.current) {
+        onSuccessRef.current?.(nextValue);
+      }
       return nextValue;
     } catch (nextError) {
-      if (requestIdRef.current !== requestId) {
+      if (!isMountedRef.current || requestIdRef.current !== requestId) {
         return null;
       }
       const resolvedError = nextError instanceof Error ? nextError : new Error("Request failed");
       setError(resolvedError.message);
-      onError?.(resolvedError);
+      if (isMountedRef.current) {
+        onErrorRef.current?.(resolvedError);
+      }
       return null;
     } finally {
-      if (requestIdRef.current === requestId) {
+      if (isMountedRef.current && requestIdRef.current === requestId) {
         setLoading(false);
       }
     }
   }
 
   useEffect(() => {
-    if (skipInitialLoad && initialValue !== null && !initialLoadSkippedRef.current) {
-      initialLoadSkippedRef.current = true;
+    if (skipInitialLoad && initialValue !== null) {
       setLoading(false);
+      setValue(initialValue);
+      if (appliedInitialValueRef.current !== initialValue) {
+        appliedInitialValueRef.current = initialValue;
+        onSuccessRef.current?.(initialValue);
+      }
       return;
     }
+    appliedInitialValueRef.current = null;
     void reload();
   }, [enabled, initialValue, skipInitialLoad, ...deps]);
 

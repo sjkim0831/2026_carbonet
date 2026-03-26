@@ -1,10 +1,11 @@
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { fetchMemberStatsPage, readBootstrappedMemberStatsPageData, type MemberStatsPagePayload } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { stringOf } from "../admin-system/adminSystemShared";
 import { MemberButton } from "../member/common";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 export function MemberStatsMigrationPage() {
   const en = isEnglish();
@@ -17,6 +18,21 @@ export function MemberStatsMigrationPage() {
   const memberTypeStats = (page?.memberTypeStats || []) as Array<Record<string, string>>;
   const monthlySignupStats = (page?.monthlySignupStats || []) as Array<Record<string, string>>;
   const regionalDistribution = (page?.regionalDistribution || []) as Array<Record<string, string>>;
+
+  useEffect(() => {
+    logGovernanceScope("PAGE", "member-stats", {
+      language: en ? "en" : "ko",
+      totalMembers: Number(page?.totalMembers || 0),
+      memberTypeCount: memberTypeStats.length,
+      monthlyPoints: monthlySignupStats.length,
+      regionalCount: regionalDistribution.length
+    });
+    logGovernanceScope("COMPONENT", "member-stats-summary", {
+      memberTypeCount: memberTypeStats.length,
+      monthlyPoints: monthlySignupStats.length,
+      regionalCount: regionalDistribution.length
+    });
+  }, [en, memberTypeStats.length, monthlySignupStats.length, page?.totalMembers, regionalDistribution.length]);
 
   return (
     <AdminPageShell

@@ -303,6 +303,28 @@ Close the execution checklist in this order:
 3. common-jar plus release-unit deployment enforcement
 4. one end-to-end builder-only regeneration proof
 
+## Additional Blind Spots
+
+These items are easy to miss even after the main checklist is done:
+
+1. deterministic generation ordering must be fixed so the same source package
+   produces the same output file ordering, identifiers, and manifests
+2. rollback must restore builder version, overlay set, release-unit binding, and
+   runtime package together instead of rolling back only code files
+3. secrets and environment-specific values must never leak into generated
+   artifacts and should stay in runtime configuration or secret stores
+4. partial publish must be governed so one page or one package cannot drift away
+   from the compatibility verdict of the release unit it belongs to
+5. emergency patches need explicit expiry and debt tracking so temporary runtime
+   fixes do not become hidden permanent forks
+6. generated-output delete or cleanup should check lineage and ownership before
+   removing files, bundles, or DB artifacts
+7. cross-project contamination must be blocked so one project's overlays,
+   schemas, or authority bindings cannot be reused accidentally by another
+   target runtime
+8. builder-side test fixtures and golden outputs should be versioned, otherwise
+   regeneration quality drifts without obvious production failures
+
 A missing extension point should be fixed in the builder, not worked around by
 editing generated artifacts forever.
 

@@ -74,6 +74,13 @@ class AdminCompanyAccountService {
         List<InsttFileVO> existingFiles = controller.loadInsttFilesByInsttId(result.insttId);
         result.existingFiles = existingFiles == null ? Collections.emptyList() : existingFiles;
         boolean hasExistingFiles = !result.existingFiles.isEmpty();
+        boolean exists = existingInstitution != null && !existingInstitution.isEmpty();
+
+        if (exists) {
+            result.agencyName = controller.trimToLen(controller.safeString(existingInstitution.getInsttNm()), 100);
+            result.representativeName = controller.trimToLen(controller.safeString(existingInstitution.getReprsntNm()), 60);
+            result.bizRegistrationNumber = controller.trimToLen(controller.digitsOnly(existingInstitution.getBizrno()), 10);
+        }
 
         validate(result, controller, fileUploads, hasExistingFiles, isEn);
         if (!result.errors.isEmpty()) {
@@ -81,7 +88,6 @@ class AdminCompanyAccountService {
         }
 
         try {
-            boolean exists = existingInstitution != null && !existingInstitution.isEmpty();
             String targetInsttId = result.insttId;
             if (targetInsttId.isEmpty()) {
                 targetInsttId = controller.createInstitutionId();

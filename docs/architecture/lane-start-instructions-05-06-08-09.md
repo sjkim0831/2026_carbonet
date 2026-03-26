@@ -51,6 +51,13 @@ Leave one of:
 - `HANDOFF READY: 09 can continue from React compare page and context-key strip; current blocker count is 0.`
 - `BLOCKED: waiting for 01 because <specific missing contract reason>.`
 
+05 should stay handoff-ready only while the runtime/operator surface still keeps:
+
+- public/admin split visibility
+- context-key strip placement
+- `guidedStateId`, `templateLineId`, `screenFamilyRuleId`, `ownerLane`
+- direct linkage to `04` builder inputs and `09` compare consumption
+
 ## 06 Backend Control Plane
 
 ### Open First
@@ -91,18 +98,22 @@ Leave one of:
 - `docs/architecture/two-host-build-deploy-runbook.md`
 - `docs/prototypes/resonance-ui/runtime-package-matrix.html`
 - `docs/prototypes/resonance-ui/deploy-console.html`
+- `ops/scripts/resonance-session-loop.sh`
 
 ### First Code Targets
 
 - one runtime package assembly path
 - one release-unit packaging assumption in code or script
 - one deploy status source
+- one numbered-lane session-loop routing path for `08`
 
 ### Must Preserve
 
 - runtime package matrix identity keys
+- `233` build / `221` run / `193` DB role split
 - main server as runtime truth
 - public/admin split visibility inside rollout state
+- `res-08-deploy` as the numbered deploy lane with the default `8번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘` prompt
 
 ### End Of First Hour
 

@@ -1,6 +1,5 @@
 import { useEffect, useRef } from "react";
 import { getCsrfMeta } from "../../lib/navigation/runtime";
-import { fetchFrontendSession } from "../../lib/api/client";
 import type { TelemetryEvent } from "./events";
 
 type TransportEvent = TelemetryEvent & {
@@ -13,6 +12,7 @@ type TransportEvent = TelemetryEvent & {
 
 const FLUSH_DELAY_MS = 1200;
 const MAX_BATCH_SIZE = 20;
+const TELEMETRY_ENDPOINT = "/api/telemetry/events";
 
 export function useTelemetryTransport() {
   const queueRef = useRef<TransportEvent[]>([]);
@@ -45,14 +45,21 @@ export function useTelemetryTransport() {
       clearTimer();
       const events = queueRef.current.splice(0, MAX_BATCH_SIZE);
       let { token, headerName } = getCsrfMeta();
-      if (!token) {
-        try {
-          const session = await fetchFrontendSession();
+      try {
+        const response = await window.fetch("/api/frontend/session", {
+          credentials: "include",
+          cache: "no-store",
+          headers: {
+            "X-Requested-With": "XMLHttpRequest"
+          }
+        });
+        if (response.ok) {
+          const session = await response.json() as { csrfToken?: string; csrfHeaderName?: string };
           token = session.csrfToken || token;
           headerName = session.csrfHeaderName || headerName;
-        } catch {
-          // Keep best-effort telemetry transport non-blocking.
         }
+      } catch {
+        // Keep best-effort telemetry transport non-blocking.
       }
       if (!token) {
         sendingRef.current = false;
@@ -67,7 +74,7 @@ export function useTelemetryTransport() {
       }
 
       try {
-        await window.fetch("/api/telemetry/events", {
+        await window.fetch(TELEMETRY_ENDPOINT, {
           method: "POST",
           credentials: "include",
           keepalive,

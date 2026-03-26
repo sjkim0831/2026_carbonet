@@ -51,9 +51,13 @@
           <div class="card-body">
             <div class="two-col">
               <div class="meta-row"><span class="label">Guided State</span><div class="value">guided-build-05-proposal-inventory</div></div>
+              <div class="meta-row"><span class="label">Project</span><div class="value">member-core</div></div>
+              <div class="meta-row"><span class="label">Mapping Draft</span><div class="value">MAP-20260321-01</div></div>
               <div class="meta-row"><span class="label">Template Lines</span><div class="value">public-line-01 / admin-line-02</div></div>
               <div class="meta-row"><span class="label">Family Rules</span><div class="value">JOIN_ENTRY / JOIN_INFO / ADMIN_LIST_REVIEW</div></div>
               <div class="meta-row"><span class="label">Synthesis Run</span><div class="value">SYN-20260321-01</div></div>
+              <div class="meta-row"><span class="label">Builder Input Ready</span><div class="value">Y for lane 04</div></div>
+              <div class="meta-row"><span class="label">Verify Input Ready</span><div class="value">Y for lane 09</div></div>
             </div>
           </div>
         </section>
@@ -87,6 +91,33 @@
                 <tr><td>Page Assemblies</td><td>42</td><td><span class="chip warn">2 missing bindings</span></td></tr>
                 <tr><td>Backend Assets</td><td>36</td><td><span class="chip ok">Ready</span></td></tr>
                 <tr><td>DB Objects / SQL Drafts</td><td>19 / 19</td><td><span class="chip ok">Ready</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card" style="margin-top:18px">
+          <div class="card-header">
+            <div>
+              <h2>Proposal Consumer Evidence</h2>
+              <p>제안 인벤토리가 바로 이어질 다음 레인에 어떤 준비 상태를 전달하는지 보여줍니다.</p>
+            </div>
+            <span class="chip ok">Consumer Ready</span>
+          </div>
+          <div class="card-body">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Consumer Lane</th>
+                  <th>Evidence</th>
+                  <th>Value</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>04 Builder</td><td>builderInputReadyYn</td><td>true</td><td><span class="chip ok">Ready</span></td></tr>
+                <tr><td>09 Verify</td><td>verifyInputReadyYn / parityGapCount</td><td>true / 0 open proposal blockers</td><td><span class="chip ok">Ready</span></td></tr>
+                <tr><td>Consumer Lane Set</td><td>consumerLaneSet</td><td>04, 09</td><td><span class="chip ok">Locked</span></td></tr>
               </tbody>
             </table>
           </div>

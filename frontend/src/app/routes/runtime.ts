@@ -32,6 +32,15 @@ export function isReactManagedPath(pathname: string): boolean {
     return true;
   }
 
+  if (koComparable === "/signin/findId/overseas" || koComparable === "/signin/findPassword/overseas") {
+    return true;
+  }
+
+  if (koComparable === "/admin/system/unified_log"
+    || koComparable.startsWith("/admin/system/unified_log/")) {
+    return true;
+  }
+
   return routeByComparablePath.has(koComparable) || routeByComparablePath.has(normalizedPath);
 }
 
@@ -69,6 +78,16 @@ export function resolvePageFromPath(pathname: string, search = ""): MigrationPag
   const normalizedKoPath = normalizeComparablePath(pathname.replace(/^\/en/, "") || "/home");
   if (normalizedKoPath === "/admin/member/withdrawn" || normalizedKoPath === "/admin/member/activate") {
     return "member-list";
+  }
+  if (normalizedKoPath === "/signin/findId/overseas") {
+    return "signin-find-id";
+  }
+  if (normalizedKoPath === "/signin/findPassword/overseas") {
+    return "signin-find-password";
+  }
+  if (normalizedKoPath === "/admin/system/unified_log"
+    || normalizedKoPath.startsWith("/admin/system/unified_log/")) {
+    return "unified-log";
   }
   const matched = routeByComparablePath.get(normalizedKoPath) || routeByComparablePath.get(normalizedCurrentPath);
   if (matched) {

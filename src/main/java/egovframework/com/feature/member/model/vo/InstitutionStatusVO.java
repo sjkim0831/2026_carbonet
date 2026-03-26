@@ -1,6 +1,7 @@
 package egovframework.com.feature.member.model.vo;
 
 public class InstitutionStatusVO {
+    private String rawInsttId;
     private String insttId;
     private String insttNm;
     private String reprsntNm;
@@ -25,6 +26,8 @@ public class InstitutionStatusVO {
                 && (insttNm == null || insttNm.trim().isEmpty());
     }
 
+    public String getRawInsttId() { return rawInsttId; }
+    public void setRawInsttId(String rawInsttId) { this.rawInsttId = rawInsttId; }
     public String getInsttId() { return insttId; }
     public void setInsttId(String insttId) { this.insttId = insttId; }
     public String getInsttNm() { return insttNm; }

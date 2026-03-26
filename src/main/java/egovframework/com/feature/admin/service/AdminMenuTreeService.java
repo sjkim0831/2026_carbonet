@@ -57,8 +57,8 @@ public class AdminMenuTreeService {
                 continue;
             }
             sortOrderMap.put(code, row.getSortOrdr());
-            String labelKo = safeString(row.getCodeNm());
-            String labelEn = safeString(row.getCodeDc());
+            String labelKo = resolveMenuLabelKo(row);
+            String labelEn = resolveMenuLabelEn(row);
             if (labelEn.isEmpty()) {
                 labelEn = labelKo;
             }
@@ -217,7 +217,20 @@ public class AdminMenuTreeService {
     }
 
     private String normalizeRuntimeMenuUrl(String value) {
+        String normalized = normalizeMenuUrl(value);
+        if (normalized.startsWith("/admin/system/unified_log/")
+                || normalized.startsWith("/en/admin/system/unified_log/")) {
+            return normalized;
+        }
         return ReactPageUrlMapper.toCanonicalMenuUrl(normalizeMenuUrl(value));
+    }
+
+    private String resolveMenuLabelKo(MenuInfoDTO row) {
+        return safeString(row.getCodeNm());
+    }
+
+    private String resolveMenuLabelEn(MenuInfoDTO row) {
+        return safeString(row.getCodeDc());
     }
 
     private boolean isMasterOnlyRoute(String normalizedUri) {
@@ -226,8 +239,20 @@ public class AdminMenuTreeService {
                 || "/admin/system/error-log".equals(value)
                 || "/admin/system/security".equals(value)
                 || "/admin/system/security-audit".equals(value)
+                || "/admin/system/unified_log".equals(value)
+                || "/admin/system/unified_log/trace".equals(value)
+                || "/admin/system/unified_log/page-events".equals(value)
+                || "/admin/system/unified_log/ui-actions".equals(value)
+                || "/admin/system/unified_log/api-trace".equals(value)
+                || "/admin/system/unified_log/ui-errors".equals(value)
+                || "/admin/system/unified_log/layout-render".equals(value)
                 || "/admin/system/observability".equals(value)
                 || "/admin/system/help-management".equals(value)
+                || "/admin/system/page-management".equals(value)
+                || "/admin/system/function-management".equals(value)
+                || "/admin/system/menu-management".equals(value)
+                || "/admin/system/screen-flow-management".equals(value)
+                || "/admin/system/screen-menu-assignment-management".equals(value)
                 || "/admin/system/sr-workbench".equals(value)
                 || "/admin/system/wbs-management".equals(value)
                 || "/admin/system/codex-request".equals(value)) {
@@ -274,14 +299,11 @@ public class AdminMenuTreeService {
         if (url.isEmpty() || "#".equals(url)) {
             return url;
         }
-        if ("/admin/member/withdrawn".equals(url)) {
-            url = "/admin/member/list?sbscrbSttus=D";
-        } else if ("/admin/member/activate".equals(url)) {
-            url = "/admin/member/list?sbscrbSttus=X";
-        }
-        String canonical = ReactPageUrlMapper.toCanonicalMenuUrl(url);
-        if (!canonical.isEmpty()) {
-            url = canonical;
+        if (!(url.startsWith("/admin/system/unified_log/") || url.startsWith("/en/admin/system/unified_log/"))) {
+            String canonical = ReactPageUrlMapper.toCanonicalMenuUrl(url);
+            if (!canonical.isEmpty()) {
+                url = canonical;
+            }
         }
         return isEn ? localizeAdminUrl(url) : url;
     }
@@ -348,14 +370,14 @@ public class AdminMenuTreeService {
     private boolean shouldKeepPreferredMenu(String code, String menuUrl) {
         String normalizedCode = safeString(code);
         String normalizedMenuUrl = normalizeMenuUrl(menuUrl);
-        if ("/admin/member/register".equals(normalizedMenuUrl)) {
-            return "A0010102".equals(normalizedCode) || normalizedCode.isEmpty();
-        }
-        if ("/admin/member/company_account".equals(normalizedMenuUrl)) {
-            return "A0010203".equals(normalizedCode) || normalizedCode.isEmpty();
+        if ("/admin/".equals(normalizedMenuUrl) || "/admin".equals(normalizedMenuUrl)) {
+            return "A0070101".equals(normalizedCode) || normalizedCode.isEmpty();
         }
         if ("/admin/system/security".equals(normalizedMenuUrl)) {
             return "A0060205".equals(normalizedCode) || normalizedCode.isEmpty();
+        }
+        if ("/admin/member/security".equals(normalizedMenuUrl)) {
+            return "A0010502".equals(normalizedCode) || normalizedCode.isEmpty();
         }
         if ("/admin/system/observability".equals(normalizedMenuUrl)) {
             return "A0060303".equals(normalizedCode) || normalizedCode.isEmpty();
@@ -364,12 +386,7 @@ public class AdminMenuTreeService {
     }
 
     private String resolveMenuUrlOverride(String code, String menuUrl) {
-        String normalizedCode = safeString(code);
-        String normalizedMenuUrl = normalizeMenuUrl(menuUrl);
-        if ("A0010102".equals(normalizedCode) && "/admin/member/company_account".equals(normalizedMenuUrl)) {
-            return "/admin/member/register";
-        }
-        return normalizedMenuUrl;
+        return normalizeMenuUrl(menuUrl);
     }
 
     private String localizeAdminUrl(String url) {
@@ -383,4 +400,5 @@ public class AdminMenuTreeService {
         }
         return "/en" + normalizedUrl.substring(0, queryIndex) + normalizedUrl.substring(queryIndex);
     }
+
 }

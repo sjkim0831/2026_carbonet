@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { CanView } from "../../components/access/CanView";
-import { AuthChangePagePayload, FrontendSession, fetchAuthChangePage, fetchFrontendSession, saveAdminAuthChange } from "../../lib/api/client";
+import { AuthChangeHistoryRow, AuthChangePagePayload, FrontendSession, fetchAuthChangeHistory, fetchAuthChangePage, fetchFrontendSession, readBootstrappedAuthChangePageData, saveAdminAuthChange } from "../../lib/api/client";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { AdminAuthorityPageFrame } from "../admin-ui/pageFrames";
@@ -13,39 +14,76 @@ function t(page: AuthChangePagePayload | null, ko: string, en: string) {
 }
 
 export function AuthChangeMigrationPage() {
+  const bootstrappedPage = readBootstrappedAuthChangePageData();
   const [session, setSession] = useState<FrontendSession | null>(null);
-  const [page, setPage] = useState<AuthChangePagePayload | null>(null);
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [page, setPage] = useState<AuthChangePagePayload | null>(bootstrappedPage);
+  const [drafts, setDrafts] = useState<Record<string, string>>(() => {
+    const nextDrafts: Record<string, string> = {};
+    (bootstrappedPage?.roleAssignments || []).forEach((row) => {
+      nextDrafts[row.emplyrId] = row.authorCode || "";
+    });
+    return nextDrafts;
+  });
   const [selectedAdminId, setSelectedAdminId] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [savingEmplyrId, setSavingEmplyrId] = useState("");
   const [restoreEmplyrId, setRestoreEmplyrId] = useState("");
-  const [searchKeyword, setSearchKeyword] = useState("");
+  const [searchKeyword, setSearchKeyword] = useState(bootstrappedPage?.assignmentSearchKeyword || "");
+  const [searchDraft, setSearchDraft] = useState(bootstrappedPage?.assignmentSearchKeyword || "");
   const [assignmentFilter, setAssignmentFilter] = useState("ALL");
-  const [pageIndex, setPageIndex] = useState(1);
+  const [pageIndex, setPageIndex] = useState(Math.max(1, Number(bootstrappedPage?.assignmentPageIndex || 1)));
+  const [initialBootstrapped, setInitialBootstrapped] = useState(!!bootstrappedPage);
+  const [historyRows, setHistoryRows] = useState<AuthChangeHistoryRow[]>(bootstrappedPage?.recentRoleChangeHistory || []);
 
   function applyPayload(sessionPayload: FrontendSession, payload: AuthChangePagePayload) {
     setSession(sessionPayload);
     setPage(payload);
-    const nextDrafts: Record<string, string> = {};
-    payload.roleAssignments.forEach((row) => {
-      nextDrafts[row.emplyrId] = row.authorCode || "";
+    setSearchKeyword(payload.assignmentSearchKeyword || "");
+    setSearchDraft(payload.assignmentSearchKeyword || "");
+    setPageIndex(Math.max(1, Number(payload.assignmentPageIndex || 1)));
+    setDrafts((current) => {
+      const nextDrafts = { ...current };
+      payload.roleAssignments.forEach((row) => {
+        if (typeof nextDrafts[row.emplyrId] !== "string") {
+          nextDrafts[row.emplyrId] = row.authorCode || "";
+        }
+      });
+      return nextDrafts;
     });
-    setDrafts(nextDrafts);
-    setSelectedAdminId((current) => current || payload.authChangeTargetUserId || payload.roleAssignments[0]?.emplyrId || "");
+    setSelectedAdminId((current) => {
+      const hasCurrent = payload.roleAssignments.some((row) => row.emplyrId === current);
+      if (hasCurrent) return current;
+      return payload.authChangeTargetUserId || payload.roleAssignments[0]?.emplyrId || "";
+    });
   }
 
   function loadPage(existingSession?: FrontendSession | null) {
     setError("");
-    return Promise.all([existingSession ? Promise.resolve(existingSession) : fetchFrontendSession(), fetchAuthChangePage()]).then(([sessionPayload, payload]) => {
+    return Promise.all([
+      existingSession ? Promise.resolve(existingSession) : fetchFrontendSession(),
+      fetchAuthChangePage({ searchKeyword, pageIndex })
+    ]).then(([sessionPayload, payload]) => {
       applyPayload(sessionPayload, payload);
       return { sessionPayload, payload };
     });
   }
 
   useEffect(() => {
+    if (initialBootstrapped && bootstrappedPage) {
+      setInitialBootstrapped(false);
+      fetchFrontendSession()
+        .then((sessionPayload) => applyPayload(sessionPayload, bootstrappedPage))
+        .catch((err: Error) => setError(err.message));
+      return;
+    }
     loadPage().catch((err: Error) => setError(err.message));
+  }, [pageIndex, searchKeyword]);
+
+  useEffect(() => {
+    fetchAuthChangeHistory()
+      .then((items) => setHistoryRows(items))
+      .catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -57,38 +95,69 @@ export function AuthChangeMigrationPage() {
   }, [page, restoreEmplyrId]);
 
   const canView = !!page;
-  const canEdit = !!page?.isWebmaster;
-  const pendingChanges = (page?.roleAssignments || []).filter((row) => (drafts[row.emplyrId] || "") !== (row.authorCode || ""));
+  const canEdit = !!page?.canEditAuthChange;
+  const pendingChanges = (page?.roleAssignments || []).filter((row) => (drafts[row.emplyrId] || row.authorCode || "") !== (row.authorCode || ""));
   const visibleAssignments = (page?.roleAssignments || []).filter((row) => {
-    const keyword = searchKeyword.trim().toLowerCase();
-    const matchesKeyword = !keyword || row.emplyrId.toLowerCase().includes(keyword) || row.userNm.toLowerCase().includes(keyword) || (row.authorNm || "").toLowerCase().includes(keyword) || (row.authorCode || "").toLowerCase().includes(keyword);
     const pending = (drafts[row.emplyrId] || "") !== (row.authorCode || "");
     const matchesFilter = assignmentFilter === "ALL" || (assignmentFilter === "PENDING" && pending) || (assignmentFilter === "UNCHANGED" && !pending);
-    return matchesKeyword && matchesFilter;
+    return matchesFilter;
   });
-  const pageSize = 10;
-  const totalPages = Math.max(1, Math.ceil(visibleAssignments.length / pageSize));
-  const currentPage = Math.min(pageIndex, totalPages);
-  const pagedAssignments = visibleAssignments.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const currentPage = Math.max(1, Number(page?.assignmentPageIndex || pageIndex || 1));
+  const totalPages = Math.max(1, Number(page?.assignmentTotalPages || 1));
+  const pagedAssignments = visibleAssignments;
   const selectedAssignment = (page?.roleAssignments || []).find((row) => row.emplyrId === selectedAdminId) || null;
   const selectedDraftAuthorCode = selectedAssignment ? (drafts[selectedAssignment.emplyrId] || "") : "";
   const selectedDraftAuthorName = (page?.authorGroups || []).find((group) => group.authorCode === selectedDraftAuthorCode)?.authorNm || "";
   const filteredHistory = useMemo(() => {
-    const rows = page?.recentRoleChangeHistory || [];
+    const rows = historyRows;
     if (!selectedAdminId) return rows;
     const matched = rows.filter((row) => row.targetUserId === selectedAdminId);
     return matched.length > 0 ? matched : rows;
-  }, [page?.recentRoleChangeHistory, selectedAdminId]);
+  }, [historyRows, selectedAdminId]);
 
   useEffect(() => {
+    if (!page || !session) {
+      return;
+    }
+    logGovernanceScope("PAGE", "auth-change", {
+      route: window.location.pathname,
+      actorUserId: session.userId || "",
+      actorAuthorCode: session.authorCode || "",
+      actorInsttId: session.insttId || "",
+      canEdit: !!page.canEditAuthChange,
+      assignmentCount: Number(page.assignmentCount || 0),
+      selectedAdminId,
+      searchKeyword
+    });
+    logGovernanceScope("COMPONENT", "auth-change-table", {
+      component: "auth-change-table",
+      allowed: !!page.canEditAuthChange,
+      visibleAssignmentCount: visibleAssignments.length,
+      pendingCount: pendingChanges.length
+    });
+  }, [page, pendingChanges.length, searchKeyword, selectedAdminId, session, visibleAssignments.length]);
+
+  function handleSearchSubmit() {
+    logGovernanceScope("ACTION", "auth-change-search", {
+      actorInsttId: session?.insttId || "",
+      searchDraft,
+      pageIndex: 1
+    });
+    const nextKeyword = searchDraft.trim();
+    if (nextKeyword === searchKeyword && pageIndex === 1) {
+      loadPage(session).catch((err: Error) => setError(err.message));
+      return;
+    }
     setPageIndex(1);
-  }, [searchKeyword, assignmentFilter]);
-
-  useEffect(() => {
-    if (pageIndex > totalPages) setPageIndex(totalPages);
-  }, [pageIndex, totalPages]);
+    setSearchKeyword(nextKeyword);
+  }
 
   function handleSave(emplyrId: string) {
+    logGovernanceScope("ACTION", "auth-change-save", {
+      actorInsttId: session?.insttId || "",
+      targetAdminId: emplyrId,
+      nextAuthorCode: drafts[emplyrId] || ""
+    });
     if (!session) {
       setError(t(page, "세션 정보가 없습니다.", "Session is unavailable."));
       return;
@@ -117,6 +186,10 @@ export function AuthChangeMigrationPage() {
   }
 
   async function handleBulkSave() {
+    logGovernanceScope("ACTION", "auth-change-bulk-save", {
+      actorInsttId: session?.insttId || "",
+      pendingCount: pendingChanges.length
+    });
     if (!session || pendingChanges.length === 0) {
       setMessage(t(page, "저장할 변경이 없습니다.", "There are no pending changes to save."));
       return;
@@ -174,13 +247,15 @@ export function AuthChangeMigrationPage() {
           pagedAssignments={pagedAssignments}
           pendingCount={pendingChanges.length}
           savingEmplyrId={savingEmplyrId}
+          searchDraft={searchDraft}
           searchKeyword={searchKeyword}
           selectedAdminId={selectedAdminId}
           setAssignmentFilter={setAssignmentFilter}
           setDrafts={setDrafts}
-          setPageIndex={setPageIndex}
-          setSearchKeyword={setSearchKeyword}
+          setSearchDraft={setSearchDraft}
           setSelectedAdminId={setSelectedAdminId}
+          setPageIndex={setPageIndex}
+          onSearchSubmit={handleSearchSubmit}
           totalPages={totalPages}
         />
         <AuthChangeHistorySection page={page} rows={filteredHistory} />

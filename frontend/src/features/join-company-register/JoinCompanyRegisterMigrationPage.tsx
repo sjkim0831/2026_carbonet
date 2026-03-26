@@ -1,12 +1,14 @@
-import { ChangeEvent, KeyboardEvent, useMemo, useState } from "react";
+import { ChangeEvent, KeyboardEvent, useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useExternalScript } from "../../app/hooks/useExternalScript";
+import { logGovernanceScope } from "../../app/policy/debug";
 import {
   UserGovernmentBar,
   UserLanguageToggle,
   UserPortalHeader
 } from "../../components/user-shell/UserPortalChrome";
 import {
+  type CompanySearchPayload,
   checkCompanyNameDuplicate,
   fetchJoinCompanyRegisterPage,
   resetJoinSession,
@@ -42,12 +44,39 @@ type UploadRow = {
   file: File | null;
 };
 
+type JoinCompanySearchRow = {
+  insttId: string;
+  cmpnyNm: string;
+  bizrno: string;
+  cxfc: string;
+  joinStat: string;
+};
+
 let uploadRowSequence = 1;
 
 function createUploadRow(): UploadRow {
   const row = { id: uploadRowSequence, file: null };
   uploadRowSequence += 1;
   return row;
+}
+
+function normalizeSearchRows(value: unknown): JoinCompanySearchRow[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object")
+    .map((row, index) => ({
+      insttId: String(row.insttId || `instt-${index}`),
+      cmpnyNm: String(row.cmpnyNm || row.companyName || "-"),
+      bizrno: String(row.bizrno || row.businessNumber || "-"),
+      cxfc: String(row.cxfc || row.representativeName || "-"),
+      joinStat: String(row.joinStat || row.status || "")
+    }));
+}
+
+function hasUploadFile(file: File | null | undefined): file is File {
+  return Boolean(file && file.size > 0);
 }
 
 const COPY = {
@@ -195,8 +224,14 @@ export function JoinCompanyRegisterMigrationPage() {
   const [actionError, setActionError] = useState(() => getSearchParam("errorMessage"));
   const [modalOpen, setModalOpen] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState("");
-  const [searchPage, setSearchPage] = useState(1);
-  const [searchTouched, setSearchTouched] = useState(false);
+  const [searchState, setSearchState] = useState<CompanySearchPayload>({
+    list: [],
+    totalCnt: 0,
+    page: 1,
+    size: 5,
+    totalPages: 0
+  });
+  const [searchLoading, setSearchLoading] = useState(false);
   const pageState = useAsyncValue(fetchJoinCompanyRegisterPage, [], {
     onSuccess(payload) {
       setForm((current) => ({
@@ -206,19 +241,13 @@ export function JoinCompanyRegisterMigrationPage() {
     }
   });
   const page = pageState.value;
-  const searchState = useAsyncValue(
-    () => searchJoinCompanies({ keyword: searchKeyword.trim(), page: searchPage, size: 5, membershipType: form.membershipType }),
-    [searchKeyword, searchPage, form.membershipType, modalOpen, searchTouched],
-    {
-      enabled: modalOpen && searchTouched,
-      initialValue: { list: [], totalCnt: 0, page: 1, size: 5, totalPages: 0 },
-      onError: () => undefined
-    }
-  );
-  const error = actionError || pageState.error || (searchState.error ? copy.modalSearchError : "");
-  const searchRows = searchState.value?.list || [];
-  const searchTotalPages = searchState.value?.totalPages || 0;
-  const searchLoading = searchState.loading;
+  const error = actionError || pageState.error;
+  const searchRows = normalizeSearchRows(searchState.list);
+  const searchPage = Math.max(1, Number(searchState.page || 1));
+  const searchSize = Math.max(1, Number(searchState.size || 5));
+  const searchTotalPages = Math.max(0, Number(searchState.totalPages || 0));
+  const canViewPage = page?.canViewCompanyRegister !== false;
+  const canUseSubmit = page?.canUseCompanyRegister !== false;
 
   useExternalScript("//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js");
 
@@ -231,6 +260,36 @@ export function JoinCompanyRegisterMigrationPage() {
     for (let pageNo = start; pageNo <= end; pageNo += 1) items.push(pageNo);
     return items;
   }, [searchPage, searchTotalPages]);
+
+  useEffect(() => {
+    logGovernanceScope("PAGE", "join-company-register", {
+      language: en ? "en" : "ko",
+      membershipType: form.membershipType,
+      uploadRowCount: uploadRows.length,
+      modalOpen,
+      canViewPage,
+      canUseSubmit
+    });
+    logGovernanceScope("COMPONENT", "join-company-register-search-modal", {
+      modalOpen,
+      searchKeyword,
+      searchLoading,
+      resultCount: searchRows.length,
+      totalCount: searchState.totalCnt || 0,
+      membershipType: form.membershipType
+    });
+  }, [
+    canUseSubmit,
+    canViewPage,
+    en,
+    form.membershipType,
+    modalOpen,
+    searchKeyword,
+    searchLoading,
+    searchRows.length,
+    searchState.totalCnt,
+    uploadRows.length
+  ]);
 
   function updateField<K extends keyof CompanyForm>(key: K, value: CompanyForm[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -249,6 +308,10 @@ export function JoinCompanyRegisterMigrationPage() {
   }
 
   async function handleDuplicateCheck() {
+    logGovernanceScope("ACTION", "join-company-register-duplicate-check", {
+      agencyName: form.agencyName.trim(),
+      membershipType: form.membershipType
+    });
     if (!form.agencyName.trim()) {
       setDuplicateMessage(copy.duplicateNeedName);
       setDuplicateAvailable(false);
@@ -318,27 +381,72 @@ export function JoinCompanyRegisterMigrationPage() {
   }
 
   async function runCompanySearch(pageNo: number) {
-    setSearchTouched(true);
+    logGovernanceScope("ACTION", "join-company-register-search", {
+      page: pageNo,
+      keyword: searchKeyword.trim(),
+      membershipType: form.membershipType,
+      status: "P"
+    });
     setActionError("");
-    setSearchPage(pageNo);
+    setSearchLoading(true);
+    try {
+      const result = await searchJoinCompanies({
+        keyword: searchKeyword.trim(),
+        page: pageNo,
+        size: 5,
+        status: "P",
+        membershipType: form.membershipType
+      });
+      setSearchState(result);
+    } catch {
+      setSearchState({
+        list: [],
+        totalCnt: 0,
+        page: pageNo,
+        size: 5,
+        totalPages: 0
+      });
+      setActionError(copy.modalSearchError);
+    } finally {
+      setSearchLoading(false);
+    }
   }
 
   function openCompanySearchModal() {
+    logGovernanceScope("ACTION", "join-company-register-open-search-modal", {
+      membershipType: form.membershipType
+    });
     setModalOpen(true);
     setSearchKeyword("");
-    setSearchPage(1);
-    setSearchTouched(false);
+    setSearchState({
+      list: [],
+      totalCnt: 0,
+      page: 1,
+      size: 5,
+      totalPages: 0
+    });
+    void runCompanySearch(1);
   }
 
   async function handleSubmit() {
+    logGovernanceScope("ACTION", "join-company-register-submit", {
+      membershipType: form.membershipType,
+      duplicateChecked,
+      duplicateAvailable,
+      uploadedFileCount: uploadRows.map((row) => row.file).filter(hasUploadFile).length
+    });
     setActionError("");
+    if (!canUseSubmit) {
+      setActionError(en ? "You do not have permission to submit this request." : "현재 계정으로는 회원사 등록 신청을 진행할 수 없습니다.");
+      return;
+    }
     if (!duplicateChecked) {
       window.alert(copy.needDuplicateCheck);
       return;
     }
     const uploadedFiles = uploadRows
       .map((row) => row.file)
-      .filter((file): file is File => Boolean(file && file.size > 0));
+      .filter(hasUploadFile);
     if (uploadedFiles.length === 0) {
       window.alert(copy.needFile);
       return;
@@ -432,6 +540,12 @@ export function JoinCompanyRegisterMigrationPage() {
               </HomeButton>
             </div>
 
+            {!canViewPage ? (
+              <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                {en ? "You do not have permission to view this page." : "현재 상태로는 회원사 등록 화면을 조회할 수 없습니다."}
+              </div>
+            ) : null}
+
             {error ? (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm flex items-start gap-2">
                 <span className="material-symbols-outlined text-[20px] shrink-0">error</span>
@@ -448,6 +562,7 @@ export function JoinCompanyRegisterMigrationPage() {
             </div>
           </div>
 
+          {canViewPage ? (
           <form className="mt-8 space-y-8" onSubmit={(event) => { event.preventDefault(); void handleSubmit(); }}>
             <section data-help-id="join-company-register-contact">
               <h4 className="text-lg font-bold text-[var(--kr-gov-text-primary)] flex items-center gap-2 mb-6 pb-2 border-b-2 border-gray-100">
@@ -516,11 +631,11 @@ export function JoinCompanyRegisterMigrationPage() {
                   <div className="flex gap-2">
                     <div className="relative flex-grow">
                       <HomeInput className="pr-20" id="agency-name" onChange={(event) => updateField("agencyName", event.target.value)} placeholder={copy.placeholderAgency} required type="text" value={form.agencyName} />
-                      <HomeButton className="absolute right-2 top-2 bottom-2 min-h-0 px-3 text-xs" onClick={openCompanySearchModal} size="xs" type="button" variant="primary">
+                      <HomeButton className="absolute right-2 top-2 bottom-2 min-h-0 px-3 text-xs" disabled={!canUseSubmit} onClick={openCompanySearchModal} size="xs" type="button" variant="primary">
                         <span className="material-symbols-outlined text-[18px]">search</span>{copy.search}
                       </HomeButton>
                     </div>
-                    <HomeButton onClick={() => void handleDuplicateCheck()} type="button" variant="primary">{copy.duplicateCheck}</HomeButton>
+                    <HomeButton disabled={!canUseSubmit} onClick={() => void handleDuplicateCheck()} type="button" variant="primary">{copy.duplicateCheck}</HomeButton>
                   </div>
                   {duplicateMessage ? <p className={`mt-1 text-xs ${duplicateAvailable ? "text-green-600 font-bold" : "text-red-500"}`}>{duplicateMessage}</p> : null}
                 </div>
@@ -536,7 +651,7 @@ export function JoinCompanyRegisterMigrationPage() {
                   <label className="form-label" htmlFor="company-address">{copy.companyAddress} <span className="text-red-500">*</span></label>
                   <div className="flex gap-2 mb-2">
                     <HomeInput className="w-32 bg-gray-50 cursor-pointer" id="zip-code" onClick={openAddressSearch} placeholder={copy.placeholderZip} readOnly required type="text" value={form.zipCode} />
-                    <HomeButton onClick={openAddressSearch} type="button">{copy.searchAddress}</HomeButton>
+                    <HomeButton disabled={!canUseSubmit} onClick={openAddressSearch} type="button">{copy.searchAddress}</HomeButton>
                   </div>
                   <HomeInput className="mb-2 bg-gray-50 cursor-pointer" id="company-address" onClick={openAddressSearch} placeholder={copy.placeholderAddress} readOnly required type="text" value={form.companyAddress} />
                   <HomeInput id="company-address-detail" onChange={(event) => updateField("companyAddressDetail", event.target.value)} placeholder={copy.placeholderAddressDetail} type="text" value={form.companyAddressDetail} />
@@ -551,7 +666,7 @@ export function JoinCompanyRegisterMigrationPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <label className="form-label mb-0">{copy.fileDesc} <span className="text-red-500">*</span></label>
-                  <HomeButton className="join-upload-add-btn" onClick={addFileRow} size="sm" type="button">
+                  <HomeButton className="join-upload-add-btn" disabled={!canUseSubmit} onClick={addFileRow} size="sm" type="button">
                     <span className="material-symbols-outlined text-[18px]">add</span>{copy.addFile}
                   </HomeButton>
                 </div>
@@ -560,7 +675,7 @@ export function JoinCompanyRegisterMigrationPage() {
                     <div className={`join-upload-row ${row.file && row.file.size > 0 ? "is-selected" : ""}`} key={row.id}>
                       <span className="material-symbols-outlined join-upload-icon">attach_file</span>
                       <div className="flex-grow min-w-0">
-                        <HomeInput accept=".pdf,.jpg,.jpeg,.png" className="hidden" id={`company-file-${row.id}`} onChange={(event) => handleFileChange(index, event)} type="file" />
+                        <HomeInput accept=".pdf,.jpg,.jpeg,.png" className="hidden" disabled={!canUseSubmit} id={`company-file-${row.id}`} onChange={(event) => handleFileChange(index, event)} type="file" />
                         <label className="join-upload-label" htmlFor={`company-file-${row.id}`}>
                           <div className="file-info flex items-center justify-between">
                             <span className={`join-upload-name ${row.file && row.file.size > 0 ? "is-selected" : ""}`}>{row.file && row.file.size > 0 ? row.file.name : copy.emptyFile}</span>
@@ -569,7 +684,7 @@ export function JoinCompanyRegisterMigrationPage() {
                         </label>
                       </div>
                       {uploadRows.length > 1 || (row.file && row.file.size > 0) ? (
-                        <HomeIconButton className="join-upload-remove-btn" onClick={() => removeFileRow(index)} type="button">
+                        <HomeIconButton className="join-upload-remove-btn" disabled={!canUseSubmit} onClick={() => removeFileRow(index)} type="button">
                           <span className="material-symbols-outlined">close</span>
                         </HomeIconButton>
                       ) : null}
@@ -582,11 +697,12 @@ export function JoinCompanyRegisterMigrationPage() {
 
             <div className="pt-8 border-t border-gray-100 flex flex-col md:flex-row gap-4">
               <HomeButton className="flex-1 text-lg" onClick={() => window.history.back()} size="lg" type="button">{copy.prev}</HomeButton>
-              <HomeButton className="flex-[2] text-lg shadow-lg" size="lg" type="submit" variant="primary">
+              <HomeButton className="flex-[2] text-lg shadow-lg" disabled={!canUseSubmit} size="lg" type="submit" variant="primary">
                 {copy.submit} <span className="material-symbols-outlined">arrow_forward</span>
               </HomeButton>
             </div>
           </form>
+          ) : null}
 
           <div className="mt-8 text-center">
             <p className="text-sm text-[var(--kr-gov-text-secondary)]">
@@ -596,7 +712,8 @@ export function JoinCompanyRegisterMigrationPage() {
         </div>
       </main>
 
-      <div aria-labelledby="modal-title" aria-modal="true" className={`fixed inset-0 z-50 flex items-center justify-center ${modalOpen ? "" : "hidden"}`} role="dialog">
+      {modalOpen ? (
+      <div aria-labelledby="modal-title" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center" role="dialog">
         <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setModalOpen(false)}></div>
         <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-3xl mx-4 flex flex-col max-h-[90vh] overflow-hidden">
           <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-shrink-0">
@@ -633,20 +750,11 @@ export function JoinCompanyRegisterMigrationPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {searchLoading ? (
-                    <tr><td className="px-4 py-8 text-center text-gray-500" colSpan={5}>{copy.modalLoading}</td></tr>
-                  ) : !searchTouched ? (
-                    <tr>
-                      <td className="px-4 py-10 text-center text-gray-400" colSpan={5}>
-                        <span className="material-symbols-outlined text-4xl block mb-2 mx-auto">search</span>
-                        {en ? "Enter a keyword and press the search button." : "검색어를 입력하고 검색 버튼을 눌러주세요."}
-                      </td>
-                    </tr>
-                  ) : searchRows.length === 0 ? (
+                  {searchRows.length === 0 ? (
                     <tr><td className="px-4 py-8 text-center text-gray-500" colSpan={5}>{copy.modalNoResults}</td></tr>
                   ) : searchRows.map((row, index) => (
                     <tr className="hover:bg-blue-50/50 transition-colors" key={row.insttId}>
-                      <td className="px-4 py-4 text-center text-gray-500">{(searchPage - 1) * 5 + index + 1}</td>
+                      <td className="px-4 py-4 text-center text-gray-500">{(searchPage - 1) * searchSize + index + 1}</td>
                       <td className="px-4 py-4 font-medium">{row.cmpnyNm}</td>
                       <td className="px-4 py-4 text-gray-600">{row.bizrno}</td>
                       <td className="px-4 py-4 text-gray-600">{row.cxfc}</td>
@@ -656,6 +764,9 @@ export function JoinCompanyRegisterMigrationPage() {
                 </tbody>
               </HomeTable>
             </div>
+            {searchLoading ? (
+              <p className="mb-4 text-sm text-[var(--kr-gov-text-secondary)]">{copy.modalLoading}</p>
+            ) : null}
             {pagination.length > 0 ? (
               <nav aria-label="pagination" className="flex justify-center items-center gap-1 my-4">
                 <HomeButton className="w-9 px-0 text-gray-400" disabled={searchPage === 1} onClick={() => void runCompanySearch(1)} type="button" variant="ghost"><span className="material-symbols-outlined text-xl">first_page</span></HomeButton>
@@ -689,6 +800,7 @@ export function JoinCompanyRegisterMigrationPage() {
           </div>
         </div>
       </div>
+      ) : null}
     </div>
   );
 }

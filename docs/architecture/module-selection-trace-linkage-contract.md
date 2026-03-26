@@ -61,3 +61,21 @@ The UI should provide direct navigation to:
   backend-chain links
 - if the result is scaffold-ready, the trace view must still remain preserved as
   a mandatory audit artifact
+
+## 10 To 08 And 09 Handoff Rule
+
+`10` is handoff-ready only when the trace linkage view preserves one readable
+chain from module result to runtime package and repair flow.
+
+Minimum stable references:
+
+- `moduleBindingPreviewId`
+- `moduleBindingResultId`
+- `generationRunId`
+- `releaseUnitId`
+- `runtimePackageId`
+- `repairSessionCandidateId`
+- `compareContextId`
+
+If any of these references disappear between module selection result and trace
+view, `10` should remain in progress.

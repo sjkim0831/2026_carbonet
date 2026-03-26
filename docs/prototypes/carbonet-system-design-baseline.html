@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Carbonet System Design Baseline</title>
+  <style>
+    :root {
+      --bg: #f3f6f8;
+      --surface: #ffffff;
+      --surface-strong: #0f172a;
+      --surface-soft: #eef3f8;
+      --line: #d7dee7;
+      --line-strong: #bcc7d4;
+      --text: #102033;
+      --text-soft: #5d6b7c;
+      --blue: #0b5cab;
+      --blue-strong: #083d72;
+      --teal: #0f766e;
+      --amber: #b45309;
+      --red: #b42318;
+      --indigo: #4f46e5;
+      --mint: #0d9488;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --radius-sm: 12px;
+      --shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+      --shadow-soft: 0 14px 30px rgba(15, 23, 42, 0.06);
+      --max: 1440px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(11, 92, 171, 0.08), transparent 22%),
+        linear-gradient(180deg, #f8fafc 0%, var(--bg) 100%);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    .skip-link {
+      position: absolute;
+      left: 16px;
+      top: -48px;
+      padding: 10px 14px;
+      background: var(--blue);
+      color: #fff;
+      border-radius: 10px;
+      z-index: 100;
+    }
+
+    .skip-link:focus {
+      top: 16px;
+    }
+
+    .gov-bar,
+    .header-shell,
+    .section-shell,
+    .footer-shell {
+      width: min(calc(100% - 32px), var(--max));
+      margin: 0 auto;
+    }
+
+    .gov-wrap {
+      border-bottom: 1px solid var(--line);
+      background: #eaf0f6;
+    }
+
+    .gov-bar {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 10px 0;
+      font-size: 13px;
+      color: var(--text-soft);
+    }
+
+    .header-wrap {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      backdrop-filter: blur(18px);
+      background: rgba(255, 255, 255, 0.92);
+      border-bottom: 1px solid rgba(188, 199, 212, 0.7);
+    }
+
+    .header-shell {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      min-height: 84px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .brand-mark {
+      width: 52px;
+      height: 52px;
+      display: grid;
+      place-items: center;
+      border-radius: 16px;
+      color: #fff;
+      background: linear-gradient(135deg, var(--blue), var(--indigo));
+      box-shadow: 0 14px 24px rgba(79, 70, 229, 0.25);
+      font-weight: 800;
+    }
+
+    .brand-title {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+    }
+
+    .brand-subtitle {
+      margin: 4px 0 0;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+    }
+
+    .main-nav {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex: 1;
+      justify-content: center;
+    }
+
+    .main-nav a {
+      padding: 10px 14px;
+      border-radius: 999px;
+      color: var(--text-soft);
+      font-weight: 700;
+    }
+
+    .main-nav a.is-active {
+      color: var(--blue-strong);
+      background: rgba(11, 92, 171, 0.1);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .pill,
+    .ghost-btn,
+    .primary-btn,
+    .secondary-btn {
+      border-radius: 999px;
+      border: 1px solid transparent;
+      font-weight: 800;
+    }
+
+    .pill {
+      padding: 8px 12px;
+      font-size: 12px;
+      background: #eef4fb;
+      color: var(--blue-strong);
+      border-color: #d8e6f6;
+    }
+
+    .ghost-btn,
+    .secondary-btn,
+    .primary-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 0 18px;
+      cursor: pointer;
+    }
+
+    .ghost-btn {
+      background: #fff;
+      color: var(--text);
+      border-color: var(--line);
+    }
+
+    .secondary-btn {
+      color: var(--blue);
+      background: #f0f6fd;
+      border-color: #d8e6f6;
+    }
+
+    .primary-btn {
+      color: #fff;
+      background: linear-gradient(135deg, var(--blue), var(--indigo));
+      box-shadow: 0 14px 28px rgba(11, 92, 171, 0.2);
+    }
+
+    .hero-wrap {
+      position: relative;
+      overflow: hidden;
+      border-bottom: 1px solid #dce5f0;
+      background:
+        radial-gradient(circle at top right, rgba(79, 70, 229, 0.18), transparent 18%),
+        linear-gradient(135deg, #0f172a 0%, #132640 42%, #17355e 100%);
+    }
+
+    .hero-wrap::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+      background-size: 48px 48px;
+      opacity: 0.3;
+      pointer-events: none;
+    }
+
+    .hero-shell {
+      width: min(calc(100% - 32px), var(--max));
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+      padding: 44px 0 56px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(420px, 0.9fr);
+      gap: 24px;
+      align-items: stretch;
+    }
+
+    .hero-panel,
+    .hero-queue {
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 28px;
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      color: #fff;
+    }
+
+    .hero-panel {
+      padding: 32px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #dce7fb;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .hero-title {
+      margin: 20px 0 14px;
+      font-size: clamp(34px, 4vw, 54px);
+      line-height: 1.05;
+      letter-spacing: -0.05em;
+      font-weight: 900;
+    }
+
+    .hero-copy {
+      max-width: 660px;
+      margin: 0;
+      color: rgba(255, 255, 255, 0.78);
+      font-size: 16px;
+    }
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 28px;
+    }
+
+    .hero-stat {
+      padding: 18px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .hero-stat strong {
+      display: block;
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+    }
+
+    .hero-stat span {
+      display: block;
+      margin-top: 6px;
+      color: rgba(255, 255, 255, 0.72);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .hero-actions .primary-btn,
+    .hero-actions .ghost-btn {
+      min-height: 50px;
+    }
+
+    .hero-actions .ghost-btn {
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .hero-queue {
+      padding: 24px;
+    }
+
+    .queue-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .queue-title {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 900;
+    }
+
+    .queue-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .queue-card {
+      padding: 18px;
+      border-radius: 20px;
+      background: rgba(15, 23, 42, 0.42);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .queue-meta,
+    .mini-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .badge.red { background: rgba(180, 35, 24, 0.18); color: #ffb4ab; }
+    .badge.amber { background: rgba(180, 83, 9, 0.18); color: #ffd69d; }
+    .badge.blue { background: rgba(37, 99, 235, 0.18); color: #bbd3ff; }
+    .badge.mint { background: rgba(13, 148, 136, 0.18); color: #b3f1ea; }
+
+    .queue-card h3 {
+      margin: 14px 0 6px;
+      font-size: 17px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+    }
+
+    .queue-card p {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.72);
+      font-size: 13px;
+    }
+
+    .queue-card .mini-meta {
+      margin-top: 14px;
+      font-size: 12px;
+      color: #c7d6ea;
+      font-weight: 700;
+    }
+
+    main {
+      display: block;
+    }
+
+    section {
+      padding: 32px 0;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: end;
+      margin-bottom: 22px;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.1;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+    }
+
+    .section-head p {
+      margin: 8px 0 0;
+      color: var(--text-soft);
+      max-width: 760px;
+    }
+
+    .grid-4,
+    .grid-3,
+    .grid-2 {
+      display: grid;
+      gap: 18px;
+    }
+
+    .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .summary-card {
+      padding: 22px;
+    }
+
+    .summary-card .label {
+      font-size: 12px;
+      color: var(--text-soft);
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .summary-card strong {
+      display: block;
+      margin-top: 12px;
+      font-size: 34px;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+    }
+
+    .summary-card .hint {
+      display: block;
+      margin-top: 10px;
+      color: var(--text-soft);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .feature-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .operations-card {
+      padding: 24px;
+    }
+
+    .operations-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 18px 0 22px;
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 56px;
+      padding: 0 18px;
+      background: var(--surface-soft);
+      border: 1px solid #dfe8f2;
+      border-radius: 18px;
+      color: var(--text-soft);
+    }
+
+    .site-stack {
+      display: grid;
+      gap: 16px;
+    }
+
+    .site-card {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      overflow: hidden;
+      background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+    }
+
+    .site-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 22px 24px;
+      border-bottom: 1px solid #e7edf5;
+    }
+
+    .site-title {
+      margin: 10px 0 0;
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+    }
+
+    .site-sub {
+      margin: 8px 0 0;
+      color: var(--text-soft);
+      font-size: 14px;
+    }
+
+    .metric-box {
+      min-width: 180px;
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: #f5f9fd;
+      border: 1px solid #dde8f4;
+    }
+
+    .metric-box strong {
+      display: block;
+      font-size: 30px;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+    }
+
+    .metric-box span {
+      font-size: 12px;
+      color: var(--text-soft);
+      font-weight: 700;
+    }
+
+    .site-body {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 280px;
+      gap: 16px;
+      padding: 22px 24px 24px;
+    }
+
+    .action-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .action-tile {
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid #dfe7f0;
+      background: #f7fafc;
+    }
+
+    .action-tile strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .action-tile span {
+      color: var(--text-soft);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .rail-card {
+      padding: 20px;
+      border-radius: 20px;
+      background: #f8fbff;
+      border: 1px solid #dbe6f2;
+    }
+
+    .rail-card h3,
+    .governance-card h3,
+    .mapping-card h3,
+    .screen-kit-card h3 {
+      margin: 0 0 14px;
+      font-size: 17px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+    }
+
+    .process-list,
+    .mapping-list,
+    .kit-list,
+    .ops-list,
+    .policy-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .process-item,
+    .mapping-item,
+    .kit-item,
+    .ops-item,
+    .policy-item {
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1px solid #dde6f0;
+      background: #fff;
+    }
+
+    .process-item strong,
+    .mapping-item strong,
+    .kit-item strong,
+    .ops-item strong,
+    .policy-item strong {
+      display: block;
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+
+    .process-item span,
+    .mapping-item span,
+    .kit-item span,
+    .ops-item span,
+    .policy-item span {
+      display: block;
+      margin-top: 6px;
+      color: var(--text-soft);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .mapping-card,
+    .governance-card,
+    .screen-kit-card {
+      padding: 24px;
+    }
+
+    .mapping-table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+    }
+
+    .mapping-table th,
+    .mapping-table td {
+      padding: 14px 16px;
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid #e4ebf2;
+      font-size: 13px;
+    }
+
+    .mapping-table th {
+      background: #f7fafc;
+      font-size: 12px;
+      color: var(--text-soft);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .mapping-table tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .flow-band {
+      padding: 24px;
+      background:
+        linear-gradient(180deg, #f7fbff 0%, #f0f6fb 100%);
+      border: 1px solid #dbe6f0;
+      border-radius: 26px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .flow-steps {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .flow-step {
+      padding: 18px;
+      border-radius: 18px;
+      background: #fff;
+      border: 1px solid #dce5ee;
+    }
+
+    .flow-step em {
+      display: inline-flex;
+      width: 32px;
+      height: 32px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: #eaf3ff;
+      color: var(--blue-strong);
+      font-style: normal;
+      font-weight: 900;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+
+    .flow-step strong {
+      display: block;
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+
+    .flow-step span {
+      display: block;
+      margin-top: 8px;
+      color: var(--text-soft);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .footer-wrap {
+      margin-top: 32px;
+      border-top: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .footer-shell {
+      padding: 28px 0 40px;
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      color: var(--text-soft);
+      font-size: 13px;
+    }
+
+    .footer-brand {
+      color: var(--text);
+      font-weight: 900;
+      font-size: 16px;
+    }
+
+    @media (max-width: 1200px) {
+      .hero-grid,
+      .feature-shell,
+      .site-body,
+      .flow-steps {
+        grid-template-columns: 1fr;
+      }
+
+      .grid-4 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .grid-3 {
+        grid-template-columns: 1fr;
+      }
+
+      .action-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .main-nav {
+        display: none;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .gov-bar,
+      .header-shell,
+      .section-shell,
+      .footer-shell,
+      .hero-shell {
+        width: min(calc(100% - 20px), var(--max));
+      }
+
+      .header-shell,
+      .footer-shell,
+      .section-head,
+      .site-top,
+      .site-body {
+        display: block;
+      }
+
+      .header-actions,
+      .hero-actions,
+      .operations-toolbar {
+        margin-top: 16px;
+      }
+
+      .hero-stats,
+      .grid-4,
+      .grid-2,
+      .action-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .site-top,
+      .site-body,
+      .summary-card,
+      .mapping-card,
+      .governance-card,
+      .screen-kit-card,
+      .operations-card,
+      .flow-band {
+        padding-left: 18px;
+        padding-right: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">본문 바로가기</a>
+
+  <div class="gov-wrap">
+    <div class="gov-bar">
+      <div>대한민국 정부 공식 서비스 기준 적용 시안 | Carbonet 운영/서비스 공통 베이스라인</div>
+      <div>초안 버전 2026.03</div>
+    </div>
+  </div>
+
+  <div class="header-wrap">
+    <div class="header-shell">
+      <div class="brand">
+        <div class="brand-mark">C</div>
+        <div>
+          <h1 class="brand-title">Carbonet Unified Runtime</h1>
+          <p class="brand-subtitle">home + work queue + admin governance baseline</p>
+        </div>
+      </div>
+      <nav class="main-nav" aria-label="주요 메뉴">
+        <a class="is-active" href="#home-baseline">홈 기준</a>
+        <a href="#work-baseline">업무 화면군</a>
+        <a href="#admin-baseline">관리자 대응</a>
+        <a href="#governance-baseline">운영 거버넌스</a>
+      </nav>
+      <div class="header-actions">
+        <span class="pill">설계 검토중</span>
+        <button class="ghost-btn" type="button">화면군 보기</button>
+        <button class="primary-btn" type="button">기준안 승인 요청</button>
+      </div>
+    </div>
+  </div>
+
+  <main id="main-content">
+    <section class="hero-wrap" id="home-baseline">
+      <div class="hero-shell">
+        <div class="hero-grid">
+          <article class="hero-panel">
+            <span class="eyebrow">Design Baseline</span>
+            <h2 class="hero-title">홈 화면과 관리자 화면이 같은 업무 메타데이터를 보도록 설계하는 기준 시안</h2>
+            <p class="hero-copy">
+              이 시안은 단순 랜딩 페이지가 아니라, 홈 대시보드에서 보이는 카드와 관리자 화면에서 관리하는 업무 항목이 같은 구조를 바라보게 만드는 기준안입니다.
+              이후 Stitch, HTML 포팅, React 구현, 관리자 생성 화면 설계까지 같은 언어로 이어지게 하는 출발점입니다.
+            </p>
+            <div class="hero-stats">
+              <div class="hero-stat">
+                <strong>01</strong>
+                <span>홈 요약, 업무 큐, 관리자 관리점이 분리되지 않음</span>
+              </div>
+              <div class="hero-stat">
+                <strong>08</strong>
+                <span>실서비스 필수 설계 축: 메뉴, 상태, 권한, 이력, 증빙, API, DB, 운영</span>
+              </div>
+              <div class="hero-stat">
+                <strong>100%</strong>
+                <span>화면 단위가 아닌 프로세스 단위 설계 지향</span>
+              </div>
+            </div>
+            <div class="hero-actions">
+              <a class="primary-btn" href="#work-baseline">대표 업무 흐름 보기</a>
+              <a class="ghost-btn" href="#admin-baseline">관리자 대응 구조 보기</a>
+            </div>
+          </article>
+
+          <aside class="hero-queue" aria-labelledby="queue-title">
+            <div class="queue-header">
+              <div>
+                <p class="eyebrow">Unified Queue</p>
+                <h2 class="queue-title" id="queue-title">홈에서 바로 보여야 하는 우선 업무</h2>
+              </div>
+              <span class="pill">총 4건</span>
+            </div>
+            <div class="queue-list">
+              <article class="queue-card">
+                <div class="queue-meta">
+                  <span class="badge red">Critical</span>
+                  <span>D-2</span>
+                </div>
+                <h3>울산 제3 화학기지 증빙 보완</h3>
+                <p>홈 카드, 증빙 업로드 화면, 관리자 보완요청 이력, 검증 규칙 관리가 한 세트로 연결됩니다.</p>
+                <div class="mini-meta">
+                  <span>업무코드 `TASK-DOC-201`</span>
+                  <span>관리화면 `증빙 요청 관리`</span>
+                </div>
+              </article>
+              <article class="queue-card">
+                <div class="queue-meta">
+                  <span class="badge amber">Required</span>
+                  <span>D-5</span>
+                </div>
+                <h3>포항 제1 에너지 데이터 확정</h3>
+                <p>홈에서 입력 개시를 누르면 데이터 입력, 산정 검증, 승인 대기, 관리자 마감 관리까지 이어집니다.</p>
+                <div class="mini-meta">
+                  <span>업무코드 `TASK-DATA-110`</span>
+                  <span>관리화면 `월별 데이터 통제`</span>
+                </div>
+              </article>
+              <article class="queue-card">
+                <div class="queue-meta">
+                  <span class="badge blue">Verification</span>
+                  <span>D-12</span>
+                </div>
+                <h3>광양 제2 검증 준비 완료 점검</h3>
+                <p>검증 현황, 제출 문서, 승인 이력, 외부기관 대응 로그를 관리자에서 역추적 가능합니다.</p>
+                <div class="mini-meta">
+                  <span>업무코드 `TASK-VERIFY-320`</span>
+                  <span>관리화면 `검증 진행 관리`</span>
+                </div>
+              </article>
+              <article class="queue-card">
+                <div class="queue-meta">
+                  <span class="badge mint">Insight</span>
+                  <span>Today</span>
+                </div>
+                <h3>배출 목표 이탈 분석 확인</h3>
+                <p>분석 리포트는 단순 차트가 아니라 경보 규칙, 기준값, 조치 이력과 함께 관리됩니다.</p>
+                <div class="mini-meta">
+                  <span>업무코드 `TASK-ALERT-018`</span>
+                  <span>관리화면 `임계치/알림 정책`</span>
+                </div>
+              </article>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-shell">
+        <div class="section-head">
+          <div>
+            <h2>실서비스 기준으로 먼저 잡아야 하는 핵심 축</h2>
+            <p>이 네 묶음이 빠지면 화면은 보여도 운영은 불가능합니다. 이후 생성형 도구를 쓰더라도 이 기준을 먼저 고정해야 누락이 줄어듭니다.</p>
+          </div>
+        </div>
+        <div class="grid-4">
+          <article class="card summary-card">
+            <span class="label">Menu and Role</span>
+            <strong>메뉴·권한 축</strong>
+            <span class="hint">홈 메뉴, 관리자 메뉴, 역할별 노출, 버튼 사용 가능 조건</span>
+          </article>
+          <article class="card summary-card">
+            <span class="label">Process and State</span>
+            <strong>프로세스·상태 축</strong>
+            <span class="hint">업무 단계, 상태 전이, 마감, 승인, 반려, 재요청 규칙</span>
+          </article>
+          <article class="card summary-card">
+            <span class="label">Data and Evidence</span>
+            <strong>데이터·증빙 축</strong>
+            <span class="hint">입력값, 증빙 파일, 자동 산정 결과, 검증 이력, 출력물</span>
+          </article>
+          <article class="card summary-card">
+            <span class="label">Governance and Audit</span>
+            <strong>운영·감사 축</strong>
+            <span class="hint">누가 무엇을 바꿨는지, 어떤 API가 처리했는지, 운영자가 어떻게 복구하는지</span>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="work-baseline">
+      <div class="section-shell">
+        <div class="section-head">
+          <div>
+            <h2>홈 기준 화면군 시안</h2>
+            <p>대표 홈 화면은 단순 카드 나열이 아니라 검색, 우선 업무 큐, 핵심 배출지 카드, 다음 액션, 관련 관리자 진입점까지 한 번에 보여주는 구조로 설계합니다.</p>
+          </div>
+          <button class="secondary-btn" type="button">홈 패밀리 기준 복제</button>
+        </div>
+
+        <div class="feature-shell">
+          <article class="card operations-card">
+            <span class="pill">Home Dashboard Family</span>
+            <div class="operations-toolbar">
+              <div class="search-box" role="search">
+                <span>시설 코드, 배출지 명칭, 검증번호, 증빙상태를 검색</span>
+              </div>
+              <button class="primary-btn" type="button">신규 배출지 등록</button>
+              <button class="ghost-btn" type="button">내 할 일만 보기</button>
+            </div>
+
+            <div class="site-stack">
+              <article class="site-card">
+                <div class="site-top">
+                  <div>
+                    <span class="badge amber">입력 지연</span>
+                    <h3 class="site-title">울산 제3 화학기지</h3>
+                    <p class="site-sub">증빙 보완, 재산정 확인, 검증관 피드백 대응이 한 카드 안에 집약됩니다.</p>
+                  </div>
+                  <div class="metric-box">
+                    <strong>4,812</strong>
+                    <span>누적 배출량 tCO2 / 위험 상태 추적중</span>
+                  </div>
+                </div>
+                <div class="site-body">
+                  <div>
+                    <div class="mapping-list">
+                      <div class="mapping-item">
+                        <strong>현재 조치 요청</strong>
+                        <span>증빙 서류 2건 누락, D-2 마감, 검증 반려 사유 포함</span>
+                      </div>
+                      <div class="mapping-item">
+                        <strong>자동 후속 흐름</strong>
+                        <span>업로드 완료 후 재검토 대기, 검증 승인, 관리자 모니터링 보드 동기화</span>
+                      </div>
+                    </div>
+                    <div class="action-grid">
+                      <div class="action-tile">
+                        <strong>데이터 입력</strong>
+                        <span>월별 배출량과 사용량 편집</span>
+                      </div>
+                      <div class="action-tile">
+                        <strong>증빙 업로드</strong>
+                        <span>필수 파일과 버전 추적</span>
+                      </div>
+                      <div class="action-tile">
+                        <strong>검증 현황</strong>
+                        <span>외부 검토 상태와 보완 이력</span>
+                      </div>
+                      <div class="action-tile">
+                        <strong>분석 리포트</strong>
+                        <span>목표 대비 이상징후 확인</span>
+                      </div>
+                    </div>
+                  </div>
+                  <aside class="rail-card">
+                    <h3>운영 레일</h3>
+                    <div class="process-list">
+                      <div class="process-item">
+                        <strong>담당자</strong>
+                        <span>현장 관리자 이현장 / 검증자 김검증</span>
+                      </div>
+                      <div class="process-item">
+                        <strong>관리자 진입점</strong>
+                        <span>증빙 요청 관리, 검증 반려 사유 관리, 상태코드 관리</span>
+                      </div>
+                      <div class="process-item">
+                        <strong>감사 이력</strong>
+                        <span>수정 저장, 파일 업로드, 검증 의견, 승인 처리 모두 기록</span>
+                      </div>
+                    </div>
+                  </aside>
+                </div>
+              </article>
+            </div>
+          </article>
+
+          <aside class="card governance-card">
+            <h3>홈 카드가 반드시 가져야 하는 필드</h3>
+            <div class="policy-list">
+              <div class="policy-item">
+                <strong>업무 식별자</strong>
+                <span>`taskId`, `siteId`, `pageId`, `adminPageId`, `statusCode`</span>
+              </div>
+              <div class="policy-item">
+                <strong>실무 정보</strong>
+                <span>담당자, 마감일, 우선순위, 필수 증빙, 누락 항목 수</span>
+              </div>
+              <div class="policy-item">
+                <strong>동작 정보</strong>
+                <span>대표 CTA, 대체 CTA, 차단 조건, 완료 후 이동 화면</span>
+              </div>
+              <div class="policy-item">
+                <strong>관리자 연결</strong>
+                <span>관리 메뉴 코드, 정책 화면, 알림 규칙, 승인 단계 매핑</span>
+              </div>
+              <div class="policy-item">
+                <strong>감사추적</strong>
+                <span>이력 조회 키, trace 식별자, 도움말 anchor, 운영 메모</span>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section id="admin-baseline">
+      <div class="section-shell">
+        <div class="section-head">
+          <div>
+            <h2>홈 메뉴와 관리자 메뉴의 대응 구조</h2>
+            <p>실서비스에서는 홈에서 보이는 모든 업무 항목이 관리자에서 생성, 수정, 통제, 감사 가능해야 합니다. 홈 카드와 관리자 메뉴를 같은 메타 모델로 묶는 방식이 기준입니다.</p>
+          </div>
+          <button class="ghost-btn" type="button">관리자 화면군 초안 생성</button>
+        </div>
+
+        <article class="card mapping-card">
+          <h3>대표 메뉴 매핑표</h3>
+          <table class="mapping-table">
+            <thead>
+              <tr>
+                <th>홈/업무 화면</th>
+                <th>사용자 액션</th>
+                <th>대응 관리자 메뉴</th>
+                <th>관리 범위</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>배출지 홈 대시보드</td>
+                <td>핵심 배출지 보기, 우선업무 진입, 신규 등록</td>
+                <td>배출지 마스터 관리</td>
+                <td>배출지 기본정보, 책임자, 상태, 노출 우선순위, 핀 고정 여부</td>
+              </tr>
+              <tr>
+                <td>데이터 입력 화면</td>
+                <td>배출량 입력, 월별 수정, 산정 실행</td>
+                <td>월별 데이터 통제 관리</td>
+                <td>입력 마감, 필수 항목, 검증 규칙, 재오픈 정책, 이력 확인</td>
+              </tr>
+              <tr>
+                <td>증빙 업로드 화면</td>
+                <td>증빙 파일 등록, 교체, 제출</td>
+                <td>증빙 요청 관리</td>
+                <td>필수 파일셋, 버전, 반려 사유, 만료 정책, 다운로드 권한</td>
+              </tr>
+              <tr>
+                <td>검증 현황 화면</td>
+                <td>검증 단계 확인, 피드백 대응, 결과서 확인</td>
+                <td>검증 진행 관리</td>
+                <td>검증 단계, 외부기관 상태, 승인/반려, 결과서 이력, 담당자 배정</td>
+              </tr>
+              <tr>
+                <td>분석 리포트 화면</td>
+                <td>이상징후 확인, 목표 이탈 원인 확인</td>
+                <td>임계치·알림 정책 관리</td>
+                <td>알림 기준값, 예외 규칙, 대상자, 노출 위치, 후속 업무 자동 생성</td>
+              </tr>
+            </tbody>
+          </table>
+        </article>
+      </div>
+    </section>
+
+    <section id="governance-baseline">
+      <div class="section-shell">
+        <div class="section-head">
+          <div>
+            <h2>실서비스 누락 방지용 운영 구조</h2>
+            <p>화면 시안만으로 끝나지 않도록, 업무 생성부터 이력·배포·운영까지 빠지지 않게 설계해야 하는 필수 흐름입니다.</p>
+          </div>
+        </div>
+
+        <article class="flow-band">
+          <div class="flow-steps">
+            <div class="flow-step">
+              <em>01</em>
+              <strong>업무 정의</strong>
+              <span>메뉴, 배우(actor), 상태, KPI, 필수 증빙, 담당 화면 정의</span>
+            </div>
+            <div class="flow-step">
+              <em>02</em>
+              <strong>화면군 설계</strong>
+              <span>홈, 목록, 상세, 입력, 검증, 승인, 관리자 관리 화면 동시 설계</span>
+            </div>
+            <div class="flow-step">
+              <em>03</em>
+              <strong>계약 고정</strong>
+              <span>페이지 ID, API, DTO, 상태코드, 권한, 알림 규칙, 도움말 anchor 고정</span>
+            </div>
+            <div class="flow-step">
+              <em>04</em>
+              <strong>구현 및 추적</strong>
+              <span>React 페이지, 관리자 API, 감사로그, trace, manifest, registry 반영</span>
+            </div>
+            <div class="flow-step">
+              <em>05</em>
+              <strong>운영 검증</strong>
+              <span>누락 메뉴, 예외 상태, 권한 차단, 반려 재처리, 배포 후 운영 흐름 확인</span>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-shell">
+        <div class="grid-2">
+          <article class="card screen-kit-card">
+            <h3>이 기준안에서 파생될 화면 패밀리</h3>
+            <div class="kit-list">
+              <div class="kit-item">
+                <strong>Dashboard</strong>
+                <span>홈 대시보드, 핵심 요약, 우선업무 큐, 운영 가이드 레일</span>
+              </div>
+              <div class="kit-item">
+                <strong>List</strong>
+                <span>배출지 목록, 업무 큐 목록, 증빙 요청 목록, 검증 진행 목록</span>
+              </div>
+              <div class="kit-item">
+                <strong>Detail / Edit</strong>
+                <span>배출지 상세, 월별 데이터 편집, 증빙 상세, 검증 결과 상세</span>
+              </div>
+              <div class="kit-item">
+                <strong>Approve / Authority</strong>
+                <span>승인 처리, 상태 변경, 권한/노출 정책, 알림 규칙 관리</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="card governance-card">
+            <h3>시안 사용 원칙</h3>
+            <div class="ops-list">
+              <div class="ops-item">
+                <strong>원칙 1</strong>
+                <span>홈과 관리자가 서로 다른 데이터를 따로 가지지 않음</span>
+              </div>
+              <div class="ops-item">
+                <strong>원칙 2</strong>
+                <span>버튼 하나마다 후속 화면, 상태 변화, 관리자 제어점이 있어야 함</span>
+              </div>
+              <div class="ops-item">
+                <strong>원칙 3</strong>
+                <span>설계 단계에서 페이지 ID, 업무코드, 상태코드, 관리메뉴 코드를 먼저 확정</span>
+              </div>
+              <div class="ops-item">
+                <strong>원칙 4</strong>
+                <span>도움말, 감사이력, 추적 메타데이터를 화면 이후가 아니라 설계 시점에 포함</span>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="footer-wrap">
+    <div class="footer-shell">
+      <div>
+        <div class="footer-brand">Carbonet Design Baseline Prototype</div>
+        <p>이 시안은 홈, 업무, 관리자, 운영 거버넌스를 한 세트로 묶는 기준 HTML 초안입니다.</p>
+      </div>
+      <div>
+        <p>다음 단계: 메뉴-업무-관리화면 매핑표, 상태 전이, 권한 매트릭스, API/DB 초안</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

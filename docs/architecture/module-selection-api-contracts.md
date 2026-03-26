@@ -135,6 +135,20 @@ Required response fields:
 - `repairQueueCount`
 - `nextRecommendedAction`
 
+`module-selection/apply-result` must remain consumable by:
+
+- `08` for runtime-package evidence
+- `09` for repair-needed and release follow-up visibility
+
+The response may not rename:
+
+- `guidedStateId`
+- `templateLineId`
+- `screenFamilyRuleId`
+- `runtimePackageImpactSummary`
+- `repairNeededYn`
+- `repairQueueCount`
+
 ## Additional Rules
 
 - apply result must show exactly which page, backend, DB, and runtime-package
@@ -143,3 +157,14 @@ Required response fields:
 - if `repairNeededYn` is true, the operator may not continue directly to build
 - apply result must remain visible from the current screen, runtime package
   matrix, and repair workbench
+
+## 5. 06 Handoff Consumption
+
+Before `06` is treated as handoff-ready, confirm the module-selection family,
+repair family, and verification family all keep the same governed naming for:
+
+- `releaseUnitId`
+- `guidedStateId`
+- `templateLineId`
+- `screenFamilyRuleId`
+- `ownerLane`

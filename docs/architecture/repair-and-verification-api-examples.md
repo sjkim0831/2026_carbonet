@@ -14,9 +14,23 @@ See:
   "projectId": "carbonet-main",
   "releaseUnitId": "ru-20260321-join-patch-01",
   "guidedStateId": "guided-build-15-repair",
-  "screenFamilyRuleId": "sfr-join-info-public-v1",
-  "ownerLane": "res-verify / res-builder",
+  "templateLineId": "public-line-01",
+  "screenFamilyRuleId": "PUBLIC_JOIN_STEP",
+  "ownerLane": "res-verify",
   "selectedScreenId": "join-member-info-page",
+  "builderInput": {
+    "builderId": "sb-join-member-info",
+    "draftVersionId": "draft-join-20260321-004",
+    "menuCode": "MENU_JOIN_MEMBER_INFO",
+    "pageId": "join-member-info-page",
+    "menuUrl": "/member/join/info"
+  },
+  "runtimeEvidence": {
+    "publishedVersionId": "publish-join-20260321-002",
+    "currentRuntimeTraceId": "runtime-join-20260321-009",
+    "currentNodeCount": 18,
+    "currentEventCount": 4
+  },
   "selectedElementSet": [
     "join-info-search-form",
     "join-info-bottom-action-bar"
@@ -40,26 +54,36 @@ See:
   "repairSessionId": "repair-join-20260321-001",
   "projectId": "carbonet-main",
   "guidedStateId": "guided-build-15-repair",
-  "screenFamilyRuleId": "sfr-join-info-public-v1",
-  "ownerLane": "res-verify / res-builder",
+  "templateLineId": "public-line-01",
+  "screenFamilyRuleId": "PUBLIC_JOIN_STEP",
+  "ownerLane": "res-verify",
   "selectedScreenId": "join-member-info-page",
+  "builderInput": {
+    "builderId": "sb-join-member-info",
+    "draftVersionId": "draft-join-20260321-004"
+  },
+  "runtimeEvidence": {
+    "publishedVersionId": "publish-join-20260321-002",
+    "currentRuntimeTraceId": "runtime-join-20260321-009"
+  },
   "selectedElementSet": [
     "join-info-search-form",
     "join-info-bottom-action-bar"
   ],
   "compareSnapshotId": "cmp-join-20260321-001",
   "blockingGapSet": [
-    "BUTTON_ZONE_DRIFT",
-    "SPACING_PROFILE_MISMATCH"
+    "ACTION_LAYOUT_DRIFT",
+    "MISSING_HELP_ANCHOR"
   ],
   "reuseRecommendationSet": [
-    "common-search-form-v3",
-    "common-bottom-action-bar-v2"
+    "common-bottom-action-bar-v2",
+    "help-anchor-bundle-join-v2"
   ],
   "requiredContractSet": [
     "page-design.json",
     "page-assembly.json",
-    "action-layout-profile"
+    "action-layout-profile",
+    "help-anchor-manifest"
   ],
   "status": "REPAIR_REQUIRED"
 }
@@ -72,9 +96,17 @@ See:
   "repairSessionId": "repair-join-20260321-001",
   "projectId": "carbonet-main",
   "guidedStateId": "guided-build-15-repair",
-  "screenFamilyRuleId": "sfr-join-info-public-v1",
-  "ownerLane": "res-builder / res-frontend",
+  "templateLineId": "public-line-01",
+  "screenFamilyRuleId": "PUBLIC_JOIN_STEP",
+  "ownerLane": "res-verify",
   "selectedScreenId": "join-member-info-page",
+  "builderInput": {
+    "builderId": "sb-join-member-info",
+    "draftVersionId": "draft-join-20260321-004"
+  },
+  "runtimeEvidence": {
+    "publishedVersionId": "publish-join-20260321-002"
+  },
   "updatedAssetSet": [
     "page-design:join-member-info-page:v4",
     "page-assembly:join-member-info-page:v4"
@@ -86,7 +118,7 @@ See:
   ],
   "updatedThemeOrLayoutSet": [
     "action-layout:detail-footer-standard:v2",
-    "spacing-profile:admin-form-comfortable:v3"
+    "help-anchor-bundle:join-v2"
   ],
   "sqlDraftSet": [],
   "publishMode": "REVIEW_READY",
@@ -102,12 +134,20 @@ See:
 {
   "repairApplyRunId": "repair-apply-20260321-014",
   "guidedStateId": "guided-build-15-repair",
-  "ownerLane": "res-builder / res-frontend / res-verify",
+  "templateLineId": "public-line-01",
+  "ownerLane": "res-verify",
   "updatedAssetTraceSet": [
     "trace-page-join-v4",
     "trace-assembly-join-v4"
   ],
   "updatedReleaseCandidateId": "ru-20260321-join-patch-02",
+  "builderInput": {
+    "builderId": "sb-join-member-info",
+    "draftVersionId": "draft-join-20260321-005"
+  },
+  "runtimeEvidence": {
+    "publishedVersionId": "publish-join-20260321-002"
+  },
   "parityRecheckRequiredYn": true,
   "uniformityRecheckRequiredYn": true,
   "smokeRequiredYn": true,
@@ -122,9 +162,15 @@ See:
   "projectId": "carbonet-main",
   "menuId": "MENU_JOIN_MEMBER_INFO",
   "guidedStateId": "guided-build-14-runtime-compare",
+  "templateLineId": "public-line-01",
+  "screenFamilyRuleId": "PUBLIC_JOIN_STEP",
   "ownerLane": "res-verify",
   "targetRuntime": "MAIN_SERVER_CURRENT",
   "releaseUnitId": "ru-20260321-join-patch-02",
+  "builderInput": {
+    "builderId": "sb-join-member-info",
+    "draftVersionId": "draft-join-20260321-005"
+  },
   "verifyShellYn": true,
   "verifyComponentYn": true,
   "verifyBindingYn": true,
@@ -141,9 +187,18 @@ See:
   "menuId": "MENU_JOIN_MEMBER_INFO",
   "pageId": "join-member-info-page",
   "routeId": "/member/join/info",
-  "screenFamilyRuleId": "sfr-join-info-public-v1",
+  "templateLineId": "public-line-01",
+  "screenFamilyRuleId": "PUBLIC_JOIN_STEP",
   "shellProfileId": "public-join-compact",
   "pageFrameId": "wizard-join-frame",
+  "builderInput": {
+    "builderId": "sb-join-member-info",
+    "draftVersionId": "draft-join-20260321-005"
+  },
+  "runtimeEvidence": {
+    "publishedVersionId": "publish-join-20260321-002",
+    "currentRuntimeTraceId": "runtime-join-20260321-011"
+  },
   "componentCoverageState": "PASS",
   "bindingCoverageState": "PASS",
   "backendChainState": "PASS",
@@ -153,7 +208,51 @@ See:
 }
 ```
 
-## 7. Result Usage Rule
+## 7. parity/compare Response Example
+
+```json
+{
+  "compareContextId": "compare-join-20260321-014",
+  "projectId": "carbonet-main",
+  "guidedStateId": "guided-build-14-runtime-compare",
+  "templateLineId": "public-line-01",
+  "screenFamilyRuleId": "PUBLIC_JOIN_STEP",
+  "ownerLane": "res-verify",
+  "selectedScreenId": "join-member-info-page",
+  "releaseUnitId": "ru-20260321-join-patch-02",
+  "compareBaseline": "CURRENT_RUNTIME",
+  "compareTargetSet": [
+    {
+      "target": "Action Layout",
+      "currentRuntime": "detail-footer-left/right",
+      "generatedTarget": "detail-footer-standard",
+      "proposalBaseline": "detail-footer-standard",
+      "patchTarget": "detail-footer-standard",
+      "result": "MISMATCH"
+    },
+    {
+      "target": "Help Anchors",
+      "currentRuntime": "12",
+      "generatedTarget": "10",
+      "proposalBaseline": "12",
+      "patchTarget": "12",
+      "result": "GAP"
+    }
+  ],
+  "blockerSet": [
+    "ACTION_LAYOUT_DRIFT",
+    "MISSING_HELP_ANCHOR"
+  ],
+  "repairCandidateSet": [
+    "join-info-bottom-action-bar",
+    "join-help-anchor-bundle"
+  ],
+  "result": "REPAIR_REQUIRED",
+  "traceId": "trace-compare-20260321-014"
+}
+```
+
+## 8. Result Usage Rule
 
 Use these examples as the baseline shape for:
 
@@ -161,3 +260,13 @@ Use these examples as the baseline shape for:
 - missing-asset queue actions
 - parity compare workflow
 - post-deploy verification workflow
+
+Keep one `ownerLane` value per open verification scope. Do not encode multi-lane ownership in one field; handoff happens in status notes, not by widening the payload key.
+
+UI mapping rule:
+
+- compare tables must show `currentRuntime`, `generatedTarget`, `proposalBaseline`, and `patchTarget` together
+- blocker rows must keep `ownerLane`
+- repair queue rows must keep `guidedStateId`, `templateLineId`, and `screenFamilyRuleId`
+- verify views must surface builder draft and published runtime evidence together before closing parity or smoke
+- repair views should surface one handoff-readiness panel containing blocker count, parity recheck, uniformity recheck, smoke pending state, and latest trace id before `09 -> 01` handoff

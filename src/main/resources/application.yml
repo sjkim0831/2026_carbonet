@@ -152,7 +152,7 @@ org:
       csrfAccessDeniedUrl: /signin/csrfAccessDenied
       defaultTargetUrl: /main
       dataSource: dataSource
-      excludeList: /css/**,/images/**,/js/**,/uat/**,/home/**,/signin/**,/join/**,/admin/login/**,/actuator/**
+      excludeList: /css/**,/images/**,/js/**,/uat/**,/home/**,/signin/**,/join/**,/admin/login/**,/actuator/**,/api/telemetry/**,/api/frontend/error/report
       csrf: true
       xframeOptions: sameorigin
       sniff: false

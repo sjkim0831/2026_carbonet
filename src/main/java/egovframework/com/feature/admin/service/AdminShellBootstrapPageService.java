@@ -17,6 +17,7 @@ import java.util.Map;
 public class AdminShellBootstrapPageService {
 
     private final AdminSummaryService adminSummaryService;
+    private final BackupConfigManagementService backupConfigManagementService;
 
     public Map<String, Object> buildMemberStatsPageData(boolean isEn) {
         Map<String, Object> response = new LinkedHashMap<>();
@@ -111,6 +112,10 @@ public class AdminShellBootstrapPageService {
         return response;
     }
 
+    public Map<String, Object> buildBackupConfigPageData(boolean isEn) {
+        return backupConfigManagementService.buildPageData(isEn);
+    }
+
     public Map<String, Object> buildEmissionResultListPageData(
             String pageIndexParam,
             String searchKeyword,
@@ -170,6 +175,114 @@ public class AdminShellBootstrapPageService {
         return response;
     }
 
+    public Map<String, Object> buildEmissionSiteManagementPageData(boolean isEn) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        String menuCode = "A0020105";
+        String adminPrefix = isEn ? "/en/admin" : "/admin";
+        String homePrefix = isEn ? "/en" : "";
+        String selfUrl = adminPrefix + "/emission/site-management";
+        String homeReferenceUrl = homePrefix + "/emission/project_list";
+        String functionManagementUrl = adminPrefix + "/system/feature-management?menuType=ADMIN&searchMenuCode=" + menuCode;
+        String menuManagementUrl = adminPrefix + "/system/menu-management?menuType=ADMIN";
+        String resultListUrl = adminPrefix + "/emission/result_list";
+
+        response.put("isEn", isEn);
+        response.put("menuCode", menuCode);
+        response.put("menuUrl", selfUrl);
+        response.put("homeReferenceUrl", homeReferenceUrl);
+        response.put("referenceFolder", "/opt/reference/screen/홈 화면/배출지 관리/한글");
+        response.put("summaryCards", List.of(
+                summaryCard(isEn ? "Admin Direct Registration" : "관리자 직접 등록", isEn ? "Enabled" : "사용 가능",
+                        isEn ? "Use this menu as the direct admin entry for new emission site registration." : "신규 배출지 등록의 관리자 직접 진입 화면으로 사용합니다.", "text-[var(--kr-gov-blue)]"),
+                summaryCard(isEn ? "Function Catalog" : "기능 카탈로그", "9",
+                        isEn ? "Seeded feature codes are ready for role mapping and function management." : "역할 매핑과 기능 관리를 위한 시드 기능 코드 9개를 제공합니다.", "text-emerald-600"),
+                summaryCard(isEn ? "Home Reference" : "홈 기준 경로", "/emission/project_list",
+                        isEn ? "Keep the user-side workflow aligned with the home route." : "사용자용 흐름은 홈 화면 경로를 기준으로 맞춥니다.", "text-amber-600")
+        ));
+        response.put("quickLinks", List.of(
+                quickLink(isEn ? "Direct Register" : "배출지 등록", selfUrl + "#register", "add_business"),
+                quickLink(isEn ? "Function Management" : "기능 관리", functionManagementUrl, "deployed_code"),
+                quickLink(isEn ? "Menu Management" : "메뉴 관리", menuManagementUrl, "account_tree"),
+                quickLink(isEn ? "Emission Results" : "산정 결과 목록", resultListUrl, "monitoring")
+        ));
+        response.put("operationCards", List.of(
+                operationCard(isEn ? "Emission Site Registration" : "배출지 등록",
+                        isEn ? "Create new emission site records directly from the admin workspace." : "관리자 작업공간에서 신규 배출지를 직접 등록합니다.",
+                        isEn ? "Direct admin action" : "관리자 직접 처리",
+                        selfUrl + "#register",
+                        isEn ? "Open registration guide" : "등록 가이드 열기",
+                        functionManagementUrl,
+                        isEn ? "Manage function" : "기능 관리"),
+                operationCard(isEn ? "Data Input" : "데이터 입력",
+                        isEn ? "Control the input workflow from admin while keeping the home reference available." : "홈 기준 흐름을 유지하되 입력 통제는 관리자에서 관리합니다.",
+                        isEn ? "Managed from admin" : "관리자 통제",
+                        homeReferenceUrl,
+                        isEn ? "Open home reference" : "홈 기준 경로 열기",
+                        functionManagementUrl + "&searchKeyword=" + urlQueryValue(isEn ? "Data Input" : "데이터 입력"),
+                        isEn ? "Open related feature" : "관련 기능 열기"),
+                operationCard(isEn ? "Calculation Logic Registration" : "산정 로직 등록",
+                        isEn ? "Register and govern calculation logic under the same admin menu." : "동일한 관리자 메뉴 아래에서 산정 로직을 등록하고 관리합니다.",
+                        isEn ? "Admin governed" : "관리자 거버넌스",
+                        functionManagementUrl + "&searchKeyword=" + urlQueryValue(isEn ? "Calculation Logic" : "산정 로직"),
+                        isEn ? "Open feature setup" : "기능 설정 열기",
+                        menuManagementUrl,
+                        isEn ? "Review menu placement" : "메뉴 배치 보기"),
+                operationCard(isEn ? "Document Supplement" : "서류 보완",
+                        isEn ? "Follow up missing or rejected documents from the admin side." : "누락 또는 반려 서류는 관리자 화면에서 후속 처리합니다.",
+                        isEn ? "Admin follow-up" : "관리자 후속 처리",
+                        functionManagementUrl + "&searchKeyword=" + urlQueryValue(isEn ? "Document" : "서류 보완"),
+                        isEn ? "Open supplement feature" : "보완 기능 열기",
+                        resultListUrl,
+                        isEn ? "Check history" : "이력 보기"),
+                operationCard(isEn ? "History Review" : "이력 확인",
+                        isEn ? "Use result history and operational records to trace the emission site lifecycle." : "배출지 생명주기 추적은 결과 이력과 운영 기록을 함께 사용합니다.",
+                        isEn ? "History enabled" : "이력 사용",
+                        resultListUrl,
+                        isEn ? "Open result history" : "결과 이력 열기",
+                        functionManagementUrl + "&searchKeyword=" + urlQueryValue(isEn ? "History" : "이력 확인"),
+                        isEn ? "Open feature" : "기능 열기"),
+                operationCard(isEn ? "Report Export" : "보고서 출력",
+                        isEn ? "Connect report export authority and operator entry from one admin menu." : "동일 관리자 메뉴에서 보고서 출력 권한과 운영 진입을 함께 관리합니다.",
+                        isEn ? "Export ready" : "출력 준비",
+                        functionManagementUrl + "&searchKeyword=" + urlQueryValue(isEn ? "Report" : "보고서 출력"),
+                        isEn ? "Open report feature" : "보고서 기능 열기",
+                        homeReferenceUrl,
+                        isEn ? "Open home screen" : "홈 화면 열기"),
+                operationCard(isEn ? "Administration" : "관리",
+                        isEn ? "Keep menu, page, and function governance in the admin domain." : "메뉴, 화면, 기능 거버넌스는 관리자 도메인에서 유지합니다.",
+                        isEn ? "Governed" : "거버넌스 적용",
+                        menuManagementUrl,
+                        isEn ? "Open menu management" : "메뉴 관리 열기",
+                        functionManagementUrl,
+                        isEn ? "Open function management" : "기능 관리 열기"),
+                operationCard(isEn ? "Integrated Monitoring Report" : "종합 배출 모니터링 리포트",
+                        isEn ? "Bind the integrated monitoring report to the same admin authority chain." : "종합 배출 모니터링 리포트를 동일한 관리자 권한 체인에 연결합니다.",
+                        isEn ? "Monitoring ready" : "모니터링 준비",
+                        resultListUrl,
+                        isEn ? "Open monitoring result list" : "모니터링 결과 열기",
+                        functionManagementUrl + "&searchKeyword=" + urlQueryValue(isEn ? "Monitoring" : "모니터링"),
+                        isEn ? "Open monitoring feature" : "모니터링 기능 열기")
+        ));
+        response.put("featureRows", List.of(
+                featureRow(menuCode + "_VIEW", isEn ? "View page access" : "화면 조회", isEn ? "Base page access feature for the admin menu." : "관리자 메뉴의 기본 조회 권한입니다.", functionManagementUrl),
+                featureRow(menuCode + "_REGISTER", isEn ? "Emission site registration" : "배출지 등록", isEn ? "Admin direct registration capability." : "관리자 직접 등록 기능입니다.", functionManagementUrl),
+                featureRow(menuCode + "_DATA_INPUT", isEn ? "Emission data input" : "배출 데이터 입력", isEn ? "Activity data input control." : "활동자료 입력 통제 기능입니다.", functionManagementUrl),
+                featureRow(menuCode + "_CALCULATION", isEn ? "Calculation logic registration" : "산정 로직 등록", isEn ? "Calculation logic operation control." : "산정 로직 운영 통제 기능입니다.", functionManagementUrl),
+                featureRow(menuCode + "_DOCUMENT", isEn ? "Document supplement" : "서류 보완 관리", isEn ? "Follow-up workflow for supplemental documents." : "보완 서류 후속 처리 기능입니다.", functionManagementUrl),
+                featureRow(menuCode + "_HISTORY", isEn ? "History review" : "이력 확인", isEn ? "Operational history review authority." : "운영 이력 확인 권한입니다.", functionManagementUrl),
+                featureRow(menuCode + "_REPORT", isEn ? "Report export" : "보고서 출력", isEn ? "Report generation and export authority." : "보고서 생성 및 출력 권한입니다.", functionManagementUrl),
+                featureRow(menuCode + "_MANAGE", isEn ? "Administration" : "배출지 운영 관리", isEn ? "Administrative governance actions." : "관리자 운영 제어 기능입니다.", functionManagementUrl),
+                featureRow(menuCode + "_MONITOR", isEn ? "Integrated monitoring report" : "종합 배출 모니터링 리포트", isEn ? "Integrated report and monitoring authority." : "종합 리포트 및 모니터링 권한입니다.", functionManagementUrl)
+        ));
+        response.put("referenceRows", List.of(
+                referenceRow(isEn ? "Design reference folder" : "설계 기준 폴더", "/opt/reference/screen/홈 화면/배출지 관리/한글"),
+                referenceRow(isEn ? "Home reference path" : "홈 기준 경로", homeReferenceUrl),
+                referenceRow(isEn ? "Admin menu path" : "관리자 메뉴 경로", selfUrl),
+                referenceRow(isEn ? "Function management link" : "기능 관리 링크", functionManagementUrl)
+        ));
+        return response;
+    }
+
     private Map<String, String> statsRow(String key, String label, String percentage, String count, String colorClass) {
         Map<String, String> row = new LinkedHashMap<>();
         row.put("key", key);
@@ -195,6 +308,101 @@ public class AdminShellBootstrapPageService {
         row.put("percentage", percentage);
         row.put("countLabel", countLabel);
         return row;
+    }
+
+    private Map<String, String> summaryCard(String title, String value, String description, String toneClass) {
+        Map<String, String> row = new LinkedHashMap<>();
+        row.put("title", title);
+        row.put("value", value);
+        row.put("description", description);
+        row.put("toneClass", toneClass);
+        return row;
+    }
+
+    private Map<String, String> quickLink(String label, String url, String icon) {
+        Map<String, String> row = new LinkedHashMap<>();
+        row.put("label", label);
+        row.put("url", url);
+        row.put("icon", icon);
+        return row;
+    }
+
+    private Map<String, String> operationCard(String title,
+                                              String description,
+                                              String statusLabel,
+                                              String primaryUrl,
+                                              String primaryLabel,
+                                              String secondaryUrl,
+                                              String secondaryLabel) {
+        Map<String, String> row = new LinkedHashMap<>();
+        row.put("title", title);
+        row.put("description", description);
+        row.put("statusLabel", statusLabel);
+        row.put("primaryUrl", primaryUrl);
+        row.put("primaryLabel", primaryLabel);
+        row.put("secondaryUrl", secondaryUrl);
+        row.put("secondaryLabel", secondaryLabel);
+        return row;
+    }
+
+    private Map<String, String> featureRow(String featureCode, String featureName, String featureDescription, String functionManagementUrl) {
+        Map<String, String> row = new LinkedHashMap<>();
+        row.put("featureCode", featureCode);
+        row.put("featureName", featureName);
+        row.put("featureDescription", featureDescription);
+        row.put("manageUrl", functionManagementUrl);
+        return row;
+    }
+
+    private Map<String, String> referenceRow(String label, String value) {
+        Map<String, String> row = new LinkedHashMap<>();
+        row.put("label", label);
+        row.put("value", value);
+        return row;
+    }
+
+    private Map<String, String> backupProfileRow(String profileId, String profileName, String scheduledAt, String frequency, String retention, String status) {
+        Map<String, String> row = new LinkedHashMap<>();
+        row.put("profileId", profileId);
+        row.put("profileName", profileName);
+        row.put("scheduledAt", scheduledAt);
+        row.put("frequency", frequency);
+        row.put("retention", retention);
+        row.put("status", status);
+        return row;
+    }
+
+    private Map<String, String> backupStorageRow(String storageType, String location, String owner, String note) {
+        Map<String, String> row = new LinkedHashMap<>();
+        row.put("storageType", storageType);
+        row.put("location", location);
+        row.put("owner", owner);
+        row.put("note", note);
+        return row;
+    }
+
+    private Map<String, String> backupExecutionRow(String executedAt, String profileName, String result, String duration, String note) {
+        Map<String, String> row = new LinkedHashMap<>();
+        row.put("executedAt", executedAt);
+        row.put("profileName", profileName);
+        row.put("result", result);
+        row.put("duration", duration);
+        row.put("note", note);
+        return row;
+    }
+
+    private Map<String, String> playbookRow(String title, String body) {
+        Map<String, String> row = new LinkedHashMap<>();
+        row.put("title", title);
+        row.put("body", body);
+        return row;
+    }
+
+    private String urlQueryValue(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replace(" ", "+");
     }
 
     private List<Map<String, String>> buildAdminHomeSummaryCards(boolean isEn) {

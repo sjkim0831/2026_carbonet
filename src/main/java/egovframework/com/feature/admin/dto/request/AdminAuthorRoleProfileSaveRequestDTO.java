@@ -10,6 +10,11 @@ public class AdminAuthorRoleProfileSaveRequestDTO {
     private List<String> priorityWorks;
     private String description;
     private String memberEditVisibleYn;
+    private String roleType;
+    private String baseRoleYn;
+    private String parentAuthorCode;
+    private String assignmentScope;
+    private List<String> defaultMemberTypes;
 
     public String getAuthorCode() {
         return authorCode;
@@ -57,5 +62,45 @@ public class AdminAuthorRoleProfileSaveRequestDTO {
 
     public void setMemberEditVisibleYn(String memberEditVisibleYn) {
         this.memberEditVisibleYn = memberEditVisibleYn;
+    }
+
+    public String getRoleType() {
+        return roleType;
+    }
+
+    public void setRoleType(String roleType) {
+        this.roleType = roleType;
+    }
+
+    public String getBaseRoleYn() {
+        return baseRoleYn;
+    }
+
+    public void setBaseRoleYn(String baseRoleYn) {
+        this.baseRoleYn = baseRoleYn;
+    }
+
+    public String getParentAuthorCode() {
+        return parentAuthorCode;
+    }
+
+    public void setParentAuthorCode(String parentAuthorCode) {
+        this.parentAuthorCode = parentAuthorCode;
+    }
+
+    public String getAssignmentScope() {
+        return assignmentScope;
+    }
+
+    public void setAssignmentScope(String assignmentScope) {
+        this.assignmentScope = assignmentScope;
+    }
+
+    public List<String> getDefaultMemberTypes() {
+        return defaultMemberTypes;
+    }
+
+    public void setDefaultMemberTypes(List<String> defaultMemberTypes) {
+        this.defaultMemberTypes = defaultMemberTypes;
     }
 }

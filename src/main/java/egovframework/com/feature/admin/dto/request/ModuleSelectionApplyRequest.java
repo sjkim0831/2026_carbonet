@@ -14,6 +14,8 @@ public class ModuleSelectionApplyRequest {
     private String guidedStateId;
     private String templateLineId;
     private String screenFamilyRuleId;
+    private String ownerLane;
+    private String releaseUnitId;
     private List<String> selectedModuleSet;
     private String selectionMode;
     private String operator;

@@ -9,6 +9,7 @@ Usage: resonance-session-loop.sh <session-number|tmux-session> [interval-seconds
 Examples:
   resonance-session-loop.sh 02
   resonance-session-loop.sh 04 60
+  resonance-session-loop.sh 08 60
   resonance-session-loop.sh res-02-proposal 30
 
 Environment:
@@ -20,6 +21,10 @@ Environment:
   LOOP_TRANSPORT     auto|tmux|direct. Default: auto
   LOOP_LOG_FILE      Optional log file path.
   TMUX_SOCKET        Optional tmux socket path for isolated loop control.
+  DEPLOY_RELEASE_UNIT_ID   Optional deploy evidence field for lane 08.
+  DEPLOY_RUNTIME_PACKAGE_ID Optional deploy evidence field for lane 08.
+  DEPLOY_TRACE_ID          Optional deploy evidence field for lane 08.
+  DEPLOY_OWNER_LANE        Optional deploy evidence field for lane 08.
 Default numeric prompt:
   docs/ai/80-skills/resonance-10-session-assignment.md N번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘
 EOF
@@ -39,6 +44,10 @@ LOOP_TRANSPORT="${LOOP_TRANSPORT:-auto}"
 LOG_FILE="${LOOP_LOG_FILE:-}"
 TMUX_SOCKET="${TMUX_SOCKET:-}"
 LOCK_ROOT="${LOOP_LOCK_ROOT:-/tmp/resonance-session-loop-locks}"
+DEPLOY_RELEASE_UNIT_ID="${DEPLOY_RELEASE_UNIT_ID:-}"
+DEPLOY_RUNTIME_PACKAGE_ID="${DEPLOY_RUNTIME_PACKAGE_ID:-}"
+DEPLOY_TRACE_ID="${DEPLOY_TRACE_ID:-}"
+DEPLOY_OWNER_LANE="${DEPLOY_OWNER_LANE:-}"
 LOCK_DIR=""
 LOCK_OWNER=0
 
@@ -81,6 +90,23 @@ resolve_default_prompt() {
 
 sanitize_name() {
   printf '%s' "$1" | tr -c 'A-Za-z0-9._-' '_'
+}
+
+shell_quote() {
+  printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"
+}
+
+build_default_command() {
+  printf "codex exec --skip-git-repo-check -C %s -- %s" \
+    "$(shell_quote "$WORKDIR")" \
+    "$(shell_quote "$PROMPT")"
+}
+
+refresh_lock() {
+  if [ -n "${LOCK_DIR:-}" ] && [ -d "$LOCK_DIR" ]; then
+    printf '%s\n' "$$" > "${LOCK_DIR}/pid"
+    printf '%s\n' "$(date '+%Y-%m-%d %H:%M:%S')" > "${LOCK_DIR}/heartbeat"
+  fi
 }
 
 release_lock() {
@@ -142,6 +168,25 @@ log_line() {
   fi
 }
 
+write_deploy_evidence() {
+  if [ "$SESSION_NAME" != "res-08-deploy" ]; then
+    return 0
+  fi
+
+  local evidence_file
+  evidence_file="${LOCK_DIR}/deploy-evidence.env"
+
+  {
+    printf 'releaseUnitId=%s\n' "${DEPLOY_RELEASE_UNIT_ID}"
+    printf 'runtimePackageId=%s\n' "${DEPLOY_RUNTIME_PACKAGE_ID}"
+    printf 'deployTraceId=%s\n' "${DEPLOY_TRACE_ID}"
+    printf 'ownerLane=%s\n' "${DEPLOY_OWNER_LANE:-res-08-deploy}"
+    printf 'sessionName=%s\n' "${SESSION_NAME}"
+    printf 'prompt=%s\n' "${PROMPT}"
+    printf 'updatedAt=%s\n' "$(date '+%Y-%m-%d %H:%M:%S')"
+  } > "$evidence_file"
+}
+
 ensure_session() {
   if ! tmux_cmd has-session -t "$SESSION_NAME" 2>/dev/null; then
     tmux_cmd new-session -d -s "$SESSION_NAME" -c "$WORKDIR"
@@ -168,6 +213,8 @@ pane_idle() {
 }
 
 send_prompt() {
+  refresh_lock
+
   if [ "$LOOP_MODE" = "rerun" ]; then
     tmux_cmd send-keys -t "${SESSION_NAME}:${WINDOW_TARGET}" C-c
   elif ! pane_idle; then
@@ -176,10 +223,11 @@ send_prompt() {
   fi
 
   if [ -z "$COMMAND" ]; then
-    COMMAND="codex exec --skip-git-repo-check -C $(printf '%q' "$WORKDIR") $(printf '%q' "$PROMPT")"
+    COMMAND="$(build_default_command)"
   fi
 
   tmux_cmd send-keys -t "${SESSION_NAME}:${WINDOW_TARGET}" "$COMMAND" C-m
+  write_deploy_evidence
   log_line "sent command to ${SESSION_NAME}:${WINDOW_TARGET}: $COMMAND"
 }
 
@@ -199,10 +247,12 @@ resolve_transport() {
 run_direct() {
   local direct_command
 
+  refresh_lock
+
   if [ -n "$COMMAND" ]; then
     direct_command="$COMMAND"
   else
-    direct_command="codex exec --skip-git-repo-check -C $(printf '%q' "$WORKDIR") $(printf '%q' "$PROMPT")"
+    direct_command="$(build_default_command)"
   fi
 
   log_line "running direct loop command: $direct_command"

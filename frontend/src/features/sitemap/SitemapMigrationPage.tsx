@@ -5,8 +5,10 @@ import {
   UserPortalHeader
 } from "../../components/user-shell/UserPortalChrome";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
 import { fetchSitemapPage, type SitemapNode, type SitemapPagePayload } from "../../lib/api/client";
+import { useEffect } from "react";
 
 function stringOf(value: unknown) {
   return typeof value === "string" ? value : "";
@@ -25,6 +27,18 @@ export function SitemapMigrationPage() {
   );
   const page = pageState.value;
   const sections = (page?.siteMapSections || []) as SitemapNode[];
+
+  useEffect(() => {
+    logGovernanceScope("PAGE", "sitemap", {
+      language: en ? "en" : "ko",
+      sectionCount: sections.length,
+      error: pageState.error || ""
+    });
+    logGovernanceScope("COMPONENT", "sitemap-tree", {
+      sectionCount: sections.length,
+      topLabels: sections.slice(0, 5).map((item) => item.label || item.code || "")
+    });
+  }, [en, pageState.error, sections]);
 
   return (
     <div className="bg-[var(--kr-gov-bg-gray)] text-[var(--kr-gov-text-primary)] min-h-screen flex flex-col">

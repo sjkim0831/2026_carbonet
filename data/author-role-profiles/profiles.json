@@ -2,6 +2,9 @@
   {
     "authorCode": "ROLE_SYSTEM_MASTER",
     "displayTitle": "플랫폼 총괄 관리자",
+    "roleType": "GENERAL",
+    "baseRoleYn": "Y",
+    "assignmentScope": "GLOBAL",
     "priorityWorks": [
       "시스템 운영",
       "메뉴/권한 설계",
@@ -14,6 +17,10 @@
   {
     "authorCode": "ROLE_SYSTEM_ADMIN",
     "displayTitle": "시스템 운영 관리자",
+    "roleType": "GENERAL",
+    "baseRoleYn": "N",
+    "parentAuthorCode": "ROLE_SYSTEM_MASTER",
+    "assignmentScope": "GLOBAL",
     "priorityWorks": [
       "화면/기능 관리",
       "메타데이터 정비",
@@ -26,6 +33,9 @@
   {
     "authorCode": "ROLE_ADMIN",
     "displayTitle": "서비스 관리자",
+    "roleType": "GENERAL",
+    "baseRoleYn": "Y",
+    "assignmentScope": "GLOBAL",
     "priorityWorks": [
       "회원 운영",
       "권한 검토",
@@ -38,6 +48,10 @@
   {
     "authorCode": "ROLE_OPERATION_ADMIN",
     "displayTitle": "회원사 운영 담당",
+    "roleType": "GENERAL",
+    "baseRoleYn": "N",
+    "parentAuthorCode": "ROLE_ADMIN",
+    "assignmentScope": "COMPANY",
     "priorityWorks": [
       "회사별 권한 운영",
       "부서 권한 맵핑",
@@ -50,6 +64,9 @@
   {
     "authorCode": "ROLE_COMPANY_ADMIN",
     "displayTitle": "회원사 관리자",
+    "roleType": "GENERAL",
+    "baseRoleYn": "Y",
+    "assignmentScope": "COMPANY",
     "priorityWorks": [
       "회원 정보 관리",
       "부서 권한 검토",
@@ -58,6 +75,110 @@
     "description": "회원사 단위의 기본 운영과 사용자 관리를 담당하는 권한 그룹입니다.",
     "memberEditVisibleYn": "Y",
     "updatedAt": "2026-03-18 21:55:00"
+  },
+  {
+    "authorCode": "ROLE_COMPANY_ADMIN_EMITTER",
+    "displayTitle": "CO2 배출사업자 관리자",
+    "roleType": "GENERAL",
+    "baseRoleYn": "N",
+    "parentAuthorCode": "ROLE_COMPANY_ADMIN",
+    "assignmentScope": "COMPANY",
+    "defaultMemberTypes": [
+      "E"
+    ],
+    "priorityWorks": [
+      "회원 정보 관리",
+      "배출사업자 업무 권한 운영",
+      "운영 요청 대응"
+    ],
+    "description": "CO2 배출사업자 유형에 맞춘 관리자 기본 권한 그룹입니다.",
+    "memberEditVisibleYn": "Y",
+    "updatedAt": "2026-03-25 23:30:00"
+  },
+  {
+    "authorCode": "ROLE_COMPANY_ADMIN_PERFORMER",
+    "displayTitle": "CCUS 프로젝트 사업자 관리자",
+    "roleType": "GENERAL",
+    "baseRoleYn": "N",
+    "parentAuthorCode": "ROLE_COMPANY_ADMIN",
+    "assignmentScope": "COMPANY",
+    "defaultMemberTypes": [
+      "P"
+    ],
+    "priorityWorks": [
+      "회원 정보 관리",
+      "프로젝트 업무 권한 운영",
+      "운영 요청 대응"
+    ],
+    "description": "CCUS 프로젝트 사업자 유형에 맞춘 관리자 기본 권한 그룹입니다.",
+    "memberEditVisibleYn": "Y",
+    "updatedAt": "2026-03-25 23:30:00"
+  },
+  {
+    "authorCode": "ROLE_COMPANY_ADMIN_ENTERPRISE",
+    "displayTitle": "기업 회원 관리자",
+    "roleType": "GENERAL",
+    "baseRoleYn": "N",
+    "parentAuthorCode": "ROLE_COMPANY_ADMIN",
+    "assignmentScope": "COMPANY",
+    "priorityWorks": [
+      "회원 정보 관리",
+      "기업 업무 권한 운영",
+      "운영 요청 대응"
+    ],
+    "description": "기업 회원 유형에 맞춘 관리자 기본 권한 그룹입니다.",
+    "memberEditVisibleYn": "Y",
+    "updatedAt": "2026-03-25 22:40:00"
+  },
+  {
+    "authorCode": "ROLE_COMPANY_ADMIN_CENTER",
+    "displayTitle": "진흥·지원 기관 관리자",
+    "roleType": "GENERAL",
+    "baseRoleYn": "N",
+    "parentAuthorCode": "ROLE_COMPANY_ADMIN",
+    "assignmentScope": "COMPANY",
+    "defaultMemberTypes": [
+      "C"
+    ],
+    "priorityWorks": [
+      "기관 사용자 관리",
+      "지원기관 업무 권한 운영",
+      "운영 요청 대응"
+    ],
+    "description": "진흥·지원 기관 유형에 맞춘 관리자 기본 권한 그룹입니다.",
+    "memberEditVisibleYn": "Y",
+    "updatedAt": "2026-03-25 22:40:00"
+  },
+  {
+    "authorCode": "ROLE_COMPANY_ADMIN_GOV",
+    "displayTitle": "관계 기관·주무관청 관리자",
+    "roleType": "GENERAL",
+    "baseRoleYn": "N",
+    "parentAuthorCode": "ROLE_COMPANY_ADMIN",
+    "assignmentScope": "COMPANY",
+    "defaultMemberTypes": [
+      "G"
+    ],
+    "priorityWorks": [
+      "기관 사용자 관리",
+      "행정기관 업무 권한 운영",
+      "운영 요청 대응"
+    ],
+    "description": "관계 기관·주무관청 유형에 맞춘 관리자 기본 권한 그룹입니다.",
+    "memberEditVisibleYn": "Y",
+    "updatedAt": "2026-03-25 23:30:00"
+  },
+  {
+    "authorCode": "ROLE_COMPANY_ADMIN_AUTHORITY",
+    "displayTitle": "기관 회원 관리자",
+    "priorityWorks": [
+      "기관 사용자 관리",
+      "기관 업무 권한 운영",
+      "운영 요청 대응"
+    ],
+    "description": "기관 회원 유형에 맞춘 관리자 기본 권한 그룹입니다.",
+    "memberEditVisibleYn": "Y",
+    "updatedAt": "2026-03-25 22:40:00"
   },
   {
     "authorCode": "ROLE_CS_ADMIN",
@@ -74,6 +195,9 @@
   {
     "authorCode": "ROLE_USER",
     "displayTitle": "일반 사용자",
+    "roleType": "USER",
+    "baseRoleYn": "Y",
+    "assignmentScope": "USER",
     "priorityWorks": [
       "기본 서비스 이용",
       "정보 조회",
@@ -84,8 +208,120 @@
     "updatedAt": "2026-03-18 21:55:00"
   },
   {
+    "authorCode": "ROLE_USER_EMITTER",
+    "displayTitle": "CO2 배출사업자 사용자",
+    "roleType": "USER",
+    "baseRoleYn": "N",
+    "parentAuthorCode": "ROLE_USER",
+    "assignmentScope": "USER",
+    "defaultMemberTypes": [
+      "E"
+    ],
+    "priorityWorks": [
+      "기본 서비스 이용",
+      "배출사업자 업무 처리",
+      "신청 내역 확인"
+    ],
+    "description": "CO2 배출사업자 유형에 맞춘 기본 사용자 권한 그룹입니다.",
+    "memberEditVisibleYn": "Y",
+    "updatedAt": "2026-03-25 23:30:00"
+  },
+  {
+    "authorCode": "ROLE_USER_PERFORMER",
+    "displayTitle": "CCUS 프로젝트 사업자 사용자",
+    "roleType": "USER",
+    "baseRoleYn": "N",
+    "parentAuthorCode": "ROLE_USER",
+    "assignmentScope": "USER",
+    "defaultMemberTypes": [
+      "P"
+    ],
+    "priorityWorks": [
+      "기본 서비스 이용",
+      "프로젝트 업무 처리",
+      "신청 내역 확인"
+    ],
+    "description": "CCUS 프로젝트 사업자 유형에 맞춘 기본 사용자 권한 그룹입니다.",
+    "memberEditVisibleYn": "Y",
+    "updatedAt": "2026-03-25 23:30:00"
+  },
+  {
+    "authorCode": "ROLE_USER_ENTERPRISE",
+    "displayTitle": "기업 회원 사용자",
+    "roleType": "USER",
+    "baseRoleYn": "N",
+    "parentAuthorCode": "ROLE_USER",
+    "assignmentScope": "USER",
+    "priorityWorks": [
+      "기본 서비스 이용",
+      "기업 업무 처리",
+      "신청 내역 확인"
+    ],
+    "description": "기업 회원 유형에 맞춘 기본 사용자 권한 그룹입니다.",
+    "memberEditVisibleYn": "Y",
+    "updatedAt": "2026-03-25 22:40:00"
+  },
+  {
+    "authorCode": "ROLE_USER_CENTER",
+    "displayTitle": "진흥·지원 기관 사용자",
+    "roleType": "USER",
+    "baseRoleYn": "N",
+    "parentAuthorCode": "ROLE_USER",
+    "assignmentScope": "USER",
+    "defaultMemberTypes": [
+      "C"
+    ],
+    "priorityWorks": [
+      "기본 서비스 이용",
+      "지원기관 업무 처리",
+      "신청 내역 확인"
+    ],
+    "description": "진흥·지원 기관 유형에 맞춘 기본 사용자 권한 그룹입니다.",
+    "memberEditVisibleYn": "Y",
+    "updatedAt": "2026-03-25 22:40:00"
+  },
+  {
+    "authorCode": "ROLE_USER_GOV",
+    "displayTitle": "관계 기관·주무관청 사용자",
+    "roleType": "USER",
+    "baseRoleYn": "N",
+    "parentAuthorCode": "ROLE_USER",
+    "assignmentScope": "USER",
+    "defaultMemberTypes": [
+      "G"
+    ],
+    "priorityWorks": [
+      "기본 서비스 이용",
+      "행정기관 업무 처리",
+      "신청 내역 확인"
+    ],
+    "description": "관계 기관·주무관청 유형에 맞춘 기본 사용자 권한 그룹입니다.",
+    "memberEditVisibleYn": "Y",
+    "updatedAt": "2026-03-25 23:30:00"
+  },
+  {
+    "authorCode": "ROLE_USER_AUTHORITY",
+    "displayTitle": "기관 회원 사용자",
+    "roleType": "USER",
+    "baseRoleYn": "N",
+    "parentAuthorCode": "ROLE_USER",
+    "assignmentScope": "USER",
+    "priorityWorks": [
+      "기본 서비스 이용",
+      "기관 업무 처리",
+      "신청 내역 확인"
+    ],
+    "description": "기관 회원 유형에 맞춘 기본 사용자 권한 그룹입니다.",
+    "memberEditVisibleYn": "Y",
+    "updatedAt": "2026-03-25 22:40:00"
+  },
+  {
     "authorCode": "ROLE_USER_STANDARD",
     "displayTitle": "표준 실무 사용자",
+    "roleType": "USER",
+    "baseRoleYn": "N",
+    "parentAuthorCode": "ROLE_USER",
+    "assignmentScope": "USER",
     "priorityWorks": [
       "기본 업무 처리",
       "자료 조회",

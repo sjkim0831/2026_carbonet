@@ -15,5 +15,10 @@ public class AuthorRoleProfileVO {
     private List<String> priorityWorks = new ArrayList<>();
     private String description;
     private String memberEditVisibleYn = "Y";
+    private String roleType;
+    private String baseRoleYn = "N";
+    private String parentAuthorCode;
+    private String assignmentScope;
+    private List<String> defaultMemberTypes = new ArrayList<>();
     private String updatedAt;
 }

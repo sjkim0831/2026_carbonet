@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { CanView } from "../../components/access/CanView";
 import { PermissionButton } from "../../components/access/CanUse";
 import { buildLocalizedPath, getSearchParam } from "../../lib/navigation/runtime";
@@ -58,8 +59,34 @@ export function AdminPermissionMigrationPage() {
   const readOnly = Boolean(page?.adminAccountReadOnly);
   const validationErrors = (page?.adminPermissionErrors as string[] | undefined) || [];
 
+  useEffect(() => {
+    if (!page) {
+      return;
+    }
+    logGovernanceScope("PAGE", "admin-permission", {
+      route: window.location.pathname,
+      emplyrId: page.adminPermissionTarget?.emplyrId || initialEmplyrId,
+      authorCode,
+      featureCount: featureCodes.length,
+      canView: !!page.canViewAdminPermissionEdit,
+      canSave: !!page.canUseAdminPermissionSave,
+      readOnly
+    });
+    logGovernanceScope("COMPONENT", "admin-permission-features", {
+      component: "admin-permission-features",
+      selectedAuthorName,
+      pageCount,
+      featureCount
+    });
+  }, [authorCode, featureCodes.length, initialEmplyrId, page, pageCount, readOnly, selectedAuthorName]);
+
   async function handleSave() {
     if (!session || !page?.adminPermissionTarget) return;
+    logGovernanceScope("ACTION", "admin-permission-save", {
+      emplyrId: page.adminPermissionTarget.emplyrId,
+      authorCode,
+      featureCount: featureCodes.length
+    });
     setError("");
     setMessage("");
     try {

@@ -22,7 +22,10 @@ public class FrontendSessionService {
         response.setCsrfToken(context.getCsrfToken());
         response.setCsrfHeaderName(context.getCsrfHeaderName());
         response.setAuthenticated(context.isAuthenticated());
+        response.setActualUserId(context.getActualUserId());
         response.setUserId(context.getUserId());
+        response.setSimulationAvailable(context.isSimulationAvailable());
+        response.setSimulationActive(context.isSimulationActive());
         try {
             response.setAuthorCode(context.getAuthorCode());
             response.setInsttId(context.getInsttId());

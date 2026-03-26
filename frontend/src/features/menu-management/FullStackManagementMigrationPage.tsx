@@ -1,5 +1,6 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { findManifestByMenuCodeOrRoutePath, normalizeManifestLookupPath } from "../../app/screen-registry/pageManifestIndex";
 import {
   fetchFrameworkAuthorityContract,
@@ -355,6 +356,36 @@ export function FullStackManagementMigrationPage() {
     }
     return warnings;
   }, [en, governanceDetail, governancePageId, selectedMenuCode]);
+
+  useEffect(() => {
+    logGovernanceScope("PAGE", "full-stack-management", {
+      language: en ? "en" : "ko",
+      menuType,
+      selectedMenuCode,
+      selectedMenuIsPage,
+      filteredMenuCount: rows.length,
+      registrySaving,
+      registryCollecting
+    });
+    logGovernanceScope("COMPONENT", "full-stack-management-registry", {
+      governancePageId,
+      governanceTableCount: governanceTables.length,
+      governanceColumnCount: governanceColumns.length,
+      warningCount: governanceWarnings.length
+    });
+  }, [
+    en,
+    governanceColumns.length,
+    governancePageId,
+    governanceTables.length,
+    governanceWarnings.length,
+    menuType,
+    registryCollecting,
+    registrySaving,
+    rows.length,
+    selectedMenuCode,
+    selectedMenuIsPage
+  ]);
   const coverageOverview = useMemo(() => {
     const total = fullStackSummaryRows.length;
     const strong = fullStackSummaryRows.filter((row) => numberOf(row, "coverageScore") >= 70).length;

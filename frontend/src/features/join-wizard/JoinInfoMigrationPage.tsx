@@ -1,6 +1,6 @@
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
-import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useJoinSession } from "../../app/hooks/useJoinSession";
+import { logGovernanceScope } from "../../app/policy/debug";
 import {
   AppButton,
   AppIconButton,
@@ -14,6 +14,7 @@ import {
   UserPortalHeader
 } from "../../components/user-shell/UserPortalChrome";
 import {
+  type CompanySearchPayload,
   checkJoinEmail,
   checkJoinMemberId,
   resetJoinSession,
@@ -215,8 +216,15 @@ export function JoinInfoMigrationPage() {
   const [emailMessage, setEmailMessage] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [draftSearchKeyword, setDraftSearchKeyword] = useState("");
-  const [searchKeyword, setSearchKeyword] = useState("");
-  const [searchPage, setSearchPage] = useState(1);
+  const [searchMembershipType, setSearchMembershipType] = useState("");
+  const [searchState, setSearchState] = useState<CompanySearchPayload>({
+    list: [],
+    totalCnt: 0,
+    page: 1,
+    size: 5,
+    totalPages: 0
+  });
+  const [searchLoading, setSearchLoading] = useState(false);
   const sessionState = useJoinSession({
     onSuccess(payload) {
       const joinVO = (payload.joinVO || {}) as Record<string, unknown>;
@@ -229,24 +237,36 @@ export function JoinInfoMigrationPage() {
     }
   });
   const session = sessionState.value;
-  const searchState = useAsyncValue(
-    () => searchJoinCompanies({
-      keyword: searchKeyword,
-      page: searchPage,
-      size: 5,
-      status: "P",
-      membershipType: session?.membershipType
-    }),
-    [modalOpen, searchKeyword, searchPage, session?.membershipType],
-    {
-      enabled: modalOpen,
-      initialValue: { list: [], totalCnt: 0, page: 1, size: 5, totalPages: 0 },
-      onError: () => undefined
-    }
-  );
-  const searchResult = searchState.value;
-  const searchLoading = searchState.loading;
-  const error = actionError || sessionState.error || (searchState.error ? copy.searchError : "");
+  const error = actionError || sessionState.error;
+
+  useEffect(() => {
+    logGovernanceScope("PAGE", "join-step4", {
+      language: en ? "en" : "ko",
+      membershipType: searchMembershipType || String(session?.joinVO?.membershipType || ""),
+      insttId: form.insttId,
+      modalOpen,
+      uploadRowCount: uploadRows.length,
+      submitting
+    });
+    logGovernanceScope("COMPONENT", "join-step4-company-search", {
+      modalOpen,
+      searchKeyword: draftSearchKeyword.trim(),
+      searchLoading,
+      resultCount: Array.isArray(searchState.list) ? searchState.list.length : 0,
+      membershipType: searchMembershipType || String(session?.joinVO?.membershipType || "")
+    });
+  }, [
+    draftSearchKeyword,
+    en,
+    form.insttId,
+    modalOpen,
+    searchLoading,
+    searchMembershipType,
+    searchState.list,
+    session?.joinVO,
+    submitting,
+    uploadRows.length
+  ]);
 
   useEffect(() => {
     const script = document.createElement("script");
@@ -282,6 +302,9 @@ export function JoinInfoMigrationPage() {
   }
 
   async function handleCheckId() {
+    logGovernanceScope("ACTION", "join-step4-check-id", {
+      userId: form.mberId.trim()
+    });
     if (!form.mberId || form.mberId.length < 5) {
       setIdMessage(copy.idShort);
       setIdChecked(false);
@@ -303,6 +326,9 @@ export function JoinInfoMigrationPage() {
   }
 
   async function handleCheckEmail() {
+    logGovernanceScope("ACTION", "join-step4-check-email", {
+      email: form.applcntEmailAdres.trim()
+    });
     if (!form.applcntEmailAdres || !form.applcntEmailAdres.includes("@")) {
       setEmailMessage(copy.emailInvalid);
       setEmailChecked(false);
@@ -378,6 +404,11 @@ export function JoinInfoMigrationPage() {
   }
 
   async function handleSubmit() {
+    logGovernanceScope("ACTION", "join-step4-submit", {
+      membershipType: searchMembershipType || String(session?.membershipType || ""),
+      insttId: form.insttId,
+      uploadedFileCount: uploadRows.map((row) => row.file).filter(Boolean).length
+    });
     const passwordRegex = /^(?=.*[!@#$%^&*(),.?":{}|<>+=\-_`~]).{9,}$/;
     if (!idChecked) {
       window.alert(copy.needIdCheck);
@@ -444,24 +475,69 @@ export function JoinInfoMigrationPage() {
   }
 
   async function handleOpenCompanySearch() {
+    logGovernanceScope("ACTION", "join-step4-open-company-search", {
+      membershipType: String(session?.membershipType || "")
+    });
     setActionError("");
-    if (!await sessionState.reload()) {
+    const reloaded = await sessionState.reload();
+    if (!reloaded || !reloaded.membershipType) {
       setActionError(copy.searchError);
       return;
     }
     setDraftSearchKeyword("");
-    setSearchKeyword("");
-    setSearchPage(1);
+    setSearchMembershipType(reloaded.membershipType);
+    setSearchState({
+      list: [],
+      totalCnt: 0,
+      page: 1,
+      size: 5,
+      totalPages: 0
+    });
     setModalOpen(true);
+    await loadCompanySearch("", 1, reloaded.membershipType);
   }
 
   function closeCompanySearch() {
     setModalOpen(false);
   }
 
+  async function loadCompanySearch(keyword: string, page: number, membershipType: string) {
+    setSearchLoading(true);
+    setActionError("");
+    try {
+      const result = await searchJoinCompanies({
+        keyword,
+        page,
+        size: 5,
+        status: "P",
+        membershipType
+      });
+      setSearchState(result);
+    } catch {
+      setSearchState({
+        list: [],
+        totalCnt: 0,
+        page,
+        size: 5,
+        totalPages: 0
+      });
+      setActionError(copy.searchError);
+    } finally {
+      setSearchLoading(false);
+    }
+  }
+
   function runCompanySearch(page = 1) {
-    setSearchKeyword(draftSearchKeyword.trim());
-    setSearchPage(page);
+    logGovernanceScope("ACTION", "join-step4-company-search", {
+      page,
+      keyword: draftSearchKeyword.trim(),
+      membershipType: searchMembershipType
+    });
+    if (!searchMembershipType) {
+      setActionError(copy.searchError);
+      return;
+    }
+    void loadCompanySearch(draftSearchKeyword.trim(), page, searchMembershipType);
   }
 
   function selectCompany(row: { insttId: string; cmpnyNm: string; bizrno: string; cxfc: string }) {
@@ -519,7 +595,7 @@ export function JoinInfoMigrationPage() {
                     <label className="form-label" htmlFor="user-id">{copy.userId} <span className="text-red-500">*</span></label>
                     <div className="flex gap-2">
                       <AppInput id="user-id" onChange={(event) => updateField("mberId", event.target.value)} placeholder={copy.idPlaceholder} required spellCheck={false} type="text" value={form.mberId} />
-                      <AppButton onClick={() => void handleCheckId()} type="button" variant="primary">{copy.duplicateCheck}</AppButton>
+                      <AppButton className="shrink-0 whitespace-nowrap sm:min-w-[112px]" onClick={() => void handleCheckId()} type="button" variant="primary">{copy.duplicateCheck}</AppButton>
                     </div>
                     {idMessage ? <div className={`mt-1 text-[12px] ${idChecked ? "text-green-600 font-bold" : "text-red-500"}`}>{idMessage}</div> : null}
                   </div>
@@ -538,21 +614,21 @@ export function JoinInfoMigrationPage() {
                   </div>
                   <div className="md:col-span-2 space-y-1">
                     <label className="form-label">{copy.phone} <span className="text-red-500">*</span></label>
-                    <div className="flex gap-2">
-                      <AppSelect className="w-24" onChange={(event) => updateField("moblphonNo1", event.target.value)} value={form.moblphonNo1}>
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
+                      <AppSelect className="min-w-0" onChange={(event) => updateField("moblphonNo1", event.target.value)} value={form.moblphonNo1}>
                         <option>010</option><option>011</option><option>02</option>
                       </AppSelect>
                       <span className="flex items-center">-</span>
-                      <AppInput className="flex-1" onChange={(event) => updateField("moblphonNo2", event.target.value)} required type="text" value={form.moblphonNo2} />
+                      <AppInput className="min-w-0" onChange={(event) => updateField("moblphonNo2", event.target.value)} required type="text" value={form.moblphonNo2} />
                       <span className="flex items-center">-</span>
-                      <AppInput className="flex-1" onChange={(event) => updateField("moblphonNo3", event.target.value)} required type="text" value={form.moblphonNo3} />
+                      <AppInput className="min-w-0" onChange={(event) => updateField("moblphonNo3", event.target.value)} required type="text" value={form.moblphonNo3} />
                     </div>
                   </div>
                   <div className="md:col-span-2 space-y-1">
                     <label className="form-label" htmlFor="email">{copy.email} <span className="text-red-500">*</span></label>
                     <div className="flex gap-2">
                       <AppInput id="email" inputMode="email" onChange={(event) => updateField("applcntEmailAdres", event.target.value)} placeholder={copy.emailPlaceholder} required type="text" value={form.applcntEmailAdres} />
-                      <AppButton onClick={() => void handleCheckEmail()} type="button" variant="primary">{copy.duplicateCheck}</AppButton>
+                      <AppButton className="shrink-0 whitespace-nowrap sm:min-w-[112px]" onClick={() => void handleCheckEmail()} type="button" variant="primary">{copy.duplicateCheck}</AppButton>
                     </div>
                     {emailMessage ? <div className={`mt-1 text-[12px] ${emailChecked ? "text-green-600 font-bold" : "text-red-500"}`}>{emailMessage}</div> : null}
                   </div>
@@ -560,7 +636,7 @@ export function JoinInfoMigrationPage() {
                     <label className="form-label" htmlFor="user-address">{copy.address} <span className="text-red-500">*</span></label>
                     <div className="flex gap-2 mb-2">
                       <AppInput className="w-32 bg-gray-50 cursor-pointer" id="zip-code" onClick={openAddressSearch} placeholder={copy.zipPlaceholder} readOnly required type="text" value={form.zip} />
-                      <AppButton onClick={openAddressSearch} type="button">{copy.searchAddress}</AppButton>
+                      <AppButton className="shrink-0 whitespace-nowrap sm:min-w-[112px]" onClick={openAddressSearch} type="button">{copy.searchAddress}</AppButton>
                     </div>
                     <AppInput className="mb-2 bg-gray-50 cursor-pointer" id="user-address" onClick={openAddressSearch} placeholder={copy.addressPlaceholder} readOnly required type="text" value={form.adres} />
                     <AppInput id="user-address-detail" onChange={(event) => updateField("detailAdres", event.target.value)} placeholder={copy.detailAddressPlaceholder} type="text" value={form.detailAdres} />
@@ -578,7 +654,7 @@ export function JoinInfoMigrationPage() {
                     <label className="form-label" htmlFor="company-search">{copy.companyName} <span className="text-red-500">*</span></label>
                     <div className="relative">
                       <AppInput className={`pr-24${en ? " bg-gray-50" : ""}`} id="company-search" placeholder={copy.companyPlaceholder} readOnly required type="text" value={form.insttNm} />
-                      <AppButton className="absolute right-2 top-2 bottom-2 px-4 min-h-0" onClick={() => void handleOpenCompanySearch()} size="sm" type="button" variant="primary">
+                      <AppButton className="absolute right-2 top-2 bottom-2 min-h-0 shrink-0 whitespace-nowrap px-4 sm:min-w-[96px]" onClick={() => void handleOpenCompanySearch()} size="sm" type="button" variant="primary">
                         <span className="material-symbols-outlined text-sm">search</span> {copy.search}
                       </AppButton>
                     </div>
@@ -600,7 +676,7 @@ export function JoinInfoMigrationPage() {
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <p className="text-sm text-[var(--kr-gov-text-secondary)]">{copy.fileDesc}</p>
-                        <AppButton className="join-upload-add-btn" onClick={addFileRow} size="sm" type="button">
+                        <AppButton className="join-upload-add-btn shrink-0 whitespace-nowrap sm:min-w-[112px]" onClick={addFileRow} size="sm" type="button">
                           <span className="material-symbols-outlined text-[18px]">add</span>{copy.addFile}
                         </AppButton>
                       </div>
@@ -644,7 +720,8 @@ export function JoinInfoMigrationPage() {
         </div>
       </main>
 
-      <div aria-labelledby="modal-title" aria-modal="true" className={`modal-overlay ${modalOpen ? "" : "hidden"}`} role="dialog">
+      {modalOpen ? (
+      <div aria-labelledby="modal-title" aria-modal="true" className="modal-overlay" role="dialog">
         <div className="modal-container">
           <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
             <h2 className="text-xl font-bold text-[var(--kr-gov-text-primary)] flex items-center gap-2" id="modal-title">
@@ -656,7 +733,7 @@ export function JoinInfoMigrationPage() {
             <div className="mb-8">
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-bold text-[var(--kr-gov-text-secondary)]" htmlFor="modal-search">{copy.companyModalLabel}</label>
-                <div className="flex gap-2">
+                  <div className="flex gap-2">
                   <div className="relative flex-grow">
                     <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">search</span>
                     <AppInput
@@ -674,7 +751,7 @@ export function JoinInfoMigrationPage() {
                       value={draftSearchKeyword}
                     />
                   </div>
-                  <AppButton onClick={() => runCompanySearch(1)} type="button" variant="primary">{copy.search}</AppButton>
+                  <AppButton className="shrink-0 whitespace-nowrap sm:min-w-[112px]" onClick={() => runCompanySearch(1)} type="button" variant="primary">{copy.search}</AppButton>
                 </div>
               </div>
             </div>
@@ -690,11 +767,9 @@ export function JoinInfoMigrationPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {searchLoading ? (
-                    <tr><td className="px-4 py-8 text-center text-gray-500" colSpan={5}>{copy.loading}</td></tr>
-                  ) : searchResult && searchResult.list.length > 0 ? searchResult.list.map((row, index) => (
+                  {searchState.list.length > 0 ? searchState.list.map((row, index) => (
                     <tr className="hover:bg-blue-50/50 transition-colors" key={row.insttId}>
-                      <td className="px-4 py-4 text-center text-gray-500">{(searchPage - 1) * 5 + index + 1}</td>
+                      <td className="px-4 py-4 text-center text-gray-500">{(searchState.page - 1) * searchState.size + index + 1}</td>
                       <td className="px-4 py-4 font-medium">{row.cmpnyNm}</td>
                       <td className="px-4 py-4 text-gray-600">{row.bizrno}</td>
                       <td className="px-4 py-4 text-gray-600">{row.cxfc}</td>
@@ -708,6 +783,9 @@ export function JoinInfoMigrationPage() {
                 </tbody>
               </AppTable>
             </div>
+            {searchLoading ? (
+              <p className="mb-4 text-sm text-[var(--kr-gov-text-secondary)]">{copy.loading}</p>
+            ) : null}
             <div className="bg-gray-50 border-t border-b border-gray-200 p-4 rounded-md">
               <p className="text-[13px] text-[var(--kr-gov-text-secondary)] flex items-center gap-1.5 leading-relaxed">
                 <span className="material-symbols-outlined text-blue-600 text-[18px]">info</span>
@@ -722,6 +800,7 @@ export function JoinInfoMigrationPage() {
           </div>
         </div>
       </div>
+      ) : null}
     </div>
   );
 }

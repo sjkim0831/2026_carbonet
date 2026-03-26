@@ -1,15 +1,26 @@
 import { useMemo } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { fetchAuditEvents } from "../../lib/api/observability";
 import { fetchScreenBuilderPage, fetchScreenBuilderPreview } from "../../lib/api/screenBuilder";
 import { buildLocalizedPath, getSearchParam, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";
-import { DiagnosticCard, GridToolbar, MemberLinkButton } from "../admin-ui/common";
+import { DiagnosticCard, GridToolbar, KeyValueGridPanel, MemberLinkButton, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
 import { resolveRuntimeSurfaceContextKeys } from "../admin-ui/contextKeyPresets";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 import { renderScreenBuilderNodePreview } from "./shared/screenBuilderPreview";
 import { resolveScreenBuilderQuery, sortScreenBuilderNodes } from "./shared/screenBuilderUtils";
+import { useEffect } from "react";
+
+function stringifyValue(value: unknown, empty = "-") {
+  const normalized = String(value || "").trim();
+  return normalized || empty;
+}
+
+function formatCountLabel(count: number, singular: string, plural: string) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
 
 export function ScreenRuntimeMigrationPage() {
   const en = isEnglish();
@@ -32,7 +43,11 @@ export function ScreenRuntimeMigrationPage() {
   const preview = previewState.value;
   const previewNodes = useMemo(() => sortScreenBuilderNodes(preview?.nodes || []), [preview?.nodes]);
   const runtimeDiagnostics = preview?.registryDiagnostics || page?.registryDiagnostics || {};
+  const unregisteredNodes = runtimeDiagnostics?.unregisteredNodes || [];
+  const missingNodes = runtimeDiagnostics?.missingNodes || [];
+  const deprecatedNodes = runtimeDiagnostics?.deprecatedNodes || [];
   const runtimeIssueCount = (runtimeDiagnostics?.missingNodes?.length || 0) + (runtimeDiagnostics?.deprecatedNodes?.length || 0);
+  const componentLinkageIssueCount = unregisteredNodes.length + missingNodes.length + deprecatedNodes.length;
   const runtimeBlocked = runtimeIssueCount > 0;
   const runtimeContextKeys = useMemo(() => resolveRuntimeSurfaceContextKeys({
     menuUrl: page?.menuUrl || query.menuUrl,
@@ -48,6 +63,40 @@ export function ScreenRuntimeMigrationPage() {
     () => screenBuilderAudits.find((row) => String(row.actionCode || "").includes("PUBLISH")) || null,
     [screenBuilderAudits]
   );
+  const registryIssueRows = [
+    ...unregisteredNodes.map((item) => ({ status: en ? "Unregistered" : "미등록", nodeId: stringifyValue(item.nodeId), componentType: stringifyValue(item.componentType), componentId: stringifyValue(item.componentId) })),
+    ...missingNodes.map((item) => ({ status: en ? "Missing" : "누락", nodeId: stringifyValue(item.nodeId), componentType: stringifyValue(item.componentType), componentId: stringifyValue(item.componentId) })),
+    ...deprecatedNodes.map((item) => ({ status: en ? "Deprecated" : "사용중단", nodeId: stringifyValue(item.nodeId), componentType: stringifyValue(item.componentType), componentId: stringifyValue(item.componentId) }))
+  ].slice(0, 8);
+
+  useEffect(() => {
+    logGovernanceScope("PAGE", "screen-runtime", {
+      language: en ? "en" : "ko",
+      menuCode: page?.menuCode || query.menuCode,
+      pageId: page?.pageId || query.pageId,
+      previewNodeCount: previewNodes.length,
+      runtimeBlocked,
+      componentLinkageIssueCount
+    });
+    logGovernanceScope("COMPONENT", "screen-runtime-preview", {
+      previewNodeCount: previewNodes.length,
+      eventCount: preview?.events?.length || 0,
+      auditCount: screenBuilderAudits.length,
+      registryIssueCount: registryIssueRows.length
+    });
+  }, [
+    componentLinkageIssueCount,
+    en,
+    page?.menuCode,
+    page?.pageId,
+    preview?.events?.length,
+    previewNodes.length,
+    query.menuCode,
+    query.pageId,
+    registryIssueRows.length,
+    runtimeBlocked,
+    screenBuilderAudits.length
+  ]);
 
   return (
     <AdminPageShell
@@ -64,9 +113,9 @@ export function ScreenRuntimeMigrationPage() {
       loadingLabel={en ? "Loading published runtime..." : "발행 런타임을 불러오는 중입니다."}
     >
       {pageState.error || previewState.error ? (
-        <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <PageStatusNotice tone="error">
           {pageState.error || previewState.error}
-        </section>
+        </PageStatusNotice>
       ) : null}
       <AdminWorkspacePageFrame>
         <div data-help-id="screen-runtime-summary">
@@ -138,6 +187,51 @@ export function ScreenRuntimeMigrationPage() {
             title={page?.menuTitle || query.menuTitle || (en ? "Published runtime" : "발행 런타임")}
           />
         </div>
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4" data-help-id="screen-runtime-metrics">
+          <SummaryMetricCard title={en ? "Published Nodes" : "발행 노드 수"} value={previewNodes.length} description={en ? "Rendered runtime nodes" : "렌더 가능한 런타임 노드"} />
+          <SummaryMetricCard title={en ? "Runtime Events" : "런타임 이벤트"} value={preview?.events?.length || 0} description={en ? "Published event bindings" : "발행 이벤트 바인딩"} />
+          <SummaryMetricCard title={en ? "Registry Gaps" : "레지스트리 갭"} value={componentLinkageIssueCount} description={en ? "Unregistered, missing, deprecated" : "미등록 / 누락 / 사용중단"} accentClassName={componentLinkageIssueCount ? "text-amber-700" : undefined} surfaceClassName={componentLinkageIssueCount ? "bg-amber-50" : undefined} />
+          <SummaryMetricCard title={en ? "Version History" : "버전 이력"} value={Array.isArray(page?.versionHistory) ? page.versionHistory.length : 0} description={en ? "Draft and publish snapshots" : "초안 / 발행 스냅샷"} />
+        </section>
+        <section className="grid grid-cols-1 gap-4 xl:grid-cols-2" data-help-id="screen-runtime-binding">
+          <KeyValueGridPanel
+            title={en ? "Governed Runtime Binding" : "Governed 런타임 바인딩"}
+            description={en ? "The runtime page keeps the same identity keys from builder handoff through published output." : "이 런타임 페이지는 builder handoff부터 발행 출력까지 동일한 identity key를 유지합니다."}
+            items={[
+              { label: "guidedStateId", value: runtimeContextKeys[0]?.value || "-" },
+              { label: "templateLineId", value: runtimeContextKeys[1]?.value || "-" },
+              { label: "screenFamilyRuleId", value: runtimeContextKeys[2]?.value || "-" },
+              { label: "ownerLane", value: runtimeContextKeys[3]?.value || "-" },
+              { label: en ? "Authority Scope" : "권한 범위", value: stringifyValue(preview?.authorityProfile?.scopePolicy || page?.authorityProfile?.scopePolicy, "GLOBAL") },
+              { label: en ? "Published Version" : "발행 버전", value: page?.publishedVersionId || "-" }
+            ]}
+          />
+          <KeyValueGridPanel
+            title={en ? "Component Output Linkage" : "구성요소 출력 연결"}
+            description={en ? "Use these counters to decide whether the runtime output is safe to hand off to compare and repair flows." : "이 카운트는 런타임 출력이 compare / repair 흐름으로 넘어가도 되는지 판단하는 기준입니다."}
+            items={[
+              { label: en ? "Unregistered Nodes" : "미등록 노드", value: String(unregisteredNodes.length) },
+              { label: en ? "Missing Nodes" : "누락 노드", value: String(missingNodes.length) },
+              { label: en ? "Deprecated Nodes" : "사용중단 노드", value: String(deprecatedNodes.length) },
+              { label: en ? "Recent Builder Events" : "최근 빌더 이벤트", value: String(screenBuilderAudits.length) },
+              { label: en ? "Published At" : "발행 시각", value: stringifyValue(page?.publishedSavedAt) },
+              { label: en ? "Node / Event Total" : "노드 / 이벤트 합계", value: `${formatCountLabel(previewNodes.length, en ? "node" : "개", en ? "nodes" : "개")} / ${formatCountLabel(preview?.events?.length || 0, en ? "event" : "개", en ? "events" : "개")}` }
+            ]}
+          />
+        </section>
+        {componentLinkageIssueCount ? (
+          <PageStatusNotice tone="warning">
+            {en
+              ? "Component linkage still has unregistered, missing, or deprecated nodes. Close these before treating the published runtime as clean handoff evidence."
+              : "구성요소 연결에 미등록, 누락, 사용중단 노드가 남아 있습니다. 발행 런타임을 clean handoff 근거로 보기 전에 먼저 닫아야 합니다."}
+          </PageStatusNotice>
+        ) : (
+          <PageStatusNotice tone="success">
+            {en
+              ? "Runtime component linkage is currently clean enough for compare and repair handoff."
+              : "현재 런타임 구성요소 연결 상태는 compare / repair handoff 기준을 충족합니다."}
+          </PageStatusNotice>
+        )}
         {publishedActionAudit ? (
           <section className="rounded-[var(--kr-gov-radius)] border border-blue-200 bg-blue-50 px-4 py-3" data-help-id="screen-runtime-publish-audit">
             <div className="grid gap-3 md:grid-cols-3">
@@ -235,6 +329,40 @@ export function ScreenRuntimeMigrationPage() {
                   : (en ? "No recent screen-builder activity was found." : "최근 screen-builder 활동 이력이 없습니다.")}
               </div>
             )}
+          </div>
+        </section>
+        <section className="gov-card overflow-hidden p-0" data-help-id="screen-runtime-registry-linkage">
+          <GridToolbar
+            meta={en ? "Registry linkage issues that still affect the published runtime surface." : "발행 런타임 화면에 아직 영향을 주는 레지스트리 연결 이슈입니다."}
+            title={en ? "Registry Linkage Queue" : "레지스트리 연결 대기열"}
+          />
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-[var(--kr-gov-border-light)]">
+              <thead className="bg-slate-50 text-left text-[12px] font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
+                <tr>
+                  <th className="px-5 py-4">{en ? "Status" : "상태"}</th>
+                  <th className="px-5 py-4">{en ? "Node Id" : "노드 ID"}</th>
+                  <th className="px-5 py-4">{en ? "Component Type" : "구성요소 타입"}</th>
+                  <th className="px-5 py-4">{en ? "Component Id" : "구성요소 ID"}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--kr-gov-border-light)] bg-white text-sm">
+                {registryIssueRows.length ? registryIssueRows.map((row) => (
+                  <tr key={`${row.status}-${row.nodeId}-${row.componentId}`}>
+                    <td className="px-5 py-4 font-bold text-[var(--kr-gov-text-primary)]">{row.status}</td>
+                    <td className="px-5 py-4 font-mono">{row.nodeId}</td>
+                    <td className="px-5 py-4">{row.componentType}</td>
+                    <td className="px-5 py-4 font-mono">{row.componentId}</td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td className="px-5 py-4 text-[var(--kr-gov-text-secondary)]" colSpan={4}>
+                      {en ? "No registry linkage issues remain in the published runtime." : "발행 런타임에는 남은 레지스트리 연결 이슈가 없습니다."}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </section>
       </AdminWorkspacePageFrame>

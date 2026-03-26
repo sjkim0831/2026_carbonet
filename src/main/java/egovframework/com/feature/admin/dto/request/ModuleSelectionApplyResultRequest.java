@@ -10,5 +10,7 @@ public class ModuleSelectionApplyResultRequest {
     private String projectId;
     private String scenarioId;
     private String guidedStateId;
+    private String ownerLane;
+    private String releaseUnitId;
     private String moduleBindingPreviewId;
 }

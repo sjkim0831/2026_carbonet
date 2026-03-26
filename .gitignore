@@ -35,3 +35,9 @@ startup.log
 # Migration scratch files
 /tmp/
 /ops/state/
+
+# Git backup cleanup scopes
+/var/backup/
+/var/backups/
+/BOOT-INF/
+/frontend/test-results/

@@ -1,5 +1,6 @@
 package egovframework.com.feature.home.web;
 
+import egovframework.com.common.util.ReactPageUrlMapper;
 import egovframework.com.feature.admin.dto.response.MenuInfoDTO;
 import egovframework.com.feature.admin.service.MenuInfoService;
 import egovframework.com.feature.home.service.HomeMenuService;
@@ -44,6 +45,10 @@ public class HomeMenuFallbackController {
         String normalized = normalizeRequestUri(request);
         if (normalized.startsWith("/mypage/")) {
             return reactAppViewSupport.render(model, "mypage", isEn, false);
+        }
+        String routeId = ReactPageUrlMapper.resolveRouteIdForPath(request == null ? "" : request.getRequestURI());
+        if ("emission_project_list".equals(routeId)) {
+            return reactAppViewSupport.render(model, "emission-project-list", isEn, false);
         }
         MenuInfoDTO menu = loadMenu(normalized);
         if (menu == null) {

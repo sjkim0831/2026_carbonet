@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { buildLocalizedPath, getSearchParam } from "../../lib/navigation/runtime";
 import { CompanyDetailPagePayload, fetchCompanyDetailPage } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
@@ -46,6 +47,25 @@ export function CompanyDetailMigrationPage() {
   const loading = !page && !error;
   const canView = !!page?.canViewCompanyDetail;
   const hasCompany = !!page?.company;
+
+  useEffect(() => {
+    if (!page) {
+      return;
+    }
+    logGovernanceScope("PAGE", "company-detail", {
+      route: window.location.pathname,
+      insttId,
+      canView: !!page.canViewCompanyDetail,
+      canUseEditLink: !!page.canUseCompanyEditLink,
+      companyType: String(page.companyTypeLabel || ""),
+      companyStatus: String(page.companyStatusLabel || "")
+    });
+    logGovernanceScope("COMPONENT", "company-detail-files", {
+      component: "company-detail-files",
+      fileCount: companyFiles.length,
+      insttId
+    });
+  }, [companyFiles.length, insttId, page]);
 
   return (
     <AdminPageShell

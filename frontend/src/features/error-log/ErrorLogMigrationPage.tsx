@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { CanView } from "../../components/access/CanView";
 import { fetchErrorLogPage, type ErrorLogPagePayload } from "../../lib/api/client";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
@@ -81,11 +82,40 @@ export function ErrorLogMigrationPage() {
   const sourceTypeOptions = (page?.sourceTypeOptions || []) as Array<Record<string, string>>;
   const errorTypeOptions = (page?.errorTypeOptions || []) as Array<Record<string, string>>;
 
+  useEffect(() => {
+    if (!page) {
+      return;
+    }
+    logGovernanceScope("PAGE", "error-log", {
+      route: window.location.pathname,
+      canView: !!page.canViewErrorLog,
+      canManageAllCompanies: !!page.canManageAllCompanies,
+      selectedInsttId: filters.insttId,
+      sourceType: filters.sourceType,
+      errorType: filters.errorType,
+      searchKeyword: filters.searchKeyword
+    });
+    logGovernanceScope("COMPONENT", "error-log-table", {
+      component: "error-log-table",
+      rowCount: rows.length,
+      companyOptionCount: companyOptions.length,
+      sourceTypeOptionCount: sourceTypeOptions.length,
+      errorTypeOptionCount: errorTypeOptions.length
+    });
+  }, [companyOptions.length, errorTypeOptions.length, filters.errorType, filters.insttId, filters.searchKeyword, filters.sourceType, page, rows.length, sourceTypeOptions.length]);
+
   function updateDraft<K extends keyof Filters>(key: K, value: Filters[K]) {
     setDraftFilters((current) => ({ ...current, [key]: value }));
   }
 
   function applyFilters(nextPageIndex = 1) {
+    logGovernanceScope("ACTION", "error-log-search", {
+      pageIndex: nextPageIndex,
+      insttId: draftFilters.insttId,
+      sourceType: draftFilters.sourceType,
+      errorType: draftFilters.errorType,
+      searchKeyword: draftFilters.searchKeyword
+    });
     setFilters({
       ...draftFilters,
       pageIndex: nextPageIndex

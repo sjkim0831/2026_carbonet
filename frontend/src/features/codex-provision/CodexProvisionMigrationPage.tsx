@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { logGovernanceScope } from "../../app/policy/debug";
 import {
   type CodexHistoryPayload,
   type CodexProvisionPagePayload,
@@ -179,6 +180,35 @@ export function CodexProvisionMigrationPage() {
   const queuePageCount = Math.max(1, Math.ceil(srTickets.length / queuePageSize));
   const normalizedQueuePageIndex = Math.min(queuePageIndex, queuePageCount - 1);
   const pagedTickets = srTickets.slice(normalizedQueuePageIndex * queuePageSize, (normalizedQueuePageIndex + 1) * queuePageSize);
+
+  useEffect(() => {
+    logGovernanceScope("PAGE", "codex-provision", {
+      language: en ? "en" : "ko",
+      codexReady,
+      srTicketCount,
+      historyCount,
+      selectedTicketId,
+      queuePageIndex: normalizedQueuePageIndex
+    });
+    logGovernanceScope("COMPONENT", "codex-provision-ticket-queue", {
+      pagedTicketCount: pagedTickets.length,
+      queuePageCount,
+      selectedTicketId,
+      selectedPlanArtifactType,
+      selectedBuildArtifactType
+    });
+  }, [
+    codexReady,
+    en,
+    historyCount,
+    normalizedQueuePageIndex,
+    pagedTickets.length,
+    queuePageCount,
+    selectedBuildArtifactType,
+    selectedPlanArtifactType,
+    selectedTicketId,
+    srTicketCount
+  ]);
 
   useEffect(() => {
     if (pageState.value?.codexSamplePayload) {
@@ -629,7 +659,8 @@ export function CodexProvisionMigrationPage() {
           <pre className="rounded-[var(--kr-gov-radius)] bg-slate-950 text-slate-100 p-4 text-xs md:text-sm font-mono whitespace-pre-wrap break-all leading-6 min-h-[14rem]">{responseText}</pre>
         </article>
       </section>
-      <section className="gov-card mt-6" data-help-id="codex-history-table">
+      <section className="gov-card mt-6" data-help-id="codex-request-history-review">
+        <div data-help-id="codex-history-table" hidden />
         <div className="flex flex-col gap-3 border-b pb-4 mb-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h3 className="text-lg font-bold">{en ? "SR Execution Queue" : "SR 실행 큐"}</h3>

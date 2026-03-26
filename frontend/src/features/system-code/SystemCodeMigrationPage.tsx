@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { buildLocalizedPath, getSearchParam, isEnglish } from "../../lib/navigation/runtime";
 import { fetchSystemCodePage, type SystemCodePagePayload } from "../../lib/api/client";
@@ -32,8 +33,29 @@ export function SystemCodeMigrationPage() {
     }
   }, [codeList, detailCodeId, setDetailCodeId]);
 
+  useEffect(() => {
+    if (!page) {
+      return;
+    }
+    logGovernanceScope("PAGE", "system-code", {
+      route: window.location.pathname,
+      detailCodeId,
+      classCodeCount: clCodeList.length,
+      codeGroupCount: codeList.length,
+      detailCodeCount: detailCodeList.length
+    });
+    logGovernanceScope("COMPONENT", "system-code-detail-table", {
+      component: "system-code-detail-table",
+      detailCodeId,
+      rowCount: detailCodeList.length
+    });
+  }, [clCodeList.length, codeList.length, detailCodeId, detailCodeList.length, page]);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    logGovernanceScope("ACTION", "system-code-submit", {
+      detailCodeId
+    });
     setActionError("");
     try {
       await submitFormRequest(event.currentTarget);

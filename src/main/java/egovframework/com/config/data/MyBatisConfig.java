@@ -23,6 +23,7 @@ public class MyBatisConfig {
         sessionFactory.setTypeAliasesPackage(
                 "egovframework.com.common.model,egovframework.com.feature.member.model.vo,egovframework.com.feature.admin.model.vo");
         sessionFactory.setTypeAliases(new Class[] { org.egovframe.rte.psl.dataaccess.util.EgovMap.class });
+        sessionFactory.setTypeHandlersPackage("egovframework.com.config.data");
 
         org.apache.ibatis.session.Configuration configuration = new org.apache.ibatis.session.Configuration();
         configuration.setMapUnderscoreToCamelCase(true);

@@ -28,6 +28,15 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addResourceHandler("/home/**").addResourceLocations("classpath:/static/");
         registry.addResourceHandler("/signin/**").addResourceLocations("classpath:/static/");
         registry.addResourceHandler("/main/**").addResourceLocations("classpath:/static/");
+        registry.addResourceHandler("/assets/react/index.html")
+                .addResourceLocations("classpath:/static/react-app/index.html")
+                .setCacheControl(CacheControl.noCache());
+        registry.addResourceHandler("/assets/react/assets/**")
+                .addResourceLocations("classpath:/static/react-app/assets/")
+                .setCacheControl(CacheControl.maxAge(365, TimeUnit.DAYS).cachePublic());
+        registry.addResourceHandler("/assets/react/.vite/**")
+                .addResourceLocations("classpath:/static/react-app/.vite/")
+                .setCacheControl(CacheControl.maxAge(365, TimeUnit.DAYS).cachePublic());
         registry.addResourceHandler("/admin/assets/react/**", "/en/admin/assets/react/**")
                 .addResourceLocations("classpath:/static/react-app/")
                 .setCacheControl(CacheControl.maxAge(365, TimeUnit.DAYS).cachePublic());
@@ -42,10 +51,28 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addInterceptor(localeChangeInterceptor());
         registry.addInterceptor(companyScopeInterceptor)
                 .addPathPatterns("/**")
-                .excludePathPatterns("/css/**", "/js/**", "/images/**", "/webjars/**", "/error/**", "/favicon.ico");
+                .excludePathPatterns(
+                        "/css/**",
+                        "/js/**",
+                        "/images/**",
+                        "/webjars/**",
+                        "/error/**",
+                        "/favicon.ico",
+                        "/assets/react/**",
+                        "/admin/assets/react/**",
+                        "/en/admin/assets/react/**");
         registry.addInterceptor(traceContextInterceptor)
                 .addPathPatterns("/**")
-                .excludePathPatterns("/css/**", "/js/**", "/images/**", "/webjars/**", "/error/**", "/favicon.ico");
+                .excludePathPatterns(
+                        "/css/**",
+                        "/js/**",
+                        "/images/**",
+                        "/webjars/**",
+                        "/error/**",
+                        "/favicon.ico",
+                        "/assets/react/**",
+                        "/admin/assets/react/**",
+                        "/en/admin/assets/react/**");
         registry.addInterceptor(reactShellNoCacheInterceptor).addPathPatterns("/**");
     }
 

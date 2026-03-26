@@ -1,5 +1,7 @@
 package egovframework.com.framework.builder.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import egovframework.com.common.mapper.ObservabilityMapper;
 import egovframework.com.common.trace.UiComponentRegistryVO;
 import egovframework.com.common.trace.UiPageComponentDetailVO;
@@ -11,6 +13,8 @@ import egovframework.com.framework.builder.model.FrameworkBuilderContractVO;
 import egovframework.com.framework.builder.model.FrameworkBuilderPageContractVO;
 import egovframework.com.framework.builder.model.FrameworkBuilderProfilesVO;
 import egovframework.com.framework.builder.model.FrameworkBuilderSurfaceContractVO;
+import egovframework.com.framework.contract.model.FrameworkContractMetadataVO;
+import egovframework.com.framework.contract.service.FrameworkContractMetadataService;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
@@ -22,6 +26,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.HashSet;
 
 @Service
 public class FrameworkBuilderContractService {
@@ -30,23 +35,31 @@ public class FrameworkBuilderContractService {
 
     private final ObservabilityMapper observabilityMapper;
     private final ScreenBuilderDraftService screenBuilderDraftService;
+    private final FrameworkContractMetadataService frameworkContractMetadataService;
+    private final ObjectMapper objectMapper;
 
     public FrameworkBuilderContractService(ObservabilityMapper observabilityMapper,
-                                           ScreenBuilderDraftService screenBuilderDraftService) {
+                                           ScreenBuilderDraftService screenBuilderDraftService,
+                                           FrameworkContractMetadataService frameworkContractMetadataService,
+                                           ObjectMapper objectMapper) {
         this.observabilityMapper = observabilityMapper;
         this.screenBuilderDraftService = screenBuilderDraftService;
+        this.frameworkContractMetadataService = frameworkContractMetadataService;
+        this.objectMapper = objectMapper;
     }
 
     public FrameworkBuilderContractVO getBuilderContract(boolean isEn) throws Exception {
+        FrameworkContractMetadataVO metadata = frameworkContractMetadataService.getMetadata();
         FrameworkBuilderContractVO contract = new FrameworkBuilderContractVO();
-        contract.setFrameworkId("carbonet-ui-framework");
-        contract.setFrameworkName("Carbonet UI Framework");
-        contract.setContractVersion("2026-03-23");
+        contract.setFrameworkId(metadata.getFrameworkId());
+        contract.setFrameworkName(metadata.getFrameworkName());
+        contract.setContractVersion(metadata.getContractVersion());
         contract.setSource("backend-runtime-registry");
         contract.setGeneratedAt(OffsetDateTime.now().toString());
         contract.setPages(buildPages());
         contract.setComponents(buildComponents(isEn));
-        contract.setBuilderProfiles(buildProfiles());
+        contract.setBuilderProfiles(buildProfiles(metadata));
+        validateContract(metadata, contract);
         return contract;
     }
 
@@ -170,12 +183,12 @@ public class FrameworkBuilderContractService {
         target.setBuilderReady(BUILDER_READY_COMPONENT_TYPES.contains(safe(target.getComponentType()).toLowerCase(Locale.ROOT)));
     }
 
-    private FrameworkBuilderProfilesVO buildProfiles() {
+    private FrameworkBuilderProfilesVO buildProfiles(FrameworkContractMetadataVO metadata) {
         FrameworkBuilderProfilesVO profiles = new FrameworkBuilderProfilesVO();
-        profiles.setPageFrameProfileIds(new ArrayList<>(List.of("dashboard-page", "list-page", "detail-page", "edit-page", "builder-page")));
-        profiles.setLayoutZoneIds(new ArrayList<>(List.of("header", "sidebar", "content", "footer", "actions")));
-        profiles.setComponentTypeIds(new ArrayList<>(List.of("button", "input", "select", "textarea", "table", "pagination")));
-        profiles.setArtifactUnitIds(new ArrayList<>(List.of("page-manifest", "component-registry", "screen-builder-draft")));
+        profiles.setPageFrameProfileIds(new ArrayList<>(metadata.getBuilderProfiles().getPageFrameProfileIds()));
+        profiles.setLayoutZoneIds(new ArrayList<>(metadata.getBuilderProfiles().getLayoutZoneIds()));
+        profiles.setComponentTypeIds(new ArrayList<>(metadata.getBuilderProfiles().getComponentTypeIds()));
+        profiles.setArtifactUnitIds(new ArrayList<>(metadata.getBuilderProfiles().getArtifactUnitIds()));
         return profiles;
     }
 
@@ -204,7 +217,12 @@ public class FrameworkBuilderContractService {
         Map<String, Object> props = row == null || row.getPropsTemplate() == null
                 ? Collections.emptyMap()
                 : row.getPropsTemplate();
-        return props.toString();
+        try {
+            return objectMapper.writeValueAsString(props);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Failed to serialize component props schema. componentId="
+                    + (row == null ? "" : safe(row.getComponentId())), e);
+        }
     }
 
     private List<String> buildLabels(ScreenBuilderComponentRegistryItemVO row) {
@@ -248,5 +266,58 @@ public class FrameworkBuilderContractService {
 
     private String safe(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private void validateContract(FrameworkContractMetadataVO metadata, FrameworkBuilderContractVO contract) {
+        if (!safe(metadata.getFrameworkId()).equals(safe(contract.getFrameworkId()))) {
+            throw new IllegalStateException("Framework builder contract frameworkId mismatch.");
+        }
+        if (!safe(metadata.getFrameworkName()).equals(safe(contract.getFrameworkName()))) {
+            throw new IllegalStateException("Framework builder contract frameworkName mismatch.");
+        }
+        if (!safe(metadata.getContractVersion()).equals(safe(contract.getContractVersion()))) {
+            throw new IllegalStateException("Framework builder contract version mismatch.");
+        }
+
+        Set<String> allowedLayoutZones = new HashSet<>();
+        for (String value : metadata.getBuilderProfiles().getLayoutZoneIds()) {
+            if (!safe(value).isEmpty()) {
+                allowedLayoutZones.add(safe(value));
+            }
+        }
+        Set<String> allowedComponentTypes = new HashSet<>();
+        for (String value : metadata.getBuilderProfiles().getComponentTypeIds()) {
+            if (!safe(value).isEmpty()) {
+                allowedComponentTypes.add(safe(value).toLowerCase(Locale.ROOT));
+            }
+        }
+
+        for (FrameworkBuilderPageContractVO page : contract.getPages()) {
+            if (page == null || page.getComponents() == null) {
+                continue;
+            }
+            for (FrameworkBuilderSurfaceContractVO component : page.getComponents()) {
+                if (component == null) {
+                    continue;
+                }
+                String layoutZone = safe(component.getLayoutZone());
+                if (!layoutZone.isEmpty() && !allowedLayoutZones.contains(layoutZone)) {
+                    throw new IllegalStateException("Unsupported framework layout zone: " + layoutZone
+                            + " pageId=" + safe(page.getPageId())
+                            + " componentId=" + safe(component.getComponentId()));
+                }
+            }
+        }
+
+        for (FrameworkBuilderComponentContractVO component : contract.getComponents()) {
+            if (component == null) {
+                continue;
+            }
+            String componentType = safe(component.getComponentType()).toLowerCase(Locale.ROOT);
+            if (!componentType.isEmpty() && !allowedComponentTypes.contains(componentType)) {
+                throw new IllegalStateException("Unsupported framework component type: " + componentType
+                        + " componentId=" + safe(component.getComponentId()));
+            }
+        }
     }
 }

@@ -16,6 +16,18 @@ type Props = {
     templateType?: string;
     publishedVersionId?: string;
     publishedSavedAt?: string;
+    screenGovernance?: {
+      requiredViewFeatureCode?: string;
+      featureCodeCount?: number;
+      relationTableCount?: number;
+      surfaceCount?: number;
+      eventCount?: number;
+      apiCount?: number;
+      schemaCount?: number;
+      changeTargetCount?: number;
+      routePath?: string;
+      menuLookupUrl?: string;
+    };
     versionHistory?: Array<{
       versionId: string;
       savedAt?: string;
@@ -146,6 +158,45 @@ export default function ScreenBuilderOverviewPanels({
           statusTone="neutral"
           title={en ? "Registered components" : "등록 컴포넌트 수"}
         />
+      </section>
+      <section className="gov-card p-0 overflow-hidden">
+        <GridToolbar
+          meta={en
+            ? "Menus remain navigation entrypoints, while screens stay pageId-based runtime units with their own flow and permission chain."
+            : "메뉴는 진입점으로 유지하고, 스크린은 pageId 기준 runtime 단위와 흐름/권한 체인을 별도로 관리합니다."}
+          title={en ? "Screen Governance Separation" : "메뉴-스크린 분리 거버넌스"}
+        />
+        <div className="grid grid-cols-1 gap-4 p-6 xl:grid-cols-4">
+          <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3">
+            <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Route / Menu Entry" : "Route / 메뉴 진입점"}</p>
+            <p className="mt-2 break-all font-mono text-sm">{page?.screenGovernance?.routePath || page?.menuUrl || "-"}</p>
+          </div>
+          <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3">
+            <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Required View Feature" : "필수 VIEW 기능"}</p>
+            <p className="mt-2 break-all font-mono text-sm">{page?.screenGovernance?.requiredViewFeatureCode || "-"}</p>
+            <p className="mt-2 text-xs text-[var(--kr-gov-text-secondary)]">
+              {en ? `${page?.screenGovernance?.featureCodeCount || 0} feature codes in the page permission chain` : `페이지 권한 체인 기능 코드 ${page?.screenGovernance?.featureCodeCount || 0}건`}
+            </p>
+          </div>
+          <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3">
+            <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Surface / Event / API" : "Surface / Event / API"}</p>
+            <p className="mt-2 text-lg font-black">
+              {`${page?.screenGovernance?.surfaceCount || 0} / ${page?.screenGovernance?.eventCount || 0} / ${page?.screenGovernance?.apiCount || 0}`}
+            </p>
+            <p className="mt-2 text-xs text-[var(--kr-gov-text-secondary)]">
+              {en ? "screen flow runtime chain" : "screen flow runtime 체인"}
+            </p>
+          </div>
+          <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3">
+            <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Schema / Change Targets" : "스키마 / 변경 대상"}</p>
+            <p className="mt-2 text-lg font-black">
+              {`${page?.screenGovernance?.schemaCount || 0} / ${page?.screenGovernance?.changeTargetCount || 0}`}
+            </p>
+            <p className="mt-2 text-xs text-[var(--kr-gov-text-secondary)]">
+              {en ? `${page?.screenGovernance?.relationTableCount || 0} relation tables in governance` : `권한/거버넌스 연계 테이블 ${page?.screenGovernance?.relationTableCount || 0}건`}
+            </p>
+          </div>
+        </div>
       </section>
       <section className="gov-card p-0 overflow-hidden">
         <GridToolbar

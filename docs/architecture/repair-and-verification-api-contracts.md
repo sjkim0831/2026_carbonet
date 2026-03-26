@@ -23,9 +23,21 @@ Purpose:
 - `projectId`
 - `releaseUnitId`
 - `guidedStateId`
+- `templateLineId`
 - `screenFamilyRuleId`
 - `ownerLane`
 - `selectedScreenId`
+- `builderInput`
+  - `builderId`
+  - `draftVersionId`
+  - `menuCode`
+  - `pageId`
+  - `menuUrl`
+- `runtimeEvidence`
+  - `publishedVersionId`
+  - `currentRuntimeTraceId`
+  - `currentNodeCount`
+  - `currentEventCount`
 - `selectedElementSet`
 - `compareBaseline`
   - recommended values:
@@ -53,9 +65,12 @@ Purpose:
 - `repairSessionId`
 - `projectId`
 - `guidedStateId`
+- `templateLineId`
 - `screenFamilyRuleId`
 - `ownerLane`
 - `selectedScreenId`
+- `builderInput`
+- `runtimeEvidence`
 - `selectedElementSet`
 - `compareSnapshotId`
 - `blockingGapSet`
@@ -65,6 +80,18 @@ Purpose:
   - `OPEN`
   - `REPAIR_REQUIRED`
   - `REVIEW_REQUIRED`
+
+`repair/open` must remain directly consumable by `09`.
+The response may not rename or drop:
+
+- `releaseUnitId`
+- `guidedStateId`
+- `templateLineId`
+- `screenFamilyRuleId`
+- `ownerLane`
+- `selectedScreenId`
+- `builderInput`
+- `runtimeEvidence`
 
 ## 2. repair/apply
 
@@ -77,9 +104,12 @@ Purpose:
 - `repairSessionId`
 - `projectId`
 - `guidedStateId`
+- `templateLineId`
 - `screenFamilyRuleId`
 - `ownerLane`
 - `selectedScreenId`
+- `builderInput`
+- `runtimeEvidence`
 - `updatedAssetSet`
 - `updatedBindingSet`
 - `updatedThemeOrLayoutSet`
@@ -96,7 +126,10 @@ Purpose:
 
 - `repairApplyRunId`
 - `guidedStateId`
+- `templateLineId`
 - `ownerLane`
+- `builderInput`
+- `runtimeEvidence`
 - `updatedAssetTraceSet`
 - `updatedReleaseCandidateId`
 - `parityRecheckRequiredYn`
@@ -106,6 +139,9 @@ Purpose:
   - `APPLIED`
   - `APPLIED_WITH_BLOCKERS`
   - `REJECTED`
+
+When `06` is ready to hand off, `repair/apply` responses should already make it
+obvious whether `09` must reopen compare or can continue to smoke closure.
 
 ## 3. verification/menu-to-rendered-screen
 
@@ -118,12 +154,15 @@ Purpose:
 - `projectId`
 - `menuId`
 - `guidedStateId`
+- `templateLineId`
+- `screenFamilyRuleId`
 - `ownerLane`
 - `targetRuntime`
   - `MAIN_SERVER_CURRENT`
   - `GENERATED_TARGET`
   - `PATCH_TARGET`
 - `releaseUnitId`
+- `builderInput`
 - `verifyShellYn`
 - `verifyComponentYn`
 - `verifyBindingYn`
@@ -136,9 +175,12 @@ Purpose:
 - `menuId`
 - `pageId`
 - `routeId`
+- `templateLineId`
 - `screenFamilyRuleId`
 - `shellProfileId`
 - `pageFrameId`
+- `builderInput`
+- `runtimeEvidence`
 - `componentCoverageState`
 - `bindingCoverageState`
 - `backendChainState`
@@ -149,6 +191,10 @@ Purpose:
   - `PASS`
   - `WARN`
   - `FAIL`
+
+`verification/menu-to-rendered-screen` must preserve the same governed
+identity keys used by compare and repair. `09` should not need a translation
+layer to connect verification output back to repair or release-unit evidence.
 
 ## 4. Audit Requirements
 
@@ -167,6 +213,16 @@ Every repair and verification run should record:
 - `compareBaseline`
 - `result`
 - `occurredAt`
+
+## 6. 06 Handoff Rule
+
+`06` may move to handoff when:
+
+- request and response identity fields are stable across compare, repair, and verification
+- MyBatis mapper bindings use the same payload names as the documented contracts
+- release-unit trace linkage is visible without ad hoc name conversion
+- service tests cover the currently documented field names
+- `07` and `09` can consume the output without reopening `01`
 
 ## 5. Use
 

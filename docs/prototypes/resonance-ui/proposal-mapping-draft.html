@@ -50,6 +50,8 @@
               <div class="meta-row"><span class="label">Guided State</span><div class="value">guided-build-04-proposal-mapping</div></div>
               <div class="meta-row"><span class="label">Mapping Draft</span><div class="value">MAP-20260321-01</div></div>
               <div class="meta-row"><span class="label">Synthesis Run</span><div class="value">SYN-20260321-01</div></div>
+              <div class="meta-row"><span class="label">Builder Input Ready</span><div class="value">Y for lane 04</div></div>
+              <div class="meta-row"><span class="label">Verify Input Ready</span><div class="value">Y for lane 09</div></div>
               <div class="meta-row"><span class="label">Common Asset Plan</span><div class="value">CAP-CORE-01</div></div>
               <div class="meta-row"><span class="label">Project Asset Plan</span><div class="value">PAP-MEMBER-01</div></div>
               <div class="meta-row"><span class="label">Mapping Confidence</span><div class="value">92 / 100</div></div>
@@ -89,6 +91,33 @@
                   <td>join-status-search, join-status-detail</td>
                   <td>joinStatusLoad / JOIN_COMPANY_DRAFT</td>
                 </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card" style="margin-top:18px">
+          <div class="card-header">
+            <div>
+              <h2>02 Handoff Evidence</h2>
+              <p>제안 매핑 초안이 다음 레인으로 바로 이어질 수 있는지 확인합니다.</p>
+            </div>
+            <span class="chip ok">Handoff Ready</span>
+          </div>
+          <div class="card-body">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Consumer Lane</th>
+                  <th>Required Evidence</th>
+                  <th>Current Result</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>04 Builder</td><td>page family, template line, screen family rule, asset plan candidates</td><td>same projectId / synthesisRunId / mappingDraftId</td><td><span class="chip ok">Ready</span></td></tr>
+                <tr><td>09 Verify</td><td>mapping baseline, inventory baseline, matrix baseline</td><td>compare-ready identity preserved</td><td><span class="chip ok">Ready</span></td></tr>
+                <tr><td>05 / 06 / 08 Follow-on</td><td>scenario and design package trace from proposal baseline</td><td>governed proposal chain attached</td><td><span class="chip ok">Ready</span></td></tr>
               </tbody>
             </table>
           </div>

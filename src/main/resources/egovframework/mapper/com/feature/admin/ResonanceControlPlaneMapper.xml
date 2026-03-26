@@ -5,6 +5,62 @@
 
 <mapper namespace="ResonanceControlPlaneMapper">
 
+    <insert id="insertParityCompareRun" parameterType="map">
+        INSERT INTO RSN_PARITY_COMPARE_RUN (
+            COMPARE_CONTEXT_ID,
+            TRACE_ID,
+            PROJECT_ID,
+            GUIDED_STATE_ID,
+            TEMPLATE_LINE_ID,
+            SCREEN_FAMILY_RULE_ID,
+            OWNER_LANE,
+            SELECTED_SCREEN_ID,
+            RELEASE_UNIT_ID,
+            COMPARE_BASELINE,
+            PARITY_SCORE,
+            UNIFORMITY_SCORE,
+            RESULT,
+            COMPARE_TARGET_SET_JSON,
+            BLOCKER_SET_JSON,
+            REPAIR_CANDIDATE_SET_JSON,
+            REQUESTED_BY,
+            REQUESTED_BY_TYPE,
+            RESULT_PAYLOAD_JSON,
+            OCCURRED_AT,
+            ROW_VERSION,
+            CREATED_BY,
+            UPDATED_BY,
+            CREATED_AT,
+            UPDATED_AT
+        ) VALUES (
+            #{compareContextId},
+            #{traceId},
+            #{projectId},
+            #{guidedStateId},
+            #{templateLineId},
+            #{screenFamilyRuleId},
+            #{ownerLane},
+            #{selectedScreenId},
+            #{releaseUnitId},
+            #{compareBaseline},
+            #{parityScore},
+            #{uniformityScore},
+            #{result},
+            #{compareTargetSetJson},
+            #{blockerSetJson},
+            #{repairCandidateSetJson},
+            #{requestedBy},
+            #{requestedByType},
+            #{resultPayloadJson},
+            #{occurredAt},
+            0,
+            #{createdBy},
+            #{updatedBy},
+            CURRENT_DATETIME,
+            CURRENT_DATETIME
+        )
+    </insert>
+
     <insert id="insertModuleBindingPreview" parameterType="map">
         INSERT INTO RSN_MODULE_BINDING_PREVIEW (
             MODULE_BINDING_PREVIEW_ID,
@@ -105,6 +161,7 @@
             TRACE_LINK_SET_JSON,
             NEXT_RECOMMENDED_ACTION,
             ROLLBACK_ANCHOR_YN,
+            OCCURRED_AT,
             RESULT_PAYLOAD_JSON,
             ROW_VERSION,
             CREATED_BY,
@@ -144,6 +201,7 @@
             #{traceLinkSetJson},
             #{nextRecommendedAction},
             #{rollbackAnchorYn},
+            #{occurredAt},
             #{resultPayloadJson},
             0,
             #{createdBy},
@@ -157,14 +215,50 @@
         SELECT
             MODULE_BINDING_RESULT_ID AS moduleBindingResultId,
             MODULE_BINDING_PREVIEW_ID AS moduleBindingPreviewId,
+            TRACE_ID AS traceId,
             PROJECT_ID AS projectId,
             SCENARIO_ID AS scenarioId,
             GUIDED_STATE_ID AS guidedStateId,
             PAGE_ASSEMBLY_ID AS pageAssemblyId,
             TEMPLATE_LINE_ID AS templateLineId,
             SCREEN_FAMILY_RULE_ID AS screenFamilyRuleId,
+            RELEASE_UNIT_ID AS releaseUnitId,
+            RUNTIME_PACKAGE_ID AS runtimePackageId,
+            GENERATION_RUN_ID AS generationRunId,
+            SELECTION_APPLIED_YN AS selectionAppliedYn,
+            APPLIED_MODULE_SET_JSON AS appliedModuleSetJson,
+            ATTACHED_PAGE_ASSET_SET_JSON AS attachedPageAssetSetJson,
+            ATTACHED_COMPONENT_ASSET_SET_JSON AS attachedComponentAssetSetJson,
+            ATTACHED_BACKEND_ASSET_SET_JSON AS attachedBackendAssetSetJson,
+            ATTACHED_DB_ASSET_SET_JSON AS attachedDbAssetSetJson,
+            RUNTIME_PACKAGE_IMPACT_SUMMARY AS runtimePackageImpactSummary,
+            RELEASE_BLOCKER_DELTA_JSON AS releaseBlockerDeltaJson,
+            FOLLOW_UP_CHECKLIST_SUMMARY AS followUpChecklistSummary,
+            REPAIR_NEEDED_YN AS repairNeededYn,
+            REPAIR_QUEUE_COUNT AS repairQueueCount,
+            REPAIR_SESSION_CANDIDATE_ID AS repairSessionCandidateId,
+            COMPARE_CONTEXT_ID AS compareContextId,
+            PUBLISHED_ASSET_TRACE_SET_JSON AS publishedAssetTraceSetJson,
+            TRACE_LINK_SET_JSON AS traceLinkSetJson,
+            NEXT_RECOMMENDED_ACTION AS nextRecommendedAction,
+            ROLLBACK_ANCHOR_YN AS rollbackAnchorYn,
+            OCCURRED_AT AS occurredAt,
             RESULT_PAYLOAD_JSON AS resultPayloadJson
         FROM RSN_MODULE_BINDING_RESULT
+        WHERE MODULE_BINDING_PREVIEW_ID = #{value}
+    </select>
+
+    <select id="selectModuleBindingPreviewById" parameterType="string" resultType="map">
+        SELECT
+            MODULE_BINDING_PREVIEW_ID AS moduleBindingPreviewId,
+            TRACE_ID AS traceId,
+            PROJECT_ID AS projectId,
+            SCENARIO_ID AS scenarioId,
+            GUIDED_STATE_ID AS guidedStateId,
+            TEMPLATE_LINE_ID AS templateLineId,
+            SCREEN_FAMILY_RULE_ID AS screenFamilyRuleId,
+            PREVIEW_PAYLOAD_JSON AS previewPayloadJson
+        FROM RSN_MODULE_BINDING_PREVIEW
         WHERE MODULE_BINDING_PREVIEW_ID = #{value}
     </select>
 
@@ -176,6 +270,7 @@
             SCENARIO_FAMILY_ID,
             RELEASE_UNIT_ID,
             GUIDED_STATE_ID,
+            TEMPLATE_LINE_ID,
             SCREEN_FAMILY_RULE_ID,
             OWNER_LANE,
             SELECTED_SCREEN_ID,
@@ -206,6 +301,7 @@
             #{scenarioFamilyId},
             #{releaseUnitId},
             #{guidedStateId},
+            #{templateLineId},
             #{screenFamilyRuleId},
             #{ownerLane},
             #{selectedScreenId},
@@ -241,6 +337,7 @@
             SCENARIO_FAMILY_ID,
             RELEASE_UNIT_ID,
             GUIDED_STATE_ID,
+            TEMPLATE_LINE_ID,
             SCREEN_FAMILY_RULE_ID,
             OWNER_LANE,
             SELECTED_SCREEN_ID,
@@ -275,6 +372,7 @@
             #{scenarioFamilyId},
             #{releaseUnitId},
             #{guidedStateId},
+            #{templateLineId},
             #{screenFamilyRuleId},
             #{ownerLane},
             #{selectedScreenId},
@@ -312,6 +410,7 @@
             SCENARIO_FAMILY_ID,
             MENU_ID,
             GUIDED_STATE_ID,
+            TEMPLATE_LINE_ID,
             OWNER_LANE,
             TARGET_RUNTIME,
             RELEASE_UNIT_ID,
@@ -351,6 +450,7 @@
             #{scenarioFamilyId},
             #{menuId},
             #{guidedStateId},
+            #{templateLineId},
             #{ownerLane},
             #{targetRuntime},
             #{releaseUnitId},

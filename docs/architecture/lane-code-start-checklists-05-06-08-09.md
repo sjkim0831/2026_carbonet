@@ -47,13 +47,18 @@ Confirm before editing:
 - one runtime package family is already defined
 - deploy console prototype is the current visual source
 - release unit owns the target artifacts
+- runtime package id and deploy trace id can be stated without reinterpretation
+- the `08` lane session loop still routes to `res-08-deploy`
 - main server runtime truth is explicit
+- the role split is still `233` build / `221` run / `193` DB
 - public/admin split is still visible in rollout and rollback views
 
 Stop and mark `BLOCKED` if:
 
 - runtime package ownership is ambiguous
 - deploy flow requires a new trace semantic
+- `releaseUnitId`, `runtimePackageId`, `deployTraceId`, or `ownerLane` cannot be carried into `09`
+- the numbered-lane prompt no longer reattaches to the `08` deploy lane
 - public/admin split disappears in rollout state
 
 ## 09 Verify Code Start Checklist

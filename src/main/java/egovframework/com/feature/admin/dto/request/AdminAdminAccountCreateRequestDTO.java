@@ -16,6 +16,9 @@ public class AdminAdminAccountCreateRequestDTO {
     private String phone3;
     private String deptNm;
     private String insttId;
+    private String zip;
+    private String adres;
+    private String detailAdres;
     private List<String> featureCodes = new ArrayList<>();
 
     public String getRolePreset() { return rolePreset; }
@@ -40,6 +43,12 @@ public class AdminAdminAccountCreateRequestDTO {
     public void setDeptNm(String deptNm) { this.deptNm = deptNm; }
     public String getInsttId() { return insttId; }
     public void setInsttId(String insttId) { this.insttId = insttId; }
+    public String getZip() { return zip; }
+    public void setZip(String zip) { this.zip = zip; }
+    public String getAdres() { return adres; }
+    public void setAdres(String adres) { this.adres = adres; }
+    public String getDetailAdres() { return detailAdres; }
+    public void setDetailAdres(String detailAdres) { this.detailAdres = detailAdres; }
     public List<String> getFeatureCodes() { return featureCodes; }
     public void setFeatureCodes(List<String> featureCodes) { this.featureCodes = featureCodes == null ? new ArrayList<>() : featureCodes; }
 }

@@ -83,6 +83,7 @@ export function CompanyMembershipSection({
 
 export function CompanyBusinessSection({
   form,
+  isEditMode,
   canUseSave,
   nameCheckMessage,
   isNameChecked,
@@ -91,6 +92,7 @@ export function CompanyBusinessSection({
   handleAddressSearch
 }: {
   form: CompanyFormState;
+  isEditMode: boolean;
   canUseSave: boolean;
   nameCheckMessage: string;
   isNameChecked: boolean;
@@ -103,11 +105,19 @@ export function CompanyBusinessSection({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
         <div className="md:col-span-2">
           <label className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2">기관/기업명 <span className="text-red-500">*</span></label>
-          <div className="flex gap-2">
-            <AdminInput disabled={!canUseSave} value={form.agencyName} onChange={(e) => updateField("agencyName", e.target.value)} />
-            <MemberButton disabled={!canUseSave} onClick={() => void handleCheckDuplicate()} type="button" variant="info">
-              {MEMBER_BUTTON_LABELS.duplicateCheck}
-            </MemberButton>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <AdminInput className="min-w-0" disabled={!canUseSave || isEditMode} readOnly={isEditMode} value={form.agencyName} onChange={(e) => updateField("agencyName", e.target.value)} />
+            {!isEditMode ? (
+              <MemberButton
+                className="w-full shrink-0 justify-center whitespace-nowrap sm:w-auto sm:min-w-[126px]"
+                disabled={!canUseSave}
+                onClick={() => void handleCheckDuplicate()}
+                type="button"
+                variant="primary"
+              >
+                {MEMBER_BUTTON_LABELS.duplicateCheck}
+              </MemberButton>
+            ) : null}
           </div>
           {nameCheckMessage ? (
             <p className={`mt-2 text-xs font-bold ${isNameChecked ? "text-emerald-600" : "text-red-600"}`}>{nameCheckMessage}</p>
@@ -115,22 +125,28 @@ export function CompanyBusinessSection({
         </div>
         <label>
           <span className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2">대표자명 <span className="text-red-500">*</span></span>
-          <AdminInput disabled={!canUseSave} value={form.representativeName} onChange={(e) => updateField("representativeName", e.target.value)} />
+          <AdminInput disabled={!canUseSave || isEditMode} readOnly={isEditMode} value={form.representativeName} onChange={(e) => updateField("representativeName", e.target.value)} />
         </label>
         <label>
           <span className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2">사업자등록번호 <span className="text-red-500">*</span></span>
-          <AdminInput disabled={!canUseSave} inputMode="numeric" value={form.bizRegistrationNumber} onChange={(e) => updateField("bizRegistrationNumber", e.target.value)} />
+          <AdminInput disabled={!canUseSave || isEditMode} inputMode="numeric" readOnly={isEditMode} value={form.bizRegistrationNumber} onChange={(e) => updateField("bizRegistrationNumber", e.target.value)} />
         </label>
         <div className="md:col-span-2">
           <label className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2">사업장 주소 <span className="text-red-500">*</span></label>
-          <div className="mb-2 flex gap-2">
-            <AdminInput className="w-32 bg-gray-50" placeholder="우편번호" readOnly value={form.zipCode} />
-            <MemberButton disabled={!canUseSave} onClick={handleAddressSearch} type="button" variant="info">
+          <div className="mb-2 flex flex-col gap-2 sm:flex-row">
+            <AdminInput className="w-full cursor-pointer bg-gray-50 sm:w-32" onClick={handleAddressSearch} placeholder="우편번호" readOnly value={form.zipCode} />
+            <MemberButton
+              className="w-full shrink-0 justify-center whitespace-nowrap sm:w-auto sm:min-w-[126px]"
+              disabled={!canUseSave}
+              onClick={handleAddressSearch}
+              type="button"
+              variant="secondary"
+            >
               {MEMBER_BUTTON_LABELS.addressSearch}
             </MemberButton>
           </div>
-          <AdminInput className="mb-2 bg-gray-50" onClick={handleAddressSearch} readOnly value={form.companyAddress} />
-          <AdminInput disabled={!canUseSave} value={form.companyAddressDetail} onChange={(e) => updateField("companyAddressDetail", e.target.value)} />
+          <AdminInput className="mb-2 cursor-pointer bg-gray-50" onClick={handleAddressSearch} placeholder="주소 검색 버튼을 눌러 기본 주소를 선택하세요" readOnly value={form.companyAddress} />
+          <AdminInput disabled={!canUseSave} placeholder="상세 주소를 입력하세요" value={form.companyAddressDetail} onChange={(e) => updateField("companyAddressDetail", e.target.value)} />
         </div>
       </div>
     </MemberSectionCard>
@@ -186,9 +202,17 @@ export function CompanyFilesSection({
   return (
     <MemberSectionCard data-help-id="company-account-files" icon="upload_file" title="증빙 서류 제출">
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <label className="block text-sm font-bold text-[var(--kr-gov-text-primary)]">사업자등록증 또는 법인 검증 서류 <span className="text-red-500">*</span></label>
-          <MemberButton disabled={!canUseSave} icon="add" onClick={addFileRow} size="xs" type="button" variant="info">
+          <MemberButton
+            className="w-full shrink-0 justify-center whitespace-nowrap sm:w-auto"
+            disabled={!canUseSave}
+            icon="add"
+            onClick={addFileRow}
+            size="xs"
+            type="button"
+            variant="secondary"
+          >
             {MEMBER_BUTTON_LABELS.fileAdd}
           </MemberButton>
         </div>

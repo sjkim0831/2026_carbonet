@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.List;
+import java.util.Map;
 
 @Getter
 @Setter
@@ -12,9 +13,12 @@ public class RepairOpenRequest {
     private String projectId;
     private String releaseUnitId;
     private String guidedStateId;
+    private String templateLineId;
     private String screenFamilyRuleId;
     private String ownerLane;
     private String selectedScreenId;
+    private Map<String, Object> builderInput;
+    private Map<String, Object> runtimeEvidence;
     private List<String> selectedElementSet;
     private String compareBaseline;
     private String reasonCode;

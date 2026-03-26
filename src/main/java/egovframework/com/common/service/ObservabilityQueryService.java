@@ -8,6 +8,8 @@ import egovframework.com.common.logging.AccessEventRecordVO;
 import egovframework.com.common.logging.AccessEventSearchVO;
 import egovframework.com.common.trace.TraceEventRecordVO;
 import egovframework.com.common.trace.TraceEventSearchVO;
+import egovframework.com.feature.admin.dto.request.AdminUnifiedLogSearchRequestDTO;
+import egovframework.com.feature.admin.dto.response.AdminUnifiedLogRowResponse;
 
 import java.util.List;
 
@@ -28,4 +30,8 @@ public interface ObservabilityQueryService {
     int selectErrorEventCount(ErrorEventSearchVO searchVO);
 
     List<ErrorEventRecordVO> selectErrorEventList(ErrorEventSearchVO searchVO);
+
+    int selectUnifiedLogCount(AdminUnifiedLogSearchRequestDTO searchDTO);
+
+    List<AdminUnifiedLogRowResponse> selectUnifiedLogList(AdminUnifiedLogSearchRequestDTO searchDTO);
 }

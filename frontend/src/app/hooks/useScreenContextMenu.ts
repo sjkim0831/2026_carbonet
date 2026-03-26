@@ -270,7 +270,6 @@ export function useScreenContextMenu(page: string, routePath: string) {
     document.addEventListener("mousedown", handlePointerDown);
     document.addEventListener("mouseup", handleMouseUp);
     document.addEventListener("keydown", handleEscape);
-    window.addEventListener("scroll", closeContextMenu, true);
     window.addEventListener("resize", closeContextMenu);
     return () => {
       document.removeEventListener("contextmenu", handleContextMenu);
@@ -278,7 +277,6 @@ export function useScreenContextMenu(page: string, routePath: string) {
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("mouseup", handleMouseUp);
       document.removeEventListener("keydown", handleEscape);
-      window.removeEventListener("scroll", closeContextMenu, true);
       window.removeEventListener("resize", closeContextMenu);
     };
   }, [contextMenu.open, contextMenu.pageData, page, routePath]);

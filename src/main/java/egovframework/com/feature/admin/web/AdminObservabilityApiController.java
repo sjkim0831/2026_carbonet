@@ -33,8 +33,8 @@ public class AdminObservabilityApiController {
 
     @GetMapping("/audit-events")
     public ResponseEntity<Map<String, Object>> searchAuditEvents(
-            @RequestParam(value = "pageIndex", required = false, defaultValue = "1") int pageIndex,
-            @RequestParam(value = "pageSize", required = false, defaultValue = "20") int pageSize,
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "pageSize", required = false) String pageSizeParam,
             @RequestParam(value = "traceId", required = false) String traceId,
             @RequestParam(value = "actorId", required = false) String actorId,
             @RequestParam(value = "actionCode", required = false) String actionCode,
@@ -42,6 +42,8 @@ public class AdminObservabilityApiController {
             @RequestParam(value = "pageId", required = false) String pageId,
             @RequestParam(value = "resultStatus", required = false) String resultStatus,
             @RequestParam(value = "searchKeyword", required = false) String searchKeyword) {
+        int pageIndex = parsePositiveInt(pageIndexParam, 1);
+        int pageSize = parsePositiveInt(pageSizeParam, 20);
         AuditEventSearchVO searchVO = new AuditEventSearchVO();
         searchVO.setFirstIndex(Math.max(pageIndex - 1, 0) * Math.max(pageSize, 1));
         searchVO.setRecordCountPerPage(Math.max(pageSize, 1));
@@ -63,8 +65,8 @@ public class AdminObservabilityApiController {
 
     @GetMapping("/trace-events")
     public ResponseEntity<Map<String, Object>> searchTraceEvents(
-            @RequestParam(value = "pageIndex", required = false, defaultValue = "1") int pageIndex,
-            @RequestParam(value = "pageSize", required = false, defaultValue = "20") int pageSize,
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "pageSize", required = false) String pageSizeParam,
             @RequestParam(value = "traceId", required = false) String traceId,
             @RequestParam(value = "pageId", required = false) String pageId,
             @RequestParam(value = "componentId", required = false) String componentId,
@@ -73,6 +75,8 @@ public class AdminObservabilityApiController {
             @RequestParam(value = "eventType", required = false) String eventType,
             @RequestParam(value = "resultCode", required = false) String resultCode,
             @RequestParam(value = "searchKeyword", required = false) String searchKeyword) {
+        int pageIndex = parsePositiveInt(pageIndexParam, 1);
+        int pageSize = parsePositiveInt(pageSizeParam, 20);
         TraceEventSearchVO searchVO = new TraceEventSearchVO();
         searchVO.setFirstIndex(Math.max(pageIndex - 1, 0) * Math.max(pageSize, 1));
         searchVO.setRecordCountPerPage(Math.max(pageSize, 1));
@@ -95,6 +99,18 @@ public class AdminObservabilityApiController {
 
     private String safe(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private int parsePositiveInt(String value, int defaultValue) {
+        String normalized = safe(value);
+        if (normalized.isEmpty()) {
+            return defaultValue;
+        }
+        try {
+            return Math.max(Integer.parseInt(normalized), 1);
+        } catch (NumberFormatException ignored) {
+            return defaultValue;
+        }
     }
 
     private List<Map<String, Object>> enrichAuditItems(List<AuditEventRecordVO> items) {

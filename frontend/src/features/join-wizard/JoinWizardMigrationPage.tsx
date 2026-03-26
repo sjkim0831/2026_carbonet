@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { resetJoinSession, saveJoinStep1 } from "../../lib/api/client";
 import { useJoinSession } from "../../app/hooks/useJoinSession";
 import {
@@ -21,6 +22,7 @@ export function JoinWizardMigrationPage() {
   });
   const session = sessionState.value;
   const error = actionError || sessionState.error;
+  const cards = en ? EN_MEMBERSHIP_CARDS : KO_MEMBERSHIP_CARDS;
 
   useEffect(() => {
     if (getSearchParam("expired") === "1") {
@@ -33,6 +35,19 @@ export function JoinWizardMigrationPage() {
     }
   }, [en]);
 
+  useEffect(() => {
+    logGovernanceScope("PAGE", "join-step1", {
+      route: window.location.pathname,
+      membershipType,
+      canViewStep1: !!session?.canViewStep1
+    });
+    logGovernanceScope("COMPONENT", "join-step1-cards", {
+      component: "join-step1-cards",
+      membershipType,
+      cardCount: cards.length
+    });
+  }, [cards.length, membershipType, session?.canViewStep1]);
+
   async function handleHome() {
     await resetJoinSession();
     navigate(buildLocalizedPath("/home", "/en/home"));
@@ -44,6 +59,9 @@ export function JoinWizardMigrationPage() {
   }
 
   async function handleCardSelect(nextType: string) {
+    logGovernanceScope("ACTION", "join-step1-select-type", {
+      membershipType: nextType
+    });
     setMembershipType(nextType);
     setActionError("");
     try {
@@ -55,6 +73,9 @@ export function JoinWizardMigrationPage() {
   }
 
   async function handleNext() {
+    logGovernanceScope("ACTION", "join-step1-next", {
+      membershipType
+    });
     setSubmitting(true);
     setActionError("");
     try {
@@ -66,8 +87,6 @@ export function JoinWizardMigrationPage() {
       setSubmitting(false);
     }
   }
-
-  const cards = en ? EN_MEMBERSHIP_CARDS : KO_MEMBERSHIP_CARDS;
 
   return (
     <div className="join-step1-screen bg-[var(--kr-gov-bg-gray)] text-[var(--kr-gov-text-primary)] min-h-screen flex flex-col">

@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { fetchEmissionResultListPage, readBootstrappedEmissionResultListPageData, type EmissionResultListPagePayload } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
@@ -45,6 +46,22 @@ export function EmissionResultListMigrationPage() {
   const startPage = Number(page?.startPage || 1);
   const endPage = Number(page?.endPage || totalPages);
 
+  useEffect(() => {
+    logGovernanceScope("PAGE", "emission-result-list", {
+      language: en ? "en" : "ko",
+      pageIndex: currentPage,
+      searchKeyword: filters.searchKeyword,
+      resultStatus: filters.resultStatus,
+      verificationStatus: filters.verificationStatus,
+      rowCount: rows.length
+    });
+    logGovernanceScope("COMPONENT", "emission-result-table", {
+      rowCount: rows.length,
+      totalPages,
+      currentPage
+    });
+  }, [currentPage, en, filters.resultStatus, filters.searchKeyword, filters.verificationStatus, rows.length, totalPages]);
+
   function resultBadgeClass(code: string) {
     switch (code) {
       case "COMPLETED": return "bg-emerald-100 text-emerald-700";
@@ -84,6 +101,11 @@ export function EmissionResultListMigrationPage() {
       <section className="gov-card mb-8" data-help-id="emission-result-search">
         <form className="grid grid-cols-1 md:grid-cols-4 gap-6" onSubmit={(event) => {
           event.preventDefault();
+          logGovernanceScope("ACTION", "emission-result-search", {
+            searchKeyword: draft.searchKeyword,
+            resultStatus: draft.resultStatus,
+            verificationStatus: draft.verificationStatus
+          });
           setFilters({ ...draft, pageIndex: 1 });
         }}>
           <div>

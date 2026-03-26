@@ -1,8 +1,9 @@
 import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { invalidateFrontendSessionCache } from "../../lib/api/client";
 import { fetchJson } from "../../lib/api/core";
-import { buildLocalizedPath, getSearchParam, isEnglish, navigate } from "../../lib/navigation/runtime";
+import { buildLocalizedPath, getNavigationEventName, getSearchParam, isEnglish, navigate, replace } from "../../lib/navigation/runtime";
 import { postJsonWithSession } from "./publicEntryApi";
 import { LoginResponse, PublicFrame } from "./publicEntryShared";
 import { AppButton, AppCheckbox, AppInput, AppLinkButton } from "../app-ui/primitives";
@@ -12,15 +13,53 @@ function isOverseasPath() {
   return path.includes("/overseas/") || path.endsWith("/overseas");
 }
 
+function resolveLoginTabFromLocation(): "domestic" | "overseas" {
+  const queryTab = getSearchParam("tab");
+  if (queryTab === "overseas") {
+    return "overseas";
+  }
+  return isOverseasPath() ? "overseas" : "domestic";
+}
+
 export function PublicLoginPage() {
   const en = isEnglish();
   const [userId, setUserId] = useState("");
   const [userPw, setUserPw] = useState("");
   const [saveId, setSaveId] = useState(false);
   const [autoLogin, setAutoLogin] = useState(false);
-  const [tab, setTab] = useState<"domestic" | "overseas">(() => (isOverseasPath() ? "overseas" : "domestic"));
+  const [tab, setTab] = useState<"domestic" | "overseas">(() => resolveLoginTabFromLocation());
   const [submitting, setSubmitting] = useState(false);
   const autoLoginAttemptedRef = useRef(false);
+  const loginPath = useMemo(
+    () => buildLocalizedPath("/signin/loginView", "/en/signin/loginView"),
+    [en]
+  );
+
+  function buildLoginPath(nextEnglish: boolean, nextTab: "domestic" | "overseas") {
+    const basePath = nextEnglish ? "/en/signin/loginView" : "/signin/loginView";
+    return nextTab === "overseas" ? `${basePath}?tab=overseas` : basePath;
+  }
+
+  function changeLanguage(nextEnglish: boolean) {
+    window.location.href = buildLoginPath(nextEnglish, tab);
+  }
+
+  function changeMembershipTab(nextTab: "domestic" | "overseas") {
+    const nextPath = buildLoginPath(en, nextTab);
+    setTab(nextTab);
+    if (`${window.location.pathname}${window.location.search}` !== nextPath) {
+      window.location.href = nextPath;
+      return;
+    }
+    replace(nextPath);
+  }
+
+  useEffect(() => {
+    const nextPath = tab === "overseas" ? `${loginPath}?tab=overseas` : loginPath;
+    if (`${window.location.pathname}${window.location.search}` !== nextPath) {
+      replace(nextPath);
+    }
+  }, [loginPath, tab]);
 
   useEffect(() => {
     const savedId = getCookie("userInputId");
@@ -41,6 +80,17 @@ export function PublicLoginPage() {
     void submitLogin(userId, userPw, saveId, true);
   }, [autoLogin, saveId, userId, userPw]);
 
+  useEffect(() => {
+    const syncTab = () => setTab(resolveLoginTabFromLocation());
+    syncTab();
+    window.addEventListener("popstate", syncTab);
+    window.addEventListener(getNavigationEventName(), syncTab);
+    return () => {
+      window.removeEventListener("popstate", syncTab);
+      window.removeEventListener(getNavigationEventName(), syncTab);
+    };
+  }, []);
+
   const tabMeta = useMemo(() => {
     if (tab === "overseas") {
       return {
@@ -56,12 +106,41 @@ export function PublicLoginPage() {
     };
   }, [tab]);
 
+  useEffect(() => {
+    logGovernanceScope("PAGE", "public-login", {
+      language: en ? "en" : "ko",
+      tab,
+      saveId,
+      autoLogin,
+      submitting
+    });
+    logGovernanceScope("COMPONENT", "public-login-tabs", {
+      tab,
+      overseasPath: isOverseasPath(),
+      joinPath: tabMeta.joinPath,
+      findIdPath: tabMeta.findIdPath,
+      findPasswordPath: tabMeta.findPasswordPath
+    });
+  }, [autoLogin, en, saveId, submitting, tab, tabMeta.findIdPath, tabMeta.findPasswordPath, tabMeta.joinPath]);
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    logGovernanceScope("ACTION", "public-login-submit", {
+      tab,
+      userId: userId.trim(),
+      saveId,
+      autoLogin
+    });
     await submitLogin(userId, userPw, saveId, autoLogin);
   }
 
   async function submitLogin(nextUserId: string, nextUserPw: string, nextSaveId: boolean, nextAutoLogin: boolean) {
+    logGovernanceScope("ACTION", "public-login-authenticate", {
+      tab,
+      userId: nextUserId.trim(),
+      saveId: nextSaveId,
+      autoLogin: nextAutoLogin
+    });
     if (!nextUserId.trim()) {
       window.alert(en ? "Please enter your ID" : "아이디를 입력하세요");
       return;
@@ -152,7 +231,7 @@ export function PublicLoginPage() {
               <div className="flex border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] overflow-hidden">
                 <AppButton
                   className={`px-3 py-1 text-xs font-bold ${en ? "!bg-white !text-[var(--kr-gov-text-secondary)] hover:!bg-gray-100" : "!bg-[var(--kr-gov-blue)] !text-white hover:!bg-[var(--kr-gov-blue-hover)]"}`}
-                  onClick={() => navigate("/signin/loginView")}
+                  onClick={() => changeLanguage(false)}
                   size="xs"
                   type="button"
                   variant="ghost"
@@ -161,7 +240,7 @@ export function PublicLoginPage() {
                 </AppButton>
                 <AppButton
                   className={`px-3 py-1 text-xs font-bold border-l border-[var(--kr-gov-border-light)] ${en ? "!bg-[var(--kr-gov-blue)] !text-white hover:!bg-[var(--kr-gov-blue-hover)]" : "!bg-white !text-[var(--kr-gov-text-secondary)] hover:!bg-gray-100"}`}
-                  onClick={() => navigate("/en/signin/loginView")}
+                  onClick={() => changeLanguage(true)}
                   size="xs"
                   type="button"
                   variant="ghost"
@@ -191,8 +270,8 @@ export function PublicLoginPage() {
           <div className="flex border-b border-[var(--kr-gov-border-light)] bg-gray-50" aria-label={en ? "Member type" : "회원 유형 선택"} role="tablist" data-help-id="signin-login-tabs">
             <AppButton
               aria-selected={tab === "domestic"}
-              className={`flex-1 py-4 text-[16px] border-b-4 ${tab === "domestic" ? "border-[var(--kr-gov-blue)] text-[var(--kr-gov-blue)] font-bold" : "border-transparent text-[var(--kr-gov-text-secondary)] hover:text-[var(--kr-gov-text-primary)] transition-colors"}`}
-              onClick={() => setTab("domestic")}
+              className={`flex-1 py-5 text-[16px] flex items-center justify-center gap-2 ${tab === "domestic" ? "tab-active" : "tab-inactive"}`}
+              onClick={() => changeMembershipTab("domestic")}
               role="tab"
               size="lg"
               tabIndex={tab === "domestic" ? 0 : -1}
@@ -203,8 +282,8 @@ export function PublicLoginPage() {
             </AppButton>
             <AppButton
               aria-selected={tab === "overseas"}
-              className={`flex-1 py-4 text-[16px] border-b-4 ${tab === "overseas" ? "border-[var(--kr-gov-blue)] text-[var(--kr-gov-blue)] font-bold" : "border-transparent text-[var(--kr-gov-text-secondary)] hover:text-[var(--kr-gov-text-primary)] transition-colors"}`}
-              onClick={() => setTab("overseas")}
+              className={`flex-1 py-5 text-[16px] flex items-center justify-center gap-2 ${tab === "overseas" ? "tab-active" : "tab-inactive"}`}
+              onClick={() => changeMembershipTab("overseas")}
               role="tab"
               size="lg"
               tabIndex={tab === "overseas" ? 0 : -1}

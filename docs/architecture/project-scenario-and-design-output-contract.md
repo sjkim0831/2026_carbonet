@@ -95,3 +95,16 @@ The generation summary should expose:
 - admin review and admin management families should be generated as separate but linked assets from public or homepage-facing families when the proposal implies paired operation
 - page, component, event, function, API, backend, DB, and SQL assets should remain fully data-driven so project scaffolding can rebuild them without source-copy drift
 - reusable public/admin template lines should be visible as governed design outputs, not implicit conventions
+
+## 02 Consumer Handoff Rule
+
+Proposal-generated scenario and design outputs stay handoff-ready only while
+they preserve one governed chain for the next lanes:
+
+- `04` receives page-family, page-design, element-design, and page-assembly
+  candidates tied to the same proposal identity
+- `05`, `06`, and `08` consume mature scenario/design packages only after the
+  same proposal identity resolves to stable runtime, backend, and release
+  assets
+- `09` receives parity-reviewable scenario/design outputs without re-keying the
+  proposal baseline

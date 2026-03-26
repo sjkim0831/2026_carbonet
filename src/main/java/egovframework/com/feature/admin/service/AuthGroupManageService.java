@@ -57,6 +57,10 @@ public interface AuthGroupManageService {
 
     List<AdminRoleAssignmentVO> selectAdminRoleAssignments() throws Exception;
 
+    int countAdminRoleAssignments(String orgnztId, String insttId, String searchKeyword) throws Exception;
+
+    List<AdminRoleAssignmentVO> selectAdminRoleAssignmentsPage(String orgnztId, String insttId, String searchKeyword, int firstIndex, int recordCountPerPage) throws Exception;
+
     List<DepartmentRoleMappingVO> selectDepartmentRoleMappings() throws Exception;
 
     List<UserAuthorityTargetVO> selectUserAuthorityTargets(String insttId, String searchKeyword) throws Exception;
@@ -64,6 +68,8 @@ public interface AuthGroupManageService {
     void updateAdminRoleAssignment(String emplyrId, String authorCode) throws Exception;
 
     String selectAdminEssentialIdByUserId(String emplyrId) throws Exception;
+
+    String selectAdminInsttIdByUserId(String emplyrId) throws Exception;
 
     String selectEnterpriseInsttIdByUserId(String entrprsMberId) throws Exception;
 

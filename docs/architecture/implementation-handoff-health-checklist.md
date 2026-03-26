@@ -65,6 +65,8 @@ If any answer is no, decide one of:
 
 - `HEALTH OK: implementation lanes are progressing under the contract handoff baseline.`
 
+- `HANDOFF READY: 01 may continue from parity, compare, repair, and verification outputs cross-checked against 04 builder inputs, 05 frontend runtime results, and 08 deploy evidence; blocker count is 0 for current verification scope.`
+
 or
 
 - `HEALTH WARN: drift or ownership ambiguity detected; follow the blocker or reopen protocol.`

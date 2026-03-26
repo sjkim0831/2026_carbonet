@@ -133,6 +133,15 @@ public class AuthGroupManageMapper extends BaseMapperSupport {
         return selectList("AuthGroupManageMapper.selectAdminRoleAssignments");
     }
 
+    public int countAdminRoleAssignments(Map<String, Object> params) {
+        Integer count = selectOne("AuthGroupManageMapper.countAdminRoleAssignments", params);
+        return count == null ? 0 : count;
+    }
+
+    public List<AdminRoleAssignmentVO> selectAdminRoleAssignmentsPage(Map<String, Object> params) {
+        return selectList("AuthGroupManageMapper.selectAdminRoleAssignmentsPage", params);
+    }
+
     public List<DepartmentRoleMappingVO> selectDepartmentRoleMappings() {
         return selectList("AuthGroupManageMapper.selectDepartmentRoleMappings");
     }
@@ -143,6 +152,10 @@ public class AuthGroupManageMapper extends BaseMapperSupport {
 
     public String selectEssentialIdByEmplyrId(String emplyrId) {
         return selectOne("AuthGroupManageMapper.selectEssentialIdByEmplyrId", emplyrId);
+    }
+
+    public String selectAdminInsttIdByUserId(String emplyrId) {
+        return selectOne("AuthGroupManageMapper.selectAdminInsttIdByUserId", emplyrId);
     }
 
     public String selectEnterpriseAuthorCodeByUserId(String entrprsMberId) {

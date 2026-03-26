@@ -1,5 +1,6 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { CanView } from "../../components/access/CanView";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import { CompanyListPagePayload, fetchCompanyListPage } from "../../lib/api/client";
@@ -69,12 +70,38 @@ export function CompanyListMigrationPage() {
     return query ? `?${query}` : "";
   }, [filters.searchKeyword, filters.status]);
 
+  useEffect(() => {
+    if (!page) {
+      return;
+    }
+    logGovernanceScope("PAGE", "company-list", {
+      route: window.location.pathname,
+      canView: !!page.canViewCompanyList,
+      canUseActions: !!page.canUseCompanyListActions,
+      currentPage,
+      totalCount: Number(page.totalCount || 0),
+      searchKeyword: filters.searchKeyword,
+      status: filters.status
+    });
+    logGovernanceScope("COMPONENT", "company-list-table", {
+      component: "company-list-table",
+      rowCount: Array.isArray(page.company_list) ? page.company_list.length : 0,
+      currentPage,
+      totalPages
+    });
+  }, [currentPage, filters.searchKeyword, filters.status, page, totalPages]);
+
   function updateDraft<K extends keyof SearchFilters>(key: K, value: SearchFilters[K]) {
     setDraftFilters((current) => ({ ...current, [key]: value }));
   }
 
   function applyFilters(nextPageIndex = 1) {
     setActionError("");
+    logGovernanceScope("ACTION", "company-list-search", {
+      pageIndex: nextPageIndex,
+      searchKeyword: draftFilters.searchKeyword,
+      status: draftFilters.status
+    });
     setFilters({
       ...draftFilters,
       pageIndex: nextPageIndex
@@ -214,7 +241,9 @@ export function CompanyListMigrationPage() {
               </tbody>
             </AdminTable>
           </div>
-          <MemberPagination currentPage={currentPage} dataHelpId="company-list-pagination" onPageChange={movePage} totalPages={totalPages} />
+          <div data-help-id="company-list-pagination">
+            <MemberPagination currentPage={currentPage} dataHelpId="company-list-pagination" onPageChange={movePage} totalPages={totalPages} />
+          </div>
         </section>
       </CanView>
     </AdminPageShell>

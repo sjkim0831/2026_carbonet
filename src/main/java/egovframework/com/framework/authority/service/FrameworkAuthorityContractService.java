@@ -6,6 +6,8 @@ import egovframework.com.framework.authority.model.FrameworkAuthorityContractVO;
 import egovframework.com.framework.authority.model.FrameworkAuthorityOptionVO;
 import egovframework.com.framework.authority.model.FrameworkAuthorityRoleContractVO;
 import egovframework.com.framework.authority.model.FrameworkAuthorityTextVO;
+import egovframework.com.framework.contract.model.FrameworkContractMetadataVO;
+import egovframework.com.framework.contract.service.FrameworkContractMetadataService;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
@@ -17,6 +19,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.HashSet;
 
 @Service
 public class FrameworkAuthorityContractService {
@@ -30,36 +33,31 @@ public class FrameworkAuthorityContractService {
 
     private final AuthGroupManageService authGroupManageService;
     private final FrameworkAuthorityPolicyService frameworkAuthorityPolicyService;
+    private final FrameworkContractMetadataService frameworkContractMetadataService;
 
     public FrameworkAuthorityContractService(
             AuthGroupManageService authGroupManageService,
-            FrameworkAuthorityPolicyService frameworkAuthorityPolicyService) {
+            FrameworkAuthorityPolicyService frameworkAuthorityPolicyService,
+            FrameworkContractMetadataService frameworkContractMetadataService) {
         this.authGroupManageService = authGroupManageService;
         this.frameworkAuthorityPolicyService = frameworkAuthorityPolicyService;
+        this.frameworkContractMetadataService = frameworkContractMetadataService;
     }
 
     public FrameworkAuthorityContractVO getAuthorityContract() throws Exception {
+        FrameworkContractMetadataVO metadata = frameworkContractMetadataService.getMetadata();
         FrameworkAuthorityContractVO contract = new FrameworkAuthorityContractVO();
-        contract.setPolicyId("carbonet-authority-model");
-        contract.setFrameworkId("carbonet-ui-framework");
-        contract.setContractVersion("2026-03-23");
+        contract.setPolicyId(metadata.getAuthorityPolicyId());
+        contract.setFrameworkId(metadata.getFrameworkId());
+        contract.setContractVersion(metadata.getContractVersion());
         contract.setGeneratedAt(OffsetDateTime.now().toString());
         contract.setAuthorityRoles(buildAuthorityRoles());
         contract.setRoleCategoryOptions(buildRoleCategoryOptions());
         contract.setAssignmentAuthorities(buildAssignmentAuthorities());
         contract.setRoleCategories(buildRoleCategories());
-        contract.setAllowedScopePolicies(new ArrayList<>(List.of("global", "own-company", "department", "self", "role-scoped")));
-        contract.setTierOrder(new ArrayList<>(List.of(
-                "MASTER",
-                "SYSTEM",
-                "GENERAL_ADMIN",
-                "OPERATION",
-                "GENERAL_MEMBER",
-                "COMPANY",
-                "DEPARTMENT",
-                "USER",
-                "CUSTOM"
-        )));
+        contract.setAllowedScopePolicies(new ArrayList<>(metadata.getAuthorityDefaults().getAllowedScopePolicies()));
+        contract.setTierOrder(new ArrayList<>(metadata.getAuthorityDefaults().getTierOrder()));
+        validateContract(metadata, contract);
         return contract;
     }
 
@@ -292,6 +290,47 @@ public class FrameworkAuthorityContractService {
 
     private String safe(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private void validateContract(FrameworkContractMetadataVO metadata, FrameworkAuthorityContractVO contract) {
+        if (!safe(metadata.getAuthorityPolicyId()).equals(safe(contract.getPolicyId()))) {
+            throw new IllegalStateException("Framework authority contract policyId mismatch.");
+        }
+        if (!safe(metadata.getFrameworkId()).equals(safe(contract.getFrameworkId()))) {
+            throw new IllegalStateException("Framework authority contract frameworkId mismatch.");
+        }
+        if (!safe(metadata.getContractVersion()).equals(safe(contract.getContractVersion()))) {
+            throw new IllegalStateException("Framework authority contract version mismatch.");
+        }
+
+        Set<String> allowedScopePolicies = new HashSet<>();
+        for (String value : metadata.getAuthorityDefaults().getAllowedScopePolicies()) {
+            if (!safe(value).isEmpty()) {
+                allowedScopePolicies.add(safe(value));
+            }
+        }
+        Set<String> allowedTiers = new HashSet<>();
+        for (String value : metadata.getAuthorityDefaults().getTierOrder()) {
+            if (!safe(value).isEmpty()) {
+                allowedTiers.add(safe(value));
+            }
+        }
+
+        for (FrameworkAuthorityRoleContractVO role : contract.getAuthorityRoles()) {
+            if (role == null) {
+                continue;
+            }
+            String scopePolicy = safe(role.getScopePolicy());
+            if (!scopePolicy.isEmpty() && !allowedScopePolicies.contains(scopePolicy)) {
+                throw new IllegalStateException("Unsupported authority scopePolicy: " + scopePolicy
+                        + " authorCode=" + safe(role.getAuthorCode()));
+            }
+            String tier = safe(role.getTier());
+            if (!tier.isEmpty() && !allowedTiers.contains(tier)) {
+                throw new IllegalStateException("Unsupported authority tier: " + tier
+                        + " authorCode=" + safe(role.getAuthorCode()));
+            }
+        }
     }
 
     private static final class RoleSeed {

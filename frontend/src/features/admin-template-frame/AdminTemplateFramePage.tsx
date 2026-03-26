@@ -33,8 +33,8 @@ const ADMIN_TEMPLATE_FRAME_CONFIG: Record<string, TemplateFrameConfig> = {
     enPath: "/en/admin/system/code"
   },
   "page-management": {
-    titleKo: "페이지 관리",
-    titleEn: "Page Management",
+    titleKo: "화면 관리",
+    titleEn: "Screen Management",
     koPath: "/admin/system/page-management",
     enPath: "/en/admin/system/page-management"
   },
@@ -128,9 +128,15 @@ const ADMIN_TEMPLATE_FRAME_CONFIG: Record<string, TemplateFrameConfig> = {
     koPath: "/admin/member/login_history",
     enPath: "/en/admin/member/login_history"
   },
+  "member-security-history": {
+    titleKo: "접근 차단 이력",
+    titleEn: "Access Block History",
+    koPath: "/admin/member/security",
+    enPath: "/en/admin/member/security"
+  },
   "security-history": {
-    titleKo: "보안 이력",
-    titleEn: "Security History",
+    titleKo: "접근 차단 이력",
+    titleEn: "Access Block History",
     koPath: "/admin/system/security",
     enPath: "/en/admin/system/security"
   },
@@ -163,6 +169,30 @@ const ADMIN_TEMPLATE_FRAME_CONFIG: Record<string, TemplateFrameConfig> = {
     titleEn: "Scheduler Management",
     koPath: "/admin/system/scheduler",
     enPath: "/en/admin/system/scheduler"
+  },
+  "backup-config": {
+    titleKo: "백업 설정",
+    titleEn: "Backup Settings",
+    koPath: "/admin/system/backup_config",
+    enPath: "/en/admin/system/backup_config"
+  },
+  "backup-execution": {
+    titleKo: "백업 실행",
+    titleEn: "Backup Execution",
+    koPath: "/admin/system/backup",
+    enPath: "/en/admin/system/backup"
+  },
+  "restore-execution": {
+    titleKo: "복구 실행",
+    titleEn: "Restore Execution",
+    koPath: "/admin/system/restore",
+    enPath: "/en/admin/system/restore"
+  },
+  "version-management": {
+    titleKo: "버전 관리",
+    titleEn: "Version Management",
+    koPath: "/admin/system/version",
+    enPath: "/en/admin/system/version"
   },
   "codex-request": {
     titleKo: "Codex 요청",

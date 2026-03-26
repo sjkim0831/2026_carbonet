@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { logGovernanceScope } from "../../app/policy/debug";
 import {
   clearSrWorkbenchStack,
   approveSrTicket,
@@ -227,6 +228,32 @@ export function SrWorkbenchMigrationPage() {
     menuLookupUrl: page?.menuLookupUrl || ""
   }), [generatedDirection, page, preview, summary]);
 
+  useEffect(() => {
+    logGovernanceScope("PAGE", "sr-workbench", {
+      language: en ? "en" : "ko",
+      selectedPageId,
+      ticketCount: workbench?.ticketCount || 0,
+      stackCount: (workbench?.stackItems || []).length,
+      selectedStackCount: selectedStackItemIds.length
+    });
+    logGovernanceScope("COMPONENT", "sr-ticket-draft", {
+      surfaceId: selectedSurface?.surfaceId || "",
+      eventId: selectedEvent?.eventId || "",
+      targetId: selectedTarget?.targetId || "",
+      hasGeneratedDirection: Boolean(generatedDirection)
+    });
+  }, [
+    en,
+    generatedDirection,
+    selectedEvent?.eventId,
+    selectedPageId,
+    selectedStackItemIds.length,
+    selectedSurface?.surfaceId,
+    selectedTarget?.targetId,
+    workbench?.stackItems,
+    workbench?.ticketCount
+  ]);
+
   async function refreshTickets() {
     await workbenchState.reload();
   }
@@ -239,10 +266,22 @@ export function SrWorkbenchMigrationPage() {
   }
 
   function handleGenerate() {
+    logGovernanceScope("ACTION", "sr-workbench-generate", {
+      selectedPageId,
+      surfaceId: selectedSurface?.surfaceId || "",
+      eventId: selectedEvent?.eventId || "",
+      targetId: selectedTarget?.targetId || ""
+    });
     setGeneratedDirection(preview);
   }
 
   async function handleCreateTicket() {
+    logGovernanceScope("ACTION", "sr-workbench-create-ticket", {
+      selectedPageId,
+      summary,
+      surfaceId: selectedSurface?.surfaceId || "",
+      eventId: selectedEvent?.eventId || ""
+    });
     setError("");
     setMessage("");
     try {
@@ -274,6 +313,10 @@ export function SrWorkbenchMigrationPage() {
   }
 
   async function handleQuickExecuteDraft() {
+    logGovernanceScope("ACTION", "sr-workbench-quick-execute", {
+      selectedPageId,
+      summary
+    });
     setError("");
     setMessage("");
     try {
@@ -672,19 +715,21 @@ export function SrWorkbenchMigrationPage() {
           </div>
         </DiagnosticCard>
 
-        <DiagnosticCard
-          description={en ? "Use the generated SR direction and Codex prompt for approval and execution." : "생성된 SR 지시와 Codex 프롬프트를 승인 및 실행에 사용합니다."}
-          title={en ? "Generated Direction" : "생성된 해결 지시"}
-        >
-          <label className="block">
-            <span className="gov-label">{en ? "Direction" : "Direction"}</span>
-            <textarea className="gov-input min-h-[220px] py-3 font-mono text-[12px]" readOnly rows={10} value={generatedDirection || preview} />
-          </label>
-          <label className="mt-4 block">
-            <span className="gov-label">{en ? "Codex Command Prompt" : "Codex Command Prompt"}</span>
-            <textarea className="gov-input min-h-[220px] py-3 font-mono text-[12px]" readOnly rows={10} value={commandPrompt} />
-          </label>
-        </DiagnosticCard>
+        <div data-help-id="sr-direction-preview">
+          <DiagnosticCard
+            description={en ? "Use the generated SR direction and Codex prompt for approval and execution." : "생성된 SR 지시와 Codex 프롬프트를 승인 및 실행에 사용합니다."}
+            title={en ? "Generated Direction" : "생성된 해결 지시"}
+          >
+            <label className="block">
+              <span className="gov-label">{en ? "Direction" : "Direction"}</span>
+              <textarea className="gov-input min-h-[220px] py-3 font-mono text-[12px]" readOnly rows={10} value={generatedDirection || preview} />
+            </label>
+            <label className="mt-4 block">
+              <span className="gov-label">{en ? "Codex Command Prompt" : "Codex Command Prompt"}</span>
+              <textarea className="gov-input min-h-[220px] py-3 font-mono text-[12px]" readOnly rows={10} value={commandPrompt} />
+            </label>
+          </DiagnosticCard>
+        </div>
       </section>
 
       <section className="gov-card" data-help-id="sr-ticket-table">

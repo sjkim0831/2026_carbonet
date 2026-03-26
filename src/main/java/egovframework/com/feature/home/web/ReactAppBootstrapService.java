@@ -44,7 +44,10 @@ public class ReactAppBootstrapService {
             payload.put("mypageContext", homeMypageService.buildMypageContext(en, request));
         }
         if (admin) {
-            payload.put("adminMenuTree", adminMenuTreeService.buildAdminMenuTree(en, request));
+            boolean adminLoginRoute = "admin_login".equals(normalizedRoute);
+            if (!adminLoginRoute && frontendSession.isAuthenticated()) {
+                payload.put("adminMenuTree", adminMenuTreeService.buildAdminMenuTree(en, request));
+            }
             if ("admin_home".equals(normalizedRoute)) {
                 payload.put("adminHomePageData", adminShellBootstrapPageService.buildAdminHomePageData(en));
             } else if ("auth_group".equals(normalizedRoute) && request != null) {
@@ -75,6 +78,24 @@ public class ReactAppBootstrapService {
                         request.getParameter("error"),
                         request,
                         requestLocale(en)));
+            } else if ("auth_change".equals(normalizedRoute) && request != null) {
+                Integer assignmentPageIndex = null;
+                try {
+                    String rawPageIndex = request.getParameter("pageIndex");
+                    if (rawPageIndex != null && !rawPageIndex.trim().isEmpty()) {
+                        assignmentPageIndex = Integer.valueOf(rawPageIndex.trim());
+                    }
+                } catch (NumberFormatException ignored) {
+                    assignmentPageIndex = null;
+                }
+                payload.put("authChangePageData", adminHotPathPagePayloadService.buildAuthChangePagePayload(
+                        request.getParameter("updated"),
+                        request.getParameter("targetUserId"),
+                        request.getParameter("searchKeyword"),
+                        assignmentPageIndex,
+                        request.getParameter("error"),
+                        request,
+                        requestLocale(en)));
             } else if ("member_edit".equals(normalizedRoute) && request != null) {
                 payload.put("memberEditPageData", adminHotPathPagePayloadService.buildMemberEditPagePayload(
                         request.getParameter("memberId"),
@@ -94,6 +115,14 @@ public class ReactAppBootstrapService {
                         request == null ? "" : request.getParameter("jobStatus"),
                         request == null ? "" : request.getParameter("executionType"),
                         en));
+            } else if ("backup_config".equals(normalizedRoute)) {
+                payload.put("backupConfigPageData", adminShellBootstrapPageService.buildBackupConfigPageData(en));
+            } else if ("backup_execution".equals(normalizedRoute)) {
+                payload.put("backupConfigPageData", adminShellBootstrapPageService.buildBackupConfigPageData(en));
+            } else if ("restore_execution".equals(normalizedRoute)) {
+                payload.put("backupConfigPageData", adminShellBootstrapPageService.buildBackupConfigPageData(en));
+            } else if ("version_management".equals(normalizedRoute)) {
+                payload.put("backupConfigPageData", adminShellBootstrapPageService.buildBackupConfigPageData(en));
             } else if ("emission_result_list".equals(normalizedRoute)) {
                 payload.put("emissionResultListPageData", adminShellBootstrapPageService.buildEmissionResultListPageData(
                         request == null ? "" : request.getParameter("pageIndex"),
@@ -101,6 +130,8 @@ public class ReactAppBootstrapService {
                         request == null ? "" : request.getParameter("resultStatus"),
                         request == null ? "" : request.getParameter("verificationStatus"),
                         en));
+            } else if ("emission_site_management".equals(normalizedRoute)) {
+                payload.put("emissionSiteManagementPageData", adminShellBootstrapPageService.buildEmissionSiteManagementPageData(en));
             }
         }
         return payload;

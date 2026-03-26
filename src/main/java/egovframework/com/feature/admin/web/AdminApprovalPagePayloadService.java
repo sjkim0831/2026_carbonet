@@ -47,9 +47,9 @@ public class AdminApprovalPagePayloadService {
         response.putAll(model);
         String currentUserId = controller.extractCurrentUserId(request);
         String currentUserAuthorCode = authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
-        boolean canManage = authorityPagePayloadSupport.hasMemberManagementCompanyOperatorAccess(currentUserId, currentUserAuthorCode);
-        response.put("canViewMemberApprove", canManage);
-        response.put("canUseMemberApproveAction", canManage);
+        boolean canView = authorityPagePayloadSupport.hasMemberManagementCompanyOperatorAccess(currentUserId, currentUserAuthorCode);
+        response.put("canViewMemberApprove", canView);
+        response.put("canUseMemberApproveAction", canView);
         return response;
     }
 

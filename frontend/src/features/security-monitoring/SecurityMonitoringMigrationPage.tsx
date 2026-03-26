@@ -1,9 +1,10 @@
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { fetchSecurityMonitoringPage, readBootstrappedSecurityMonitoringPageData, type SecurityMonitoringPagePayload } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { stringOf } from "../admin-system/adminSystemShared";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 export function SecurityMonitoringMigrationPage() {
   const en = isEnglish();
@@ -17,6 +18,29 @@ export function SecurityMonitoringMigrationPage() {
   const targets = (page?.securityMonitoringTargets || []) as Array<Record<string, string>>;
   const ips = (page?.securityMonitoringIps || []) as Array<Record<string, string>>;
   const events = (page?.securityMonitoringEvents || []) as Array<Record<string, string>>;
+  useEffect(() => {
+    if (!page) {
+      return;
+    }
+    logGovernanceScope("PAGE", "security-monitoring", {
+      route: window.location.pathname,
+      cardCount: cards.length,
+      targetCount: targets.length,
+      ipCount: ips.length,
+      eventCount: events.length
+    });
+    logGovernanceScope("COMPONENT", "security-monitoring-events", {
+      component: "security-monitoring-events",
+      targetCount: targets.length,
+      ipCount: ips.length,
+      eventCount: events.length
+    });
+    logGovernanceScope("COMPONENT", "security-monitoring-targets", {
+      component: "security-monitoring-targets",
+      targetCount: targets.length,
+      ipCount: ips.length
+    });
+  }, [cards.length, events.length, ips.length, page, targets.length]);
   return (
     <AdminPageShell
       breadcrumbs={[

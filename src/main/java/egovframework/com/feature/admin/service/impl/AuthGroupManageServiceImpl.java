@@ -191,6 +191,26 @@ public class AuthGroupManageServiceImpl extends EgovAbstractServiceImpl implemen
     }
 
     @Override
+    public int countAdminRoleAssignments(String orgnztId, String insttId, String searchKeyword) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("orgnztId", orgnztId == null ? "" : orgnztId.trim());
+        params.put("insttId", insttId == null ? "" : insttId.trim());
+        params.put("searchKeyword", searchKeyword == null ? "" : searchKeyword.trim());
+        return authGroupManageMapper.countAdminRoleAssignments(params);
+    }
+
+    @Override
+    public List<AdminRoleAssignmentVO> selectAdminRoleAssignmentsPage(String orgnztId, String insttId, String searchKeyword, int firstIndex, int recordCountPerPage) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("orgnztId", orgnztId == null ? "" : orgnztId.trim());
+        params.put("insttId", insttId == null ? "" : insttId.trim());
+        params.put("searchKeyword", searchKeyword == null ? "" : searchKeyword.trim());
+        params.put("firstIndex", Math.max(firstIndex, 0));
+        params.put("recordCountPerPage", Math.max(recordCountPerPage, 1));
+        return authGroupManageMapper.selectAdminRoleAssignmentsPage(params);
+    }
+
+    @Override
     public List<DepartmentRoleMappingVO> selectDepartmentRoleMappings() {
         return authGroupManageMapper.selectDepartmentRoleMappings();
     }
@@ -231,6 +251,11 @@ public class AuthGroupManageServiceImpl extends EgovAbstractServiceImpl implemen
     @Override
     public String selectAdminEssentialIdByUserId(String emplyrId) {
         return authGroupManageMapper.selectEssentialIdByEmplyrId(emplyrId);
+    }
+
+    @Override
+    public String selectAdminInsttIdByUserId(String emplyrId) {
+        return authGroupManageMapper.selectAdminInsttIdByUserId(emplyrId);
     }
 
     @Override

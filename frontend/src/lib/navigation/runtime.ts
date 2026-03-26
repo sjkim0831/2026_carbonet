@@ -12,6 +12,7 @@ declare global {
       adminMenuTree?: unknown;
       adminHomePageData?: unknown;
       authGroupPageData?: unknown;
+      authChangePageData?: unknown;
       deptRolePageData?: unknown;
       memberEditPageData?: unknown;
       homePayload?: unknown;
@@ -22,7 +23,9 @@ declare global {
       securityMonitoringPageData?: unknown;
       securityAuditPageData?: unknown;
       schedulerManagementPageData?: unknown;
+      backupConfigPageData?: unknown;
       emissionResultListPageData?: unknown;
+      emissionSiteManagementPageData?: unknown;
       screenBuilderPageData?: unknown;
     };
   }
@@ -30,9 +33,24 @@ declare global {
 
 const NAVIGATION_EVENT = "carbonet:navigate";
 
+function isEnglishPath(pathname: string): boolean {
+  return pathname.startsWith("/en/")
+    || pathname === "/join/en"
+    || pathname.startsWith("/join/en/");
+}
+
+function normalizeAdminRootPath(path: string): string {
+  if (!path) {
+    return path;
+  }
+  return path
+    .replace(/^\/admin\/([?#]|$)/, "/admin$1")
+    .replace(/^\/en\/admin\/([?#]|$)/, "/en/admin$1");
+}
+
 export function getRuntimeLocale(): "ko" | "en" {
   const locale = window.__CARBONET_REACT_MIGRATION__?.locale;
-  return locale === "en" || document.documentElement.lang === "en" || window.location.pathname.startsWith("/en/")
+  return locale === "en" || document.documentElement.lang === "en" || isEnglishPath(window.location.pathname)
     ? "en"
     : "ko";
 }
@@ -54,12 +72,16 @@ export function getSearchParam(name: string): string {
 }
 
 export function buildLocalizedPath(koPath: string, enPath: string): string {
-  return isEnglish() ? enPath : koPath;
+  return normalizeAdminRootPath(isEnglish() ? enPath : koPath);
 }
 
 export function navigate(path: string) {
-  const nextUrl = new URL(path, window.location.origin);
+  const nextUrl = new URL(normalizeAdminRootPath(path), window.location.origin);
   const currentUrl = new URL(window.location.href);
+  if (isEnglishPath(nextUrl.pathname) !== isEnglishPath(currentUrl.pathname)) {
+    window.location.href = nextUrl.toString();
+    return;
+  }
   if (nextUrl.origin !== currentUrl.origin) {
     window.location.href = nextUrl.toString();
     return;
@@ -73,7 +95,7 @@ export function navigate(path: string) {
 }
 
 export function replace(path: string) {
-  const nextUrl = new URL(path, window.location.origin);
+  const nextUrl = new URL(normalizeAdminRootPath(path), window.location.origin);
   window.history.replaceState({}, "", `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`);
   window.dispatchEvent(new Event(NAVIGATION_EVENT));
 }

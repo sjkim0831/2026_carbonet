@@ -17,7 +17,7 @@ import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/telemetry")
+@RequestMapping({"/api/telemetry", "/signin/telemetry", "/en/signin/telemetry"})
 public class TelemetryController {
 
     private final TraceEventService traceEventService;
@@ -27,9 +27,22 @@ public class TelemetryController {
     @PostMapping("/events")
     public ResponseEntity<Map<String, Object>> ingestEvents(@RequestBody(required = false) FrontendTelemetryBatchRequest request,
                                                             HttpServletRequest httpRequest) {
-        accessEventService.recordFrontendPageViews(request == null ? null : request.getEvents(), httpRequest);
-        int accepted = traceEventService.recordFrontendEvents(request == null ? null : request.getEvents());
-        errorEventService.recordFrontendTelemetryErrors(request == null ? null : request.getEvents());
+        int accepted = 0;
+        try {
+            accessEventService.recordFrontendPageViews(request == null ? null : request.getEvents(), httpRequest);
+        } catch (Exception ignored) {
+            // Keep frontend telemetry non-blocking even when observability persistence is degraded.
+        }
+        try {
+            accepted = traceEventService.recordFrontendEvents(request == null ? null : request.getEvents());
+        } catch (Exception ignored) {
+            accepted = 0;
+        }
+        try {
+            errorEventService.recordFrontendTelemetryErrors(request == null ? null : request.getEvents());
+        } catch (Exception ignored) {
+            // Keep frontend telemetry non-blocking even when observability persistence is degraded.
+        }
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("success", true);
         response.put("acceptedCount", accepted);

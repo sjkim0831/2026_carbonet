@@ -139,3 +139,21 @@ This contract should be consumed by:
 - parity and uniformity compare
 - repair-open and repair-apply flows
 - AI-assisted screen editing workflows
+
+## 05 Frontend Handoff Rule
+
+`05` may move to handoff when one governed runtime surface and one compare
+surface both show the same:
+
+- `guidedStateId`
+- `templateLineId`
+- `screenFamilyRuleId`
+- `ownerLane`
+- public/admin surface split
+- context-key strip ahead of the first primary work region
+
+The handoff output should also make it obvious that:
+
+- the runtime surface came from approved `04` builder inputs
+- the compare surface is consumable by `09` without renaming fields
+- the screen family rule is still enforced rather than treated like page-local layout state

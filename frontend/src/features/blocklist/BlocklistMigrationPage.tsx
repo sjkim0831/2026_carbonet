@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { fetchBlocklistPage, type BlocklistPagePayload } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
@@ -27,6 +28,26 @@ export function BlocklistMigrationPage() {
   const summary = (page?.blocklistSummary || []) as Array<Record<string, string>>;
   const rows = (page?.blocklistRows || []) as Array<Record<string, string>>;
   const releaseQueue = (page?.blocklistReleaseQueue || []) as Array<Record<string, string>>;
+
+  useEffect(() => {
+    if (!page) {
+      return;
+    }
+    logGovernanceScope("PAGE", "blocklist", {
+      route: window.location.pathname,
+      summaryCount: summary.length,
+      rowCount: rows.length,
+      releaseQueueCount: releaseQueue.length,
+      blockType: filters.blockType,
+      status: filters.status
+    });
+    logGovernanceScope("COMPONENT", "blocklist-table", {
+      component: "blocklist-table",
+      rowCount: rows.length,
+      releaseQueueCount: releaseQueue.length
+    });
+  }, [filters.blockType, filters.status, page, releaseQueue.length, rows.length, summary.length]);
+
   return (
     <AdminPageShell
       breadcrumbs={[
@@ -39,7 +60,15 @@ export function BlocklistMigrationPage() {
     >
       {pageState.error ? <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{pageState.error}</div> : null}
       <section className="gov-card mb-6" data-help-id="blocklist-search">
-        <form className="grid grid-cols-1 md:grid-cols-3 gap-4" onSubmit={(event) => { event.preventDefault(); setFilters(draft); }}>
+        <form className="grid grid-cols-1 md:grid-cols-3 gap-4" onSubmit={(event) => {
+          event.preventDefault();
+          logGovernanceScope("ACTION", "blocklist-search", {
+            searchKeyword: draft.searchKeyword,
+            blockType: draft.blockType,
+            status: draft.status
+          });
+          setFilters(draft);
+        }}>
           <input className="gov-input" placeholder={en ? "Keyword" : "검색어"} value={draft.searchKeyword} onChange={(event) => setDraft((current) => ({ ...current, searchKeyword: event.target.value }))} />
           <select className="gov-select" value={draft.blockType} onChange={(event) => setDraft((current) => ({ ...current, blockType: event.target.value }))}><option value="">{en ? "All Types" : "전체 유형"}</option><option value="IP">IP</option><option value="CIDR">CIDR</option><option value="ACCOUNT">{en ? "Account" : "계정"}</option><option value="UA">User-Agent</option></select>
           <div className="flex gap-2"><select className="gov-select" value={draft.status} onChange={(event) => setDraft((current) => ({ ...current, status: event.target.value }))}><option value="">{en ? "All Status" : "전체 상태"}</option><option value="ACTIVE">ACTIVE</option><option value="PENDING">PENDING</option><option value="RELEASED">RELEASED</option></select><button className="gov-btn gov-btn-primary" type="submit">{en ? "Search" : "조회"}</button></div>

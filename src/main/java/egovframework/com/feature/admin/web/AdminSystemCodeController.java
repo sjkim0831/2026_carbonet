@@ -16,6 +16,7 @@ import egovframework.com.feature.admin.model.vo.PageManagementVO;
 import egovframework.com.feature.admin.model.vo.UserAuthorityTargetVO;
 import egovframework.com.feature.admin.service.AdminCodeManageService;
 import egovframework.com.feature.admin.dto.response.MenuInfoDTO;
+import egovframework.com.feature.admin.dto.response.SystemAccessHistoryRowResponse;
 import egovframework.com.feature.admin.service.AuthGroupManageService;
 import egovframework.com.feature.admin.service.FullStackGovernanceRegistryService;
 import egovframework.com.feature.admin.service.MenuFeatureManageService;
@@ -24,6 +25,7 @@ import egovframework.com.feature.admin.service.ScreenCommandCenterService;
 import egovframework.com.feature.admin.service.WbsManagementService;
 import egovframework.com.feature.auth.domain.repository.EmployeeMemberRepository;
 import egovframework.com.feature.auth.domain.repository.EnterpriseMemberRepository;
+import egovframework.com.feature.auth.service.CurrentUserContextService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,6 +86,7 @@ public class AdminSystemCodeController {
     private final RequestExecutionLogService requestExecutionLogService;
     private final EmployeeMemberRepository employeeMemberRepository;
     private final EnterpriseMemberRepository enterpriseMemberRepository;
+    private final CurrentUserContextService currentUserContextService;
     private final ConcurrentMap<String, String> companyNameCache = new ConcurrentHashMap<>();
 
     @RequestMapping(value = "/code", method = { RequestMethod.GET, RequestMethod.POST })
@@ -170,8 +173,8 @@ public class AdminSystemCodeController {
         return buildPageDataResponse(request, model -> populateIpWhitelistModel(model, isEn, searchIp, accessScope, status));
     }
 
-    @RequestMapping(value = "/access_history", method = RequestMethod.GET)
-    public String accessHistory(HttpServletRequest request, Locale locale) {
+    @RequestMapping(value = "/access_history/legacy", method = RequestMethod.GET)
+    public String legacyAccessHistory(HttpServletRequest request, Locale locale) {
         return redirectReactMigration(request, locale, "access-history");
     }
 
@@ -368,8 +371,9 @@ public class AdminSystemCodeController {
         return ResponseEntity.ok(response);
     }
 
-    @RequestMapping(value = "/menu-management/order", method = RequestMethod.POST)
-    public String saveMenuManagementOrder(
+    @PostMapping("/menu-management/order")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> saveMenuManagementOrder(
             @RequestParam(value = "menuType", defaultValue = "ADMIN") String menuType,
             @RequestParam(value = "orderPayload", required = false) String orderPayload,
             HttpServletRequest request,
@@ -379,9 +383,12 @@ public class AdminSystemCodeController {
         String normalizedMenuType = normalizeMenuType(menuType);
         String codeId = resolveMenuCodeId(normalizedMenuType);
         List<MenuInfoDTO> menuRows = loadMenuTreeRows(codeId);
+        Map<String, Object> response = new LinkedHashMap<>();
         String error = validateMenuOrderPayload(normalizedMenuType, orderPayload, menuRows, isEn);
         if (!error.isEmpty()) {
-            return redirectMenuManagementError(request, locale, normalizedMenuType, error);
+            response.put("success", false);
+            response.put("message", error);
+            return ResponseEntity.badRequest().body(response);
         }
 
         try {
@@ -403,11 +410,14 @@ public class AdminSystemCodeController {
                     "{\"orderPayload\":\"" + safeJson(orderPayload) + "\"}");
         } catch (Exception e) {
             log.error("Failed to save menu order. menuType={}, payload={}", normalizedMenuType, orderPayload, e);
-            return redirectMenuManagementError(request, locale, normalizedMenuType,
-                    isEn ? "Failed to save menu order." : "메뉴 순서 저장에 실패했습니다.");
+            response.put("success", false);
+            response.put("message", isEn ? "Failed to save menu order." : "메뉴 순서 저장에 실패했습니다.");
+            return ResponseEntity.internalServerError().body(response);
         }
 
-        return "redirect:" + adminPrefix(request, locale) + "/system/menu-management?menuType=" + normalizedMenuType + "&saved=Y";
+        response.put("success", true);
+        response.put("message", isEn ? "Menu order has been saved." : "메뉴 순서를 저장했습니다.");
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/menu-management/create-page")
@@ -1972,28 +1982,27 @@ public class AdminSystemCodeController {
             return new AccessHistoryRowsPage(Collections.emptyList(), logPage.getTotalCount());
         }
 
-        List<Map<String, Object>> rows = new ArrayList<>();
+        List<SystemAccessHistoryRowResponse> rows = new ArrayList<>();
         for (RequestExecutionLogVO item : logPage.getItems()) {
             String effectiveInsttId = resolveEffectiveInsttId(item);
-            Map<String, Object> row = new LinkedHashMap<>();
-            row.put("logId", safeString(item.getLogId()));
-            row.put("executedAt", safeString(item.getExecutedAt()));
-            row.put("requestUri", safeString(item.getRequestUri()));
-            row.put("httpMethod", safeString(item.getHttpMethod()));
-            row.put("featureType", safeString(item.getFeatureType()));
-            row.put("actorUserId", safeString(item.getActorUserId()));
-            row.put("actorType", safeString(item.getActorType()));
-            row.put("actorAuthorCode", safeString(item.getActorAuthorCode()));
-            row.put("actorInsttId", safeString(item.getActorInsttId()));
-            row.put("insttId", effectiveInsttId);
-            row.put("companyContextId", safeString(item.getCompanyContextId()));
-            row.put("targetCompanyContextId", safeString(item.getTargetCompanyContextId()));
-            row.put("responseStatus", item.getResponseStatus());
-            row.put("durationMs", item.getDurationMs());
-            row.put("errorMessage", safeString(item.getErrorMessage()));
-            row.put("remoteAddr", extractRemoteAddr(item));
-            row.put("companyName", safeString(companyNameByInsttId.get(effectiveInsttId)));
-            rows.add(row);
+            rows.add(new SystemAccessHistoryRowResponse(
+                    safeString(item.getLogId()),
+                    safeString(item.getExecutedAt()),
+                    safeString(item.getRequestUri()),
+                    safeString(item.getHttpMethod()),
+                    safeString(item.getFeatureType()),
+                    safeString(item.getActorUserId()),
+                    safeString(item.getActorType()),
+                    safeString(item.getActorAuthorCode()),
+                    safeString(item.getActorInsttId()),
+                    effectiveInsttId,
+                    safeString(item.getCompanyContextId()),
+                    safeString(item.getTargetCompanyContextId()),
+                    item.getResponseStatus(),
+                    item.getDurationMs(),
+                    safeString(item.getErrorMessage()),
+                    extractRemoteAddr(item),
+                    safeString(companyNameByInsttId.get(effectiveInsttId))));
         }
         return new AccessHistoryRowsPage(rows, logPage.getTotalCount());
     }
@@ -2042,15 +2051,15 @@ public class AdminSystemCodeController {
 
     private static final class AccessHistoryRowsPage {
 
-        private final List<Map<String, Object>> rows;
+        private final List<SystemAccessHistoryRowResponse> rows;
         private final int totalCount;
 
-        private AccessHistoryRowsPage(List<Map<String, Object>> rows, int totalCount) {
+        private AccessHistoryRowsPage(List<SystemAccessHistoryRowResponse> rows, int totalCount) {
             this.rows = rows == null ? Collections.emptyList() : rows;
             this.totalCount = Math.max(totalCount, 0);
         }
 
-        private List<Map<String, Object>> getRows() {
+        private List<SystemAccessHistoryRowResponse> getRows() {
             return rows;
         }
 
@@ -2709,6 +2718,7 @@ public class AdminSystemCodeController {
             List<MenuInfoDTO> rows = new ArrayList<>(menuInfoService.selectMenuTreeList(codeId));
             for (MenuInfoDTO row : rows) {
                 row.setMenuUrl(canonicalMenuUrl(row.getMenuUrl()));
+                normalizeManagedAdminMenuRow(row);
             }
             Map<String, Integer> sortOrderMap = new LinkedHashMap<>();
             for (MenuInfoDTO row : rows) {
@@ -2724,6 +2734,38 @@ public class AdminSystemCodeController {
         } catch (Exception e) {
             log.error("Failed to load menu tree rows. codeId={}", codeId, e);
             return Collections.emptyList();
+        }
+    }
+
+    private void normalizeManagedAdminMenuRow(MenuInfoDTO row) {
+        String code = safeString(row.getCode()).toUpperCase(Locale.ROOT);
+        String menuUrl = safeString(row.getMenuUrl());
+        if ("A006".equals(code)) {
+            row.setCodeNm("시스템");
+            row.setCodeDc("System");
+            return;
+        }
+        if ("A00601".equals(code)) {
+            row.setCodeNm("환경");
+            row.setCodeDc("Environment");
+            return;
+        }
+        if ("A008".equals(code)) {
+            row.setCodeNm("배출/인증");
+            row.setCodeDc("Emission / Certification");
+            return;
+        }
+        if ("A00801".equals(code)) {
+            row.setCodeNm("배출지 운영");
+            row.setCodeDc("Emission Site Operations");
+            return;
+        }
+        if (!menuUrl.startsWith("/admin/system/")) {
+            return;
+        }
+        if ("/admin/system/page-management".equals(menuUrl)) {
+            row.setCodeNm("화면 관리");
+            row.setCodeDc("Screen Management");
         }
     }
 
@@ -2841,6 +2883,10 @@ public class AdminSystemCodeController {
         String normalized = safeString(value);
         if (normalized.isEmpty()) {
             return "";
+        }
+        if (normalized.startsWith("/admin/system/unified_log/")
+                || normalized.startsWith("/en/admin/system/unified_log/")) {
+            return normalized;
         }
         String canonical = ReactPageUrlMapper.toCanonicalMenuUrl(normalized);
         return canonical.isEmpty() ? normalized : canonical;
@@ -3146,19 +3192,20 @@ public class AdminSystemCodeController {
             return "";
         }
         HttpSession session = request.getSession(false);
-        if (session == null) {
-            return "";
+        if (session != null) {
+            Object loginVO = session.getAttribute("LoginVO");
+            if (loginVO != null) {
+                try {
+                    Object value = loginVO.getClass().getMethod("getId").invoke(loginVO);
+                    String actorId = value == null ? "" : value.toString();
+                    if (!actorId.isEmpty()) {
+                        return actorId;
+                    }
+                } catch (Exception ignored) {
+                }
+            }
         }
-        Object loginVO = session.getAttribute("LoginVO");
-        if (loginVO == null) {
-            return "";
-        }
-        try {
-            Object value = loginVO.getClass().getMethod("getId").invoke(loginVO);
-            return value == null ? "" : value.toString();
-        } catch (Exception ignored) {
-            return "";
-        }
+        return safeString(currentUserContextService.resolve(request).getUserId());
     }
 
     private String resolveActorRole(HttpServletRequest request) {
@@ -3166,19 +3213,20 @@ public class AdminSystemCodeController {
             return "";
         }
         HttpSession session = request.getSession(false);
-        if (session == null) {
-            return "";
+        if (session != null) {
+            Object loginVO = session.getAttribute("LoginVO");
+            if (loginVO != null) {
+                try {
+                    Object value = loginVO.getClass().getMethod("getAuthorCode").invoke(loginVO);
+                    String actorRole = value == null ? "" : value.toString();
+                    if (!actorRole.isEmpty()) {
+                        return actorRole;
+                    }
+                } catch (Exception ignored) {
+                }
+            }
         }
-        Object loginVO = session.getAttribute("LoginVO");
-        if (loginVO == null) {
-            return "";
-        }
-        try {
-            Object value = loginVO.getClass().getMethod("getAuthorCode").invoke(loginVO);
-            return value == null ? "" : value.toString();
-        } catch (Exception ignored) {
-            return "";
-        }
+        return safeString(currentUserContextService.resolve(request).getAuthorCode());
     }
 
     private String resolveRequestIp(HttpServletRequest request) {

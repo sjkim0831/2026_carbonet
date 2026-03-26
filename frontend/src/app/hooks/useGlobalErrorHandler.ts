@@ -15,6 +15,8 @@ interface ErrorReportPayload {
   col?: number;
 }
 
+const CHUNK_RECOVERY_STORAGE_KEY = "carbonet.react.chunk-recovery";
+
 function generateFingerprint(message: string, url: string, line?: number): string {
   const hashInput = [message, url, line?.toString() || ""].join("|");
   let hash = 0;
@@ -26,10 +28,38 @@ function generateFingerprint(message: string, url: string, line?: number): strin
   return `ERR_${Math.abs(hash).toString(16).toUpperCase()}`;
 }
 
+function isChunkLoadFailure(message: string, url: string) {
+  const normalizedMessage = (message || "").toLowerCase();
+  const normalizedUrl = (url || "").toLowerCase();
+  return normalizedMessage.includes("failed to fetch dynamically imported module")
+    || normalizedMessage.includes("importing a module script failed")
+    || normalizedMessage.includes("loading chunk")
+    || normalizedMessage.includes("chunkloaderror")
+    || normalizedMessage.includes("vite:preloaderror")
+    || normalizedUrl.includes("/assets/react/assets/");
+}
+
+function tryRecoverChunkLoad(reason: { message: string; url: string; pageId: string }) {
+  if (!isChunkLoadFailure(reason.message, reason.url)) {
+    return false;
+  }
+
+  const currentPath = `${window.location.pathname}${window.location.search}`;
+  const recoveryKey = `${currentPath}|${reason.pageId}`;
+  const previousRecoveryKey = window.sessionStorage.getItem(CHUNK_RECOVERY_STORAGE_KEY) || "";
+  if (previousRecoveryKey === recoveryKey) {
+    return false;
+  }
+
+  window.sessionStorage.setItem(CHUNK_RECOVERY_STORAGE_KEY, recoveryKey);
+  window.location.reload();
+  return true;
+}
+
 async function reportErrorToBackend(payload: ErrorReportPayload) {
   try {
     const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute("content") || "";
-    
+
     const response = await fetch("/api/frontend/error/report", {
       method: "POST",
       headers: {
@@ -39,7 +69,7 @@ async function reportErrorToBackend(payload: ErrorReportPayload) {
       body: JSON.stringify(payload),
       credentials: "same-origin"
     });
-    
+
     const result = await response.json();
     if (result.status === "self_healing_triggered" || result.status === "ticket_created") {
       console.log("[GlobalErrorHandler] Auto-ticket created:", result.ticketId);
@@ -52,10 +82,11 @@ async function reportErrorToBackend(payload: ErrorReportPayload) {
 export function useGlobalErrorHandler() {
   useEffect(() => {
     const pageId = window.__CARBONET_REACT_MIGRATION__?.route || "unknown";
+    const currentPath = `${window.location.pathname}${window.location.search}`;
 
     function handleWindowError(event: ErrorEvent) {
       const fingerprint = generateFingerprint(event.message, event.filename, event.lineno);
-      
+
       const payload: ErrorReportPayload = {
         errorType: "WINDOW_ERROR",
         fingerprint,
@@ -76,6 +107,10 @@ export function useGlobalErrorHandler() {
         result: "window_error",
         payloadSummary: { ...payload } as Record<string, unknown>
       });
+
+      if (tryRecoverChunkLoad({ message: event.message, url: event.filename, pageId })) {
+        return;
+      }
 
       reportErrorToBackend(payload);
     }
@@ -105,15 +140,57 @@ export function useGlobalErrorHandler() {
         payloadSummary: { ...payload } as Record<string, unknown>
       });
 
+      if (tryRecoverChunkLoad({ message, url: window.location.href, pageId })) {
+        return;
+      }
+
       reportErrorToBackend(payload);
+    }
+
+    function handleVitePreloadError(event: Event) {
+      const customEvent = event as Event & { payload?: unknown };
+      const message = customEvent.payload instanceof Error
+        ? customEvent.payload.message
+        : "vite:preloadError";
+      const payload: ErrorReportPayload = {
+        errorType: "UNHANDLED_REJECTION",
+        fingerprint: generateFingerprint(message, window.location.href),
+        message,
+        stack: customEvent.payload instanceof Error ? customEvent.payload.stack : undefined,
+        pageId,
+        timestamp: new Date().toISOString(),
+        userAgent: navigator.userAgent,
+        url: window.location.href
+      };
+
+      publishTelemetryEvent({
+        type: "ui_error",
+        result: "vite_preload_error",
+        payloadSummary: { ...payload, routePath: currentPath } as Record<string, unknown>
+      });
+
+      if (tryRecoverChunkLoad({ message, url: window.location.href, pageId })) {
+        event.preventDefault();
+        return;
+      }
+
+      reportErrorToBackend(payload);
+    }
+
+    function clearChunkRecoveryMarker() {
+      window.sessionStorage.removeItem(CHUNK_RECOVERY_STORAGE_KEY);
     }
 
     window.addEventListener("error", handleWindowError);
     window.addEventListener("unhandledrejection", handleUnhandledRejection);
+    window.addEventListener("vite:preloadError", handleVitePreloadError as EventListener);
+    window.addEventListener("pageshow", clearChunkRecoveryMarker);
 
     return () => {
       window.removeEventListener("error", handleWindowError);
       window.removeEventListener("unhandledrejection", handleUnhandledRejection);
+      window.removeEventListener("vite:preloadError", handleVitePreloadError as EventListener);
+      window.removeEventListener("pageshow", clearChunkRecoveryMarker);
     };
   }, []);
 }

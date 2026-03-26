@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { findManifestByPageId, listPageManifestOptions } from "../../app/screen-registry/pageManifestIndex";
+import { logGovernanceScope } from "../../app/policy/debug";
 import {
   AuditEventSearchPayload,
   fetchAuditEvents,
@@ -95,6 +96,24 @@ export function HelpManagementMigrationPage() {
     load(initialPageId).catch((err: Error) => setError(err.message));
   }, []);
 
+  useEffect(() => {
+    if (!payload) {
+      return;
+    }
+    logGovernanceScope("PAGE", "help-management", {
+      route: window.location.pathname,
+      tab,
+      selectedPageId,
+      itemCount: items.length,
+      auditRowCount: Number(auditPage?.items?.length || 0)
+    });
+    logGovernanceScope("COMPONENT", tab === "help" ? "help-management-editor" : "help-management-command", {
+      component: tab === "help" ? "help-management-editor" : "help-management-command",
+      selectedPageId,
+      itemCount: items.length
+    });
+  }, [auditPage?.items?.length, items.length, payload, selectedPageId, tab]);
+
   function updateItem(index: number, key: keyof HelpManagementItem, value: string | number) {
     setItems((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, [key]: value } : item));
   }
@@ -110,12 +129,22 @@ export function HelpManagementMigrationPage() {
   }
 
   async function handleLoad() {
+    logGovernanceScope("ACTION", "help-management-load", {
+      selectedPageId,
+      tab
+    });
     setError("");
     setMessage("");
     await load(selectedPageId);
   }
 
   async function handleSave() {
+    logGovernanceScope("ACTION", "help-management-save", {
+      selectedPageId,
+      itemCount: items.length,
+      helpVersion,
+      activeYn
+    });
     setSaving(true);
     setError("");
     setMessage("");

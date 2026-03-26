@@ -100,8 +100,9 @@ export function AuthChangeSelectedCard({
 export function AuthChangeTableSection({
   page,
   canEdit,
+  searchDraft,
   searchKeyword,
-  setSearchKeyword,
+  setSearchDraft,
   assignmentFilter,
   setAssignmentFilter,
   pendingCount,
@@ -115,12 +116,14 @@ export function AuthChangeTableSection({
   onSave,
   currentPage,
   totalPages,
-  setPageIndex
+  setPageIndex,
+  onSearchSubmit
 }: {
   page: AuthChangePagePayload | null;
   canEdit: boolean;
+  searchDraft: string;
   searchKeyword: string;
-  setSearchKeyword: (value: string) => void;
+  setSearchDraft: (value: string) => void;
   assignmentFilter: string;
   setAssignmentFilter: (value: string) => void;
   pendingCount: number;
@@ -135,9 +138,11 @@ export function AuthChangeTableSection({
   currentPage: number;
   totalPages: number;
   setPageIndex: (value: number) => void;
+  onSearchSubmit: () => void;
 }) {
   return (
-    <section className="gov-card" data-help-id="auth-change-summary">
+    <section className="gov-card" data-help-id="auth-change-table">
+      <div data-help-id="auth-change-summary" hidden />
       <GridToolbar
         actions={(
           <MemberButton className="w-full sm:w-auto" disabled={!canEdit || pendingCount === 0 || savingEmplyrId === "__bulk__"} onClick={onBulkSave} type="button" variant="primary">
@@ -150,7 +155,17 @@ export function AuthChangeTableSection({
       <div className="mb-4 grid grid-cols-1 gap-3 xl:grid-cols-[1.3fr_0.7fr_auto]">
         <label>
           <span className="mb-2 block text-[13px] font-bold text-[var(--kr-gov-text-secondary)]">{t(page, "관리자 검색", "Admin Search")}</span>
-          <AdminInput placeholder={t(page, "ID, 이름, 현재 권한 검색", "Search by ID, name, or current role")} value={searchKeyword} onChange={(event) => setSearchKeyword(event.target.value)} />
+          <AdminInput
+            placeholder={t(page, "ID, 이름, 현재 권한 검색", "Search by ID, name, or current role")}
+            value={searchDraft}
+            onChange={(event) => setSearchDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                onSearchSubmit();
+              }
+            }}
+          />
         </label>
         <label>
           <span className="mb-2 block text-[13px] font-bold text-[var(--kr-gov-text-secondary)]">{t(page, "변경 상태", "Change State")}</span>
@@ -160,8 +175,17 @@ export function AuthChangeTableSection({
             <option value="UNCHANGED">{t(page, "변경 없음", "Unchanged")}</option>
           </AdminSelect>
         </label>
-        <div className="flex items-end" />
+        <div className="flex items-end">
+          <MemberButton className="w-full sm:w-auto" onClick={onSearchSubmit} type="button" variant="secondary">
+            {t(page, "조회", "Search")}
+          </MemberButton>
+        </div>
       </div>
+      {searchKeyword ? (
+        <p className="mb-4 text-sm text-[var(--kr-gov-text-secondary)]">
+          {t(page, "적용 검색어", "Applied keyword")}: <span className="font-semibold text-[var(--kr-gov-text-primary)]">{searchKeyword}</span>
+        </p>
+      ) : null}
       <div className="overflow-x-auto">
         <AdminTable className="min-w-[960px]">
           <thead className="bg-gray-50 border-y border-[var(--kr-gov-border-light)] text-[13px] font-bold text-[var(--kr-gov-text-secondary)]">
@@ -189,9 +213,15 @@ export function AuthChangeTableSection({
                   </td>
                   <td className="px-4 py-3">
                     <AdminSelect className="min-w-[16rem] h-10 px-3 text-sm" disabled={!canEdit} value={draftCode} onChange={(event) => setDrafts((current) => ({ ...current, [row.emplyrId]: event.target.value }))}>
-                      {(page?.authorGroups || []).map((group) => (
+                      {((page?.authorGroupSections || []).length > 0 ? (page?.authorGroupSections || []).map((section) => (
+                        <optgroup key={section.layerKey} label={section.sectionLabel}>
+                          {(section.groups || []).map((group) => (
+                            <option key={group.authorCode} value={group.authorCode}>{group.authorNm} ({group.authorCode})</option>
+                          ))}
+                        </optgroup>
+                      )) : (page?.authorGroups || []).map((group) => (
                         <option key={group.authorCode} value={group.authorCode}>{group.authorNm} ({group.authorCode})</option>
-                      ))}
+                      )))}
                     </AdminSelect>
                   </td>
                   <td className="px-4 py-3">

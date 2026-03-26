@@ -1,6 +1,7 @@
 import { ChangeEvent, useEffect, useId, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useExternalScript } from "../../app/hooks/useExternalScript";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { buildLocalizedPath, getSearchParam, isEnglish, navigate } from "../../lib/navigation/runtime";
 import {
   fetchJoinCompanyReapplyPage,
@@ -98,6 +99,32 @@ export function JoinCompanyReapplyMigrationPage() {
     void handleLookup();
   }, []);
 
+  useEffect(() => {
+    logGovernanceScope("PAGE", "join-company-reapply", {
+      language: en ? "en" : "ko",
+      bizNo: bizNo.trim(),
+      repName: repName.trim(),
+      insttId: form.insttId,
+      uploadRowCount: uploadRows.length,
+      loading,
+      submitting
+    });
+    logGovernanceScope("COMPONENT", "join-company-reapply-files", {
+      uploadRowCount: uploadRows.length,
+      selectedFileCount: uploadRows.filter((row) => row.file).length,
+      dragTargetId
+    });
+  }, [
+    bizNo,
+    dragTargetId,
+    en,
+    form.insttId,
+    loading,
+    repName,
+    submitting,
+    uploadRows
+  ]);
+
   function updateField(key: keyof ReapplyForm, value: string) {
     setForm((current) => ({ ...current, [key]: value }));
   }
@@ -118,6 +145,10 @@ export function JoinCompanyReapplyMigrationPage() {
   }
 
   async function handleLookup() {
+    logGovernanceScope("ACTION", "join-company-reapply-lookup", {
+      bizNo: bizNo.trim(),
+      repName: repName.trim()
+    });
     if (!bizNo.trim() || !repName.trim()) {
       setActionError(en ? "Enter both business registration number and representative name." : "사업자등록번호와 대표자명을 모두 입력해 주세요.");
       return;
@@ -201,6 +232,11 @@ export function JoinCompanyReapplyMigrationPage() {
   }
 
   async function handleSubmit() {
+    logGovernanceScope("ACTION", "join-company-reapply-submit", {
+      insttId: form.insttId,
+      agencyName: form.agencyName,
+      uploadedFileCount: uploadRows.map((row) => row.file).filter((file): file is File => file !== null).length
+    });
     setActionError("");
     setMessage("");
 

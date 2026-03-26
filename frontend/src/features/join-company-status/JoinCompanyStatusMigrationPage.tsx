@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { fetchJoinCompanyStatusDetail } from "../../lib/api/client";
 import { buildLocalizedPath, getSearchParam, isEnglish, navigate } from "../../lib/navigation/runtime";
 import { HomeButton, HomeCheckbox, HomeInput, HomeLinkButton } from "../home-ui/common";
@@ -185,15 +186,64 @@ export function JoinCompanyStatusMigrationPage() {
   const submittedCompany = getSearchParam("insttNm");
   const submittedDate = getSearchParam("regDate");
 
+  useEffect(() => {
+    logGovernanceScope("PAGE", "join-company-status", {
+      language: en ? "en" : "ko",
+      mode,
+      isDetailPage,
+      isGuidePage,
+      bizNo: bizNo.trim(),
+      appNo: appNo.trim(),
+      repName: repName.trim(),
+      status,
+      submitted
+    });
+    logGovernanceScope("COMPONENT", "join-company-status-detail", {
+      detailLoaded: Boolean(detail),
+      fileCount: files.length,
+      status,
+      rejectReasonPresent: Boolean(rejectReason && rejectReason !== copy.noData),
+      agreed
+    });
+  }, [
+    agreed,
+    appNo,
+    bizNo,
+    copy.noData,
+    detail,
+    en,
+    files.length,
+    isDetailPage,
+    isGuidePage,
+    mode,
+    rejectReason,
+    repName,
+    status,
+    submitted
+  ]);
+
   function goHome() {
     navigate(buildLocalizedPath("/home", "/en/home"));
   }
 
-  function goSearchPage() {
-    navigate(buildLocalizedPath("/join/companyJoinStatusSearch", "/join/en/companyJoinStatusSearch"));
+  function changeLanguage(nextEnglish: boolean) {
+    const targetBasePath = isDetailPage
+      ? nextEnglish ? "/join/en/companyJoinStatusDetail" : "/join/companyJoinStatusDetail"
+      : isGuidePage
+        ? nextEnglish ? "/join/en/companyJoinStatusGuide" : "/join/companyJoinStatusGuide"
+        : nextEnglish ? "/join/en/companyJoinStatusSearch" : "/join/companyJoinStatusSearch";
+    const search = window.location.search || "";
+    window.location.href = `${targetBasePath}${search}`;
   }
 
   function handleSearch() {
+    logGovernanceScope("ACTION", "join-company-status-search", {
+      mode,
+      bizNo: bizNo.trim(),
+      appNo: appNo.trim(),
+      repName: repName.trim(),
+      agreed
+    });
     if (!agreed) {
       window.alert(copy.needAgree);
       return;
@@ -728,8 +778,8 @@ export function JoinCompanyStatusMigrationPage() {
             </div>
             <div className="flex items-center gap-4">
               <div className="flex border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] overflow-hidden">
-                <HomeButton className={`px-3 py-1 text-xs font-bold ${en ? "!bg-white !text-[var(--kr-gov-text-secondary)] hover:!bg-gray-100" : "!bg-[var(--kr-gov-blue)] !text-white"}`} onClick={goSearchPage} size="xs" type="button" variant="ghost">KO</HomeButton>
-                <HomeButton className={`px-3 py-1 text-xs font-bold border-l border-[var(--kr-gov-border-light)] ${en ? "!bg-[var(--kr-gov-blue)] !text-white" : "!bg-white !text-[var(--kr-gov-text-secondary)] hover:!bg-gray-100"}`} onClick={() => navigate("/join/en/companyJoinStatusSearch")} size="xs" type="button" variant="ghost">EN</HomeButton>
+                <HomeButton className={`px-3 py-1 text-xs font-bold ${en ? "!bg-white !text-[var(--kr-gov-text-secondary)] hover:!bg-gray-100" : "!bg-[var(--kr-gov-blue)] !text-white"}`} onClick={() => changeLanguage(false)} size="xs" type="button" variant="ghost">KO</HomeButton>
+                <HomeButton className={`px-3 py-1 text-xs font-bold border-l border-[var(--kr-gov-border-light)] ${en ? "!bg-[var(--kr-gov-blue)] !text-white" : "!bg-white !text-[var(--kr-gov-text-secondary)] hover:!bg-gray-100"}`} onClick={() => changeLanguage(true)} size="xs" type="button" variant="ghost">EN</HomeButton>
               </div>
             </div>
           </div>

@@ -218,6 +218,24 @@ This means:
   - `SUB_FIRST`
   - `IDLE_FIRST`
 - `runtimeResult`
+
+## 06 Backend Handoff Rule
+
+`06` is handoff-ready when the current backend implementation can be summarized
+without contract reinterpretation.
+
+Minimum stable field families:
+
+- compare context and blocker fields
+- repair session and repair apply fields
+- module binding preview/result fields
+- verification result fields
+- release-unit trace linkage fields
+
+Minimum handoff consumers:
+
+- `07` can continue from stable naming for SQL draft and rollback families
+- `09` can continue from stable compare, repair, and verification payloads
 - `healthCheckSummary`
 - `rollbackReadyYn`
 - `deployedAt`

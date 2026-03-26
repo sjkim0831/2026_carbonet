@@ -21,9 +21,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.ui.Model;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -204,14 +208,19 @@ public class AdminMemberPageModelAssembler {
             model.addAttribute("institutionInsttId", "");
             model.addAttribute("documentStatusLabel", isEn ? "No document registered" : "등록 문서 없음");
         }
+        List<Map<String, Object>> permissionAuthorGroupSections = controller.buildMemberEditAuthorGroupSections(
+                displayMember,
+                isEn,
+                currentUserId);
         controller.populatePermissionEditorModel(
                 model,
-                authGroupManageService.selectAuthorList(),
+                controller.flattenPermissionAuthorGroupSections(permissionAuthorGroupSections),
                 controller.safeString(authGroupManageService.selectEnterpriseAuthorCodeByUserId(displayMember.getEntrprsmberId())),
                 controller.safeString(displayMember.getUniqId()),
                 null,
                 isEn,
                 currentUserId);
+        model.addAttribute("permissionAuthorGroupSections", permissionAuthorGroupSections);
     }
 
     public void populateMemberDetailModel(String memberId, HttpServletRequest request, Model model, boolean isEn) {
@@ -255,7 +264,7 @@ public class AdminMemberPageModelAssembler {
             String selectedAuthorCode = controller.safeString(authGroupManageService.selectEnterpriseAuthorCodeByUserId(displayMember.getEntrprsmberId()));
             controller.populatePermissionEditorModel(
                     model,
-                    authGroupManageService.selectAuthorList(),
+                    Collections.emptyList(),
                     selectedAuthorCode,
                     controller.safeString(displayMember.getUniqId()),
                     null,

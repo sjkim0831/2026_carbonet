@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { fetchWbsManagementPage, saveWbsManagementEntry, type WbsManagementPagePayload } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
@@ -190,6 +191,12 @@ export function WbsManagementMigrationPage() {
 
   async function handleSave() {
     if (!selectedRow) return;
+    logGovernanceScope("ACTION", "wbs-management-save", {
+      menuType,
+      menuCode: stringOf(selectedRow, "menuCode"),
+      status: editor.status,
+      progress: editor.progress
+    });
     setSaving(true);
     setError("");
     setMessage("");
@@ -233,6 +240,25 @@ export function WbsManagementMigrationPage() {
     }
     return buildLocalizedPath(`/admin/api/admin/wbs-management/excel?${query.toString()}`, `/en/admin/api/admin/wbs-management/excel?${query.toString()}`);
   }, [menuType, searchKeyword, statusFilter]);
+
+  useEffect(() => {
+    logGovernanceScope("PAGE", "wbs-management", {
+      language: en ? "en" : "ko",
+      menuType,
+      selectedMenuCode,
+      statusFilter,
+      searchKeyword: searchKeyword.trim(),
+      rowCount: filteredRows.length,
+      saving
+    });
+    logGovernanceScope("COMPONENT", "wbs-summary-cards", {
+      scope: stringOf(inventorySummary, "scope"),
+      rowCount: filteredRows.length,
+      waveCount: waveSummary.length,
+      timelineWeekCount: timelineWeeks.length,
+      timelineMonthCount: timelineMonths.length
+    });
+  }, [en, filteredRows.length, inventorySummary, menuType, saving, searchKeyword, selectedMenuCode, statusFilter, timelineMonths.length, timelineWeeks.length, waveSummary.length]);
 
   return (
     <AdminPageShell

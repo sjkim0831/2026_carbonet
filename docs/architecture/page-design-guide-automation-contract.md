@@ -55,3 +55,25 @@ The guide should include at least:
 - every page-design should reference one design guide profile
 - the guide should be printable and reviewable from the design workspace
 - AI-generated page output should show whether it followed the registered guide
+
+## 04 Builder Handoff Rule
+
+`04` may move to handoff when the design-guide side can already be consumed by
+`05` and `09` without reopening builder linkage rules.
+
+Minimum visible linkage:
+
+- `designGuideProfileId`
+- `pageId`
+- `pageFamily`
+- `themeSetId`
+- `pageFrameId`
+- `actionLayoutProfileId`
+- approved help anchor expectations
+
+The handoff output must make it clear that the same guide profile is expected in:
+
+- builder draft generation
+- page assembly
+- runtime/operator UI output
+- compare and repair verification

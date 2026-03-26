@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { type IpWhitelistPagePayload, fetchIpWhitelistPage } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
@@ -45,6 +46,25 @@ export function IpWhitelistMigrationPage() {
   const rows = (page?.ipWhitelistRows || []) as Array<Record<string, string>>;
   const requests = (page?.ipWhitelistRequestRows || []) as Array<Record<string, string>>;
 
+  useEffect(() => {
+    if (!page) {
+      return;
+    }
+    logGovernanceScope("PAGE", "ip-whitelist", {
+      route: window.location.pathname,
+      summaryCount: summary.length,
+      rowCount: rows.length,
+      requestCount: requests.length,
+      accessScope: filters.accessScope,
+      status: filters.status
+    });
+    logGovernanceScope("COMPONENT", "ip-whitelist-table", {
+      component: "ip-whitelist-table",
+      rowCount: rows.length,
+      requestCount: requests.length
+    });
+  }, [filters.accessScope, filters.status, page, requests.length, rows.length, summary.length]);
+
   return (
     <AdminPageShell
       breadcrumbs={[
@@ -75,6 +95,11 @@ export function IpWhitelistMigrationPage() {
         </div>
         <form className="grid grid-cols-1 md:grid-cols-4 gap-4" onSubmit={(event) => {
           event.preventDefault();
+          logGovernanceScope("ACTION", "ip-whitelist-search", {
+            searchIp: draft.searchIp,
+            accessScope: draft.accessScope,
+            status: draft.status
+          });
           setFilters(draft);
         }}>
           <div>
@@ -104,6 +129,7 @@ export function IpWhitelistMigrationPage() {
             <button className="gov-btn gov-btn-primary w-full" type="submit">{en ? "Search" : "조회"}</button>
             <button className="gov-btn gov-btn-outline w-full" onClick={() => {
               const reset = { searchIp: "", accessScope: "", status: "" };
+              logGovernanceScope("ACTION", "ip-whitelist-reset", reset);
               setDraft(reset);
               setFilters(reset);
             }} type="button">{en ? "Reset" : "초기화"}</button>

@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { fetchAdminSitemapPage, type SitemapNode, type SitemapPagePayload } from "../../lib/api/client";
@@ -16,6 +18,26 @@ export function AdminSitemapMigrationPage() {
   const en = isEnglish();
   const pageState = useAsyncValue<SitemapPagePayload>(() => fetchAdminSitemapPage(), [en]);
   const sections = (pageState.value?.siteMapSections || []) as SitemapNode[];
+
+  useEffect(() => {
+    if (!pageState.value) {
+      return;
+    }
+    const sectionCount = sections.length;
+    const itemCount = sections.reduce((total, top) => (
+      total + (top.children || []).reduce((childTotal, section) => childTotal + (section.children || []).length, 0)
+    ), 0);
+    logGovernanceScope("PAGE", "admin-sitemap", {
+      route: window.location.pathname,
+      sectionCount,
+      itemCount
+    });
+    logGovernanceScope("COMPONENT", "admin-sitemap-tree", {
+      component: "admin-sitemap-tree",
+      sectionCount,
+      itemCount
+    });
+  }, [pageState.value, sections]);
 
   return (
     <AdminPageShell

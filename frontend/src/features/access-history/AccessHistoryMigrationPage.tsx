@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { CanView } from "../../components/access/CanView";
 import { fetchAccessHistoryPage, type AccessHistoryPagePayload } from "../../lib/api/client";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
@@ -81,11 +82,36 @@ export function AccessHistoryMigrationPage() {
   const rows = (page?.accessHistoryList || []) as Array<Record<string, unknown>>;
   const companyOptions = (page?.companyOptions || []) as Array<Record<string, string>>;
 
+  useEffect(() => {
+    if (!page) {
+      return;
+    }
+    logGovernanceScope("PAGE", "access-history", {
+      route: window.location.pathname,
+      canView: !!page.canViewAccessHistory,
+      canManageAllCompanies: !!page.canManageAllCompanies,
+      selectedInsttId: filters.insttId,
+      currentPage,
+      totalCount: Number(page.totalCount || 0),
+      searchKeyword: filters.searchKeyword
+    });
+    logGovernanceScope("COMPONENT", "access-history-table", {
+      component: "access-history-table",
+      rowCount: rows.length,
+      companyOptionCount: companyOptions.length
+    });
+  }, [companyOptions.length, currentPage, filters.insttId, filters.searchKeyword, page, rows.length]);
+
   function updateDraft<K extends keyof Filters>(key: K, value: Filters[K]) {
     setDraftFilters((current) => ({ ...current, [key]: value }));
   }
 
   function applyFilters(nextPageIndex = 1) {
+    logGovernanceScope("ACTION", "access-history-search", {
+      pageIndex: nextPageIndex,
+      insttId: draftFilters.insttId,
+      searchKeyword: draftFilters.searchKeyword
+    });
     setFilters({
       ...draftFilters,
       pageIndex: nextPageIndex

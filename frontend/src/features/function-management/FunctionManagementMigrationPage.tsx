@@ -1,5 +1,6 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { type FunctionManagementPagePayload, fetchFunctionManagementPage } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
@@ -41,8 +42,31 @@ export function FunctionManagementMigrationPage() {
   const featurePageOptions = (page?.featurePageOptions || []) as Array<Record<string, unknown>>;
   const featureRows = (page?.featureRows || []) as Array<Record<string, unknown>>;
 
+  useEffect(() => {
+    if (!page) {
+      return;
+    }
+    logGovernanceScope("PAGE", "function-management", {
+      route: window.location.pathname,
+      menuType: filters.menuType,
+      featureRowCount: featureRows.length,
+      featurePageOptionCount: featurePageOptions.length,
+      unassignedCount: Number(page.featureUnassignedCount || 0)
+    });
+    logGovernanceScope("COMPONENT", "function-management-list", {
+      component: "function-management-list",
+      rowCount: featureRows.length,
+      searchMenuCode: filters.searchMenuCode
+    });
+  }, [featurePageOptions.length, featureRows.length, filters.menuType, filters.searchMenuCode, page]);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    logGovernanceScope("ACTION", "function-management-submit", {
+      menuType: draft.menuType,
+      searchMenuCode: draft.searchMenuCode,
+      searchKeyword: draft.searchKeyword
+    });
     setActionError("");
     try {
       await submitFormRequest(event.currentTarget);
@@ -160,6 +184,11 @@ export function FunctionManagementMigrationPage() {
 
         <form className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4" onSubmit={(event) => {
           event.preventDefault();
+          logGovernanceScope("ACTION", "function-management-search", {
+            menuType: draft.menuType,
+            searchMenuCode: draft.searchMenuCode,
+            searchKeyword: draft.searchKeyword
+          });
           setFilters(draft);
         }}>
           <div>
@@ -188,6 +217,7 @@ export function FunctionManagementMigrationPage() {
             <MemberButton className="w-full" type="submit">{en ? "Search" : ADMIN_BUTTON_LABELS.search}</MemberButton>
             <MemberButton className="w-full" onClick={() => {
               const reset = { menuType: draft.menuType, searchMenuCode: "", searchKeyword: "" };
+              logGovernanceScope("ACTION", "function-management-reset", reset);
               setDraft(reset);
               setFilters(reset);
             }} type="button">{en ? "Reset" : ADMIN_BUTTON_LABELS.reset}</MemberButton>

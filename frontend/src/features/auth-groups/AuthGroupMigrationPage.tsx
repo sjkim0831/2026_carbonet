@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
+import { logGovernanceScope } from "../../app/policy/debug";
 import {
   AuthGroupPagePayload,
   FrontendSession,
@@ -7,6 +8,7 @@ import {
   fetchAuditEvents,
   fetchFrontendSession,
   readBootstrappedAuthGroupPageData,
+  saveAuthorRoleProfile,
   saveAuthGroupFeatures
 } from "../../lib/api/client";
 import { CanView } from "../../components/access/CanView";
@@ -56,6 +58,18 @@ type AuthorityInfoRow = {
 type RestoreTarget = {
   menuCode: string;
   featureCode: string;
+};
+
+type RoleProfileFormState = {
+  displayTitle: string;
+  priorityWorks: string;
+  description: string;
+  memberEditVisibleYn: string;
+  roleType: string;
+  baseRoleYn: string;
+  parentAuthorCode: string;
+  assignmentScope: string;
+  defaultMemberTypes: string[];
 };
 
 function text(page: AuthGroupPagePayload | null, ko: string, en: string) {
@@ -196,9 +210,21 @@ export function AuthGroupMigrationPage() {
   const [pinnedAuthorCodes, setPinnedAuthorCodes] = useState<string[]>(() => parsePinnedAuthorCodes());
   const [restoreTarget, setRestoreTarget] = useState<RestoreTarget | null>(null);
   const [skipInitialFetch, setSkipInitialFetch] = useState(Boolean(bootstrappedPage));
+  const [profileForm, setProfileForm] = useState<RoleProfileFormState>({
+    displayTitle: "",
+    priorityWorks: "",
+    description: "",
+    memberEditVisibleYn: "Y",
+    roleType: "",
+    baseRoleYn: "N",
+    parentAuthorCode: "",
+    assignmentScope: "",
+    defaultMemberTypes: []
+  });
 
   const payload = (page || {}) as Record<string, unknown>;
   const permissions = deriveUiPermissions(session, page);
+  const canManageAllCompanies = !!page?.canManageAllCompanies;
   const roleCategories = (payload.roleCategories as Array<Record<string, string>> | undefined) || [];
   const recommendedRoleSections =
     (payload.recommendedRoleSections as Array<Record<string, unknown>> | undefined) || [];
@@ -214,8 +240,21 @@ export function AuthGroupMigrationPage() {
     (payload.assignmentAuthorities as AuthorityInfoRow[] | undefined) || [];
   const referenceAuthorGroups =
     (payload.referenceAuthorGroups as Array<Record<string, string>> | undefined) || [];
+  const referenceAuthorProfilesByCode =
+    (payload.referenceAuthorProfilesByCode as Record<string, Record<string, unknown>> | undefined) || {};
+  const selectedAuthorProfile = ((page?.selectedAuthorProfile as Record<string, unknown> | undefined) || null);
+  const selectedAuthorGroup =
+    referenceAuthorGroups.find((group) => String(group.authorCode || "") === authorCode)
+    || generalAuthorGroups.find((group) => String(group.authorCode || "") === authorCode)
+    || null;
   const selectedAuthorName =
     page?.selectedAuthorName || text(page, "권한 그룹을 선택하세요", "Select a role group");
+  const selectedParentProfile = profileForm.parentAuthorCode
+    ? referenceAuthorProfilesByCode[profileForm.parentAuthorCode] || null
+    : null;
+  const selectedChildProfiles = Object.entries(referenceAuthorProfilesByCode)
+    .filter(([, profile]) => String(profile?.parentAuthorCode || "") === authorCode)
+    .map(([code, profile]) => ({ code, profile }));
   const pinnedReferenceGroups = referenceAuthorGroups.filter((group) => pinnedAuthorCodes.includes(String(group.authorCode || "")));
   const baselineSelectedFeatures = page?.selectedFeatureCodes || [];
   const baselineFeatureSet = new Set(baselineSelectedFeatures);
@@ -265,6 +304,29 @@ export function AuthGroupMigrationPage() {
   }, [authorCode, roleCategory, insttId, submittedUserSearchKeyword, focusedMenuCode, focusedFeatureCode]);
 
   useEffect(() => {
+    if (!page || !session) {
+      return;
+    }
+    logGovernanceScope("PAGE", "auth-group", {
+      route: window.location.pathname,
+      actorUserId: session.userId || "",
+      actorAuthorCode: session.authorCode || "",
+      actorInsttId: session.insttId || "",
+      canManageAllCompanies,
+      roleCategory,
+      insttId,
+      selectedAuthorCode: authorCode
+    });
+    logGovernanceScope("COMPONENT", "auth-group-feature-matrix", {
+      component: "auth-group-feature-matrix",
+      selectedAuthorCode: authorCode,
+      selectedFeatureCount: selectedFeatures.length,
+      focusedMenuCode,
+      focusedFeatureCode
+    });
+  }, [authorCode, canManageAllCompanies, focusedFeatureCode, focusedMenuCode, insttId, page, roleCategory, selectedFeatures.length, session]);
+
+  useEffect(() => {
     if (typeof window === "undefined") {
       return;
     }
@@ -307,6 +369,23 @@ export function AuthGroupMigrationPage() {
   useEffect(() => {
     setExpandedAuditIds([]);
   }, [authorCode]);
+
+  useEffect(() => {
+    const nextProfile = (page?.selectedAuthorProfile || {}) as Record<string, unknown>;
+    setProfileForm({
+      displayTitle: String(nextProfile.displayTitle || selectedAuthorName || ""),
+      priorityWorks: Array.isArray(nextProfile.priorityWorks) ? nextProfile.priorityWorks.map((item) => String(item || "")).join(", ") : "",
+      description: String(nextProfile.description || selectedAuthorGroup?.authorDc || ""),
+      memberEditVisibleYn: String(nextProfile.memberEditVisibleYn || "Y") === "N" ? "N" : "Y",
+      roleType: String(nextProfile.roleType || roleCategory || ""),
+      baseRoleYn: String(nextProfile.baseRoleYn || "N") === "Y" ? "Y" : "N",
+      parentAuthorCode: String(nextProfile.parentAuthorCode || ""),
+      assignmentScope: String(nextProfile.assignmentScope || (roleCategory === "GENERAL" ? "GLOBAL" : roleCategory === "DEPARTMENT" ? "DEPARTMENT" : "USER")),
+      defaultMemberTypes: Array.isArray(nextProfile.defaultMemberTypes)
+        ? nextProfile.defaultMemberTypes.map((item) => String(item || ""))
+        : []
+    });
+  }, [authorCode, page?.selectedAuthorProfile, roleCategory, selectedAuthorGroup?.authorDc, selectedAuthorName]);
 
   useEffect(() => {
     if (!restoreTarget) {
@@ -357,6 +436,12 @@ export function AuthGroupMigrationPage() {
 
   function handleCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    logGovernanceScope("ACTION", "auth-group-create", {
+      actorInsttId: session?.insttId || "",
+      roleCategory,
+      insttId,
+      authorCode: createForm.authorCode
+    });
     if (!session) {
       setError(text(page, "세션 정보가 없습니다.", "Session is unavailable."));
       return;
@@ -379,6 +464,13 @@ export function AuthGroupMigrationPage() {
   }
 
   function handleSaveFeatures() {
+    logGovernanceScope("ACTION", "auth-group-save-features", {
+      actorInsttId: session?.insttId || "",
+      selectedAuthorCode: authorCode,
+      roleCategory,
+      insttId,
+      selectedFeatureCount: selectedFeatures.length
+    });
     if (!session || !authorCode) {
       setError(text(page, "선택된 권한 그룹이 없습니다.", "No authority group selected."));
       return;
@@ -406,6 +498,58 @@ export function AuthGroupMigrationPage() {
         setPage(nextPage);
         setSelectedFeatures(nextPage.selectedFeatureCodes || []);
         setMessage(text(page, "Role-기능 매핑을 저장했습니다.", "Role-feature mapping saved."));
+      })
+      .catch((err: Error) => setError(err.message));
+  }
+
+  function handleDefaultMemberTypeToggle(memberType: string) {
+    setProfileForm((current) => ({
+      ...current,
+      defaultMemberTypes: current.defaultMemberTypes.includes(memberType)
+        ? current.defaultMemberTypes.filter((item) => item !== memberType)
+        : [...current.defaultMemberTypes, memberType]
+    }));
+  }
+
+  function handleSaveProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    logGovernanceScope("ACTION", "auth-group-save-profile", {
+      actorInsttId: session?.insttId || "",
+      selectedAuthorCode: authorCode,
+      roleCategory,
+      assignmentScope: profileForm.assignmentScope,
+      defaultMemberTypes: profileForm.defaultMemberTypes.join(",")
+    });
+    if (!session || !authorCode) {
+      setError(text(page, "선택된 권한 그룹이 없습니다.", "No authority group selected."));
+      return;
+    }
+    setMessage("");
+    setError("");
+    saveAuthorRoleProfile(session, {
+      authorCode,
+      roleCategory,
+      displayTitle: profileForm.displayTitle,
+      priorityWorks: profileForm.priorityWorks.split(",").map((item) => item.trim()).filter(Boolean),
+      description: profileForm.description,
+      memberEditVisibleYn: profileForm.memberEditVisibleYn,
+      roleType: profileForm.roleType,
+      baseRoleYn: profileForm.baseRoleYn,
+      parentAuthorCode: profileForm.parentAuthorCode,
+      assignmentScope: profileForm.assignmentScope,
+      defaultMemberTypes: profileForm.defaultMemberTypes
+    })
+      .then(async () => {
+        const nextPage = await fetchAuthGroupPage({
+          authorCode,
+          roleCategory,
+          insttId,
+          menuCode: focusedMenuCode,
+          featureCode: focusedFeatureCode,
+          userSearchKeyword: submittedUserSearchKeyword
+        });
+        setPage(nextPage);
+        setMessage(text(page, "권한 프로필을 저장했습니다.", "Role profile saved."));
       })
       .catch((err: Error) => setError(err.message));
   }
@@ -593,6 +737,15 @@ export function AuthGroupMigrationPage() {
     );
   }
 
+  function renderProfileBadge(label: string, tone: "blue" | "emerald" | "slate" = "slate") {
+    const toneClass = tone === "blue"
+      ? "bg-blue-50 text-blue-700"
+      : tone === "emerald"
+        ? "bg-emerald-50 text-emerald-700"
+        : "bg-slate-100 text-slate-700";
+    return <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${toneClass}`}>{label}</span>;
+  }
+
   return (
     <AdminPageShell
       actions={(
@@ -670,6 +823,7 @@ export function AuthGroupMigrationPage() {
               </label>
               <AdminSelect
                 className="gov-select min-w-[28rem] w-[28rem] border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
+                disabled={!canManageAllCompanies}
                 value={insttId}
                 onChange={(event) => setInsttId(event.target.value)}
               >
@@ -692,6 +846,149 @@ export function AuthGroupMigrationPage() {
         }
         fallback={null}
       >
+        <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm mb-8" data-help-id="auth-group-profile">
+          <div className="flex items-center gap-2 border-b pb-4 mb-4">
+            <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">badge</span>
+            <h3 className="text-lg font-bold">{text(page, "선택 권한 그룹 프로필", "Selected Role Profile")}</h3>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4">
+              <p className="text-xs font-bold uppercase text-[var(--kr-gov-text-secondary)]">{text(page, "권한 그룹", "Role group")}</p>
+              <p className="mt-2 text-base font-black text-[var(--kr-gov-text-primary)]">{selectedAuthorName}</p>
+              <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{authorCode || "-"}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {profileForm.roleType ? renderProfileBadge(profileForm.roleType, "blue") : null}
+                {profileForm.baseRoleYn === "Y"
+                  ? renderProfileBadge(text(page, "기본 롤", "Base role"), "emerald")
+                  : renderProfileBadge(text(page, "서브 롤", "Sub role"), "slate")}
+                {profileForm.assignmentScope
+                  ? renderProfileBadge(profileForm.assignmentScope, "slate")
+                  : null}
+              </div>
+            </article>
+            <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4 md:col-span-2">
+              <p className="text-xs font-bold uppercase text-[var(--kr-gov-text-secondary)]">{text(page, "운영 설명", "Operational description")}</p>
+              <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">
+                {String(selectedAuthorProfile?.description || selectedAuthorGroup?.authorDc || text(page, "선택한 권한 그룹의 설명이 아직 없습니다.", "No description is available for the selected role group yet."))}
+              </p>
+              {selectedParentProfile ? (
+                <div className="mt-3 rounded-[var(--kr-gov-radius)] border border-blue-100 bg-blue-50 px-3 py-3 text-xs text-[var(--kr-gov-text-secondary)]">
+                  <p className="font-bold text-[var(--kr-gov-blue)]">{text(page, "상위 기본 롤", "Parent base role")}</p>
+                  <p className="mt-1">{String(selectedParentProfile.displayTitle || profileForm.parentAuthorCode || "-")}</p>
+                </div>
+              ) : null}
+            </article>
+          </div>
+          {selectedChildProfiles.length > 0 ? (
+            <div className="mt-4 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-4">
+              <p className="text-xs font-bold uppercase text-[var(--kr-gov-text-secondary)]">{text(page, "연결된 서브 롤", "Connected sub roles")}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {selectedChildProfiles.map(({ code, profile }) => (
+                  <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700" key={code}>
+                    {String(profile.displayTitle || code)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </section>
+
+        <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm mb-8" data-help-id="auth-group-profile-editor">
+          <div className="flex items-center gap-2 border-b pb-4 mb-4">
+            <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">schema</span>
+            <h3 className="text-lg font-bold">{text(page, "기본 롤/서브 롤 메타데이터", "Base/Sub role metadata")}</h3>
+          </div>
+          <form className="grid grid-cols-1 md:grid-cols-2 gap-4" onSubmit={handleSaveProfile}>
+            <label>
+              <span className="gov-label block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">{text(page, "표시 이름", "Display title")}</span>
+              <AdminInput className="gov-select w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm" disabled={!authorCode} value={profileForm.displayTitle} onChange={(event) => setProfileForm((current) => ({ ...current, displayTitle: event.target.value }))} />
+            </label>
+            <label>
+              <span className="gov-label block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">{text(page, "롤 타입", "Role type")}</span>
+              <AdminSelect className="gov-select w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm" disabled={!authorCode} value={profileForm.roleType} onChange={(event) => setProfileForm((current) => ({ ...current, roleType: event.target.value }))}>
+                <option value="">{text(page, "선택 안 함", "Not set")}</option>
+                <option value="GENERAL">{text(page, "공통", "General")}</option>
+                <option value="DEPARTMENT">{text(page, "부서", "Department")}</option>
+                <option value="USER">{text(page, "회원", "User")}</option>
+              </AdminSelect>
+            </label>
+            <label>
+              <span className="gov-label block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">{text(page, "기본 롤 여부", "Base role")}</span>
+              <AdminSelect className="gov-select w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm" disabled={!authorCode} value={profileForm.baseRoleYn} onChange={(event) => setProfileForm((current) => ({ ...current, baseRoleYn: event.target.value }))}>
+                <option value="Y">{text(page, "기본 롤", "Base role")}</option>
+                <option value="N">{text(page, "서브 롤", "Sub role")}</option>
+              </AdminSelect>
+            </label>
+            <label>
+              <span className="gov-label block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">{text(page, "적용 범위", "Assignment scope")}</span>
+              <AdminSelect className="gov-select w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm" disabled={!authorCode} value={profileForm.assignmentScope} onChange={(event) => setProfileForm((current) => ({ ...current, assignmentScope: event.target.value }))}>
+                <option value="GLOBAL">{text(page, "전역", "Global")}</option>
+                <option value="COMPANY">{text(page, "회사", "Company")}</option>
+                <option value="DEPARTMENT">{text(page, "부서", "Department")}</option>
+                <option value="USER">{text(page, "회원", "User")}</option>
+              </AdminSelect>
+            </label>
+            <label className="md:col-span-2">
+              <span className="gov-label block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">{text(page, "상위 기본 롤", "Parent base role")}</span>
+              <AdminSelect className="gov-select w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm" disabled={!authorCode || profileForm.baseRoleYn === "Y"} value={profileForm.parentAuthorCode} onChange={(event) => setProfileForm((current) => ({ ...current, parentAuthorCode: event.target.value }))}>
+                <option value="">{text(page, "상위 기본 롤 없음", "No parent base role")}</option>
+                {referenceAuthorGroups
+                  .filter((group) => String(group.authorCode || "") !== authorCode)
+                  .map((group) => (
+                    <option key={String(group.authorCode || "")} value={String(group.authorCode || "")}>
+                      {`${String(group.authorNm || "-")} (${String(group.authorCode || "-")})`}
+                    </option>
+                  ))}
+              </AdminSelect>
+            </label>
+            <label className="md:col-span-2">
+              <span className="gov-label block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">{text(page, "우선 업무", "Priority works")}</span>
+              <AdminInput className="gov-select w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm" disabled={!authorCode} placeholder={text(page, "쉼표로 구분해 입력", "Comma-separated values")} value={profileForm.priorityWorks} onChange={(event) => setProfileForm((current) => ({ ...current, priorityWorks: event.target.value }))} />
+            </label>
+            <label className="md:col-span-2">
+              <span className="gov-label block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">{text(page, "설명", "Description")}</span>
+              <AdminInput className="gov-select w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm" disabled={!authorCode} value={profileForm.description} onChange={(event) => setProfileForm((current) => ({ ...current, description: event.target.value }))} />
+            </label>
+            <div className="md:col-span-2">
+              <p className="gov-label block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">{text(page, "기본 회원 유형", "Default member types")}</p>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  ["E", text(page, "CO2 배출사업자", "CO2 Emitter")],
+                  ["P", text(page, "CCUS 프로젝트 사업자", "CCUS Project Operator")],
+                  ["C", text(page, "진흥·지원 기관", "Promotion / Support Institution")],
+                  ["G", text(page, "관계 기관·주무관청", "Government / Related Institution")]
+                ].map(([code, label]) => (
+                  <button
+                    className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ${profileForm.defaultMemberTypes.includes(code) ? "bg-blue-50 text-blue-700" : "bg-slate-100 text-slate-700"}`}
+                    disabled={!authorCode}
+                    key={code}
+                    onClick={() => handleDefaultMemberTypeToggle(code)}
+                    type="button"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <label>
+              <span className="gov-label block text-[13px] font-bold text-[var(--kr-gov-text-secondary)] mb-2">{text(page, "회원 수정 노출", "Visible in member edit")}</span>
+              <AdminSelect className="gov-select w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm" disabled={!authorCode} value={profileForm.memberEditVisibleYn} onChange={(event) => setProfileForm((current) => ({ ...current, memberEditVisibleYn: event.target.value }))}>
+                <option value="Y">{text(page, "노출", "Visible")}</option>
+                <option value="N">{text(page, "숨김", "Hidden")}</option>
+              </AdminSelect>
+            </label>
+            <div className="flex items-end justify-end md:col-span-1">
+              <MemberPermissionButton
+                allowed={!!authorCode}
+                className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold bg-[var(--kr-gov-blue)] text-white disabled:opacity-50"
+                reason={text(page, "권한 그룹을 먼저 선택해야 프로필을 저장할 수 있습니다.", "Select a role group first to save the profile.")}
+                type="submit"
+              >
+                {text(page, "프로필 저장", "Save profile")}
+              </MemberPermissionButton>
+            </div>
+          </form>
+        </section>
         <section className="gov-card border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white p-6 shadow-sm mb-8" data-help-id="auth-group-create">
           <div className="flex items-center gap-2 border-b pb-4 mb-4">
             <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">add_moderator</span>
@@ -762,6 +1059,7 @@ export function AuthGroupMigrationPage() {
                 </span>
                 <AdminSelect
                   className="gov-select w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
+                  disabled={!canManageAllCompanies}
                   value={insttId}
                   onChange={(event) => setInsttId(event.target.value)}
                 >
@@ -1003,6 +1301,7 @@ export function AuthGroupMigrationPage() {
               </span>
               <AdminSelect
                 className="w-full border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] h-10 px-3 text-sm"
+                disabled={!canManageAllCompanies}
                 value={insttId}
                 onChange={(event) => setInsttId(event.target.value)}
               >

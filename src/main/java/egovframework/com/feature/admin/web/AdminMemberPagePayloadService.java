@@ -1,6 +1,9 @@
 package egovframework.com.feature.admin.web;
 
 import egovframework.com.feature.admin.service.AuthorRoleProfileService;
+import egovframework.com.feature.admin.service.AuthGroupManageService;
+import egovframework.com.feature.admin.model.vo.AuthorInfoVO;
+import egovframework.com.feature.admin.model.vo.DepartmentRoleMappingVO;
 import egovframework.com.feature.member.model.vo.EntrprsManageVO;
 import egovframework.com.feature.member.service.EnterpriseMemberService;
 import lombok.RequiredArgsConstructor;
@@ -12,8 +15,10 @@ import org.springframework.ui.ExtendedModelMap;
 import org.springframework.util.ObjectUtils;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -29,8 +34,10 @@ public class AdminMemberPagePayloadService {
 
     private final ObjectProvider<AdminMainController> adminMainControllerProvider;
     private final EnterpriseMemberService entrprsManageService;
+    private final AuthGroupManageService authGroupManageService;
     private final AuthorRoleProfileService authorRoleProfileService;
     private final AdminAuthorityPagePayloadSupport authorityPagePayloadSupport;
+    private final AdminCompanyScopeService adminCompanyScopeService;
 
     private AdminMainController adminMainController() {
         return adminMainControllerProvider.getObject();
@@ -79,6 +86,7 @@ public class AdminMemberPagePayloadService {
                         authorRoleProfileService.getProfile(String.valueOf(model.get("permissionSelectedAuthorCode")))));
         response.put("canViewMemberEdit", model.get("member") != null && model.get("member_editError") == null);
         response.put("canUseMemberSave", ObjectUtils.isEmpty(model.get("member_editError")));
+        appendMemberManagementScope(response, request, isEn, model.get("member"));
         return response;
     }
 
@@ -102,8 +110,14 @@ public class AdminMemberPagePayloadService {
                 request);
         Map<String, Object> response = new LinkedHashMap<>();
         response.putAll(model);
-        response.put("canViewMemberList", true);
-        response.put("canUseMemberListActions", true);
+        String currentUserId = controller.extractCurrentUserId(request);
+        String currentUserAuthorCode = authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
+        AdminCompanyScopeService.CompanyScope scope = adminCompanyScopeService.resolve(currentUserId);
+        boolean canView = authorityPagePayloadSupport.hasMemberManagementCompanyOperatorAccess(currentUserId, currentUserAuthorCode)
+                && adminCompanyScopeService.canExecuteScopedQuery(scope, false);
+        response.put("canViewMemberList", canView);
+        response.put("canUseMemberListActions", canView);
+        appendMemberManagementScope(response, request, isEn, null);
         return response;
     }
 
@@ -236,7 +250,63 @@ public class AdminMemberPagePayloadService {
         response.put("canViewMemberDetail", canView);
         response.put("canUseMemberEditLink", canView);
         response.put("memberDetailStatus", canView ? "OK" : (model.getAttribute("member") == null ? "NOT_FOUND" : "FORBIDDEN"));
+        appendMemberManagementScope(response, request, isEn, model.getAttribute("member"));
         return response;
+    }
+
+    private void appendMemberManagementScope(
+            Map<String, Object> response,
+            HttpServletRequest request,
+            boolean isEn,
+            Object memberObject) {
+        AdminMainController controller = adminMainController();
+        String currentUserId = controller.extractCurrentUserId(request);
+        AdminCompanyScopeService.CompanyScope scope = adminCompanyScopeService.resolve(currentUserId);
+        String actorInsttId = controller.safeString(scope.getInsttId());
+        boolean canManageAllCompanies = scope.isMasterLike();
+        boolean canManageOwnCompany = !canManageAllCompanies && scope.canManageMemberScope();
+        response.put("currentUserInsttId", actorInsttId);
+        response.put("canManageAllCompanies", canManageAllCompanies);
+        response.put("canManageOwnCompany", canManageOwnCompany);
+        response.put("memberManagementScopeMode", canManageAllCompanies ? "ALL" : "OWN_COMPANY");
+        response.put("memberManagementRequiresInsttId", !canManageAllCompanies);
+        response.put("memberTypeOptions", buildMemberTypeOptions(isEn));
+        response.put("memberStatusOptions", buildMemberStatusOptions(isEn));
+        response.put("allowedMembershipTypes", List.of("E", "P", "C", "G"));
+        if (memberObject instanceof EntrprsManageVO) {
+            EntrprsManageVO member = (EntrprsManageVO) memberObject;
+            response.put("targetMemberInsttId", controller.safeString(member.getInsttId()));
+            response.put("targetMemberType", controller.normalizeMembershipCode(
+                    controller.safeString(member.getEntrprsSeCode()).toUpperCase(Locale.ROOT)));
+        }
+    }
+
+    private List<Map<String, String>> buildMemberTypeOptions(boolean isEn) {
+        List<Map<String, String>> options = new ArrayList<>();
+        options.add(buildOption("", isEn ? "All" : "전체"));
+        options.add(buildOption("E", isEn ? "CO2 Emitter/Capture Company" : "CO2 배출 및 포집 기업"));
+        options.add(buildOption("P", isEn ? "CCUS Project Company" : "CCUS 사업 수행 기업"));
+        options.add(buildOption("C", isEn ? "CCUS Promotion Center" : "CCUS 진흥센터"));
+        options.add(buildOption("G", isEn ? "Government / Agency" : "주무관청 / 행정기관"));
+        return options;
+    }
+
+    private List<Map<String, String>> buildMemberStatusOptions(boolean isEn) {
+        List<Map<String, String>> options = new ArrayList<>();
+        options.add(buildOption("", isEn ? "All" : "전체"));
+        options.add(buildOption("P", isEn ? "Active" : "활성"));
+        options.add(buildOption("A", isEn ? "Pending Approval" : "승인 대기"));
+        options.add(buildOption("R", isEn ? "Rejected" : "반려"));
+        options.add(buildOption("D", isEn ? "Deleted" : "삭제"));
+        options.add(buildOption("X", isEn ? "Blocked" : "차단"));
+        return options;
+    }
+
+    private Map<String, String> buildOption(String code, String label) {
+        Map<String, String> option = new LinkedHashMap<>();
+        option.put("code", code);
+        option.put("label", label);
+        return option;
     }
 
     public Map<String, Object> buildMemberStatsPagePayload(
@@ -268,6 +338,34 @@ public class AdminMemberPagePayloadService {
         response.put("canUseMemberRegisterIdCheck", webmaster || hasFeature(grantableFeatureCodes, MEMBER_REGISTER_ID_CHECK_FEATURE_CODE));
         response.put("canUseMemberRegisterOrgSearch", webmaster || hasFeature(grantableFeatureCodes, MEMBER_REGISTER_ORG_SEARCH_FEATURE_CODE));
         response.put("canUseMemberRegisterSave", webmaster || hasFeature(grantableFeatureCodes, MEMBER_REGISTER_SAVE_FEATURE_CODE));
+        String currentUserAuthorCode = authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
+        String currentUserInsttId = authorityPagePayloadSupport.resolveCurrentUserInsttId(currentUserId);
+        boolean canManageAllCompanies = controller.hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode);
+        boolean canManageOwnCompany = controller.requiresMemberManagementCompanyScope(currentUserId, currentUserAuthorCode);
+        List<Map<String, String>> departmentRows = Collections.emptyList();
+        List<AuthorInfoVO> memberAssignableAuthorGroups = Collections.emptyList();
+        try {
+            List<DepartmentRoleMappingVO> mappings = authGroupManageService.selectDepartmentRoleMappings();
+            departmentRows = new ArrayList<>(authorityPagePayloadSupport.buildDepartmentRoleRows(mappings, isEn));
+            if (!canManageAllCompanies) {
+                departmentRows.removeIf(row -> !currentUserInsttId.equals(controller.safeString(row.get("insttId"))));
+            }
+            memberAssignableAuthorGroups = controller.loadGrantableMemberAuthorGroups(currentUserId, currentUserAuthorCode);
+        } catch (Exception e) {
+            log.error("Failed to resolve member-register role mapping payload. userId={}", controller.safeString(currentUserId), e);
+        }
+        response.put("currentUserInsttId", currentUserInsttId);
+        response.put("canManageAllCompanies", canManageAllCompanies);
+        response.put("canManageOwnCompany", canManageOwnCompany);
+        response.put("departmentMappings", departmentRows);
+        response.put("memberAssignableAuthorGroups", memberAssignableAuthorGroups);
+        response.put("roleProfilesByAuthorCode",
+                controller.toAuthorRoleProfileMapCollection(authorRoleProfileService.getProfiles(
+                        controller.collectRoleProfileAuthorCodes(
+                                departmentRows,
+                                Collections.emptyList(),
+                                memberAssignableAuthorGroups,
+                                Collections.emptyList()))));
         response.put("memberRegisterFeatureCodes", java.util.List.of(
                 MEMBER_REGISTER_VIEW_FEATURE_CODE,
                 MEMBER_REGISTER_ID_CHECK_FEATURE_CODE,

@@ -64,10 +64,18 @@ public class AdminHotPathPagePayloadService {
     public Map<String, Object> buildAuthChangePagePayload(
             String updated,
             String targetUserId,
+            String searchKeyword,
+            Integer assignmentPageIndex,
             String error,
             HttpServletRequest request,
             Locale locale) {
-        return authorityPagePayloadService.buildAuthChangePagePayload(updated, targetUserId, error, request, locale);
+        return authorityPagePayloadService.buildAuthChangePagePayload(updated, targetUserId, searchKeyword, assignmentPageIndex, error, request, locale);
+    }
+
+    public Map<String, Object> buildAuthChangeHistoryPayload(
+            HttpServletRequest request,
+            Locale locale) {
+        return authorityPagePayloadService.buildAuthChangeHistoryPayload(request, locale);
     }
 
     public Map<String, Object> buildMemberApprovePagePayload(

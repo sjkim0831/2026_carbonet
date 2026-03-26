@@ -352,7 +352,73 @@
             ON E.ESNTL_ID = S.SCRTY_DTRMN_TRGET_ID
         LEFT JOIN COMTNAUTHORINFO A
             ON A.AUTHOR_CODE = S.AUTHOR_CODE
+        WHERE COALESCE(S.AUTHOR_CODE, '') != ''
         ORDER BY E.EMPLYR_ID
+    </select>
+
+    <select id="countAdminRoleAssignments" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+        FROM COMTNEMPLYRSCRTYESTBS S
+        INNER JOIN COMTNEMPLYRINFO E
+            ON E.ESNTL_ID = S.SCRTY_DTRMN_TRGET_ID
+        LEFT JOIN COMTNAUTHORINFO A
+            ON A.AUTHOR_CODE = S.AUTHOR_CODE
+        WHERE S.AUTHOR_CODE IS NOT NULL
+          AND S.AUTHOR_CODE != ''
+          <if test="orgnztId != null and orgnztId != ''">
+            AND E.ORGNZT_ID = #{orgnztId}
+          </if>
+          <if test="insttId != null and insttId != ''">
+            AND COALESCE(E.INSTT_ID, '') = #{insttId}
+          </if>
+          <if test="searchKeyword != null and searchKeyword != ''">
+            AND (
+                LOWER(E.EMPLYR_ID) LIKE '%' || LOWER(#{searchKeyword}) || '%'
+                OR LOWER(COALESCE(E.USER_NM, '')) LIKE '%' || LOWER(#{searchKeyword}) || '%'
+                OR LOWER(S.AUTHOR_CODE) LIKE '%' || LOWER(#{searchKeyword}) || '%'
+                OR LOWER(COALESCE(A.AUTHOR_NM, '')) LIKE '%' || LOWER(#{searchKeyword}) || '%'
+            )
+          </if>
+    </select>
+
+    <select id="selectAdminRoleAssignmentsPage" parameterType="map" resultType="egovframework.com.feature.admin.model.vo.AdminRoleAssignmentVO">
+        SELECT
+            E.EMPLYR_ID AS emplyrId,
+            E.USER_NM AS userNm,
+            COALESCE(E.ORGNZT_ID, '') AS orgnztId,
+            COALESCE(E.EMPLYR_STTUS_CODE, '') AS emplyrSttusCode,
+            COALESCE(S.AUTHOR_CODE, '') AS authorCode,
+            COALESCE(A.AUTHOR_NM, '') AS authorNm
+        FROM COMTNEMPLYRSCRTYESTBS S
+        INNER JOIN COMTNEMPLYRINFO E
+            ON E.ESNTL_ID = S.SCRTY_DTRMN_TRGET_ID
+        LEFT JOIN COMTNAUTHORINFO A
+            ON A.AUTHOR_CODE = S.AUTHOR_CODE
+        WHERE S.AUTHOR_CODE IS NOT NULL
+          AND S.AUTHOR_CODE != ''
+          <if test="orgnztId != null and orgnztId != ''">
+            AND E.ORGNZT_ID = #{orgnztId}
+          </if>
+          <if test="insttId != null and insttId != ''">
+            AND COALESCE(E.INSTT_ID, '') = #{insttId}
+          </if>
+          <if test="searchKeyword != null and searchKeyword != ''">
+            AND (
+                LOWER(E.EMPLYR_ID) LIKE '%' || LOWER(#{searchKeyword}) || '%'
+                OR LOWER(COALESCE(E.USER_NM, '')) LIKE '%' || LOWER(#{searchKeyword}) || '%'
+                OR LOWER(S.AUTHOR_CODE) LIKE '%' || LOWER(#{searchKeyword}) || '%'
+                OR LOWER(COALESCE(A.AUTHOR_NM, '')) LIKE '%' || LOWER(#{searchKeyword}) || '%'
+            )
+          </if>
+        ORDER BY E.EMPLYR_ID
+        LIMIT #{recordCountPerPage}
+        OFFSET #{firstIndex}
+    </select>
+
+    <select id="selectAdminInsttIdByUserId" parameterType="string" resultType="string">
+        SELECT COALESCE(INSTT_ID, '')
+        FROM COMTNEMPLYRINFO
+        WHERE EMPLYR_ID = #{value}
     </select>
 
     <select id="selectDepartmentRoleMappings" resultType="egovframework.com.feature.admin.model.vo.DepartmentRoleMappingVO">

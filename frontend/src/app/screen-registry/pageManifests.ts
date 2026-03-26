@@ -466,6 +466,20 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "MypageActions", instanceKey: "mypage-actions", layoutZone: "actions", propsSummary: ["submitting", "canSubmit"] }
     ]
   },
+  "emission-project-list": {
+    pageId: "emission-project-list",
+    routePath: "/emission/project_list",
+    menuCode: "H0010101",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "EmissionProjectHero", instanceKey: "emission-project-hero", layoutZone: "header", propsSummary: ["queueItems", "searchKeyword"] },
+      { componentId: "EmissionProjectQueue", instanceKey: "emission-project-queue", layoutZone: "content", propsSummary: ["queueItems", "level", "due"] },
+      { componentId: "EmissionProjectSiteCards", instanceKey: "emission-project-site-cards", layoutZone: "content", propsSummary: ["siteCards", "status", "value"] },
+      { componentId: "EmissionProjectAdminLinkage", instanceKey: "emission-project-admin-linkage", layoutZone: "actions", propsSummary: ["adminSiteManagementHref", "session", "homeMenu"] }
+    ]
+  },
   "observability": {
     pageId: "observability",
     routePath: "/admin/system/observability",
@@ -710,6 +724,20 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "EmissionResultTable", instanceKey: "emission-result-table", layoutZone: "content", propsSummary: ["emissionResultList", "pageIndex"] }
     ]
   },
+  "emission-site-management": {
+    pageId: "emission-site-management",
+    routePath: "/admin/emission/site-management",
+    menuCode: "A0020105",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "EmissionSiteSummary", instanceKey: "emission-site-summary", layoutZone: "actions", propsSummary: ["summaryCards", "menuCode"] },
+      { componentId: "EmissionSiteQuickLinks", instanceKey: "emission-site-quick-links", layoutZone: "content", propsSummary: ["quickLinks", "menuCode"] },
+      { componentId: "EmissionSiteOperations", instanceKey: "emission-site-operation-cards", layoutZone: "content", propsSummary: ["operationCards", "statusLabel"] },
+      { componentId: "EmissionSiteFeatureCatalog", instanceKey: "emission-site-feature-catalog", layoutZone: "content", propsSummary: ["featureRows", "featureCode", "manageUrl"] }
+    ]
+  },
   "system-code": {
     pageId: "system-code",
     routePath: "/admin/system/code",
@@ -810,10 +838,22 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "LoginHistoryTable", instanceKey: "login-history-table", layoutZone: "content", propsSummary: ["loginHistoryList", "pageIndex"] }
     ]
   },
+  "member-security-history": {
+    pageId: "member-security-history",
+    routePath: "/admin/member/security",
+    menuCode: "A0010502",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "SecurityHistorySearch", instanceKey: "login-history-search", layoutZone: "actions", propsSummary: ["searchKeyword", "userSe", "loginResult=FAIL"] },
+      { componentId: "SecurityHistoryTable", instanceKey: "login-history-table", layoutZone: "content", propsSummary: ["loginHistoryList", "pageIndex"] }
+    ]
+  },
   "security-history": {
     pageId: "security-history",
     routePath: "/admin/system/security",
-    menuCode: "AMENU_SECURITY_HISTORY",
+    menuCode: "A0060205",
     domainCode: "admin",
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
@@ -941,6 +981,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     designTokenVersion: "krds-current",
     components: [
       { componentId: "EnvironmentManagementSummary", instanceKey: "environment-management-summary", layoutZone: "actions", propsSummary: ["menuCode", "featureCode"] },
+      { componentId: "EnvironmentManagementEngines", instanceKey: "environment-management-engines", layoutZone: "content", propsSummary: ["allowAllScope", "allowedMemberTypes", "scope-policy-engine", "audit-diagnostic-engine"] },
       { componentId: "EnvironmentManagementCards", instanceKey: "environment-management-cards", layoutZone: "content", propsSummary: ["system-code", "page-management", "function-management", "menu-management"] }
     ]
   },
@@ -984,6 +1025,46 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "RuntimeCompareScopePanel", instanceKey: "runtime-compare-scope", layoutZone: "content", propsSummary: ["menuCode", "pageId", "publishedVersionId", "draftVersionId"] },
       { componentId: "RuntimeCompareMatrix", instanceKey: "runtime-compare-matrix", layoutZone: "content", propsSummary: ["templateLineId", "screenFamilyRuleId", "currentNodeCount", "generatedNodeCount"] },
       { componentId: "RuntimeCompareRecentEvents", instanceKey: "runtime-compare-events", layoutZone: "content", propsSummary: ["latestPublishAt", "traceId", "actionCode"] }
+    ]
+  },
+  "repair-workbench": {
+    pageId: "repair-workbench",
+    routePath: "/admin/system/repair-workbench",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "RepairWorkbenchScope", instanceKey: "repair-workbench-scope", layoutZone: "content", propsSummary: ["menuCode", "pageId", "releaseUnitId", "traceId"] },
+      { componentId: "RepairWorkbenchLinkage", instanceKey: "repair-workbench-linkage", layoutZone: "content", propsSummary: ["builderId", "draftVersionId", "publishedVersionId", "selectedElementSet"] }
+    ]
+  },
+  "screen-flow-management": {
+    pageId: "screen-flow-management",
+    routePath: "/admin/system/screen-flow-management",
+    menuCode: "A1900109",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "ScreenFlowSummaryCards", instanceKey: "screen-flow-summary", layoutZone: "actions", propsSummary: ["registeredScreenCount", "surfaceCount", "eventCount", "apiSchemaCount"] },
+      { componentId: "ScreenFlowCatalog", instanceKey: "screen-flow-catalog", layoutZone: "content", propsSummary: ["selectedPageId", "pageFilter", "filteredPageCount"] },
+      { componentId: "ScreenFlowSurfaceChain", instanceKey: "screen-flow-surface-chain", layoutZone: "content", propsSummary: ["surfaceCount", "eventIds", "selector"] },
+      { componentId: "ScreenFlowEventApiChain", instanceKey: "screen-flow-event-chain", layoutZone: "content", propsSummary: ["eventCount", "frontendFunction", "apiIds"] },
+      { componentId: "ScreenFlowSchemaAndPermission", instanceKey: "screen-flow-schema-permission", layoutZone: "content", propsSummary: ["schemaCount", "requiredViewFeatureCode", "changeTargetCount"] }
+    ]
+  },
+  "screen-menu-assignment-management": {
+    pageId: "screen-menu-assignment-management",
+    routePath: "/admin/system/screen-menu-assignment-management",
+    menuCode: "A1900110",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "ScreenMenuAssignmentSummaryCards", instanceKey: "screen-menu-assignment-summary", layoutZone: "actions", propsSummary: ["pageMenuCount", "assignedCount", "unassignedCount", "orphanedScreenCount"] },
+      { componentId: "ScreenMenuAssignmentCatalog", instanceKey: "screen-menu-assignment-catalog", layoutZone: "content", propsSummary: ["selectedMenuCode", "filter", "filteredAssignmentCount"] },
+      { componentId: "ScreenMenuAssignmentDetail", instanceKey: "screen-menu-assignment-detail", layoutZone: "content", propsSummary: ["menuCode", "pageId", "layoutVersion", "requiredViewFeatureCode"] },
+      { componentId: "ScreenMenuAssignmentOrphanPages", instanceKey: "screen-menu-assignment-orphans", layoutZone: "content", propsSummary: ["orphanPageCount", "pageId", "routePath", "menuCode"] }
     ]
   },
   "wbs-management": {

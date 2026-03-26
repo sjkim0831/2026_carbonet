@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { fetchSchedulerManagementPage, readBootstrappedSchedulerManagementPageData, type SchedulerManagementPagePayload } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
@@ -33,6 +34,22 @@ export function SchedulerManagementMigrationPage() {
   const nodes = (page?.schedulerNodeRows || []) as Array<Record<string, string>>;
   const executions = (page?.schedulerExecutionRows || []) as Array<Record<string, string>>;
   const playbooks = (page?.schedulerPlaybooks || []) as Array<Record<string, string>>;
+
+  logGovernanceScope("PAGE", "scheduler-management", {
+    language: en ? "en" : "ko",
+    jobStatus: filters.jobStatus,
+    executionType: filters.executionType,
+    summaryCount: summary.length,
+    jobCount: jobs.length,
+    nodeCount: nodes.length,
+    executionCount: executions.length
+  });
+  logGovernanceScope("COMPONENT", "scheduler-management-jobs", {
+    jobCount: jobs.length,
+    nodeCount: nodes.length,
+    executionCount: executions.length,
+    playbookCount: playbooks.length
+  });
   return (
     <AdminPageShell
       breadcrumbs={[
@@ -45,10 +62,10 @@ export function SchedulerManagementMigrationPage() {
     >
       {pageState.error ? <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{pageState.error}</div> : null}
       <section className="gov-card mb-6" data-help-id="scheduler-management-search">
-        <form className="grid grid-cols-1 md:grid-cols-3 gap-3 xl:w-[44rem]" onSubmit={(event) => { event.preventDefault(); setFilters(draft); }}>
+        <form className="grid grid-cols-1 md:grid-cols-3 gap-3 xl:w-[44rem]" onSubmit={(event) => { event.preventDefault(); logGovernanceScope("ACTION", "scheduler-management-search", { jobStatus: draft.jobStatus, executionType: draft.executionType }); setFilters(draft); }}>
           <div><label className="block mb-1 text-sm font-bold" htmlFor="jobStatus">{en ? "Job Status" : "잡 상태"}</label><select className="gov-select" id="jobStatus" value={draft.jobStatus} onChange={(event) => setDraft((current) => ({ ...current, jobStatus: event.target.value }))}><option value="">{en ? "All" : "전체"}</option><option value="ACTIVE">ACTIVE</option><option value="PAUSED">PAUSED</option><option value="REVIEW">REVIEW</option></select></div>
           <div><label className="block mb-1 text-sm font-bold" htmlFor="executionType">{en ? "Execution Type" : "실행 유형"}</label><select className="gov-select" id="executionType" value={draft.executionType} onChange={(event) => setDraft((current) => ({ ...current, executionType: event.target.value }))}><option value="">{en ? "All" : "전체"}</option><option value="CRON">{en ? "Scheduled" : "정기"}</option><option value="MANUAL">{en ? "Manual" : "수동"}</option></select></div>
-          <div className="flex gap-2 items-end"><button className="gov-btn gov-btn-primary w-full" type="submit">{en ? "Search" : "조회"}</button><button className="gov-btn gov-btn-outline w-full" onClick={() => { const reset = { jobStatus: "", executionType: "" }; setDraft(reset); setFilters(reset); }} type="button">{en ? "Reset" : "초기화"}</button></div>
+          <div className="flex gap-2 items-end"><button className="gov-btn gov-btn-primary w-full" type="submit">{en ? "Search" : "조회"}</button><button className="gov-btn gov-btn-outline w-full" onClick={() => { const reset = { jobStatus: "", executionType: "" }; logGovernanceScope("ACTION", "scheduler-management-reset", reset); setDraft(reset); setFilters(reset); }} type="button">{en ? "Reset" : "초기화"}</button></div>
         </form>
       </section>
       <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">{summary.map((card, idx) => <article className="gov-card" key={idx}><p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{card.title}</p><p className="mt-3 text-2xl font-black">{card.value}</p><p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">{card.description}</p></article>)}</section>

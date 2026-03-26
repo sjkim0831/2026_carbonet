@@ -1,7 +1,16 @@
 import type { ReactNode } from "react";
 import type { MemberApprovePagePayload } from "../../lib/api/client";
-import { MemberButton, MemberButtonGroup, MemberPagination, MemberPermissionButton, MemberSectionToolbar, MEMBER_BUTTON_LABELS } from "../member/common";
-import { AdminInput, AdminSelect } from "../admin-ui/common";
+import { buildLocalizedPath } from "../../lib/navigation/runtime";
+import {
+  AdminInput,
+  AdminSelect,
+  MemberButton,
+  MemberButtonGroup,
+  MemberPagination,
+  MemberPermissionButton,
+  MemberSectionToolbar,
+  MEMBER_BUTTON_LABELS
+} from "../member/common";
 import { MEMBER_APPROVAL_STATUS_OPTIONS, MEMBER_TYPE_OPTIONS } from "../member/shared";
 
 export type MemberApproveFilters = {
@@ -18,6 +27,17 @@ export const DEFAULT_MEMBER_APPROVE_FILTERS: MemberApproveFilters = {
   pageIndex: 1
 };
 
+function toRecordArray(value: unknown): Array<Record<string, unknown>> {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object");
+}
+
+export function normalizeMemberApprovalRows(value: unknown) {
+  return toRecordArray(value);
+}
+
 export function MemberApproveSearchSection({
   draftFilters,
   updateDraft,
@@ -33,27 +53,32 @@ export function MemberApproveSearchSection({
     <section className="gov-card mb-6 overflow-hidden p-0" data-help-id="member-approve-search">
       <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
         <MemberSectionToolbar
-          meta="회원 승인 목록은 회원구분, 상태, 검색어 조합을 같은 카드 구조 안에서 유지합니다."
+          meta="회원 승인 목록은 유형, 상태, 검색어 조합을 동일한 검색 카드 구조 안에서 유지합니다."
           title="검색 조건"
         />
       </div>
-      <div className="grid gap-4 px-6 py-6 lg:grid-cols-[220px_220px_minmax(0,1fr)] lg:items-end">
-        <label>
-          <span className="block text-sm font-bold mb-2">회원구분</span>
-          <AdminSelect value={draftFilters.membershipType} onChange={(e) => updateDraft("membershipType", e.target.value)}>
+      <div className="grid grid-cols-1 gap-6 px-6 py-6 md:grid-cols-4">
+        <div>
+          <span className="mb-2 block text-[14px] font-bold text-[var(--kr-gov-text-secondary)]">회원 유형</span>
+          <AdminSelect value={draftFilters.membershipType} onChange={(event) => updateDraft("membershipType", event.target.value)}>
             {MEMBER_TYPE_OPTIONS.map((option) => <option key={option.value || "all"} value={option.value}>{option.label}</option>)}
           </AdminSelect>
-        </label>
-        <label>
-          <span className="block text-sm font-bold mb-2">상태</span>
-          <AdminSelect value={draftFilters.status} onChange={(e) => updateDraft("status", e.target.value)}>
+        </div>
+        <div>
+          <span className="mb-2 block text-[14px] font-bold text-[var(--kr-gov-text-secondary)]">상태</span>
+          <AdminSelect value={draftFilters.status} onChange={(event) => updateDraft("status", event.target.value)}>
             {MEMBER_APPROVAL_STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
           </AdminSelect>
-        </label>
-        <label>
-          <span className="block text-sm font-bold mb-2">검색어</span>
-          <AdminInput placeholder="신청자명, 회원 ID, 기관명 검색" value={draftFilters.searchKeyword} onChange={(e) => updateDraft("searchKeyword", e.target.value)} />
-        </label>
+        </div>
+        <div className="md:col-span-2">
+          <span className="mb-2 block text-[14px] font-bold text-[var(--kr-gov-text-secondary)]">검색어</span>
+          <AdminInput
+            className="flex-1"
+            placeholder="신청자명, 회원사명, 사업자등록번호 검색"
+            value={draftFilters.searchKeyword}
+            onChange={(event) => updateDraft("searchKeyword", event.target.value)}
+          />
+        </div>
       </div>
       <div className="border-t border-[var(--kr-gov-border-light)] px-6 py-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -95,6 +120,7 @@ export function MemberApproveTableSection({
 }) {
   const canUseBatchAction = !!page?.canUseMemberApproveAction;
   const hasSelection = selectedIds.length > 0;
+
   return (
     <section className="gov-card overflow-hidden" data-help-id="member-approve-table">
       <MemberSectionToolbar
@@ -106,45 +132,52 @@ export function MemberApproveTableSection({
         )}
         className="border-b border-[var(--kr-gov-border-light)] bg-gray-50 px-6 py-4"
         meta={<>총 <span className="font-bold text-[var(--kr-gov-blue)]">{Number(page?.memberApprovalTotalCount || 0).toLocaleString()}</span>건</>}
-        title="승인 대기 목록"
+        title="회원 가입 승인 목록"
       />
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1100px] text-sm">
-          <thead className="bg-gray-50 border-b border-[var(--kr-gov-border-light)]">
+        <table className="w-full min-w-[1200px] text-sm">
+          <thead className="border-b border-[var(--kr-gov-border-light)] bg-gray-50">
             <tr className="text-left text-[var(--kr-gov-text-secondary)]">
-              <th className="px-4 py-4 w-12 text-center">
-                <input checked={approvalRows.length > 0 && selectedIds.length === approvalRows.length} className="rounded border-gray-300" onChange={(e) => toggleSelectAll(e.target.checked)} type="checkbox" />
+              <th className="w-12 px-4 py-4 text-center">
+                <input checked={approvalRows.length > 0 && selectedIds.length === approvalRows.length} className="rounded border-gray-300" onChange={(event) => toggleSelectAll(event.target.checked)} type="checkbox" />
               </th>
-              <th className="px-4 py-4 font-bold">신청인(ID)</th>
-              <th className="px-4 py-4 font-bold">소속기관</th>
-              <th className="px-4 py-4 font-bold">회원구분</th>
-              <th className="px-4 py-4 font-bold">신청일</th>
-              <th className="px-4 py-4 font-bold">첨부서류</th>
+              <th className="px-4 py-4 font-bold">신청자</th>
+              <th className="px-4 py-4 font-bold">회원사</th>
+              <th className="px-4 py-4 font-bold">회원 유형</th>
+              <th className="px-4 py-4 font-bold">사업자등록번호</th>
+              <th className="px-4 py-4 font-bold">증빙 서류</th>
               <th className="px-4 py-4 font-bold text-center">상태</th>
               <th className="px-4 py-4 font-bold text-center">처리</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody>
             {approvalRows.length === 0 ? (
-              <tr><td className="px-4 py-12 text-center text-sm text-gray-500" colSpan={8}>조회된 승인 대상 회원이 없습니다.</td></tr>
+              <tr>
+                <td className="px-4 py-12 text-center text-sm text-gray-500" colSpan={8}>조회된 승인 대상 회원이 없습니다.</td>
+              </tr>
             ) : approvalRows.map((row, index) => {
-              const id = String(row.memberId || `member-${index}`);
-              const evidenceFiles = (row.evidenceFiles as Array<Record<string, unknown>> | undefined) || [];
+              const memberId = String(row.memberId || `member-${index}`);
+              const evidenceFiles = ((row.evidenceFiles as Array<Record<string, unknown>> | undefined) || []);
+              const evidenceCount = Number(row.evidenceFileCount || evidenceFiles.length || 0);
+
               return (
-                <tr className="align-top hover:bg-gray-50/60" key={id}>
+                <tr className="border-b border-[var(--kr-gov-border-light)] align-top" key={memberId}>
                   <td className="px-4 py-4 text-center">
-                    <input checked={selectedIds.includes(id)} className="rounded border-gray-300" onChange={() => toggleSelection(id)} type="checkbox" />
+                    <input checked={selectedIds.includes(memberId)} className="rounded border-gray-300" onChange={() => toggleSelection(memberId)} type="checkbox" />
                   </td>
                   <td className="px-4 py-4">
                     <div className="font-bold text-gray-900">{String(row.memberName || "-")}</div>
-                    <div className="text-xs text-gray-500 mt-1">{id}</div>
+                    <div className="mt-1 text-xs text-gray-500">{memberId}</div>
+                    <div className="mt-2 text-xs text-gray-500">{String(row.joinDate || "-")}</div>
                   </td>
                   <td className="px-4 py-4">
-                    <div className="font-medium text-gray-900">{String(row.companyName || "-")}</div>
+                    <div className="font-bold text-gray-900">{String(row.companyName || "-")}</div>
+                    <div className="mt-1 text-xs text-gray-500">{String(row.departmentName || "-")}</div>
+                    <div className="mt-1 text-xs text-gray-500">{String(row.representativeName || "-")}</div>
                   </td>
                   <td className="px-4 py-4 text-gray-700">{String(row.membershipTypeLabel || "-")}</td>
-                  <td className="px-4 py-4 text-gray-600">{String(row.joinDate || "-")}</td>
+                  <td className="px-4 py-4 text-gray-700">{String(row.businessNumber || "-")}</td>
                   <td className="px-4 py-4">
                     <div className="flex flex-col gap-2">
                       {evidenceFiles.length === 0 ? <span className="text-xs text-gray-400">등록 파일 없음</span> : evidenceFiles.map((file, fileIndex) => (
@@ -152,6 +185,7 @@ export function MemberApproveTableSection({
                           {String(file.fileName || "-")}
                         </a>
                       ))}
+                      <span className="text-xs text-gray-500">총 {evidenceCount.toLocaleString()}건</span>
                     </div>
                   </td>
                   <td className="px-4 py-4 text-center">
@@ -159,9 +193,9 @@ export function MemberApproveTableSection({
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex flex-wrap items-center justify-center gap-2">
-                      <MemberButton onClick={() => openReview(id)} size="xs" type="button" variant="secondary">{MEMBER_BUTTON_LABELS.review}</MemberButton>
-                      <MemberPermissionButton allowed={!!page?.canUseMemberApproveAction} onClick={() => handleAction("approve", id)} reason="권한 있는 관리자만 승인할 수 있습니다." size="xs" type="button" variant="primary">{MEMBER_BUTTON_LABELS.approve}</MemberPermissionButton>
-                      <MemberPermissionButton allowed={!!page?.canUseMemberApproveAction} onClick={() => handleAction("reject", id)} reason="권한 있는 관리자만 반려할 수 있습니다." size="xs" type="button" variant="dangerSecondary">{MEMBER_BUTTON_LABELS.reject}</MemberPermissionButton>
+                      <MemberButton onClick={() => openReview(memberId)} size="xs" type="button" variant="secondary">{MEMBER_BUTTON_LABELS.review}</MemberButton>
+                      <MemberPermissionButton allowed={!!page?.canUseMemberApproveAction} onClick={() => handleAction("approve", memberId)} reason="권한 있는 관리자만 승인할 수 있습니다." size="xs" type="button" variant="primary">{MEMBER_BUTTON_LABELS.approve}</MemberPermissionButton>
+                      <MemberPermissionButton allowed={!!page?.canUseMemberApproveAction} onClick={() => handleAction("reject", memberId)} reason="권한 있는 관리자만 반려할 수 있습니다." size="xs" type="button" variant="dangerSecondary">{MEMBER_BUTTON_LABELS.reject}</MemberPermissionButton>
                     </div>
                   </td>
                 </tr>
@@ -180,9 +214,9 @@ function ReviewDataTable({ rows }: { rows: Array<[string, ReactNode]> }) {
   return (
     <div className="border-t-2 border-[var(--kr-gov-text-primary)]">
       {rows.map(([label, value]) => (
-        <div className="grid grid-cols-[140px_1fr] border-b border-[var(--kr-gov-border-light)]" key={label}>
-          <div className="bg-gray-50 px-4 py-3 text-sm font-bold text-[var(--kr-gov-text-secondary)] border-r border-[var(--kr-gov-border-light)]">{label}</div>
-          <div className="px-4 py-3 text-sm text-[var(--kr-gov-text-primary)]">{value}</div>
+        <div className="grid grid-cols-[140px_1fr]" key={label}>
+          <div className="border-b border-r border-[var(--kr-gov-border-light)] bg-gray-50 px-4 py-3 text-sm font-bold text-[var(--kr-gov-text-secondary)]">{label}</div>
+          <div className="border-b border-[var(--kr-gov-border-light)] px-4 py-3 text-sm text-[var(--kr-gov-text-primary)]">{value}</div>
         </div>
       ))}
     </div>
@@ -203,25 +237,31 @@ export function MemberApproveReviewContent({
 }: {
   reviewRow: Record<string, unknown>;
 }) {
+  const memberId = String(reviewRow.memberId || "");
   const evidenceFiles = ((reviewRow.evidenceFiles as Array<Record<string, unknown>> | undefined) || []);
+
   return (
     <>
-      <ReviewBlock title="신청자 기본 정보">
+      <ReviewBlock title="회원 기본 정보">
         <ReviewDataTable rows={[
           ["신청자명", String(reviewRow.memberName || "-")],
-          ["회원 ID", String(reviewRow.memberId || "-")],
+          ["회원 ID", memberId || "-"],
           ["회원 유형", String(reviewRow.membershipTypeLabel || "-")],
-          ["신청일", String(reviewRow.joinDate || "-")]
+          ["현재 상태", String(reviewRow.statusLabel || "-")]
         ]} />
       </ReviewBlock>
-      <ReviewBlock title="소속 정보">
+
+      <ReviewBlock title="소속 및 신청 정보">
         <ReviewDataTable rows={[
-          ["업체/기관명", String(reviewRow.companyName || "-")],
-          ["사업자등록번호", String((reviewRow.member as Record<string, unknown> | undefined)?.bizrno || "-")],
-          ["부서명", String((reviewRow.member as Record<string, unknown> | undefined)?.deptNm || "-")],
-          ["대표자", String((reviewRow.member as Record<string, unknown> | undefined)?.cxfc || "-")]
+          ["회원사명", String(reviewRow.companyName || "-")],
+          ["부서명", String(reviewRow.departmentName || "-")],
+          ["대표자명", String(reviewRow.representativeName || "-")],
+          ["사업자등록번호", String(reviewRow.businessNumber || "-")],
+          ["가입일", String(reviewRow.joinDate || "-")],
+          ["상세 정보", <a className="font-bold text-[var(--kr-gov-blue)] hover:underline" href={String(reviewRow.detailUrl || buildLocalizedPath(`/admin/member/detail?memberId=${encodeURIComponent(memberId)}`, `/en/admin/member/detail?memberId=${encodeURIComponent(memberId)}`))}>회원 상세 화면으로 이동</a>]
         ]} />
       </ReviewBlock>
+
       <ReviewBlock title="증빙 서류 확인">
         <div className="space-y-3 rounded-[var(--kr-gov-radius)] bg-[#f2f2f2] p-4">
           {evidenceFiles.length === 0 ? (

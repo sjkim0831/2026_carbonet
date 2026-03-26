@@ -1,5 +1,6 @@
 import { FormEvent, Fragment, useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { logGovernanceScope } from "../../app/policy/debug";
 import {
   fetchFunctionManagementPage,
   fetchMenuManagementPage,
@@ -100,6 +101,49 @@ export function EnvironmentManagementHubPage() {
   const [pendingDeleteImpact, setPendingDeleteImpact] = useState<FeatureDeleteImpact | null>(null);
   const [featureDeleting, setFeatureDeleting] = useState(false);
   const [metadataExpanded, setMetadataExpanded] = useState(false);
+
+  const governanceEngineCards = useMemo(() => ([
+    {
+      key: "scope-policy",
+      title: en ? "Scope Policy Engine" : "스코프 정책 엔진",
+      description: en
+        ? "If a component does not explicitly allow ALL, it must resolve to own-company scope and require actor insttId."
+        : "컴포넌트가 명시적으로 ALL을 허용하지 않으면 자기 회사 스코프로 강제하고 actor insttId를 필수로 요구합니다.",
+      bullets: en
+        ? ["allowAllScope", "enforceOwnCompanyScope", "restrictTargetCompanyOutput"]
+        : ["allowAllScope", "enforceOwnCompanyScope", "restrictTargetCompanyOutput"]
+    },
+    {
+      key: "type-policy",
+      title: en ? "Member Type Policy Engine" : "회원 타입 정책 엔진",
+      description: en
+        ? "Combos, popups, and features can declare E/P/C/G limits so only matching actors and targets can use them."
+        : "콤보, 팝업, 기능이 E/P/C/G 제한을 선언해 일치하는 사용자와 대상만 사용하도록 합니다.",
+      bullets: en
+        ? ["allowedMemberTypes", "targetMemberType", "TYPE role layering"]
+        : ["allowedMemberTypes", "targetMemberType", "타입 롤 레이어"]
+    },
+    {
+      key: "selector-query",
+      title: en ? "Selector / Query Scope Engine" : "셀렉터 / 쿼리 스코프 엔진",
+      description: en
+        ? "Common selectors should inject company, type, and state predicates before a list, combo, or popup is rendered."
+        : "목록, 콤보, 팝업이 그려지기 전에 공통 셀렉터가 회사, 타입, 상태 조건을 주입합니다.",
+      bullets: en
+        ? ["scoped list query", "grantable roles", "company-matched output"]
+        : ["scoped list query", "grantable roles", "company-matched output"]
+    },
+    {
+      key: "audit-diagnostic",
+      title: en ? "Audit / Diagnostic Engine" : "감사 / 진단 엔진",
+      description: en
+        ? "Page, component, function, API, and common-code usage should be diagnosable with the same governed metadata."
+        : "페이지, 컴포넌트, 기능, API, 공통코드 사용처를 같은 거버넌스 메타데이터로 진단할 수 있어야 합니다.",
+      bullets: en
+        ? ["screen command", "manifest registry", "trace + audit"]
+        : ["screen command", "manifest registry", "trace + audit"]
+    }
+  ]), [en]);
 
   const menuPageState = useAsyncValue<MenuManagementPagePayload>(() => fetchMenuManagementPage(menuType), [menuType]);
   const menuPage = menuPageState.value;
@@ -292,6 +336,38 @@ export function EnvironmentManagementHubPage() {
       remainingDraft: 0
     });
   }, [sameIssueIndex, sameIssueMenus, screenBuilderPublishedMap]);
+  useEffect(() => {
+    if (!menuPage && !featurePage) {
+      return;
+    }
+    logGovernanceScope("PAGE", "environment-management-hub", {
+      route: window.location.pathname,
+      menuType,
+      selectedMenuCode,
+      menuRowCount: menuRows.length,
+      featureRowCount: featureRows.length,
+      filteredMenuCount: filteredMenus.length,
+      governanceRemediationCount: governanceRemediationItems.length
+    });
+    logGovernanceScope("COMPONENT", "environment-management-governance", {
+      component: "environment-management-governance",
+      selectedMenuCode,
+      issueCount: selectedMenuBuilderIssueCount,
+      remediationCount: governanceRemediationItems.length,
+      draftOnly: governanceDraftOnly
+    });
+  }, [
+    featurePage,
+    featureRows.length,
+    filteredMenus.length,
+    governanceDraftOnly,
+    governanceRemediationItems.length,
+    menuPage,
+    menuRows.length,
+    menuType,
+    selectedMenuBuilderIssueCount,
+    selectedMenuCode
+  ]);
   const nextRemainingPublishedSameIssueMenu = useMemo(() => (
     sameIssueMenus.find((row, index) => index > sameIssueIndex && Boolean(screenBuilderPublishedMap[row.code])) || null
   ), [sameIssueIndex, sameIssueMenus, screenBuilderPublishedMap]);
@@ -861,64 +937,102 @@ export function EnvironmentManagementHubPage() {
         </PageStatusNotice>
       ) : null}
 
-      <DiagnosticCard
-        description={en
-          ? "Register the target menu under a group code, assign the runtime URL, let the default VIEW permission be created automatically, and then add page-specific feature codes without switching to multiple screens."
-          : "그룹 메뉴 아래에 대상 메뉴를 등록하고 URL을 할당하면 기본 VIEW 권한이 함께 생성됩니다. 이후 선택 메뉴 기준으로 기능 코드를 바로 추가해 여러 화면을 오가지 않도록 구성했습니다."}
-        summary={(
-          <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
-              {en ? "Unified Workspace" : "통합 작업공간"}
-            </p>
-            <h3 className="mt-2 text-2xl font-black text-[var(--kr-gov-text-primary)]">
-              {en ? "Create menus simply, then keep editing on the same screen" : "메뉴를 단순하게 추가하고 같은 화면에서 계속 편집"}
-            </h3>
-            <p className="mt-3 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
-              {en
-                ? "Register the target menu under a group code, assign the runtime URL, let the default VIEW permission be created automatically, and then add page-specific feature codes without switching to multiple screens."
-                : "그룹 메뉴 아래에 대상 메뉴를 등록하고 URL을 할당하면 기본 VIEW 권한이 함께 생성됩니다. 이후 선택 메뉴 기준으로 기능 코드를 바로 추가해 여러 화면을 오가지 않도록 구성했습니다."}
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <MemberButton onClick={() => scrollToSection("environment-register-menu")} size="sm" type="button" variant="secondary">
-                {en ? "Register Menu" : "메뉴 등록"}
-              </MemberButton>
-              <MemberButton onClick={() => scrollToSection("environment-search-menu")} size="sm" type="button" variant="secondary">
-                {en ? "Search Menu" : "메뉴 검색"}
-              </MemberButton>
-              <MemberButton onClick={() => scrollToSection("environment-feature-management")} size="sm" type="button" variant="secondary">
-                {en ? "Manage Features" : "기능 관리"}
-              </MemberButton>
-              <MemberButton onClick={() => scrollToSection("environment-metadata")} size="sm" type="button" variant="secondary">
-                {en ? "Metadata" : "메타데이터"}
-              </MemberButton>
-            </div>
-          </div>
-          <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 p-5">
-            <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
-              {en ? "Auto Provision" : "자동 생성 항목"}
-            </p>
-            <ul className="mt-3 space-y-2 text-sm text-[var(--kr-gov-text-secondary)]">
-              <li className="rounded-lg border border-slate-200 bg-white px-3 py-2">{en ? "8-digit page menu code under selected group" : "선택한 그룹 하위의 8자리 페이지 메뉴 코드"}</li>
-              <li className="rounded-lg border border-slate-200 bg-white px-3 py-2">{en ? "Menu URL and icon metadata" : "메뉴 URL과 아이콘 메타데이터"}</li>
-              <li className="rounded-lg border border-slate-200 bg-white px-3 py-2">{en ? "Default PAGE_CODE_VIEW feature" : "기본 PAGE_CODE_VIEW 기능"}</li>
-              <li className="rounded-lg border border-slate-200 bg-white px-3 py-2">{en ? "Initial sort order under the same parent" : "같은 부모 메뉴 기준 초기 정렬 순서"}</li>
-            </ul>
-            <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-              <div className="rounded-lg border border-slate-200 bg-white px-3 py-3">
-                <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Menus" : "메뉴 수"}</p>
-                <p className="mt-1 text-lg font-black text-[var(--kr-gov-text-primary)]">{filteredMenus.length}</p>
-              </div>
-              <div className="rounded-lg border border-slate-200 bg-white px-3 py-3">
-                <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Features" : "기능 수"}</p>
-                <p className="mt-1 text-lg font-black text-[var(--kr-gov-text-primary)]">{featureRows.length}</p>
+      <div data-help-id="environment-management-summary">
+        <DiagnosticCard
+          description={en
+            ? "Register the target menu under a group code, assign the runtime URL, let the default VIEW permission be created automatically, and then add page-specific feature codes without switching to multiple screens."
+            : "그룹 메뉴 아래에 대상 메뉴를 등록하고 URL을 할당하면 기본 VIEW 권한이 함께 생성됩니다. 이후 선택 메뉴 기준으로 기능 코드를 바로 추가해 여러 화면을 오가지 않도록 구성했습니다."}
+          summary={(
+            <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
+                {en ? "Unified Workspace" : "통합 작업공간"}
+              </p>
+              <h3 className="mt-2 text-2xl font-black text-[var(--kr-gov-text-primary)]">
+                {en ? "Create menus simply, then keep editing on the same screen" : "메뉴를 단순하게 추가하고 같은 화면에서 계속 편집"}
+              </h3>
+              <p className="mt-3 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
+                {en
+                  ? "Register the target menu under a group code, assign the runtime URL, let the default VIEW permission be created automatically, and then add page-specific feature codes without switching to multiple screens."
+                  : "그룹 메뉴 아래에 대상 메뉴를 등록하고 URL을 할당하면 기본 VIEW 권한이 함께 생성됩니다. 이후 선택 메뉴 기준으로 기능 코드를 바로 추가해 여러 화면을 오가지 않도록 구성했습니다."}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <MemberButton onClick={() => scrollToSection("environment-register-menu")} size="sm" type="button" variant="secondary">
+                  {en ? "Register Menu" : "메뉴 등록"}
+                </MemberButton>
+                <MemberButton onClick={() => scrollToSection("environment-search-menu")} size="sm" type="button" variant="secondary">
+                  {en ? "Search Menu" : "메뉴 검색"}
+                </MemberButton>
+                <MemberButton onClick={() => scrollToSection("environment-feature-management")} size="sm" type="button" variant="secondary">
+                  {en ? "Manage Features" : "기능 관리"}
+                </MemberButton>
+                <MemberButton onClick={() => scrollToSection("environment-metadata")} size="sm" type="button" variant="secondary">
+                  {en ? "Metadata" : "메타데이터"}
+                </MemberButton>
               </div>
             </div>
+            <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 p-5">
+              <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
+                {en ? "Auto Provision" : "자동 생성 항목"}
+              </p>
+              <ul className="mt-3 space-y-2 text-sm text-[var(--kr-gov-text-secondary)]">
+                <li className="rounded-lg border border-slate-200 bg-white px-3 py-2">{en ? "8-digit page menu code under selected group" : "선택한 그룹 하위의 8자리 페이지 메뉴 코드"}</li>
+                <li className="rounded-lg border border-slate-200 bg-white px-3 py-2">{en ? "Menu URL and icon metadata" : "메뉴 URL과 아이콘 메타데이터"}</li>
+                <li className="rounded-lg border border-slate-200 bg-white px-3 py-2">{en ? "Default PAGE_CODE_VIEW feature" : "기본 PAGE_CODE_VIEW 기능"}</li>
+                <li className="rounded-lg border border-slate-200 bg-white px-3 py-2">{en ? "Initial sort order under the same parent" : "같은 부모 메뉴 기준 초기 정렬 순서"}</li>
+              </ul>
+              <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-lg border border-slate-200 bg-white px-3 py-3">
+                  <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Menus" : "메뉴 수"}</p>
+                  <p className="mt-1 text-lg font-black text-[var(--kr-gov-text-primary)]">{filteredMenus.length}</p>
+                </div>
+                <div className="rounded-lg border border-slate-200 bg-white px-3 py-3">
+                  <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Features" : "기능 수"}</p>
+                  <p className="mt-1 text-lg font-black text-[var(--kr-gov-text-primary)]">{featureRows.length}</p>
+                </div>
+              </div>
+            </div>
           </div>
+          )}
+          title={en ? "Unified Workspace" : "통합 작업공간"}
+        />
+      </div>
+
+      <section className="gov-card mb-6" data-help-id="environment-management-engines">
+        <GridToolbar
+          actions={(
+            <div className="flex flex-wrap gap-2">
+              <MemberLinkButton href={buildLocalizedPath("/admin/system/full-stack-management", "/en/admin/system/full-stack-management")} size="sm" variant="secondary">
+                {en ? "Full-stack Registry" : "풀스택 레지스트리"}
+              </MemberLinkButton>
+              <MemberLinkButton href={buildLocalizedPath("/admin/system/help-management", "/en/admin/system/help-management")} size="sm" variant="secondary">
+                {en ? "Screen Command" : "화면 커맨드"}
+              </MemberLinkButton>
+            </div>
+          )}
+          title={en ? "Governance Engines To Add" : "추가할 거버넌스 엔진"}
+        />
+        <p className="mb-4 text-sm text-[var(--kr-gov-text-secondary)]">
+          {en
+            ? "Environment management should not stop at menu and feature registration. The engines below are the next operating layer for dynamic authority-driven screens."
+            : "환경 관리는 메뉴/기능 등록으로 끝나지 않습니다. 아래 엔진들이 동적 권한 기반 화면으로 가기 위한 다음 운영 레이어입니다."}
+        </p>
+        <div className="grid gap-4 xl:grid-cols-2">
+          {governanceEngineCards.map((item) => (
+            <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 p-4" key={item.key}>
+              <h3 className="text-base font-black text-[var(--kr-gov-text-primary)]">{item.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">{item.description}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {item.bullets.map((bullet) => (
+                  <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-[12px] font-mono text-[var(--kr-gov-text-primary)]" key={bullet}>
+                    {bullet}
+                  </span>
+                ))}
+              </div>
+            </article>
+          ))}
         </div>
-        )}
-        title={en ? "Unified Workspace" : "통합 작업공간"}
-      />
+      </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]" data-help-id="environment-management-cards">
         <div className="space-y-6">

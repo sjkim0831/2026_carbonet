@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { fetchMenuManagementPage, refreshAdminMenuTree, type MenuManagementPagePayload } from "../../lib/api/client";
 import { postFormUrlEncoded } from "../../lib/api/core";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
@@ -107,6 +108,24 @@ export function MenuManagementMigrationPage() {
   const expsrAtOptions = ((page?.expsrAtOptions || []) as string[]);
 
   useEffect(() => {
+    if (!page) {
+      return;
+    }
+    logGovernanceScope("PAGE", "menu-management", {
+      route: window.location.pathname,
+      menuType,
+      rowCount: rows.length,
+      rootNodeCount: treeData.length,
+      groupMenuOptionCount: groupMenuOptions.length
+    });
+    logGovernanceScope("COMPONENT", "menu-management-tree", {
+      component: "menu-management-tree",
+      rootNodeCount: treeData.length,
+      menuType
+    });
+  }, [groupMenuOptions.length, menuType, page, rows.length, treeData.length]);
+
+  useEffect(() => {
     setTreeData(buildTree(rows));
   }, [rows]);
 
@@ -163,6 +182,10 @@ export function MenuManagementMigrationPage() {
   }
 
   async function saveOrder() {
+    logGovernanceScope("ACTION", "menu-management-save-order", {
+      menuType,
+      payloadCount: flattenPayload(treeData).length
+    });
     setActionError("");
     setActionMessage("");
     const body = new URLSearchParams();
@@ -178,6 +201,11 @@ export function MenuManagementMigrationPage() {
   }
 
   async function saveExposure(code: string, expsrAt: string) {
+    logGovernanceScope("ACTION", "menu-management-save-exposure", {
+      menuType,
+      menuCode: code,
+      exposure: expsrAt
+    });
     setActionError("");
     setActionMessage("");
     const body = new URLSearchParams();

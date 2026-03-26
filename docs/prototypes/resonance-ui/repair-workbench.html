@@ -45,14 +45,18 @@
                   <div class="meta-row"><span class="label">Screen</span><div class="value">join-member-info-page</div></div>
                   <div class="meta-row"><span class="label">Guided State</span><div class="value">guided-build-15-repair</div></div>
                   <div class="meta-row"><span class="label">Template Line</span><div class="value">public-line-01</div></div>
-                  <div class="meta-row"><span class="label">Family Rule</span><div class="value">JOIN_INFO</div></div>
+                  <div class="meta-row"><span class="label">Family Rule</span><div class="value">PUBLIC_JOIN_STEP</div></div>
+                  <div class="meta-row"><span class="label">Owner Lane</span><div class="value">res-verify</div></div>
+                  <div class="meta-row"><span class="label">Release Unit</span><div class="value">ru-2026.03.24-08</div></div>
+                  <div class="meta-row"><span class="label">Runtime Package</span><div class="value">runtime-package-join-member-info</div></div>
+                  <div class="meta-row"><span class="label">Deploy Trace</span><div class="value">deploy-trace-20260324-08-main</div></div>
+                  <div class="meta-row"><span class="label">Rollback Anchor</span><div class="value">Y</div></div>
                   <div class="meta-row"><span class="label">Baseline</span><div class="value">CURRENT_RUNTIME</div></div>
                   <div class="meta-row"><span class="label">Reason</span><div class="value">PARITY_GAP</div></div>
                 </div>
                 <div class="chips" style="margin-top:14px">
-                  <span class="chip danger">BUTTON_ZONE_DRIFT</span>
-                  <span class="chip danger">SPACING_PROFILE_MISMATCH</span>
-                  <span class="chip warn">MISSING_HELP_ANCHOR</span>
+                  <span class="chip ok">ACTION_LAYOUT_ALIGNED</span>
+                  <span class="chip ok">HELP_ANCHOR_ALIGNED</span>
                 </div>
               </div>
             </div>
@@ -65,11 +69,59 @@
                   <tbody>
                     <tr><td>Page Design</td><td>join-info v3</td><td>join-info v4</td><td><span class="chip ok">Prepared</span></td></tr>
                     <tr><td>Page Assembly</td><td>join-info assembly v3</td><td>join-info assembly v4</td><td><span class="chip ok">Prepared</span></td></tr>
-                    <tr><td>Action Layout</td><td>detail-footer-standard v1</td><td>detail-footer-standard v2</td><td><span class="chip warn">Review</span></td></tr>
+                    <tr><td>Action Layout</td><td>detail-footer-left/right</td><td>detail-footer-standard v2</td><td><span class="chip warn">Review</span></td></tr>
                     <tr><td>Binding Set</td><td>join-submit binding v1</td><td>join-submit binding v2</td><td><span class="chip ok">Prepared</span></td></tr>
-                    <tr><td>Family Rule</td><td>JOIN_INFO v1</td><td>JOIN_INFO v1</td><td><span class="chip ok">Locked</span></td></tr>
+                    <tr><td>Help Anchors</td><td>join help anchor bundle v1</td><td>join help anchor bundle v2</td><td><span class="chip warn">Review</span></td></tr>
+                    <tr><td>Family Rule</td><td>PUBLIC_JOIN_STEP v1</td><td>PUBLIC_JOIN_STEP v1</td><td><span class="chip ok">Locked</span></td></tr>
                   </tbody>
                 </table>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><div><h2>Builder / Runtime Evidence</h2><p>04 입력물과 05 결과를 같은 키로 유지</p></div></div>
+              <div class="card-body">
+                <div class="two-col">
+                  <div class="meta-row"><span class="label">Builder ID</span><div class="value">sb-join-member-info</div></div>
+                  <div class="meta-row"><span class="label">Draft Version</span><div class="value">draft-join-20260321-005</div></div>
+                  <div class="meta-row"><span class="label">Menu Code</span><div class="value">MENU_JOIN_MEMBER_INFO</div></div>
+                  <div class="meta-row"><span class="label">Menu URL</span><div class="value">/member/join/info</div></div>
+                  <div class="meta-row"><span class="label">Published Runtime</span><div class="value">publish-join-20260321-002</div></div>
+                  <div class="meta-row"><span class="label">Runtime Trace</span><div class="value">runtime-join-20260321-011</div></div>
+                  <div class="meta-row"><span class="label">Generated Nodes</span><div class="value">18</div></div>
+                  <div class="meta-row"><span class="label">Current Nodes</span><div class="value">18</div></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><div><h2>Repair Apply Payload</h2><p>repair/apply로 재검증 루프 연결</p></div></div>
+              <div class="card-body">
+                <table>
+                  <thead><tr><th>Field</th><th>Value</th></tr></thead>
+                  <tbody>
+                    <tr><td>repairSessionId</td><td>repair-join-20260321-001</td></tr>
+                    <tr><td>ownerLane</td><td>res-verify</td></tr>
+                    <tr><td>updatedAssetSet</td><td>page-design:join-member-info-page:v4, page-assembly:join-member-info-page:v4</td></tr>
+                    <tr><td>updatedBindingSet</td><td>event-binding:join-submit:v2, function-binding:join-submit-handler:v2</td></tr>
+                    <tr><td>updatedThemeOrLayoutSet</td><td>action-layout:detail-footer-standard:v2, help-anchor-bundle:join-v2</td></tr>
+                    <tr><td>publishMode</td><td>PUBLISH_READY</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><div><h2>Cross-Lane Evidence Mapping</h2><p>04 / 05 / 06 / 08 입력과 결과를 같은 verify 체인으로 유지</p></div></div>
+              <div class="card-body">
+                <div class="two-col">
+                  <div class="meta-row"><span class="label">04 Builder Input</span><div class="value">sb-join-member-info / draft-join-20260321-005</div></div>
+                  <div class="meta-row"><span class="label">05 Runtime Result</span><div class="value">publish-join-20260321-002 / nodes 18 / events 4</div></div>
+                  <div class="meta-row"><span class="label">06 Compare Contract</span><div class="value">trace-compare-20260324-021 / CURRENT_RUNTIME</div></div>
+                  <div class="meta-row"><span class="label">08 Release Evidence</span><div class="value">ru-2026.03.24-08 / runtime-package-join-member-info / deploy-trace-20260324-08-main</div></div>
+                  <div class="meta-row"><span class="label">Owner Lane</span><div class="value">res-verify</div></div>
+                  <div class="meta-row"><span class="label">Selected Screen</span><div class="value">join-member-info-page</div></div>
+                </div>
               </div>
             </div>
           </section>
@@ -89,9 +141,36 @@
               <div class="card-header"><div><h3>Patch Readiness</h3><p>repair/apply 결과 예정</p></div></div>
               <div class="card-body">
                 <ul class="check-list">
-                  <li>parity recheck required</li>
-                  <li>uniformity recheck required</li>
-                  <li>smoke required on main server</li>
+                  <li>owner lane remains res-verify until handoff note closes the blocker</li>
+                  <li>parity recheck closed</li>
+                  <li>uniformity recheck closed</li>
+                  <li>smoke passed on main server</li>
+                </ul>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div><h3>Verification Handoff Readiness</h3><p>09에서 01로 넘기기 전 최종 게이트</p></div><span class="chip ok">HANDOFF READY</span></div>
+              <div class="card-body">
+                <ul class="check-list">
+                  <li>open blockers: 0</li>
+                  <li>parity recheck required: false</li>
+                  <li>uniformity recheck required: false</li>
+                  <li>smoke pending: false</li>
+                  <li>08 deploy evidence attached: true</li>
+                  <li>latest trace: trace-compare-20260324-021</li>
+                </ul>
+                <div class="meta-row" style="margin-top:14px"><span class="label">Status Note</span><div class="value">HANDOFF READY: 01 may continue from parity, compare, repair, and verification outputs cross-checked against 04 builder inputs, 05 frontend runtime results, and 08 deploy evidence; blocker count is 0 for current verification scope.</div></div>
+              </div>
+            </div>
+            <div class="card soft">
+              <div class="card-header"><div><h3>Lane 09 Loop Continuation</h3><p>기존 09 세션 이어가기</p></div><span class="chip warn">CONTINUE_UNFINISHED</span></div>
+              <div class="card-body">
+                <ul class="check-list">
+                  <li>loop cadence: 60 seconds</li>
+                  <li>last unfinished scope: none</li>
+                  <li>next recheck entry: HANDOFF_CONFIRMATION</li>
+                  <li>recovery order: session alive -&gt; confirm zero blockers -&gt; confirm smoke closure -&gt; keep handoff output stable</li>
+                  <li>stop condition: operator stop / DONE / BLOCKED / ownership change</li>
                 </ul>
               </div>
             </div>

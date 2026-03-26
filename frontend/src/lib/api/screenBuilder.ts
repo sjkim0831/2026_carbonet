@@ -16,6 +16,10 @@ function buildPageCacheKey(path: string) {
   return `page:${path}`;
 }
 
+function invalidateScreenBuilderPageCache() {
+  pageDataCache.clear();
+}
+
 async function fetchCachedJson<T>(options: {
   cacheKey: string;
   url: string;
@@ -101,6 +105,7 @@ export async function saveScreenBuilderDraft(payload: {
   if (!response.ok || !body.success) {
     throw new Error(String(body.message || `Failed to save screen builder draft: ${response.status}`));
   }
+  invalidateScreenBuilderPageCache();
   return body;
 }
 
@@ -121,6 +126,7 @@ export async function restoreScreenBuilderDraft(payload: {
   if (!response.ok || !body.success) {
     throw new Error(String(body.message || `Failed to restore screen builder draft: ${response.status}`));
   }
+  invalidateScreenBuilderPageCache();
   return body;
 }
 
@@ -140,6 +146,7 @@ export async function publishScreenBuilderDraft(payload: {
   if (!response.ok || !body.success) {
     throw new Error(String(body.message || `Failed to publish screen builder draft: ${response.status}`));
   }
+  invalidateScreenBuilderPageCache();
   return body;
 }
 
@@ -167,6 +174,7 @@ export async function registerScreenBuilderComponent(payload: {
   if (!response.ok || !body.success || !body.item) {
     throw new Error(String(body.message || `Failed to register screen builder component: ${response.status}`));
   }
+  invalidateScreenBuilderPageCache();
   return body as { success: boolean; message?: string; item: ScreenBuilderComponentRegistryItem };
 }
 
@@ -194,6 +202,7 @@ export async function updateScreenBuilderComponentRegistry(payload: {
   if (!response.ok || !body.success || !body.item) {
     throw new Error(String(body.message || `Failed to update screen builder component registry: ${response.status}`));
   }
+  invalidateScreenBuilderPageCache();
   return body as { success: boolean; message?: string; item: ScreenBuilderComponentRegistryItem };
 }
 
@@ -224,6 +233,7 @@ export async function deleteScreenBuilderComponentRegistryItem(payload: {
   if (!response.ok || !body.success) {
     throw new Error(String(body.message || `Failed to delete screen builder component: ${response.status}`));
   }
+  invalidateScreenBuilderPageCache();
   return body as { success: boolean; message?: string };
 }
 
@@ -244,6 +254,7 @@ export async function remapScreenBuilderComponentRegistryUsage(payload: {
   if (!response.ok || !body.success) {
     throw new Error(String(body.message || `Failed to remap screen builder component usage: ${response.status}`));
   }
+  invalidateScreenBuilderPageCache();
   return body as { success: boolean; message?: string; updatedDraftCount?: number; updatedPublishedCount?: number };
 }
 
@@ -263,6 +274,7 @@ export async function autoReplaceDeprecatedScreenBuilderComponents(payload: {
   if (!response.ok || !body.success) {
     throw new Error(String(body.message || `Failed to auto replace deprecated components: ${response.status}`));
   }
+  invalidateScreenBuilderPageCache();
   return body as { success: boolean; message?: string; replacedCount?: number };
 }
 
@@ -315,6 +327,7 @@ export async function addScreenBuilderNodeFromComponent(payload: {
   if (!response.ok || !body.success) {
     throw new Error(String(body.message || `Failed to add node from registered component: ${response.status}`));
   }
+  invalidateScreenBuilderPageCache();
   return body as { success: boolean; message?: string; nodeId?: string; componentId?: string };
 }
 
@@ -341,5 +354,6 @@ export async function addScreenBuilderNodeTreeFromComponents(payload: {
   if (!response.ok || !body.success) {
     throw new Error(String(body.message || `Failed to add node tree from components: ${response.status}`));
   }
+  invalidateScreenBuilderPageCache();
   return body as { success: boolean; message?: string; addedCount?: number; items?: Array<Record<string, unknown>> };
 }

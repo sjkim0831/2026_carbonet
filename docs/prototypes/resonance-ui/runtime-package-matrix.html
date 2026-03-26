@@ -25,7 +25,7 @@
           <div class="page-title">
             <div class="breadcrumbs">Resonance / Ops / Runtime Package Matrix</div>
             <h1>프로젝트 단위 패키지 매트릭스</h1>
-            <p>release unit 안의 공통 jar, frontend bundle, theme/token/css/js, feature module, menu/page/binding/backend/DB/cron 자산이 서버 역할별로 정상 배포 가능한지 확인합니다. guided step, template line, screen family rule도 함께 추적합니다.</p>
+            <p>release unit 안의 공통 jar, frontend bundle, theme/token/css/js, feature module, menu/page/binding/backend/DB/cron 자산이 서버 역할별로 정상 배포 가능한지 확인합니다. guided step, template line, screen family rule, owner lane, deploy trace도 함께 추적합니다.</p>
           </div>
           <div class="header-actions">
             <div class="btn secondary">Compare Current</div>
@@ -37,16 +37,22 @@
         <section class="card">
           <div class="card-header"><div><h2>Release Unit Matrix</h2><p>project-unit ready state</p></div><span class="chip ok">deployReady</span></div>
           <div class="card-body">
+            <div class="two-col" style="margin-bottom:16px">
+              <div><span class="label">Project</span><div class="value">carbonet</div></div>
+              <div><span class="label">Release Unit</span><div class="value">ru-2026.03.24-08</div></div>
+              <div><span class="label">Runtime Package</span><div class="value">runtime-package-join-member-info</div></div>
+              <div><span class="label">Deploy Trace</span><div class="value">deploy-trace-20260324-08-main</div></div>
+            </div>
             <table>
-              <thead><tr><th>Asset Family</th><th>Version</th><th>Guided / Template / Rule</th><th>Common/Project</th><th>Targets</th><th>Pattern/Style</th><th>State</th><th>Action</th></tr></thead>
+              <thead><tr><th>Asset Family</th><th>Version</th><th>Guided / Template / Rule / Lane</th><th>Common/Project</th><th>Targets</th><th>Pattern/Style</th><th>State</th><th>Action</th></tr></thead>
               <tbody>
-                <tr><td>COMMON_JAR</td><td>resonance-common-backend 1.8.2</td><td>guided-build-12-runtime-package / public-line-01 / JOIN_INFO</td><td>COMMON</td><td>MAIN / SUB</td><td>BACKEND_CORE / green</td><td><span class="chip ok">Ready</span></td><td><span class="tiny-btn">Trace</span></td></tr>
-                <tr><td>FRONTEND_BUNDLE</td><td>resonance-common-frontend 1.6.4</td><td>guided-build-12-runtime-package / public-line-01 / JOIN_INFO</td><td>COMMON</td><td>MAIN / SUB</td><td>PUBLIC_ADMIN_SHELL / green</td><td><span class="chip ok">Ready</span></td><td><span class="tiny-btn">Inspect</span></td></tr>
-                <tr><td>PAGE_MANIFEST</td><td>join-member-info v4</td><td>guided-build-12-runtime-package / public-line-01 / JOIN_INFO</td><td>PROJECT</td><td>MAIN / SUB</td><td>JOIN_WIZARD / green</td><td><span class="chip ok">Ready</span></td><td><span class="tiny-btn">Compare</span></td></tr>
-                <tr><td>MODULE_PATTERN</td><td>BOARD_STANDARD / BOARD_DEPTH_V1</td><td>guided-build-12-runtime-package / admin-line-02 / ADMIN_LIST_REVIEW</td><td>PROJECT</td><td>MAIN / SUB</td><td>style: warn / dedupe</td><td><span class="chip warn">Repair</span></td><td><span class="tiny-btn">Intake</span></td></tr>
-                <tr><td>DB_SQL_DRAFT</td><td>join_member_patch_03.sql</td><td>guided-build-12-runtime-package / public-line-01 / JOIN_INFO</td><td>PROJECT</td><td>DB</td><td>DB_MEMBER_CORE / review</td><td><span class="chip warn">Review</span></td><td><span class="tiny-btn">SQL Review</span></td></tr>
-                <tr><td>DB_ATTACHMENT_TARGET</td><td>temp-project-db -> dedicated-db-01</td><td>guided-build-12-runtime-package / public-line-01 / JOIN_INFO</td><td>PROJECT</td><td>DB / MAIN</td><td>PROJECT_DB_SWITCH / green</td><td><span class="chip warn">Switch Ready</span></td><td><span class="tiny-btn">Review</span></td></tr>
-                <tr><td>CRON_BINDING</td><td>member_cleanup_main_v2</td><td>guided-build-12-runtime-package / admin-line-02 / ADMIN_LIST_REVIEW</td><td>PROJECT</td><td>SCHEDULER</td><td>MAIN_SERVER_CRON / green</td><td><span class="chip ok">Bound</span></td><td><span class="tiny-btn">Verify</span></td></tr>
+                <tr><td>COMMON_JAR</td><td>resonance-common-backend 1.8.2</td><td>guided-build-12-runtime-package / public-line-01 / JOIN_INFO / res-08-deploy</td><td>COMMON</td><td>MAIN / SUB</td><td>BACKEND_CORE / green</td><td><span class="chip ok">Ready</span></td><td><span class="tiny-btn">Trace</span></td></tr>
+                <tr><td>FRONTEND_BUNDLE</td><td>resonance-common-frontend 1.6.4</td><td>guided-build-12-runtime-package / public-line-01 / JOIN_INFO / res-08-deploy</td><td>COMMON</td><td>MAIN / SUB</td><td>PUBLIC_ADMIN_SHELL / green</td><td><span class="chip ok">Ready</span></td><td><span class="tiny-btn">Inspect</span></td></tr>
+                <tr><td>PAGE_MANIFEST</td><td>join-member-info v4</td><td>guided-build-12-runtime-package / public-line-01 / JOIN_INFO / res-08-deploy</td><td>PROJECT</td><td>MAIN / SUB</td><td>JOIN_WIZARD / green</td><td><span class="chip ok">Ready</span></td><td><span class="tiny-btn">Compare</span></td></tr>
+                <tr><td>MODULE_PATTERN</td><td>BOARD_STANDARD / BOARD_DEPTH_V1</td><td>guided-build-12-runtime-package / admin-line-02 / ADMIN_LIST_REVIEW / res-08-deploy</td><td>PROJECT</td><td>MAIN / SUB</td><td>style: warn / dedupe</td><td><span class="chip warn">Repair</span></td><td><span class="tiny-btn">Intake</span></td></tr>
+                <tr><td>DB_SQL_DRAFT</td><td>join_member_patch_03.sql</td><td>guided-build-12-runtime-package / public-line-01 / JOIN_INFO / res-08-deploy</td><td>PROJECT</td><td>DB</td><td>DB_MEMBER_CORE / review</td><td><span class="chip warn">Review</span></td><td><span class="tiny-btn">SQL Review</span></td></tr>
+                <tr><td>DB_ATTACHMENT_TARGET</td><td>temp-project-db -> dedicated-db-01</td><td>guided-build-12-runtime-package / public-line-01 / JOIN_INFO / res-08-deploy</td><td>PROJECT</td><td>DB / MAIN</td><td>PROJECT_DB_SWITCH / green</td><td><span class="chip warn">Switch Ready</span></td><td><span class="tiny-btn">Review</span></td></tr>
+                <tr><td>CRON_BINDING</td><td>member_cleanup_main_v2</td><td>guided-build-12-runtime-package / admin-line-02 / ADMIN_LIST_REVIEW / res-08-deploy</td><td>PROJECT</td><td>SCHEDULER</td><td>MAIN_SERVER_CRON / green</td><td><span class="chip ok">Bound</span></td><td><span class="tiny-btn">Verify</span></td></tr>
               </tbody>
             </table>
           </div>
@@ -55,7 +61,7 @@
         <div class="grid cols-3" style="margin-top:18px">
           <div class="card soft">
             <div class="card-header"><div><h3>Main</h3><p>truth source</p></div></div>
-            <div class="card-body"><ul class="timeline"><li>34.82.141.193 build authority</li><li>136.117.100.221 current runtime</li><li>smoke: pending</li></ul></div>
+            <div class="card-body"><ul class="timeline"><li>136.109.238.233 build authority</li><li>136.117.100.221 current runtime truth</li><li>smoke: pending</li></ul></div>
           </div>
           <div class="card soft">
             <div class="card-header"><div><h3>Sub</h3><p>rollout target</p></div></div>
@@ -66,6 +72,20 @@
             <div class="card-body"><ul class="timeline"><li>DDL draft available</li><li>backup checkpoint exists</li><li>main-server cron binding verified</li></ul></div>
           </div>
         </div>
+
+        <section class="card" style="margin-top:18px">
+          <div class="card-header"><div><h2>09 Handoff Evidence</h2><p>verify lane가 바로 소비할 deploy 증거</p></div><span class="chip">handoff-ready</span></div>
+          <div class="card-body">
+            <div class="two-col">
+              <div><span class="label">releaseUnitId</span><div class="value">ru-2026.03.24-08</div></div>
+              <div><span class="label">runtimePackageId</span><div class="value">runtime-package-join-member-info</div></div>
+              <div><span class="label">ownerLane</span><div class="value">res-08-deploy</div></div>
+              <div><span class="label">deployTraceId</span><div class="value">deploy-trace-20260324-08-main</div></div>
+              <div><span class="label">rollbackAnchorYn</span><div class="value">Y</div></div>
+              <div><span class="label">runtime truth</span><div class="value">221</div></div>
+            </div>
+          </div>
+        </section>
       </main>
     </div>
   </body>

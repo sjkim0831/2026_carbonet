@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { resetJoinSession } from "../../lib/api/client";
 import { buildLocalizedPath, getSearchParam, isEnglish, navigate } from "../../lib/navigation/runtime";
 
@@ -28,7 +30,23 @@ export function JoinCompleteMigrationPage() {
   const en = isEnglish();
   const payload = readPayload();
 
+  useEffect(() => {
+    logGovernanceScope("PAGE", "join-step5", {
+      route: window.location.pathname,
+      memberId: payload.mberId || "",
+      insttNm: payload.insttNm || ""
+    });
+    logGovernanceScope("COMPONENT", "join-step5-summary", {
+      component: "join-step5-summary",
+      memberId: payload.mberId || "",
+      memberName: payload.mberNm || ""
+    });
+  }, [payload.insttNm, payload.mberId, payload.mberNm]);
+
   async function handleHome() {
+    logGovernanceScope("ACTION", "join-step5-home", {
+      memberId: payload.mberId || ""
+    });
     window.sessionStorage.removeItem(STORAGE_KEY);
     await resetJoinSession();
     navigate(buildLocalizedPath("/home", "/en/home"));

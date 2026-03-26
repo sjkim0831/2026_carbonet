@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { resetJoinSession, saveJoinStep3 } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
 
@@ -81,6 +82,17 @@ export function JoinAuthMigrationPage() {
   const [submittingMethod, setSubmittingMethod] = useState("");
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    logGovernanceScope("PAGE", "join-step3", {
+      route: window.location.pathname,
+      optionCount: options.length
+    });
+    logGovernanceScope("COMPONENT", "join-step3-auth-options", {
+      component: "join-step3-auth-options",
+      optionCount: options.length
+    });
+  }, [options.length]);
+
   async function handleHome() {
     await resetJoinSession();
     navigate(buildLocalizedPath("/home", "/en/home"));
@@ -91,6 +103,9 @@ export function JoinAuthMigrationPage() {
   }
 
   async function proceedToStep4(method: string) {
+    logGovernanceScope("ACTION", "join-step3-next", {
+      method
+    });
     if (submittingMethod) {
       return;
     }
@@ -107,6 +122,9 @@ export function JoinAuthMigrationPage() {
   }
 
   function handleAuth(method: string) {
+    logGovernanceScope("ACTION", "join-step3-auth", {
+      method
+    });
     if (method === "JOINT" || method === "FINANCIAL") {
       window.open("http://localhost:9000/certlogin/utl/sec/certVar.do", "certPopup", "width=500,height=600");
       window.setTimeout(() => {

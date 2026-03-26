@@ -6,13 +6,19 @@ import egovframework.com.common.audit.AuditEventRecordVO;
 import egovframework.com.common.audit.AuditEventSearchVO;
 import egovframework.com.common.service.ObservabilityQueryService;
 import egovframework.com.common.trace.TraceEventSearchVO;
+import egovframework.com.feature.admin.dto.request.AdminBackupConfigSaveRequestDTO;
+import egovframework.com.feature.admin.dto.request.AdminBackupRunRequestDTO;
+import egovframework.com.feature.admin.dto.request.AdminUnifiedLogSearchRequestDTO;
+import egovframework.com.feature.auth.service.CurrentUserContextService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.http.ResponseEntity;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.security.web.csrf.CsrfToken;
@@ -37,7 +43,7 @@ public class AdminObservabilityController {
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<Map<String, Object>>() {};
     private final ObservabilityQueryService observabilityQueryService;
     private final AdminObservabilityPageService adminObservabilityPageService;
-    private final AdminMainController adminMainController;
+    private final CurrentUserContextService currentUserContextService;
 
     @RequestMapping(value = "/system/observability", method = RequestMethod.GET)
     public String observabilityPage(HttpServletRequest request, Locale locale, Model model) {
@@ -49,6 +55,48 @@ public class AdminObservabilityController {
             builder.append("&").append(query);
         }
         return builder.toString();
+    }
+
+    @RequestMapping(value = "/system/unified_log", method = RequestMethod.GET)
+    public String unifiedLogPage(HttpServletRequest request, Locale locale, Model model) {
+        StringBuilder builder = new StringBuilder("forward:");
+        builder.append(isEnglishRequest(request, locale) ? "/en/admin/app?route=" : "/admin/app?route=");
+        builder.append("unified-log");
+        String query = request == null ? "" : safe(request.getQueryString());
+        if (!query.isEmpty()) {
+            builder.append("&").append(query);
+        }
+        return builder.toString();
+    }
+
+    @RequestMapping(value = "/system/unified_log/trace", method = RequestMethod.GET)
+    public String unifiedTraceLogPage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardUnifiedLogPreset(request, locale, "trace", "", "", "");
+    }
+
+    @RequestMapping(value = "/system/unified_log/page-events", method = RequestMethod.GET)
+    public String unifiedPageEventLogPage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardUnifiedLogPreset(request, locale, "trace", "PAGE_VIEW,PAGE_LEAVE", "", "");
+    }
+
+    @RequestMapping(value = "/system/unified_log/ui-actions", method = RequestMethod.GET)
+    public String unifiedUiActionLogPage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardUnifiedLogPreset(request, locale, "trace", "UI_ACTION", "", "");
+    }
+
+    @RequestMapping(value = "/system/unified_log/api-trace", method = RequestMethod.GET)
+    public String unifiedApiTraceLogPage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardUnifiedLogPreset(request, locale, "trace", "API_REQUEST,API_RESPONSE", "", "");
+    }
+
+    @RequestMapping(value = "/system/unified_log/ui-errors", method = RequestMethod.GET)
+    public String unifiedUiErrorLogPage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardUnifiedLogPreset(request, locale, "error", "UI_ERROR,WINDOW_ERROR,UNHANDLED_REJECTION,REACT_ERROR_BOUNDARY,FRONTEND_REPORT,FRONTEND_TELEMETRY", "", "");
+    }
+
+    @RequestMapping(value = "/system/unified_log/layout-render", method = RequestMethod.GET)
+    public String unifiedLayoutRenderLogPage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardUnifiedLogPreset(request, locale, "trace", "LAYOUT_RENDER", "", "");
     }
 
     @RequestMapping(value = "/system/security", method = { RequestMethod.GET, RequestMethod.POST })
@@ -72,23 +120,6 @@ public class AdminObservabilityController {
             Locale locale,
             Model model) {
         return forwardReactMigration(request, locale, "access-history");
-    }
-
-    @GetMapping("/system/access_history/page-data")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> accessHistoryPageApi(
-            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
-            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
-            @RequestParam(value = "insttId", required = false) String insttId,
-            HttpServletRequest request,
-            Locale locale) {
-        primeCsrfToken(request);
-        return ResponseEntity.ok(adminMainController.buildAccessHistoryPagePayload(
-                pageIndexParam,
-                searchKeyword,
-                insttId,
-                request,
-                isEnglishRequest(request, locale)));
     }
 
     @RequestMapping(value = "/system/error-log", method = { RequestMethod.GET, RequestMethod.POST })
@@ -115,7 +146,7 @@ public class AdminObservabilityController {
             HttpServletRequest request,
             Locale locale) {
         primeCsrfToken(request);
-        return ResponseEntity.ok(adminMainController.buildErrorLogPagePayload(
+        return ResponseEntity.ok(adminObservabilityPageService.buildErrorLogPagePayload(
                 pageIndexParam,
                 searchKeyword,
                 insttId,
@@ -231,6 +262,78 @@ public class AdminObservabilityController {
                 isEnglishRequest(request, locale)));
     }
 
+    @RequestMapping(value = "/system/backup_config", method = { RequestMethod.GET, RequestMethod.POST })
+    public String backupConfigPage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardReactMigration(request, locale, "backup-config");
+    }
+
+    @RequestMapping(value = "/system/backup", method = { RequestMethod.GET, RequestMethod.POST })
+    public String backupExecutionPage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardReactMigration(request, locale, "backup-execution");
+    }
+
+    @RequestMapping(value = "/system/restore", method = { RequestMethod.GET, RequestMethod.POST })
+    public String restoreExecutionPage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardReactMigration(request, locale, "restore-execution");
+    }
+
+    @RequestMapping(value = "/system/version", method = { RequestMethod.GET, RequestMethod.POST })
+    public String versionManagementPage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardReactMigration(request, locale, "version-management");
+    }
+
+    @GetMapping("/system/backup_config/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> backupConfigPageApi(HttpServletRequest request, Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminObservabilityPageService.buildBackupConfigPagePayload(isEnglishRequest(request, locale)));
+    }
+
+    @PostMapping("/system/backup_config/save")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> saveBackupConfigPageApi(
+            @RequestBody AdminBackupConfigSaveRequestDTO requestBody,
+            HttpServletRequest request,
+            Locale locale) {
+        primeCsrfToken(request);
+        CurrentUserContextService.CurrentUserContext currentUser = currentUserContextService.resolve(request);
+        String actorId = safe(currentUser == null ? "" : currentUser.getUserId());
+        return ResponseEntity.ok(adminObservabilityPageService.saveBackupConfigPayload(requestBody, actorId, isEnglishRequest(request, locale)));
+    }
+
+    @PostMapping("/system/backup/run")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> runBackupPageApi(
+            @RequestBody AdminBackupRunRequestDTO requestBody,
+            HttpServletRequest request,
+            Locale locale) {
+        primeCsrfToken(request);
+        CurrentUserContextService.CurrentUserContext currentUser = currentUserContextService.resolve(request);
+        String actorId = safe(currentUser == null ? "" : currentUser.getUserId());
+        return ResponseEntity.ok(adminObservabilityPageService.runBackupPayload(requestBody, actorId, isEnglishRequest(request, locale)));
+    }
+
+    @GetMapping("/system/backup/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> backupExecutionPageApi(HttpServletRequest request, Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminObservabilityPageService.buildBackupConfigPagePayload(isEnglishRequest(request, locale)));
+    }
+
+    @GetMapping("/system/restore/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> restoreExecutionPageApi(HttpServletRequest request, Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminObservabilityPageService.buildBackupConfigPagePayload(isEnglishRequest(request, locale)));
+    }
+
+    @GetMapping("/system/version/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> versionManagementPageApi(HttpServletRequest request, Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminObservabilityPageService.buildBackupConfigPagePayload(isEnglishRequest(request, locale)));
+    }
+
     @RequestMapping(value = "/member/login_history", method = { RequestMethod.GET, RequestMethod.POST })
     public String loginHistoryPage(
             @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
@@ -267,8 +370,8 @@ public class AdminObservabilityController {
     @GetMapping("/api/admin/observability/audit-events")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> searchAuditEvents(
-            @RequestParam(value = "pageIndex", required = false, defaultValue = "1") int pageIndex,
-            @RequestParam(value = "pageSize", required = false, defaultValue = "20") int pageSize,
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "pageSize", required = false) String pageSizeParam,
             @RequestParam(value = "traceId", required = false) String traceId,
             @RequestParam(value = "actorId", required = false) String actorId,
             @RequestParam(value = "actionCode", required = false) String actionCode,
@@ -276,6 +379,8 @@ public class AdminObservabilityController {
             @RequestParam(value = "pageId", required = false) String pageId,
             @RequestParam(value = "resultStatus", required = false) String resultStatus,
             @RequestParam(value = "searchKeyword", required = false) String searchKeyword) {
+        int pageIndex = parsePositiveInt(pageIndexParam, 1);
+        int pageSize = parsePositiveInt(pageSizeParam, 20);
         AuditEventSearchVO searchVO = new AuditEventSearchVO();
         searchVO.setFirstIndex(Math.max(pageIndex - 1, 0) * Math.max(pageSize, 1));
         searchVO.setRecordCountPerPage(Math.max(pageSize, 1));
@@ -298,8 +403,8 @@ public class AdminObservabilityController {
     @GetMapping("/api/admin/observability/trace-events")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> searchTraceEvents(
-            @RequestParam(value = "pageIndex", required = false, defaultValue = "1") int pageIndex,
-            @RequestParam(value = "pageSize", required = false, defaultValue = "20") int pageSize,
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "pageSize", required = false) String pageSizeParam,
             @RequestParam(value = "traceId", required = false) String traceId,
             @RequestParam(value = "pageId", required = false) String pageId,
             @RequestParam(value = "componentId", required = false) String componentId,
@@ -308,6 +413,8 @@ public class AdminObservabilityController {
             @RequestParam(value = "eventType", required = false) String eventType,
             @RequestParam(value = "resultCode", required = false) String resultCode,
             @RequestParam(value = "searchKeyword", required = false) String searchKeyword) {
+        int pageIndex = parsePositiveInt(pageIndexParam, 1);
+        int pageSize = parsePositiveInt(pageSizeParam, 20);
         TraceEventSearchVO searchVO = new TraceEventSearchVO();
         searchVO.setFirstIndex(Math.max(pageIndex - 1, 0) * Math.max(pageSize, 1));
         searchVO.setRecordCountPerPage(Math.max(pageSize, 1));
@@ -328,8 +435,83 @@ public class AdminObservabilityController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/api/admin/observability/unified-log")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> searchUnifiedLog(
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "pageSize", required = false) String pageSizeParam,
+            @RequestParam(value = "tab", required = false) String tab,
+            @RequestParam(value = "logType", required = false) String logType,
+            @RequestParam(value = "detailType", required = false) String detailType,
+            @RequestParam(value = "resultCode", required = false) String resultCode,
+            @RequestParam(value = "actorId", required = false) String actorId,
+            @RequestParam(value = "actorRole", required = false) String actorRole,
+            @RequestParam(value = "insttId", required = false) String insttId,
+            @RequestParam(value = "memberType", required = false) String memberType,
+            @RequestParam(value = "menuCode", required = false) String menuCode,
+            @RequestParam(value = "pageId", required = false) String pageId,
+            @RequestParam(value = "componentId", required = false) String componentId,
+            @RequestParam(value = "functionId", required = false) String functionId,
+            @RequestParam(value = "apiId", required = false) String apiId,
+            @RequestParam(value = "actionCode", required = false) String actionCode,
+            @RequestParam(value = "targetType", required = false) String targetType,
+            @RequestParam(value = "targetId", required = false) String targetId,
+            @RequestParam(value = "traceId", required = false) String traceId,
+            @RequestParam(value = "requestUri", required = false) String requestUri,
+            @RequestParam(value = "remoteAddr", required = false) String remoteAddr,
+            @RequestParam(value = "fromDate", required = false) String fromDate,
+            @RequestParam(value = "toDate", required = false) String toDate,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword) {
+        int pageIndex = parsePositiveInt(pageIndexParam, 1);
+        int pageSize = parsePositiveInt(pageSizeParam, 20);
+        AdminUnifiedLogSearchRequestDTO searchDTO = new AdminUnifiedLogSearchRequestDTO();
+        searchDTO.setPageIndex(pageIndex);
+        searchDTO.setPageSize(pageSize);
+        searchDTO.setTab(safe(tab));
+        searchDTO.setLogType(safe(logType));
+        searchDTO.setDetailType(safe(detailType));
+        searchDTO.setResultCode(safe(resultCode));
+        searchDTO.setActorId(safe(actorId));
+        searchDTO.setActorRole(safe(actorRole));
+        searchDTO.setInsttId(safe(insttId));
+        searchDTO.setMemberType(safe(memberType));
+        searchDTO.setMenuCode(safe(menuCode));
+        searchDTO.setPageId(safe(pageId));
+        searchDTO.setComponentId(safe(componentId));
+        searchDTO.setFunctionId(safe(functionId));
+        searchDTO.setApiId(safe(apiId));
+        searchDTO.setActionCode(safe(actionCode));
+        searchDTO.setTargetType(safe(targetType));
+        searchDTO.setTargetId(safe(targetId));
+        searchDTO.setTraceId(safe(traceId));
+        searchDTO.setRequestUri(safe(requestUri));
+        searchDTO.setRemoteAddr(safe(remoteAddr));
+        searchDTO.setFromDate(safe(fromDate));
+        searchDTO.setToDate(safe(toDate));
+        searchDTO.setSearchKeyword(safe(searchKeyword));
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("pageIndex", pageIndex);
+        response.put("pageSize", pageSize);
+        response.put("totalCount", observabilityQueryService.selectUnifiedLogCount(searchDTO));
+        response.put("items", observabilityQueryService.selectUnifiedLogList(searchDTO));
+        return ResponseEntity.ok(response);
+    }
+
     private String safe(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private int parsePositiveInt(String value, int defaultValue) {
+        String normalized = safe(value);
+        if (normalized.isEmpty()) {
+            return defaultValue;
+        }
+        try {
+            return Math.max(Integer.parseInt(normalized), 1);
+        } catch (NumberFormatException ignored) {
+            return defaultValue;
+        }
     }
 
     private boolean isEnglishRequest(HttpServletRequest request, Locale locale) {
@@ -343,6 +525,32 @@ public class AdminObservabilityController {
         StringBuilder builder = new StringBuilder("forward:");
         builder.append(isEnglishRequest(request, locale) ? "/en/admin/app?route=" : "/admin/app?route=");
         builder.append(route);
+        String query = request == null ? "" : safe(request.getQueryString());
+        if (!query.isEmpty()) {
+            builder.append("&").append(query);
+        }
+        return builder.toString();
+    }
+
+    private String forwardUnifiedLogPreset(HttpServletRequest request,
+                                           Locale locale,
+                                           String tab,
+                                           String eventType,
+                                           String actionCode,
+                                           String pageId) {
+        StringBuilder builder = new StringBuilder("forward:");
+        builder.append(isEnglishRequest(request, locale) ? "/en/admin/app?route=" : "/admin/app?route=");
+        builder.append("unified-log");
+        builder.append("&tab=").append(safe(tab));
+        if (!safe(eventType).isEmpty()) {
+            builder.append("&eventType=").append(safe(eventType));
+        }
+        if (!safe(actionCode).isEmpty()) {
+            builder.append("&actionCode=").append(safe(actionCode));
+        }
+        if (!safe(pageId).isEmpty()) {
+            builder.append("&pageId=").append(safe(pageId));
+        }
         String query = request == null ? "" : safe(request.getQueryString());
         if (!query.isEmpty()) {
             builder.append("&").append(query);

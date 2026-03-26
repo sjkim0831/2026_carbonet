@@ -82,30 +82,44 @@ export function resolveRuntimeCompareContextKeys(options?: RuntimeGovernedContex
   });
 }
 
+export function resolveRepairWorkbenchContextKeys(options?: RuntimeGovernedContextOptions): ContextKeyItem[] {
+  const menuUrl = options?.menuUrl || "";
+  const templateType = String(options?.templateType || "").trim().toUpperCase() as GovernedTemplateType;
+  const surfaceType = resolveSurfaceType(menuUrl);
+  return toContextKeyItems({
+    guidedStateId: "guided-build-15-repair",
+    templateLineId: resolveTemplateLineId(menuUrl),
+    screenFamilyRuleId: surfaceType === "admin"
+      ? resolveAdminScreenFamilyRuleId(templateType)
+      : resolvePublicScreenFamilyRuleId(menuUrl),
+    ownerLane: "res-verify"
+  });
+}
+
 export const authorDesignContextKeys = toContextKeyItems({
   guidedStateId: "guided-build-author-design",
   templateLineId: "admin-line-02",
   screenFamilyRuleId: "ADMIN_WORKSPACE_COMPOSE",
-  ownerLane: "res-05-frontend"
+  ownerLane: "res-frontend"
 });
 
 export const verifyRuntimeContextKeys = toContextKeyItems({
   guidedStateId: "guided-build-verify-runtime",
   templateLineId: "admin-line-02",
   screenFamilyRuleId: "ADMIN_LIST_REVIEW",
-  ownerLane: "res-09-verify"
+  ownerLane: "res-verify"
 });
 
 export const runtimeSurfaceContextKeys = toContextKeyItems({
   guidedStateId: "guided-build-07-runtime-binding",
   templateLineId: "admin-line-02",
   screenFamilyRuleId: "ADMIN_LIST_REVIEW",
-  ownerLane: "res-05-frontend"
+  ownerLane: "res-frontend"
 });
 
 export const codexWorkbenchContextKeys = toContextKeyItems({
   guidedStateId: "guided-build-prepare-plan-build",
   templateLineId: "admin-line-02",
   screenFamilyRuleId: "ADMIN_WORKBENCH_FLOW",
-  ownerLane: "res-05-frontend"
+  ownerLane: "res-frontend"
 });

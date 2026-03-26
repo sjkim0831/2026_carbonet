@@ -38,6 +38,58 @@ Check these in order for every governed menu node:
 
 Release blocker if one item fails.
 
+## 1-A. Builder-Input-To-Runtime-Evidence Checklist
+
+Before closing a verify turn, confirm the `04` builder input and `05` runtime result
+can be pointed to by the same governed keys:
+
+1. `menuCode`, `pageId`, and `menuUrl` identify the same screen in builder and runtime evidence
+2. `guidedStateId`, `templateLineId`, and `screenFamilyRuleId` are identical across compare, repair, and handoff notes
+3. builder draft version and published runtime version are both visible
+4. builder node and event counts can be compared with current runtime evidence
+5. registry issue counts are visible for generated and current snapshots
+6. publish evidence or runtime audit evidence is attached before smoke closure
+7. repair candidates can be traced back to one builder asset or one runtime blocker source
+8. the same owner lane is preserved until the blocker is handed off or closed
+
+## 1-B. Compare-To-Repair Payload Mapping Checklist
+
+Before opening repair from one compare result, confirm the compare output already
+provides these payload fields without reinterpretation:
+
+1. `projectId`, `releaseUnitId`, and `selectedScreenId`
+2. `guidedStateId`, `templateLineId`, `screenFamilyRuleId`, and one stable `ownerLane`
+3. `builderInput.builderId`, `builderInput.draftVersionId`, `builderInput.menuCode`, `builderInput.pageId`, and `builderInput.menuUrl`
+4. `runtimeEvidence.publishedVersionId`, `runtimeEvidence.currentNodeCount`, and `runtimeEvidence.currentEventCount`
+5. `compareBaseline`, `blockerSet`, and `repairCandidateSet`
+6. publish evidence or compare trace attached before repair/open handoff
+7. the same governed keys survive into repair/apply and parity recheck
+
+## 1-C. Verify-To-Handoff Closure Checklist
+
+Before `09` marks the current verification scope `HANDOFF READY`, confirm:
+
+1. `04` builder input and `05` runtime result are both visible on the same verify screen
+2. `06` compare trace and baseline are attached to the current repair scope
+3. `08` release-unit evidence or publish evidence is attached to the same scope
+4. open blocker count is `0`
+5. `parityRecheckRequiredYn` is `false`
+6. `uniformityRecheckRequiredYn` is `false`
+7. `smokeRequiredYn` is `false`
+8. latest trace id is visible for the final closure note
+9. the final status note uses the documented `HANDOFF READY` phrase for `01`
+
+For the current `08 -> 09` handoff, the verify scope must also display:
+
+- `releaseUnitId`
+- `runtimePackageId`
+- `deployTraceId`
+- `ownerLane`
+- `rollbackAnchorYn`
+
+These values must match the latest `08` deploy console, runtime package matrix,
+and session-loop evidence without renaming.
+
 ## 2. Parity Review Checklist
 
 Review the following families before marking parity-ready:
@@ -132,6 +184,8 @@ For each project unit and target server set:
 3. required cron families registered on the main server
 4. no blocking scheduler errors
 5. active artifact version recorded
+6. `releaseUnitId`, `runtimePackageId`, and `deployTraceId` visible on the verify scope
+7. `ownerLane` and `rollbackAnchorYn` preserved into the final smoke note
 
 Deployment is not complete until all applicable checks pass.
 
@@ -140,15 +194,16 @@ Deployment is not complete until all applicable checks pass.
 Use this exact loop repeatedly:
 
 1. collect current runtime
-2. run menu-to-rendered-screen verification
-3. run parity review
-4. run uniformity review
-5. open selected-screen repair for blockers
-6. regenerate governed assets
-7. rebuild release unit
-8. redeploy
-9. rerun smoke
-10. close only when blocking gaps are zero
+2. refresh builder draft and published runtime linkage evidence
+3. run menu-to-rendered-screen verification
+4. run parity review
+5. run uniformity review
+6. open selected-screen repair for blockers
+7. regenerate governed assets
+8. rebuild release unit
+9. redeploy
+10. rerun smoke
+11. close only when blocking gaps are zero
 
 ## 7. Completion Condition
 
@@ -272,3 +327,18 @@ If the operator uses wording such as `붙어`, `붙어서`, `이어서 해줘`, 
 - continue from the last unfinished blocker or checklist item instead of restarting the whole review
 - interpret numbered-session attachment by [resonance-10-session-assignment.md](/opt/projects/carbonet/docs/ai/80-skills/resonance-10-session-assignment.md)
 - interpret tmux-lane continuation by [tmux-multi-account-delivery-playbook.md](/opt/projects/carbonet/docs/architecture/tmux-multi-account-delivery-playbook.md)
+
+## 10-A. Lane 09 Session-Attached Repeat Order
+
+When the operator explicitly attaches to `09` with wording such as
+`9번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`, keep the
+repeat order fixed as:
+
+1. confirm the current `09` session is still alive
+2. recover the last unfinished compare, parity, repair, or smoke item
+3. continue from that unfinished point inside the same `09` ownership scope
+4. rerun the same verify range only after the unfinished item is closed
+5. stop only on operator stop, `DONE`, `BLOCKED`, `HANDOFF`, or ownership change
+
+Use `60 seconds` as the default loop cadence unless another explicit interval
+is documented for the same lane.

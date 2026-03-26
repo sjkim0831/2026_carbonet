@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import { AdminListPagePayload, fetchAdminListPage } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
@@ -51,7 +52,33 @@ export function AdminListMigrationPage() {
   const totalPages = Math.max(1, Number(page?.totalPages || 1));
   const currentPage = Math.max(1, Number(page?.pageIndex || 1));
 
+  useEffect(() => {
+    if (!page) {
+      return;
+    }
+    logGovernanceScope("PAGE", "admin-list", {
+      route: window.location.pathname,
+      canView: !!page.canViewAdminList,
+      canUseActions: !!page.canUseAdminListActions,
+      currentPage,
+      totalCount: Number(page.totalCount || 0),
+      searchKeyword,
+      status
+    });
+    logGovernanceScope("COMPONENT", "admin-list-table", {
+      component: "admin-list-table",
+      rowCount: Array.isArray(page.member_list) ? page.member_list.length : 0,
+      currentPage,
+      totalPages
+    });
+  }, [currentPage, page, searchKeyword, status, totalPages]);
+
   async function load(next?: { pageIndex?: number; searchKeyword?: string; sbscrbSttus?: string; }) {
+    logGovernanceScope("ACTION", "admin-list-load", {
+      pageIndex: next?.pageIndex || 1,
+      searchKeyword: next?.searchKeyword || "",
+      status: next?.sbscrbSttus || ""
+    });
     const payload = await fetchAdminListPage(next);
     setPage(payload);
     setSearchKeyword(String(payload.searchKeyword || next?.searchKeyword || ""));

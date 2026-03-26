@@ -9,6 +9,7 @@ const pageRegistryPath = path.join(frontendRoot, "src", "app", "routes", "pageRe
 const manifestPath = path.join(frontendRoot, "src", "app", "screen-registry", "pageManifests.ts");
 
 const generatedRoots = [path.join(frontendRoot, "src", "features")];
+const dynamicMenuCodePageIds = new Set(["repair-workbench"]);
 
 const forbiddenPatterns = [
   {
@@ -133,7 +134,7 @@ for (const [pageId, manifest] of manifests) {
   if (!routes.has(pageId)) {
     issues.push(`Generated unit missing route registry binding for pageId "${pageId}"`);
   }
-  if (!manifest.menuCode) {
+  if (!manifest.menuCode && !dynamicMenuCodePageIds.has(pageId)) {
     warnings.push(`Generated unit missing menuCode for pageId "${pageId}"`);
   }
   if (!manifest.routePath) {

@@ -77,3 +77,25 @@ The apply-result page should provide:
 - apply-result must be available immediately after module apply
 - apply-result must be retained in generation trace history
 - apply-result must be comparable against the previous module binding result
+
+## 10 Handoff Rule
+
+`10` may move to handoff when the apply-result view can be consumed by `08` and
+`09` without renaming module or runtime-package linkage fields.
+
+Minimum visible carry-over:
+
+- `moduleBindingResultId`
+- `guidedStateId`
+- `templateLineId`
+- `screenFamilyRuleId`
+- `runtimePackageImpactSummary`
+- `repairNeededYn`
+- `repairQueueCount`
+- `traceLinkSet`
+
+The result view should make it obvious which links go to:
+
+- runtime package matrix
+- repair workbench
+- generation trace explorer

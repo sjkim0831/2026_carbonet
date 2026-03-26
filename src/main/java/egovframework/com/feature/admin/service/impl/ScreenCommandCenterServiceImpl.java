@@ -86,6 +86,10 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         addStaticPageOption(pages, knownPageIds, "db-table-management", "DB 테이블 관리", "/admin/system/db-table-management", "A0060115", "admin");
         addStaticPageOption(pages, knownPageIds, "column-management-console", "컬럼 관리", "/admin/system/column-management-console", "A0060116", "admin");
         addStaticPageOption(pages, knownPageIds, "automation-studio", "자동화 스튜디오", "/admin/system/automation-studio", "A0060117", "admin");
+        addStaticPageOption(pages, knownPageIds, "backup-config", "백업 설정", "/admin/system/backup_config", "A0060401", "admin");
+        addStaticPageOption(pages, knownPageIds, "backup-execution", "백업 실행", "/admin/system/backup", "A0060402", "admin");
+        addStaticPageOption(pages, knownPageIds, "restore-execution", "복구 실행", "/admin/system/restore", "A0060403", "admin");
+        addStaticPageOption(pages, knownPageIds, "version-management", "버전 관리", "/admin/system/version", "A0060404", "admin");
         addStaticPageOption(pages, knownPageIds, "wbs-management", "WBS 관리", "/admin/system/wbs-management", "A1900104", "admin");
         addManagedMenuPageOptions(pages, knownPageIds, "AMENU1");
         addManagedMenuPageOptions(pages, knownPageIds, "HMENU1");
@@ -196,6 +200,14 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                 return buildPlatformStudioPage("column-management-console", "컬럼 관리", "/admin/system/column-management-console", "A0060116", "columns");
             case "automation-studio":
                 return buildPlatformStudioPage("automation-studio", "자동화 스튜디오", "/admin/system/automation-studio", "A0060117", "automation");
+            case "backup-config":
+                return buildBackupConfigPage();
+            case "backup-execution":
+                return buildBackupSubPage("backup-execution", "백업 실행", "/admin/system/backup", "A0060402", "execution");
+            case "restore-execution":
+                return buildBackupSubPage("restore-execution", "복구 실행", "/admin/system/restore", "A0060403", "restore");
+            case "version-management":
+                return buildBackupSubPage("version-management", "버전 관리", "/admin/system/version", "A0060404", "version");
             case "environment-management":
                 return buildEnvironmentManagementPage();
             case "wbs-management":
@@ -2206,6 +2218,8 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         page.put("surfaces", Arrays.asList(
                 surface("environment-management-summary", "환경 관리 요약", "[data-help-id=\"environment-management-summary\"]", "EnvironmentManagementSummary", "actions",
                         Collections.singletonList("environment-tool-open"), "선택한 환경 관리 도구의 메뉴코드, feature, 경로를 요약합니다."),
+                surface("environment-management-engines", "거버넌스 엔진 안내", "[data-help-id=\"environment-management-engines\"]", "EnvironmentManagementEngines", "content",
+                        Collections.singletonList("environment-tool-open"), "ALL 허용, 회원 타입, 회사 스코프, 감사 진단 엔진을 운영 기준으로 정리합니다."),
                 surface("environment-management-cards", "환경 관리 카드", "[data-help-id=\"environment-management-cards\"]", "EnvironmentManagementCards", "content",
                         Collections.singletonList("environment-tool-open"), "공통코드, 페이지, 기능, 메뉴 관리 화면으로 이동합니다.")
         ));
@@ -2216,6 +2230,53 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         page.put("commonCodeGroups", Arrays.asList(
                 codeGroup("AMENU1", "관리자 메뉴 코드", Arrays.asList("A0060118", "AMENU_SYSTEM_CODE", "AMENU_SYSTEM_PAGE_MANAGEMENT", "AMENU_SYSTEM_FUNCTION_MANAGEMENT", "AMENU_SYSTEM_MENU_MANAGEMENT"),
                         "메뉴 통합 관리 화면과 하위 관리 기능의 메뉴 코드 연결입니다.")
+        ));
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
+    private Map<String, Object> buildBackupConfigPage() {
+        Map<String, Object> page = pageOption("backup-config", "백업 설정", "/admin/system/backup_config", "A0060401", "admin");
+        page.put("summary", "애플리케이션 JAR, 데이터베이스 덤프, 원격 아카이브까지 백업 정책과 최근 실행 상태를 점검하는 화면입니다.");
+        page.put("source", "frontend/src/features/backup-config/BackupConfigMigrationPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("backup-config-summary", "백업 설정 요약", "[data-help-id=\"backup-config-summary\"]", "BackupConfigSummary", "actions",
+                        Collections.emptyList(), "백업 프로파일, 보관 주기, 검증 상태, 원격 동기화 현황을 요약합니다."),
+                surface("backup-config-profiles", "백업 프로파일", "[data-help-id=\"backup-config-profiles\"]", "BackupConfigProfiles", "content",
+                        Collections.emptyList(), "일간/주간/아카이브 백업 스케줄과 상태를 확인합니다."),
+                surface("backup-config-storage", "백업 저장 대상", "[data-help-id=\"backup-config-storage\"]", "BackupConfigStorage", "content",
+                        Collections.emptyList(), "로컬 런타임, DB 덤프, 원격 아카이브 위치를 관리합니다."),
+                surface("backup-config-executions", "백업 실행 이력", "[data-help-id=\"backup-config-executions\"]", "BackupConfigExecutions", "content",
+                        Collections.emptyList(), "최근 실행 결과와 검토 필요 항목을 확인합니다."),
+                surface("backup-config-playbooks", "복구 플레이북", "[data-help-id=\"backup-config-playbooks\"]", "BackupConfigPlaybooks", "content",
+                        Collections.emptyList(), "애플리케이션 롤백, DB 복구, 원격지 복구 절차를 안내합니다.")
+        ));
+        page.put("commonCodeGroups", Arrays.asList(
+                codeGroup("AMENU1", "관리자 메뉴 코드", Arrays.asList("A0060122"), "백업 설정 화면에 연결되는 관리자 메뉴 코드입니다.")
+        ));
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
+    private Map<String, Object> buildBackupSubPage(String pageId, String label, String routePath, String menuCode, String mode) {
+        Map<String, Object> page = pageOption(pageId, label, routePath, menuCode, "admin");
+        page.put("summary", "백업 설정 화면과 같은 데이터 계약을 사용하면서 현재 선택한 백업 운영 모드에 맞는 관점으로 표시하는 화면입니다.");
+        page.put("source", "frontend/src/features/backup-config/BackupConfigMigrationPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("backup-config-summary", "백업 설정 요약", "[data-help-id=\"backup-config-summary\"]", "BackupConfigSummary", "actions",
+                        Collections.emptyList(), "현재 선택한 " + label + " 메뉴 기준의 요약 카드입니다."),
+                surface("backup-config-profiles", "백업 프로파일", "[data-help-id=\"backup-config-profiles\"]", "BackupConfigProfiles", "content",
+                        Collections.emptyList(), "백업/복구/버전 관리에 공통으로 사용되는 프로파일을 확인합니다."),
+                surface("backup-config-storage", "백업 저장 대상", "[data-help-id=\"backup-config-storage\"]", "BackupConfigStorage", "content",
+                        Collections.emptyList(), "저장 대상과 운영 위치를 확인합니다."),
+                surface("backup-config-executions", "백업 실행 이력", "[data-help-id=\"backup-config-executions\"]", "BackupConfigExecutions", "content",
+                        Collections.emptyList(), "최근 실행과 검토 항목을 확인합니다."),
+                surface("backup-config-playbooks", "복구 플레이북", "[data-help-id=\"backup-config-playbooks\"]", "BackupConfigPlaybooks", "content",
+                        Collections.emptyList(), "운영 절차와 복구 순서를 확인합니다."))
+        );
+        page.put("mode", mode);
+        page.put("commonCodeGroups", Arrays.asList(
+                codeGroup("AMENU1", "관리자 메뉴 코드", Arrays.asList(menuCode), label + " 화면에 연결되는 관리자 메뉴 코드입니다.")
         ));
         page.put("changeTargets", defaultChangeTargets());
         return page;

@@ -65,6 +65,9 @@ The onboarding flow should always produce these counts:
 - `baselineComparableYn`
 - `parityGapCount`
 - `buildReadyYn`
+- `builderInputReadyYn`
+- `verifyInputReadyYn`
+- `consumerLaneSet`
 
 ## Identity Rule
 
@@ -76,6 +79,12 @@ Every inventory snapshot must retain the same:
 
 used by the mapping draft, matrix, scenario output, and design-output package
 views.
+
+The same inventory snapshot should tell downstream consumers whether proposal
+outputs are ready for:
+
+- `04` builder intake
+- `09` compare and repair intake
 
 ## Checklist
 
@@ -130,3 +139,14 @@ Block build when:
 - page assemblies exist without bindings
 - backend assets exist without SQL review
 - generated inventory count is lower than required proposal-derived coverage
+
+## 02 Handoff Check
+
+Lane `02` may move to handoff only when:
+
+1. inventory counts reconcile with the governed mapping draft
+2. `builderInputReadyYn` is `true`
+3. `verifyInputReadyYn` is `true`
+4. `consumerLaneSet` includes `04` and `09`
+5. missing asset and parity blocker counts are preserved under the same
+   `projectId`, `synthesisRunId`, and `mappingDraftId`

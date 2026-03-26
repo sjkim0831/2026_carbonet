@@ -56,6 +56,8 @@
               <div class="meta-row"><span class="label">Template Line</span><div class="value">public-line-01</div></div>
               <div class="meta-row"><span class="label">Screen Family Rule</span><div class="value">JOIN_INFO</div></div>
               <div class="meta-row"><span class="label">Owner Lane</span><div class="value">res-builder / res-module</div></div>
+              <div class="meta-row"><span class="label">Release Unit</span><div class="value">ru-2026.03.24-08</div></div>
+              <div class="meta-row"><span class="label">Runtime Package</span><div class="value">runtime-package-join-member-info</div></div>
             </div>
           </div>
         </section>
@@ -143,14 +145,29 @@
             <div class="card-body">
               <ul class="list">
                 <li>Binding preview: `moduleBindingPreviewId=MBP-20260321-01`</li>
+                <li>Binding result: `moduleBindingResultId=MBR-20260321-01`</li>
                 <li>Template/Rule: `public-line-01 / JOIN_INFO`</li>
-                <li>Runtime package matrix: `release-unit/member-core-20260321-01`</li>
+                <li>Runtime package matrix: `ru-2026.03.24-08 / runtime-package-join-member-info`</li>
                 <li>Repair workbench: `repair/open?screenId=join-member-info`</li>
                 <li>Generation trace: `GENERATION_RUN#GR-20260321-18`</li>
               </ul>
             </div>
           </section>
         </div>
+
+        <section class="card" style="margin-top:18px">
+          <div class="card-header"><div><h2>10 Handoff Evidence</h2><p>08 / 09가 바로 consume할 module result linkage</p></div><span class="chip ok">handoff-ready</span></div>
+          <div class="card-body">
+            <div class="two-col">
+              <div class="meta-row"><span class="label">moduleBindingResultId</span><div class="value">MBR-20260321-01</div></div>
+              <div class="meta-row"><span class="label">runtimePackageId</span><div class="value">runtime-package-join-member-info</div></div>
+              <div class="meta-row"><span class="label">releaseUnitId</span><div class="value">ru-2026.03.24-08</div></div>
+              <div class="meta-row"><span class="label">repairNeededYn</span><div class="value">N</div></div>
+              <div class="meta-row"><span class="label">repairQueueCount</span><div class="value">0</div></div>
+              <div class="meta-row"><span class="label">consumer lanes</span><div class="value">res-08-deploy / res-09-verify</div></div>
+            </div>
+          </div>
+        </section>
       </main>
     </div>
   </body>

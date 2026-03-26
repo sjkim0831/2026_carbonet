@@ -121,13 +121,18 @@ public class AdminMainAuthInterceptor implements HandlerInterceptor {
     }
 
     private boolean shouldSkipAuthorization(HttpServletRequest request, String requestUri) {
+        String rawUri = safeString(requestUri);
+        if (rawUri.startsWith("/admin/assets/react/") || rawUri.startsWith("/en/admin/assets/react/")) {
+            return true;
+        }
         String normalizedUri = canonicalizeAdminMenuUrl(normalizeMenuUrl(request));
         return ObjectUtils.isEmpty(normalizedUri)
                 || "/admin".equals(normalizedUri)
                 || "/admin/".equals(normalizedUri)
                 || normalizedUri.startsWith("/admin/assets/react/")
                 || "/admin/system/menu-data".equals(normalizedUri)
-                || "/admin/member/login_history".equals(normalizedUri);
+                || "/admin/member/login_history".equals(normalizedUri)
+                || "/admin/member/security".equals(normalizedUri);
     }
 
     private String normalizeMenuUrl(String requestUri) {
@@ -539,6 +544,8 @@ public class AdminMainAuthInterceptor implements HandlerInterceptor {
                 || "/admin/".equals(value)
                 || "/admin/member/list".equals(value)
                 || "/admin/member/register".equals(value)
+                || "/admin/member/security".equals(value)
+                || "/admin/member/security/page-data".equals(value)
                 || "/admin/member/auth-group".equals(value)
                 || "/admin/member/auth-group/create".equals(value)
                 || "/admin/member/auth-group/save-features".equals(value)

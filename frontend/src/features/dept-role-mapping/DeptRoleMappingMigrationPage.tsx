@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { logGovernanceScope } from "../../app/policy/debug";
 import { CanView } from "../../components/access/CanView";
 import { DeptRolePagePayload, FrontendSession, fetchDeptRolePage, fetchFrontendSession, readBootstrappedDeptRolePageData, saveDeptRoleMapping, saveDeptRoleMember } from "../../lib/api/client";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
@@ -75,7 +76,34 @@ export function DeptRoleMappingMigrationPage() {
   const currentMemberPage = Math.max(1, Number(page?.companyMemberPageIndex || memberPageIndex || 1));
   const totalMemberPages = Math.max(1, Number(page?.companyMemberTotalPages || 1));
 
+  useEffect(() => {
+    if (!page || !session) {
+      return;
+    }
+    logGovernanceScope("PAGE", "dept-role-mapping", {
+      route: window.location.pathname,
+      actorUserId: session.userId || "",
+      actorAuthorCode: session.authorCode || "",
+      actorInsttId: session.insttId || "",
+      canManageAllCompanies: !!page.canManageAllCompanies,
+      canManageOwnCompany: !!page.canManageOwnCompany,
+      selectedInsttId: insttId,
+      memberSearchKeyword
+    });
+    logGovernanceScope("COMPONENT", "dept-role-member-table", {
+      component: "dept-role-member-table",
+      selectedInsttId: insttId,
+      departmentCount: (page.departmentMappings || []).length,
+      memberCount: (page.companyMembers || []).length
+    });
+  }, [insttId, memberSearchKeyword, page, session]);
+
   function handleMemberSearchSubmit() {
+    logGovernanceScope("ACTION", "dept-role-member-search", {
+      actorInsttId: session?.insttId || "",
+      selectedInsttId: insttId,
+      memberSearchDraft
+    });
     setMemberPageIndex(1);
     setMemberSearchKeyword(memberSearchDraft.trim());
   }
@@ -86,6 +114,12 @@ export function DeptRoleMappingMigrationPage() {
   }
 
   function handleDeptSave(row: Record<string, string>) {
+    logGovernanceScope("ACTION", "dept-role-save", {
+      actorInsttId: session?.insttId || "",
+      selectedInsttId: row.insttId || insttId,
+      deptNm: row.deptNm || "",
+      authorCode: deptDrafts[`${row.insttId}:${row.deptNm}`] || ""
+    });
     if (!session) return;
     setError("");
     setMessage("");
@@ -96,6 +130,12 @@ export function DeptRoleMappingMigrationPage() {
   }
 
   function handleMemberSave(userId: string) {
+    logGovernanceScope("ACTION", "dept-role-member-save", {
+      actorInsttId: session?.insttId || "",
+      selectedInsttId: insttId,
+      targetUserId: userId,
+      authorCode: memberDrafts[userId] || ""
+    });
     if (!session || !insttId) return;
     setError("");
     setMessage("");

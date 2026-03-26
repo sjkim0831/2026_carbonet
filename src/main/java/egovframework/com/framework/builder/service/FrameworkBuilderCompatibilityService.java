@@ -2,6 +2,7 @@ package egovframework.com.framework.builder.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import egovframework.com.framework.builder.mapper.FrameworkBuilderCompatibilityMapper;
 import egovframework.com.framework.builder.model.FrameworkBuilderCompatibilityCheckRequestVO;
 import egovframework.com.framework.builder.model.FrameworkBuilderCompatibilityCheckResponseVO;
 import egovframework.com.framework.builder.model.FrameworkBuilderCompatibilityDeclarationVO;
@@ -35,14 +36,17 @@ public class FrameworkBuilderCompatibilityService {
             new TypeReference<LinkedHashMap<String, Object>>() {};
 
     private final ObjectMapper objectMapper;
+    private final FrameworkBuilderCompatibilityMapper frameworkBuilderCompatibilityMapper;
 
     @Value("${security.framework.builder.compatibility-check-file:/tmp/carbonet-framework-builder-compatibility-check.jsonl}")
     private String compatibilityCheckFilePath;
 
     private final ReentrantLock fileLock = new ReentrantLock();
 
-    public FrameworkBuilderCompatibilityService(ObjectMapper objectMapper) {
+    public FrameworkBuilderCompatibilityService(ObjectMapper objectMapper,
+                                                FrameworkBuilderCompatibilityMapper frameworkBuilderCompatibilityMapper) {
         this.objectMapper = objectMapper;
+        this.frameworkBuilderCompatibilityMapper = frameworkBuilderCompatibilityMapper;
     }
 
     public FrameworkBuilderCompatibilityCheckResponseVO runCompatibilityCheck(
@@ -100,12 +104,17 @@ public class FrameworkBuilderCompatibilityService {
         response.setCompletedAt(now());
         response.setResultItems(resultItems);
 
+        insertCompatibilityCheckDb(response);
         appendJsonLine(resolvePath(compatibilityCheckFilePath), objectMapper.convertValue(response, MAP_TYPE));
         return response;
     }
 
     public FrameworkBuilderCompatibilityCheckResponseVO getCompatibilityCheck(String compatibilityCheckRunId) throws Exception {
         requireField(compatibilityCheckRunId, "compatibilityCheckRunId");
+        FrameworkBuilderCompatibilityCheckResponseVO dbRecord = findCompatibilityCheckDb(compatibilityCheckRunId);
+        if (dbRecord != null) {
+            return dbRecord;
+        }
         Map<String, Object> record = findLastRecord(resolvePath(compatibilityCheckFilePath),
                 "compatibilityCheckRunId", safe(compatibilityCheckRunId));
         if (record.isEmpty()) {
@@ -115,7 +124,7 @@ public class FrameworkBuilderCompatibilityService {
     }
 
     public List<FrameworkBuilderCompatibilityDeclarationVO> getCompatibilityDeclarations(String builderVersion, String status) {
-        List<FrameworkBuilderCompatibilityDeclarationVO> declarations = buildDeclarations();
+        List<FrameworkBuilderCompatibilityDeclarationVO> declarations = loadCompatibilityDeclarations();
         List<FrameworkBuilderCompatibilityDeclarationVO> filtered = new ArrayList<>();
         for (FrameworkBuilderCompatibilityDeclarationVO declaration : declarations) {
             if (declaration == null) {
@@ -135,7 +144,7 @@ public class FrameworkBuilderCompatibilityService {
     public List<FrameworkBuilderMigrationPlanVO> getMigrationPlans(String fromBuilderVersion,
                                                                    String toBuilderVersion,
                                                                    String status) {
-        List<FrameworkBuilderMigrationPlanVO> plans = buildMigrationPlans();
+        List<FrameworkBuilderMigrationPlanVO> plans = loadMigrationPlans();
         List<FrameworkBuilderMigrationPlanVO> filtered = new ArrayList<>();
         for (FrameworkBuilderMigrationPlanVO plan : plans) {
             if (plan == null) {
@@ -332,7 +341,7 @@ public class FrameworkBuilderCompatibilityService {
         if (migrationPlanId.isEmpty() && toBuilderVersion.isEmpty()) {
             return null;
         }
-        for (FrameworkBuilderMigrationPlanVO plan : buildMigrationPlans()) {
+        for (FrameworkBuilderMigrationPlanVO plan : loadMigrationPlans()) {
             if (plan == null) {
                 continue;
             }
@@ -344,6 +353,22 @@ public class FrameworkBuilderCompatibilityService {
             }
         }
         return null;
+    }
+
+    private List<FrameworkBuilderCompatibilityDeclarationVO> loadCompatibilityDeclarations() {
+        List<FrameworkBuilderCompatibilityDeclarationVO> dbDeclarations = findCompatibilityDeclarationsDb();
+        if (!dbDeclarations.isEmpty()) {
+            return dbDeclarations;
+        }
+        return buildDeclarations();
+    }
+
+    private List<FrameworkBuilderMigrationPlanVO> loadMigrationPlans() {
+        List<FrameworkBuilderMigrationPlanVO> dbPlans = findMigrationPlansDb();
+        if (!dbPlans.isEmpty()) {
+            return dbPlans;
+        }
+        return buildMigrationPlans();
     }
 
     private List<FrameworkBuilderCompatibilityDeclarationVO> buildDeclarations() {
@@ -390,6 +415,158 @@ public class FrameworkBuilderCompatibilityService {
         plan.setManualReviewRequiredYn(Boolean.TRUE);
         plan.setStatus("ACTIVE");
         return new ArrayList<>(Collections.singletonList(plan));
+    }
+
+    private List<FrameworkBuilderCompatibilityDeclarationVO> findCompatibilityDeclarationsDb() {
+        try {
+            List<Map<String, Object>> rows = frameworkBuilderCompatibilityMapper.selectCompatibilityDeclarations();
+            List<FrameworkBuilderCompatibilityDeclarationVO> items = new ArrayList<>();
+            for (Map<String, Object> row : rows) {
+                if (row == null || row.isEmpty()) {
+                    continue;
+                }
+                FrameworkBuilderCompatibilityDeclarationVO item = new FrameworkBuilderCompatibilityDeclarationVO();
+                item.setCompatibilityDeclarationId(safe(asString(row.get("compatibilityDeclarationId"))));
+                item.setBuilderVersion(safe(asString(row.get("builderVersion"))));
+                item.setBuilderRulePackVersion(safe(asString(row.get("builderRulePackVersion"))));
+                item.setTemplatePackVersion(safe(asString(row.get("templatePackVersion"))));
+                item.setSupportedSourceContractVersions(parseVersionRange(row.get("supportedSourceContractRange")));
+                item.setSupportedOverlaySchemaVersions(parseVersionRange(row.get("supportedOverlaySchemaRange")));
+                item.setEmittedManifestContractVersion(safe(asString(row.get("emittedManifestContractVersion"))));
+                item.setEmittedAuthorityContractVersion(safe(asString(row.get("emittedAuthorityContractVersion"))));
+                item.setReleaseCompatibilityVersion(safe(asString(row.get("releaseCompatibilityVersion"))));
+                item.setCompatibilityVerdict(safe(asString(row.get("compatibilityVerdict"))));
+                item.setBreakingChangeYn("Y".equalsIgnoreCase(safe(asString(row.get("breakingChangeYn")))));
+                item.setStatus(safe(asString(row.get("status"))));
+                items.add(item);
+            }
+            return items;
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
+    }
+
+    private List<FrameworkBuilderMigrationPlanVO> findMigrationPlansDb() {
+        try {
+            List<Map<String, Object>> rows = frameworkBuilderCompatibilityMapper.selectMigrationPlans();
+            List<FrameworkBuilderMigrationPlanVO> items = new ArrayList<>();
+            for (Map<String, Object> row : rows) {
+                if (row == null || row.isEmpty()) {
+                    continue;
+                }
+                FrameworkBuilderMigrationPlanVO item = new FrameworkBuilderMigrationPlanVO();
+                item.setMigrationPlanId(safe(asString(row.get("migrationPlanId"))));
+                item.setFromBuilderVersion(safe(asString(row.get("fromBuilderVersion"))));
+                item.setToBuilderVersion(safe(asString(row.get("toBuilderVersion"))));
+                item.setFromSourceContractVersions(parseVersionRange(row.get("fromSourceContractRange")));
+                item.setToSourceContractVersions(parseVersionRange(row.get("toSourceContractRange")));
+                item.setFromOverlaySchemaVersions(parseVersionRange(row.get("fromOverlaySchemaRange")));
+                item.setToOverlaySchemaVersions(parseVersionRange(row.get("toOverlaySchemaRange")));
+                item.setManualReviewRequiredYn("Y".equalsIgnoreCase(safe(asString(row.get("manualReviewRequiredYn")))));
+                item.setStatus(safe(asString(row.get("status"))));
+                items.add(item);
+            }
+            return items;
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
+    }
+
+    private void insertCompatibilityCheckDb(FrameworkBuilderCompatibilityCheckResponseVO response) {
+        try {
+            Map<String, Object> runParams = new LinkedHashMap<>();
+            runParams.put("compatibilityCheckRunId", safe(response == null ? null : response.getCompatibilityCheckRunId()));
+            runParams.put("projectId", safe(response == null ? null : response.getProjectId()));
+            runParams.put("builderVersion", safe(response == null ? null : response.getBuilderVersion()));
+            runParams.put("builderRulePackVersion", safe(response == null ? null : response.getBuilderRulePackVersion()));
+            runParams.put("templatePackVersion", safe(response == null ? null : response.getTemplatePackVersion()));
+            runParams.put("sourceContractVersion", safe(response == null ? null : response.getSourceContractVersion()));
+            runParams.put("overlaySchemaVersion", safe(response == null ? null : response.getOverlaySchemaVersion()));
+            runParams.put("overlaySetId", safe(response == null ? null : response.getOverlaySetId()));
+            runParams.put("migrationPlanId", safe(response == null ? null : response.getMigrationPlanId()));
+            runParams.put("checkScope", safe(response == null ? null : response.getCheckScope()));
+            runParams.put("compatibilityVerdict", safe(response == null ? null : response.getCompatibilityVerdict()));
+            runParams.put("blockingIssueCount", response == null ? null : response.getBlockingIssueCount());
+            runParams.put("startedAt", safe(response == null ? null : response.getStartedAt()));
+            runParams.put("completedAt", safe(response == null ? null : response.getCompletedAt()));
+            runParams.put("requestedBy", safe(response == null ? null : response.getRequestedBy()));
+            frameworkBuilderCompatibilityMapper.insertCompatibilityCheckRun(runParams);
+
+            List<FrameworkBuilderCompatibilityResultItemVO> resultItems =
+                    response == null ? Collections.emptyList() : response.getResultItems();
+            for (FrameworkBuilderCompatibilityResultItemVO item : resultItems) {
+                if (item == null) {
+                    continue;
+                }
+                Map<String, Object> resultParams = new LinkedHashMap<>();
+                resultParams.put("compatibilityResultId", buildId("fbcr"));
+                resultParams.put("compatibilityCheckRunId", safe(response.getCompatibilityCheckRunId()));
+                resultParams.put("resultType", safe(item.getResultType()));
+                resultParams.put("targetScope", safe(item.getTargetScope()));
+                resultParams.put("targetKey", safe(item.getTargetKey()));
+                resultParams.put("severity", safe(item.getSeverity()));
+                resultParams.put("ruleCode", safe(item.getRuleCode()));
+                resultParams.put("summary", safe(item.getSummary()));
+                resultParams.put("detailsJson", toJson(item));
+                resultParams.put("blockingYn", yn(Boolean.TRUE.equals(item.getBlockingYn())));
+                resultParams.put("createdAt", safe(response.getCompletedAt()));
+                frameworkBuilderCompatibilityMapper.insertCompatibilityCheckResult(resultParams);
+            }
+        } catch (Exception e) {
+            // Keep the skeleton service operational even when control-plane tables are not provisioned yet.
+        }
+    }
+
+    private FrameworkBuilderCompatibilityCheckResponseVO findCompatibilityCheckDb(String compatibilityCheckRunId) {
+        try {
+            Map<String, Object> run = frameworkBuilderCompatibilityMapper.selectCompatibilityCheckRun(compatibilityCheckRunId);
+            if (run == null || run.isEmpty()) {
+                return null;
+            }
+            FrameworkBuilderCompatibilityCheckResponseVO response = new FrameworkBuilderCompatibilityCheckResponseVO();
+            response.setCompatibilityCheckRunId(safe(asString(run.get("compatibilityCheckRunId"))));
+            response.setProjectId(safe(asString(run.get("projectId"))));
+            response.setBuilderVersion(safe(asString(run.get("builderVersion"))));
+            response.setBuilderRulePackVersion(safe(asString(run.get("builderRulePackVersion"))));
+            response.setTemplatePackVersion(safe(asString(run.get("templatePackVersion"))));
+            response.setSourceContractVersion(safe(asString(run.get("sourceContractVersion"))));
+            response.setOverlaySchemaVersion(safe(asString(run.get("overlaySchemaVersion"))));
+            response.setOverlaySetId(safe(asString(run.get("overlaySetId"))));
+            response.setMigrationPlanId(safe(asString(run.get("migrationPlanId"))));
+            response.setCheckScope(safe(asString(run.get("checkScope"))));
+            response.setCompatibilityVerdict(safe(asString(run.get("compatibilityVerdict"))));
+            response.setBlockingIssueCount(asInteger(run.get("blockingIssueCount")));
+            response.setRequestedBy(safe(asString(run.get("requestedBy"))));
+            response.setStartedAt(safe(asString(run.get("startedAt"))));
+            response.setCompletedAt(safe(asString(run.get("completedAt"))));
+
+            List<Map<String, Object>> rows =
+                    frameworkBuilderCompatibilityMapper.selectCompatibilityCheckResults(compatibilityCheckRunId);
+            List<FrameworkBuilderCompatibilityResultItemVO> items = new ArrayList<>();
+            int warningCount = 0;
+            for (Map<String, Object> row : rows) {
+                if (row == null || row.isEmpty()) {
+                    continue;
+                }
+                FrameworkBuilderCompatibilityResultItemVO item = new FrameworkBuilderCompatibilityResultItemVO();
+                item.setResultType(safe(asString(row.get("resultType"))));
+                item.setTargetScope(safe(asString(row.get("targetScope"))));
+                item.setTargetKey(safe(asString(row.get("targetKey"))));
+                item.setSeverity(safe(asString(row.get("severity"))));
+                item.setRuleCode(safe(asString(row.get("ruleCode"))));
+                item.setSummary(safe(asString(row.get("summary"))));
+                item.setBlockingYn("Y".equalsIgnoreCase(safe(asString(row.get("blockingYn")))));
+                if ("WARN".equalsIgnoreCase(item.getSeverity())) {
+                    warningCount++;
+                }
+                items.add(item);
+            }
+            response.setResultItems(items);
+            response.setWarningCount(warningCount);
+            return response;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private void appendJsonLine(Path path, Map<String, Object> payload) throws Exception {
@@ -472,5 +649,55 @@ public class FrameworkBuilderCompatibilityService {
             }
         }
         return "";
+    }
+
+    private Integer asInteger(Object value) {
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        String normalized = safe(asString(value));
+        if (normalized.isEmpty()) {
+            return null;
+        }
+        try {
+            return Integer.valueOf(normalized);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private String yn(boolean value) {
+        return value ? "Y" : "N";
+    }
+
+    private String toJson(Object value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private List<String> parseVersionRange(Object value) {
+        String normalized = safe(asString(value));
+        if (normalized.isEmpty()) {
+            return new ArrayList<>();
+        }
+        String flattened = normalized
+                .replace("[", "")
+                .replace("]", "")
+                .replace("(", "")
+                .replace(")", "")
+                .replace("\"", "")
+                .replace("'", "");
+        String[] parts = flattened.split("[,\\s]+");
+        List<String> result = new ArrayList<>();
+        for (String part : parts) {
+            String token = safe(part);
+            if (!token.isEmpty()) {
+                result.add(token);
+            }
+        }
+        return result;
     }
 }
