@@ -14,6 +14,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.InputStream;
@@ -34,6 +36,8 @@ import java.util.Map;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -68,7 +72,13 @@ public class SrTicketWorkbenchServiceImpl implements SrTicketWorkbenchService {
     @Value("${security.codex.runner.rollback-command:}")
     private String rollbackCommand;
 
+    @Value("${security.codex.runner.parallel-lanes:3}")
+    private int parallelLaneCount;
+
     private final ReentrantLock fileLock = new ReentrantLock();
+    private final Object laneMonitor = new Object();
+    private final Map<String, String> activeLaneTickets = new LinkedHashMap<String, String>();
+    private ExecutorService laneExecutor;
 
     public SrTicketWorkbenchServiceImpl(ObjectMapper objectMapper,
                                         ScreenCommandCenterService screenCommandCenterService,
@@ -76,6 +86,32 @@ public class SrTicketWorkbenchServiceImpl implements SrTicketWorkbenchService {
         this.objectMapper = objectMapper;
         this.screenCommandCenterService = screenCommandCenterService;
         this.srTicketCodexRunnerService = srTicketCodexRunnerService;
+    }
+
+    @PostConstruct
+    public void initializeLaneExecutor() {
+        int laneCount = Math.max(parallelLaneCount, 1);
+        this.laneExecutor = Executors.newFixedThreadPool(laneCount);
+        synchronized (laneMonitor) {
+            activeLaneTickets.clear();
+            for (int idx = 1; idx <= laneCount; idx++) {
+                String laneId = formatLaneId(idx);
+                activeLaneTickets.put(laneId, "");
+                ensureTmuxLaneSession(laneId);
+            }
+        }
+        try {
+            dispatchQueuedTickets();
+        } catch (Exception e) {
+            log.warn("Failed to resume queued SR tickets on startup.", e);
+        }
+    }
+
+    @PreDestroy
+    public void shutdownLaneExecutor() {
+        if (laneExecutor != null) {
+            laneExecutor.shutdownNow();
+        }
     }
 
     @Override
@@ -87,6 +123,8 @@ public class SrTicketWorkbenchServiceImpl implements SrTicketWorkbenchService {
         response.put("codexHistoryFile", safe(codexHistoryFilePath));
         response.put("ticketCount", readTickets().size());
         response.put("tickets", readTicketRows());
+        response.put("executionLaneCount", Math.max(parallelLaneCount, 1));
+        response.put("executionLanes", buildExecutionLaneRows());
         response.put("stackCount", stackRows.size());
         response.put("stackItems", stackRows);
         response.put("screenOptions", screenCommandCenterService.getScreenCommandPage(selectedPageId).get("pages"));
@@ -108,6 +146,15 @@ public class SrTicketWorkbenchServiceImpl implements SrTicketWorkbenchService {
         ticket.setCreatedBy(defaultActor(actorId));
         ticket.setLastActionBy(defaultActor(actorId));
         ticket.setExecutionStatus(codexEnabled ? "READY_FOR_APPROVAL" : "CODEX_DISABLED");
+        ticket.setQueueStatus("IDLE");
+        ticket.setQueueMode("");
+        ticket.setQueueSubmittedAt("");
+        ticket.setQueueStartedAt("");
+        ticket.setQueueCompletedAt("");
+        ticket.setQueueRequestedBy("");
+        ticket.setQueueLaneId("");
+        ticket.setQueueTmuxSessionName("");
+        ticket.setQueueErrorMessage("");
         ticket.setPageId(safe(request == null ? null : request.getPageId()));
         ticket.setPageLabel(safe(request == null ? null : request.getPageLabel()));
         ticket.setRoutePath(safe(request == null ? null : request.getRoutePath()));
@@ -392,6 +439,15 @@ public class SrTicketWorkbenchServiceImpl implements SrTicketWorkbenchService {
         row.put("executionPreparedBy", safe(ticket.getExecutionPreparedBy()));
         row.put("executionStatus", safe(ticket.getExecutionStatus()));
         row.put("executionComment", safe(ticket.getExecutionComment()));
+        row.put("queueStatus", safe(ticket.getQueueStatus()));
+        row.put("queueMode", safe(ticket.getQueueMode()));
+        row.put("queueSubmittedAt", safe(ticket.getQueueSubmittedAt()));
+        row.put("queueStartedAt", safe(ticket.getQueueStartedAt()));
+        row.put("queueCompletedAt", safe(ticket.getQueueCompletedAt()));
+        row.put("queueRequestedBy", safe(ticket.getQueueRequestedBy()));
+        row.put("queueLaneId", safe(ticket.getQueueLaneId()));
+        row.put("queueTmuxSessionName", safe(ticket.getQueueTmuxSessionName()));
+        row.put("queueErrorMessage", safe(ticket.getQueueErrorMessage()));
         row.put("pageId", safe(ticket.getPageId()));
         row.put("pageLabel", safe(ticket.getPageLabel()));
         row.put("routePath", safe(ticket.getRoutePath()));
@@ -686,6 +742,43 @@ public class SrTicketWorkbenchServiceImpl implements SrTicketWorkbenchService {
             planTicket(ticketId, actorId);
         }
         return executeTicket(ticketId, actorId, approvalToken);
+    }
+
+    @Override
+    public Map<String, Object> queueDirectExecuteTicket(String ticketId, String actorId) throws Exception {
+        SrTicketRecordVO ticket = findTicket(ticketId);
+        if (ticket == null) {
+            throw new IllegalArgumentException("SR 티켓을 찾을 수 없습니다.");
+        }
+        if (!"APPROVED".equalsIgnoreCase(safe(ticket.getStatus()))) {
+            throw new IllegalArgumentException("APPROVED 상태의 티켓만 대기열 실행을 요청할 수 있습니다.");
+        }
+        String queueStatus = safe(ticket.getQueueStatus()).toUpperCase(Locale.ROOT);
+        if ("QUEUED".equals(queueStatus) || "RUNNING".equals(queueStatus)) {
+            throw new IllegalArgumentException("이미 대기열에 등록되었거나 실행 중인 티켓입니다.");
+        }
+        String now = now();
+        ticket.setUpdatedAt(now);
+        ticket.setLastActionBy(defaultActor(actorId));
+        ticket.setQueueStatus("QUEUED");
+        ticket.setQueueMode("DIRECT_EXECUTE");
+        ticket.setQueueSubmittedAt(now);
+        ticket.setQueueStartedAt("");
+        ticket.setQueueCompletedAt("");
+        ticket.setQueueRequestedBy(defaultActor(actorId));
+        ticket.setQueueLaneId("");
+        ticket.setQueueTmuxSessionName("");
+        ticket.setQueueErrorMessage("");
+        ticket.setExecutionComment("병렬 실행 대기열에 등록되었습니다.");
+        saveTickets(readTicketsReplacing(ticket));
+        dispatchQueuedTickets();
+
+        Map<String, Object> response = new LinkedHashMap<String, Object>();
+        response.put("success", true);
+        response.put("ticket", ticketRow(findTicket(ticketId)));
+        response.put("message", "SR 티켓을 병렬 실행 대기열에 등록했습니다.");
+        response.put("executionLanes", buildExecutionLaneRows());
+        return response;
     }
 
     @Override
@@ -1365,6 +1458,228 @@ public class SrTicketWorkbenchServiceImpl implements SrTicketWorkbenchService {
             return ticketId == null ? "" : ticketId.toString().trim();
         }
         return "";
+    }
+
+    private void dispatchQueuedTickets() throws Exception {
+        synchronized (laneMonitor) {
+            if (laneExecutor == null) {
+                initializeLaneExecutor();
+            }
+            List<SrTicketRecordVO> tickets = readTickets();
+            tickets.sort(Comparator.comparing(SrTicketRecordVO::getQueueSubmittedAt, Comparator.nullsLast(String::compareTo)));
+            for (SrTicketRecordVO ticket : tickets) {
+                if (!"QUEUED".equalsIgnoreCase(safe(ticket.getQueueStatus()))) {
+                    continue;
+                }
+                if (hasActiveExecutionConflict(ticket, tickets)) {
+                    ticket.setQueueErrorMessage("동일 화면/메뉴 경로 작업이 실행 중이어서 대기 중입니다.");
+                    saveTickets(readTicketsReplacing(ticket));
+                    continue;
+                }
+                String freeLaneId = findFreeLaneId();
+                if (freeLaneId.isEmpty()) {
+                    break;
+                }
+                activeLaneTickets.put(freeLaneId, safe(ticket.getTicketId()));
+                ticket.setQueueStatus("RUNNING");
+                ticket.setQueueStartedAt(now());
+                ticket.setQueueLaneId(freeLaneId);
+                ticket.setQueueTmuxSessionName(buildLaneSessionName(freeLaneId));
+                ticket.setQueueErrorMessage("");
+                ticket.setExecutionComment("병렬 lane " + freeLaneId + "에서 실행을 시작했습니다.");
+                saveTickets(readTicketsReplacing(ticket));
+                announceLaneTicket(freeLaneId, ticket);
+                final String queuedTicketId = safe(ticket.getTicketId());
+                final String queuedActorId = defaultActor(ticket.getQueueRequestedBy());
+                final String laneId = freeLaneId;
+                laneExecutor.submit(new Runnable() {
+                    @Override
+                    public void run() {
+                        processQueuedDirectExecute(queuedTicketId, queuedActorId, laneId);
+                    }
+                });
+            }
+        }
+    }
+
+    private void processQueuedDirectExecute(String ticketId, String actorId, String laneId) {
+        try {
+            directExecuteTicket(ticketId, actorId, null);
+            updateQueueCompletion(ticketId, "COMPLETED", "");
+        } catch (Exception e) {
+            log.error("Queued SR ticket execution failed. ticketId={} laneId={}", ticketId, laneId, e);
+            try {
+                updateQueueCompletion(ticketId, "FAILED", safe(e.getMessage()));
+            } catch (Exception updateError) {
+                log.error("Failed to update queued SR ticket failure state. ticketId={}", ticketId, updateError);
+            }
+        } finally {
+            synchronized (laneMonitor) {
+                activeLaneTickets.put(laneId, "");
+            }
+            try {
+                dispatchQueuedTickets();
+            } catch (Exception e) {
+                log.error("Failed to dispatch next queued SR ticket.", e);
+            }
+        }
+    }
+
+    private void updateQueueCompletion(String ticketId, String status, String errorMessage) throws Exception {
+        SrTicketRecordVO ticket = findTicket(ticketId);
+        if (ticket == null) {
+            return;
+        }
+        String now = now();
+        ticket.setUpdatedAt(now);
+        ticket.setQueueStatus(status);
+        ticket.setQueueCompletedAt(now);
+        ticket.setQueueErrorMessage(safe(errorMessage));
+        if (!"RUNNING".equalsIgnoreCase(status)) {
+            ticket.setQueueLaneId(safe(ticket.getQueueLaneId()));
+            ticket.setQueueTmuxSessionName(safe(ticket.getQueueTmuxSessionName()));
+        }
+        if (!safe(errorMessage).isEmpty()) {
+            ticket.setExecutionComment(errorMessage);
+        }
+        saveTickets(readTicketsReplacing(ticket));
+    }
+
+    private String findFreeLaneId() {
+        for (Map.Entry<String, String> entry : activeLaneTickets.entrySet()) {
+            if (safe(entry.getValue()).isEmpty()) {
+                return entry.getKey();
+            }
+        }
+        return "";
+    }
+
+    private List<Map<String, Object>> buildExecutionLaneRows() {
+        List<Map<String, Object>> rows = new ArrayList<Map<String, Object>>();
+        synchronized (laneMonitor) {
+            for (Map.Entry<String, String> entry : activeLaneTickets.entrySet()) {
+                Map<String, Object> row = new LinkedHashMap<String, Object>();
+                row.put("laneId", entry.getKey());
+                row.put("tmuxSessionName", buildLaneSessionName(entry.getKey()));
+                row.put("activeTicketId", safe(entry.getValue()));
+                row.put("status", safe(entry.getValue()).isEmpty() ? "IDLE" : "RUNNING");
+                rows.add(row);
+            }
+        }
+        return rows;
+    }
+
+    private String buildLaneSessionName(String laneId) {
+        return "codex-" + safe(laneId).toLowerCase(Locale.ROOT);
+    }
+
+    private String formatLaneId(int laneNumber) {
+        return String.format(Locale.ROOT, "LANE-%02d", laneNumber);
+    }
+
+    private boolean hasActiveExecutionConflict(SrTicketRecordVO candidate, List<SrTicketRecordVO> tickets) {
+        String candidateKey = buildExecutionConflictKey(candidate);
+        if (candidateKey.isEmpty()) {
+            return false;
+        }
+        for (SrTicketRecordVO ticket : tickets) {
+            if (ticket == null) {
+                continue;
+            }
+            if (safe(ticket.getTicketId()).equalsIgnoreCase(safe(candidate.getTicketId()))) {
+                continue;
+            }
+            if (!"RUNNING".equalsIgnoreCase(safe(ticket.getQueueStatus()))) {
+                continue;
+            }
+            if (candidateKey.equals(buildExecutionConflictKey(ticket))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String buildExecutionConflictKey(SrTicketRecordVO ticket) {
+        return firstNonBlank(
+                safe(ticket == null ? null : ticket.getRoutePath()),
+                safe(ticket == null ? null : ticket.getMenuCode()),
+                safe(ticket == null ? null : ticket.getPageId())).toUpperCase(Locale.ROOT);
+    }
+
+    private void ensureTmuxLaneSession(String laneId) {
+        String sessionName = buildLaneSessionName(laneId);
+        String idleMessage = "Codex lane " + laneId + " is idle.";
+        try {
+            if (!runCommandAllowFailure(resolveRepositoryRoot(), "tmux", "has-session", "-t", sessionName)) {
+                runCommand(resolveRepositoryRoot(), "tmux", "new-session", "-d", "-s", sessionName,
+                        "-c", resolveRepositoryRoot().toString(), "bash", "-lc",
+                        "printf '%s\\n' " + shellQuote(idleMessage) + "; exec bash");
+            }
+        } catch (Exception e) {
+            log.warn("Failed to ensure tmux lane session. laneId={}", laneId, e);
+        }
+    }
+
+    private void announceLaneTicket(String laneId, SrTicketRecordVO ticket) {
+        String sessionName = buildLaneSessionName(laneId);
+        String message = "["
+                + now()
+                + "] "
+                + safe(ticket.getTicketId())
+                + " "
+                + firstNonBlank(safe(ticket.getSummary()), safe(ticket.getPageLabel()), "-")
+                + " route="
+                + firstNonBlank(safe(ticket.getRoutePath()), safe(ticket.getMenuCode()), safe(ticket.getPageId()), "-");
+        try {
+            runCommand(resolveRepositoryRoot(), "tmux", "send-keys", "-t", sessionName, "C-c", "Enter");
+            runCommand(resolveRepositoryRoot(), "tmux", "send-keys", "-t", sessionName,
+                    "clear && echo " + shellQuote(message) + " && echo " + shellQuote("lane=" + laneId) + " && exec bash",
+                    "Enter");
+        } catch (Exception e) {
+            log.warn("Failed to announce tmux lane ticket. laneId={} ticketId={}", laneId, safe(ticket.getTicketId()), e);
+        }
+    }
+
+    private void runCommand(Path workdir, String... command) throws Exception {
+        ProcessBuilder builder = new ProcessBuilder(command);
+        builder.directory(workdir.toFile());
+        builder.redirectErrorStream(true);
+        Process process = builder.start();
+        try (InputStream inputStream = process.getInputStream()) {
+            byte[] buffer = new byte[1024];
+            while (inputStream.read(buffer) >= 0) {
+                // drain
+            }
+        }
+        if (!process.waitFor(30, TimeUnit.SECONDS)) {
+            process.destroyForcibly();
+            throw new IllegalStateException("Shell command timeout");
+        }
+        if (process.exitValue() != 0) {
+            throw new IllegalStateException("Shell command failed. exit=" + process.exitValue());
+        }
+    }
+
+    private boolean runCommandAllowFailure(Path workdir, String... command) throws Exception {
+        ProcessBuilder builder = new ProcessBuilder(command);
+        builder.directory(workdir.toFile());
+        builder.redirectErrorStream(true);
+        Process process = builder.start();
+        try (InputStream inputStream = process.getInputStream()) {
+            byte[] buffer = new byte[1024];
+            while (inputStream.read(buffer) >= 0) {
+                // drain
+            }
+        }
+        if (!process.waitFor(15, TimeUnit.SECONDS)) {
+            process.destroyForcibly();
+            return false;
+        }
+        return process.exitValue() == 0;
+    }
+
+    private String shellQuote(String value) {
+        return "'" + safe(value).replace("'", "'\"'\"'") + "'";
     }
 
     private SrTicketRecordVO findTicket(String ticketId) throws Exception {

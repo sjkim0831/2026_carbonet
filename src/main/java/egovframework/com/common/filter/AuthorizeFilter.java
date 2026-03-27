@@ -68,10 +68,10 @@ public class AuthorizeFilter extends OncePerRequestFilter {
                 path.startsWith("/error") ||
                 path.startsWith("/actuator/health") ||
                 path.startsWith("/actuator/info") ||
-                path.startsWith("/admin") ||
-                path.startsWith("/en/admin") ||
                 path.startsWith("/admin/login") ||
                 path.startsWith("/en/admin/login") ||
+                path.startsWith("/admin/assets/react/") ||
+                path.startsWith("/en/admin/assets/react/") ||
                 path.startsWith("/signin") ||
                 path.startsWith("/en/signin") ||
                 "/home".equals(path) ||

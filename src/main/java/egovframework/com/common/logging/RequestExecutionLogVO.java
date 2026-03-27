@@ -10,6 +10,10 @@ public class RequestExecutionLogVO {
     private String logId;
     private String executedAt;
     private String requestUri;
+    private String traceId;
+    private String requestId;
+    private String menuCode;
+    private String featureCode;
     private String httpMethod;
     private String featureType;
     private String actorUserId;

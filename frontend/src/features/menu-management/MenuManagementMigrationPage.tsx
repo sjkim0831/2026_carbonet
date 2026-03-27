@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
 import { fetchMenuManagementPage, refreshAdminMenuTree, type MenuManagementPagePayload } from "../../lib/api/client";
 import { postFormUrlEncoded } from "../../lib/api/core";
-import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
+import { buildLocalizedPath, getNavigationEventName, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { numberOf, stringOf } from "../admin-system/adminSystemShared";
+import { CollectionResultPanel, GridToolbar, PageStatusNotice, SummaryMetricCard, WarningPanel } from "../admin-ui/common";
+import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 import { toDisplayMenuUrl } from "./menuUrlDisplay";
 
 type MenuNode = {
@@ -18,6 +20,15 @@ type MenuNode = {
   sortOrdr: number;
   children: MenuNode[];
 };
+
+type MenuSnapshot = {
+  sortOrdr: number;
+  expsrAt: string;
+};
+
+function readMenuTypeFromLocation() {
+  return new URLSearchParams(window.location.search).get("menuType") || "ADMIN";
+}
 
 function parentCode(code: string) {
   if (code.length === 8) return code.slice(0, 6);
@@ -85,20 +96,96 @@ function flattenPayload(items: MenuNode[], output: string[] = []) {
   return output;
 }
 
+function flattenNodes(items: MenuNode[], output: MenuNode[] = []) {
+  items.forEach((item) => {
+    output.push(item);
+    flattenNodes(item.children, output);
+  });
+  return output;
+}
+
+function filterTree(nodes: MenuNode[], keyword: string): MenuNode[] {
+  if (!keyword) {
+    return nodes;
+  }
+  const normalizedKeyword = keyword.trim().toLowerCase();
+  return nodes.flatMap((node): MenuNode[] => {
+    const filteredChildren: MenuNode[] = filterTree(node.children, keyword);
+    const matches = [
+      node.code,
+      node.label,
+      node.url,
+      node.icon,
+      node.useAt,
+      node.expsrAt
+    ].join(" ").toLowerCase().includes(normalizedKeyword);
+    if (!matches && filteredChildren.length === 0) {
+      return [];
+    }
+    return [{ ...node, children: filteredChildren }];
+  });
+}
+
+function buildSnapshot(rows: Array<Record<string, unknown>>) {
+  return rows.reduce<Record<string, MenuSnapshot>>((result, row) => {
+    const code = stringOf(row, "code").toUpperCase();
+    if (!code) {
+      return result;
+    }
+    result[code] = {
+      sortOrdr: numberOf(row, "sortOrdr"),
+      expsrAt: stringOf(row, "expsrAt") || "Y"
+    };
+    return result;
+  }, {});
+}
+
+function validateCreateForm(params: {
+  en: boolean;
+  parentCodeValue: string;
+  codeNm: string;
+  menuUrl: string;
+  menuType: string;
+}) {
+  const { en, parentCodeValue, codeNm, menuUrl, menuType } = params;
+  if (!parentCodeValue) {
+    return en ? "Select a group menu first." : "그룹 메뉴를 먼저 선택하세요.";
+  }
+  if (!codeNm.trim()) {
+    return en ? "Enter a page name." : "페이지명을 입력하세요.";
+  }
+  if (!menuUrl.trim()) {
+    return en ? "Enter a page URL." : "페이지 URL을 입력하세요.";
+  }
+  if (!menuUrl.startsWith("/")) {
+    return en ? "Page URL must start with /." : "페이지 URL은 / 로 시작해야 합니다.";
+  }
+  if (menuType === "ADMIN" && !menuUrl.startsWith("/admin/")) {
+    return en ? "Admin menu URL must start with /admin/." : "관리자 메뉴 URL은 /admin/으로 시작해야 합니다.";
+  }
+  if (menuType === "USER" && !menuUrl.startsWith("/home/")) {
+    return en ? "Home menu URL must start with /home/." : "홈 메뉴 URL은 /home/으로 시작해야 합니다.";
+  }
+  return "";
+}
+
 export function MenuManagementMigrationPage() {
   const en = isEnglish();
-  const [menuType, setMenuType] = useState(new URLSearchParams(window.location.search).get("menuType") || "ADMIN");
+  const [menuType, setMenuType] = useState(readMenuTypeFromLocation());
   const [actionError, setActionError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
-  const pageState = useAsyncValue<MenuManagementPagePayload>(() => fetchMenuManagementPage(menuType), [menuType]);
-  const page = pageState.value;
-  const [treeData, setTreeData] = useState<MenuNode[]>([]);
+  const [searchKeyword, setSearchKeyword] = useState("");
   const [parentCodeValue, setParentCodeValue] = useState("");
   const [codeNm, setCodeNm] = useState("");
   const [codeDc, setCodeDc] = useState("");
   const [menuUrl, setMenuUrl] = useState("");
   const [menuIcon, setMenuIcon] = useState("web");
   const [useAt, setUseAt] = useState("Y");
+  const [treeData, setTreeData] = useState<MenuNode[]>([]);
+
+  const deferredSearchKeyword = useDeferredValue(searchKeyword);
+  const pageState = useAsyncValue<MenuManagementPagePayload>(() => fetchMenuManagementPage(menuType), [menuType]);
+  const page = pageState.value;
 
   const rows = useMemo(() => (page?.menuRows || []) as Array<Record<string, unknown>>, [page?.menuRows]);
   const menuTypes = ((page?.menuTypes || []) as Array<Record<string, unknown>>);
@@ -106,6 +193,53 @@ export function MenuManagementMigrationPage() {
   const iconOptions = ((page?.iconOptions || []) as string[]);
   const useAtOptions = ((page?.useAtOptions || []) as string[]);
   const expsrAtOptions = ((page?.expsrAtOptions || []) as string[]);
+
+  const originalSnapshot = useMemo(() => buildSnapshot(rows), [rows]);
+  const filteredTreeData = useMemo(() => filterTree(treeData, deferredSearchKeyword), [deferredSearchKeyword, treeData]);
+  const visibleNodes = useMemo(() => flattenNodes(filteredTreeData), [filteredTreeData]);
+  const allNodes = useMemo(() => flattenNodes(treeData), [treeData]);
+
+  const dirtyOrderRows = useMemo(() => (
+    allNodes.filter((node) => {
+      const snapshot = originalSnapshot[node.code];
+      return snapshot && snapshot.sortOrdr !== node.sortOrdr;
+    })
+  ), [allNodes, originalSnapshot]);
+
+  const dirtyExposureRows = useMemo(() => (
+    allNodes.filter((node) => {
+      const snapshot = originalSnapshot[node.code];
+      return snapshot && snapshot.expsrAt !== node.expsrAt;
+    })
+  ), [allNodes, originalSnapshot]);
+
+  useEffect(() => {
+    function syncMenuTypeFromLocation() {
+      setMenuType(readMenuTypeFromLocation());
+    }
+    const navigationEventName = getNavigationEventName();
+    window.addEventListener("popstate", syncMenuTypeFromLocation);
+    window.addEventListener(navigationEventName, syncMenuTypeFromLocation);
+    return () => {
+      window.removeEventListener("popstate", syncMenuTypeFromLocation);
+      window.removeEventListener(navigationEventName, syncMenuTypeFromLocation);
+    };
+  }, []);
+
+  useEffect(() => {
+    const nextSearch = new URLSearchParams(window.location.search);
+    if (menuType) {
+      nextSearch.set("menuType", menuType);
+    } else {
+      nextSearch.delete("menuType");
+    }
+    const nextQuery = nextSearch.toString();
+    const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash || ""}`;
+    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash || ""}`;
+    if (nextUrl !== currentUrl) {
+      window.history.replaceState({}, "", nextUrl);
+    }
+  }, [menuType]);
 
   useEffect(() => {
     if (!page) {
@@ -116,14 +250,29 @@ export function MenuManagementMigrationPage() {
       menuType,
       rowCount: rows.length,
       rootNodeCount: treeData.length,
-      groupMenuOptionCount: groupMenuOptions.length
+      visibleNodeCount: visibleNodes.length,
+      groupMenuOptionCount: groupMenuOptions.length,
+      searchKeyword: deferredSearchKeyword,
+      dirtyOrderCount: dirtyOrderRows.length,
+      dirtyExposureCount: dirtyExposureRows.length
     });
     logGovernanceScope("COMPONENT", "menu-management-tree", {
       component: "menu-management-tree",
       rootNodeCount: treeData.length,
+      visibleNodeCount: visibleNodes.length,
       menuType
     });
-  }, [groupMenuOptions.length, menuType, page, rows.length, treeData.length]);
+  }, [
+    deferredSearchKeyword,
+    dirtyExposureRows.length,
+    dirtyOrderRows.length,
+    groupMenuOptions.length,
+    menuType,
+    page,
+    rows.length,
+    treeData.length,
+    visibleNodes.length
+  ]);
 
   useEffect(() => {
     setTreeData(buildTree(rows));
@@ -138,13 +287,14 @@ export function MenuManagementMigrationPage() {
   useEffect(() => {
     setActionError("");
     setActionMessage("");
+    setSearchKeyword("");
     setCodeNm("");
     setCodeDc("");
     setMenuUrl("");
     setMenuIcon(iconOptions[0] || "web");
     setUseAt(useAtOptions[0] || "Y");
     setParentCodeValue(stringOf(groupMenuOptions[0], "value"));
-  }, [menuType]); // reset form when switching scope
+  }, [menuType]);
 
   function moveNode(nodes: MenuNode[], index: number, direction: number) {
     const nextIndex = index + direction;
@@ -184,7 +334,8 @@ export function MenuManagementMigrationPage() {
   async function saveOrder() {
     logGovernanceScope("ACTION", "menu-management-save-order", {
       menuType,
-      payloadCount: flattenPayload(treeData).length
+      payloadCount: flattenPayload(treeData).length,
+      dirtyOrderCount: dirtyOrderRows.length
     });
     setActionError("");
     setActionMessage("");
@@ -201,13 +352,6 @@ export function MenuManagementMigrationPage() {
   }
 
   async function saveExposure(code: string, expsrAt: string) {
-    logGovernanceScope("ACTION", "menu-management-save-exposure", {
-      menuType,
-      menuCode: code,
-      exposure: expsrAt
-    });
-    setActionError("");
-    setActionMessage("");
     const body = new URLSearchParams();
     body.set("menuType", menuType);
     body.set("menuCode", code);
@@ -219,9 +363,26 @@ export function MenuManagementMigrationPage() {
     if (!responseBody.success) {
       throw new Error(responseBody.message || "Failed to save menu exposure.");
     }
+    return responseBody;
+  }
+
+  async function saveAllExposureChanges() {
+    if (dirtyExposureRows.length === 0) {
+      setActionMessage(en ? "There are no visibility changes to save." : "저장할 노출 변경이 없습니다.");
+      return;
+    }
+    logGovernanceScope("ACTION", "menu-management-save-all-exposure", {
+      menuType,
+      dirtyExposureCount: dirtyExposureRows.length
+    });
+    setActionError("");
+    setActionMessage("");
+    for (const row of dirtyExposureRows) {
+      await saveExposure(row.code, row.expsrAt);
+    }
     refreshAdminMenuTree();
     await pageState.reload();
-    setActionMessage(responseBody.message || (en ? "Menu exposure has been updated." : "메뉴 노출 상태를 저장했습니다."));
+    setActionMessage(en ? "Visibility changes have been saved." : "노출 변경을 저장했습니다.");
   }
 
   function updateExposureValue(path: number[], value: string) {
@@ -260,12 +421,17 @@ export function MenuManagementMigrationPage() {
   async function createPageMenu() {
     setActionError("");
     setActionMessage("");
+    const validationError = validateCreateForm({ en, parentCodeValue, codeNm, menuUrl, menuType });
+    if (validationError) {
+      setActionError(validationError);
+      return;
+    }
     const body = new URLSearchParams();
     body.set("menuType", menuType);
     body.set("parentCode", parentCodeValue);
-    body.set("codeNm", codeNm);
-    body.set("codeDc", codeDc);
-    body.set("menuUrl", menuUrl);
+    body.set("codeNm", codeNm.trim());
+    body.set("codeDc", codeDc.trim());
+    body.set("menuUrl", menuUrl.trim());
     body.set("menuIcon", menuIcon);
     body.set("useAt", useAt);
     const responseBody = await postFormUrlEncoded<{ success?: boolean; message?: string; createdCode?: string }>(
@@ -290,9 +456,12 @@ export function MenuManagementMigrationPage() {
           const depth = node.code.length;
           const chipClass = depth === 4 ? "bg-blue-50 text-[var(--kr-gov-blue)]" : depth === 6 ? "bg-amber-50 text-[#8a5a00]" : "bg-green-50 text-[#196c2e]";
           const currentPath = [...path, index];
+          const snapshot = originalSnapshot[node.code];
+          const orderChanged = Boolean(snapshot && snapshot.sortOrdr !== node.sortOrdr);
+          const exposureChanged = Boolean(snapshot && snapshot.expsrAt !== node.expsrAt);
           return (
             <li key={node.code}>
-              <div className="gov-tree-node">
+              <div className={`gov-tree-node ${orderChanged || exposureChanged ? "ring-1 ring-[var(--kr-gov-blue)] ring-offset-1" : ""}`}>
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -301,8 +470,14 @@ export function MenuManagementMigrationPage() {
                       <span className={`gov-chip ${chipClass}`}>{node.code}</span>
                       <span className={`gov-chip ${node.useAt === "Y" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>{node.useAt === "Y" ? (en ? "Use" : "사용") : (en ? "Unused" : "미사용")}</span>
                       <span className={`gov-chip ${node.expsrAt === "Y" ? "bg-blue-100 text-blue-700" : "bg-red-100 text-red-700"}`}>{node.expsrAt === "Y" ? (en ? "Visible" : "노출") : (en ? "Hidden" : "숨김")}</span>
+                      {orderChanged ? <span className="gov-chip bg-indigo-100 text-indigo-700">{en ? "Order changed" : "순서 변경"}</span> : null}
+                      {exposureChanged ? <span className="gov-chip bg-amber-100 text-amber-700">{en ? "Visibility changed" : "노출 변경"}</span> : null}
                     </div>
                     <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)] break-all">{node.url || (en ? "No linked URL" : "연결 URL 없음")}</p>
+                    <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">
+                      {en ? "Sort order" : "정렬순서"}: {node.sortOrdr || "-"}
+                      {snapshot ? ` / ${en ? "Original" : "기준"}: ${snapshot.sortOrdr || "-"}` : ""}
+                    </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {node.code.length === 8 ? (
@@ -318,17 +493,10 @@ export function MenuManagementMigrationPage() {
                             </option>
                           ))}
                         </select>
-                        <button
-                          className="gov-btn gov-btn-outline"
-                          onClick={() => { void saveExposure(node.code, node.expsrAt).catch((error: Error) => setActionError(error.message)); }}
-                          type="button"
-                        >
-                          {en ? "Save Visibility" : "숨김 저장"}
-                        </button>
                       </>
                     ) : null}
-                    <button className="gov-btn gov-btn-outline" disabled={index === 0} onClick={() => updateLevel(currentPath, -1)} type="button">{en ? "Up" : "위로"}</button>
-                    <button className="gov-btn gov-btn-outline" disabled={index === nodes.length - 1} onClick={() => updateLevel(currentPath, 1)} type="button">{en ? "Down" : "아래로"}</button>
+                    <button className="gov-btn gov-btn-outline" disabled={index === 0 || Boolean(deferredSearchKeyword)} onClick={() => updateLevel(currentPath, -1)} type="button">{en ? "Up" : "위로"}</button>
+                    <button className="gov-btn gov-btn-outline" disabled={index === nodes.length - 1 || Boolean(deferredSearchKeyword)} onClick={() => updateLevel(currentPath, 1)} type="button">{en ? "Down" : "아래로"}</button>
                   </div>
                 </div>
               </div>
@@ -351,11 +519,24 @@ export function MenuManagementMigrationPage() {
       title={en ? "Menu Management" : "메뉴 관리"}
       subtitle={en ? "Review menu hierarchy for home and admin screens and reorder within the same parent." : "홈과 관리자 메뉴 계층을 같은 기준으로 확인하고, 같은 레벨 안에서 순서를 조정합니다."}
     >
-      {page?.menuMgmtMessage || actionMessage ? <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{actionMessage || String(page?.menuMgmtMessage)}</div> : null}
-      {pageState.error || actionError || page?.menuMgmtError ? <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{actionError || page?.menuMgmtError || pageState.error}</div> : null}
+      <AdminWorkspacePageFrame>
+        {page?.menuMgmtMessage || actionMessage ? <PageStatusNotice tone="success">{actionMessage || String(page?.menuMgmtMessage)}</PageStatusNotice> : null}
+        {pageState.error || actionError || page?.menuMgmtError ? <PageStatusNotice tone="error">{actionError || page?.menuMgmtError || pageState.error}</PageStatusNotice> : null}
 
-      <section className="gov-card mb-6" data-help-id="menu-management-scope">
-        <div className="grid grid-cols-1 md:grid-cols-[16rem_1fr] gap-4 items-end">
+        <section className="grid grid-cols-1 gap-3 xl:grid-cols-4">
+          <SummaryMetricCard title={en ? "Visible Nodes" : "표시 노드"} value={`${visibleNodes.length} / ${allNodes.length}`} description={en ? "Search results / total" : "검색 결과 / 전체"} />
+          <SummaryMetricCard title={en ? "Order Changes" : "순서 변경"} value={String(dirtyOrderRows.length)} description={en ? "Pending before save" : "저장 전 변경 건"} />
+          <SummaryMetricCard title={en ? "Visibility Changes" : "노출 변경"} value={String(dirtyExposureRows.length)} description={en ? "Pending before save" : "저장 전 변경 건"} />
+          <SummaryMetricCard title={en ? "Current Scope" : "현재 구분"} value={menuType} description={en ? "Synced to URL query" : "URL 쿼리와 동기화"} />
+        </section>
+
+        <CollectionResultPanel
+          data-help-id="menu-management-scope"
+          description={en ? "Reordering is limited to siblings under the same parent. Search disables movement to avoid mismatching filtered positions." : "같은 부모 메뉴 아래에서만 순서를 바꿀 수 있고, 검색 중에는 필터 결과와 실제 순서가 어긋나지 않도록 이동을 막습니다."}
+          icon="tune"
+          title={en ? "Menu Scope and Search" : "메뉴 범위와 검색"}
+        >
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-[16rem_1fr] xl:grid-cols-[16rem_1fr_1.2fr] items-end">
           <div>
             <label className="gov-label" htmlFor="menuType">{en ? "Page Scope" : "화면 구분"}</label>
             <select className="gov-select" id="menuType" value={menuType} onChange={(event) => setMenuType(event.target.value)}>
@@ -364,22 +545,25 @@ export function MenuManagementMigrationPage() {
               ))}
             </select>
           </div>
-          <div className="rounded-[var(--kr-gov-radius)] border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-[var(--kr-gov-text-secondary)]">
-            {en ? "Only sibling menus under the same parent can move up or down. Saving updates the home menu and the admin sidebar in the same order." : "같은 부모 메뉴 아래에서만 위/아래 이동이 가능합니다. 저장 후 홈 메뉴와 관리자 좌측 메뉴에도 같은 순서가 반영됩니다."}
-          </div>
-        </div>
-      </section>
-
-      <section className="gov-card mb-6" data-help-id="menu-management-register">
-        <div className="flex items-center justify-between gap-4 border-b pb-4 mb-4 flex-wrap">
           <div>
-            <h3 className="text-lg font-bold">{en ? "Quick Page Registration" : "빠른 페이지 등록"}</h3>
-            <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">{String(page?.menuMgmtGuide || "")}</p>
+            <label className="gov-label" htmlFor="menuSearchKeyword">{en ? "Search menu tree" : "메뉴 트리 검색"}</label>
+            <input className="gov-input" id="menuSearchKeyword" onChange={(event) => setSearchKeyword(event.target.value)} placeholder={en ? "Menu code, name, URL" : "메뉴 코드, 메뉴명, URL"} value={searchKeyword} />
           </div>
-          <div className="rounded-[var(--kr-gov-radius)] border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-[var(--kr-gov-text-secondary)]">
-            {String(page?.siteMapMgmtGuide || "")}
+          <div className="rounded-[var(--kr-gov-radius)] border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-[var(--kr-gov-text-secondary)]">
+            {en ? "Only sibling menus under the same parent can move up or down. Reordering is disabled while search is active to avoid mismatching filtered positions." : "같은 부모 메뉴 아래에서만 위/아래 이동이 가능합니다. 검색 중에는 필터 결과와 실제 순서가 엇갈리지 않도록 순서 이동을 잠시 막습니다."}
           </div>
         </div>
+        </CollectionResultPanel>
+
+        <section className="gov-card overflow-hidden p-0" data-help-id="menu-management-register">
+          <GridToolbar
+            meta={String(page?.menuMgmtGuide || "")}
+            title={en ? "Quick Page Registration" : "빠른 페이지 등록"}
+          />
+          <div className="p-6">
+            <WarningPanel className="mb-4" title={en ? "Sitemap linkage" : "사이트맵 연동"}>
+              {String(page?.siteMapMgmtGuide || "")}
+            </WarningPanel>
 
         <div className="grid grid-cols-1 xl:grid-cols-[1.2fr_0.8fr] gap-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -440,16 +624,16 @@ export function MenuManagementMigrationPage() {
             </div>
           </div>
         </div>
-      </section>
-
-      <section className="gov-card" data-help-id="menu-management-tree">
-        <div className="flex items-center justify-between gap-4 border-b pb-4 mb-4 flex-wrap">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">account_tree</span>
-            <h3 className="text-lg font-bold">{en ? "Menu Tree" : "메뉴 트리"}</h3>
           </div>
-          <button className="gov-btn gov-btn-primary" onClick={() => { void saveOrder().catch((error: Error) => setActionError(error.message)); }} type="button">{en ? "Save Order" : "순서 저장"}</button>
-        </div>
+        </section>
+
+        <section className="gov-card overflow-hidden p-0" data-help-id="menu-management-tree">
+          <GridToolbar
+            actions={<div className="flex flex-wrap items-center gap-2"><button className="gov-btn gov-btn-outline" disabled={dirtyExposureRows.length === 0} onClick={() => { void saveAllExposureChanges().catch((error: Error) => setActionError(error.message)); }} type="button">{en ? "Save Visibility Changes" : "노출 변경 저장"}</button><button className="gov-btn gov-btn-primary" onClick={() => { void saveOrder().catch((error: Error) => setActionError(error.message)); }} type="button">{en ? "Save Order" : "순서 저장"}</button></div>}
+            meta={en ? "Review node depth, pending order changes, and visibility changes before saving." : "노드 깊이, 순서 변경, 노출 변경 상태를 확인한 뒤 저장합니다."}
+            title={en ? "Menu Tree" : "메뉴 트리"}
+          />
+          <div className="p-6">
 
         <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
           <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[#f8fbff] px-4 py-3">
@@ -466,14 +650,31 @@ export function MenuManagementMigrationPage() {
           </div>
         </div>
 
-        <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[#f8fbff] px-4 py-3 text-sm text-[var(--kr-gov-text-secondary)]">
+        {(dirtyOrderRows.length > 0 || dirtyExposureRows.length > 0) ? (
+          <CollectionResultPanel className="mb-4" description={en ? "Rows below still have unsaved order or visibility changes." : "아래 행에는 아직 저장되지 않은 순서 또는 노출 변경이 남아 있습니다."} icon="pending_actions" title={en ? "Pending changes" : "저장 대기 변경"}>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {dirtyOrderRows.slice(0, 8).map((node) => <span className="gov-chip bg-indigo-100 text-indigo-700" key={`order-${node.code}`}>{`${node.code} ${en ? "order" : "순서"}`}</span>)}
+              {dirtyExposureRows.slice(0, 8).map((node) => <span className="gov-chip bg-amber-100 text-amber-700" key={`exposure-${node.code}`}>{`${node.code} ${en ? "visibility" : "노출"}`}</span>)}
+              {(dirtyOrderRows.length + dirtyExposureRows.length) > 8 ? <span className="gov-chip bg-slate-100 text-slate-700">+{dirtyOrderRows.length + dirtyExposureRows.length - 8}</span> : null}
+            </div>
+          </CollectionResultPanel>
+        ) : null}
+
+        <WarningPanel className="mb-4" title={en ? "Visibility rule" : "노출 규칙"}>
           {en
             ? "Visibility only affects sidebar/menu exposure. Hidden menus remain accessible by direct route and linked buttons."
             : "숨김은 좌측 메뉴 노출만 제어합니다. 숨김 처리된 메뉴도 직접 경로 접근과 연결 버튼 동작은 유지됩니다."}
-        </div>
+        </WarningPanel>
 
-        {renderNodes(treeData)}
-      </section>
+        {visibleNodes.length === 0 ? (
+          <div className="rounded-[var(--kr-gov-radius)] border border-dashed border-[var(--kr-gov-border-light)] px-4 py-8 text-center text-sm text-[var(--kr-gov-text-secondary)]">
+            {en ? "No menus matched the current search." : "현재 검색 조건에 맞는 메뉴가 없습니다."}
+          </div>
+        ) : renderNodes(filteredTreeData)}
+          </div>
+        </section>
+      </AdminWorkspacePageFrame>
     </AdminPageShell>
   );
 }
+// agent note: updated by FreeAgent Ultra

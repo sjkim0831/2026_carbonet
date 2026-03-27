@@ -30,6 +30,8 @@ public interface SrTicketWorkbenchService {
 
     Map<String, Object> directExecuteTicket(String ticketId, String actorId, String approvalToken) throws Exception;
 
+    Map<String, Object> queueDirectExecuteTicket(String ticketId, String actorId) throws Exception;
+
     Map<String, Object> skipPlanExecuteTicket(String ticketId, String actorId, String approvalToken) throws Exception;
 
     Map<String, Object> rollbackTicket(String ticketId, String actorId) throws Exception;

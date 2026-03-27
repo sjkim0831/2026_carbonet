@@ -26,4 +26,16 @@ public class AuditEventRecordVO {
     private String requestUri;
     private String httpMethod;
     private String createdAt;
+
+    public String getBeforeSummaryJson() {
+        return beforeSummaryJson;
+    }
+
+    public String getAfterSummaryJson() {
+        return afterSummaryJson;
+    }
+
+    public String getCreatedAt() {
+        return createdAt;
+    }
 }

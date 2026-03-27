@@ -160,14 +160,29 @@ public class JwtTokenProvider {
         return egovEnvCryptoService.decrypt(s);
     }
 
-    public ResponseCookie createCookie(String tokenName, String tokenValue, long tokenMaxAge) {
+    public ResponseCookie createCookie(HttpServletRequest request, String tokenName, String tokenValue, long tokenMaxAge) {
         return ResponseCookie.from(tokenName, tokenValue)
                 .httpOnly(true)
-                .secure(false)
+                .secure(isSecureCookieRequest(request))
                 .path("/")
                 .maxAge(tokenMaxAge + 10)
                 .sameSite("Strict")
                 .build();
+    }
+
+    private boolean isSecureCookieRequest(HttpServletRequest request) {
+        if (request == null) {
+            return false;
+        }
+        if (request.isSecure()) {
+            return true;
+        }
+        String forwardedProto = request.getHeader("X-Forwarded-Proto");
+        if ("https".equalsIgnoreCase(forwardedProto)) {
+            return true;
+        }
+        String forwardedSsl = request.getHeader("X-Forwarded-Ssl");
+        return "on".equalsIgnoreCase(forwardedSsl);
     }
 
     public String getCookie(HttpServletRequest request, String cookieName) {

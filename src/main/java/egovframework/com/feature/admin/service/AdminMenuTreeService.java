@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -28,6 +29,8 @@ public class AdminMenuTreeService {
     private static final String ROLE_SYSTEM_MASTER = "ROLE_SYSTEM_MASTER";
     private static final String ROLE_OPERATION_ADMIN = "ROLE_OPERATION_ADMIN";
     private static final Logger log = LoggerFactory.getLogger(AdminMenuTreeService.class);
+    private static final Map<String, String> MENU_LABEL_OVERRIDES_KO = buildMenuLabelOverridesKo();
+    private static final Map<String, String> MENU_LABEL_OVERRIDES_EN = buildMenuLabelOverridesEn();
 
     private final MenuInfoService menuInfoService;
     private final AuthGroupManageService authGroupManageService;
@@ -162,6 +165,7 @@ public class AdminMenuTreeService {
             domain.getGroups().removeIf(group -> group.getLinks() == null || group.getLinks().isEmpty());
             for (AdminMenuGroupDTO group : domain.getGroups()) {
                 group.getLinks().sort(linkComparator);
+                normalizeGroupLabelFromLinks(group);
             }
         }
         Map<String, AdminMenuDomainDTO> orderedDomains = new LinkedHashMap<>();
@@ -226,11 +230,29 @@ public class AdminMenuTreeService {
     }
 
     private String resolveMenuLabelKo(MenuInfoDTO row) {
-        return safeString(row.getCodeNm());
+        String label = safeString(row.getCodeNm());
+        if (!isLikelyCodeLabel(label)) {
+            return label;
+        }
+        String code = safeString(row.getCode()).toUpperCase(Locale.ROOT);
+        String override = MENU_LABEL_OVERRIDES_KO.get(code);
+        if (!override.isEmpty()) {
+            return override;
+        }
+        return label;
     }
 
     private String resolveMenuLabelEn(MenuInfoDTO row) {
-        return safeString(row.getCodeDc());
+        String label = safeString(row.getCodeDc());
+        if (!isLikelyCodeLabel(label)) {
+            return label;
+        }
+        String code = safeString(row.getCode()).toUpperCase(Locale.ROOT);
+        String override = MENU_LABEL_OVERRIDES_EN.get(code);
+        if (!override.isEmpty()) {
+            return override;
+        }
+        return label;
     }
 
     private boolean isMasterOnlyRoute(String normalizedUri) {
@@ -310,6 +332,90 @@ public class AdminMenuTreeService {
 
     private String safeString(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private boolean isLikelyCodeLabel(String value) {
+        String normalized = safeString(value);
+        if (normalized.isEmpty()) {
+            return true;
+        }
+        return normalized.matches("^[A-Z]\\d{3,}$")
+                || normalized.matches("^[A-Z][A-Z0-9_]{3,}$");
+    }
+
+    private void normalizeGroupLabelFromLinks(AdminMenuGroupDTO group) {
+        if (group == null || group.getLinks() == null || group.getLinks().isEmpty()) {
+            return;
+        }
+        if (isLikelyCodeLabel(group.getTitle())) {
+            String fallbackKo = safeString(group.getLinks().get(0).getText());
+            if (!fallbackKo.isEmpty()) {
+                group.setTitle(fallbackKo);
+            }
+        }
+        if (isLikelyCodeLabel(group.getTitleEn())) {
+            String fallbackEn = safeString(group.getLinks().get(0).getTEn());
+            if (fallbackEn.isEmpty()) {
+                fallbackEn = safeString(group.getLinks().get(0).getText());
+            }
+            if (!fallbackEn.isEmpty()) {
+                group.setTitleEn(fallbackEn);
+            }
+        }
+    }
+
+    private static Map<String, String> buildMenuLabelOverridesKo() {
+        Map<String, String> labels = new HashMap<>();
+        labels.put("A001", "회원");
+        labels.put("A00101", "회원");
+        labels.put("A00105", "이력");
+        labels.put("A002", "배출/인증");
+        labels.put("A00201", "배출");
+        labels.put("A003", "거래");
+        labels.put("A004", "콘텐츠");
+        labels.put("A005", "외부 연계");
+        labels.put("A006", "시스템");
+        labels.put("A00601", "환경");
+        labels.put("A00602", "보안");
+        labels.put("A00603", "로그");
+        labels.put("A00604", "백업");
+        labels.put("A007", "대시보드");
+        labels.put("A00701", "대시보드");
+        labels.put("A190", "AI 운영");
+        labels.put("A19001", "AI 작업센터");
+        labels.put("AMENU_AUTH", "권한");
+        labels.put("AMENU_MEMBER", "회원");
+        labels.put("AMENU_COMPANY", "회원사");
+        labels.put("AMENU_ADMIN", "관리자");
+        labels.put("AMENU_SYSTEM", "시스템");
+        return labels;
+    }
+
+    private static Map<String, String> buildMenuLabelOverridesEn() {
+        Map<String, String> labels = new HashMap<>();
+        labels.put("A001", "Members");
+        labels.put("A00101", "Members");
+        labels.put("A00105", "History");
+        labels.put("A002", "Emissions & Certification");
+        labels.put("A00201", "Emissions");
+        labels.put("A003", "Trading");
+        labels.put("A004", "Content");
+        labels.put("A005", "External Integration");
+        labels.put("A006", "System");
+        labels.put("A00601", "Environment");
+        labels.put("A00602", "Security");
+        labels.put("A00603", "Logs");
+        labels.put("A00604", "Backup");
+        labels.put("A007", "Dashboard");
+        labels.put("A00701", "Dashboard");
+        labels.put("A190", "AI Operations");
+        labels.put("A19001", "AI Workbench");
+        labels.put("AMENU_AUTH", "Authority");
+        labels.put("AMENU_MEMBER", "Members");
+        labels.put("AMENU_COMPANY", "Companies");
+        labels.put("AMENU_ADMIN", "Administrators");
+        labels.put("AMENU_SYSTEM", "System");
+        return labels;
     }
 
     private int effectiveSort(String code, Map<String, Integer> sortOrderMap) {

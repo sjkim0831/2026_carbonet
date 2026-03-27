@@ -135,7 +135,7 @@ public class AdminMemberPageModelAssembler {
                     selectedInsttId,
                     PageRequest.of(Math.max(currentPage - 1, 0), pageSize, Sort.by(Sort.Direction.DESC, "resetPnttm")));
         } catch (Exception e) {
-            log.error("Failed to load password reset history.", e);
+            log.error("Failed to load credential reset history.", e);
             historyPage = Page.empty(PageRequest.of(0, pageSize));
             model.addAttribute("member_resetPasswordError",
                     isEn ? "Failed to load password reset history." : "비밀번호 초기화 이력을 불러오지 못했습니다.");

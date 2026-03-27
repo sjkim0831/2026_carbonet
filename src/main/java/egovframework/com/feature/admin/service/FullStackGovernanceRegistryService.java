@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import egovframework.com.feature.admin.dto.request.FullStackGovernanceAutoCollectRequest;
 import egovframework.com.feature.admin.dto.request.FullStackGovernanceSaveRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
@@ -32,6 +34,8 @@ import java.util.regex.Pattern;
 
 @Service
 public class FullStackGovernanceRegistryService {
+
+    private static final Logger log = LoggerFactory.getLogger(FullStackGovernanceRegistryService.class);
 
     private static final Pattern MENU_CODE_PATTERN = Pattern.compile("^[A-Z0-9]{8}$");
     private static final Pattern PAGE_ID_PATTERN = Pattern.compile("^[a-z0-9][a-z0-9-]*$");
@@ -491,7 +495,8 @@ public class FullStackGovernanceRegistryService {
                 return normalizeEntry(entry);
             }
         } catch (SQLException e) {
-            throw new IllegalStateException("Failed to read DB full-stack governance registry", e);
+            disableDbRegistry("read", e);
+            return null;
         }
     }
 
@@ -523,8 +528,13 @@ public class FullStackGovernanceRegistryService {
                 }
             }
         } catch (SQLException e) {
-            throw new IllegalStateException("Failed to save DB full-stack governance registry", e);
+            disableDbRegistry("save", e);
         }
+    }
+
+    private void disableDbRegistry(String operation, SQLException e) {
+        dbTableAvailable = false;
+        log.warn("Disabling DB full-stack governance registry after {} failure. Falling back to file registry only.", operation, e);
     }
 
     private void bindEntry(PreparedStatement ps, Map<String, Object> entry, boolean insertMode) throws SQLException {

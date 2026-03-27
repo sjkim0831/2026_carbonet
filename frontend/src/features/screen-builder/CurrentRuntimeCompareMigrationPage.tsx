@@ -70,15 +70,17 @@ function buildDeployEvidence(options: {
   selectedScreenId: string;
   ownerLane: string;
   runtimeEvidence?: Record<string, unknown> | null;
+  artifactEvidence?: Record<string, unknown> | null;
 }) {
   const runtimeEvidence = options.runtimeEvidence || {};
-  const releaseUnitId = stringifyValue(options.releaseUnitId);
+  const artifactEvidence = options.artifactEvidence || {};
+  const releaseUnitId = stringifyValue(artifactEvidence.releaseUnitId || options.releaseUnitId);
   const selectedScreenToken = normalizeToken(options.selectedScreenId, "screen-runtime");
 
   return {
     releaseUnitId,
-    runtimePackageId: stringifyValue(runtimeEvidence.runtimePackageId, `runtime-package-${selectedScreenToken}`),
-    deployTraceId: stringifyValue(runtimeEvidence.deployTraceId, `deploy-trace-${normalizeToken(releaseUnitId, "release-unit")}-${selectedScreenToken}`),
+    runtimePackageId: stringifyValue(artifactEvidence.runtimePackageId || runtimeEvidence.runtimePackageId, `runtime-package-${selectedScreenToken}`),
+    deployTraceId: stringifyValue(artifactEvidence.deployTraceId || runtimeEvidence.deployTraceId, `deploy-trace-${normalizeToken(releaseUnitId, "release-unit")}-${selectedScreenToken}`),
     ownerLane: stringifyValue(runtimeEvidence.ownerLane, options.ownerLane),
     rollbackAnchorYn: stringifyValue(runtimeEvidence.rollbackAnchorYn, "Y")
   };
@@ -253,16 +255,18 @@ export function CurrentRuntimeCompareMigrationPage() {
   const guidedStateId = findContextKeyValue(compareContextKeys, "Guided State");
   const ownerLane = findContextKeyValue(compareContextKeys, "Owner Lane");
   const selectedScreenId = page?.pageId || query.pageId || query.menuCode || "screen-runtime";
-  const releaseUnitId = page?.publishedVersionId || page?.versionId || "-";
+  const artifactEvidence = publishedPreview?.artifactEvidence || currentPreview?.artifactEvidence || page?.artifactEvidence || null;
+  const releaseUnitId = stringifyValue(page?.releaseUnitId || publishedPreview?.releaseUnitId || currentPreview?.releaseUnitId || page?.publishedVersionId || page?.versionId || "-");
   const previewRuntimeEvidence = ((currentPreview as unknown as { runtimeEvidence?: Record<string, unknown> } | undefined)?.runtimeEvidence) || null;
   const deployEvidence = useMemo(
     () => buildDeployEvidence({
       releaseUnitId,
       selectedScreenId,
       ownerLane,
-      runtimeEvidence: previewRuntimeEvidence
+      runtimeEvidence: previewRuntimeEvidence,
+      artifactEvidence
     }),
-    [ownerLane, previewRuntimeEvidence, releaseUnitId, selectedScreenId]
+    [artifactEvidence, ownerLane, previewRuntimeEvidence, releaseUnitId, selectedScreenId]
   );
   const fallbackCompareRows = useMemo(() => buildCompareRows({
     currentTemplateLine: templateLineId,
@@ -292,7 +296,7 @@ export function CurrentRuntimeCompareMigrationPage() {
       screenFamilyRuleId,
       ownerLane,
       selectedScreenId,
-      releaseUnitId: page?.publishedVersionId || page?.versionId || "",
+      releaseUnitId,
       compareBaseline: "CURRENT_RUNTIME",
       requestedBy: "current-runtime-compare-ui",
       requestedByType: "ADMIN_UI"
@@ -301,8 +305,7 @@ export function CurrentRuntimeCompareMigrationPage() {
       guidedStateId,
       ownerLane,
       page?.pageId,
-      page?.publishedVersionId,
-      page?.versionId,
+      page?.releaseUnitId,
       query.menuCode,
       query.pageId,
       screenFamilyRuleId,
@@ -408,7 +411,7 @@ export function CurrentRuntimeCompareMigrationPage() {
     { label: "builderInput.menuCode", value: page?.menuCode || query.menuCode || "-" },
     { label: "builderInput.pageId", value: page?.pageId || query.pageId || "-" },
     { label: "builderInput.menuUrl", value: page?.menuUrl || query.menuUrl || "-" },
-    { label: "runtimeEvidence.publishedVersionId", value: page?.publishedVersionId || "-" },
+    { label: "runtimeEvidence.publishedVersionId", value: stringifyValue(artifactEvidence?.publishedVersionId, page?.publishedVersionId || "-") },
     { label: "runtimeEvidence.currentNodeCount", value: String(currentNodes.length) },
     { label: "runtimeEvidence.currentEventCount", value: String(currentEventCount) },
     { label: "publishEvidence", value: latestPublishAudit ? `${String(latestPublishAudit.actionCode || "-")} / ${String(latestPublishAudit.createdAt || "-")}` : "-" },

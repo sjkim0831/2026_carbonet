@@ -6,6 +6,7 @@ See also:
 
 - `docs/ai/80-skills/skill-boundaries.md` for overlap rules, grouping, and selection order.
 - `docs/ai/80-skills/skill-gaps.md` for recurring work that still lacks a dedicated skill, including infrastructure topology and shared-runtime operations guidance.
+- `docs/ai/80-skills/workspace-system-skill-doc-backlog.md` for concrete workspace-system skill/doc additions grounded in current `codex-request`, `sr-workbench`, `screen-builder`, and observability code paths.
 
 - `carbonet-ai-session-orchestrator`
   - Purpose: classify work by shared file ownership and decide whether the task stays in one session or splits.
@@ -40,9 +41,9 @@ See also:
 - `carbonet-feature-builder`
   - Purpose: implement or extend Carbonet screens, menus, services, mappers, templates, and admin metadata.
   - Group: feature implementation
-  - Use for: page management, feature management, menu metadata, bilingual admin templates, admin shell bootstrap pages, author-role profile management, `PAGE_CODE_VIEW` authority-chain work, and the five-screen admin permission restoration set (`auth_group`, `auth_change`, `dept_role_mapping`, `member_edit`, `admin_account`).
+  - Use for: page management, feature management, menu metadata, bilingual admin templates, admin shell bootstrap pages, author-role profile management, `PAGE_CODE_VIEW` authority-chain work, the five-screen admin permission restoration set (`auth_group`, `auth_change`, `dept_role_mapping`, `member_edit`, `admin_account`), and `/admin/system/security-policy` style admin operations consoles where backend rules, React actions, SQL preview/rollback, and runtime remediation must move together.
   - Boundary: this is the default implementation skill for normal app features, but not for Codex runner internals, refresh/cache policy, or system-wide audit architecture.
-  - Key references: `.codex/skills/carbonet-feature-builder/references/*`, `docs/ai/40-backend/auth-policy.csv`, `docs/ai/50-data/table-screen-api-map.csv`
+  - Key references: `.codex/skills/carbonet-feature-builder/references/*`, `docs/ai/40-backend/auth-policy.csv`, `docs/ai/50-data/table-screen-api-map.csv`, `docs/operations/security-policy-ops.md`
 - `admin-screen-unifier`
   - Purpose: normalize existing admin screens to one governed design system across list, detail, edit, create, approve, and authority pages.
   - Group: feature implementation

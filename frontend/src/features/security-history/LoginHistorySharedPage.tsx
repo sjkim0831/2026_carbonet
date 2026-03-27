@@ -3,9 +3,10 @@ import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
-import { type LoginHistoryPagePayload } from "../../lib/api/client";
+import { saveSecurityHistoryAction, type LoginHistoryPagePayload } from "../../lib/api/client";
 import { stringOf } from "../admin-system/adminSystemShared";
-import { MemberPagination } from "../member/common";
+import { GridToolbar, LookupContextStrip, MemberButton, MemberLinkButton, MemberPagination, PageStatusNotice } from "../member/common";
+import { SummaryMetricCard } from "../admin-ui/common";
 
 type Filters = {
   pageIndex: number;
@@ -13,6 +14,7 @@ type Filters = {
   userSe: string;
   loginResult: string;
   insttId: string;
+  actionStatus: string;
 };
 
 type Props = {
@@ -29,6 +31,36 @@ type Props = {
 
 function resultBadge(result: string) {
   return result === "SUCCESS" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700";
+}
+
+function actionBadgeMeta(action: string, en: boolean) {
+  switch (action) {
+    case "SAVE_NOTE":
+      return {
+        className: "bg-slate-100 text-slate-700",
+        label: en ? "Note Saved" : "메모 저장"
+      };
+    case "UNBLOCK_USER":
+      return {
+        className: "bg-emerald-100 text-emerald-700",
+        label: en ? "Unblock Logged" : "해제 기록"
+      };
+    case "REGISTER_EXCEPTION":
+      return {
+        className: "bg-blue-100 text-blue-700",
+        label: en ? "Exception" : "예외 등록"
+      };
+    case "ESCALATE_BLOCK_IP":
+      return {
+        className: "bg-amber-100 text-amber-700",
+        label: en ? "IP Escalated" : "IP 차단 승격"
+      };
+    default:
+      return {
+        className: "bg-slate-100 text-slate-500",
+        label: en ? "No Action" : "미조치"
+      };
+  }
 }
 
 function userSeLabel(value: string, en: boolean) {
@@ -51,6 +83,7 @@ function syncLoginHistoryQuery(filters: Filters, fixedLoginResult?: string) {
   if (filters.userSe) search.set("userSe", filters.userSe);
   if (!fixedLoginResult && filters.loginResult) search.set("loginResult", filters.loginResult);
   if (filters.insttId) search.set("insttId", filters.insttId);
+  if (filters.actionStatus) search.set("actionStatus", filters.actionStatus);
   const nextUrl = `${window.location.pathname}${search.toString() ? `?${search.toString()}` : ""}`;
   window.history.replaceState({}, "", nextUrl);
 }
@@ -65,12 +98,18 @@ export function LoginHistorySharedPage(props: Props) {
       searchKeyword: search.get("searchKeyword") || "",
       userSe: search.get("userSe") || "",
       loginResult: props.fixedLoginResult || search.get("loginResult") || "",
-      insttId: search.get("insttId") || ""
+      insttId: search.get("insttId") || "",
+      actionStatus: search.get("actionStatus") || ""
     };
   }, [props.fixedLoginResult]);
   const [filters, setFilters] = useState(initial);
   const [draft, setDraft] = useState(initial);
   const [selectedRowKey, setSelectedRowKey] = useState<string>("");
+  const [operatorNotes, setOperatorNotes] = useState<Record<string, string>>({});
+  const [actionNote, setActionNote] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [actionMessage, setActionMessage] = useState("");
+  const [pendingAction, setPendingAction] = useState("");
   const pageState = useAsyncValue<LoginHistoryPagePayload>(() => props.fetchPage(filters), [filters.pageIndex, filters.searchKeyword, filters.userSe, filters.loginResult, filters.insttId], {
     onSuccess(payload) {
       const next = {
@@ -78,7 +117,8 @@ export function LoginHistorySharedPage(props: Props) {
         searchKeyword: String(payload.searchKeyword || ""),
         userSe: String(payload.userSe || ""),
         loginResult: props.fixedLoginResult || String(payload.loginResult || ""),
-        insttId: String(payload.selectedInsttId || "")
+        insttId: String(payload.selectedInsttId || ""),
+        actionStatus: filters.actionStatus
       };
       setDraft(next);
       syncLoginHistoryQuery(next, props.fixedLoginResult);
@@ -86,21 +126,62 @@ export function LoginHistorySharedPage(props: Props) {
   });
   const page = pageState.value;
   const rows = (page?.loginHistoryList || []) as Array<Record<string, unknown>>;
+  const securityHistoryActionRows = (page?.securityHistoryActionRows || []) as Array<Record<string, string>>;
+  const securityActionByHistoryKey = (page?.securityHistoryActionByHistoryKey || {}) as Record<string, Record<string, string>>;
+  const relatedCountByHistoryKey = (page?.securityHistoryRelatedCountByHistoryKey || {}) as Record<string, Record<string, number>>;
+  const aggregate = (page?.securityHistoryAggregate || {}) as Record<string, unknown>;
+  const filteredRows = rows;
   const companyOptions = (page?.companyOptions || []) as Array<Record<string, string>>;
   const totalPages = Number(page?.totalPages || 1);
   const currentPage = Number(page?.pageIndex || 1);
   const totalCount = Number(page?.totalCount || 0);
-  const successCount = rows.filter((item) => stringOf(item, "loginResult") === "SUCCESS").length;
-  const failCount = rows.filter((item) => stringOf(item, "loginResult") === "FAIL").length;
-  const uniqueIpCount = new Set(rows.map((item) => stringOf(item, "loginIp")).filter(Boolean)).size;
-  const uniqueUserCount = new Set(rows.map((item) => stringOf(item, "userId")).filter(Boolean)).size;
-  const userSeSummary = rows.reduce<Record<string, number>>((summary, item) => {
-    const key = stringOf(item, "userSe");
-    summary[key] = (summary[key] || 0) + 1;
-    return summary;
-  }, {});
-  const selectedRow = rows.find((item, index) => `${stringOf(item, "histId", "userId")}-${index}` === selectedRowKey) || null;
+  const successCount = filteredRows.filter((item) => stringOf(item, "loginResult") === "SUCCESS").length;
+  const failCount = filteredRows.filter((item) => stringOf(item, "loginResult") === "FAIL").length;
+  const uniqueIpCount = Number(aggregate.uniqueIpCount || 0);
+  const uniqueUserCount = Number(aggregate.uniqueUserCount || 0);
+  const userSeSummary = (aggregate.userSeSummary || {}) as Record<string, number>;
+  const selectedRow = filteredRows.find((item, index) => `${stringOf(item, "histId", "userId")}-${index}` === selectedRowKey)
+    || rows.find((item, index) => `${stringOf(item, "histId", "userId")}-${index}` === selectedRowKey)
+    || null;
   const selectedRowCompany = selectedRow ? stringOf(selectedRow, "companyName") : "";
+  const selectedHistoryKey = selectedRow
+    ? (stringOf(selectedRow, "histId") || `${stringOf(selectedRow, "userId")}|${stringOf(selectedRow, "loginIp")}|${stringOf(selectedRow, "loginPnttm")}`)
+    : "";
+  const selectedIp = selectedRow ? stringOf(selectedRow, "loginIp") : "";
+  const selectedUserId = selectedRow ? stringOf(selectedRow, "userId") : "";
+  const selectedInsttId = selectedRow ? stringOf(selectedRow, "insttId") : "";
+  const relatedCounts = selectedHistoryKey ? relatedCountByHistoryKey[selectedHistoryKey] || {} : {};
+  const sameIpCount = Number(relatedCounts.sameIpCount || 0);
+  const sameUserCount = Number(relatedCounts.sameUserCount || 0);
+  const sameCompanyCount = Number(relatedCounts.sameCompanyCount || 0);
+  const selectedNote = selectedRow ? stringOf(selectedRow, "loginMessage") : "";
+  const selectedSavedAction = selectedHistoryKey ? securityActionByHistoryKey[selectedHistoryKey] || null : null;
+  const selectedActionTimeline = selectedHistoryKey
+    ? securityHistoryActionRows.filter((row) => stringOf(row, "historyKey") === selectedHistoryKey).slice(0, 8)
+    : [];
+  const monitoringHref = selectedIp
+    ? `${buildLocalizedPath("/admin/system/security-monitoring", "/en/admin/system/security-monitoring")}?ip=${encodeURIComponent(selectedIp)}`
+    : buildLocalizedPath("/admin/system/security-monitoring", "/en/admin/system/security-monitoring");
+  const policyHref = selectedUserId
+    ? `${buildLocalizedPath("/admin/system/security-policy", "/en/admin/system/security-policy")}?searchKeyword=${encodeURIComponent(selectedUserId)}`
+    : buildLocalizedPath("/admin/system/security-policy", "/en/admin/system/security-policy");
+  const blocklistHref = selectedIp
+    ? `${buildLocalizedPath("/admin/system/blocklist", "/en/admin/system/blocklist")}?searchKeyword=${encodeURIComponent(selectedIp)}`
+    : buildLocalizedPath("/admin/system/blocklist", "/en/admin/system/blocklist");
+  const companyDetailHref = selectedInsttId
+    ? buildLocalizedPath(`/admin/member/company_detail?insttId=${encodeURIComponent(selectedInsttId)}`, `/en/admin/member/company_detail?insttId=${encodeURIComponent(selectedInsttId)}`)
+    : "";
+  const activeFilterCount = [filters.searchKeyword, filters.userSe, filters.insttId, !props.fixedLoginResult ? filters.loginResult : "", filters.actionStatus].filter(Boolean).length;
+  const contextLabel = blockedMode
+    ? (en ? "Block Review Context" : "차단 검토 컨텍스트")
+    : (en ? "Login History Context" : "로그인 이력 컨텍스트");
+  const contextValue = blockedMode
+    ? (en
+      ? `Showing blocked access rows${filters.insttId ? ` for company ${filters.insttId}` : ""}${filters.userSe ? ` · ${userSeLabel(filters.userSe, en)}` : ""}.`
+      : `차단 접근 이력을 조회 중입니다.${filters.insttId ? ` 회원사 ${filters.insttId}` : ""}${filters.userSe ? ` · ${userSeLabel(filters.userSe, en)}` : ""}`)
+    : (en
+      ? `Showing login history rows${filters.insttId ? ` for company ${filters.insttId}` : ""}${filters.userSe ? ` · ${userSeLabel(filters.userSe, en)}` : ""}.`
+      : `로그인 이력을 조회 중입니다.${filters.insttId ? ` 회원사 ${filters.insttId}` : ""}${filters.userSe ? ` · ${userSeLabel(filters.userSe, en)}` : ""}`);
 
   useEffect(() => {
     if (!page) {
@@ -118,14 +199,63 @@ export function LoginHistorySharedPage(props: Props) {
     });
     logGovernanceScope("COMPONENT", "login-history-table", {
       component: "login-history-table",
-      rowCount: rows.length,
+      rowCount: filteredRows.length,
       fixedLoginResult: props.fixedLoginResult || ""
     });
-  }, [currentPage, en, filters.insttId, filters.loginResult, filters.userSe, page, props.fixedLoginResult, props.titleEn, props.titleKo, rows.length, totalPages]);
+  }, [currentPage, en, filteredRows.length, filters.insttId, filters.loginResult, filters.userSe, page, props.fixedLoginResult, props.titleEn, props.titleKo, rows.length, totalPages]);
 
   useEffect(() => {
     setSelectedRowKey("");
-  }, [currentPage, filters.insttId, filters.loginResult, filters.searchKeyword, filters.userSe]);
+  }, [currentPage, filters.actionStatus, filters.insttId, filters.loginResult, filters.searchKeyword, filters.userSe]);
+
+  useEffect(() => {
+    if (!selectedRowKey) {
+      setActionNote("");
+      setActionError("");
+      setActionMessage("");
+      return;
+    }
+    setActionNote(operatorNotes[selectedRowKey] || stringOf(selectedSavedAction || {}, "note"));
+    setActionError("");
+    setActionMessage("");
+  }, [operatorNotes, selectedRowKey, selectedSavedAction]);
+
+  async function handleSecurityAction(action: "SAVE_NOTE" | "UNBLOCK_USER" | "REGISTER_EXCEPTION" | "ESCALATE_BLOCK_IP") {
+    if (!selectedRow || !selectedHistoryKey) {
+      return;
+    }
+    const confirmMessages: Record<string, string> = {
+      SAVE_NOTE: en ? "Save this operator note?" : "이 운영 메모를 저장하시겠습니까?",
+      UNBLOCK_USER: en ? "Record an unblock request for this user?" : "이 사용자에 대한 차단 해제 요청을 기록하시겠습니까?",
+      REGISTER_EXCEPTION: en ? "Register a temporary exception for this entry?" : "이 항목에 대한 임시 예외 요청을 등록하시겠습니까?",
+      ESCALATE_BLOCK_IP: en ? "Escalate this source IP to blocklist review?" : "이 원본 IP를 차단목록 검토 대상으로 승격하시겠습니까?"
+    };
+    if (!window.confirm(confirmMessages[action])) {
+      return;
+    }
+    setPendingAction(action);
+    setActionError("");
+    setActionMessage("");
+    try {
+      const response = await saveSecurityHistoryAction({
+        action,
+        historyKey: selectedHistoryKey,
+        userId: selectedUserId,
+        targetIp: selectedIp,
+        insttId: selectedInsttId,
+        note: actionNote,
+        occurredAt: stringOf(selectedRow, "loginPnttm"),
+        loginMessage: selectedNote
+      });
+      setOperatorNotes((current) => ({ ...current, [selectedRowKey]: actionNote }));
+      await pageState.reload();
+      setActionMessage(String(response.message || ""));
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setPendingAction("");
+    }
+  }
 
   return (
     <AdminPageShell
@@ -136,8 +266,29 @@ export function LoginHistorySharedPage(props: Props) {
       ]}
       title={en ? props.titleEn : props.titleKo}
       subtitle={en ? props.subtitleEn : props.subtitleKo}
+      contextStrip={
+        <LookupContextStrip
+          action={
+            selectedRow
+              ? <button className="gov-btn gov-btn-secondary" onClick={() => setSelectedRowKey("")} type="button">{en ? "Clear Detail Selection" : "상세 선택 해제"}</button>
+              : null
+          }
+          label={contextLabel}
+          value={
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <span>{contextValue}</span>
+              <span className="text-xs text-[var(--kr-gov-text-secondary)]">
+                {en ? "Active filters" : "적용 필터"} <strong>{activeFilterCount}</strong>
+              </span>
+              <span className="text-xs text-[var(--kr-gov-text-secondary)]">
+                {en ? "Rows" : "행 수"} <strong>{totalCount.toLocaleString()}</strong>
+              </span>
+            </div>
+          }
+        />
+      }
     >
-      {page?.loginHistoryError || pageState.error ? <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{page?.loginHistoryError || pageState.error}</div> : null}
+      {page?.loginHistoryError || pageState.error ? <PageStatusNotice tone="error">{page?.loginHistoryError || pageState.error}</PageStatusNotice> : null}
       {blockedMode ? (
         <section className="gov-card mb-6 border border-amber-200 bg-[linear-gradient(135deg,rgba(255,251,235,0.95),rgba(255,255,255,0.98))]" data-help-id="member-security-guidance">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
@@ -156,28 +307,10 @@ export function LoginHistorySharedPage(props: Props) {
         </section>
       ) : null}
       <section className="grid grid-cols-1 gap-4 mb-6 md:grid-cols-2 xl:grid-cols-4">
-        <article className="gov-card">
-          <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{blockedMode ? (en ? "Blocked Logs" : "차단 이력") : (en ? "Visible Logs" : "조회 건수")}</p>
-          <p className="mt-3 text-3xl font-black text-[var(--kr-gov-blue)]">{totalCount.toLocaleString()}</p>
-          <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">{blockedMode ? (en ? "Current blocked result count" : "현재 차단 결과 건수") : (en ? "Current filter result count" : "현재 필터 기준 결과 건수")}</p>
-        </article>
-        <article className="gov-card">
-          <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{blockedMode ? (en ? "Blocked Users" : "차단 사용자") : (en ? "Success / Fail" : "성공 / 실패")}</p>
-          <p className={`mt-3 text-3xl font-black ${blockedMode ? "text-red-600" : "text-emerald-600"}`}>{blockedMode ? uniqueUserCount.toLocaleString() : <>{successCount}<span className="mx-2 text-gray-300">/</span><span className="text-red-600">{failCount}</span></>}</p>
-          <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">{blockedMode ? (en ? "Distinct blocked user IDs on this page" : "현재 페이지의 고유 차단 사용자 수") : (en ? "Counts on this page" : "현재 페이지 기준 집계")}</p>
-        </article>
-        <article className="gov-card">
-          <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{blockedMode ? (en ? "Blocked IPs" : "차단 IP") : (en ? "Unique IPs" : "고유 IP")}</p>
-          <p className="mt-3 text-3xl font-black text-amber-600">{uniqueIpCount.toLocaleString()}</p>
-          <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">{blockedMode ? (en ? "Distinct source IPs behind blocked rows" : "차단 이력에 포함된 고유 IP 수") : (en ? "Distinct client IPs on this page" : "현재 페이지의 중복 제거 IP 수")}</p>
-        </article>
-        <article className="gov-card">
-          <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{blockedMode ? (en ? "Blocked Scope" : "차단 범위") : (en ? "User Scope" : "사용자 구분")}</p>
-          <p className="mt-3 text-xl font-black text-slate-800">
-            {`${en ? "Admin" : "관리자"} ${userSeSummary.USR || 0} · ${en ? "Enterprise" : "기업"} ${userSeSummary.ENT || 0} · ${en ? "General" : "일반"} ${userSeSummary.GNR || 0}`}
-          </p>
-          <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">{blockedMode ? (en ? "Blocked row distribution on this page" : "현재 페이지의 차단 사용자 분포") : (en ? "Distribution on this page" : "현재 페이지 분포")}</p>
-        </article>
+        <SummaryMetricCard description={blockedMode ? (en ? "Current blocked result count" : "현재 차단 결과 건수") : (en ? "Current filter result count" : "현재 필터 기준 결과 건수")} surfaceClassName="bg-white" title={blockedMode ? (en ? "Blocked Logs" : "차단 이력") : (en ? "Visible Logs" : "조회 건수")} value={<span className="text-3xl font-black text-[var(--kr-gov-blue)]">{totalCount.toLocaleString()}</span>} />
+        <SummaryMetricCard description={blockedMode ? (en ? "Distinct blocked user IDs on this page" : "현재 페이지의 고유 차단 사용자 수") : (en ? "Counts on this page" : "현재 페이지 기준 집계")} surfaceClassName="bg-white" title={blockedMode ? (en ? "Blocked Users" : "차단 사용자") : (en ? "Success / Fail" : "성공 / 실패")} value={blockedMode ? <span className="text-3xl font-black text-red-600">{uniqueUserCount.toLocaleString()}</span> : <span className="text-3xl font-black text-emerald-600">{successCount}<span className="mx-2 text-gray-300">/</span><span className="text-red-600">{failCount}</span></span>} />
+        <SummaryMetricCard description={blockedMode ? (en ? "Distinct source IPs behind blocked rows" : "차단 이력에 포함된 고유 IP 수") : (en ? "Distinct client IPs on this page" : "현재 페이지의 중복 제거 IP 수")} surfaceClassName="bg-white" title={blockedMode ? (en ? "Blocked IPs" : "차단 IP") : (en ? "Unique IPs" : "고유 IP")} value={<span className="text-3xl font-black text-amber-600">{uniqueIpCount.toLocaleString()}</span>} />
+        <SummaryMetricCard description={blockedMode ? (en ? "Blocked row distribution on this page" : "현재 페이지의 차단 사용자 분포") : (en ? "Distribution on this page" : "현재 페이지 분포")} surfaceClassName="bg-white" title={blockedMode ? (en ? "Blocked Scope" : "차단 범위") : (en ? "User Scope" : "사용자 구분")} value={<span className="text-base font-black text-slate-800">{`${en ? "Admin" : "관리자"} ${userSeSummary.USR || 0} · ${en ? "Enterprise" : "기업"} ${userSeSummary.ENT || 0} · ${en ? "General" : "일반"} ${userSeSummary.GNR || 0}`}</span>} />
       </section>
       <section className="gov-card mb-6" data-help-id="login-history-search">
         <form className="grid grid-cols-1 md:grid-cols-4 gap-4" onSubmit={(event) => {
@@ -186,7 +319,8 @@ export function LoginHistorySharedPage(props: Props) {
             searchKeyword: draft.searchKeyword,
             userSe: draft.userSe,
             loginResult: draft.loginResult || props.fixedLoginResult || "",
-            insttId: draft.insttId
+            insttId: draft.insttId,
+            actionStatus: draft.actionStatus
           });
           setFilters({ ...draft, pageIndex: 1 });
         }}>
@@ -222,13 +356,24 @@ export function LoginHistorySharedPage(props: Props) {
               </select>
             </div>
           ) : <div />}
+          <div>
+            <label className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2" htmlFor="actionStatus">{en ? "Action Status" : "조치 상태"}</label>
+            <select className="gov-select" id="actionStatus" value={draft.actionStatus} onChange={(event) => setDraft((current) => ({ ...current, actionStatus: event.target.value }))}>
+              <option value="">{en ? "All" : "전체"}</option>
+              <option value="NONE">{en ? "No Action" : "미조치"}</option>
+              <option value="SAVE_NOTE">{en ? "Note Saved" : "메모 저장"}</option>
+              <option value="UNBLOCK_USER">{en ? "Unblock Logged" : "해제 기록"}</option>
+              <option value="REGISTER_EXCEPTION">{en ? "Exception" : "예외 등록"}</option>
+              <option value="ESCALATE_BLOCK_IP">{en ? "IP Escalated" : "IP 차단 승격"}</option>
+            </select>
+          </div>
           <div className="md:col-span-2">
             <label className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2" htmlFor="searchKeyword">{en ? "Keyword" : "검색어"}</label>
             <div className="flex gap-2">
               <input className="gov-input flex-1" id="searchKeyword" placeholder={en ? "Search by ID, name, or IP" : "아이디, 이름, IP 검색"} value={draft.searchKeyword} onChange={(event) => setDraft((current) => ({ ...current, searchKeyword: event.target.value }))} />
               <button className="gov-btn gov-btn-primary" type="submit">{en ? "Search" : "검색"}</button>
               <button className="gov-btn gov-btn-secondary" onClick={() => {
-                const reset = { pageIndex: 1, searchKeyword: "", userSe: "", loginResult: props.fixedLoginResult || "", insttId: "" };
+                const reset = { pageIndex: 1, searchKeyword: "", userSe: "", loginResult: props.fixedLoginResult || "", insttId: "", actionStatus: "" };
                 setDraft(reset);
                 setFilters(reset);
               }} type="button">{en ? "Reset" : "초기화"}</button>
@@ -238,6 +383,11 @@ export function LoginHistorySharedPage(props: Props) {
       </section>
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.8fr)_380px]">
       <section className="gov-card p-0 overflow-hidden" data-help-id="login-history-table">
+        <GridToolbar
+          actions={<span className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Filtered rows" : "필터 결과"} <strong>{filteredRows.length}</strong>{en ? ` / ${totalCount}` : ` / 총 ${totalCount}건`}</span>}
+          meta={blockedMode ? (en ? "Review block reasons and source IPs together before release action." : "차단 해제 전 차단 사유와 원본 IP를 함께 검토합니다.") : (en ? "Select a row to inspect user, company, IP, and note together." : "행을 선택하면 사용자, 회원사, IP, 비고를 함께 확인합니다.")}
+          title={blockedMode ? (en ? "Blocked Access History" : "차단 접근 이력") : (en ? "Login History" : "로그인 이력")}
+        />
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left border-collapse">
             <thead>
@@ -249,16 +399,20 @@ export function LoginHistorySharedPage(props: Props) {
                 <th className="px-6 py-4">{en ? "Company" : "회원사"}</th>
                 <th className="px-6 py-4">{en ? "Name (ID)" : "이름 (아이디)"}</th>
                 <th className="px-6 py-4">IP</th>
+                <th className="px-6 py-4">{en ? "Action Status" : "조치 상태"}</th>
                 <th className="px-6 py-4">{en ? "Note" : props.fixedLoginResult ? "차단 사유" : "비고"}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {rows.length === 0 ? (
-                <tr><td className="px-6 py-8 text-center text-gray-500" colSpan={props.fixedLoginResult ? 7 : 8}>{en ? "No history found." : "조회된 이력이 없습니다."}</td></tr>
-              ) : rows.map((item, index) => {
+              {filteredRows.length === 0 ? (
+                <tr><td className="px-6 py-8 text-center text-gray-500" colSpan={props.fixedLoginResult ? 8 : 9}>{en ? "No history found." : "조회된 이력이 없습니다."}</td></tr>
+              ) : filteredRows.map((item, index) => {
                 const rowNo = Number(page?.totalCount || 0) - ((currentPage - 1) * Number(page?.pageSize || 10) + index);
                 const result = stringOf(item, "loginResult");
                 const rowKey = `${stringOf(item, "histId", "userId")}-${index}`;
+                const rowHistoryKey = stringOf(item, "histId") || `${stringOf(item, "userId")}|${stringOf(item, "loginIp")}|${stringOf(item, "loginPnttm")}`;
+                const rowSavedAction = securityActionByHistoryKey[rowHistoryKey] || null;
+                const actionMeta = actionBadgeMeta(stringOf(rowSavedAction || {}, "action"), en);
                 const highlighted = result === "FAIL" && !props.fixedLoginResult;
                 return (
                   <tr className={`cursor-pointer transition-colors ${selectedRowKey === rowKey ? "bg-blue-50" : highlighted ? "bg-red-50/40 hover:bg-red-50/60" : "hover:bg-gray-50/50"}`} key={rowKey} onClick={() => setSelectedRowKey(rowKey)}>
@@ -269,6 +423,16 @@ export function LoginHistorySharedPage(props: Props) {
                     <td className="px-6 py-4 text-gray-600">{stringOf(item, "companyName") || "-"}</td>
                     <td className="px-6 py-4"><div className="font-semibold">{stringOf(item, "userNm") || "-"}</div><div className="text-xs text-gray-400">{stringOf(item, "userId") || "-"}</div></td>
                     <td className="px-6 py-4 text-gray-600">{stringOf(item, "loginIp")}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-1">
+                        <span className={`inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-bold ${actionMeta.className}`}>{actionMeta.label}</span>
+                        {rowSavedAction ? (
+                          <span className="text-xs text-gray-500">
+                            {stringOf(rowSavedAction, "executedAt") || "-"}
+                          </span>
+                        ) : null}
+                      </div>
+                    </td>
                     <td className="px-6 py-4 text-gray-600">{stringOf(item, "loginMessage") || "-"}</td>
                   </tr>
                 );
@@ -288,12 +452,78 @@ export function LoginHistorySharedPage(props: Props) {
         </div>
         {selectedRow ? (
           <div className="mt-5 space-y-4 text-sm">
+            {actionError ? <PageStatusNotice className="mb-0" tone="error">{actionError}</PageStatusNotice> : null}
+            {actionMessage ? <PageStatusNotice className="mb-0" tone="success">{actionMessage}</PageStatusNotice> : null}
             <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-3">
               <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Result" : "결과"}</p>
               <div className="mt-2 flex items-center gap-2">
                 {!props.fixedLoginResult ? <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${resultBadge(stringOf(selectedRow, "loginResult"))}`}>{stringOf(selectedRow, "loginResult") === "SUCCESS" ? (en ? "Success" : "성공") : (en ? "Fail" : "실패")}</span> : null}
                 <span className="text-[var(--kr-gov-text-secondary)]">{stringOf(selectedRow, "loginPnttm") || "-"}</span>
               </div>
+            </div>
+            {selectedSavedAction ? (
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
+                <p className="text-xs font-bold text-emerald-800">{en ? "Latest Recorded Action" : "최근 기록된 조치"}</p>
+                <div className="mt-2 text-sm text-emerald-900">
+                  <strong>{stringOf(selectedSavedAction, "action") || "-"}</strong>
+                  <span className="mx-2">·</span>
+                  <span>{stringOf(selectedSavedAction, "executedAt") || "-"}</span>
+                  <span className="mx-2">·</span>
+                  <span>{stringOf(selectedSavedAction, "executedBy") || "-"}</span>
+                </div>
+                {stringOf(selectedSavedAction, "note") ? (
+                  <p className="mt-2 whitespace-pre-wrap break-words text-sm text-emerald-900">{stringOf(selectedSavedAction, "note")}</p>
+                ) : null}
+              </div>
+            ) : null}
+            {selectedActionTimeline.length > 0 ? (
+              <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-white px-4 py-4">
+                <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Action Timeline" : "조치 타임라인"}</p>
+                <div className="mt-3 space-y-3">
+                  {selectedActionTimeline.map((row, index) => {
+                    const meta = actionBadgeMeta(stringOf(row, "action"), en);
+                    return (
+                      <div className="flex gap-3" key={`${stringOf(row, "executedAt")}-${index}`}>
+                        <div className="mt-1 h-2.5 w-2.5 rounded-full bg-[var(--kr-gov-blue)]" />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-bold ${meta.className}`}>{meta.label}</span>
+                            <span className="text-xs text-gray-500">{stringOf(row, "executedAt") || "-"}</span>
+                            <span className="text-xs text-gray-500">{stringOf(row, "executedBy") || "-"}</span>
+                          </div>
+                          {stringOf(row, "note") ? <p className="mt-1 whitespace-pre-wrap break-words text-sm text-[var(--kr-gov-text-secondary)]">{stringOf(row, "note")}</p> : null}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+            <div className="grid grid-cols-1 gap-3">
+              <SummaryMetricCard
+                accentClassName="text-[var(--kr-gov-text-secondary)] text-xs"
+                className="rounded-lg"
+                surfaceClassName="bg-[var(--kr-gov-surface-subtle)]"
+                title={en ? "Same IP Rows" : "동일 IP 건수"}
+                value={<span className="text-2xl font-black text-red-700">{sameIpCount}</span>}
+                description={en ? "Rows on this page from the same source IP." : "현재 페이지에서 같은 원본 IP로 확인된 건수입니다."}
+              />
+              <SummaryMetricCard
+                accentClassName="text-[var(--kr-gov-text-secondary)] text-xs"
+                className="rounded-lg"
+                surfaceClassName="bg-[var(--kr-gov-surface-subtle)]"
+                title={en ? "Same User Rows" : "동일 사용자 건수"}
+                value={<span className="text-2xl font-black text-amber-700">{sameUserCount}</span>}
+                description={en ? "Rows on this page for the same user ID." : "현재 페이지에서 같은 사용자 ID로 확인된 건수입니다."}
+              />
+              <SummaryMetricCard
+                accentClassName="text-[var(--kr-gov-text-secondary)] text-xs"
+                className="rounded-lg"
+                surfaceClassName="bg-[var(--kr-gov-surface-subtle)]"
+                title={en ? "Same Company Rows" : "동일 회원사 건수"}
+                value={<span className="text-2xl font-black text-[var(--kr-gov-blue)]">{sameCompanyCount}</span>}
+                description={en ? "Rows on this page within the same company scope." : "현재 페이지에서 같은 회원사 범위로 확인된 건수입니다."}
+              />
             </div>
             <dl className="space-y-3">
               <div>
@@ -319,9 +549,70 @@ export function LoginHistorySharedPage(props: Props) {
                 <dd className="mt-1 whitespace-pre-wrap break-words leading-6">{stringOf(selectedRow, "loginMessage") || "-"}</dd>
               </div>
             </dl>
+            <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-white px-4 py-4">
+              <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Operational Actions" : "운영 액션"}</p>
+              <div className="mt-3">
+                <label className="block text-xs font-bold text-[var(--kr-gov-text-secondary)]" htmlFor="security-history-action-note">
+                  {en ? "Operator Note" : "운영 메모"}
+                </label>
+                <textarea
+                  className="mt-2 min-h-[96px] w-full rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] px-3 py-2 text-sm"
+                  id="security-history-action-note"
+                  placeholder={en ? "Record release reason, exception scope, or review notes." : "해제 사유, 예외 범위, 검토 메모를 기록합니다."}
+                  value={actionNote}
+                  onChange={(event) => setActionNote(event.target.value)}
+                />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <MemberLinkButton href={monitoringHref} size="sm" variant="secondary">
+                  {en ? "Open Monitoring" : "모니터링 열기"}
+                </MemberLinkButton>
+                <MemberLinkButton href={policyHref} size="sm" variant="secondary">
+                  {en ? "Open Policy" : "정책 열기"}
+                </MemberLinkButton>
+                <MemberLinkButton href={blocklistHref} size="sm" variant="secondary">
+                  {en ? "Open Blocklist" : "차단목록 열기"}
+                </MemberLinkButton>
+                {companyDetailHref ? (
+                  <MemberLinkButton href={companyDetailHref} size="sm" variant="secondary">
+                    {en ? "Open Company" : "회원사 열기"}
+                  </MemberLinkButton>
+                ) : null}
+                <MemberButton
+                  onClick={() => {
+                    const lines = [
+                      `${en ? "User ID" : "사용자 ID"}: ${selectedUserId || "-"}`,
+                      `IP: ${selectedIp || "-"}`,
+                      `${en ? "Company" : "회원사"}: ${selectedRowCompany || selectedInsttId || "-"}`,
+                      `${en ? "Reason" : "사유"}: ${selectedNote || "-"}`
+                    ];
+                    void navigator.clipboard.writeText(lines.join("\n"));
+                  }}
+                  size="sm"
+                  type="button"
+                  variant="secondary"
+                >
+                  {en ? "Copy Summary" : "요약 복사"}
+                </MemberButton>
+                <MemberButton disabled={pendingAction === "SAVE_NOTE"} onClick={() => { void handleSecurityAction("SAVE_NOTE"); }} size="sm" type="button" variant="secondary">
+                  {pendingAction === "SAVE_NOTE" ? (en ? "Saving..." : "저장 중...") : (en ? "Save Note" : "메모 저장")}
+                </MemberButton>
+                <MemberButton disabled={pendingAction === "UNBLOCK_USER"} onClick={() => { void handleSecurityAction("UNBLOCK_USER"); }} size="sm" type="button" variant="secondary">
+                  {pendingAction === "UNBLOCK_USER" ? (en ? "Submitting..." : "처리 중...") : (en ? "Record Unblock" : "차단 해제 기록")}
+                </MemberButton>
+                <MemberButton disabled={pendingAction === "REGISTER_EXCEPTION"} onClick={() => { void handleSecurityAction("REGISTER_EXCEPTION"); }} size="sm" type="button" variant="secondary">
+                  {pendingAction === "REGISTER_EXCEPTION" ? (en ? "Submitting..." : "처리 중...") : (en ? "Register Exception" : "예외 등록")}
+                </MemberButton>
+                <MemberButton disabled={pendingAction === "ESCALATE_BLOCK_IP" || !selectedIp} onClick={() => { void handleSecurityAction("ESCALATE_BLOCK_IP"); }} size="sm" type="button" variant="secondary">
+                  {pendingAction === "ESCALATE_BLOCK_IP" ? (en ? "Submitting..." : "처리 중...") : (en ? "Escalate IP Block" : "IP 차단 승격")}
+                </MemberButton>
+              </div>
+            </div>
             {stringOf(selectedRow, "loginResult") === "FAIL" ? (
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                {en ? "Repeated fail rows should be reviewed with the source IP and member company together." : "실패 이력은 원본 IP와 회원사 범위를 함께 확인한 뒤 추가 차단 여부를 검토해야 합니다."}
+                {sameIpCount >= 3
+                  ? (en ? "The same source IP appears repeatedly on this page. Review monitoring and blocklist before releasing access." : "동일 원본 IP가 이 페이지에서 반복 확인됩니다. 해제 전에 모니터링과 차단목록을 함께 검토해야 합니다.")
+                  : (en ? "Repeated fail rows should be reviewed with the source IP and member company together." : "실패 이력은 원본 IP와 회원사 범위를 함께 확인한 뒤 추가 차단 여부를 검토해야 합니다.")}
               </div>
             ) : null}
           </div>

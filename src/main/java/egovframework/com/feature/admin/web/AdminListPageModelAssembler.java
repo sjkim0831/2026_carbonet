@@ -16,6 +16,7 @@ import org.springframework.ui.Model;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Collections;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -30,6 +31,45 @@ public class AdminListPageModelAssembler {
     private final ObjectProvider<AdminMainController> adminMainControllerProvider;
     private final EnterpriseMemberService entrprsManageService;
     private final AdminLoginHistoryService adminLoginHistoryService;
+
+    public static class LoginHistoryDataset {
+        private final List<LoginHistoryVO> rows;
+        private final int totalCount;
+        private final String keyword;
+        private final String normalizedUserSe;
+        private final String normalizedLoginResult;
+        private final List<Map<String, String>> companyOptions;
+        private final String selectedInsttId;
+        private final boolean masterAccess;
+
+        public LoginHistoryDataset(
+                List<LoginHistoryVO> rows,
+                int totalCount,
+                String keyword,
+                String normalizedUserSe,
+                String normalizedLoginResult,
+                List<Map<String, String>> companyOptions,
+                String selectedInsttId,
+                boolean masterAccess) {
+            this.rows = rows;
+            this.totalCount = totalCount;
+            this.keyword = keyword;
+            this.normalizedUserSe = normalizedUserSe;
+            this.normalizedLoginResult = normalizedLoginResult;
+            this.companyOptions = companyOptions;
+            this.selectedInsttId = selectedInsttId;
+            this.masterAccess = masterAccess;
+        }
+
+        public List<LoginHistoryVO> getRows() { return rows; }
+        public int getTotalCount() { return totalCount; }
+        public String getKeyword() { return keyword; }
+        public String getNormalizedUserSe() { return normalizedUserSe; }
+        public String getNormalizedLoginResult() { return normalizedLoginResult; }
+        public List<Map<String, String>> getCompanyOptions() { return companyOptions; }
+        public String getSelectedInsttId() { return selectedInsttId; }
+        public boolean isMasterAccess() { return masterAccess; }
+    }
 
     private AdminMainController adminMainController() {
         return adminMainControllerProvider.getObject();
@@ -369,14 +409,32 @@ public class AdminListPageModelAssembler {
             String requestedInsttId,
             Model model,
             HttpServletRequest request) {
-        AdminMainController controller = adminMainController();
         int pageIndex = parsePageIndex(pageIndexParam);
         int currentPage = Math.max(pageIndex, 1);
         int pageSize = 10;
+        LoginHistoryDataset dataset = loadBlockedLoginHistoryDataset(searchKeyword, userSe, requestedInsttId, request);
+        List<LoginHistoryVO> allRows = dataset.getRows();
+        int totalCount = dataset.getTotalCount();
+        int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
+        if (currentPage > totalPages) {
+            currentPage = totalPages;
+        }
+        int fromIndex = Math.max(0, Math.min((currentPage - 1) * pageSize, allRows.size()));
+        int toIndex = Math.max(fromIndex, Math.min(fromIndex + pageSize, allRows.size()));
+        List<LoginHistoryVO> pageItems = allRows.isEmpty() ? Collections.emptyList() : new ArrayList<>(allRows.subList(fromIndex, toIndex));
+        populateLoginHistoryModel(model, currentPage, pageSize, dataset.getKeyword(), dataset.getNormalizedUserSe(), dataset.getNormalizedLoginResult(),
+                dataset.getCompanyOptions(), dataset.getSelectedInsttId(), dataset.isMasterAccess(), pageItems, totalCount);
+    }
+
+    public LoginHistoryDataset loadBlockedLoginHistoryDataset(
+            String searchKeyword,
+            String userSe,
+            String requestedInsttId,
+            HttpServletRequest request) {
+        AdminMainController controller = adminMainController();
         String keyword = controller.safeString(searchKeyword);
         String normalizedUserSe = controller.safeString(userSe).toUpperCase(Locale.ROOT);
         String normalizedLoginResult = "FAIL";
-        String normalizedBlockedOnly = "Y";
         String currentUserId = controller.extractCurrentUserId(request);
         String currentUserAuthorCode = controller.resolveCurrentUserAuthorCode(currentUserId);
         boolean masterAccess = controller.hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode);
@@ -392,29 +450,34 @@ public class AdminListPageModelAssembler {
         searchVO.setSearchKeyword(keyword);
         searchVO.setUserSe(normalizedUserSe);
         searchVO.setLoginResult(normalizedLoginResult);
-        searchVO.setBlockedOnly(normalizedBlockedOnly);
+        searchVO.setBlockedOnly("Y");
         searchVO.setInsttId(selectedInsttId);
-        searchVO.setRecordCountPerPage(pageSize);
 
-        List<LoginHistoryVO> pageItems;
+        List<LoginHistoryVO> rows;
         int totalCount;
         try {
             totalCount = adminLoginHistoryService.selectLoginHistoryListTotCnt(searchVO);
-            int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
-            if (currentPage > totalPages) {
-                currentPage = totalPages;
+            if (totalCount <= 0) {
+                rows = Collections.emptyList();
+            } else {
+                searchVO.setFirstIndex(0);
+                searchVO.setRecordCountPerPage(totalCount);
+                rows = adminLoginHistoryService.selectLoginHistoryList(searchVO);
             }
-            searchVO.setFirstIndex((currentPage - 1) * pageSize);
-            pageItems = adminLoginHistoryService.selectLoginHistoryList(searchVO);
         } catch (Exception e) {
-            log.error("Failed to load login history.", e);
+            log.error("Failed to load blocked login history dataset.", e);
+            rows = Collections.emptyList();
             totalCount = 0;
-            pageItems = Collections.emptyList();
-            model.addAttribute("loginHistoryError", e.getMessage());
         }
-
-        populateLoginHistoryModel(model, currentPage, pageSize, keyword, normalizedUserSe, normalizedLoginResult,
-                companyOptions, selectedInsttId, masterAccess, pageItems, totalCount);
+        return new LoginHistoryDataset(
+                rows,
+                totalCount,
+                keyword,
+                normalizedUserSe,
+                normalizedLoginResult,
+                companyOptions,
+                selectedInsttId,
+                masterAccess);
     }
 
     private void populateLoginHistoryModel(

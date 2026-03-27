@@ -187,6 +187,7 @@ public class AdminMemberController {
             @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
             @RequestParam(value = "userSe", required = false) String userSe,
             @RequestParam(value = "insttId", required = false) String insttId,
+            @RequestParam(value = "actionStatus", required = false) String actionStatus,
             HttpServletRequest request,
             Locale locale) {
         primeCsrfToken(request);
@@ -195,6 +196,7 @@ public class AdminMemberController {
                 searchKeyword,
                 userSe,
                 insttId,
+                actionStatus,
                 request,
                 isEnglishRequest(request, locale)));
     }

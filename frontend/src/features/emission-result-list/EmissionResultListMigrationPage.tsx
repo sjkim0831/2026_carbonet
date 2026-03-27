@@ -4,6 +4,8 @@ import { logGovernanceScope } from "../../app/policy/debug";
 import { fetchEmissionResultListPage, readBootstrappedEmissionResultListPageData, type EmissionResultListPagePayload } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { AdminInput, AdminSelect, CollectionResultPanel, GridToolbar, MemberPagination, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
+import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 import { stringOf } from "../admin-system/adminSystemShared";
 
 type Filters = {
@@ -43,8 +45,6 @@ export function EmissionResultListMigrationPage() {
   const rows = (page?.emissionResultList || []) as Array<Record<string, unknown>>;
   const totalPages = Number(page?.totalPages || 1);
   const currentPage = Number(page?.pageIndex || 1);
-  const startPage = Number(page?.startPage || 1);
-  const endPage = Number(page?.endPage || totalPages);
 
   useEffect(() => {
     logGovernanceScope("PAGE", "emission-result-list", {
@@ -90,16 +90,22 @@ export function EmissionResultListMigrationPage() {
       title={en ? "Emission Result List" : "산정 결과 목록"}
       subtitle={en ? "Review emission calculation results by calculation and verification status." : "배출량 산정 결과를 검토 상태와 검증 상태 기준으로 조회합니다."}
     >
-      {pageState.error ? <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{pageState.error}</div> : null}
+      <AdminWorkspacePageFrame>
+        {pageState.error ? <PageStatusNotice tone="error">{pageState.error}</PageStatusNotice> : null}
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-6" data-help-id="emission-result-summary">
-        <div className="gov-card"><p className="text-xs font-bold text-[var(--kr-gov-text-secondary)] mb-2">{en ? "Total Results" : "전체 결과"}</p><p className="text-3xl font-black text-[var(--kr-gov-blue)]">{Number(page?.totalCount || 0).toLocaleString()}</p></div>
-        <div className="gov-card"><p className="text-xs font-bold text-[var(--kr-gov-text-secondary)] mb-2">{en ? "Under Review" : "검토 진행"}</p><p className="text-3xl font-black text-amber-600">{Number(page?.reviewCount || 0).toLocaleString()}</p></div>
-        <div className="gov-card"><p className="text-xs font-bold text-[var(--kr-gov-text-secondary)] mb-2">{en ? "Verified" : "검증 완료"}</p><p className="text-3xl font-black text-emerald-600">{Number(page?.verifiedCount || 0).toLocaleString()}</p></div>
-      </div>
+        <section className="grid grid-cols-1 gap-4 xl:grid-cols-3" data-help-id="emission-result-summary">
+          <SummaryMetricCard title={en ? "Total Results" : "전체 결과"} value={Number(page?.totalCount || 0).toLocaleString()} />
+          <SummaryMetricCard accentClassName="text-amber-600" surfaceClassName="bg-amber-50" title={en ? "Under Review" : "검토 진행"} value={Number(page?.reviewCount || 0).toLocaleString()} />
+          <SummaryMetricCard accentClassName="text-emerald-600" surfaceClassName="bg-emerald-50" title={en ? "Verified" : "검증 완료"} value={Number(page?.verifiedCount || 0).toLocaleString()} />
+        </section>
 
-      <section className="gov-card mb-8" data-help-id="emission-result-search">
-        <form className="grid grid-cols-1 md:grid-cols-4 gap-6" onSubmit={(event) => {
+        <CollectionResultPanel
+          data-help-id="emission-result-search"
+          description={en ? "Filter by calculation status, verification status, and keyword before reviewing result rows." : "산정 상태, 검증 상태, 검색어로 먼저 좁힌 뒤 결과 행을 검토합니다."}
+          icon="filter_alt"
+          title={en ? "Emission Result Filter" : "산정 결과 조회 조건"}
+        >
+        <form className="grid grid-cols-1 gap-6 md:grid-cols-4" onSubmit={(event) => {
           event.preventDefault();
           logGovernanceScope("ACTION", "emission-result-search", {
             searchKeyword: draft.searchKeyword,
@@ -110,35 +116,36 @@ export function EmissionResultListMigrationPage() {
         }}>
           <div>
             <label className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2" htmlFor="resultStatus">{en ? "Calculation Status" : "산정 상태"}</label>
-            <select className="gov-select" id="resultStatus" value={draft.resultStatus} onChange={(event) => setDraft((current) => ({ ...current, resultStatus: event.target.value }))}>
+            <AdminSelect id="resultStatus" value={draft.resultStatus} onChange={(event) => setDraft((current) => ({ ...current, resultStatus: event.target.value }))}>
               <option value="">{en ? "All" : "전체"}</option>
               <option value="COMPLETED">{en ? "Completed" : "산정 완료"}</option>
               <option value="REVIEW">{en ? "Under Review" : "검토 중"}</option>
               <option value="DRAFT">{en ? "Draft" : "임시 저장"}</option>
-            </select>
+            </AdminSelect>
           </div>
           <div>
             <label className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2" htmlFor="verificationStatus">{en ? "Verification Status" : "검증 상태"}</label>
-            <select className="gov-select" id="verificationStatus" value={draft.verificationStatus} onChange={(event) => setDraft((current) => ({ ...current, verificationStatus: event.target.value }))}>
+            <AdminSelect id="verificationStatus" value={draft.verificationStatus} onChange={(event) => setDraft((current) => ({ ...current, verificationStatus: event.target.value }))}>
               <option value="">{en ? "All" : "전체"}</option>
               <option value="VERIFIED">{en ? "Verified" : "검증 완료"}</option>
               <option value="PENDING">{en ? "Pending" : "검증 대기"}</option>
               <option value="IN_PROGRESS">{en ? "In Progress" : "검증 진행중"}</option>
               <option value="FAILED">{en ? "Recheck Needed" : "재검토 필요"}</option>
               <option value="NOT_REQUIRED">{en ? "Not Required" : "검증 제외"}</option>
-            </select>
+            </AdminSelect>
           </div>
           <div className="md:col-span-2">
             <label className="block text-[14px] font-bold text-[var(--kr-gov-text-secondary)] mb-2" htmlFor="searchKeyword">{en ? "Keyword" : "검색어"}</label>
             <div className="flex gap-2">
-              <input className="gov-input flex-1" id="searchKeyword" placeholder={en ? "Search by project, company, or result ID" : "프로젝트명, 기관명, 결과 ID 검색"} value={draft.searchKeyword} onChange={(event) => setDraft((current) => ({ ...current, searchKeyword: event.target.value }))} />
+              <AdminInput className="flex-1" id="searchKeyword" placeholder={en ? "Search by project, company, or result ID" : "프로젝트명, 기관명, 결과 ID 검색"} value={draft.searchKeyword} onChange={(event) => setDraft((current) => ({ ...current, searchKeyword: event.target.value }))} />
               <button className="gov-btn gov-btn-primary" type="submit">{en ? "Search" : "검색"}</button>
             </div>
           </div>
         </form>
-      </section>
+        </CollectionResultPanel>
 
-      <section className="gov-card p-0 overflow-hidden" data-help-id="emission-result-table">
+        <section className="gov-card overflow-hidden p-0" data-help-id="emission-result-table">
+        <GridToolbar meta={en ? "Review result, company, emission total, and verification state from one table." : "결과, 기관, 총 배출량, 검증 상태를 한 표에서 함께 검토합니다."} title={en ? "Emission Results" : "산정 결과"} />
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left border-collapse">
             <thead>
@@ -174,20 +181,9 @@ export function EmissionResultListMigrationPage() {
             </tbody>
           </table>
         </div>
-        <div className="px-6 py-4 border-t border-[var(--kr-gov-border-light)] bg-gray-50 flex justify-center">
-          <nav className="flex items-center gap-1">
-            <button className="p-1 rounded hover:bg-white border border-transparent hover:border-gray-200" disabled={currentPage <= 1} onClick={() => setFilters((current) => ({ ...current, pageIndex: 1 }))} type="button"><span className="material-symbols-outlined">first_page</span></button>
-            <button className="p-1 rounded hover:bg-white border border-transparent hover:border-gray-200" disabled={currentPage <= 1} onClick={() => setFilters((current) => ({ ...current, pageIndex: Math.max(1, currentPage - 1) }))} type="button"><span className="material-symbols-outlined">chevron_left</span></button>
-            <div className="flex items-center gap-1 mx-4">
-              {Array.from({ length: Math.max(0, endPage - startPage + 1) }, (_, idx) => startPage + idx).map((pageNum) => (
-                <button className={`w-8 h-8 rounded border border-transparent text-sm flex items-center justify-center ${pageNum === currentPage ? "bg-[var(--kr-gov-blue)] text-white font-bold" : "hover:bg-white hover:border-gray-200"}`} key={pageNum} onClick={() => setFilters((current) => ({ ...current, pageIndex: pageNum }))} type="button">{pageNum}</button>
-              ))}
-            </div>
-            <button className="p-1 rounded hover:bg-white border border-transparent hover:border-gray-200" disabled={currentPage >= totalPages} onClick={() => setFilters((current) => ({ ...current, pageIndex: Math.min(totalPages, currentPage + 1) }))} type="button"><span className="material-symbols-outlined">chevron_right</span></button>
-            <button className="p-1 rounded hover:bg-white border border-transparent hover:border-gray-200" disabled={currentPage >= totalPages} onClick={() => setFilters((current) => ({ ...current, pageIndex: totalPages }))} type="button"><span className="material-symbols-outlined">last_page</span></button>
-          </nav>
-        </div>
-      </section>
+        <MemberPagination className="border-t-0" currentPage={currentPage} onPageChange={(pageNumber) => setFilters((current) => ({ ...current, pageIndex: pageNumber }))} totalPages={totalPages} />
+        </section>
+      </AdminWorkspacePageFrame>
     </AdminPageShell>
   );
 }

@@ -255,15 +255,17 @@ export function ErrorLogMigrationPage() {
                   <th className="px-6 py-4">사용자</th>
                   <th className="px-6 py-4">위치</th>
                   <th className="px-6 py-4">메시지</th>
+                  <th className="px-6 py-4 text-center">후속 조치</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {rows.length === 0 ? (
                   <tr>
-                    <td className="px-6 py-8 text-center text-gray-500" colSpan={7}>조회된 에러 로그가 없습니다.</td>
+                    <td className="px-6 py-8 text-center text-gray-500" colSpan={8}>조회된 에러 로그가 없습니다.</td>
                   </tr>
                 ) : rows.map((row, index) => {
                   const rowNumber = Number(page?.totalCount || 0) - ((currentPage - 1) * Number(page?.pageSize || 10) + index);
+                  const remoteAddr = stringOf(row, "remoteAddr");
                   return (
                     <tr className="transition-colors hover:bg-gray-50/50" key={`${stringOf(row, "createdAt", "actorId", "requestUri")}-${index}`}>
                       <td className="px-6 py-4 text-center text-gray-500">{rowNumber > 0 ? rowNumber : index + 1}</td>
@@ -285,6 +287,18 @@ export function ErrorLogMigrationPage() {
                         <div className="text-xs text-gray-400">{stringOf(row, "pageId")} / {stringOf(row, "apiId")} / {stringOf(row, "remoteAddr")}</div>
                       </td>
                       <td className="px-6 py-4 text-gray-600">{stringOf(row, "message") || "-"}</td>
+                      <td className="px-6 py-4 text-center">
+                        {remoteAddr ? (
+                          <a
+                            className="inline-flex h-9 min-w-[110px] items-center justify-center rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] px-3 text-xs font-bold text-[var(--kr-gov-blue)] transition hover:bg-slate-50"
+                            href={`${buildLocalizedPath("/admin/system/blocklist", "/en/admin/system/blocklist")}?searchKeyword=${encodeURIComponent(remoteAddr)}`}
+                          >
+                            차단목록 열기
+                          </a>
+                        ) : (
+                          <span className="text-xs text-gray-400">-</span>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}

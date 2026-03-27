@@ -263,21 +263,5 @@ public class FileSecurityUtil {
     return MessageDigest.isEqual(hashValue, Base64.decodeBase64(encoded.getBytes()));
   }
 
-  /*
-   * public static void main(String[] args) {
-   * try {
-   * String password = "abc";
-   * String salt = "def";
-   * 
-   * String first = encryptPassword(password, salt.getBytes());
-   * String second = encryptPassword(password, salt.getBytes());
-   * System.out.println(password + " => " + first + " : " +
-   * checkPassword(password, first, salt.getBytes()));
-   * System.out.println(password + " => " + second + " : " +
-   * checkPassword(password, second, salt.getBytes()));
-   * } catch (Exception ex) {
-   * ex.printStackTrace();
-   * }
-   * }
-   */
+  /* Sample hashing check omitted to avoid embedding credential-like examples in source comments. */
 }

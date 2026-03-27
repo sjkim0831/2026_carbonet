@@ -124,4 +124,8 @@ public class EntrprsMber implements CommonEntity {
     @Column(name = "AUTH_EMAIL")
     private String authEmail;
 
+    public String getInsttId() {
+        return insttId;
+    }
+
 }

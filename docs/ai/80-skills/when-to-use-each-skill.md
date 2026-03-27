@@ -13,4 +13,5 @@ Suggested routing:
   - Treat `페이지 등록 -> PAGE_CODE_VIEW 생성 -> 권한 수동 검토 -> 페이지 삭제 시 기본 VIEW 정리` as one connected implementation path, not separate independent tasks.
   - Treat `메뉴 -> 페이지 -> 기능 -> 권한그룹 -> 회원/부서 할당 -> 사용자 예외권한 -> 감사로그` as one connected permission chain.
   - For the current admin restoration track, keep `auth_group`, `auth_change`, `dept_role_mapping`, `member_edit`, `admin_account` synchronized and restore original templates before polishing migrated UI abstractions.
+  - Use it for `/admin/system/security-policy` when the task includes detection rules, suppress/baseline behavior, SQL preview/rollback, approval workflow, notification routing, or real runtime remediation in auth/rate-limit/audit code.
 - Use `carbonet-join-react-migration` when the task is specifically about join, company register, status, or reapply flows in React migration.

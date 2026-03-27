@@ -43,7 +43,7 @@ public class AdminObservabilityApiController {
             @RequestParam(value = "resultStatus", required = false) String resultStatus,
             @RequestParam(value = "searchKeyword", required = false) String searchKeyword) {
         int pageIndex = parsePositiveInt(pageIndexParam, 1);
-        int pageSize = parsePositiveInt(pageSizeParam, 20);
+        int pageSize = parsePositiveInt(pageSizeParam, 10);
         AuditEventSearchVO searchVO = new AuditEventSearchVO();
         searchVO.setFirstIndex(Math.max(pageIndex - 1, 0) * Math.max(pageSize, 1));
         searchVO.setRecordCountPerPage(Math.max(pageSize, 1));
@@ -76,7 +76,7 @@ public class AdminObservabilityApiController {
             @RequestParam(value = "resultCode", required = false) String resultCode,
             @RequestParam(value = "searchKeyword", required = false) String searchKeyword) {
         int pageIndex = parsePositiveInt(pageIndexParam, 1);
-        int pageSize = parsePositiveInt(pageSizeParam, 20);
+        int pageSize = parsePositiveInt(pageSizeParam, 10);
         TraceEventSearchVO searchVO = new TraceEventSearchVO();
         searchVO.setFirstIndex(Math.max(pageIndex - 1, 0) * Math.max(pageSize, 1));
         searchVO.setRecordCountPerPage(Math.max(pageSize, 1));

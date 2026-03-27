@@ -16,7 +16,6 @@ public class TypeScopedRoleAssignmentTool {
         String jdbcUser = property("authority.assign.jdbc.user", "dba");
         String jdbcPassword = property("authority.assign.jdbc.password", "");
 
-        Class.forName("cubrid.jdbc.driver.CUBRIDDriver");
         try (Connection connection = DriverManager.getConnection(jdbcUrl, jdbcUser, jdbcPassword)) {
             connection.setAutoCommit(false);
 

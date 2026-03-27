@@ -82,6 +82,23 @@ export function JoinAuthMigrationPage() {
   const [submittingMethod, setSubmittingMethod] = useState("");
   const [error, setError] = useState("");
 
+  function resolveCertificationGatewayPath(pathname: string) {
+    if (typeof window === "undefined") {
+      return pathname;
+    }
+    try {
+      const url = new URL(window.location.origin);
+      url.protocol = window.location.protocol === "https:" ? "https:" : "http:";
+      url.port = "9000";
+      url.pathname = pathname;
+      url.search = "";
+      url.hash = "";
+      return url.toString();
+    } catch (_error) {
+      return pathname;
+    }
+  }
+
   useEffect(() => {
     logGovernanceScope("PAGE", "join-step3", {
       route: window.location.pathname,
@@ -126,14 +143,14 @@ export function JoinAuthMigrationPage() {
       method
     });
     if (method === "JOINT" || method === "FINANCIAL") {
-      window.open("http://localhost:9000/certlogin/utl/sec/certVar.do", "certPopup", "width=500,height=600");
+      window.open(resolveCertificationGatewayPath("/certlogin/utl/sec/certVar.do"), "certPopup", "width=500,height=600");
       window.setTimeout(() => {
         void proceedToStep4(method);
       }, 1000);
       return;
     }
     if (method === "ONEPASS") {
-      window.open("http://localhost:9000/gnrlogin/utl/sec/certVar.do", "gnrPopup", "width=500,height=600");
+      window.open(resolveCertificationGatewayPath("/gnrlogin/utl/sec/certVar.do"), "gnrPopup", "width=500,height=600");
       window.setTimeout(() => {
         void proceedToStep4(method);
       }, 1000);

@@ -130,9 +130,7 @@ public class AdminMainAuthInterceptor implements HandlerInterceptor {
                 || "/admin".equals(normalizedUri)
                 || "/admin/".equals(normalizedUri)
                 || normalizedUri.startsWith("/admin/assets/react/")
-                || "/admin/system/menu-data".equals(normalizedUri)
-                || "/admin/member/login_history".equals(normalizedUri)
-                || "/admin/member/security".equals(normalizedUri);
+                || "/admin/system/menu-data".equals(normalizedUri);
     }
 
     private String normalizeMenuUrl(String requestUri) {

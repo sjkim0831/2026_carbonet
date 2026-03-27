@@ -33,6 +33,26 @@ public class AuthGroupManageMapper extends BaseMapperSupport {
         return selectList("AuthGroupManageMapper.selectActiveMenuViewFeatureRows");
     }
 
+    public List<Map<String, String>> selectActiveMenusMissingViewRows() {
+        return selectList("AuthGroupManageMapper.selectActiveMenusMissingViewRows");
+    }
+
+    public List<Map<String, String>> selectInactiveAuthorFeatureRelationRows() {
+        return selectList("AuthGroupManageMapper.selectInactiveAuthorFeatureRelationRows");
+    }
+
+    public List<Map<String, String>> selectInactiveUserFeatureOverrideRows() {
+        return selectList("AuthGroupManageMapper.selectInactiveUserFeatureOverrideRows");
+    }
+
+    public List<Map<String, String>> selectSensitiveFeatureRoleExposureRows() {
+        return selectList("AuthGroupManageMapper.selectSensitiveFeatureRoleExposureRows");
+    }
+
+    public List<Map<String, String>> selectCompanyScopeSensitiveFeatureExposureRows() {
+        return selectList("AuthGroupManageMapper.selectCompanyScopeSensitiveFeatureExposureRows");
+    }
+
     public List<FeatureAssignmentStatVO> selectFeatureAssignmentStats() {
         return selectList("AuthGroupManageMapper.selectFeatureAssignmentStats");
     }
@@ -206,5 +226,40 @@ public class AuthGroupManageMapper extends BaseMapperSupport {
 
     public void insertDepartmentRoleMapping(Map<String, String> params) {
         insert("AuthGroupManageMapper.insertDepartmentRoleMapping", params);
+    }
+
+    public void disableMenusByMenuCodes(List<String> menuCodes) {
+        if (menuCodes == null || menuCodes.isEmpty()) {
+            return;
+        }
+        update("AuthGroupManageMapper.disableMenusByMenuCodes", menuCodes);
+    }
+
+    public void disableFeaturesByFeatureCodes(List<String> featureCodes) {
+        if (featureCodes == null || featureCodes.isEmpty()) {
+            return;
+        }
+        update("AuthGroupManageMapper.disableFeaturesByFeatureCodes", featureCodes);
+    }
+
+    public void enableFeaturesByFeatureCodes(List<String> featureCodes) {
+        if (featureCodes == null || featureCodes.isEmpty()) {
+            return;
+        }
+        update("AuthGroupManageMapper.enableFeaturesByFeatureCodes", featureCodes);
+    }
+
+    public void deactivateUserFeatureOverride(String targetId, String featureCode) {
+        Map<String, String> params = new java.util.HashMap<>();
+        params.put("targetId", targetId);
+        params.put("featureCode", featureCode);
+        update("AuthGroupManageMapper.deactivateUserFeatureOverride", params);
+    }
+
+    public void reactivateUserFeatureOverride(String targetId, String featureCode) {
+        Map<String, String> params = new java.util.HashMap<>();
+        params.put("targetId", targetId);
+        params.put("featureCode", featureCode);
+        update("AuthGroupManageMapper.reactivateUserFeatureOverride", params);
     }
 }

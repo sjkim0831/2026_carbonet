@@ -235,16 +235,18 @@ export function AccessHistoryMigrationPage() {
                   <th className="px-6 py-4">IP</th>
                   <th className="px-6 py-4">요청</th>
                   <th className="px-6 py-4 text-center">응답</th>
+                  <th className="px-6 py-4 text-center">후속 조치</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {rows.length === 0 ? (
                   <tr>
-                    <td className="px-6 py-8 text-center text-gray-500" colSpan={7}>조회된 접속 로그가 없습니다.</td>
+                    <td className="px-6 py-8 text-center text-gray-500" colSpan={8}>조회된 접속 로그가 없습니다.</td>
                   </tr>
                 ) : rows.map((row, index) => {
                   const rowNumber = Number(page?.totalCount || 0) - ((currentPage - 1) * Number(page?.pageSize || 10) + index);
                   const status = Number(row.responseStatus || 0);
+                  const remoteAddr = stringOf(row, "remoteAddr");
                   return (
                     <tr className="transition-colors hover:bg-gray-50/50" key={`${stringOf(row, "executedAt", "actorUserId", "requestUri")}-${index}`}>
                       <td className="px-6 py-4 text-center text-gray-500">{rowNumber > 0 ? rowNumber : index + 1}</td>
@@ -266,6 +268,18 @@ export function AccessHistoryMigrationPage() {
                         <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold ${statusBadge(status)}`}>
                           {status || "-"}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        {remoteAddr ? (
+                          <a
+                            className="inline-flex h-9 min-w-[110px] items-center justify-center rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] px-3 text-xs font-bold text-[var(--kr-gov-blue)] transition hover:bg-slate-50"
+                            href={`${buildLocalizedPath("/admin/system/blocklist", "/en/admin/system/blocklist")}?searchKeyword=${encodeURIComponent(remoteAddr)}`}
+                          >
+                            차단목록 열기
+                          </a>
+                        ) : (
+                          <span className="text-xs text-gray-400">-</span>
+                        )}
                       </td>
                     </tr>
                   );

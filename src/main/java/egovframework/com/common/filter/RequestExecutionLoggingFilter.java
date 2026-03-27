@@ -102,6 +102,9 @@ public class RequestExecutionLoggingFilter extends OncePerRequestFilter {
         item.setLogId("REQ-" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase(Locale.ROOT));
         item.setExecutedAt(LocalDateTime.now().format(TS_FORMAT));
         item.setRequestUri(safeString(request.getRequestURI()));
+        TraceContext traceContext = TraceContextHolder.get();
+        item.setTraceId(traceContext == null ? "" : safeString(traceContext.getTraceId()));
+        item.setRequestId(traceContext == null ? "" : safeString(traceContext.getRequestId()));
         item.setHttpMethod(safeString(request.getMethod()).toUpperCase(Locale.ROOT));
         item.setFeatureType(resolveFeatureType(request));
         item.setRequestContentType(safeString(request.getContentType()));
@@ -113,6 +116,7 @@ public class RequestExecutionLoggingFilter extends OncePerRequestFilter {
         item.setErrorMessage(failure == null ? "" : safeString(failure.getMessage()));
 
         populateActor(item, request);
+        populateMenuContext(item, request);
 
         String explicitCompanyContextId = resolveExplicitCompanyContextId(request);
         String targetCompanyContextId = resolveTargetCompanyContextId(request, item.getActorInsttId());
@@ -127,6 +131,27 @@ public class RequestExecutionLoggingFilter extends OncePerRequestFilter {
         item.setCompanyScopeReason(safeString((String) request.getAttribute("companyScopeReason")));
 
         return item;
+    }
+
+    private void populateMenuContext(RequestExecutionLogVO item, HttpServletRequest request) {
+        String normalizedUri = normalizeMenuUrl(request == null ? "" : request.getRequestURI());
+        if (normalizedUri.isEmpty()) {
+            return;
+        }
+        try {
+            String menuCode = safeString(authGroupManageService.selectMenuCodeByMenuUrl(normalizedUri));
+            if (menuCode.isEmpty()) {
+                menuCode = resolveActionMenuCode(normalizedUri);
+            }
+            item.setMenuCode(menuCode);
+            if ("GET".equalsIgnoreCase(item.getHttpMethod())) {
+                item.setFeatureCode(safeString(authGroupManageService.selectRequiredViewFeatureCodeByMenuUrl(normalizedUri)));
+            } else if (!menuCode.isEmpty()) {
+                item.setFeatureCode(resolveFeatureCodeByMenuCode(menuCode, normalizedUri, item.getHttpMethod()));
+            }
+        } catch (Exception e) {
+            log.debug("Failed to resolve menu/feature context. uri={}", normalizedUri, e);
+        }
     }
 
     private void populateActor(RequestExecutionLogVO item, HttpServletRequest request) {
@@ -225,6 +250,69 @@ public class RequestExecutionLoggingFilter extends OncePerRequestFilter {
             return "UPDATE";
         }
         return "ACTION";
+    }
+
+    private String resolveFeatureCodeByMenuCode(String menuCode, String normalizedMenuUrl, String method) throws Exception {
+        List<String> featureCodes = authGroupManageService.selectFeatureCodesByMenuCode(menuCode);
+        if (featureCodes == null || featureCodes.isEmpty()) {
+            return "";
+        }
+        for (String suffix : expectedActionSuffixes(method, normalizedMenuUrl)) {
+            for (String featureCode : featureCodes) {
+                String normalizedFeatureCode = safeString(featureCode).toUpperCase(Locale.ROOT);
+                if (normalizedFeatureCode.endsWith(suffix)) {
+                    return normalizedFeatureCode;
+                }
+            }
+        }
+        return "";
+    }
+
+    private List<String> expectedActionSuffixes(String method, String normalizedMenuUrl) {
+        List<String> suffixes = new ArrayList<>();
+        String normalizedMethod = safeString(method).toUpperCase(Locale.ROOT);
+        String loweredMenuUrl = safeString(normalizedMenuUrl).toLowerCase(Locale.ROOT);
+        if ("DELETE".equals(normalizedMethod) || loweredMenuUrl.contains("delete")) {
+            suffixes.add("_DELETE");
+        }
+        if ("POST".equals(normalizedMethod) || loweredMenuUrl.contains("create") || loweredMenuUrl.contains("register")) {
+            suffixes.add("_CREATE");
+            suffixes.add("_REGISTER");
+        }
+        if ("PUT".equals(normalizedMethod) || "PATCH".equals(normalizedMethod)
+                || loweredMenuUrl.contains("update") || loweredMenuUrl.contains("save")) {
+            suffixes.add("_UPDATE");
+            suffixes.add("_SAVE");
+        }
+        suffixes.add("_EXECUTE");
+        suffixes.add("_ACTION");
+        return suffixes;
+    }
+
+    private String resolveActionMenuCode(String normalizedMenuUrl) throws Exception {
+        String candidate = safeString(normalizedMenuUrl);
+        while (!candidate.isEmpty() && candidate.startsWith("/admin")) {
+            String menuCode = safeString(authGroupManageService.selectMenuCodeByMenuUrl(candidate));
+            if (!menuCode.isEmpty()) {
+                return menuCode;
+            }
+            int lastSlash = candidate.lastIndexOf('/');
+            if (lastSlash <= "/admin".length()) {
+                break;
+            }
+            candidate = candidate.substring(0, lastSlash);
+        }
+        return "";
+    }
+
+    private String normalizeMenuUrl(String requestUri) {
+        if (ObjectUtils.isEmpty(requestUri)) {
+            return "";
+        }
+        if (requestUri.startsWith("/en/admin")) {
+            return requestUri.substring(3);
+        }
+        return requestUri;
     }
 
     private String resolveExplicitCompanyContextId(HttpServletRequest request) {

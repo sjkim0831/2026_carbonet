@@ -18,6 +18,7 @@ import {
 import { fetchJson } from "../../lib/api/core";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
+import { ROUTES } from "../../app/routes/definitions";
 
 type BreadcrumbItem = {
   label: string;
@@ -72,6 +73,56 @@ const ADMIN_SIDEBAR_OPEN_GROUPS_STORAGE_KEY = "adminSidebarOpenGroups";
 const ADMIN_SESSION_DURATION_MS = 60 * 60 * 1000;
 const ADMIN_SESSION_WARNING_MS = 5 * 60 * 1000;
 const ADMIN_SESSION_DANGER_MS = 60 * 1000;
+const MENU_CODE_LABEL_OVERRIDES_KO: Record<string, string> = {
+  A001: "회원",
+  A00101: "회원",
+  A00105: "이력",
+  A002: "배출/인증",
+  A00201: "배출",
+  A003: "거래",
+  A004: "콘텐츠",
+  A005: "외부 연계",
+  A006: "시스템",
+  A00601: "환경",
+  A00602: "보안",
+  A00603: "로그",
+  A00604: "백업",
+  A007: "대시보드",
+  A00701: "대시보드",
+  A190: "AI 운영",
+  A19001: "AI 작업센터",
+  AMENU_AUTH: "권한",
+  AMENU_MEMBER: "회원",
+  AMENU_COMPANY: "회원사",
+  AMENU_ADMIN: "관리자",
+  AMENU_SYSTEM: "시스템"
+};
+
+const MENU_CODE_LABEL_OVERRIDES_EN: Record<string, string> = {
+  A001: "Members",
+  A00101: "Members",
+  A00105: "History",
+  A002: "Emissions & Certification",
+  A00201: "Emissions",
+  A003: "Trading",
+  A004: "Content",
+  A005: "External Integration",
+  A006: "System",
+  A00601: "Environment",
+  A00602: "Security",
+  A00603: "Logs",
+  A00604: "Backup",
+  A007: "Dashboard",
+  A00701: "Dashboard",
+  A190: "AI Operations",
+  A19001: "AI Workbench",
+  AMENU_AUTH: "Authority",
+  AMENU_MEMBER: "Members",
+  AMENU_COMPANY: "Companies",
+  AMENU_ADMIN: "Administrators",
+  AMENU_SYSTEM: "System"
+};
+
 function handleGovSymbolError(event: SyntheticEvent<HTMLImageElement>) {
   const image = event.currentTarget;
   if (image.dataset.fallbackApplied === "1") {
@@ -207,6 +258,65 @@ function resolveMenuComparablePath(value: string, preserveDirectMenu = true) {
 
 function resolveMenuLinkRuntimeUrl(link: MenuLinkLike | undefined) {
   return String(link?.u || "").trim();
+}
+
+function isLikelyMenuCodeLabel(value: string) {
+  const normalized = String(value || "").trim();
+  if (!normalized) {
+    return true;
+  }
+  return /^[A-Z][A-Z0-9_]{3,}$/.test(normalized) || /^[A-Z]\d{3,}$/.test(normalized);
+}
+
+function resolveRouteBackedMenuLabel(runtimeUrl: string, en: boolean) {
+  const targetPath = pathOnly(resolveMenuComparablePath(runtimeUrl, false));
+  if (!targetPath || targetPath === "/") {
+    return "";
+  }
+  const matchedRoute = ROUTES.find((route) => route.koPath === targetPath || route.enPath === targetPath);
+  if (!matchedRoute) {
+    return "";
+  }
+  if (en) {
+    const englishPathLabel = pathOnly(matchedRoute.enPath).split("/").filter(Boolean).pop() || "";
+    return englishPathLabel.replace(/-/g, " ");
+  }
+  return matchedRoute.label;
+}
+
+function resolveSidebarLinkLabel(link: MenuLinkLike | undefined, en: boolean) {
+  const fallbackLabel = en ? String(link?.tEn || link?.text || "").trim() : String(link?.text || link?.tEn || "").trim();
+  if (!isLikelyMenuCodeLabel(fallbackLabel)) {
+    return fallbackLabel;
+  }
+  const routeLabel = resolveRouteBackedMenuLabel(resolveMenuLinkRuntimeUrl(link), en);
+  return routeLabel || fallbackLabel;
+}
+
+function resolveCodeBackedMenuLabel(value: string, en: boolean) {
+  const normalized = String(value || "").trim().toUpperCase();
+  if (!normalized) {
+    return "";
+  }
+  return en ? (MENU_CODE_LABEL_OVERRIDES_EN[normalized] || "") : (MENU_CODE_LABEL_OVERRIDES_KO[normalized] || "");
+}
+
+function resolveSidebarGroupTitle(group: AdminMenuGroup, en: boolean) {
+  const fallbackLabel = en ? String(group.titleEn || group.title || "").trim() : String(group.title || group.titleEn || "").trim();
+  if (!isLikelyMenuCodeLabel(fallbackLabel)) {
+    return fallbackLabel;
+  }
+  return resolveCodeBackedMenuLabel(fallbackLabel, en) || fallbackLabel;
+}
+
+function resolveSidebarDomainLabel(domainKey: string, domain: AdminMenuDomain | undefined, en: boolean) {
+  const fallbackLabel = en
+    ? String(domain?.labelEn || domain?.label || domainKey || "").trim()
+    : String(domain?.label || domain?.labelEn || domainKey || "").trim();
+  if (!isLikelyMenuCodeLabel(fallbackLabel)) {
+    return fallbackLabel;
+  }
+  return resolveCodeBackedMenuLabel(fallbackLabel, en) || fallbackLabel;
 }
 
 function shouldHideSidebarLink(link: MenuLinkLike | undefined) {
@@ -655,7 +765,7 @@ export function AdminPageShell({
     }
     return domainEntries.map(([domainKey, domain]) => ({
       key: domainKey,
-      label: en ? (domain.labelEn || domain.label || domainKey) : (domain.label || domainKey),
+      label: resolveSidebarDomainLabel(domainKey, domain, en),
       href: resolveFirstDomainPath(domain),
       domain: domainKey
     }));
@@ -1053,7 +1163,7 @@ export function AdminPageShell({
                   >
                     <span className="flex items-center gap-2">
                       <span className="material-symbols-outlined text-[20px]">{group.icon || "folder_open"}</span>
-                      {en ? (group.titleEn || group.title) : group.title}
+                      {resolveSidebarGroupTitle(group, en)}
                     </span>
                     <span className={`material-symbols-outlined text-[18px] transition-transform ${expanded ? "" : "-rotate-90"}`}>expand_more</span>
                   </button>
@@ -1081,7 +1191,7 @@ export function AdminPageShell({
                           }}
                         >
                           <span className="material-symbols-outlined text-[20px]">{link.icon || (active ? "check_circle" : "chevron_right")}</span>
-                          {en ? (link.tEn || link.text) : link.text}
+                          {resolveSidebarLinkLabel(link, en)}
                         </a>
                       );
                     })}
@@ -1099,7 +1209,7 @@ export function AdminPageShell({
           <div className="mt-auto border-t border-[var(--kr-gov-border-light)] pt-4">
             <div className="rounded-[var(--kr-gov-radius)] border border-blue-100 bg-blue-50 p-4 text-[13px]">
               <p className="mb-1 font-bold text-[var(--kr-gov-blue)]">
-                {selectedDomain ? `${en ? (selectedDomain.labelEn || selectedDomain.label) : selectedDomain.label} ${en ? "Domain Active" : "도메인 활성화"}` : (en ? "Menu Loading" : "메뉴 로딩 중")}
+                {selectedDomain ? `${resolveSidebarDomainLabel(selectedDomainKey, selectedDomain, en)} ${en ? "Domain Active" : "도메인 활성화"}` : (en ? "Menu Loading" : "메뉴 로딩 중")}
               </p>
               <p className="text-[var(--kr-gov-text-secondary)]">
                 {selectedDomain

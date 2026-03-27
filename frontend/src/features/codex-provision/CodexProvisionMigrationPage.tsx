@@ -18,6 +18,7 @@ import {
   inspectCodexHistory,
   planCodexSrTicket,
   prepareCodexSrTicket,
+  queueDirectExecuteCodexSrTicket,
   reissueCodexSrTicket,
   rollbackCodexSrTicket,
   remediateCodexHistory,
@@ -62,6 +63,21 @@ function executionBadgeClass(status: string) {
     case "DEPLOY_FAILED":
     case "CHANGED_FILE_BLOCKED":
     case "RUNNER_BLOCKED":
+      return "bg-red-100 text-red-700";
+    default:
+      return "bg-slate-100 text-slate-700";
+  }
+}
+
+function queueBadgeClass(status: string) {
+  switch ((status || "").toUpperCase()) {
+    case "QUEUED":
+      return "bg-purple-100 text-purple-700";
+    case "RUNNING":
+      return "bg-amber-100 text-amber-700";
+    case "COMPLETED":
+      return "bg-emerald-100 text-emerald-700";
+    case "FAILED":
       return "bg-red-100 text-red-700";
     default:
       return "bg-slate-100 text-slate-700";
@@ -177,6 +193,7 @@ export function CodexProvisionMigrationPage() {
   const runtimeConfig = pageState.value?.codexRuntimeConfig || {};
   const srTickets = pageState.value?.srTickets || [];
   const srTicketCount = pageState.value?.srTicketCount ?? srTickets.length;
+  const executionLanes = (pageState.value?.executionLanes || []) as Array<Record<string, unknown>>;
   const queuePageCount = Math.max(1, Math.ceil(srTickets.length / queuePageSize));
   const normalizedQueuePageIndex = Math.min(queuePageIndex, queuePageCount - 1);
   const pagedTickets = srTickets.slice(normalizedQueuePageIndex * queuePageSize, (normalizedQueuePageIndex + 1) * queuePageSize);
@@ -493,6 +510,10 @@ export function CodexProvisionMigrationPage() {
     await withTicketAction(ticket.ticketId, () => directExecuteCodexSrTicket(ticket.ticketId));
   }
 
+  async function handleQueueDirectExecuteTicket(ticket: SrTicketRow) {
+    await withTicketAction(ticket.ticketId, () => queueDirectExecuteCodexSrTicket(ticket.ticketId));
+  }
+
   async function handleSkipPlanExecuteTicket(ticket: SrTicketRow) {
     const startedAt = new Date().toISOString().slice(0, 19).replace("T", " ");
     const result = await withTicketAction(ticket.ticketId, () => skipPlanExecuteCodexSrTicket(ticket.ticketId));
@@ -672,6 +693,22 @@ export function CodexProvisionMigrationPage() {
             {srTicketCount}{en ? " tickets" : "건"}
           </div>
         </div>
+        <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+          {executionLanes.map((lane, index) => (
+            <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3" key={index}>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{String(lane.laneId || "-")}</div>
+                  <div className="mt-1 text-sm font-semibold">{String(lane.tmuxSessionName || "-")}</div>
+                </div>
+                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${queueBadgeClass(String(lane.status || ""))}`}>{String(lane.status || "-")}</span>
+              </div>
+              <div className="mt-2 text-xs text-[var(--kr-gov-text-secondary)]">
+                {en ? "Active Ticket" : "실행 티켓"}: {String(lane.activeTicketId || "-")}
+              </div>
+            </div>
+          ))}
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -696,14 +733,20 @@ export function CodexProvisionMigrationPage() {
                   </td>
                   <td className="px-4 py-4">
                     <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${executionBadgeClass(ticket.executionStatus)}`}>{ticket.executionStatus || "-"}</span>
+                    <div className="mt-2">
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${queueBadgeClass(ticket.queueStatus)}`}>{ticket.queueStatus || "IDLE"}</span>
+                    </div>
                     <div className="mt-2 text-xs leading-5 text-gray-500">
                       <div>{ticket.executionComment || "-"}</div>
+                      {ticket.queueLaneId ? <div>lane: {ticket.queueLaneId} / {ticket.queueTmuxSessionName || "-"}</div> : null}
+                      {ticket.queueSubmittedAt ? <div>queued: {ticket.queueSubmittedAt}</div> : null}
                       {ticket.planCompletedAt ? <div>plan: {ticket.planCompletedAt}</div> : null}
                       {ticket.executionCompletedAt ? <div>build: {ticket.executionCompletedAt}</div> : null}
                     </div>
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <div className="flex flex-col gap-2">
+                      <button className="gov-btn gov-btn-outline !px-3 !py-1.5 text-xs" disabled={!codexReady || isExecutionRunning(ticket.executionStatus) || ticket.queueStatus === "QUEUED" || ticket.queueStatus === "RUNNING" || !canApprovedShortcut(ticket)} onClick={(event) => { event.stopPropagation(); void handleQueueDirectExecuteTicket(ticket); }} type="button">{en ? "Queue Run" : "대기열 실행"}</button>
                       <button className="gov-btn gov-btn-outline !px-3 !py-1.5 text-xs" disabled={!codexReady || isExecutionRunning(ticket.executionStatus)} onClick={(event) => { event.stopPropagation(); void handlePrepareTicket(ticket); }} type="button">{en ? "Prepare" : "준비"}</button>
                       <button className="gov-btn gov-btn-outline !px-3 !py-1.5 text-xs" disabled={!codexReady || isExecutionRunning(ticket.executionStatus)} onClick={(event) => { event.stopPropagation(); void handlePlanTicket(ticket); }} type="button">{isPlanCompleted(ticket.executionStatus) ? (en ? "Replan" : "재계획") : (en ? "Plan" : "계획")}</button>
                       <button className="gov-btn gov-btn-outline !px-3 !py-1.5 text-xs" disabled={!codexReady} onClick={(event) => { event.stopPropagation(); void handleReissueTicket(ticket); }} type="button">{en ? "Reissue" : "재발행"}</button>
@@ -936,7 +979,12 @@ export function CodexProvisionMigrationPage() {
           </div>
           <div className="mt-5 flex flex-wrap gap-2">
             <button className="gov-btn gov-btn-outline" disabled={!codexReady} onClick={() => { void withResult(runCodexLoginCheck); }} type="button">{en ? "Check Auth" : "인증 확인"}</button>
-            <button className="gov-btn gov-btn-primary" disabled={!codexReady} onClick={() => { void withResult(async () => executeCodexProvision(JSON.parse(payload))); }} type="button">{en ? "Run Provision" : "Provision 실행"}</button>
+            <button className="gov-btn gov-btn-primary" disabled={!codexReady} onClick={() => {
+              if (typeof window !== "undefined" && !window.confirm(en ? "Queue and execute this provision payload now?" : "현재 Provision payload를 실행하시겠습니까?")) {
+                return;
+              }
+              void withResult(async () => executeCodexProvision(JSON.parse(payload)));
+            }} type="button">{en ? "Run Provision" : "Provision 실행"}</button>
             <button className="gov-btn gov-btn-outline" onClick={() => {
               try {
                 setPayload(JSON.stringify(JSON.parse(payload), null, 2));

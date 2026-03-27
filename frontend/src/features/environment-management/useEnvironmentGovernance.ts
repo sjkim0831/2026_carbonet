@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   type FullStackGovernanceRegistryEntry,
+  type ScreenBuilderStatusSummaryItem,
   type ScreenCommandPagePayload
 } from "../../lib/api/client";
 import { fetchAuditEvents, fetchTraceEvents } from "../../lib/api/observability";
-import { fetchScreenBuilderPage } from "../../lib/api/screenBuilder";
+import { fetchScreenBuilderStatusSummary } from "../../lib/api/screenBuilder";
 import { autoCollectFullStackGovernanceRegistry, fetchFullStackGovernanceRegistry, fetchScreenCommandPage } from "../../lib/api/screenGovernance";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import {
@@ -18,9 +19,33 @@ import {
   type GovernanceSurfaceChain,
   type GovernanceSurfaceEventTableRow,
   type ManagedMenuRow,
+  type ScreenBuilderFreshnessSummary,
   type ScreenBuilderIssueBreakdown,
+  type ScreenBuilderParitySummary,
   type ScreenBuilderStatus
 } from "./environmentManagementShared";
+
+function mapSummaryItemToStatus(item: ScreenBuilderStatusSummaryItem): ScreenBuilderStatus {
+  return {
+    publishedVersionId: String(item.publishedVersionId || ""),
+    publishedSavedAt: String(item.publishedSavedAt || ""),
+    releaseUnitId: String(item.releaseUnitId || ""),
+    artifactTargetSystem: String(item.artifactTargetSystem || "carbonet-general"),
+    runtimePackageId: String(item.runtimePackageId || ""),
+    deployTraceId: String(item.deployTraceId || ""),
+    publishFreshnessState: item.publishFreshnessState || "UNKNOWN",
+    publishFreshnessLabel: String(item.publishFreshnessLabel || ""),
+    publishFreshnessDetail: String(item.publishFreshnessDetail || ""),
+    parityState: item.parityState || "UNAVAILABLE",
+    parityLabel: String(item.parityLabel || ""),
+    parityDetail: String(item.parityDetail || ""),
+    parityTraceId: String(item.parityTraceId || ""),
+    versionCount: Number(item.versionCount || 0),
+    unregisteredCount: Number(item.unregisteredCount || 0),
+    missingCount: Number(item.missingCount || 0),
+    deprecatedCount: Number(item.deprecatedCount || 0)
+  };
+}
 
 type UseEnvironmentGovernanceParams = {
   en: boolean;
@@ -51,10 +76,13 @@ export function useEnvironmentGovernance({
   const [postCollectAuditRows, setPostCollectAuditRows] = useState<Array<Record<string, unknown>>>([]);
   const [postCollectTraceRows, setPostCollectTraceRows] = useState<Array<Record<string, unknown>>>([]);
   const [lastAutoCollectAt, setLastAutoCollectAt] = useState("");
+  const [screenBuilderStatusMap, setScreenBuilderStatusMap] = useState<Record<string, ScreenBuilderStatus>>({});
   const [screenBuilderStatus, setScreenBuilderStatus] = useState<ScreenBuilderStatus | null>(null);
   const [screenBuilderPublishedMap, setScreenBuilderPublishedMap] = useState<Record<string, boolean>>({});
   const [screenBuilderIssueMap, setScreenBuilderIssueMap] = useState<Record<string, number>>({});
   const [screenBuilderIssueDetailMap, setScreenBuilderIssueDetailMap] = useState<Record<string, ScreenBuilderIssueBreakdown>>({});
+  const [screenBuilderFreshnessMap, setScreenBuilderFreshnessMap] = useState<Record<string, ScreenBuilderFreshnessSummary>>({});
+  const [screenBuilderParityMap, setScreenBuilderParityMap] = useState<Record<string, ScreenBuilderParitySummary>>({});
 
   const governancePageId = useMemo(
     () => resolveGovernancePageId(selectedMenu, screenCatalog?.pages),
@@ -179,6 +207,9 @@ export function useEnvironmentGovernance({
     const unregisteredPages = pageMenus.filter((row) => (screenBuilderIssueDetailMap[row.code]?.unregisteredCount || 0) > 0).length;
     const missingPages = pageMenus.filter((row) => (screenBuilderIssueDetailMap[row.code]?.missingCount || 0) > 0).length;
     const deprecatedPages = pageMenus.filter((row) => (screenBuilderIssueDetailMap[row.code]?.deprecatedCount || 0) > 0).length;
+    const stalePublishPages = pageMenus.filter((row) => screenBuilderFreshnessMap[row.code]?.state === "STALE").length;
+    const parityDriftPages = pageMenus.filter((row) => screenBuilderParityMap[row.code]?.state === "DRIFT").length;
+    const parityGapPages = pageMenus.filter((row) => screenBuilderParityMap[row.code]?.state === "GAP").length;
     return {
       totalPages: pageMenus.length,
       publishedPages: publishedCount,
@@ -188,90 +219,66 @@ export function useEnvironmentGovernance({
       issuePages: issuePagesCount,
       unregisteredPages,
       missingPages,
-      deprecatedPages
+      deprecatedPages,
+      stalePublishPages,
+      parityDriftPages,
+      parityGapPages
     };
-  }, [menuRows, screenBuilderIssueDetailMap, screenBuilderIssueMap, screenBuilderPublishedMap]);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function loadScreenBuilderStatus() {
-      if (!selectedMenu || !selectedMenuIsPage) {
-        setScreenBuilderStatus(null);
-        return;
-      }
-      try {
-        const payload = await fetchScreenBuilderPage({
-          menuCode: selectedMenu.code,
-          pageId: governancePageId || selectedMenu.code.toLowerCase(),
-          menuTitle: selectedMenu.label,
-          menuUrl: selectedMenu.menuUrl || ""
-        });
-        if (cancelled) {
-          return;
-        }
-        setScreenBuilderStatus({
-          publishedVersionId: String(payload.publishedVersionId || ""),
-          publishedSavedAt: String(payload.publishedSavedAt || ""),
-          versionCount: Array.isArray(payload.versionHistory) ? payload.versionHistory.length : 0,
-          unregisteredCount: Array.isArray(payload.registryDiagnostics?.unregisteredNodes) ? payload.registryDiagnostics.unregisteredNodes.length : 0,
-          missingCount: Array.isArray(payload.registryDiagnostics?.missingNodes) ? payload.registryDiagnostics.missingNodes.length : 0,
-          deprecatedCount: Array.isArray(payload.registryDiagnostics?.deprecatedNodes) ? payload.registryDiagnostics.deprecatedNodes.length : 0
-        });
-      } catch {
-        if (!cancelled) {
-          setScreenBuilderStatus(null);
-        }
-      }
-    }
-    void loadScreenBuilderStatus();
-    return () => {
-      cancelled = true;
-    };
-  }, [governancePageId, selectedMenu, selectedMenuIsPage]);
+  }, [menuRows, screenBuilderFreshnessMap, screenBuilderIssueDetailMap, screenBuilderIssueMap, screenBuilderParityMap, screenBuilderPublishedMap]);
 
   useEffect(() => {
     let cancelled = false;
     async function loadPublishedFlags() {
       const pageMenus = menuRows.filter((row) => row.code.length === 8);
       if (pageMenus.length === 0) {
+        setScreenBuilderStatusMap({});
+        setScreenBuilderStatus(null);
         setScreenBuilderPublishedMap({});
         setScreenBuilderIssueMap({});
         setScreenBuilderIssueDetailMap({});
+        setScreenBuilderFreshnessMap({});
+        setScreenBuilderParityMap({});
         return;
       }
       try {
-        const entries = await Promise.all(pageMenus.map(async (row) => {
-          try {
-            const payload = await fetchScreenBuilderPage({
-              menuCode: row.code,
-              pageId: row.code.toLowerCase(),
-              menuTitle: row.label,
-              menuUrl: row.menuUrl || ""
-            });
-            const unregisteredCount = Array.isArray(payload.registryDiagnostics?.unregisteredNodes) ? payload.registryDiagnostics.unregisteredNodes.length : 0;
-            const missingCount = Array.isArray(payload.registryDiagnostics?.missingNodes) ? payload.registryDiagnostics.missingNodes.length : 0;
-            const deprecatedCount = Array.isArray(payload.registryDiagnostics?.deprecatedNodes) ? payload.registryDiagnostics.deprecatedNodes.length : 0;
-            const issueCount = unregisteredCount + missingCount + deprecatedCount;
-            return [row.code, { published: Boolean(payload.publishedVersionId), issueCount, unregisteredCount, missingCount, deprecatedCount }] as const;
-          } catch {
-            return [row.code, { published: false, issueCount: 0, unregisteredCount: 0, missingCount: 0, deprecatedCount: 0 }] as const;
-          }
-        }));
+        const response = await fetchScreenBuilderStatusSummary(pageMenus.map((row) => row.code));
         if (cancelled) {
           return;
         }
-        setScreenBuilderPublishedMap(Object.fromEntries(entries.map(([code, value]) => [code, value.published])));
-        setScreenBuilderIssueMap(Object.fromEntries(entries.map(([code, value]) => [code, value.issueCount])));
-        setScreenBuilderIssueDetailMap(Object.fromEntries(entries.map(([code, value]) => [code, {
-          unregisteredCount: value.unregisteredCount,
-          missingCount: value.missingCount,
-          deprecatedCount: value.deprecatedCount
+        const items = Array.isArray(response.items) ? response.items : [];
+        const statusMap = items.reduce<Record<string, ScreenBuilderStatus>>((accumulator, item) => {
+          accumulator[item.menuCode] = mapSummaryItemToStatus(item);
+          return accumulator;
+        }, {});
+        setScreenBuilderStatusMap(statusMap);
+        setScreenBuilderStatus(selectedMenu && selectedMenuIsPage ? (statusMap[selectedMenu.code] || null) : null);
+        setScreenBuilderPublishedMap(Object.fromEntries(items.map((item) => [item.menuCode, Boolean(item.publishedVersionId)])));
+        setScreenBuilderIssueMap(Object.fromEntries(items.map((item) => [item.menuCode, item.unregisteredCount + item.missingCount + item.deprecatedCount])));
+        setScreenBuilderIssueDetailMap(Object.fromEntries(items.map((item) => [item.menuCode, {
+          unregisteredCount: item.unregisteredCount,
+          missingCount: item.missingCount,
+          deprecatedCount: item.deprecatedCount
+        }])));
+        setScreenBuilderFreshnessMap(Object.fromEntries(items.map((item) => [item.menuCode, {
+          state: item.publishFreshnessState,
+          label: item.publishFreshnessLabel,
+          detail: item.publishFreshnessDetail
+        }])));
+        setScreenBuilderParityMap(Object.fromEntries(items.map((item) => [item.menuCode, {
+          state: item.parityState,
+          label: item.parityLabel,
+          detail: item.parityDetail,
+          traceId: item.parityTraceId
         }])));
       } catch {
         if (!cancelled) {
+          setScreenBuilderStatusMap({});
+          setScreenBuilderStatus(null);
           setScreenBuilderPublishedMap({});
           setScreenBuilderIssueMap({});
           setScreenBuilderIssueDetailMap({});
+          setScreenBuilderFreshnessMap({});
+          setScreenBuilderParityMap({});
         }
       }
     }
@@ -279,7 +286,15 @@ export function useEnvironmentGovernance({
     return () => {
       cancelled = true;
     };
-  }, [menuRows]);
+  }, [menuRows, selectedMenu, selectedMenuIsPage]);
+
+  useEffect(() => {
+    if (!selectedMenu || !selectedMenuIsPage) {
+      setScreenBuilderStatus(null);
+      return;
+    }
+    setScreenBuilderStatus(screenBuilderStatusMap[selectedMenu.code] || null);
+  }, [screenBuilderStatusMap, selectedMenu, selectedMenuIsPage]);
 
   useEffect(() => {
     let cancelled = false;
@@ -289,10 +304,9 @@ export function useEnvironmentGovernance({
         if (!cancelled) {
           setScreenCatalog(payload);
         }
-      } catch (error) {
+      } catch {
         if (!cancelled) {
           setScreenCatalog(null);
-          setGovernanceError(error instanceof Error ? error.message : (en ? "Failed to load screen registry." : "화면 registry를 불러오지 못했습니다."));
         }
       }
     }
@@ -314,15 +328,23 @@ export function useEnvironmentGovernance({
       }
       setGovernanceLoading(true);
       try {
-        const [pagePayload, registryPayload] = await Promise.all([
+        const [pageResult, registryResult] = await Promise.allSettled([
           governancePageId ? fetchScreenCommandPage(governancePageId) : Promise.resolve(null),
-          fetchFullStackGovernanceRegistry(selectedMenu.code).catch(() => null)
+          fetchFullStackGovernanceRegistry(selectedMenu.code)
         ]);
         if (!cancelled) {
+          const pagePayload = pageResult.status === "fulfilled" ? pageResult.value : null;
+          const registryPayload = registryResult.status === "fulfilled" ? registryResult.value : null;
           setGovernancePage(pagePayload);
           setRegistryEntry(registryPayload);
-          if (!governancePageId) {
+          if (!governancePageId && pageResult.status !== "rejected") {
             setGovernanceError(en ? "This menu is not linked to the screen-command registry yet." : "이 메뉴는 아직 screen-command registry와 연결되지 않았습니다.");
+          } else if (pageResult.status === "rejected" && registryResult.status === "rejected") {
+            setGovernanceError(en ? "Failed to load both screen-command and full-stack metadata." : "screen-command와 full-stack 메타데이터를 모두 불러오지 못했습니다.");
+          } else if (pageResult.status === "rejected") {
+            setGovernanceError(en ? "Screen-command metadata is unavailable right now." : "screen-command 메타데이터를 지금 불러오지 못했습니다.");
+          } else if (registryResult.status === "rejected") {
+            setGovernanceError(en ? "Full-stack registry is unavailable right now." : "full-stack registry를 지금 불러오지 못했습니다.");
           }
         }
       } catch (error) {
@@ -412,7 +434,9 @@ export function useEnvironmentGovernance({
     postCollectAuditRows,
     postCollectTraceRows,
     screenBuilderIssueDetailMap,
+    screenBuilderFreshnessMap,
     screenBuilderIssueMap,
+    screenBuilderParityMap,
     screenBuilderPageCounts,
     screenBuilderPublishedMap,
     screenBuilderStatus,

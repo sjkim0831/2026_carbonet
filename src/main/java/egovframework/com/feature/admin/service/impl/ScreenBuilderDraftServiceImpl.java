@@ -5,6 +5,7 @@ import egovframework.com.common.mapper.ObservabilityMapper;
 import egovframework.com.common.trace.UiComponentRegistryVO;
 import egovframework.com.common.trace.UiComponentUsageVO;
 import egovframework.com.feature.admin.dto.response.MenuInfoDTO;
+import egovframework.com.feature.admin.dto.request.ParityCompareRequest;
 import egovframework.com.feature.admin.model.ScreenBuilderAuthorityProfileVO;
 import egovframework.com.feature.admin.model.ScreenBuilderComponentRegistryItemVO;
 import egovframework.com.feature.admin.model.ScreenBuilderComponentRegistrySaveRequestVO;
@@ -16,11 +17,14 @@ import egovframework.com.feature.admin.model.ScreenBuilderNodeVO;
 import egovframework.com.feature.admin.model.ScreenBuilderSaveRequestVO;
 import egovframework.com.feature.admin.model.ScreenBuilderVersionSummaryVO;
 import egovframework.com.feature.admin.service.MenuInfoService;
+import egovframework.com.feature.admin.service.ResonanceControlPlaneService;
 import egovframework.com.feature.admin.service.ScreenCommandCenterService;
 import egovframework.com.feature.admin.service.ScreenBuilderDraftService;
 import egovframework.com.framework.authority.model.FrameworkAuthorityRoleContractVO;
 import egovframework.com.framework.authority.service.FrameworkAuthorityContractService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -50,9 +54,12 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService {
 
+    private static final Logger log = LoggerFactory.getLogger(ScreenBuilderDraftServiceImpl.class);
+
     private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss", Locale.KOREA);
     private static final String DEFAULT_TEMPLATE_TYPE = "EDIT_PAGE";
     private static final String ACTIVE_STATUS = "ACTIVE";
+    private static final String RESONANCE_PROJECT_ID = "carbonet-main";
     private static final List<Map<String, Object>> COMPONENT_PALETTE = Arrays.asList(
             palette("section", "Section", "섹션", "Form section container"),
             palette("heading", "Heading", "제목", "Section heading"),
@@ -71,6 +78,7 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
     private final ObservabilityMapper observabilityMapper;
     private final FrameworkAuthorityContractService frameworkAuthorityContractService;
     private final ScreenCommandCenterService screenCommandCenterService;
+    private final ResonanceControlPlaneService resonanceControlPlaneService;
 
     @Override
     public Map<String, Object> getPagePayload(String menuCode, String pageId, String menuTitle, String menuUrl, boolean isEn) throws Exception {
@@ -102,11 +110,54 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
         ScreenBuilderVersionSummaryVO publishedVersion = findLatestPublishedVersion(versionHistory);
         payload.put("publishedVersionId", publishedVersion == null ? "" : safe(publishedVersion.getVersionId()));
         payload.put("publishedSavedAt", publishedVersion == null ? "" : safe(publishedVersion.getSavedAt()));
+        String releaseUnitId = resolveReleaseUnitId(draft, publishedVersion);
+        payload.put("releaseUnitId", releaseUnitId);
+        payload.put("artifactEvidence", buildArtifactEvidence(
+                draft.getMenuCode(),
+                draft.getPageId(),
+                releaseUnitId,
+                publishedVersion == null ? "" : safe(publishedVersion.getVersionId()),
+                publishedVersion == null ? "" : safe(publishedVersion.getSavedAt())));
         payload.put("previewAvailable", !draft.getNodes().isEmpty());
         payload.put("screenBuilderMessage", safe(menuCode).isEmpty()
                 ? (isEn ? "Select a page menu from environment management to start the builder." : "환경관리 화면에서 페이지 메뉴를 선택한 뒤 빌더를 시작하세요.")
                 : "");
         return payload;
+    }
+
+    @Override
+    public Map<String, Object> getStatusSummary(List<String> menuCodes, boolean isEn) throws Exception {
+        List<String> normalizedMenuCodes = normalizeMenuCodes(menuCodes);
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (String menuCode : normalizedMenuCodes) {
+            items.add(readOrBuildStatusSummaryProjection(menuCode, isEn));
+        }
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("items", items);
+        response.put("count", items.size());
+        response.put("projectId", RESONANCE_PROJECT_ID);
+        return response;
+    }
+
+    @Override
+    public Map<String, Object> rebuildStatusSummary(List<String> menuCodes, boolean isEn) throws Exception {
+        List<String> normalizedMenuCodes = normalizeMenuCodes(menuCodes);
+        if (normalizedMenuCodes.isEmpty()) {
+            normalizedMenuCodes = resolveAllPageMenuCodes();
+        }
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (String menuCode : normalizedMenuCodes) {
+            Map<String, Object> computed = buildStatusSummaryItem(menuCode, isEn);
+            writeStatusSummaryProjection(menuCode, isEn, computed);
+            items.add(computed);
+        }
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("success", true);
+        response.put("items", items);
+        response.put("count", items.size());
+        response.put("projectId", RESONANCE_PROJECT_ID);
+        response.put("message", isEn ? "Status summary projections rebuilt." : "상태 요약 프로젝션을 재생성했습니다.");
+        return response;
     }
 
     @Override
@@ -117,6 +168,7 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
         Files.createDirectories(draftPath.getParent());
         objectMapper.writerWithDefaultPrettyPrinter().writeValue(draftPath.toFile(), draft);
         writeHistorySnapshot(draft);
+        invalidateStatusSummaryProjection(draft.getMenuCode());
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("success", true);
@@ -209,6 +261,7 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
         Files.createDirectories(draftPath.getParent());
         objectMapper.writerWithDefaultPrettyPrinter().writeValue(draftPath.toFile(), restored);
         writeHistorySnapshot(restored);
+        invalidateStatusSummaryProjection(normalizedMenuCode);
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("success", true);
         response.put("menuCode", normalizedMenuCode);
@@ -244,6 +297,8 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
         currentDraft.setVersionId(UUID.randomUUID().toString());
         currentDraft.setVersionStatus("PUBLISHED");
         writeHistorySnapshot(currentDraft, false);
+        invalidateStatusSummaryProjection(normalizedMenuCode);
+        warmStatusSummaryProjection(normalizedMenuCode);
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("success", true);
         response.put("menuCode", normalizedMenuCode);
@@ -322,6 +377,7 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
                 ? new LinkedHashMap<>()
                 : new LinkedHashMap<>(request.getPropsTemplate()));
         upsertComponentRegistryItem(item);
+        invalidateAllStatusSummaryProjections();
         return item;
     }
 
@@ -347,6 +403,7 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
         }
         matched.setUpdatedAt(LocalDateTime.now().format(TIMESTAMP_FORMAT));
         upsertComponentRegistryItem(matched);
+        invalidateAllStatusSummaryProjections();
         return matched;
     }
 
@@ -402,6 +459,7 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
 
         int updatedDraftCount = replaceComponentIdAcrossDrafts(normalizedFromComponentId, normalizedToComponentId, false);
         int updatedPublishedCount = 0;
+        invalidateAllStatusSummaryProjections();
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("success", true);
         response.put("fromComponentId", normalizedFromComponentId);
@@ -433,6 +491,7 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
                     : String.format("이 컴포넌트는 아직 %d개 화면에서 사용 중입니다. 먼저 사용처를 재매핑하세요.", usages.size()));
         }
         observabilityMapper.deleteUiComponentRegistry(normalizedComponentId);
+        invalidateAllStatusSummaryProjections();
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("success", true);
         response.put("componentId", normalizedComponentId);
@@ -452,6 +511,7 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
         Files.createDirectories(draftPath.getParent());
         objectMapper.writerWithDefaultPrettyPrinter().writeValue(draftPath.toFile(), draft);
         writeHistorySnapshot(draft);
+        invalidateStatusSummaryProjection(draft.getMenuCode());
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("success", true);
         response.put("menuCode", safe(menuCode));
@@ -539,6 +599,7 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
         Files.createDirectories(draftPath.getParent());
         objectMapper.writerWithDefaultPrettyPrinter().writeValue(draftPath.toFile(), draft);
         writeHistorySnapshot(draft);
+        invalidateStatusSummaryProjection(draft.getMenuCode());
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("success", true);
         response.put("menuCode", safe(menuCode));
@@ -603,6 +664,7 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
         Files.createDirectories(draftPath.getParent());
         objectMapper.writerWithDefaultPrettyPrinter().writeValue(draftPath.toFile(), draft);
         writeHistorySnapshot(draft);
+        invalidateStatusSummaryProjection(draft.getMenuCode());
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("success", true);
         response.put("menuCode", safe(menuCode));
@@ -984,6 +1046,342 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
         return map;
     }
 
+    private List<String> normalizeMenuCodes(List<String> menuCodes) {
+        if (menuCodes == null || menuCodes.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Set<String> deduped = new LinkedHashSet<>();
+        for (String menuCode : menuCodes) {
+            String normalized = safe(menuCode);
+            if (!normalized.isEmpty()) {
+                deduped.add(normalized);
+            }
+        }
+        return new ArrayList<>(deduped);
+    }
+
+    private List<String> resolveAllPageMenuCodes() throws Exception {
+        List<String> menuCodes = new ArrayList<>();
+        for (MenuInfoDTO row : new ArrayList<>(menuInfoService.selectMenuTreeList("AMENU1"))) {
+            String menuCode = firstNonBlank(row == null ? "" : row.getMenuCode(), row == null ? "" : row.getCode());
+            if (safe(menuCode).length() == 8) {
+                menuCodes.add(safe(menuCode));
+            }
+        }
+        return normalizeMenuCodes(menuCodes);
+    }
+
+    private Map<String, Object> readOrBuildStatusSummaryProjection(String menuCode, boolean isEn) throws Exception {
+        Path projectionPath = resolveStatusSummaryProjectionPath(menuCode, isEn);
+        if (Files.exists(projectionPath)) {
+            try (InputStream inputStream = Files.newInputStream(projectionPath)) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> stored = objectMapper.readValue(inputStream, LinkedHashMap.class);
+                if (stored != null && !stored.isEmpty()) {
+                    return stored;
+                }
+            } catch (Exception ignore) {
+                // Rebuild the projection if the cached file is unreadable.
+            }
+        }
+        Map<String, Object> computed = buildStatusSummaryItem(menuCode, isEn);
+        writeStatusSummaryProjection(menuCode, isEn, computed);
+        return computed;
+    }
+
+    private void writeStatusSummaryProjection(String menuCode, boolean isEn, Map<String, Object> item) throws Exception {
+        Path projectionPath = resolveStatusSummaryProjectionPath(menuCode, isEn);
+        Files.createDirectories(projectionPath.getParent());
+        objectMapper.writerWithDefaultPrettyPrinter().writeValue(projectionPath.toFile(), item);
+    }
+
+    private void invalidateStatusSummaryProjection(String menuCode) throws Exception {
+        String normalizedMenuCode = safe(menuCode);
+        if (normalizedMenuCode.isEmpty()) {
+            return;
+        }
+        Files.deleteIfExists(resolveStatusSummaryProjectionPath(normalizedMenuCode, false));
+        Files.deleteIfExists(resolveStatusSummaryProjectionPath(normalizedMenuCode, true));
+    }
+
+    private void invalidateAllStatusSummaryProjections() throws Exception {
+        Path projectionRoot = resolveStatusSummaryProjectionDir();
+        if (!Files.exists(projectionRoot)) {
+            return;
+        }
+        try (Stream<Path> stream = Files.list(projectionRoot)) {
+            for (Path file : stream.collect(Collectors.toList())) {
+                Files.deleteIfExists(file);
+            }
+        }
+    }
+
+    private void warmStatusSummaryProjection(String menuCode) throws Exception {
+        String normalizedMenuCode = safe(menuCode);
+        if (normalizedMenuCode.isEmpty()) {
+            return;
+        }
+        writeStatusSummaryProjection(normalizedMenuCode, false, buildStatusSummaryItem(normalizedMenuCode, false));
+        writeStatusSummaryProjection(normalizedMenuCode, true, buildStatusSummaryItem(normalizedMenuCode, true));
+    }
+
+    private Map<String, Object> buildStatusSummaryItem(String menuCode, boolean isEn) throws Exception {
+        ScreenBuilderDraftDocumentVO draft = getDraft(menuCode, "", "", "");
+        List<ScreenBuilderVersionSummaryVO> versionHistory = getVersionHistory(menuCode);
+        ScreenBuilderVersionSummaryVO publishedVersion = findLatestPublishedVersion(versionHistory);
+        Map<String, Object> diagnostics = getRegistryDiagnostics(draft, isEn);
+        int unregisteredCount = sizeOfList(diagnostics.get("unregisteredNodes"));
+        int missingCount = sizeOfList(diagnostics.get("missingNodes"));
+        int deprecatedCount = sizeOfList(diagnostics.get("deprecatedNodes"));
+        String publishedVersionId = publishedVersion == null ? "" : safe(publishedVersion.getVersionId());
+        String publishedSavedAt = publishedVersion == null ? "" : safe(publishedVersion.getSavedAt());
+        String releaseUnitId = resolveReleaseUnitId(draft, publishedVersion);
+        Map<String, Object> artifactEvidence = buildArtifactEvidence(
+                draft.getMenuCode(),
+                draft.getPageId(),
+                releaseUnitId,
+                publishedVersionId,
+                publishedSavedAt);
+        Map<String, Object> freshness = buildPublishFreshnessStatus(publishedVersionId, publishedSavedAt, isEn);
+        Map<String, Object> parity = buildParitySummary(draft, releaseUnitId, publishedVersionId, isEn);
+
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("menuCode", safe(draft.getMenuCode()));
+        item.put("pageId", safe(draft.getPageId()));
+        item.put("menuTitle", safe(draft.getMenuTitle()));
+        item.put("menuUrl", safe(draft.getMenuUrl()));
+        item.put("publishedVersionId", publishedVersionId);
+        item.put("publishedSavedAt", publishedSavedAt);
+        item.put("releaseUnitId", releaseUnitId);
+        item.put("artifactTargetSystem", asString(artifactEvidence.get("artifactTargetSystem")));
+        item.put("runtimePackageId", asString(artifactEvidence.get("runtimePackageId")));
+        item.put("deployTraceId", asString(artifactEvidence.get("deployTraceId")));
+        item.put("publishFreshnessState", asString(freshness.get("publishFreshnessState")));
+        item.put("publishFreshnessLabel", asString(freshness.get("publishFreshnessLabel")));
+        item.put("publishFreshnessDetail", asString(freshness.get("publishFreshnessDetail")));
+        item.put("parityState", asString(parity.get("parityState")));
+        item.put("parityLabel", asString(parity.get("parityLabel")));
+        item.put("parityDetail", asString(parity.get("parityDetail")));
+        item.put("parityTraceId", asString(parity.get("parityTraceId")));
+        item.put("versionCount", versionHistory.size());
+        item.put("unregisteredCount", unregisteredCount);
+        item.put("missingCount", missingCount);
+        item.put("deprecatedCount", deprecatedCount);
+        return item;
+    }
+
+    private Map<String, Object> buildPublishFreshnessStatus(String publishedVersionId, String publishedSavedAt, boolean isEn) {
+        Map<String, Object> status = new LinkedHashMap<>();
+        if (safe(publishedVersionId).isEmpty()) {
+            status.put("publishFreshnessState", "UNPUBLISHED");
+            status.put("publishFreshnessLabel", isEn ? "No publish yet" : "아직 발행 없음");
+            status.put("publishFreshnessDetail", isEn ? "This menu is still operating from draft-only builder state." : "이 메뉴는 아직 draft 전용 빌더 상태입니다.");
+            return status;
+        }
+        long publishedAt = parseSummaryTime(publishedSavedAt);
+        if (publishedAt < 0L) {
+            status.put("publishFreshnessState", "UNKNOWN");
+            status.put("publishFreshnessLabel", isEn ? "Publish time unknown" : "발행 시각 확인 필요");
+            status.put("publishFreshnessDetail", safe(publishedSavedAt).isEmpty()
+                    ? (isEn ? "Published version exists but timestamp is missing." : "발행 버전은 있으나 시각 정보가 없습니다.")
+                    : safe(publishedSavedAt));
+            return status;
+        }
+        long ageHours = Math.max(0L, (System.currentTimeMillis() - publishedAt) / (60L * 60L * 1000L));
+        if (ageHours <= 24L) {
+            status.put("publishFreshnessState", "FRESH");
+            status.put("publishFreshnessLabel", isEn ? "Fresh publish" : "최신 발행");
+            status.put("publishFreshnessDetail", isEn
+                    ? "Published " + formatAgeLabel(ageHours, true) + "."
+                    : formatAgeLabel(ageHours, false) + " 발행됨");
+            return status;
+        }
+        if (ageHours <= 72L) {
+            status.put("publishFreshnessState", "AGING");
+            status.put("publishFreshnessLabel", isEn ? "Publish aging" : "발행 노후화 시작");
+            status.put("publishFreshnessDetail", isEn
+                    ? "Published " + formatAgeLabel(ageHours, true) + ". Recheck runtime parity before release."
+                    : formatAgeLabel(ageHours, false) + " 발행됨. 배포 전 런타임 정합성 재확인이 필요합니다.");
+            return status;
+        }
+        status.put("publishFreshnessState", "STALE");
+        status.put("publishFreshnessLabel", isEn ? "Publish stale" : "발행 노후화");
+        status.put("publishFreshnessDetail", isEn
+                ? "Published " + formatAgeLabel(ageHours, true) + ". Refresh builder output and verify parity drift."
+                : formatAgeLabel(ageHours, false) + " 발행됨. 빌더 산출물을 갱신하고 정합성 드리프트를 확인하세요.");
+        return status;
+    }
+
+    private Map<String, Object> buildParitySummary(ScreenBuilderDraftDocumentVO draft, String releaseUnitId, String publishedVersionId, boolean isEn) {
+        if (safe(publishedVersionId).isEmpty()) {
+            return buildUnavailableParityStatus(isEn, isEn ? "No publish yet." : "아직 발행이 없습니다.");
+        }
+        Map<String, String> context = resolveRuntimeCompareContext(draft);
+        if (safe(context.get("guidedStateId")).isEmpty()
+                || safe(context.get("templateLineId")).isEmpty()
+                || safe(context.get("screenFamilyRuleId")).isEmpty()
+                || safe(context.get("ownerLane")).isEmpty()
+                || safe(context.get("selectedScreenId")).isEmpty()) {
+            return buildUnavailableParityStatus(isEn, isEn ? "Compare context keys are incomplete for this menu." : "이 메뉴의 비교 컨텍스트 키가 아직 완전하지 않습니다.");
+        }
+        try {
+            ParityCompareRequest request = new ParityCompareRequest();
+            request.setProjectId(RESONANCE_PROJECT_ID);
+            request.setGuidedStateId(context.get("guidedStateId"));
+            request.setTemplateLineId(context.get("templateLineId"));
+            request.setScreenFamilyRuleId(context.get("screenFamilyRuleId"));
+            request.setOwnerLane(context.get("ownerLane"));
+            request.setSelectedScreenId(context.get("selectedScreenId"));
+            request.setReleaseUnitId(releaseUnitId);
+            request.setCompareBaseline("CURRENT_RUNTIME");
+            request.setRequestedBy("screen-builder-status-summary");
+            request.setRequestedByType("SCREEN_BUILDER_QUEUE");
+            Map<String, Object> response = resonanceControlPlaneService.getParityCompare(request);
+            List<Map<String, Object>> compareTargetSet = castObjectList(response.get("compareTargetSet"));
+            int mismatchCount = 0;
+            int gapCount = 0;
+            for (Map<String, Object> row : compareTargetSet) {
+                String result = safe(String.valueOf(row.get("result")));
+                if ("GAP".equalsIgnoreCase(result)) {
+                    gapCount++;
+                } else if ("MISMATCH".equalsIgnoreCase(result)) {
+                    mismatchCount++;
+                }
+            }
+            return buildParityStatus(mismatchCount, gapCount, safe(String.valueOf(response.get("traceId"))), isEn);
+        } catch (Exception e) {
+            return buildUnavailableParityStatus(isEn, safe(e.getMessage()).isEmpty()
+                    ? (isEn ? "Failed to load parity compare summary." : "정합성 비교 요약을 불러오지 못했습니다.")
+                    : safe(e.getMessage()));
+        }
+    }
+
+    private Map<String, Object> buildUnavailableParityStatus(boolean isEn, String detail) {
+        Map<String, Object> status = new LinkedHashMap<>();
+        status.put("parityState", "UNAVAILABLE");
+        status.put("parityLabel", isEn ? "Parity not checked" : "정합성 미확인");
+        status.put("parityDetail", safe(detail));
+        status.put("parityTraceId", "");
+        return status;
+    }
+
+    private Map<String, Object> buildParityStatus(int mismatchCount, int gapCount, String traceId, boolean isEn) {
+        Map<String, Object> status = new LinkedHashMap<>();
+        if (gapCount > 0) {
+            status.put("parityState", "GAP");
+            status.put("parityLabel", isEn ? "Parity gap " + gapCount : "정합성 갭 " + gapCount);
+            status.put("parityDetail", isEn
+                    ? mismatchCount + " mismatch and " + gapCount + " gap rows detected against current runtime."
+                    : "현재 런타임 기준으로 불일치 " + mismatchCount + "건, 갭 " + gapCount + "건이 확인됐습니다.");
+            status.put("parityTraceId", safe(traceId));
+            return status;
+        }
+        if (mismatchCount > 0) {
+            status.put("parityState", "DRIFT");
+            status.put("parityLabel", isEn ? "Parity drift " + mismatchCount : "정합성 드리프트 " + mismatchCount);
+            status.put("parityDetail", isEn
+                    ? mismatchCount + " mismatch rows detected against current runtime."
+                    : "현재 런타임 기준으로 불일치 " + mismatchCount + "건이 확인됐습니다.");
+            status.put("parityTraceId", safe(traceId));
+            return status;
+        }
+        status.put("parityState", "MATCH");
+        status.put("parityLabel", isEn ? "Parity match" : "정합성 일치");
+        status.put("parityDetail", isEn
+                ? "Current runtime and generated target are aligned for this compare scope."
+                : "현재 런타임과 generated target이 이 비교 범위에서 일치합니다.");
+        status.put("parityTraceId", safe(traceId));
+        return status;
+    }
+
+    private Map<String, String> resolveRuntimeCompareContext(ScreenBuilderDraftDocumentVO draft) {
+        Map<String, String> context = new LinkedHashMap<>();
+        String menuUrl = safe(draft == null ? null : draft.getMenuUrl()).toLowerCase(Locale.ROOT);
+        String templateType = safe(draft == null ? null : draft.getTemplateType()).toUpperCase(Locale.ROOT);
+        boolean adminSurface = menuUrl.startsWith("/admin") || menuUrl.startsWith("/en/admin");
+        context.put("guidedStateId", "guided-build-14-runtime-compare");
+        context.put("templateLineId", adminSurface ? "admin-line-02" : "public-line-01");
+        context.put("screenFamilyRuleId", adminSurface
+                ? resolveAdminScreenFamilyRuleId(templateType)
+                : resolvePublicScreenFamilyRuleId(menuUrl));
+        context.put("ownerLane", "res-verify");
+        context.put("selectedScreenId", firstNonBlank(safe(draft == null ? null : draft.getPageId()), safe(draft == null ? null : draft.getMenuCode()).toLowerCase(Locale.ROOT)));
+        return context;
+    }
+
+    private String resolveAdminScreenFamilyRuleId(String templateType) {
+        if ("LIST_PAGE".equalsIgnoreCase(templateType)) {
+            return "ADMIN_LIST";
+        }
+        if ("DETAIL_PAGE".equalsIgnoreCase(templateType)) {
+            return "ADMIN_DETAIL";
+        }
+        if ("REVIEW_PAGE".equalsIgnoreCase(templateType)) {
+            return "ADMIN_LIST_REVIEW";
+        }
+        return "ADMIN_EDIT";
+    }
+
+    private String resolvePublicScreenFamilyRuleId(String menuUrl) {
+        String normalized = safe(menuUrl).toLowerCase(Locale.ROOT);
+        if (normalized.contains("/join")) {
+            return "PUBLIC_JOIN_STEP";
+        }
+        return "PUBLIC_HOME";
+    }
+
+    private long parseSummaryTime(String publishedSavedAt) {
+        String value = safe(publishedSavedAt);
+        if (value.isEmpty()) {
+            return -1L;
+        }
+        List<DateTimeFormatter> formatters = Arrays.asList(
+                DateTimeFormatter.ISO_DATE_TIME,
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"),
+                DateTimeFormatter.ofPattern("yyyyMMddHHmmss")
+        );
+        for (DateTimeFormatter formatter : formatters) {
+            try {
+                return LocalDateTime.parse(value, formatter)
+                        .atZone(java.time.ZoneId.systemDefault())
+                        .toInstant()
+                        .toEpochMilli();
+            } catch (Exception ignore) {
+                // Try the next known timestamp format.
+            }
+        }
+        return -1L;
+    }
+
+    private String formatAgeLabel(long ageHours, boolean isEn) {
+        if (ageHours < 1L) {
+            return isEn ? "within 1 hour" : "1시간 이내";
+        }
+        if (ageHours < 24L) {
+            return isEn ? ageHours + "h ago" : ageHours + "시간 전";
+        }
+        long days = ageHours / 24L;
+        if (days < 7L) {
+            return isEn ? days + "d ago" : days + "일 전";
+        }
+        long weeks = days / 7L;
+        return isEn ? weeks + "w ago" : weeks + "주 전";
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> castObjectList(Object value) {
+        if (!(value instanceof List<?>)) {
+            return Collections.emptyList();
+        }
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (Object item : (List<?>) value) {
+            if (item instanceof Map<?, ?>) {
+                rows.add((Map<String, Object>) item);
+            }
+        }
+        return rows;
+    }
+
     private String resolveDefaultTemplateType(String pageId, String menuUrl) {
         if (isListPageCandidate(pageId) || safe(menuUrl).endsWith("/list")) {
             return "LIST_PAGE";
@@ -1035,14 +1433,28 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
         return Paths.get("data", "screen-builder", "history", safe(menuCode));
     }
 
+    private Path resolveStatusSummaryProjectionDir() {
+        return Paths.get("data", "screen-builder", "status-summary");
+    }
+
+    private Path resolveStatusSummaryProjectionPath(String menuCode, boolean isEn) {
+        String suffix = isEn ? ".en.json" : ".ko.json";
+        return resolveStatusSummaryProjectionDir().resolve(safe(menuCode) + suffix);
+    }
+
     private List<ScreenBuilderComponentRegistryItemVO> readComponentRegistry(boolean isEn) throws Exception {
-        seedDefaultRegistryItems(isEn);
-        importLegacyComponentRegistryIfPresent(isEn);
-        return observabilityMapper.selectUiComponentRegistryList().stream()
-                .map(this::mapRegistryRow)
-                .sorted(Comparator.comparing(ScreenBuilderComponentRegistryItemVO::getSourceType, Comparator.nullsLast(String::compareTo))
-                        .thenComparing(ScreenBuilderComponentRegistryItemVO::getComponentId, Comparator.nullsLast(String::compareTo)))
-                .collect(Collectors.toList());
+        try {
+            seedDefaultRegistryItems(isEn);
+            importLegacyComponentRegistryIfPresent(isEn);
+            return observabilityMapper.selectUiComponentRegistryList().stream()
+                    .map(this::mapRegistryRow)
+                    .sorted(Comparator.comparing(ScreenBuilderComponentRegistryItemVO::getSourceType, Comparator.nullsLast(String::compareTo))
+                            .thenComparing(ScreenBuilderComponentRegistryItemVO::getComponentId, Comparator.nullsLast(String::compareTo)))
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.warn("Failed to read screen-builder component registry. Falling back to empty registry list.", e);
+            return Collections.emptyList();
+        }
     }
 
     private boolean containsComponentId(List<ScreenBuilderComponentRegistryItemVO> items, String componentId) {
@@ -1536,6 +1948,41 @@ public class ScreenBuilderDraftServiceImpl implements ScreenBuilderDraftService 
             }
         }
         return null;
+    }
+
+    private String resolveReleaseUnitId(ScreenBuilderDraftDocumentVO draft, ScreenBuilderVersionSummaryVO publishedVersion) {
+        if (publishedVersion != null && !safe(publishedVersion.getVersionId()).isEmpty()) {
+            return safe(publishedVersion.getVersionId());
+        }
+        if (draft != null && !safe(draft.getVersionId()).isEmpty()) {
+            return safe(draft.getVersionId());
+        }
+        if (draft != null && !safe(draft.getPageId()).isEmpty()) {
+            return safe(draft.getPageId());
+        }
+        return safe(draft == null ? "" : draft.getMenuCode());
+    }
+
+    private Map<String, Object> buildArtifactEvidence(
+            String menuCode,
+            String pageId,
+            String releaseUnitId,
+            String publishedVersionId,
+            String publishedSavedAt) {
+        String normalizedReleaseUnitId = firstNonBlank(releaseUnitId, pageId, menuCode, "screen-builder-release");
+        String normalizedMenuCode = safe(menuCode).isEmpty() ? "menu" : safe(menuCode).toLowerCase(Locale.ROOT);
+        String normalizedPageId = safe(pageId).isEmpty() ? "page" : safe(pageId).toLowerCase(Locale.ROOT);
+        Map<String, Object> evidence = new LinkedHashMap<>();
+        evidence.put("artifactSourceSystem", "carbonet-ops");
+        evidence.put("artifactTargetSystem", "carbonet-general");
+        evidence.put("releaseUnitId", normalizedReleaseUnitId);
+        evidence.put("runtimePackageId", "screen-builder-runtime-" + normalizedMenuCode + "-" + normalizedPageId);
+        evidence.put("deployTraceId", "deploy-" + normalizedReleaseUnitId.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-"));
+        evidence.put("publishedVersionId", safe(publishedVersionId));
+        evidence.put("publishedSavedAt", safe(publishedSavedAt));
+        evidence.put("artifactKind", "screen-builder-runtime");
+        evidence.put("artifactPathHint", "src/main/resources/static/react-app");
+        return evidence;
     }
 
     private String firstNonBlank(String... values) {

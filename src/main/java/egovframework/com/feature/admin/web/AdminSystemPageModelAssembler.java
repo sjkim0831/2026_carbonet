@@ -38,24 +38,98 @@ public class AdminSystemPageModelAssembler {
     public void populateSecurityMonitoringPage(Model model, boolean isEn) {
         AdminMainController controller = adminMainController();
         model.addAttribute("securityMonitoringCards", adminSummaryService.getSecurityMonitoringCards(isEn));
-        model.addAttribute("securityMonitoringTargets", controller.buildSecurityMonitoringTargets(isEn));
-        model.addAttribute("securityMonitoringIps", controller.buildSecurityMonitoringIps(isEn));
-        model.addAttribute("securityMonitoringEvents", controller.buildSecurityMonitoringEvents(isEn));
+        model.addAttribute("securityMonitoringTargets", adminSummaryService.getSecurityMonitoringTargets(isEn));
+        model.addAttribute("securityMonitoringIps", adminSummaryService.getSecurityMonitoringIps(isEn));
+        model.addAttribute("securityMonitoringEvents", adminSummaryService.mergeSecurityMonitoringEventState(adminSummaryService.getSecurityMonitoringEvents(isEn), isEn));
+        model.addAttribute("securityMonitoringActivityRows", adminSummaryService.getSecurityMonitoringActivityRows(isEn));
+        model.addAttribute("securityMonitoringBlockCandidates", adminSummaryService.getSecurityMonitoringBlockCandidateRows(isEn));
     }
 
     public void populateBlocklistPage(
             String searchKeyword,
             String blockType,
             String status,
+            String source,
             Model model,
             boolean isEn) {
         AdminMainController controller = adminMainController();
+        String normalizedKeyword = controller.safeString(searchKeyword).toLowerCase(Locale.ROOT);
+        String normalizedBlockType = controller.safeString(blockType).toUpperCase(Locale.ROOT);
+        String normalizedStatus = controller.safeString(status).toUpperCase(Locale.ROOT);
+        String normalizedSource = controller.safeString(source).toUpperCase(Locale.ROOT);
         model.addAttribute("searchKeyword", controller.safeString(searchKeyword));
-        model.addAttribute("blockType", controller.safeString(blockType).toUpperCase(Locale.ROOT));
-        model.addAttribute("status", controller.safeString(status).toUpperCase(Locale.ROOT));
+        model.addAttribute("blockType", normalizedBlockType);
+        model.addAttribute("status", normalizedStatus);
+        model.addAttribute("source", controller.safeString(source));
         model.addAttribute("blocklistSummary", adminSummaryService.getBlocklistSummary(isEn));
-        model.addAttribute("blocklistRows", controller.buildBlocklistRows(isEn));
-        model.addAttribute("blocklistReleaseQueue", controller.buildBlocklistReleaseQueue(isEn));
+        List<Map<String, String>> blocklistRows = new ArrayList<>(adminSummaryService.getBlocklistRows(isEn));
+        model.addAttribute("blocklistRows", blocklistRows.stream()
+                .filter(row -> matchesBlocklistFilter(row, normalizedKeyword, normalizedBlockType, normalizedStatus, normalizedSource, controller))
+                .toList());
+        List<Map<String, String>> releaseQueue = new ArrayList<>(adminSummaryService.getBlocklistReleaseQueue(isEn));
+        model.addAttribute("blocklistReleaseQueue", releaseQueue.stream()
+                .filter(row -> matchesQueueFilter(row, normalizedKeyword, normalizedSource, controller))
+                .toList());
+        List<Map<String, String>> releaseHistory = new ArrayList<>(adminSummaryService.getBlocklistReleaseHistory(isEn));
+        model.addAttribute("blocklistReleaseHistory", releaseHistory.stream()
+                .filter(row -> matchesHistoryFilter(row, normalizedKeyword, normalizedSource, controller))
+                .toList());
+    }
+
+    private boolean matchesBlocklistFilter(
+            Map<String, String> row,
+            String normalizedKeyword,
+            String normalizedBlockType,
+            String normalizedStatus,
+            String normalizedSource,
+            AdminMainController controller) {
+        String rowBlockType = controller.safeString(row.get("blockType")).toUpperCase(Locale.ROOT);
+        String rowStatus = controller.safeString(row.get("status")).toUpperCase(Locale.ROOT);
+        String rowSource = controller.safeString(row.get("source")).toUpperCase(Locale.ROOT);
+        boolean matchesKeyword = normalizedKeyword.isEmpty() || String.join(" ",
+                controller.safeString(row.get("blockId")),
+                controller.safeString(row.get("target")),
+                controller.safeString(row.get("reason")),
+                controller.safeString(row.get("owner")))
+                .toLowerCase(Locale.ROOT)
+                .contains(normalizedKeyword);
+        boolean matchesBlockType = normalizedBlockType.isEmpty() || normalizedBlockType.equals(rowBlockType);
+        boolean matchesStatus = normalizedStatus.isEmpty() || normalizedStatus.equals(rowStatus);
+        boolean matchesSource = normalizedSource.isEmpty() || normalizedSource.equals(rowSource);
+        return matchesKeyword && matchesBlockType && matchesStatus && matchesSource;
+    }
+
+    private boolean matchesQueueFilter(
+            Map<String, String> row,
+            String normalizedKeyword,
+            String normalizedSource,
+            AdminMainController controller) {
+        String rowSource = controller.safeString(row.get("source")).toUpperCase(Locale.ROOT);
+        boolean matchesKeyword = normalizedKeyword.isEmpty() || String.join(" ",
+                controller.safeString(row.get("target")),
+                controller.safeString(row.get("condition")),
+                controller.safeString(row.get("releaseAt")))
+                .toLowerCase(Locale.ROOT)
+                .contains(normalizedKeyword);
+        boolean matchesSource = normalizedSource.isEmpty() || normalizedSource.equals(rowSource);
+        return matchesKeyword && matchesSource;
+    }
+
+    private boolean matchesHistoryFilter(
+            Map<String, String> row,
+            String normalizedKeyword,
+            String normalizedSource,
+            AdminMainController controller) {
+        String rowSource = controller.safeString(row.get("source")).toUpperCase(Locale.ROOT);
+        boolean matchesKeyword = normalizedKeyword.isEmpty() || String.join(" ",
+                controller.safeString(row.get("blockId")),
+                controller.safeString(row.get("target")),
+                controller.safeString(row.get("reason")),
+                controller.safeString(row.get("releasedBy")))
+                .toLowerCase(Locale.ROOT)
+                .contains(normalizedKeyword);
+        boolean matchesSource = normalizedSource.isEmpty() || normalizedSource.equals(rowSource);
+        return matchesKeyword && matchesSource;
     }
 
     public void populateSecurityAuditPage(Model model, boolean isEn) {

@@ -42,6 +42,8 @@ export function ScreenRuntimeMigrationPage() {
   );
   const preview = previewState.value;
   const previewNodes = useMemo(() => sortScreenBuilderNodes(preview?.nodes || []), [preview?.nodes]);
+  const artifactEvidence = preview?.artifactEvidence || page?.artifactEvidence || {};
+  const releaseUnitId = String(preview?.releaseUnitId || page?.releaseUnitId || page?.publishedVersionId || page?.versionId || "-");
   const runtimeDiagnostics = preview?.registryDiagnostics || page?.registryDiagnostics || {};
   const unregisteredNodes = runtimeDiagnostics?.unregisteredNodes || [];
   const missingNodes = runtimeDiagnostics?.missingNodes || [];
@@ -191,7 +193,7 @@ export function ScreenRuntimeMigrationPage() {
           <SummaryMetricCard title={en ? "Published Nodes" : "발행 노드 수"} value={previewNodes.length} description={en ? "Rendered runtime nodes" : "렌더 가능한 런타임 노드"} />
           <SummaryMetricCard title={en ? "Runtime Events" : "런타임 이벤트"} value={preview?.events?.length || 0} description={en ? "Published event bindings" : "발행 이벤트 바인딩"} />
           <SummaryMetricCard title={en ? "Registry Gaps" : "레지스트리 갭"} value={componentLinkageIssueCount} description={en ? "Unregistered, missing, deprecated" : "미등록 / 누락 / 사용중단"} accentClassName={componentLinkageIssueCount ? "text-amber-700" : undefined} surfaceClassName={componentLinkageIssueCount ? "bg-amber-50" : undefined} />
-          <SummaryMetricCard title={en ? "Version History" : "버전 이력"} value={Array.isArray(page?.versionHistory) ? page.versionHistory.length : 0} description={en ? "Draft and publish snapshots" : "초안 / 발행 스냅샷"} />
+          <SummaryMetricCard title={en ? "Release Unit" : "릴리즈 유닛"} value={releaseUnitId} description={en ? "Ops-owned publish package" : "ops 소유 publish 패키지"} />
         </section>
         <section className="grid grid-cols-1 gap-4 xl:grid-cols-2" data-help-id="screen-runtime-binding">
           <KeyValueGridPanel
@@ -203,7 +205,8 @@ export function ScreenRuntimeMigrationPage() {
               { label: "screenFamilyRuleId", value: runtimeContextKeys[2]?.value || "-" },
               { label: "ownerLane", value: runtimeContextKeys[3]?.value || "-" },
               { label: en ? "Authority Scope" : "권한 범위", value: stringifyValue(preview?.authorityProfile?.scopePolicy || page?.authorityProfile?.scopePolicy, "GLOBAL") },
-              { label: en ? "Published Version" : "발행 버전", value: page?.publishedVersionId || "-" }
+              { label: en ? "Published Version" : "발행 버전", value: page?.publishedVersionId || "-" },
+              { label: en ? "Release Unit" : "릴리즈 유닛", value: releaseUnitId }
             ]}
           />
           <KeyValueGridPanel
@@ -216,6 +219,32 @@ export function ScreenRuntimeMigrationPage() {
               { label: en ? "Recent Builder Events" : "최근 빌더 이벤트", value: String(screenBuilderAudits.length) },
               { label: en ? "Published At" : "발행 시각", value: stringifyValue(page?.publishedSavedAt) },
               { label: en ? "Node / Event Total" : "노드 / 이벤트 합계", value: `${formatCountLabel(previewNodes.length, en ? "node" : "개", en ? "nodes" : "개")} / ${formatCountLabel(preview?.events?.length || 0, en ? "event" : "개", en ? "events" : "개")}` }
+            ]}
+          />
+        </section>
+        <section className="grid grid-cols-1 gap-4 xl:grid-cols-2" data-help-id="screen-runtime-artifact-evidence">
+          <KeyValueGridPanel
+            title={en ? "Artifact Handoff Evidence" : "산출물 인계 증거"}
+            description={en ? "These values define the publish boundary from carbonet-ops to carbonet-general." : "이 값들은 carbonet-ops에서 carbonet-general로 넘어가는 publish 경계를 나타냅니다."}
+            items={[
+              { label: en ? "Source System" : "소스 시스템", value: stringifyValue(artifactEvidence.artifactSourceSystem, "carbonet-ops") },
+              { label: en ? "Target System" : "타깃 시스템", value: stringifyValue(artifactEvidence.artifactTargetSystem, "carbonet-general") },
+              { label: en ? "Release Unit" : "릴리즈 유닛", value: stringifyValue(artifactEvidence.releaseUnitId, releaseUnitId) },
+              { label: en ? "Runtime Package" : "런타임 패키지", value: stringifyValue(artifactEvidence.runtimePackageId) },
+              { label: en ? "Deploy Trace" : "배포 추적", value: stringifyValue(artifactEvidence.deployTraceId) },
+              { label: en ? "Artifact Path" : "산출물 경로", value: stringifyValue(artifactEvidence.artifactPathHint) }
+            ]}
+          />
+          <KeyValueGridPanel
+            title={en ? "Publish Snapshot Evidence" : "발행 스냅샷 증거"}
+            description={en ? "Use this block when handing the published runtime to compare, repair, or downstream runtime targets." : "이 블록은 발행 런타임을 compare, repair, 또는 downstream runtime target으로 넘길 때 사용합니다."}
+            items={[
+              { label: en ? "Artifact Kind" : "산출물 종류", value: stringifyValue(artifactEvidence.artifactKind, "screen-builder-runtime") },
+              { label: en ? "Published Version" : "발행 버전", value: stringifyValue(artifactEvidence.publishedVersionId, page?.publishedVersionId) },
+              { label: en ? "Published Saved At" : "발행 저장 시각", value: stringifyValue(artifactEvidence.publishedSavedAt, page?.publishedSavedAt) },
+              { label: en ? "Page Id" : "페이지 ID", value: stringifyValue(page?.pageId, query.pageId) },
+              { label: "menuCode", value: stringifyValue(page?.menuCode, query.menuCode) },
+              { label: "menuUrl", value: stringifyValue(page?.menuUrl, query.menuUrl) }
             ]}
           />
         </section>

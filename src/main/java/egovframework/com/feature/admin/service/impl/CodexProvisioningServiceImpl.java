@@ -74,6 +74,10 @@ public class CodexProvisioningServiceImpl implements CodexProvisioningService {
         String domainCode = defaultValue(upper(page.getDomainCode()), pageCode.substring(0, 4));
         String groupCode = defaultValue(upper(page.getGroupCode()), pageCode.substring(0, 6));
         String useAt = normalizeUseAt(page.getUseAt());
+        String pageNameKo = required(page.getCodeNm(), "Page name is required.");
+        String pageNameEn = defaultValue(page.getCodeDc(), pageNameKo);
+        String normalizedMenuUrl = required(normalizeUrl(page.getMenuUrl()), "Page URL is required.");
+        String normalizedMenuIcon = defaultValue(page.getMenuIcon(), "description");
 
         ensureDetailCode(codeId, domainCode, defaultValue(page.getDomainName(), domainCode),
                 defaultValue(page.getDomainNameEn(), defaultValue(page.getDomainName(), domainCode)),
@@ -81,21 +85,31 @@ public class CodexProvisioningServiceImpl implements CodexProvisioningService {
         ensureDetailCode(codeId, groupCode, defaultValue(page.getGroupName(), groupCode),
                 defaultValue(page.getGroupNameEn(), defaultValue(page.getGroupName(), groupCode)),
                 useAt, actorId, "menu-group", response);
-        ensureDetailCode(codeId, pageCode, required(page.getCodeNm(), "Page name is required."),
-                defaultValue(page.getCodeDc(), required(page.getCodeNm(), "Page English name is required.")),
+        ensureDetailCode(codeId, pageCode, pageNameKo, pageNameEn,
                 useAt, actorId, "page", response);
 
         if (menuInfoMapper.countMenuInfoByCode(pageCode) > 0) {
-            response.addResult("menu", pageCode, "EXISTING", "Menu URL metadata already exists.");
+            AdminCodeCommandDTO menuParams = new AdminCodeCommandDTO();
+            menuParams.setCode(pageCode);
+            menuParams.setCodeNm(pageNameKo);
+            menuParams.setCodeDc(pageNameEn);
+            menuParams.setMenuUrl(normalizedMenuUrl);
+            menuParams.setMenuIcon(normalizedMenuIcon);
+            menuParams.setUseAt(useAt);
+            menuParams.setUpdaterId(actorId);
+            adminCodeManageMapper.updatePageManagementNames(menuParams);
+            adminCodeManageMapper.updatePageManagementUseAt(menuParams);
+            adminCodeManageMapper.updatePageManagementMenu(menuParams);
+            response.addResult("menu", pageCode, "EXISTING", "Menu URL metadata already exists and has been synchronized.");
             return;
         }
 
         AdminCodeCommandDTO menuParams = new AdminCodeCommandDTO();
         menuParams.setCode(pageCode);
-        menuParams.setCodeNm(required(page.getCodeNm(), "Page name is required."));
-        menuParams.setCodeDc(defaultValue(page.getCodeDc(), required(page.getCodeNm(), "Page English name is required.")));
-        menuParams.setMenuUrl(required(normalizeUrl(page.getMenuUrl()), "Page URL is required."));
-        menuParams.setMenuIcon(defaultValue(page.getMenuIcon(), "description"));
+        menuParams.setCodeNm(pageNameKo);
+        menuParams.setCodeDc(pageNameEn);
+        menuParams.setMenuUrl(normalizedMenuUrl);
+        menuParams.setMenuIcon(normalizedMenuIcon);
         menuParams.setUseAt(useAt);
         adminCodeManageMapper.insertPageManagementMenu(menuParams);
         response.addResult("menu", pageCode, "CREATED", "Menu URL metadata has been registered.");
@@ -266,7 +280,15 @@ public class CodexProvisioningServiceImpl implements CodexProvisioningService {
     private void ensureDetailCode(String codeId, String code, String codeNm, String codeDc, String useAt, String actorId,
                                   String category, CodexProvisionResponse response) {
         if (adminCodeManageMapper.countDetailCode(detailCountParams(codeId, code)) > 0) {
-            response.addResult(category, code, "EXISTING", "Menu detail code already exists.");
+            AdminCodeCommandDTO params = new AdminCodeCommandDTO();
+            params.setCodeId(codeId);
+            params.setCode(code);
+            params.setCodeNm(codeNm);
+            params.setCodeDc(codeDc);
+            params.setUseAt(useAt);
+            params.setUpdaterId(actorId);
+            adminCodeManageMapper.updateDetailCode(params);
+            response.addResult(category, code, "EXISTING", "Menu detail code already exists and has been synchronized.");
             return;
         }
         AdminCodeCommandDTO params = new AdminCodeCommandDTO();

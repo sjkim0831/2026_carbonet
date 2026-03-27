@@ -14,4 +14,8 @@ public class UserAuthorityTargetVO {
     private String deptNm;
     private String authorCode;
     private String authorNm;
+
+    public String getAuthorCode() {
+        return authorCode;
+    }
 }

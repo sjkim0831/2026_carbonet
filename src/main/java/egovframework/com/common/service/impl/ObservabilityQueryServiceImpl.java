@@ -82,7 +82,7 @@ public class ObservabilityQueryServiceImpl extends EgovAbstractServiceImpl imple
     public List<AdminUnifiedLogRowResponse> selectUnifiedLogList(AdminUnifiedLogSearchRequestDTO searchDTO) {
         List<AdminUnifiedLogRowResponse> rows = loadUnifiedLogRows(searchDTO);
         int pageIndex = Math.max(defaultInt(searchDTO.getPageIndex(), 1), 1);
-        int pageSize = Math.max(defaultInt(searchDTO.getPageSize(), 20), 1);
+        int pageSize = Math.max(defaultInt(searchDTO.getPageSize(), 10), 1);
         int fromIndex = Math.max(pageIndex - 1, 0) * pageSize;
         if (fromIndex >= rows.size()) {
             return new ArrayList<>();
@@ -377,7 +377,7 @@ public class ObservabilityQueryServiceImpl extends EgovAbstractServiceImpl imple
 
     private int resolveFetchWindow(AdminUnifiedLogSearchRequestDTO searchDTO) {
         int pageIndex = Math.max(defaultInt(searchDTO.getPageIndex(), 1), 1);
-        int pageSize = Math.max(defaultInt(searchDTO.getPageSize(), 20), 1);
+        int pageSize = Math.max(defaultInt(searchDTO.getPageSize(), 10), 1);
         return Math.max(pageIndex * pageSize, 100);
     }
 

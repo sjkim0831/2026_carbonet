@@ -1,5 +1,6 @@
 package egovframework.com.feature.admin.web;
 
+import egovframework.com.common.security.AdminActionRateLimitService;
 import egovframework.com.feature.admin.dto.request.CodexProvisionRequest;
 import egovframework.com.feature.admin.dto.response.CodexExecutionHistoryResponse;
 import egovframework.com.feature.admin.dto.response.CodexProvisionResponse;
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.ObjectUtils;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,6 +41,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Slf4j
 public class CodexProvisionAdminController {
+    private static final int CODEX_EXECUTION_RATE_LIMIT = 5;
+    private static final long CODEX_EXECUTION_WINDOW_SECONDS = 300L;
 
     @Value("${security.codex.enabled:false}")
     private boolean codexEnabled;
@@ -51,6 +55,7 @@ public class CodexProvisionAdminController {
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthGroupManageService authGroupManageService;
     private final EmployeeMemberRepository employeeMemberRepository;
+    private final AdminActionRateLimitService adminActionRateLimitService;
 
     @PostMapping("/login")
     @ResponseBody
@@ -65,6 +70,10 @@ public class CodexProvisionAdminController {
         ResponseEntity<?> availability = validateInternalAvailability();
         if (!availability.getStatusCode().is2xxSuccessful()) {
             return availability;
+        }
+        ResponseEntity<?> blocked = enforceCodexRateLimit(request, "execute");
+        if (blocked != null) {
+            return blocked;
         }
 
         try {
@@ -224,6 +233,10 @@ public class CodexProvisionAdminController {
         if (!availability.getStatusCode().is2xxSuccessful()) {
             return availability;
         }
+        ResponseEntity<?> blocked = enforceCodexRateLimit(request, "execute-ticket");
+        if (blocked != null) {
+            return blocked;
+        }
         try {
             return ResponseEntity.ok(srTicketWorkbenchService.executeTicket(ticketId, resolveActorContext(request).getActorUserId(), null));
         } catch (IllegalArgumentException e) {
@@ -241,6 +254,10 @@ public class CodexProvisionAdminController {
         if (!availability.getStatusCode().is2xxSuccessful()) {
             return availability;
         }
+        ResponseEntity<?> blocked = enforceCodexRateLimit(request, "direct-execute-ticket");
+        if (blocked != null) {
+            return blocked;
+        }
         try {
             return ResponseEntity.ok(srTicketWorkbenchService.directExecuteTicket(ticketId, resolveActorContext(request).getActorUserId(), null));
         } catch (IllegalArgumentException e) {
@@ -251,12 +268,37 @@ public class CodexProvisionAdminController {
         }
     }
 
+    @PostMapping("/tickets/{ticketId}/queue-direct-execute")
+    @ResponseBody
+    public ResponseEntity<?> queueDirectExecuteTicket(HttpServletRequest request, @PathVariable("ticketId") String ticketId) {
+        ResponseEntity<?> availability = validateInternalAvailability();
+        if (!availability.getStatusCode().is2xxSuccessful()) {
+            return availability;
+        }
+        ResponseEntity<?> blocked = enforceCodexRateLimit(request, "queue-direct-execute-ticket");
+        if (blocked != null) {
+            return blocked;
+        }
+        try {
+            return ResponseEntity.ok(srTicketWorkbenchService.queueDirectExecuteTicket(ticketId, resolveActorContext(request).getActorUserId()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(errorBody("fail", e.getMessage()));
+        } catch (Exception e) {
+            log.error("Failed to queue direct execute SR ticket. ticketId={}", ticketId, e);
+            return ResponseEntity.internalServerError().body(errorBody("error", "Failed to queue SR ticket execution."));
+        }
+    }
+
     @PostMapping("/tickets/{ticketId}/skip-plan-execute")
     @ResponseBody
     public ResponseEntity<?> skipPlanExecuteTicket(HttpServletRequest request, @PathVariable("ticketId") String ticketId) {
         ResponseEntity<?> availability = validateInternalAvailability();
         if (!availability.getStatusCode().is2xxSuccessful()) {
             return availability;
+        }
+        ResponseEntity<?> blocked = enforceCodexRateLimit(request, "skip-plan-execute-ticket");
+        if (blocked != null) {
+            return blocked;
         }
         try {
             return ResponseEntity.ok(srTicketWorkbenchService.skipPlanExecuteTicket(ticketId, resolveActorContext(request).getActorUserId(), null));
@@ -384,5 +426,20 @@ public class CodexProvisionAdminController {
 
     private String safeString(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private ResponseEntity<?> enforceCodexRateLimit(HttpServletRequest request, String actionKey) {
+        CodexAdminActorContextVO actorContext = resolveActorContext(request);
+        String actorId = safeString(actorContext.getActorUserId());
+        String remoteAddr = request == null ? "" : safeString(request.getRemoteAddr());
+        String scope = "codex-execution:" + actionKey + ":" + (actorId.isEmpty() ? remoteAddr : actorId);
+        AdminActionRateLimitService.RateLimitDecision decision =
+                adminActionRateLimitService.check(scope, CODEX_EXECUTION_RATE_LIMIT, CODEX_EXECUTION_WINDOW_SECONDS);
+        if (decision.isAllowed()) {
+            return null;
+        }
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", String.valueOf(decision.getRetryAfterSeconds()))
+                .body(errorBody("rate_limited", "Codex execution is temporarily throttled."));
     }
 }

@@ -196,5 +196,33 @@ class AdminApprovalActionService {
             }
             return ResponseEntity.status(statusCode).body(response);
         }
+
+        boolean isSuccess() {
+            return success;
+        }
+
+        String getMessage() {
+            return message;
+        }
+
+        String getAction() {
+            return action;
+        }
+
+        String getTargetStatus() {
+            return targetStatus;
+        }
+
+        String getResultCode() {
+            return resultCode;
+        }
+
+        String getRejectReason() {
+            return rejectReason;
+        }
+
+        List<String> getSelectedIds() {
+            return selectedIds;
+        }
     }
 }

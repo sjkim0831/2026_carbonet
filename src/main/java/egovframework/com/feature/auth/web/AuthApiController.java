@@ -86,6 +86,11 @@ public class AuthApiController {
                     String.valueOf(message.get("errors")));
             return ResponseEntity.ok(message);
         } else {
+            try {
+                request.changeSessionId();
+            } catch (IllegalStateException ignored) {
+                request.getSession(true);
+            }
             // 권한 가져오기
             Authentication authentication = new UsernamePasswordAuthenticationToken(loginResult.getUserId(),
                     loginResult.getUserPw());
@@ -124,10 +129,10 @@ public class AuthApiController {
                         .getSeconds();
             }
 
-            ResponseCookie accessTokenCookie = jwtProvider.createCookie("accessToken", accessToken, accessCookieMaxAge);
+            ResponseCookie accessTokenCookie = jwtProvider.createCookie(request, "accessToken", accessToken, accessCookieMaxAge);
             response.addHeader(HttpHeaders.SET_COOKIE, accessTokenCookie.toString());
 
-            ResponseCookie refreshTokenCookie = jwtProvider.createCookie("refreshToken", refreshToken,
+            ResponseCookie refreshTokenCookie = jwtProvider.createCookie(request, "refreshToken", refreshToken,
                     refreshCookieMaxAge);
             response.addHeader(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
 
@@ -298,9 +303,9 @@ public class AuthApiController {
         long refreshCookieMaxAge = Duration.ofMillis(Long.parseLong(jwtProvider.getRefreshExpiration())).getSeconds();
 
         response.addHeader(HttpHeaders.SET_COOKIE,
-                jwtProvider.createCookie("accessToken", newAccessToken, accessCookieMaxAge).toString());
+                jwtProvider.createCookie(request, "accessToken", newAccessToken, accessCookieMaxAge).toString());
         response.addHeader(HttpHeaders.SET_COOKIE,
-                jwtProvider.createCookie("refreshToken", newRefreshToken, refreshCookieMaxAge).toString());
+                jwtProvider.createCookie(request, "refreshToken", newRefreshToken, refreshCookieMaxAge).toString());
 
         Map<String, Object> message = new HashMap<>();
         message.put("status", "success");

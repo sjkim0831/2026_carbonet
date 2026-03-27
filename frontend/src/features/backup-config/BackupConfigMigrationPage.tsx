@@ -55,6 +55,10 @@ function getCurrentPage(pagination: PaginationState, key: string) {
   return Math.max(1, Number(pagination[key] || 1));
 }
 
+function confirmAction(message: string) {
+  return typeof window === "undefined" ? true : window.confirm(message);
+}
+
 function paginateRows<T>(rows: T[], pagination: PaginationState, key: string, pageSize: number) {
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
   const currentPage = Math.min(getCurrentPage(pagination, key), totalPages);
@@ -355,6 +359,9 @@ export function BackupConfigMigrationPage() {
     if (!selectedVersion) {
       return;
     }
+    if (!confirmAction(en ? "Restore this saved version into the current backup settings?" : "선택한 버전으로 현재 백업 설정을 복원하시겠습니까?")) {
+      return;
+    }
     setRestoringVersion(true);
     setMessage("");
     try {
@@ -370,6 +377,9 @@ export function BackupConfigMigrationPage() {
   };
 
   const handleRunDbBackup = async () => {
+    if (!confirmAction(en ? "Run the database backup now?" : "지금 DB 백업을 실행하시겠습니까?")) {
+      return;
+    }
     setRunningDbBackup(true);
     setMessage("");
     logGovernanceScope("ACTION", "backup-execution-db-run", { pageKey: preset.pageKey, dbEnabled: valueOf(form, "dbEnabled"), dbName: valueOf(form, "dbName") });
@@ -385,6 +395,18 @@ export function BackupConfigMigrationPage() {
   };
 
   const handleRunGitExecution = async (kind: "PRECHECK" | "CLEANUP" | "BUNDLE" | "COMMIT_BASE" | "BASE" | "PUSH" | "TAG") => {
+    const labels: Record<typeof kind, string> = {
+      PRECHECK: en ? "Run Git precheck now?" : "Git 사전 점검을 실행하시겠습니까?",
+      CLEANUP: en ? "Run safe artifact cleanup now?" : "산출물 자동 정리를 실행하시겠습니까?",
+      BUNDLE: en ? "Run Git bundle backup now?" : "Git 번들 백업을 실행하시겠습니까?",
+      COMMIT_BASE: en ? "Commit current changes and push the base branch now?" : "현재 변경을 커밋하고 기준 브랜치까지 push 하시겠습니까?",
+      BASE: en ? "Push the base branch now?" : "기준 브랜치를 push 하시겠습니까?",
+      PUSH: en ? "Push the restore branch now?" : "복구 브랜치를 push 하시겠습니까?",
+      TAG: en ? "Push the Git tag now?" : "Git 태그를 push 하시겠습니까?"
+    };
+    if (!confirmAction(labels[kind])) {
+      return;
+    }
     setRunningGitExecution(kind);
     setMessage("");
     logGovernanceScope("ACTION", `backup-execution-git-${kind.toLowerCase()}`, {
@@ -446,6 +468,15 @@ export function BackupConfigMigrationPage() {
   };
 
   const handleRunRestore = async (kind: "GIT" | "SQL" | "PHYSICAL" | "PITR") => {
+    const labels: Record<typeof kind, string> = {
+      GIT: en ? "Run Git rollback now?" : "Git 롤백을 실행하시겠습니까?",
+      SQL: en ? "Open the SQL restore flow now?" : "SQL 복구 흐름을 진행하시겠습니까?",
+      PHYSICAL: en ? "Run physical restore now? Live traffic will be interrupted." : "물리 복구를 실행하시겠습니까? 서비스 요청이 잠시 중단됩니다.",
+      PITR: en ? "Run PITR now? Live traffic will be interrupted." : "PITR를 실행하시겠습니까? 서비스 요청이 잠시 중단됩니다."
+    };
+    if (!confirmAction(labels[kind])) {
+      return;
+    }
     setRunningRestore(kind);
     setMessage(
       kind === "PHYSICAL" || kind === "PITR"

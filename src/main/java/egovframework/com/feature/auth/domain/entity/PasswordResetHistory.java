@@ -36,4 +36,28 @@ public class PasswordResetHistory {
 
     @Column(name = "RESET_PNTTM")
     private LocalDateTime resetPnttm;
+
+    public String getTargetUserId() {
+        return targetUserId;
+    }
+
+    public String getTargetUserSe() {
+        return targetUserSe;
+    }
+
+    public String getResetSource() {
+        return resetSource;
+    }
+
+    public String getResetByUserId() {
+        return resetByUserId;
+    }
+
+    public String getResetIp() {
+        return resetIp;
+    }
+
+    public LocalDateTime getResetPnttm() {
+        return resetPnttm;
+    }
 }

@@ -6,7 +6,8 @@ import type {
   ScreenBuilderNode,
   ScreenBuilderPagePayload,
   ScreenBuilderPreviewPayload,
-  ScreenBuilderRegistryScanItem
+  ScreenBuilderRegistryScanItem,
+  ScreenBuilderStatusSummaryResponse
 } from "./client";
 import { apiFetch, buildAdminApiPath, buildResilientCsrfHeaders, readJsonResponse } from "./core";
 
@@ -80,6 +81,40 @@ export async function fetchScreenBuilderPreview(params?: {
     throw new Error(String(body.message || `Failed to load screen builder preview: ${response.status}`));
   }
   return body as ScreenBuilderPreviewPayload;
+}
+
+export async function fetchScreenBuilderStatusSummary(menuCodes: string[]) {
+  const search = new URLSearchParams();
+  [...new Set(menuCodes.map((item) => item.trim()).filter(Boolean))].forEach((menuCode) => {
+    search.append("menuCode", menuCode);
+  });
+  const query = search.toString();
+  return fetchCachedJson<ScreenBuilderStatusSummaryResponse>({
+    cacheKey: buildPageCacheKey(`screen-builder/status-summary?${query}`),
+    url: `${buildAdminApiPath("/api/admin/screen-builder/status-summary")}${query ? `?${query}` : ""}`,
+    mapError: (_body, status) => `Failed to load screen builder status summary: ${status}`
+  });
+}
+
+export async function rebuildScreenBuilderStatusSummary(menuCodes: string[] = []) {
+  const search = new URLSearchParams();
+  [...new Set(menuCodes.map((item) => item.trim()).filter(Boolean))].forEach((menuCode) => {
+    search.append("menuCode", menuCode);
+  });
+  const query = search.toString();
+  const response = await apiFetch(`${buildAdminApiPath("/api/admin/screen-builder/status-summary/rebuild")}${query ? `?${query}` : ""}`, {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "X-Requested-With": "XMLHttpRequest"
+    })
+  });
+  const body = await readJsonResponse<ScreenBuilderStatusSummaryResponse & { success?: boolean; message?: string }>(response);
+  if (!response.ok) {
+    throw new Error(String(body.message || `Failed to rebuild screen builder status summary: ${response.status}`));
+  }
+  invalidateScreenBuilderPageCache();
+  return body;
 }
 
 export async function saveScreenBuilderDraft(payload: {

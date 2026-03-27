@@ -16,11 +16,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.HashMap;
 
 @Slf4j
 @Service("homeMenuService")
 @RequiredArgsConstructor
 public class HomeMenuServiceImpl implements HomeMenuService {
+
+    private static final Map<String, String> HOME_MENU_LABEL_OVERRIDES_KO = buildMenuLabelOverridesKo();
+    private static final Map<String, String> HOME_MENU_LABEL_OVERRIDES_EN = buildMenuLabelOverridesEn();
 
     private final MenuInfoService menuInfoService;
     private final Object snapshotMonitor = new Object();
@@ -115,7 +119,9 @@ public class HomeMenuServiceImpl implements HomeMenuService {
             top.getSections().sort(menuNodeComparator(sortOrderMap));
             for (HomeMenuNode section : top.getSections()) {
                 section.getItems().sort(menuNodeComparator(sortOrderMap));
+                normalizeSectionLabel(section, isEn);
             }
+            normalizeTopLabel(top, isEn);
         }
         for (HomeMenuNode top : result) {
             String url = safeString(top.getUrl());
@@ -171,6 +177,12 @@ public class HomeMenuServiceImpl implements HomeMenuService {
         String label = isEn ? safeString(code.getCodeDc()) : safeString(code.getCodeNm());
         if (label.isEmpty()) {
             label = isEn ? safeString(code.getCodeNm()) : safeString(code.getCodeDc());
+        }
+        if (label.isEmpty() || isLikelyCodeLabel(label)) {
+            String override = resolveHomeMenuLabelOverride(safeString(code.getCode()), isEn);
+            if (!override.isEmpty()) {
+                return override;
+            }
         }
         return label.isEmpty() ? safeString(code.getCode()) : label;
     }
@@ -248,6 +260,95 @@ public class HomeMenuServiceImpl implements HomeMenuService {
 
     private String safeString(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private boolean isLikelyCodeLabel(String value) {
+        String normalized = safeString(value);
+        if (normalized.isEmpty()) {
+            return true;
+        }
+        return normalized.matches("^[A-Z]\\d{3,}$")
+                || normalized.matches("^[A-Z][A-Z0-9_]{3,}$");
+    }
+
+    private String resolveHomeMenuLabelOverride(String code, boolean isEn) {
+        String normalizedCode = safeString(code).toUpperCase(Locale.ROOT);
+        if (normalizedCode.isEmpty()) {
+            return "";
+        }
+        return isEn
+                ? HOME_MENU_LABEL_OVERRIDES_EN.getOrDefault(normalizedCode, "")
+                : HOME_MENU_LABEL_OVERRIDES_KO.getOrDefault(normalizedCode, "");
+    }
+
+    private void normalizeSectionLabel(HomeMenuNode section, boolean isEn) {
+        if (section == null || section.getItems() == null || section.getItems().isEmpty()) {
+            return;
+        }
+        if (isLikelyCodeLabel(section.getLabel())) {
+            String override = resolveHomeMenuLabelOverride(section.getCode(), isEn);
+            if (!override.isEmpty()) {
+                section.setLabel(override);
+                return;
+            }
+            String fallback = safeString(section.getItems().get(0).getLabel());
+            if (!fallback.isEmpty()) {
+                section.setLabel(fallback);
+            }
+        }
+    }
+
+    private void normalizeTopLabel(HomeMenuNode top, boolean isEn) {
+        if (top == null) {
+            return;
+        }
+        if (isLikelyCodeLabel(top.getLabel())) {
+            String override = resolveHomeMenuLabelOverride(top.getCode(), isEn);
+            if (!override.isEmpty()) {
+                top.setLabel(override);
+                return;
+            }
+            if (top.getSections() != null && !top.getSections().isEmpty()) {
+                String fallback = safeString(top.getSections().get(0).getLabel());
+                if (!fallback.isEmpty()) {
+                    top.setLabel(fallback);
+                }
+            }
+        }
+    }
+
+    private static Map<String, String> buildMenuLabelOverridesKo() {
+        Map<String, String> labels = new HashMap<>();
+        labels.put("H001", "서비스");
+        labels.put("H00101", "서비스");
+        labels.put("H002", "정보마당");
+        labels.put("H00201", "정보마당");
+        labels.put("H003", "통계");
+        labels.put("H00301", "통계");
+        labels.put("H004", "참여");
+        labels.put("H00401", "참여");
+        labels.put("H005", "고객지원");
+        labels.put("H00501", "고객지원");
+        labels.put("H008", "마이페이지");
+        labels.put("H00801", "마이페이지");
+        return labels;
+    }
+
+    private static Map<String, String> buildMenuLabelOverridesEn() {
+        Map<String, String> labels = new HashMap<>();
+        labels.put("H001", "Services");
+        labels.put("H00101", "Services");
+        labels.put("H002", "Information");
+        labels.put("H00201", "Information");
+        labels.put("H003", "Statistics");
+        labels.put("H00301", "Statistics");
+        labels.put("H004", "Participation");
+        labels.put("H00401", "Participation");
+        labels.put("H005", "Support");
+        labels.put("H00501", "Support");
+        labels.put("H008", "My Page");
+        labels.put("H00801", "My Page");
+        return labels;
     }
 
     private List<HomeMenuNode> cloneMenuNodes(List<HomeMenuNode> nodes) {

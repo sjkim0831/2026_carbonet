@@ -2,6 +2,8 @@ package egovframework.com.feature.admin.web;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import egovframework.com.common.audit.AuditTrailService;
+import egovframework.com.common.security.AdminActionRateLimitService;
 import egovframework.com.common.audit.AuditEventRecordVO;
 import egovframework.com.common.audit.AuditEventSearchVO;
 import egovframework.com.common.service.ObservabilityQueryService;
@@ -13,18 +15,23 @@ import egovframework.com.feature.admin.dto.request.AdminUnifiedLogSearchRequestD
 import egovframework.com.feature.auth.service.CurrentUserContextService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.security.web.csrf.CsrfToken;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestMapping;
 
 import javax.servlet.http.HttpServletRequest;
+import java.nio.charset.StandardCharsets;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -42,9 +49,13 @@ public class AdminObservabilityController {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<Map<String, Object>>() {};
+    private static final int SENSITIVE_ACTION_RATE_LIMIT = 3;
+    private static final long SENSITIVE_ACTION_WINDOW_SECONDS = 300L;
     private final ObservabilityQueryService observabilityQueryService;
     private final AdminObservabilityPageService adminObservabilityPageService;
     private final CurrentUserContextService currentUserContextService;
+    private final AuditTrailService auditTrailService;
+    private final AdminActionRateLimitService adminActionRateLimitService;
 
     @RequestMapping(value = "/system/observability", method = RequestMethod.GET)
     public String observabilityPage(HttpServletRequest request, Locale locale, Model model) {
@@ -164,6 +175,7 @@ public class AdminObservabilityController {
             @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
             @RequestParam(value = "userSe", required = false) String userSe,
             @RequestParam(value = "insttId", required = false) String insttId,
+            @RequestParam(value = "actionStatus", required = false) String actionStatus,
             HttpServletRequest request,
             Locale locale) {
         primeCsrfToken(request);
@@ -172,6 +184,7 @@ public class AdminObservabilityController {
                 searchKeyword,
                 userSe,
                 insttId,
+                actionStatus,
                 request,
                 isEnglishRequest(request, locale)));
     }
@@ -217,6 +230,7 @@ public class AdminObservabilityController {
             @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
             @RequestParam(value = "blockType", required = false) String blockType,
             @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "source", required = false) String source,
             HttpServletRequest request,
             Locale locale) {
         primeCsrfToken(request);
@@ -224,6 +238,7 @@ public class AdminObservabilityController {
                 searchKeyword,
                 blockType,
                 status,
+                source,
                 isEnglishRequest(request, locale)));
     }
 
@@ -234,9 +249,58 @@ public class AdminObservabilityController {
 
     @GetMapping("/system/security-audit/page-data")
     @ResponseBody
-    public ResponseEntity<Map<String, Object>> securityAuditPageApi(HttpServletRequest request, Locale locale) {
+    public ResponseEntity<Map<String, Object>> securityAuditPageApi(
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "actionType", required = false) String actionType,
+            @RequestParam(value = "routeGroup", required = false) String routeGroup,
+            @RequestParam(value = "startDate", required = false) String startDate,
+            @RequestParam(value = "endDate", required = false) String endDate,
+            @RequestParam(value = "sortKey", required = false) String sortKey,
+            @RequestParam(value = "sortDirection", required = false) String sortDirection,
+            HttpServletRequest request,
+            Locale locale) {
         primeCsrfToken(request);
-        return ResponseEntity.ok(adminObservabilityPageService.buildSecurityAuditPagePayload(isEnglishRequest(request, locale)));
+        return ResponseEntity.ok(adminObservabilityPageService.buildSecurityAuditPagePayload(
+                pageIndexParam,
+                searchKeyword,
+                actionType,
+                routeGroup,
+                startDate,
+                endDate,
+                sortKey,
+                sortDirection,
+                isEnglishRequest(request, locale)));
+    }
+
+    @GetMapping("/system/security-audit/export.csv")
+    @ResponseBody
+    public ResponseEntity<String> securityAuditExportCsv(
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "actionType", required = false) String actionType,
+            @RequestParam(value = "routeGroup", required = false) String routeGroup,
+            @RequestParam(value = "startDate", required = false) String startDate,
+            @RequestParam(value = "endDate", required = false) String endDate,
+            @RequestParam(value = "sortKey", required = false) String sortKey,
+            @RequestParam(value = "sortDirection", required = false) String sortDirection,
+            HttpServletRequest request,
+            Locale locale) {
+        primeCsrfToken(request);
+        boolean isEn = isEnglishRequest(request, locale);
+        String filename = isEn ? "security-audit-export.csv" : "security-audit-내보내기.csv";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename*=UTF-8''" + URLEncoder.encode(filename, StandardCharsets.UTF_8))
+                .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
+                .body(adminObservabilityPageService.exportSecurityAuditCsv(
+                        searchKeyword,
+                        actionType,
+                        routeGroup,
+                        startDate,
+                        endDate,
+                        sortKey,
+                        sortDirection,
+                        isEn));
     }
 
     @RequestMapping(value = "/system/scheduler", method = { RequestMethod.GET, RequestMethod.POST })
@@ -299,7 +363,11 @@ public class AdminObservabilityController {
         primeCsrfToken(request);
         CurrentUserContextService.CurrentUserContext currentUser = currentUserContextService.resolve(request);
         String actorId = safe(currentUser == null ? "" : currentUser.getUserId());
-        return ResponseEntity.ok(adminObservabilityPageService.saveBackupConfigPayload(requestBody, actorId, isEnglishRequest(request, locale)));
+        Map<String, Object> payload = adminObservabilityPageService.saveBackupConfigPayload(requestBody, actorId, isEnglishRequest(request, locale));
+        recordBackupAudit(request, currentUser, "BACKUP_CONFIG_SAVE", "BACKUP_CONFIG", "backup-config",
+                safe(actorId), "SUCCESS", "backup_config",
+                "{\"versionMemo\":\"" + safe(requestBody == null ? "" : requestBody.getVersionMemo()) + "\"}");
+        return ResponseEntity.ok(payload);
     }
 
     @PostMapping("/system/version/restore")
@@ -310,8 +378,16 @@ public class AdminObservabilityController {
             Locale locale) {
         primeCsrfToken(request);
         CurrentUserContextService.CurrentUserContext currentUser = currentUserContextService.resolve(request);
+        ResponseEntity<Map<String, Object>> blocked = enforceSensitiveActionRateLimit(request, currentUser, "version-restore");
+        if (blocked != null) {
+            return blocked;
+        }
         String actorId = safe(currentUser == null ? "" : currentUser.getUserId());
-        return ResponseEntity.ok(adminObservabilityPageService.restoreBackupConfigVersionPayload(requestBody, actorId, isEnglishRequest(request, locale)));
+        Map<String, Object> payload = adminObservabilityPageService.restoreBackupConfigVersionPayload(requestBody, actorId, isEnglishRequest(request, locale));
+        recordBackupAudit(request, currentUser, "BACKUP_VERSION_RESTORE", "BACKUP_CONFIG_VERSION", "version-management",
+                safe(requestBody == null ? "" : requestBody.getVersionId()), "SUCCESS", "version",
+                "{\"versionId\":\"" + safe(requestBody == null ? "" : requestBody.getVersionId()) + "\"}");
+        return ResponseEntity.ok(payload);
     }
 
     @PostMapping("/system/backup/run")
@@ -322,8 +398,17 @@ public class AdminObservabilityController {
             Locale locale) {
         primeCsrfToken(request);
         CurrentUserContextService.CurrentUserContext currentUser = currentUserContextService.resolve(request);
+        ResponseEntity<Map<String, Object>> blocked = enforceSensitiveActionRateLimit(request, currentUser, "backup-run");
+        if (blocked != null) {
+            return blocked;
+        }
         String actorId = safe(currentUser == null ? "" : currentUser.getUserId());
-        return ResponseEntity.ok(adminObservabilityPageService.runBackupPayload(requestBody, actorId, isEnglishRequest(request, locale)));
+        Map<String, Object> payload = adminObservabilityPageService.runBackupPayload(requestBody, actorId, isEnglishRequest(request, locale));
+        recordBackupAudit(request, currentUser, "BACKUP_RUN", "BACKUP_EXECUTION", resolveBackupEntityType(requestBody),
+                resolveBackupEntityId(requestBody), "SUCCESS", resolveBackupPageId(requestBody),
+                "{\"executionType\":\"" + safe(requestBody == null ? "" : requestBody.getExecutionType()) + "\",\"dbRestoreType\":\""
+                        + safe(requestBody == null ? "" : requestBody.getDbRestoreType()) + "\"}");
+        return ResponseEntity.ok(payload);
     }
 
     @GetMapping("/system/backup/page-data")
@@ -393,7 +478,7 @@ public class AdminObservabilityController {
             @RequestParam(value = "resultStatus", required = false) String resultStatus,
             @RequestParam(value = "searchKeyword", required = false) String searchKeyword) {
         int pageIndex = parsePositiveInt(pageIndexParam, 1);
-        int pageSize = parsePositiveInt(pageSizeParam, 20);
+        int pageSize = parsePositiveInt(pageSizeParam, 10);
         AuditEventSearchVO searchVO = new AuditEventSearchVO();
         searchVO.setFirstIndex(Math.max(pageIndex - 1, 0) * Math.max(pageSize, 1));
         searchVO.setRecordCountPerPage(Math.max(pageSize, 1));
@@ -427,7 +512,7 @@ public class AdminObservabilityController {
             @RequestParam(value = "resultCode", required = false) String resultCode,
             @RequestParam(value = "searchKeyword", required = false) String searchKeyword) {
         int pageIndex = parsePositiveInt(pageIndexParam, 1);
-        int pageSize = parsePositiveInt(pageSizeParam, 20);
+        int pageSize = parsePositiveInt(pageSizeParam, 10);
         TraceEventSearchVO searchVO = new TraceEventSearchVO();
         searchVO.setFirstIndex(Math.max(pageIndex - 1, 0) * Math.max(pageSize, 1));
         searchVO.setRecordCountPerPage(Math.max(pageSize, 1));
@@ -476,7 +561,7 @@ public class AdminObservabilityController {
             @RequestParam(value = "toDate", required = false) String toDate,
             @RequestParam(value = "searchKeyword", required = false) String searchKeyword) {
         int pageIndex = parsePositiveInt(pageIndexParam, 1);
-        int pageSize = parsePositiveInt(pageSizeParam, 20);
+        int pageSize = parsePositiveInt(pageSizeParam, 10);
         AdminUnifiedLogSearchRequestDTO searchDTO = new AdminUnifiedLogSearchRequestDTO();
         searchDTO.setPageIndex(pageIndex);
         searchDTO.setPageSize(pageSize);
@@ -579,6 +664,86 @@ public class AdminObservabilityController {
         if (token instanceof CsrfToken) {
             ((CsrfToken) token).getToken();
         }
+    }
+
+    private ResponseEntity<Map<String, Object>> enforceSensitiveActionRateLimit(HttpServletRequest request,
+                                                                                CurrentUserContextService.CurrentUserContext currentUser,
+                                                                                String actionKey) {
+        String actorId = safe(currentUser == null ? "" : currentUser.getUserId());
+        String remoteAddr = safe(request == null ? "" : request.getRemoteAddr());
+        String scope = "admin-sensitive:" + actionKey + ":" + (actorId.isEmpty() ? remoteAddr : actorId);
+        AdminActionRateLimitService.RateLimitDecision decision =
+                adminActionRateLimitService.check(scope, SENSITIVE_ACTION_RATE_LIMIT, SENSITIVE_ACTION_WINDOW_SECONDS);
+        if (decision.isAllowed()) {
+            return null;
+        }
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("status", "rate_limited");
+        body.put("message", "Too many sensitive admin requests. Try again shortly.");
+        body.put("retryAfterSeconds", decision.getRetryAfterSeconds());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", String.valueOf(decision.getRetryAfterSeconds()))
+                .body(body);
+    }
+
+    private void recordBackupAudit(HttpServletRequest request,
+                                   CurrentUserContextService.CurrentUserContext currentUser,
+                                   String actionCode,
+                                   String entityType,
+                                   String pageId,
+                                   String entityId,
+                                   String resultStatus,
+                                   String menuCode,
+                                   String afterSummaryJson) {
+        if (currentUser == null) {
+            return;
+        }
+        auditTrailService.record(
+                safe(currentUser.getUserId()),
+                safe(currentUser.getAuthorCode()),
+                safe(menuCode),
+                safe(pageId),
+                safe(actionCode),
+                safe(entityType),
+                safe(entityId),
+                safe(resultStatus),
+                safe(actionCode),
+                "",
+                safe(afterSummaryJson),
+                safe(request == null ? "" : request.getRemoteAddr()),
+                safe(request == null ? "" : request.getHeader("User-Agent")));
+    }
+
+    private String resolveBackupEntityType(AdminBackupRunRequestDTO requestBody) {
+        String executionType = safe(requestBody == null ? "" : requestBody.getExecutionType()).toUpperCase(Locale.ROOT);
+        if (executionType.contains("RESTORE") || executionType.contains("PITR")) {
+            return "BACKUP_RESTORE";
+        }
+        return "BACKUP_EXECUTION";
+    }
+
+    private String resolveBackupEntityId(AdminBackupRunRequestDTO requestBody) {
+        if (requestBody == null) {
+            return "";
+        }
+        if (!safe(requestBody.getGitRestoreCommit()).isEmpty()) {
+            return safe(requestBody.getGitRestoreCommit());
+        }
+        if (!safe(requestBody.getDbRestoreTarget()).isEmpty()) {
+            return safe(requestBody.getDbRestoreTarget());
+        }
+        return safe(requestBody.getExecutionType());
+    }
+
+    private String resolveBackupPageId(AdminBackupRunRequestDTO requestBody) {
+        String executionType = safe(requestBody == null ? "" : requestBody.getExecutionType()).toUpperCase(Locale.ROOT);
+        if (executionType.contains("RESTORE") || executionType.contains("PITR")) {
+            return "restore-execution";
+        }
+        if (executionType.contains("VERSION")) {
+            return "version-management";
+        }
+        return "backup-execution";
     }
 
     private List<Map<String, Object>> enrichAuditItems(List<AuditEventRecordVO> items) {

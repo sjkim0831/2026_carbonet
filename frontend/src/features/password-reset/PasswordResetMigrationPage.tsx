@@ -449,10 +449,19 @@ export function PasswordResetMigrationPage() {
                   <dd className="mt-1 font-mono">{selectedRow.resetIp || "-"}</dd>
                 </div>
               </dl>
-              {selectedRow.detailUrl ? (
-                <a className="gov-btn gov-btn-outline-blue inline-flex" href={selectedRow.detailUrl}>
-                  {en ? "Open Member Detail" : "회원 상세 열기"}
-                </a>
+              {selectedRow.detailUrl || selectedRow.resetIp ? (
+                <div className="flex flex-wrap gap-2">
+                  {selectedRow.detailUrl ? (
+                    <a className="gov-btn gov-btn-outline-blue inline-flex" href={selectedRow.detailUrl}>
+                      {en ? "Open Member Detail" : "회원 상세 열기"}
+                    </a>
+                  ) : null}
+                  {selectedRow.resetIp ? (
+                    <a className="gov-btn gov-btn-outline-blue inline-flex" href={`${en ? "/en/admin/system/blocklist" : "/admin/system/blocklist"}?searchKeyword=${encodeURIComponent(selectedRow.resetIp)}`}>
+                      {en ? "Open Blocklist" : "차단목록 열기"}
+                    </a>
+                  ) : null}
+                </div>
               ) : null}
               <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
                 {en ? "Temporary passwords are shown only once. Record delivery action immediately after reset." : "임시 비밀번호는 1회만 노출되므로 초기화 직후 전달 여부를 즉시 기록해야 합니다."}

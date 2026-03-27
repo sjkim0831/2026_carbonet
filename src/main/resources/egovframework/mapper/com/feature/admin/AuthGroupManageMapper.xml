@@ -72,6 +72,229 @@
         ORDER BY M.MENU_URL, M.MENU_CODE, F.FEATURE_CODE
     </select>
 
+    <select id="selectActiveMenusMissingViewRows" resultType="map">
+        SELECT
+            M.MENU_CODE AS menuCode,
+            COALESCE(M.MENU_URL, '') AS menuUrl
+        FROM COMTNMENUINFO M
+        LEFT JOIN COMTCCMMNDETAILCODE D
+            ON D.CODE = M.MENU_CODE
+        WHERE COALESCE(D.USE_AT, 'Y') = 'Y'
+          AND COALESCE(M.USE_AT, 'Y') = 'Y'
+          AND COALESCE(M.MENU_URL, '') LIKE '/admin/%'
+          AND COALESCE(M.MENU_URL, '') != '#'
+          AND NOT EXISTS (
+                SELECT 1
+                FROM COMTNMENUFUNCTIONINFO F
+                WHERE F.MENU_CODE = M.MENU_CODE
+                  AND COALESCE(F.USE_AT, 'Y') = 'Y'
+                  AND F.FEATURE_CODE LIKE '%\_VIEW' ESCAPE '\'
+          )
+        ORDER BY M.MENU_URL, M.MENU_CODE
+    </select>
+
+    <select id="selectInactiveAuthorFeatureRelationRows" resultType="map">
+        SELECT
+            R.AUTHOR_CODE AS authorCode,
+            COALESCE(A.AUTHOR_NM, R.AUTHOR_CODE) AS authorNm,
+            R.FEATURE_CODE AS featureCode,
+            COALESCE(F.MENU_CODE, '') AS menuCode,
+            COALESCE(M.MENU_URL, '') AS menuUrl,
+            CASE
+                WHEN F.FEATURE_CODE IS NULL THEN 'FEATURE_MISSING'
+                WHEN COALESCE(F.USE_AT, 'Y') != 'Y' THEN 'FEATURE_INACTIVE'
+                WHEN COALESCE(M.USE_AT, 'Y') != 'Y' THEN 'MENU_INACTIVE'
+                WHEN COALESCE(D.USE_AT, 'Y') != 'Y' THEN 'MENU_CODE_INACTIVE'
+                ELSE 'UNKNOWN'
+            END AS issueType
+        FROM COMTNAUTHORFUNCTIONRELATE R
+        LEFT JOIN COMTNMENUFUNCTIONINFO F
+            ON F.FEATURE_CODE = R.FEATURE_CODE
+        LEFT JOIN COMTNMENUINFO M
+            ON M.MENU_CODE = F.MENU_CODE
+        LEFT JOIN COMTCCMMNDETAILCODE D
+            ON D.CODE = M.MENU_CODE
+        LEFT JOIN COMTNAUTHORINFO A
+            ON A.AUTHOR_CODE = R.AUTHOR_CODE
+        WHERE F.FEATURE_CODE IS NULL
+           OR COALESCE(F.USE_AT, 'Y') != 'Y'
+           OR COALESCE(M.USE_AT, 'Y') != 'Y'
+           OR COALESCE(D.USE_AT, 'Y') != 'Y'
+        ORDER BY issueType, R.AUTHOR_CODE, R.FEATURE_CODE
+    </select>
+
+    <select id="selectInactiveUserFeatureOverrideRows" resultType="map">
+        SELECT
+            O.SCRTY_DTRMN_TRGET_ID AS targetId,
+            COALESCE(O.MBER_TY_CODE, '') AS memberTypeCode,
+            O.FEATURE_CODE AS featureCode,
+            COALESCE(F.MENU_CODE, '') AS menuCode,
+            COALESCE(M.MENU_URL, '') AS menuUrl,
+            COALESCE(O.OVERRIDE_TYPE, '') AS overrideType,
+            CASE
+                WHEN F.FEATURE_CODE IS NULL THEN 'FEATURE_MISSING'
+                WHEN COALESCE(F.USE_AT, 'Y') != 'Y' THEN 'FEATURE_INACTIVE'
+                WHEN COALESCE(M.USE_AT, 'Y') != 'Y' THEN 'MENU_INACTIVE'
+                WHEN COALESCE(D.USE_AT, 'Y') != 'Y' THEN 'MENU_CODE_INACTIVE'
+                ELSE 'UNKNOWN'
+            END AS issueType
+        FROM COMTNUSERFEATUREOVERRIDE O
+        LEFT JOIN COMTNMENUFUNCTIONINFO F
+            ON F.FEATURE_CODE = O.FEATURE_CODE
+        LEFT JOIN COMTNMENUINFO M
+            ON M.MENU_CODE = F.MENU_CODE
+        LEFT JOIN COMTCCMMNDETAILCODE D
+            ON D.CODE = M.MENU_CODE
+        WHERE COALESCE(O.USE_AT, 'Y') = 'Y'
+          AND (
+                F.FEATURE_CODE IS NULL
+             OR COALESCE(F.USE_AT, 'Y') != 'Y'
+             OR COALESCE(M.USE_AT, 'Y') != 'Y'
+             OR COALESCE(D.USE_AT, 'Y') != 'Y'
+          )
+        ORDER BY issueType, O.SCRTY_DTRMN_TRGET_ID, O.FEATURE_CODE
+    </select>
+
+    <sql id="securitySensitiveMenuUrlPredicate">
+        (
+               COALESCE(M.MENU_URL, '') LIKE '/admin/system/backup%'
+            OR COALESCE(M.MENU_URL, '') LIKE '/admin/system/restore%'
+            OR COALESCE(M.MENU_URL, '') LIKE '/admin/system/version%'
+            OR COALESCE(M.MENU_URL, '') LIKE '/admin/system/security%'
+            OR COALESCE(M.MENU_URL, '') LIKE '/admin/system/ip_whitelist%'
+            OR COALESCE(M.MENU_URL, '') LIKE '/admin/system/blocklist%'
+            OR COALESCE(M.MENU_URL, '') LIKE '/admin/system/access_history%'
+            OR COALESCE(M.MENU_URL, '') LIKE '/admin/system/error-log%'
+            OR COALESCE(M.MENU_URL, '') LIKE '/admin/system/unified_log%'
+            OR COALESCE(M.MENU_URL, '') LIKE '/admin/system/observability%'
+            OR COALESCE(M.MENU_URL, '') LIKE '/admin/system/code%'
+            OR COALESCE(M.MENU_URL, '') LIKE '/admin/auth/group%'
+        )
+    </sql>
+
+    <sql id="securitySensitiveRoleAllowlistPredicate">
+        (
+               (R.AUTHOR_CODE = 'ROLE_SYSTEM_ADMIN' AND (
+                      COALESCE(M.MENU_URL, '') LIKE '/admin/system/backup%'
+                   OR COALESCE(M.MENU_URL, '') LIKE '/admin/system/restore%'
+                   OR COALESCE(M.MENU_URL, '') LIKE '/admin/system/version%'
+                   OR COALESCE(M.MENU_URL, '') LIKE '/admin/system/access_history%'
+                   OR COALESCE(M.MENU_URL, '') LIKE '/admin/system/error-log%'
+                   OR COALESCE(M.MENU_URL, '') LIKE '/admin/system/unified_log%'
+                   OR COALESCE(M.MENU_URL, '') LIKE '/admin/system/observability%'
+                   OR COALESCE(M.MENU_URL, '') LIKE '/admin/system/security-audit%'
+                   OR COALESCE(M.MENU_URL, '') LIKE '/admin/system/codex-request%'
+               ))
+            OR (R.AUTHOR_CODE = 'ROLE_ADMIN' AND (
+                      COALESCE(M.MENU_URL, '') LIKE '/admin/system/access_history%'
+                   OR COALESCE(M.MENU_URL, '') LIKE '/admin/system/observability%'
+                   OR COALESCE(M.MENU_URL, '') LIKE '/admin/system/security-audit%'
+                   OR COALESCE(M.MENU_URL, '') LIKE '/admin/system/codex-request%'
+               ))
+            OR (R.AUTHOR_CODE = 'ROLE_OPERATION_ADMIN' AND (
+                      COALESCE(M.MENU_URL, '') LIKE '/admin/system/backup%'
+                   OR COALESCE(M.MENU_URL, '') LIKE '/admin/system/restore%'
+                   OR COALESCE(M.MENU_URL, '') LIKE '/admin/system/version%'
+                   OR COALESCE(M.MENU_URL, '') LIKE '/admin/system/access_history%'
+               ))
+        )
+    </sql>
+
+    <select id="selectSensitiveFeatureRoleExposureRows" resultType="map">
+        SELECT
+            R.AUTHOR_CODE AS authorCode,
+            COALESCE(A.AUTHOR_NM, R.AUTHOR_CODE) AS authorNm,
+            F.MENU_CODE AS menuCode,
+            COALESCE(M.MENU_URL, '') AS menuUrl,
+            F.FEATURE_CODE AS featureCode
+        FROM COMTNAUTHORFUNCTIONRELATE R
+        INNER JOIN COMTNMENUFUNCTIONINFO F
+            ON F.FEATURE_CODE = R.FEATURE_CODE
+        INNER JOIN COMTNMENUINFO M
+            ON M.MENU_CODE = F.MENU_CODE
+        LEFT JOIN COMTCCMMNDETAILCODE D
+            ON D.CODE = M.MENU_CODE
+        LEFT JOIN COMTNAUTHORINFO A
+            ON A.AUTHOR_CODE = R.AUTHOR_CODE
+        WHERE COALESCE(F.USE_AT, 'Y') = 'Y'
+          AND COALESCE(M.USE_AT, 'Y') = 'Y'
+          AND COALESCE(D.USE_AT, 'Y') = 'Y'
+          AND <include refid="securitySensitiveMenuUrlPredicate" />
+          AND R.AUTHOR_CODE != 'ROLE_SYSTEM_MASTER'
+          AND NOT <include refid="securitySensitiveRoleAllowlistPredicate" />
+        ORDER BY M.MENU_URL, R.AUTHOR_CODE, F.FEATURE_CODE
+    </select>
+
+    <select id="selectCompanyScopeSensitiveFeatureExposureRows" resultType="map">
+        SELECT
+            R.AUTHOR_CODE AS authorCode,
+            COALESCE(A.AUTHOR_NM, R.AUTHOR_CODE) AS authorNm,
+            F.MENU_CODE AS menuCode,
+            COALESCE(M.MENU_URL, '') AS menuUrl,
+            F.FEATURE_CODE AS featureCode
+        FROM COMTNAUTHORFUNCTIONRELATE R
+        INNER JOIN COMTNMENUFUNCTIONINFO F
+            ON F.FEATURE_CODE = R.FEATURE_CODE
+        INNER JOIN COMTNMENUINFO M
+            ON M.MENU_CODE = F.MENU_CODE
+        LEFT JOIN COMTCCMMNDETAILCODE D
+            ON D.CODE = M.MENU_CODE
+        LEFT JOIN COMTNAUTHORINFO A
+            ON A.AUTHOR_CODE = R.AUTHOR_CODE
+        WHERE COALESCE(F.USE_AT, 'Y') = 'Y'
+          AND COALESCE(M.USE_AT, 'Y') = 'Y'
+          AND COALESCE(D.USE_AT, 'Y') = 'Y'
+          AND <include refid="securitySensitiveMenuUrlPredicate" />
+          AND R.AUTHOR_CODE IN ('ROLE_OPERATION_ADMIN', 'ROLE_COMPANY_ADMIN', 'ROLE_CS_ADMIN')
+          AND NOT <include refid="securitySensitiveRoleAllowlistPredicate" />
+        ORDER BY M.MENU_URL, R.AUTHOR_CODE, F.FEATURE_CODE
+    </select>
+
+    <update id="disableMenusByMenuCodes" parameterType="list">
+        UPDATE COMTNMENUINFO
+        SET USE_AT = 'N'
+        WHERE MENU_CODE IN
+        <foreach collection="list" item="menuCode" open="(" separator="," close=")">
+            #{menuCode}
+        </foreach>
+    </update>
+
+    <update id="disableFeaturesByFeatureCodes" parameterType="list">
+        UPDATE COMTNMENUFUNCTIONINFO
+        SET USE_AT = 'N'
+        WHERE FEATURE_CODE IN
+        <foreach collection="list" item="featureCode" open="(" separator="," close=")">
+            #{featureCode}
+        </foreach>
+    </update>
+
+    <update id="enableFeaturesByFeatureCodes" parameterType="list">
+        UPDATE COMTNMENUFUNCTIONINFO
+        SET USE_AT = 'Y'
+        WHERE FEATURE_CODE IN
+        <foreach collection="list" item="featureCode" open="(" separator="," close=")">
+            #{featureCode}
+        </foreach>
+    </update>
+
+    <update id="deactivateUserFeatureOverride" parameterType="map">
+        UPDATE COMTNUSERFEATUREOVERRIDE
+        SET USE_AT = 'N',
+            LAST_UPDT_DT = CURRENT_DATETIME
+        WHERE SCRTY_DTRMN_TRGET_ID = #{targetId}
+          AND FEATURE_CODE = #{featureCode}
+          AND COALESCE(USE_AT, 'Y') = 'Y'
+    </update>
+
+    <update id="reactivateUserFeatureOverride" parameterType="map">
+        UPDATE COMTNUSERFEATUREOVERRIDE
+        SET USE_AT = 'Y',
+            LAST_UPDT_DT = CURRENT_DATETIME
+        WHERE SCRTY_DTRMN_TRGET_ID = #{targetId}
+          AND FEATURE_CODE = #{featureCode}
+          AND COALESCE(USE_AT, 'N') != 'Y'
+    </update>
+
     <select id="selectFeatureAssignmentStats" resultType="egovframework.com.feature.admin.model.vo.FeatureAssignmentStatVO">
         SELECT
             FEATURE_CODE AS featureCode,

@@ -59,8 +59,24 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         page.put("menuCode", menuCode);
         page.put("menuPermission", buildMenuPermission(menuCode, menuLookupUrl, routePath));
         page.put("manifestRegistry", uiManifestRegistryService.syncPageRegistry(page));
+        page.put("summaryMetrics", buildSummaryMetrics(page));
         response.put("page", page);
         return response;
+    }
+
+    private Map<String, Object> buildSummaryMetrics(Map<String, Object> page) {
+        Map<String, Object> metrics = new LinkedHashMap<>();
+        Map<String, Object> menuPermission = mapValue(page.get("menuPermission"));
+        Map<String, Object> manifestRegistry = mapValue(page.get("manifestRegistry"));
+        metrics.put("surfaceCount", listSize(page.get("surfaces")));
+        metrics.put("eventCount", listSize(page.get("events")));
+        metrics.put("apiCount", listSize(page.get("apis")));
+        metrics.put("schemaCount", listSize(page.get("schemas")));
+        metrics.put("changeTargetCount", listSize(page.get("changeTargets")));
+        metrics.put("featureCount", listSize(menuPermission.get("featureRows")));
+        metrics.put("relationTableCount", listSize(menuPermission.get("relationTables")));
+        metrics.put("componentCount", intValue(manifestRegistry.get("componentCount")));
+        return metrics;
     }
 
     private List<Map<String, Object>> buildPageOptions() {
@@ -3426,6 +3442,30 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
 
     private List<String> safeList(List<String> values) {
         return values == null ? Collections.emptyList() : values;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> mapValue(Object value) {
+        return value instanceof Map ? (Map<String, Object>) value : Collections.emptyMap();
+    }
+
+    private int listSize(Object value) {
+        return value instanceof List ? ((List<?>) value).size() : 0;
+    }
+
+    private int intValue(Object value) {
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        String normalized = stringValue(value);
+        if (normalized.isEmpty()) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(normalized);
+        } catch (NumberFormatException ignored) {
+            return 0;
+        }
     }
 
     private String safeSelectMenuCode(String menuUrl) throws Exception {

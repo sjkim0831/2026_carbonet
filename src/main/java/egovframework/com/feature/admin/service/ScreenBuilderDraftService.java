@@ -15,6 +15,10 @@ public interface ScreenBuilderDraftService {
 
     Map<String, Object> getPagePayload(String menuCode, String pageId, String menuTitle, String menuUrl, boolean isEn) throws Exception;
 
+    Map<String, Object> getStatusSummary(List<String> menuCodes, boolean isEn) throws Exception;
+
+    Map<String, Object> rebuildStatusSummary(List<String> menuCodes, boolean isEn) throws Exception;
+
     Map<String, Object> saveDraft(ScreenBuilderSaveRequestVO request, boolean isEn) throws Exception;
 
     ScreenBuilderDraftDocumentVO getDraft(String menuCode, String pageId, String menuTitle, String menuUrl) throws Exception;

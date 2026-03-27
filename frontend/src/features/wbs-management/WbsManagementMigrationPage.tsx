@@ -4,6 +4,8 @@ import { logGovernanceScope } from "../../app/policy/debug";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { fetchWbsManagementPage, saveWbsManagementEntry, type WbsManagementPagePayload } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { CollectionResultPanel, GridToolbar, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
+import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 import { numberOf, stringOf } from "../admin-system/adminSystemShared";
 
 type MenuNode = {
@@ -270,39 +272,22 @@ export function WbsManagementMigrationPage() {
       title={en ? "WBS Management" : "WBS 관리"}
       subtitle={en ? "Manage planned vs actual schedules, delay indicators, and Codex execution prompts per DB menu." : "DB 메뉴 기준으로 예상일정/실적일정, 지연 지표, Codex 작업 지시문을 함께 관리합니다."}
     >
-      {pageState.error || error ? <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error || pageState.error}</div> : null}
-      {message ? <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</div> : null}
+      <AdminWorkspacePageFrame>
+      {pageState.error || error ? <PageStatusNotice tone="error">{error || pageState.error}</PageStatusNotice> : null}
+      {message ? <PageStatusNotice tone="success">{message}</PageStatusNotice> : null}
 
-      <section className="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-6" data-help-id="wbs-summary-cards">
-        <article className="gov-card min-w-0">
-          <div className="text-xs text-[var(--kr-gov-text-secondary)]">{en ? "Scope" : "범위"}</div>
-          <div className="mt-2 text-2xl font-black">{stringOf(inventorySummary, "scope") || "-"}</div>
-        </article>
-        <article className="gov-card min-w-0">
-          <div className="text-xs text-[var(--kr-gov-text-secondary)]">{en ? "Page Menus" : "페이지 메뉴"}</div>
-          <div className="mt-2 text-2xl font-black">{numberOf(inventorySummary, "pageMenus")}</div>
-        </article>
-        <article className="gov-card min-w-0">
-          <div className="text-xs text-[var(--kr-gov-text-secondary)]">{en ? "Overdue" : "지연"}</div>
-          <div className="mt-2 text-2xl font-black text-red-700">{numberOf(inventorySummary, "overdue")}</div>
-        </article>
-        <article className="gov-card min-w-0">
-          <div className="text-xs text-[var(--kr-gov-text-secondary)]">{en ? "On-time Rate" : "정시 완료율"}</div>
-          <div className="mt-2 text-2xl font-black">{numberOf(inventorySummary, "onTimeCompletionRate")}%</div>
-        </article>
-        <article className="gov-card min-w-0">
-          <div className="text-xs text-[var(--kr-gov-text-secondary)]">{en ? "Avg Variance" : "평균 편차"}</div>
-          <div className="mt-2 text-2xl font-black">{numberOf(inventorySummary, "averageVarianceDays")}d</div>
-        </article>
-        <article className="gov-card min-w-0">
-          <div className="text-xs text-[var(--kr-gov-text-secondary)]">{en ? "Missing Plan" : "예상일정 미입력"}</div>
-          <div className="mt-2 text-2xl font-black">{numberOf(inventorySummary, "noPlannedDate")}</div>
-        </article>
+      <section className="grid grid-cols-2 gap-4 xl:grid-cols-6" data-help-id="wbs-summary-cards">
+        <SummaryMetricCard title={en ? "Scope" : "범위"} value={stringOf(inventorySummary, "scope") || "-"} />
+        <SummaryMetricCard title={en ? "Page Menus" : "페이지 메뉴"} value={numberOf(inventorySummary, "pageMenus")} />
+        <SummaryMetricCard accentClassName="text-red-700" surfaceClassName="bg-red-50" title={en ? "Overdue" : "지연"} value={numberOf(inventorySummary, "overdue")} />
+        <SummaryMetricCard title={en ? "On-time Rate" : "정시 완료율"} value={`${numberOf(inventorySummary, "onTimeCompletionRate")}%`} />
+        <SummaryMetricCard title={en ? "Avg Variance" : "평균 편차"} value={`${numberOf(inventorySummary, "averageVarianceDays")}d`} />
+        <SummaryMetricCard title={en ? "Missing Plan" : "예상일정 미입력"} value={numberOf(inventorySummary, "noPlannedDate")} />
       </section>
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
         <aside className="min-w-0 space-y-4">
-          <article className="gov-card">
+          <CollectionResultPanel description={en ? "Filter the WBS tree by menu scope and status before editing a row." : "메뉴 범위와 상태로 WBS 트리를 먼저 좁힌 뒤 행을 수정합니다."} icon="filter_alt" title={en ? "WBS Scope Filter" : "WBS 조회 조건"}>
             <div className="flex flex-wrap gap-2">
               <button className={`gov-btn ${menuType === "USER" ? "gov-btn-primary" : "gov-btn-outline"}`} onClick={() => setMenuType("USER")} type="button">HOME</button>
               <button className={`gov-btn ${menuType === "ADMIN" ? "gov-btn-primary" : "gov-btn-outline"}`} onClick={() => setMenuType("ADMIN")} type="button">ADMIN</button>
@@ -320,13 +305,10 @@ export function WbsManagementMigrationPage() {
                 ))}
               </select>
             </div>
-          </article>
+          </CollectionResultPanel>
 
-          <article className="gov-card min-w-0" data-help-id="wbs-menu-tree">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold">{en ? "Menu Tree" : "메뉴 트리"}</h3>
-              <span className="text-xs text-[var(--kr-gov-text-secondary)]">{wbsRows.length}</span>
-            </div>
+          <article className="gov-card min-w-0 overflow-hidden p-0" data-help-id="wbs-menu-tree">
+            <GridToolbar actions={<span className="text-xs text-[var(--kr-gov-text-secondary)]">{wbsRows.length}</span>} meta={en ? "Select a page menu to load the editable plan and Codex prompt." : "페이지 메뉴를 선택하면 편집 폼과 Codex 지시문이 같이 갱신됩니다."} title={en ? "Menu Tree" : "메뉴 트리"} />
             <div className="max-h-[70vh] overflow-y-auto pr-1">
               <ul className="space-y-2">
                 {tree.map((node) => (
@@ -338,16 +320,9 @@ export function WbsManagementMigrationPage() {
         </aside>
 
         <div className="min-w-0 space-y-6">
-          <article className="gov-card min-w-0" data-help-id="wbs-execution-table">
-            <div className="mb-4 flex flex-col gap-3 border-b pb-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <h3 className="text-lg font-bold">{en ? "Execution WBS" : "실행용 WBS"}</h3>
-                <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Rows are sorted by the earliest planned schedule. Planned and actual dates are separated." : "가장 빠른 예상일정 순으로 정렬되고, 예상일정과 실적일정을 분리해서 봅니다."}</p>
-              </div>
-              <div className="flex items-start justify-end">
-                <a className="gov-btn gov-btn-outline shrink-0" href={excelDownloadHref}>{en ? "Excel Download" : "엑셀 다운로드"}</a>
-              </div>
-            </div>
+          <article className="gov-card min-w-0 overflow-hidden p-0" data-help-id="wbs-execution-table">
+            <GridToolbar actions={<a className="gov-btn gov-btn-outline shrink-0" href={excelDownloadHref}>{en ? "Excel Download" : "엑셀 다운로드"}</a>} meta={en ? "Rows are sorted by the earliest planned schedule. Planned and actual dates are separated." : "가장 빠른 예상일정 순으로 정렬되고, 예상일정과 실적일정을 분리해서 봅니다."} title={en ? "Execution WBS" : "실행용 WBS"} />
+            <div className="p-6">
             <div className="mb-4 flex flex-wrap gap-2 text-xs text-[var(--kr-gov-text-secondary)]">
               {waveSummary.map((wave) => (
                 <span className="rounded-full bg-slate-100 px-3 py-1" key={`${stringOf(wave, "waveOrder")}-${stringOf(wave, "waveLabel")}`}>
@@ -372,7 +347,7 @@ export function WbsManagementMigrationPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {filteredRows.map((row) => (
+              {filteredRows.map((row) => (
                     <tr className={`cursor-pointer align-top ${selectedMenuCode === stringOf(row, "menuCode") ? "bg-blue-50" : "bg-white"}`} key={stringOf(row, "menuCode")} onClick={() => setSelectedMenuCode(stringOf(row, "menuCode"))}>
                       <td className="px-4 py-4 whitespace-nowrap font-semibold">{stringOf(row, "wbsId")}</td>
                       <td className="px-4 py-4">
@@ -397,14 +372,13 @@ export function WbsManagementMigrationPage() {
                 </tbody>
               </table>
             </div>
+            </div>
           </article>
 
           <section className="grid grid-cols-1 gap-6 2xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-            <article className="gov-card min-w-0" data-help-id="wbs-editor-panel">
-              <div className="mb-4 border-b pb-4">
-                <h3 className="text-lg font-bold">{en ? "Selected Menu Plan" : "선택 메뉴 계획"}</h3>
-                <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">{selectedRow ? `${stringOf(selectedRow, "menuName")} / ${stringOf(selectedRow, "menuCode")}` : (en ? "Select a menu row." : "메뉴 행을 선택하세요.")}</p>
-              </div>
+            <article className="gov-card min-w-0 overflow-hidden p-0" data-help-id="wbs-editor-panel">
+              <GridToolbar meta={selectedRow ? `${stringOf(selectedRow, "menuName")} / ${stringOf(selectedRow, "menuCode")}` : (en ? "Select a menu row." : "메뉴 행을 선택하세요.")} title={en ? "Selected Menu Plan" : "선택 메뉴 계획"} />
+              <div className="p-6">
               {!selectedRow ? <div className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "No menu selected." : "선택된 메뉴가 없습니다."}</div> : (
                 <>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -477,26 +451,24 @@ export function WbsManagementMigrationPage() {
                   </div>
                 </>
               )}
+              </div>
             </article>
 
-            <article className="gov-card min-w-0" data-help-id="wbs-codex-prompt">
-              <div className="mb-4 border-b pb-4">
-                <h3 className="text-lg font-bold">{en ? "Codex Work Instruction" : "Codex 작업 지시문"}</h3>
-                <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Prompt includes planned/actual dates, variance, backend chain, and extra instruction." : "지시문에 예상/실적 일정, 편차, 백엔드 체인, 추가 지시를 함께 넣습니다."}</p>
-              </div>
+            <article className="gov-card min-w-0 overflow-hidden p-0" data-help-id="wbs-codex-prompt">
+              <GridToolbar meta={en ? "Prompt includes planned/actual dates, variance, backend chain, and extra instruction." : "지시문에 예상/실적 일정, 편차, 백엔드 체인, 추가 지시를 함께 넣습니다."} title={en ? "Codex Work Instruction" : "Codex 작업 지시문"} />
+              <div className="p-6">
               <textarea className="w-full min-h-[420px] rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-950 p-4 font-mono text-xs leading-6 text-slate-100" readOnly value={promptPreview} />
               <div className="mt-4 flex flex-wrap gap-2">
                 <button className="gov-btn gov-btn-primary" onClick={() => { void navigator.clipboard.writeText(promptPreview); }} type="button">{en ? "Copy Prompt" : "지시문 복사"}</button>
                 <a className="gov-btn gov-btn-outline" href={buildLocalizedPath("/admin/system/codex-request", "/en/admin/system/codex-request")} target="_blank" rel="noreferrer">{en ? "Open Codex Request" : "Codex 요청 열기"}</a>
               </div>
+              </div>
             </article>
           </section>
 
-          <article className="gov-card min-w-0">
-            <div className="mb-4 border-b pb-4">
-              <h3 className="text-lg font-bold">{en ? "Weekly Schedule Timeline" : "주차 기준 일정표"}</h3>
-              <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Week view is the most readable here. Planned bars use light tone and actual bars use stronger tone." : "월/일보다 주차 기준이 가장 보기 좋아서 주간 보기로 고정했습니다. 예상 막대는 연한 톤, 실제 막대는 진한 톤으로 구분합니다."}</p>
-            </div>
+          <article className="gov-card min-w-0 overflow-hidden p-0">
+            <GridToolbar meta={en ? "Week view is the most readable here. Planned bars use light tone and actual bars use stronger tone." : "월/일보다 주차 기준이 가장 보기 좋아서 주간 보기로 고정했습니다. 예상 막대는 연한 톤, 실제 막대는 진한 톤으로 구분합니다."} title={en ? "Weekly Schedule Timeline" : "주차 기준 일정표"} />
+            <div className="p-6">
             <div className="max-w-full overflow-x-auto">
               <table className="min-w-[1800px] w-full text-xs">
                 <thead>
@@ -542,9 +514,11 @@ export function WbsManagementMigrationPage() {
               <span className="inline-flex items-center gap-2"><span className="inline-block h-3 w-6 rounded-full bg-emerald-500" />{en ? "Actual Done" : "작업일정 완료"}</span>
               <span className="inline-flex items-center gap-2"><span className="inline-block h-3 w-6 rounded-full bg-red-500" />{en ? "Actual Blocked" : "작업일정 지연"}</span>
             </div>
+            </div>
           </article>
         </div>
       </section>
+      </AdminWorkspacePageFrame>
     </AdminPageShell>
   );
 }

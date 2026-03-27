@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
 import { findManifestByMenuCodeOrRoutePath, normalizeManifestLookupPath } from "../../app/screen-registry/pageManifestIndex";
@@ -494,6 +494,7 @@ export function PlatformStudioMigrationPage() {
   const [menuType, setMenuType] = useState(new URLSearchParams(window.location.search).get("menuType") || "ADMIN");
   const [focus, setFocus] = useState<FocusTab>(parseFocus());
   const [selectedMenuCode, setSelectedMenuCode] = useState("");
+  const [menuSearchKeyword, setMenuSearchKeyword] = useState("");
   const [summary, setSummary] = useState("");
   const [instruction, setInstruction] = useState("");
   const [actionError, setActionError] = useState("");
@@ -509,6 +510,23 @@ export function PlatformStudioMigrationPage() {
   const page = pageState.value;
   const workbench = workbenchState.value;
   const summaryRows = ((page?.fullStackSummaryRows || []) as Array<Record<string, unknown>>);
+  const deferredMenuSearchKeyword = useDeferredValue(menuSearchKeyword);
+  const filteredSummaryRows = useMemo(() => {
+    const normalizedKeyword = deferredMenuSearchKeyword.trim().toLowerCase();
+    if (!normalizedKeyword) {
+      return summaryRows;
+    }
+    return summaryRows.filter((item) => {
+      const haystacks = [
+        stringOf(item, "menuNm"),
+        stringOf(item, "menuCode"),
+        stringOf(item, "menuUrl"),
+        stringOf(item, "pageId"),
+        stringOf(item, "requiredViewFeatureCode")
+      ];
+      return haystacks.some((value) => value.toLowerCase().includes(normalizedKeyword));
+    });
+  }, [deferredMenuSearchKeyword, summaryRows]);
   const selectedSummary = useMemo(() => summaryRows.find((item) => stringOf(item, "menuCode") === selectedMenuCode) || null, [selectedMenuCode, summaryRows]);
   const pageId = useMemo(() => resolveGovernancePageId(selectedSummary, screenCatalog?.pages), [screenCatalog?.pages, selectedSummary]);
   const commandState = useAsyncValue<ScreenCommandPagePayload>(() => (pageId ? fetchScreenCommandPage(pageId) : Promise.resolve({ selectedPageId: "", pages: [], page: {} as ScreenCommandPagePayload["page"] })), [pageId]);
@@ -614,10 +632,18 @@ export function PlatformStudioMigrationPage() {
   }, [commandDetail, derivedSelection, en, targetSelection]);
 
   useEffect(() => {
-    if (!selectedMenuCode && summaryRows.length > 0) {
-      setSelectedMenuCode(stringOf(summaryRows[0], "menuCode"));
+    if (!selectedMenuCode && filteredSummaryRows.length > 0) {
+      setSelectedMenuCode(stringOf(filteredSummaryRows[0], "menuCode"));
+      return;
     }
-  }, [selectedMenuCode, summaryRows]);
+    if (selectedMenuCode && filteredSummaryRows.every((item) => stringOf(item, "menuCode") !== selectedMenuCode)) {
+      setSelectedMenuCode(stringOf(filteredSummaryRows[0], "menuCode"));
+    }
+  }, [filteredSummaryRows, selectedMenuCode]);
+
+  useEffect(() => {
+    setMenuSearchKeyword("");
+  }, [menuType]);
 
   useEffect(() => {
     let cancelled = false;
@@ -901,8 +927,22 @@ export function PlatformStudioMigrationPage() {
               <option value="USER">USER</option>
             </select>
           </div>
+          <label className="block mb-4">
+            <span className="gov-label">{en ? "Menu Search" : "메뉴 검색"}</span>
+            <input
+              className="gov-input"
+              placeholder={en ? "Menu name, code, URL, pageId" : "메뉴명, 코드, URL, pageId"}
+              value={menuSearchKeyword}
+              onChange={(event) => setMenuSearchKeyword(event.target.value)}
+            />
+          </label>
+          <p className="mb-3 text-xs text-[var(--kr-gov-text-secondary)]">
+            {en
+              ? `Showing ${filteredSummaryRows.length} of ${summaryRows.length} managed menus`
+              : `관리 대상 메뉴 ${summaryRows.length}건 중 ${filteredSummaryRows.length}건 표시`}
+          </p>
           <div className="space-y-2 max-h-[70vh] overflow-auto">
-            {summaryRows.map((row) => {
+            {filteredSummaryRows.map((row) => {
               const menuCode = stringOf(row, "menuCode");
               const selected = menuCode === selectedMenuCode;
               return (
@@ -913,6 +953,11 @@ export function PlatformStudioMigrationPage() {
                 </button>
               );
             })}
+            {filteredSummaryRows.length === 0 ? (
+              <div className="rounded-[var(--kr-gov-radius)] border border-dashed border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-5 text-sm text-[var(--kr-gov-text-secondary)]">
+                {en ? "No managed menu matched the current search." : "현재 검색 조건과 일치하는 관리 대상 메뉴가 없습니다."}
+              </div>
+            ) : null}
           </div>
         </aside>
 

@@ -71,6 +71,24 @@ public class AdminScreenBuilderController {
         return ResponseEntity.ok(screenBuilderDraftService.getPagePayload(menuCode, pageId, menuTitle, menuUrl, isEnglishRequest(request, locale)));
     }
 
+    @GetMapping("/api/admin/screen-builder/status-summary")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> getScreenBuilderStatusSummary(
+            @RequestParam(value = "menuCode", required = false) List<String> menuCodes,
+            HttpServletRequest request,
+            Locale locale) throws Exception {
+        return ResponseEntity.ok(screenBuilderDraftService.getStatusSummary(menuCodes, isEnglishRequest(request, locale)));
+    }
+
+    @PostMapping("/api/admin/screen-builder/status-summary/rebuild")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> rebuildScreenBuilderStatusSummary(
+            @RequestParam(value = "menuCode", required = false) List<String> menuCodes,
+            HttpServletRequest request,
+            Locale locale) throws Exception {
+        return ResponseEntity.ok(screenBuilderDraftService.rebuildStatusSummary(menuCodes, isEnglishRequest(request, locale)));
+    }
+
     @GetMapping("/api/admin/screen-builder/preview")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> getScreenBuilderPreview(
@@ -96,6 +114,9 @@ public class AdminScreenBuilderController {
         response.put("templateType", safe(draft.getTemplateType()));
         response.put("versionStatus", safe(draft.getVersionStatus()));
         response.put("registryDiagnostics", screenBuilderDraftService.getRegistryDiagnostics(draft, isEnglishRequest(request, locale)));
+        String releaseUnitId = resolveReleaseUnitId(draft);
+        response.put("releaseUnitId", releaseUnitId);
+        response.put("artifactEvidence", buildArtifactEvidence(draft, releaseUnitId));
         response.put("nodes", draft.getNodes());
         response.put("events", draft.getEvents());
         return ResponseEntity.ok(response);
@@ -655,6 +676,35 @@ public class AdminScreenBuilderController {
             return true;
         }
         return locale != null && "en".equalsIgnoreCase(locale.getLanguage());
+    }
+
+    private String resolveReleaseUnitId(ScreenBuilderDraftDocumentVO draft) {
+        if (draft == null) {
+            return "";
+        }
+        if (!safe(draft.getVersionId()).isEmpty()) {
+            return safe(draft.getVersionId());
+        }
+        if (!safe(draft.getPageId()).isEmpty()) {
+            return safe(draft.getPageId());
+        }
+        return safe(draft.getMenuCode());
+    }
+
+    private Map<String, Object> buildArtifactEvidence(ScreenBuilderDraftDocumentVO draft, String releaseUnitId) {
+        Map<String, Object> evidence = new LinkedHashMap<>();
+        String menuCode = draft == null ? "" : safe(draft.getMenuCode()).toLowerCase();
+        String pageId = draft == null ? "" : safe(draft.getPageId()).toLowerCase();
+        evidence.put("artifactSourceSystem", "carbonet-ops");
+        evidence.put("artifactTargetSystem", "carbonet-general");
+        evidence.put("releaseUnitId", safe(releaseUnitId));
+        evidence.put("runtimePackageId", "screen-builder-runtime-" + (menuCode.isEmpty() ? "menu" : menuCode) + "-" + (pageId.isEmpty() ? "page" : pageId));
+        evidence.put("deployTraceId", "deploy-" + safe(releaseUnitId).toLowerCase().replaceAll("[^a-z0-9]+", "-"));
+        evidence.put("publishedVersionId", draft == null ? "" : safe(draft.getVersionId()));
+        evidence.put("publishedSavedAt", "");
+        evidence.put("artifactKind", "screen-builder-runtime");
+        evidence.put("artifactPathHint", "src/main/resources/static/react-app");
+        return evidence;
     }
 
     private String safe(String value) {

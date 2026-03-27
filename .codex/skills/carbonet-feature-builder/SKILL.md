@@ -17,6 +17,7 @@ Keep `SKILL.md` procedural. Load the reference files only when needed:
 - Read [references/menu-db-map.md](references/menu-db-map.md) when adding or changing menu codes, page registration, feature codes, or authority mappings.
 - Read [references/business-requirements-map.md](references/business-requirements-map.md) when the request originates from `사업내용.txt` or the `screen` folders and you need the domain intent behind the screen.
 - Read [references/screen-design-map.md](references/screen-design-map.md) when the request references `/home/imaneya/workspace/화면설계` artifacts, the mirrored `설계HTML*` and `html/화면` outputs, or the root `1.`, `2.`, `3.`, `4.` files.
+- If the task touches `/admin/system/security-policy`, read `/opt/projects/carbonet/docs/operations/security-policy-ops.md` first so implementation stays aligned with the current detection engines, workflow states, suppress/baseline rules, and auto-fix boundaries.
 
 ## Workflow
 
@@ -87,6 +88,16 @@ Keep `SKILL.md` procedural. Load the reference files only when needed:
    - page bootstrap data should be composed in backend services before the React screen starts rendering
    - React shell fallback behavior should not silently replace missing authority or page metadata
    - if a new admin capability introduces reusable profile or preset data, store that profile data separately from the menu tree and document which service owns it
+24. Treat `/admin/system/security-policy` as an operations product, not a single page:
+   - keep backend detection rules, status workflow, suppress/baseline behavior, notification routing, and auto-fix/rollback actions in sync
+   - when adding a new detection, update both the detection engine output contract and the React operator workflow in the same turn
+   - distinguish between real remediation and heuristic tuning; do not hide real findings just to reduce counts
+   - preserve explicit categories for `auto-fixable`, `review-required`, and source/heuristic/manual governance findings
+25. When security-policy changes affect real remediation paths, verify the corresponding runtime controls too:
+   - JWT/session behavior
+   - admin authorization/interceptor coverage
+   - rate limits for sensitive admin actions
+   - audit logging for restore/backup/Codex execution or similar critical paths
 
 ## Build Rules
 
@@ -110,6 +121,9 @@ Keep `SKILL.md` procedural. Load the reference files only when needed:
 - Use `행정안전부_공공데이터 공통표준용어_20251101.csv` as a naming sanity check for new Korean labels, columns, and code names; adapt to the existing project conventions rather than copying blindly.
 - When the request is ambiguous, infer structure from the nearest implemented menu, but do not infer hidden business policy. Surface that gap in the final response.
 - If the feature introduces a new admin tool page and local deployment is needed for verification, package first and restart second. Do not run `mvn package` and restart in parallel because the runtime jar can copy a stale artifact.
+- When working on security-policy or other diagnostic consoles, verify both sides:
+  - UI behavior and operator actions
+  - actual runtime remediations in Java/Spring/React code when findings are marked fixed
 
 ## Required Checks
 

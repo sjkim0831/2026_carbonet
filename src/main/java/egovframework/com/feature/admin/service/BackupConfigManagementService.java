@@ -390,7 +390,7 @@ public class BackupConfigManagementService {
         settings.dbPort = safe(request == null ? null : request.getDbPort());
         settings.dbName = safe(request == null ? null : request.getDbName());
         settings.dbUser = safe(request == null ? null : request.getDbUser());
-        settings.dbDumpCommand = safe(request == null ? null : request.getDbDumpCommand());
+        settings.dbDumpCommand = sanitizeDbDumpCommand(safe(request == null ? null : request.getDbDumpCommand()));
         settings.dbSchemaScope = safe(request == null ? null : request.getDbSchemaScope()).toUpperCase(Locale.ROOT);
         if (safe(settings.gitUsername).isEmpty()) {
             settings.gitUsername = safe(currentSettings == null ? null : currentSettings.gitUsername);
@@ -401,6 +401,16 @@ public class BackupConfigManagementService {
         settings.backupRootPath = sanitizeBackupRootPath(settings.backupRootPath, settings.gitRepositoryPath);
         settings.gitBackupMode = sanitizeGitBackupMode(settings.gitBackupMode);
         return settings;
+    }
+
+    private String sanitizeDbDumpCommand(String command) {
+        String normalized = safe(command);
+        if (normalized.isEmpty()) {
+            return "/opt/util/cubrid/11.2/scripts/backup_sql.sh";
+        }
+        return "/opt/util/cubrid/11.2/scripts/backup_sql.sh".equals(normalized)
+                ? normalized
+                : "/opt/util/cubrid/11.2/scripts/backup_sql.sh";
     }
 
     private List<Map<String, String>> buildSummary(BackupSettings settings, BackupConfigDocument document, boolean isEn) {
@@ -769,7 +779,8 @@ public class BackupConfigManagementService {
 
     private String executeDatabaseBackup(BackupSettings settings, boolean isEn, Consumer<String> logger) throws Exception {
         logger.accept(isEn ? "Starting database backup command." : "DB 백업 명령을 시작합니다.");
-        ProcessBuilder builder = new ProcessBuilder(settings.dbDumpCommand);
+        sanitizeDbDumpCommand(safe(settings.dbDumpCommand));
+        ProcessBuilder builder = new ProcessBuilder("/opt/util/cubrid/11.2/scripts/backup_sql.sh");
         builder.directory(Paths.get(".").toAbsolutePath().normalize().toFile());
         builder.redirectErrorStream(true);
         Map<String, String> environment = builder.environment();
@@ -881,7 +892,7 @@ public class BackupConfigManagementService {
             return executeDatabaseRestoreWithMaintenance(job, isEn, logger, () -> {
                 String restoreResult = runCommandWithInput(
                         Arrays.asList("bash", "-lc", buildPhysicalRestoreShell(settings, stagedBackupDir.toString(), restorePoint, sudoPassword, useSudoForDocker)),
-                        "",
+                        sudoInput(sudoPassword),
                         isEn,
                         logger);
                 if (runSqlBackupAfterRestore) {
@@ -1008,7 +1019,8 @@ public class BackupConfigManagementService {
                 + "BACKUP_DIR=" + shellQuote(backupDir) + "\n"
                 + "CONTAINER_BACKUP_DIR=" + shellQuote(containerBackupDir) + "\n"
                 + "DB_NAME=" + shellQuote(dbName) + "\n"
-                + "SUDO_PASSWORD=" + shellQuote(safe(sudoPassword)) + "\n"
+                + "SUDO_STDIN=\"\"\n"
+                + "IFS= read -r SUDO_STDIN || true\n"
                 + "echo \"backup dir: $BACKUP_DIR\"\n"
                 + "echo \"db name: $DB_NAME\"\n"
                 + (restorePoint == null ? "" : "echo \"restore point: " + restorePoint.format(TIME_FORMAT) + "\"\n")
@@ -1072,7 +1084,8 @@ public class BackupConfigManagementService {
                         + "CONTAINER_BACKUP_DIR=" + shellQuote(containerBackupDir) + "\n"
                         + "DB_NAME=" + shellQuote(dbName) + "\n"
                         + "DB_LOCALE=" + shellQuote(dbLocale) + "\n"
-                        + "SUDO_PASSWORD=" + shellQuote(safe(sudoPassword)) + "\n"
+                        + "SUDO_STDIN=\"\"\n"
+                        + "IFS= read -r SUDO_STDIN || true\n"
                         + "SCHEMA_FILE=\"$(find \"$BACKUP_DIR\" -maxdepth 1 -type f -name '*_schema' | head -n 1)\"\n"
                         + "OBJECT_FILE=\"$(find \"$BACKUP_DIR\" -maxdepth 1 -type f -name '*_objects' | head -n 1)\"\n"
                         + "INDEX_FILE=\"$(find \"$BACKUP_DIR\" -maxdepth 1 -type f -name '*_indexes' | head -n 1)\"\n"
@@ -1114,7 +1127,12 @@ public class BackupConfigManagementService {
         if (!useSudoForDocker) {
             return dockerCommand + "\n";
         }
-        return "printf '%s\\n' \"$SUDO_PASSWORD\" | sudo -S -k -p '' " + dockerCommand + "\n";
+        return ""
+                + "if [[ -n \"$SUDO_STDIN\" ]]; then\n"
+                + "printf '%s\\n' \"$SUDO_STDIN\" | sudo -S -k -p '' " + dockerCommand + "\n"
+                + "else\n"
+                + "sudo -n " + dockerCommand + "\n"
+                + "fi\n";
     }
 
     private String toContainerBackupPath(String hostPath) {

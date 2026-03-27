@@ -367,7 +367,7 @@ public class AuthServiceImpl extends EgovAbstractServiceImpl implements AuthServ
         try {
             savePasswordResetHistory(userId, userSe, resetByUserId, resetIp, resetSource, resetPnttm);
         } catch (Exception e) {
-            log.warn("Failed to save password reset history. userId={}, userSe={}", userId, userSe, e);
+            log.warn("Failed to save credential reset audit history. userId={}, userSe={}", userId, userSe, e);
         }
     }
 

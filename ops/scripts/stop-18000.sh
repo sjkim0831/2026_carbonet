@@ -6,6 +6,7 @@ PORT="${PORT:-18000}"
 RUN_DIR="${RUN_DIR:-$ROOT_DIR/var/run}"
 CONFIG_DIR="${CONFIG_DIR:-$ROOT_DIR/ops/config}"
 PID_FILE="$RUN_DIR/carbonet-${PORT}.pid"
+TMUX_SESSION_NAME="${TMUX_SESSION_NAME:-carbonet${PORT}}"
 
 load_optional_env() {
   local env_file="$1"
@@ -74,6 +75,10 @@ EOF
 
 load_optional_env "$CONFIG_DIR/carbonet-${PORT}.env"
 load_optional_env "$CONFIG_DIR/codex-runner.env"
+
+if command -v tmux >/dev/null 2>&1 && tmux has-session -t "$TMUX_SESSION_NAME" 2>/dev/null; then
+  tmux kill-session -t "$TMUX_SESSION_NAME" 2>/dev/null || true
+fi
 
 if [[ ! -f "$PID_FILE" ]]; then
   echo "[stop-18000] pid file not found: $PID_FILE"

@@ -46,10 +46,15 @@ public class AdminShellBootstrapPageService {
 
     public Map<String, Object> buildSecurityPolicyPageData(boolean isEn) {
         Map<String, Object> response = new LinkedHashMap<>();
+        String adminPrefix = isEn ? "/en/admin" : "/admin";
         response.put("isEn", isEn);
         response.put("securityPolicySummary", adminSummaryService.getSecurityPolicySummary(isEn));
         response.put("securityPolicyRows", buildSecurityPolicyRows(isEn));
         response.put("securityPolicyPlaybooks", buildSecurityPolicyPlaybooks(isEn));
+        response.put("menuPermissionDiagnostics", adminSummaryService.buildMenuPermissionDiagnosticSummary(isEn));
+        response.put("menuPermissionDiagnosticSqlDownloadUrl", "/downloads/menu-permission-diagnostics.sql");
+        response.put("menuPermissionAuthGroupUrl", adminPrefix + "/auth/group");
+        response.put("menuPermissionEnvironmentUrl", adminPrefix + "/system/environment-management");
         return response;
     }
 
@@ -57,9 +62,11 @@ public class AdminShellBootstrapPageService {
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("isEn", isEn);
         response.put("securityMonitoringCards", adminSummaryService.getSecurityMonitoringCards(isEn));
-        response.put("securityMonitoringTargets", buildSecurityMonitoringTargets(isEn));
-        response.put("securityMonitoringIps", buildSecurityMonitoringIps(isEn));
-        response.put("securityMonitoringEvents", buildSecurityMonitoringEvents(isEn));
+        response.put("securityMonitoringTargets", adminSummaryService.getSecurityMonitoringTargets(isEn));
+        response.put("securityMonitoringIps", adminSummaryService.getSecurityMonitoringIps(isEn));
+        response.put("securityMonitoringEvents", adminSummaryService.mergeSecurityMonitoringEventState(adminSummaryService.getSecurityMonitoringEvents(isEn), isEn));
+        response.put("securityMonitoringActivityRows", adminSummaryService.getSecurityMonitoringActivityRows(isEn));
+        response.put("securityMonitoringBlockCandidates", adminSummaryService.getSecurityMonitoringBlockCandidateRows(isEn));
         return response;
     }
 

@@ -11,7 +11,7 @@ import { fetchScreenCommandPage } from "../../lib/api/screenGovernance";
 import {
   fetchScreenBuilderPage,
 } from "../../lib/api/screenBuilder";
-import { buildLocalizedPath, getSearchParam, isEnglish } from "../../lib/navigation/runtime";
+import { buildLocalizedPath, getNavigationEventName, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";
 import { authorDesignContextKeys } from "../admin-ui/contextKeyPresets";
@@ -29,13 +29,52 @@ const ScreenBuilderGovernancePanels = lazy(() => import("./panels/ScreenBuilderG
 const ScreenBuilderEditorPanels = lazy(() => import("./panels/ScreenBuilderEditorPanels"));
 const ScreenBuilderOverviewPanels = lazy(() => import("./panels/ScreenBuilderOverviewPanels"));
 
+function readScreenBuilderQueryFromLocation() {
+  const searchParams = new URLSearchParams(window.location.search);
+  return resolveScreenBuilderQuery({
+    get(name: string) {
+      return searchParams.get(name);
+    }
+  });
+}
+
 export function ScreenBuilderMigrationPage() {
   const en = isEnglish();
-  const initialQuery = useMemo(() => resolveScreenBuilderQuery({ get: getSearchParam }), []);
-  const initialPayload = useMemo(() => readBootstrappedScreenBuilderPageData(), []);
+  const [pageQuery, setPageQuery] = useState(() => readScreenBuilderQueryFromLocation());
+  const bootstrappedPayload = useMemo(() => readBootstrappedScreenBuilderPageData(), []);
+  const initialPayload = useMemo(() => {
+    if (!bootstrappedPayload) {
+      return null;
+    }
+    const payloadMenuCode = String(bootstrappedPayload.menuCode || "");
+    const payloadPageId = String(bootstrappedPayload.pageId || "");
+    const payloadMenuUrl = String(bootstrappedPayload.menuUrl || "");
+    const queryMenuCode = String(pageQuery.menuCode || "");
+    const queryPageId = String(pageQuery.pageId || "");
+    const queryMenuUrl = String(pageQuery.menuUrl || "");
+    const matchesMenuCode = !queryMenuCode || payloadMenuCode === queryMenuCode;
+    const matchesPageId = !queryPageId || payloadPageId === queryPageId;
+    const matchesMenuUrl = !queryMenuUrl || payloadMenuUrl === queryMenuUrl;
+    return matchesMenuCode && matchesPageId && matchesMenuUrl ? bootstrappedPayload : null;
+  }, [bootstrappedPayload, pageQuery.menuCode, pageQuery.menuUrl, pageQuery.pageId]);
+
+  useEffect(() => {
+    function syncScreenBuilderQuery() {
+      setPageQuery(readScreenBuilderQueryFromLocation());
+    }
+
+    const navigationEventName = getNavigationEventName();
+    window.addEventListener(navigationEventName, syncScreenBuilderQuery);
+    window.addEventListener("popstate", syncScreenBuilderQuery);
+    return () => {
+      window.removeEventListener(navigationEventName, syncScreenBuilderQuery);
+      window.removeEventListener("popstate", syncScreenBuilderQuery);
+    };
+  }, []);
+
   const pageState = useAsyncValue<ScreenBuilderPagePayload>(
-    () => fetchScreenBuilderPage(initialQuery),
-    [initialQuery.menuCode, initialQuery.pageId, initialQuery.menuTitle, initialQuery.menuUrl],
+    () => fetchScreenBuilderPage(pageQuery),
+    [pageQuery.menuCode, pageQuery.pageId, pageQuery.menuTitle, pageQuery.menuUrl],
     {
       initialValue: initialPayload,
       skipInitialLoad: Boolean(initialPayload)

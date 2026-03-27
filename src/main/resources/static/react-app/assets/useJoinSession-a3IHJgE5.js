@@ -1,1 +1,0 @@
-import{u as i,cn as r}from"./platformStudio-BFXp4hxn.js";function t(n={}){const{enabled:e=!0,onSuccess:o}=n;return i(async()=>{const s=await r();if(!s)throw new Error("Join session is unavailable");return s},[],{enabled:e,onSuccess:o})}export{t as u};

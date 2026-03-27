@@ -33,6 +33,28 @@ Primary goals:
 
 ### Implemented changes
 
+#### 0. Local launcher source for `/opt/util/codex` was added
+
+Key files:
+
+- `/opt/projects/carbonet/ops/codex-launcher/app/server.py`
+- `/opt/projects/carbonet/ops/codex-launcher/static/index.html`
+- `/opt/projects/carbonet/ops/codex-launcher/config/workspaces.json`
+- `/opt/projects/carbonet/ops/codex-launcher/config/actions.json`
+- `/opt/projects/carbonet/ops/codex-launcher/scripts/install.sh`
+
+Behavior:
+
+- a standalone local launcher can now be installed under `/opt/util/codex`
+- the launcher provides:
+  - workspace selection
+  - quick action buttons for common Carbonet commands
+  - free-form Codex prompt execution through `codex exec`
+  - free-form shell command execution
+  - job history and live raw output polling
+- action/workspace growth is config-driven so frequent commands can be upgraded without touching the core server flow
+- this launcher is intentionally outside Spring and SR ticket flow, so it acts as an operator-side utility rather than replacing `/admin/system/codex-request`
+
 #### 1. SR runner now supports `PLAN` and `BUILD`
 
 Key files:

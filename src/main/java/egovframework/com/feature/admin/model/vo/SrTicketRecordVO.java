@@ -20,6 +20,15 @@ public class SrTicketRecordVO {
     private String executionPreparedBy;
     private String executionStatus;
     private String executionComment;
+    private String queueStatus;
+    private String queueMode;
+    private String queueSubmittedAt;
+    private String queueStartedAt;
+    private String queueCompletedAt;
+    private String queueRequestedBy;
+    private String queueLaneId;
+    private String queueTmuxSessionName;
+    private String queueErrorMessage;
     private String pageId;
     private String pageLabel;
     private String routePath;

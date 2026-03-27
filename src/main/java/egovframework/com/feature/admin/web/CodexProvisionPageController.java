@@ -54,6 +54,9 @@ public class CodexProvisionPageController {
     @Value("${security.codex.runner.health-check-url:}")
     private String codexRunnerHealthCheckUrl;
 
+    @Value("${security.codex.runner.parallel-lanes:3}")
+    private int codexRunnerParallelLanes;
+
     @GetMapping({"/codex-request", "/codex-provision"})
     public String codexProvisionPage(HttpServletRequest request, Locale locale, Model model) {
         return redirectReactMigration(request, locale, "codex-request");
@@ -97,6 +100,7 @@ public class CodexProvisionPageController {
         config.put("buildCommand", safe(codexRunnerBuildCommand));
         config.put("deployCommand", safe(codexRunnerDeployCommand));
         config.put("healthCheckUrl", safe(codexRunnerHealthCheckUrl));
+        config.put("parallelLanes", Math.max(codexRunnerParallelLanes, 1));
         return config;
     }
 

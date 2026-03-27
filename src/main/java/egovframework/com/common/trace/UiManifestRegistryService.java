@@ -83,10 +83,7 @@ public class UiManifestRegistryService {
             observabilityMapper.insertUiPageComponentMap(map);
         }
 
-        return buildRegistryResponse(
-                observabilityMapper.selectUiPageManifest(pageId),
-                observabilityMapper.selectUiPageComponentDetails(pageId)
-        );
+        return buildRegistryResponseSafely(pageId, page);
     }
 
     public Map<String, Object> ensureManagedPageDraft(String pageId,
@@ -98,7 +95,13 @@ public class UiManifestRegistryService {
     }
 
     public List<Map<String, Object>> selectActivePageOptions() {
-        List<UiPageManifestVO> manifests = observabilityMapper.selectUiPageManifestList();
+        List<UiPageManifestVO> manifests;
+        try {
+            manifests = observabilityMapper.selectUiPageManifestList();
+        } catch (Exception e) {
+            log.warn("Failed to read UI page manifest list. Returning empty options.", e);
+            return Collections.emptyList();
+        }
         if (manifests == null || manifests.isEmpty()) {
             return Collections.emptyList();
         }
@@ -123,10 +126,7 @@ public class UiManifestRegistryService {
         if (normalizedPageId.isEmpty()) {
             return defaultRegistry();
         }
-        return buildRegistryResponse(
-                observabilityMapper.selectUiPageManifest(normalizedPageId),
-                observabilityMapper.selectUiPageComponentDetails(normalizedPageId)
-        );
+        return buildRegistryResponseSafely(normalizedPageId, null);
     }
 
     private Map<String, Object> buildManagedPageDraft(String pageId,
@@ -216,6 +216,37 @@ public class UiManifestRegistryService {
         response.put("designTokenVersion", manifest == null ? "" : stringValue(manifest.getDesignTokenVersion()));
         response.put("componentCount", components == null ? 0 : components.size());
         response.put("components", components == null ? Collections.emptyList() : components);
+        return response;
+    }
+
+    private Map<String, Object> buildRegistryResponseSafely(String pageId, Map<String, Object> fallbackPage) {
+        UiPageManifestVO manifest = null;
+        List<UiPageComponentDetailVO> components = Collections.emptyList();
+        try {
+            manifest = observabilityMapper.selectUiPageManifest(pageId);
+        } catch (Exception e) {
+            log.warn("Failed to read UI page manifest. pageId={}", pageId, e);
+        }
+        try {
+            components = observabilityMapper.selectUiPageComponentDetails(pageId);
+        } catch (Exception e) {
+            log.warn("Failed to read UI page component details. pageId={}. Falling back to manifest-only registry.", pageId, e);
+        }
+        if (manifest == null && fallbackPage != null) {
+            return fallbackRegistryFromPage(fallbackPage);
+        }
+        return buildRegistryResponse(manifest, components);
+    }
+
+    private Map<String, Object> fallbackRegistryFromPage(Map<String, Object> page) {
+        Map<String, Object> response = defaultRegistry();
+        response.put("pageId", stringValue(page.get("pageId")));
+        response.put("pageName", firstNonBlank(stringValue(page.get("label")), stringValue(page.get("pageId"))));
+        response.put("routePath", stringValue(page.get("routePath")));
+        response.put("menuCode", stringValue(page.get("menuCode")));
+        response.put("domainCode", firstNonBlank(stringValue(page.get("domainCode")), "admin"));
+        response.put("layoutVersion", "v1");
+        response.put("designTokenVersion", "krds-current");
         return response;
     }
 

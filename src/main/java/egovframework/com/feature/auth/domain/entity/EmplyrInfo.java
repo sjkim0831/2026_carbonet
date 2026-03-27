@@ -130,4 +130,76 @@ public class EmplyrInfo implements CommonEntity {
     @Column(name = "AUTH_EMAIL")
     private String authEmail;
 
+    public String getInsttId() {
+        return insttId;
+    }
+
+    public void setInsttId(String insttId) {
+        this.insttId = insttId;
+    }
+
+    public String getOrgnztId() {
+        return orgnztId;
+    }
+
+    public void setOrgnztId(String orgnztId) {
+        this.orgnztId = orgnztId;
+    }
+
+    public String getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
+    }
+
+    public String getUserNm() {
+        return userNm;
+    }
+
+    public void setUserNm(String userNm) {
+        this.userNm = userNm;
+    }
+
+    public String getEmailAdres() {
+        return emailAdres;
+    }
+
+    public void setEmailAdres(String emailAdres) {
+        this.emailAdres = emailAdres;
+    }
+
+    public String getAreaNo() {
+        return areaNo;
+    }
+
+    public void setAreaNo(String areaNo) {
+        this.areaNo = areaNo;
+    }
+
+    public String getHouseMiddleTelno() {
+        return houseMiddleTelno;
+    }
+
+    public void setHouseMiddleTelno(String houseMiddleTelno) {
+        this.houseMiddleTelno = houseMiddleTelno;
+    }
+
+    public String getHouseEndTelno() {
+        return houseEndTelno;
+    }
+
+    public void setHouseEndTelno(String houseEndTelno) {
+        this.houseEndTelno = houseEndTelno;
+    }
+
+    public String getMbtlNum() {
+        return mbtlNum;
+    }
+
+    public void setMbtlNum(String mbtlNum) {
+        this.mbtlNum = mbtlNum;
+    }
+
 }

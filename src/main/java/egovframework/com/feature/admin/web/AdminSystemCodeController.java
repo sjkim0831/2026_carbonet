@@ -19,6 +19,8 @@ import egovframework.com.feature.admin.dto.response.MenuInfoDTO;
 import egovframework.com.feature.admin.dto.response.SystemAccessHistoryRowResponse;
 import egovframework.com.feature.admin.service.AuthGroupManageService;
 import egovframework.com.feature.admin.service.FullStackGovernanceRegistryService;
+import egovframework.com.feature.admin.service.IpWhitelistFirewallService;
+import egovframework.com.feature.admin.service.IpWhitelistPersistenceService;
 import egovframework.com.feature.admin.service.MenuFeatureManageService;
 import egovframework.com.feature.admin.service.MenuInfoService;
 import egovframework.com.feature.admin.service.ScreenCommandCenterService;
@@ -29,12 +31,14 @@ import egovframework.com.feature.auth.service.CurrentUserContextService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ExtendedModelMap;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -45,6 +49,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -73,6 +79,7 @@ public class AdminSystemCodeController {
     private static final String ROLE_OPERATION_ADMIN = "ROLE_OPERATION_ADMIN";
     private static final int ACCESS_HISTORY_PAGE_SIZE = 10;
     private static final int ACCESS_HISTORY_RECENT_LIMIT = 500;
+    private static final DateTimeFormatter IP_WHITELIST_TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private final AdminCodeManageService adminCodeManageService;
     private final MenuInfoService menuInfoService;
@@ -88,6 +95,8 @@ public class AdminSystemCodeController {
     private final EnterpriseMemberRepository enterpriseMemberRepository;
     private final CurrentUserContextService currentUserContextService;
     private final ConcurrentMap<String, String> companyNameCache = new ConcurrentHashMap<>();
+    private final ObjectProvider<IpWhitelistPersistenceService> ipWhitelistPersistenceServiceProvider;
+    private final ObjectProvider<IpWhitelistFirewallService> ipWhitelistFirewallServiceProvider;
 
     @RequestMapping(value = "/code", method = { RequestMethod.GET, RequestMethod.POST })
     public String system_codeManagement(
@@ -107,6 +116,7 @@ public class AdminSystemCodeController {
         boolean isEn = isEnglishRequest(request, locale);
         return buildPageDataResponse(request, model -> {
             populateCodeManagementPage(detailCodeId, isEn, model);
+            applyQueryMessage(model, "codeMgmtMessage", request);
             applyQueryError(model, "codeMgmtError", request);
         });
     }
@@ -171,6 +181,216 @@ public class AdminSystemCodeController {
             Locale locale) {
         boolean isEn = isEnglishRequest(request, locale);
         return buildPageDataResponse(request, model -> populateIpWhitelistModel(model, isEn, searchIp, accessScope, status));
+    }
+
+    @PostMapping("/ip-whitelist/request")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> createIpWhitelistRequest(
+            @RequestBody Map<String, Object> payload,
+            HttpServletRequest request,
+            Locale locale) {
+        boolean isEn = isEnglishRequest(request, locale);
+        String applicationName = normalizeIpWhitelistApplicationName(safeString(payload == null ? null : payload.get("applicationName")));
+        String ipAddress = safeString(payload == null ? null : payload.get("ipAddress"));
+        String port = safeString(payload == null ? null : payload.get("port"));
+        String firewallAction = normalizeIpWhitelistFirewallAction(safeString(payload == null ? null : payload.get("openFirewall")));
+        String accessScope = normalizeIpWhitelistScope(safeString(payload == null ? null : payload.get("accessScope")));
+        String reason = safeString(payload == null ? null : payload.get("reason"));
+        String requester = safeString(payload == null ? null : payload.get("requester"));
+        String expiresAt = safeString(payload == null ? null : payload.get("expiresAt"));
+        String memo = safeString(payload == null ? null : payload.get("memo"));
+        Map<String, Object> response = new LinkedHashMap<>();
+
+        if (ipAddress.isEmpty() || port.isEmpty() || reason.isEmpty() || requester.isEmpty()) {
+            response.put("success", false);
+            response.put("message", isEn
+                    ? "Enter app, IP, port, reason, and requester before submitting."
+                    : "앱, IP, 포트, 요청 사유, 요청자를 입력한 뒤 등록하세요.");
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        String requestId = "REQ-" + System.currentTimeMillis();
+        String ruleId = "WL-DRAFT-" + String.valueOf(System.currentTimeMillis()).substring(7);
+        String nowLabel = formatIpWhitelistTimestamp(LocalDateTime.now());
+        String actorId = resolveActorId(request);
+        String requestReason = buildIpWhitelistExecutionReason(applicationName, port, firewallAction, reason, isEn);
+        String executionMemo = buildIpWhitelistExecutionMemo(applicationName, port, firewallAction, memo, expiresAt, isEn);
+        String executionFeedback = buildIpWhitelistExecutionFeedback(applicationName, ipAddress, port, firewallAction, false, isEn);
+
+        Map<String, String> requestRow = ipWhitelistRequestRow(
+                requestId,
+                ipAddress,
+                accessScope,
+                requestReason,
+                "검토중",
+                nowLabel,
+                requester,
+                buildIpWhitelistExecutionReason(applicationName, port, firewallAction, reason, true),
+                "Pending Approval",
+                requester);
+        requestRow.put("ruleId", ruleId);
+        requestRow.put("expiresAt", expiresAt);
+        requestRow.put("memo", executionMemo);
+        requestRow.put("memoEn", buildIpWhitelistExecutionMemo(applicationName, port, firewallAction, memo, expiresAt, true));
+        requestRow.put("reviewNote", "");
+        requestRow.put("reviewedAt", "");
+        requestRow.put("reviewedBy", "");
+        requestRow.put("reviewedByEn", "");
+        saveIpWhitelistRequestRow(requestRow);
+
+        Map<String, String> ruleRow = ipWhitelistRow(
+                ruleId,
+                ipAddress,
+                accessScope,
+                requestReason,
+                requester,
+                "PENDING",
+                nowLabel,
+                executionMemo,
+                buildIpWhitelistExecutionReason(applicationName, port, firewallAction, reason, true),
+                requester,
+                buildIpWhitelistExecutionMemo(applicationName, port, firewallAction, memo, expiresAt, true));
+        ruleRow.put("requestId", requestId);
+        ruleRow.put("expiresAt", expiresAt);
+        saveIpWhitelistRuleRow(ruleRow);
+
+        auditTrailService.record(
+                actorId,
+                resolveActorRole(request),
+                "ip-whitelist",
+                "admin-system",
+                "IP_WHITELIST_REQUEST_CREATE",
+                "IP_WHITELIST_REQUEST",
+                requestId,
+                "SUCCESS",
+                "IP whitelist request created",
+                "",
+                safeJson(String.valueOf(requestRow)),
+                resolveRequestIp(request),
+                request == null ? "" : safeString(request.getHeader("User-Agent"))
+        );
+
+        response.put("success", true);
+        response.put("message", isEn
+                ? "Temporary allowlist request has been queued for review."
+                : "임시 허용 요청을 검토 대기열에 등록했습니다.");
+        response.put("requestId", requestId);
+        response.put("ruleId", ruleId);
+        response.put("executionFeedback", executionFeedback);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/ip-whitelist/request-decision")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> decideIpWhitelistRequest(
+            @RequestBody Map<String, Object> payload,
+            HttpServletRequest request,
+            Locale locale) {
+        boolean isEn = isEnglishRequest(request, locale);
+        String requestId = safeString(payload == null ? null : payload.get("requestId"));
+        String decision = safeString(payload == null ? null : payload.get("decision")).toUpperCase(Locale.ROOT);
+        String reviewNote = safeString(payload == null ? null : payload.get("reviewNote"));
+        Map<String, Object> response = new LinkedHashMap<>();
+
+        if (requestId.isEmpty() || (!"APPROVE".equals(decision) && !"REJECT".equals(decision))) {
+            response.put("success", false);
+            response.put("message", isEn ? "Select a valid request and decision." : "유효한 요청과 처리 결과를 선택하세요.");
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        Map<String, String> existingRequest = findIpWhitelistRequestById(requestId);
+        if (existingRequest == null) {
+            response.put("success", false);
+            response.put("message", isEn ? "Request was not found." : "승인 요청을 찾지 못했습니다.");
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        Map<String, String> updatedRequest = new LinkedHashMap<>(existingRequest);
+        String reviewedAt = formatIpWhitelistTimestamp(LocalDateTime.now());
+        String reviewedBy = resolveActorId(request).isEmpty()
+                ? (isEn ? "Security Operator" : "보안 운영자")
+                : resolveActorId(request);
+        String applicationName = extractIpWhitelistApplicationName(updatedRequest);
+        String port = extractIpWhitelistPort(updatedRequest);
+        String firewallAction = extractIpWhitelistFirewallAction(updatedRequest);
+        String firewallFeedback = "";
+        updatedRequest.put("approvalStatus", "APPROVE".equals(decision) ? "승인완료" : "반려");
+        updatedRequest.put("approvalStatusEn", "APPROVE".equals(decision) ? "Approved" : "Rejected");
+        updatedRequest.put("reviewNote", reviewNote);
+        updatedRequest.put("reviewedAt", reviewedAt);
+        updatedRequest.put("reviewedBy", reviewedBy);
+        updatedRequest.put("reviewedByEn", reviewedBy);
+        saveIpWhitelistRequestRow(updatedRequest);
+
+        String ruleId = safeString(updatedRequest.get("ruleId"));
+        Map<String, String> currentRule = findIpWhitelistRuleById(ruleId);
+        if (currentRule == null && "APPROVE".equals(decision)) {
+            currentRule = ipWhitelistRow(
+                    ruleId.isEmpty() ? "WL-" + requestId.replaceAll("[^0-9A-Z]", "") : ruleId,
+                    safeString(updatedRequest.get("ipAddress")),
+                    safeString(updatedRequest.get("accessScope")),
+                    safeString(updatedRequest.get("reason")),
+                    reviewedBy,
+                    "ACTIVE",
+                    reviewedAt,
+                    reviewNote.isEmpty() ? "승인 처리 후 반영" : reviewNote,
+                    safeString(updatedRequest.get("reasonEn")),
+                    reviewedBy,
+                    reviewNote.isEmpty() ? "Applied after approval" : reviewNote);
+        }
+        if (currentRule != null) {
+            Map<String, String> updatedRule = new LinkedHashMap<>(currentRule);
+            updatedRule.put("status", "APPROVE".equals(decision) ? "ACTIVE" : "INACTIVE");
+            updatedRule.put("updatedAt", reviewedAt);
+            updatedRule.put("owner", reviewedBy);
+            updatedRule.put("ownerEn", reviewedBy);
+            if ("APPROVE".equals(decision) && "OPEN".equals(firewallAction)) {
+                firewallFeedback = executeIpWhitelistFirewall(applicationName, safeString(updatedRequest.get("ipAddress")), port, isEn);
+            } else if ("APPROVE".equals(decision)) {
+                firewallFeedback = isEn
+                        ? "Firewall action skipped: request was approved with keep-closed option."
+                        : "방화벽 처리 생략: 방화벽 미개방 옵션으로 승인되었습니다.";
+            } else {
+                firewallFeedback = isEn
+                        ? "Firewall action skipped: request was rejected."
+                        : "방화벽 처리 생략: 요청이 반려되었습니다.";
+            }
+            if (!reviewNote.isEmpty()) {
+                updatedRule.put("memo", reviewNote + " | " + firewallFeedback);
+                updatedRule.put("memoEn", reviewNote + " | " + firewallFeedback);
+            } else if (!firewallFeedback.isEmpty()) {
+                String existingMemo = safeString(updatedRule.get("memo"));
+                String existingMemoEn = safeString(updatedRule.get("memoEn"));
+                updatedRule.put("memo", existingMemo + (existingMemo.isEmpty() ? "" : " | ") + firewallFeedback);
+                updatedRule.put("memoEn", existingMemoEn + (existingMemoEn.isEmpty() ? "" : " | ") + firewallFeedback);
+            }
+            updatedRule.put("requestId", requestId);
+            saveIpWhitelistRuleRow(updatedRule);
+        }
+
+        auditTrailService.record(
+                resolveActorId(request),
+                resolveActorRole(request),
+                "ip-whitelist",
+                "admin-system",
+                "IP_WHITELIST_REQUEST_DECISION",
+                "IP_WHITELIST_REQUEST",
+                requestId,
+                "SUCCESS",
+                "IP whitelist request " + decision,
+                safeJson(String.valueOf(existingRequest)),
+                safeJson(String.valueOf(updatedRequest)),
+                resolveRequestIp(request),
+                request == null ? "" : safeString(request.getHeader("User-Agent"))
+        );
+
+        response.put("success", true);
+        response.put("message", "APPROVE".equals(decision)
+                ? (isEn ? "The request was approved and the allowlist was updated." : "요청을 승인하고 화이트리스트에 반영했습니다.")
+                : (isEn ? "The request was rejected and the review history was saved." : "요청을 반려했고 검토 이력을 저장했습니다."));
+        response.put("requestId", requestId);
+        response.put("executionFeedback", buildIpWhitelistDecisionFeedback(updatedRequest, decision, reviewNote, firewallFeedback, isEn));
+        return ResponseEntity.ok(response);
     }
 
     @RequestMapping(value = "/access_history/legacy", method = RequestMethod.GET)
@@ -1059,6 +1279,7 @@ public class AdminSystemCodeController {
             @RequestParam(value = "clCodeNm", required = false) String clCodeNm,
             @RequestParam(value = "clCodeDc", required = false) String clCodeDc,
             @RequestParam(value = "useAt", required = false) String useAt,
+            @RequestParam(value = "currentDetailCodeId", required = false) String currentDetailCodeId,
             HttpServletRequest request,
             Locale locale,
             Model model) {
@@ -1072,6 +1293,18 @@ public class AdminSystemCodeController {
             return redirectCodeManagementError(request, locale, null,
                     isEn ? "Class code and name are required." : "분류 코드와 분류명은 필수입니다.");
         }
+        try {
+            boolean duplicate = adminCodeManageService.selectClassCodeList().stream()
+                    .anyMatch(item -> code.equalsIgnoreCase(safeString(item == null ? null : item.getClCode())));
+            if (duplicate) {
+                return redirectCodeManagementError(request, locale, currentDetailCodeId,
+                        isEn ? "The class code already exists." : "이미 등록된 분류 코드입니다.");
+            }
+        } catch (Exception e) {
+            log.error("Failed to validate duplicate class code. clCode={}", code, e);
+            return redirectCodeManagementError(request, locale, currentDetailCodeId,
+                    isEn ? "Failed to validate class code duplication." : "분류 코드 중복 확인에 실패했습니다.");
+        }
 
         try {
             adminCodeManageService.insertClassCode(code, name, desc, use, "admin");
@@ -1081,7 +1314,8 @@ public class AdminSystemCodeController {
                     isEn ? "Failed to create class code." : "분류 코드 등록에 실패했습니다.");
         }
 
-        return "redirect:" + adminPrefix(request, locale) + "/system/code";
+        return redirectCodeManagementMessage(request, locale, currentDetailCodeId,
+                isEn ? "Class code has been created." : "분류 코드가 등록되었습니다.");
     }
 
     @RequestMapping(value = "/code/class/update", method = RequestMethod.POST)
@@ -1090,6 +1324,7 @@ public class AdminSystemCodeController {
             @RequestParam(value = "clCodeNm", required = false) String clCodeNm,
             @RequestParam(value = "clCodeDc", required = false) String clCodeDc,
             @RequestParam(value = "useAt", required = false) String useAt,
+            @RequestParam(value = "currentDetailCodeId", required = false) String currentDetailCodeId,
             HttpServletRequest request,
             Locale locale,
             Model model) {
@@ -1112,12 +1347,14 @@ public class AdminSystemCodeController {
                     isEn ? "Failed to update class code." : "분류 코드 수정에 실패했습니다.");
         }
 
-        return "redirect:" + adminPrefix(request, locale) + "/system/code";
+        return redirectCodeManagementMessage(request, locale, currentDetailCodeId,
+                isEn ? "Class code has been updated." : "분류 코드가 수정되었습니다.");
     }
 
     @RequestMapping(value = "/code/class/delete", method = RequestMethod.POST)
     public String deleteClassCode(
             @RequestParam(value = "clCode", required = false) String clCode,
+            @RequestParam(value = "currentDetailCodeId", required = false) String currentDetailCodeId,
             HttpServletRequest request,
             Locale locale,
             Model model) {
@@ -1141,7 +1378,8 @@ public class AdminSystemCodeController {
                     isEn ? "Failed to delete class code." : "분류 코드 삭제에 실패했습니다.");
         }
 
-        return "redirect:" + adminPrefix(request, locale) + "/system/code";
+        return redirectCodeManagementMessage(request, locale, currentDetailCodeId,
+                isEn ? "Class code has been deleted." : "분류 코드가 삭제되었습니다.");
     }
 
     @RequestMapping(value = "/code/group/create", method = RequestMethod.POST)
@@ -1151,6 +1389,7 @@ public class AdminSystemCodeController {
             @RequestParam(value = "codeIdDc", required = false) String codeIdDc,
             @RequestParam(value = "clCode", required = false) String clCode,
             @RequestParam(value = "useAt", required = false) String useAt,
+            @RequestParam(value = "currentDetailCodeId", required = false) String currentDetailCodeId,
             HttpServletRequest request,
             Locale locale,
             Model model) {
@@ -1165,6 +1404,18 @@ public class AdminSystemCodeController {
             return redirectCodeManagementError(request, locale, null,
                     isEn ? "Code ID, name, and class code are required." : "코드 ID, 코드명, 분류 코드는 필수입니다.");
         }
+        try {
+            boolean duplicate = adminCodeManageService.selectCodeList().stream()
+                    .anyMatch(item -> id.equalsIgnoreCase(safeString(item == null ? null : item.getCodeId())));
+            if (duplicate) {
+                return redirectCodeManagementError(request, locale, currentDetailCodeId,
+                        isEn ? "The code ID already exists." : "이미 등록된 코드 ID입니다.");
+            }
+        } catch (Exception e) {
+            log.error("Failed to validate duplicate code ID. codeId={}", id, e);
+            return redirectCodeManagementError(request, locale, currentDetailCodeId,
+                    isEn ? "Failed to validate code ID duplication." : "코드 ID 중복 확인에 실패했습니다.");
+        }
 
         try {
             adminCodeManageService.insertCommonCode(id, name, desc, use, cl, "admin");
@@ -1174,7 +1425,8 @@ public class AdminSystemCodeController {
                     isEn ? "Failed to create code ID." : "코드 ID 등록에 실패했습니다.");
         }
 
-        return "redirect:" + adminPrefix(request, locale) + "/system/code";
+        return redirectCodeManagementMessage(request, locale, currentDetailCodeId,
+                isEn ? "Code ID has been created." : "코드 ID가 등록되었습니다.");
     }
 
     @RequestMapping(value = "/code/group/update", method = RequestMethod.POST)
@@ -1184,6 +1436,7 @@ public class AdminSystemCodeController {
             @RequestParam(value = "codeIdDc", required = false) String codeIdDc,
             @RequestParam(value = "clCode", required = false) String clCode,
             @RequestParam(value = "useAt", required = false) String useAt,
+            @RequestParam(value = "currentDetailCodeId", required = false) String currentDetailCodeId,
             HttpServletRequest request,
             Locale locale,
             Model model) {
@@ -1207,12 +1460,14 @@ public class AdminSystemCodeController {
                     isEn ? "Failed to update code ID." : "코드 ID 수정에 실패했습니다.");
         }
 
-        return "redirect:" + adminPrefix(request, locale) + "/system/code";
+        return redirectCodeManagementMessage(request, locale, currentDetailCodeId,
+                isEn ? "Code ID has been updated." : "코드 ID가 수정되었습니다.");
     }
 
     @RequestMapping(value = "/code/group/delete", method = RequestMethod.POST)
     public String deleteCommonCode(
             @RequestParam(value = "codeId", required = false) String codeId,
+            @RequestParam(value = "currentDetailCodeId", required = false) String currentDetailCodeId,
             HttpServletRequest request,
             Locale locale,
             Model model) {
@@ -1237,7 +1492,8 @@ public class AdminSystemCodeController {
                     isEn ? "Failed to delete code ID." : "코드 ID 삭제에 실패했습니다.");
         }
 
-        return "redirect:" + adminPrefix(request, locale) + "/system/code";
+        return redirectCodeManagementMessage(request, locale, currentDetailCodeId,
+                isEn ? "Code ID has been deleted." : "코드 ID가 삭제되었습니다.");
     }
 
     @RequestMapping(value = "/code/detail/create", method = RequestMethod.POST)
@@ -1261,6 +1517,19 @@ public class AdminSystemCodeController {
             return redirectCodeManagementError(request, locale, id,
                     isEn ? "Code ID, code, and name are required." : "코드 ID, 코드, 코드명은 필수입니다.");
         }
+        try {
+            boolean duplicate = adminCodeManageService.selectDetailCodeList(id).stream()
+                    .anyMatch(item -> id.equalsIgnoreCase(safeString(item == null ? null : item.getCodeId()))
+                            && c.equalsIgnoreCase(safeString(item == null ? null : item.getCode())));
+            if (duplicate) {
+                return redirectCodeManagementError(request, locale, id,
+                        isEn ? "The detail code already exists." : "이미 등록된 상세 코드입니다.");
+            }
+        } catch (Exception e) {
+            log.error("Failed to validate duplicate detail code. codeId={}, code={}", id, c, e);
+            return redirectCodeManagementError(request, locale, id,
+                    isEn ? "Failed to validate detail code duplication." : "상세 코드 중복 확인에 실패했습니다.");
+        }
 
         try {
             adminCodeManageService.insertDetailCode(id, c, name, desc, use, "admin");
@@ -1270,7 +1539,8 @@ public class AdminSystemCodeController {
                     isEn ? "Failed to create detail code." : "상세 코드 등록에 실패했습니다.");
         }
 
-        return "redirect:" + adminPrefix(request, locale) + "/system/code?detailCodeId=" + urlEncode(id);
+        return redirectCodeManagementMessage(request, locale, id,
+                isEn ? "Detail code has been created." : "상세 코드가 등록되었습니다.");
     }
 
     @RequestMapping(value = "/code/detail/update", method = RequestMethod.POST)
@@ -1303,7 +1573,65 @@ public class AdminSystemCodeController {
                     isEn ? "Failed to update detail code." : "상세 코드 수정에 실패했습니다.");
         }
 
-        return "redirect:" + adminPrefix(request, locale) + "/system/code?detailCodeId=" + urlEncode(id);
+        return redirectCodeManagementMessage(request, locale, id,
+                isEn ? "Detail code has been updated." : "상세 코드가 수정되었습니다.");
+    }
+
+    @RequestMapping(value = "/code/detail/bulk-use", method = RequestMethod.POST)
+    public String bulkUpdateDetailCodeUseAt(
+            @RequestParam(value = "codeId", required = false) String codeId,
+            @RequestParam(value = "codes", required = false) String codes,
+            @RequestParam(value = "useAt", required = false) String useAt,
+            HttpServletRequest request,
+            Locale locale,
+            Model model) {
+        boolean isEn = isEnglishRequest(request, locale);
+        String id = safeString(codeId).toUpperCase(Locale.ROOT);
+        String normalizedUseAt = normalizeUseAt(useAt);
+        Set<String> selectedCodeSet = new LinkedHashSet<>();
+        for (String token : safeString(codes).split(",")) {
+            String normalizedCode = safeStaticString(token).toUpperCase(Locale.ROOT);
+            if (!normalizedCode.isEmpty()) {
+                selectedCodeSet.add(normalizedCode);
+            }
+        }
+        List<String> selectedCodes = new ArrayList<>(selectedCodeSet);
+
+        if (id.isEmpty() || selectedCodes.isEmpty()) {
+            return redirectCodeManagementError(request, locale, id,
+                    isEn ? "Select at least one detail code." : "하나 이상의 상세 코드를 선택하세요.");
+        }
+
+        try {
+            List<DetailCodeVO> detailCodeList = adminCodeManageService.selectDetailCodeList(id);
+            Map<String, DetailCodeVO> detailCodeByCode = new LinkedHashMap<>();
+            for (DetailCodeVO item : detailCodeList) {
+                String code = safeString(item == null ? null : item.getCode()).toUpperCase(Locale.ROOT);
+                if (!code.isEmpty()) {
+                    detailCodeByCode.put(code, item);
+                }
+            }
+            for (String selectedCode : selectedCodes) {
+                DetailCodeVO detailCode = detailCodeByCode.get(selectedCode);
+                if (detailCode == null) {
+                    continue;
+                }
+                adminCodeManageService.updateDetailCode(
+                        id,
+                        selectedCode,
+                        safeString(detailCode.getCodeNm()),
+                        safeString(detailCode.getCodeDc()),
+                        normalizedUseAt,
+                        "admin");
+            }
+        } catch (Exception e) {
+            log.error("Failed to bulk update detail code useAt. codeId={}, useAt={}, codes={}", id, normalizedUseAt, selectedCodes, e);
+            return redirectCodeManagementError(request, locale, id,
+                    isEn ? "Failed to update selected detail codes." : "선택한 상세 코드 일괄 수정에 실패했습니다.");
+        }
+
+        return redirectCodeManagementMessage(request, locale, id,
+                isEn ? "Selected detail codes have been updated." : "선택한 상세 코드가 일괄 수정되었습니다.");
     }
 
     @RequestMapping(value = "/code/detail/delete", method = RequestMethod.POST)
@@ -1330,7 +1658,8 @@ public class AdminSystemCodeController {
                     isEn ? "Failed to delete detail code." : "상세 코드 삭제에 실패했습니다.");
         }
 
-        return "redirect:" + adminPrefix(request, locale) + "/system/code?detailCodeId=" + urlEncode(id);
+        return redirectCodeManagementMessage(request, locale, id,
+                isEn ? "Detail code has been deleted." : "상세 코드가 삭제되었습니다.");
     }
 
     private String populateCodeManagementPage(String detailCodeId, boolean isEn, Model model) {
@@ -1356,12 +1685,49 @@ public class AdminSystemCodeController {
             detailCodeList = Collections.emptyList();
         }
 
+        Map<String, Integer> classCodeRefCounts = new LinkedHashMap<>();
+        for (ClassCodeVO classCode : clCodeList) {
+            String clCode = safeString(classCode == null ? null : classCode.getClCode()).toUpperCase(Locale.ROOT);
+            if (clCode.isEmpty()) {
+                continue;
+            }
+            try {
+                classCodeRefCounts.put(clCode, adminCodeManageService.countCodesByClass(clCode));
+            } catch (Exception e) {
+                log.warn("Failed to count linked code groups. clCode={}", clCode, e);
+                classCodeRefCounts.put(clCode, 0);
+            }
+        }
+
+        Map<String, Integer> codeDetailRefCounts = new LinkedHashMap<>();
+        for (CommonCodeVO commonCode : codeList) {
+            String codeId = safeString(commonCode == null ? null : commonCode.getCodeId()).toUpperCase(Locale.ROOT);
+            if (codeId.isEmpty()) {
+                continue;
+            }
+            try {
+                codeDetailRefCounts.put(codeId, adminCodeManageService.countDetailCodesByCodeId(codeId));
+            } catch (Exception e) {
+                log.warn("Failed to count linked detail codes. codeId={}", codeId, e);
+                codeDetailRefCounts.put(codeId, 0);
+            }
+        }
+
         model.addAttribute("clCodeList", clCodeList);
         model.addAttribute("codeList", codeList);
         model.addAttribute("detailCodeList", detailCodeList);
         model.addAttribute("detailCodeId", selectedCodeId);
+        model.addAttribute("classCodeRefCounts", classCodeRefCounts);
+        model.addAttribute("codeDetailRefCounts", codeDetailRefCounts);
         model.addAttribute("useAtOptions", List.of("Y", "N"));
         return "";
+    }
+
+    private void applyQueryMessage(Model model, String attributeName, HttpServletRequest request) {
+        String message = safeString(request == null ? null : request.getParameter("message"));
+        if (!message.isEmpty()) {
+            model.addAttribute(attributeName, message);
+        }
     }
 
     private void applyQueryError(Model model, String attributeName, HttpServletRequest request) {
@@ -1369,6 +1735,22 @@ public class AdminSystemCodeController {
         if (!errorMessage.isEmpty()) {
             model.addAttribute(attributeName, errorMessage);
         }
+    }
+
+    private String redirectCodeManagementMessage(HttpServletRequest request, Locale locale, String detailCodeId, String message) {
+        StringBuilder redirect = new StringBuilder("redirect:")
+                .append(adminPrefix(request, locale))
+                .append("/system/code");
+        boolean hasQuery = false;
+        String normalizedDetailCodeId = safeString(detailCodeId);
+        if (!normalizedDetailCodeId.isEmpty()) {
+            redirect.append("?detailCodeId=").append(urlEncode(normalizedDetailCodeId));
+            hasQuery = true;
+        }
+        redirect.append(hasQuery ? '&' : '?')
+                .append("message=")
+                .append(urlEncode(message));
+        return redirect.toString();
     }
 
     private String redirectCodeManagementError(HttpServletRequest request, Locale locale, String detailCodeId, String errorMessage) {
@@ -1880,39 +2262,36 @@ public class AdminSystemCodeController {
         String normalizedKeyword = safeString(searchIp).toLowerCase(Locale.ROOT);
         String normalizedScope = safeString(accessScope).toUpperCase(Locale.ROOT);
         String normalizedStatus = safeString(status).toUpperCase(Locale.ROOT);
-
-        List<Map<String, String>> rows = new java.util.ArrayList<>(List.of(
-                ipWhitelistRow("WL-001", "203.248.117.0/24", "ADMIN", "운영센터 고정망", "정책관리팀", "ACTIVE", "2026-03-10 09:20", "상시 허용", "Primary office network", "Policy Admin Team", "Always allowed"),
-                ipWhitelistRow("WL-002", "10.10.20.15", "BATCH", "배치 서버", "플랫폼운영팀", "ACTIVE", "2026-03-09 18:40", "API 연동 전용", "Batch server", "Platform Ops Team", "API integration only"),
-                ipWhitelistRow("WL-003", "175.213.44.82", "ADMIN", "외부 협력사 점검 단말", "보안담당", "PENDING", "2026-03-12 08:50", "2026-03-20까지 임시 허용", "Vendor inspection terminal", "Security Officer", "Temporary access until 2026-03-20"),
-                ipWhitelistRow("WL-004", "192.168.0.0/16", "INTERNAL", "사내 VPN 대역", "인프라팀", "INACTIVE", "2026-02-25 14:05", "VPN 정책 재정비 대기", "Internal VPN range", "Infrastructure Team", "Waiting for VPN policy update")
-        ));
-
-        if (!normalizedKeyword.isEmpty()) {
-            rows.removeIf(row -> !matchesIpWhitelistKeyword(row, normalizedKeyword));
-        }
-        if (!normalizedScope.isEmpty()) {
-            rows.removeIf(row -> !normalizedScope.equalsIgnoreCase(row.get("accessScope")));
-        }
-        if (!normalizedStatus.isEmpty()) {
-            rows.removeIf(row -> !normalizedStatus.equalsIgnoreCase(row.get("status")));
+        List<Map<String, String>> allRows = buildEffectiveIpWhitelistRows();
+        List<Map<String, String>> filteredRows = new ArrayList<>();
+        for (Map<String, String> row : allRows) {
+            if (!normalizedKeyword.isEmpty() && !matchesIpWhitelistKeyword(row, normalizedKeyword)) {
+                continue;
+            }
+            if (!normalizedScope.isEmpty() && !normalizedScope.equalsIgnoreCase(safeString(row.get("accessScope")))) {
+                continue;
+            }
+            if (!normalizedStatus.isEmpty() && !normalizedStatus.equalsIgnoreCase(safeString(row.get("status")))) {
+                continue;
+            }
+            filteredRows.add(row);
         }
 
-        model.addAttribute("ipWhitelistRows", rows);
-        model.addAttribute("ipWhitelistRequestRows", List.of(
-                ipWhitelistRequestRow("REQ-240312-01", "175.213.44.82", "ADMIN", "협력사 취약점 점검", "검토중", "2026-03-12 08:45", "보안담당 김민수", "Vendor security inspection", "Under Review", "Security Officer Minsu Kim"),
-                ipWhitelistRequestRow("REQ-240311-07", "210.96.14.0/24", "API", "관계기관 API 테스트", "승인완료", "2026-03-11 16:10", "플랫폼운영팀 이지훈", "Partner API test", "Approved", "Platform Ops Jihun Lee"),
-                ipWhitelistRequestRow("REQ-240307-02", "121.166.77.19", "ADMIN", "퇴사자 계정 사용 종료", "반려", "2026-03-07 11:20", "감사담당 박선영", "User retired", "Rejected", "Audit Officer Sunyoung Park")
-        ));
+        List<Map<String, String>> allRequests = buildEffectiveIpWhitelistRequests();
+        List<Map<String, String>> filteredRequests = new ArrayList<>();
+        for (Map<String, String> row : allRequests) {
+            if (!matchesIpWhitelistRequestFilter(row, normalizedKeyword, normalizedScope, normalizedStatus)) {
+                continue;
+            }
+            filteredRequests.add(row);
+        }
+
+        model.addAttribute("ipWhitelistRows", filteredRows);
+        model.addAttribute("ipWhitelistRequestRows", filteredRequests);
         model.addAttribute("searchIp", safeString(searchIp));
         model.addAttribute("accessScope", normalizedScope);
         model.addAttribute("status", normalizedStatus);
-        model.addAttribute("ipWhitelistSummary", List.of(
-                summaryCard(isEn ? "Active Rules" : "활성 규칙", "12", isEn ? "Currently applied to admin and integration paths" : "관리자 및 연계 경로에 현재 적용 중"),
-                summaryCard(isEn ? "Pending Requests" : "승인 대기", "3", isEn ? "Temporary requests awaiting review" : "검토 대기 중인 임시 허용 요청"),
-                summaryCard(isEn ? "Blocked Hits Today" : "오늘 차단", "27", isEn ? "Denied requests from non-whitelisted IPs" : "화이트리스트 미등록 IP 차단 건수"),
-                summaryCard(isEn ? "Last Sync" : "최종 반영", "2026-03-12 09:00", isEn ? "Applied to gateway and admin security policy" : "게이트웨이 및 관리자 보안 정책 반영 완료")
-        ));
+        model.addAttribute("ipWhitelistSummary", buildIpWhitelistSummaryCards(isEn, allRows, allRequests));
     }
 
     private void populateAccessHistoryModel(Model model,
@@ -2243,6 +2622,375 @@ public class AdminSystemCodeController {
                 || safeString(row.get("description")).toLowerCase(Locale.ROOT).contains(keyword)
                 || safeString(row.get("owner")).toLowerCase(Locale.ROOT).contains(keyword)
                 || safeString(row.get("memo")).toLowerCase(Locale.ROOT).contains(keyword);
+    }
+
+    private boolean matchesIpWhitelistRequestFilter(Map<String, String> row, String keyword, String scope, String status) {
+        if (!keyword.isEmpty()) {
+            String searchable = String.join(" ",
+                    safeString(row.get("requestId")),
+                    safeString(row.get("ipAddress")),
+                    safeString(row.get("accessScope")),
+                    safeString(row.get("reason")),
+                    safeString(row.get("requester")),
+                    safeString(row.get("reviewNote"))).toLowerCase(Locale.ROOT);
+            if (!searchable.contains(keyword)) {
+                return false;
+            }
+        }
+        if (!scope.isEmpty() && !scope.equalsIgnoreCase(safeString(row.get("accessScope")))) {
+            return false;
+        }
+        if (!status.isEmpty()) {
+            String approvalStatus = safeString(row.get("approvalStatus"));
+            String approvalStatusEn = approvalStatus.toUpperCase(Locale.ROOT) + " " + safeString(row.get("approvalStatusEn")).toUpperCase(Locale.ROOT);
+            if ("ACTIVE".equals(status) && !(approvalStatus.contains("승인") || approvalStatusEn.contains("APPROV"))) {
+                return false;
+            }
+            if ("PENDING".equals(status) && !(approvalStatus.contains("검토") || approvalStatus.contains("대기") || approvalStatusEn.contains("PENDING") || approvalStatusEn.contains("REVIEW"))) {
+                return false;
+            }
+            if ("INACTIVE".equals(status) && !(approvalStatus.contains("반려") || approvalStatusEn.contains("REJECT"))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private List<Map<String, String>> buildEffectiveIpWhitelistRows() {
+        List<Map<String, String>> merged = new ArrayList<>();
+        for (Map<String, String> row : defaultIpWhitelistRows()) {
+            merged.add(new LinkedHashMap<>(row));
+        }
+        for (Map<String, String> row : selectIpWhitelistRuleRows()) {
+            upsertIpWhitelistRow(merged, row, "ruleId");
+        }
+        merged.sort(Comparator.comparing((Map<String, String> row) -> safeString(row.get("updatedAt"))).reversed());
+        return merged;
+    }
+
+    private List<Map<String, String>> buildEffectiveIpWhitelistRequests() {
+        List<Map<String, String>> merged = new ArrayList<>();
+        for (Map<String, String> row : defaultIpWhitelistRequests()) {
+            merged.add(new LinkedHashMap<>(row));
+        }
+        for (Map<String, String> row : selectIpWhitelistRequestRows()) {
+            upsertIpWhitelistRow(merged, row, "requestId");
+        }
+        merged.sort(Comparator.comparing((Map<String, String> row) -> safeString(row.get("requestedAt"))).reversed());
+        return merged;
+    }
+
+    private List<Map<String, String>> selectIpWhitelistRuleRows() {
+        IpWhitelistPersistenceService persistenceService = ipWhitelistPersistenceServiceProvider.getIfAvailable();
+        if (persistenceService == null) {
+            return Collections.emptyList();
+        }
+        return persistenceService.selectRuleRows();
+    }
+
+    private List<Map<String, String>> selectIpWhitelistRequestRows() {
+        IpWhitelistPersistenceService persistenceService = ipWhitelistPersistenceServiceProvider.getIfAvailable();
+        if (persistenceService == null) {
+            return Collections.emptyList();
+        }
+        return persistenceService.selectRequestRows();
+    }
+
+    private void saveIpWhitelistRuleRow(Map<String, String> row) {
+        IpWhitelistPersistenceService persistenceService = ipWhitelistPersistenceServiceProvider.getIfAvailable();
+        if (persistenceService == null) {
+            log.warn("IpWhitelistPersistenceService bean is not available. Skipping rule persistence.");
+            return;
+        }
+        persistenceService.saveRuleRow(row);
+    }
+
+    private void saveIpWhitelistRequestRow(Map<String, String> row) {
+        IpWhitelistPersistenceService persistenceService = ipWhitelistPersistenceServiceProvider.getIfAvailable();
+        if (persistenceService == null) {
+            log.warn("IpWhitelistPersistenceService bean is not available. Skipping request persistence.");
+            return;
+        }
+        persistenceService.saveRequestRow(row);
+    }
+
+    private void upsertIpWhitelistRow(List<Map<String, String>> target, Map<String, String> source, String keyName) {
+        String key = safeString(source.get(keyName));
+        for (int index = 0; index < target.size(); index++) {
+            if (key.equalsIgnoreCase(safeString(target.get(index).get(keyName)))) {
+                target.set(index, new LinkedHashMap<>(source));
+                return;
+            }
+        }
+        target.add(new LinkedHashMap<>(source));
+    }
+
+    private List<Map<String, String>> defaultIpWhitelistRows() {
+        List<Map<String, String>> rows = new ArrayList<>();
+        rows.add(ipWhitelistRow("WL-001", "203.248.117.0/24", "ADMIN", "운영센터 고정망", "정책관리팀", "ACTIVE", "2026-03-10 09:20", "상시 허용", "Primary office network", "Policy Admin Team", "Always allowed"));
+        rows.add(ipWhitelistRow("WL-002", "10.10.20.15", "BATCH", "배치 서버", "플랫폼운영팀", "ACTIVE", "2026-03-09 18:40", "API 연동 전용", "Batch server", "Platform Ops Team", "API integration only"));
+        Map<String, String> pendingRule = ipWhitelistRow("WL-003", "175.213.44.82", "ADMIN", "외부 협력사 점검 단말", "보안담당", "PENDING", "2026-03-12 08:50", "2026-03-20까지 임시 허용", "Vendor inspection terminal", "Security Officer", "Temporary access until 2026-03-20");
+        pendingRule.put("requestId", "REQ-240312-01");
+        pendingRule.put("expiresAt", "2026-03-20 18:00");
+        rows.add(pendingRule);
+        rows.add(ipWhitelistRow("WL-004", "192.168.0.0/16", "INTERNAL", "사내 VPN 대역", "인프라팀", "INACTIVE", "2026-02-25 14:05", "VPN 정책 재정비 대기", "Internal VPN range", "Infrastructure Team", "Waiting for VPN policy update"));
+        return rows;
+    }
+
+    private List<Map<String, String>> defaultIpWhitelistRequests() {
+        List<Map<String, String>> rows = new ArrayList<>();
+        Map<String, String> pending = ipWhitelistRequestRow("REQ-240312-01", "175.213.44.82", "ADMIN", "협력사 취약점 점검", "검토중", "2026-03-12 08:45", "보안담당 김민수", "Vendor security inspection", "Under Review", "Security Officer Minsu Kim");
+        pending.put("ruleId", "WL-003");
+        pending.put("expiresAt", "2026-03-20 18:00");
+        pending.put("memo", "2026-03-20까지 임시 허용");
+        pending.put("memoEn", "Temporary access until 2026-03-20");
+        rows.add(pending);
+        Map<String, String> approved = ipWhitelistRequestRow("REQ-240311-07", "210.96.14.0/24", "API", "관계기관 API 테스트", "승인완료", "2026-03-11 16:10", "플랫폼운영팀 이지훈", "Partner API test", "Approved", "Platform Ops Jihun Lee");
+        approved.put("reviewedAt", "2026-03-11 16:40");
+        approved.put("reviewedBy", "이지훈");
+        approved.put("reviewedByEn", "Jihun Lee");
+        rows.add(approved);
+        Map<String, String> rejected = ipWhitelistRequestRow("REQ-240307-02", "121.166.77.19", "ADMIN", "퇴사자 계정 사용 종료", "반려", "2026-03-07 11:20", "감사담당 박선영", "User retired", "Rejected", "Audit Officer Sunyoung Park");
+        rejected.put("reviewedAt", "2026-03-07 11:45");
+        rejected.put("reviewedBy", "보안운영자");
+        rejected.put("reviewedByEn", "Security Operator");
+        rejected.put("reviewNote", "허용 사유 종료");
+        rows.add(rejected);
+        return rows;
+    }
+
+    private List<Map<String, String>> buildIpWhitelistSummaryCards(boolean isEn,
+                                                                   List<Map<String, String>> allRows,
+                                                                   List<Map<String, String>> allRequests) {
+        long activeCount = allRows.stream()
+                .filter(row -> "ACTIVE".equalsIgnoreCase(safeString(row.get("status"))))
+                .count();
+        long pendingCount = allRequests.stream()
+                .filter(row -> {
+                    String approvalStatus = safeString(row.get("approvalStatus"));
+                    String approvalStatusEn = safeString(row.get("approvalStatusEn")).toUpperCase(Locale.ROOT);
+                    return approvalStatus.contains("검토") || approvalStatus.contains("대기") || approvalStatusEn.contains("PENDING") || approvalStatusEn.contains("REVIEW");
+                })
+                .count();
+        long temporaryCount = allRows.stream()
+                .filter(row -> safeString(row.get("memo")).contains("임시") || safeString(row.get("memoEn")).toLowerCase(Locale.ROOT).contains("temporary"))
+                .count();
+        long scopeCount = allRows.stream()
+                .map(row -> safeString(row.get("accessScope")).toUpperCase(Locale.ROOT))
+                .filter(value -> !value.isEmpty())
+                .distinct()
+                .count();
+        return List.of(
+                metricCard(isEn ? "Active Rules" : "활성 규칙", String.valueOf(activeCount), isEn ? "Rules currently reflected in gateway and admin access." : "게이트웨이와 관리자 접근에 현재 반영 중인 규칙"),
+                metricCard(isEn ? "Pending Requests" : "승인 대기", String.valueOf(pendingCount), isEn ? "Temporary access requests waiting for operator review." : "운영 승인 대기 중인 임시 허용 요청"),
+                metricCard(isEn ? "Temporary Exceptions" : "임시 예외", String.valueOf(temporaryCount), isEn ? "Rules carrying temporary access conditions." : "임시 허용 조건을 가진 규칙 수"),
+                metricCard(isEn ? "Protected Scopes" : "보호 범위", String.valueOf(scopeCount), isEn ? "Access scopes managed in the allowlist console." : "화이트리스트 콘솔에서 관리 중인 접근 범위")
+        );
+    }
+
+    private Map<String, String> metricCard(String title, String value, String description) {
+        Map<String, String> card = new LinkedHashMap<>();
+        card.put("title", title);
+        card.put("value", value);
+        card.put("description", description);
+        return card;
+    }
+
+    private String normalizeIpWhitelistScope(String value) {
+        String normalized = safeString(value).toUpperCase(Locale.ROOT);
+        if (normalized.isEmpty()) {
+            return "ADMIN";
+        }
+        return Set.of("ADMIN", "BATCH", "INTERNAL", "API").contains(normalized) ? normalized : "ADMIN";
+    }
+
+    private String normalizeIpWhitelistApplicationName(String value) {
+        String normalized = safeString(value).toUpperCase(Locale.ROOT);
+        if (normalized.isEmpty()) {
+            return "ADMIN_WEB";
+        }
+        return Set.of("ADMIN_WEB", "API_GATEWAY", "BATCH_AGENT", "INTERNAL_TOOL", "DB_ADMIN", "CUSTOM").contains(normalized)
+                ? normalized
+                : "CUSTOM";
+    }
+
+    private String normalizeIpWhitelistFirewallAction(String value) {
+        String normalized = safeString(value).toUpperCase(Locale.ROOT);
+        return "OPEN".equals(normalized) ? "OPEN" : "KEEP_CLOSED";
+    }
+
+    private String resolveIpWhitelistApplicationLabel(String applicationName, boolean isEn) {
+        switch (normalizeIpWhitelistApplicationName(applicationName)) {
+            case "API_GATEWAY":
+                return isEn ? "API Gateway" : "API 게이트웨이";
+            case "BATCH_AGENT":
+                return isEn ? "Batch Agent" : "배치 에이전트";
+            case "INTERNAL_TOOL":
+                return isEn ? "Internal Tool" : "내부 운영 도구";
+            case "DB_ADMIN":
+                return isEn ? "DB Admin" : "DB 관리";
+            case "CUSTOM":
+                return isEn ? "Custom" : "직접 입력";
+            case "ADMIN_WEB":
+            default:
+                return isEn ? "Admin Web" : "관리자 웹";
+        }
+    }
+
+    private String resolveIpWhitelistFirewallLabel(String firewallAction, boolean isEn) {
+        return "OPEN".equals(normalizeIpWhitelistFirewallAction(firewallAction))
+                ? (isEn ? "Open Firewall" : "방화벽 열기")
+                : (isEn ? "Keep Closed" : "방화벽 열지 않기");
+    }
+
+    private String buildIpWhitelistExecutionReason(String applicationName,
+                                                   String port,
+                                                   String firewallAction,
+                                                   String reason,
+                                                   boolean isEn) {
+        String appLabel = resolveIpWhitelistApplicationLabel(applicationName, isEn);
+        String firewallLabel = resolveIpWhitelistFirewallLabel(firewallAction, isEn);
+        return safeString(reason)
+                + (isEn ? " | App " : " | 앱 ")
+                + appLabel
+                + (isEn ? " | Port " : " | 포트 ")
+                + safeString(port)
+                + (isEn ? " | Firewall " : " | 방화벽 ")
+                + firewallLabel;
+    }
+
+    private String buildIpWhitelistExecutionMemo(String applicationName,
+                                                 String port,
+                                                 String firewallAction,
+                                                 String memo,
+                                                 String expiresAt,
+                                                 boolean isEn) {
+        String appLabel = resolveIpWhitelistApplicationLabel(applicationName, isEn);
+        String firewallLabel = resolveIpWhitelistFirewallLabel(firewallAction, isEn);
+        String baseMemo = safeString(memo);
+        StringBuilder builder = new StringBuilder();
+        builder.append(isEn ? "Execution plan: " : "실행 계획: ");
+        builder.append(appLabel)
+                .append(isEn ? ", port " : ", 포트 ")
+                .append(safeString(port))
+                .append(isEn ? ", firewall " : ", 방화벽 ")
+                .append(firewallLabel);
+        if (!safeString(expiresAt).isEmpty()) {
+            builder.append(isEn ? ", expires " : ", 만료 ")
+                    .append(safeString(expiresAt));
+        }
+        if (!baseMemo.isEmpty()) {
+            builder.append(isEn ? " | Memo: " : " | 메모: ").append(baseMemo);
+        }
+        return builder.toString();
+    }
+
+    private String buildIpWhitelistExecutionFeedback(String applicationName,
+                                                     String ipAddress,
+                                                     String port,
+                                                     String firewallAction,
+                                                     boolean approved,
+                                                     boolean isEn) {
+        String appLabel = resolveIpWhitelistApplicationLabel(applicationName, isEn);
+        String firewallLabel = resolveIpWhitelistFirewallLabel(firewallAction, isEn);
+        if (approved) {
+            return isEn
+                    ? "Execution result: " + appLabel + " allowlist was approved for " + safeString(ipAddress) + ":" + safeString(port) + ". Firewall action: " + firewallLabel + "."
+                    : "실행 결과: " + appLabel + " 허용 요청이 " + safeString(ipAddress) + ":" + safeString(port) + " 기준으로 승인되었습니다. 방화벽 처리: " + firewallLabel + ".";
+        }
+        return isEn
+                ? "Execution queued: " + appLabel + " request for " + safeString(ipAddress) + ":" + safeString(port) + " is waiting for review. Firewall action: " + firewallLabel + "."
+                : "실행 접수: " + appLabel + " 요청이 " + safeString(ipAddress) + ":" + safeString(port) + " 기준으로 검토 대기열에 등록되었습니다. 방화벽 처리: " + firewallLabel + ".";
+    }
+
+    private String buildIpWhitelistDecisionFeedback(Map<String, String> updatedRequest,
+                                                    String decision,
+                                                    String reviewNote,
+                                                    String firewallFeedback,
+                                                    boolean isEn) {
+        String detail = safeString(updatedRequest == null ? null : updatedRequest.get(isEn ? "reasonEn" : "reason"));
+        String note = safeString(reviewNote);
+        String firewall = safeString(firewallFeedback);
+        if ("APPROVE".equalsIgnoreCase(decision)) {
+            return (isEn ? "Approval feedback: " : "승인 피드백: ")
+                    + detail
+                    + (note.isEmpty() ? "" : (isEn ? " | Note: " : " | 메모: ") + note)
+                    + (firewall.isEmpty() ? "" : (isEn ? " | Firewall: " : " | 방화벽: ") + firewall);
+        }
+        return (isEn ? "Rejection feedback: " : "반려 피드백: ")
+                + detail
+                + (note.isEmpty() ? "" : (isEn ? " | Note: " : " | 메모: ") + note)
+                + (firewall.isEmpty() ? "" : (isEn ? " | Firewall: " : " | 방화벽: ") + firewall);
+    }
+
+    private String executeIpWhitelistFirewall(String applicationName, String ipAddress, String port, boolean isEn) {
+        IpWhitelistFirewallService firewallService = ipWhitelistFirewallServiceProvider.getIfAvailable();
+        if (firewallService == null) {
+            return isEn
+                    ? "Firewall service is unavailable."
+                    : "방화벽 서비스가 비활성화되어 있습니다.";
+        }
+        IpWhitelistFirewallService.FirewallExecutionResult result = firewallService.openPortForIp(applicationName, ipAddress, port);
+        if (result == null) {
+            return isEn
+                    ? "Firewall execution returned no result."
+                    : "방화벽 실행 결과가 반환되지 않았습니다.";
+        }
+        return safeString(result.getMessage());
+    }
+
+    private String extractIpWhitelistApplicationName(Map<String, String> row) {
+        return normalizeIpWhitelistApplicationName(extractExecutionSegment(row, "앱 ", "App "));
+    }
+
+    private String extractIpWhitelistPort(Map<String, String> row) {
+        return safeString(extractExecutionSegment(row, "포트 ", "Port "));
+    }
+
+    private String extractIpWhitelistFirewallAction(Map<String, String> row) {
+        String value = extractExecutionSegment(row, "방화벽 ", "Firewall ");
+        return value.contains("Open Firewall") || value.contains("방화벽 열기") ? "OPEN" : "KEEP_CLOSED";
+    }
+
+    private String extractExecutionSegment(Map<String, String> row, String koPrefix, String enPrefix) {
+        String reason = safeString(row == null ? null : row.get("reason"));
+        String reasonEn = safeString(row == null ? null : row.get("reasonEn"));
+        for (String token : reason.split("\\|")) {
+            String trimmed = safeString(token);
+            if (trimmed.startsWith(koPrefix)) {
+                return safeString(trimmed.substring(koPrefix.length()));
+            }
+        }
+        for (String token : reasonEn.split("\\|")) {
+            String trimmed = safeString(token);
+            if (trimmed.startsWith(enPrefix)) {
+                return safeString(trimmed.substring(enPrefix.length()));
+            }
+        }
+        return "";
+    }
+
+    private String formatIpWhitelistTimestamp(LocalDateTime value) {
+        return value == null ? "" : IP_WHITELIST_TIMESTAMP_FORMAT.format(value);
+    }
+
+    private Map<String, String> findIpWhitelistRequestById(String requestId) {
+        return buildEffectiveIpWhitelistRequests().stream()
+                .filter(row -> requestId.equalsIgnoreCase(safeString(row.get("requestId"))))
+                .findFirst()
+                .map(LinkedHashMap::new)
+                .orElse(null);
+    }
+
+    private Map<String, String> findIpWhitelistRuleById(String ruleId) {
+        if (ruleId.isEmpty()) {
+            return null;
+        }
+        return buildEffectiveIpWhitelistRows().stream()
+                .filter(row -> ruleId.equalsIgnoreCase(safeString(row.get("ruleId"))))
+                .findFirst()
+                .map(LinkedHashMap::new)
+                .orElse(null);
     }
 
     private Map<String, String> ipWhitelistRow(
@@ -3153,6 +3901,14 @@ public class AdminSystemCodeController {
     }
 
     private String safeString(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private String safeString(Object value) {
+        return value == null ? "" : value.toString().trim();
+    }
+
+    private static String safeStaticString(String value) {
         return value == null ? "" : value.trim();
     }
 

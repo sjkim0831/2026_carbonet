@@ -121,14 +121,32 @@ type MemberPaginationProps = {
 export function MemberPagination({ currentPage, totalPages, onPageChange, className = "", dataHelpId }: MemberPaginationProps) {
   const safeTotalPages = Math.max(1, totalPages);
   const safeCurrentPage = Math.min(Math.max(1, currentPage), safeTotalPages);
-  const pageNumbers = Array.from({ length: safeTotalPages }, (_, index) => index + 1).filter((pageNumber) => Math.abs(pageNumber - safeCurrentPage) <= 2 || pageNumber === 1 || pageNumber === safeTotalPages);
+  const visiblePages = safeTotalPages <= 7
+    ? Array.from({ length: safeTotalPages }, (_, index) => index + 1)
+    : Array.from(new Set([
+        1,
+        Math.max(1, safeCurrentPage - 1),
+        safeCurrentPage,
+        Math.min(safeTotalPages, safeCurrentPage + 1),
+        safeTotalPages
+      ])).sort((left, right) => left - right);
+  const pageTokens: Array<number | string> = [];
+  visiblePages.forEach((pageNumber, index) => {
+    pageTokens.push(pageNumber);
+    const nextPageNumber = visiblePages[index + 1];
+    if (nextPageNumber && nextPageNumber - pageNumber > 1) {
+      pageTokens.push(`ellipsis-${pageNumber}-${nextPageNumber}`);
+    }
+  });
   return (
     <div className={`border-t border-[var(--kr-gov-border-light)] bg-gray-50 px-6 py-4 ${className}`.trim()} data-help-id={dataHelpId}>
-      <nav className="flex items-center justify-center gap-1">
+      <nav className="flex flex-wrap items-center justify-center gap-1">
         <button className="rounded border border-transparent p-1 hover:border-gray-200 hover:bg-white disabled:cursor-not-allowed disabled:opacity-40" disabled={safeCurrentPage <= 1} onClick={() => onPageChange(1)} type="button"><span className="material-symbols-outlined">first_page</span></button>
         <button className="rounded border border-transparent p-1 hover:border-gray-200 hover:bg-white disabled:cursor-not-allowed disabled:opacity-40" disabled={safeCurrentPage <= 1} onClick={() => onPageChange(Math.max(1, safeCurrentPage - 1))} type="button"><span className="material-symbols-outlined">chevron_left</span></button>
-        <div className="mx-4 flex items-center gap-1">
-          {pageNumbers.map((pageNumber) => <button className={`flex h-8 w-8 items-center justify-center rounded border text-sm ${pageNumber === safeCurrentPage ? "border-[var(--kr-gov-blue)] bg-[var(--kr-gov-blue)] font-bold text-white" : "border-transparent hover:border-gray-200 hover:bg-white"}`} key={pageNumber} onClick={() => onPageChange(pageNumber)} type="button">{pageNumber}</button>)}
+        <div className="mx-4 flex flex-wrap items-center justify-center gap-1">
+          {pageTokens.map((pageToken) => typeof pageToken === "string"
+            ? <span className="flex h-8 min-w-[24px] items-center justify-center px-1 text-sm text-[var(--kr-gov-text-secondary)]" key={pageToken}>…</span>
+            : <button className={`flex h-8 min-w-[32px] items-center justify-center rounded border px-2 text-sm ${pageToken === safeCurrentPage ? "border-[var(--kr-gov-blue)] bg-[var(--kr-gov-blue)] font-bold text-white" : "border-transparent hover:border-gray-200 hover:bg-white"}`} key={pageToken} onClick={() => onPageChange(pageToken)} type="button">{pageToken}</button>)}
         </div>
         <button className="rounded border border-transparent p-1 hover:border-gray-200 hover:bg-white disabled:cursor-not-allowed disabled:opacity-40" disabled={safeCurrentPage >= safeTotalPages} onClick={() => onPageChange(Math.min(safeTotalPages, safeCurrentPage + 1))} type="button"><span className="material-symbols-outlined">chevron_right</span></button>
         <button className="rounded border border-transparent p-1 hover:border-gray-200 hover:bg-white disabled:cursor-not-allowed disabled:opacity-40" disabled={safeCurrentPage >= safeTotalPages} onClick={() => onPageChange(safeTotalPages)} type="button"><span className="material-symbols-outlined">last_page</span></button>
@@ -317,7 +335,7 @@ export function SummaryMetricCard({
   surfaceClassName = "bg-[#f8fbff]",
   className = "",
   ...props
-}: HTMLAttributes<HTMLElement> & {
+}: Omit<HTMLAttributes<HTMLElement>, "title"> & {
   title: ReactNode;
   value: ReactNode;
   description?: ReactNode;
@@ -390,7 +408,7 @@ export function CollectionResultPanel({
   children,
   className = "",
   ...props
-}: HTMLAttributes<HTMLElement> & {
+}: Omit<HTMLAttributes<HTMLElement>, "title"> & {
   title: ReactNode;
   description?: ReactNode;
   icon?: string;
@@ -423,7 +441,7 @@ export function KeyValueGridPanel({
   children,
   className = "",
   ...props
-}: HTMLAttributes<HTMLElement> & {
+}: Omit<HTMLAttributes<HTMLElement>, "title"> & {
   title: ReactNode;
   description?: ReactNode;
   items: KeyValueGridPanelItem[];

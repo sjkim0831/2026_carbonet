@@ -145,9 +145,33 @@ export type ScreenBuilderIssueBreakdown = {
   deprecatedCount: number;
 };
 
+export type ScreenBuilderFreshnessSummary = {
+  state: "UNPUBLISHED" | "FRESH" | "AGING" | "STALE" | "UNKNOWN";
+  label: string;
+  detail: string;
+};
+
+export type ScreenBuilderParitySummary = {
+  state: "UNAVAILABLE" | "MATCH" | "DRIFT" | "GAP";
+  label: string;
+  detail: string;
+  traceId: string;
+};
+
 export type ScreenBuilderStatus = {
   publishedVersionId: string;
   publishedSavedAt: string;
+  releaseUnitId: string;
+  artifactTargetSystem: string;
+  runtimePackageId: string;
+  deployTraceId: string;
+  publishFreshnessState: "UNPUBLISHED" | "FRESH" | "AGING" | "STALE" | "UNKNOWN";
+  publishFreshnessLabel: string;
+  publishFreshnessDetail: string;
+  parityState: "UNAVAILABLE" | "MATCH" | "DRIFT" | "GAP";
+  parityLabel: string;
+  parityDetail: string;
+  parityTraceId: string;
   versionCount: number;
   unregisteredCount: number;
   missingCount: number;
@@ -322,7 +346,7 @@ export function recommendBuilderNextAction(
 }
 
 export function describeScreenBuilderFilter(
-  screenBuilderFilter: "ALL" | "PUBLISHED_ONLY" | "DRAFT_ONLY" | "READY_ONLY" | "BLOCKED_ONLY" | "ISSUE_ONLY",
+  screenBuilderFilter: "ALL" | "PUBLISHED_ONLY" | "DRAFT_ONLY" | "READY_ONLY" | "BLOCKED_ONLY" | "ISSUE_ONLY" | "STALE_PUBLISH_ONLY" | "PARITY_DRIFT_ONLY" | "PARITY_GAP_ONLY",
   screenBuilderIssueReasonFilter: "ALL" | "UNREGISTERED" | "MISSING" | "DEPRECATED",
   en: boolean
 ) {
@@ -338,6 +362,12 @@ export function describeScreenBuilderFilter(
         return en ? "Blocked only" : "차단만";
       case "ISSUE_ONLY":
         return en ? "Issue pages only" : "이슈만";
+      case "STALE_PUBLISH_ONLY":
+        return en ? "Stale publish only" : "노후 발행만";
+      case "PARITY_DRIFT_ONLY":
+        return en ? "Parity drift only" : "정합성 드리프트만";
+      case "PARITY_GAP_ONLY":
+        return en ? "Parity gap only" : "정합성 갭만";
       default:
         return en ? "All pages" : "전체 메뉴";
     }

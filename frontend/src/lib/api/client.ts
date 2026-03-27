@@ -475,6 +475,18 @@ export type ScreenBuilderPagePayload = {
   versionHistory?: ScreenBuilderVersionSummary[];
   publishedVersionId?: string;
   publishedSavedAt?: string;
+  releaseUnitId?: string;
+  artifactEvidence?: {
+    artifactSourceSystem?: string;
+    artifactTargetSystem?: string;
+    releaseUnitId?: string;
+    runtimePackageId?: string;
+    deployTraceId?: string;
+    publishedVersionId?: string;
+    publishedSavedAt?: string;
+    artifactKind?: string;
+    artifactPathHint?: string;
+  };
   previewAvailable: boolean;
   screenBuilderMessage?: string;
 };
@@ -488,6 +500,8 @@ export type ScreenBuilderPreviewPayload = {
   templateType: string;
   authorityProfile?: ScreenBuilderPagePayload["authorityProfile"];
   versionStatus?: string;
+  releaseUnitId?: string;
+  artifactEvidence?: ScreenBuilderPagePayload["artifactEvidence"];
   registryDiagnostics?: {
     unregisteredNodes?: ScreenBuilderRegistryIssue[];
     missingNodes?: ScreenBuilderRegistryIssue[];
@@ -496,6 +510,36 @@ export type ScreenBuilderPreviewPayload = {
   };
   nodes: ScreenBuilderNode[];
   events: ScreenBuilderEventBinding[];
+};
+
+export type ScreenBuilderStatusSummaryItem = {
+  menuCode: string;
+  pageId: string;
+  menuTitle: string;
+  menuUrl: string;
+  publishedVersionId: string;
+  publishedSavedAt: string;
+  releaseUnitId: string;
+  artifactTargetSystem: string;
+  runtimePackageId: string;
+  deployTraceId: string;
+  publishFreshnessState: "UNPUBLISHED" | "FRESH" | "AGING" | "STALE" | "UNKNOWN";
+  publishFreshnessLabel: string;
+  publishFreshnessDetail: string;
+  parityState: "UNAVAILABLE" | "MATCH" | "DRIFT" | "GAP";
+  parityLabel: string;
+  parityDetail: string;
+  parityTraceId: string;
+  versionCount: number;
+  unregisteredCount: number;
+  missingCount: number;
+  deprecatedCount: number;
+};
+
+export type ScreenBuilderStatusSummaryResponse = {
+  items: ScreenBuilderStatusSummaryItem[];
+  count: number;
+  projectId: string;
 };
 
 export type MemberEditPagePayload = Record<string, unknown> & {
@@ -763,6 +807,16 @@ export type ScreenCommandPageDetail = ScreenCommandPageOption & {
   summary: string;
   source: string;
   menuLookupUrl: string;
+  summaryMetrics?: {
+    surfaceCount: number;
+    eventCount: number;
+    apiCount: number;
+    schemaCount: number;
+    changeTargetCount: number;
+    featureCount: number;
+    relationTableCount: number;
+    componentCount: number;
+  };
   manifestRegistry?: {
     pageId: string;
     pageName: string;
@@ -838,6 +892,15 @@ export type SrTicketRow = {
   executionPreparedBy: string;
   executionStatus: string;
   executionComment: string;
+  queueStatus: string;
+  queueMode: string;
+  queueSubmittedAt: string;
+  queueStartedAt: string;
+  queueCompletedAt: string;
+  queueRequestedBy: string;
+  queueLaneId: string;
+  queueTmuxSessionName: string;
+  queueErrorMessage: string;
   pageId: string;
   pageLabel: string;
   routePath: string;
@@ -1212,6 +1275,10 @@ export type ErrorLogPagePayload = Record<string, unknown> & {
 export type LoginHistoryPagePayload = Record<string, unknown> & {
   loginHistoryList?: Array<Record<string, unknown>>;
   companyOptions?: Array<Record<string, string>>;
+  securityHistoryActionRows?: Array<Record<string, string>>;
+  securityHistoryActionByHistoryKey?: Record<string, Record<string, string>>;
+  securityHistoryRelatedCountByHistoryKey?: Record<string, Record<string, number>>;
+  securityHistoryAggregate?: Record<string, unknown>;
   selectedInsttId?: string;
   canManageAllCompanies?: boolean;
   totalCount?: number;
@@ -1227,6 +1294,12 @@ export type LoginHistoryPagePayload = Record<string, unknown> & {
   loginResult?: string;
   loginHistoryError?: string;
   isEn?: boolean;
+};
+
+export type SecurityHistoryActionResponse = Record<string, unknown> & {
+  success?: boolean;
+  message?: string;
+  savedAction?: Record<string, string>;
 };
 
 export type AdminHomePagePayload = Record<string, unknown> & {
@@ -1277,11 +1350,39 @@ export type SecurityPolicyPagePayload = Record<string, unknown> & {
     menuUrlDuplicateCount?: number;
     viewFeatureDuplicateCount?: number;
     cleanupRecommendationCount?: number;
+    integrityIssueCount?: number;
+    highRiskExposureCount?: number;
+    scopeViolationCount?: number;
     message?: string;
+    autoCleanupExecutableCount?: number;
+    codexReviewRequiredCount?: number;
     duplicatedMenuUrls?: Array<Record<string, string>>;
     duplicatedViewMappings?: Array<Record<string, string>>;
+    menusMissingView?: Array<Record<string, string>>;
+    inactiveAuthorFeatureRelations?: Array<Record<string, string>>;
+    inactiveUserOverrides?: Array<Record<string, string>>;
+    sensitiveRoleExposures?: Array<Record<string, string>>;
+    companyScopeSensitiveExposures?: Array<Record<string, string>>;
+    securityInsightItems?: Array<Record<string, string>>;
+    securityInsightTotal?: number;
+    securityInsightActionRequiredCount?: number;
+    securityInsightGradeCounts?: Record<string, number>;
+    securityInsightGate?: Record<string, unknown>;
+    securityInsightConfig?: Record<string, unknown>;
+    securityInsightExplorer?: Record<string, unknown>;
+    securityInsightMessage?: string;
   };
   isEn?: boolean;
+};
+
+export type MenuPermissionAutoCleanupResponse = {
+  success?: boolean;
+  message?: string;
+  disabledMenuCodes?: string[];
+  processedMenuUrls?: string[];
+  disabledMenuCount?: number;
+  processedTargetCount?: number;
+  diagnostics?: SecurityPolicyPagePayload["menuPermissionDiagnostics"];
 };
 
 export type SecurityMonitoringPagePayload = Record<string, unknown> & {
@@ -1289,6 +1390,8 @@ export type SecurityMonitoringPagePayload = Record<string, unknown> & {
   securityMonitoringTargets?: Array<Record<string, string>>;
   securityMonitoringIps?: Array<Record<string, string>>;
   securityMonitoringEvents?: Array<Record<string, string>>;
+  securityMonitoringActivityRows?: Array<Record<string, string>>;
+  securityMonitoringBlockCandidates?: Array<Record<string, string>>;
   isEn?: boolean;
 };
 
@@ -1299,11 +1402,36 @@ export type BlocklistPagePayload = Record<string, unknown> & {
   blocklistSummary?: Array<Record<string, string>>;
   blocklistRows?: Array<Record<string, string>>;
   blocklistReleaseQueue?: Array<Record<string, string>>;
+  blocklistReleaseHistory?: Array<Record<string, string>>;
   isEn?: boolean;
 };
 
 export type SecurityAuditPagePayload = Record<string, unknown> & {
+  pageIndex?: number;
+  pageSize?: number;
+  totalCount?: number;
+  totalPages?: number;
+  searchKeyword?: string;
+  actionType?: string;
+  routeGroup?: string;
+  startDate?: string;
+  endDate?: string;
+  sortKey?: string;
+  sortDirection?: string;
+  filteredBlockedCount?: number;
+  filteredAllowedCount?: number;
+  filteredUniqueActorCount?: number;
+  filteredRouteCount?: number;
+  filteredErrorCount?: number;
+  filteredSlowCount?: number;
+  filteredRepeatedActorCount?: number;
+  filteredRepeatedTargetCount?: number;
+  filteredRepeatedRemoteAddrCount?: number;
+  latestSecurityAuditRow?: Record<string, string> | null;
   securityAuditSummary?: Array<Record<string, string>>;
+  securityAuditRepeatedActors?: Array<Record<string, string>>;
+  securityAuditRepeatedTargets?: Array<Record<string, string>>;
+  securityAuditRepeatedRemoteAddrs?: Array<Record<string, string>>;
   securityAuditRows?: Array<Record<string, string>>;
   isEn?: boolean;
 };
@@ -1362,9 +1490,12 @@ export type CodexProvisionPagePayload = Record<string, unknown> & {
     buildCommand?: string;
     deployCommand?: string;
     healthCheckUrl?: string;
+    parallelLanes?: number;
   };
   srTicketCount?: number;
   srTickets?: SrTicketRow[];
+  executionLaneCount?: number;
+  executionLanes?: Array<Record<string, unknown>>;
   isEn?: boolean;
 };
 
@@ -1456,6 +1587,54 @@ let mypageContextCache: MypageContext | null = null;
 let mypageContextPromise: Promise<MypageContext> | null = null;
 let joinSessionCache: JoinSessionPayload | null = null;
 let joinSessionPromise: Promise<JoinSessionPayload> | null = null;
+const ADMIN_MENU_CODE_LABEL_OVERRIDES_KO: Record<string, string> = {
+  A001: "회원",
+  A00101: "회원",
+  A00105: "이력",
+  A002: "배출/인증",
+  A00201: "배출",
+  A003: "거래",
+  A004: "콘텐츠",
+  A005: "외부 연계",
+  A006: "시스템",
+  A00601: "환경",
+  A00602: "보안",
+  A00603: "로그",
+  A00604: "백업",
+  A007: "대시보드",
+  A00701: "대시보드",
+  A190: "AI 운영",
+  A19001: "AI 작업센터",
+  AMENU_AUTH: "권한",
+  AMENU_MEMBER: "회원",
+  AMENU_COMPANY: "회원사",
+  AMENU_ADMIN: "관리자",
+  AMENU_SYSTEM: "시스템"
+};
+const ADMIN_MENU_CODE_LABEL_OVERRIDES_EN: Record<string, string> = {
+  A001: "Members",
+  A00101: "Members",
+  A00105: "History",
+  A002: "Emission",
+  A00201: "Emission",
+  A003: "Trading",
+  A004: "Content",
+  A005: "Integrations",
+  A006: "System",
+  A00601: "Environment",
+  A00602: "Security",
+  A00603: "Logs",
+  A00604: "Backup",
+  A007: "Dashboard",
+  A00701: "Dashboard",
+  A190: "AI Ops",
+  A19001: "AI Workbench",
+  AMENU_AUTH: "Authority",
+  AMENU_MEMBER: "Members",
+  AMENU_COMPANY: "Company",
+  AMENU_ADMIN: "Admins",
+  AMENU_SYSTEM: "System"
+};
 type BootstrapPayloadKey =
   | "frontendSession"
   | "adminMenuTree"
@@ -1478,7 +1657,7 @@ type BootstrapPayloadKey =
   | "screenBuilderPageData";
 let runtimeBootstrapCache: Partial<Record<BootstrapPayloadKey, unknown>> = {};
 let runtimeBootstrapCachePath = "";
-const SESSION_STORAGE_CACHE_PREFIX = "carbonet:api-cache:v2:";
+const SESSION_STORAGE_CACHE_PREFIX = "carbonet:api-cache:v3:";
 const FRONTEND_SESSION_STORAGE_KEY = `${SESSION_STORAGE_CACHE_PREFIX}frontend-session`;
 const ADMIN_MENU_TREE_STORAGE_KEY = `${SESSION_STORAGE_CACHE_PREFIX}admin-menu-tree`;
 const ADMIN_MENU_TREE_REFRESH_EVENT = "carbonet:admin-menu-tree:refresh";
@@ -1534,6 +1713,68 @@ function removeSessionStorageCache(key: string) {
   } catch {
     // Ignore sessionStorage failures.
   }
+}
+
+function isLikelyAdminMenuCodeLabel(value: string) {
+  const normalized = String(value || "").trim();
+  if (!normalized) {
+    return false;
+  }
+  return /^[A-Z][A-Z0-9_]{3,}$/.test(normalized) || /^[A-Z]\d{3,}$/.test(normalized);
+}
+
+function resolveAdminMenuCodeLabel(value: string, en: boolean) {
+  const normalized = String(value || "").trim().toUpperCase();
+  if (!normalized) {
+    return "";
+  }
+  return en
+    ? (ADMIN_MENU_CODE_LABEL_OVERRIDES_EN[normalized] || "")
+    : (ADMIN_MENU_CODE_LABEL_OVERRIDES_KO[normalized] || "");
+}
+
+function normalizeAdminMenuText(value: string | undefined, en: boolean) {
+  const fallback = String(value || "").trim();
+  if (!isLikelyAdminMenuCodeLabel(fallback)) {
+    return fallback;
+  }
+  return resolveAdminMenuCodeLabel(fallback, en) || fallback;
+}
+
+function normalizeAdminMenuTree(payload: AdminMenuTreePayload | null | undefined): AdminMenuTreePayload | null {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+  const normalizedTree = Object.entries(payload).reduce<AdminMenuTreePayload>((accumulator, [domainKey, domain]) => {
+    const normalizedDomain: AdminMenuDomain = {
+      ...domain,
+      label: normalizeAdminMenuText(domain?.label || domainKey, false),
+      labelEn: normalizeAdminMenuText(domain?.labelEn || domain?.label || domainKey, true),
+      groups: (domain?.groups || []).map((group) => {
+        const normalizedLinks = (group?.links || []).map((link) => ({
+          ...link,
+          text: normalizeAdminMenuText(link?.text, false),
+          tEn: normalizeAdminMenuText(link?.tEn || link?.text, true)
+        }));
+        const fallbackGroupKo = normalizeAdminMenuText(group?.title, false);
+        const fallbackGroupEn = normalizeAdminMenuText(group?.titleEn || group?.title, true);
+        const firstLink = normalizedLinks[0];
+        return {
+          ...group,
+          title: isLikelyAdminMenuCodeLabel(fallbackGroupKo) && firstLink?.text
+            ? firstLink.text
+            : fallbackGroupKo,
+          titleEn: isLikelyAdminMenuCodeLabel(fallbackGroupEn)
+            ? (firstLink?.tEn || firstLink?.text || fallbackGroupEn)
+            : fallbackGroupEn,
+          links: normalizedLinks
+        };
+      })
+    };
+    accumulator[domainKey] = normalizedDomain;
+    return accumulator;
+  }, {});
+  return normalizedTree;
 }
 
 function buildPageCacheKey(path: string) {
@@ -1612,7 +1853,15 @@ async function fetchCachedJson<T>(options: {
   const response = await fetch(options.url, {
     credentials: "include"
   });
-  const body = await response.json().catch(() => ({}));
+  const body = await readJsonResponse<T>(response).catch((error) => {
+    if (error instanceof Error && error.message.includes("Authentication required")) {
+      throw error;
+    }
+    if (error instanceof Error && error.message.includes("Server returned HTML instead of JSON")) {
+      throw error;
+    }
+    return {} as T;
+  });
   if (!response.ok) {
     throw new Error(options.mapError?.(body, response.status) || `Failed to load page: ${response.status}`);
   }
@@ -1627,7 +1876,15 @@ async function fetchJsonWithoutCache<T>(options: {
   const response = await fetch(options.url, {
     credentials: "include"
   });
-  const body = await response.json().catch(() => ({}));
+  const body = await readJsonResponse<T>(response).catch((error) => {
+    if (error instanceof Error && error.message.includes("Authentication required")) {
+      throw error;
+    }
+    if (error instanceof Error && error.message.includes("Server returned HTML instead of JSON")) {
+      throw error;
+    }
+    return {} as T;
+  });
   if (!response.ok) {
     throw new Error(options.mapError?.(body, response.status) || `Failed to load page: ${response.status}`);
   }
@@ -1650,14 +1907,18 @@ export function getAdminMenuTreeRefreshEventName() {
 }
 
 export function readAdminMenuTreeSnapshot(): AdminMenuTreePayload | null {
-  const bootstrappedMenuTree = consumeRuntimeBootstrap<AdminMenuTreePayload>("adminMenuTree");
+  const bootstrappedMenuTree = normalizeAdminMenuTree(
+    consumeRuntimeBootstrap<AdminMenuTreePayload>("adminMenuTree")
+  );
   if (bootstrappedMenuTree) {
     adminMenuTreeCache = bootstrappedMenuTree;
     writeSessionStorageCache(ADMIN_MENU_TREE_STORAGE_KEY, bootstrappedMenuTree, SESSION_CACHE_TTL_MS);
     return bootstrappedMenuTree;
   }
 
-  const storedMenuTree = readSessionStorageCache<AdminMenuTreePayload>(ADMIN_MENU_TREE_STORAGE_KEY);
+  const storedMenuTree = normalizeAdminMenuTree(
+    readSessionStorageCache<AdminMenuTreePayload>(ADMIN_MENU_TREE_STORAGE_KEY)
+  );
   if (storedMenuTree) {
     adminMenuTreeCache = storedMenuTree;
     return storedMenuTree;
@@ -1889,9 +2150,10 @@ export async function fetchAdminMenuTree(): Promise<AdminMenuTreePayload> {
     })
       .then((response) => readJsonResponse<AdminMenuTreePayload>(response))
       .then((payload) => {
-        adminMenuTreeCache = payload;
-        writeSessionStorageCache(ADMIN_MENU_TREE_STORAGE_KEY, payload, SESSION_CACHE_TTL_MS);
-        return payload;
+        const normalizedPayload = normalizeAdminMenuTree(payload) || payload;
+        adminMenuTreeCache = normalizedPayload;
+        writeSessionStorageCache(ADMIN_MENU_TREE_STORAGE_KEY, normalizedPayload, SESSION_CACHE_TTL_MS);
+        return normalizedPayload;
       })
       .catch((error) => {
         if (cachedMenuTree) {
@@ -2876,6 +3138,42 @@ export async function fetchIpWhitelistPage(params?: { searchIp?: string; accessS
   return body as IpWhitelistPagePayload;
 }
 
+export async function createIpWhitelistRequest(payload: Record<string, unknown>) {
+  const response = await fetch(buildLocalizedPath("/admin/system/ip-whitelist/request", "/en/admin/system/ip-whitelist/request"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload || {})
+  });
+  const body = await readJsonResponse<{ success?: boolean; message?: string; requestId?: string; ruleId?: string } & Record<string, unknown>>(response);
+  if (!response.ok || body.success === false) {
+    throw new Error(String(body.message || `Failed to create IP whitelist request: ${response.status}`));
+  }
+  return body;
+}
+
+export async function decideIpWhitelistRequest(payload: Record<string, unknown>) {
+  const response = await fetch(buildLocalizedPath("/admin/system/ip-whitelist/request-decision", "/en/admin/system/ip-whitelist/request-decision"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload || {})
+  });
+  const body = await readJsonResponse<{ success?: boolean; message?: string; requestId?: string } & Record<string, unknown>>(response);
+  if (!response.ok || body.success === false) {
+    throw new Error(String(body.message || `Failed to process IP whitelist request: ${response.status}`));
+  }
+  return body;
+}
+
 export async function fetchLoginHistoryPage(params?: { pageIndex?: number; searchKeyword?: string; userSe?: string; loginResult?: string; insttId?: string; }) {
   const search = new URLSearchParams();
   if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
@@ -2925,6 +3223,7 @@ export async function fetchSecurityHistoryPage(params?: { pageIndex?: number; se
   if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
   if (params?.userSe) search.set("userSe", params.userSe);
   if (params?.insttId) search.set("insttId", params.insttId);
+  if ((params as { actionStatus?: string } | undefined)?.actionStatus) search.set("actionStatus", String((params as { actionStatus?: string }).actionStatus));
   const response = await fetch(`/admin/system/security/page-data${search.toString() ? `?${search.toString()}` : ""}`, {
     credentials: "include"
   });
@@ -2939,37 +3238,273 @@ export async function fetchMemberSecurityHistoryPage(params?: { pageIndex?: numb
   if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
   if (params?.userSe) search.set("userSe", params.userSe);
   if (params?.insttId) search.set("insttId", params.insttId);
+  if ((params as { actionStatus?: string } | undefined)?.actionStatus) search.set("actionStatus", String((params as { actionStatus?: string }).actionStatus));
   const response = await fetch(buildLocalizedPath(`/admin/member/security/page-data${search.toString() ? `?${search.toString()}` : ""}`, `/en/admin/member/security/page-data${search.toString() ? `?${search.toString()}` : ""}`), {
     credentials: "include"
   });
-  const body = await response.json();
+  const body = await readJsonResponse<LoginHistoryPagePayload>(response);
   if (!response.ok) throw new Error(body.loginHistoryError || `Failed to load member security history page: ${response.status}`);
   return body as LoginHistoryPagePayload;
+}
+
+export async function saveSecurityHistoryAction(payload: Record<string, unknown>) {
+  const response = await fetch(buildAdminApiPath("/api/admin/system/security-history/action"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload || {})
+  });
+  const body = await readJsonResponse<SecurityHistoryActionResponse>(response);
+  if (!response.ok || body.success === false) {
+    throw new Error(String(body.message || `Failed to save security history action: ${response.status}`));
+  }
+  return body;
 }
 
 export async function fetchSecurityPolicyPage() {
   const response = await fetch("/admin/system/security-policy/page-data", {
     credentials: "include"
   });
-  const body = await response.json();
+  const body = await readJsonResponse<SecurityPolicyPagePayload>(response);
   if (!response.ok) throw new Error(`Failed to load security policy page: ${response.status}`);
   return body as SecurityPolicyPagePayload;
+}
+
+export async function runMenuPermissionAutoCleanup(menuUrls?: string[]) {
+  const response = await fetch(buildAdminApiPath("/api/admin/system/menu-permission-diagnostics/auto-cleanup"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify({ menuUrls: menuUrls || [] })
+  });
+  const body = await readJsonResponse<MenuPermissionAutoCleanupResponse>(response);
+  if (!response.ok || body.success === false) {
+    throw new Error(body.message || `Failed to run menu permission auto cleanup: ${response.status}`);
+  }
+  return body;
+}
+
+export async function saveSecurityPolicyFindingState(payload: Record<string, unknown>) {
+  const response = await fetch(buildAdminApiPath("/api/admin/system/security-policy/state"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload || {})
+  });
+  const body = await readJsonResponse<Record<string, unknown>>(response);
+  if (!response.ok || body.success === false) {
+    throw new Error(String(body.message || `Failed to save security policy finding state: ${response.status}`));
+  }
+  return body;
+}
+
+export async function clearSecurityPolicySuppressions() {
+  const response = await fetch(buildAdminApiPath("/api/admin/system/security-policy/clear-suppressions"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: "{}"
+  });
+  const body = await readJsonResponse<Record<string, unknown>>(response);
+  if (!response.ok || body.success === false) {
+    throw new Error(String(body.message || `Failed to clear suppressions: ${response.status}`));
+  }
+  return body;
+}
+
+export async function runSecurityPolicyAutoFix(payload: Record<string, unknown>) {
+  const response = await fetch(buildAdminApiPath("/api/admin/system/security-policy/auto-fix"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload || {})
+  });
+  const body = await readJsonResponse<Record<string, unknown>>(response);
+  if (!response.ok || body.success === false) {
+    throw new Error(String(body.message || `Failed to run security policy auto-fix: ${response.status}`));
+  }
+  return body;
+}
+
+export async function runSecurityPolicyBulkAutoFix(payload: Record<string, unknown>) {
+  const response = await fetch(buildAdminApiPath("/api/admin/system/security-policy/auto-fix-bulk"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload || {})
+  });
+  const body = await readJsonResponse<Record<string, unknown>>(response);
+  if (!response.ok || body.success === false) {
+    throw new Error(String(body.message || `Failed to run security policy bulk auto-fix: ${response.status}`));
+  }
+  return body;
+}
+
+export async function saveSecurityPolicyNotificationConfig(payload: Record<string, unknown>) {
+  const response = await fetch(buildAdminApiPath("/api/admin/system/security-policy/notification-config"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload || {})
+  });
+  const body = await readJsonResponse<Record<string, unknown>>(response);
+  if (!response.ok || body.success === false) {
+    throw new Error(String(body.message || `Failed to save security policy notification config: ${response.status}`));
+  }
+  return body;
+}
+
+export async function runSecurityPolicyRollback(payload: Record<string, unknown>) {
+  const response = await fetch(buildAdminApiPath("/api/admin/system/security-policy/rollback"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload || {})
+  });
+  const body = await readJsonResponse<Record<string, unknown>>(response);
+  if (!response.ok || body.success === false) {
+    throw new Error(String(body.message || `Failed to run security policy rollback: ${response.status}`));
+  }
+  return body;
+}
+
+export async function dispatchSecurityPolicyNotifications(payload: Record<string, unknown>) {
+  const response = await fetch(buildAdminApiPath("/api/admin/system/security-policy/dispatch"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload || {})
+  });
+  const body = await readJsonResponse<Record<string, unknown>>(response);
+  if (!response.ok || body.success === false) {
+    throw new Error(String(body.message || `Failed to dispatch security policy notifications: ${response.status}`));
+  }
+  return body;
 }
 
 export async function fetchSecurityMonitoringPage() {
   const response = await fetch("/admin/system/security-monitoring/page-data", {
     credentials: "include"
   });
-  const body = await response.json();
+  const body = await readJsonResponse<SecurityMonitoringPagePayload>(response);
   if (!response.ok) throw new Error(`Failed to load security monitoring page: ${response.status}`);
-  return body as SecurityMonitoringPagePayload;
+  return body;
 }
 
-export async function fetchBlocklistPage(params?: { searchKeyword?: string; blockType?: string; status?: string; }) {
+export async function saveSecurityMonitoringState(payload: Record<string, unknown>) {
+  const response = await fetch(buildAdminApiPath("/api/admin/system/security-monitoring/state"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload || {})
+  });
+  const body = await readJsonResponse<Record<string, unknown>>(response);
+  if (!response.ok || body.success === false) {
+    throw new Error(String(body.message || `Failed to save security monitoring state: ${response.status}`));
+  }
+  return body;
+}
+
+export async function registerSecurityMonitoringBlockCandidate(payload: Record<string, unknown>) {
+  const response = await fetch(buildAdminApiPath("/api/admin/system/security-monitoring/block-candidates"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload || {})
+  });
+  const body = await readJsonResponse<Record<string, unknown>>(response);
+  if (!response.ok || body.success === false) {
+    throw new Error(String(body.message || `Failed to register security monitoring block candidate: ${response.status}`));
+  }
+  return body;
+}
+
+export async function updateSecurityMonitoringBlockCandidate(payload: Record<string, unknown>) {
+  const response = await fetch(buildAdminApiPath("/api/admin/system/security-monitoring/block-candidates/state"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload || {})
+  });
+  const body = await readJsonResponse<Record<string, unknown>>(response);
+  if (!response.ok || body.success === false) {
+    throw new Error(String(body.message || `Failed to update security monitoring block candidate: ${response.status}`));
+  }
+  return body;
+}
+
+export async function dispatchSecurityMonitoringNotification(payload: Record<string, unknown>) {
+  const response = await fetch(buildAdminApiPath("/api/admin/system/security-monitoring/notify"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload || {})
+  });
+  const body = await readJsonResponse<Record<string, unknown>>(response);
+  if (!response.ok || body.success === false) {
+    throw new Error(String(body.message || `Failed to dispatch security monitoring notification: ${response.status}`));
+  }
+  return body;
+}
+
+export async function fetchBlocklistPage(params?: { searchKeyword?: string; blockType?: string; status?: string; source?: string; }) {
   const search = new URLSearchParams();
   if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
   if (params?.blockType) search.set("blockType", params.blockType);
   if (params?.status) search.set("status", params.status);
+  if (params?.source) search.set("source", params.source);
   const response = await fetch(`/admin/system/blocklist/page-data${search.toString() ? `?${search.toString()}` : ""}`, {
     credentials: "include"
   });
@@ -2978,13 +3513,55 @@ export async function fetchBlocklistPage(params?: { searchKeyword?: string; bloc
   return body as BlocklistPagePayload;
 }
 
-export async function fetchSecurityAuditPage() {
-  const response = await fetch("/admin/system/security-audit/page-data", {
+export async function fetchSecurityAuditPage(params?: {
+  pageIndex?: number;
+  searchKeyword?: string;
+  actionType?: string;
+  routeGroup?: string;
+  startDate?: string;
+  endDate?: string;
+  sortKey?: string;
+  sortDirection?: string;
+}) {
+  const search = new URLSearchParams();
+  if (params?.pageIndex && params.pageIndex > 1) search.set("pageIndex", String(params.pageIndex));
+  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
+  if (params?.actionType && params.actionType !== "ALL") search.set("actionType", params.actionType);
+  if (params?.routeGroup && params.routeGroup !== "ALL") search.set("routeGroup", params.routeGroup);
+  if (params?.startDate) search.set("startDate", params.startDate);
+  if (params?.endDate) search.set("endDate", params.endDate);
+  if (params?.sortKey && params.sortKey !== "AUDIT_AT") search.set("sortKey", params.sortKey);
+  if (params?.sortDirection && params.sortDirection !== "DESC") search.set("sortDirection", params.sortDirection);
+  const response = await fetch(`/admin/system/security-audit/page-data${search.toString() ? `?${search.toString()}` : ""}`, {
     credentials: "include"
   });
   const body = await response.json();
   if (!response.ok) throw new Error(`Failed to load security audit page: ${response.status}`);
   return body as SecurityAuditPagePayload;
+}
+
+export function buildSecurityAuditExportUrl(params?: {
+  searchKeyword?: string;
+  actionType?: string;
+  routeGroup?: string;
+  startDate?: string;
+  endDate?: string;
+  sortKey?: string;
+  sortDirection?: string;
+}) {
+  const search = new URLSearchParams();
+  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
+  if (params?.actionType && params.actionType !== "ALL") search.set("actionType", params.actionType);
+  if (params?.routeGroup && params.routeGroup !== "ALL") search.set("routeGroup", params.routeGroup);
+  if (params?.startDate) search.set("startDate", params.startDate);
+  if (params?.endDate) search.set("endDate", params.endDate);
+  if (params?.sortKey && params.sortKey !== "AUDIT_AT") search.set("sortKey", params.sortKey);
+  if (params?.sortDirection && params.sortDirection !== "DESC") search.set("sortDirection", params.sortDirection);
+  const query = search.toString();
+  return buildLocalizedPath(
+    `/admin/system/security-audit/export.csv${query ? `?${query}` : ""}`,
+    `/en/admin/system/security-audit/export.csv${query ? `?${query}` : ""}`
+  );
 }
 
 export async function fetchSchedulerManagementPage(params?: { jobStatus?: string; executionType?: string; }) {
@@ -3206,6 +3783,15 @@ export async function directExecuteCodexSrTicket(ticketId: string) {
     headers: await buildResilientCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
   });
   return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow }>(response);
+}
+
+export async function queueDirectExecuteCodexSrTicket(ticketId: string) {
+  const response = await fetch(buildLocalizedPath(`/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/queue-direct-execute`, `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/queue-direct-execute`), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
+  });
+  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow; executionLanes?: Array<Record<string, unknown>> }>(response);
 }
 
 export async function skipPlanExecuteCodexSrTicket(ticketId: string) {

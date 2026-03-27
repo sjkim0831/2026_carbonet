@@ -103,4 +103,8 @@ public class GnrlMber implements CommonEntity {
     @Column(name = "AUTH_EMAIL")
     private String authEmail;
 
+    public String getGroupId() {
+        return groupId;
+    }
+
 }

@@ -7,9 +7,10 @@ import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import type { AuditEventSearchPayload, TraceEventSearchPayload } from "../../lib/api/client";
 import { fetchAuditEvents, fetchTraceEvents } from "../../lib/api/observability";
 import { fetchUnifiedLog, type UnifiedLogRow, type UnifiedLogSearchPayload, type UnifiedLogTab } from "../../lib/api/unifiedLog";
-import { AdminInput, AdminTable, MemberButton, MemberSectionToolbar } from "../member/common";
+import { AdminInput, AdminTable, MemberButton, MemberPagination, MemberSectionToolbar } from "../member/common";
 
 type ObservabilityTab = "audit" | "trace";
+const DEFAULT_PAGE_SIZE = 10;
 const UNIFIED_LOG_TABS: UnifiedLogTab[] = ["all", "access-auth", "audit", "error", "trace", "security", "batch-runtime"];
 const UNIFIED_LOG_PRESETS = [
   {
@@ -136,25 +137,71 @@ export function ObservabilityMigrationPage() {
   const [searchKeyword, setSearchKeyword] = useState(initialQuery.searchKeyword);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [selectedUnifiedLogId, setSelectedUnifiedLogId] = useState("");
+  const [auditPageIndex, setAuditPageIndex] = useState(1);
+  const [tracePageIndex, setTracePageIndex] = useState(1);
+  const [unifiedPageIndex, setUnifiedPageIndex] = useState(1);
+  const isTraceFocusedUnifiedPage = isUnifiedLogPage && unifiedPreset.pathSuffix === "/system/unified_log/trace";
+  const isPageEventFocusedUnifiedPage = isUnifiedLogPage && unifiedPreset.pathSuffix === "/system/unified_log/page-events";
+  const isApiTraceFocusedUnifiedPage = isUnifiedLogPage && unifiedPreset.pathSuffix === "/system/unified_log/api-trace";
+  const isUiErrorFocusedUnifiedPage = isUnifiedLogPage && unifiedPreset.pathSuffix === "/system/unified_log/ui-errors";
+  const isLayoutRenderFocusedUnifiedPage = isUnifiedLogPage && unifiedPreset.pathSuffix === "/system/unified_log/layout-render";
+  const unifiedItems = unifiedPage?.items || [];
+  const uniqueTraceCount = new Set(unifiedItems.map((item) => String(item.traceId || "")).filter(Boolean)).size;
+  const uniquePageCount = new Set(unifiedItems.map((item) => String(item.pageId || "")).filter(Boolean)).size;
+  const uniqueApiCount = new Set(unifiedItems.map((item) => String(item.apiId || "")).filter(Boolean)).size;
+  const uniqueComponentCount = new Set(unifiedItems.map((item) => String(item.componentId || "")).filter(Boolean)).size;
+  const uniqueFunctionCount = new Set(unifiedItems.map((item) => String(item.functionId || "")).filter(Boolean)).size;
+  const apiEventCount = unifiedItems.filter((item) => String(item.apiId || "").trim() || String(item.detailType || "").includes("API")).length;
+  const apiRequestCount = unifiedItems.filter((item) => String(item.detailType || "").toUpperCase().includes("API_REQUEST")).length;
+  const apiResponseCount = unifiedItems.filter((item) => String(item.detailType || "").toUpperCase().includes("API_RESPONSE")).length;
+  const pageViewCount = unifiedItems.filter((item) => String(item.detailType || "").toUpperCase().includes("PAGE_VIEW")).length;
+  const pageLeaveCount = unifiedItems.filter((item) => String(item.detailType || "").toUpperCase().includes("PAGE_LEAVE")).length;
+  const errorLikeCount = unifiedItems.filter((item) => {
+    const result = String(item.resultCode || "").toUpperCase();
+    const detail = String(item.detailType || "").toUpperCase();
+    return result.includes("ERROR") || result.includes("FAIL") || detail.includes("ERROR");
+  }).length;
+  const uiErrorCount = unifiedItems.filter((item) => {
+    const detail = String(item.detailType || "").toUpperCase();
+    return detail.includes("UI_ERROR") || detail.includes("WINDOW_ERROR") || detail.includes("REACT_ERROR_BOUNDARY");
+  }).length;
+  const rejectionCount = unifiedItems.filter((item) => {
+    const detail = String(item.detailType || "").toUpperCase();
+    return detail.includes("UNHANDLED_REJECTION");
+  }).length;
+  const durationRows = unifiedItems.filter((item) => typeof item.durationMs === "number" && Number.isFinite(item.durationMs));
+  const averageDurationMs = durationRows.length
+    ? Math.round(durationRows.reduce((sum, item) => sum + Number(item.durationMs || 0), 0) / durationRows.length)
+    : 0;
+  const selectedUnifiedItem = unifiedItems.find((item, index) => `${String(item.logId || "unified")}-${index}` === selectedUnifiedLogId) || unifiedItems[0] || null;
+  const auditCurrentPage = Math.max(1, Number(auditPage?.pageIndex || auditPageIndex || 1));
+  const traceCurrentPage = Math.max(1, Number(tracePage?.pageIndex || tracePageIndex || 1));
+  const unifiedCurrentPage = Math.max(1, Number(unifiedPageIndex || 1));
+  const auditTotalPages = Math.max(1, Math.ceil(Number(auditPage?.totalCount || 0) / Math.max(1, Number(auditPage?.pageSize || DEFAULT_PAGE_SIZE))));
+  const traceTotalPages = Math.max(1, Math.ceil(Number(tracePage?.totalCount || 0) / Math.max(1, Number(tracePage?.pageSize || DEFAULT_PAGE_SIZE))));
+  const unifiedTotalPages = Math.max(1, Math.ceil(Number(unifiedPage?.totalCount || 0) / DEFAULT_PAGE_SIZE));
 
-  async function loadAudit(next?: { traceId?: string; actorId?: string; actionCode?: string; pageId?: string; }) {
+  async function loadAudit(next?: { traceId?: string; actorId?: string; actionCode?: string; pageId?: string; pageIndex?: number; }) {
     logGovernanceScope("ACTION", "observability-audit-search", {
       traceId: next?.traceId ?? traceId,
       actorId: next?.actorId ?? actorId,
       actionCode: next?.actionCode ?? actionCode,
-      pageId: next?.pageId ?? pageId
+      pageId: next?.pageId ?? pageId,
+      pageIndex: next?.pageIndex ?? auditPageIndex
     });
     setLoading(true);
     try {
       const payload = await fetchAuditEvents({
-        pageIndex: 1,
-        pageSize: 20,
+        pageIndex: next?.pageIndex ?? auditPageIndex,
+        pageSize: DEFAULT_PAGE_SIZE,
         traceId: next?.traceId ?? traceId,
         actorId: next?.actorId ?? actorId,
         actionCode: next?.actionCode ?? actionCode,
         pageId: next?.pageId ?? pageId
       });
       setAuditPage(payload);
+      setAuditPageIndex(Number(payload.pageIndex || next?.pageIndex || 1));
     } finally {
       setLoading(false);
     }
@@ -169,6 +216,7 @@ export function ObservabilityMigrationPage() {
     eventType?: string;
     resultCode?: string;
     searchKeyword?: string;
+    pageIndex?: number;
   }) {
     logGovernanceScope("ACTION", "observability-trace-search", {
       traceId: next?.traceId ?? traceId,
@@ -178,13 +226,14 @@ export function ObservabilityMigrationPage() {
       apiId: next?.apiId ?? apiId,
       eventType: next?.eventType ?? eventType,
       resultCode: next?.resultCode ?? resultCode,
-      searchKeyword: next?.searchKeyword ?? searchKeyword
+      searchKeyword: next?.searchKeyword ?? searchKeyword,
+      pageIndex: next?.pageIndex ?? tracePageIndex
     });
     setLoading(true);
     try {
       const payload = await fetchTraceEvents({
-        pageIndex: 1,
-        pageSize: 20,
+        pageIndex: next?.pageIndex ?? tracePageIndex,
+        pageSize: DEFAULT_PAGE_SIZE,
         traceId: next?.traceId ?? traceId,
         pageId: next?.pageId ?? pageId,
         componentId: next?.componentId ?? componentId,
@@ -195,12 +244,13 @@ export function ObservabilityMigrationPage() {
         searchKeyword: next?.searchKeyword ?? searchKeyword
       });
       setTracePage(payload);
+      setTracePageIndex(Number(payload.pageIndex || next?.pageIndex || 1));
     } finally {
       setLoading(false);
     }
   }
 
-  async function loadUnified(next?: { tab?: UnifiedLogTab }) {
+  async function loadUnified(next?: { tab?: UnifiedLogTab; pageIndex?: number }) {
     const effectiveTab = next?.tab ?? unifiedTab;
     const effectiveLogType = unifiedPreset.logType || "";
     const effectiveDetailType = unifiedPreset.detailType || eventType;
@@ -216,13 +266,14 @@ export function ObservabilityMigrationPage() {
       apiId,
       eventType: effectiveDetailType,
       resultCode,
-      searchKeyword
+      searchKeyword,
+      pageIndex: next?.pageIndex ?? unifiedPageIndex
     });
     setLoading(true);
     try {
       const payload = await fetchUnifiedLog({
-        pageIndex: 1,
-        pageSize: 20,
+        pageIndex: next?.pageIndex ?? unifiedPageIndex,
+        pageSize: DEFAULT_PAGE_SIZE,
         tab: effectiveTab,
         logType: effectiveLogType,
         traceId,
@@ -237,6 +288,7 @@ export function ObservabilityMigrationPage() {
         searchKeyword
       });
       setUnifiedPage(payload);
+      setUnifiedPageIndex(next?.pageIndex ?? 1);
     } finally {
       setLoading(false);
     }
@@ -266,8 +318,9 @@ export function ObservabilityMigrationPage() {
 
   function applyUnifiedTab(nextTab: UnifiedLogTab) {
     setUnifiedTab(nextTab);
+    setUnifiedPageIndex(1);
     syncUnifiedLogUrl(nextTab);
-    loadUnified({ tab: nextTab }).catch((err: Error) => setError(err.message));
+    loadUnified({ tab: nextTab, pageIndex: 1 }).catch((err: Error) => setError(err.message));
   }
 
   useEffect(() => {
@@ -302,6 +355,23 @@ export function ObservabilityMigrationPage() {
     });
   }, [actionCode, actorId, apiId, auditPage?.items?.length, auditPage?.totalCount, componentId, functionId, isUnifiedLogPage, pageId, tab, traceId, tracePage?.items?.length, tracePage?.totalCount, unifiedPage?.items?.length, unifiedPage?.totalCount, unifiedTab]);
 
+  useEffect(() => {
+    if (!isUnifiedLogPage) {
+      setSelectedUnifiedLogId("");
+      return;
+    }
+    if (!unifiedItems.length) {
+      setSelectedUnifiedLogId("");
+      return;
+    }
+    setSelectedUnifiedLogId((current) => {
+      if (current && unifiedItems.some((item, index) => `${String(item.logId || "unified")}-${index}` === current)) {
+        return current;
+      }
+      return `${String(unifiedItems[0].logId || "unified")}-0`;
+    });
+  }, [isUnifiedLogPage, unifiedItems]);
+
   function moveToTrace(trace: string) {
     if (isUnifiedLogPage) {
       setTraceId(trace);
@@ -331,6 +401,382 @@ export function ObservabilityMigrationPage() {
       {error ? (
         <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3">
           <p className="text-sm text-red-700">조회 중 오류: {error}</p>
+        </section>
+      ) : null}
+
+      {isTraceFocusedUnifiedPage ? (
+        <section className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4" data-help-id="unified-trace-summary">
+          <article className="gov-card">
+            <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">조회 이벤트</p>
+            <p className="mt-3 text-3xl font-black text-[var(--kr-gov-blue)]">{Number(unifiedPage?.totalCount || 0).toLocaleString()}</p>
+            <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">현재 조건으로 조회된 추적 이벤트 수</p>
+          </article>
+          <article className="gov-card">
+            <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">고유 traceId</p>
+            <p className="mt-3 text-3xl font-black text-emerald-700">{uniqueTraceCount.toLocaleString()}</p>
+            <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">화면 흐름을 구성하는 개별 추적 묶음</p>
+          </article>
+          <article className="gov-card">
+            <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">API 연계 이벤트</p>
+            <p className="mt-3 text-3xl font-black text-amber-600">{apiEventCount.toLocaleString()}</p>
+            <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">API 호출이 연결된 trace 이벤트 수</p>
+          </article>
+          <article className="gov-card">
+            <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">오류/실패 흔적</p>
+            <p className="mt-3 text-3xl font-black text-red-600">{errorLikeCount.toLocaleString()}</p>
+            <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">실패 결과 또는 오류 계열 detailType 수</p>
+          </article>
+        </section>
+      ) : null}
+
+      {isPageEventFocusedUnifiedPage ? (
+        <section className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4" data-help-id="unified-page-event-summary">
+          <article className="gov-card">
+            <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">조회 이벤트</p>
+            <p className="mt-3 text-3xl font-black text-[var(--kr-gov-blue)]">{Number(unifiedPage?.totalCount || 0).toLocaleString()}</p>
+            <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">현재 조건으로 조회된 페이지 이벤트 수</p>
+          </article>
+          <article className="gov-card">
+            <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">PAGE_VIEW</p>
+            <p className="mt-3 text-3xl font-black text-emerald-700">{pageViewCount.toLocaleString()}</p>
+            <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">페이지 진입 이벤트 수</p>
+          </article>
+          <article className="gov-card">
+            <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">PAGE_LEAVE</p>
+            <p className="mt-3 text-3xl font-black text-amber-600">{pageLeaveCount.toLocaleString()}</p>
+            <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">페이지 이탈 이벤트 수</p>
+          </article>
+          <article className="gov-card">
+            <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">고유 pageId</p>
+            <p className="mt-3 text-3xl font-black text-fuchsia-700">{uniquePageCount.toLocaleString()}</p>
+            <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">현재 조건에서 관찰된 화면 수</p>
+          </article>
+        </section>
+      ) : null}
+
+      {isApiTraceFocusedUnifiedPage ? (
+        <section className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4" data-help-id="unified-api-trace-summary">
+          <article className="gov-card">
+            <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">조회 이벤트</p>
+            <p className="mt-3 text-3xl font-black text-[var(--kr-gov-blue)]">{Number(unifiedPage?.totalCount || 0).toLocaleString()}</p>
+            <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">현재 조건으로 조회된 API 추적 이벤트 수</p>
+          </article>
+          <article className="gov-card">
+            <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">API_REQUEST</p>
+            <p className="mt-3 text-3xl font-black text-emerald-700">{apiRequestCount.toLocaleString()}</p>
+            <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">호출 시작 이벤트 수</p>
+          </article>
+          <article className="gov-card">
+            <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">API_RESPONSE</p>
+            <p className="mt-3 text-3xl font-black text-amber-600">{apiResponseCount.toLocaleString()}</p>
+            <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">응답 완료 이벤트 수</p>
+          </article>
+          <article className="gov-card">
+            <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">고유 apiId</p>
+            <p className="mt-3 text-3xl font-black text-fuchsia-700">{uniqueApiCount.toLocaleString()}</p>
+            <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">현재 조건에서 관찰된 API 수</p>
+          </article>
+        </section>
+      ) : null}
+
+      {isUiErrorFocusedUnifiedPage ? (
+        <section className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4" data-help-id="unified-ui-error-summary">
+          <article className="gov-card">
+            <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">조회 이벤트</p>
+            <p className="mt-3 text-3xl font-black text-[var(--kr-gov-blue)]">{Number(unifiedPage?.totalCount || 0).toLocaleString()}</p>
+            <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">현재 조건으로 조회된 UI 오류 이벤트 수</p>
+          </article>
+          <article className="gov-card">
+            <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">UI/렌더 오류</p>
+            <p className="mt-3 text-3xl font-black text-red-600">{uiErrorCount.toLocaleString()}</p>
+            <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">UI_ERROR, WINDOW_ERROR, REACT_ERROR_BOUNDARY 수</p>
+          </article>
+          <article className="gov-card">
+            <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">Unhandled Rejection</p>
+            <p className="mt-3 text-3xl font-black text-amber-600">{rejectionCount.toLocaleString()}</p>
+            <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">Promise rejection 계열 이벤트 수</p>
+          </article>
+          <article className="gov-card">
+            <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">고유 componentId</p>
+            <p className="mt-3 text-3xl font-black text-fuchsia-700">{uniqueComponentCount.toLocaleString()}</p>
+            <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">오류가 보고된 컴포넌트 수</p>
+          </article>
+        </section>
+      ) : null}
+
+      {isLayoutRenderFocusedUnifiedPage ? (
+        <section className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4" data-help-id="unified-layout-render-summary">
+          <article className="gov-card">
+            <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">조회 이벤트</p>
+            <p className="mt-3 text-3xl font-black text-[var(--kr-gov-blue)]">{Number(unifiedPage?.totalCount || 0).toLocaleString()}</p>
+            <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">현재 조건으로 조회된 레이아웃 렌더 이벤트 수</p>
+          </article>
+          <article className="gov-card">
+            <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">고유 pageId</p>
+            <p className="mt-3 text-3xl font-black text-emerald-700">{uniquePageCount.toLocaleString()}</p>
+            <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">렌더가 발생한 화면 수</p>
+          </article>
+          <article className="gov-card">
+            <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">고유 componentId</p>
+            <p className="mt-3 text-3xl font-black text-amber-600">{uniqueComponentCount.toLocaleString()}</p>
+            <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">렌더에 참여한 컴포넌트 수</p>
+          </article>
+          <article className="gov-card">
+            <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">평균 렌더 소요</p>
+            <p className="mt-3 text-3xl font-black text-fuchsia-700">{averageDurationMs ? `${averageDurationMs}ms` : "-"}</p>
+            <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">측정 가능한 이벤트 기준 평균 소요시간</p>
+          </article>
+        </section>
+      ) : null}
+
+      {isTraceFocusedUnifiedPage ? (
+        <section className="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-[0.95fr_1.05fr]" data-help-id="unified-trace-ops">
+          <article className="gov-card">
+            <h3 className="text-lg font-bold">추적 로그 운영 가이드</h3>
+            <div className="mt-4 space-y-3 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
+              <div className="rounded-lg border border-[var(--kr-gov-border-light)] px-4 py-3">1. traceId를 먼저 고정하고 pageId, functionId, apiId 순서로 범위를 줄입니다.</div>
+              <div className="rounded-lg border border-[var(--kr-gov-border-light)] px-4 py-3">2. 오류 건은 결과코드와 detailType을 같이 보고, 같은 traceId의 직전 UI/API 이벤트를 이어서 확인합니다.</div>
+              <div className="rounded-lg border border-[var(--kr-gov-border-light)] px-4 py-3">3. 장시간 이벤트는 평균 소요와 비교해 병목 후보를 먼저 좁힙니다.</div>
+            </div>
+          </article>
+          <article className="gov-card">
+            <h3 className="text-lg font-bold">선택 이벤트 상세</h3>
+            {selectedUnifiedItem ? (
+              <div className="mt-4 space-y-4">
+                <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-4">
+                  <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">traceId</p>
+                  <p className="mt-2 font-mono text-sm">{String(selectedUnifiedItem.traceId || "-")}</p>
+                  <p className="mt-3 text-lg font-bold">{String(selectedUnifiedItem.detailType || selectedUnifiedItem.logType || "-")}</p>
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="rounded-lg border border-[var(--kr-gov-border-light)] px-4 py-3">
+                    <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">페이지/기능</p>
+                    <p className="mt-2 text-sm">{String(selectedUnifiedItem.pageId || "-")}</p>
+                    <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{String(selectedUnifiedItem.componentId || "-")} / {String(selectedUnifiedItem.functionId || "-")}</p>
+                  </div>
+                  <div className="rounded-lg border border-[var(--kr-gov-border-light)] px-4 py-3">
+                    <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">API/결과</p>
+                    <p className="mt-2 text-sm">{String(selectedUnifiedItem.apiId || "-")}</p>
+                    <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{String(selectedUnifiedItem.resultCode || "-")} / {typeof selectedUnifiedItem.durationMs === "number" ? `${selectedUnifiedItem.durationMs}ms` : "-"}</p>
+                  </div>
+                </div>
+                <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-4">
+                  <p className="text-xs font-bold text-blue-700">요약</p>
+                  <p className="mt-2 text-sm leading-6 text-blue-900">{String(selectedUnifiedItem.summary || selectedUnifiedItem.message || "-")}</p>
+                </div>
+                <div className="rounded-lg border border-dashed border-[var(--kr-gov-border-light)] px-4 py-4 text-sm text-[var(--kr-gov-text-secondary)]">
+                  요청 URI: <span className="font-mono">{String(selectedUnifiedItem.requestUri || "-")}</span>
+                  <br />
+                  사용자: <span className="font-mono">{String(selectedUnifiedItem.actorId || "-")}</span>
+                  <br />
+                  평균 소요 비교: <span className="font-mono">{averageDurationMs ? `${averageDurationMs}ms` : "-"}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-4 rounded-lg border border-dashed border-[var(--kr-gov-border-light)] px-4 py-8 text-sm text-[var(--kr-gov-text-secondary)]">선택된 이벤트가 없습니다.</div>
+            )}
+          </article>
+        </section>
+      ) : null}
+
+      {isPageEventFocusedUnifiedPage ? (
+        <section className="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-[0.95fr_1.05fr]" data-help-id="unified-page-event-ops">
+          <article className="gov-card">
+            <h3 className="text-lg font-bold">페이지 이벤트 운영 가이드</h3>
+            <div className="mt-4 space-y-3 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
+              <div className="rounded-lg border border-[var(--kr-gov-border-light)] px-4 py-3">1. pageId를 먼저 고정한 뒤 traceId로 같은 사용자 흐름을 묶어 확인합니다.</div>
+              <div className="rounded-lg border border-[var(--kr-gov-border-light)] px-4 py-3">2. PAGE_VIEW 대비 PAGE_LEAVE 비율이 낮으면 화면 이탈 누락이나 비정상 종료를 의심합니다.</div>
+              <div className="rounded-lg border border-[var(--kr-gov-border-light)] px-4 py-3">3. 같은 pageId에서 actorId, requestUri를 같이 보면 유입 경로와 이탈 경로를 좁히기 쉽습니다.</div>
+            </div>
+          </article>
+          <article className="gov-card">
+            <h3 className="text-lg font-bold">선택 이벤트 상세</h3>
+            {selectedUnifiedItem ? (
+              <div className="mt-4 space-y-4">
+                <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-4">
+                  <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">pageId</p>
+                  <p className="mt-2 font-mono text-sm">{String(selectedUnifiedItem.pageId || "-")}</p>
+                  <p className="mt-3 text-lg font-bold">{String(selectedUnifiedItem.detailType || "-")}</p>
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="rounded-lg border border-[var(--kr-gov-border-light)] px-4 py-3">
+                    <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">trace/사용자</p>
+                    <p className="mt-2 text-sm">{String(selectedUnifiedItem.traceId || "-")}</p>
+                    <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{String(selectedUnifiedItem.actorId || "-")} / {String(selectedUnifiedItem.actorRole || "-")}</p>
+                  </div>
+                  <div className="rounded-lg border border-[var(--kr-gov-border-light)] px-4 py-3">
+                    <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">요청 URI/결과</p>
+                    <p className="mt-2 text-sm">{String(selectedUnifiedItem.requestUri || "-")}</p>
+                    <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{String(selectedUnifiedItem.resultCode || "-")} / {typeof selectedUnifiedItem.durationMs === "number" ? `${selectedUnifiedItem.durationMs}ms` : "-"}</p>
+                  </div>
+                </div>
+                <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-4">
+                  <p className="text-xs font-bold text-blue-700">이벤트 요약</p>
+                  <p className="mt-2 text-sm leading-6 text-blue-900">{String(selectedUnifiedItem.summary || selectedUnifiedItem.message || "-")}</p>
+                </div>
+                <div className="rounded-lg border border-dashed border-[var(--kr-gov-border-light)] px-4 py-4 text-sm text-[var(--kr-gov-text-secondary)]">
+                  componentId: <span className="font-mono">{String(selectedUnifiedItem.componentId || "-")}</span>
+                  <br />
+                  functionId: <span className="font-mono">{String(selectedUnifiedItem.functionId || "-")}</span>
+                  <br />
+                  고유 pageId 수: <span className="font-mono">{uniquePageCount.toLocaleString()}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-4 rounded-lg border border-dashed border-[var(--kr-gov-border-light)] px-4 py-8 text-sm text-[var(--kr-gov-text-secondary)]">선택된 이벤트가 없습니다.</div>
+            )}
+          </article>
+        </section>
+      ) : null}
+
+      {isApiTraceFocusedUnifiedPage ? (
+        <section className="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-[0.95fr_1.05fr]" data-help-id="unified-api-trace-ops">
+          <article className="gov-card">
+            <h3 className="text-lg font-bold">API 추적 운영 가이드</h3>
+            <div className="mt-4 space-y-3 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
+              <div className="rounded-lg border border-[var(--kr-gov-border-light)] px-4 py-3">1. apiId를 먼저 고정한 뒤 traceId와 pageId로 호출이 시작된 화면을 확인합니다.</div>
+              <div className="rounded-lg border border-[var(--kr-gov-border-light)] px-4 py-3">2. API_REQUEST는 있는데 API_RESPONSE가 부족하면 중간 실패나 타임아웃을 먼저 의심합니다.</div>
+              <div className="rounded-lg border border-[var(--kr-gov-border-light)] px-4 py-3">3. 평균 소요보다 큰 응답은 resultCode와 requestUri를 같이 보고 병목 호출을 좁힙니다.</div>
+            </div>
+          </article>
+          <article className="gov-card">
+            <h3 className="text-lg font-bold">선택 이벤트 상세</h3>
+            {selectedUnifiedItem ? (
+              <div className="mt-4 space-y-4">
+                <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-4">
+                  <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">apiId</p>
+                  <p className="mt-2 font-mono text-sm">{String(selectedUnifiedItem.apiId || "-")}</p>
+                  <p className="mt-3 text-lg font-bold">{String(selectedUnifiedItem.detailType || "-")}</p>
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="rounded-lg border border-[var(--kr-gov-border-light)] px-4 py-3">
+                    <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">trace/page</p>
+                    <p className="mt-2 text-sm">{String(selectedUnifiedItem.traceId || "-")}</p>
+                    <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{String(selectedUnifiedItem.pageId || "-")} / {String(selectedUnifiedItem.functionId || "-")}</p>
+                  </div>
+                  <div className="rounded-lg border border-[var(--kr-gov-border-light)] px-4 py-3">
+                    <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">결과/지연</p>
+                    <p className="mt-2 text-sm">{String(selectedUnifiedItem.resultCode || "-")}</p>
+                    <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{typeof selectedUnifiedItem.durationMs === "number" ? `${selectedUnifiedItem.durationMs}ms` : "-"} / 평균 {averageDurationMs ? `${averageDurationMs}ms` : "-"}</p>
+                  </div>
+                </div>
+                <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-4">
+                  <p className="text-xs font-bold text-blue-700">요청 URI / 요약</p>
+                  <p className="mt-2 font-mono text-sm text-blue-900">{String(selectedUnifiedItem.requestUri || "-")}</p>
+                  <p className="mt-2 text-sm leading-6 text-blue-900">{String(selectedUnifiedItem.summary || selectedUnifiedItem.message || "-")}</p>
+                </div>
+                <div className="rounded-lg border border-dashed border-[var(--kr-gov-border-light)] px-4 py-4 text-sm text-[var(--kr-gov-text-secondary)]">
+                  actorId: <span className="font-mono">{String(selectedUnifiedItem.actorId || "-")}</span>
+                  <br />
+                  componentId: <span className="font-mono">{String(selectedUnifiedItem.componentId || "-")}</span>
+                  <br />
+                  고유 apiId 수: <span className="font-mono">{uniqueApiCount.toLocaleString()}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-4 rounded-lg border border-dashed border-[var(--kr-gov-border-light)] px-4 py-8 text-sm text-[var(--kr-gov-text-secondary)]">선택된 이벤트가 없습니다.</div>
+            )}
+          </article>
+        </section>
+      ) : null}
+
+      {isUiErrorFocusedUnifiedPage ? (
+        <section className="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-[0.95fr_1.05fr]" data-help-id="unified-ui-error-ops">
+          <article className="gov-card">
+            <h3 className="text-lg font-bold">UI 오류 운영 가이드</h3>
+            <div className="mt-4 space-y-3 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
+              <div className="rounded-lg border border-[var(--kr-gov-border-light)] px-4 py-3">1. detailType으로 오류 성격을 먼저 나누고 pageId, componentId로 화면 범위를 좁힙니다.</div>
+              <div className="rounded-lg border border-[var(--kr-gov-border-light)] px-4 py-3">2. 같은 traceId에서 직전 API/페이지 이벤트를 함께 보면 재현 경로를 빠르게 찾을 수 있습니다.</div>
+              <div className="rounded-lg border border-[var(--kr-gov-border-light)] px-4 py-3">3. FRONTEND_REPORT와 UI_ERROR가 함께 있으면 사용자 보고와 실제 런타임 오류를 같이 비교합니다.</div>
+            </div>
+          </article>
+          <article className="gov-card">
+            <h3 className="text-lg font-bold">선택 이벤트 상세</h3>
+            {selectedUnifiedItem ? (
+              <div className="mt-4 space-y-4">
+                <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-4">
+                  <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">detailType</p>
+                  <p className="mt-2 font-mono text-sm">{String(selectedUnifiedItem.detailType || "-")}</p>
+                  <p className="mt-3 text-lg font-bold">{String(selectedUnifiedItem.pageId || "-")}</p>
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="rounded-lg border border-[var(--kr-gov-border-light)] px-4 py-3">
+                    <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">component/trace</p>
+                    <p className="mt-2 text-sm">{String(selectedUnifiedItem.componentId || "-")}</p>
+                    <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{String(selectedUnifiedItem.traceId || "-")} / {String(selectedUnifiedItem.functionId || "-")}</p>
+                  </div>
+                  <div className="rounded-lg border border-[var(--kr-gov-border-light)] px-4 py-3">
+                    <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">결과/사용자</p>
+                    <p className="mt-2 text-sm">{String(selectedUnifiedItem.resultCode || "-")}</p>
+                    <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{String(selectedUnifiedItem.actorId || "-")} / {String(selectedUnifiedItem.requestUri || "-")}</p>
+                  </div>
+                </div>
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-4">
+                  <p className="text-xs font-bold text-red-700">오류 요약</p>
+                  <p className="mt-2 text-sm leading-6 text-red-900">{String(selectedUnifiedItem.summary || selectedUnifiedItem.message || "-")}</p>
+                </div>
+                <div className="rounded-lg border border-dashed border-[var(--kr-gov-border-light)] px-4 py-4 text-sm text-[var(--kr-gov-text-secondary)]">
+                  apiId: <span className="font-mono">{String(selectedUnifiedItem.apiId || "-")}</span>
+                  <br />
+                  duration: <span className="font-mono">{typeof selectedUnifiedItem.durationMs === "number" ? `${selectedUnifiedItem.durationMs}ms` : "-"}</span>
+                  <br />
+                  고유 componentId 수: <span className="font-mono">{uniqueComponentCount.toLocaleString()}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-4 rounded-lg border border-dashed border-[var(--kr-gov-border-light)] px-4 py-8 text-sm text-[var(--kr-gov-text-secondary)]">선택된 이벤트가 없습니다.</div>
+            )}
+          </article>
+        </section>
+      ) : null}
+
+      {isLayoutRenderFocusedUnifiedPage ? (
+        <section className="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-[0.95fr_1.05fr]" data-help-id="unified-layout-render-ops">
+          <article className="gov-card">
+            <h3 className="text-lg font-bold">레이아웃 렌더 운영 가이드</h3>
+            <div className="mt-4 space-y-3 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
+              <div className="rounded-lg border border-[var(--kr-gov-border-light)] px-4 py-3">1. pageId를 먼저 고정한 뒤 componentId와 functionId로 렌더 책임 구간을 줄입니다.</div>
+              <div className="rounded-lg border border-[var(--kr-gov-border-light)] px-4 py-3">2. 평균 렌더 소요보다 큰 이벤트는 같은 traceId의 직전 액션과 같이 봐야 원인을 좁히기 쉽습니다.</div>
+              <div className="rounded-lg border border-[var(--kr-gov-border-light)] px-4 py-3">3. 같은 pageId에서 componentId가 과도하게 많으면 화면 구조 변경이나 반복 렌더를 먼저 의심합니다.</div>
+            </div>
+          </article>
+          <article className="gov-card">
+            <h3 className="text-lg font-bold">선택 이벤트 상세</h3>
+            {selectedUnifiedItem ? (
+              <div className="mt-4 space-y-4">
+                <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-4">
+                  <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">pageId</p>
+                  <p className="mt-2 font-mono text-sm">{String(selectedUnifiedItem.pageId || "-")}</p>
+                  <p className="mt-3 text-lg font-bold">{String(selectedUnifiedItem.detailType || "-")}</p>
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="rounded-lg border border-[var(--kr-gov-border-light)] px-4 py-3">
+                    <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">component/function</p>
+                    <p className="mt-2 text-sm">{String(selectedUnifiedItem.componentId || "-")}</p>
+                    <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{String(selectedUnifiedItem.functionId || "-")} / {String(selectedUnifiedItem.traceId || "-")}</p>
+                  </div>
+                  <div className="rounded-lg border border-[var(--kr-gov-border-light)] px-4 py-3">
+                    <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">소요/결과</p>
+                    <p className="mt-2 text-sm">{typeof selectedUnifiedItem.durationMs === "number" ? `${selectedUnifiedItem.durationMs}ms` : "-"}</p>
+                    <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{String(selectedUnifiedItem.resultCode || "-")} / 평균 {averageDurationMs ? `${averageDurationMs}ms` : "-"}</p>
+                  </div>
+                </div>
+                <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-4">
+                  <p className="text-xs font-bold text-blue-700">렌더 요약</p>
+                  <p className="mt-2 text-sm leading-6 text-blue-900">{String(selectedUnifiedItem.summary || selectedUnifiedItem.message || "-")}</p>
+                </div>
+                <div className="rounded-lg border border-dashed border-[var(--kr-gov-border-light)] px-4 py-4 text-sm text-[var(--kr-gov-text-secondary)]">
+                  actorId: <span className="font-mono">{String(selectedUnifiedItem.actorId || "-")}</span>
+                  <br />
+                  requestUri: <span className="font-mono">{String(selectedUnifiedItem.requestUri || "-")}</span>
+                  <br />
+                  고유 functionId 수: <span className="font-mono">{uniqueFunctionCount.toLocaleString()}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-4 rounded-lg border border-dashed border-[var(--kr-gov-border-light)] px-4 py-8 text-sm text-[var(--kr-gov-text-secondary)]">선택된 이벤트가 없습니다.</div>
+            )}
+          </article>
         </section>
       ) : null}
 
@@ -480,11 +926,14 @@ export function ObservabilityMigrationPage() {
                 <MemberButton
                   onClick={() => {
                     if (isUnifiedLogPage) {
-                      loadUnified().catch((err: Error) => setError(err.message));
+                      setUnifiedPageIndex(1);
+                      loadUnified({ pageIndex: 1 }).catch((err: Error) => setError(err.message));
                     } else if (tab === "audit") {
-                      loadAudit().catch((err: Error) => setError(err.message));
+                      setAuditPageIndex(1);
+                      loadAudit({ pageIndex: 1 }).catch((err: Error) => setError(err.message));
                     } else {
-                      loadTrace().catch((err: Error) => setError(err.message));
+                      setTracePageIndex(1);
+                      loadTrace({ pageIndex: 1 }).catch((err: Error) => setError(err.message));
                     }
                   }}
                   type="button"
@@ -532,7 +981,11 @@ export function ObservabilityMigrationPage() {
                   {(unifiedPage?.items || []).length === 0 ? (
                     <tr><td className="px-6 py-8 text-center text-gray-500" colSpan={8}>조회된 통합 로그가 없습니다.</td></tr>
                   ) : (unifiedPage?.items || []).map((item: UnifiedLogRow, index) => (
-                    <tr className="transition-colors hover:bg-gray-50/50" key={`${String(item.logId || "unified")}-${index}`}>
+                    <tr
+                      className={`${selectedUnifiedLogId === `${String(item.logId || "unified")}-${index}` ? "bg-blue-50" : "transition-colors hover:bg-gray-50/50"}`}
+                      key={`${String(item.logId || "unified")}-${index}`}
+                      onClick={() => setSelectedUnifiedLogId(`${String(item.logId || "unified")}-${index}`)}
+                    >
                       <td className="px-6 py-4 text-gray-600">{String(item.occurredAt || "-")}</td>
                       <td className="px-6 py-4 text-[var(--kr-gov-text-primary)]">{String(item.logType || "-")}</td>
                       <td className="px-6 py-4 text-gray-600">{String(item.detailType || "-")}</td>
@@ -627,6 +1080,15 @@ export function ObservabilityMigrationPage() {
             )}
           </AdminTable>
         </div>
+        {isUnifiedLogPage ? (
+          <MemberPagination currentPage={unifiedCurrentPage} onPageChange={(pageNumber) => loadUnified({ pageIndex: pageNumber }).catch((err: Error) => setError(err.message))} totalPages={unifiedTotalPages} />
+        ) : null}
+        {!isUnifiedLogPage && tab === "audit" ? (
+          <MemberPagination currentPage={auditCurrentPage} onPageChange={(pageNumber) => loadAudit({ pageIndex: pageNumber }).catch((err: Error) => setError(err.message))} totalPages={auditTotalPages} />
+        ) : null}
+        {!isUnifiedLogPage && tab === "trace" ? (
+          <MemberPagination currentPage={traceCurrentPage} onPageChange={(pageNumber) => loadTrace({ pageIndex: pageNumber }).catch((err: Error) => setError(err.message))} totalPages={traceTotalPages} />
+        ) : null}
       </div>
     </AdminPageShell>
   );

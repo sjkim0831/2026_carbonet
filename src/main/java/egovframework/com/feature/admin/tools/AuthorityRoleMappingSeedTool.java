@@ -27,7 +27,6 @@ public class AuthorityRoleMappingSeedTool {
         String jdbcUser = property("authority.seed.jdbc.user", "dba");
         String jdbcPassword = property("authority.seed.jdbc.password", "");
 
-        Class.forName("cubrid.jdbc.driver.CUBRIDDriver");
         try (Connection connection = DriverManager.getConnection(jdbcUrl, jdbcUser, jdbcPassword)) {
             connection.setAutoCommit(false);
             Map<String, String> plan = buildSeedPlan(loadAuthorCodes(connection));

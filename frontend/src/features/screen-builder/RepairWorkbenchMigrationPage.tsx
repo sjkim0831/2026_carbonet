@@ -130,15 +130,17 @@ function buildDeployEvidence(options: {
   selectedScreenId: string;
   ownerLane: string;
   runtimeEvidence?: Record<string, unknown> | null;
+  artifactEvidence?: Record<string, unknown> | null;
 }) {
   const runtimeEvidence = options.runtimeEvidence || {};
-  const releaseUnitId = stringifyValue(options.releaseUnitId);
+  const artifactEvidence = options.artifactEvidence || {};
+  const releaseUnitId = stringifyValue(artifactEvidence.releaseUnitId || options.releaseUnitId);
   const selectedScreenToken = normalizeToken(options.selectedScreenId, "screen-runtime");
 
   return {
     releaseUnitId,
-    runtimePackageId: stringifyValue(runtimeEvidence.runtimePackageId, `runtime-package-${selectedScreenToken}`),
-    deployTraceId: stringifyValue(runtimeEvidence.deployTraceId, `deploy-trace-${normalizeToken(releaseUnitId, "release-unit")}-${selectedScreenToken}`),
+    runtimePackageId: stringifyValue(artifactEvidence.runtimePackageId || runtimeEvidence.runtimePackageId, `runtime-package-${selectedScreenToken}`),
+    deployTraceId: stringifyValue(artifactEvidence.deployTraceId || runtimeEvidence.deployTraceId, `deploy-trace-${normalizeToken(releaseUnitId, "release-unit")}-${selectedScreenToken}`),
     ownerLane: stringifyValue(runtimeEvidence.ownerLane, options.ownerLane),
     rollbackAnchorYn: stringifyValue(runtimeEvidence.rollbackAnchorYn, "Y")
   };
@@ -177,7 +179,8 @@ export function RepairWorkbenchMigrationPage() {
   const screenFamilyRuleId = findContextKeyValue(compareContextKeys, "Screen Family Rule");
   const ownerLane = findContextKeyValue(compareContextKeys, "Owner Lane");
   const selectedScreenId = page?.pageId || query.pageId || query.menuCode || "screen-runtime";
-  const releaseUnitId = page?.publishedVersionId || page?.versionId || selectedScreenId;
+  const artifactEvidence = publishedPreviewState.value?.artifactEvidence || currentPreviewState.value?.artifactEvidence || page?.artifactEvidence || null;
+  const releaseUnitId = stringifyValue(page?.releaseUnitId || publishedPreviewState.value?.releaseUnitId || currentPreviewState.value?.releaseUnitId || page?.publishedVersionId || page?.versionId || selectedScreenId);
   const generatedNodes = useMemo(() => sortScreenBuilderNodes(currentPreviewState.value?.nodes || page?.nodes || []), [currentPreviewState.value?.nodes, page?.nodes]);
   const currentNodes = useMemo(() => sortScreenBuilderNodes(publishedPreviewState.value?.nodes || []), [publishedPreviewState.value?.nodes]);
   const generatedEventCount = currentPreviewState.value?.events?.length || page?.events?.length || 0;
@@ -224,7 +227,7 @@ export function RepairWorkbenchMigrationPage() {
     menuUrl: page?.menuUrl || query.menuUrl || "-"
   };
   const runtimeEvidence = {
-    publishedVersionId: page?.publishedVersionId || "-",
+    publishedVersionId: stringifyValue(artifactEvidence?.publishedVersionId, page?.publishedVersionId || "-"),
     currentRuntimeTraceId: compareState.value?.traceId || "runtime-compare-trace",
     currentNodeCount: currentNodes.length,
     currentEventCount
@@ -248,9 +251,10 @@ export function RepairWorkbenchMigrationPage() {
       releaseUnitId,
       selectedScreenId,
       ownerLane,
-      runtimeEvidence: repairRuntimeEvidence
+      runtimeEvidence: repairRuntimeEvidence,
+      artifactEvidence
     }),
-    [ownerLane, releaseUnitId, repairRuntimeEvidence, selectedScreenId]
+    [artifactEvidence, ownerLane, releaseUnitId, repairRuntimeEvidence, selectedScreenId]
   );
 
   useEffect(() => {

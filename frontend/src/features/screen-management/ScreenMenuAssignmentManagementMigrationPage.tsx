@@ -9,8 +9,17 @@ import {
 } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
-import { numberOf, stringOf } from "../admin-system/adminSystemShared";
+import { GridToolbar, KeyValueGridPanel, PageStatusNotice, WarningPanel } from "../admin-ui/common";
+import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
+import { stringOf } from "../admin-system/adminSystemShared";
 import { toDisplayMenuUrl } from "../menu-management/menuUrlDisplay";
+import {
+  createEmptyScreenCommandPagePayload,
+  resolveScreenCommandSummaryMetrics,
+  ScreenManagementCatalogPanel,
+  ScreenManagementSelectionOverview,
+  ScreenManagementSummaryGrid
+} from "./shared";
 
 type AssignmentRow = {
   menuCode: string;
@@ -60,39 +69,6 @@ function buildAssignments(
     });
 }
 
-function emptyPayload(): ScreenCommandPagePayload {
-  return {
-    selectedPageId: "",
-    pages: [],
-    page: {
-      pageId: "",
-      label: "",
-      routePath: "",
-      menuCode: "",
-      domainCode: "",
-      summary: "",
-      source: "",
-      menuLookupUrl: "",
-      surfaces: [],
-      events: [],
-      apis: [],
-      schemas: [],
-      commonCodeGroups: [],
-      menuPermission: {
-        menuCode: "",
-        menuLookupUrl: "",
-        routePath: "",
-        requiredViewFeatureCode: "",
-        featureCodes: [],
-        featureRows: [],
-        relationTables: [],
-        resolverNotes: []
-      },
-      changeTargets: []
-    }
-  };
-}
-
 export function ScreenMenuAssignmentManagementMigrationPage() {
   const en = isEnglish();
   const [filter, setFilter] = useState("");
@@ -126,7 +102,7 @@ export function ScreenMenuAssignmentManagementMigrationPage() {
 
   const selectedAssignment = filteredAssignments.find((item) => item.menuCode === selectedMenuCode) || null;
   const detailState = useAsyncValue<ScreenCommandPagePayload>(
-    () => (selectedAssignment?.pageId ? fetchScreenCommandPage(selectedAssignment.pageId) : Promise.resolve(emptyPayload())),
+    () => (selectedAssignment?.pageId ? fetchScreenCommandPage(selectedAssignment.pageId) : Promise.resolve(createEmptyScreenCommandPagePayload())),
     [selectedAssignment?.pageId || ""]
   );
 
@@ -138,6 +114,8 @@ export function ScreenMenuAssignmentManagementMigrationPage() {
   const error = menuState.error || catalogState.error || detailState.error;
   const assignedCount = assignments.filter((item) => item.status === "assigned").length;
   const unassignedCount = assignments.filter((item) => item.status === "unassigned").length;
+  const detailPage = detailState.value?.page || createEmptyScreenCommandPagePayload().page;
+  const detailMetrics = resolveScreenCommandSummaryMetrics(detailPage);
 
   useEffect(() => {
     logGovernanceScope("PAGE", "screen-menu-assignment-management", {
@@ -166,157 +144,169 @@ export function ScreenMenuAssignmentManagementMigrationPage() {
       title={en ? "Screen-Menu Assignment Management" : "화면-메뉴 귀속 관리"}
       subtitle={en ? "Check which page menu is bound to which screen command page, and spot unassigned or orphaned entries." : "페이지 메뉴가 어떤 screen command 페이지에 귀속됐는지 확인하고, 미귀속/고아 상태를 점검합니다."}
     >
-      {error ? (
-        <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      ) : null}
+      <AdminWorkspacePageFrame>
+        {error ? <PageStatusNotice tone="error">{error}</PageStatusNotice> : null}
 
-      <div className="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-4" data-help-id="screen-menu-assignment-summary">
-        <section className="gov-card">
-          <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">{en ? "Page Menus" : "페이지 메뉴"}</p>
-          <p className="mt-2 text-3xl font-black">{assignments.length}</p>
-        </section>
-        <section className="gov-card" data-help-id="screen-menu-assignment-catalog">
-          <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">{en ? "Assigned" : "귀속 완료"}</p>
-          <p className="mt-2 text-3xl font-black text-emerald-700">{assignedCount}</p>
-        </section>
-        <section className="gov-card">
-          <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">{en ? "Unassigned" : "미귀속"}</p>
-          <p className="mt-2 text-3xl font-black text-amber-700">{unassignedCount}</p>
-        </section>
-        <section className="gov-card">
-          <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">{en ? "Orphaned Screens" : "고아 화면"}</p>
-          <p className="mt-2 text-3xl font-black text-slate-700">{orphanPages.length}</p>
-        </section>
-      </div>
+        <ScreenManagementSummaryGrid
+          dataHelpId="screen-menu-assignment-summary"
+          items={[
+            {
+              title: en ? "Page Menus" : "페이지 메뉴",
+              value: assignments.length,
+              description: en ? "8-digit page menus with a runtime route." : "runtime URL이 등록된 8자리 페이지 메뉴 수입니다."
+            },
+            {
+              title: en ? "Assigned" : "귀속 완료",
+              value: assignedCount,
+              description: en ? "Menus linked to a screen command page." : "screen command 페이지와 연결된 메뉴 수입니다.",
+              accentClassName: "text-emerald-700",
+              surfaceClassName: "bg-emerald-50",
+              dataHelpId: "screen-menu-assignment-catalog"
+            },
+            {
+              title: en ? "Unassigned" : "미귀속",
+              value: unassignedCount,
+              description: en ? "Menus still missing a matching page." : "연결 화면이 아직 없는 메뉴 수입니다.",
+              accentClassName: "text-amber-700",
+              surfaceClassName: "bg-amber-50"
+            },
+            {
+              title: en ? "Orphaned Screens" : "고아 화면",
+              value: orphanPages.length,
+              description: en ? "Screen pages with no linked page menu." : "페이지 메뉴에 연결되지 않은 화면 수입니다.",
+              accentClassName: "text-slate-700",
+              surfaceClassName: "bg-slate-100"
+            }
+          ]}
+        />
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[24rem_1fr]">
-        <section className="gov-card">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <h3 className="text-lg font-bold">{en ? "Menu Assignment List" : "귀속 목록"}</h3>
-            <span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-bold text-[var(--kr-gov-blue)]">
-              {filteredAssignments.length}
-            </span>
-          </div>
-          <input
-            className="gov-input mb-4"
-            onChange={(event) => setFilter(event.target.value)}
-            placeholder={en ? "Search menu code, path, page ID" : "메뉴 코드, 경로, page ID 검색"}
-            value={filter}
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[24rem_1fr]">
+          <ScreenManagementCatalogPanel
+            count={filteredAssignments.length}
+            dataHelpId="screen-menu-assignment-catalog"
+            emptyLabel={en ? "No assignments matched the filter." : "검색 조건과 일치하는 귀속 대상이 없습니다."}
+            filterPlaceholder={en ? "Search menu code, path, page ID" : "메뉴 코드, 경로, page ID 검색"}
+            filterValue={filter}
+            items={filteredAssignments.map((row) => ({
+              key: row.menuCode,
+              title: row.menuName,
+              subtitle: row.menuCode,
+              description: row.menuUrl || "-",
+              badge: (
+                <span className={`rounded-full px-2 py-1 text-[11px] font-bold ${row.status === "assigned" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
+                  {row.status === "assigned" ? (en ? "Assigned" : "귀속") : (en ? "Unassigned" : "미귀속")}
+                </span>
+              ),
+              active: row.menuCode === selectedMenuCode,
+              onSelect: () => setSelectedMenuCode(row.menuCode)
+            }))}
+            onFilterChange={(event) => setFilter(event.target.value)}
+            title={en ? "Menu Assignment List" : "귀속 목록"}
           />
-          <div className="max-h-[70vh] space-y-2 overflow-y-auto">
-            {filteredAssignments.map((row) => {
-              const active = row.menuCode === selectedMenuCode;
-              return (
-                <button
-                  className={`w-full rounded-[var(--kr-gov-radius)] border px-3 py-3 text-left ${active ? "border-[var(--kr-gov-blue)] bg-blue-50" : "border-[var(--kr-gov-border-light)] bg-white hover:border-[var(--kr-gov-blue)]"}`}
-                  key={row.menuCode}
-                  onClick={() => setSelectedMenuCode(row.menuCode)}
-                  type="button"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <strong className="text-sm">{row.menuName}</strong>
-                    <span className={`rounded-full px-2 py-1 text-[11px] font-bold ${row.status === "assigned" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
-                      {row.status === "assigned" ? (en ? "Assigned" : "귀속") : (en ? "Unassigned" : "미귀속")}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{row.menuCode}</p>
-                  <p className="mt-1 break-all text-xs text-[var(--kr-gov-text-secondary)]">{row.menuUrl || "-"}</p>
-                </button>
-              );
-            })}
-          </div>
-        </section>
 
-        <div className="space-y-6">
-          <section className="gov-card">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <h3 className="text-xl font-black">{selectedAssignment?.menuName || (en ? "Select a menu" : "메뉴를 선택하세요")}</h3>
-                <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">{selectedAssignment?.menuUrl || "-"}</p>
-              </div>
-              {selectedAssignment ? (
-                <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-3 text-sm">
-                  <p><strong>{en ? "Menu Code" : "메뉴 코드"}</strong>: {selectedAssignment.menuCode}</p>
-                  <p><strong>{en ? "Page ID" : "페이지 ID"}</strong>: {selectedAssignment.pageId || "-"}</p>
-                  <p><strong>{en ? "Route" : "경로"}</strong>: {selectedAssignment.routePath || "-"}</p>
-                </div>
+          <div className="space-y-6">
+            <ScreenManagementSelectionOverview
+              badges={selectedAssignment ? (
+                <>
+                  <span className={`rounded-full px-3 py-1 text-xs font-bold ${selectedAssignment.status === "assigned" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
+                    {selectedAssignment.status === "assigned" ? (en ? "Screen linked" : "화면 연결됨") : (en ? "No linked screen" : "연결된 화면 없음")}
+                  </span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+                    {`${en ? "Use" : "사용"} ${selectedAssignment.useAt} / ${en ? "Expose" : "노출"} ${selectedAssignment.expsrAt}`}
+                  </span>
+                </>
               ) : null}
-            </div>
-            {selectedAssignment ? (
-              <div className="mt-4 flex flex-wrap gap-2">
-                <span className={`rounded-full px-3 py-1 text-xs font-bold ${selectedAssignment.status === "assigned" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
-                  {selectedAssignment.status === "assigned" ? (en ? "Screen linked" : "화면 연결됨") : (en ? "No linked screen" : "연결된 화면 없음")}
-                </span>
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
-                  {`${en ? "Use" : "사용"} ${selectedAssignment.useAt} / ${en ? "Expose" : "노출"} ${selectedAssignment.expsrAt}`}
-                </span>
-              </div>
-            ) : null}
-          </section>
+              description={selectedAssignment?.menuUrl || "-"}
+              metaDescription={en ? "The selected menu's runtime path and linked page identity." : "선택 메뉴의 runtime 경로와 연결 화면 식별자입니다."}
+              metaItems={[
+                { label: en ? "Menu Code" : "메뉴 코드", value: selectedAssignment?.menuCode || "-" },
+                { label: en ? "Page ID" : "페이지 ID", value: selectedAssignment?.pageId || "-" },
+                { label: en ? "Route" : "경로", value: selectedAssignment?.routePath || "-" },
+                { label: en ? "Linked Components" : "연결 컴포넌트", value: detailMetrics.componentCount }
+              ]}
+              metaTitle={en ? "Selected Assignment Metadata" : "선택 귀속 메타데이터"}
+              title={selectedAssignment?.menuName || (en ? "Select a menu" : "메뉴를 선택하세요")}
+            />
 
-          <section className="gov-card" data-help-id="screen-menu-assignment-detail">
-            <h3 className="mb-4 text-lg font-bold">{en ? "Assignment Detail" : "귀속 상세"}</h3>
-            {!selectedAssignment ? (
-              <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Select a menu to inspect the binding." : "귀속 상태를 보려면 메뉴를 선택하세요."}</p>
-            ) : selectedAssignment.status === "unassigned" ? (
-              <div className="rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
-                {en ? "This menu exists in menu management, but no screen command page is linked by menu code or route path yet." : "이 메뉴는 menu management에는 존재하지만, 메뉴 코드 또는 route path 기준으로 연결된 screen command 페이지가 아직 없습니다."}
+            <section className="gov-card overflow-hidden p-0" data-help-id="screen-menu-assignment-detail">
+              <GridToolbar
+                meta={en ? "Inspect registry binding, required VIEW feature, and relation-table traces." : "레지스트리 귀속, 필수 VIEW 기능, 권한 연계 테이블을 함께 점검합니다."}
+                title={en ? "Assignment Detail" : "귀속 상세"}
+              />
+              <div className="p-6">
+                {!selectedAssignment ? (
+                  <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Select a menu to inspect the binding." : "귀속 상태를 보려면 메뉴를 선택하세요."}</p>
+                ) : selectedAssignment.status === "unassigned" ? (
+                  <WarningPanel title={en ? "No linked screen page" : "연결된 화면 페이지 없음"}>
+                    {en ? "This menu exists in menu management, but no screen command page is linked by menu code or route path yet." : "이 메뉴는 menu management에는 존재하지만, 메뉴 코드 또는 route path 기준으로 연결된 screen command 페이지가 아직 없습니다."}
+                  </WarningPanel>
+                ) : (
+                  <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                    <KeyValueGridPanel
+                      description={en ? "Registry identity and layout version resolved from the selected page." : "선택 화면에서 해석된 registry 식별자와 레이아웃 버전입니다."}
+                      items={[
+                        { label: en ? "Page Name" : "페이지명", value: detailPage.manifestRegistry?.pageName || detailPage.label || "-" },
+                        { label: en ? "Layout Version" : "레이아웃 버전", value: detailPage.manifestRegistry?.layoutVersion || "-" },
+                        { label: en ? "Components" : "컴포넌트 수", value: detailMetrics.componentCount },
+                        { label: en ? "Surfaces / Events" : "Surface / 이벤트", value: `${detailMetrics.surfaceCount} / ${detailMetrics.eventCount}` }
+                      ]}
+                      title={en ? "Manifest Registry" : "Manifest Registry"}
+                    />
+                    <KeyValueGridPanel
+                      description={en ? "Permission binding remains the canonical source for menu VIEW access." : "메뉴 VIEW 접근은 여기 표시된 권한 귀속을 기준으로 봅니다."}
+                      items={[
+                        { label: en ? "Required View Feature" : "필수 VIEW 기능", value: detailPage.menuPermission?.requiredViewFeatureCode || "-" },
+                        { label: en ? "Feature Rows" : "기능 행 수", value: detailMetrics.featureCount },
+                        { label: en ? "Relation Tables" : "연계 테이블", value: (detailPage.menuPermission?.relationTables || []).join(", ") || "-" },
+                        { label: en ? "Schemas" : "스키마", value: detailMetrics.schemaCount }
+                      ]}
+                      title={en ? "Permission Binding" : "권한 귀속"}
+                    />
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] p-4">
-                  <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">{en ? "Manifest Registry" : "Manifest Registry"}</p>
-                  <p className="mt-2"><strong>{en ? "Page Name" : "페이지명"}</strong>: {detailState.value?.page?.manifestRegistry?.pageName || detailState.value?.page?.label || "-"}</p>
-                  <p className="mt-2"><strong>{en ? "Layout Version" : "레이아웃 버전"}</strong>: {detailState.value?.page?.manifestRegistry?.layoutVersion || "-"}</p>
-                  <p className="mt-2"><strong>{en ? "Components" : "컴포넌트 수"}</strong>: {numberOf(detailState.value?.page?.manifestRegistry as Record<string, unknown>, "componentCount")}</p>
-                </div>
-                <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] p-4">
-                  <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">{en ? "Permission Binding" : "권한 귀속"}</p>
-                  <p className="mt-2"><strong>{en ? "Required View Feature" : "필수 VIEW 기능"}</strong>: {detailState.value?.page?.menuPermission?.requiredViewFeatureCode || "-"}</p>
-                  <p className="mt-2"><strong>{en ? "Feature Rows" : "기능 행 수"}</strong>: {detailState.value?.page?.menuPermission?.featureRows?.length || 0}</p>
-                  <p className="mt-2"><strong>{en ? "Relation Tables" : "연계 테이블"}</strong>: {(detailState.value?.page?.menuPermission?.relationTables || []).join(", ") || "-"}</p>
-                </div>
-              </div>
-            )}
-          </section>
+            </section>
 
-          <section className="gov-card" data-help-id="screen-menu-assignment-orphans">
-            <h3 className="mb-4 text-lg font-bold">{en ? "Orphaned Screen Pages" : "고아 화면 목록"}</h3>
-            <div className="overflow-x-auto">
-              <table className="data-table min-w-[760px]">
-                <thead>
-                  <tr>
-                    <th>{en ? "Page ID" : "페이지 ID"}</th>
-                    <th>{en ? "Label" : "화면명"}</th>
-                    <th>{en ? "Route" : "경로"}</th>
-                    <th>{en ? "Menu Code" : "메뉴 코드"}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orphanPages.length === 0 ? (
+            <section className="gov-card overflow-hidden p-0" data-help-id="screen-menu-assignment-orphans">
+              <GridToolbar
+                meta={en ? "These pages exist in the screen registry but have no matching page menu binding." : "screen registry에는 있지만 대응하는 페이지 메뉴 귀속이 없는 화면입니다."}
+                title={en ? "Orphaned Screen Pages" : "고아 화면 목록"}
+              />
+              <div className="overflow-x-auto">
+                <table className="data-table min-w-[760px]">
+                  <thead>
                     <tr>
-                      <td className="text-center text-[var(--kr-gov-text-secondary)]" colSpan={4}>
-                        {en ? "No orphaned screen page exists." : "고아 상태의 화면 페이지가 없습니다."}
-                      </td>
+                      <th>{en ? "Page ID" : "페이지 ID"}</th>
+                      <th>{en ? "Label" : "화면명"}</th>
+                      <th>{en ? "Route" : "경로"}</th>
+                      <th>{en ? "Menu Code" : "메뉴 코드"}</th>
                     </tr>
-                  ) : (
-                    orphanPages.map((page) => (
-                      <tr key={page.pageId}>
-                        <td>{page.pageId}</td>
-                        <td>{page.label || "-"}</td>
-                        <td>{page.routePath || "-"}</td>
-                        <td>{page.menuCode || "-"}</td>
+                  </thead>
+                  <tbody>
+                    {orphanPages.length === 0 ? (
+                      <tr>
+                        <td className="text-center text-[var(--kr-gov-text-secondary)]" colSpan={4}>
+                          {en ? "No orphaned screen page exists." : "고아 상태의 화면 페이지가 없습니다."}
+                        </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
+                    ) : (
+                      orphanPages.map((page) => (
+                        <tr key={page.pageId}>
+                          <td>{page.pageId}</td>
+                          <td>{page.label || "-"}</td>
+                          <td>{page.routePath || "-"}</td>
+                          <td>{page.menuCode || "-"}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </div>
         </div>
-      </div>
+      </AdminWorkspacePageFrame>
     </AdminPageShell>
   );
 }
+// agent note: updated by FreeAgent Ultra

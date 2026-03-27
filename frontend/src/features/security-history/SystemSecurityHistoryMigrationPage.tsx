@@ -21,6 +21,7 @@ export function SystemSecurityHistoryMigrationPage() {
       breadcrumbsEn={["Home", "System", "Access Block History"]}
       fetchPage={async (params) => fetchSecurityHistoryPage(params)}
       fixedLoginResult="FAIL"
+      variant="blocked"
     />
   );
 }

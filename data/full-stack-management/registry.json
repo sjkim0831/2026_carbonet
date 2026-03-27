@@ -22,8 +22,8 @@
     "featureCodes" : [ "ADMIN_A0010101_VIEW", "MEMBER_DETAIL_LINK", "MEMBER_EDIT_LINK", "MEMBER_LIST_EXCEL_DOWNLOAD", "MEMBER_LIST_SEARCH" ],
     "commonCodeGroups" : [ "AMENU1", "MEMBER_STATUS" ],
     "tags" : [ "AUTO_COLLECTED", "SCREEN_COMMAND_SYNC", "HAS_SCREEN_COMMAND", "HAS_MANIFEST", "HAS_COMPONENTS", "HAS_EVENTS", "HAS_APIS", "HAS_CONTROLLER_CHAIN", "HAS_SERVICE_CHAIN", "HAS_MAPPER_CHAIN", "HAS_SCHEMAS", "HAS_VIEW_FEATURE", "HAS_RELATION_TABLES" ],
-    "updatedAt" : "2026-03-18T11:08:29.209421930+09:00",
-    "source" : "AUTO_DB"
+    "updatedAt" : "2026-03-28T01:40:04.127225730+09:00",
+    "source" : "AUTO_FILE"
   },
   "A0010301" : {
     "menuCode" : "A0010301",
@@ -189,7 +189,7 @@
     "ownerScope" : "PAGE",
     "notes" : "자동 수집: Screen Command Center metadata",
     "frontendSources" : [ "frontend/src/features/environment-management/EnvironmentManagementHubPage.tsx" ],
-    "componentIds" : [ "EnvironmentManagementSummary", "environment-management-summary", "EnvironmentManagementCards", "environment-management-cards" ],
+    "componentIds" : [ "EnvironmentManagementSummary", "environment-management-summary", "EnvironmentManagementCards", "environment-management-cards", "EnvironmentManagementEngines", "environment-management-engines" ],
     "eventIds" : [ "environment-tool-open" ],
     "functionIds" : [ "navigate" ],
     "parameterSpecs" : [ ],
@@ -204,8 +204,8 @@
     "featureCodes" : [ "A0060118_VIEW" ],
     "commonCodeGroups" : [ "AMENU1" ],
     "tags" : [ "AUTO_COLLECTED", "SCREEN_COMMAND_SYNC", "HAS_SCREEN_COMMAND", "HAS_MANIFEST", "HAS_COMPONENTS", "HAS_EVENTS", "HAS_VIEW_FEATURE", "HAS_RELATION_TABLES" ],
-    "updatedAt" : "2026-03-18T23:24:03.533845555+09:00",
-    "source" : "AUTO_DB"
+    "updatedAt" : "2026-03-28T01:00:55.803196643+09:00",
+    "source" : "AUTO_FILE"
   },
   "A0010201" : {
     "menuCode" : "A0010201",
@@ -230,8 +230,8 @@
     "featureCodes" : [ "ADMIN_A0010201_VIEW", "COMPANY_ACCOUNT_LINK", "COMPANY_DETAIL_LINK", "COMPANY_LIST_EXCEL_DOWNLOAD", "COMPANY_LIST_SEARCH" ],
     "commonCodeGroups" : [ "AMENU1", "COMPANY_STATUS" ],
     "tags" : [ "AUTO_COLLECTED", "SCREEN_COMMAND_SYNC", "HAS_SCREEN_COMMAND", "HAS_MANIFEST", "HAS_COMPONENTS", "HAS_EVENTS", "HAS_APIS", "HAS_CONTROLLER_CHAIN", "HAS_SERVICE_CHAIN", "HAS_MAPPER_CHAIN", "HAS_SCHEMAS", "HAS_VIEW_FEATURE", "HAS_RELATION_TABLES" ],
-    "updatedAt" : "2026-03-19T10:00:57.840689706+09:00",
-    "source" : "AUTO_DB"
+    "updatedAt" : "2026-03-28T01:06:20.552879338+09:00",
+    "source" : "AUTO_FILE"
   },
   "A0020101" : {
     "menuCode" : "A0020101",

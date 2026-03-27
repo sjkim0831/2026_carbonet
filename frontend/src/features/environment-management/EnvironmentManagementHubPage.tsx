@@ -17,6 +17,7 @@ import {
 } from "../../lib/api/environmentManagement";
 import { postFormUrlEncoded } from "../../lib/api/core";
 import { fetchAuditEvents } from "../../lib/api/observability";
+import { rebuildScreenBuilderStatusSummary } from "../../lib/api/screenBuilder";
 import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { numberOf, stringOf, submitFormRequest } from "../admin-system/adminSystemShared";
@@ -70,7 +71,7 @@ export function EnvironmentManagementHubPage() {
   const initialMenuType = searchParams.get("menuType") || "ADMIN";
   const [menuType, setMenuType] = useState(initialMenuType);
   const [menuSearch, setMenuSearch] = useState(searchParams.get("keyword") || "");
-  const [screenBuilderFilter, setScreenBuilderFilter] = useState<"ALL" | "PUBLISHED_ONLY" | "DRAFT_ONLY" | "READY_ONLY" | "BLOCKED_ONLY" | "ISSUE_ONLY">("ALL");
+  const [screenBuilderFilter, setScreenBuilderFilter] = useState<"ALL" | "PUBLISHED_ONLY" | "DRAFT_ONLY" | "READY_ONLY" | "BLOCKED_ONLY" | "ISSUE_ONLY" | "STALE_PUBLISH_ONLY" | "PARITY_DRIFT_ONLY" | "PARITY_GAP_ONLY">("ALL");
   const [screenBuilderIssueReasonFilter, setScreenBuilderIssueReasonFilter] = useState<"ALL" | "UNREGISTERED" | "MISSING" | "DEPRECATED">("ALL");
   const [featureSearch, setFeatureSearch] = useState("");
   const [featureLinkFilter, setFeatureLinkFilter] = useState<"ALL" | "UNASSIGNED" | "LINKED">("ALL");
@@ -101,6 +102,8 @@ export function EnvironmentManagementHubPage() {
   const [pendingDeleteImpact, setPendingDeleteImpact] = useState<FeatureDeleteImpact | null>(null);
   const [featureDeleting, setFeatureDeleting] = useState(false);
   const [metadataExpanded, setMetadataExpanded] = useState(false);
+  const [selectedSummaryRebuildBusy, setSelectedSummaryRebuildBusy] = useState(false);
+  const [allSummaryRebuildBusy, setAllSummaryRebuildBusy] = useState(false);
 
   const governanceEngineCards = useMemo(() => ([
     {
@@ -185,8 +188,10 @@ export function EnvironmentManagementHubPage() {
     permissionSummary,
     postCollectAuditRows,
     postCollectTraceRows,
+    screenBuilderFreshnessMap,
     screenBuilderIssueDetailMap,
     screenBuilderIssueMap,
+    screenBuilderParityMap,
     screenBuilderPageCounts,
     screenBuilderPublishedMap,
     screenBuilderStatus,
@@ -217,6 +222,15 @@ export function EnvironmentManagementHubPage() {
       if (screenBuilderFilter === "ISSUE_ONLY" && row.code.length === 8 && !(screenBuilderIssueMap[row.code] > 0)) {
         return false;
       }
+      if (screenBuilderFilter === "STALE_PUBLISH_ONLY" && row.code.length === 8 && screenBuilderFreshnessMap[row.code]?.state !== "STALE") {
+        return false;
+      }
+      if (screenBuilderFilter === "PARITY_DRIFT_ONLY" && row.code.length === 8 && screenBuilderParityMap[row.code]?.state !== "DRIFT") {
+        return false;
+      }
+      if (screenBuilderFilter === "PARITY_GAP_ONLY" && row.code.length === 8 && screenBuilderParityMap[row.code]?.state !== "GAP") {
+        return false;
+      }
       if (screenBuilderFilter === "READY_ONLY" && row.code.length === 8 && (screenBuilderIssueMap[row.code] || 0) > 0) {
         return false;
       }
@@ -239,7 +253,7 @@ export function EnvironmentManagementHubPage() {
         || row.menuUrl.toLowerCase().includes(keyword)
       );
     });
-  }, [menuRows, menuSearch, screenBuilderFilter, screenBuilderIssueDetailMap, screenBuilderIssueMap, screenBuilderIssueReasonFilter, screenBuilderPublishedMap]);
+  }, [menuRows, menuSearch, screenBuilderFilter, screenBuilderFreshnessMap, screenBuilderIssueDetailMap, screenBuilderIssueMap, screenBuilderIssueReasonFilter, screenBuilderParityMap, screenBuilderPublishedMap]);
   const screenBuilderIssuePageCounts = useMemo(() => ({
     UNREGISTERED: screenBuilderPageCounts.unregisteredPages,
     MISSING: screenBuilderPageCounts.missingPages,
@@ -256,6 +270,33 @@ export function EnvironmentManagementHubPage() {
   const selectedBuilderStatus = screenBuilderStatus;
   const selectedMenuBuilderIssueCount = (screenBuilderStatus?.unregisteredCount || 0) + (screenBuilderStatus?.missingCount || 0) + (screenBuilderStatus?.deprecatedCount || 0);
   const selectedMenuPublishReady = selectedMenuBuilderIssueCount === 0;
+  const selectedPublishFreshnessClasses = useMemo(() => {
+    switch (selectedBuilderStatus?.publishFreshnessState) {
+      case "FRESH":
+        return "border-emerald-200 bg-emerald-50";
+      case "AGING":
+        return "border-amber-200 bg-amber-50";
+      case "STALE":
+      case "UNKNOWN":
+        return "border-red-200 bg-red-50";
+      case "UNPUBLISHED":
+      default:
+        return "border-slate-200 bg-slate-50";
+    }
+  }, [selectedBuilderStatus?.publishFreshnessState]);
+  const selectedParityClasses = useMemo(() => {
+    switch (selectedBuilderStatus?.parityState) {
+      case "MATCH":
+        return "border-emerald-200 bg-emerald-50";
+      case "DRIFT":
+        return "border-amber-200 bg-amber-50";
+      case "GAP":
+        return "border-red-200 bg-red-50";
+      case "UNAVAILABLE":
+      default:
+        return "border-slate-200 bg-slate-50";
+    }
+  }, [selectedBuilderStatus?.parityState]);
   const selectedIssueReason = useMemo<"UNREGISTERED" | "MISSING" | "DEPRECATED" | null>(() => {
     if (!selectedBuilderStatus || selectedMenuPublishReady) {
       return null;
@@ -665,6 +706,11 @@ export function EnvironmentManagementHubPage() {
     setMenuUrl("");
   }
 
+  async function refreshEnvironmentData() {
+    await menuPageState.reload();
+    await featurePageState.reload();
+  }
+
   async function handleFeatureSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setActionError("");
@@ -696,8 +742,7 @@ export function EnvironmentManagementHubPage() {
         menuIcon: selectedMenuDraft.menuIcon,
         useAt: selectedMenuDraft.useAt
       });
-      await menuPageState.reload();
-      await featurePageState.reload();
+      await refreshEnvironmentData();
       setActionMessage(String(response.message || (en ? "The selected menu has been updated." : "선택한 메뉴를 수정했습니다.")));
     } catch (error) {
       setActionError(error instanceof Error ? error.message : (en ? "Failed to update the selected menu." : "선택한 메뉴 수정에 실패했습니다."));
@@ -761,8 +806,7 @@ export function EnvironmentManagementHubPage() {
     setPageDeleting(true);
     try {
       const response = await deleteEnvironmentManagedPage(menuType, selectedMenu.code);
-      await menuPageState.reload();
-      await featurePageState.reload();
+      await refreshEnvironmentData();
       setPendingPageDeleteImpact(null);
       setEditingFeatureCode("");
       setSelectedMenuCode("");
@@ -821,6 +865,39 @@ export function EnvironmentManagementHubPage() {
       setActionError(error instanceof Error ? error.message : (en ? "Failed to update the feature." : "기능 수정에 실패했습니다."));
     } finally {
       setFeatureSaving(false);
+    }
+  }
+
+  async function handleRebuildSelectedSummary() {
+    if (!selectedMenu || !selectedMenuIsPage) {
+      return;
+    }
+    setActionError("");
+    setActionMessage("");
+    setSelectedSummaryRebuildBusy(true);
+    try {
+      const response = await rebuildScreenBuilderStatusSummary([selectedMenu.code]);
+      await refreshEnvironmentData();
+      setActionMessage(String(response.message || (en ? "Selected summary projection rebuilt." : "선택 메뉴 요약 프로젝션을 재생성했습니다.")));
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : (en ? "Failed to rebuild selected summary projection." : "선택 메뉴 요약 프로젝션 재생성에 실패했습니다."));
+    } finally {
+      setSelectedSummaryRebuildBusy(false);
+    }
+  }
+
+  async function handleRebuildAllSummaries() {
+    setActionError("");
+    setActionMessage("");
+    setAllSummaryRebuildBusy(true);
+    try {
+      const response = await rebuildScreenBuilderStatusSummary([]);
+      await refreshEnvironmentData();
+      setActionMessage(String(response.message || (en ? "All summary projections rebuilt." : "전체 요약 프로젝션을 재생성했습니다.")));
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : (en ? "Failed to rebuild all summary projections." : "전체 요약 프로젝션 재생성에 실패했습니다."));
+    } finally {
+      setAllSummaryRebuildBusy(false);
     }
   }
 
@@ -1176,6 +1253,15 @@ export function EnvironmentManagementHubPage() {
                 <MemberButton onClick={() => setScreenBuilderFilter("ISSUE_ONLY")} size="xs" type="button" variant={screenBuilderFilter === "ISSUE_ONLY" ? "primary" : "secondary"}>
                   {en ? "Issues Only" : "이슈만"}
                 </MemberButton>
+                <MemberButton onClick={() => setScreenBuilderFilter("STALE_PUBLISH_ONLY")} size="xs" type="button" variant={screenBuilderFilter === "STALE_PUBLISH_ONLY" ? "primary" : "secondary"}>
+                  {en ? `Stale Publish ${screenBuilderPageCounts.stalePublishPages}` : `노후 발행 ${screenBuilderPageCounts.stalePublishPages}건`}
+                </MemberButton>
+                <MemberButton onClick={() => setScreenBuilderFilter("PARITY_DRIFT_ONLY")} size="xs" type="button" variant={screenBuilderFilter === "PARITY_DRIFT_ONLY" ? "primary" : "secondary"}>
+                  {en ? `Parity Drift ${screenBuilderPageCounts.parityDriftPages}` : `정합성 드리프트 ${screenBuilderPageCounts.parityDriftPages}건`}
+                </MemberButton>
+                <MemberButton onClick={() => setScreenBuilderFilter("PARITY_GAP_ONLY")} size="xs" type="button" variant={screenBuilderFilter === "PARITY_GAP_ONLY" ? "primary" : "secondary"}>
+                  {en ? `Parity Gap ${screenBuilderPageCounts.parityGapPages}` : `정합성 갭 ${screenBuilderPageCounts.parityGapPages}건`}
+                </MemberButton>
                 <MemberButton onClick={() => setScreenBuilderIssueReasonFilter("ALL")} size="xs" type="button" variant={screenBuilderIssueReasonFilter === "ALL" ? "primary" : "secondary"}>
                   {en ? "All Reasons" : "전체 사유"}
                 </MemberButton>
@@ -1300,6 +1386,8 @@ export function EnvironmentManagementHubPage() {
                     const selected = row.code === selectedMenuCode;
                     const rowIssueCount = screenBuilderIssueMap[row.code] || 0;
                     const rowIssueDetail = screenBuilderIssueDetailMap[row.code] || { unregisteredCount: 0, missingCount: 0, deprecatedCount: 0 };
+                    const rowFreshness = screenBuilderFreshnessMap[row.code];
+                    const rowParity = screenBuilderParityMap[row.code];
                     const rowPublishReady = row.code.length === 8 && rowIssueCount === 0;
                     const rowInSameIssueFamily = sameIssueMenuCodeSet.has(row.code);
                     const rowSameIssuePosition = rowInSameIssueFamily ? (sameIssueIndexMap[row.code] ?? -1) + 1 : 0;
@@ -1450,6 +1538,32 @@ export function EnvironmentManagementHubPage() {
                                 <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${rowPublishReady ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
                                   {rowPublishReady ? (en ? "Ready" : "가능") : (en ? "Blocked" : "차단")}
                                 </span>
+                                {rowFreshness?.state === "STALE" ? (
+                                  <span className="inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold bg-rose-100 text-rose-700">
+                                    {en ? "Stale Publish" : "노후 발행"}
+                                  </span>
+                                ) : rowFreshness?.state === "AGING" ? (
+                                  <span className="inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700">
+                                    {en ? "Aging Publish" : "발행 노후화"}
+                                  </span>
+                                ) : rowFreshness?.state === "FRESH" ? (
+                                  <span className="inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold bg-emerald-100 text-emerald-700">
+                                    {en ? "Fresh Publish" : "최신 발행"}
+                                  </span>
+                                ) : null}
+                                {rowParity?.state === "GAP" ? (
+                                  <span className="inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold bg-red-100 text-red-700">
+                                    {en ? "Parity Gap" : "정합성 갭"}
+                                  </span>
+                                ) : rowParity?.state === "DRIFT" ? (
+                                  <span className="inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700">
+                                    {en ? "Parity Drift" : "정합성 드리프트"}
+                                  </span>
+                                ) : rowParity?.state === "MATCH" ? (
+                                  <span className="inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold bg-emerald-100 text-emerald-700">
+                                    {en ? "Parity Match" : "정합성 일치"}
+                                  </span>
+                                ) : null}
                                 {rowIssueCount > 0 ? (
                                   <span className="inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold bg-red-100 text-red-700">
                                     {en ? `Issues ${rowIssueCount}` : `이슈 ${rowIssueCount}`}
@@ -1483,16 +1597,28 @@ export function EnvironmentManagementHubPage() {
                                   {en ? "Builder" : "빌더"}
                                 </MemberLinkButton>
                                 {screenBuilderPublishedMap[row.code] ? (
-                                  <MemberLinkButton
-                                    href={buildLocalizedPath(
-                                      `/admin/system/screen-runtime?menuCode=${encodeURIComponent(row.code)}&pageId=${encodeURIComponent(row.code.toLowerCase())}&menuTitle=${encodeURIComponent(row.label)}&menuUrl=${encodeURIComponent(row.menuUrl || "")}`,
-                                      `/en/admin/system/screen-runtime?menuCode=${encodeURIComponent(row.code)}&pageId=${encodeURIComponent(row.code.toLowerCase())}&menuTitle=${encodeURIComponent(row.label)}&menuUrl=${encodeURIComponent(row.menuUrl || "")}`
-                                    )}
-                                    size="xs"
-                                    variant="secondary"
-                                  >
-                                    {en ? "Runtime" : "런타임"}
-                                  </MemberLinkButton>
+                                  <>
+                                    <MemberLinkButton
+                                      href={buildLocalizedPath(
+                                        `/admin/system/screen-runtime?menuCode=${encodeURIComponent(row.code)}&pageId=${encodeURIComponent(row.code.toLowerCase())}&menuTitle=${encodeURIComponent(row.label)}&menuUrl=${encodeURIComponent(row.menuUrl || "")}`,
+                                        `/en/admin/system/screen-runtime?menuCode=${encodeURIComponent(row.code)}&pageId=${encodeURIComponent(row.code.toLowerCase())}&menuTitle=${encodeURIComponent(row.label)}&menuUrl=${encodeURIComponent(row.menuUrl || "")}`
+                                      )}
+                                      size="xs"
+                                      variant="secondary"
+                                    >
+                                      {en ? "Runtime" : "런타임"}
+                                    </MemberLinkButton>
+                                    <MemberLinkButton
+                                      href={buildLocalizedPath(
+                                        `/admin/system/current-runtime-compare?menuCode=${encodeURIComponent(row.code)}&pageId=${encodeURIComponent(row.code.toLowerCase())}&menuTitle=${encodeURIComponent(row.label)}&menuUrl=${encodeURIComponent(row.menuUrl || "")}`,
+                                        `/en/admin/system/current-runtime-compare?menuCode=${encodeURIComponent(row.code)}&pageId=${encodeURIComponent(row.code.toLowerCase())}&menuTitle=${encodeURIComponent(row.label)}&menuUrl=${encodeURIComponent(row.menuUrl || "")}`
+                                      )}
+                                      size="xs"
+                                      variant={rowParity?.state === "GAP" || rowParity?.state === "DRIFT" ? "info" : "secondary"}
+                                    >
+                                      {en ? "Compare" : "비교"}
+                                    </MemberLinkButton>
+                                  </>
                                 ) : null}
                                 <MemberLinkButton
                                   href={buildLocalizedPath(
@@ -1510,6 +1636,11 @@ export function EnvironmentManagementHubPage() {
                           {row.code.length === 8 ? (
                             <p className={`mt-1 text-[11px] ${rowPublishReady ? "text-emerald-700" : "text-red-700"}`}>
                               {summarizeBuilderBlockingReason(rowIssueCount, en)}
+                            </p>
+                          ) : null}
+                          {row.code.length === 8 && (rowFreshness?.detail || rowParity?.detail) ? (
+                            <p className="mt-1 text-[11px] text-[var(--kr-gov-text-secondary)]">
+                              {[rowFreshness?.detail, rowParity?.detail].filter(Boolean).join(" / ")}
                             </p>
                           ) : null}
                         </td>
@@ -1575,8 +1706,30 @@ export function EnvironmentManagementHubPage() {
                   <MemberLinkButton href={buildLocalizedPath(`/admin/system/feature-management?menuType=${encodeURIComponent(menuType)}&searchMenuCode=${encodeURIComponent(selectedMenu.code)}`, `/en/admin/system/feature-management?menuType=${encodeURIComponent(menuType)}&searchMenuCode=${encodeURIComponent(selectedMenu.code)}`)} size="sm" variant="secondary">
                     {en ? "Open Feature Management" : "기능 관리 바로가기"}
                   </MemberLinkButton>
+                  <MemberButton
+                    disabled={allSummaryRebuildBusy}
+                    onClick={() => { void handleRebuildAllSummaries(); }}
+                    size="sm"
+                    type="button"
+                    variant="secondary"
+                  >
+                    {allSummaryRebuildBusy
+                      ? (en ? "Rebuilding All..." : "전체 재생성 중...")
+                      : (en ? "Rebuild All Summaries" : "전체 요약 재생성")}
+                  </MemberButton>
                   {selectedMenuIsPage ? (
                     <>
+                      <MemberButton
+                        disabled={selectedSummaryRebuildBusy}
+                        onClick={() => { void handleRebuildSelectedSummary(); }}
+                        size="sm"
+                        type="button"
+                        variant="secondary"
+                      >
+                        {selectedSummaryRebuildBusy
+                          ? (en ? "Rebuilding Summary..." : "요약 재생성 중...")
+                          : (en ? "Rebuild This Summary" : "이 메뉴 요약 재생성")}
+                      </MemberButton>
                       <MemberLinkButton
                         href={buildLocalizedPath(
                           `/admin/system/screen-builder?menuCode=${encodeURIComponent(selectedMenu.code)}&pageId=${encodeURIComponent(governancePageId || selectedMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(selectedMenu.label)}&menuUrl=${encodeURIComponent(selectedMenu.menuUrl || "")}`,
@@ -2068,6 +2221,86 @@ export function EnvironmentManagementHubPage() {
                                   >
                                     {en ? "Current Activity" : "현재 활동"}
                                   </MemberLinkButton>
+                                  {screenBuilderStatus?.publishedVersionId ? (
+                                    <MemberLinkButton
+                                      href={buildLocalizedPath(
+                                        `/admin/system/current-runtime-compare?menuCode=${encodeURIComponent(selectedMenu.code)}&pageId=${encodeURIComponent(governancePageId || selectedMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(selectedMenu.label)}&menuUrl=${encodeURIComponent(selectedMenu.menuUrl || "")}`,
+                                        `/en/admin/system/current-runtime-compare?menuCode=${encodeURIComponent(selectedMenu.code)}&pageId=${encodeURIComponent(governancePageId || selectedMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(selectedMenu.label)}&menuUrl=${encodeURIComponent(selectedMenu.menuUrl || "")}`
+                                      )}
+                                      size="xs"
+                                      variant="secondary"
+                                    >
+                                      {en ? "Current Compare" : "현재 비교"}
+                                    </MemberLinkButton>
+                                  ) : null}
+                                </div>
+                                <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-4">
+                                  <div className="rounded border border-slate-200 bg-white px-3 py-2">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
+                                      {en ? "Release Unit" : "릴리즈 유닛"}
+                                    </p>
+                                    <p className="mt-1 font-mono text-[11px] text-[var(--kr-gov-text-primary)]">
+                                      {screenBuilderStatus?.releaseUnitId || "-"}
+                                    </p>
+                                  </div>
+                                  <div className="rounded border border-slate-200 bg-white px-3 py-2">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
+                                      {en ? "Runtime Target" : "런타임 타깃"}
+                                    </p>
+                                    <p className="mt-1 font-mono text-[11px] text-[var(--kr-gov-text-primary)]">
+                                      {screenBuilderStatus?.artifactTargetSystem || "carbonet-general"}
+                                    </p>
+                                  </div>
+                                  <div className="rounded border border-slate-200 bg-white px-3 py-2">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
+                                      {en ? "Runtime Package" : "런타임 패키지"}
+                                    </p>
+                                    <p className="mt-1 font-mono text-[11px] text-[var(--kr-gov-text-primary)] break-all">
+                                      {screenBuilderStatus?.runtimePackageId || "-"}
+                                    </p>
+                                  </div>
+                                  <div className="rounded border border-slate-200 bg-white px-3 py-2">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
+                                      {en ? "Deploy Trace" : "배포 추적"}
+                                    </p>
+                                    <p className="mt-1 font-mono text-[11px] text-[var(--kr-gov-text-primary)] break-all">
+                                      {screenBuilderStatus?.deployTraceId || "-"}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="mt-2 grid grid-cols-1 gap-2 xl:grid-cols-2">
+                                  <div className={`rounded border px-3 py-2 ${selectedPublishFreshnessClasses}`}>
+                                    <div className="flex items-center justify-between gap-3">
+                                      <p className="text-[10px] font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
+                                        {en ? "Publish Freshness" : "발행 신선도"}
+                                      </p>
+                                      <span className="font-mono text-[10px] text-[var(--kr-gov-text-secondary)]">
+                                        {screenBuilderStatus?.publishedSavedAt || "-"}
+                                      </span>
+                                    </div>
+                                    <p className="mt-1 text-[12px] font-bold text-[var(--kr-gov-text-primary)]">
+                                      {screenBuilderStatus?.publishFreshnessLabel || (en ? "Not checked" : "미확인")}
+                                    </p>
+                                    <p className="mt-1 text-[11px] text-[var(--kr-gov-text-secondary)]">
+                                      {screenBuilderStatus?.publishFreshnessDetail || (en ? "Publish freshness summary is not available." : "발행 신선도 요약이 아직 없습니다.")}
+                                    </p>
+                                  </div>
+                                  <div className={`rounded border px-3 py-2 ${selectedParityClasses}`}>
+                                    <div className="flex items-center justify-between gap-3">
+                                      <p className="text-[10px] font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
+                                        {en ? "Runtime Parity" : "런타임 정합성"}
+                                      </p>
+                                      <span className="font-mono text-[10px] text-[var(--kr-gov-text-secondary)] break-all">
+                                        {screenBuilderStatus?.parityTraceId || "-"}
+                                      </span>
+                                    </div>
+                                    <p className="mt-1 text-[12px] font-bold text-[var(--kr-gov-text-primary)]">
+                                      {screenBuilderStatus?.parityLabel || (en ? "Not checked" : "미확인")}
+                                    </p>
+                                    <p className="mt-1 text-[11px] text-[var(--kr-gov-text-secondary)]">
+                                      {screenBuilderStatus?.parityDetail || (en ? "Runtime parity summary is not available." : "런타임 정합성 요약이 아직 없습니다.")}
+                                    </p>
+                                  </div>
                                 </div>
                               </div>
                             ) : null}

@@ -1122,7 +1122,7 @@ public class AdminMainController {
                 return ResponseEntity.ok(response);
             }
         } catch (Exception e) {
-            log.error("Failed to reset member password. memberId={}, adminId={}", normalizedMemberId, currentAdminUserId, e);
+            log.error("Failed to reset member credentials. memberId={}, adminId={}", normalizedMemberId, currentAdminUserId, e);
             response.put("status", "fail");
             response.put("errors", isEn ? "Failed to reset the password." : "비밀번호 초기화에 실패했습니다.");
             return ResponseEntity.internalServerError().body(response);
@@ -4370,9 +4370,10 @@ public class AdminMainController {
             String searchKeyword,
             String blockType,
             String status,
+            String source,
             Model model,
             boolean isEn) {
-        adminSystemPageModelAssembler().populateBlocklistPage(searchKeyword, blockType, status, model, isEn);
+        adminSystemPageModelAssembler().populateBlocklistPage(searchKeyword, blockType, status, source, model, isEn);
     }
 
     private void populateSecurityAuditPage(Model model, boolean isEn) {
