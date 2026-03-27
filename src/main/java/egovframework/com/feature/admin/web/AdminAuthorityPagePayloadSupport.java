@@ -592,6 +592,31 @@ public class AdminAuthorityPagePayloadSupport {
         return sections;
     }
 
+    public List<AuthorInfoVO> filterAdminTypeScopedAuthorGroups(
+            List<AuthorInfoVO> authorGroups,
+            String membershipType) {
+        if (authorGroups == null || authorGroups.isEmpty()) {
+            return Collections.emptyList();
+        }
+        String expectedSuffix = resolveMembershipTypeRoleSuffix(membershipType);
+        if (expectedSuffix.isEmpty()) {
+            return Collections.emptyList();
+        }
+        String expectedCode = "ROLE_COMPANY_ADMIN_" + expectedSuffix;
+        return authorGroups.stream()
+                .filter(group -> expectedCode.equals(safeString(group == null ? null : group.getAuthorCode()).toUpperCase(Locale.ROOT)))
+                .collect(Collectors.toList());
+    }
+
+    public List<AuthorInfoVO> filterAdminGeneralAuthorGroups(List<AuthorInfoVO> authorGroups) {
+        if (authorGroups == null || authorGroups.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return authorGroups.stream()
+                .filter(group -> !isMembershipSpecificAdminAuthorCode(group == null ? null : group.getAuthorCode()))
+                .collect(Collectors.toList());
+    }
+
     public boolean isMemberRegisterGeneralAuthorCode(String authorCode, String membershipType) {
         String normalizedCode = safeString(authorCode).toUpperCase(Locale.ROOT);
         if (normalizedCode.isEmpty()) {
@@ -666,6 +691,16 @@ public class AdminAuthorityPagePayloadSupport {
         String normalizedCode = safeString(authorCode).toUpperCase(Locale.ROOT);
         return "ROLE_COMPANY_ADMIN".equals(normalizedCode)
                 || normalizedCode.startsWith("ROLE_COMPANY_ADMIN_");
+    }
+
+    public boolean isMembershipSpecificAdminAuthorCode(String authorCode) {
+        String normalizedCode = safeString(authorCode).toUpperCase(Locale.ROOT);
+        return normalizedCode.equals("ROLE_COMPANY_ADMIN_EMITTER")
+                || normalizedCode.equals("ROLE_COMPANY_ADMIN_PERFORMER")
+                || normalizedCode.equals("ROLE_COMPANY_ADMIN_CENTER")
+                || normalizedCode.equals("ROLE_COMPANY_ADMIN_GOV")
+                || normalizedCode.equals("ROLE_COMPANY_ADMIN_ENTERPRISE")
+                || normalizedCode.equals("ROLE_COMPANY_ADMIN_AUTHORITY");
     }
 
     private void addAuthorGroupLayerSection(

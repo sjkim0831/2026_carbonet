@@ -86,7 +86,8 @@ class AdminAdminPermissionService {
         List<String> baselineFeatureCodes = Collections.emptyList();
         try {
             String currentAssignedAuthorCode = adminMainController().loadAssignedAuthorCode(result.emplyrId);
-            authorGroups = adminMainController().loadGrantableAdminAuthorGroups(currentUserId, currentUserAuthorCode);
+            authorGroups = adminMainController().flattenPermissionAuthorGroupSections(
+                    adminMainController().buildAdminPermissionAuthorGroupSections(result.adminMember, isEn, currentUserId));
             if (result.authorCode.isEmpty()) {
                 result.errors.add(isEn ? "Please select an administrator role." : "관리자 권한 롤을 선택해 주세요.");
             } else if (!adminMainController().isGrantableOrCurrentAdminAuthorCode(

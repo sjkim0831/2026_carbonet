@@ -159,7 +159,17 @@ export function AdminPermissionMigrationPage() {
                   <span className="block text-sm font-bold text-[var(--kr-gov-text-primary)] mb-2">{text(page, "기준 권한 롤", "Base Role")} <span className="text-red-500">*</span></span>
                   <AdminSelect disabled={!page?.canUseAdminPermissionSave || readOnly} value={authorCode} onChange={(e) => setAuthorCode(e.target.value)}>
                     <option value="">{text(page, "권한 롤 선택", "Select a role")}</option>
-                    {(page?.permissionAuthorGroups || []).map((group) => <option key={group.authorCode} value={group.authorCode}>{group.authorNm} ({group.authorCode})</option>)}
+                    {((page as Record<string, unknown> | null)?.permissionAuthorGroupSections as Array<Record<string, unknown>> | undefined)?.length ? (
+                      (((page as Record<string, unknown> | null)?.permissionAuthorGroupSections as Array<Record<string, unknown>> | undefined) || []).map((section, sectionIndex) => (
+                        <optgroup key={`${String(section.sectionLabel || "section")}-${sectionIndex}`} label={String(section.sectionLabel || "")}>
+                          {((section.groups as Array<{ authorCode: string; authorNm: string }> | undefined) || []).map((group) => (
+                            <option key={group.authorCode} value={group.authorCode}>{group.authorNm} ({group.authorCode})</option>
+                          ))}
+                        </optgroup>
+                      ))
+                    ) : (
+                      (page?.permissionAuthorGroups || []).map((group) => <option key={group.authorCode} value={group.authorCode}>{group.authorNm} ({group.authorCode})</option>)
+                    )}
                   </AdminSelect>
                 </label>
               </div>

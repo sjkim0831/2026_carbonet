@@ -21,6 +21,7 @@ export function MemberSecurityHistoryMigrationPage() {
       breadcrumbsEn={["Home", "Member Management", "Access Block History"]}
       fetchPage={async (params) => fetchMemberSecurityHistoryPage(params)}
       fixedLoginResult="FAIL"
+      variant="blocked"
     />
   );
 }

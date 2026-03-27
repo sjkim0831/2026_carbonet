@@ -1,12 +1,14 @@
 package egovframework.com.config.filter;
 
 import egovframework.com.common.filter.HtmlTagFilter;
+import egovframework.com.common.filter.MaintenanceModeFilter;
 import egovframework.com.common.filter.PublicLogoutFilter;
 import egovframework.com.common.filter.RequestExecutionLoggingFilter;
 import egovframework.com.common.filter.TraceContextFilter;
 import egovframework.com.common.audit.AuditTrailService;
 import egovframework.com.common.logging.AccessEventService;
 import egovframework.com.common.logging.RequestExecutionLogService;
+import egovframework.com.common.service.MaintenanceModeService;
 import egovframework.com.common.trace.TraceEventService;
 import egovframework.com.feature.admin.service.AuthGroupManageService;
 import egovframework.com.feature.auth.domain.repository.EmployeeMemberRepository;
@@ -25,6 +27,7 @@ public class FilterConfig {
     private final RequestExecutionLogService requestExecutionLogService;
     private final AccessEventService accessEventService;
     private final TraceEventService traceEventService;
+    private final MaintenanceModeService maintenanceModeService;
     private final AuditTrailService auditTrailService;
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthGroupManageService authGroupManageService;
@@ -72,6 +75,15 @@ public class FilterConfig {
         ));
         registrationBean.addUrlPatterns("/*");
         registrationBean.setOrder(3);
+        return registrationBean;
+    }
+
+    @Bean
+    public FilterRegistrationBean<MaintenanceModeFilter> maintenanceModeFilter() {
+        FilterRegistrationBean<MaintenanceModeFilter> registrationBean = new FilterRegistrationBean<>();
+        registrationBean.setFilter(new MaintenanceModeFilter(maintenanceModeService));
+        registrationBean.addUrlPatterns("/*");
+        registrationBean.setOrder(4);
         return registrationBean;
     }
 }

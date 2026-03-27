@@ -8,6 +8,7 @@ import egovframework.com.common.service.ObservabilityQueryService;
 import egovframework.com.common.trace.TraceEventSearchVO;
 import egovframework.com.feature.admin.dto.request.AdminBackupConfigSaveRequestDTO;
 import egovframework.com.feature.admin.dto.request.AdminBackupRunRequestDTO;
+import egovframework.com.feature.admin.dto.request.AdminBackupVersionRestoreRequestDTO;
 import egovframework.com.feature.admin.dto.request.AdminUnifiedLogSearchRequestDTO;
 import egovframework.com.feature.auth.service.CurrentUserContextService;
 import lombok.RequiredArgsConstructor;
@@ -299,6 +300,18 @@ public class AdminObservabilityController {
         CurrentUserContextService.CurrentUserContext currentUser = currentUserContextService.resolve(request);
         String actorId = safe(currentUser == null ? "" : currentUser.getUserId());
         return ResponseEntity.ok(adminObservabilityPageService.saveBackupConfigPayload(requestBody, actorId, isEnglishRequest(request, locale)));
+    }
+
+    @PostMapping("/system/version/restore")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> restoreBackupConfigVersionApi(
+            @RequestBody AdminBackupVersionRestoreRequestDTO requestBody,
+            HttpServletRequest request,
+            Locale locale) {
+        primeCsrfToken(request);
+        CurrentUserContextService.CurrentUserContext currentUser = currentUserContextService.resolve(request);
+        String actorId = safe(currentUser == null ? "" : currentUser.getUserId());
+        return ResponseEntity.ok(adminObservabilityPageService.restoreBackupConfigVersionPayload(requestBody, actorId, isEnglishRequest(request, locale)));
     }
 
     @PostMapping("/system/backup/run")

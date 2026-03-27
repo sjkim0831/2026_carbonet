@@ -1,1 +1,0 @@
-import{u as i,cm as r}from"./platformStudio-CpCklxM6.js";function t(n={}){const{enabled:e=!0,onSuccess:o}=n;return i(async()=>{const s=await r();if(!s)throw new Error("Join session is unavailable");return s},[],{enabled:e,onSuccess:o})}export{t as u};

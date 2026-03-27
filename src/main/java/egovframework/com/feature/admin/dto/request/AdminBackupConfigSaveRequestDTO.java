@@ -31,4 +31,5 @@ public class AdminBackupConfigSaveRequestDTO {
     private String dbUser;
     private String dbDumpCommand;
     private String dbSchemaScope;
+    private String versionMemo;
 }

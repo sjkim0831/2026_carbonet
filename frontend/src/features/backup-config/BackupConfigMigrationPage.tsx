@@ -1,11 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { fetchBackupConfigPage, readBootstrappedBackupConfigPageData, runBackupExecution, saveBackupConfig, type BackupConfigPagePayload } from "../../lib/api/client";
+import { fetchBackupConfigPage, readBootstrappedBackupConfigPageData, restoreBackupConfigVersion, runBackupExecution, saveBackupConfig, type BackupConfigPagePayload } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
-import { AdminCheckbox, AdminInput, MemberButton, MemberPageActions, PageStatusNotice } from "../member/common";
+import { AdminCheckbox, AdminInput, MemberButton, MemberPageActions, MemberPagination, PageStatusNotice } from "../member/common";
 import { stringOf } from "../admin-system/adminSystemShared";
+
+const TABLE_PAGE_SIZE = 10;
+const CARD_PAGE_SIZE = 6;
+
+type PaginationState = Record<string, number>;
 
 function valueOf(form: Record<string, string>, key: string) {
   return form[key] || "";
@@ -46,6 +51,78 @@ function BackupToggle({ label, checked, onChange, description }: { label: string
   );
 }
 
+function getCurrentPage(pagination: PaginationState, key: string) {
+  return Math.max(1, Number(pagination[key] || 1));
+}
+
+function paginateRows<T>(rows: T[], pagination: PaginationState, key: string, pageSize: number) {
+  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+  const currentPage = Math.min(getCurrentPage(pagination, key), totalPages);
+  const fromIndex = (currentPage - 1) * pageSize;
+  return {
+    currentPage,
+    totalPages,
+    rows: rows.slice(fromIndex, fromIndex + pageSize)
+  };
+}
+
+function buildVersionDetailRows(version: Record<string, string> | null, en: boolean) {
+  if (!version) {
+    return [];
+  }
+  return [
+    { group: en ? "Common" : "공통", label: en ? "Backup Root" : "백업 루트", value: stringOf(version, "backupRootPath") || "-" },
+    { group: en ? "Common" : "공통", label: en ? "Cron" : "크론", value: stringOf(version, "cronExpression") || "-" },
+    { group: en ? "Common" : "공통", label: en ? "Retention Days" : "보관 일수", value: stringOf(version, "retentionDays") || "-" },
+    { group: en ? "Common" : "공통", label: en ? "Offsite Sync" : "원격 동기화", value: stringOf(version, "offsiteSyncEnabled") || "-" },
+    { group: "Git", label: en ? "Git Enabled" : "Git 사용", value: stringOf(version, "gitEnabled") || "-" },
+    { group: "Git", label: en ? "Repository" : "저장소 경로", value: stringOf(version, "gitRepositoryPath") || "-" },
+    { group: "Git", label: en ? "Remote" : "원격 저장소", value: stringOf(version, "gitRemoteUrl") || stringOf(version, "gitRemoteName") || "-" },
+    { group: "Git", label: en ? "Branch Pattern" : "브랜치 패턴", value: stringOf(version, "gitBranchPattern") || "-" },
+    { group: "Git", label: en ? "Backup Mode" : "백업 모드", value: stringOf(version, "gitBackupMode") || "-" },
+    { group: "Git", label: en ? "Bundle Prefix" : "번들 Prefix", value: stringOf(version, "gitBundlePrefix") || "-" },
+    { group: "Git", label: en ? "Restore Branch Prefix" : "복구 브랜치 Prefix", value: stringOf(version, "gitRestoreBranchPrefix") || "-" },
+    { group: "Git", label: en ? "Tag Prefix" : "태그 Prefix", value: stringOf(version, "gitTagPrefix") || "-" },
+    { group: "DB", label: en ? "DB Enabled" : "DB 사용", value: stringOf(version, "dbEnabled") || "-" },
+    { group: "DB", label: en ? "DB Name" : "DB 이름", value: stringOf(version, "dbName") || "-" },
+    { group: "DB", label: en ? "Host / Port" : "Host / Port", value: [stringOf(version, "dbHost"), stringOf(version, "dbPort")].filter(Boolean).join(":") || "-" },
+    { group: "DB", label: en ? "User" : "사용자", value: stringOf(version, "dbUser") || "-" },
+    { group: "DB", label: en ? "Dump Command" : "덤프 명령", value: stringOf(version, "dbDumpCommand") || "-" },
+    { group: "DB", label: en ? "Schema Scope" : "스키마 범위", value: stringOf(version, "dbSchemaScope") || "-" }
+  ];
+}
+
+function buildVersionDiffRows(current: Record<string, string> | null, previous: Record<string, string> | null, en: boolean) {
+  if (!current) {
+    return [];
+  }
+  const fields = [
+    { key: "backupRootPath", label: en ? "Backup Root" : "백업 루트" },
+    { key: "cronExpression", label: en ? "Cron" : "크론" },
+    { key: "retentionDays", label: en ? "Retention Days" : "보관 일수" },
+    { key: "offsiteSyncEnabled", label: en ? "Offsite Sync" : "원격 동기화" },
+    { key: "gitEnabled", label: en ? "Git Enabled" : "Git 사용" },
+    { key: "gitRepositoryPath", label: en ? "Git Repository" : "Git 저장소 경로" },
+    { key: "gitRemoteUrl", label: en ? "Git Remote URL" : "Git Remote URL" },
+    { key: "gitRemoteName", label: en ? "Git Remote Name" : "Git Remote 이름" },
+    { key: "gitBranchPattern", label: en ? "Git Branch Pattern" : "Git 브랜치 패턴" },
+    { key: "gitBackupMode", label: en ? "Git Backup Mode" : "Git 백업 모드" },
+    { key: "dbEnabled", label: en ? "DB Enabled" : "DB 사용" },
+    { key: "dbName", label: en ? "DB Name" : "DB 이름" },
+    { key: "dbHost", label: en ? "DB Host" : "DB Host" },
+    { key: "dbPort", label: en ? "DB Port" : "DB Port" },
+    { key: "dbDumpCommand", label: en ? "DB Dump Command" : "DB 덤프 명령" },
+    { key: "dbSchemaScope", label: en ? "DB Schema Scope" : "DB 스키마 범위" }
+  ];
+  return fields
+    .map((field) => ({
+      label: field.label,
+      previous: stringOf(previous || {}, field.key) || "-",
+      current: stringOf(current, field.key) || "-"
+    }))
+    .filter((row) => row.previous !== row.current);
+}
+
 export function BackupConfigMigrationPage() {
   const en = isEnglish();
   const pathname = typeof window === "undefined" ? "/admin/system/backup_config" : window.location.pathname;
@@ -61,6 +138,10 @@ export function BackupConfigMigrationPage() {
   const versions = (page?.backupVersionRows || []) as Array<Record<string, string>>;
   const playbooks = (page?.backupRecoveryPlaybooks || []) as Array<Record<string, string>>;
   const gitPrecheckRows = (page?.backupGitPrecheckRows || []) as Array<Record<string, string>>;
+  const restoreGitRows = (page?.backupRestoreGitRows || []) as Array<Record<string, string>>;
+  const restoreSqlRows = (page?.backupRestoreSqlRows || []) as Array<Record<string, string>>;
+  const restorePhysicalRows = (page?.backupRestorePhysicalRows || []) as Array<Record<string, string>>;
+  const restorePitrInfo = ((page?.backupRestorePitrInfo || {}) as Record<string, string>);
   const currentJob = (page?.backupCurrentJob || null) as Record<string, unknown> | null;
   const backupJobActive = String(currentJob?.status || "") === "QUEUED" || String(currentJob?.status || "") === "RUNNING";
   const [form, setForm] = useState<Record<string, string>>({});
@@ -68,6 +149,35 @@ export function BackupConfigMigrationPage() {
   const [saving, setSaving] = useState(false);
   const [runningDbBackup, setRunningDbBackup] = useState(false);
   const [runningGitExecution, setRunningGitExecution] = useState<"" | "PRECHECK" | "CLEANUP" | "BUNDLE" | "COMMIT_BASE" | "BASE" | "PUSH" | "TAG">("");
+  const [runningRestore, setRunningRestore] = useState<"" | "GIT" | "SQL" | "PHYSICAL" | "PITR">("");
+  const [gitRestoreCommit, setGitRestoreCommit] = useState("");
+  const [dbRestoreType, setDbRestoreType] = useState<"SQL" | "PHYSICAL" | "PITR">("SQL");
+  const [dbRestoreTarget, setDbRestoreTarget] = useState("");
+  const [dbRestorePointInTime, setDbRestorePointInTime] = useState("");
+  const [sudoPassword, setSudoPassword] = useState("");
+  const [pagination, setPagination] = useState<PaginationState>({});
+  const [selectedVersionId, setSelectedVersionId] = useState("");
+  const [versionSearchKeyword, setVersionSearchKeyword] = useState("");
+  const [versionFilter, setVersionFilter] = useState<"ALL" | "GIT_CHANGED" | "DB_CHANGED">("ALL");
+  const [restoringVersion, setRestoringVersion] = useState(false);
+  const selectedSqlSnapshotLabel = restoreSqlRows.find((row) => stringOf(row, "path") === dbRestoreTarget)
+    ? `${stringOf(restoreSqlRows.find((row) => stringOf(row, "path") === dbRestoreTarget), "recordedAt")} | ${dbRestoreTarget}`
+    : dbRestoreTarget;
+  const sqlSnapshotId = dbRestoreTarget.split("/").pop() || "";
+  const manualSqlRestoreCommand = dbRestoreTarget
+    ? [
+      "cd /opt/util/cubrid",
+      "docker compose exec -T cubrid sh -lc 'cubrid server stop carbonet || true'",
+      "docker compose exec -T cubrid sh -lc 'cubrid deletedb -d carbonet || true'",
+      "docker compose exec -T cubrid sh -lc 'rm -f /var/lib/cubrid/databases.txt && if [ -d /var/lib/cubrid/com ]; then mv /var/lib/cubrid/com /var/lib/cubrid/com_before_manual_restore_$(date +%Y%m%d_%H%M%S); fi && mkdir -p /var/lib/cubrid/com/lob'",
+      "docker compose exec -T cubrid sh -lc 'cubrid createdb --replace --server-name localhost -F /var/lib/cubrid/com -L /var/lib/cubrid/com -B /var/lib/cubrid/com/lob carbonet ko_KR.utf8'",
+      "docker compose exec -T cubrid sh -lc 'cubrid server start carbonet'",
+      `docker compose exec -T cubrid sh -lc 'cubrid loaddb -C -u dba --no-statistics -s /opt/util/cubrid/backup/sql/${sqlSnapshotId}/db_backup_full_carbonet_${sqlSnapshotId}_schema -d /opt/util/cubrid/backup/sql/${sqlSnapshotId}/db_backup_full_carbonet_${sqlSnapshotId}_objects -i /opt/util/cubrid/backup/sql/${sqlSnapshotId}/db_backup_full_carbonet_${sqlSnapshotId}_indexes carbonet'`,
+      "docker compose exec -T cubrid sh -lc \"printf '%s\\n' '#db-name\\tvol-path\\t\\tdb-host\\t\\tlog-path\\t\\tlob-base-path' 'carbonet\\t/var/lib/cubrid/com\\tlocalhost\\t/var/lib/cubrid/com\\tfile:/var/lib/cubrid/com/lob' > /var/lib/cubrid/databases.txt && chmod 666 /var/lib/cubrid/databases.txt && chown -R cubrid:cubrid /var/lib/cubrid/com /var/lib/cubrid/databases.txt\"",
+      "docker compose exec -T cubrid sh -lc 'cubrid broker restart || true; cubrid server restart carbonet || { cubrid server stop carbonet || true; cubrid server start carbonet; }'",
+      "docker compose exec -T cubrid sh -lc 'cubrid server status carbonet && csql -u dba carbonet -c \"select count(*) from db_class;\"'"
+    ].join("\n")
+    : "";
 
   useEffect(() => {
     setForm(((page?.backupConfigForm || {}) as Record<string, string>));
@@ -81,8 +191,47 @@ export function BackupConfigMigrationPage() {
     if (!status || (status !== "QUEUED" && status !== "RUNNING") || pageState.error) {
       setRunningGitExecution("");
       setRunningDbBackup(false);
+      setRunningRestore("");
     }
   }, [currentJob, pageState.error]);
+
+  useEffect(() => {
+    setPagination((current) => ({
+      storage: Math.min(getCurrentPage(current, "storage"), Math.max(1, Math.ceil(storages.length / TABLE_PAGE_SIZE))),
+      execution: Math.min(getCurrentPage(current, "execution"), Math.max(1, Math.ceil(executions.length / TABLE_PAGE_SIZE))),
+      version: Math.min(getCurrentPage(current, "version"), Math.max(1, Math.ceil(versions.length / TABLE_PAGE_SIZE))),
+      gitPrecheck: Math.min(getCurrentPage(current, "gitPrecheck"), Math.max(1, Math.ceil(gitPrecheckRows.length / TABLE_PAGE_SIZE))),
+      playbook: Math.min(getCurrentPage(current, "playbook"), Math.max(1, Math.ceil(playbooks.length / CARD_PAGE_SIZE)))
+    }));
+  }, [executions.length, gitPrecheckRows.length, playbooks.length, storages.length, versions.length]);
+
+  useEffect(() => {
+    if (!gitRestoreCommit && restoreGitRows.length) {
+      setGitRestoreCommit(stringOf(restoreGitRows[0], "id"));
+    }
+  }, [gitRestoreCommit, restoreGitRows]);
+
+  useEffect(() => {
+    if (!selectedVersionId && versions.length) {
+      setSelectedVersionId(stringOf(versions[0], "versionId"));
+    }
+  }, [selectedVersionId, versions]);
+
+  useEffect(() => {
+    if (!dbRestoreTarget) {
+      if (dbRestoreType === "SQL" && restoreSqlRows.length) {
+        setDbRestoreTarget(stringOf(restoreSqlRows[0], "path"));
+      } else if (dbRestoreType === "PHYSICAL" && restorePhysicalRows.length) {
+        setDbRestoreTarget(stringOf(restorePhysicalRows[0], "path"));
+      }
+    }
+  }, [dbRestoreTarget, dbRestoreType, restoreSqlRows, restorePhysicalRows]);
+
+  useEffect(() => {
+    if (!dbRestorePointInTime && stringOf(restorePitrInfo, "windowEnd")) {
+      setDbRestorePointInTime(stringOf(restorePitrInfo, "windowEnd"));
+    }
+  }, [dbRestorePointInTime, restorePitrInfo]);
 
   useEffect(() => {
     const status = String(currentJob?.status || "");
@@ -142,6 +291,51 @@ export function BackupConfigMigrationPage() {
     setForm((current) => ({ ...current, [key]: value }));
   };
 
+  const movePage = (key: keyof PaginationState, pageNumber: number) => {
+    setPagination((current) => ({ ...current, [key]: Math.max(1, pageNumber) }));
+  };
+
+  const storagePage = paginateRows(storages, pagination, "storage", TABLE_PAGE_SIZE);
+  const executionPage = paginateRows(executions, pagination, "execution", TABLE_PAGE_SIZE);
+  const enrichedVersions = versions.map((row, index) => {
+    const previous = versions[index + 1] || null;
+    const diffRows = buildVersionDiffRows(row, previous, en);
+    return {
+      ...row,
+      gitChanged: diffRows.some((item) => item.label.toLowerCase().includes("git")) ? "Y" : "N",
+      dbChanged: diffRows.some((item) => item.label.toLowerCase().includes("db")) ? "Y" : "N"
+    };
+  });
+  const filteredVersions = enrichedVersions.filter((row) => {
+    const keyword = versionSearchKeyword.trim().toLowerCase();
+    const haystack = [
+      stringOf(row, "versionId"),
+      stringOf(row, "savedAt"),
+      stringOf(row, "savedBy"),
+      stringOf(row, "versionMemo"),
+      stringOf(row, "gitSummary"),
+      stringOf(row, "dbSummary")
+    ].join(" ").toLowerCase();
+    if (keyword && !haystack.includes(keyword)) {
+      return false;
+    }
+    if (versionFilter === "GIT_CHANGED" && stringOf(row, "gitChanged") !== "Y") {
+      return false;
+    }
+    if (versionFilter === "DB_CHANGED" && stringOf(row, "dbChanged") !== "Y") {
+      return false;
+    }
+    return true;
+  });
+  const versionPage = paginateRows(filteredVersions, pagination, "version", TABLE_PAGE_SIZE);
+  const gitPrecheckPage = paginateRows(gitPrecheckRows, pagination, "gitPrecheck", TABLE_PAGE_SIZE);
+  const playbookPage = paginateRows(playbooks, pagination, "playbook", CARD_PAGE_SIZE);
+  const selectedVersion = enrichedVersions.find((row) => stringOf(row, "versionId") === selectedVersionId) || enrichedVersions[0] || null;
+  const selectedVersionIndex = enrichedVersions.findIndex((row) => stringOf(row, "versionId") === stringOf(selectedVersion || {}, "versionId"));
+  const previousVersion = selectedVersionIndex >= 0 ? enrichedVersions[selectedVersionIndex + 1] || null : null;
+  const versionDetailRows = buildVersionDetailRows(selectedVersion, en);
+  const versionDiffRows = buildVersionDiffRows(selectedVersion, previousVersion, en);
+
   const handleSave = async () => {
     setSaving(true);
     setMessage("");
@@ -154,6 +348,24 @@ export function BackupConfigMigrationPage() {
       setMessage(error instanceof Error ? error.message : (en ? "Failed to save backup settings." : "백업 설정 저장 중 오류가 발생했습니다."));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleRestoreVersion = async () => {
+    if (!selectedVersion) {
+      return;
+    }
+    setRestoringVersion(true);
+    setMessage("");
+    try {
+      const nextPage = await restoreBackupConfigVersion(stringOf(selectedVersion, "versionId"));
+      pageState.setValue(nextPage);
+      setSelectedVersionId(stringOf(((nextPage.backupVersionRows || [])[0] || {}) as Record<string, string>, "versionId"));
+      setMessage(String(nextPage.backupConfigMessage || (en ? "Version restored." : "버전을 복원했습니다.")));
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : (en ? "Failed to restore version." : "버전 복원 중 오류가 발생했습니다."));
+    } finally {
+      setRestoringVersion(false);
     }
   };
 
@@ -233,6 +445,38 @@ export function BackupConfigMigrationPage() {
     }
   };
 
+  const handleRunRestore = async (kind: "GIT" | "SQL" | "PHYSICAL" | "PITR") => {
+    setRunningRestore(kind);
+    setMessage(
+      kind === "PHYSICAL" || kind === "PITR"
+        ? (en ? "Physical restore/PITR has started. Please wait for a while." : "물리 복구/PITR가 시작되었습니다. 잠시 기다려주세요.")
+        : ""
+    );
+    try {
+      const executionType = kind === "GIT"
+        ? "GIT_RESTORE_COMMIT"
+        : kind === "SQL"
+          ? "DB_RESTORE_SQL"
+          : kind === "PHYSICAL"
+            ? "DB_RESTORE_PHYSICAL"
+            : "DB_RESTORE_PITR";
+      const nextPage = await runBackupExecution(executionType, {
+        gitRestoreCommit,
+        dbRestoreType,
+        dbRestoreTarget,
+        dbRestorePointInTime,
+        sudoPassword
+      });
+      pageState.setValue(nextPage);
+      setMessage(String(nextPage.backupConfigMessage || (en ? "Restore execution finished." : "복구 실행이 완료되었습니다.")));
+      setSudoPassword("");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : (en ? "Restore execution failed." : "복구 실행 중 오류가 발생했습니다."));
+    } finally {
+      setRunningRestore("");
+    }
+  };
+
   const renderSummary = (
     <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4 mb-6" data-help-id="backup-config-summary">
       {summary.map((card, idx) => (
@@ -262,7 +506,7 @@ export function BackupConfigMigrationPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {storages.map((row, idx) => (
+            {storagePage.rows.map((row, idx) => (
               <tr key={idx}>
                 <td className="px-4 py-3 font-bold">{stringOf(row, "storageType")}</td>
                 <td className="px-4 py-3 font-mono text-[13px]">{stringOf(row, "location")}</td>
@@ -273,6 +517,7 @@ export function BackupConfigMigrationPage() {
           </tbody>
         </table>
       </div>
+      {storagePage.totalPages > 1 ? <MemberPagination className="border-t-0" currentPage={storagePage.currentPage} onPageChange={(pageNumber) => movePage("storage", pageNumber)} totalPages={storagePage.totalPages} /> : null}
     </section>
   );
 
@@ -294,7 +539,7 @@ export function BackupConfigMigrationPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {executions.map((row, idx) => (
+            {executionPage.rows.map((row, idx) => (
               <tr key={idx}>
                 <td className="px-4 py-3">{stringOf(row, "executedAt")}</td>
                 <td className="px-4 py-3 font-bold">{stringOf(row, "profileName")}</td>
@@ -306,6 +551,7 @@ export function BackupConfigMigrationPage() {
           </tbody>
         </table>
       </div>
+      {executionPage.totalPages > 1 ? <MemberPagination className="border-t-0" currentPage={executionPage.currentPage} onPageChange={(pageNumber) => movePage("execution", pageNumber)} totalPages={executionPage.totalPages} /> : null}
     </section>
   );
 
@@ -363,29 +609,106 @@ export function BackupConfigMigrationPage() {
               <th className="px-4 py-3">{en ? "Version" : "버전"}</th>
               <th className="px-4 py-3">{en ? "Saved At" : "저장 시각"}</th>
               <th className="px-4 py-3">{en ? "Saved By" : "저장자"}</th>
+              <th className="px-4 py-3">{en ? "Memo" : "메모"}</th>
               <th className="px-4 py-3">{en ? "Backup Root" : "백업 루트"}</th>
               <th className="px-4 py-3">{en ? "Cron" : "크론"}</th>
-              <th className="px-4 py-3">{en ? "Git" : "Git"}</th>
-              <th className="px-4 py-3">{en ? "DB" : "DB"}</th>
+              <th className="px-4 py-3">{en ? "Git Summary" : "Git 요약"}</th>
+              <th className="px-4 py-3">{en ? "DB Summary" : "DB 요약"}</th>
+              <th className="px-4 py-3 text-right">{en ? "Action" : "작업"}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {versions.map((row, idx) => (
-              <tr key={idx}>
+            {versionPage.rows.map((row, idx) => (
+              <tr
+                key={idx}
+                className={stringOf(row, "versionId") === stringOf(selectedVersion || {}, "versionId") ? "bg-[rgba(28,100,242,0.06)]" : ""}
+              >
                 <td className="px-4 py-3 font-bold">{stringOf(row, "versionId")}</td>
                 <td className="px-4 py-3">{stringOf(row, "savedAt")}</td>
                 <td className="px-4 py-3">{stringOf(row, "savedBy")}</td>
+                <td className="px-4 py-3">{stringOf(row, "versionMemo") || "-"}</td>
                 <td className="px-4 py-3 font-mono text-[13px]">{stringOf(row, "backupRootPath")}</td>
                 <td className="px-4 py-3 font-mono text-[13px]">{stringOf(row, "cronExpression")}</td>
-                <td className="px-4 py-3">{stringOf(row, "gitEnabled")}</td>
-                <td className="px-4 py-3">{stringOf(row, "dbEnabled")}</td>
+                <td className="px-4 py-3">{stringOf(row, "gitSummary") || stringOf(row, "gitEnabled")}</td>
+                <td className="px-4 py-3">{stringOf(row, "dbSummary") || stringOf(row, "dbEnabled")}</td>
+                <td className="px-4 py-3 text-right">
+                  <MemberButton type="button" variant="secondary" onClick={() => setSelectedVersionId(stringOf(row, "versionId"))}>
+                    {en ? "Details" : "상세"}
+                  </MemberButton>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      {versionPage.totalPages > 1 ? <MemberPagination className="border-t-0" currentPage={versionPage.currentPage} onPageChange={(pageNumber) => movePage("version", pageNumber)} totalPages={versionPage.totalPages} /> : null}
     </section>
   );
+
+  const renderVersionDetails = selectedVersion ? (
+    <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]" data-help-id="backup-config-version-details">
+      <article className="gov-card p-0 overflow-hidden">
+        <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
+          <h3 className="text-lg font-bold">{en ? "Selected Version Details" : "선택 버전 상세"}</h3>
+          <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+            {`${stringOf(selectedVersion, "versionId")} | ${stringOf(selectedVersion, "savedAt")} | ${stringOf(selectedVersion, "savedBy")}`}
+          </p>
+          {stringOf(selectedVersion, "versionMemo") ? <p className="mt-2 text-sm text-[var(--kr-gov-text-primary)]">{stringOf(selectedVersion, "versionMemo")}</p> : null}
+        </div>
+        <div className="grid grid-cols-1 gap-5 px-6 py-6 lg:grid-cols-3">
+          {Array.from(new Set(versionDetailRows.map((row) => row.group))).map((group) => (
+            <article key={group} className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 px-4 py-4">
+              <h4 className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{group}</h4>
+              <dl className="mt-3 space-y-3 text-sm">
+                {versionDetailRows.filter((row) => row.group === group).map((row) => (
+                  <div key={`${group}-${row.label}`}>
+                    <dt className="font-bold text-[var(--kr-gov-text-secondary)]">{row.label}</dt>
+                    <dd className="mt-1 break-words font-mono text-[13px] text-[var(--kr-gov-text-primary)]">{row.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </article>
+          ))}
+        </div>
+      </article>
+      <article className="gov-card p-0 overflow-hidden">
+        <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
+          <h3 className="text-lg font-bold">{en ? "Changes From Previous Version" : "이전 버전 대비 변경점"}</h3>
+          <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+            {previousVersion
+              ? `${stringOf(previousVersion, "versionId")} -> ${stringOf(selectedVersion, "versionId")}`
+              : (en ? "No previous version to compare." : "비교할 이전 버전이 없습니다.")}
+          </p>
+        </div>
+        <div className="px-6 py-6">
+          <MemberPageActions>
+            <MemberButton type="button" variant="primary" disabled={restoringVersion} onClick={handleRestoreVersion}>
+              {restoringVersion ? (en ? "Restoring..." : "복원 중...") : (en ? "Restore This Version" : "이 버전으로 복원")}
+            </MemberButton>
+          </MemberPageActions>
+          <div className="mt-4">
+          {versionDiffRows.length ? (
+            <div className="space-y-3">
+              {versionDiffRows.map((row) => (
+                <article key={row.label} className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-4">
+                  <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{row.label}</p>
+                  <p className="mt-2 text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Previous" : "이전"}</p>
+                  <p className="mt-1 break-words font-mono text-[13px] text-[var(--kr-gov-text-secondary)]">{row.previous}</p>
+                  <p className="mt-3 text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Current" : "현재"}</p>
+                  <p className="mt-1 break-words font-mono text-[13px] text-[var(--kr-gov-text-primary)]">{row.current}</p>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-[var(--kr-gov-text-secondary)]">
+              {en ? "No field differences were detected." : "필드 변경점이 없습니다."}
+            </p>
+          )}
+          </div>
+        </div>
+      </article>
+    </section>
+  ) : null;
 
   const renderGitPrecheck = (
     <section className="gov-card p-0 overflow-hidden" data-help-id="backup-config-git-precheck">
@@ -408,7 +731,7 @@ export function BackupConfigMigrationPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {gitPrecheckRows.length ? gitPrecheckRows.map((row, idx) => (
+            {gitPrecheckRows.length ? gitPrecheckPage.rows.map((row, idx) => (
               <tr key={idx}>
                 <td className="px-4 py-3 font-mono text-[13px]">{stringOf(row, "path")}</td>
                 <td className="px-4 py-3 whitespace-nowrap">{stringOf(row, "sizeLabel")}</td>
@@ -425,12 +748,13 @@ export function BackupConfigMigrationPage() {
           </tbody>
         </table>
       </div>
+      {gitPrecheckPage.totalPages > 1 ? <MemberPagination className="border-t-0" currentPage={gitPrecheckPage.currentPage} onPageChange={(pageNumber) => movePage("gitPrecheck", pageNumber)} totalPages={gitPrecheckPage.totalPages} /> : null}
     </section>
   );
 
   const renderPlaybooks = (
     <section className="grid grid-cols-1 gap-6 xl:grid-cols-3" data-help-id="backup-config-playbooks">
-      {playbooks.map((item, idx) => (
+      {playbookPage.rows.map((item, idx) => (
         <article className="gov-card" key={idx}>
           <h3 className="text-lg font-bold">{stringOf(item, "title")}</h3>
           <p className="mt-3 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">{stringOf(item, "body")}</p>
@@ -474,6 +798,15 @@ export function BackupConfigMigrationPage() {
                 <BackupField label={en ? "Retention Days" : "보관 일수"} value={valueOf(form, "retentionDays")} onChange={(value) => updateField("retentionDays", value)} placeholder="35" type="number" />
                 <BackupField label={en ? "Cron Expression" : "크론 표현식"} value={valueOf(form, "cronExpression")} onChange={(value) => updateField("cronExpression", value)} placeholder="0 0 2 * * *" />
               </div>
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Version Memo" : "버전 메모"}</span>
+                <textarea
+                  className="gov-input min-h-[96px]"
+                  value={valueOf(form, "versionMemo")}
+                  onChange={(event) => updateField("versionMemo", event.target.value)}
+                  placeholder={en ? "Describe why this configuration changed." : "이번 설정 변경 이유를 남기세요."}
+                />
+              </label>
               <BackupToggle
                 label={en ? "Enable Offsite Sync" : "원격 동기화 사용"}
                 checked={yes(form, "offsiteSyncEnabled")}
@@ -539,7 +872,10 @@ export function BackupConfigMigrationPage() {
             {renderStorage}
             {renderVersions}
           </div>
-          {renderPlaybooks}
+          <>
+            {renderPlaybooks}
+            {playbookPage.totalPages > 1 ? <MemberPagination currentPage={playbookPage.currentPage} onPageChange={(pageNumber) => movePage("playbook", pageNumber)} totalPages={playbookPage.totalPages} /> : null}
+          </>
         </>
       ) : null}
 
@@ -589,25 +925,210 @@ export function BackupConfigMigrationPage() {
             {renderStorage}
           </div>
           <div className="mb-6">{renderGitPrecheck}</div>
-          {renderPlaybooks}
+          <>
+            {renderPlaybooks}
+            {playbookPage.totalPages > 1 ? <MemberPagination currentPage={playbookPage.currentPage} onPageChange={(pageNumber) => movePage("playbook", pageNumber)} totalPages={playbookPage.totalPages} /> : null}
+          </>
         </>
       ) : null}
 
       {preset.pageKey === "restore-execution" ? (
         <>
+          <section className="gov-card mb-6" data-help-id="backup-restore-actions">
+            <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
+              <h3 className="text-lg font-bold">{en ? "Restore Targets" : "복구 대상 선택"}</h3>
+              <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+                {en
+                  ? "Restore Git to a prior commit, or recover the database from SQL, physical, or point-in-time restore windows."
+                  : "Git을 이전 커밋 상태로 되돌리거나, DB를 SQL/물리/시점 복구 창 기준으로 복구합니다."}
+              </p>
+            </div>
+            <div className="space-y-8 px-6 py-6">
+              <section className="space-y-4 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 px-5 py-5">
+                <div>
+                  <h4 className="text-base font-bold">{en ? "Git Rollback" : "Git 롤백"}</h4>
+                  <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+                    {en ? "A new rollback commit is created from the selected commit state and pushed to the base branch." : "선택한 커밋 상태로 새 롤백 커밋을 만든 뒤 기준 브랜치에 push합니다."}
+                  </p>
+                </div>
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Rollback Commit" : "롤백 커밋"}</span>
+                  <select className="gov-input" value={gitRestoreCommit} onChange={(event) => setGitRestoreCommit(event.target.value)}>
+                    {restoreGitRows.map((row) => (
+                      <option key={stringOf(row, "id")} value={stringOf(row, "id")}>
+                        {`${stringOf(row, "shortId") || stringOf(row, "id")} | ${stringOf(row, "recordedAt")} | ${stringOf(row, "note")}`}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <MemberPageActions>
+                  <MemberButton type="button" variant="primary" disabled={backupJobActive || Boolean(runningRestore) || !page?.canUseGitBackupExecution || !gitRestoreCommit} onClick={() => handleRunRestore("GIT")}>
+                    {runningRestore === "GIT" ? (en ? "Running Git Rollback..." : "Git 롤백 실행 중...") : (en ? "Run Git Rollback" : "Git 롤백 실행")}
+                  </MemberButton>
+                </MemberPageActions>
+              </section>
+
+              <section className="space-y-4 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 px-5 py-5">
+                <div>
+                  <h4 className="text-base font-bold">{en ? "Database Restore" : "DB 복구"}</h4>
+                  <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+                    {en ? "SQL backups are selectable for 30 days by hour, physical backups for 15 days by day, and PITR is available within 2 days." : "SQL 백업은 30일 매 시각, 물리 백업은 15일 매일, PITR은 최근 2일 범위에서 선택할 수 있습니다."}
+                  </p>
+                  {dbRestoreType === "SQL" ? (
+                    <p className="mt-2 text-sm font-semibold text-[#991b1b]">
+                      {en
+                        ? "SQL restore is manual-only. Use the selected snapshot from the server shell because large restores exceed the web execution window."
+                        : "SQL 복구는 수동 전용입니다. 대용량 복구는 웹 실행 시간을 넘기므로 서버 쉘에서 선택한 스냅샷으로 직접 복구해야 합니다."}
+                    </p>
+                  ) : null}
+                </div>
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Restore Mode" : "복구 방식"}</span>
+                  <select className="gov-input" value={dbRestoreType} onChange={(event) => {
+                    const nextType = event.target.value as "SQL" | "PHYSICAL" | "PITR";
+                    setDbRestoreType(nextType);
+                    if (nextType === "SQL" && restoreSqlRows.length) {
+                      setDbRestoreTarget(stringOf(restoreSqlRows[0], "path"));
+                    } else if (nextType === "PHYSICAL" && restorePhysicalRows.length) {
+                      setDbRestoreTarget(stringOf(restorePhysicalRows[0], "path"));
+                    } else {
+                      setDbRestoreTarget("");
+                    }
+                  }}>
+                    <option value="SQL">{en ? "SQL Restore" : "SQL 복구"}</option>
+                    <option value="PHYSICAL">{en ? "Physical Restore" : "물리 복구"}</option>
+                    <option value="PITR">{en ? "Point-In-Time Restore" : "시점 복구"}</option>
+                  </select>
+                </label>
+                {dbRestoreType === "SQL" ? (
+                  <div className="space-y-4">
+                    <label className="flex flex-col gap-2">
+                      <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "SQL Snapshot" : "SQL 스냅샷"}</span>
+                      <select className="gov-input" value={dbRestoreTarget} onChange={(event) => setDbRestoreTarget(event.target.value)}>
+                        {restoreSqlRows.map((row) => (
+                          <option key={stringOf(row, "path")} value={stringOf(row, "path")}>
+                            {`${stringOf(row, "recordedAt")} | ${stringOf(row, "path")}`}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-4 text-sm">
+                      <p className="font-bold text-[var(--kr-gov-text-primary)]">{en ? "Manual SQL Restore Command" : "수동 SQL 복구 명령"}</p>
+                      <p className="mt-2 text-[var(--kr-gov-text-secondary)]">
+                        {en
+                          ? `Selected snapshot: ${selectedSqlSnapshotLabel}`
+                          : `선택된 스냅샷: ${selectedSqlSnapshotLabel}`}
+                      </p>
+                      <pre className="mt-3 overflow-x-auto rounded-md bg-[#111827] px-4 py-3 text-[12px] leading-5 text-white"><code>{manualSqlRestoreCommand}</code></pre>
+                    </article>
+                  </div>
+                ) : null}
+                {dbRestoreType === "PHYSICAL" ? (
+                  <label className="flex flex-col gap-2">
+                    <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Physical Snapshot" : "물리 스냅샷"}</span>
+                    <select className="gov-input" value={dbRestoreTarget} onChange={(event) => setDbRestoreTarget(event.target.value)}>
+                      {restorePhysicalRows.map((row) => (
+                        <option key={stringOf(row, "path")} value={stringOf(row, "path")}>
+                          {`${stringOf(row, "recordedAt")} | ${stringOf(row, "path")}`}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+                {dbRestoreType === "PITR" ? (
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    <BackupField
+                      label={en ? "Target Time" : "대상 시각"}
+                      value={dbRestorePointInTime}
+                      onChange={setDbRestorePointInTime}
+                      type="datetime-local"
+                    />
+                    <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-3 text-sm">
+                      <p className="font-bold">{en ? "PITR Window" : "PITR 가능 범위"}</p>
+                      <p className="mt-2 text-[var(--kr-gov-text-secondary)]">{`${stringOf(restorePitrInfo, "windowStartLabel")} ~ ${stringOf(restorePitrInfo, "windowEndLabel")}`}</p>
+                      <p className="mt-2 text-[var(--kr-gov-text-secondary)]">{stringOf(restorePitrInfo, "note")}</p>
+                    </article>
+                  </div>
+                ) : null}
+                <BackupField
+                  label={en ? "Sudo Password" : "sudo 비밀번호"}
+                  value={sudoPassword}
+                  onChange={setSudoPassword}
+                  type="password"
+                  placeholder={en ? "Used only for this restore execution" : "이번 복구 실행에만 사용"}
+                />
+                <MemberPageActions>
+                  <MemberButton
+                    type="button"
+                    variant="primary"
+                    disabled={
+                      backupJobActive
+                      || Boolean(runningRestore)
+                      || !page?.canUseDbBackupExecution
+                      || dbRestoreType === "SQL"
+                      || !sudoPassword
+                      || (dbRestoreType !== "PITR" && !dbRestoreTarget)
+                      || (dbRestoreType === "PITR" && !dbRestorePointInTime)
+                    }
+                    onClick={() => handleRunRestore(dbRestoreType === "SQL" ? "SQL" : dbRestoreType === "PHYSICAL" ? "PHYSICAL" : "PITR")}
+                  >
+                    {runningRestore === "SQL" || runningRestore === "PHYSICAL" || runningRestore === "PITR"
+                      ? (en ? "Running DB Restore..." : "DB 복구 실행 중...")
+                      : (dbRestoreType === "SQL"
+                        ? (en ? "Manual SQL Restore" : "SQL 수동 복구")
+                        : dbRestoreType === "PHYSICAL"
+                          ? (en ? "Run Physical Restore" : "물리 복구 실행")
+                          : (en ? "Run Point-In-Time Restore" : "시점 복구 실행"))}
+                  </MemberButton>
+                </MemberPageActions>
+              </section>
+            </div>
+          </section>
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_1fr] mb-6">
             {renderVersions}
             {renderExecutions}
           </div>
-          {renderPlaybooks}
+          <>
+            {renderPlaybooks}
+            {playbookPage.totalPages > 1 ? <MemberPagination currentPage={playbookPage.currentPage} onPageChange={(pageNumber) => movePage("playbook", pageNumber)} totalPages={playbookPage.totalPages} /> : null}
+          </>
         </>
       ) : null}
 
       {preset.pageKey === "version-management" ? (
         <>
+          <section className="gov-card mb-6" data-help-id="backup-version-filters">
+            <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
+              <h3 className="text-lg font-bold">{en ? "Version Search" : "버전 검색"}</h3>
+              <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Search by version ID, operator, memo, and Git/DB changes." : "버전 ID, 저장자, 메모, Git/DB 변경 여부로 검색합니다."}</p>
+            </div>
+            <div className="grid grid-cols-1 gap-4 px-6 py-6 lg:grid-cols-[2fr_1fr_auto]">
+              <BackupField label={en ? "Keyword" : "검색어"} value={versionSearchKeyword} onChange={setVersionSearchKeyword} placeholder={en ? "version / saved by / memo" : "버전 / 저장자 / 메모"} />
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{en ? "Change Filter" : "변경 필터"}</span>
+                <select className="gov-input" value={versionFilter} onChange={(event) => setVersionFilter(event.target.value as "ALL" | "GIT_CHANGED" | "DB_CHANGED")}>
+                  <option value="ALL">{en ? "All" : "전체"}</option>
+                  <option value="GIT_CHANGED">{en ? "Git Changed" : "Git 변경"}</option>
+                  <option value="DB_CHANGED">{en ? "DB Changed" : "DB 변경"}</option>
+                </select>
+              </label>
+              <div className="flex items-end">
+                <MemberButton type="button" variant="secondary" onClick={() => {
+                  setVersionSearchKeyword("");
+                  setVersionFilter("ALL");
+                }}>
+                  {en ? "Reset" : "초기화"}
+                </MemberButton>
+              </div>
+            </div>
+          </section>
           <div className="mb-6">{renderVersions}</div>
+          <div className="mb-6">{renderVersionDetails}</div>
           <div className="mb-6">{renderExecutions}</div>
-          {renderPlaybooks}
+          <>
+            {renderPlaybooks}
+            {playbookPage.totalPages > 1 ? <MemberPagination currentPage={playbookPage.currentPage} onPageChange={(pageNumber) => movePage("playbook", pageNumber)} totalPages={playbookPage.totalPages} /> : null}
+          </>
         </>
       ) : null}
     </AdminPageShell>

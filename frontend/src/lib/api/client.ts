@@ -1326,6 +1326,10 @@ export type BackupConfigPagePayload = Record<string, unknown> & {
   backupExecutionRows?: Array<Record<string, string>>;
   backupVersionRows?: Array<Record<string, string>>;
   backupGitPrecheckRows?: Array<Record<string, string>>;
+  backupRestoreGitRows?: Array<Record<string, string>>;
+  backupRestoreSqlRows?: Array<Record<string, string>>;
+  backupRestorePhysicalRows?: Array<Record<string, string>>;
+  backupRestorePitrInfo?: Record<string, string>;
   backupRecoveryPlaybooks?: Array<Record<string, string>>;
   backupCurrentJob?: Record<string, unknown> | null;
   backupRecentJobs?: Array<Record<string, unknown>>;
@@ -3031,7 +3035,44 @@ export async function saveBackupConfig(payload: Record<string, string>) {
   return body;
 }
 
-export async function runBackupExecution(executionType: "DB" | "GIT" | "GIT_PRECHECK" | "GIT_CLEANUP_SAFE" | "GIT_BUNDLE" | "GIT_COMMIT_AND_PUSH_BASE" | "GIT_PUSH_BASE" | "GIT_PUSH_RESTORE" | "GIT_TAG_PUSH") {
+export async function restoreBackupConfigVersion(versionId: string) {
+  const response = await fetch(buildLocalizedPath("/admin/system/version/restore", "/en/admin/system/version/restore"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify({ versionId })
+  });
+  const body = await readJsonResponse<BackupConfigPagePayload>(response);
+  if (!response.ok) throw new Error(body.backupConfigMessage || `Failed to restore backup version: ${response.status}`);
+  return body;
+}
+
+export async function runBackupExecution(
+  executionType:
+    | "DB"
+    | "GIT"
+    | "GIT_PRECHECK"
+    | "GIT_CLEANUP_SAFE"
+    | "GIT_BUNDLE"
+    | "GIT_COMMIT_AND_PUSH_BASE"
+    | "GIT_PUSH_BASE"
+    | "GIT_PUSH_RESTORE"
+    | "GIT_TAG_PUSH"
+    | "GIT_RESTORE_COMMIT"
+    | "DB_RESTORE_SQL"
+    | "DB_RESTORE_PHYSICAL"
+    | "DB_RESTORE_PITR",
+  options?: {
+    gitRestoreCommit?: string;
+    dbRestoreType?: string;
+    dbRestoreTarget?: string;
+    dbRestorePointInTime?: string;
+    sudoPassword?: string;
+  }
+) {
   const response = await fetch(buildLocalizedPath("/admin/system/backup/run", "/en/admin/system/backup/run"), {
     method: "POST",
     credentials: "include",
@@ -3039,7 +3080,14 @@ export async function runBackupExecution(executionType: "DB" | "GIT" | "GIT_PREC
       "Content-Type": "application/json",
       "X-Requested-With": "XMLHttpRequest"
     }),
-    body: JSON.stringify({ executionType })
+    body: JSON.stringify({
+      executionType,
+      gitRestoreCommit: options?.gitRestoreCommit || "",
+      dbRestoreType: options?.dbRestoreType || "",
+      dbRestoreTarget: options?.dbRestoreTarget || "",
+      dbRestorePointInTime: options?.dbRestorePointInTime || "",
+      sudoPassword: options?.sudoPassword || ""
+    })
   });
   const body = await readJsonResponse<BackupConfigPagePayload>(response);
   if (!response.ok) throw new Error(body.backupConfigMessage || `Failed to run backup execution: ${response.status}`);

@@ -297,18 +297,19 @@ public class AdminMemberPageModelAssembler {
                         : adminMember.getSbscrbDe().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
         Object adminAccountMode = model.getAttribute("adminAccountMode");
         model.addAttribute("adminAccountReadOnly", "detail".equalsIgnoreCase(adminAccountMode == null ? "" : adminAccountMode.toString()));
+        List<Map<String, Object>> permissionAuthorGroupSections = controller.buildAdminPermissionAuthorGroupSections(
+                adminMember,
+                isEn,
+                currentUserId);
         controller.populatePermissionEditorModel(
                 model,
-                authorityPagePayloadSupport.filterAuthorGroups(
-                        authGroupManageService.selectAuthorList(),
-                        "GENERAL",
-                        currentUserId,
-                        authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId)),
+                controller.flattenPermissionAuthorGroupSections(permissionAuthorGroupSections),
                 controller.safeString(authGroupManageService.selectAuthorCodeByUserId(adminMember.getEmplyrId())),
                 controller.safeString(adminMember.getEsntlId()),
                 effectiveFeatureCodes,
                 isEn,
                 currentUserId);
+        model.addAttribute("permissionAuthorGroupSections", permissionAuthorGroupSections);
     }
 
     public void populateAdminAccountCreatePageModel(Model model, boolean isEn) {

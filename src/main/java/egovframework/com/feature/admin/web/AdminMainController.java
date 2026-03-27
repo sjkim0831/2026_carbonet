@@ -4834,6 +4834,43 @@ public class AdminMainController {
         return deduplicatePermissionAuthorGroupSections(sections);
     }
 
+    List<Map<String, Object>> buildAdminPermissionAuthorGroupSections(
+            EmplyrInfo adminMember,
+            boolean isEn,
+            String currentUserId) throws Exception {
+        String insttId = safeString(adminMember == null ? null : adminMember.getInsttId());
+        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+        List<AuthorInfoVO> grantableAuthorGroups = filterAuthorGroups(
+                authGroupManageService.selectAuthorList(),
+                "GENERAL",
+                currentUserId,
+                currentUserAuthorCode);
+        String currentAssignedAuthorCode = adminMember == null
+                ? ""
+                : safeString(authGroupManageService.selectAuthorCodeByUserId(adminMember.getEmplyrId())).toUpperCase(Locale.ROOT);
+
+        if (ROLE_SYSTEM_MASTER.equals(currentAssignedAuthorCode)) {
+            return adminAuthorityPagePayloadSupport.buildAdminRoleLayerSections(grantableAuthorGroups, isEn);
+        }
+
+        InstitutionStatusVO institutionInfo = loadInstitutionInfoByInsttId(insttId);
+        String membershipType = normalizeMembershipCode(safeString(institutionInfo == null ? null : institutionInfo.getEntrprsSeCode()).toUpperCase(Locale.ROOT));
+        if (membershipType.isEmpty()) {
+            return adminAuthorityPagePayloadSupport.buildAdminRoleLayerSections(grantableAuthorGroups, isEn);
+        }
+
+        List<Map<String, Object>> sections = new ArrayList<>();
+        addPermissionAuthorGroupSection(
+                sections,
+                isEn ? "Company Type Based Admin Roles" : "회원사 타입 기준 관리자 권한 롤",
+                adminAuthorityPagePayloadSupport.filterAdminTypeScopedAuthorGroups(grantableAuthorGroups, membershipType));
+        addPermissionAuthorGroupSection(
+                sections,
+                isEn ? "General Admin Roles" : "일반 관리자 권한 롤",
+                adminAuthorityPagePayloadSupport.filterAdminGeneralAuthorGroups(grantableAuthorGroups));
+        return deduplicatePermissionAuthorGroupSections(sections);
+    }
+
     private List<AuthorInfoVO> filterMemberEditGeneralAuthorGroups(List<AuthorInfoVO> authorGroups) {
         if (authorGroups == null || authorGroups.isEmpty()) {
             return Collections.emptyList();

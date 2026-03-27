@@ -9,6 +9,7 @@ import egovframework.com.common.logging.RequestExecutionLogService;
 import egovframework.com.common.logging.RequestExecutionLogVO;
 import egovframework.com.common.service.ObservabilityQueryService;
 import egovframework.com.feature.admin.dto.request.AdminBackupConfigSaveRequestDTO;
+import egovframework.com.feature.admin.dto.request.AdminBackupVersionRestoreRequestDTO;
 import egovframework.com.feature.admin.dto.request.AdminBackupRunRequestDTO;
 import egovframework.com.feature.admin.dto.response.AdminAccessHistoryRowResponse;
 import egovframework.com.feature.admin.dto.response.AdminErrorLogRowResponse;
@@ -162,6 +163,10 @@ public class AdminObservabilityPageService {
 
     public Map<String, Object> saveBackupConfigPayload(AdminBackupConfigSaveRequestDTO requestBody, String actorId, boolean isEn) {
         return backupConfigManagementService.save(requestBody, actorId, isEn);
+    }
+
+    public Map<String, Object> restoreBackupConfigVersionPayload(AdminBackupVersionRestoreRequestDTO requestBody, String actorId, boolean isEn) {
+        return backupConfigManagementService.restoreVersion(requestBody == null ? null : requestBody.getVersionId(), actorId, isEn);
     }
 
     public Map<String, Object> runBackupPayload(AdminBackupRunRequestDTO requestBody, String actorId, boolean isEn) {
