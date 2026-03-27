@@ -397,13 +397,18 @@ public class AdminObservabilityController {
             HttpServletRequest request,
             Locale locale) {
         primeCsrfToken(request);
+        boolean isEn = isEnglishRequest(request, locale);
         CurrentUserContextService.CurrentUserContext currentUser = currentUserContextService.resolve(request);
-        ResponseEntity<Map<String, Object>> blocked = enforceSensitiveActionRateLimit(request, currentUser, "backup-run");
+        ResponseEntity<Map<String, Object>> blocked = enforceSensitiveActionRateLimit(
+                request,
+                currentUser,
+                resolveBackupRateLimitActionKey(requestBody),
+                isEn);
         if (blocked != null) {
             return blocked;
         }
         String actorId = safe(currentUser == null ? "" : currentUser.getUserId());
-        Map<String, Object> payload = adminObservabilityPageService.runBackupPayload(requestBody, actorId, isEnglishRequest(request, locale));
+        Map<String, Object> payload = adminObservabilityPageService.runBackupPayload(requestBody, actorId, isEn);
         recordBackupAudit(request, currentUser, "BACKUP_RUN", "BACKUP_EXECUTION", resolveBackupEntityType(requestBody),
                 resolveBackupEntityId(requestBody), "SUCCESS", resolveBackupPageId(requestBody),
                 "{\"executionType\":\"" + safe(requestBody == null ? "" : requestBody.getExecutionType()) + "\",\"dbRestoreType\":\""
@@ -669,6 +674,13 @@ public class AdminObservabilityController {
     private ResponseEntity<Map<String, Object>> enforceSensitiveActionRateLimit(HttpServletRequest request,
                                                                                 CurrentUserContextService.CurrentUserContext currentUser,
                                                                                 String actionKey) {
+        return enforceSensitiveActionRateLimit(request, currentUser, actionKey, false);
+    }
+
+    private ResponseEntity<Map<String, Object>> enforceSensitiveActionRateLimit(HttpServletRequest request,
+                                                                                CurrentUserContextService.CurrentUserContext currentUser,
+                                                                                String actionKey,
+                                                                                boolean isEn) {
         String actorId = safe(currentUser == null ? "" : currentUser.getUserId());
         String remoteAddr = safe(request == null ? "" : request.getRemoteAddr());
         String scope = "admin-sensitive:" + actionKey + ":" + (actorId.isEmpty() ? remoteAddr : actorId);
@@ -679,11 +691,25 @@ public class AdminObservabilityController {
         }
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("status", "rate_limited");
-        body.put("message", "Too many sensitive admin requests. Try again shortly.");
+        String message = isEn
+                ? "Too many sensitive admin requests. Try again shortly."
+                : "민감한 관리자 작업 요청이 너무 많습니다. 잠시 후 다시 시도하세요.";
+        body.put("message", message);
+        body.put("backupConfigMessage", message);
         body.put("retryAfterSeconds", decision.getRetryAfterSeconds());
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                 .header("Retry-After", String.valueOf(decision.getRetryAfterSeconds()))
                 .body(body);
+    }
+
+    private String resolveBackupRateLimitActionKey(AdminBackupRunRequestDTO requestBody) {
+        String executionType = safe(requestBody == null ? "" : requestBody.getExecutionType())
+                .trim()
+                .toUpperCase(Locale.ROOT);
+        if (executionType.isEmpty()) {
+            executionType = "UNKNOWN";
+        }
+        return "backup-run:" + executionType;
     }
 
     private void recordBackupAudit(HttpServletRequest request,

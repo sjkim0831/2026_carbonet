@@ -3667,7 +3667,14 @@ export async function runBackupExecution(
     })
   });
   const body = await readJsonResponse<BackupConfigPagePayload>(response);
-  if (!response.ok) throw new Error(body.backupConfigMessage || `Failed to run backup execution: ${response.status}`);
+  if (!response.ok) {
+    const fallbackMessage = (body as BackupConfigPagePayload & { message?: string; retryAfterSeconds?: number; }).message;
+    const retryAfterSeconds = Number((body as BackupConfigPagePayload & { retryAfterSeconds?: number; }).retryAfterSeconds || 0);
+    const retrySuffix = retryAfterSeconds > 0
+      ? ` (${retryAfterSeconds}s)`
+      : "";
+    throw new Error(body.backupConfigMessage || fallbackMessage || `Failed to run backup execution: ${response.status}${retrySuffix}`);
+  }
   return body;
 }
 
