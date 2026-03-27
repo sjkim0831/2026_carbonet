@@ -48,6 +48,7 @@ Behavior:
 - a standalone local launcher can now be installed under `/opt/util/codex`
 - the launcher provides:
   - workspace selection
+  - saved Codex login slot list with one-click activation
   - quick action buttons for common Carbonet commands
   - free-form Codex prompt execution through `codex exec`
   - free-form shell command execution

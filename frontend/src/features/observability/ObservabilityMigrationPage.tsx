@@ -7,6 +7,8 @@ import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import type { AuditEventSearchPayload, TraceEventSearchPayload } from "../../lib/api/client";
 import { fetchAuditEvents, fetchTraceEvents } from "../../lib/api/observability";
 import { fetchUnifiedLog, type UnifiedLogRow, type UnifiedLogSearchPayload, type UnifiedLogTab } from "../../lib/api/unifiedLog";
+import { CollectionResultPanel, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
+import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 import { AdminInput, AdminTable, MemberButton, MemberPagination, MemberSectionToolbar } from "../member/common";
 
 type ObservabilityTab = "audit" | "trace";
@@ -398,11 +400,17 @@ export function ObservabilityMigrationPage() {
         <ContextKeyStrip items={verifyRuntimeContextKeys} />
       }
     >
-      {error ? (
-        <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3">
-          <p className="text-sm text-red-700">조회 중 오류: {error}</p>
-        </section>
-      ) : null}
+      {error ? <PageStatusNotice tone="error">조회 중 오류: {error}</PageStatusNotice> : null}
+      <AdminWorkspacePageFrame>
+      <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <SummaryMetricCard title={isUnifiedLogPage ? (en ? "Unified Rows" : "통합 로그 건수") : (en ? "Visible Rows" : "조회 건수")} value={Number(isUnifiedLogPage ? unifiedPage?.totalCount || 0 : tab === "audit" ? auditPage?.totalCount || 0 : tracePage?.totalCount || 0).toLocaleString()} description={en ? "Current search total" : "현재 검색 총 건수"} />
+        <SummaryMetricCard title={en ? "Trace IDs" : "고유 traceId"} value={uniqueTraceCount.toLocaleString()} description={en ? "Visible trace groups" : "현재 화면의 trace 묶음"} />
+        <SummaryMetricCard title={en ? "Pages / APIs" : "화면 / API"} value={`${uniquePageCount.toLocaleString()} / ${uniqueApiCount.toLocaleString()}`} description={en ? "Observed pageId and apiId" : "관찰된 pageId와 apiId"} />
+        <SummaryMetricCard title={en ? "Error-like Events" : "오류 계열 이벤트"} value={errorLikeCount.toLocaleString()} description={en ? "Fail or error signals" : "실패 또는 오류 신호"} />
+      </section>
+      <CollectionResultPanel description={isUnifiedLogPage ? (en ? "Move between access, audit, error, and trace slices through one common log contract." : "하나의 공통 로그 계약으로 접속, 감사, 오류, 추적 슬라이스를 전환합니다.") : (en ? "Audit-first investigation stays linked to trace follow-up through shared IDs." : "감사 중심 조회와 추적 후속 확인을 공통 ID로 연결합니다.")} title={isUnifiedLogPage ? (en ? "Unified log workflow" : "통합 로그 운영 흐름") : (en ? "Observability workflow" : "관측 운영 흐름")}>
+        {en ? "Keep filters, tab changes, and selected event detail in one workspace so investigation context remains stable." : "필터, 탭 전환, 선택 이벤트 상세를 한 작업 공간에 두어 조사 컨텍스트가 끊기지 않게 유지합니다."}
+      </CollectionResultPanel>
 
       {isTraceFocusedUnifiedPage ? (
         <section className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4" data-help-id="unified-trace-summary">
@@ -1090,6 +1098,7 @@ export function ObservabilityMigrationPage() {
           <MemberPagination currentPage={traceCurrentPage} onPageChange={(pageNumber) => loadTrace({ pageIndex: pageNumber }).catch((err: Error) => setError(err.message))} totalPages={traceTotalPages} />
         ) : null}
       </div>
+      </AdminWorkspacePageFrame>
     </AdminPageShell>
   );
 }

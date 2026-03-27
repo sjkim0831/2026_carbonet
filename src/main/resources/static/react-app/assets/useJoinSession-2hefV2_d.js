@@ -1,1 +1,0 @@
-import{u as i,cF as r}from"./platformStudio-B3Spmxg_.js";function t(n={}){const{enabled:e=!0,onSuccess:o}=n;return i(async()=>{const s=await r();if(!s)throw new Error("Join session is unavailable");return s},[],{enabled:e,onSuccess:o})}export{t as u};

@@ -6,8 +6,8 @@ import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { stringOf, submitFormRequest } from "../admin-system/adminSystemShared";
 import { ADMIN_BUTTON_LABELS } from "../admin-ui/labels";
-import { GridToolbar, MemberButton } from "../admin-ui/common";
-import { AdminEditPageFrame } from "../admin-ui/pageFrames";
+import { AdminInput, AdminSelect, AdminTable, CollectionResultPanel, GridToolbar, MemberButton, PageStatusNotice, SummaryMetricCard, WarningPanel } from "../admin-ui/common";
+import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 
 type Filters = {
   menuType: string;
@@ -88,23 +88,30 @@ export function FunctionManagementMigrationPage() {
       subtitle={en ? "Connect feature codes to pages and authority mapping targets." : "COMTNMENUINFO 기준 페이지에 기능 코드를 연결합니다. 이후 회원 수정 화면에서 기능 코드 기준 권한 매핑을 추가할 수 있도록 구성합니다."}
     >
       {pageState.error || actionError || page?.featureMgmtError ? (
-        <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <PageStatusNotice tone="error">
           {actionError || page?.featureMgmtError || pageState.error}
-        </section>
+        </PageStatusNotice>
       ) : null}
 
       {Number(page?.featureUnassignedCount || 0) > 0 ? (
-        <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <WarningPanel title={en ? "Authority review required" : "권한 검토 필요"}>
           <span className="font-bold">{Number(page?.featureUnassignedCount || 0)}</span>
           {en ? " features are not linked to any authority group yet." : "개 기능이 아직 어떤 권한 그룹에도 연결되지 않았습니다. 자동 부여 대신 권한 그룹 화면에서 검토 후 수동 반영하세요."}
-        </div>
+        </WarningPanel>
       ) : null}
 
-      <AdminEditPageFrame>
+      <AdminWorkspacePageFrame>
+      <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <SummaryMetricCard title={en ? "Feature Count" : "등록 기능 수"} value={Number(page?.featureTotalCount || 0)} description={en ? "All registered features" : "전체 등록 건수"} />
+        <SummaryMetricCard title={en ? "Authority Review" : "권한 검토 필요"} value={Number(page?.featureUnassignedCount || 0)} description={en ? "Not linked to any role" : "권한 그룹 미연결"} />
+        <SummaryMetricCard title={en ? "Visible Pages" : "대상 페이지 수"} value={featurePageOptions.length} description={en ? "Selectable page targets" : "선택 가능한 페이지"} />
+        <SummaryMetricCard title={en ? "Search Results" : "조회 결과"} value={featureRows.length} description={en ? "Current filter rows" : "현재 필터 기준"} />
+      </section>
       <section className="gov-card" data-help-id="function-management-register">
         <GridToolbar
           actions={<span className="material-symbols-outlined text-[var(--kr-gov-blue)]">extension</span>}
           className="mb-4"
+          meta={en ? "Register a global feature code and bind it to a managed page." : "전역 기능 코드를 등록하고 관리 대상 페이지에 연결합니다."}
           title={en ? "Register Feature" : "기능 등록"}
         />
 
@@ -112,51 +119,53 @@ export function FunctionManagementMigrationPage() {
           <input name="menuType" type="hidden" value={draft.menuType} />
           <div>
             <label className="gov-label" htmlFor="menuTypeDisplay">{en ? "Page Scope" : "화면 구분"}</label>
-            <select className="gov-select" id="menuTypeDisplay" value={draft.menuType} onChange={(event) => {
+            <AdminSelect id="menuTypeDisplay" value={draft.menuType} onChange={(event) => {
               const nextMenuType = event.target.value;
               setDraft((current) => ({ ...current, menuType: nextMenuType, searchMenuCode: "" }));
               setFilters((current) => ({ ...current, menuType: nextMenuType, searchMenuCode: "" }));
             }}>
               <option value="USER">{en ? "Home" : "홈"}</option>
               <option value="ADMIN">{en ? "Admin" : "관리자"}</option>
-            </select>
+            </AdminSelect>
           </div>
           <div className="xl:col-span-2">
             <label className="gov-label" htmlFor="menuCode">{en ? "Target Page" : "대상 페이지"}</label>
-            <select className="gov-select" id="menuCode" name="menuCode" defaultValue={draft.searchMenuCode}>
+            <AdminSelect id="menuCode" name="menuCode" defaultValue={draft.searchMenuCode}>
               <option value="">{en ? "Select" : "선택"}</option>
               {featurePageOptions.map((option) => (
                 <option key={stringOf(option, "menuCode")} value={stringOf(option, "menuCode")}>
                   {`${stringOf(option, "menuNm")} (${stringOf(option, "menuCode")})`}
                 </option>
               ))}
-            </select>
+            </AdminSelect>
           </div>
           <div>
             <label className="gov-label" htmlFor="featureCode">{en ? "Feature Code" : "기능 코드"}</label>
-            <input className="gov-input" id="featureCode" name="featureCode" placeholder="MENU_CREATE" />
+            <AdminInput id="featureCode" name="featureCode" placeholder="MENU_CREATE" />
           </div>
           <div>
             <label className="gov-label" htmlFor="featureNm">{en ? "Feature Name" : "기능명"}</label>
-            <input className="gov-input" id="featureNm" name="featureNm" placeholder={en ? "Create Menu" : "예: 메뉴 등록"} />
+            <AdminInput id="featureNm" name="featureNm" placeholder={en ? "Create Menu" : "예: 메뉴 등록"} />
           </div>
           <div>
             <label className="gov-label" htmlFor="featureNmEn">{en ? "Feature Name (EN)" : "영문 기능명"}</label>
-            <input className="gov-input" id="featureNmEn" name="featureNmEn" placeholder="Create Menu" />
+            <AdminInput id="featureNmEn" name="featureNmEn" placeholder="Create Menu" />
           </div>
           <div className="xl:col-span-4">
             <label className="gov-label" htmlFor="featureDc">{en ? "Description" : "기능 설명"}</label>
-            <input className="gov-input" id="featureDc" name="featureDc" placeholder={en ? "Feature description" : "회원 수정 화면의 권한 매핑 기준 설명"} />
+            <AdminInput id="featureDc" name="featureDc" placeholder={en ? "Feature description" : "회원 수정 화면의 권한 매핑 기준 설명"} />
           </div>
           <div>
             <label className="gov-label" htmlFor="useAt">{en ? "Use" : "사용 여부"}</label>
-            <select className="gov-select" defaultValue="Y" id="useAt" name="useAt">
+            <AdminSelect defaultValue="Y" id="useAt" name="useAt">
               <option value="Y">Y</option>
               <option value="N">N</option>
-            </select>
+            </AdminSelect>
           </div>
-          <div className="xl:col-span-6 rounded-[var(--kr-gov-radius)] border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-[var(--kr-gov-text-secondary)]">
-            {en ? "Feature codes are stored as globally unique values and reused in the member permission editor." : "기능 코드는 전역 고유값으로 저장됩니다. 이후 회원 수정 화면에서 회원별 기능 권한 테이블을 연결할 때 이 코드를 기준 키로 사용할 수 있습니다."}
+          <div className="xl:col-span-6">
+            <CollectionResultPanel description={en ? "Feature codes are reused as the shared key in member and authority editors." : "기능 코드는 회원/권한 편집 화면에서 공통 키로 재사용됩니다."} title={en ? "Shared governance rule" : "공통 거버넌스 규칙"}>
+              {en ? "Store feature codes as globally unique values and review role linkage after creation." : "기능 코드는 전역 고유값으로 저장하고, 등록 후 권한 그룹 연계를 별도로 검토해야 합니다."}
+            </CollectionResultPanel>
           </div>
           <div className="xl:col-span-6 flex justify-end gap-2">
             <MemberButton type="submit" variant="primary">{en ? "Add Feature" : ADMIN_BUTTON_LABELS.create}</MemberButton>
@@ -171,17 +180,6 @@ export function FunctionManagementMigrationPage() {
           title={en ? "Registered Features" : "등록 기능 목록"}
         />
 
-        <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-gray-50 px-4 py-3">
-            <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)] uppercase">{en ? "Feature Count" : "등록 기능 수"}</p>
-            <p className="mt-1 text-2xl font-black">{Number(page?.featureTotalCount || 0)}</p>
-          </div>
-          <div className="rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-3">
-            <p className="text-xs font-bold text-amber-700 uppercase">{en ? "Authority Review" : "권한 검토 필요"}</p>
-            <p className="mt-1 text-2xl font-black text-amber-900">{Number(page?.featureUnassignedCount || 0)}</p>
-          </div>
-        </div>
-
         <form className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4" onSubmit={(event) => {
           event.preventDefault();
           logGovernanceScope("ACTION", "function-management-search", {
@@ -193,25 +191,25 @@ export function FunctionManagementMigrationPage() {
         }}>
           <div>
             <label className="gov-label" htmlFor="searchMenuType">{en ? "Page Scope" : "화면 구분"}</label>
-            <select className="gov-select" id="searchMenuType" value={draft.menuType} onChange={(event) => setDraft((current) => ({ ...current, menuType: event.target.value, searchMenuCode: "" }))}>
+            <AdminSelect id="searchMenuType" value={draft.menuType} onChange={(event) => setDraft((current) => ({ ...current, menuType: event.target.value, searchMenuCode: "" }))}>
               <option value="USER">{en ? "Home" : "홈"}</option>
               <option value="ADMIN">{en ? "Admin" : "관리자"}</option>
-            </select>
+            </AdminSelect>
           </div>
           <div>
             <label className="gov-label" htmlFor="searchMenuCode">{en ? "Page" : "페이지"}</label>
-            <select className="gov-select" id="searchMenuCode" value={draft.searchMenuCode} onChange={(event) => setDraft((current) => ({ ...current, searchMenuCode: event.target.value }))}>
+            <AdminSelect id="searchMenuCode" value={draft.searchMenuCode} onChange={(event) => setDraft((current) => ({ ...current, searchMenuCode: event.target.value }))}>
               <option value="">{en ? "All" : "전체"}</option>
               {featurePageOptions.map((option) => (
                 <option key={stringOf(option, "menuCode")} value={stringOf(option, "menuCode")}>
                   {`${stringOf(option, "menuNm")} (${stringOf(option, "menuCode")})`}
                 </option>
               ))}
-            </select>
+            </AdminSelect>
           </div>
           <div>
             <label className="gov-label" htmlFor="searchKeyword">{en ? "Keyword" : "기능 검색"}</label>
-            <input className="gov-input" id="searchKeyword" placeholder={en ? "Feature code or name" : "기능 코드 또는 기능명"} value={draft.searchKeyword} onChange={(event) => setDraft((current) => ({ ...current, searchKeyword: event.target.value }))} />
+            <AdminInput id="searchKeyword" placeholder={en ? "Feature code or name" : "기능 코드 또는 기능명"} value={draft.searchKeyword} onChange={(event) => setDraft((current) => ({ ...current, searchKeyword: event.target.value }))} />
           </div>
           <div className="flex items-end gap-2">
             <MemberButton className="w-full" type="submit">{en ? "Search" : ADMIN_BUTTON_LABELS.search}</MemberButton>
@@ -225,7 +223,7 @@ export function FunctionManagementMigrationPage() {
         </form>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left border-collapse">
+          <AdminTable>
             <thead>
               <tr className="gov-table-header">
                 <th className="px-4 py-3">{en ? "Page" : "페이지"}</th>
@@ -276,10 +274,10 @@ export function FunctionManagementMigrationPage() {
                 );
               })}
             </tbody>
-          </table>
+          </AdminTable>
         </div>
       </section>
-      </AdminEditPageFrame>
+      </AdminWorkspacePageFrame>
     </AdminPageShell>
   );
 }

@@ -67,13 +67,6 @@ public class BackupConfigManagementService {
             "frontend/test-results",
             "frontend/.codex-state"
     );
-    private static final List<String> GIT_COMMIT_ALLOWED_PREFIXES = Arrays.asList(
-            ".gitignore",
-            "frontend/",
-            "src/main/java/",
-            "src/main/resources/static/react-app/",
-            "src/main/resources/egovframework/mapper/"
-    );
     private static final List<String> GIT_COMMIT_BLOCKED_PREFIXES = Arrays.asList(
             "data/backup-config/",
             "var/",
@@ -1335,15 +1328,15 @@ public class BackupConfigManagementService {
         report.statusEntries = readGitStatusEntries(repoPath, isEn);
         report.disallowedPaths = report.statusEntries.stream()
                 .map(entry -> entry.path)
-                .filter(path -> !isCommitAllowedPath(path))
+                .filter(this::isCommitBlockedPath)
                 .collect(Collectors.toList());
         if (!report.disallowedPaths.isEmpty()) {
-            throw new IllegalStateException((isEn ? "Disallowed local changes detected: " : "자동 커밋 금지 경로 변경이 감지되었습니다: ")
+            throw new IllegalStateException((isEn ? "Excluded local changes detected: " : "자동 커밋 제외 경로 변경이 감지되었습니다: ")
                     + String.join(", ", report.disallowedPaths));
         }
         report.allowedCommitPaths = report.statusEntries.stream()
                 .map(entry -> entry.path)
-                .filter(this::isCommitAllowedPath)
+                .filter(path -> !isCommitBlockedPath(path))
                 .distinct()
                 .collect(Collectors.toList());
         if (!report.allowedCommitPaths.isEmpty()) {
@@ -1618,18 +1611,13 @@ public class BackupConfigManagementService {
         return entries;
     }
 
-    private boolean isCommitAllowedPath(String path) {
+    private boolean isCommitBlockedPath(String path) {
         String normalized = safe(path);
         if (normalized.isEmpty()) {
-            return false;
+            return true;
         }
         for (String blockedPrefix : GIT_COMMIT_BLOCKED_PREFIXES) {
             if (normalized.equals(blockedPrefix) || normalized.startsWith(blockedPrefix)) {
-                return false;
-            }
-        }
-        for (String allowedPrefix : GIT_COMMIT_ALLOWED_PREFIXES) {
-            if (normalized.equals(allowedPrefix) || normalized.startsWith(allowedPrefix)) {
                 return true;
             }
         }

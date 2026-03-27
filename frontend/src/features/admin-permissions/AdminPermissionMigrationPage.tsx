@@ -5,10 +5,10 @@ import { PermissionButton } from "../../components/access/CanUse";
 import { buildLocalizedPath, getSearchParam } from "../../lib/navigation/runtime";
 import { AdminPermissionPagePayload, fetchAdminPermissionPage, fetchFrontendSession, FrontendSession, saveAdminPermission } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
-import { AdminCheckbox, AdminSelect, getMemberButtonClassName } from "../admin-ui/common";
+import { AdminCheckbox, AdminSelect, PageStatusNotice, SummaryMetricCard, WarningPanel, getMemberButtonClassName } from "../admin-ui/common";
 import { ADMIN_BUTTON_LABELS } from "../admin-ui/labels";
 import { GridToolbar, MemberActionBar } from "../admin-ui/common";
-import { AdminEditPageFrame } from "../admin-ui/pageFrames";
+import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 import { MemberStateCard } from "../member/sections";
 
 function text(page: AdminPermissionPagePayload | null, ko: string, en: string) {
@@ -111,22 +111,27 @@ export function AdminPermissionMigrationPage() {
       )}
       title={text(page, "관리자 사용자 추가", "Administrator Account")}
     >
-      {page?.adminPermissionError || error ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{String(page?.adminPermissionError || error)}</section> : null}
+      {page?.adminPermissionError || error ? <PageStatusNotice tone="error">{String(page?.adminPermissionError || error)}</PageStatusNotice> : null}
       {validationErrors.length > 0 ? (
-        <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          <p className="font-bold mb-1">{text(page, "입력값을 확인해 주세요.", "Please check the input values.")}</p>
+        <WarningPanel title={text(page, "입력값을 확인해 주세요.", "Please check the input values.")}>
           <ul className="list-disc pl-5 space-y-1">
             {validationErrors.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}
           </ul>
-        </section>
+        </WarningPanel>
       ) : null}
-      {page?.adminPermissionUpdated ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{text(page, "관리자 권한이 저장되었습니다.", "Administrator permissions have been saved.")}</section> : null}
-      {message ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{message}</section> : null}
+      {page?.adminPermissionUpdated ? <PageStatusNotice tone="success">{text(page, "관리자 권한이 저장되었습니다.", "Administrator permissions have been saved.")}</PageStatusNotice> : null}
+      {message ? <PageStatusNotice tone="success">{message}</PageStatusNotice> : null}
       {!!page && !page?.canViewAdminPermissionEdit ? (
         <MemberStateCard description={text(page, "편집 대상 관리자를 다시 조회하거나 현재 권한 범위를 확인해 주세요.", "Look up an administrator again or review the current permission scope.")} icon="lock" title={text(page, "권한이 없습니다.", "Permission denied.")} tone="warning" />
       ) : null}
       <CanView allowed={!!page?.canViewAdminPermissionEdit} fallback={null}>
-        <AdminEditPageFrame>
+        <AdminWorkspacePageFrame>
+        <section className="grid grid-cols-1 gap-3 xl:grid-cols-4">
+          <SummaryMetricCard title={text(page, "선택 권한 롤", "Selected role")} value={selectedAuthorName} description={text(page, "현재 기준 권한", "Current base authority")} />
+          <SummaryMetricCard title={text(page, "최종 권한 수", "Effective features")} value={featureCount} description={text(page, "관리자별 예외 반영", "Overrides applied")} />
+          <SummaryMetricCard title={text(page, "대상 메뉴 수", "Target menus")} value={pageCount} description={text(page, "권한 섹션 기준", "Permission sections")} />
+          <SummaryMetricCard title={text(page, "편집 상태", "Edit status")} value={readOnly ? text(page, "상세 모드", "Detail mode") : text(page, "편집 가능", "Editable")} description={readOnly ? text(page, "저장 비활성", "Save disabled") : text(page, "저장 가능", "Save enabled")} />
+        </section>
         <section className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] bg-white shadow-sm mb-6" data-help-id="admin-permission-summary">
           <GridToolbar
             actions={<span className="material-symbols-outlined text-[var(--kr-gov-blue)]">admin_panel_settings</span>}
@@ -237,7 +242,7 @@ export function AdminPermissionMigrationPage() {
           )}
           secondary={{ href: buildLocalizedPath("/admin/member/admin_list", "/en/admin/member/admin_list"), label: text(page, ADMIN_BUTTON_LABELS.list, "Back to list") }}
         />
-        </AdminEditPageFrame>
+        </AdminWorkspacePageFrame>
       </CanView>
     </AdminPageShell>
   );

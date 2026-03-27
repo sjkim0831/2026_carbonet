@@ -10,8 +10,8 @@
     "icon": "",
     "placeholder": "",
     "summary": "gov-input",
-    "routeCount": 19,
-    "instanceCount": 139,
+    "routeCount": 18,
+    "instanceCount": 136,
     "labels": [],
     "routes": [
       {
@@ -67,12 +67,6 @@
         "label": "이벤트 관리",
         "koPath": "/admin/system/event-management-console",
         "enPath": "/en/admin/system/event-management-console"
-      },
-      {
-        "routeId": "function-management",
-        "label": "기능 관리",
-        "koPath": "/admin/system/feature-management",
-        "enPath": "/en/admin/system/feature-management"
       },
       {
         "routeId": "full-stack-management",
@@ -408,57 +402,6 @@
           "label": "메뉴 통합 관리",
           "koPath": "/admin/system/environment-management",
           "enPath": "/en/admin/system/environment-management"
-        },
-        "componentType": "input",
-        "componentName": "input",
-        "variant": "",
-        "size": "",
-        "className": "gov-input",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-input"
-      },
-      {
-        "route": {
-          "routeId": "function-management",
-          "label": "기능 관리",
-          "koPath": "/admin/system/feature-management",
-          "enPath": "/en/admin/system/feature-management"
-        },
-        "componentType": "input",
-        "componentName": "input",
-        "variant": "",
-        "size": "",
-        "className": "gov-input",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-input"
-      },
-      {
-        "route": {
-          "routeId": "function-management",
-          "label": "기능 관리",
-          "koPath": "/admin/system/feature-management",
-          "enPath": "/en/admin/system/feature-management"
-        },
-        "componentType": "input",
-        "componentName": "input",
-        "variant": "",
-        "size": "",
-        "className": "gov-input",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-input"
-      },
-      {
-        "route": {
-          "routeId": "function-management",
-          "label": "기능 관리",
-          "koPath": "/admin/system/feature-management",
-          "enPath": "/en/admin/system/feature-management"
         },
         "componentType": "input",
         "componentName": "input",
@@ -6361,1363 +6304,6 @@
     ]
   },
   {
-    "key": "select:select:::gov-select::",
-    "styleGroupId": "SEL-select-plain-md-gov-select-noplace",
-    "componentType": "select",
-    "componentName": "select",
-    "variant": "",
-    "size": "",
-    "className": "gov-select",
-    "icon": "",
-    "placeholder": "",
-    "summary": "gov-select",
-    "routeCount": 21,
-    "instanceCount": 71,
-    "labels": [
-      "Y N",
-      "top right bottom left",
-      "focus warning success neutral",
-      "전체 회원사"
-    ],
-    "routes": [
-      {
-        "routeId": "auth-group",
-        "label": "권한 그룹",
-        "koPath": "/admin/auth/group",
-        "enPath": "/en/admin/auth/group"
-      },
-      {
-        "routeId": "member-register",
-        "label": "회원 등록",
-        "koPath": "/admin/member/register",
-        "enPath": "/en/admin/member/register"
-      },
-      {
-        "routeId": "member-security-history",
-        "label": "회원 접근 차단 이력",
-        "koPath": "/admin/member/security",
-        "enPath": "/en/admin/member/security"
-      },
-      {
-        "routeId": "api-management-console",
-        "label": "API 관리",
-        "koPath": "/admin/system/api-management-console",
-        "enPath": "/en/admin/system/api-management-console"
-      },
-      {
-        "routeId": "automation-studio",
-        "label": "자동화 스튜디오",
-        "koPath": "/admin/system/automation-studio",
-        "enPath": "/en/admin/system/automation-studio"
-      },
-      {
-        "routeId": "column-management-console",
-        "label": "컬럼 관리",
-        "koPath": "/admin/system/column-management-console",
-        "enPath": "/en/admin/system/column-management-console"
-      },
-      {
-        "routeId": "controller-management-console",
-        "label": "컨트롤러 관리",
-        "koPath": "/admin/system/controller-management-console",
-        "enPath": "/en/admin/system/controller-management-console"
-      },
-      {
-        "routeId": "db-table-management",
-        "label": "DB 테이블 관리",
-        "koPath": "/admin/system/db-table-management",
-        "enPath": "/en/admin/system/db-table-management"
-      },
-      {
-        "routeId": "environment-management",
-        "label": "메뉴 통합 관리",
-        "koPath": "/admin/system/environment-management",
-        "enPath": "/en/admin/system/environment-management"
-      },
-      {
-        "routeId": "event-management-console",
-        "label": "이벤트 관리",
-        "koPath": "/admin/system/event-management-console",
-        "enPath": "/en/admin/system/event-management-console"
-      },
-      {
-        "routeId": "function-management",
-        "label": "기능 관리",
-        "koPath": "/admin/system/feature-management",
-        "enPath": "/en/admin/system/feature-management"
-      },
-      {
-        "routeId": "full-stack-management",
-        "label": "풀스택 관리",
-        "koPath": "/admin/system/full-stack-management",
-        "enPath": "/en/admin/system/full-stack-management"
-      },
-      {
-        "routeId": "function-management-console",
-        "label": "함수 콘솔",
-        "koPath": "/admin/system/function-management-console",
-        "enPath": "/en/admin/system/function-management-console"
-      },
-      {
-        "routeId": "help-management",
-        "label": "도움말 운영",
-        "koPath": "/admin/system/help-management",
-        "enPath": "/en/admin/system/help-management"
-      },
-      {
-        "routeId": "menu-management",
-        "label": "메뉴 관리",
-        "koPath": "/admin/system/menu-management",
-        "enPath": "/en/admin/system/menu-management"
-      },
-      {
-        "routeId": "page-management",
-        "label": "화면 관리",
-        "koPath": "/admin/system/page-management",
-        "enPath": "/en/admin/system/page-management"
-      },
-      {
-        "routeId": "platform-studio",
-        "label": "플랫폼 스튜디오",
-        "koPath": "/admin/system/platform-studio",
-        "enPath": "/en/admin/system/platform-studio"
-      },
-      {
-        "routeId": "screen-elements-management",
-        "label": "화면 요소 관리",
-        "koPath": "/admin/system/screen-elements-management",
-        "enPath": "/en/admin/system/screen-elements-management"
-      },
-      {
-        "routeId": "security-history",
-        "label": "보안 이력",
-        "koPath": "/admin/system/security",
-        "enPath": "/en/admin/system/security"
-      },
-      {
-        "routeId": "sr-workbench",
-        "label": "SR 워크벤치",
-        "koPath": "/admin/system/sr-workbench",
-        "enPath": "/en/admin/system/sr-workbench"
-      },
-      {
-        "routeId": "wbs-management",
-        "label": "WBS 관리",
-        "koPath": "/admin/system/wbs-management",
-        "enPath": "/en/admin/system/wbs-management"
-      }
-    ],
-    "instances": [
-      {
-        "route": {
-          "routeId": "auth-group",
-          "label": "권한 그룹",
-          "koPath": "/admin/auth/group",
-          "enPath": "/en/admin/auth/group"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "environment-management",
-          "label": "메뉴 통합 관리",
-          "koPath": "/admin/system/environment-management",
-          "enPath": "/en/admin/system/environment-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "environment-management",
-          "label": "메뉴 통합 관리",
-          "koPath": "/admin/system/environment-management",
-          "enPath": "/en/admin/system/environment-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "environment-management",
-          "label": "메뉴 통합 관리",
-          "koPath": "/admin/system/environment-management",
-          "enPath": "/en/admin/system/environment-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "environment-management",
-          "label": "메뉴 통합 관리",
-          "koPath": "/admin/system/environment-management",
-          "enPath": "/en/admin/system/environment-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "environment-management",
-          "label": "메뉴 통합 관리",
-          "koPath": "/admin/system/environment-management",
-          "enPath": "/en/admin/system/environment-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "environment-management",
-          "label": "메뉴 통합 관리",
-          "koPath": "/admin/system/environment-management",
-          "enPath": "/en/admin/system/environment-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "environment-management",
-          "label": "메뉴 통합 관리",
-          "koPath": "/admin/system/environment-management",
-          "enPath": "/en/admin/system/environment-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "environment-management",
-          "label": "메뉴 통합 관리",
-          "koPath": "/admin/system/environment-management",
-          "enPath": "/en/admin/system/environment-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "environment-management",
-          "label": "메뉴 통합 관리",
-          "koPath": "/admin/system/environment-management",
-          "enPath": "/en/admin/system/environment-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "function-management",
-          "label": "기능 관리",
-          "koPath": "/admin/system/feature-management",
-          "enPath": "/en/admin/system/feature-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "function-management",
-          "label": "기능 관리",
-          "koPath": "/admin/system/feature-management",
-          "enPath": "/en/admin/system/feature-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "function-management",
-          "label": "기능 관리",
-          "koPath": "/admin/system/feature-management",
-          "enPath": "/en/admin/system/feature-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "Y N",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "function-management",
-          "label": "기능 관리",
-          "koPath": "/admin/system/feature-management",
-          "enPath": "/en/admin/system/feature-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "function-management",
-          "label": "기능 관리",
-          "koPath": "/admin/system/feature-management",
-          "enPath": "/en/admin/system/feature-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "help-management",
-          "label": "도움말 운영",
-          "koPath": "/admin/system/help-management",
-          "enPath": "/en/admin/system/help-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "help-management",
-          "label": "도움말 운영",
-          "koPath": "/admin/system/help-management",
-          "enPath": "/en/admin/system/help-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "Y N",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "help-management",
-          "label": "도움말 운영",
-          "koPath": "/admin/system/help-management",
-          "enPath": "/en/admin/system/help-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "Y N",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "help-management",
-          "label": "도움말 운영",
-          "koPath": "/admin/system/help-management",
-          "enPath": "/en/admin/system/help-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "top right bottom left",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "help-management",
-          "label": "도움말 운영",
-          "koPath": "/admin/system/help-management",
-          "enPath": "/en/admin/system/help-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "focus warning success neutral",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "help-management",
-          "label": "도움말 운영",
-          "koPath": "/admin/system/help-management",
-          "enPath": "/en/admin/system/help-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "help-management",
-          "label": "도움말 운영",
-          "koPath": "/admin/system/help-management",
-          "enPath": "/en/admin/system/help-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "help-management",
-          "label": "도움말 운영",
-          "koPath": "/admin/system/help-management",
-          "enPath": "/en/admin/system/help-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "help-management",
-          "label": "도움말 운영",
-          "koPath": "/admin/system/help-management",
-          "enPath": "/en/admin/system/help-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "member-register",
-          "label": "회원 등록",
-          "koPath": "/admin/member/register",
-          "enPath": "/en/admin/member/register"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "menu-management",
-          "label": "메뉴 관리",
-          "koPath": "/admin/system/menu-management",
-          "enPath": "/en/admin/system/menu-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "full-stack-management",
-          "label": "풀스택 관리",
-          "koPath": "/admin/system/full-stack-management",
-          "enPath": "/en/admin/system/full-stack-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "menu-management",
-          "label": "메뉴 관리",
-          "koPath": "/admin/system/menu-management",
-          "enPath": "/en/admin/system/menu-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "full-stack-management",
-          "label": "풀스택 관리",
-          "koPath": "/admin/system/full-stack-management",
-          "enPath": "/en/admin/system/full-stack-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "menu-management",
-          "label": "메뉴 관리",
-          "koPath": "/admin/system/menu-management",
-          "enPath": "/en/admin/system/menu-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "full-stack-management",
-          "label": "풀스택 관리",
-          "koPath": "/admin/system/full-stack-management",
-          "enPath": "/en/admin/system/full-stack-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "menu-management",
-          "label": "메뉴 관리",
-          "koPath": "/admin/system/menu-management",
-          "enPath": "/en/admin/system/menu-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "full-stack-management",
-          "label": "풀스택 관리",
-          "koPath": "/admin/system/full-stack-management",
-          "enPath": "/en/admin/system/full-stack-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "menu-management",
-          "label": "메뉴 관리",
-          "koPath": "/admin/system/menu-management",
-          "enPath": "/en/admin/system/menu-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "full-stack-management",
-          "label": "풀스택 관리",
-          "koPath": "/admin/system/full-stack-management",
-          "enPath": "/en/admin/system/full-stack-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "menu-management",
-          "label": "메뉴 관리",
-          "koPath": "/admin/system/menu-management",
-          "enPath": "/en/admin/system/menu-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "full-stack-management",
-          "label": "풀스택 관리",
-          "koPath": "/admin/system/full-stack-management",
-          "enPath": "/en/admin/system/full-stack-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "menu-management",
-          "label": "메뉴 관리",
-          "koPath": "/admin/system/menu-management",
-          "enPath": "/en/admin/system/menu-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "full-stack-management",
-          "label": "풀스택 관리",
-          "koPath": "/admin/system/full-stack-management",
-          "enPath": "/en/admin/system/full-stack-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "menu-management",
-          "label": "메뉴 관리",
-          "koPath": "/admin/system/menu-management",
-          "enPath": "/en/admin/system/menu-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "full-stack-management",
-          "label": "풀스택 관리",
-          "koPath": "/admin/system/full-stack-management",
-          "enPath": "/en/admin/system/full-stack-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "page-management",
-          "label": "화면 관리",
-          "koPath": "/admin/system/page-management",
-          "enPath": "/en/admin/system/page-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "page-management",
-          "label": "화면 관리",
-          "koPath": "/admin/system/page-management",
-          "enPath": "/en/admin/system/page-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "page-management",
-          "label": "화면 관리",
-          "koPath": "/admin/system/page-management",
-          "enPath": "/en/admin/system/page-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "page-management",
-          "label": "화면 관리",
-          "koPath": "/admin/system/page-management",
-          "enPath": "/en/admin/system/page-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "page-management",
-          "label": "화면 관리",
-          "koPath": "/admin/system/page-management",
-          "enPath": "/en/admin/system/page-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "page-management",
-          "label": "화면 관리",
-          "koPath": "/admin/system/page-management",
-          "enPath": "/en/admin/system/page-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "page-management",
-          "label": "화면 관리",
-          "koPath": "/admin/system/page-management",
-          "enPath": "/en/admin/system/page-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "platform-studio",
-          "label": "플랫폼 스튜디오",
-          "koPath": "/admin/system/platform-studio",
-          "enPath": "/en/admin/system/platform-studio"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "Y N",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "screen-elements-management",
-          "label": "화면 요소 관리",
-          "koPath": "/admin/system/screen-elements-management",
-          "enPath": "/en/admin/system/screen-elements-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "Y N",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "event-management-console",
-          "label": "이벤트 관리",
-          "koPath": "/admin/system/event-management-console",
-          "enPath": "/en/admin/system/event-management-console"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "Y N",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "function-management-console",
-          "label": "함수 콘솔",
-          "koPath": "/admin/system/function-management-console",
-          "enPath": "/en/admin/system/function-management-console"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "Y N",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "api-management-console",
-          "label": "API 관리",
-          "koPath": "/admin/system/api-management-console",
-          "enPath": "/en/admin/system/api-management-console"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "Y N",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "controller-management-console",
-          "label": "컨트롤러 관리",
-          "koPath": "/admin/system/controller-management-console",
-          "enPath": "/en/admin/system/controller-management-console"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "Y N",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "db-table-management",
-          "label": "DB 테이블 관리",
-          "koPath": "/admin/system/db-table-management",
-          "enPath": "/en/admin/system/db-table-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "Y N",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "column-management-console",
-          "label": "컬럼 관리",
-          "koPath": "/admin/system/column-management-console",
-          "enPath": "/en/admin/system/column-management-console"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "Y N",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "automation-studio",
-          "label": "자동화 스튜디오",
-          "koPath": "/admin/system/automation-studio",
-          "enPath": "/en/admin/system/automation-studio"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "Y N",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "member-security-history",
-          "label": "회원 접근 차단 이력",
-          "koPath": "/admin/member/security",
-          "enPath": "/en/admin/member/security"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "전체 회원사",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "security-history",
-          "label": "보안 이력",
-          "koPath": "/admin/system/security",
-          "enPath": "/en/admin/system/security"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "전체 회원사",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "member-security-history",
-          "label": "회원 접근 차단 이력",
-          "koPath": "/admin/member/security",
-          "enPath": "/en/admin/member/security"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "security-history",
-          "label": "보안 이력",
-          "koPath": "/admin/system/security",
-          "enPath": "/en/admin/system/security"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "member-security-history",
-          "label": "회원 접근 차단 이력",
-          "koPath": "/admin/member/security",
-          "enPath": "/en/admin/member/security"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "security-history",
-          "label": "보안 이력",
-          "koPath": "/admin/system/security",
-          "enPath": "/en/admin/system/security"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "member-security-history",
-          "label": "회원 접근 차단 이력",
-          "koPath": "/admin/member/security",
-          "enPath": "/en/admin/member/security"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "security-history",
-          "label": "보안 이력",
-          "koPath": "/admin/system/security",
-          "enPath": "/en/admin/system/security"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "sr-workbench",
-          "label": "SR 워크벤치",
-          "koPath": "/admin/system/sr-workbench",
-          "enPath": "/en/admin/system/sr-workbench"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "sr-workbench",
-          "label": "SR 워크벤치",
-          "koPath": "/admin/system/sr-workbench",
-          "enPath": "/en/admin/system/sr-workbench"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "sr-workbench",
-          "label": "SR 워크벤치",
-          "koPath": "/admin/system/sr-workbench",
-          "enPath": "/en/admin/system/sr-workbench"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "sr-workbench",
-          "label": "SR 워크벤치",
-          "koPath": "/admin/system/sr-workbench",
-          "enPath": "/en/admin/system/sr-workbench"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "wbs-management",
-          "label": "WBS 관리",
-          "koPath": "/admin/system/wbs-management",
-          "enPath": "/en/admin/system/wbs-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      },
-      {
-        "route": {
-          "routeId": "wbs-management",
-          "label": "WBS 관리",
-          "koPath": "/admin/system/wbs-management",
-          "enPath": "/en/admin/system/wbs-management"
-        },
-        "componentType": "select",
-        "componentName": "select",
-        "variant": "",
-        "size": "",
-        "className": "gov-select",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": "gov-select"
-      }
-    ]
-  },
-  {
     "key": "button:MemberButton:secondary::::",
     "styleGroupId": "BTN-memberbutton-secondary-md-plain-noplace",
     "componentType": "button",
@@ -9005,6 +7591,1272 @@
         "label": "",
         "placeholder": "",
         "summary": "secondary"
+      }
+    ]
+  },
+  {
+    "key": "select:select:::gov-select::",
+    "styleGroupId": "SEL-select-plain-md-gov-select-noplace",
+    "componentType": "select",
+    "componentName": "select",
+    "variant": "",
+    "size": "",
+    "className": "gov-select",
+    "icon": "",
+    "placeholder": "",
+    "summary": "gov-select",
+    "routeCount": 20,
+    "instanceCount": 66,
+    "labels": [
+      "Y N",
+      "top right bottom left",
+      "focus warning success neutral",
+      "전체 회원사"
+    ],
+    "routes": [
+      {
+        "routeId": "auth-group",
+        "label": "권한 그룹",
+        "koPath": "/admin/auth/group",
+        "enPath": "/en/admin/auth/group"
+      },
+      {
+        "routeId": "member-register",
+        "label": "회원 등록",
+        "koPath": "/admin/member/register",
+        "enPath": "/en/admin/member/register"
+      },
+      {
+        "routeId": "member-security-history",
+        "label": "회원 접근 차단 이력",
+        "koPath": "/admin/member/security",
+        "enPath": "/en/admin/member/security"
+      },
+      {
+        "routeId": "api-management-console",
+        "label": "API 관리",
+        "koPath": "/admin/system/api-management-console",
+        "enPath": "/en/admin/system/api-management-console"
+      },
+      {
+        "routeId": "automation-studio",
+        "label": "자동화 스튜디오",
+        "koPath": "/admin/system/automation-studio",
+        "enPath": "/en/admin/system/automation-studio"
+      },
+      {
+        "routeId": "column-management-console",
+        "label": "컬럼 관리",
+        "koPath": "/admin/system/column-management-console",
+        "enPath": "/en/admin/system/column-management-console"
+      },
+      {
+        "routeId": "controller-management-console",
+        "label": "컨트롤러 관리",
+        "koPath": "/admin/system/controller-management-console",
+        "enPath": "/en/admin/system/controller-management-console"
+      },
+      {
+        "routeId": "db-table-management",
+        "label": "DB 테이블 관리",
+        "koPath": "/admin/system/db-table-management",
+        "enPath": "/en/admin/system/db-table-management"
+      },
+      {
+        "routeId": "environment-management",
+        "label": "메뉴 통합 관리",
+        "koPath": "/admin/system/environment-management",
+        "enPath": "/en/admin/system/environment-management"
+      },
+      {
+        "routeId": "event-management-console",
+        "label": "이벤트 관리",
+        "koPath": "/admin/system/event-management-console",
+        "enPath": "/en/admin/system/event-management-console"
+      },
+      {
+        "routeId": "full-stack-management",
+        "label": "풀스택 관리",
+        "koPath": "/admin/system/full-stack-management",
+        "enPath": "/en/admin/system/full-stack-management"
+      },
+      {
+        "routeId": "function-management-console",
+        "label": "함수 콘솔",
+        "koPath": "/admin/system/function-management-console",
+        "enPath": "/en/admin/system/function-management-console"
+      },
+      {
+        "routeId": "help-management",
+        "label": "도움말 운영",
+        "koPath": "/admin/system/help-management",
+        "enPath": "/en/admin/system/help-management"
+      },
+      {
+        "routeId": "menu-management",
+        "label": "메뉴 관리",
+        "koPath": "/admin/system/menu-management",
+        "enPath": "/en/admin/system/menu-management"
+      },
+      {
+        "routeId": "page-management",
+        "label": "화면 관리",
+        "koPath": "/admin/system/page-management",
+        "enPath": "/en/admin/system/page-management"
+      },
+      {
+        "routeId": "platform-studio",
+        "label": "플랫폼 스튜디오",
+        "koPath": "/admin/system/platform-studio",
+        "enPath": "/en/admin/system/platform-studio"
+      },
+      {
+        "routeId": "screen-elements-management",
+        "label": "화면 요소 관리",
+        "koPath": "/admin/system/screen-elements-management",
+        "enPath": "/en/admin/system/screen-elements-management"
+      },
+      {
+        "routeId": "security-history",
+        "label": "보안 이력",
+        "koPath": "/admin/system/security",
+        "enPath": "/en/admin/system/security"
+      },
+      {
+        "routeId": "sr-workbench",
+        "label": "SR 워크벤치",
+        "koPath": "/admin/system/sr-workbench",
+        "enPath": "/en/admin/system/sr-workbench"
+      },
+      {
+        "routeId": "wbs-management",
+        "label": "WBS 관리",
+        "koPath": "/admin/system/wbs-management",
+        "enPath": "/en/admin/system/wbs-management"
+      }
+    ],
+    "instances": [
+      {
+        "route": {
+          "routeId": "auth-group",
+          "label": "권한 그룹",
+          "koPath": "/admin/auth/group",
+          "enPath": "/en/admin/auth/group"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "environment-management",
+          "label": "메뉴 통합 관리",
+          "koPath": "/admin/system/environment-management",
+          "enPath": "/en/admin/system/environment-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "environment-management",
+          "label": "메뉴 통합 관리",
+          "koPath": "/admin/system/environment-management",
+          "enPath": "/en/admin/system/environment-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "environment-management",
+          "label": "메뉴 통합 관리",
+          "koPath": "/admin/system/environment-management",
+          "enPath": "/en/admin/system/environment-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "environment-management",
+          "label": "메뉴 통합 관리",
+          "koPath": "/admin/system/environment-management",
+          "enPath": "/en/admin/system/environment-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "environment-management",
+          "label": "메뉴 통합 관리",
+          "koPath": "/admin/system/environment-management",
+          "enPath": "/en/admin/system/environment-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "environment-management",
+          "label": "메뉴 통합 관리",
+          "koPath": "/admin/system/environment-management",
+          "enPath": "/en/admin/system/environment-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "environment-management",
+          "label": "메뉴 통합 관리",
+          "koPath": "/admin/system/environment-management",
+          "enPath": "/en/admin/system/environment-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "environment-management",
+          "label": "메뉴 통합 관리",
+          "koPath": "/admin/system/environment-management",
+          "enPath": "/en/admin/system/environment-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "environment-management",
+          "label": "메뉴 통합 관리",
+          "koPath": "/admin/system/environment-management",
+          "enPath": "/en/admin/system/environment-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "help-management",
+          "label": "도움말 운영",
+          "koPath": "/admin/system/help-management",
+          "enPath": "/en/admin/system/help-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "help-management",
+          "label": "도움말 운영",
+          "koPath": "/admin/system/help-management",
+          "enPath": "/en/admin/system/help-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "Y N",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "help-management",
+          "label": "도움말 운영",
+          "koPath": "/admin/system/help-management",
+          "enPath": "/en/admin/system/help-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "Y N",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "help-management",
+          "label": "도움말 운영",
+          "koPath": "/admin/system/help-management",
+          "enPath": "/en/admin/system/help-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "top right bottom left",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "help-management",
+          "label": "도움말 운영",
+          "koPath": "/admin/system/help-management",
+          "enPath": "/en/admin/system/help-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "focus warning success neutral",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "help-management",
+          "label": "도움말 운영",
+          "koPath": "/admin/system/help-management",
+          "enPath": "/en/admin/system/help-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "help-management",
+          "label": "도움말 운영",
+          "koPath": "/admin/system/help-management",
+          "enPath": "/en/admin/system/help-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "help-management",
+          "label": "도움말 운영",
+          "koPath": "/admin/system/help-management",
+          "enPath": "/en/admin/system/help-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "help-management",
+          "label": "도움말 운영",
+          "koPath": "/admin/system/help-management",
+          "enPath": "/en/admin/system/help-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "member-register",
+          "label": "회원 등록",
+          "koPath": "/admin/member/register",
+          "enPath": "/en/admin/member/register"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "menu-management",
+          "label": "메뉴 관리",
+          "koPath": "/admin/system/menu-management",
+          "enPath": "/en/admin/system/menu-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "full-stack-management",
+          "label": "풀스택 관리",
+          "koPath": "/admin/system/full-stack-management",
+          "enPath": "/en/admin/system/full-stack-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "menu-management",
+          "label": "메뉴 관리",
+          "koPath": "/admin/system/menu-management",
+          "enPath": "/en/admin/system/menu-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "full-stack-management",
+          "label": "풀스택 관리",
+          "koPath": "/admin/system/full-stack-management",
+          "enPath": "/en/admin/system/full-stack-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "menu-management",
+          "label": "메뉴 관리",
+          "koPath": "/admin/system/menu-management",
+          "enPath": "/en/admin/system/menu-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "full-stack-management",
+          "label": "풀스택 관리",
+          "koPath": "/admin/system/full-stack-management",
+          "enPath": "/en/admin/system/full-stack-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "menu-management",
+          "label": "메뉴 관리",
+          "koPath": "/admin/system/menu-management",
+          "enPath": "/en/admin/system/menu-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "full-stack-management",
+          "label": "풀스택 관리",
+          "koPath": "/admin/system/full-stack-management",
+          "enPath": "/en/admin/system/full-stack-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "menu-management",
+          "label": "메뉴 관리",
+          "koPath": "/admin/system/menu-management",
+          "enPath": "/en/admin/system/menu-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "full-stack-management",
+          "label": "풀스택 관리",
+          "koPath": "/admin/system/full-stack-management",
+          "enPath": "/en/admin/system/full-stack-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "menu-management",
+          "label": "메뉴 관리",
+          "koPath": "/admin/system/menu-management",
+          "enPath": "/en/admin/system/menu-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "full-stack-management",
+          "label": "풀스택 관리",
+          "koPath": "/admin/system/full-stack-management",
+          "enPath": "/en/admin/system/full-stack-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "menu-management",
+          "label": "메뉴 관리",
+          "koPath": "/admin/system/menu-management",
+          "enPath": "/en/admin/system/menu-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "full-stack-management",
+          "label": "풀스택 관리",
+          "koPath": "/admin/system/full-stack-management",
+          "enPath": "/en/admin/system/full-stack-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "menu-management",
+          "label": "메뉴 관리",
+          "koPath": "/admin/system/menu-management",
+          "enPath": "/en/admin/system/menu-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "full-stack-management",
+          "label": "풀스택 관리",
+          "koPath": "/admin/system/full-stack-management",
+          "enPath": "/en/admin/system/full-stack-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "page-management",
+          "label": "화면 관리",
+          "koPath": "/admin/system/page-management",
+          "enPath": "/en/admin/system/page-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "page-management",
+          "label": "화면 관리",
+          "koPath": "/admin/system/page-management",
+          "enPath": "/en/admin/system/page-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "page-management",
+          "label": "화면 관리",
+          "koPath": "/admin/system/page-management",
+          "enPath": "/en/admin/system/page-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "page-management",
+          "label": "화면 관리",
+          "koPath": "/admin/system/page-management",
+          "enPath": "/en/admin/system/page-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "page-management",
+          "label": "화면 관리",
+          "koPath": "/admin/system/page-management",
+          "enPath": "/en/admin/system/page-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "page-management",
+          "label": "화면 관리",
+          "koPath": "/admin/system/page-management",
+          "enPath": "/en/admin/system/page-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "page-management",
+          "label": "화면 관리",
+          "koPath": "/admin/system/page-management",
+          "enPath": "/en/admin/system/page-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "platform-studio",
+          "label": "플랫폼 스튜디오",
+          "koPath": "/admin/system/platform-studio",
+          "enPath": "/en/admin/system/platform-studio"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "Y N",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "screen-elements-management",
+          "label": "화면 요소 관리",
+          "koPath": "/admin/system/screen-elements-management",
+          "enPath": "/en/admin/system/screen-elements-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "Y N",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "event-management-console",
+          "label": "이벤트 관리",
+          "koPath": "/admin/system/event-management-console",
+          "enPath": "/en/admin/system/event-management-console"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "Y N",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "function-management-console",
+          "label": "함수 콘솔",
+          "koPath": "/admin/system/function-management-console",
+          "enPath": "/en/admin/system/function-management-console"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "Y N",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "api-management-console",
+          "label": "API 관리",
+          "koPath": "/admin/system/api-management-console",
+          "enPath": "/en/admin/system/api-management-console"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "Y N",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "controller-management-console",
+          "label": "컨트롤러 관리",
+          "koPath": "/admin/system/controller-management-console",
+          "enPath": "/en/admin/system/controller-management-console"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "Y N",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "db-table-management",
+          "label": "DB 테이블 관리",
+          "koPath": "/admin/system/db-table-management",
+          "enPath": "/en/admin/system/db-table-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "Y N",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "column-management-console",
+          "label": "컬럼 관리",
+          "koPath": "/admin/system/column-management-console",
+          "enPath": "/en/admin/system/column-management-console"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "Y N",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "automation-studio",
+          "label": "자동화 스튜디오",
+          "koPath": "/admin/system/automation-studio",
+          "enPath": "/en/admin/system/automation-studio"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "Y N",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "member-security-history",
+          "label": "회원 접근 차단 이력",
+          "koPath": "/admin/member/security",
+          "enPath": "/en/admin/member/security"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "전체 회원사",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "security-history",
+          "label": "보안 이력",
+          "koPath": "/admin/system/security",
+          "enPath": "/en/admin/system/security"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "전체 회원사",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "member-security-history",
+          "label": "회원 접근 차단 이력",
+          "koPath": "/admin/member/security",
+          "enPath": "/en/admin/member/security"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "security-history",
+          "label": "보안 이력",
+          "koPath": "/admin/system/security",
+          "enPath": "/en/admin/system/security"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "member-security-history",
+          "label": "회원 접근 차단 이력",
+          "koPath": "/admin/member/security",
+          "enPath": "/en/admin/member/security"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "security-history",
+          "label": "보안 이력",
+          "koPath": "/admin/system/security",
+          "enPath": "/en/admin/system/security"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "member-security-history",
+          "label": "회원 접근 차단 이력",
+          "koPath": "/admin/member/security",
+          "enPath": "/en/admin/member/security"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "security-history",
+          "label": "보안 이력",
+          "koPath": "/admin/system/security",
+          "enPath": "/en/admin/system/security"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "sr-workbench",
+          "label": "SR 워크벤치",
+          "koPath": "/admin/system/sr-workbench",
+          "enPath": "/en/admin/system/sr-workbench"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "sr-workbench",
+          "label": "SR 워크벤치",
+          "koPath": "/admin/system/sr-workbench",
+          "enPath": "/en/admin/system/sr-workbench"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "sr-workbench",
+          "label": "SR 워크벤치",
+          "koPath": "/admin/system/sr-workbench",
+          "enPath": "/en/admin/system/sr-workbench"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "sr-workbench",
+          "label": "SR 워크벤치",
+          "koPath": "/admin/system/sr-workbench",
+          "enPath": "/en/admin/system/sr-workbench"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "wbs-management",
+          "label": "WBS 관리",
+          "koPath": "/admin/system/wbs-management",
+          "enPath": "/en/admin/system/wbs-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
+      },
+      {
+        "route": {
+          "routeId": "wbs-management",
+          "label": "WBS 관리",
+          "koPath": "/admin/system/wbs-management",
+          "enPath": "/en/admin/system/wbs-management"
+        },
+        "componentType": "select",
+        "componentName": "select",
+        "variant": "",
+        "size": "",
+        "className": "gov-select",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "gov-select"
       }
     ]
   },
@@ -12821,8 +12673,8 @@
     "icon": "",
     "placeholder": "",
     "summary": "w-full text-sm text-left border-collapse",
-    "routeCount": 10,
-    "instanceCount": 26,
+    "routeCount": 9,
+    "instanceCount": 25,
     "labels": [
       "URL",
       "IP",
@@ -12860,12 +12712,6 @@
         "label": "메뉴 통합 관리",
         "koPath": "/admin/system/environment-management",
         "enPath": "/en/admin/system/environment-management"
-      },
-      {
-        "routeId": "function-management",
-        "label": "기능 관리",
-        "koPath": "/admin/system/feature-management",
-        "enPath": "/en/admin/system/feature-management"
       },
       {
         "routeId": "restore-execution",
@@ -13213,23 +13059,6 @@
         "className": "w-full text-sm text-left border-collapse",
         "icon": "",
         "label": "",
-        "placeholder": "",
-        "summary": "w-full text-sm text-left border-collapse"
-      },
-      {
-        "route": {
-          "routeId": "function-management",
-          "label": "기능 관리",
-          "koPath": "/admin/system/feature-management",
-          "enPath": "/en/admin/system/feature-management"
-        },
-        "componentType": "table",
-        "componentName": "table",
-        "variant": "",
-        "size": "",
-        "className": "w-full text-sm text-left border-collapse",
-        "icon": "",
-        "label": "URL",
         "placeholder": "",
         "summary": "w-full text-sm text-left border-collapse"
       },
@@ -23440,94 +23269,6 @@
         "label": "",
         "placeholder": "기관명 또는 사업자등록번호를 입력하세요",
         "summary": "gov-input / 기관명 또는 사업자등록번호를 입력하세요"
-      }
-    ]
-  },
-  {
-    "key": "input:input:::gov-input::MENU_CREATE",
-    "styleGroupId": "INP-input-plain-md-gov-input-menu-create",
-    "componentType": "input",
-    "componentName": "input",
-    "variant": "",
-    "size": "",
-    "className": "gov-input",
-    "icon": "",
-    "placeholder": "MENU_CREATE",
-    "summary": "gov-input / MENU_CREATE",
-    "routeCount": 1,
-    "instanceCount": 1,
-    "labels": [
-      "MENU_CREATE"
-    ],
-    "routes": [
-      {
-        "routeId": "function-management",
-        "label": "기능 관리",
-        "koPath": "/admin/system/feature-management",
-        "enPath": "/en/admin/system/feature-management"
-      }
-    ],
-    "instances": [
-      {
-        "route": {
-          "routeId": "function-management",
-          "label": "기능 관리",
-          "koPath": "/admin/system/feature-management",
-          "enPath": "/en/admin/system/feature-management"
-        },
-        "componentType": "input",
-        "componentName": "input",
-        "variant": "",
-        "size": "",
-        "className": "gov-input",
-        "icon": "",
-        "label": "",
-        "placeholder": "MENU_CREATE",
-        "summary": "gov-input / MENU_CREATE"
-      }
-    ]
-  },
-  {
-    "key": "input:input:::gov-input::Create Menu",
-    "styleGroupId": "INP-input-plain-md-gov-input-create-menu",
-    "componentType": "input",
-    "componentName": "input",
-    "variant": "",
-    "size": "",
-    "className": "gov-input",
-    "icon": "",
-    "placeholder": "Create Menu",
-    "summary": "gov-input / Create Menu",
-    "routeCount": 1,
-    "instanceCount": 1,
-    "labels": [
-      "Create Menu"
-    ],
-    "routes": [
-      {
-        "routeId": "function-management",
-        "label": "기능 관리",
-        "koPath": "/admin/system/feature-management",
-        "enPath": "/en/admin/system/feature-management"
-      }
-    ],
-    "instances": [
-      {
-        "route": {
-          "routeId": "function-management",
-          "label": "기능 관리",
-          "koPath": "/admin/system/feature-management",
-          "enPath": "/en/admin/system/feature-management"
-        },
-        "componentType": "input",
-        "componentName": "input",
-        "variant": "",
-        "size": "",
-        "className": "gov-input",
-        "icon": "",
-        "label": "",
-        "placeholder": "Create Menu",
-        "summary": "gov-input / Create Menu"
       }
     ]
   },

@@ -11,6 +11,8 @@ import {
 } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { CollectionResultPanel, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
+import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 import { MemberPagination } from "../member/common";
 import { stringOf } from "../admin-system/adminSystemShared";
 import { useEffect, useMemo, useState } from "react";
@@ -811,7 +813,18 @@ export function SecurityMonitoringMigrationPage() {
       title={en ? "Real-time Attack Monitoring" : "실시간 공격 현황"}
       subtitle={en ? "Review blocked rules, target URLs, top IPs, and incidents on one screen." : "차단 룰, 공격 대상 URL, 상위 IP, 인시던트 이벤트를 한 화면에서 확인합니다."}
     >
-      {pageState.error ? <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{pageState.error}</div> : null}
+      {pageState.error ? <PageStatusNotice tone="error">{pageState.error}</PageStatusNotice> : null}
+      {operationMessage ? <PageStatusNotice tone={operationMessage.toLowerCase().includes("fail") || operationMessage.includes("오류") ? "error" : "success"}>{operationMessage}</PageStatusNotice> : null}
+      <AdminWorkspacePageFrame>
+      <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <SummaryMetricCard title={en ? "Open Incidents" : "오픈 인시던트"} value={events.length} description={en ? "Current incident queue" : "현재 이벤트 큐"} />
+        <SummaryMetricCard title={en ? "Critical" : "치명"} value={criticalCount} description={en ? "Critical severity events" : "치명 등급 이벤트"} />
+        <SummaryMetricCard title={en ? "High" : "높음"} value={highCount} description={en ? "High severity events" : "높음 등급 이벤트"} />
+        <SummaryMetricCard title={en ? "Blocked Targets" : "차단 대상"} value={blockedTargetCount} description={en ? "Targets already blocked" : "이미 차단된 대상"} />
+      </section>
+      <CollectionResultPanel description={en ? "Review hot targets, promote repeated IPs, dispatch alerts, and hand off to policy or blocklist follow-up from the same workspace." : "상위 공격 대상 검토, 반복 IP 승격, 즉시 알림 발송, 정책/차단목록 후속 작업을 같은 작업 공간에서 이어갑니다."} title={en ? "Monitoring operation workflow" : "모니터링 운영 흐름"}>
+        {en ? "Keep summary, candidate promotion, notification retry, and state history together so incident handling stays consistent across operators." : "요약, 후보 승격, 알림 재시도, 상태 이력을 한 화면에 두어 운영자 간 대응 흐름을 동일하게 유지합니다."}
+      </CollectionResultPanel>
       <section className="gov-card mb-6">
         <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr_0.8fr] gap-4">
           <div>
@@ -1708,6 +1721,7 @@ export function SecurityMonitoringMigrationPage() {
           </div>
         </article>
       </section>
+      </AdminWorkspacePageFrame>
     </AdminPageShell>
   );
 }

@@ -3,7 +3,9 @@ import { logGovernanceScope } from "../../app/policy/debug";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
 import { AdminListPagePayload, fetchAdminListPage } from "../../lib/api/client";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
-import { AdminInput, AdminSelect, AdminTable, MemberButton, MemberPagination, MemberSectionToolbar } from "../member/common";
+import { AdminInput, AdminSelect, AdminTable, MemberButton, MemberPagination, MemberSectionToolbar, PageStatusNotice } from "../member/common";
+import { CollectionResultPanel, SummaryMetricCard } from "../admin-ui/common";
+import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 import { MEMBER_BUTTON_LABELS } from "../member/labels";
 import { MemberStateCard } from "../member/sections";
 import { MemberCountSummary, MemberListEmptyRow, MemberListTopActions } from "../member/toolbar";
@@ -100,7 +102,7 @@ export function AdminListMigrationPage() {
       loading={loading}
       loadingLabel="관리자 목록을 불러오는 중입니다."
     >
-      {error ? <section className="mb-4 rounded-[var(--kr-gov-radius)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"><p>조회 중 오류: {error}</p></section> : null}
+      {error ? <PageStatusNotice tone="error">조회 중 오류: {error}</PageStatusNotice> : null}
       {!loading && page && !canView ? (
         <MemberStateCard
           description="현재 계정으로는 관리자 회원 목록을 조회할 수 없습니다."
@@ -110,7 +112,16 @@ export function AdminListMigrationPage() {
         />
       ) : null}
       {canView ? (
-        <>
+        <AdminWorkspacePageFrame>
+        <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <SummaryMetricCard title="전체 관리자" value={Number(page?.totalCount || 0)} description="검색 조건 기준 총 건수" />
+          <SummaryMetricCard title="현재 페이지" value={`${currentPage} / ${totalPages}`} description="페이지 네비게이션 상태" />
+          <SummaryMetricCard title="상태 필터" value={status ? statusLabel(status) : "전체"} description="현재 적용 상태" />
+          <SummaryMetricCard title="검색어" value={searchKeyword || "-"} description="성명, 아이디, 조직ID, 이메일" />
+        </section>
+        <CollectionResultPanel description="회원 목록 화면과 같은 검색 카드와 결과 테이블 패턴으로 관리자 계정 조회 흐름을 맞춥니다." title="관리자 목록 운영 기준">
+          권한 관리와 계정 조회 동선을 같은 위치에 두고, 상태 필터와 검색어를 한 카드 안에서 조합합니다.
+        </CollectionResultPanel>
         <section className="gov-card mb-8" data-help-id="admin-list-search">
           <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
             <MemberSectionToolbar
@@ -237,7 +248,7 @@ export function AdminListMigrationPage() {
             </div>
           <MemberPagination currentPage={currentPage} onPageChange={(nextPage) => load({ pageIndex: nextPage, searchKeyword, sbscrbSttus: status }).catch((err: Error) => setError(err.message))} totalPages={totalPages} />
         </div>
-        </>
+        </AdminWorkspacePageFrame>
       ) : null}
     </AdminPageShell>
   );

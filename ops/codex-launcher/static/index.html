@@ -24,6 +24,22 @@
 
         <section class="panel">
           <div class="panel-head">
+            <h2>Accounts</h2>
+            <button id="refresh-accounts" class="ghost-button" type="button">Refresh</button>
+          </div>
+          <div class="field-row compact">
+            <label for="account-label">Save Current Login</label>
+            <input id="account-label" type="text" placeholder="예: 개인 ChatGPT, 회사 API Key">
+          </div>
+          <div class="button-row">
+            <button id="save-current-account" class="secondary-button" type="button">Save Current</button>
+          </div>
+          <div id="current-account" class="muted"></div>
+          <div id="account-list" class="workspace-list"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
             <h2>Jobs</h2>
             <button id="refresh-jobs" class="ghost-button" type="button">Refresh</button>
           </div>
@@ -86,6 +102,8 @@
               <button id="run-custom-shell" class="secondary-button" type="button">Run Custom Shell</button>
               <button id="cancel-job" class="ghost-button" type="button">Cancel Current Job</button>
             </div>
+
+            <p class="muted inline-note">계정 전환은 왼쪽 Accounts에서 저장 후 클릭 한 번으로 활성화됩니다.</p>
           </div>
         </section>
 

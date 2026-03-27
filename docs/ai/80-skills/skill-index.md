@@ -38,6 +38,12 @@ See also:
   - Use for: React shell/static asset/resource caching changes.
   - Boundary: use only when the issue is cache, shell, manifest, build-output, or deployment freshness rather than page business behavior.
   - Key references: `docs/ai/60-operations/react-refresh-and-cache-control.md`
+- `carbonet-fast-bootstrap-ops`
+  - Purpose: keep compile, package, restart, bootstrap freshness, and local runtime verification fast and deterministic.
+  - Group: delivery consistency
+  - Use for: `npm run build`, `mvn package`, `build-restart-18000.sh`, runtime jar freshness, stale bootstrap prevention, and safe local restart verification.
+  - Boundary: use when the main issue is whether the newest output is actually built, packaged, restarted, and running; pair with `carbonet-react-refresh-consistency` when cache policy also changes.
+  - Key references: `.codex/skills/carbonet-fast-bootstrap-ops/SKILL.md`, `docs/operations/fast-bootstrap-runtime-freshness.md`, `ops/scripts/build-restart-18000.sh`, `ops/scripts/start-18000.sh`
 - `carbonet-feature-builder`
   - Purpose: implement or extend Carbonet screens, menus, services, mappers, templates, and admin metadata.
   - Group: feature implementation

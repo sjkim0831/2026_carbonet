@@ -4,6 +4,8 @@ import { logGovernanceScope } from "../../app/policy/debug";
 import { fetchBackupConfigPage, readBootstrappedBackupConfigPageData, restoreBackupConfigVersion, runBackupExecution, saveBackupConfig, type BackupConfigPagePayload } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { CollectionResultPanel } from "../admin-ui/common";
+import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 import { AdminCheckbox, AdminInput, MemberButton, MemberPageActions, MemberPagination, PageStatusNotice } from "../member/common";
 import { stringOf } from "../admin-system/adminSystemShared";
 
@@ -812,6 +814,10 @@ export function BackupConfigMigrationPage() {
       ) : null}
       {pageState.error ? <PageStatusNotice tone="error">{pageState.error}</PageStatusNotice> : null}
       {message ? <PageStatusNotice tone={message.includes("오류") || message.includes("Failed") ? "error" : "success"}>{message}</PageStatusNotice> : null}
+      <AdminWorkspacePageFrame>
+      <CollectionResultPanel description={en ? "Backup settings, execution readiness, restore targets, and version comparison stay in one governed workspace across the backup menu family." : "백업 설정, 실행 준비, 복구 대상, 버전 비교를 백업 메뉴군 전체에서 하나의 운영 작업 공간으로 유지합니다."} title={en ? "Backup operation workflow" : "백업 운영 흐름"}>
+        {en ? "Move between backup settings, execution, restore, and version review without changing the overall page pattern." : "백업 설정, 실행, 복구, 버전 검토 화면을 이동해도 전체 페이지 패턴이 바뀌지 않게 유지합니다."}
+      </CollectionResultPanel>
 
       {renderSummary}
       {renderCurrentJob}
@@ -1162,6 +1168,7 @@ export function BackupConfigMigrationPage() {
           </>
         </>
       ) : null}
+      </AdminWorkspacePageFrame>
     </AdminPageShell>
   );
 }

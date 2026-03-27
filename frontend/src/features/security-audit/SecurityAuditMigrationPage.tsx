@@ -4,6 +4,8 @@ import { logGovernanceScope } from "../../app/policy/debug";
 import { buildSecurityAuditExportUrl, fetchSecurityAuditPage, type SecurityAuditPagePayload } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { CollectionResultPanel, SummaryMetricCard } from "../admin-ui/common";
+import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 import { AdminInput, AdminSelect, AdminTable, MemberButton, MemberLinkButton, MemberPagination, MemberSectionToolbar, PageStatusNotice } from "../member/common";
 import { ReviewModalFrame } from "../member/sections";
 
@@ -265,6 +267,16 @@ export function SecurityAuditMigrationPage() {
       loadingLabel={en ? "Loading security audit logs." : "보안 감사 로그를 불러오는 중입니다."}
     >
       {pageState.error ? <PageStatusNotice tone="error">{pageState.error}</PageStatusNotice> : null}
+      <AdminWorkspacePageFrame>
+      <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <SummaryMetricCard title={en ? "Audit Events" : "감사 이벤트"} value={totalCount.toLocaleString()} description={en ? "Filtered total rows" : "현재 필터 기준 총 건수"} />
+        <SummaryMetricCard title={en ? "Current Page" : "현재 페이지"} value={`${currentPage} / ${totalPages}`} description={en ? "Server-side pagination" : "서버 기준 페이지"} />
+        <SummaryMetricCard title={en ? "Failed Events" : "오류 이벤트"} value={Number(page?.filteredErrorCount || 0).toLocaleString()} description={en ? "Error responses in scope" : "현재 범위 오류 응답"} />
+        <SummaryMetricCard title={en ? "Repeated Signals" : "반복 징후"} value={(Number(page?.filteredRepeatedActorCount || 0) + Number(page?.filteredRepeatedTargetCount || 0) + Number(page?.filteredRepeatedRemoteAddrCount || 0)).toLocaleString()} description={en ? "Actor, route, and IP" : "수행자, 경로, IP"} />
+      </section>
+      <CollectionResultPanel description={en ? "Search, anomaly review, and row-level detail stay in one workspace for policy follow-up." : "검색, 이상 징후 검토, 행 상세를 한 작업 공간에 두고 정책 후속 조치까지 이어갑니다."} title={en ? "Audit operation workflow" : "감사 운영 흐름"}>
+        {en ? "Filter first, review repeated patterns next, then open row details to inspect scope and operator reasons." : "먼저 필터로 좁히고, 반복 패턴을 검토한 뒤, 행 상세에서 스코프와 운영 사유를 확인합니다."}
+      </CollectionResultPanel>
 
       <section className="gov-card mb-8" data-help-id="security-audit-filters">
         <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
@@ -528,6 +540,7 @@ export function SecurityAuditMigrationPage() {
         </div>
         <MemberPagination currentPage={currentPage} onPageChange={(pageIndex) => applyFilters(pageIndex)} totalPages={totalPages} />
       </section>
+      </AdminWorkspacePageFrame>
 
       <ReviewModalFrame
         maxWidthClassName="max-w-4xl"

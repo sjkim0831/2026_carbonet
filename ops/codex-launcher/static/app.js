@@ -3,6 +3,7 @@ const state = {
   selectedWorkspaceId: "",
   selectedActionId: "",
   selectedJobId: "",
+  selectedAccountId: "",
   pollHandle: null
 };
 
@@ -45,6 +46,51 @@ function renderWorkspaces() {
       renderWorkspaces();
       renderActions();
       syncWorkspaceCaption();
+    });
+  });
+}
+
+function accountSummaryText(account) {
+  const bits = [account.label || account.email || account.name || account.accountId || account.id];
+  if (account.email) {
+    bits.push(account.email);
+  }
+  if (account.authMode) {
+    bits.push(account.authMode);
+  }
+  return bits.filter(Boolean).join(" · ");
+}
+
+function renderAccounts(accounts, currentAccountId) {
+  state.selectedAccountId = currentAccountId || "";
+  byId("current-account").textContent = currentAccountId
+    ? `Active: ${accountSummaryText(accounts.find((item) => item.id === currentAccountId) || {})}`
+    : "Active: 저장된 슬롯과 현재 로그인이 아직 연결되지 않았습니다.";
+  const target = byId("account-list");
+  if (!accounts.length) {
+    target.innerHTML = `<div class="muted">저장된 로그인 슬롯이 없습니다. 현재 로그인 상태를 저장해 두면 클릭 전환이 가능합니다.</div>`;
+    return;
+  }
+  target.innerHTML = accounts.map((account) => `
+    <button class="workspace-card ${account.id === currentAccountId ? "active" : ""}" data-account-id="${account.id}" type="button">
+      <strong>${escapeHtml(account.label || account.name || account.email || account.id)}</strong>
+      <div class="muted">${escapeHtml(account.email || account.accountId || "")}</div>
+      <div class="account-card-meta">
+        <span class="pill">${escapeHtml(account.authMode || "unknown")}</span>
+        <span class="pill">${escapeHtml(account.updatedAt || account.createdAt || "")}</span>
+      </div>
+    </button>
+  `).join("");
+  target.querySelectorAll("[data-account-id]").forEach((element) => {
+    element.addEventListener("click", async () => {
+      const accountId = element.getAttribute("data-account-id") || "";
+      const payload = await api(`/api/accounts/${accountId}/activate`, {
+        method: "POST",
+        body: "{}"
+      });
+      byId("login-status").textContent = payload.loginReady ? "ready" : "not ready";
+      await refreshAccounts();
+      alert("선택한 Codex 로그인 슬롯을 활성화했습니다.");
     });
   });
 }
@@ -115,6 +161,11 @@ function setJobDetail(job) {
 async function refreshJobs() {
   const payload = await api("/api/jobs");
   renderJobs(payload.items || []);
+}
+
+async function refreshAccounts() {
+  const payload = await api("/api/accounts");
+  renderAccounts(payload.items || [], payload.currentAccountId || "");
 }
 
 async function loadJob(jobId) {
@@ -221,6 +272,22 @@ async function cancelCurrentJob() {
 async function refreshLogin() {
   const payload = await api("/api/login-status", { method: "POST", body: "{}" });
   byId("login-status").textContent = payload.loggedIn ? "ready" : "not ready";
+  await refreshAccounts();
+}
+
+async function saveCurrentAccount() {
+  const label = byId("account-label").value.trim();
+  if (!label) {
+    alert("저장할 계정 라벨을 입력하세요.");
+    return;
+  }
+  const payload = await api("/api/accounts/save-current", {
+    method: "POST",
+    body: JSON.stringify({ label })
+  });
+  byId("account-label").value = "";
+  byId("login-status").textContent = payload.loginReady ? "ready" : "not ready";
+  await refreshAccounts();
 }
 
 async function bootstrap() {
@@ -231,6 +298,7 @@ async function bootstrap() {
   renderWorkspaces();
   renderActions();
   syncWorkspaceCaption();
+  renderAccounts(state.bootstrap.accounts || [], state.bootstrap.currentAccountId || "");
   await refreshJobs();
 }
 
@@ -241,6 +309,8 @@ window.addEventListener("DOMContentLoaded", async () => {
   byId("cancel-job").addEventListener("click", cancelCurrentJob);
   byId("refresh-jobs").addEventListener("click", refreshJobs);
   byId("refresh-login").addEventListener("click", refreshLogin);
+  byId("refresh-accounts").addEventListener("click", refreshAccounts);
+  byId("save-current-account").addEventListener("click", saveCurrentAccount);
   try {
     await bootstrap();
   } catch (error) {

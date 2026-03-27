@@ -156,6 +156,8 @@ export function useScreenContextMenu(page: string, routePath: string) {
   const contextMenuDragOffsetRef = useRef<{ x: number; y: number } | null>(null);
   const contextMenuDraggingRef = useRef(false);
   const screenCommandCacheRef = useRef<Record<string, ScreenCommandPagePayload>>({});
+  const contextMenuOpenRef = useRef(false);
+  const contextMenuPageDataRef = useRef<ScreenCommandPagePayload | null>(null);
 
   function clampContextMenuPosition(x: number, y: number) {
     return {
@@ -166,6 +168,8 @@ export function useScreenContextMenu(page: string, routePath: string) {
 
   function closeContextMenu() {
     setContextMenu(createClosedContextMenu());
+    contextMenuOpenRef.current = false;
+    contextMenuPageDataRef.current = null;
     setHighlightRect(null);
     setHighlightLabel("");
     setContextComment("");
@@ -190,6 +194,11 @@ export function useScreenContextMenu(page: string, routePath: string) {
   }, [contextToast]);
 
   useEffect(() => {
+    contextMenuOpenRef.current = contextMenu.open;
+    contextMenuPageDataRef.current = contextMenu.pageData;
+  }, [contextMenu.open, contextMenu.pageData]);
+
+  useEffect(() => {
     async function ensureScreenCommandPage(pageId: string) {
       if (screenCommandCacheRef.current[pageId]) {
         return screenCommandCacheRef.current[pageId];
@@ -205,10 +214,13 @@ export function useScreenContextMenu(page: string, routePath: string) {
         return;
       }
       event.preventDefault();
+      event.stopPropagation();
       const targetContext = resolveContextTargetFromElement(target, page, routePath);
       const payload = await ensureScreenCommandPage(targetContext.pageId);
       const match = resolveMatchedContext(payload, target);
       const defaultTarget = payload.page?.changeTargets?.[0]?.targetId || "";
+      contextMenuOpenRef.current = true;
+      contextMenuPageDataRef.current = payload;
       setContextMenu({
         open: true,
         ...clampContextMenuPosition(event.clientX, event.clientY),
@@ -231,25 +243,28 @@ export function useScreenContextMenu(page: string, routePath: string) {
           : current);
         return;
       }
-      if (!contextMenu.open || !contextMenu.pageData) {
+      if (!contextMenuOpenRef.current || !contextMenuPageDataRef.current) {
         return;
       }
       const element = document.elementFromPoint(event.clientX, event.clientY);
       if (!(element instanceof Element) || element.closest("[data-codex-context-menu]")) {
         return;
       }
-      const match = resolveMatchedContext(contextMenu.pageData, element);
+      const match = resolveMatchedContext(contextMenuPageDataRef.current, element);
       setContextMenu((current) => ({ ...current, match }));
       setHighlightRect(measureHighlightRect(match?.highlightElement || element));
       setHighlightLabel(buildHighlightLabel(match));
     }
 
     function handlePointerDown(event: MouseEvent) {
+      if (event.button === 2) {
+        return;
+      }
       const target = event.target;
       if (target instanceof Element && target.closest("[data-codex-context-menu]")) {
         return;
       }
-      if (contextMenu.open) {
+      if (contextMenuOpenRef.current) {
         closeContextMenu();
       }
     }
@@ -265,21 +280,21 @@ export function useScreenContextMenu(page: string, routePath: string) {
       contextMenuDragOffsetRef.current = null;
     }
 
-    document.addEventListener("contextmenu", handleContextMenu);
+    document.addEventListener("contextmenu", handleContextMenu, true);
     document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("mousedown", handlePointerDown);
     document.addEventListener("mouseup", handleMouseUp);
     document.addEventListener("keydown", handleEscape);
     window.addEventListener("resize", closeContextMenu);
     return () => {
-      document.removeEventListener("contextmenu", handleContextMenu);
+      document.removeEventListener("contextmenu", handleContextMenu, true);
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("mouseup", handleMouseUp);
       document.removeEventListener("keydown", handleEscape);
       window.removeEventListener("resize", closeContextMenu);
     };
-  }, [contextMenu.open, contextMenu.pageData, page, routePath]);
+  }, [page, routePath]);
 
   function handleContextMenuHeaderMouseDown(event: React.MouseEvent<HTMLDivElement>) {
     contextMenuDraggingRef.current = true;

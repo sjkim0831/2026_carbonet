@@ -23,6 +23,7 @@ type Filters = {
 };
 
 type PageSortOption = "code-asc" | "code-desc" | "name-asc" | "url-asc" | "useAt";
+const PAGE_MANAGEMENT_RECENT_CODES_STORAGE_KEY = "carbonet.page-management.recent-codes";
 
 function parseFilters(): Filters {
   const search = new URLSearchParams(window.location.search);
@@ -217,6 +218,16 @@ function validatePageForm(params: {
   return "";
 }
 
+function readRecentCodesFromSessionStorage() {
+  try {
+    const raw = window.sessionStorage.getItem(PAGE_MANAGEMENT_RECENT_CODES_STORAGE_KEY) || "[]";
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.map((item) => String(item || "")).filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
 export function PageManagementMigrationPage() {
   const en = isEnglish();
   const initial = useMemo(parseFilters, []);
@@ -226,9 +237,11 @@ export function PageManagementMigrationPage() {
   const [actionError, setActionError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
   const [highlightedCode, setHighlightedCode] = useState("");
-  const [recentCodes, setRecentCodes] = useState<string[]>([]);
+  const [recentCodes, setRecentCodes] = useState<string[]>(() => readRecentCodesFromSessionStorage());
   const [recentOnly, setRecentOnly] = useState(false);
   const [savingCodes, setSavingCodes] = useState<string[]>([]);
+  const [savedCodes, setSavedCodes] = useState<string[]>([]);
+  const [failedCodes, setFailedCodes] = useState<string[]>([]);
   const [sortOption, setSortOption] = useState<PageSortOption>("code-asc");
   const [createForm, setCreateForm] = useState({
     domainCode: "",
@@ -348,6 +361,21 @@ export function PageManagementMigrationPage() {
   }, [highlightedCode]);
 
   useEffect(() => {
+    window.sessionStorage.setItem(PAGE_MANAGEMENT_RECENT_CODES_STORAGE_KEY, JSON.stringify(recentCodes));
+  }, [recentCodes]);
+
+  useEffect(() => {
+    if (savedCodes.length === 0 && failedCodes.length === 0) {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setSavedCodes([]);
+      setFailedCodes([]);
+    }, 5000);
+    return () => window.clearTimeout(timer);
+  }, [failedCodes, savedCodes]);
+
+  useEffect(() => {
     if (!page) {
       return;
     }
@@ -377,6 +405,8 @@ export function PageManagementMigrationPage() {
     });
     setActionError("");
     setActionMessage("");
+    setSavedCodes([]);
+    setFailedCodes([]);
     try {
       const response = await submitFormRequest(event.currentTarget);
       const merged = { ...draft, ...extractQueryState(response.url), ...(nextState || {}) } as Filters;
@@ -471,6 +501,8 @@ export function PageManagementMigrationPage() {
     }
     setActionError("");
     setActionMessage("");
+    setSavedCodes([]);
+    setFailedCodes([]);
     for (const code of dirtyCodes) {
       setSavingCodes((current) => [...current, code]);
       const editForm = editForms[code];
@@ -504,8 +536,15 @@ export function PageManagementMigrationPage() {
       body.set("menuUrl", editForm.menuUrl);
       body.set("menuIcon", editForm.menuIcon);
       body.set("useAt", editForm.useAt);
-      await postFormUrlEncoded(buildLocalizedPath("/admin/system/page-management/update", "/en/admin/system/page-management/update"), body);
-      setSavingCodes((current) => current.filter((item) => item !== code));
+      try {
+        await postFormUrlEncoded(buildLocalizedPath("/admin/system/page-management/update", "/en/admin/system/page-management/update"), body);
+        setSavedCodes((current) => [...current, code]);
+      } catch (error) {
+        setFailedCodes((current) => [...current, code]);
+        throw error;
+      } finally {
+        setSavingCodes((current) => current.filter((item) => item !== code));
+      }
     }
     setHighlightedCode(dirtyCodes[dirtyCodes.length - 1] || "");
     setRecentCodes((current) => [...dirtyCodes.slice().reverse(), ...current.filter((item) => !dirtyCodes.includes(item))].slice(0, 20));
@@ -711,13 +750,13 @@ export function PageManagementMigrationPage() {
             <thead>
               <tr className="gov-table-header">
                 <th className="px-4 py-3">{en ? "Domain" : "도메인"}</th>
-                <th className="px-4 py-3">{en ? "Page Code" : "페이지 코드"}</th>
+                <th className="sticky left-0 z-10 bg-[var(--kr-gov-surface-subtle)] px-4 py-3">{en ? "Page Code" : "페이지 코드"}</th>
                 <th className="px-4 py-3">{en ? "Page Name" : "페이지명"}</th>
                 <th className="px-4 py-3">{en ? "English Page Name" : "영문 페이지명"}</th>
                 <th className="px-4 py-3">URL</th>
                 <th className="px-4 py-3">{en ? "Icon" : "아이콘"}</th>
                 <th className="px-4 py-3 text-center">{en ? "Use" : "사용"}</th>
-                <th className="px-4 py-3 text-center">{en ? "Actions" : "관리"}</th>
+                <th className="sticky right-0 z-10 bg-[var(--kr-gov-surface-subtle)] px-4 py-3 text-center">{en ? "Actions" : "관리"}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -737,7 +776,7 @@ export function PageManagementMigrationPage() {
                 return [
                   <tr className={isHighlighted ? "bg-amber-50" : isDirty ? "bg-[#f8fbff]" : ""} key={`${code}-view`}>
                     <td className="whitespace-nowrap px-4 py-3">{en ? stringOf(row, "domainNameEn", "domainName") : stringOf(row, "domainName")}</td>
-                    <td className="whitespace-nowrap px-4 py-3 font-bold">{code}</td>
+                    <td className={`sticky left-0 z-[1] whitespace-nowrap px-4 py-3 font-bold ${isHighlighted ? "bg-amber-50" : isDirty ? "bg-[#f8fbff]" : "bg-white"}`}>{code}</td>
                     <td className="min-w-[12rem] px-4 py-3">{stringOf(row, "codeNm")}</td>
                     <td className="min-w-[12rem] px-4 py-3">{stringOf(row, "codeDc")}</td>
                     <td className="min-w-[16rem] break-all px-4 py-3 text-[var(--kr-gov-text-secondary)]">
@@ -755,7 +794,7 @@ export function PageManagementMigrationPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center font-semibold">{stringOf(row, "useAt")}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-center">
+                    <td className={`sticky right-0 z-[1] whitespace-nowrap px-4 py-3 text-center ${isHighlighted ? "bg-amber-50" : isDirty ? "bg-[#f8fbff]" : "bg-white"}`}>
                       <div className="flex flex-col items-center gap-2">
                         <button className="gov-btn gov-btn-outline w-full" onClick={() => setOpenCode((current) => current === code ? "" : code)} type="button">{openCode === code ? (en ? "Close Edit" : "수정 닫기") : (en ? "Edit" : "수정")}</button>
                         <form action={buildLocalizedPath("/admin/system/page-management/delete", "/en/admin/system/page-management/delete")} method="post" onSubmit={(event) => {
@@ -785,6 +824,8 @@ export function PageManagementMigrationPage() {
                           {isDirty ? <span className="gov-chip bg-indigo-100 text-indigo-700">{en ? "Edited" : "수정됨"}</span> : null}
                           {isHighlighted ? <span className="gov-chip bg-amber-100 text-amber-800">{en ? "Recent" : "최근 작업"}</span> : null}
                           {savingCodes.includes(code) ? <span className="gov-chip bg-sky-100 text-sky-700">{en ? "Saving" : "저장 중"}</span> : null}
+                          {savedCodes.includes(code) ? <span className="gov-chip bg-emerald-100 text-emerald-700">{en ? "Saved" : "저장 완료"}</span> : null}
+                          {failedCodes.includes(code) ? <span className="gov-chip bg-red-100 text-red-700">{en ? "Failed" : "실패"}</span> : null}
                         </div>
                         <div className="mt-2 w-full rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-2 text-left text-xs text-[var(--kr-gov-text-secondary)]">
                           <p>{en ? "Delete impact" : "삭제 영향"}</p>

@@ -13,6 +13,8 @@ Use this file as the default starting point for AI-assisted work in this reposit
 7. `docs/ai/60-operations/session-orchestration/README.md` when the task needs durable plan, contract, or handoff artifacts
 8. `docs/ai/60-operations/react-refresh-and-cache-control.md` when frontend delivery, React shell behavior, or cache freshness matters
 9. `docs/operations/backup-db-fast-workflow.md` when the task touches the backup DB server, CUBRID runtime operations, or remote DB inspection/update work
+10. `docs/operations/fast-bootstrap-runtime-freshness.md` when the task touches compile, package, restart, bootstrap freshness, runtime jar freshness, or local `:18000` verification
+11. `AGENTS.md` when the task touches local build/restart/freshness rules so the repository-local runtime verification path is followed
 
 If the task comes from local design assets, read these external files first:
 

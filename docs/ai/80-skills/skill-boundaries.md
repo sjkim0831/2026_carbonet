@@ -45,6 +45,10 @@ This document defines the current Carbonet skill taxonomy, overlap rules, and th
   - Role: preserve correct refresh behavior for React assets, shell HTML, manifest resolution, and deployment packaging.
   - Use only when the problem is static-asset delivery, refresh visibility, or cache boundaries.
   - Do not use as the primary skill for page behavior or business workflows.
+- `carbonet-fast-bootstrap-ops`
+  - Role: preserve the shortest safe compile -> package -> restart -> runtime-verification path so the newest output is what the local server actually runs.
+  - Use when the issue is stale runtime jar, stale bootstrap output, uncertain local deploy sequence, or restart verification rather than server topology or business behavior.
+  - Pair with `carbonet-react-refresh-consistency` when hard-refresh behavior and packaging freshness must both be correct.
 
 ### Infrastructure operations
 
@@ -78,6 +82,12 @@ This document defines the current Carbonet skill taxonomy, overlap rules, and th
 - Use `carbonet-react-refresh-consistency` only when the issue is refresh mismatch, stale bundles, manifest/cache policy, or runtime jar packaging.
 - Use the feature-oriented skill when the request is about the page behavior itself.
 
+### `carbonet-fast-bootstrap-ops` vs `carbonet-react-refresh-consistency`
+
+- Use `carbonet-fast-bootstrap-ops` when the main concern is command order, packaging freshness, restart safety, or proving the newest output is actually running.
+- Use `carbonet-react-refresh-consistency` when the main concern is shell cache policy, manifest resolution, or browser freshness behavior.
+- Rule: bootstrap ops owns build/package/restart/runtime-proof; react-refresh owns cache strategy.
+
 ## Selection Order
 
 1. Start with `carbonet-ai-session-orchestrator` when ownership or conflict risk is unclear.
@@ -87,6 +97,7 @@ This document defines the current Carbonet skill taxonomy, overlap rules, and th
    - `carbonet-codex-execution-console`
    - `carbonet-audit-trace-architecture`
    - `carbonet-react-refresh-consistency`
+   - `carbonet-fast-bootstrap-ops`
 4. Add a secondary skill only when the task truly spans both domains.
 
 ## Anti-Duplication Rules

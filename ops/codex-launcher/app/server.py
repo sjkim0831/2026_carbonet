@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 import argparse
+import base64
+import hashlib
 import json
 import os
 import shlex
@@ -74,8 +76,10 @@ class LauncherApp:
         self.static_root = app_root / "static"
         self.data_root = app_root / "data"
         self.jobs_root = self.data_root / "jobs"
+        self.accounts_root = self.data_root / "accounts"
         self.history_file = self.data_root / "job-history.jsonl"
         self.jobs_root.mkdir(parents=True, exist_ok=True)
+        self.accounts_root.mkdir(parents=True, exist_ok=True)
         self.data_root.mkdir(parents=True, exist_ok=True)
         self.lock = threading.Lock()
         self.workspaces_doc = read_json(self.config_root / "workspaces.json")
@@ -98,7 +102,18 @@ class LauncherApp:
             "actions": self.actions_doc.get("actions", []),
             "codexVersion": self.codex_version(),
             "loginReady": login.get("loggedIn", False),
+            "accounts": self.list_accounts(),
+            "currentAccountId": self.current_account_id(),
         }
+
+    def codex_home(self) -> Path:
+        return Path(os.environ.get("CARBONET_CODEX_HOME", str(Path.home() / ".codex")))
+
+    def auth_file(self) -> Path:
+        return self.codex_home() / "auth.json"
+
+    def config_file(self) -> Path:
+        return self.codex_home() / "config.toml"
 
     def codex_bin(self) -> str:
         return os.environ.get("CARBONET_CODEX_BIN", "codex")
@@ -129,7 +144,132 @@ class LauncherApp:
         return {
             "loggedIn": completed.returncode == 0 and "Logged in" in text,
             "message": text,
+            "currentAccount": self.current_account_summary(),
         }
+
+    def current_account_summary(self) -> dict[str, Any]:
+        auth_path = self.auth_file()
+        if not auth_path.exists():
+            return {}
+        try:
+            auth_doc = read_json(auth_path)
+        except Exception:
+            return {}
+        tokens = auth_doc.get("tokens", {}) if isinstance(auth_doc, dict) else {}
+        account_id = safe_text(tokens.get("account_id"))
+        payload = self.decode_jwt_payload(safe_text(tokens.get("id_token")))
+        name = safe_text(payload.get("name"))
+        email = safe_text(payload.get("email"))
+        fingerprint = self.auth_fingerprint(auth_doc)
+        return {
+            "accountId": account_id,
+            "name": name,
+            "email": email,
+            "authMode": safe_text(auth_doc.get("auth_mode")),
+            "fingerprint": fingerprint,
+        }
+
+    def decode_jwt_payload(self, token: str) -> dict[str, Any]:
+        parts = token.split(".")
+        if len(parts) < 2:
+            return {}
+        try:
+            encoded = parts[1] + "=" * (-len(parts[1]) % 4)
+            return json.loads(base64.urlsafe_b64decode(encoded.encode("utf-8")))
+        except Exception:
+            return {}
+
+    def auth_fingerprint(self, auth_doc: dict[str, Any]) -> str:
+        raw = json.dumps(auth_doc, ensure_ascii=False, sort_keys=True).encode("utf-8")
+        return hashlib.sha256(raw).hexdigest()
+
+    def list_accounts(self) -> list[dict[str, Any]]:
+        items: list[dict[str, Any]] = []
+        current_id = self.current_account_id()
+        for metadata_path in sorted(self.accounts_root.glob("*/metadata.json")):
+            try:
+                metadata = read_json(metadata_path)
+            except Exception:
+                continue
+            metadata["isActive"] = metadata.get("id") == current_id
+            items.append(metadata)
+        items.sort(key=lambda item: safe_text(item.get("updatedAt")), reverse=True)
+        return items
+
+    def current_account_id(self) -> str:
+        current = self.current_account_summary()
+        fingerprint = safe_text(current.get("fingerprint"))
+        if not fingerprint:
+            return ""
+        for metadata_path in self.accounts_root.glob("*/metadata.json"):
+            try:
+                metadata = read_json(metadata_path)
+            except Exception:
+                continue
+            if safe_text(metadata.get("fingerprint")) == fingerprint:
+                return safe_text(metadata.get("id"))
+        return ""
+
+    def save_current_account(self, label: str) -> dict[str, Any]:
+        login = self.login_status()
+        if not login.get("loggedIn"):
+            raise ValueError("Current Codex login is not ready.")
+        account = login.get("currentAccount", {})
+        account_id = safe_text(account.get("accountId")) or uuid.uuid4().hex[:12]
+        slot_id = f"{self.slugify(label)}-{account_id[-6:]}"
+        slot_dir = self.accounts_root / slot_id
+        slot_dir.mkdir(parents=True, exist_ok=True)
+        auth_path = self.auth_file()
+        if not auth_path.exists():
+            raise ValueError("auth.json not found.")
+        (slot_dir / "auth.json").write_text(auth_path.read_text(encoding="utf-8"), encoding="utf-8")
+        if self.config_file().exists():
+            (slot_dir / "config.toml").write_text(self.config_file().read_text(encoding="utf-8"), encoding="utf-8")
+        metadata = {
+            "id": slot_id,
+            "label": label,
+            "accountId": safe_text(account.get("accountId")),
+            "name": safe_text(account.get("name")),
+            "email": safe_text(account.get("email")),
+            "authMode": safe_text(account.get("authMode")),
+            "fingerprint": safe_text(account.get("fingerprint")),
+            "createdAt": now_iso(),
+            "updatedAt": now_iso(),
+        }
+        with (slot_dir / "metadata.json").open("w", encoding="utf-8") as handle:
+            json.dump(metadata, handle, ensure_ascii=False, indent=2)
+        return {
+            "saved": True,
+            "account": metadata,
+            "loginReady": True,
+        }
+
+    def activate_account(self, account_id: str) -> dict[str, Any]:
+        slot_dir = self.accounts_root / account_id
+        auth_path = slot_dir / "auth.json"
+        if not auth_path.exists():
+            raise ValueError(f"Account slot not found: {account_id}")
+        self.codex_home().mkdir(parents=True, exist_ok=True)
+        self.auth_file().write_text(auth_path.read_text(encoding="utf-8"), encoding="utf-8")
+        config_path = slot_dir / "config.toml"
+        if config_path.exists():
+            self.config_file().write_text(config_path.read_text(encoding="utf-8"), encoding="utf-8")
+        metadata_path = slot_dir / "metadata.json"
+        metadata = read_json(metadata_path) if metadata_path.exists() else {"id": account_id}
+        metadata["updatedAt"] = now_iso()
+        with metadata_path.open("w", encoding="utf-8") as handle:
+            json.dump(metadata, handle, ensure_ascii=False, indent=2)
+        login = self.login_status()
+        return {
+            "activated": True,
+            "account": metadata,
+            "loginReady": login.get("loggedIn", False),
+        }
+
+    def slugify(self, text: str) -> str:
+        normalized = "".join(ch.lower() if ch.isalnum() else "-" for ch in text.strip())
+        collapsed = "-".join(token for token in normalized.split("-") if token)
+        return collapsed or "account"
 
     def list_jobs(self) -> list[dict[str, Any]]:
         with self.lock:
@@ -375,6 +515,16 @@ class LauncherHandler(BaseHTTPRequestHandler):
         if parsed.path == "/api/jobs":
             self.write_json(HTTPStatus.OK, {"items": self.app.list_jobs()})
             return
+        if parsed.path == "/api/accounts":
+            self.write_json(
+                HTTPStatus.OK,
+                {
+                    "items": self.app.list_accounts(),
+                    "currentAccountId": self.app.current_account_id(),
+                    "currentAccount": self.app.current_account_summary(),
+                },
+            )
+            return
         if parsed.path.startswith("/api/jobs/"):
             job_id = parsed.path.split("/")[-1]
             try:
@@ -395,6 +545,23 @@ class LauncherHandler(BaseHTTPRequestHandler):
             return
         if parsed.path == "/api/login-status":
             self.write_json(HTTPStatus.OK, self.app.login_status())
+            return
+        if parsed.path == "/api/accounts/save-current":
+            label = safe_text(payload.get("label")).strip()
+            if not label:
+                self.write_json(HTTPStatus.BAD_REQUEST, {"message": "label is required"})
+                return
+            try:
+                self.write_json(HTTPStatus.OK, self.app.save_current_account(label))
+            except ValueError as exc:
+                self.write_json(HTTPStatus.BAD_REQUEST, {"message": str(exc)})
+            return
+        if parsed.path.endswith("/activate") and parsed.path.startswith("/api/accounts/"):
+            account_id = parsed.path.split("/")[-2]
+            try:
+                self.write_json(HTTPStatus.OK, self.app.activate_account(account_id))
+            except ValueError as exc:
+                self.write_json(HTTPStatus.BAD_REQUEST, {"message": str(exc)})
             return
         if parsed.path.endswith("/cancel") and parsed.path.startswith("/api/jobs/"):
             job_id = parsed.path.split("/")[-2]

@@ -180,6 +180,10 @@ textarea {
   margin-bottom: 14px;
 }
 
+.field-row.compact {
+  margin-bottom: 10px;
+}
+
 label {
   font-size: 13px;
   font-weight: 700;
@@ -233,6 +237,17 @@ textarea {
   background: transparent;
   border-color: var(--border);
   color: var(--text);
+}
+
+.account-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.inline-note {
+  margin: 14px 0 0;
 }
 
 .console-output,

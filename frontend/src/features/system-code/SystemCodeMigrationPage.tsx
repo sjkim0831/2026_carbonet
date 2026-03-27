@@ -21,7 +21,7 @@ import {
   PageStatusNotice,
   SummaryMetricCard
 } from "../admin-ui/common";
-import { AdminEditPageFrame } from "../admin-ui/pageFrames";
+import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 import {
   ActiveFilterChipBar,
   RecentWorkPanel,
@@ -839,7 +839,7 @@ export function SystemCodeMigrationPage() {
         <SummaryMetricCard title={en ? "Selected Code ID" : "선택 코드 ID"} value={detailCodeId || "-"} description={en ? "Synced to URL query" : "URL 쿼리와 동기화"} />
       </section>
 
-      <AdminEditPageFrame>
+      <AdminWorkspacePageFrame>
         <section className="gov-card" data-help-id="system-code-class">
           <GridToolbar
             actions={<span className="material-symbols-outlined text-[var(--kr-gov-blue)]">category</span>}
@@ -1394,7 +1394,7 @@ export function SystemCodeMigrationPage() {
             </div>
           ) : null}
         </section>
-      </AdminEditPageFrame>
+      </AdminWorkspacePageFrame>
     </AdminPageShell>
   );
 }
