@@ -6314,8 +6314,8 @@
     "icon": "",
     "placeholder": "",
     "summary": "secondary",
-    "routeCount": 19,
-    "instanceCount": 68,
+    "routeCount": 21,
+    "instanceCount": 70,
     "labels": [
       "초기화"
     ],
@@ -6415,6 +6415,18 @@
         "label": "복구 실행",
         "koPath": "/admin/system/restore",
         "enPath": "/en/admin/system/restore"
+      },
+      {
+        "routeId": "screen-flow-management",
+        "label": "화면 흐름 관리",
+        "koPath": "/admin/system/screen-flow-management",
+        "enPath": "/en/admin/system/screen-flow-management"
+      },
+      {
+        "routeId": "screen-menu-assignment-management",
+        "label": "화면-메뉴 귀속 관리",
+        "koPath": "/admin/system/screen-menu-assignment-management",
+        "enPath": "/en/admin/system/screen-menu-assignment-management"
       },
       {
         "routeId": "security-audit",
@@ -7207,6 +7219,40 @@
           "label": "휴면 계정",
           "koPath": "/admin/member/activate",
           "enPath": "/en/admin/member/activate"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "secondary",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "secondary"
+      },
+      {
+        "route": {
+          "routeId": "screen-flow-management",
+          "label": "화면 흐름 관리",
+          "koPath": "/admin/system/screen-flow-management",
+          "enPath": "/en/admin/system/screen-flow-management"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "secondary",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "secondary"
+      },
+      {
+        "route": {
+          "routeId": "screen-menu-assignment-management",
+          "label": "화면-메뉴 귀속 관리",
+          "koPath": "/admin/system/screen-menu-assignment-management",
+          "enPath": "/en/admin/system/screen-menu-assignment-management"
         },
         "componentType": "button",
         "componentName": "MemberButton",
@@ -8871,8 +8917,8 @@
     "icon": "",
     "placeholder": "",
     "summary": "primary",
-    "routeCount": 15,
-    "instanceCount": 38,
+    "routeCount": 17,
+    "instanceCount": 42,
     "labels": [],
     "routes": [
       {
@@ -8946,6 +8992,18 @@
         "label": "복구 실행",
         "koPath": "/admin/system/restore",
         "enPath": "/en/admin/system/restore"
+      },
+      {
+        "routeId": "screen-flow-management",
+        "label": "화면 흐름 관리",
+        "koPath": "/admin/system/screen-flow-management",
+        "enPath": "/en/admin/system/screen-flow-management"
+      },
+      {
+        "routeId": "screen-menu-assignment-management",
+        "label": "화면-메뉴 귀속 관리",
+        "koPath": "/admin/system/screen-menu-assignment-management",
+        "enPath": "/en/admin/system/screen-menu-assignment-management"
       },
       {
         "routeId": "sr-workbench",
@@ -9534,6 +9592,74 @@
           "label": "추적 조회",
           "koPath": "/admin/system/observability",
           "enPath": "/en/admin/system/observability"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "primary",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary"
+      },
+      {
+        "route": {
+          "routeId": "screen-flow-management",
+          "label": "화면 흐름 관리",
+          "koPath": "/admin/system/screen-flow-management",
+          "enPath": "/en/admin/system/screen-flow-management"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "primary",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary"
+      },
+      {
+        "route": {
+          "routeId": "screen-menu-assignment-management",
+          "label": "화면-메뉴 귀속 관리",
+          "koPath": "/admin/system/screen-menu-assignment-management",
+          "enPath": "/en/admin/system/screen-menu-assignment-management"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "primary",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary"
+      },
+      {
+        "route": {
+          "routeId": "screen-flow-management",
+          "label": "화면 흐름 관리",
+          "koPath": "/admin/system/screen-flow-management",
+          "enPath": "/en/admin/system/screen-flow-management"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "primary",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": "primary"
+      },
+      {
+        "route": {
+          "routeId": "screen-menu-assignment-management",
+          "label": "화면-메뉴 귀속 관리",
+          "koPath": "/admin/system/screen-menu-assignment-management",
+          "enPath": "/en/admin/system/screen-menu-assignment-management"
         },
         "componentType": "button",
         "componentName": "MemberButton",
@@ -11012,6 +11138,595 @@
     ]
   },
   {
+    "key": "button:MemberButton:::::",
+    "styleGroupId": "BTN-memberbutton-plain-md-plain-noplace",
+    "componentType": "button",
+    "componentName": "MemberButton",
+    "variant": "",
+    "size": "",
+    "className": "",
+    "icon": "",
+    "placeholder": "",
+    "summary": "",
+    "routeCount": 6,
+    "instanceCount": 31,
+    "labels": [
+      "전체",
+      "접속/인증",
+      "감사",
+      "오류",
+      "추적",
+      "감사 로그"
+    ],
+    "routes": [
+      {
+        "routeId": "system-code",
+        "label": "시스템 코드",
+        "koPath": "/admin/system/code",
+        "enPath": "/en/admin/system/code"
+      },
+      {
+        "routeId": "help-management",
+        "label": "도움말 운영",
+        "koPath": "/admin/system/help-management",
+        "enPath": "/en/admin/system/help-management"
+      },
+      {
+        "routeId": "observability",
+        "label": "추적 조회",
+        "koPath": "/admin/system/observability",
+        "enPath": "/en/admin/system/observability"
+      },
+      {
+        "routeId": "screen-flow-management",
+        "label": "화면 흐름 관리",
+        "koPath": "/admin/system/screen-flow-management",
+        "enPath": "/en/admin/system/screen-flow-management"
+      },
+      {
+        "routeId": "screen-menu-assignment-management",
+        "label": "화면-메뉴 귀속 관리",
+        "koPath": "/admin/system/screen-menu-assignment-management",
+        "enPath": "/en/admin/system/screen-menu-assignment-management"
+      },
+      {
+        "routeId": "unified-log",
+        "label": "통합 로그",
+        "koPath": "/admin/system/unified_log",
+        "enPath": "/en/admin/system/unified_log"
+      }
+    ],
+    "instances": [
+      {
+        "route": {
+          "routeId": "help-management",
+          "label": "도움말 운영",
+          "koPath": "/admin/system/help-management",
+          "enPath": "/en/admin/system/help-management"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": ""
+      },
+      {
+        "route": {
+          "routeId": "help-management",
+          "label": "도움말 운영",
+          "koPath": "/admin/system/help-management",
+          "enPath": "/en/admin/system/help-management"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": ""
+      },
+      {
+        "route": {
+          "routeId": "unified-log",
+          "label": "통합 로그",
+          "koPath": "/admin/system/unified_log",
+          "enPath": "/en/admin/system/unified_log"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": ""
+      },
+      {
+        "route": {
+          "routeId": "observability",
+          "label": "추적 조회",
+          "koPath": "/admin/system/observability",
+          "enPath": "/en/admin/system/observability"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": ""
+      },
+      {
+        "route": {
+          "routeId": "unified-log",
+          "label": "통합 로그",
+          "koPath": "/admin/system/unified_log",
+          "enPath": "/en/admin/system/unified_log"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "전체",
+        "placeholder": "",
+        "summary": ""
+      },
+      {
+        "route": {
+          "routeId": "observability",
+          "label": "추적 조회",
+          "koPath": "/admin/system/observability",
+          "enPath": "/en/admin/system/observability"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "전체",
+        "placeholder": "",
+        "summary": ""
+      },
+      {
+        "route": {
+          "routeId": "unified-log",
+          "label": "통합 로그",
+          "koPath": "/admin/system/unified_log",
+          "enPath": "/en/admin/system/unified_log"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "접속/인증",
+        "placeholder": "",
+        "summary": ""
+      },
+      {
+        "route": {
+          "routeId": "observability",
+          "label": "추적 조회",
+          "koPath": "/admin/system/observability",
+          "enPath": "/en/admin/system/observability"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "접속/인증",
+        "placeholder": "",
+        "summary": ""
+      },
+      {
+        "route": {
+          "routeId": "unified-log",
+          "label": "통합 로그",
+          "koPath": "/admin/system/unified_log",
+          "enPath": "/en/admin/system/unified_log"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "감사",
+        "placeholder": "",
+        "summary": ""
+      },
+      {
+        "route": {
+          "routeId": "observability",
+          "label": "추적 조회",
+          "koPath": "/admin/system/observability",
+          "enPath": "/en/admin/system/observability"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "감사",
+        "placeholder": "",
+        "summary": ""
+      },
+      {
+        "route": {
+          "routeId": "unified-log",
+          "label": "통합 로그",
+          "koPath": "/admin/system/unified_log",
+          "enPath": "/en/admin/system/unified_log"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "오류",
+        "placeholder": "",
+        "summary": ""
+      },
+      {
+        "route": {
+          "routeId": "observability",
+          "label": "추적 조회",
+          "koPath": "/admin/system/observability",
+          "enPath": "/en/admin/system/observability"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "오류",
+        "placeholder": "",
+        "summary": ""
+      },
+      {
+        "route": {
+          "routeId": "unified-log",
+          "label": "통합 로그",
+          "koPath": "/admin/system/unified_log",
+          "enPath": "/en/admin/system/unified_log"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "추적",
+        "placeholder": "",
+        "summary": ""
+      },
+      {
+        "route": {
+          "routeId": "observability",
+          "label": "추적 조회",
+          "koPath": "/admin/system/observability",
+          "enPath": "/en/admin/system/observability"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "추적",
+        "placeholder": "",
+        "summary": ""
+      },
+      {
+        "route": {
+          "routeId": "unified-log",
+          "label": "통합 로그",
+          "koPath": "/admin/system/unified_log",
+          "enPath": "/en/admin/system/unified_log"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "감사 로그",
+        "placeholder": "",
+        "summary": ""
+      },
+      {
+        "route": {
+          "routeId": "observability",
+          "label": "추적 조회",
+          "koPath": "/admin/system/observability",
+          "enPath": "/en/admin/system/observability"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "감사 로그",
+        "placeholder": "",
+        "summary": ""
+      },
+      {
+        "route": {
+          "routeId": "unified-log",
+          "label": "통합 로그",
+          "koPath": "/admin/system/unified_log",
+          "enPath": "/en/admin/system/unified_log"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "추적 이벤트",
+        "placeholder": "",
+        "summary": ""
+      },
+      {
+        "route": {
+          "routeId": "observability",
+          "label": "추적 조회",
+          "koPath": "/admin/system/observability",
+          "enPath": "/en/admin/system/observability"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "추적 이벤트",
+        "placeholder": "",
+        "summary": ""
+      },
+      {
+        "route": {
+          "routeId": "screen-flow-management",
+          "label": "화면 흐름 관리",
+          "koPath": "/admin/system/screen-flow-management",
+          "enPath": "/en/admin/system/screen-flow-management"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": ""
+      },
+      {
+        "route": {
+          "routeId": "screen-menu-assignment-management",
+          "label": "화면-메뉴 귀속 관리",
+          "koPath": "/admin/system/screen-menu-assignment-management",
+          "enPath": "/en/admin/system/screen-menu-assignment-management"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": ""
+      },
+      {
+        "route": {
+          "routeId": "screen-flow-management",
+          "label": "화면 흐름 관리",
+          "koPath": "/admin/system/screen-flow-management",
+          "enPath": "/en/admin/system/screen-flow-management"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": ""
+      },
+      {
+        "route": {
+          "routeId": "screen-menu-assignment-management",
+          "label": "화면-메뉴 귀속 관리",
+          "koPath": "/admin/system/screen-menu-assignment-management",
+          "enPath": "/en/admin/system/screen-menu-assignment-management"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": ""
+      },
+      {
+        "route": {
+          "routeId": "system-code",
+          "label": "시스템 코드",
+          "koPath": "/admin/system/code",
+          "enPath": "/en/admin/system/code"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": ""
+      },
+      {
+        "route": {
+          "routeId": "system-code",
+          "label": "시스템 코드",
+          "koPath": "/admin/system/code",
+          "enPath": "/en/admin/system/code"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": ""
+      },
+      {
+        "route": {
+          "routeId": "system-code",
+          "label": "시스템 코드",
+          "koPath": "/admin/system/code",
+          "enPath": "/en/admin/system/code"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": ""
+      },
+      {
+        "route": {
+          "routeId": "system-code",
+          "label": "시스템 코드",
+          "koPath": "/admin/system/code",
+          "enPath": "/en/admin/system/code"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": ""
+      },
+      {
+        "route": {
+          "routeId": "system-code",
+          "label": "시스템 코드",
+          "koPath": "/admin/system/code",
+          "enPath": "/en/admin/system/code"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": ""
+      },
+      {
+        "route": {
+          "routeId": "system-code",
+          "label": "시스템 코드",
+          "koPath": "/admin/system/code",
+          "enPath": "/en/admin/system/code"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": ""
+      },
+      {
+        "route": {
+          "routeId": "system-code",
+          "label": "시스템 코드",
+          "koPath": "/admin/system/code",
+          "enPath": "/en/admin/system/code"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": ""
+      },
+      {
+        "route": {
+          "routeId": "system-code",
+          "label": "시스템 코드",
+          "koPath": "/admin/system/code",
+          "enPath": "/en/admin/system/code"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": ""
+      },
+      {
+        "route": {
+          "routeId": "system-code",
+          "label": "시스템 코드",
+          "koPath": "/admin/system/code",
+          "enPath": "/en/admin/system/code"
+        },
+        "componentType": "button",
+        "componentName": "MemberButton",
+        "variant": "",
+        "size": "",
+        "className": "",
+        "icon": "",
+        "label": "",
+        "placeholder": "",
+        "summary": ""
+      }
+    ]
+  },
+  {
     "key": "table:table:::data-table::",
     "styleGroupId": "TBL-table-plain-md-data-table-noplace",
     "componentType": "table",
@@ -12150,515 +12865,6 @@
         "label": "",
         "placeholder": "",
         "summary": "secondary / sm"
-      }
-    ]
-  },
-  {
-    "key": "button:MemberButton:::::",
-    "styleGroupId": "BTN-memberbutton-plain-md-plain-noplace",
-    "componentType": "button",
-    "componentName": "MemberButton",
-    "variant": "",
-    "size": "",
-    "className": "",
-    "icon": "",
-    "placeholder": "",
-    "summary": "",
-    "routeCount": 4,
-    "instanceCount": 27,
-    "labels": [
-      "전체",
-      "접속/인증",
-      "감사",
-      "오류",
-      "추적",
-      "감사 로그"
-    ],
-    "routes": [
-      {
-        "routeId": "system-code",
-        "label": "시스템 코드",
-        "koPath": "/admin/system/code",
-        "enPath": "/en/admin/system/code"
-      },
-      {
-        "routeId": "help-management",
-        "label": "도움말 운영",
-        "koPath": "/admin/system/help-management",
-        "enPath": "/en/admin/system/help-management"
-      },
-      {
-        "routeId": "observability",
-        "label": "추적 조회",
-        "koPath": "/admin/system/observability",
-        "enPath": "/en/admin/system/observability"
-      },
-      {
-        "routeId": "unified-log",
-        "label": "통합 로그",
-        "koPath": "/admin/system/unified_log",
-        "enPath": "/en/admin/system/unified_log"
-      }
-    ],
-    "instances": [
-      {
-        "route": {
-          "routeId": "help-management",
-          "label": "도움말 운영",
-          "koPath": "/admin/system/help-management",
-          "enPath": "/en/admin/system/help-management"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": ""
-      },
-      {
-        "route": {
-          "routeId": "help-management",
-          "label": "도움말 운영",
-          "koPath": "/admin/system/help-management",
-          "enPath": "/en/admin/system/help-management"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": ""
-      },
-      {
-        "route": {
-          "routeId": "unified-log",
-          "label": "통합 로그",
-          "koPath": "/admin/system/unified_log",
-          "enPath": "/en/admin/system/unified_log"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": ""
-      },
-      {
-        "route": {
-          "routeId": "observability",
-          "label": "추적 조회",
-          "koPath": "/admin/system/observability",
-          "enPath": "/en/admin/system/observability"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": ""
-      },
-      {
-        "route": {
-          "routeId": "unified-log",
-          "label": "통합 로그",
-          "koPath": "/admin/system/unified_log",
-          "enPath": "/en/admin/system/unified_log"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "전체",
-        "placeholder": "",
-        "summary": ""
-      },
-      {
-        "route": {
-          "routeId": "observability",
-          "label": "추적 조회",
-          "koPath": "/admin/system/observability",
-          "enPath": "/en/admin/system/observability"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "전체",
-        "placeholder": "",
-        "summary": ""
-      },
-      {
-        "route": {
-          "routeId": "unified-log",
-          "label": "통합 로그",
-          "koPath": "/admin/system/unified_log",
-          "enPath": "/en/admin/system/unified_log"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "접속/인증",
-        "placeholder": "",
-        "summary": ""
-      },
-      {
-        "route": {
-          "routeId": "observability",
-          "label": "추적 조회",
-          "koPath": "/admin/system/observability",
-          "enPath": "/en/admin/system/observability"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "접속/인증",
-        "placeholder": "",
-        "summary": ""
-      },
-      {
-        "route": {
-          "routeId": "unified-log",
-          "label": "통합 로그",
-          "koPath": "/admin/system/unified_log",
-          "enPath": "/en/admin/system/unified_log"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "감사",
-        "placeholder": "",
-        "summary": ""
-      },
-      {
-        "route": {
-          "routeId": "observability",
-          "label": "추적 조회",
-          "koPath": "/admin/system/observability",
-          "enPath": "/en/admin/system/observability"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "감사",
-        "placeholder": "",
-        "summary": ""
-      },
-      {
-        "route": {
-          "routeId": "unified-log",
-          "label": "통합 로그",
-          "koPath": "/admin/system/unified_log",
-          "enPath": "/en/admin/system/unified_log"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "오류",
-        "placeholder": "",
-        "summary": ""
-      },
-      {
-        "route": {
-          "routeId": "observability",
-          "label": "추적 조회",
-          "koPath": "/admin/system/observability",
-          "enPath": "/en/admin/system/observability"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "오류",
-        "placeholder": "",
-        "summary": ""
-      },
-      {
-        "route": {
-          "routeId": "unified-log",
-          "label": "통합 로그",
-          "koPath": "/admin/system/unified_log",
-          "enPath": "/en/admin/system/unified_log"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "추적",
-        "placeholder": "",
-        "summary": ""
-      },
-      {
-        "route": {
-          "routeId": "observability",
-          "label": "추적 조회",
-          "koPath": "/admin/system/observability",
-          "enPath": "/en/admin/system/observability"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "추적",
-        "placeholder": "",
-        "summary": ""
-      },
-      {
-        "route": {
-          "routeId": "unified-log",
-          "label": "통합 로그",
-          "koPath": "/admin/system/unified_log",
-          "enPath": "/en/admin/system/unified_log"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "감사 로그",
-        "placeholder": "",
-        "summary": ""
-      },
-      {
-        "route": {
-          "routeId": "observability",
-          "label": "추적 조회",
-          "koPath": "/admin/system/observability",
-          "enPath": "/en/admin/system/observability"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "감사 로그",
-        "placeholder": "",
-        "summary": ""
-      },
-      {
-        "route": {
-          "routeId": "unified-log",
-          "label": "통합 로그",
-          "koPath": "/admin/system/unified_log",
-          "enPath": "/en/admin/system/unified_log"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "추적 이벤트",
-        "placeholder": "",
-        "summary": ""
-      },
-      {
-        "route": {
-          "routeId": "observability",
-          "label": "추적 조회",
-          "koPath": "/admin/system/observability",
-          "enPath": "/en/admin/system/observability"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "추적 이벤트",
-        "placeholder": "",
-        "summary": ""
-      },
-      {
-        "route": {
-          "routeId": "system-code",
-          "label": "시스템 코드",
-          "koPath": "/admin/system/code",
-          "enPath": "/en/admin/system/code"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": ""
-      },
-      {
-        "route": {
-          "routeId": "system-code",
-          "label": "시스템 코드",
-          "koPath": "/admin/system/code",
-          "enPath": "/en/admin/system/code"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": ""
-      },
-      {
-        "route": {
-          "routeId": "system-code",
-          "label": "시스템 코드",
-          "koPath": "/admin/system/code",
-          "enPath": "/en/admin/system/code"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": ""
-      },
-      {
-        "route": {
-          "routeId": "system-code",
-          "label": "시스템 코드",
-          "koPath": "/admin/system/code",
-          "enPath": "/en/admin/system/code"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": ""
-      },
-      {
-        "route": {
-          "routeId": "system-code",
-          "label": "시스템 코드",
-          "koPath": "/admin/system/code",
-          "enPath": "/en/admin/system/code"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": ""
-      },
-      {
-        "route": {
-          "routeId": "system-code",
-          "label": "시스템 코드",
-          "koPath": "/admin/system/code",
-          "enPath": "/en/admin/system/code"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": ""
-      },
-      {
-        "route": {
-          "routeId": "system-code",
-          "label": "시스템 코드",
-          "koPath": "/admin/system/code",
-          "enPath": "/en/admin/system/code"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": ""
-      },
-      {
-        "route": {
-          "routeId": "system-code",
-          "label": "시스템 코드",
-          "koPath": "/admin/system/code",
-          "enPath": "/en/admin/system/code"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": ""
-      },
-      {
-        "route": {
-          "routeId": "system-code",
-          "label": "시스템 코드",
-          "koPath": "/admin/system/code",
-          "enPath": "/en/admin/system/code"
-        },
-        "componentType": "button",
-        "componentName": "MemberButton",
-        "variant": "",
-        "size": "",
-        "className": "",
-        "icon": "",
-        "label": "",
-        "placeholder": "",
-        "summary": ""
       }
     ]
   },

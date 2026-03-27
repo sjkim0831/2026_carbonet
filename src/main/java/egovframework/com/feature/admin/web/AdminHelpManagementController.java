@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import egovframework.com.common.audit.AuditTrailService;
 import egovframework.com.common.help.HelpContentService;
 import egovframework.com.common.help.HelpManagementSaveRequest;
+import egovframework.com.common.trace.UiManifestRegistryService;
 import egovframework.com.feature.admin.service.ScreenCommandCenterService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -32,6 +33,7 @@ public class AdminHelpManagementController {
     private final HelpContentService helpContentService;
     private final AuditTrailService auditTrailService;
     private final ScreenCommandCenterService screenCommandCenterService;
+    private final UiManifestRegistryService uiManifestRegistryService;
     private final ObjectMapper objectMapper;
 
     @RequestMapping(value = "/system/help-management", method = RequestMethod.GET)
@@ -88,6 +90,60 @@ public class AdminHelpManagementController {
         response.put("success", true);
         response.put("pageId", request == null ? "" : safe(request.getPageId()));
         response.put("message", "도움말을 저장했습니다.");
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/api/admin/help-management/screen-command/map-menu")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> saveScreenCommandMenuMapping(
+            @RequestBody Map<String, Object> requestBody,
+            HttpServletRequest httpServletRequest) throws Exception {
+        String pageId = safe(asString(requestBody.get("pageId")));
+        String menuCode = safe(asString(requestBody.get("menuCode"))).toUpperCase(Locale.ROOT);
+        String menuName = safe(asString(requestBody.get("menuName")));
+        String menuUrl = safe(asString(requestBody.get("menuUrl")));
+        String domainCode = firstNonBlank(safe(asString(requestBody.get("domainCode"))), inferDomainCode(menuUrl, menuCode));
+        if (pageId.isEmpty() || menuCode.isEmpty() || menuUrl.isEmpty()) {
+            Map<String, Object> error = new LinkedHashMap<>();
+            error.put("success", false);
+            error.put("message", "pageId, menuCode, menuUrl은 필수입니다.");
+            return ResponseEntity.badRequest().body(error);
+        }
+
+        Map<String, Object> beforeState = screenCommandCenterService.getScreenCommandPage(pageId);
+        Map<String, Object> page = safeMap(beforeState.get("page"));
+        page.put("pageId", pageId);
+        page.put("label", firstNonBlank(safe(asString(page.get("label"))), menuName, pageId));
+        page.put("routePath", menuUrl);
+        page.put("menuCode", menuCode);
+        page.put("domainCode", domainCode);
+        page.put("menuLookupUrl", menuUrl);
+        Map<String, Object> registry = uiManifestRegistryService.syncPageRegistry(page);
+        Map<String, Object> afterState = screenCommandCenterService.getScreenCommandPage(pageId);
+
+        auditTrailService.record(
+                resolveActorId(httpServletRequest),
+                resolveActorRole(httpServletRequest),
+                menuCode,
+                "screen-menu-assignment-management",
+                "SCREEN_MENU_MAPPING_SAVE",
+                "UI_PAGE_MANIFEST",
+                pageId,
+                "SUCCESS",
+                "Screen command page mapped to menu",
+                safeJson(beforeState),
+                safeJson(afterState),
+                resolveRequestIp(httpServletRequest),
+                httpServletRequest == null ? "" : safe(httpServletRequest.getHeader("User-Agent"))
+        );
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("success", true);
+        response.put("message", "메뉴 귀속을 저장했습니다.");
+        response.put("pageId", pageId);
+        response.put("menuCode", menuCode);
+        response.put("routePath", menuUrl);
+        response.put("manifestRegistry", registry);
         return ResponseEntity.ok(response);
     }
 
@@ -156,6 +212,40 @@ public class AdminHelpManagementController {
 
     private String safe(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private String asString(Object value) {
+        return value == null ? "" : String.valueOf(value);
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return "";
+        }
+        for (String value : values) {
+            String normalized = safe(value);
+            if (!normalized.isEmpty()) {
+                return normalized;
+            }
+        }
+        return "";
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> safeMap(Object value) {
+        if (value instanceof Map) {
+            return new LinkedHashMap<>((Map<String, Object>) value);
+        }
+        return new LinkedHashMap<>();
+    }
+
+    private String inferDomainCode(String menuUrl, String menuCode) {
+        String normalizedUrl = safe(menuUrl);
+        String normalizedCode = safe(menuCode).toUpperCase(Locale.ROOT);
+        if (normalizedUrl.startsWith("/admin/") || normalizedUrl.startsWith("/en/admin/") || normalizedCode.startsWith("A")) {
+            return "admin";
+        }
+        return "home";
     }
 
     private boolean isEnglishRequest(HttpServletRequest request, Locale locale) {

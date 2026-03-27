@@ -109,7 +109,16 @@ public class ReactAppBootstrapService {
             } else if ("security_monitoring".equals(normalizedRoute)) {
                 payload.put("securityMonitoringPageData", adminShellBootstrapPageService.buildSecurityMonitoringPageData(en));
             } else if ("security_audit".equals(normalizedRoute)) {
-                payload.put("securityAuditPageData", adminShellBootstrapPageService.buildSecurityAuditPageData(en));
+                payload.put("securityAuditPageData", adminShellBootstrapPageService.buildSecurityAuditPageData(
+                        request == null ? "" : request.getParameter("pageIndex"),
+                        request == null ? "" : request.getParameter("searchKeyword"),
+                        request == null ? "" : request.getParameter("actionType"),
+                        request == null ? "" : request.getParameter("routeGroup"),
+                        request == null ? "" : request.getParameter("startDate"),
+                        request == null ? "" : request.getParameter("endDate"),
+                        request == null ? "" : request.getParameter("sortKey"),
+                        request == null ? "" : request.getParameter("sortDirection"),
+                        en));
             } else if ("scheduler_management".equals(normalizedRoute)) {
                 payload.put("schedulerManagementPageData", adminShellBootstrapPageService.buildSchedulerPageData(
                         request == null ? "" : request.getParameter("jobStatus"),

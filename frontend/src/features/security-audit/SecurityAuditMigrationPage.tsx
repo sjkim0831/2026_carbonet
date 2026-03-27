@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { buildSecurityAuditExportUrl, fetchSecurityAuditPage, type SecurityAuditPagePayload } from "../../lib/api/client";
+import { buildSecurityAuditExportUrl, fetchSecurityAuditPage, readBootstrappedSecurityAuditPageData, type SecurityAuditPagePayload } from "../../lib/api/client";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { CollectionResultPanel, SummaryMetricCard } from "../admin-ui/common";
@@ -21,6 +21,29 @@ type AuditFilters = {
 };
 
 type SortableAuditColumn = "AUDIT_AT" | "ACTOR" | "ACTION" | "TARGET";
+
+type SecurityAuditRowView = {
+  row: Record<string, unknown>;
+  rowKey: string;
+  auditAt: string;
+  actor: string;
+  actorId: string;
+  actorType: string;
+  insttId: string;
+  action: string;
+  target: string;
+  detail: string;
+  actorScope: string;
+  targetScope: string;
+  contextMode: string;
+  reason: string;
+  remoteAddr: string;
+  responseStatus: number;
+  durationMs: number;
+  traceId: string;
+  requestId: string;
+  httpMethod: string;
+};
 
 const DEFAULT_FILTERS: AuditFilters = {
   pageIndex: 1,
@@ -122,8 +145,21 @@ function countOf(row: Record<string, unknown> | null | undefined, key: string) {
   return Number(row?.[key] || 0);
 }
 
+function sameFilters(left: AuditFilters, right: AuditFilters) {
+  return left.pageIndex === right.pageIndex
+    && left.searchKeyword === right.searchKeyword
+    && left.actionType === right.actionType
+    && left.routeGroup === right.routeGroup
+    && left.startDate === right.startDate
+    && left.endDate === right.endDate
+    && left.sortKey === right.sortKey
+    && left.sortDirection === right.sortDirection;
+}
+
 export function SecurityAuditMigrationPage() {
   const en = isEnglish();
+  const initialPayload = useMemo(() => readBootstrappedSecurityAuditPageData(), []);
+  const [showDeferredInsights, setShowDeferredInsights] = useState(false);
   const [filters, setFilters] = useState<AuditFilters>(() => readInitialFilters());
   const [draft, setDraft] = useState<AuditFilters>(() => readInitialFilters());
   const [selectedRowKey, setSelectedRowKey] = useState("");
@@ -131,6 +167,8 @@ export function SecurityAuditMigrationPage() {
     () => fetchSecurityAuditPage(filters),
     [filters.pageIndex, filters.searchKeyword, filters.actionType, filters.routeGroup, filters.startDate, filters.endDate, filters.sortKey, filters.sortDirection],
     {
+      initialValue: initialPayload,
+      skipInitialLoad: Boolean(initialPayload),
       onSuccess(payload) {
         const next = {
           pageIndex: Number(payload.pageIndex || 1),
@@ -142,8 +180,8 @@ export function SecurityAuditMigrationPage() {
           sortKey: String(payload.sortKey || "AUDIT_AT"),
           sortDirection: String(payload.sortDirection || "DESC")
         };
-        setFilters(next);
-        setDraft(next);
+        setFilters((current) => sameFilters(current, next) ? current : next);
+        setDraft((current) => sameFilters(current, next) ? current : next);
       }
     }
   );
@@ -157,13 +195,73 @@ export function SecurityAuditMigrationPage() {
   const totalPages = Math.max(1, Number(page?.totalPages || 1));
   const totalCount = Number(page?.totalCount || rows.length);
   const pageSize = Number(page?.pageSize || 10);
+  const rowViews = useMemo<SecurityAuditRowView[]>(
+    () => rows.map((row, index) => {
+      const actor = stringOf(row, "actor");
+      const actorParts = splitActor(actor);
+      const detail = stringOf(row, "detail");
+      const detailParts = splitDetail(detail);
+      return {
+        row,
+        rowKey: `${stringOf(row, "auditAt", "target", "actor")}-${index}`,
+        auditAt: stringOf(row, "auditAt"),
+        actor,
+        actorId: actorParts.actorId,
+        actorType: actorParts.actorType,
+        insttId: actorParts.insttId,
+        action: stringOf(row, "action"),
+        target: stringOf(row, "target"),
+        detail,
+        actorScope: detailParts.actorScope,
+        targetScope: detailParts.targetScope,
+        contextMode: detailParts.contextMode,
+        reason: detailParts.reason,
+        remoteAddr: stringOf(row, "remoteAddr"),
+        responseStatus: countOf(row, "responseStatus"),
+        durationMs: countOf(row, "durationMs"),
+        traceId: stringOf(row, "traceId"),
+        requestId: stringOf(row, "requestId"),
+        httpMethod: stringOf(row, "httpMethod")
+      };
+    }),
+    [rows]
+  );
   const repeatedActorSet = useMemo(() => new Set(repeatedActors.map((item) => stringOf(item, "value")).filter(Boolean)), [repeatedActors]);
   const repeatedTargetSet = useMemo(() => new Set(repeatedTargets.map((item) => stringOf(item, "value")).filter(Boolean)), [repeatedTargets]);
   const repeatedRemoteAddrSet = useMemo(() => new Set(repeatedRemoteAddrs.map((item) => stringOf(item, "value")).filter(Boolean)), [repeatedRemoteAddrs]);
   const selectedRow = useMemo(
-    () => rows.find((row, index) => `${stringOf(row, "auditAt", "target", "actor")}-${index}` === selectedRowKey) || null,
-    [rows, selectedRowKey]
+    () => rowViews.find((row) => row.rowKey === selectedRowKey) || null,
+    [rowViews, selectedRowKey]
   );
+
+  useEffect(() => {
+    setShowDeferredInsights(false);
+    if (typeof window === "undefined") {
+      return;
+    }
+    let cancelled = false;
+    const schedule = window.requestAnimationFrame(() => {
+      window.setTimeout(() => {
+        if (!cancelled) {
+          setShowDeferredInsights(true);
+        }
+      }, 0);
+    });
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(schedule);
+    };
+  }, [
+    page?.pageIndex,
+    page?.totalCount,
+    page?.sortKey,
+    page?.sortDirection,
+    page?.searchKeyword,
+    page?.actionType,
+    page?.routeGroup,
+    page?.startDate,
+    page?.endDate
+  ]);
 
   useEffect(() => {
     const nextSearch = new URLSearchParams();
@@ -195,7 +293,7 @@ export function SecurityAuditMigrationPage() {
     }
     logGovernanceScope("PAGE", "security-audit", {
       route: window.location.pathname,
-      rowCount: rows.length,
+      rowCount: rowViews.length,
       totalCount,
       searchKeyword: filters.searchKeyword,
       actionType: filters.actionType,
@@ -203,7 +301,7 @@ export function SecurityAuditMigrationPage() {
       startDate: filters.startDate,
       endDate: filters.endDate
     });
-  }, [filters.actionType, filters.endDate, filters.routeGroup, filters.searchKeyword, filters.startDate, page, rows.length, totalCount]);
+  }, [filters.actionType, filters.endDate, filters.routeGroup, filters.searchKeyword, filters.startDate, page, rowViews.length, totalCount]);
 
   useEffect(() => {
     setSelectedRowKey("");
@@ -268,15 +366,25 @@ export function SecurityAuditMigrationPage() {
     >
       {pageState.error ? <PageStatusNotice tone="error">{pageState.error}</PageStatusNotice> : null}
       <AdminWorkspacePageFrame>
-      <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <SummaryMetricCard title={en ? "Audit Events" : "감사 이벤트"} value={totalCount.toLocaleString()} description={en ? "Filtered total rows" : "현재 필터 기준 총 건수"} />
-        <SummaryMetricCard title={en ? "Current Page" : "현재 페이지"} value={`${currentPage} / ${totalPages}`} description={en ? "Server-side pagination" : "서버 기준 페이지"} />
-        <SummaryMetricCard title={en ? "Failed Events" : "오류 이벤트"} value={Number(page?.filteredErrorCount || 0).toLocaleString()} description={en ? "Error responses in scope" : "현재 범위 오류 응답"} />
-        <SummaryMetricCard title={en ? "Repeated Signals" : "반복 징후"} value={(Number(page?.filteredRepeatedActorCount || 0) + Number(page?.filteredRepeatedTargetCount || 0) + Number(page?.filteredRepeatedRemoteAddrCount || 0)).toLocaleString()} description={en ? "Actor, route, and IP" : "수행자, 경로, IP"} />
-      </section>
-      <CollectionResultPanel description={en ? "Search, anomaly review, and row-level detail stay in one workspace for policy follow-up." : "검색, 이상 징후 검토, 행 상세를 한 작업 공간에 두고 정책 후속 조치까지 이어갑니다."} title={en ? "Audit operation workflow" : "감사 운영 흐름"}>
-        {en ? "Filter first, review repeated patterns next, then open row details to inspect scope and operator reasons." : "먼저 필터로 좁히고, 반복 패턴을 검토한 뒤, 행 상세에서 스코프와 운영 사유를 확인합니다."}
-      </CollectionResultPanel>
+      {showDeferredInsights ? (
+        <>
+          <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <SummaryMetricCard title={en ? "Audit Events" : "감사 이벤트"} value={totalCount.toLocaleString()} description={en ? "Filtered total rows" : "현재 필터 기준 총 건수"} />
+            <SummaryMetricCard title={en ? "Current Page" : "현재 페이지"} value={`${currentPage} / ${totalPages}`} description={en ? "Server-side pagination" : "서버 기준 페이지"} />
+            <SummaryMetricCard title={en ? "Failed Events" : "오류 이벤트"} value={Number(page?.filteredErrorCount || 0).toLocaleString()} description={en ? "Error responses in scope" : "현재 범위 오류 응답"} />
+            <SummaryMetricCard title={en ? "Repeated Signals" : "반복 징후"} value={(Number(page?.filteredRepeatedActorCount || 0) + Number(page?.filteredRepeatedTargetCount || 0) + Number(page?.filteredRepeatedRemoteAddrCount || 0)).toLocaleString()} description={en ? "Actor, route, and IP" : "수행자, 경로, IP"} />
+          </section>
+          <CollectionResultPanel description={en ? "Search, anomaly review, and row-level detail stay in one workspace for policy follow-up." : "검색, 이상 징후 검토, 행 상세를 한 작업 공간에 두고 정책 후속 조치까지 이어갑니다."} title={en ? "Audit operation workflow" : "감사 운영 흐름"}>
+            {en ? "Filter first, review repeated patterns next, then open row details to inspect scope and operator reasons." : "먼저 필터로 좁히고, 반복 패턴을 검토한 뒤, 행 상세에서 스코프와 운영 사유를 확인합니다."}
+          </CollectionResultPanel>
+        </>
+      ) : (
+        <section className="gov-card mb-8">
+          <div className="px-6 py-5 text-sm text-[var(--kr-gov-text-secondary)]">
+            {en ? "Loading summary insights." : "요약 인사이트를 불러오는 중입니다."}
+          </div>
+        </section>
+      )}
 
       <section className="gov-card mb-8" data-help-id="security-audit-filters">
         <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
@@ -369,6 +477,7 @@ export function SecurityAuditMigrationPage() {
         </form>
       </section>
 
+      {showDeferredInsights ? (
       <section className="gov-card mb-8" data-help-id="security-audit-summary">
         <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
           <MemberSectionToolbar
@@ -390,7 +499,9 @@ export function SecurityAuditMigrationPage() {
           ))}
         </div>
       </section>
+      ) : null}
 
+      {showDeferredInsights ? (
       <section className="gov-card mb-8" data-help-id="security-audit-anomalies">
         <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
           <MemberSectionToolbar
@@ -439,6 +550,7 @@ export function SecurityAuditMigrationPage() {
           ))}
         </div>
       </section>
+      ) : null}
 
       <section className="gov-card overflow-hidden p-0" data-help-id="security-audit-table">
         <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
@@ -491,43 +603,37 @@ export function SecurityAuditMigrationPage() {
                     {en ? "No audit events matched the current filters." : "현재 필터에 일치하는 감사 이벤트가 없습니다."}
                   </td>
                 </tr>
-              ) : rows.map((row, index) => {
-                const rowKey = `${stringOf(row, "auditAt", "target", "actor")}-${index}`;
-                const target = stringOf(row, "target");
-                const actorId = splitActor(stringOf(row, "actor")).actorId;
-                const remoteAddr = stringOf(row, "remoteAddr");
-                const responseStatus = countOf(row, "responseStatus");
-                const durationMs = countOf(row, "durationMs");
+              ) : rowViews.map((rowView, index) => {
                 return (
-                  <tr className="transition-colors hover:bg-gray-50/50" key={rowKey}>
+                  <tr className="transition-colors hover:bg-gray-50/50" key={rowView.rowKey}>
                     <td className="px-6 py-4 text-center text-gray-500">{totalCount - ((currentPage - 1) * pageSize + index)}</td>
-                    <td className="px-6 py-4 text-gray-600">{stringOf(row, "auditAt") || "-"}</td>
+                    <td className="px-6 py-4 text-gray-600">{rowView.auditAt || "-"}</td>
                     <td className="px-6 py-4 text-[var(--kr-gov-text-primary)]">
-                      <p>{stringOf(row, "actor") || "-"}</p>
+                      <p>{rowView.actor || "-"}</p>
                       <div className="mt-2 flex flex-wrap gap-1.5">
-                        {repeatedActorSet.has(actorId) ? <span className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-700">{en ? "Repeated Actor" : "반복 수행자"}</span> : null}
-                        {repeatedRemoteAddrSet.has(remoteAddr) ? <span className="inline-flex rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-bold text-slate-700">{en ? "Repeated IP" : "반복 IP"}</span> : null}
+                        {repeatedActorSet.has(rowView.actorId) ? <span className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-700">{en ? "Repeated Actor" : "반복 수행자"}</span> : null}
+                        {repeatedRemoteAddrSet.has(rowView.remoteAddr) ? <span className="inline-flex rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-bold text-slate-700">{en ? "Repeated IP" : "반복 IP"}</span> : null}
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-wrap gap-1.5">
-                        <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${actionTone(stringOf(row, "action"))}`}>
-                          {stringOf(row, "action") || "-"}
+                        <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${actionTone(rowView.action)}`}>
+                          {rowView.action || "-"}
                         </span>
-                        {responseStatus >= 400 ? <span className="inline-flex rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-700">{en ? "Error" : "오류"}</span> : null}
-                        {durationMs >= 1000 ? <span className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700">{en ? "Slow" : "지연"}</span> : null}
+                        {rowView.responseStatus >= 400 ? <span className="inline-flex rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-700">{en ? "Error" : "오류"}</span> : null}
+                        {rowView.durationMs >= 1000 ? <span className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700">{en ? "Slow" : "지연"}</span> : null}
                       </div>
                     </td>
                     <td className="px-6 py-4 font-mono text-[13px] text-[var(--kr-gov-text-primary)]">
-                      <p>{target || "-"}</p>
-                      {repeatedTargetSet.has(target) ? (
+                      <p>{rowView.target || "-"}</p>
+                      {repeatedTargetSet.has(rowView.target) ? (
                         <span className="mt-2 inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-700">{en ? "Repeated Route" : "반복 경로"}</span>
                       ) : null}
                     </td>
-                    <td className="px-6 py-4 text-gray-600">{stringOf(row, "detail") || "-"}</td>
+                    <td className="px-6 py-4 text-gray-600">{rowView.detail || "-"}</td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex flex-wrap items-center justify-center gap-2">
-                        <MemberButton onClick={() => setSelectedRowKey(rowKey)} type="button" variant="secondary">
+                        <MemberButton onClick={() => setSelectedRowKey(rowView.rowKey)} type="button" variant="secondary">
                           {en ? "Detail" : "상세"}
                         </MemberButton>
                       </div>
@@ -553,19 +659,19 @@ export function SecurityAuditMigrationPage() {
             <section className="grid grid-cols-1 gap-4 md:grid-cols-4">
               <article className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
                 <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Status" : "응답 상태"}</p>
-                <p className="mt-2 text-lg font-black text-[var(--kr-gov-text-primary)]">{stringOf(selectedRow, "responseStatus") || "-"}</p>
+                <p className="mt-2 text-lg font-black text-[var(--kr-gov-text-primary)]">{selectedRow.responseStatus || "-"}</p>
               </article>
               <article className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
                 <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Duration" : "소요 시간"}</p>
-                <p className="mt-2 text-lg font-black text-[var(--kr-gov-text-primary)]">{stringOf(selectedRow, "durationMs") ? `${stringOf(selectedRow, "durationMs")}ms` : "-"}</p>
+                <p className="mt-2 text-lg font-black text-[var(--kr-gov-text-primary)]">{selectedRow.durationMs ? `${selectedRow.durationMs}ms` : "-"}</p>
               </article>
               <article className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
                 <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Trace ID" : "Trace ID"}</p>
-                <p className="mt-2 break-all font-mono text-[12px] text-[var(--kr-gov-text-primary)]">{stringOf(selectedRow, "traceId") || "-"}</p>
+                <p className="mt-2 break-all font-mono text-[12px] text-[var(--kr-gov-text-primary)]">{selectedRow.traceId || "-"}</p>
               </article>
               <article className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
                 <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Request ID" : "Request ID"}</p>
-                <p className="mt-2 break-all font-mono text-[12px] text-[var(--kr-gov-text-primary)]">{stringOf(selectedRow, "requestId") || "-"}</p>
+                <p className="mt-2 break-all font-mono text-[12px] text-[var(--kr-gov-text-primary)]">{selectedRow.requestId || "-"}</p>
               </article>
             </section>
             <section className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -574,23 +680,23 @@ export function SecurityAuditMigrationPage() {
                 <dl className="mt-4 space-y-3 text-sm">
                   <div>
                     <dt className="font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Audit Time" : "감사 시각"}</dt>
-                    <dd className="mt-1 text-[var(--kr-gov-text-primary)]">{stringOf(selectedRow, "auditAt") || "-"}</dd>
+                    <dd className="mt-1 text-[var(--kr-gov-text-primary)]">{selectedRow.auditAt || "-"}</dd>
                   </div>
                   <div>
                     <dt className="font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Action" : "행위"}</dt>
                     <dd className="mt-1">
-                      <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${actionTone(stringOf(selectedRow, "action"))}`}>
-                        {stringOf(selectedRow, "action") || "-"}
+                      <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${actionTone(selectedRow.action)}`}>
+                        {selectedRow.action || "-"}
                       </span>
                     </dd>
                   </div>
                   <div>
                     <dt className="font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Target Route" : "대상 경로"}</dt>
-                    <dd className="mt-1 break-all font-mono text-[13px] text-[var(--kr-gov-text-primary)]">{stringOf(selectedRow, "target") || "-"}</dd>
+                    <dd className="mt-1 break-all font-mono text-[13px] text-[var(--kr-gov-text-primary)]">{selectedRow.target || "-"}</dd>
                   </div>
                   <div>
                     <dt className="font-bold text-[var(--kr-gov-text-secondary)]">{en ? "HTTP Method" : "HTTP 메서드"}</dt>
-                    <dd className="mt-1 text-[var(--kr-gov-text-primary)]">{stringOf(selectedRow, "httpMethod") || "-"}</dd>
+                    <dd className="mt-1 text-[var(--kr-gov-text-primary)]">{selectedRow.httpMethod || "-"}</dd>
                   </div>
                 </dl>
               </article>
@@ -599,15 +705,15 @@ export function SecurityAuditMigrationPage() {
                 <dl className="mt-4 space-y-3 text-sm">
                   <div>
                     <dt className="font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Actor ID" : "수행자 ID"}</dt>
-                    <dd className="mt-1 text-[var(--kr-gov-text-primary)]">{splitActor(stringOf(selectedRow, "actor")).actorId || "-"}</dd>
+                    <dd className="mt-1 text-[var(--kr-gov-text-primary)]">{selectedRow.actorId || "-"}</dd>
                   </div>
                   <div>
                     <dt className="font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Actor Type" : "수행자 유형"}</dt>
-                    <dd className="mt-1 text-[var(--kr-gov-text-primary)]">{splitActor(stringOf(selectedRow, "actor")).actorType || "-"}</dd>
+                    <dd className="mt-1 text-[var(--kr-gov-text-primary)]">{selectedRow.actorType || "-"}</dd>
                   </div>
                   <div>
                     <dt className="font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Institution" : "기관 ID"}</dt>
-                    <dd className="mt-1 text-[var(--kr-gov-text-primary)]">{splitActor(stringOf(selectedRow, "actor")).insttId || "-"}</dd>
+                    <dd className="mt-1 text-[var(--kr-gov-text-primary)]">{selectedRow.insttId || "-"}</dd>
                   </div>
                 </dl>
               </article>
@@ -618,34 +724,34 @@ export function SecurityAuditMigrationPage() {
                 <dl className="mt-4 space-y-3 text-sm">
                   <div>
                     <dt className="font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Actor Scope" : "수행자 스코프"}</dt>
-                    <dd className="mt-1 text-[var(--kr-gov-text-primary)]">{splitDetail(stringOf(selectedRow, "detail")).actorScope}</dd>
+                    <dd className="mt-1 text-[var(--kr-gov-text-primary)]">{selectedRow.actorScope}</dd>
                   </div>
                   <div>
                     <dt className="font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Target Scope" : "대상 스코프"}</dt>
-                    <dd className="mt-1 text-[var(--kr-gov-text-primary)]">{splitDetail(stringOf(selectedRow, "detail")).targetScope}</dd>
+                    <dd className="mt-1 text-[var(--kr-gov-text-primary)]">{selectedRow.targetScope}</dd>
                   </div>
                   <div>
                     <dt className="font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Context Mode" : "Context Mode"}</dt>
-                    <dd className="mt-1 text-[var(--kr-gov-text-primary)]">{splitDetail(stringOf(selectedRow, "detail")).contextMode}</dd>
+                    <dd className="mt-1 text-[var(--kr-gov-text-primary)]">{selectedRow.contextMode}</dd>
                   </div>
                 </dl>
               </article>
               <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-5">
                 <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Reason" : "사유"}</p>
                 <p className="mt-4 rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-6 text-[var(--kr-gov-text-primary)]">
-                  {splitDetail(stringOf(selectedRow, "detail")).reason || "-"}
+                  {selectedRow.reason || "-"}
                 </p>
                 <dl className="mt-4 space-y-3 text-sm">
                   <div>
                     <dt className="font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Remote IP" : "원격 IP"}</dt>
-                    <dd className="mt-1 text-[var(--kr-gov-text-primary)]">{stringOf(selectedRow, "remoteAddr") || "-"}</dd>
+                    <dd className="mt-1 text-[var(--kr-gov-text-primary)]">{selectedRow.remoteAddr || "-"}</dd>
                   </div>
                 </dl>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <MemberLinkButton href={buildLocalizedPath(`/admin/system/security-policy?searchKeyword=${encodeURIComponent(stringOf(selectedRow, "target"))}${filters.startDate ? `&startDate=${encodeURIComponent(filters.startDate)}` : ""}${filters.endDate ? `&endDate=${encodeURIComponent(filters.endDate)}` : ""}`, `/en/admin/system/security-policy?searchKeyword=${encodeURIComponent(stringOf(selectedRow, "target"))}${filters.startDate ? `&startDate=${encodeURIComponent(filters.startDate)}` : ""}${filters.endDate ? `&endDate=${encodeURIComponent(filters.endDate)}` : ""}`)} variant="secondary">
+                  <MemberLinkButton href={buildLocalizedPath(`/admin/system/security-policy?searchKeyword=${encodeURIComponent(selectedRow.target)}${filters.startDate ? `&startDate=${encodeURIComponent(filters.startDate)}` : ""}${filters.endDate ? `&endDate=${encodeURIComponent(filters.endDate)}` : ""}`, `/en/admin/system/security-policy?searchKeyword=${encodeURIComponent(selectedRow.target)}${filters.startDate ? `&startDate=${encodeURIComponent(filters.startDate)}` : ""}${filters.endDate ? `&endDate=${encodeURIComponent(filters.endDate)}` : ""}`)} variant="secondary">
                     {en ? "Open Policy" : "정책 열기"}
                   </MemberLinkButton>
-                  <MemberLinkButton href={buildLocalizedPath(`/admin/system/blocklist?searchKeyword=${encodeURIComponent(stringOf(selectedRow, "target"))}`, `/en/admin/system/blocklist?searchKeyword=${encodeURIComponent(stringOf(selectedRow, "target"))}`)} variant="secondary">
+                  <MemberLinkButton href={buildLocalizedPath(`/admin/system/blocklist?searchKeyword=${encodeURIComponent(selectedRow.target)}`, `/en/admin/system/blocklist?searchKeyword=${encodeURIComponent(selectedRow.target)}`)} variant="secondary">
                     {en ? "Open Blocklist" : "차단목록 열기"}
                   </MemberLinkButton>
                 </div>
@@ -654,20 +760,20 @@ export function SecurityAuditMigrationPage() {
             <section className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-5">
                 <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Query String" : "쿼리 문자열"}</p>
-                <pre className="mt-4 overflow-x-auto whitespace-pre-wrap break-all rounded-[var(--kr-gov-radius)] bg-slate-50 px-4 py-4 text-[12px] leading-6 text-[var(--kr-gov-text-primary)]">{stringOf(selectedRow, "queryString") || "-"}</pre>
+                <pre className="mt-4 overflow-x-auto whitespace-pre-wrap break-all rounded-[var(--kr-gov-radius)] bg-slate-50 px-4 py-4 text-[12px] leading-6 text-[var(--kr-gov-text-primary)]">{stringOf(selectedRow.row, "queryString") || "-"}</pre>
               </article>
               <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-5">
                 <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Parameter Summary" : "파라미터 요약"}</p>
-                <pre className="mt-4 overflow-x-auto whitespace-pre-wrap break-all rounded-[var(--kr-gov-radius)] bg-slate-50 px-4 py-4 text-[12px] leading-6 text-[var(--kr-gov-text-primary)]">{stringOf(selectedRow, "parameterSummary") || "-"}</pre>
+                <pre className="mt-4 overflow-x-auto whitespace-pre-wrap break-all rounded-[var(--kr-gov-radius)] bg-slate-50 px-4 py-4 text-[12px] leading-6 text-[var(--kr-gov-text-primary)]">{stringOf(selectedRow.row, "parameterSummary") || "-"}</pre>
               </article>
             </section>
             <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-5">
               <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Raw Detail" : "원문 상세"}</p>
-              <pre className="mt-4 overflow-x-auto whitespace-pre-wrap break-all rounded-[var(--kr-gov-radius)] bg-slate-50 px-4 py-4 text-[12px] leading-6 text-[var(--kr-gov-text-primary)]">{stringOf(selectedRow, "detail") || "-"}</pre>
+              <pre className="mt-4 overflow-x-auto whitespace-pre-wrap break-all rounded-[var(--kr-gov-radius)] bg-slate-50 px-4 py-4 text-[12px] leading-6 text-[var(--kr-gov-text-primary)]">{selectedRow.detail || "-"}</pre>
             </article>
             <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-5">
               <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Error Message" : "오류 메시지"}</p>
-              <pre className="mt-4 overflow-x-auto whitespace-pre-wrap break-all rounded-[var(--kr-gov-radius)] bg-slate-50 px-4 py-4 text-[12px] leading-6 text-[var(--kr-gov-text-primary)]">{stringOf(selectedRow, "errorMessage") || "-"}</pre>
+              <pre className="mt-4 overflow-x-auto whitespace-pre-wrap break-all rounded-[var(--kr-gov-radius)] bg-slate-50 px-4 py-4 text-[12px] leading-6 text-[var(--kr-gov-text-primary)]">{stringOf(selectedRow.row, "errorMessage") || "-"}</pre>
             </article>
           </>
         ) : null}

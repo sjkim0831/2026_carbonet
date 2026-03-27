@@ -4,6 +4,7 @@ import { logGovernanceScope } from "../../app/policy/debug";
 import {
   fetchMenuManagementPage,
   fetchScreenCommandPage,
+  saveScreenCommandMenuMapping,
   type MenuManagementPagePayload,
   type ScreenCommandPagePayload
 } from "../../lib/api/client";
@@ -13,6 +14,7 @@ import { GridToolbar, KeyValueGridPanel, PageStatusNotice, WarningPanel } from "
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 import { stringOf } from "../admin-system/adminSystemShared";
 import { toDisplayMenuUrl } from "../menu-management/menuUrlDisplay";
+import { AdminSelect, MemberButton } from "../member/common";
 import {
   createEmptyScreenCommandPagePayload,
   resolveScreenCommandSummaryMetrics,
@@ -71,9 +73,14 @@ function buildAssignments(
 
 export function ScreenMenuAssignmentManagementMigrationPage() {
   const en = isEnglish();
+  const [menuType, setMenuType] = useState("ADMIN");
   const [filter, setFilter] = useState("");
   const [selectedMenuCode, setSelectedMenuCode] = useState("");
-  const menuState = useAsyncValue<MenuManagementPagePayload>(() => fetchMenuManagementPage("ADMIN"), []);
+  const [selectedTargetPageId, setSelectedTargetPageId] = useState("");
+  const [mappingMessage, setMappingMessage] = useState("");
+  const [mappingError, setMappingError] = useState("");
+  const [mappingSaving, setMappingSaving] = useState(false);
+  const menuState = useAsyncValue<MenuManagementPagePayload>(() => fetchMenuManagementPage(menuType), [menuType]);
   const catalogState = useAsyncValue<ScreenCommandPagePayload>(() => fetchScreenCommandPage(""), []);
   const assignments = useMemo(
     () => buildAssignments((menuState.value?.menuRows || []) as Array<Record<string, unknown>>, catalogState.value?.pages),
@@ -89,6 +96,10 @@ export function ScreenMenuAssignmentManagementMigrationPage() {
       return haystack.includes(normalized);
     });
   }, [assignments, filter]);
+
+  useEffect(() => {
+    setSelectedMenuCode("");
+  }, [menuType]);
 
   useEffect(() => {
     if (!selectedMenuCode && filteredAssignments.length > 0) {
@@ -116,10 +127,31 @@ export function ScreenMenuAssignmentManagementMigrationPage() {
   const unassignedCount = assignments.filter((item) => item.status === "unassigned").length;
   const detailPage = detailState.value?.page || createEmptyScreenCommandPagePayload().page;
   const detailMetrics = resolveScreenCommandSummaryMetrics(detailPage);
+  const availablePageOptions = useMemo(() => {
+    const targetDomain = menuType === "ADMIN" ? "admin" : "home";
+    return (catalogState.value?.pages || []).filter((page) => {
+      const routePath = String(page.routePath || "");
+      const domainCode = String(page.domainCode || "").toLowerCase();
+      if (targetDomain === "admin") {
+        return routePath.startsWith("/admin/") || routePath.startsWith("/en/admin/") || domainCode === "admin";
+      }
+      return !routePath.startsWith("/admin/") && !routePath.startsWith("/en/admin/") && domainCode !== "admin";
+    });
+  }, [catalogState.value?.pages, menuType]);
+
+  useEffect(() => {
+    if (!selectedAssignment) {
+      setSelectedTargetPageId("");
+      return;
+    }
+    const defaultPageId = selectedAssignment.pageId || availablePageOptions[0]?.pageId || "";
+    setSelectedTargetPageId(defaultPageId);
+  }, [availablePageOptions, selectedAssignment]);
 
   useEffect(() => {
     logGovernanceScope("PAGE", "screen-menu-assignment-management", {
       language: en ? "en" : "ko",
+      menuType,
       selectedMenuCode,
       assignmentCount: assignments.length,
       assignedCount,
@@ -131,7 +163,32 @@ export function ScreenMenuAssignmentManagementMigrationPage() {
       filteredAssignmentCount: filteredAssignments.length,
       selectedMenuCode
     });
-  }, [assignedCount, assignments.length, en, filter, filteredAssignments.length, orphanPages.length, selectedMenuCode, unassignedCount]);
+  }, [assignedCount, assignments.length, en, filter, filteredAssignments.length, menuType, orphanPages.length, selectedMenuCode, unassignedCount]);
+
+  async function handleSaveMapping() {
+    if (!selectedAssignment || !selectedTargetPageId) {
+      return;
+    }
+    setMappingSaving(true);
+    setMappingError("");
+    setMappingMessage("");
+    try {
+      const targetPage = availablePageOptions.find((item) => item.pageId === selectedTargetPageId);
+      await saveScreenCommandMenuMapping({
+        pageId: selectedTargetPageId,
+        menuCode: selectedAssignment.menuCode,
+        menuName: selectedAssignment.menuName || targetPage?.label || selectedTargetPageId,
+        menuUrl: selectedAssignment.menuUrl,
+        domainCode: menuType === "ADMIN" ? "admin" : "home"
+      });
+      await Promise.all([menuState.reload(), catalogState.reload(), detailState.reload()]);
+      setMappingMessage(en ? "Menu mapping saved." : "메뉴 귀속을 저장했습니다.");
+    } catch (nextError) {
+      setMappingError(nextError instanceof Error ? nextError.message : (en ? "Failed to save menu mapping." : "메뉴 귀속 저장에 실패했습니다."));
+    } finally {
+      setMappingSaving(false);
+    }
+  }
 
   return (
     <AdminPageShell
@@ -146,12 +203,14 @@ export function ScreenMenuAssignmentManagementMigrationPage() {
     >
       <AdminWorkspacePageFrame>
         {error ? <PageStatusNotice tone="error">{error}</PageStatusNotice> : null}
+        {mappingError ? <PageStatusNotice tone="error">{mappingError}</PageStatusNotice> : null}
+        {mappingMessage ? <PageStatusNotice tone="success">{mappingMessage}</PageStatusNotice> : null}
 
         <ScreenManagementSummaryGrid
           dataHelpId="screen-menu-assignment-summary"
           items={[
             {
-              title: en ? "Page Menus" : "페이지 메뉴",
+              title: en ? `${menuType} Page Menus` : `${menuType === "ADMIN" ? "관리자" : "홈"} 페이지 메뉴`,
               value: assignments.length,
               description: en ? "8-digit page menus with a runtime route." : "runtime URL이 등록된 8자리 페이지 메뉴 수입니다."
             },
@@ -179,6 +238,24 @@ export function ScreenMenuAssignmentManagementMigrationPage() {
             }
           ]}
         />
+
+        <section className="gov-card p-6">
+          <GridToolbar
+            meta={en ? "Collect menu inventory from menu management and switch between admin and home sources." : "메뉴 관리 기준으로 메뉴 인벤토리를 수집하고 관리자/홈 소스를 전환합니다."}
+            title={en ? "Menu Collection Source" : "메뉴 수집 소스"}
+          />
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <MemberButton onClick={() => setMenuType("ADMIN")} type="button" variant={menuType === "ADMIN" ? "primary" : "secondary"}>
+              {en ? "Admin Menus" : "관리자 메뉴"}
+            </MemberButton>
+            <MemberButton onClick={() => setMenuType("HOME")} type="button" variant={menuType === "HOME" ? "primary" : "secondary"}>
+              {en ? "Home Menus" : "홈 메뉴"}
+            </MemberButton>
+            <MemberButton onClick={() => { void menuState.reload(); }} type="button" variant="secondary">
+              {en ? "Collect Again" : "다시 수집"}
+            </MemberButton>
+          </div>
+        </section>
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[24rem_1fr]">
           <ScreenManagementCatalogPanel
@@ -237,31 +314,67 @@ export function ScreenMenuAssignmentManagementMigrationPage() {
                 {!selectedAssignment ? (
                   <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Select a menu to inspect the binding." : "귀속 상태를 보려면 메뉴를 선택하세요."}</p>
                 ) : selectedAssignment.status === "unassigned" ? (
-                  <WarningPanel title={en ? "No linked screen page" : "연결된 화면 페이지 없음"}>
-                    {en ? "This menu exists in menu management, but no screen command page is linked by menu code or route path yet." : "이 메뉴는 menu management에는 존재하지만, 메뉴 코드 또는 route path 기준으로 연결된 screen command 페이지가 아직 없습니다."}
-                  </WarningPanel>
+                  <div className="space-y-4">
+                    <WarningPanel title={en ? "No linked screen page" : "연결된 화면 페이지 없음"}>
+                      {en ? "This menu exists in menu management, but no screen command page is linked by menu code or route path yet." : "이 메뉴는 menu management에는 존재하지만, 메뉴 코드 또는 route path 기준으로 연결된 screen command 페이지가 아직 없습니다."}
+                    </WarningPanel>
+                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_auto] xl:items-end">
+                      <label className="block">
+                        <span className="mb-2 block text-sm font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Target Page" : "매핑 대상 페이지"}</span>
+                        <AdminSelect value={selectedTargetPageId} onChange={(event) => setSelectedTargetPageId(event.target.value)}>
+                          <option value="">{en ? "Select page" : "페이지 선택"}</option>
+                          {availablePageOptions.map((page) => (
+                            <option key={page.pageId} value={page.pageId}>
+                              {`${page.label || page.pageId} · ${page.pageId}`}
+                            </option>
+                          ))}
+                        </AdminSelect>
+                      </label>
+                      <MemberButton disabled={!selectedTargetPageId || mappingSaving} onClick={() => { void handleSaveMapping(); }} type="button" variant="primary">
+                        {mappingSaving ? (en ? "Saving..." : "저장 중...") : (en ? "Map Selected Menu" : "선택 메뉴 매핑")}
+                      </MemberButton>
+                    </div>
+                  </div>
                 ) : (
-                  <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                    <KeyValueGridPanel
-                      description={en ? "Registry identity and layout version resolved from the selected page." : "선택 화면에서 해석된 registry 식별자와 레이아웃 버전입니다."}
-                      items={[
-                        { label: en ? "Page Name" : "페이지명", value: detailPage.manifestRegistry?.pageName || detailPage.label || "-" },
-                        { label: en ? "Layout Version" : "레이아웃 버전", value: detailPage.manifestRegistry?.layoutVersion || "-" },
-                        { label: en ? "Components" : "컴포넌트 수", value: detailMetrics.componentCount },
-                        { label: en ? "Surfaces / Events" : "Surface / 이벤트", value: `${detailMetrics.surfaceCount} / ${detailMetrics.eventCount}` }
-                      ]}
-                      title={en ? "Manifest Registry" : "Manifest Registry"}
-                    />
-                    <KeyValueGridPanel
-                      description={en ? "Permission binding remains the canonical source for menu VIEW access." : "메뉴 VIEW 접근은 여기 표시된 권한 귀속을 기준으로 봅니다."}
-                      items={[
-                        { label: en ? "Required View Feature" : "필수 VIEW 기능", value: detailPage.menuPermission?.requiredViewFeatureCode || "-" },
-                        { label: en ? "Feature Rows" : "기능 행 수", value: detailMetrics.featureCount },
-                        { label: en ? "Relation Tables" : "연계 테이블", value: (detailPage.menuPermission?.relationTables || []).join(", ") || "-" },
-                        { label: en ? "Schemas" : "스키마", value: detailMetrics.schemaCount }
-                      ]}
-                      title={en ? "Permission Binding" : "권한 귀속"}
-                    />
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_auto] xl:items-end">
+                      <label className="block">
+                        <span className="mb-2 block text-sm font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Target Page" : "매핑 대상 페이지"}</span>
+                        <AdminSelect value={selectedTargetPageId} onChange={(event) => setSelectedTargetPageId(event.target.value)}>
+                          <option value="">{en ? "Select page" : "페이지 선택"}</option>
+                          {availablePageOptions.map((page) => (
+                            <option key={page.pageId} value={page.pageId}>
+                              {`${page.label || page.pageId} · ${page.pageId}`}
+                            </option>
+                          ))}
+                        </AdminSelect>
+                      </label>
+                      <MemberButton disabled={!selectedTargetPageId || mappingSaving} onClick={() => { void handleSaveMapping(); }} type="button" variant="primary">
+                        {mappingSaving ? (en ? "Saving..." : "저장 중...") : (en ? "Save Mapping" : "매핑 저장")}
+                      </MemberButton>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                      <KeyValueGridPanel
+                        description={en ? "Registry identity and layout version resolved from the selected page." : "선택 화면에서 해석된 registry 식별자와 레이아웃 버전입니다."}
+                        items={[
+                          { label: en ? "Page Name" : "페이지명", value: detailPage.manifestRegistry?.pageName || detailPage.label || "-" },
+                          { label: en ? "Layout Version" : "레이아웃 버전", value: detailPage.manifestRegistry?.layoutVersion || "-" },
+                          { label: en ? "Components" : "컴포넌트 수", value: detailMetrics.componentCount },
+                          { label: en ? "Surfaces / Events" : "Surface / 이벤트", value: `${detailMetrics.surfaceCount} / ${detailMetrics.eventCount}` }
+                        ]}
+                        title={en ? "Manifest Registry" : "Manifest Registry"}
+                      />
+                      <KeyValueGridPanel
+                        description={en ? "Permission binding remains the canonical source for menu VIEW access." : "메뉴 VIEW 접근은 여기 표시된 권한 귀속을 기준으로 봅니다."}
+                        items={[
+                          { label: en ? "Required View Feature" : "필수 VIEW 기능", value: detailPage.menuPermission?.requiredViewFeatureCode || "-" },
+                          { label: en ? "Feature Rows" : "기능 행 수", value: detailMetrics.featureCount },
+                          { label: en ? "Relation Tables" : "연계 테이블", value: (detailPage.menuPermission?.relationTables || []).join(", ") || "-" },
+                          { label: en ? "Schemas" : "스키마", value: detailMetrics.schemaCount }
+                        ]}
+                        title={en ? "Permission Binding" : "권한 귀속"}
+                      />
+                    </div>
                   </div>
                 )}
               </div>

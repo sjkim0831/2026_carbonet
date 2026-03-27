@@ -514,6 +514,7 @@ export function AdminPageShell({
   children
 }: AdminPageShellProps) {
   const en = isEnglish();
+  const [showDeferredChrome, setShowDeferredChrome] = useState(false);
   const [initialMenuTree] = useState(() => readAdminMenuTreeSnapshot());
   const [bootstrappedSession] = useState<FrontendSession | null>(() => readFrontendSessionSnapshot());
   const embeddedInLegacyAdminShell = typeof document !== "undefined" && (() => {
@@ -527,8 +528,10 @@ export function AdminPageShell({
     return !!root.closest(".js-admin-layout-shell");
   })();
   const currentPath = `${window.location.pathname}${window.location.search}`;
+  const hasInitialMenuTree = Boolean(initialMenuTree && Object.keys(initialMenuTree).length);
   const menuState = useAsyncValue(fetchAdminMenuTree, [], {
-    initialValue: initialMenuTree
+    initialValue: initialMenuTree,
+    skipInitialLoad: hasInitialMenuTree
   });
   const fallbackMenuTree = useMemo(
     () => (initialMenuTree && Object.keys(initialMenuTree).length ? initialMenuTree : {}),
@@ -690,6 +693,16 @@ export function AdminPageShell({
 
   useEffect(() => {
     let cancelled = false;
+
+    if (bootstrappedSession) {
+      if (bootstrappedSession.simulationAvailable) {
+        void loadSimulator();
+      }
+      return () => {
+        cancelled = true;
+      };
+    }
+
     fetchFrontendSession()
       .then((session) => {
         if (cancelled) {
@@ -704,7 +717,7 @@ export function AdminPageShell({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [bootstrappedSession]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -856,6 +869,24 @@ export function AdminPageShell({
   ].filter(Boolean).join(" ");
   const resolvedLoadingLabel = loadingLabel || (en ? "Loading page data." : "화면을 불러오는 중입니다.");
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    let cancelled = false;
+    const rafId = window.requestAnimationFrame(() => {
+      window.setTimeout(() => {
+        if (!cancelled) {
+          setShowDeferredChrome(true);
+        }
+      }, 0);
+    });
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(rafId);
+    };
+  }, []);
+
   if (embeddedInLegacyAdminShell) {
     return (
       <>
@@ -963,7 +994,7 @@ export function AdminPageShell({
         </div>
       </header>
 
-      {showDevSimulator ? (
+      {showDeferredChrome && showDevSimulator ? (
         simulatorExpanded ? (
           <div className="z-30 shrink-0 border-b border-amber-200 bg-[linear-gradient(90deg,#fff7e6,#fffdf5)]">
             <div className="mx-auto max-w-full px-6 py-3">
@@ -1143,7 +1174,17 @@ export function AdminPageShell({
             }}
             ref={sidebarBodyRef}
           >
-            {filteredSelectedDomain.groups.map((group: AdminMenuGroup, index) => {
+            {!showDeferredChrome ? (
+              <div className="space-y-3">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-4" key={`sidebar-skeleton-${index}`}>
+                    <div className="h-4 w-32 animate-pulse rounded bg-slate-200" />
+                    <div className="mt-3 h-3 w-full animate-pulse rounded bg-slate-100" />
+                    <div className="mt-2 h-3 w-5/6 animate-pulse rounded bg-slate-100" />
+                  </div>
+                ))}
+              </div>
+            ) : filteredSelectedDomain.groups.map((group: AdminMenuGroup, index) => {
               const groupLinks = visibleLinks(group.links);
               const groupKey = getMenuGroupKey(selectedDomainKey, group, index);
               const groupDomId = `sidebar-group-${groupKey.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
@@ -1199,7 +1240,7 @@ export function AdminPageShell({
                 </div>
               );
             })}
-            {menuFilter.trim() && filteredSelectedDomain.groups.length === 0 ? (
+            {showDeferredChrome && menuFilter.trim() && filteredSelectedDomain.groups.length === 0 ? (
               <div className="rounded-[var(--kr-gov-radius)] border border-dashed border-gray-300 bg-gray-50 px-4 py-5 text-center text-sm text-[var(--kr-gov-text-secondary)]">
                 {en ? "No menu matched the entered text." : "입력한 텍스트와 일치하는 메뉴가 없습니다."}
               </div>
@@ -1212,7 +1253,9 @@ export function AdminPageShell({
                 {selectedDomain ? `${resolveSidebarDomainLabel(selectedDomainKey, selectedDomain, en)} ${en ? "Domain Active" : "도메인 활성화"}` : (en ? "Menu Loading" : "메뉴 로딩 중")}
               </p>
               <p className="text-[var(--kr-gov-text-secondary)]">
-                {selectedDomain
+                {!showDeferredChrome
+                  ? (en ? "Preparing sidebar menus" : "사이드 메뉴 준비 중")
+                  : selectedDomain
                   ? (en
                     ? `Currently displaying ${filteredSelectedDomain.visibleLinkCount} menus${menuFilter.trim() ? " matching the search" : ""}`
                     : `현재 ${menuFilter.trim() ? "검색 결과 " : "전체 메뉴 "}${filteredSelectedDomain.visibleLinkCount}개 노출 중`)

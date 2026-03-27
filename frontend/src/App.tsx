@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { getMissingInsttWarningEventName } from "./app/telemetry/fetch";
 import { usePageTelemetry } from "./app/telemetry/usePageTelemetry";
 import { useTelemetryTransport } from "./app/telemetry/useTelemetryTransport";
@@ -8,11 +8,10 @@ import { type MatchedContext, useScreenContextMenu } from "./app/hooks/useScreen
 import { getTraceContext } from "./app/telemetry/traceContext";
 import { getPageComponent } from "./app/routes/pageRegistry";
 import { publishTelemetryEvent } from "./app/telemetry/events";
-import { fetchPageHelp, getPageHelp } from "./app/screen-registry/helpContent";
-import { getPageManifest } from "./app/screen-registry/pageManifests";
-import { HelpOverlay } from "./components/help/HelpOverlay";
 import { ErrorBoundary } from "./components/error/ErrorBoundary";
 import { getRuntimeLocale, navigate } from "./lib/navigation/runtime";
+import type { PageHelpContent } from "./app/screen-registry/helpContent";
+import type { PageManifest } from "./app/screen-registry/types";
 import {
   addSrWorkbenchStackItem,
   getScreenCommandChainValues,
@@ -21,6 +20,8 @@ import {
   ScreenCommandChangeTarget,
   ScreenCommandPagePayload,
 } from "./lib/api/client";
+
+const HelpOverlay = lazy(() => import("./components/help/HelpOverlay").then((module) => ({ default: module.HelpOverlay })));
 
 function buildContextSummary(match: MatchedContext | null, comment: string) {
   const base = [match?.page?.label, match?.surface?.label, match?.event?.label].filter(Boolean).join(" / ");
@@ -138,15 +139,24 @@ function buildTechnicalContext(
   return lines.join("\n").trim();
 }
 
+function fallbackHelpContent(pageId: string): PageHelpContent {
+  return {
+    pageId,
+    title: "화면 도움말",
+    summary: "도움말 정보를 준비하는 중입니다.",
+    items: []
+  };
+}
+
 export default function App() {
   useTelemetryTransport();
   useGlobalErrorHandler();
   const { locationState, location, page, routeLoading } = useRuntimeNavigation();
   const locale = getRuntimeLocale();
   const routePath = `${location.pathname}${location.search}`;
-  const manifest = getPageManifest(page);
+  const [manifest, setManifest] = useState<PageManifest | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [helpContent, setHelpContent] = useState(getPageHelp(page));
+  const [helpContent, setHelpContent] = useState<PageHelpContent>(() => fallbackHelpContent(page));
   const [insttWarning, setInsttWarning] = useState("");
   const {
     availableChangeTargets,
@@ -173,6 +183,7 @@ export default function App() {
   useEffect(() => {
     setHelpOpen(false);
     setInsttWarning("");
+    setHelpContent(fallbackHelpContent(page));
   }, [locationState]);
 
   useEffect(() => {
@@ -198,10 +209,17 @@ export default function App() {
   }, [routePath]);
 
   useEffect(() => {
-    setHelpContent(getPageHelp(page));
+    if (!helpOpen) {
+      return;
+    }
     let cancelled = false;
-    fetchPageHelp(page)
-      .then((payload) => {
+    import("./app/screen-registry/helpContent")
+      .then(async (module) => {
+        if (cancelled) {
+          return;
+        }
+        setHelpContent(module.getPageHelp(page));
+        const payload = await module.fetchPageHelp(page);
         if (!cancelled && payload) {
           setHelpContent(payload);
         }
@@ -210,7 +228,22 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [page, locationState]);
+  }, [helpOpen, page, locationState]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setManifest(null);
+    import("./app/screen-registry/pageManifests")
+      .then((module) => {
+        if (!cancelled) {
+          setManifest(module.getPageManifest(page));
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [page]);
 
   useEffect(() => {
     if (!manifest) {
@@ -413,12 +446,16 @@ export default function App() {
         도움말
       </button>
 
-      <HelpOverlay
-        open={helpOpen}
-        pageId={page}
-        helpContent={helpContent}
-        onClose={() => setHelpOpen(false)}
-      />
+      {helpOpen ? (
+        <Suspense fallback={null}>
+          <HelpOverlay
+            open={helpOpen}
+            pageId={page}
+            helpContent={helpContent}
+            onClose={() => setHelpOpen(false)}
+          />
+        </Suspense>
+      ) : null}
 
       {insttWarning ? (
         <div className="fixed left-1/2 top-4 z-[1200] w-[min(960px,calc(100%-32px))] -translate-x-1/2 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-warning-border)] bg-[var(--kr-gov-warning-bg)] px-5 py-4 shadow-lg">
