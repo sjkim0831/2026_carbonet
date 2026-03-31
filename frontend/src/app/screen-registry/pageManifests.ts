@@ -333,7 +333,9 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "ExternalUsageSummaryCards", instanceKey: "external-usage-summary", layoutZone: "content", propsSummary: ["externalUsageSummary"] },
       { componentId: "ExternalUsageTable", instanceKey: "external-usage-table", layoutZone: "content", propsSummary: ["externalUsageRows", "filteredCount"] },
       { componentId: "ExternalUsageAuthBreakdown", instanceKey: "external-usage-auth", layoutZone: "content", propsSummary: ["externalUsageKeyRows"] },
-      { componentId: "ExternalUsageTrendTable", instanceKey: "external-usage-trend", layoutZone: "content", propsSummary: ["externalUsageTrendRows"] }
+      { componentId: "ExternalUsageTrendTable", instanceKey: "external-usage-trend", layoutZone: "content", propsSummary: ["externalUsageTrendRows"] },
+      { componentId: "ExternalUsageQuickLinks", instanceKey: "external-usage-links", layoutZone: "content", propsSummary: ["externalUsageQuickLinks"] },
+      { componentId: "ExternalUsageGuidance", instanceKey: "external-usage-guidance", layoutZone: "content", propsSummary: ["externalUsageGuidance"] }
     ]
   },
   "external-webhooks": {
@@ -379,10 +381,10 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     components: [
       { componentId: "ExternalLogsFilters", instanceKey: "external-logs-filters", layoutZone: "actions", propsSummary: ["keyword", "logType", "severity"] },
       { componentId: "ExternalLogsSummaryCards", instanceKey: "external-logs-summary", layoutZone: "content", propsSummary: ["externalLogSummary"] },
-      { componentId: "ExternalLogsTable", instanceKey: "external-logs-table", layoutZone: "content", propsSummary: ["externalLogRows", "filteredCount"] },
+      { componentId: "ExternalLogsTable", instanceKey: "external-logs-queue", layoutZone: "content", propsSummary: ["externalLogRows", "filteredCount"] },
       { componentId: "ExternalLogsIssueTable", instanceKey: "external-logs-issues", layoutZone: "content", propsSummary: ["externalLogIssueRows"] },
       { componentId: "ExternalLogsWatchList", instanceKey: "external-logs-watchlist", layoutZone: "content", propsSummary: ["externalLogConnectionRows"] },
-      { componentId: "ExternalLogsQuickLinks", instanceKey: "external-logs-quick-links", layoutZone: "content", propsSummary: ["externalLogQuickLinks"] },
+      { componentId: "ExternalLogsQuickLinks", instanceKey: "external-logs-links", layoutZone: "content", propsSummary: ["externalLogQuickLinks"] },
       { componentId: "ExternalLogsGuidance", instanceKey: "external-logs-guidance", layoutZone: "content", propsSummary: ["externalLogGuidance"] }
     ]
   },
