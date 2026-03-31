@@ -1,6 +1,6 @@
 import { tracedFetch } from "../../app/telemetry/fetch";
 import type { MigrationPageId } from "../../app/routes/definitions";
-import { buildLocalizedPath, getCsrfMeta } from "../navigation/runtime";
+import { buildLocalizedPath, getCsrfMeta, getRuntimeLocale } from "../navigation/runtime";
 
 const fetch = tracedFetch;
 
@@ -305,6 +305,30 @@ export type EmissionSiteManagementPagePayload = {
   operationCards?: Array<Record<string, string>>;
   featureRows?: Array<Record<string, string>>;
   referenceRows?: Array<Record<string, string>>;
+};
+
+export type EmissionValidatePagePayload = Record<string, unknown> & {
+  isEn?: boolean;
+  menuCode?: string;
+  resultId?: string;
+  searchKeyword?: string;
+  verificationStatus?: string;
+  priorityFilter?: string;
+  pageIndex?: number;
+  pageSize?: number;
+  totalPages?: number;
+  totalCount?: number;
+  pendingCount?: number;
+  inProgressCount?: number;
+  failedCount?: number;
+  highPriorityCount?: number;
+  summaryCards?: Array<Record<string, string>>;
+  queueRows?: Array<Record<string, string>>;
+  selectedResultFound?: boolean;
+  selectedResult?: Record<string, string>;
+  priorityLegend?: Array<Record<string, string>>;
+  policyRows?: Array<Record<string, string>>;
+  actionLinks?: Array<Record<string, string>>;
 };
 
 export type DeptRolePagePayload = {
@@ -1107,6 +1131,49 @@ export type CompanyApprovePagePayload = Record<string, unknown> & {
   canUseCompanyApproveAction?: boolean;
 };
 
+export type CertificateApprovePagePayload = Record<string, unknown> & {
+  approvalRows?: Array<Record<string, unknown>>;
+  certificateApprovalTotalCount?: number;
+  pageIndex?: number;
+  totalPages?: number;
+  searchKeyword?: string;
+  requestType?: string;
+  status?: string;
+  certificateApprovalError?: string;
+  certificateApprovalResultMessage?: string;
+  canViewCertificateApprove?: boolean;
+  canUseCertificateApproveAction?: boolean;
+};
+
+export type CertificatePendingPagePayload = Record<string, unknown> & {
+  certificatePendingRows?: Array<Record<string, unknown>>;
+  certificatePendingSummary?: Array<Record<string, unknown>>;
+  totalCount?: number;
+  pageIndex?: number;
+  totalPages?: number;
+  searchKeyword?: string;
+  certificateType?: string;
+  processStatus?: string;
+  canViewCertificatePending?: boolean;
+  certificatePendingError?: string;
+};
+
+export type CertificateObjectionListPagePayload = Record<string, unknown> & {
+  certificateObjectionRows?: Array<Record<string, unknown>>;
+  certificateObjectionSummary?: Array<Record<string, unknown>>;
+  certificateObjectionGuidance?: Array<Record<string, unknown>>;
+  totalCount?: number;
+  pageIndex?: number;
+  pageSize?: number;
+  totalPages?: number;
+  searchKeyword?: string;
+  status?: string;
+  priority?: string;
+  canViewCertificateObjectionList?: boolean;
+  certificateObjectionError?: string;
+  isEn?: boolean;
+};
+
 export type MemberListPagePayload = Record<string, unknown> & {
   member_list?: Array<Record<string, unknown>>;
   totalCount?: number;
@@ -1436,6 +1503,189 @@ export type SecurityAuditPagePayload = Record<string, unknown> & {
   isEn?: boolean;
 };
 
+export type CertificateAuditLogPagePayload = Record<string, unknown> & {
+  pageIndex?: number;
+  pageSize?: number;
+  totalCount?: number;
+  totalPages?: number;
+  searchKeyword?: string;
+  auditType?: string;
+  status?: string;
+  certificateType?: string;
+  startDate?: string;
+  endDate?: string;
+  lastUpdated?: string;
+  certificateAuditSummary?: Array<Record<string, string>>;
+  certificateAuditAlerts?: Array<Record<string, string>>;
+  certificateAuditRows?: Array<Record<string, string>>;
+  isEn?: boolean;
+};
+
+export type OperationsCenterPagePayload = Record<string, unknown> & {
+  overallStatus?: string;
+  refreshedAt?: string;
+  summaryCards?: Array<Record<string, string> & { domainType?: string; targetRoute?: string }>;
+  priorityItems?: Array<Record<string, string> & { domainType?: string; sourceType?: string }>;
+  widgetGroups?: Array<Record<string, unknown> & { domainType?: string; targetRoute?: string; quickLinks?: Array<Record<string, string>> }>;
+  navigationSections?: Array<Record<string, unknown> & { links?: Array<Record<string, string>> }>;
+  recentActions?: Array<Record<string, string>>;
+  playbooks?: Array<Record<string, string>>;
+  isEn?: boolean;
+};
+
+export type PerformancePagePayload = Record<string, unknown> & {
+  overallStatus?: string;
+  refreshedAt?: string;
+  slowThresholdMs?: number;
+  requestWindowSize?: number;
+  runtimeSummary?: Array<Record<string, string>>;
+  requestSummary?: Array<Record<string, string>>;
+  hotspotRoutes?: Array<Record<string, string>>;
+  recentSlowRequests?: Array<Record<string, string>>;
+  responseStatusSummary?: Array<Record<string, string>>;
+  quickLinks?: Array<Record<string, string>>;
+  guidance?: Array<Record<string, string>>;
+  isEn?: boolean;
+};
+
+export type ExternalConnectionListPagePayload = Record<string, unknown> & {
+  refreshedAt?: string;
+  overallStatus?: string;
+  externalConnectionSummary?: Array<Record<string, string>>;
+  externalConnectionRows?: Array<Record<string, string>>;
+  externalConnectionIssueRows?: Array<Record<string, string>>;
+  externalConnectionQuickLinks?: Array<Record<string, string>>;
+  externalConnectionGuidance?: Array<Record<string, string>>;
+  isEn?: boolean;
+};
+
+export type ExternalSchemaPagePayload = Record<string, unknown> & {
+  refreshedAt?: string;
+  overallStatus?: string;
+  externalSchemaSummary?: Array<Record<string, string>>;
+  externalSchemaRows?: Array<Record<string, string>>;
+  externalSchemaReviewRows?: Array<Record<string, string>>;
+  externalSchemaQuickLinks?: Array<Record<string, string>>;
+  externalSchemaGuidance?: Array<Record<string, string>>;
+  isEn?: boolean;
+};
+
+export type ExternalKeysPagePayload = Record<string, unknown> & {
+  refreshedAt?: string;
+  overallStatus?: string;
+  externalKeysSummary?: Array<Record<string, string>>;
+  externalKeyRows?: Array<Record<string, string>>;
+  externalKeyRotationRows?: Array<Record<string, string>>;
+  externalKeyQuickLinks?: Array<Record<string, string>>;
+  externalKeyGuidance?: Array<Record<string, string>>;
+  isEn?: boolean;
+};
+
+export type ExternalUsagePagePayload = Record<string, unknown> & {
+  refreshedAt?: string;
+  overallStatus?: string;
+  externalUsageSummary?: Array<Record<string, string>>;
+  externalUsageRows?: Array<Record<string, string>>;
+  externalUsageKeyRows?: Array<Record<string, string>>;
+  externalUsageTrendRows?: Array<Record<string, string>>;
+  externalUsageQuickLinks?: Array<Record<string, string>>;
+  externalUsageGuidance?: Array<Record<string, string>>;
+  isEn?: boolean;
+};
+
+export type ExternalLogsPagePayload = Record<string, unknown> & {
+  refreshedAt?: string;
+  overallStatus?: string;
+  externalLogSummary?: Array<Record<string, string>>;
+  externalLogRows?: Array<Record<string, string>>;
+  externalLogIssueRows?: Array<Record<string, string>>;
+  externalLogConnectionRows?: Array<Record<string, string>>;
+  externalLogQuickLinks?: Array<Record<string, string>>;
+  externalLogGuidance?: Array<Record<string, string>>;
+  isEn?: boolean;
+};
+
+export type ExternalConnectionFormPagePayload = Record<string, unknown> & {
+  connectionProfile?: Record<string, string>;
+  refreshedAt?: string;
+  externalConnectionFormSummary?: Array<Record<string, string>>;
+  externalConnectionIssueRows?: Array<Record<string, string>>;
+  externalConnectionQuickLinks?: Array<Record<string, string>>;
+  externalConnectionGuidance?: Array<Record<string, string>>;
+  isEn?: boolean;
+  mode?: string;
+  success?: boolean;
+  message?: string;
+};
+
+export type ExternalWebhooksPagePayload = Record<string, unknown> & {
+  refreshedAt?: string;
+  keyword?: string;
+  syncMode?: string;
+  status?: string;
+  externalWebhookSummary?: Array<Record<string, string>>;
+  externalWebhookRows?: Array<Record<string, string>>;
+  externalWebhookDeliveryRows?: Array<Record<string, string>>;
+  externalWebhookQuickLinks?: Array<Record<string, string>>;
+  externalWebhookGuidance?: Array<Record<string, string>>;
+  isEn?: boolean;
+};
+
+export type ExternalSyncPagePayload = Record<string, unknown> & {
+  refreshedAt?: string;
+  externalSyncSummary?: Array<Record<string, string>>;
+  externalSyncRows?: Array<Record<string, string>>;
+  externalSyncQueueRows?: Array<Record<string, string>>;
+  externalSyncExecutionRows?: Array<Record<string, string>>;
+  externalSyncQuickLinks?: Array<Record<string, string>>;
+  externalSyncGuidance?: Array<Record<string, string>>;
+  isEn?: boolean;
+};
+
+export type ExternalMonitoringPagePayload = Record<string, unknown> & {
+  refreshedAt?: string;
+  overallStatus?: string;
+  externalMonitoringSummary?: Array<Record<string, string>>;
+  externalMonitoringRows?: Array<Record<string, string>>;
+  externalMonitoringAlertRows?: Array<Record<string, string>>;
+  externalMonitoringTimelineRows?: Array<Record<string, string>>;
+  externalMonitoringQuickLinks?: Array<Record<string, string>>;
+  externalMonitoringGuidance?: Array<Record<string, string>>;
+  isEn?: boolean;
+};
+
+export type ExternalMaintenancePagePayload = Record<string, unknown> & {
+  refreshedAt?: string;
+  externalMaintenanceSummary?: Array<Record<string, string>>;
+  externalMaintenanceRows?: Array<Record<string, string>>;
+  externalMaintenanceImpactRows?: Array<Record<string, string>>;
+  externalMaintenanceRunbooks?: Array<Record<string, string>>;
+  externalMaintenanceQuickLinks?: Array<Record<string, string>>;
+  externalMaintenanceGuidance?: Array<Record<string, string>>;
+  isEn?: boolean;
+};
+
+export type ExternalRetryPagePayload = Record<string, unknown> & {
+  refreshedAt?: string;
+  overallStatus?: string;
+  externalRetrySummary?: Array<Record<string, string>>;
+  externalRetryRows?: Array<Record<string, string>>;
+  externalRetryPolicyRows?: Array<Record<string, string>>;
+  externalRetryExecutionRows?: Array<Record<string, string>>;
+  externalRetryQuickLinks?: Array<Record<string, string>>;
+  externalRetryGuidance?: Array<Record<string, string>>;
+  isEn?: boolean;
+};
+
+export type SensorListPagePayload = Record<string, unknown> & {
+  refreshedAt?: string;
+  totalCount?: number;
+  sensorSummary?: Array<Record<string, string>>;
+  sensorRows?: Array<Record<string, string>>;
+  sensorActivityRows?: Array<Record<string, string>>;
+  isEn?: boolean;
+};
+
 export type SchedulerManagementPagePayload = Record<string, unknown> & {
   jobStatus?: string;
   executionType?: string;
@@ -1444,6 +1694,17 @@ export type SchedulerManagementPagePayload = Record<string, unknown> & {
   schedulerNodeRows?: Array<Record<string, string>>;
   schedulerExecutionRows?: Array<Record<string, string>>;
   schedulerPlaybooks?: Array<Record<string, string>>;
+  isEn?: boolean;
+};
+
+export type BatchManagementPagePayload = Record<string, unknown> & {
+  refreshedAt?: string;
+  batchSummary?: Array<Record<string, string>>;
+  batchJobRows?: Array<Record<string, string>>;
+  batchQueueRows?: Array<Record<string, string>>;
+  batchNodeRows?: Array<Record<string, string>>;
+  batchExecutionRows?: Array<Record<string, string>>;
+  batchRunbooks?: Array<Record<string, string>>;
   isEn?: boolean;
 };
 
@@ -1514,6 +1775,91 @@ export type EmissionResultListPagePayload = Record<string, unknown> & {
   searchKeyword?: string;
   resultStatus?: string;
   verificationStatus?: string;
+  isEn?: boolean;
+};
+
+export type TradeListPagePayload = Record<string, unknown> & {
+  tradeRows?: Array<Record<string, unknown>>;
+  totalCount?: number;
+  matchingCount?: number;
+  settlementPendingCount?: number;
+  completedCount?: number;
+  pageIndex?: number;
+  pageSize?: number;
+  totalPages?: number;
+  searchKeyword?: string;
+  tradeStatus?: string;
+  settlementStatus?: string;
+  tradeStatusOptions?: Array<Record<string, unknown>>;
+  settlementStatusOptions?: Array<Record<string, unknown>>;
+  settlementAlerts?: Array<Record<string, unknown>>;
+  isEn?: boolean;
+};
+
+export type EmissionResultDetailPagePayload = Record<string, unknown> & {
+  found?: boolean;
+  resultId?: string;
+  projectName?: string;
+  companyName?: string;
+  calculatedAt?: string;
+  totalEmission?: string;
+  resultStatusCode?: string;
+  resultStatusLabel?: string;
+  verificationStatusCode?: string;
+  verificationStatusLabel?: string;
+  reportPeriod?: string;
+  submittedAt?: string;
+  formulaVersion?: string;
+  verificationOwner?: string;
+  reviewMessage?: string;
+  reviewChecklist?: Array<Record<string, unknown>>;
+  siteRows?: Array<Record<string, unknown>>;
+  evidenceRows?: Array<Record<string, unknown>>;
+  historyRows?: Array<Record<string, unknown>>;
+  siteCount?: number;
+  evidenceCount?: number;
+  listUrl?: string;
+  verificationActionUrl?: string;
+  historyUrl?: string;
+  pageError?: string;
+  isEn?: boolean;
+};
+
+export type CertificateStatisticsPagePayload = Record<string, unknown> & {
+  totalIssuedCount?: number;
+  pendingCount?: number;
+  rejectedCount?: number;
+  reissuedCount?: number;
+  totalRequestCount?: number;
+  avgLeadDays?: string;
+  issuanceRate?: string;
+  pageIndex?: number;
+  pageSize?: number;
+  totalPages?: number;
+  totalCount?: number;
+  searchKeyword?: string;
+  periodFilter?: string;
+  certificateType?: string;
+  issuanceStatus?: string;
+  monthlyRows?: Array<Record<string, string>>;
+  certificateTypeRows?: Array<Record<string, string>>;
+  institutionRows?: Array<Record<string, string>>;
+  alertRows?: Array<Record<string, string>>;
+  isEn?: boolean;
+};
+
+export type EmissionDataHistoryPagePayload = Record<string, unknown> & {
+  historyRows?: Array<Record<string, unknown>>;
+  totalCount?: number;
+  correctionCount?: number;
+  approvalCount?: number;
+  schemaCount?: number;
+  pageIndex?: number;
+  pageSize?: number;
+  totalPages?: number;
+  searchKeyword?: string;
+  changeType?: string;
+  changeTarget?: string;
   isEn?: boolean;
 };
 
@@ -1647,19 +1993,29 @@ type BootstrapPayloadKey =
   | "mypagePayload"
   | "mypageContext"
   | "memberStatsPageData"
+  | "tradeListPageData"
   | "securityPolicyPageData"
+  | "notificationPageData"
+  | "externalMonitoringPageData"
   | "securityMonitoringPageData"
   | "securityAuditPageData"
+  | "certificateAuditLogPageData"
   | "schedulerManagementPageData"
   | "backupConfigPageData"
   | "emissionResultListPageData"
+  | "emissionResultDetailPageData"
+  | "certificateStatisticsPageData"
+  | "emissionDataHistoryPageData"
   | "emissionSiteManagementPageData"
+  | "emissionValidatePageData"
   | "screenBuilderPageData";
 let runtimeBootstrapCache: Partial<Record<BootstrapPayloadKey, unknown>> = {};
 let runtimeBootstrapCachePath = "";
 const SESSION_STORAGE_CACHE_PREFIX = "carbonet:api-cache:v3:";
 const FRONTEND_SESSION_STORAGE_KEY = `${SESSION_STORAGE_CACHE_PREFIX}frontend-session`;
 const ADMIN_MENU_TREE_STORAGE_KEY = `${SESSION_STORAGE_CACHE_PREFIX}admin-menu-tree`;
+const HOME_PAYLOAD_STORAGE_KEY_KO = `${SESSION_STORAGE_CACHE_PREFIX}home-payload:ko`;
+const HOME_PAYLOAD_STORAGE_KEY_EN = `${SESSION_STORAGE_CACHE_PREFIX}home-payload:en`;
 const ADMIN_MENU_TREE_REFRESH_EVENT = "carbonet:admin-menu-tree:refresh";
 const DEFAULT_PAGE_CACHE_TTL_MS = 60 * 1000;
 const SESSION_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -1802,16 +2158,38 @@ function consumeRuntimeBootstrap<T>(key: BootstrapPayloadKey): T | null {
     return null;
   }
   syncRuntimeBootstrapCacheScope();
-  if (!window.__CARBONET_REACT_BOOTSTRAP__) {
+  const bootstrapStore = window.__CARBONET_REACT_BOOTSTRAP__ as Partial<Record<BootstrapPayloadKey, unknown>> | undefined;
+  if (!bootstrapStore) {
     return (runtimeBootstrapCache[key] as T | undefined) ?? null;
   }
-  const payload = window.__CARBONET_REACT_BOOTSTRAP__[key] as T | undefined;
+  const payload = bootstrapStore[key] as T | undefined;
   if (typeof payload === "undefined") {
     return (runtimeBootstrapCache[key] as T | undefined) ?? null;
   }
   runtimeBootstrapCache[key] = payload;
-  delete window.__CARBONET_REACT_BOOTSTRAP__[key];
+  delete bootstrapStore[key];
   return payload ?? null;
+}
+
+function mergeRuntimeBootstrap(payload: Partial<Record<BootstrapPayloadKey, unknown>>) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  if (!window.__CARBONET_REACT_BOOTSTRAP__) {
+    window.__CARBONET_REACT_BOOTSTRAP__ = {} as Partial<Record<BootstrapPayloadKey, unknown>>;
+  }
+  Object.assign(window.__CARBONET_REACT_BOOTSTRAP__ as Partial<Record<BootstrapPayloadKey, unknown>>, payload);
+}
+
+function resolveHomePayloadStorageKey(isEn: boolean) {
+  return isEn ? HOME_PAYLOAD_STORAGE_KEY_EN : HOME_PAYLOAD_STORAGE_KEY_KO;
+}
+
+function writeHomePayloadCache(payload: BootstrappedHomePayload | null | undefined) {
+  if (!payload) {
+    return;
+  }
+  writeSessionStorageCache(resolveHomePayloadStorageKey(Boolean(payload.isEn)), payload, SESSION_CACHE_TTL_MS);
 }
 
 function invalidateAdminPageCaches() {
@@ -2175,7 +2553,23 @@ export async function fetchAdminMenuTree(): Promise<AdminMenuTreePayload> {
 }
 
 export function readBootstrappedHomePayload(): BootstrappedHomePayload | null {
-  return consumeRuntimeBootstrap<BootstrappedHomePayload>("homePayload");
+  const bootstrappedPayload = consumeRuntimeBootstrap<BootstrappedHomePayload>("homePayload");
+  if (bootstrappedPayload) {
+    writeHomePayloadCache(bootstrappedPayload);
+    return bootstrappedPayload;
+  }
+  return readSessionStorageCache<BootstrappedHomePayload>(
+    resolveHomePayloadStorageKey(getRuntimeLocale() === "en")
+  );
+}
+
+export async function fetchHomePayload(): Promise<BootstrappedHomePayload> {
+  const response = await fetch(buildLocalizedPath("/api/home", "/en/api/home"), {
+    credentials: "include"
+  });
+  const payload = await readJsonResponse<BootstrappedHomePayload>(response);
+  writeHomePayloadCache(payload);
+  return payload;
 }
 
 export function readBootstrappedAdminHomePageData(): AdminHomePagePayload | null {
@@ -2210,12 +2604,25 @@ export function readBootstrappedSecurityPolicyPageData(): SecurityPolicyPagePayl
   return consumeRuntimeBootstrap<SecurityPolicyPagePayload>("securityPolicyPageData");
 }
 
+export function readBootstrappedNotificationPageData(): SecurityPolicyPagePayload | null {
+  return consumeRuntimeBootstrap<SecurityPolicyPagePayload>("notificationPageData")
+    || consumeRuntimeBootstrap<SecurityPolicyPagePayload>("securityPolicyPageData");
+}
+
+export function readBootstrappedExternalMonitoringPageData(): ExternalMonitoringPagePayload | null {
+  return consumeRuntimeBootstrap<ExternalMonitoringPagePayload>("externalMonitoringPageData");
+}
+
 export function readBootstrappedSecurityMonitoringPageData(): SecurityMonitoringPagePayload | null {
   return consumeRuntimeBootstrap<SecurityMonitoringPagePayload>("securityMonitoringPageData");
 }
 
 export function readBootstrappedSecurityAuditPageData(): SecurityAuditPagePayload | null {
   return consumeRuntimeBootstrap<SecurityAuditPagePayload>("securityAuditPageData");
+}
+
+export function readBootstrappedCertificateAuditLogPageData(): CertificateAuditLogPagePayload | null {
+  return consumeRuntimeBootstrap<CertificateAuditLogPagePayload>("certificateAuditLogPageData");
 }
 
 export function readBootstrappedSchedulerManagementPageData(): SchedulerManagementPagePayload | null {
@@ -2230,8 +2637,24 @@ export function readBootstrappedEmissionResultListPageData(): EmissionResultList
   return consumeRuntimeBootstrap<EmissionResultListPagePayload>("emissionResultListPageData");
 }
 
+export function readBootstrappedTradeListPageData(): TradeListPagePayload | null {
+  return consumeRuntimeBootstrap<TradeListPagePayload>("tradeListPageData");
+}
+
+export function readBootstrappedCertificateStatisticsPageData(): CertificateStatisticsPagePayload | null {
+  return consumeRuntimeBootstrap<CertificateStatisticsPagePayload>("certificateStatisticsPageData");
+}
+
+export function readBootstrappedEmissionDataHistoryPageData(): EmissionDataHistoryPagePayload | null {
+  return consumeRuntimeBootstrap<EmissionDataHistoryPagePayload>("emissionDataHistoryPageData");
+}
+
 export function readBootstrappedEmissionSiteManagementPageData(): EmissionSiteManagementPagePayload | null {
   return consumeRuntimeBootstrap<EmissionSiteManagementPagePayload>("emissionSiteManagementPageData");
+}
+
+export function readBootstrappedEmissionValidatePageData(): EmissionValidatePagePayload | null {
+  return consumeRuntimeBootstrap<EmissionValidatePagePayload>("emissionValidatePageData");
 }
 
 export function readBootstrappedScreenBuilderPageData(): ScreenBuilderPagePayload | null {
@@ -2339,12 +2762,44 @@ export function prefetchRoutePageData(route: MigrationPageId, search = ""): Prom
     }
     case "member-stats":
       return fetchMemberStatsPage();
+    case "certificate-statistics":
+      return fetchCertificateStatisticsPage({
+        pageIndex: params.get("pageIndex") ? Number(params.get("pageIndex")) : undefined,
+        searchKeyword: params.get("searchKeyword") || "",
+        periodFilter: params.get("periodFilter") || "",
+        certificateType: params.get("certificateType") || "",
+        issuanceStatus: params.get("issuanceStatus") || ""
+      });
     case "security-policy":
       return fetchSecurityPolicyPage();
+    case "notification":
+      return fetchNotificationPage();
+    case "performance":
+      return fetchPerformancePage();
+    case "external-connection-list":
+      return fetchExternalConnectionListPage();
+    case "external-schema":
+      return fetchExternalSchemaPage();
+    case "external-usage":
+      return fetchExternalUsagePage();
+    case "external-logs":
+      return fetchExternalLogsPage();
+    case "external-webhooks":
+      return fetchExternalWebhooksPage();
+    case "external-sync":
+      return fetchExternalSyncPage();
+    case "external-monitoring":
+      return fetchExternalMonitoringPage();
+    case "external-maintenance":
+      return fetchExternalMaintenancePage();
+    case "external-retry":
+      return fetchExternalRetryPage();
     case "security-monitoring":
       return fetchSecurityMonitoringPage();
     case "security-audit":
       return fetchSecurityAuditPage();
+    case "certificate-audit-log":
+      return fetchCertificateAuditLogPage();
     case "scheduler-management":
       return fetchSchedulerManagementPage({
         jobStatus: params.get("jobStatus") || "",
@@ -2365,9 +2820,48 @@ export function prefetchRoutePageData(route: MigrationPageId, search = ""): Prom
         resultStatus: params.get("resultStatus") || "",
         verificationStatus: params.get("verificationStatus") || ""
       });
+    case "emission-result-detail":
+      return fetchEmissionResultDetailPage(params.get("resultId") || "");
+    case "emission-data-history":
+      return fetchEmissionDataHistoryPage({
+        pageIndex: params.get("pageIndex") ? Number(params.get("pageIndex")) : undefined,
+        searchKeyword: params.get("searchKeyword") || "",
+        changeType: params.get("changeType") || "",
+        changeTarget: params.get("changeTarget") || ""
+      });
+    case "emission-validate":
+      return fetchEmissionValidatePage({
+        pageIndex: params.get("pageIndex") ? Number(params.get("pageIndex")) : undefined,
+        searchKeyword: params.get("searchKeyword") || "",
+        verificationStatus: params.get("verificationStatus") || "",
+        priorityFilter: params.get("priorityFilter") || ""
+      });
     default:
       return Promise.resolve(null);
   }
+}
+
+export async function prefetchRouteBootstrap(route: MigrationPageId, path: string): Promise<void> {
+  if (typeof window === "undefined") {
+    return;
+  }
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const isAdminPath = normalizedPath.startsWith("/admin") || normalizedPath.startsWith("/en/admin");
+  const bootstrapEndpoint = isAdminPath
+    ? buildLocalizedPath("/admin/api/admin/app/bootstrap", "/en/admin/api/admin/app/bootstrap")
+    : buildLocalizedPath("/api/app/bootstrap", "/en/api/app/bootstrap");
+  const url = new URL(bootstrapEndpoint, window.location.origin);
+  url.searchParams.set("route", route);
+  url.searchParams.set("path", normalizedPath);
+
+  const responsePayload = await fetch(url.toString(), {
+    credentials: "include",
+    headers: {
+      "X-Carbonet-Path": normalizedPath
+    }
+  }).then((response) => readJsonResponse<{ reactBootstrapPayload?: Partial<Record<BootstrapPayloadKey, unknown>> }>(response));
+
+  mergeRuntimeBootstrap(responsePayload.reactBootstrapPayload || {});
 }
 
 export async function fetchPasswordResetPage(params?: { memberId?: string; pageIndex?: number; searchKeyword?: string; resetSource?: string; insttId?: string; }) {
@@ -2535,6 +3029,55 @@ export async function fetchCompanyApprovePage(params?: { pageIndex?: number; sea
     url: `${buildAdminApiPath("/api/admin/member/company-approve/page")}${query ? `?${query}` : ""}`,
     mapError: (body, status) => body.memberApprovalError || `Failed to load company approval page: ${status}`
   });
+}
+
+export async function fetchCertificateApprovePage(params?: { pageIndex?: number; searchKeyword?: string; requestType?: string; status?: string; result?: string; }) {
+  const search = new URLSearchParams();
+  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
+  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
+  if (params?.requestType) search.set("requestType", params.requestType);
+  if (params?.status) search.set("status", params.status);
+  if (params?.result) search.set("result", params.result);
+  const query = search.toString();
+  return fetchCachedJson<CertificateApprovePagePayload>({
+    cacheKey: buildPageCacheKey(`certificate-approve/page?${query}`),
+    url: `${buildAdminApiPath("/api/admin/certificate/approve/page")}${query ? `?${query}` : ""}`,
+    mapError: (body, status) => body.certificateApprovalError || `Failed to load certificate approval page: ${status}`
+  });
+}
+
+export async function fetchCertificatePendingPage(params?: { pageIndex?: number; searchKeyword?: string; certificateType?: string; processStatus?: string; }) {
+  const search = new URLSearchParams();
+  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
+  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
+  if (params?.certificateType) search.set("certificateType", params.certificateType);
+  if (params?.processStatus) search.set("processStatus", params.processStatus);
+  const query = search.toString();
+  const response = await fetch(buildLocalizedPath(`/admin/certificate/pending_list/page-data${query ? `?${query}` : ""}`, `/en/admin/certificate/pending_list/page-data${query ? `?${query}` : ""}`), {
+    credentials: "include"
+  });
+  const body = await response.json();
+  if (!response.ok) {
+    throw new Error(body.certificatePendingError || `Failed to load certificate pending page: ${response.status}`);
+  }
+  return body as CertificatePendingPagePayload;
+}
+
+export async function fetchCertificateObjectionListPage(params?: { pageIndex?: number; searchKeyword?: string; status?: string; priority?: string; }) {
+  const search = new URLSearchParams();
+  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
+  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
+  if (params?.status) search.set("status", params.status);
+  if (params?.priority) search.set("priority", params.priority);
+  const query = search.toString();
+  const response = await fetch(buildLocalizedPath(`/admin/certificate/objection_list/page-data${query ? `?${query}` : ""}`, `/en/admin/certificate/objection_list/page-data${query ? `?${query}` : ""}`), {
+    credentials: "include"
+  });
+  const body = await response.json();
+  if (!response.ok) {
+    throw new Error(body.certificateObjectionError || `Failed to load certificate objection list page: ${response.status}`);
+  }
+  return body as CertificateObjectionListPagePayload;
 }
 
 export async function fetchMemberListPage(params?: { pageIndex?: number; searchKeyword?: string; membershipType?: string; sbscrbSttus?: string; }) {
@@ -3274,6 +3817,32 @@ export async function fetchSecurityPolicyPage() {
   return body as SecurityPolicyPagePayload;
 }
 
+export async function fetchNotificationPage(params?: {
+  deliveryChannel?: string;
+  deliveryStatus?: string;
+  deliveryKeyword?: string;
+  deliveryPage?: number;
+  activityAction?: string;
+  activityKeyword?: string;
+  activityPage?: number;
+}) {
+  const search = new URLSearchParams();
+  if (params?.deliveryChannel) search.set("deliveryChannel", params.deliveryChannel);
+  if (params?.deliveryStatus) search.set("deliveryStatus", params.deliveryStatus);
+  if (params?.deliveryKeyword) search.set("deliveryKeyword", params.deliveryKeyword);
+  if (params?.deliveryPage && params.deliveryPage > 1) search.set("deliveryPage", String(params.deliveryPage));
+  if (params?.activityAction) search.set("activityAction", params.activityAction);
+  if (params?.activityKeyword) search.set("activityKeyword", params.activityKeyword);
+  if (params?.activityPage && params.activityPage > 1) search.set("activityPage", String(params.activityPage));
+  const query = search.toString();
+  const response = await fetch(buildLocalizedPath(`/admin/system/notification/page-data${query ? `?${query}` : ""}`, `/en/admin/system/notification/page-data${query ? `?${query}` : ""}`), {
+    credentials: "include"
+  });
+  const body = await readJsonResponse<SecurityPolicyPagePayload>(response);
+  if (!response.ok) throw new Error(`Failed to load notification page: ${response.status}`);
+  return body as SecurityPolicyPagePayload;
+}
+
 export async function runMenuPermissionAutoCleanup(menuUrls?: string[]) {
   const response = await fetch(buildAdminApiPath("/api/admin/system/menu-permission-diagnostics/auto-cleanup"), {
     method: "POST",
@@ -3540,6 +4109,189 @@ export async function fetchSecurityAuditPage(params?: {
   return body as SecurityAuditPagePayload;
 }
 
+export async function fetchCertificateAuditLogPage(params?: {
+  pageIndex?: number;
+  searchKeyword?: string;
+  auditType?: string;
+  status?: string;
+  certificateType?: string;
+  startDate?: string;
+  endDate?: string;
+}) {
+  const search = new URLSearchParams();
+  if (params?.pageIndex && params.pageIndex > 1) search.set("pageIndex", String(params.pageIndex));
+  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
+  if (params?.auditType && params.auditType !== "ALL") search.set("auditType", params.auditType);
+  if (params?.status && params.status !== "ALL") search.set("status", params.status);
+  if (params?.certificateType && params.certificateType !== "ALL") search.set("certificateType", params.certificateType);
+  if (params?.startDate) search.set("startDate", params.startDate);
+  if (params?.endDate) search.set("endDate", params.endDate);
+  const response = await fetch(buildLocalizedPath(
+    `/admin/certificate/audit-log/page-data${search.toString() ? `?${search.toString()}` : ""}`,
+    `/en/admin/certificate/audit-log/page-data${search.toString() ? `?${search.toString()}` : ""}`
+  ), {
+    credentials: "include"
+  });
+  const body = await readJsonResponse<CertificateAuditLogPagePayload>(response);
+  if (!response.ok) throw new Error(`Failed to load certificate audit log page: ${response.status}`);
+  return body;
+}
+
+export async function fetchOperationsCenterPage() {
+  const response = await fetch("/admin/monitoring/center/page-data", {
+    credentials: "include"
+  });
+  const body = await readJsonResponse<OperationsCenterPagePayload>(response);
+  if (!response.ok) throw new Error(`Failed to load operations center page: ${response.status}`);
+  return body;
+}
+
+export async function fetchPerformancePage() {
+  const response = await fetch(buildLocalizedPath("/admin/system/performance/page-data", "/en/admin/system/performance/page-data"), {
+    credentials: "include"
+  });
+  const body = await readJsonResponse<PerformancePagePayload>(response);
+  if (!response.ok) throw new Error(`Failed to load performance page: ${response.status}`);
+  return body;
+}
+
+export async function fetchExternalConnectionListPage() {
+  const response = await fetch(buildLocalizedPath("/admin/external/connection_list/page-data", "/en/admin/external/connection_list/page-data"), {
+    credentials: "include"
+  });
+  const body = await readJsonResponse<ExternalConnectionListPagePayload>(response);
+  if (!response.ok) throw new Error(`Failed to load external connection list page: ${response.status}`);
+  return body;
+}
+
+export async function fetchExternalSchemaPage() {
+  const response = await fetch(buildLocalizedPath("/admin/external/schema/page-data", "/en/admin/external/schema/page-data"), {
+    credentials: "include"
+  });
+  const body = await readJsonResponse<ExternalSchemaPagePayload>(response);
+  if (!response.ok) throw new Error(`Failed to load external schema page: ${response.status}`);
+  return body;
+}
+
+export async function fetchExternalKeysPage() {
+  const response = await fetch(buildLocalizedPath("/admin/external/keys/page-data", "/en/admin/external/keys/page-data"), {
+    credentials: "include"
+  });
+  const body = await readJsonResponse<ExternalKeysPagePayload>(response);
+  if (!response.ok) throw new Error(`Failed to load external keys page: ${response.status}`);
+  return body;
+}
+
+export async function fetchExternalUsagePage() {
+  const response = await fetch(buildLocalizedPath("/admin/external/usage/page-data", "/en/admin/external/usage/page-data"), {
+    credentials: "include"
+  });
+  const body = await readJsonResponse<ExternalUsagePagePayload>(response);
+  if (!response.ok) throw new Error(`Failed to load external usage page: ${response.status}`);
+  return body;
+}
+
+export async function fetchExternalLogsPage() {
+  const response = await fetch(buildLocalizedPath("/admin/external/logs/page-data", "/en/admin/external/logs/page-data"), {
+    credentials: "include"
+  });
+  const body = await readJsonResponse<ExternalLogsPagePayload>(response);
+  if (!response.ok) throw new Error(`Failed to load external logs page: ${response.status}`);
+  return body;
+}
+
+export async function fetchExternalWebhooksPage(params?: {
+  keyword?: string;
+  syncMode?: string;
+  status?: string;
+}) {
+  const search = new URLSearchParams();
+  if (params?.keyword?.trim()) search.set("keyword", params.keyword.trim());
+  if (params?.syncMode && params.syncMode !== "ALL") search.set("syncMode", params.syncMode);
+  if (params?.status && params.status !== "ALL") search.set("status", params.status);
+  const response = await fetch(`${buildLocalizedPath("/admin/external/webhooks/page-data", "/en/admin/external/webhooks/page-data")}${search.toString() ? `?${search.toString()}` : ""}`, {
+    credentials: "include"
+  });
+  const body = await readJsonResponse<ExternalWebhooksPagePayload>(response);
+  if (!response.ok) throw new Error(`Failed to load external webhooks page: ${response.status}`);
+  return body;
+}
+
+export async function fetchExternalSyncPage() {
+  const response = await fetch(buildLocalizedPath("/admin/external/sync/page-data", "/en/admin/external/sync/page-data"), {
+    credentials: "include"
+  });
+  const body = await readJsonResponse<ExternalSyncPagePayload>(response);
+  if (!response.ok) throw new Error(`Failed to load external sync page: ${response.status}`);
+  return body;
+}
+
+export async function fetchExternalMonitoringPage() {
+  const response = await fetch(buildLocalizedPath("/admin/external/monitoring/page-data", "/en/admin/external/monitoring/page-data"), {
+    credentials: "include"
+  });
+  const body = await readJsonResponse<ExternalMonitoringPagePayload>(response);
+  if (!response.ok) throw new Error(`Failed to load external monitoring page: ${response.status}`);
+  return body;
+}
+
+export async function fetchExternalMaintenancePage() {
+  const response = await fetch(buildLocalizedPath("/admin/external/maintenance/page-data", "/en/admin/external/maintenance/page-data"), {
+    credentials: "include"
+  });
+  const body = await readJsonResponse<ExternalMaintenancePagePayload>(response);
+  if (!response.ok) throw new Error(`Failed to load external maintenance page: ${response.status}`);
+  return body;
+}
+
+export async function fetchExternalRetryPage() {
+  const response = await fetch(buildLocalizedPath("/admin/external/retry/page-data", "/en/admin/external/retry/page-data"), {
+    credentials: "include"
+  });
+  const body = await readJsonResponse<ExternalRetryPagePayload>(response);
+  if (!response.ok) throw new Error(`Failed to load external retry page: ${response.status}`);
+  return body;
+}
+
+export async function fetchExternalConnectionFormPage(mode: "add" | "edit", connectionId?: string) {
+  const search = new URLSearchParams();
+  if (connectionId) search.set("connectionId", connectionId);
+  const path = mode === "add"
+    ? buildLocalizedPath("/admin/external/connection_add/page-data", "/en/admin/external/connection_add/page-data")
+    : buildLocalizedPath("/admin/external/connection_edit/page-data", "/en/admin/external/connection_edit/page-data");
+  const response = await fetch(`${path}${search.toString() ? `?${search.toString()}` : ""}`, {
+    credentials: "include"
+  });
+  const body = await readJsonResponse<ExternalConnectionFormPagePayload>(response);
+  if (!response.ok) throw new Error(`Failed to load external connection form page: ${response.status}`);
+  return body;
+}
+
+export async function saveExternalConnection(payload: Record<string, string>) {
+  const response = await fetch(buildLocalizedPath("/admin/external/connection/save", "/en/admin/external/connection/save"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload)
+  });
+  const body = await readJsonResponse<ExternalConnectionFormPagePayload>(response);
+  if (body.success === false) throw new Error(body.message || "Failed to save external connection.");
+  if (!response.ok) throw new Error(body.message || `Failed to save external connection: ${response.status}`);
+  return body;
+}
+
+export async function fetchSensorListPage() {
+  const response = await fetch(buildLocalizedPath("/admin/monitoring/sensor_list/page-data", "/en/admin/monitoring/sensor_list/page-data"), {
+    credentials: "include"
+  });
+  const body = await readJsonResponse<SensorListPagePayload>(response);
+  if (!response.ok) throw new Error(`Failed to load sensor list page: ${response.status}`);
+  return body;
+}
+
 export function buildSecurityAuditExportUrl(params?: {
   searchKeyword?: string;
   actionType?: string;
@@ -3574,6 +4326,15 @@ export async function fetchSchedulerManagementPage(params?: { jobStatus?: string
   const body = await response.json();
   if (!response.ok) throw new Error(`Failed to load scheduler management page: ${response.status}`);
   return body as SchedulerManagementPagePayload;
+}
+
+export async function fetchBatchManagementPage() {
+  const response = await fetch("/admin/system/batch/page-data", {
+    credentials: "include"
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(`Failed to load batch management page: ${response.status}`);
+  return body as BatchManagementPagePayload;
 }
 
 export async function fetchBackupConfigPage(pathname?: string) {
@@ -3702,6 +4463,64 @@ export async function fetchEmissionResultListPage(params?: { pageIndex?: number;
   return body as EmissionResultListPagePayload;
 }
 
+export async function fetchTradeListPage(params?: { pageIndex?: number; searchKeyword?: string; tradeStatus?: string; settlementStatus?: string; }) {
+  const search = new URLSearchParams();
+  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
+  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
+  if (params?.tradeStatus) search.set("tradeStatus", params.tradeStatus);
+  if (params?.settlementStatus) search.set("settlementStatus", params.settlementStatus);
+  const query = search.toString();
+  const response = await fetch(buildLocalizedPath(`/admin/trade/list/page-data${query ? `?${query}` : ""}`, `/en/admin/trade/list/page-data${query ? `?${query}` : ""}`), {
+    credentials: "include"
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(`Failed to load trade list page: ${response.status}`);
+  return body as TradeListPagePayload;
+}
+
+export async function fetchEmissionResultDetailPage(resultId: string) {
+  const search = new URLSearchParams();
+  if (resultId) search.set("resultId", resultId);
+  const query = search.toString();
+  const response = await fetch(buildLocalizedPath(`/admin/emission/result_detail/page-data${query ? `?${query}` : ""}`, `/en/admin/emission/result_detail/page-data${query ? `?${query}` : ""}`), {
+    credentials: "include"
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(String(body?.pageError || `Failed to load emission result detail page: ${response.status}`));
+  return body as EmissionResultDetailPagePayload;
+}
+
+export async function fetchCertificateStatisticsPage(params?: { pageIndex?: number; searchKeyword?: string; periodFilter?: string; certificateType?: string; issuanceStatus?: string; }) {
+  const search = new URLSearchParams();
+  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
+  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
+  if (params?.periodFilter) search.set("periodFilter", params.periodFilter);
+  if (params?.certificateType) search.set("certificateType", params.certificateType);
+  if (params?.issuanceStatus) search.set("issuanceStatus", params.issuanceStatus);
+  const query = search.toString();
+  const response = await fetch(buildLocalizedPath(`/admin/certificate/statistics/page-data${query ? `?${query}` : ""}`, `/en/admin/certificate/statistics/page-data${query ? `?${query}` : ""}`), {
+    credentials: "include"
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(`Failed to load certificate statistics page: ${response.status}`);
+  return body as CertificateStatisticsPagePayload;
+}
+
+export async function fetchEmissionDataHistoryPage(params?: { pageIndex?: number; searchKeyword?: string; changeType?: string; changeTarget?: string; }) {
+  const search = new URLSearchParams();
+  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
+  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
+  if (params?.changeType) search.set("changeType", params.changeType);
+  if (params?.changeTarget) search.set("changeTarget", params.changeTarget);
+  const query = search.toString();
+  const response = await fetch(buildLocalizedPath(`/admin/emission/data_history/page-data${query ? `?${query}` : ""}`, `/en/admin/emission/data_history/page-data${query ? `?${query}` : ""}`), {
+    credentials: "include"
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(`Failed to load emission data history page: ${response.status}`);
+  return body as EmissionDataHistoryPagePayload;
+}
+
 export async function fetchEmissionSiteManagementPage() {
   const response = await fetch(buildLocalizedPath("/admin/emission/site-management/page-data", "/en/admin/emission/site-management/page-data"), {
     credentials: "include"
@@ -3709,6 +4528,22 @@ export async function fetchEmissionSiteManagementPage() {
   const body = await response.json();
   if (!response.ok) throw new Error(`Failed to load emission site management page: ${response.status}`);
   return body as EmissionSiteManagementPagePayload;
+}
+
+export async function fetchEmissionValidatePage(params?: { pageIndex?: number; resultId?: string; searchKeyword?: string; verificationStatus?: string; priorityFilter?: string; }) {
+  const search = new URLSearchParams();
+  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
+  if (params?.resultId) search.set("resultId", params.resultId);
+  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
+  if (params?.verificationStatus) search.set("verificationStatus", params.verificationStatus);
+  if (params?.priorityFilter) search.set("priorityFilter", params.priorityFilter);
+  const query = search.toString();
+  const response = await fetch(buildLocalizedPath(`/admin/emission/validate/page-data${query ? `?${query}` : ""}`, `/en/admin/emission/validate/page-data${query ? `?${query}` : ""}`), {
+    credentials: "include"
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(`Failed to load emission validate page: ${response.status}`);
+  return body as EmissionValidatePagePayload;
 }
 
 export async function runCodexLoginCheck() {
@@ -4834,6 +5669,24 @@ export async function submitCompanyApproveAction(
   return body;
 }
 
+export async function submitCertificateApproveAction(
+  session: FrontendSession,
+  payload: { action: string; certificateId?: string; selectedIds?: string[]; rejectReason?: string; }
+) {
+  const response = await fetch(buildAdminApiPath("/api/admin/certificate/approve/action"), {
+    method: "POST",
+    credentials: "include",
+    headers: buildJsonHeaders(session),
+    body: JSON.stringify(payload)
+  });
+  const body = await response.json();
+  if (!response.ok || !body.success) {
+    throw new Error(body.message || `Failed to approve certificate: ${response.status}`);
+  }
+  invalidateAdminPageCaches();
+  return body;
+}
+
 export async function submitJoinCompanyRegister(payload: {
   membershipType: string;
   agencyName: string;
@@ -5012,4 +5865,7 @@ export async function submitJoinCompanyReapply(payload: {
   const body = await readJsonResponse<{ success?: boolean; message?: string } & Record<string, unknown>>(response);
   if (!response.ok || !body.success) throw new Error(body.message || `Failed to submit company reapply: ${response.status}`);
   return body;
+}
+export function readBootstrappedEmissionResultDetailPageData(): EmissionResultDetailPagePayload | null {
+  return consumeRuntimeBootstrap<EmissionResultDetailPagePayload>("emissionResultDetailPageData");
 }

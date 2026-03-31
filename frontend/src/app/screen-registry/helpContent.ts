@@ -174,6 +174,155 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
       { id: "actions", title: "저장 및 상세 이동", body: "회원 상세로 이동하거나 수정 내용을 저장합니다.", anchorSelector: '[data-help-id="member-edit-actions"]' }
     ]
   },
+  "external-connection-list": {
+    pageId: "external-connection-list",
+    title: "외부 연계 목록 도움말",
+    summary: "관측 기반 연결과 수동 등록 프로필을 한 화면에서 비교하며 수정 진입점을 찾습니다.",
+    items: [
+      { id: "filters", title: "조회 조건", body: "검색어, 상태, 프로토콜, 데이터 출처 기준으로 연계 범위를 좁힙니다.", anchorSelector: '[data-help-id="external-connection-list-filters"]' },
+      { id: "table", title: "연계 레지스트리", body: "연계명, 엔드포인트, 인증 방식, 트래픽, 운영 담당자를 함께 보며 수정 대상으로 이동합니다.", anchorSelector: '[data-help-id="external-connection-list-table"]' },
+      { id: "issues", title: "최근 이슈", body: "최근 지연이나 오류 급증 이력을 확인한 뒤 프로필 수정 우선순위를 정합니다.", anchorSelector: '[data-help-id="external-connection-list-issues"]' },
+      { id: "guidance", title: "바로가기 및 운영 가이드", body: "관련 추적 화면과 운영 체크포인트를 함께 확인해 등록 또는 수정 전 점검 기준을 맞춥니다.", anchorSelector: '[data-help-id="external-connection-list-guidance"]' }
+    ]
+  },
+  "external-connection-add": {
+    pageId: "external-connection-add",
+    title: "외부연계 등록 도움말",
+    summary: "새 연계 프로필의 기본 정보, 동기화 정책, 운영 담당 체계를 한 번에 등록합니다.",
+    items: [
+      { id: "summary", title: "등록 요약 카드", body: "필수 입력 진행률, 동기화 모드, 변경 항목 수, 운영 상태를 먼저 확인합니다.", anchorSelector: '[data-help-id="external-connection-add-summary"]' },
+      { id: "profile", title: "연계 기본 정보", body: "연계명, 연계 ID, 기관명, 엔드포인트, 프로토콜, 인증 방식을 입력합니다.", anchorSelector: '[data-help-id="external-connection-add-profile"]' },
+      { id: "policy", title: "동기화 및 안정성 정책", body: "동기화 모드, 재시도 정책, timeout, 점검 시간을 설정합니다.", anchorSelector: '[data-help-id="external-connection-add-sync-policy"]' },
+      { id: "ownership", title: "운영 담당 체계", body: "담당자, 연락처, 운영 상태, 운영 메모를 남겨 승인과 인수인계 기준을 맞춥니다.", anchorSelector: '[data-help-id="external-connection-add-ownership"]' },
+      { id: "actions", title: "등록 액션 바", body: "초기화, 목록 이동, 저장을 실행합니다. 저장 후에는 수정 화면으로 이어집니다.", anchorSelector: '[data-help-id="external-connection-add-actions"]' }
+    ]
+  },
+  "external-connection-edit": {
+    pageId: "external-connection-edit",
+    title: "외부연계 수정 도움말",
+    summary: "기존 연계 프로필을 불러와 운영 상태와 연결 정책을 조정합니다.",
+    items: [
+      { id: "summary", title: "수정 요약 카드", body: "로드 기준 대비 변경 수와 현재 운영 상태를 먼저 확인합니다.", anchorSelector: '[data-help-id="external-connection-edit-summary"]' },
+      { id: "profile", title: "연계 기본 정보", body: "연계 ID를 기준으로 연계명, 기관, 엔드포인트, 인증 방식을 수정합니다.", anchorSelector: '[data-help-id="external-connection-edit-profile"]' },
+      { id: "policy", title: "동기화 및 안정성 정책", body: "재시도, timeout, 점검 시간을 조정해 운영 경계를 맞춥니다.", anchorSelector: '[data-help-id="external-connection-edit-sync-policy"]' },
+      { id: "ownership", title: "운영 담당 체계", body: "운영 상태, 담당자, 운영 메모를 갱신해 변경 이력을 명확히 남깁니다.", anchorSelector: '[data-help-id="external-connection-edit-ownership"]' },
+      { id: "actions", title: "수정 액션 바", body: "변경 취소, 목록 이동, 저장을 실행합니다.", anchorSelector: '[data-help-id="external-connection-edit-actions"]' }
+    ]
+  },
+  "external-usage": {
+    pageId: "external-usage",
+    title: "API 사용량 도움말",
+    summary: "외부 연계 API 호출량, 인증 방식별 소비 현황, 최근 추이를 운영 관점에서 점검합니다.",
+    items: [
+      { id: "filters", title: "조회 조건", body: "검색어, 인증 방식, 상태 기준으로 사용량 범위를 좁힙니다.", anchorSelector: '[data-help-id="external-usage-filters"]', iconName: "filter_alt", highlightStyle: "focus" },
+      { id: "inventory", title: "사용 현황 표", body: "연계별 호출 수, 성공률, 평균 지연, 최근 호출 시각을 함께 확인합니다.", anchorSelector: '[data-help-id="external-usage-table"]', iconName: "table_rows", highlightStyle: "neutral" },
+      { id: "auth-breakdown", title: "인증 방식별 집계", body: "인증 방식 단위로 연결 수, 호출 수, 오류 수를 비교해 자격증명 운영 상태를 점검합니다.", anchorSelector: '[data-help-id="external-usage-auth"]', iconName: "vpn_key", highlightStyle: "success" },
+      { id: "trend", title: "최근 사용 추이", body: "일자별 호출 수와 오류 수를 비교해 급증 구간과 반복 오류 구간을 확인합니다.", anchorSelector: '[data-help-id="external-usage-trend"]', iconName: "monitoring", highlightStyle: "warning" },
+      { id: "links", title: "바로가기", body: "관련 운영 화면으로 바로 이동해 후속 조치를 이어갑니다.", anchorSelector: '[data-help-id="external-usage-links"]', iconName: "link", highlightStyle: "neutral" },
+      { id: "guidance", title: "운영 가이드", body: "쿼터와 인증 정책은 원천 시스템 동작과 함께 해석해야 합니다.", anchorSelector: '[data-help-id="external-usage-guidance"]', iconName: "fact_check", highlightStyle: "warning" }
+    ]
+  },
+  "external-logs": {
+    pageId: "external-logs",
+    title: "외부 연계 로그 도움말",
+    summary: "외부 연계 access, error, trace 이벤트를 한 화면에서 묶어 최근 운영 징후를 빠르게 점검합니다.",
+    items: [
+      { id: "filters", title: "조회 조건", body: "검색어, 로그 유형, 위험도로 최근 이벤트 범위를 좁힙니다.", anchorSelector: '[data-help-id="external-logs-filters"]', iconName: "filter_alt", highlightStyle: "focus" },
+      { id: "queue", title: "최근 이벤트 큐", body: "발생 시각, 연계 대상, 요청 URI, 상세 로그와 상태를 한 번에 비교합니다.", anchorSelector: '[data-help-id="external-logs-queue"]', iconName: "table_rows", highlightStyle: "neutral" },
+      { id: "issues", title: "최근 주의 이슈", body: "지연, 반복 오류, 응답 이상처럼 바로 후속 조치가 필요한 신호를 우선 확인합니다.", anchorSelector: '[data-help-id="external-logs-issues"]', iconName: "priority_high", highlightStyle: "warning" },
+      { id: "watchlist", title: "감시 대상 연계", body: "상태 저하 조짐이 있는 연계를 별도 watchlist로 묶어 usage, schema, retry 화면 탐색 기준으로 사용합니다.", anchorSelector: '[data-help-id="external-logs-watchlist"]', iconName: "visibility", highlightStyle: "success" },
+      { id: "links", title: "바로가기", body: "연계 목록, API 사용량, 통합 로그, 추적 조회 화면으로 이동해 원인 분석을 이어갑니다.", anchorSelector: '[data-help-id="external-logs-links"]', iconName: "link", highlightStyle: "neutral" },
+      { id: "guidance", title: "운영 가이드", body: "같은 trace 묶음, 오류 없는 지연, 연계 단위 반복 실패를 같은 기준으로 판단합니다.", anchorSelector: '[data-help-id="external-logs-guidance"]', iconName: "fact_check", highlightStyle: "warning" }
+    ]
+  },
+  "external-schema": {
+    pageId: "external-schema",
+    title: "외부 스키마 도움말",
+    summary: "외부 계약 스키마, 검토 대기열, 배포 전 점검 기준을 한 화면에서 관리합니다.",
+    items: [
+      { id: "filters", title: "스키마 조회 조건", body: "스키마, 연계, 도메인, 검증 상태 기준으로 검토 범위를 좁힙니다.", anchorSelector: '[data-help-id="external-schema-filters"]', iconName: "filter_alt", highlightStyle: "focus" },
+      { id: "registry", title: "외부 계약 스키마", body: "스키마 버전, 필드 수, 담당자, 민감도, 검증 상태를 함께 확인합니다.", anchorSelector: '[data-help-id="external-schema-registry"]', iconName: "table_rows", highlightStyle: "neutral" },
+      { id: "review", title: "검토 대기열", body: "버전 정합성, 필드 소유권, 마스킹과 보존기간 기준으로 반영 전 점검합니다.", anchorSelector: '[data-help-id="external-schema-review"]', iconName: "fact_check", highlightStyle: "warning" },
+      { id: "links", title: "바로가기", body: "연계 목록, 동기화 실행 등 인접 외부연계 화면으로 이동합니다.", anchorSelector: '[data-help-id="external-schema-links"]', iconName: "link", highlightStyle: "neutral" },
+      { id: "guidance", title: "운영 가이드", body: "스키마 변경은 하위 파서, 마스킹, 파트너 공지 기준과 함께 해석해야 합니다.", anchorSelector: '[data-help-id="external-schema-guidance"]', iconName: "rule", highlightStyle: "success" }
+    ]
+  },
+  "external-webhooks": {
+    pageId: "external-webhooks",
+    title: "웹훅 설정 도움말",
+    summary: "웹훅 대상, 최근 전달 정책, 서명 상태를 함께 점검하는 운영 화면입니다.",
+    items: [
+      { id: "filters", title: "웹훅 조회 조건", body: "검색어, 연계 방식, 전달 상태 기준으로 대상을 좁힙니다.", anchorSelector: '[data-help-id="external-webhooks-filters"]', iconName: "filter_alt", highlightStyle: "focus" },
+      { id: "targets", title: "웹훅 대상", body: "대상 연계, 엔드포인트, 서명 상태, 성공률, 실패 건수를 함께 확인합니다.", anchorSelector: '[data-help-id="external-webhooks-targets"]', iconName: "table_rows", highlightStyle: "neutral" },
+      { id: "deliveries", title: "최근 전달 이력", body: "이벤트 유형, 재시도 정책, timeout, 실패 건수와 상태를 검토합니다.", anchorSelector: '[data-help-id="external-webhooks-deliveries"]', iconName: "history", highlightStyle: "warning" },
+      { id: "links", title: "바로가기", body: "연계 레지스트리와 오류 분석 화면으로 이동해 후속 조치를 이어갑니다.", anchorSelector: '[data-help-id="external-webhooks-links"]', iconName: "link", highlightStyle: "neutral" },
+      { id: "guidance", title: "운영 가이드", body: "전달 상태를 바꾸기 전 서명 정책과 재시도 기준을 먼저 검증해야 합니다.", anchorSelector: '[data-help-id="external-webhooks-guidance"]', iconName: "fact_check", highlightStyle: "success" }
+    ]
+  },
+  "external-sync": {
+    pageId: "external-sync",
+    title: "동기화 실행 도움말",
+    summary: "동기화 대상, 큐 적체, 최근 실행 이력을 함께 점검하는 운영 보드입니다.",
+    items: [
+      { id: "filters", title: "동기화 조회 조건", body: "대상, 동기화 방식, 상태 기준으로 범위를 좁힙니다.", anchorSelector: '[data-help-id="external-sync-filters"]', iconName: "filter_alt", highlightStyle: "focus" },
+      { id: "registry", title: "동기화 대상 현황", body: "잡 ID, 실행 기준, 최근/다음 실행 시각, 적체, 상태를 함께 확인합니다.", anchorSelector: '[data-help-id="external-sync-registry"]', iconName: "table_rows", highlightStyle: "neutral" },
+      { id: "queue", title: "동기화 큐 적체", body: "큐 적체량과 소비 노드를 묶어 우선 조치 대상을 찾습니다.", anchorSelector: '[data-help-id="external-sync-queue"]', iconName: "dns", highlightStyle: "warning" },
+      { id: "executions", title: "최근 동기화 실행 이력", body: "최근 실행 결과, 소요 시간, 메시지를 따라가며 실패 흐름을 확인합니다.", anchorSelector: '[data-help-id="external-sync-executions"]', iconName: "history", highlightStyle: "success" },
+      { id: "links", title: "바로가기", body: "연계 목록, 스케줄러, 로그 화면으로 이동해 후속 조치를 이어갑니다.", anchorSelector: '[data-help-id="external-sync-links"]', iconName: "link", highlightStyle: "neutral" },
+      { id: "guidance", title: "운영 가이드", body: "강제 재시도나 큐 이동 전에는 동일한 운영 기준으로 먼저 검토해야 합니다.", anchorSelector: '[data-help-id="external-sync-guidance"]', iconName: "fact_check", highlightStyle: "warning" }
+    ]
+  },
+  "external-maintenance": {
+    pageId: "external-maintenance",
+    title: "점검 관리 도움말",
+    summary: "외부 연계 점검 윈도우, 영향 범위, 대체 경로, 복구 기준을 한 화면에서 관리합니다.",
+    items: [
+      { id: "filters", title: "점검 조회 조건", body: "검색어, 동기화 방식, 점검 상태 기준으로 대상 범위를 좁힙니다.", anchorSelector: '[data-help-id="external-maintenance-filters"]', iconName: "filter_alt", highlightStyle: "focus" },
+      { id: "inventory", title: "점검 대상 현황", body: "연계별 예정 시각, 점검 윈도우, 영향 범위, 대체 경로, 상태를 함께 확인합니다.", anchorSelector: '[data-help-id="external-maintenance-inventory"]', iconName: "table_rows", highlightStyle: "neutral" },
+      { id: "impact", title: "영향 검토", body: "상위 우선순위 점검 대상의 영향 범위와 운영 조치를 빠르게 비교합니다.", anchorSelector: '[data-help-id="external-maintenance-impact"]', iconName: "priority_high", highlightStyle: "warning" },
+      { id: "runbook", title: "운영 런북", body: "점검 전, 점검 중, 복구 후 절차를 같은 순서로 따라가며 운영 기준을 맞춥니다.", anchorSelector: '[data-help-id="external-maintenance-runbook"]', iconName: "fact_check", highlightStyle: "success" },
+      { id: "links", title: "바로가기", body: "동기화 실행, 웹훅 설정, 재시도 관리, 연계 목록 화면으로 이어서 이동합니다.", anchorSelector: '[data-help-id="external-maintenance-links"]', iconName: "link", highlightStyle: "neutral" },
+      { id: "guidance", title: "운영 가이드", body: "점검 종료 전에 실제 복구 증적이 필요한 이유와 확인 항목을 정리합니다.", anchorSelector: '[data-help-id="external-maintenance-guidance"]', iconName: "schedule", highlightStyle: "warning" }
+    ]
+  },
+  "external-monitoring": {
+    pageId: "external-monitoring",
+    title: "연계 모니터링 도움말",
+    summary: "연계 상태, 적체, 경보, 최근 타임라인을 한 화면에서 묶어 보는 운영 보드입니다.",
+    items: [
+      { id: "filters", title: "모니터링 조회 조건", body: "검색어, 건강 상태, 상위 경보 기준으로 모니터링 범위를 좁힙니다.", anchorSelector: '[data-help-id="external-monitoring-filters"]', iconName: "filter_alt", highlightStyle: "focus" },
+      { id: "overview", title: "연계 모니터링 현황", body: "연계별 호출량, 성공률, 적체, 경보 수, 건강 상태를 함께 확인합니다.", anchorSelector: '[data-help-id="external-monitoring-overview"]', iconName: "table_rows", highlightStyle: "neutral" },
+      { id: "alerts", title: "활성 경보", body: "적체, 사용량 저하, 웹훅 이상 신호를 우선순위 기준으로 검토합니다.", anchorSelector: '[data-help-id="external-monitoring-alerts"]', iconName: "warning", highlightStyle: "warning" },
+      { id: "timeline", title: "최근 모니터링 타임라인", body: "최근 조치 시점과 후속 화면 연결 지점을 따라가며 흐름을 확인합니다.", anchorSelector: '[data-help-id="external-monitoring-timeline"]', iconName: "history", highlightStyle: "success" },
+      { id: "links", title: "바로가기", body: "연계 목록, 동기화 실행, 웹훅 설정, 사용량 화면으로 바로 이어집니다.", anchorSelector: '[data-help-id="external-monitoring-links"]', iconName: "link", highlightStyle: "neutral" },
+      { id: "guidance", title: "운영 가이드", body: "재실행, 일시중지, 승격 전에 같은 운영 기준을 적용하도록 정리했습니다.", anchorSelector: '[data-help-id="external-monitoring-guidance"]', iconName: "fact_check", highlightStyle: "warning" }
+    ]
+  },
+  "external-keys": {
+    pageId: "external-keys",
+    title: "외부 인증키 관리 도움말",
+    summary: "외부 연계 인증키의 교체 상태, 담당자, 인증 방식별 부담도를 한 화면에서 점검합니다.",
+    items: [
+      { id: "filters", title: "조회 조건", body: "검색어, 인증 방식, 교체 상태로 인증키 대상을 빠르게 좁힙니다.", anchorSelector: '[data-help-id="external-keys-filters"]', iconName: "filter_alt", highlightStyle: "focus" },
+      { id: "inventory", title: "인증키 인벤토리", body: "연계, 권한 범위, 최근 교체일, 만료 예정일, 담당자를 함께 확인합니다.", anchorSelector: '[data-help-id="external-keys-inventory"]', iconName: "table_rows", highlightStyle: "neutral" },
+      { id: "rotation", title: "교체 큐", body: "즉시 교체 또는 곧 만료될 항목을 우선순위대로 검토합니다.", anchorSelector: '[data-help-id="external-keys-rotation-queue"]', iconName: "priority_high", highlightStyle: "warning" },
+      { id: "breakdown", title: "인증 방식 분해", body: "어떤 인증 방식에 수동 교체와 긴급 조치가 몰려 있는지 분해해서 봅니다.", anchorSelector: '[data-help-id="external-keys-auth-breakdown"]', iconName: "vpn_key", highlightStyle: "success" },
+      { id: "links", title: "바로가기", body: "연결 관리, 화이트리스트, 추적 화면으로 이동해 후속 조치를 이어갑니다.", anchorSelector: '[data-help-id="external-keys-quick-links"]', iconName: "link", highlightStyle: "neutral" },
+      { id: "guidance", title: "운영 가이드", body: "비밀값 비노출, 점검 시간 연동, 관측 전용 등록 기준을 함께 확인합니다.", anchorSelector: '[data-help-id="external-keys-guidance"]', iconName: "fact_check", highlightStyle: "warning" }
+    ]
+  },
+  "external-retry": {
+    pageId: "external-retry",
+    title: "재시도 관리 도움말",
+    summary: "재처리 대상 큐, 중복 방지 정책, 최근 재실행 이력을 한 화면에서 비교하며 운영 판단을 내립니다.",
+    items: [
+      { id: "filters", title: "재시도 조회 조건", body: "검색어, 재시도 분류, 상태 기준으로 운영자가 먼저 검토할 대상을 좁힙니다.", anchorSelector: '[data-help-id="external-retry-filters"]', iconName: "filter_alt", highlightStyle: "focus" },
+      { id: "queue", title: "재시도 대상 현황", body: "연계별 재시도 사유, 시도 횟수, 적체 수, 다음 허용 시각을 함께 보고 수동 재실행 여부를 판단합니다.", anchorSelector: '[data-help-id="external-retry-queue"]', iconName: "table_rows", highlightStyle: "neutral" },
+      { id: "policy", title: "재시도 정책", body: "재시도 정책, 중복 방지 구간, 실패 후 처리 정책을 운영 담당자 기준으로 검토합니다.", anchorSelector: '[data-help-id="external-retry-policy"]', iconName: "policy", highlightStyle: "warning" },
+      { id: "history", title: "최근 재처리 이력", body: "최근 수동 또는 자동 재처리 결과와 소요 시간을 확인해 동일한 실패가 반복되는지 봅니다.", anchorSelector: '[data-help-id="external-retry-history"]', iconName: "history", highlightStyle: "success" },
+      { id: "guidance", title: "바로가기 및 운영 가이드", body: "점검, 동기화, 웹훅 설정 화면으로 이동하기 전후의 판단 기준을 함께 확인합니다.", anchorSelector: '[data-help-id="external-retry-guidance"]', iconName: "fact_check", highlightStyle: "neutral" }
+    ]
+  },
   observability: {
     pageId: "observability",
     title: "추적 조회 도움말",
@@ -519,6 +668,26 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
       { id: "table", title: "승인 목록", body: "기관명, 사업자번호, 대표자, 상태를 확인하고 개별 처리합니다.", anchorSelector: '[data-help-id="company-approve-table"]' }
     ]
   },
+  "certificate-review": {
+    pageId: "certificate-review",
+    title: "발급 검토 도움말",
+    summary: "발급 요청 요약, 검색 조건, 검토 대기열과 상세 검토 흐름을 안내합니다.",
+    items: [
+      { id: "summary", title: "검토 요약", body: "검토 대기, 검토 중, 발급 가능 건수를 상단 카드에서 빠르게 확인합니다.", anchorSelector: '[data-help-id="certificate-review-summary"]' },
+      { id: "search", title: "검색 조건", body: "상태, 발급 유형, 검색어 조합으로 검토 대상을 좁힙니다.", anchorSelector: '[data-help-id="certificate-review-search"]' },
+      { id: "table", title: "검토 대기열", body: "요청번호, 회원사, 증빙, 검토자, 검토 포인트를 한 표에서 확인하고 상세 검토로 진입합니다.", anchorSelector: '[data-help-id="certificate-review-table"]' }
+    ]
+  },
+  "certificate-pending": {
+    pageId: "certificate-pending",
+    title: "인증서 발급 대기 도움말",
+    summary: "요약 카드, 검색 조건, 발급 대기 목록 테이블을 안내합니다.",
+    items: [
+      { id: "summary", title: "발급 대기 요약", body: "검토 대기, 수수료 대기, 이의신청, SLA 임박 건수를 카드로 보여줍니다.", anchorSelector: '[data-help-id="certificate-pending-summary"]' },
+      { id: "search", title: "검색 조건", body: "인증 유형, 처리 상태, 신청번호 또는 회원사명으로 대기열을 좁힐 수 있습니다.", anchorSelector: '[data-help-id="certificate-pending-search"]' },
+      { id: "table", title: "대기 목록", body: "신청번호, 회원사, 수수료 상태, 검토 담당자, SLA를 한 행에서 확인합니다.", anchorSelector: '[data-help-id="certificate-pending-table"]' }
+    ]
+  },
   "company-detail": {
     pageId: "company-detail",
     title: "회원사 상세 도움말",
@@ -651,6 +820,33 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
       { id: "table", title: "결과 테이블", body: "프로젝트, 기관, 총 배출량, 산정/검증 상태를 확인하고 상세로 이동합니다.", anchorSelector: '[data-help-id="emission-result-table"]' }
     ]
   },
+  "emission-result-detail": {
+    pageId: "emission-result-detail",
+    title: "산정 결과 상세 도움말",
+    summary: "결과 요약, 검토 포인트, 배출지 산정 내역, 증빙과 이력을 한 화면에서 검토합니다.",
+    items: [
+      { id: "summary", title: "결과 요약 카드", body: "총 배출량, 배출지 수, 증빙 파일 수를 먼저 보고 결과 규모를 빠르게 파악합니다.", anchorSelector: '[data-help-id="emission-result-detail-summary"]' },
+      { id: "overview", title: "기본 정보", body: "결과 ID, 프로젝트명, 기관명, 보고 기간, 산정식 버전, 검증 담당자를 읽기 전용으로 확인합니다.", anchorSelector: '[data-help-id="emission-result-detail-overview"]' },
+      { id: "review", title: "검토 포인트", body: "이 결과에 대한 검토 체크리스트와 인계 메시지를 확인해 후속 검증 전에 핵심 쟁점을 정리합니다.", anchorSelector: '[data-help-id="emission-result-detail-review"]' },
+      { id: "sites", title: "배출지별 산정 내역", body: "배출지, Scope, 활동자료, 배출량, 검토 상태를 비교해 산정 근거를 확인합니다.", anchorSelector: '[data-help-id="emission-result-detail-sites"]' },
+      { id: "evidence", title: "증빙 파일", body: "제출 또는 검토에 연결된 증빙 파일과 최신 수정 시각, 담당자를 확인합니다.", anchorSelector: '[data-help-id="emission-result-detail-evidence"]' },
+      { id: "history", title: "검토 이력", body: "산정 실행, 검토 요청, 상태 변경 이력을 시간순으로 추적합니다.", anchorSelector: '[data-help-id="emission-result-detail-history"]' },
+      { id: "actions", title: "하단 작업 바", body: "검증 화면 이동, 목록 복귀, 이력 화면 이동으로 다음 검토 작업을 이어갑니다.", anchorSelector: '[data-help-id="emission-result-detail-actions"]' }
+    ]
+  },
+  "emission-validate": {
+    pageId: "emission-validate",
+    title: "검증 관리 도움말",
+    summary: "배출 결과의 검증 우선순위와 상태를 관리하는 운영 화면입니다.",
+    items: [
+      { id: "context", title: "선택 결과", body: "결과 상세에서 진입한 경우 선택된 resultId와 현재 검증 상태를 상단 컨텍스트에서 바로 확인하고 해제할 수 있습니다.", anchorSelector: '[data-help-id="emission-validate-context"]' },
+      { id: "summary", title: "검증 요약", body: "전체 대기열, 대기/진행, 반려/고우선 건수를 상단 카드로 보여줍니다.", anchorSelector: '[data-help-id="emission-validate-summary"]' },
+      { id: "search", title: "검증 필터", body: "검증 상태, 우선순위, 검색어로 검토 대상을 좁힙니다.", anchorSelector: '[data-help-id="emission-validate-search"]' },
+      { id: "links", title: "빠른 이동", body: "산정 결과 목록, 검토 대기, 반려 건, 기능 관리로 빠르게 이동해 연관 검토 흐름을 이어갑니다.", anchorSelector: '[data-help-id="emission-validate-links"]' },
+      { id: "queue", title: "검증 대기열", body: "프로젝트별 검증 상태, 담당자, 우선순위 사유를 확인하고 결과 화면으로 이동합니다.", anchorSelector: '[data-help-id="emission-validate-table"]' },
+      { id: "policy", title: "검증 기준", body: "우선순위 기준과 운영 검증 정책을 같은 화면에서 점검합니다.", anchorSelector: '[data-help-id="emission-validate-policy"]' }
+    ]
+  },
   "system-code": {
     pageId: "system-code",
     title: "코드 관리 도움말",
@@ -773,6 +969,16 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
     items: [
       { id: "summary", title: "감사 지표 요약", body: "최근 감사 이벤트 수와 유형별 분포를 상단 카드로 봅니다.", anchorSelector: '[data-help-id="security-audit-summary"]' },
       { id: "table", title: "감사 로그 목록", body: "수행자, 행위, 대상, 상세 내역을 시간순으로 확인합니다.", anchorSelector: '[data-help-id="security-audit-table"]' }
+    ]
+  },
+  "certificate-audit-log": {
+    pageId: "certificate-audit-log",
+    title: "인증서 감사 로그 도움말",
+    summary: "인증서 발급, 재발급, 폐기 이력을 운영 관점에서 추적합니다.",
+    items: [
+      { id: "filters", title: "검색 조건", body: "요청 유형, 처리 상태, 인증서 종류와 기간으로 감사 범위를 좁힙니다.", anchorSelector: '[data-help-id="certificate-audit-log-filters"]' },
+      { id: "summary", title: "운영 요약", body: "대기, 반려, 재발급, 고위험 건수를 상단 카드로 빠르게 파악합니다.", anchorSelector: '[data-help-id="certificate-audit-log-summary"]' },
+      { id: "table", title: "감사 로그 목록", body: "신청자, 승인자, 인증서 번호, 사유를 한 표에서 검토합니다.", anchorSelector: '[data-help-id="certificate-audit-log-table"]' }
     ]
   },
   "scheduler-management": {

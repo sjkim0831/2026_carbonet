@@ -260,16 +260,16 @@
     "menuCode" : "A0020104",
     "owner" : "김성준",
     "status" : "IN_PROGRESS",
-    "progress" : 0,
+    "progress" : 80,
     "plannedStartDate" : "2026-04-09",
     "plannedEndDate" : "2026-04-09",
-    "actualStartDate" : "",
+    "actualStartDate" : "2026-03-30",
     "actualEndDate" : "",
     "startDate" : "2026-04-09",
     "endDate" : "2026-04-09",
-    "notes" : "",
-    "codexInstruction" : "",
-    "updatedAt" : "2026-03-18"
+    "notes" : "React migration page, page-data API, result detail -> validate resultId handoff, help/manifest/full-stack registry alignment completed. Local :18000 runtime freshness verified.",
+    "codexInstruction" : "Finish remaining completion criteria only after screen-builder status summary workflow is standardized; do not invent publish/parity states ad hoc.",
+    "updatedAt" : "2026-03-31"
   },
   "ADMIN:A0010105" : {
     "menuType" : "ADMIN",

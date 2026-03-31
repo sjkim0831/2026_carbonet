@@ -32,6 +32,25 @@ public class AdminEmissionSiteController {
         return ResponseEntity.ok(new LinkedHashMap<>(adminShellBootstrapPageService.buildEmissionSiteManagementPageData(isEnglishRequest(request, locale))));
     }
 
+    @RequestMapping(value = "/validate", method = RequestMethod.GET)
+    public String emissionValidatePage(HttpServletRequest request, Locale locale) {
+        return redirectReactMigration(request, locale, "emission-validate");
+    }
+
+    @GetMapping("/validate/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> emissionValidatePageApi(
+            HttpServletRequest request,
+            Locale locale) {
+        return ResponseEntity.ok(new LinkedHashMap<>(adminShellBootstrapPageService.buildEmissionValidatePageData(
+                request == null ? "" : request.getParameter("pageIndex"),
+                request == null ? "" : request.getParameter("resultId"),
+                request == null ? "" : request.getParameter("searchKeyword"),
+                request == null ? "" : request.getParameter("verificationStatus"),
+                request == null ? "" : request.getParameter("priorityFilter"),
+                isEnglishRequest(request, locale))));
+    }
+
     private boolean isEnglishRequest(HttpServletRequest request, Locale locale) {
         String uri = request == null ? "" : safe(request.getRequestURI());
         if (uri.startsWith("/en/")) {

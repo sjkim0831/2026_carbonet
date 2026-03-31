@@ -104,8 +104,25 @@ public class ReactAppBootstrapService {
                         requestLocale(en)));
             } else if ("member_stats".equals(normalizedRoute)) {
                 payload.put("memberStatsPageData", adminShellBootstrapPageService.buildMemberStatsPageData(en));
+            } else if ("certificate_statistics".equals(normalizedRoute)) {
+                payload.put("certificateStatisticsPageData", adminShellBootstrapPageService.buildCertificateStatisticsPageData(
+                        request == null ? "" : request.getParameter("pageIndex"),
+                        request == null ? "" : request.getParameter("searchKeyword"),
+                        request == null ? "" : request.getParameter("periodFilter"),
+                        request == null ? "" : request.getParameter("certificateType"),
+                        request == null ? "" : request.getParameter("issuanceStatus"),
+                        en));
+            } else if ("trade_list".equals(normalizedRoute)) {
+                payload.put("tradeListPageData", adminShellBootstrapPageService.buildTradeListPageData(
+                        request == null ? "" : request.getParameter("pageIndex"),
+                        request == null ? "" : request.getParameter("searchKeyword"),
+                        request == null ? "" : request.getParameter("tradeStatus"),
+                        request == null ? "" : request.getParameter("settlementStatus"),
+                        en));
             } else if ("security_policy".equals(normalizedRoute)) {
                 payload.put("securityPolicyPageData", adminShellBootstrapPageService.buildSecurityPolicyPageData(en));
+            } else if ("external_monitoring".equals(normalizedRoute)) {
+                payload.put("externalMonitoringPageData", adminShellBootstrapPageService.buildExternalMonitoringPageData(en));
             } else if ("security_monitoring".equals(normalizedRoute)) {
                 payload.put("securityMonitoringPageData", adminShellBootstrapPageService.buildSecurityMonitoringPageData(en));
             } else if ("security_audit".equals(normalizedRoute)) {
@@ -118,6 +135,16 @@ public class ReactAppBootstrapService {
                         request == null ? "" : request.getParameter("endDate"),
                         request == null ? "" : request.getParameter("sortKey"),
                         request == null ? "" : request.getParameter("sortDirection"),
+                        en));
+            } else if ("certificate_audit_log".equals(normalizedRoute)) {
+                payload.put("certificateAuditLogPageData", adminShellBootstrapPageService.buildCertificateAuditLogPageData(
+                        request == null ? "" : request.getParameter("pageIndex"),
+                        request == null ? "" : request.getParameter("searchKeyword"),
+                        request == null ? "" : request.getParameter("auditType"),
+                        request == null ? "" : request.getParameter("status"),
+                        request == null ? "" : request.getParameter("certificateType"),
+                        request == null ? "" : request.getParameter("startDate"),
+                        request == null ? "" : request.getParameter("endDate"),
                         en));
             } else if ("scheduler_management".equals(normalizedRoute)) {
                 payload.put("schedulerManagementPageData", adminShellBootstrapPageService.buildSchedulerPageData(
@@ -138,6 +165,25 @@ public class ReactAppBootstrapService {
                         request == null ? "" : request.getParameter("searchKeyword"),
                         request == null ? "" : request.getParameter("resultStatus"),
                         request == null ? "" : request.getParameter("verificationStatus"),
+                        en));
+            } else if ("emission_result_detail".equals(normalizedRoute)) {
+                payload.put("emissionResultDetailPageData", adminShellBootstrapPageService.buildEmissionResultDetailPageData(
+                        request == null ? "" : request.getParameter("resultId"),
+                        en));
+            } else if ("emission_data_history".equals(normalizedRoute)) {
+                payload.put("emissionDataHistoryPageData", adminShellBootstrapPageService.buildEmissionDataHistoryPageData(
+                        request == null ? "" : request.getParameter("pageIndex"),
+                        request == null ? "" : request.getParameter("searchKeyword"),
+                        request == null ? "" : request.getParameter("changeType"),
+                        request == null ? "" : request.getParameter("changeTarget"),
+                        en));
+            } else if ("emission_validate".equals(normalizedRoute)) {
+                payload.put("emissionValidatePageData", adminShellBootstrapPageService.buildEmissionValidatePageData(
+                        request == null ? "" : request.getParameter("pageIndex"),
+                        request == null ? "" : request.getParameter("resultId"),
+                        request == null ? "" : request.getParameter("searchKeyword"),
+                        request == null ? "" : request.getParameter("verificationStatus"),
+                        request == null ? "" : request.getParameter("priorityFilter"),
                         en));
             } else if ("emission_site_management".equals(normalizedRoute)) {
                 payload.put("emissionSiteManagementPageData", adminShellBootstrapPageService.buildEmissionSiteManagementPageData(en));

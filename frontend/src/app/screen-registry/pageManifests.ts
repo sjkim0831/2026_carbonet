@@ -248,6 +248,194 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "MemberEditActions", instanceKey: "member-edit-actions", layoutZone: "actions", propsSummary: ["memberId", "canUseMemberSave"] }
     ]
   },
+  "external-keys": {
+    pageId: "external-keys",
+    routePath: "/admin/external/keys",
+    menuCode: "A0050201",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "ExternalKeyFilters", instanceKey: "external-keys-filters", layoutZone: "actions", propsSummary: ["keyword", "authMethod", "rotationStatus"] },
+      { componentId: "ExternalKeyInventoryTable", instanceKey: "external-keys-inventory", layoutZone: "content", propsSummary: ["externalKeyRows", "filteredRows", "refreshedAt"] },
+      { componentId: "ExternalKeyRotationQueue", instanceKey: "external-keys-rotation-queue", layoutZone: "content", propsSummary: ["externalKeyRotationRows"] },
+      { componentId: "ExternalKeyAuthBreakdown", instanceKey: "external-keys-auth-breakdown", layoutZone: "content", propsSummary: ["authMethodRows", "urgentRows"] },
+      { componentId: "ExternalKeyQuickLinks", instanceKey: "external-keys-quick-links", layoutZone: "content", propsSummary: ["externalKeyQuickLinks"] },
+      { componentId: "ExternalKeyGuidance", instanceKey: "external-keys-guidance", layoutZone: "content", propsSummary: ["externalKeyGuidance"] }
+    ]
+  },
+  "certificate-review": {
+    pageId: "certificate-review",
+    routePath: "/admin/certificate/review",
+    menuCode: "A0020201",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "CertificateReviewSummary", instanceKey: "certificate-review-summary", layoutZone: "content", propsSummary: ["requestedCount", "underReviewCount", "readyCount"] },
+      { componentId: "CertificateReviewFilters", instanceKey: "certificate-review-search", layoutZone: "actions", propsSummary: ["searchKeyword", "status", "certificateType"] },
+      { componentId: "CertificateReviewTable", instanceKey: "certificate-review-table", layoutZone: "content", propsSummary: ["rows", "pageIndex", "totalCount"] }
+    ]
+  },
+  "external-connection-list": {
+    pageId: "external-connection-list",
+    routePath: "/admin/external/connection_list",
+    menuCode: "A0050101",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "ExternalConnectionListFilters", instanceKey: "external-connection-list-filters", layoutZone: "actions", propsSummary: ["keyword", "status", "protocol", "source"] },
+      { componentId: "ExternalConnectionListTable", instanceKey: "external-connection-list-table", layoutZone: "content", propsSummary: ["externalConnectionRows", "filteredCount", "pageNumber", "totalPages"] },
+      { componentId: "ExternalConnectionIssueTable", instanceKey: "external-connection-list-issues", layoutZone: "content", propsSummary: ["externalConnectionIssueRows"] },
+      { componentId: "ExternalConnectionGuidancePanel", instanceKey: "external-connection-list-guidance", layoutZone: "content", propsSummary: ["externalConnectionQuickLinks", "externalConnectionGuidance"] }
+    ]
+  },
+  "external-connection-add": {
+    pageId: "external-connection-add",
+    routePath: "/admin/external/connection_add",
+    menuCode: "A0050102",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "ExternalConnectionAddSummaryCards", instanceKey: "external-connection-add-summary", layoutZone: "content", propsSummary: ["completionRatio", "syncMode", "dirtyCount", "operationStatus"] },
+      { componentId: "ExternalConnectionProfileForm", instanceKey: "external-connection-add-profile", layoutZone: "content", propsSummary: ["connectionName", "connectionId", "partnerName", "endpointUrl", "protocol", "authMethod"] },
+      { componentId: "ExternalConnectionPolicyForm", instanceKey: "external-connection-add-sync-policy", layoutZone: "content", propsSummary: ["syncMode", "retryPolicy", "timeoutSeconds", "maintenanceWindow"] },
+      { componentId: "ExternalConnectionOwnershipForm", instanceKey: "external-connection-add-ownership", layoutZone: "content", propsSummary: ["ownerName", "ownerContact", "operationStatus", "notes"] },
+      { componentId: "ExternalConnectionAddActionBar", instanceKey: "external-connection-add-actions", layoutZone: "actions", propsSummary: ["saving", "mode=add"] }
+    ]
+  },
+  "external-connection-edit": {
+    pageId: "external-connection-edit",
+    routePath: "/admin/external/connection_edit",
+    menuCode: "A0050103",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "ExternalConnectionEditSummaryCards", instanceKey: "external-connection-edit-summary", layoutZone: "content", propsSummary: ["completionRatio", "syncMode", "dirtyCount", "operationStatus"] },
+      { componentId: "ExternalConnectionProfileForm", instanceKey: "external-connection-edit-profile", layoutZone: "content", propsSummary: ["connectionName", "connectionId", "partnerName", "endpointUrl", "protocol", "authMethod"] },
+      { componentId: "ExternalConnectionPolicyForm", instanceKey: "external-connection-edit-sync-policy", layoutZone: "content", propsSummary: ["syncMode", "retryPolicy", "timeoutSeconds", "maintenanceWindow"] },
+      { componentId: "ExternalConnectionOwnershipForm", instanceKey: "external-connection-edit-ownership", layoutZone: "content", propsSummary: ["ownerName", "ownerContact", "operationStatus", "notes"] },
+      { componentId: "ExternalConnectionEditActionBar", instanceKey: "external-connection-edit-actions", layoutZone: "actions", propsSummary: ["saving", "mode=edit", "connectionId"] }
+    ]
+  },
+  "external-usage": {
+    pageId: "external-usage",
+    routePath: "/admin/external/usage",
+    menuCode: "A0050108",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "ExternalUsageFilters", instanceKey: "external-usage-filters", layoutZone: "actions", propsSummary: ["keyword", "authMethod", "status"] },
+      { componentId: "ExternalUsageSummaryCards", instanceKey: "external-usage-summary", layoutZone: "content", propsSummary: ["externalUsageSummary"] },
+      { componentId: "ExternalUsageTable", instanceKey: "external-usage-table", layoutZone: "content", propsSummary: ["externalUsageRows", "filteredCount"] },
+      { componentId: "ExternalUsageAuthBreakdown", instanceKey: "external-usage-auth", layoutZone: "content", propsSummary: ["externalUsageKeyRows"] },
+      { componentId: "ExternalUsageTrendTable", instanceKey: "external-usage-trend", layoutZone: "content", propsSummary: ["externalUsageTrendRows"] }
+    ]
+  },
+  "external-webhooks": {
+    pageId: "external-webhooks",
+    routePath: "/admin/external/webhooks",
+    menuCode: "A0050203",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "ExternalWebhookFilters", instanceKey: "external-webhooks-filters", layoutZone: "actions", propsSummary: ["keyword", "syncMode", "status"] },
+      { componentId: "ExternalWebhookSummaryCards", instanceKey: "external-webhooks-summary", layoutZone: "content", propsSummary: ["externalWebhookSummary"] },
+      { componentId: "ExternalWebhookRegistryTable", instanceKey: "external-webhooks-targets", layoutZone: "content", propsSummary: ["externalWebhookRows", "refreshedAt"] },
+      { componentId: "ExternalWebhookPolicyTable", instanceKey: "external-webhooks-deliveries", layoutZone: "content", propsSummary: ["externalWebhookDeliveryRows"] },
+      { componentId: "ExternalWebhookQuickLinks", instanceKey: "external-webhooks-links", layoutZone: "content", propsSummary: ["externalWebhookQuickLinks"] },
+      { componentId: "ExternalWebhookGuidance", instanceKey: "external-webhooks-guidance", layoutZone: "content", propsSummary: ["externalWebhookGuidance"] }
+    ]
+  },
+  "external-sync": {
+    pageId: "external-sync",
+    routePath: "/admin/external/sync",
+    menuCode: "A0050104",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "ExternalSyncFilters", instanceKey: "external-sync-filters", layoutZone: "actions", propsSummary: ["keyword", "syncMode", "status"] },
+      { componentId: "ExternalSyncSummaryCards", instanceKey: "external-sync-summary", layoutZone: "content", propsSummary: ["externalSyncSummary"] },
+      { componentId: "ExternalSyncRegistryTable", instanceKey: "external-sync-registry", layoutZone: "content", propsSummary: ["externalSyncRows", "filteredCount", "refreshedAt"] },
+      { componentId: "ExternalSyncQueueTable", instanceKey: "external-sync-queue", layoutZone: "content", propsSummary: ["externalSyncQueueRows"] },
+      { componentId: "ExternalSyncQuickLinks", instanceKey: "external-sync-links", layoutZone: "content", propsSummary: ["externalSyncQuickLinks"] },
+      { componentId: "ExternalSyncGuidance", instanceKey: "external-sync-guidance", layoutZone: "content", propsSummary: ["externalSyncGuidance"] },
+      { componentId: "ExternalSyncExecutionTable", instanceKey: "external-sync-executions", layoutZone: "content", propsSummary: ["externalSyncExecutionRows"] }
+    ]
+  },
+  "external-logs": {
+    pageId: "external-logs",
+    routePath: "/admin/external/logs",
+    menuCode: "A0050303",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "ExternalLogsFilters", instanceKey: "external-logs-filters", layoutZone: "actions", propsSummary: ["keyword", "logType", "severity"] },
+      { componentId: "ExternalLogsSummaryCards", instanceKey: "external-logs-summary", layoutZone: "content", propsSummary: ["externalLogSummary"] },
+      { componentId: "ExternalLogsTable", instanceKey: "external-logs-table", layoutZone: "content", propsSummary: ["externalLogRows", "filteredCount"] },
+      { componentId: "ExternalLogsIssueTable", instanceKey: "external-logs-issues", layoutZone: "content", propsSummary: ["externalLogIssueRows"] },
+      { componentId: "ExternalLogsWatchList", instanceKey: "external-logs-watchlist", layoutZone: "content", propsSummary: ["externalLogConnectionRows"] },
+      { componentId: "ExternalLogsQuickLinks", instanceKey: "external-logs-quick-links", layoutZone: "content", propsSummary: ["externalLogQuickLinks"] },
+      { componentId: "ExternalLogsGuidance", instanceKey: "external-logs-guidance", layoutZone: "content", propsSummary: ["externalLogGuidance"] }
+    ]
+  },
+  "external-maintenance": {
+    pageId: "external-maintenance",
+    routePath: "/admin/external/maintenance",
+    menuCode: "A0050107",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "ExternalMaintenanceFilters", instanceKey: "external-maintenance-filters", layoutZone: "actions", propsSummary: ["keyword", "syncMode", "status"] },
+      { componentId: "ExternalMaintenanceSummaryCards", instanceKey: "external-maintenance-summary", layoutZone: "content", propsSummary: ["externalMaintenanceSummary"] },
+      { componentId: "ExternalMaintenanceInventoryTable", instanceKey: "external-maintenance-inventory", layoutZone: "content", propsSummary: ["externalMaintenanceRows", "filteredCount", "refreshedAt"] },
+      { componentId: "ExternalMaintenanceImpactTable", instanceKey: "external-maintenance-impact", layoutZone: "content", propsSummary: ["externalMaintenanceImpactRows"] },
+      { componentId: "ExternalMaintenanceRunbook", instanceKey: "external-maintenance-runbook", layoutZone: "content", propsSummary: ["externalMaintenanceRunbooks"] },
+      { componentId: "ExternalMaintenanceQuickLinks", instanceKey: "external-maintenance-links", layoutZone: "content", propsSummary: ["externalMaintenanceQuickLinks"] },
+      { componentId: "ExternalMaintenanceGuidance", instanceKey: "external-maintenance-guidance", layoutZone: "content", propsSummary: ["externalMaintenanceGuidance"] }
+    ]
+  },
+  "external-schema": {
+    pageId: "external-schema",
+    routePath: "/admin/external/schema",
+    menuCode: "A0050202",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "ExternalSchemaFilters", instanceKey: "external-schema-filters", layoutZone: "actions", propsSummary: ["keyword", "domain", "status"] },
+      { componentId: "ExternalSchemaSummaryCards", instanceKey: "external-schema-summary", layoutZone: "content", propsSummary: ["externalSchemaSummary"] },
+      { componentId: "ExternalSchemaRegistryTable", instanceKey: "external-schema-registry", layoutZone: "content", propsSummary: ["externalSchemaRows", "filteredCount", "selectedSchemaId"] },
+      { componentId: "ExternalSchemaReviewPanel", instanceKey: "external-schema-review", layoutZone: "content", propsSummary: ["activeSchemaId", "contractPreview", "reviewChecklist"] },
+      { componentId: "ExternalSchemaQuickLinks", instanceKey: "external-schema-links", layoutZone: "content", propsSummary: ["externalSchemaQuickLinks"] },
+      { componentId: "ExternalSchemaGuidance", instanceKey: "external-schema-guidance", layoutZone: "content", propsSummary: ["externalSchemaGuidance"] }
+    ]
+  },
+  "external-monitoring": {
+    pageId: "external-monitoring",
+    routePath: "/admin/external/monitoring",
+    menuCode: "A0050106",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "ExternalMonitoringFilters", instanceKey: "external-monitoring-filters", layoutZone: "actions", propsSummary: ["keyword", "healthStatus", "alertLevel"] },
+      { componentId: "ExternalMonitoringSummaryCards", instanceKey: "external-monitoring-summary", layoutZone: "content", propsSummary: ["externalMonitoringSummary", "overallStatus"] },
+      { componentId: "ExternalMonitoringOverviewTable", instanceKey: "external-monitoring-overview", layoutZone: "content", propsSummary: ["externalMonitoringRows", "filteredCount", "refreshedAt"] },
+      { componentId: "ExternalMonitoringAlertTable", instanceKey: "external-monitoring-alerts", layoutZone: "content", propsSummary: ["externalMonitoringAlertRows"] },
+      { componentId: "ExternalMonitoringTimelineTable", instanceKey: "external-monitoring-timeline", layoutZone: "content", propsSummary: ["externalMonitoringTimelineRows"] },
+      { componentId: "ExternalMonitoringQuickLinks", instanceKey: "external-monitoring-links", layoutZone: "content", propsSummary: ["externalMonitoringQuickLinks"] },
+      { componentId: "ExternalMonitoringGuidance", instanceKey: "external-monitoring-guidance", layoutZone: "content", propsSummary: ["externalMonitoringGuidance"] }
+    ]
+  },
   "company-detail": {
     pageId: "company-detail",
     routePath: "/admin/member/company_detail",
@@ -285,6 +473,19 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "CompanyApprovalFilter", instanceKey: "company-approve-search", layoutZone: "actions", propsSummary: ["status", "result", "searchKeyword"] },
       { componentId: "CompanyApprovalBatchActions", instanceKey: "company-approve-batch-actions", layoutZone: "actions", propsSummary: ["selectedIds", "canUseCompanyApproveAction"] },
       { componentId: "CompanyApprovalTable", instanceKey: "company-approve-table", layoutZone: "content", propsSummary: ["rows", "pageIndex"] }
+    ]
+  },
+  "certificate-pending": {
+    pageId: "certificate-pending",
+    routePath: "/admin/certificate/pending_list",
+    menuCode: "AMENU_CERTIFICATE_PENDING",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "CertificatePendingSummary", instanceKey: "certificate-pending-summary", layoutZone: "actions", propsSummary: ["certificatePendingSummary"] },
+      { componentId: "CertificatePendingFilter", instanceKey: "certificate-pending-search", layoutZone: "actions", propsSummary: ["certificateType", "processStatus", "searchKeyword"] },
+      { componentId: "CertificatePendingTable", instanceKey: "certificate-pending-table", layoutZone: "content", propsSummary: ["certificatePendingRows", "pageIndex"] }
     ]
   },
   "company-list": {
@@ -711,6 +912,19 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "MemberRegisterOrgSearch", instanceKey: "member-register-org-search-title", layoutZone: "actions", propsSummary: ["canUseMemberRegisterOrgSearch", "insttId"] }
     ]
   },
+  "trade-list": {
+    pageId: "trade-list",
+    routePath: "/admin/trade/list",
+    menuCode: "AMENU_TRADE_LIST",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "TradeListSummary", instanceKey: "trade-list-summary", layoutZone: "actions", propsSummary: ["totalCount", "matchingCount", "settlementPendingCount", "completedCount"] },
+      { componentId: "TradeListFilter", instanceKey: "trade-list-filter", layoutZone: "content", propsSummary: ["searchKeyword", "tradeStatus", "settlementStatus"] },
+      { componentId: "TradeListTable", instanceKey: "trade-list-table", layoutZone: "content", propsSummary: ["tradeRows", "pageIndex", "totalPages"] }
+    ]
+  },
   "emission-result-list": {
     pageId: "emission-result-list",
     routePath: "/admin/emission/result_list",
@@ -722,6 +936,52 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "EmissionResultSummary", instanceKey: "emission-result-summary", layoutZone: "actions", propsSummary: ["totalCount", "reviewCount", "verifiedCount"] },
       { componentId: "EmissionResultSearch", instanceKey: "emission-result-search", layoutZone: "actions", propsSummary: ["searchKeyword", "resultStatus", "verificationStatus"] },
       { componentId: "EmissionResultTable", instanceKey: "emission-result-table", layoutZone: "content", propsSummary: ["emissionResultList", "pageIndex"] }
+    ]
+  },
+  "emission-result-detail": {
+    pageId: "emission-result-detail",
+    routePath: "/admin/emission/result_detail",
+    menuCode: "AMENU_EMISSION_RESULT_DETAIL",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "EmissionResultDetailSummary", instanceKey: "emission-result-detail-summary", layoutZone: "actions", propsSummary: ["resultId", "totalEmission", "siteCount", "evidenceCount"] },
+      { componentId: "EmissionResultDetailOverview", instanceKey: "emission-result-detail-overview", layoutZone: "content", propsSummary: ["projectName", "companyName", "reportPeriod", "formulaVersion"] },
+      { componentId: "EmissionResultDetailReview", instanceKey: "emission-result-detail-review", layoutZone: "content", propsSummary: ["reviewChecklist", "reviewMessage"] },
+      { componentId: "EmissionResultDetailSites", instanceKey: "emission-result-detail-sites", layoutZone: "content", propsSummary: ["siteRows"] },
+      { componentId: "EmissionResultDetailEvidence", instanceKey: "emission-result-detail-evidence", layoutZone: "content", propsSummary: ["evidenceRows"] },
+      { componentId: "EmissionResultDetailHistory", instanceKey: "emission-result-detail-history", layoutZone: "content", propsSummary: ["historyRows"] },
+      { componentId: "EmissionResultDetailActions", instanceKey: "emission-result-detail-actions", layoutZone: "actions", propsSummary: ["verificationActionUrl", "listUrl", "historyUrl"] }
+    ]
+  },
+  "emission-validate": {
+    pageId: "emission-validate",
+    routePath: "/admin/emission/validate",
+    menuCode: "A0020104",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "EmissionValidateContext", instanceKey: "emission-validate-context", layoutZone: "actions", propsSummary: ["resultId", "selectedResult"] },
+      { componentId: "EmissionValidateSummary", instanceKey: "emission-validate-summary", layoutZone: "actions", propsSummary: ["totalCount", "pendingCount", "failedCount"] },
+      { componentId: "EmissionValidateSearch", instanceKey: "emission-validate-search", layoutZone: "actions", propsSummary: ["searchKeyword", "verificationStatus", "priorityFilter"] },
+      { componentId: "EmissionValidateLinks", instanceKey: "emission-validate-links", layoutZone: "content", propsSummary: ["actionLinks"] },
+      { componentId: "EmissionValidateQueue", instanceKey: "emission-validate-table", layoutZone: "content", propsSummary: ["queueRows", "pageIndex"] },
+      { componentId: "EmissionValidatePolicy", instanceKey: "emission-validate-policy", layoutZone: "content", propsSummary: ["priorityLegend", "policyRows"] }
+    ]
+  },
+  "emission-data-history": {
+    pageId: "emission-data-history",
+    routePath: "/admin/emission/data_history",
+    menuCode: "A0020106",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "EmissionDataHistorySummary", instanceKey: "emission-data-history-summary", layoutZone: "actions", propsSummary: ["totalCount", "correctionCount", "approvalCount"] },
+      { componentId: "EmissionDataHistorySearch", instanceKey: "emission-data-history-search", layoutZone: "actions", propsSummary: ["searchKeyword", "changeType", "changeTarget"] },
+      { componentId: "EmissionDataHistoryTable", instanceKey: "emission-data-history-table", layoutZone: "content", propsSummary: ["historyRows", "pageIndex"] }
     ]
   },
   "emission-site-management": {
@@ -913,6 +1173,19 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "SecurityAuditTable", instanceKey: "security-audit-table", layoutZone: "content", propsSummary: ["securityAuditRows"] }
     ]
   },
+  "certificate-audit-log": {
+    pageId: "certificate-audit-log",
+    routePath: "/admin/certificate/audit-log",
+    menuCode: "AMENU_CERTIFICATE_AUDIT_LOG",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "CertificateAuditFilters", instanceKey: "certificate-audit-log-filters", layoutZone: "actions", propsSummary: ["auditType", "status", "certificateType"] },
+      { componentId: "CertificateAuditSummary", instanceKey: "certificate-audit-log-summary", layoutZone: "actions", propsSummary: ["certificateAuditSummary", "certificateAuditAlerts"] },
+      { componentId: "CertificateAuditTable", instanceKey: "certificate-audit-log-table", layoutZone: "content", propsSummary: ["certificateAuditRows"] }
+    ]
+  },
   "scheduler-management": {
     pageId: "scheduler-management",
     routePath: "/admin/system/scheduler",
@@ -1080,6 +1353,21 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "WbsExecutionTable", instanceKey: "wbs-execution-table", layoutZone: "content", propsSummary: ["wbsRows", "waveSummary"] },
       { componentId: "WbsEditorPanel", instanceKey: "wbs-editor-panel", layoutZone: "content", propsSummary: ["owner", "status", "startDate", "endDate"] },
       { componentId: "WbsCodexPrompt", instanceKey: "wbs-codex-prompt", layoutZone: "content", propsSummary: ["codexPrompt", "codexInstruction"] }
+    ]
+  },
+  "external-retry": {
+    pageId: "external-retry",
+    routePath: "/admin/external/retry",
+    menuCode: "A0050105",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "ExternalRetryFilters", instanceKey: "external-retry-filters", layoutZone: "actions", propsSummary: ["keyword", "retryClass", "status"] },
+      { componentId: "ExternalRetryQueue", instanceKey: "external-retry-queue", layoutZone: "content", propsSummary: ["rows", "filteredRows", "refreshedAt"] },
+      { componentId: "ExternalRetryPolicy", instanceKey: "external-retry-policy", layoutZone: "content", propsSummary: ["policyRows", "ownerName", "status"] },
+      { componentId: "ExternalRetryHistory", instanceKey: "external-retry-history", layoutZone: "content", propsSummary: ["executionRows", "result", "duration"] },
+      { componentId: "ExternalRetryGuidance", instanceKey: "external-retry-guidance", layoutZone: "content", propsSummary: ["quickLinks", "guidance"] }
     ]
   },
   "sr-workbench": {

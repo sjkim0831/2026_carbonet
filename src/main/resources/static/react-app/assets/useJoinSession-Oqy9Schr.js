@@ -1,1 +1,0 @@
-import{u as i,cH as r}from"./platformStudio-Cb2A_M1G.js";function t(n={}){const{enabled:e=!0,onSuccess:o}=n;return i(async()=>{const s=await r();if(!s)throw new Error("Join session is unavailable");return s},[],{enabled:e,onSuccess:o})}export{t as u};
