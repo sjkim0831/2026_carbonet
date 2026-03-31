@@ -227,6 +227,7 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
     title: "외부 연계 로그 도움말",
     summary: "외부 연계 access, error, trace 이벤트를 한 화면에서 묶어 최근 운영 징후를 빠르게 점검합니다.",
     items: [
+      { id: "summary", title: "요약 지표", body: "최근 오류량, 지연, 추적 이벤트 밀도를 먼저 보고 현재 이상 징후 수준을 판단합니다.", anchorSelector: '[data-help-id="external-logs-summary"]', iconName: "dashboard", highlightStyle: "neutral" },
       { id: "filters", title: "조회 조건", body: "검색어, 로그 유형, 위험도로 최근 이벤트 범위를 좁힙니다.", anchorSelector: '[data-help-id="external-logs-filters"]', iconName: "filter_alt", highlightStyle: "focus" },
       { id: "queue", title: "최근 이벤트 큐", body: "발생 시각, 연계 대상, 요청 URI, 상세 로그와 상태를 한 번에 비교합니다.", anchorSelector: '[data-help-id="external-logs-queue"]', iconName: "table_rows", highlightStyle: "neutral" },
       { id: "issues", title: "최근 주의 이슈", body: "지연, 반복 오류, 응답 이상처럼 바로 후속 조치가 필요한 신호를 우선 확인합니다.", anchorSelector: '[data-help-id="external-logs-issues"]', iconName: "priority_high", highlightStyle: "warning" },
