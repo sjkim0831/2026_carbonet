@@ -17231,8 +17231,8 @@
     "icon": "",
     "placeholder": "",
     "summary": "min-w-full text-left text-sm",
-    "routeCount": 13,
-    "instanceCount": 14,
+    "routeCount": 14,
+    "instanceCount": 15,
     "labels": [
       "REC"
     ],
@@ -17242,6 +17242,12 @@
         "label": "REC 중복 확인",
         "koPath": "/admin/certificate/rec_check",
         "enPath": "/en/admin/certificate/rec_check"
+      },
+      {
+        "routeId": "external-connection-add",
+        "label": "외부연계 등록",
+        "koPath": "/admin/external/connection_add",
+        "enPath": "/en/admin/external/connection_add"
       },
       {
         "routeId": "external-connection-edit",
@@ -17331,6 +17337,23 @@
         "className": "min-w-full text-left text-sm",
         "icon": "",
         "label": "REC",
+        "placeholder": "",
+        "summary": "min-w-full text-left text-sm"
+      },
+      {
+        "route": {
+          "routeId": "external-connection-add",
+          "label": "외부연계 등록",
+          "koPath": "/admin/external/connection_add",
+          "enPath": "/en/admin/external/connection_add"
+        },
+        "componentType": "table",
+        "componentName": "table",
+        "variant": "",
+        "size": "",
+        "className": "min-w-full text-left text-sm",
+        "icon": "",
+        "label": "",
         "placeholder": "",
         "summary": "min-w-full text-left text-sm"
       },
