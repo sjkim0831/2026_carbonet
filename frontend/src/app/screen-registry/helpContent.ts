@@ -179,6 +179,7 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
     title: "외부 연계 목록 도움말",
     summary: "관측 기반 연결과 수동 등록 프로필을 한 화면에서 비교하며 수정 진입점을 찾습니다.",
     items: [
+      { id: "summary", title: "요약 지표", body: "프로필 커버리지, 미등록 대상, 주의 필요 건수를 먼저 보고 후속 정비 우선순위를 정합니다.", anchorSelector: '[data-help-id="external-connection-list-summary"]' },
       { id: "filters", title: "조회 조건", body: "검색어, 상태, 프로토콜, 데이터 출처 기준으로 연계 범위를 좁힙니다.", anchorSelector: '[data-help-id="external-connection-list-filters"]' },
       { id: "table", title: "연계 레지스트리", body: "연계명, 엔드포인트, 인증 방식, 트래픽, 운영 담당자를 함께 보며 수정 대상으로 이동합니다.", anchorSelector: '[data-help-id="external-connection-list-table"]' },
       { id: "issues", title: "최근 이슈", body: "최근 지연이나 오류 급증 이력을 확인한 뒤 프로필 수정 우선순위를 정합니다.", anchorSelector: '[data-help-id="external-connection-list-issues"]' },
@@ -304,6 +305,7 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
     title: "외부 인증키 관리 도움말",
     summary: "외부 연계 인증키의 교체 상태, 담당자, 인증 방식별 부담도를 한 화면에서 점검합니다.",
     items: [
+      { id: "summary", title: "요약 지표", body: "긴급 교체와 만료 위험이 어느 정도인지 먼저 보고 인증키 운영 부담을 판단합니다.", anchorSelector: '[data-help-id="external-keys-summary"]', iconName: "dashboard", highlightStyle: "neutral" },
       { id: "filters", title: "조회 조건", body: "검색어, 인증 방식, 교체 상태로 인증키 대상을 빠르게 좁힙니다.", anchorSelector: '[data-help-id="external-keys-filters"]', iconName: "filter_alt", highlightStyle: "focus" },
       { id: "inventory", title: "인증키 인벤토리", body: "연계, 권한 범위, 최근 교체일, 만료 예정일, 담당자를 함께 확인합니다.", anchorSelector: '[data-help-id="external-keys-inventory"]', iconName: "table_rows", highlightStyle: "neutral" },
       { id: "rotation", title: "교체 큐", body: "즉시 교체 또는 곧 만료될 항목을 우선순위대로 검토합니다.", anchorSelector: '[data-help-id="external-keys-rotation-queue"]', iconName: "priority_high", highlightStyle: "warning" },
@@ -317,6 +319,7 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
     title: "재시도 관리 도움말",
     summary: "재처리 대상 큐, 중복 방지 정책, 최근 재실행 이력을 한 화면에서 비교하며 운영 판단을 내립니다.",
     items: [
+      { id: "summary", title: "요약 지표", body: "재시도 대상 수와 운영 위험도를 먼저 압축해서 보고 수동 개입 필요성을 판단합니다.", anchorSelector: '[data-help-id="external-retry-summary"]', iconName: "dashboard", highlightStyle: "neutral" },
       { id: "filters", title: "재시도 조회 조건", body: "검색어, 재시도 분류, 상태 기준으로 운영자가 먼저 검토할 대상을 좁힙니다.", anchorSelector: '[data-help-id="external-retry-filters"]', iconName: "filter_alt", highlightStyle: "focus" },
       { id: "queue", title: "재시도 대상 현황", body: "연계별 재시도 사유, 시도 횟수, 적체 수, 다음 허용 시각을 함께 보고 수동 재실행 여부를 판단합니다.", anchorSelector: '[data-help-id="external-retry-queue"]', iconName: "table_rows", highlightStyle: "neutral" },
       { id: "policy", title: "재시도 정책", body: "재시도 정책, 중복 방지 구간, 실패 후 처리 정책을 운영 담당자 기준으로 검토합니다.", anchorSelector: '[data-help-id="external-retry-policy"]', iconName: "policy", highlightStyle: "warning" },

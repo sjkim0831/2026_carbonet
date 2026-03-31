@@ -256,6 +256,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
     components: [
+      { componentId: "ExternalKeySummaryCards", instanceKey: "external-keys-summary", layoutZone: "content", propsSummary: ["externalKeySummary"] },
       { componentId: "ExternalKeyFilters", instanceKey: "external-keys-filters", layoutZone: "actions", propsSummary: ["keyword", "authMethod", "rotationStatus"] },
       { componentId: "ExternalKeyInventoryTable", instanceKey: "external-keys-inventory", layoutZone: "content", propsSummary: ["externalKeyRows", "filteredRows", "refreshedAt"] },
       { componentId: "ExternalKeyRotationQueue", instanceKey: "external-keys-rotation-queue", layoutZone: "content", propsSummary: ["externalKeyRotationRows"] },
@@ -285,6 +286,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
     components: [
+      { componentId: "ExternalConnectionListSummaryCards", instanceKey: "external-connection-list-summary", layoutZone: "content", propsSummary: ["profileRegisteredCount", "profileMissingCount", "attentionCount"] },
       { componentId: "ExternalConnectionListFilters", instanceKey: "external-connection-list-filters", layoutZone: "actions", propsSummary: ["keyword", "status", "protocol", "source"] },
       { componentId: "ExternalConnectionListTable", instanceKey: "external-connection-list-table", layoutZone: "content", propsSummary: ["externalConnectionRows", "filteredCount", "pageNumber", "totalPages"] },
       { componentId: "ExternalConnectionIssueTable", instanceKey: "external-connection-list-issues", layoutZone: "content", propsSummary: ["externalConnectionIssueRows"] },
@@ -1365,6 +1367,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
     components: [
+      { componentId: "ExternalRetrySummaryCards", instanceKey: "external-retry-summary", layoutZone: "content", propsSummary: ["externalRetrySummary"] },
       { componentId: "ExternalRetryFilters", instanceKey: "external-retry-filters", layoutZone: "actions", propsSummary: ["keyword", "retryClass", "status"] },
       { componentId: "ExternalRetryQueue", instanceKey: "external-retry-queue", layoutZone: "content", propsSummary: ["rows", "filteredRows", "refreshedAt"] },
       { componentId: "ExternalRetryPolicy", instanceKey: "external-retry-policy", layoutZone: "content", propsSummary: ["policyRows", "ownerName", "status"] },
