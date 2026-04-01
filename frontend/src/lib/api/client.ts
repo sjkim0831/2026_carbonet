@@ -557,6 +557,13 @@ export type EmissionTierItem = Record<string, unknown> & {
   tierLabel?: string;
 };
 
+export type EmissionTierResponse = {
+  category?: EmissionCategoryItem;
+  tiers?: EmissionTierItem[];
+  unsupportedTiers?: EmissionTierItem[];
+  warning?: string;
+};
+
 export type EmissionVariableDefinition = Record<string, unknown> & {
   variableId?: number;
   categoryId?: number;
@@ -5671,7 +5678,7 @@ export async function fetchEmissionTiers(categoryId: number) {
     credentials: "include",
     headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
   });
-  return readJsonResponse<{ category?: EmissionCategoryItem; tiers?: EmissionTierItem[] }>(response);
+  return readJsonResponse<EmissionTierResponse>(response);
 }
 
 export async function fetchEmissionVariableDefinitions(categoryId: number, tier: number) {
