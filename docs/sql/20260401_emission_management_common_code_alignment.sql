@@ -1,0 +1,548 @@
+-- Emission management common-code options for carbonate selectors.
+
+INSERT INTO COMTCCMMNCLCODE (
+    CL_CODE,
+    CL_CODE_NM,
+    CL_CODE_DC,
+    USE_AT,
+    FRST_REGIST_PNTTM,
+    FRST_REGISTER_ID
+)
+SELECT
+    'EMM',
+    '배출 관리',
+    '배출 관리 공통코드 분류',
+    'Y',
+    CURRENT_DATETIME,
+    'carbonet'
+FROM db_root
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM COMTCCMMNCLCODE
+    WHERE CL_CODE = 'EMM'
+);
+
+INSERT INTO COMTCCMMNCODE (
+    CODE_ID,
+    CODE_ID_NM,
+    CODE_ID_DC,
+    USE_AT,
+    CL_CODE,
+    FRST_REGIST_PNTTM,
+    FRST_REGISTER_ID
+)
+SELECT
+    'EMCARB',
+    '탄산염 종류',
+    '배출 관리 탄산염 선택 공통코드',
+    'Y',
+    'EMM',
+    CURRENT_DATETIME,
+    'carbonet'
+FROM db_root
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM COMTCCMMNCODE
+    WHERE CODE_ID = 'EMCARB'
+);
+
+INSERT INTO COMTCCMMNCODE (
+    CODE_ID,
+    CODE_ID_NM,
+    CODE_ID_DC,
+    USE_AT,
+    CL_CODE,
+    FRST_REGIST_PNTTM,
+    FRST_REGISTER_ID
+)
+SELECT
+    'EMLIM1',
+    '석회 유형 Tier1',
+    '배출 관리 석회 유형 선택 공통코드 Tier 1',
+    'Y',
+    'EMM',
+    CURRENT_DATETIME,
+    'carbonet'
+FROM db_root
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM COMTCCMMNCODE
+    WHERE CODE_ID = 'EMLIM1'
+);
+
+INSERT INTO COMTCCMMNCODE (
+    CODE_ID,
+    CODE_ID_NM,
+    CODE_ID_DC,
+    USE_AT,
+    CL_CODE,
+    FRST_REGIST_PNTTM,
+    FRST_REGISTER_ID
+)
+SELECT
+    'EMLIM2',
+    '석회 유형 Tier2',
+    '배출 관리 석회 유형 선택 공통코드 Tier 2',
+    'Y',
+    'EMM',
+    CURRENT_DATETIME,
+    'carbonet'
+FROM db_root
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM COMTCCMMNCODE
+    WHERE CODE_ID = 'EMLIM2'
+);
+
+INSERT INTO COMTCCMMNCODE (
+    CODE_ID,
+    CODE_ID_NM,
+    CODE_ID_DC,
+    USE_AT,
+    CL_CODE,
+    FRST_REGIST_PNTTM,
+    FRST_REGISTER_ID
+)
+SELECT
+    'EMHYDRYN',
+    '수화석회 생산 여부',
+    '배출 관리 수화석회 생산 여부 공통코드',
+    'Y',
+    'EMM',
+    CURRENT_DATETIME,
+    'carbonet'
+FROM db_root
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM COMTCCMMNCODE
+    WHERE CODE_ID = 'EMHYDRYN'
+);
+
+INSERT INTO COMTCCMMNDETAILCODE (
+    CODE_ID,
+    CODE,
+    CODE_NM,
+    CODE_DC,
+    USE_AT,
+    FRST_REGIST_PNTTM,
+    FRST_REGISTER_ID
+)
+SELECT
+    'EMCARB',
+    'CaCO3',
+    '방해석 (CaCO3)',
+    '탄산칼슘 계수 0.43971',
+    'Y',
+    CURRENT_DATETIME,
+    'carbonet'
+FROM db_root
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM COMTCCMMNDETAILCODE
+    WHERE CODE_ID = 'EMCARB'
+      AND CODE = 'CaCO3'
+);
+
+INSERT INTO COMTCCMMNDETAILCODE (
+    CODE_ID,
+    CODE,
+    CODE_NM,
+    CODE_DC,
+    USE_AT,
+    FRST_REGIST_PNTTM,
+    FRST_REGISTER_ID
+)
+SELECT
+    'EMCARB',
+    'MgCO3',
+    '마그네사이트 (MgCO3)',
+    '탄산마그네슘 계수 0.52197',
+    'Y',
+    CURRENT_DATETIME,
+    'carbonet'
+FROM db_root
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM COMTCCMMNDETAILCODE
+    WHERE CODE_ID = 'EMCARB'
+      AND CODE = 'MgCO3'
+);
+
+INSERT INTO COMTCCMMNDETAILCODE (
+    CODE_ID,
+    CODE,
+    CODE_NM,
+    CODE_DC,
+    USE_AT,
+    FRST_REGIST_PNTTM,
+    FRST_REGISTER_ID
+)
+SELECT
+    'EMCARB',
+    'CaMg(CO3)2',
+    '백운석 (CaMg(CO3)2)',
+    '복탄산염 계수 0.47732',
+    'Y',
+    CURRENT_DATETIME,
+    'carbonet'
+FROM db_root
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM COMTCCMMNDETAILCODE
+    WHERE CODE_ID = 'EMCARB'
+      AND CODE = 'CaMg(CO3)2'
+);
+
+INSERT INTO COMTCCMMNDETAILCODE (
+    CODE_ID,
+    CODE,
+    CODE_NM,
+    CODE_DC,
+    USE_AT,
+    FRST_REGIST_PNTTM,
+    FRST_REGISTER_ID
+)
+SELECT
+    'EMCARB',
+    'FeCO3',
+    '능철광 (FeCO3)',
+    '탄산철 계수 0.37987',
+    'Y',
+    CURRENT_DATETIME,
+    'carbonet'
+FROM db_root
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM COMTCCMMNDETAILCODE
+    WHERE CODE_ID = 'EMCARB'
+      AND CODE = 'FeCO3'
+);
+
+INSERT INTO COMTCCMMNDETAILCODE (
+    CODE_ID,
+    CODE,
+    CODE_NM,
+    CODE_DC,
+    USE_AT,
+    FRST_REGIST_PNTTM,
+    FRST_REGISTER_ID
+)
+SELECT
+    'EMCARB',
+    'CAFE_MG_MN_CO32',
+    '철백운석 (Ca(Fe,Mg,Mn)(CO3)2)',
+    '복탄산염 계수 0.40822',
+    'Y',
+    CURRENT_DATETIME,
+    'carbonet'
+FROM db_root
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM COMTCCMMNDETAILCODE
+    WHERE CODE_ID = 'EMCARB'
+      AND CODE = 'CAFE_MG_MN_CO32'
+);
+
+INSERT INTO COMTCCMMNDETAILCODE (
+    CODE_ID,
+    CODE,
+    CODE_NM,
+    CODE_DC,
+    USE_AT,
+    FRST_REGIST_PNTTM,
+    FRST_REGISTER_ID
+)
+SELECT
+    'EMCARB',
+    'MnCO3',
+    '능망간광 (MnCO3)',
+    '탄산망간 계수 0.38286',
+    'Y',
+    CURRENT_DATETIME,
+    'carbonet'
+FROM db_root
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM COMTCCMMNDETAILCODE
+    WHERE CODE_ID = 'EMCARB'
+      AND CODE = 'MnCO3'
+);
+
+INSERT INTO COMTCCMMNDETAILCODE (
+    CODE_ID,
+    CODE,
+    CODE_NM,
+    CODE_DC,
+    USE_AT,
+    FRST_REGIST_PNTTM,
+    FRST_REGISTER_ID
+)
+SELECT
+    'EMCARB',
+    'Na2CO3',
+    '탄산나트륨 (Na2CO3)',
+    '탄산나트륨 계수 0.41492',
+    'Y',
+    CURRENT_DATETIME,
+    'carbonet'
+FROM db_root
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM COMTCCMMNDETAILCODE
+    WHERE CODE_ID = 'EMCARB'
+      AND CODE = 'Na2CO3'
+);
+
+INSERT INTO COMTCCMMNDETAILCODE (
+    CODE_ID,
+    CODE,
+    CODE_NM,
+    CODE_DC,
+    USE_AT,
+    FRST_REGIST_PNTTM,
+    FRST_REGISTER_ID
+)
+SELECT
+    'EMLIM1',
+    'HIGH_CALCIUM',
+    '고칼슘석회',
+    'Tier 1 고칼슘석회',
+    'Y',
+    CURRENT_DATETIME,
+    'carbonet'
+FROM db_root
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM COMTCCMMNDETAILCODE
+    WHERE CODE_ID = 'EMLIM1'
+      AND CODE = 'HIGH_CALCIUM'
+);
+
+INSERT INTO COMTCCMMNDETAILCODE (
+    CODE_ID,
+    CODE,
+    CODE_NM,
+    CODE_DC,
+    USE_AT,
+    FRST_REGIST_PNTTM,
+    FRST_REGISTER_ID
+)
+SELECT
+    'EMLIM1',
+    'DOLOMITIC_HIGH',
+    '고토석회(선진국)',
+    'Tier 1 고토석회 선진국',
+    'Y',
+    CURRENT_DATETIME,
+    'carbonet'
+FROM db_root
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM COMTCCMMNDETAILCODE
+    WHERE CODE_ID = 'EMLIM1'
+      AND CODE = 'DOLOMITIC_HIGH'
+);
+
+INSERT INTO COMTCCMMNDETAILCODE (
+    CODE_ID,
+    CODE,
+    CODE_NM,
+    CODE_DC,
+    USE_AT,
+    FRST_REGIST_PNTTM,
+    FRST_REGISTER_ID
+)
+SELECT
+    'EMLIM1',
+    'DOLOMITIC_LOW',
+    '고토석회(개도국)',
+    'Tier 1 고토석회 개도국',
+    'Y',
+    CURRENT_DATETIME,
+    'carbonet'
+FROM db_root
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM COMTCCMMNDETAILCODE
+    WHERE CODE_ID = 'EMLIM1'
+      AND CODE = 'DOLOMITIC_LOW'
+);
+
+INSERT INTO COMTCCMMNDETAILCODE (
+    CODE_ID,
+    CODE,
+    CODE_NM,
+    CODE_DC,
+    USE_AT,
+    FRST_REGIST_PNTTM,
+    FRST_REGISTER_ID
+)
+SELECT
+    'EMLIM1',
+    'HYDRAULIC',
+    '수경성석회',
+    'Tier 1 수경성석회',
+    'Y',
+    CURRENT_DATETIME,
+    'carbonet'
+FROM db_root
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM COMTCCMMNDETAILCODE
+    WHERE CODE_ID = 'EMLIM1'
+      AND CODE = 'HYDRAULIC'
+);
+
+INSERT INTO COMTCCMMNDETAILCODE (
+    CODE_ID,
+    CODE,
+    CODE_NM,
+    CODE_DC,
+    USE_AT,
+    FRST_REGIST_PNTTM,
+    FRST_REGISTER_ID
+)
+SELECT
+    'EMLIM2',
+    'HIGH_CALCIUM',
+    '고칼슘석회',
+    'Tier 2 고칼슘석회',
+    'Y',
+    CURRENT_DATETIME,
+    'carbonet'
+FROM db_root
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM COMTCCMMNDETAILCODE
+    WHERE CODE_ID = 'EMLIM2'
+      AND CODE = 'HIGH_CALCIUM'
+);
+
+INSERT INTO COMTCCMMNDETAILCODE (
+    CODE_ID,
+    CODE,
+    CODE_NM,
+    CODE_DC,
+    USE_AT,
+    FRST_REGIST_PNTTM,
+    FRST_REGISTER_ID
+)
+SELECT
+    'EMLIM2',
+    'DOLOMITIC_HIGH',
+    '고토석회(선진국)',
+    'Tier 2 고토석회 선진국',
+    'Y',
+    CURRENT_DATETIME,
+    'carbonet'
+FROM db_root
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM COMTCCMMNDETAILCODE
+    WHERE CODE_ID = 'EMLIM2'
+      AND CODE = 'DOLOMITIC_HIGH'
+);
+
+INSERT INTO COMTCCMMNDETAILCODE (
+    CODE_ID,
+    CODE,
+    CODE_NM,
+    CODE_DC,
+    USE_AT,
+    FRST_REGIST_PNTTM,
+    FRST_REGISTER_ID
+)
+SELECT
+    'EMHYDRYN',
+    'Y',
+    '생산함',
+    '수화석회를 생산하는 경우',
+    'Y',
+    CURRENT_DATETIME,
+    'carbonet'
+FROM db_root
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM COMTCCMMNDETAILCODE
+    WHERE CODE_ID = 'EMHYDRYN'
+      AND CODE = 'Y'
+);
+
+INSERT INTO COMTCCMMNDETAILCODE (
+    CODE_ID,
+    CODE,
+    CODE_NM,
+    CODE_DC,
+    USE_AT,
+    FRST_REGIST_PNTTM,
+    FRST_REGISTER_ID
+)
+SELECT
+    'EMHYDRYN',
+    'N',
+    '생산하지 않음',
+    '수화석회를 생산하지 않는 경우',
+    'Y',
+    CURRENT_DATETIME,
+    'carbonet'
+FROM db_root
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM COMTCCMMNDETAILCODE
+    WHERE CODE_ID = 'EMHYDRYN'
+      AND CODE = 'N'
+);
+
+INSERT INTO COMTCCMMNDETAILCODE (
+    CODE_ID,
+    CODE,
+    CODE_NM,
+    CODE_DC,
+    USE_AT,
+    FRST_REGIST_PNTTM,
+    FRST_REGISTER_ID
+)
+SELECT
+    'EMLIM2',
+    'DOLOMITIC_LOW',
+    '고토석회(개도국)',
+    'Tier 2 고토석회 개도국',
+    'Y',
+    CURRENT_DATETIME,
+    'carbonet'
+FROM db_root
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM COMTCCMMNDETAILCODE
+    WHERE CODE_ID = 'EMLIM2'
+      AND CODE = 'DOLOMITIC_LOW'
+);
+
+INSERT INTO COMTCCMMNDETAILCODE (
+    CODE_ID,
+    CODE,
+    CODE_NM,
+    CODE_DC,
+    USE_AT,
+    FRST_REGIST_PNTTM,
+    FRST_REGISTER_ID
+)
+SELECT
+    'EMLIM2',
+    'HYDRAULIC',
+    '수경성석회',
+    'Tier 2 수경성석회',
+    'Y',
+    CURRENT_DATETIME,
+    'carbonet'
+FROM db_root
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM COMTCCMMNDETAILCODE
+    WHERE CODE_ID = 'EMLIM2'
+      AND CODE = 'HYDRAULIC'
+);
+
+DELETE FROM COMTCCMMNDETAILCODE
+WHERE CODE_ID = 'EMLIM2'
+  AND CODE = 'DOLOMITIC';

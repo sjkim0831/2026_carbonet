@@ -105,6 +105,208 @@ export type SitemapPagePayload = {
   siteMapSections?: SitemapNode[];
 };
 
+export type TagManagementPagePayload = Record<string, unknown> & {
+  isEn?: boolean;
+  menuCode?: string;
+  searchKeyword?: string;
+  status?: string;
+  summaryCards?: Array<Record<string, string>>;
+  tagRows?: Array<Record<string, string>>;
+  usageRows?: Array<Record<string, string>>;
+  governanceNotes?: Array<Record<string, string>>;
+};
+
+export type FaqManagementPagePayload = Record<string, unknown> & {
+  isEn?: boolean;
+  menuCode?: string;
+  searchKeyword?: string;
+  status?: string;
+  exposure?: string;
+  category?: string;
+  selectedFaqId?: string;
+  summaryCards?: Array<Record<string, string>>;
+  faqRows?: Array<Record<string, string>>;
+  selectedFaq?: Record<string, string>;
+  governanceNotes?: Array<Record<string, string>>;
+};
+
+export type FileManagementPagePayload = Record<string, unknown> & {
+  isEn?: boolean;
+  menuCode?: string;
+  searchKeyword?: string;
+  status?: string;
+  visibility?: string;
+  selectedFileId?: string;
+  summaryCards?: Array<Record<string, string>>;
+  fileRows?: Array<Record<string, string>>;
+  selectedFile?: Record<string, string>;
+  selectedFileHistory?: Array<Record<string, string>>;
+  deletedFileRows?: Array<Record<string, string>>;
+  governanceNotes?: Array<Record<string, string>>;
+};
+
+export type FileManagementSaveResponse = {
+  success: boolean;
+  message?: string;
+  fileId?: string;
+  file?: Record<string, string>;
+};
+
+export type PostManagementPagePayload = Record<string, unknown> & {
+  isEn?: boolean;
+  menuCode?: string;
+  searchKeyword?: string;
+  status?: string;
+  category?: string;
+  summaryCards?: Array<Record<string, string>>;
+  categoryOptions?: Array<Record<string, string>>;
+  postRows?: Array<Record<string, string>>;
+  selectedPost?: Record<string, string> | null;
+  governanceNotes?: Array<Record<string, string>>;
+};
+
+export type BoardDistributionPagePayload = Record<string, unknown> & {
+  isEn?: boolean;
+  menuCode?: string;
+  draftId?: string;
+  draftDetail?: Record<string, unknown>;
+  summaryCards?: Array<Record<string, string>>;
+  governanceNotes?: Array<Record<string, string>>;
+};
+
+export type BoardManagementPagePayload = Record<string, unknown> & {
+  isEn?: boolean;
+  menuCode?: string;
+  summaryCards?: Array<Record<string, string>>;
+  boardTypeOptions?: Array<Record<string, string>>;
+  boardRows?: Array<Record<string, string>>;
+  selectedBoard?: Record<string, string> | null;
+  governanceNotes?: Array<Record<string, string>>;
+};
+
+export type BoardDistributionSavePayload = {
+  draftId?: string;
+  boardType: string;
+  audience: string;
+  title: string;
+  summary: string;
+  body: string;
+  publishAt: string;
+  expireAt: string;
+  channels: string[];
+  tags: string[];
+  pinned: boolean;
+  urgent: boolean;
+  allowComments: boolean;
+};
+
+export type BoardDistributionSaveResponse = Record<string, unknown> & {
+  saved?: boolean;
+  draftId?: string;
+  message?: string;
+  draftDetail?: Record<string, unknown>;
+};
+
+export type QnaCategoryPagePayload = Record<string, unknown> & {
+  isEn?: boolean;
+  menuCode?: string;
+  searchKeyword?: string;
+  useAt?: string;
+  channel?: string;
+  selectedCategoryId?: string;
+  summaryCards?: Array<Record<string, string>>;
+  categoryRows?: Array<Record<string, string>>;
+  selectedCategory?: Record<string, string>;
+  governanceNotes?: Array<Record<string, string>>;
+  integrationNotes?: Array<Record<string, string>>;
+};
+
+export type QnaCategorySavePayload = {
+  categoryId?: string;
+  code: string;
+  nameKo: string;
+  nameEn: string;
+  descriptionKo: string;
+  descriptionEn: string;
+  channel: string;
+  useAt: string;
+  sortOrder: number;
+  ownerKo: string;
+  ownerEn: string;
+};
+
+export type BannerManagementPagePayload = Record<string, unknown> & {
+  isEn?: boolean;
+  menuCode?: string;
+  searchKeyword?: string;
+  status?: string;
+  placement?: string;
+  summaryCards?: Array<Record<string, string>>;
+  bannerRows?: Array<Record<string, string | number>>;
+  selectedBanner?: Record<string, string | number> | null;
+  placementOptions?: Array<Record<string, string>>;
+};
+
+export type BannerEditPagePayload = Record<string, unknown> & {
+  isEn?: boolean;
+  menuCode?: string;
+  bannerId?: string;
+  bannerDetail?: Record<string, string | number>;
+  statusOptions?: Array<Record<string, string>>;
+  placementOptions?: Array<Record<string, string>>;
+  summaryCards?: Array<Record<string, string>>;
+};
+
+export type BannerSaveResponse = Record<string, unknown> & {
+  saved?: boolean;
+  bannerId?: string;
+  message?: string;
+  bannerDetail?: Record<string, string | number>;
+};
+
+export type PopupListPagePayload = Record<string, unknown> & {
+  isEn?: boolean;
+  menuCode?: string;
+  searchKeyword?: string;
+  status?: string;
+  targetAudience?: string;
+  summaryCards?: Array<Record<string, string>>;
+  statusOptions?: Array<Record<string, string>>;
+  targetAudienceOptions?: Array<Record<string, string>>;
+  popupRows?: Array<Record<string, string | number>>;
+  selectedPopup?: Record<string, string | number>;
+  governanceNotes?: Array<Record<string, string>>;
+};
+
+export type PopupEditPagePayload = Record<string, unknown> & {
+  isEn?: boolean;
+  menuCode?: string;
+  popupId?: string;
+  popupDetail?: Record<string, string | number>;
+  summaryCards?: Array<Record<string, string>>;
+  popupTypeOptions?: Array<Record<string, string>>;
+  priorityOptions?: Array<Record<string, string>>;
+  exposureStatusOptions?: Array<Record<string, string>>;
+  useAtOptions?: Array<Record<string, string>>;
+  targetAudienceOptions?: Array<Record<string, string>>;
+  displayScopeOptions?: Array<Record<string, string>>;
+  closePolicyOptions?: Array<Record<string, string>>;
+};
+
+export type PopupSaveResponse = Record<string, unknown> & {
+  saved?: boolean;
+  popupId?: string;
+  message?: string;
+  popupDetail?: Record<string, string | number>;
+};
+
+export type FaqSaveResponse = Record<string, unknown> & {
+  saved?: boolean;
+  faqId?: string;
+  message?: string;
+  faq?: Record<string, string>;
+};
+
 export type HomeMenuPlaceholderPagePayload = {
   placeholderTitle?: string;
   placeholderTitleEn?: string;
@@ -329,6 +531,84 @@ export type EmissionValidatePagePayload = Record<string, unknown> & {
   priorityLegend?: Array<Record<string, string>>;
   policyRows?: Array<Record<string, string>>;
   actionLinks?: Array<Record<string, string>>;
+};
+
+export type EmissionManagementPagePayload = Record<string, unknown> & {
+  isEn?: boolean;
+  menuCode?: string;
+  menuUrl?: string;
+  pageTitle?: string;
+  pageTitleEn?: string;
+  pageDescription?: string;
+  pageDescriptionEn?: string;
+};
+
+export type EmissionCategoryItem = Record<string, unknown> & {
+  categoryId?: number;
+  majorCode?: string;
+  majorName?: string;
+  subCode?: string;
+  subName?: string;
+  useYn?: string;
+};
+
+export type EmissionTierItem = Record<string, unknown> & {
+  tier?: number;
+  tierLabel?: string;
+};
+
+export type EmissionVariableDefinition = Record<string, unknown> & {
+  variableId?: number;
+  categoryId?: number;
+  tier?: number;
+  varCode?: string;
+  varName?: string;
+  varDesc?: string;
+  unit?: string;
+  inputType?: string;
+  sourceType?: string;
+  isRepeatable?: string;
+  isRequired?: string;
+  sortOrder?: number;
+  useYn?: string;
+  commonCodeId?: string;
+  options?: Array<Record<string, string>>;
+  displayName?: string;
+  displayCode?: string;
+  uiHint?: string;
+  derivedYn?: string;
+  supplementalYn?: string;
+  repeatGroupKey?: string;
+  sectionId?: string;
+  sectionTitle?: string;
+  sectionDescription?: string;
+  sectionFormula?: string;
+};
+
+export type EmissionFactorDefinition = Record<string, unknown> & {
+  factorId?: number;
+  categoryId?: number;
+  tier?: number;
+  factorCode?: string;
+  factorName?: string;
+  factorValue?: number;
+  unit?: string;
+  defaultYn?: string;
+  remark?: string;
+};
+
+export type EmissionInputValuePayload = {
+  varCode: string;
+  lineNo?: number;
+  valueNum?: number | null;
+  valueText?: string;
+};
+
+export type EmissionInputSessionSavePayload = {
+  categoryId: number;
+  tier: number;
+  createdBy?: string;
+  values: EmissionInputValuePayload[];
 };
 
 export type DeptRolePagePayload = {
@@ -1154,8 +1434,30 @@ export type CertificatePendingPagePayload = Record<string, unknown> & {
   searchKeyword?: string;
   certificateType?: string;
   processStatus?: string;
+  applicationId?: string;
+  insttId?: string;
+  selectedApplicationId?: string;
+  selectedInsttId?: string;
+  selectedInsttName?: string;
+  selectedInsttNameEn?: string;
   canViewCertificatePending?: boolean;
   certificatePendingError?: string;
+};
+
+export type RefundAccountReviewPagePayload = Record<string, unknown> & {
+  refundAccountRows?: Array<Record<string, unknown>>;
+  refundAccountSummary?: Array<Record<string, unknown>>;
+  refundAccountGuidance?: Array<Record<string, unknown>>;
+  totalCount?: number;
+  pageIndex?: number;
+  pageSize?: number;
+  totalPages?: number;
+  searchKeyword?: string;
+  verificationStatus?: string;
+  payoutStatus?: string;
+  canViewRefundAccountReview?: boolean;
+  refundAccountReviewError?: string;
+  isEn?: boolean;
 };
 
 export type CertificateObjectionListPagePayload = Record<string, unknown> & {
@@ -1171,6 +1473,56 @@ export type CertificateObjectionListPagePayload = Record<string, unknown> & {
   priority?: string;
   canViewCertificateObjectionList?: boolean;
   certificateObjectionError?: string;
+  isEn?: boolean;
+};
+
+export type CertificateReviewPagePayload = Record<string, unknown> & {
+  certificateReviewRows?: Array<Record<string, unknown>>;
+  certificateReviewSummary?: Array<Record<string, unknown>>;
+  certificateReviewGuidance?: Array<Record<string, unknown>>;
+  totalCount?: number;
+  pageIndex?: number;
+  pageSize?: number;
+  totalPages?: number;
+  searchKeyword?: string;
+  status?: string;
+  certificateType?: string;
+  applicationId?: string;
+  selectedRequestId?: string;
+  canViewCertificateReview?: boolean;
+  certificateReviewError?: string;
+  isEn?: boolean;
+};
+
+export type CertificateRecCheckPagePayload = Record<string, unknown> & {
+  duplicateGroups?: Array<Record<string, unknown>>;
+  totalCount?: number;
+  blockedCount?: number;
+  reviewCount?: number;
+  highestRisk?: number;
+  lastRefreshedAt?: string;
+  isEn?: boolean;
+};
+
+export type TradeDuplicatePagePayload = Record<string, unknown> & {
+  abnormalTradeRows?: Array<Record<string, unknown>>;
+  totalCount?: number;
+  criticalCount?: number;
+  reviewCount?: number;
+  settlementBlockedCount?: number;
+  pageIndex?: number;
+  pageSize?: number;
+  totalPages?: number;
+  searchKeyword?: string;
+  detectionType?: string;
+  reviewStatus?: string;
+  riskLevel?: string;
+  detectionTypeOptions?: Array<Record<string, unknown>>;
+  reviewStatusOptions?: Array<Record<string, unknown>>;
+  riskLevelOptions?: Array<Record<string, unknown>>;
+  escalationAlerts?: Array<Record<string, unknown>>;
+  operatorGuidance?: Array<Record<string, unknown>>;
+  lastRefreshedAt?: string;
   isEn?: boolean;
 };
 
@@ -1273,6 +1625,26 @@ export type WbsManagementPagePayload = Record<string, unknown> & {
   statusOptions?: Array<Record<string, string>>;
   timeline?: Record<string, unknown>;
   today?: string;
+};
+
+export type NewPagePagePayload = Record<string, unknown> & {
+  isEn?: boolean;
+  pageId?: string;
+  canonicalMenuUrl?: string;
+  localizedMenuUrl?: string;
+  menuCode?: string;
+  menuName?: string;
+  menuNameEn?: string;
+  menuIcon?: string;
+  useAt?: string;
+  sortOrder?: number;
+  requiredViewFeatureCode?: string;
+  featureCount?: number;
+  featureCodes?: string[];
+  roleAssignments?: Array<Record<string, unknown>>;
+  menuAncestry?: Array<Record<string, unknown>>;
+  manifest?: Record<string, unknown>;
+  governanceNotes?: Array<Record<string, string>>;
 };
 
 export type PageManagementPagePayload = Record<string, unknown> & {
@@ -1796,6 +2168,134 @@ export type TradeListPagePayload = Record<string, unknown> & {
   isEn?: boolean;
 };
 
+export type TradeStatisticsPagePayload = Record<string, unknown> & {
+  totalTradeVolume?: number;
+  totalSettlementAmount?: number;
+  pendingSettlementCount?: number;
+  exceptionCount?: number;
+  settlementCompletionRate?: string;
+  avgSettlementDays?: string;
+  pageIndex?: number;
+  pageSize?: number;
+  totalPages?: number;
+  totalCount?: number;
+  searchKeyword?: string;
+  periodFilter?: string;
+  tradeType?: string;
+  settlementStatus?: string;
+  monthlyRows?: Array<Record<string, unknown>>;
+  tradeTypeRows?: Array<Record<string, unknown>>;
+  institutionRows?: Array<Record<string, unknown>>;
+  alertRows?: Array<Record<string, unknown>>;
+  isEn?: boolean;
+};
+
+export type SettlementCalendarPagePayload = Record<string, unknown> & {
+  selectedMonth?: string;
+  searchKeyword?: string;
+  settlementStatus?: string;
+  riskLevel?: string;
+  totalScheduledCount?: number;
+  dueTodayCount?: number;
+  highRiskCount?: number;
+  completedCount?: number;
+  pageIndex?: number;
+  pageSize?: number;
+  totalPages?: number;
+  monthOptions?: Array<Record<string, unknown>>;
+  settlementStatusOptions?: Array<Record<string, unknown>>;
+  riskLevelOptions?: Array<Record<string, unknown>>;
+  calendarDays?: Array<Record<string, unknown>>;
+  scheduleRows?: Array<Record<string, unknown>>;
+  alertRows?: Array<Record<string, unknown>>;
+  isEn?: boolean;
+};
+
+export type RefundListPagePayload = Record<string, unknown> & {
+  refundRows?: Array<Record<string, unknown>>;
+  totalCount?: number;
+  pendingCount?: number;
+  inReviewCount?: number;
+  transferScheduledCount?: number;
+  completedCount?: number;
+  pageIndex?: number;
+  pageSize?: number;
+  totalPages?: number;
+  searchKeyword?: string;
+  status?: string;
+  riskLevel?: string;
+  statusOptions?: Array<Record<string, unknown>>;
+  riskLevelOptions?: Array<Record<string, unknown>>;
+  refundAlerts?: Array<Record<string, unknown>>;
+  isEn?: boolean;
+};
+
+export type TradeApprovePagePayload = Record<string, unknown> & {
+  approvalRows?: Array<Record<string, unknown>>;
+  totalCount?: number;
+  pendingCount?: number;
+  approvedCount?: number;
+  rejectedCount?: number;
+  holdCount?: number;
+  pageIndex?: number;
+  pageSize?: number;
+  totalPages?: number;
+  searchKeyword?: string;
+  approvalStatus?: string;
+  tradeType?: string;
+  approvalStatusOptions?: Array<Record<string, unknown>>;
+  tradeTypeOptions?: Array<Record<string, unknown>>;
+  canViewTradeApprove?: boolean;
+  canUseTradeApproveAction?: boolean;
+  isEn?: boolean;
+};
+
+export type RefundProcessPagePayload = Record<string, unknown> & {
+  refundRows?: Array<Record<string, unknown>>;
+  refundSummary?: Array<Record<string, unknown>>;
+  refundGuidance?: Array<Record<string, unknown>>;
+  totalCount?: number;
+  pageIndex?: number;
+  pageSize?: number;
+  totalPages?: number;
+  searchKeyword?: string;
+  refundStatus?: string;
+  refundChannel?: string;
+  priority?: string;
+  canViewRefundProcess?: boolean;
+  isEn?: boolean;
+};
+
+export type TradeRejectPagePayload = Record<string, unknown> & {
+  found?: boolean;
+  tradeId?: string;
+  returnUrl?: string;
+  listUrl?: string;
+  pageError?: string;
+  productType?: string;
+  sellerName?: string;
+  buyerName?: string;
+  contractName?: string;
+  quantity?: string;
+  amount?: string;
+  requestedAt?: string;
+  tradeStatusCode?: string;
+  tradeStatusLabel?: string;
+  settlementStatusCode?: string;
+  settlementStatusLabel?: string;
+  blockerCount?: number;
+  evidenceCount?: number;
+  historyCount?: number;
+  suggestedReason?: string;
+  rejectionChecklist?: Array<Record<string, unknown>>;
+  rejectionReasons?: Array<Record<string, unknown>>;
+  evidenceRows?: Array<Record<string, unknown>>;
+  historyRows?: Array<Record<string, unknown>>;
+  notificationPlan?: Array<Record<string, unknown>>;
+  quickLinks?: Array<Record<string, unknown>>;
+  isEn?: boolean;
+};
+
 export type EmissionResultDetailPagePayload = Record<string, unknown> & {
   found?: boolean;
   resultId?: string;
@@ -1854,12 +2354,17 @@ export type EmissionDataHistoryPagePayload = Record<string, unknown> & {
   correctionCount?: number;
   approvalCount?: number;
   schemaCount?: number;
+  summaryCards?: Array<Record<string, unknown>>;
   pageIndex?: number;
   pageSize?: number;
   totalPages?: number;
   searchKeyword?: string;
   changeType?: string;
   changeTarget?: string;
+  changeTypeOptions?: Array<Record<string, unknown>>;
+  changeTargetOptions?: Array<Record<string, unknown>>;
+  changeTypeMeta?: Record<string, Record<string, unknown>>;
+  changeTargetMeta?: Record<string, Record<string, unknown>>;
   isEn?: boolean;
 };
 
@@ -1985,6 +2490,7 @@ type BootstrapPayloadKey =
   | "frontendSession"
   | "adminMenuTree"
   | "adminHomePageData"
+  | "newPagePageData"
   | "authGroupPageData"
   | "authChangePageData"
   | "deptRolePageData"
@@ -1994,12 +2500,20 @@ type BootstrapPayloadKey =
   | "mypageContext"
   | "memberStatsPageData"
   | "tradeListPageData"
+  | "tradeStatisticsPageData"
+  | "settlementCalendarPageData"
+  | "tradeDuplicatePageData"
+  | "refundListPageData"
+  | "tradeApprovePageData"
+  | "tradeRejectPageData"
+  | "certificateReviewPageData"
   | "securityPolicyPageData"
   | "notificationPageData"
   | "externalMonitoringPageData"
   | "securityMonitoringPageData"
   | "securityAuditPageData"
   | "certificateAuditLogPageData"
+  | "certificateRecCheckPageData"
   | "schedulerManagementPageData"
   | "backupConfigPageData"
   | "emissionResultListPageData"
@@ -2453,6 +2967,386 @@ export async function fetchAdminSitemapPage(): Promise<SitemapPagePayload> {
   return readJsonResponse<SitemapPagePayload>(response);
 }
 
+export async function fetchTagManagementPage(params?: { searchKeyword?: string; status?: string; }): Promise<TagManagementPagePayload> {
+  const search = new URLSearchParams();
+  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
+  if (params?.status) search.set("status", params.status);
+  const query = search.toString();
+  const response = await fetch(`${buildLocalizedPath("/admin/api/admin/content/tag", "/en/admin/api/admin/content/tag")}${query ? `?${query}` : ""}`, {
+    credentials: "include"
+  });
+  return readJsonResponse<TagManagementPagePayload>(response);
+}
+
+export async function fetchFaqManagementPage(params?: {
+  searchKeyword?: string;
+  status?: string;
+  exposure?: string;
+  category?: string;
+  faqId?: string;
+}): Promise<FaqManagementPagePayload> {
+  const search = new URLSearchParams();
+  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
+  if (params?.status) search.set("status", params.status);
+  if (params?.exposure) search.set("exposure", params.exposure);
+  if (params?.category) search.set("category", params.category);
+  if (params?.faqId) search.set("faqId", params.faqId);
+  const query = search.toString();
+  const response = await fetch(`${buildLocalizedPath("/admin/api/admin/content/faq", "/en/admin/api/admin/content/faq")}${query ? `?${query}` : ""}`, {
+    credentials: "include"
+  });
+  return readJsonResponse<FaqManagementPagePayload>(response);
+}
+
+export async function fetchFileManagementPage(params?: {
+  searchKeyword?: string;
+  status?: string;
+  visibility?: string;
+  fileId?: string;
+}): Promise<FileManagementPagePayload> {
+  const search = new URLSearchParams();
+  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
+  if (params?.status) search.set("status", params.status);
+  if (params?.visibility) search.set("visibility", params.visibility);
+  if (params?.fileId) search.set("fileId", params.fileId);
+  const query = search.toString();
+  const response = await fetch(`${buildLocalizedPath("/admin/api/admin/content/file", "/en/admin/api/admin/content/file")}${query ? `?${query}` : ""}`, {
+    credentials: "include"
+  });
+  return readJsonResponse<FileManagementPagePayload>(response);
+}
+
+export async function saveFileManagementPage(payload: {
+  uploadFile: File;
+  category: string;
+  visibility: string;
+  status: string;
+  description: string;
+}): Promise<FileManagementSaveResponse> {
+  const form = new FormData();
+  form.set("uploadFile", payload.uploadFile);
+  form.set("category", payload.category);
+  form.set("visibility", payload.visibility);
+  form.set("status", payload.status);
+  form.set("description", payload.description);
+
+  const headers = await buildResilientCsrfHeaders({
+    "X-Requested-With": "XMLHttpRequest"
+  });
+  delete headers["Content-Type"];
+  const response = await fetch(buildLocalizedPath("/admin/api/admin/content/file/save", "/en/admin/api/admin/content/file/save"), {
+    method: "POST",
+    credentials: "include",
+    headers,
+    body: form
+  });
+  return readJsonResponse<FileManagementSaveResponse>(response);
+}
+
+export async function replaceFileManagementPage(payload: {
+  fileId: string;
+  uploadFile: File;
+}): Promise<FileManagementSaveResponse> {
+  const form = new FormData();
+  form.set("fileId", payload.fileId);
+  form.set("uploadFile", payload.uploadFile);
+  const headers = await buildResilientCsrfHeaders({
+    "X-Requested-With": "XMLHttpRequest"
+  });
+  delete headers["Content-Type"];
+  const response = await fetch(buildLocalizedPath("/admin/api/admin/content/file/replace", "/en/admin/api/admin/content/file/replace"), {
+    method: "POST",
+    credentials: "include",
+    headers,
+    body: form
+  });
+  return readJsonResponse<FileManagementSaveResponse>(response);
+}
+
+export async function deleteFileManagementPage(fileId: string): Promise<{ success: boolean; message?: string; fileId?: string; }> {
+  const response = await fetch(buildLocalizedPath("/admin/api/admin/content/file/delete", "/en/admin/api/admin/content/file/delete"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: new URLSearchParams({ fileId }).toString()
+  });
+  return readJsonResponse<{ success: boolean; message?: string; fileId?: string; }>(response);
+}
+
+export async function restoreFileManagementPage(fileId: string, restoreNote?: string): Promise<FileManagementSaveResponse> {
+  const response = await fetch(buildLocalizedPath("/admin/api/admin/content/file/restore", "/en/admin/api/admin/content/file/restore"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: new URLSearchParams({
+      fileId,
+      restoreNote: restoreNote || ""
+    }).toString()
+  });
+  return readJsonResponse<FileManagementSaveResponse>(response);
+}
+
+export async function updateFileManagementPage(payload: {
+  fileId: string;
+  category: string;
+  visibility: string;
+  status: string;
+  description: string;
+}): Promise<FileManagementSaveResponse> {
+  const response = await fetch(buildLocalizedPath("/admin/api/admin/content/file/update", "/en/admin/api/admin/content/file/update"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: new URLSearchParams({
+      fileId: payload.fileId,
+      category: payload.category,
+      visibility: payload.visibility,
+      status: payload.status,
+      description: payload.description
+    }).toString()
+  });
+  return readJsonResponse<FileManagementSaveResponse>(response);
+}
+
+export async function fetchPostManagementPage(params?: {
+  searchKeyword?: string;
+  status?: string;
+  category?: string;
+  selectedPostId?: string;
+}): Promise<PostManagementPagePayload> {
+  const search = new URLSearchParams();
+  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
+  if (params?.status) search.set("status", params.status);
+  if (params?.category) search.set("category", params.category);
+  if (params?.selectedPostId) search.set("selectedPostId", params.selectedPostId);
+  const query = search.toString();
+  const response = await fetch(`${buildLocalizedPath("/admin/api/admin/content/post", "/en/admin/api/admin/content/post")}${query ? `?${query}` : ""}`, {
+    credentials: "include"
+  });
+  return readJsonResponse<PostManagementPagePayload>(response);
+}
+
+export async function fetchBoardDistributionPage(): Promise<BoardDistributionPagePayload> {
+  const response = await fetch(buildLocalizedPath("/admin/api/admin/content/board/detail", "/en/admin/api/admin/content/board/detail"), {
+    credentials: "include"
+  });
+  return readJsonResponse<BoardDistributionPagePayload>(response);
+}
+
+export async function fetchBoardManagementPage(): Promise<BoardManagementPagePayload> {
+  const response = await fetch(buildLocalizedPath("/admin/api/admin/content/board/list", "/en/admin/api/admin/content/board/list"), {
+    credentials: "include"
+  });
+  return readJsonResponse<BoardManagementPagePayload>(response);
+}
+
+export async function saveBoardDistributionPage(payload: BoardDistributionSavePayload): Promise<BoardDistributionSaveResponse> {
+  const response = await fetch(buildLocalizedPath("/admin/api/admin/content/board/save", "/en/admin/api/admin/content/board/save"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload)
+  });
+  return readJsonResponse<BoardDistributionSaveResponse>(response);
+}
+
+export async function saveFaqManagementPage(payload: {
+  faqId: string;
+  category: string;
+  question: string;
+  answerScope: string;
+  exposure: string;
+  status: string;
+  displayOrder: string;
+}): Promise<FaqSaveResponse> {
+  const response = await fetch(buildLocalizedPath("/admin/api/admin/content/faq/save", "/en/admin/api/admin/content/faq/save"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: new URLSearchParams({
+      faqId: payload.faqId,
+      category: payload.category,
+      question: payload.question,
+      answerScope: payload.answerScope,
+      exposure: payload.exposure,
+      status: payload.status,
+      displayOrder: payload.displayOrder
+    }).toString()
+  });
+  return readJsonResponse<FaqSaveResponse>(response);
+}
+
+export async function fetchQnaCategoryPage(params?: { searchKeyword?: string; useAt?: string; channel?: string; categoryId?: string; }): Promise<QnaCategoryPagePayload> {
+  const search = new URLSearchParams();
+  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
+  if (params?.useAt) search.set("useAt", params.useAt);
+  if (params?.channel) search.set("channel", params.channel);
+  if (params?.categoryId) search.set("categoryId", params.categoryId);
+  const query = search.toString();
+  const response = await fetch(`${buildLocalizedPath("/admin/api/admin/content/qna", "/en/admin/api/admin/content/qna")}${query ? `?${query}` : ""}`, {
+    credentials: "include"
+  });
+  return readJsonResponse<QnaCategoryPagePayload>(response);
+}
+
+export async function saveQnaCategory(payload: QnaCategorySavePayload): Promise<{ success: boolean; message: string; categoryId?: string; category?: Record<string, string> }> {
+  const { token, headerName } = getCsrfMeta();
+  const response = await fetch(buildAdminApiPath("/api/admin/content/qna/save"), {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { [headerName]: token } : {})
+    },
+    body: JSON.stringify(payload)
+  });
+  return readJsonResponse(response);
+}
+
+export async function deleteQnaCategory(categoryId: string): Promise<{ success: boolean; message: string; categoryId?: string }> {
+  const { token, headerName } = getCsrfMeta();
+  const response = await fetch(buildAdminApiPath("/api/admin/content/qna/delete"), {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { [headerName]: token } : {})
+    },
+    body: JSON.stringify({ categoryId })
+  });
+  return readJsonResponse(response);
+}
+
+export async function fetchBannerManagementPage(params?: {
+  searchKeyword?: string;
+  status?: string;
+  placement?: string;
+  selectedBannerId?: string;
+}): Promise<BannerManagementPagePayload> {
+  const search = new URLSearchParams();
+  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
+  if (params?.status) search.set("status", params.status);
+  if (params?.placement) search.set("placement", params.placement);
+  if (params?.selectedBannerId) search.set("selectedBannerId", params.selectedBannerId);
+  const query = search.toString();
+  const response = await fetch(`${buildLocalizedPath("/admin/api/admin/content/banner", "/en/admin/api/admin/content/banner")}${query ? `?${query}` : ""}`, {
+    credentials: "include"
+  });
+  return readJsonResponse<BannerManagementPagePayload>(response);
+}
+
+export async function fetchBannerEditPage(bannerId: string): Promise<BannerEditPagePayload> {
+  const query = bannerId ? `?bannerId=${encodeURIComponent(bannerId)}` : "";
+  const response = await fetch(`${buildLocalizedPath("/admin/api/admin/content/banner/detail", "/en/admin/api/admin/content/banner/detail")}${query}`, {
+    credentials: "include"
+  });
+  return readJsonResponse<BannerEditPagePayload>(response);
+}
+
+export async function saveBannerEditPage(payload: {
+  bannerId: string;
+  title: string;
+  targetUrl: string;
+  status: string;
+  startAt: string;
+  endAt: string;
+}): Promise<BannerSaveResponse> {
+  const response = await fetch(buildLocalizedPath("/admin/api/admin/content/banner/save", "/en/admin/api/admin/content/banner/save"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: new URLSearchParams({
+      bannerId: payload.bannerId,
+      title: payload.title,
+      targetUrl: payload.targetUrl,
+      status: payload.status,
+      startAt: payload.startAt,
+      endAt: payload.endAt
+    }).toString()
+  });
+  return readJsonResponse<BannerSaveResponse>(response);
+}
+
+export async function fetchPopupEditPage(popupId: string): Promise<PopupEditPagePayload> {
+  const query = popupId ? `?popupId=${encodeURIComponent(popupId)}` : "";
+  const response = await fetch(`${buildLocalizedPath("/admin/api/admin/content/popup/detail", "/en/admin/api/admin/content/popup/detail")}${query}`, {
+    credentials: "include"
+  });
+  return readJsonResponse<PopupEditPagePayload>(response);
+}
+
+export async function fetchPopupListPage(params?: {
+  searchKeyword?: string;
+  status?: string;
+  targetAudience?: string;
+  selectedPopupId?: string;
+}): Promise<PopupListPagePayload> {
+  const search = new URLSearchParams();
+  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
+  if (params?.status) search.set("status", params.status);
+  if (params?.targetAudience) search.set("targetAudience", params.targetAudience);
+  if (params?.selectedPopupId) search.set("selectedPopupId", params.selectedPopupId);
+  const query = search.toString();
+  const response = await fetch(`${buildLocalizedPath("/admin/api/admin/content/popup", "/en/admin/api/admin/content/popup")}${query ? `?${query}` : ""}`, {
+    credentials: "include"
+  });
+  return readJsonResponse<PopupListPagePayload>(response);
+}
+
+export async function savePopupEditPage(payload: {
+  popupId: string;
+  popupTitle: string;
+  popupType: string;
+  exposureStatus: string;
+  priority: string;
+  useAt: string;
+  targetAudience: string;
+  displayScope: string;
+  startDate: string;
+  startTime: string;
+  endDate: string;
+  endTime: string;
+  closePolicy: string;
+  width: string;
+  height: string;
+  headline: string;
+  body: string;
+  ctaLabel: string;
+  ctaUrl: string;
+  ownerName: string;
+  ownerContact: string;
+  notes: string;
+}): Promise<PopupSaveResponse> {
+  const response = await fetch(buildLocalizedPath("/admin/api/admin/content/popup/save", "/en/admin/api/admin/content/popup/save"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload)
+  });
+  return readJsonResponse<PopupSaveResponse>(response);
+}
+
 export async function fetchHomeMenuPlaceholderPage(requestPath: string): Promise<HomeMenuPlaceholderPagePayload> {
   const query = requestPath ? `?requestPath=${encodeURIComponent(requestPath)}` : "";
   const response = await fetch(`${buildLocalizedPath("/api/home/menu-placeholder", "/api/en/home/menu-placeholder")}${query}`, {
@@ -2576,6 +3470,10 @@ export function readBootstrappedAdminHomePageData(): AdminHomePagePayload | null
   return consumeRuntimeBootstrap<AdminHomePagePayload>("adminHomePageData");
 }
 
+export function readBootstrappedNewPagePageData(): NewPagePagePayload | null {
+  return consumeRuntimeBootstrap<NewPagePagePayload>("newPagePageData");
+}
+
 export function readBootstrappedAuthGroupPageData(): AuthGroupPagePayload | null {
   return consumeRuntimeBootstrap<AuthGroupPagePayload>("authGroupPageData");
 }
@@ -2598,6 +3496,10 @@ export function readBootstrappedMypagePayload(): MypagePayload | null {
 
 export function readBootstrappedMemberStatsPageData(): MemberStatsPagePayload | null {
   return consumeRuntimeBootstrap<MemberStatsPagePayload>("memberStatsPageData");
+}
+
+export function readBootstrappedTradeDuplicatePageData(): TradeDuplicatePagePayload | null {
+  return consumeRuntimeBootstrap<TradeDuplicatePagePayload>("tradeDuplicatePageData");
 }
 
 export function readBootstrappedSecurityPolicyPageData(): SecurityPolicyPagePayload | null {
@@ -2625,6 +3527,10 @@ export function readBootstrappedCertificateAuditLogPageData(): CertificateAuditL
   return consumeRuntimeBootstrap<CertificateAuditLogPagePayload>("certificateAuditLogPageData");
 }
 
+export function readBootstrappedCertificateRecCheckPageData(): CertificateRecCheckPagePayload | null {
+  return consumeRuntimeBootstrap<CertificateRecCheckPagePayload>("certificateRecCheckPageData");
+}
+
 export function readBootstrappedSchedulerManagementPageData(): SchedulerManagementPagePayload | null {
   return consumeRuntimeBootstrap<SchedulerManagementPagePayload>("schedulerManagementPageData");
 }
@@ -2639,6 +3545,30 @@ export function readBootstrappedEmissionResultListPageData(): EmissionResultList
 
 export function readBootstrappedTradeListPageData(): TradeListPagePayload | null {
   return consumeRuntimeBootstrap<TradeListPagePayload>("tradeListPageData");
+}
+
+export function readBootstrappedTradeStatisticsPageData(): TradeStatisticsPagePayload | null {
+  return consumeRuntimeBootstrap<TradeStatisticsPagePayload>("tradeStatisticsPageData");
+}
+
+export function readBootstrappedRefundListPageData(): RefundListPagePayload | null {
+  return consumeRuntimeBootstrap<RefundListPagePayload>("refundListPageData");
+}
+
+export function readBootstrappedSettlementCalendarPageData(): SettlementCalendarPagePayload | null {
+  return consumeRuntimeBootstrap<SettlementCalendarPagePayload>("settlementCalendarPageData");
+}
+
+export function readBootstrappedTradeApprovePageData(): TradeApprovePagePayload | null {
+  return consumeRuntimeBootstrap<TradeApprovePagePayload>("tradeApprovePageData");
+}
+
+export function readBootstrappedTradeRejectPageData(): TradeRejectPagePayload | null {
+  return consumeRuntimeBootstrap<TradeRejectPagePayload>("tradeRejectPageData");
+}
+
+export function readBootstrappedCertificateReviewPageData(): CertificateReviewPagePayload | null {
+  return consumeRuntimeBootstrap<CertificateReviewPagePayload>("certificateReviewPageData");
 }
 
 export function readBootstrappedCertificateStatisticsPageData(): CertificateStatisticsPagePayload | null {
@@ -2762,6 +3692,14 @@ export function prefetchRoutePageData(route: MigrationPageId, search = ""): Prom
     }
     case "member-stats":
       return fetchMemberStatsPage();
+    case "trade-statistics":
+      return fetchTradeStatisticsPage({
+        pageIndex: params.get("pageIndex") ? Number(params.get("pageIndex")) : undefined,
+        searchKeyword: params.get("searchKeyword") || "",
+        periodFilter: params.get("periodFilter") || "",
+        tradeType: params.get("tradeType") || "",
+        settlementStatus: params.get("settlementStatus") || ""
+      });
     case "certificate-statistics":
       return fetchCertificateStatisticsPage({
         pageIndex: params.get("pageIndex") ? Number(params.get("pageIndex")) : undefined,
@@ -2769,6 +3707,13 @@ export function prefetchRoutePageData(route: MigrationPageId, search = ""): Prom
         periodFilter: params.get("periodFilter") || "",
         certificateType: params.get("certificateType") || "",
         issuanceStatus: params.get("issuanceStatus") || ""
+      });
+    case "virtual-issue":
+      return fetchRefundAccountReviewPage({
+        pageIndex: params.get("pageIndex") ? Number(params.get("pageIndex")) : undefined,
+        searchKeyword: params.get("searchKeyword") || "",
+        verificationStatus: params.get("verificationStatus") || "",
+        payoutStatus: params.get("payoutStatus") || ""
       });
     case "security-policy":
       return fetchSecurityPolicyPage();
@@ -2809,6 +3754,8 @@ export function prefetchRoutePageData(route: MigrationPageId, search = ""): Prom
       return fetchBackupConfigPage("/admin/system/backup_config");
     case "backup-execution":
       return fetchBackupConfigPage("/admin/system/backup");
+    case "new-page":
+      return fetchNewPagePage();
     case "restore-execution":
       return fetchBackupConfigPage("/admin/system/restore");
     case "version-management":
@@ -3046,12 +3993,14 @@ export async function fetchCertificateApprovePage(params?: { pageIndex?: number;
   });
 }
 
-export async function fetchCertificatePendingPage(params?: { pageIndex?: number; searchKeyword?: string; certificateType?: string; processStatus?: string; }) {
+export async function fetchCertificatePendingPage(params?: { pageIndex?: number; searchKeyword?: string; certificateType?: string; processStatus?: string; applicationId?: string; insttId?: string; }) {
   const search = new URLSearchParams();
   if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
   if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
   if (params?.certificateType) search.set("certificateType", params.certificateType);
   if (params?.processStatus) search.set("processStatus", params.processStatus);
+  if (params?.applicationId) search.set("applicationId", params.applicationId);
+  if (params?.insttId) search.set("insttId", params.insttId);
   const query = search.toString();
   const response = await fetch(buildLocalizedPath(`/admin/certificate/pending_list/page-data${query ? `?${query}` : ""}`, `/en/admin/certificate/pending_list/page-data${query ? `?${query}` : ""}`), {
     credentials: "include"
@@ -3061,6 +4010,23 @@ export async function fetchCertificatePendingPage(params?: { pageIndex?: number;
     throw new Error(body.certificatePendingError || `Failed to load certificate pending page: ${response.status}`);
   }
   return body as CertificatePendingPagePayload;
+}
+
+export async function fetchRefundAccountReviewPage(params?: { pageIndex?: number; searchKeyword?: string; verificationStatus?: string; payoutStatus?: string; }) {
+  const search = new URLSearchParams();
+  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
+  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
+  if (params?.verificationStatus) search.set("verificationStatus", params.verificationStatus);
+  if (params?.payoutStatus) search.set("payoutStatus", params.payoutStatus);
+  const query = search.toString();
+  const response = await fetch(buildLocalizedPath(`/admin/payment/virtual_issue/page-data${query ? `?${query}` : ""}`, `/en/admin/payment/virtual_issue/page-data${query ? `?${query}` : ""}`), {
+    credentials: "include"
+  });
+  const body = await response.json();
+  if (!response.ok) {
+    throw new Error(body.refundAccountReviewError || `Failed to load refund account review page: ${response.status}`);
+  }
+  return body as RefundAccountReviewPagePayload;
 }
 
 export async function fetchCertificateObjectionListPage(params?: { pageIndex?: number; searchKeyword?: string; status?: string; priority?: string; }) {
@@ -3078,6 +4044,24 @@ export async function fetchCertificateObjectionListPage(params?: { pageIndex?: n
     throw new Error(body.certificateObjectionError || `Failed to load certificate objection list page: ${response.status}`);
   }
   return body as CertificateObjectionListPagePayload;
+}
+
+export async function fetchCertificateReviewPage(params?: { pageIndex?: number; searchKeyword?: string; status?: string; certificateType?: string; applicationId?: string; }) {
+  const search = new URLSearchParams();
+  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
+  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
+  if (params?.status) search.set("status", params.status);
+  if (params?.certificateType) search.set("certificateType", params.certificateType);
+  if (params?.applicationId) search.set("applicationId", params.applicationId);
+  const query = search.toString();
+  const response = await fetch(buildLocalizedPath(`/admin/certificate/review/page-data${query ? `?${query}` : ""}`, `/en/admin/certificate/review/page-data${query ? `?${query}` : ""}`), {
+    credentials: "include"
+  });
+  const body = await response.json();
+  if (!response.ok) {
+    throw new Error(body.certificateReviewError || `Failed to load certificate review page: ${response.status}`);
+  }
+  return body as CertificateReviewPagePayload;
 }
 
 export async function fetchMemberListPage(params?: { pageIndex?: number; searchKeyword?: string; membershipType?: string; sbscrbSttus?: string; }) {
@@ -3171,7 +4155,7 @@ export async function fetchMenuManagementPage(menuType?: string, saved?: string)
   if (menuType) search.set("menuType", menuType);
   if (saved) search.set("saved", saved);
   const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/admin/system/menu-management/page-data${query ? `?${query}` : ""}`, `/en/admin/system/menu-management/page-data${query ? `?${query}` : ""}`), {
+  const response = await fetch(buildLocalizedPath(`/admin/content/menu/page-data${query ? `?${query}` : ""}`, `/en/admin/content/menu/page-data${query ? `?${query}` : ""}`), {
     credentials: "include"
   });
   const body = await response.json();
@@ -3646,6 +4630,15 @@ export async function fetchWbsManagementPage(menuType?: string) {
   const body = await response.json();
   if (!response.ok) throw new Error(`Failed to load WBS management page: ${response.status}`);
   return body as WbsManagementPagePayload;
+}
+
+export async function fetchNewPagePage() {
+  const response = await fetch(buildLocalizedPath("/admin/system/new-page/page-data", "/en/admin/system/new-page/page-data"), {
+    credentials: "include"
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(`Failed to load new page: ${response.status}`);
+  return body as NewPagePagePayload;
 }
 
 export async function fetchPageManagementPage(params?: { menuType?: string; searchKeyword?: string; searchUrl?: string; autoFeature?: string; updated?: string; deleted?: string; deletedRoleRefs?: string; deletedUserOverrides?: string; }) {
@@ -4478,6 +5471,113 @@ export async function fetchTradeListPage(params?: { pageIndex?: number; searchKe
   return body as TradeListPagePayload;
 }
 
+export async function fetchTradeStatisticsPage(params?: { pageIndex?: number; searchKeyword?: string; periodFilter?: string; tradeType?: string; settlementStatus?: string; }) {
+  const search = new URLSearchParams();
+  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
+  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
+  if (params?.periodFilter) search.set("periodFilter", params.periodFilter);
+  if (params?.tradeType) search.set("tradeType", params.tradeType);
+  if (params?.settlementStatus) search.set("settlementStatus", params.settlementStatus);
+  const query = search.toString();
+  const response = await fetch(buildLocalizedPath(`/admin/trade/statistics/page-data${query ? `?${query}` : ""}`, `/en/admin/trade/statistics/page-data${query ? `?${query}` : ""}`), {
+    credentials: "include"
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(`Failed to load trade statistics page: ${response.status}`);
+  return body as TradeStatisticsPagePayload;
+}
+
+export async function fetchTradeDuplicatePage(params?: { pageIndex?: number; searchKeyword?: string; detectionType?: string; reviewStatus?: string; riskLevel?: string; }) {
+  const search = new URLSearchParams();
+  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
+  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
+  if (params?.detectionType) search.set("detectionType", params.detectionType);
+  if (params?.reviewStatus) search.set("reviewStatus", params.reviewStatus);
+  if (params?.riskLevel) search.set("riskLevel", params.riskLevel);
+  const query = search.toString();
+  const response = await fetch(buildLocalizedPath(`/admin/trade/duplicate/page-data${query ? `?${query}` : ""}`, `/en/admin/trade/duplicate/page-data${query ? `?${query}` : ""}`), {
+    credentials: "include"
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(`Failed to load abnormal trade review page: ${response.status}`);
+  return body as TradeDuplicatePagePayload;
+}
+
+export async function fetchRefundListPage(params?: { pageIndex?: number; searchKeyword?: string; status?: string; riskLevel?: string; }) {
+  const search = new URLSearchParams();
+  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
+  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
+  if (params?.status) search.set("status", params.status);
+  if (params?.riskLevel) search.set("riskLevel", params.riskLevel);
+  const query = search.toString();
+  const response = await fetch(buildLocalizedPath(`/admin/payment/refund_list/page-data${query ? `?${query}` : ""}`, `/en/admin/payment/refund_list/page-data${query ? `?${query}` : ""}`), {
+    credentials: "include"
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(`Failed to load refund list page: ${response.status}`);
+  return body as RefundListPagePayload;
+}
+
+export async function fetchSettlementCalendarPage(params?: { pageIndex?: number; selectedMonth?: string; searchKeyword?: string; settlementStatus?: string; riskLevel?: string; }) {
+  const search = new URLSearchParams();
+  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
+  if (params?.selectedMonth) search.set("selectedMonth", params.selectedMonth);
+  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
+  if (params?.settlementStatus) search.set("settlementStatus", params.settlementStatus);
+  if (params?.riskLevel) search.set("riskLevel", params.riskLevel);
+  const query = search.toString();
+  const response = await fetch(buildLocalizedPath(`/admin/payment/settlement/page-data${query ? `?${query}` : ""}`, `/en/admin/payment/settlement/page-data${query ? `?${query}` : ""}`), {
+    credentials: "include"
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(`Failed to load settlement calendar page: ${response.status}`);
+  return body as SettlementCalendarPagePayload;
+}
+
+export async function fetchTradeApprovePage(params?: { pageIndex?: number; searchKeyword?: string; approvalStatus?: string; tradeType?: string; }) {
+  const search = new URLSearchParams();
+  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
+  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
+  if (params?.approvalStatus) search.set("approvalStatus", params.approvalStatus);
+  if (params?.tradeType) search.set("tradeType", params.tradeType);
+  const query = search.toString();
+  const response = await fetch(buildLocalizedPath(`/admin/trade/approve/page-data${query ? `?${query}` : ""}`, `/en/admin/trade/approve/page-data${query ? `?${query}` : ""}`), {
+    credentials: "include"
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(String(body?.message || `Failed to load trade approval page: ${response.status}`));
+  return body as TradeApprovePagePayload;
+}
+
+export async function fetchRefundProcessPage(params?: { pageIndex?: number; searchKeyword?: string; refundStatus?: string; refundChannel?: string; priority?: string; }) {
+  const search = new URLSearchParams();
+  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
+  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
+  if (params?.refundStatus) search.set("refundStatus", params.refundStatus);
+  if (params?.refundChannel) search.set("refundChannel", params.refundChannel);
+  if (params?.priority) search.set("priority", params.priority);
+  const query = search.toString();
+  const response = await fetch(buildLocalizedPath(`/admin/payment/refund_process/page-data${query ? `?${query}` : ""}`, `/en/admin/payment/refund_process/page-data${query ? `?${query}` : ""}`), {
+    credentials: "include"
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(String(body?.refundProcessError || `Failed to load refund processing page: ${response.status}`));
+  return body as RefundProcessPagePayload;
+}
+
+export async function fetchTradeRejectPage(params?: { tradeId?: string; returnUrl?: string; }) {
+  const search = new URLSearchParams();
+  if (params?.tradeId) search.set("tradeId", params.tradeId);
+  if (params?.returnUrl) search.set("returnUrl", params.returnUrl);
+  const query = search.toString();
+  const response = await fetch(buildLocalizedPath(`/admin/trade/reject/page-data${query ? `?${query}` : ""}`, `/en/admin/trade/reject/page-data${query ? `?${query}` : ""}`), {
+    credentials: "include"
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(`Failed to load trade reject page: ${response.status}`);
+  return body as TradeRejectPagePayload;
+}
+
 export async function fetchEmissionResultDetailPage(resultId: string) {
   const search = new URLSearchParams();
   if (resultId) search.set("resultId", resultId);
@@ -4530,6 +5630,13 @@ export async function fetchEmissionSiteManagementPage() {
   return body as EmissionSiteManagementPagePayload;
 }
 
+export async function fetchEmissionManagementPage() {
+  const response = await fetch(buildLocalizedPath("/admin/emission/management/page-data", "/en/admin/emission/management/page-data"), {
+    credentials: "include"
+  });
+  return readJsonResponse<EmissionManagementPagePayload>(response);
+}
+
 export async function fetchEmissionValidatePage(params?: { pageIndex?: number; resultId?: string; searchKeyword?: string; verificationStatus?: string; priorityFilter?: string; }) {
   const search = new URLSearchParams();
   if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
@@ -4544,6 +5651,77 @@ export async function fetchEmissionValidatePage(params?: { pageIndex?: number; r
   const body = await response.json();
   if (!response.ok) throw new Error(`Failed to load emission validate page: ${response.status}`);
   return body as EmissionValidatePagePayload;
+}
+
+export async function fetchEmissionCategories(searchKeyword?: string) {
+  const search = new URLSearchParams();
+  if (searchKeyword) {
+    search.set("searchKeyword", searchKeyword);
+  }
+  const query = search.toString();
+  const response = await fetch(`${buildAdminApiPath("/api/admin/emission-management/categories")}${query ? `?${query}` : ""}`, {
+    credentials: "include",
+    headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
+  });
+  return readJsonResponse<{ items: EmissionCategoryItem[] }>(response);
+}
+
+export async function fetchEmissionTiers(categoryId: number) {
+  const response = await fetch(buildAdminApiPath(`/api/admin/emission-management/categories/${encodeURIComponent(String(categoryId))}/tiers`), {
+    credentials: "include",
+    headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
+  });
+  return readJsonResponse<{ category?: EmissionCategoryItem; tiers?: EmissionTierItem[] }>(response);
+}
+
+export async function fetchEmissionVariableDefinitions(categoryId: number, tier: number) {
+  const response = await fetch(buildAdminApiPath(`/api/admin/emission-management/categories/${encodeURIComponent(String(categoryId))}/tiers/${encodeURIComponent(String(tier))}/variables`), {
+    credentials: "include",
+    headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
+  });
+  return readJsonResponse<{
+    category?: EmissionCategoryItem;
+    tier?: number;
+    variables?: EmissionVariableDefinition[];
+    factors?: EmissionFactorDefinition[];
+    formulaSummary?: string;
+    formulaDisplay?: string;
+  }>(response);
+}
+
+export async function saveEmissionInputSession(payload: EmissionInputSessionSavePayload) {
+  const response = await fetch(buildAdminApiPath("/api/admin/emission-management/input-sessions"), {
+    method: "POST",
+    credentials: "include",
+    headers: buildCsrfHeaders({ "Content-Type": "application/json", Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }),
+    body: JSON.stringify(payload)
+  });
+  return readJsonResponse<Record<string, unknown>>(response);
+}
+
+export async function fetchEmissionInputSession(sessionId: number) {
+  const response = await fetch(buildAdminApiPath(`/api/admin/emission-management/input-sessions/${encodeURIComponent(String(sessionId))}`), {
+    credentials: "include",
+    headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
+  });
+  return readJsonResponse<Record<string, unknown>>(response);
+}
+
+export async function calculateEmissionInputSession(sessionId: number) {
+  const response = await fetch(buildAdminApiPath(`/api/admin/emission-management/input-sessions/${encodeURIComponent(String(sessionId))}/calculate`), {
+    method: "POST",
+    credentials: "include",
+    headers: buildCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
+  });
+  return readJsonResponse<Record<string, unknown>>(response);
+}
+
+export async function fetchEmissionLimeDefaultFactor() {
+  const response = await fetch(buildAdminApiPath("/api/admin/emission-management/lime/default-factor"), {
+    credentials: "include",
+    headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
+  });
+  return readJsonResponse<Record<string, unknown>>(response);
 }
 
 export async function runCodexLoginCheck() {
@@ -5682,6 +6860,42 @@ export async function submitCertificateApproveAction(
   const body = await response.json();
   if (!response.ok || !body.success) {
     throw new Error(body.message || `Failed to approve certificate: ${response.status}`);
+  }
+  invalidateAdminPageCaches();
+  return body;
+}
+
+export async function submitTradeRejectAction(
+  session: FrontendSession,
+  payload: { tradeId?: string; rejectReason?: string; operatorNote?: string; }
+) {
+  const response = await fetch(buildAdminApiPath("/trade/reject/action"), {
+    method: "POST",
+    credentials: "include",
+    headers: buildJsonHeaders(session),
+    body: JSON.stringify(payload)
+  });
+  const body = await response.json();
+  if (!response.ok || !body.success) {
+    throw new Error(body.message || `Failed to submit trade reject action: ${response.status}`);
+  }
+  invalidateAdminPageCaches();
+  return body;
+}
+
+export async function submitTradeApproveAction(
+  session: FrontendSession,
+  payload: { action: string; tradeId?: string; selectedIds?: string[]; rejectReason?: string; }
+) {
+  const response = await fetch(buildAdminApiPath("/api/admin/trade/approve/action"), {
+    method: "POST",
+    credentials: "include",
+    headers: buildJsonHeaders(session),
+    body: JSON.stringify(payload)
+  });
+  const body = await response.json();
+  if (!response.ok || !body.success) {
+    throw new Error(body.message || `Failed to approve trade: ${response.status}`);
   }
   invalidateAdminPageCaches();
   return body;

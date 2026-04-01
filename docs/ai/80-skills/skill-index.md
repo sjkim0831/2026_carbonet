@@ -45,11 +45,17 @@ See also:
   - Boundary: use when the main issue is whether the newest output is actually built, packaged, restarted, and running; pair with `carbonet-react-refresh-consistency` when cache policy also changes.
   - Key references: `.codex/skills/carbonet-fast-bootstrap-ops/SKILL.md`, `docs/operations/fast-bootstrap-runtime-freshness.md`, `ops/scripts/build-restart-18000.sh`, `ops/scripts/start-18000.sh`
 - `carbonet-feature-builder`
-  - Purpose: implement or extend Carbonet screens, menus, services, mappers, templates, and admin metadata.
+  - Purpose: implement or extend Carbonet screens, menus, services, mappers, React shell routes, and admin metadata.
   - Group: feature implementation
-  - Use for: page management, feature management, menu metadata, bilingual admin templates, admin shell bootstrap pages, author-role profile management, `PAGE_CODE_VIEW` authority-chain work, the five-screen admin permission restoration set (`auth_group`, `auth_change`, `dept_role_mapping`, `member_edit`, `admin_account`), and `/admin/system/security-policy` style admin operations consoles where backend rules, React actions, SQL preview/rollback, and runtime remediation must move together.
+  - Use for: page management, feature management, menu metadata, bilingual admin route handling, admin shell bootstrap pages, author-role profile management, `PAGE_CODE_VIEW` authority-chain work, the five-screen admin permission restoration set (`auth_group`, `auth_change`, `dept_role_mapping`, `member_edit`, `admin_account`), and `/admin/system/security-policy` style admin operations consoles where backend rules, React actions, SQL preview/rollback, and runtime remediation must move together.
   - Boundary: this is the default implementation skill for normal app features, but not for Codex runner internals, refresh/cache policy, or system-wide audit architecture.
   - Key references: `.codex/skills/carbonet-feature-builder/references/*`, `docs/ai/40-backend/auth-policy.csv`, `docs/ai/50-data/table-screen-api-map.csv`, `docs/operations/security-policy-ops.md`
+- `carbonet-emission-management-extension`
+  - Purpose: estimate, review, and implement `/admin/emission/management` category or tier extensions with explicit metadata-vs-code classification.
+  - Group: feature implementation
+  - Use for: new emission `subCode` categories, new tier numbers, formula/executor additions, variable/factor metadata extensions, first-session sizing for emission management work, and deciding whether local `:18000` save/calculate proof is required.
+  - Boundary: use this before or alongside `carbonet-feature-builder` when the main question is whether emission-management changes are metadata-only or require new calculation/runtime support.
+  - Key references: `.codex/skills/carbonet-emission-management-extension/SKILL.md`, `docs/operations/emission-management-category-tier-extension-guide.md`, `src/main/java/egovframework/com/feature/admin/service/impl/EmissionCalculationDefinitionRegistry.java`
 - `admin-screen-unifier`
   - Purpose: normalize existing admin screens to one governed design system across list, detail, edit, create, approve, and authority pages.
   - Group: feature implementation
