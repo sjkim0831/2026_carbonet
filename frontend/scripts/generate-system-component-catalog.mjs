@@ -12,6 +12,10 @@ const routesDefinitionsPath = path.join(srcRoot, "app/routes/definitions.ts");
 const pageRegistryPath = path.join(srcRoot, "app/routes/pageRegistry.tsx");
 const outputPath = path.join(srcRoot, "generated/systemComponentCatalog.json");
 
+const ROUTE_FOLDER_OVERRIDES = new Map([
+  ["external-connection-add", "../external-connection-edit/"]
+]);
+
 /** @typedef {"button" | "input" | "select" | "textarea" | "table" | "pagination"} SystemComponentCatalogType */
 
 /** @type {SystemComponentCatalogType[]} */
@@ -219,6 +223,12 @@ function extractRouteFolderMap() {
     }
   });
 
+  for (const [routeId, folderPath] of ROUTE_FOLDER_OVERRIDES.entries()) {
+    if (routeFolderMap.has(routeId)) {
+      routeFolderMap.set(routeId, folderPath);
+    }
+  }
+
   return routeFolderMap;
 }
 
@@ -407,4 +417,3 @@ ensureDir(outputPath);
 const catalog = buildCatalog();
 fs.writeFileSync(outputPath, `${JSON.stringify(catalog, null, 2)}\n`, "utf8");
 console.log(`[generate-system-component-catalog] wrote ${catalog.length} style groups to ${outputPath}`);
-

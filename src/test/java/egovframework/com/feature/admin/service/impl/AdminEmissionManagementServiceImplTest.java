@@ -108,8 +108,8 @@ class AdminEmissionManagementServiceImplTest {
 
         assertEquals(8802L, response.get("resultId"));
         assertEquals(7.5d, ((Number) response.get("co2Total")).doubleValue(), 0.0000001d);
-        assertEquals("SUM(EF_lime,i * Ml,i)", response.get("formulaSummary"));
-        assertEquals("CO2 = Σ(EF_lime,i × Ml,i)", response.get("formulaDisplay"));
+        assertEquals("SUM(EF석회,i * Ml,i)", response.get("formulaSummary"));
+        assertEquals("CO2 = Σ(EF석회,i × Ml,i)", response.get("formulaDisplay"));
         assertEquals("CO2 = 7.5", response.get("substitutedFormula"));
         assertFalse(Boolean.TRUE.equals(response.get("defaultApplied")));
         assertFalse(((List<?>) response.get("calculationLogs")).isEmpty());
@@ -146,8 +146,8 @@ class AdminEmissionManagementServiceImplTest {
         Map<String, Object> response = service.calculateInputSession(777L);
 
         assertEquals(8.84697d, ((Number) response.get("co2Total")).doubleValue(), 0.0000001d);
-        assertEquals("SUM(EF_lime,i * Ml,i * CF_lkd,i * C_h,i)", response.get("formulaSummary"));
-        assertEquals("CO2 = Σ(EF_lime,i × Ml,i × CF_lkd,i × C_h,i)", response.get("formulaDisplay"));
+        assertEquals("SUM(EF석회,i * Ml,i * CF_lkd,i * C_h,i)", response.get("formulaSummary"));
+        assertEquals("CO2 = Σ(EF석회,i × Ml,i × CF_lkd,i × C_h,i)", response.get("formulaDisplay"));
         assertFalse(((List<?>) response.get("calculationLogs")).isEmpty());
         verify(mapper, times(1)).insertEmissionCalcResult(anyMap());
     }
@@ -186,7 +186,7 @@ class AdminEmissionManagementServiceImplTest {
         Map<String, Object> response = service.calculateInputSession(778L);
 
         assertEquals(7.600684d, ((Number) response.get("co2Total")).doubleValue(), 0.0000001d);
-        assertEquals("SUM(EF_lime,i * Ml,i * CF_lkd,i * C_h,i)", response.get("formulaSummary"));
+        assertEquals("SUM(EF석회,i * Ml,i * CF_lkd,i * C_h,i)", response.get("formulaSummary"));
         assertFalse(((List<?>) response.get("calculationLogs")).isEmpty());
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> calculationLogs = (List<Map<String, Object>>) response.get("calculationLogs");
@@ -533,10 +533,10 @@ class AdminEmissionManagementServiceImplTest {
         Map<String, Object> response = service.calculateInputSession(885L);
 
         assertEquals(8.0d, ((Number) response.get("co2Total")).doubleValue(), 0.0000001d);
-        assertFalse(Boolean.TRUE.equals(response.get("defaultApplied")));
+        assertTrue(Boolean.TRUE.equals(response.get("defaultApplied")));
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> appliedFactors = (List<Map<String, Object>>) response.get("appliedFactors");
-        assertFalse(Boolean.TRUE.equals(appliedFactors.get(0).get("defaultApplied")));
+        assertTrue(Boolean.TRUE.equals(appliedFactors.get(0).get("defaultApplied")));
     }
 
     @Test
@@ -628,7 +628,7 @@ class AdminEmissionManagementServiceImplTest {
         assertEquals("EMLIM2", tier2Variables.get(0).getCommonCodeId());
         assertEquals("DOLOMITIC_HIGH", tier2Variables.get(0).getOptions().get(0).get("code"));
         assertEquals("EF석회,i 유형", tier2Variables.get(0).getDisplayName());
-        assertEquals("EFi", tier2Variables.get(0).getDisplayCode());
+        assertEquals("EF석회,i", tier2Variables.get(0).getDisplayCode());
     }
 
     @Test
@@ -648,10 +648,18 @@ class AdminEmissionManagementServiceImplTest {
         carbonateType.setVarCode("CARBONATE_TYPE");
         EmissionVariableDefinitionVO efi = new EmissionVariableDefinitionVO();
         efi.setVarCode("EFI");
+        EmissionVariableDefinitionVO mci = new EmissionVariableDefinitionVO();
+        mci.setVarCode("MCI");
+        EmissionVariableDefinitionVO im = new EmissionVariableDefinitionVO();
+        im.setVarCode("IM");
         EmissionVariableDefinitionVO cao = new EmissionVariableDefinitionVO();
         cao.setVarCode("CAO_CONTENT");
         EmissionVariableDefinitionVO hydratedYn = new EmissionVariableDefinitionVO();
         hydratedYn.setVarCode("HYDRATED_LIME_PRODUCTION_YN");
+        EmissionVariableDefinitionVO limeTier3CarbonateType = new EmissionVariableDefinitionVO();
+        limeTier3CarbonateType.setVarCode("CARBONATE_TYPE");
+        EmissionVariableDefinitionVO limeTier3Md = new EmissionVariableDefinitionVO();
+        limeTier3Md.setVarCode("MD");
 
         when(mapper.selectEmissionCategory(1L)).thenReturn(cementCategory);
         when(mapper.selectEmissionTierList(1L)).thenReturn(List.of(1, 2, 3));
@@ -661,21 +669,37 @@ class AdminEmissionManagementServiceImplTest {
             Map<String, Object> params = invocation.getArgument(0);
             Long categoryId = ((Number) params.get("categoryId")).longValue();
             Integer tier = ((Number) params.get("tier")).intValue();
+            if (categoryId == 1L && tier == 1) {
+                return List.of(mci, im);
+            }
             if (categoryId == 1L && tier == 3) {
                 return List.of(carbonateType, efi);
             }
             if (categoryId == 2L && tier == 2) {
                 return List.of(cao, hydratedYn);
             }
+            if (categoryId == 2L && tier == 3) {
+                return List.of(limeTier3CarbonateType, limeTier3Md);
+            }
             return Collections.emptyList();
         });
         when(mapper.selectEmissionFactors(anyMap())).thenReturn(Collections.emptyList());
 
         @SuppressWarnings("unchecked")
+        List<EmissionVariableDefinitionVO> cementTier1Variables = (List<EmissionVariableDefinitionVO>) service.getVariableDefinitions(1L, 1).get("variables");
+        assertEquals("Mci", cementTier1Variables.get(0).getDisplayCode());
+        assertEquals("cement-tier1-clinker", cementTier1Variables.get(0).getSectionId());
+        assertEquals(1, cementTier1Variables.get(0).getSectionOrder());
+        assertEquals("cement-tier1-adjustment", cementTier1Variables.get(1).getSectionId());
+        assertEquals(2, cementTier1Variables.get(1).getSectionOrder());
+
+        @SuppressWarnings("unchecked")
         List<EmissionVariableDefinitionVO> cementVariables = (List<EmissionVariableDefinitionVO>) service.getVariableDefinitions(1L, 3).get("variables");
-        assertEquals("EFI 탄산염 종류", cementVariables.get(0).getDisplayName());
-        assertEquals("EFI", cementVariables.get(0).getDisplayCode());
+        assertEquals("탄산염 종류", cementVariables.get(0).getDisplayName());
+        assertEquals("EFi", cementVariables.get(0).getDisplayCode());
         assertEquals("cement-tier3-carbonate", cementVariables.get(0).getRepeatGroupKey());
+        assertEquals("cement-tier3-carbonate", cementVariables.get(0).getSectionId());
+        assertEquals(1, cementVariables.get(0).getSectionOrder());
         assertEquals("Y", cementVariables.get(1).getDerivedYn());
 
         @SuppressWarnings("unchecked")
@@ -686,9 +710,21 @@ class AdminEmissionManagementServiceImplTest {
         assertEquals("lime-tier2-line", limeVariables.get(0).getRepeatGroupKey());
         assertEquals("lime-tier2-ef", limeVariables.get(0).getSectionId());
         assertEquals("EF석회,i 산정 입력", limeVariables.get(0).getSectionTitle());
+        assertEquals("lime-tier2-ef", limeVariables.get(0).getSectionPreviewType());
+        assertEquals("EF_LIME,SR_CAO,SR_CAO_MGO", limeVariables.get(0).getSectionRelatedFactorCodes());
         assertEquals("수화석회 생산 여부", limeVariables.get(1).getDisplayName());
         assertEquals("HYDRATED_YN", limeVariables.get(1).getDisplayCode());
         assertEquals("lime-tier2-ch", limeVariables.get(1).getSectionId());
+        assertEquals("lime-tier2-ch", limeVariables.get(1).getSectionPreviewType());
+        assertEquals("C_H", limeVariables.get(1).getSectionRelatedFactorCodes());
+
+        @SuppressWarnings("unchecked")
+        List<EmissionVariableDefinitionVO> limeTier3Variables = (List<EmissionVariableDefinitionVO>) service.getVariableDefinitions(2L, 3).get("variables");
+        assertEquals("lime-tier3-carbonate", limeTier3Variables.get(0).getSectionId());
+        assertEquals("lime-tier3-carbonate", limeTier3Variables.get(0).getRepeatGroupKey());
+        assertEquals(1, limeTier3Variables.get(0).getSectionOrder());
+        assertEquals("lime-tier3-lkd", limeTier3Variables.get(1).getSectionId());
+        assertEquals(2, limeTier3Variables.get(1).getSectionOrder());
     }
 
     @Test
@@ -726,12 +762,12 @@ class AdminEmissionManagementServiceImplTest {
         assertEquals("CO2 = Σ(EFi × Mi × Fi) - Md × Cd × (1 - Fd) × EFd + Σ(Mk × Xk × EFk)", cementTier3.get("formulaDisplay"));
 
         Map<String, Object> limeTier1 = service.getVariableDefinitions(2L, 1);
-        assertEquals("SUM(EF_lime,i * Ml,i)", limeTier1.get("formulaSummary"));
-        assertEquals("CO2 = Σ(EF_lime,i × Ml,i)", limeTier1.get("formulaDisplay"));
+        assertEquals("SUM(EF석회,i * Ml,i)", limeTier1.get("formulaSummary"));
+        assertEquals("CO2 = Σ(EF석회,i × Ml,i)", limeTier1.get("formulaDisplay"));
 
         Map<String, Object> limeTier2 = service.getVariableDefinitions(2L, 2);
-        assertEquals("SUM(EF_lime,i * Ml,i * CF_lkd,i * C_h,i)", limeTier2.get("formulaSummary"));
-        assertEquals("CO2 = Σ(EF_lime,i × Ml,i × CF_lkd,i × C_h,i)", limeTier2.get("formulaDisplay"));
+        assertEquals("SUM(EF석회,i * Ml,i * CF_lkd,i * C_h,i)", limeTier2.get("formulaSummary"));
+        assertEquals("CO2 = Σ(EF석회,i × Ml,i × CF_lkd,i × C_h,i)", limeTier2.get("formulaDisplay"));
 
         Map<String, Object> limeTier3 = service.getVariableDefinitions(2L, 3);
         assertEquals("SUM(EFi * Mi * Fi) - Md * Cd * (1 - Fd) * EFd", limeTier3.get("formulaSummary"));

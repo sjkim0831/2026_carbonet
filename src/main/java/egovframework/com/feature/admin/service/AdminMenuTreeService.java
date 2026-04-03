@@ -272,11 +272,14 @@ public class AdminMenuTreeService {
                 || "/admin/system/help-management".equals(value)
                 || "/admin/system/page-management".equals(value)
                 || "/admin/system/function-management".equals(value)
+                || "/admin/system/menu".equals(value)
                 || "/admin/system/menu-management".equals(value)
+                || "/admin/content/menu".equals(value)
                 || "/admin/system/screen-flow-management".equals(value)
                 || "/admin/system/screen-menu-assignment-management".equals(value)
                 || "/admin/system/sr-workbench".equals(value)
                 || "/admin/system/wbs-management".equals(value)
+                || "/admin/system/new-page".equals(value)
                 || "/admin/system/codex-request".equals(value)) {
             return false;
         }
@@ -478,6 +481,13 @@ public class AdminMenuTreeService {
         String normalizedMenuUrl = normalizeMenuUrl(menuUrl);
         if ("/admin/".equals(normalizedMenuUrl) || "/admin".equals(normalizedMenuUrl)) {
             return "A0070101".equals(normalizedCode) || normalizedCode.isEmpty();
+        }
+        if ("/admin/system/menu".equals(normalizedMenuUrl)
+                || "/admin/system/menu-management".equals(normalizedMenuUrl)) {
+            return "A0060107".equals(normalizedCode) || normalizedCode.isEmpty();
+        }
+        if ("/admin/content/menu".equals(normalizedMenuUrl)) {
+            return "A0040304".equals(normalizedCode) || normalizedCode.isEmpty();
         }
         if ("/admin/system/security".equals(normalizedMenuUrl)) {
             return "A0060205".equals(normalizedCode) || normalizedCode.isEmpty();

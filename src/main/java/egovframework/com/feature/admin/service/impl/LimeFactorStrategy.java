@@ -21,7 +21,7 @@ final class LimeFactorStrategy {
                                       Integer lineNo) {
         LimeType limeType = resolveLimeType(limeTypeRaw);
         if (limeType == LimeType.BLANK) {
-            return resolveStoredOrDefaultFactor(factorValues, "EF_LIME", limeDefaultFactor);
+            return resolveStoredOrDefaultFactor(factorValues, "EF_LIME", limeDefaultFactor, true);
         }
         if (limeType == LimeType.DOLOMITIC) {
             throw new IllegalArgumentException("고토석회는 선진국(0.86) 또는 개도국(0.77) 구분이 필요합니다. lineNo=" + lineNo);
@@ -36,17 +36,17 @@ final class LimeFactorStrategy {
                                       Integer lineNo) {
         LimeType limeType = resolveLimeType(limeTypeRaw);
         if (limeType == LimeType.BLANK) {
-            return resolveStoredOrDefaultFactor(factorValues, "EF_LIME", limeDefaultFactor);
+            return resolveStoredOrDefaultFactor(factorValues, "EF_LIME", limeDefaultFactor, true);
         }
         if (limeType.usesCaoMgoContent) {
             double content = caoMgoContent > 0d ? caoMgoContent : limeType.defaultContent(factorValues);
             boolean defaultApplied = caoMgoContent <= 0d;
-            ResolvedFactor srCaoMgo = resolveStoredOrDefaultFactor(factorValues, "SR_CAO_MGO", srCaoMgoDefault);
+            ResolvedFactor srCaoMgo = resolveStoredOrDefaultFactor(factorValues, "SR_CAO_MGO", srCaoMgoDefault, false);
             return ResolvedFactor.combined(srCaoMgo.value * content, defaultApplied || srCaoMgo.defaultApplied, srCaoMgo.source);
         }
         double content = caoContent > 0d ? caoContent : limeType.defaultContent(factorValues);
         boolean defaultApplied = caoContent <= 0d;
-        ResolvedFactor srCao = resolveStoredOrDefaultFactor(factorValues, "SR_CAO", srCaoDefault);
+        ResolvedFactor srCao = resolveStoredOrDefaultFactor(factorValues, "SR_CAO", srCaoDefault, false);
         return ResolvedFactor.combined(srCao.value * content, defaultApplied || srCao.defaultApplied, srCao.source);
     }
 
@@ -75,11 +75,12 @@ final class LimeFactorStrategy {
 
     private ResolvedFactor resolveStoredOrDefaultFactor(Map<String, Double> factorValues,
                                                         String factorCode,
-                                                        double defaultValue) {
+                                                        double defaultValue,
+                                                        boolean supplemented) {
         if (factorValues.containsKey(factorCode)) {
-            return ResolvedFactor.stored(factorValues.get(factorCode));
+            return ResolvedFactor.combined(factorValues.get(factorCode), supplemented, FactorSource.STORED);
         }
-        return ResolvedFactor.fallback(defaultValue);
+        return ResolvedFactor.combined(defaultValue, true, FactorSource.FALLBACK);
     }
 
     private String normalizeToken(String value) {

@@ -5,6 +5,7 @@ import egovframework.com.feature.admin.model.vo.UserFeatureOverrideVO;
 import egovframework.com.feature.admin.service.AuthGroupManageService;
 import egovframework.com.feature.auth.domain.entity.EmplyrInfo;
 import egovframework.com.feature.auth.domain.repository.EmployeeMemberRepository;
+import egovframework.com.feature.auth.service.CurrentUserContextService;
 import egovframework.com.feature.auth.util.JwtTokenProvider;
 import egovframework.com.framework.authority.service.FrameworkAuthorityPolicyService;
 import egovframework.com.feature.member.model.vo.EntrprsManageVO;
@@ -34,6 +35,7 @@ public class AdminMainAuthInterceptor implements HandlerInterceptor {
     private final EnterpriseMemberService enterpriseMemberService;
     private final EmployeeMemberRepository employeeMemberRepository;
     private final FrameworkAuthorityPolicyService frameworkAuthorityPolicyService;
+    private final CurrentUserContextService currentUserContextService;
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
@@ -42,19 +44,26 @@ public class AdminMainAuthInterceptor implements HandlerInterceptor {
             return true;
         }
 
+        CurrentUserContextService.CurrentUserContext currentUserContext = currentUserContextService.resolve(request);
         String accessToken = jwtProvider.getCookie(request, "accessToken");
-        if (ObjectUtils.isEmpty(accessToken) || jwtProvider.accessValidateToken(accessToken) != 200) {
+        boolean hasValidToken = !ObjectUtils.isEmpty(accessToken) && jwtProvider.accessValidateToken(accessToken) == 200;
+        String userId;
+        String authorCode;
+        if (hasValidToken) {
+            userId = extractCurrentUserId(accessToken);
+            if (ObjectUtils.isEmpty(userId)) {
+                redirectToLogin(request, response);
+                return false;
+            }
+            authorCode = authGroupManageService.selectAuthorCodeByUserId(userId);
+        } else if (currentUserContext.isSimulationActive()) {
+            userId = currentUserContext.getUserId();
+            authorCode = currentUserContext.getAuthorCode();
+        } else {
             redirectToLogin(request, response);
             return false;
         }
 
-        String userId = extractCurrentUserId(accessToken);
-        if (ObjectUtils.isEmpty(userId)) {
-            redirectToLogin(request, response);
-            return false;
-        }
-
-        String authorCode = authGroupManageService.selectAuthorCodeByUserId(userId);
         if (ObjectUtils.isEmpty(authorCode)) {
             markCompanyScope(request, "DENY_NO_ROLE", "Administrator role information is missing.", "");
             deny(response);
@@ -497,10 +506,14 @@ public class AdminMainAuthInterceptor implements HandlerInterceptor {
                 || "/admin/system/help-management".equals(value)
                 || "/admin/system/sr-workbench".equals(value)
                 || "/admin/system/wbs-management".equals(value)
+                || "/admin/system/new-page".equals(value)
                 || "/admin/system/codex-request".equals(value)) {
             return false;
         }
         return "/admin/member/approve".equals(value)
+                || "/admin/trade/approve".equals(value)
+                || "/admin/certificate/pending_list".equals(value)
+                || "/admin/certificate/objection_list".equals(value)
                 || "/admin/content/sitemap".equals(value)
                 || "/admin/member/company-approve".equals(value)
                 || "/admin/member/company_list".equals(value)
@@ -514,6 +527,10 @@ public class AdminMainAuthInterceptor implements HandlerInterceptor {
                 || "/admin/member/admin_account/permissions".equals(value)
                 || "/admin/api/admin/member/approve/page".equals(value)
                 || "/admin/api/admin/member/approve/action".equals(value)
+                || "/admin/trade/approve/page-data".equals(value)
+                || "/admin/api/admin/trade/approve/action".equals(value)
+                || "/admin/certificate/pending_list/page-data".equals(value)
+                || "/admin/certificate/objection_list/page-data".equals(value)
                 || "/admin/api/admin/member/company-approve/page".equals(value)
                 || "/admin/api/admin/member/company-approve/action".equals(value)
                 || "/admin/api/admin/member/company-list/page".equals(value)
@@ -544,6 +561,8 @@ public class AdminMainAuthInterceptor implements HandlerInterceptor {
                 || "/admin/member/register".equals(value)
                 || "/admin/member/security".equals(value)
                 || "/admin/member/security/page-data".equals(value)
+                || "/admin/trade/list".equals(value)
+                || "/admin/trade/list/page-data".equals(value)
                 || "/admin/member/auth-group".equals(value)
                 || "/admin/member/auth-group/create".equals(value)
                 || "/admin/member/auth-group/save-features".equals(value)
@@ -618,6 +637,7 @@ public class AdminMainAuthInterceptor implements HandlerInterceptor {
     private boolean isMemberMasterOnlyRoute(String normalizedUri) {
         String value = safeString(normalizedUri);
         return "/admin/member/company-approve".equals(value)
+                || "/admin/trade/approve".equals(value)
                 || "/admin/member/company_list".equals(value)
                 || "/admin/member/company_detail".equals(value)
                 || "/admin/member/company_account".equals(value)
@@ -628,6 +648,8 @@ public class AdminMainAuthInterceptor implements HandlerInterceptor {
                 || "/admin/api/admin/member/company-detail/page".equals(value)
                 || "/admin/api/admin/member/company-account/page".equals(value)
                 || "/admin/api/admin/member/company-account".equals(value)
+                || "/admin/trade/approve/page-data".equals(value)
+                || "/admin/api/admin/trade/approve/action".equals(value)
                 || "/admin/api/admin/companies/search".equals(value);
     }
 

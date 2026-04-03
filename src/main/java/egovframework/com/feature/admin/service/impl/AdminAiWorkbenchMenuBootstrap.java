@@ -36,6 +36,7 @@ public class AdminAiWorkbenchMenuBootstrap {
     private static final String SR_MENU_CODE = "A1900102";
     private static final String CODEX_MENU_CODE = "A1900103";
     private static final String WBS_MENU_CODE = "A1900104";
+    private static final String NEW_PAGE_MENU_CODE = "A1900106";
     private static final String SYSTEM_AUDIT_LOG_MENU_CODE = "A0060303";
     private static final String ACTOR_ID = "SYSTEM_BOOTSTRAP";
     private static final List<String> STANDARD_ADMIN_ROLES = Arrays.asList(
@@ -56,6 +57,7 @@ public class AdminAiWorkbenchMenuBootstrap {
         provision("sr-workbench", buildSrWorkbenchRequest());
         provision("codex-request", buildCodexRequest());
         provision("wbs-management", buildWbsManagementRequest());
+        provision("new-page", buildNewPageRequest());
         cleanupLegacyMenus();
     }
 
@@ -160,6 +162,26 @@ public class AdminAiWorkbenchMenuBootstrap {
         return request;
     }
 
+    private CodexProvisionRequest buildNewPageRequest() {
+        CodexProvisionRequest request = baseRequest("BOOTSTRAP-NEW-PAGE", "/admin/system/new-page");
+        request.setPage(pageRequest(
+                NEW_PAGE_MENU_CODE,
+                "새 페이지",
+                "New Page",
+                "/admin/system/new-page",
+                "note_stack"
+        ));
+        request.setFeatures(Collections.singletonList(
+                featureRequest(NEW_PAGE_MENU_CODE, NEW_PAGE_MENU_CODE + "_VIEW", "새 페이지 조회", "View New Page", "New page scaffold access")
+        ));
+        request.setAuthors(Arrays.asList(
+                authorRequest("ROLE_SYSTEM_MASTER", "시스템 마스터", "System Master", NEW_PAGE_MENU_CODE + "_VIEW"),
+                authorRequest("ROLE_SYSTEM_ADMIN", "시스템 관리자", "System Administrator", NEW_PAGE_MENU_CODE + "_VIEW"),
+                authorRequest("ROLE_ADMIN", "일반 관리자", "General Administrator", NEW_PAGE_MENU_CODE + "_VIEW")
+        ));
+        return request;
+    }
+
     private void reconcileStandardRoleAssignments(String registrationId) {
         Map<String, Set<String>> desiredByRole = buildDesiredFeatureCodesByRole();
         Set<String> targetFeatureCodes = new LinkedHashSet<>();
@@ -205,6 +227,7 @@ public class AdminAiWorkbenchMenuBootstrap {
                 CODEX_MENU_CODE + "_EXECUTE",
                 WBS_MENU_CODE + "_VIEW",
                 WBS_MENU_CODE + "_EDIT",
+                NEW_PAGE_MENU_CODE + "_VIEW",
                 SYSTEM_AUDIT_LOG_MENU_CODE + "_VIEW"
         ));
         desired.put("ROLE_SYSTEM_ADMIN", linkedSet(
@@ -219,6 +242,7 @@ public class AdminAiWorkbenchMenuBootstrap {
                 CODEX_MENU_CODE + "_EXECUTE",
                 WBS_MENU_CODE + "_VIEW",
                 WBS_MENU_CODE + "_EDIT",
+                NEW_PAGE_MENU_CODE + "_VIEW",
                 SYSTEM_AUDIT_LOG_MENU_CODE + "_VIEW"
         ));
         desired.put("ROLE_ADMIN", linkedSet(
@@ -230,6 +254,7 @@ public class AdminAiWorkbenchMenuBootstrap {
                 CODEX_MENU_CODE + "_EXECUTE",
                 WBS_MENU_CODE + "_VIEW",
                 WBS_MENU_CODE + "_EDIT",
+                NEW_PAGE_MENU_CODE + "_VIEW",
                 SYSTEM_AUDIT_LOG_MENU_CODE + "_VIEW"
         ));
         desired.put("ROLE_OPERATION_ADMIN", Collections.emptySet());

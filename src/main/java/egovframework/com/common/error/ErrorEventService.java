@@ -113,7 +113,7 @@ public class ErrorEventService {
                 log.warn("Error event persistence failed due to CLOB binding. Retrying with compact text. source={}, type={}",
                         record.getSourceType(), record.getErrorType());
                 record.setMessage(truncate(record.getMessage(), 500));
-                record.setStackSummary("");
+                record.setStackSummary(null);
                 try {
                     observabilityMapper.insertErrorEvent(record);
                     return;

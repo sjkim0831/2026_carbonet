@@ -2,6 +2,7 @@ package egovframework.com.feature.home.web;
 
 import egovframework.com.feature.admin.service.AdminMenuTreeService;
 import egovframework.com.feature.admin.service.AdminShellBootstrapPageService;
+import egovframework.com.feature.admin.web.AdminApprovalController;
 import egovframework.com.feature.admin.web.AdminHotPathPagePayloadService;
 import egovframework.com.feature.auth.dto.response.FrontendSessionResponseDTO;
 import egovframework.com.feature.auth.service.FrontendSessionService;
@@ -25,6 +26,7 @@ public class ReactAppBootstrapService {
     private final AdminMenuTreeService adminMenuTreeService;
     private final AdminShellBootstrapPageService adminShellBootstrapPageService;
     private final AdminHotPathPagePayloadService adminHotPathPagePayloadService;
+    private final AdminApprovalController adminApprovalController;
 
     public Map<String, Object> buildBootstrapPayload(String route, boolean en, boolean admin, HttpServletRequest request) {
         Map<String, Object> payload = new LinkedHashMap<>();
@@ -112,12 +114,66 @@ public class ReactAppBootstrapService {
                         request == null ? "" : request.getParameter("certificateType"),
                         request == null ? "" : request.getParameter("issuanceStatus"),
                         en));
+            } else if ("certificate_review".equals(normalizedRoute)) {
+                payload.put("certificateReviewPageData", adminApprovalController.buildCertificateReviewPagePayload(
+                        request == null ? "" : request.getParameter("pageIndex"),
+                        request == null ? "" : request.getParameter("searchKeyword"),
+                        request == null ? "" : request.getParameter("status"),
+                        request == null ? "" : request.getParameter("certificateType"),
+                        request == null ? "" : request.getParameter("applicationId"),
+                        request,
+                        requestLocale(en)));
+            } else if ("certificate_rec_check".equals(normalizedRoute)) {
+                payload.put("certificateRecCheckPageData", adminShellBootstrapPageService.buildCertificateRecCheckPageData(en));
             } else if ("trade_list".equals(normalizedRoute)) {
                 payload.put("tradeListPageData", adminShellBootstrapPageService.buildTradeListPageData(
                         request == null ? "" : request.getParameter("pageIndex"),
                         request == null ? "" : request.getParameter("searchKeyword"),
                         request == null ? "" : request.getParameter("tradeStatus"),
                         request == null ? "" : request.getParameter("settlementStatus"),
+                        en));
+            } else if ("trade_statistics".equals(normalizedRoute)) {
+                payload.put("tradeStatisticsPageData", adminShellBootstrapPageService.buildTradeStatisticsPageData(
+                        request == null ? "" : request.getParameter("pageIndex"),
+                        request == null ? "" : request.getParameter("searchKeyword"),
+                        request == null ? "" : request.getParameter("periodFilter"),
+                        request == null ? "" : request.getParameter("tradeType"),
+                        request == null ? "" : request.getParameter("settlementStatus"),
+                        en));
+            } else if ("trade_duplicate".equals(normalizedRoute)) {
+                payload.put("tradeDuplicatePageData", adminShellBootstrapPageService.buildTradeDuplicatePageData(
+                        request == null ? "" : request.getParameter("pageIndex"),
+                        request == null ? "" : request.getParameter("searchKeyword"),
+                        request == null ? "" : request.getParameter("detectionType"),
+                        request == null ? "" : request.getParameter("reviewStatus"),
+                        request == null ? "" : request.getParameter("riskLevel"),
+                        en));
+            } else if ("trade_approve".equals(normalizedRoute)) {
+                payload.put("tradeApprovePageData", adminShellBootstrapPageService.buildTradeApprovePageData(
+                        request == null ? "" : request.getParameter("pageIndex"),
+                        request == null ? "" : request.getParameter("searchKeyword"),
+                        request == null ? "" : request.getParameter("approvalStatus"),
+                        request == null ? "" : request.getParameter("tradeType"),
+                        en));
+            } else if ("settlement_calendar".equals(normalizedRoute)) {
+                payload.put("settlementCalendarPageData", adminShellBootstrapPageService.buildSettlementCalendarPageData(
+                        request == null ? "" : request.getParameter("pageIndex"),
+                        request == null ? "" : request.getParameter("selectedMonth"),
+                        request == null ? "" : request.getParameter("searchKeyword"),
+                        request == null ? "" : request.getParameter("settlementStatus"),
+                        request == null ? "" : request.getParameter("riskLevel"),
+                        en));
+            } else if ("refund_list".equals(normalizedRoute)) {
+                payload.put("refundListPageData", adminShellBootstrapPageService.buildRefundListPageData(
+                        request == null ? "" : request.getParameter("pageIndex"),
+                        request == null ? "" : request.getParameter("searchKeyword"),
+                        request == null ? "" : request.getParameter("status"),
+                        request == null ? "" : request.getParameter("riskLevel"),
+                        en));
+            } else if ("trade_reject".equals(normalizedRoute)) {
+                payload.put("tradeRejectPageData", adminShellBootstrapPageService.buildTradeRejectPageData(
+                        request == null ? "" : request.getParameter("tradeId"),
+                        request == null ? "" : request.getParameter("returnUrl"),
                         en));
             } else if ("security_policy".equals(normalizedRoute)) {
                 payload.put("securityPolicyPageData", adminShellBootstrapPageService.buildSecurityPolicyPageData(en));
@@ -155,6 +211,8 @@ public class ReactAppBootstrapService {
                 payload.put("backupConfigPageData", adminShellBootstrapPageService.buildBackupConfigPageData(en));
             } else if ("backup_execution".equals(normalizedRoute)) {
                 payload.put("backupConfigPageData", adminShellBootstrapPageService.buildBackupConfigPageData(en));
+            } else if ("new_page".equals(normalizedRoute)) {
+                payload.put("newPagePageData", adminShellBootstrapPageService.buildNewPagePageData(en));
             } else if ("restore_execution".equals(normalizedRoute)) {
                 payload.put("backupConfigPageData", adminShellBootstrapPageService.buildBackupConfigPageData(en));
             } else if ("version_management".equals(normalizedRoute)) {

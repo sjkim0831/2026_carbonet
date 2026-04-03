@@ -3,10 +3,28 @@ import { MigrationPageId, ROUTES, normalizeRouteId } from "./definitions";
 
 const routeById = new Map(ROUTES.map((entry) => [entry.id, entry] as const));
 const routeByComparablePath = new Map<string, MigrationPageId>();
+const routeAliases: Array<readonly [string, MigrationPageId]> = [
+  ["/admin/trade/list", "trade-list"],
+  ["/en/admin/trade/list", "trade-list"],
+  ["/trade/matching", "co2-search"],
+  ["/en/trade/matching", "co2-search"],
+  ["/monitoring/esg", "monitoring-statistics"],
+  ["/en/monitoring/esg", "monitoring-statistics"],
+  ["/payment/detail", "payment-history"],
+  ["/en/payment/detail", "payment-history"],
+  ["/payment/refund_account", "payment-refund-account"],
+  ["/en/payment/refund_account", "payment-refund-account"],
+  ["/payment/refundAccount", "payment-refund-account"],
+  ["/en/payment/refundAccount", "payment-refund-account"]
+];
 
 ROUTES.forEach((entry) => {
   routeByComparablePath.set(normalizeComparablePath(entry.koPath), entry.id);
   routeByComparablePath.set(normalizeComparablePath(entry.enPath), entry.id);
+});
+
+routeAliases.forEach(([path, pageId]) => {
+  routeByComparablePath.set(normalizeComparablePath(path), pageId);
 });
 
 export function normalizeComparablePath(value: string): string {
@@ -32,7 +50,17 @@ export function isReactManagedPath(pathname: string): boolean {
     return true;
   }
 
+  if (koComparable === "/admin/system/menu"
+    || koComparable === "/admin/system/menu-management"
+    || koComparable === "/admin/content/menu") {
+    return true;
+  }
+
   if (koComparable === "/signin/findId/overseas" || koComparable === "/signin/findPassword/overseas") {
+    return true;
+  }
+
+  if (koComparable === "/co2/credit") {
     return true;
   }
 
@@ -79,11 +107,20 @@ export function resolvePageFromPath(pathname: string, search = ""): MigrationPag
   if (normalizedKoPath === "/admin/member/withdrawn" || normalizedKoPath === "/admin/member/activate") {
     return "member-list";
   }
+  if (normalizedKoPath === "/admin/system/menu" || normalizedKoPath === "/admin/system/menu-management") {
+    return "menu-management";
+  }
+  if (normalizedKoPath === "/admin/content/menu") {
+    return "faq-menu-management";
+  }
   if (normalizedKoPath === "/signin/findId/overseas") {
     return "signin-find-id";
   }
   if (normalizedKoPath === "/signin/findPassword/overseas") {
     return "signin-find-password";
+  }
+  if (normalizedKoPath === "/co2/credit") {
+    return "co2-credit";
   }
   if (normalizedKoPath === "/admin/system/unified_log"
     || normalizedKoPath.startsWith("/admin/system/unified_log/")) {

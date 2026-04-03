@@ -37,6 +37,14 @@ If the repository standard script is sufficient, prefer:
 1. `bash ops/scripts/build-restart-18000.sh`
 2. `bash ops/scripts/codex-verify-18000-freshness.sh`
 
+For `/admin/external/monitoring` bootstrap-first verification, you can also use:
+
+1. `bash ops/scripts/build-restart-verify-external-monitoring-18000.sh`
+
+For `/admin/emission/management` save/calculate verification, you can also use:
+
+1. `bash ops/scripts/build-restart-verify-emission-management-18000.sh`
+
 ## Non-Negotiable Freshness Rules
 
 - Do not treat `restart-18000.sh` alone as proof that the newest frontend or bootstrap changes are live.
@@ -53,10 +61,31 @@ After changing files that affect runtime behavior on `:18000`, verify at least:
 - port `18000` is listening
 - startup log contains the current startup marker
 - health endpoint responds when available
+- when the task added or changed a specific route, the exact route URL responds after restart
 
 Prefer the repository script:
 
 - `ops/scripts/codex-verify-18000-freshness.sh`
+
+If verification starts immediately after `restart-18000.sh`, the verifier may need its built-in grace wait for pid/log/socket recreation:
+
+- `VERIFY_WAIT_SECONDS=20 ops/scripts/codex-verify-18000-freshness.sh`
+
+When `/admin/external/monitoring` first-entry bootstrap behavior itself must be proven, also use:
+
+- `ops/scripts/verify-external-monitoring-bootstrap.sh`
+- `VERIFY_EXTERNAL_MONITORING_BOOTSTRAP=true ops/scripts/codex-verify-18000-freshness.sh`
+
+When `/admin/emission/management` load, save, and calculate behavior itself must be proven, also use:
+
+- `ops/scripts/verify-emission-management-flow.sh`
+- `ops/scripts/build-restart-verify-emission-management-18000.sh`
+
+When the user reported that a newly built page "does not show", do not stop at the freshness verifier alone.
+Also call the exact changed route, for example:
+
+- `curl -sI http://127.0.0.1:18000/edu/survey`
+- `curl -s http://127.0.0.1:18000/edu/survey | sed -n '1,80p'`
 
 ## Cache And Bootstrap Boundary
 

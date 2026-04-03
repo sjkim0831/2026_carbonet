@@ -55,7 +55,7 @@ final class EmissionCalculationDefinitionRegistry {
         register(definitions, CalculationDefinition.builder("CEMENT", 2)
                 .formulaSummary("Mcl * EFcl * CFckd")
                 .formulaDisplay("CO2 = Mcl × EFcl × CFckd")
-                .uiDefinition(VariableUiDefinition.empty())
+                .uiDefinition(EmissionCalculationUiDefinitionFactory.cementTier2())
                 .executor(cementTier2Executor)
                 .build());
         register(definitions, CalculationDefinition.builder("CEMENT", 3)
@@ -65,14 +65,14 @@ final class EmissionCalculationDefinitionRegistry {
                 .executor(cementTier3Executor)
                 .build());
         register(definitions, CalculationDefinition.builder("LIME", 1)
-                .formulaSummary("SUM(EF_lime,i * Ml,i)")
-                .formulaDisplay("CO2 = Σ(EF_lime,i × Ml,i)")
+                .formulaSummary("SUM(EF석회,i * Ml,i)")
+                .formulaDisplay("CO2 = Σ(EF석회,i × Ml,i)")
                 .uiDefinition(EmissionCalculationUiDefinitionFactory.limeTier1())
                 .executor(limeTier1Executor)
                 .build());
         register(definitions, CalculationDefinition.builder("LIME", 2)
-                .formulaSummary("SUM(EF_lime,i * Ml,i * CF_lkd,i * C_h,i)")
-                .formulaDisplay("CO2 = Σ(EF_lime,i × Ml,i × CF_lkd,i × C_h,i)")
+                .formulaSummary("SUM(EF석회,i * Ml,i * CF_lkd,i * C_h,i)")
+                .formulaDisplay("CO2 = Σ(EF석회,i × Ml,i × CF_lkd,i × C_h,i)")
                 .uiDefinition(EmissionCalculationUiDefinitionFactory.limeTier2())
                 .executor(limeTier2Executor)
                 .build());

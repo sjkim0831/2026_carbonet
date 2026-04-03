@@ -18,10 +18,14 @@ public class AdminSystemPageModelAssembler {
 
     private final ObjectProvider<AdminMainController> adminMainControllerProvider;
     private final AdminSummaryService adminSummaryService;
-    private final egovframework.com.feature.admin.service.AdminShellBootstrapPageService adminShellBootstrapPageService;
+    private final ObjectProvider<egovframework.com.feature.admin.service.AdminShellBootstrapPageService> adminShellBootstrapPageServiceProvider;
 
     private AdminMainController adminMainController() {
         return adminMainControllerProvider.getObject();
+    }
+
+    private egovframework.com.feature.admin.service.AdminShellBootstrapPageService adminShellBootstrapPageService() {
+        return adminShellBootstrapPageServiceProvider.getObject();
     }
 
     public void populateSecurityPolicyPage(Model model, boolean isEn) {
@@ -167,7 +171,7 @@ public class AdminSystemPageModelAssembler {
     }
 
     public void populateBackupConfigPage(Model model, boolean isEn) {
-        Map<String, Object> payload = adminShellBootstrapPageService.buildBackupConfigPageData(isEn);
+        Map<String, Object> payload = adminShellBootstrapPageService().buildBackupConfigPageData(isEn);
         for (Map.Entry<String, Object> entry : payload.entrySet()) {
             model.addAttribute(entry.getKey(), entry.getValue());
         }

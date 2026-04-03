@@ -26,6 +26,14 @@ If one command is preferred and the standard script still matches the repository
 1. `bash ops/scripts/build-restart-18000.sh`
 2. `bash ops/scripts/codex-verify-18000-freshness.sh`
 
+If the task is specifically the `/admin/external/monitoring` first-entry bootstrap path, you can also use:
+
+1. `bash ops/scripts/build-restart-verify-external-monitoring-18000.sh`
+
+If the task is specifically the `/admin/emission/management` load plus save/calculate path, you can also use:
+
+1. `bash ops/scripts/build-restart-verify-emission-management-18000.sh`
+
 That script already enforces:
 
 1. frontend build
@@ -186,6 +194,7 @@ After a local refresh, verify at least:
 2. startup confirmation appears for port `18000`
 3. `ss -ltn` shows the port listening
 4. the relevant route or health check responds
+5. if the task added or changed a specific page such as `/edu/survey`, call that exact URL and confirm the response after restart
 
 When frontend freshness matters, also verify:
 
@@ -197,6 +206,17 @@ Preferred repository check:
 
 - `bash ops/scripts/codex-verify-18000-freshness.sh`
 
+Recommended route smoke-check after freshness verification:
+
+- `curl -sI http://127.0.0.1:18000/<changed-route>`
+- `curl -s http://127.0.0.1:18000/<changed-route> | sed -n '1,80p'`
+
+Use this when:
+
+- a new React route was added
+- a fallback route must now resolve to a concrete screen
+- the user previously reported that "the screen does not show"
+
 That script verifies:
 
 - `target/carbonet.jar` exists
@@ -206,6 +226,28 @@ That script verifies:
 - port `18000` is listening
 - startup marker exists in the runtime log
 - health endpoint reports `UP` when `curl` is available
+- it can wait briefly for restart-side PID/log/socket creation via `VERIFY_WAIT_SECONDS` when verification starts immediately after `restart-18000.sh`
+
+When the task specifically needs proof that `/admin/external/monitoring` uses bootstrap payload on first entry, also run:
+
+- `bash ops/scripts/verify-external-monitoring-bootstrap.sh`
+- `VERIFY_EXTERNAL_MONITORING_BOOTSTRAP=true bash ops/scripts/codex-verify-18000-freshness.sh`
+
+When the task specifically needs proof that `/admin/emission/management` can load, save input sessions, and execute calculation on the running local service, also run:
+
+- `bash ops/scripts/verify-emission-management-flow.sh`
+- `bash ops/scripts/build-restart-verify-emission-management-18000.sh`
+
+If the verifier is being run immediately after a restart and the supervised loop needs a little time to recreate the pid file, you can override the grace period:
+
+- `VERIFY_WAIT_SECONDS=20 bash ops/scripts/codex-verify-18000-freshness.sh`
+
+That script verifies:
+
+- local authenticated `webmaster` session bootstrap can be reproduced against the running `:18000` service
+- `/api/admin/app/bootstrap?route=external-monitoring` returns `externalMonitoringPageData`
+- `/admin/external/monitoring` loads through the admin shell bootstrap path
+- no `/admin/external/monitoring/page-data` request appears in the same verification window
 
 ## AI Agent Rule
 
@@ -216,5 +258,6 @@ The safe bias is:
 - build before package
 - package before restart
 - verify runtime after restart
+- for route work, verify the exact changed URL after runtime freshness is proven
 
 Never collapse those steps just to save one command if freshness would become ambiguous.

@@ -13,4 +13,16 @@ public class AdminRoleAssignmentVO {
     private String emplyrSttusCode;
     private String authorCode;
     private String authorNm;
+
+    public String getEmplyrId() {
+        return emplyrId;
+    }
+
+    public String getAuthorCode() {
+        return authorCode;
+    }
+
+    public String getAuthorNm() {
+        return authorNm;
+    }
 }

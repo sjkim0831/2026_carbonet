@@ -32,7 +32,10 @@ public class EmissionVariableDefinitionVO {
     private String supplementalYn;
     private String repeatGroupKey;
     private String sectionId;
+    private Integer sectionOrder;
     private String sectionTitle;
     private String sectionDescription;
     private String sectionFormula;
+    private String sectionPreviewType;
+    private String sectionRelatedFactorCodes;
 }

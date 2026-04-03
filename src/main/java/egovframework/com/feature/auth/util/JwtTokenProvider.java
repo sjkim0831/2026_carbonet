@@ -99,10 +99,10 @@ public class JwtTokenProvider {
         try {
             accessExtractClaims(token);
             return 200;
-        } catch (MalformedJwtException | UnsupportedJwtException | IllegalArgumentException e) {
-            return 400;
         } catch (ExpiredJwtException e) {
             return 401;
+        } catch (JwtException | IllegalArgumentException e) {
+            return 400;
         }
     }
 
@@ -110,10 +110,10 @@ public class JwtTokenProvider {
         try {
             refreshExtractClaims(token);
             return 200;
-        } catch (MalformedJwtException | UnsupportedJwtException | IllegalArgumentException e) {
-            return 400;
         } catch (ExpiredJwtException e) {
             return 401;
+        } catch (JwtException | IllegalArgumentException e) {
+            return 400;
         }
     }
 

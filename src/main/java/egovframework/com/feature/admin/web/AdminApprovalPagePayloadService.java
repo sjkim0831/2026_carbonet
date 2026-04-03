@@ -16,6 +16,7 @@ public class AdminApprovalPagePayloadService {
 
     private final ObjectProvider<AdminMainController> adminMainControllerProvider;
     private final AdminAuthorityPagePayloadSupport authorityPagePayloadSupport;
+    private final AdminCertificateApprovalService certificateApprovalService;
 
     private AdminMainController adminMainController() {
         return adminMainControllerProvider.getObject();
@@ -80,6 +81,32 @@ public class AdminApprovalPagePayloadService {
         boolean canManage = authorityPagePayloadSupport.hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode);
         response.put("canViewCompanyApprove", canManage);
         response.put("canUseCompanyApproveAction", canManage);
+        return response;
+    }
+
+    public Map<String, Object> buildCertificateApprovePagePayload(
+            String pageIndexParam,
+            String searchKeyword,
+            String requestType,
+            String status,
+            String result,
+            HttpServletRequest request,
+            Locale locale) {
+        AdminMainController controller = adminMainController();
+        boolean isEn = controller.isEnglishRequest(request, locale);
+        controller.primeCsrfToken(request);
+        Map<String, Object> response = new LinkedHashMap<>(certificateApprovalService.buildPagePayload(
+                pageIndexParam,
+                searchKeyword,
+                requestType,
+                status,
+                result,
+                isEn));
+        String currentUserId = controller.extractCurrentUserId(request);
+        String currentUserAuthorCode = authorityPagePayloadSupport.resolveCurrentUserAuthorCode(currentUserId);
+        boolean canManage = authorityPagePayloadSupport.hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode);
+        response.put("canViewCertificateApprove", canManage);
+        response.put("canUseCertificateApproveAction", canManage);
         return response;
     }
 }

@@ -12,6 +12,7 @@ import egovframework.com.feature.admin.dto.request.AdminBackupConfigSaveRequestD
 import egovframework.com.feature.admin.dto.request.AdminBackupRunRequestDTO;
 import egovframework.com.feature.admin.dto.request.AdminBackupVersionRestoreRequestDTO;
 import egovframework.com.feature.admin.dto.request.AdminUnifiedLogSearchRequestDTO;
+import egovframework.com.feature.admin.service.AdminShellBootstrapPageService;
 import egovframework.com.feature.auth.service.CurrentUserContextService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -53,6 +54,7 @@ public class AdminObservabilityController {
     private static final long SENSITIVE_ACTION_WINDOW_SECONDS = 300L;
     private final ObservabilityQueryService observabilityQueryService;
     private final AdminObservabilityPageService adminObservabilityPageService;
+    private final AdminShellBootstrapPageService adminShellBootstrapPageService;
     private final CurrentUserContextService currentUserContextService;
     private final AuditTrailService auditTrailService;
     private final AdminActionRateLimitService adminActionRateLimitService;
@@ -201,9 +203,245 @@ public class AdminObservabilityController {
         return ResponseEntity.ok(adminObservabilityPageService.buildSecurityPolicyPagePayload(isEnglishRequest(request, locale)));
     }
 
+    @RequestMapping(value = "/system/notification", method = { RequestMethod.GET, RequestMethod.POST })
+    public String notificationPage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardReactMigration(request, locale, "notification");
+    }
+
+    @GetMapping("/system/notification/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> notificationPageApi(
+            @RequestParam(value = "deliveryChannel", required = false) String deliveryChannel,
+            @RequestParam(value = "deliveryStatus", required = false) String deliveryStatus,
+            @RequestParam(value = "deliveryKeyword", required = false) String deliveryKeyword,
+            @RequestParam(value = "deliveryPage", required = false) String deliveryPage,
+            @RequestParam(value = "activityAction", required = false) String activityAction,
+            @RequestParam(value = "activityKeyword", required = false) String activityKeyword,
+            @RequestParam(value = "activityPage", required = false) String activityPage,
+            HttpServletRequest request,
+            Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminObservabilityPageService.buildNotificationPagePayload(
+                isEnglishRequest(request, locale),
+                deliveryChannel,
+                deliveryStatus,
+                deliveryKeyword,
+                deliveryPage,
+                activityAction,
+                activityKeyword,
+                activityPage));
+    }
+
+    @RequestMapping(value = "/system/performance", method = { RequestMethod.GET, RequestMethod.POST })
+    public String performancePage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardReactMigration(request, locale, "performance");
+    }
+
+    @GetMapping("/system/performance/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> performancePageApi(HttpServletRequest request, Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminObservabilityPageService.buildPerformancePagePayload(request, isEnglishRequest(request, locale)));
+    }
+
+    @RequestMapping(value = "/external/connection_list", method = { RequestMethod.GET, RequestMethod.POST })
+    public String externalConnectionListPage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardReactMigration(request, locale, "external-connection-list");
+    }
+
+    @RequestMapping(value = "/external/schema", method = { RequestMethod.GET, RequestMethod.POST })
+    public String externalSchemaPage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardReactMigration(request, locale, "external-schema");
+    }
+
+    @RequestMapping(value = "/external/keys", method = { RequestMethod.GET, RequestMethod.POST })
+    public String externalKeysPage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardReactMigration(request, locale, "external-keys");
+    }
+
+    @RequestMapping(value = "/external/usage", method = { RequestMethod.GET, RequestMethod.POST })
+    public String externalUsagePage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardReactMigration(request, locale, "external-usage");
+    }
+
+    @RequestMapping(value = "/external/logs", method = { RequestMethod.GET, RequestMethod.POST })
+    public String externalLogsPage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardReactMigration(request, locale, "external-logs");
+    }
+
+    @RequestMapping(value = "/external/sync", method = { RequestMethod.GET, RequestMethod.POST })
+    public String externalSyncPage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardReactMigration(request, locale, "external-sync");
+    }
+
+    @RequestMapping(value = "/external/monitoring", method = { RequestMethod.GET, RequestMethod.POST })
+    public String externalMonitoringPage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardReactMigration(request, locale, "external-monitoring");
+    }
+
+    @RequestMapping(value = "/external/maintenance", method = { RequestMethod.GET, RequestMethod.POST })
+    public String externalMaintenancePage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardReactMigration(request, locale, "external-maintenance");
+    }
+
+    @RequestMapping(value = "/external/retry", method = { RequestMethod.GET, RequestMethod.POST })
+    public String externalRetryPage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardReactMigration(request, locale, "external-retry");
+    }
+
+    @RequestMapping(value = "/external/webhooks", method = { RequestMethod.GET, RequestMethod.POST })
+    public String externalWebhooksPage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardReactMigration(request, locale, "external-webhooks");
+    }
+
+    @GetMapping("/external/connection_list/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> externalConnectionListPageApi(HttpServletRequest request, Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminObservabilityPageService.buildExternalConnectionListPagePayload(isEnglishRequest(request, locale)));
+    }
+
+    @GetMapping("/external/schema/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> externalSchemaPageApi(HttpServletRequest request, Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminObservabilityPageService.buildExternalSchemaPagePayload(isEnglishRequest(request, locale)));
+    }
+
+    @GetMapping("/external/keys/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> externalKeysPageApi(HttpServletRequest request, Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminObservabilityPageService.buildExternalKeysPagePayload(isEnglishRequest(request, locale)));
+    }
+
+    @GetMapping("/external/usage/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> externalUsagePageApi(HttpServletRequest request, Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminObservabilityPageService.buildExternalUsagePagePayload(isEnglishRequest(request, locale)));
+    }
+
+    @GetMapping("/external/logs/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> externalLogsPageApi(HttpServletRequest request, Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminObservabilityPageService.buildExternalLogsPagePayload(isEnglishRequest(request, locale)));
+    }
+
+    @GetMapping("/external/sync/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> externalSyncPageApi(HttpServletRequest request, Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminObservabilityPageService.buildExternalSyncPagePayload(isEnglishRequest(request, locale)));
+    }
+
+    @GetMapping("/external/monitoring/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> externalMonitoringPageApi(HttpServletRequest request, Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminObservabilityPageService.buildExternalMonitoringPagePayload(isEnglishRequest(request, locale)));
+    }
+
+    @GetMapping("/external/maintenance/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> externalMaintenancePageApi(HttpServletRequest request, Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminObservabilityPageService.buildExternalMaintenancePagePayload(isEnglishRequest(request, locale)));
+    }
+
+    @GetMapping("/external/retry/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> externalRetryPageApi(HttpServletRequest request, Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminObservabilityPageService.buildExternalRetryPagePayload(isEnglishRequest(request, locale)));
+    }
+
+    @GetMapping("/external/webhooks/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> externalWebhooksPageApi(
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "syncMode", required = false) String syncMode,
+            @RequestParam(value = "status", required = false) String status,
+            HttpServletRequest request,
+            Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminObservabilityPageService.buildExternalWebhooksPagePayload(
+                keyword,
+                syncMode,
+                status,
+                isEnglishRequest(request, locale)));
+    }
+
+    @GetMapping("/external/connection_add/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> externalConnectionAddPageApi(HttpServletRequest request, Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminObservabilityPageService.buildExternalConnectionFormPagePayload("add", "", isEnglishRequest(request, locale)));
+    }
+
+    @GetMapping("/external/connection_edit/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> externalConnectionEditPageApi(
+            @RequestParam(value = "connectionId", required = false) String connectionId,
+            HttpServletRequest request,
+            Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminObservabilityPageService.buildExternalConnectionFormPagePayload("edit", connectionId, isEnglishRequest(request, locale)));
+    }
+
+    @PostMapping("/external/connection/save")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> externalConnectionSaveApi(
+            @RequestBody(required = false) Map<String, String> payload,
+            HttpServletRequest request,
+            Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminObservabilityPageService.saveExternalConnection(payload, isEnglishRequest(request, locale)));
+    }
+
     @RequestMapping(value = "/system/security-monitoring", method = { RequestMethod.GET, RequestMethod.POST })
     public String securityMonitoringPage(HttpServletRequest request, Locale locale, Model model) {
         return forwardReactMigration(request, locale, "security-monitoring");
+    }
+
+    @RequestMapping(value = "/monitoring/center", method = { RequestMethod.GET, RequestMethod.POST })
+    public String operationsCenterPage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardReactMigration(request, locale, "monitoring-center");
+    }
+
+    @RequestMapping(value = "/monitoring/sensor_add", method = { RequestMethod.GET, RequestMethod.POST })
+    public String sensorAddPage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardReactMigration(request, locale, "sensor-add");
+    }
+
+    @RequestMapping(value = "/monitoring/sensor_edit", method = { RequestMethod.GET, RequestMethod.POST })
+    public String sensorEditPage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardReactMigration(request, locale, "sensor-edit");
+    }
+
+    @RequestMapping(value = "/monitoring/sensor_list", method = { RequestMethod.GET, RequestMethod.POST })
+    public String sensorListPage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardReactMigration(request, locale, "sensor-list");
+    }
+
+    @RequestMapping(value = "/external/connection_add", method = { RequestMethod.GET, RequestMethod.POST })
+    public String externalConnectionAddPage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardReactMigration(request, locale, "external-connection-add");
+    }
+
+    @GetMapping("/monitoring/center/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> operationsCenterPageApi(HttpServletRequest request, Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminObservabilityPageService.buildOperationsCenterPagePayload(request, isEnglishRequest(request, locale)));
+    }
+
+    @GetMapping("/monitoring/sensor_list/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> sensorListPageApi(HttpServletRequest request, Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminObservabilityPageService.buildSensorListPagePayload(isEnglishRequest(request, locale)));
     }
 
     @GetMapping("/system/security-monitoring/page-data")
@@ -273,6 +511,35 @@ public class AdminObservabilityController {
                 isEnglishRequest(request, locale)));
     }
 
+    @RequestMapping(value = "/certificate/audit-log", method = { RequestMethod.GET, RequestMethod.POST })
+    public String certificateAuditLogPage(HttpServletRequest request, Locale locale, Model model) {
+        return forwardReactMigration(request, locale, "certificate-audit-log");
+    }
+
+    @GetMapping("/certificate/audit-log/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> certificateAuditLogPageApi(
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "auditType", required = false) String auditType,
+            @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "certificateType", required = false) String certificateType,
+            @RequestParam(value = "startDate", required = false) String startDate,
+            @RequestParam(value = "endDate", required = false) String endDate,
+            HttpServletRequest request,
+            Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminShellBootstrapPageService.buildCertificateAuditLogPageData(
+                pageIndexParam,
+                searchKeyword,
+                auditType,
+                status,
+                certificateType,
+                startDate,
+                endDate,
+                isEnglishRequest(request, locale)));
+    }
+
     @GetMapping("/system/security-audit/export.csv")
     @ResponseBody
     public ResponseEntity<String> securityAuditExportCsv(
@@ -311,6 +578,24 @@ public class AdminObservabilityController {
             Locale locale,
             Model model) {
         return forwardReactMigration(request, locale, "scheduler-management");
+    }
+
+    @RequestMapping(value = "/system/batch", method = { RequestMethod.GET, RequestMethod.POST })
+    public String batchPage(
+            HttpServletRequest request,
+            Locale locale,
+            Model model) {
+        return forwardReactMigration(request, locale, "batch-management");
+    }
+
+    @GetMapping("/system/batch/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> batchPageApi(
+            HttpServletRequest request,
+            Locale locale) {
+        primeCsrfToken(request);
+        return ResponseEntity.ok(adminObservabilityPageService.buildBatchManagementPagePayload(
+                isEnglishRequest(request, locale)));
     }
 
     @GetMapping("/system/scheduler/page-data")

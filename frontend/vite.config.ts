@@ -18,7 +18,12 @@ function syncBuildOutputPlugin() {
       const sourceDir = path.resolve(__dirname, buildTarget);
       const targetDir = path.resolve(__dirname, mirrorTarget);
 
-      await rm(targetDir, { recursive: true, force: true });
+      await rm(targetDir, {
+        recursive: true,
+        force: true,
+        maxRetries: 5,
+        retryDelay: 200
+      });
       await mkdir(path.dirname(targetDir), { recursive: true });
       await cp(sourceDir, targetDir, { recursive: true });
     }

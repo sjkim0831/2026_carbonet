@@ -2,8 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { readBootstrappedHomePayload } from "../../lib/api/client";
-import { buildPublicApiPath, fetchJson } from "../../lib/api/core";
+import { fetchHomePayload, readBootstrappedHomePayload } from "../../lib/api/client";
 import { buildLocalizedPath, getNavigationEventName, isEnglish, navigate } from "../../lib/navigation/runtime";
 import {
   HeaderBrand,
@@ -178,11 +177,10 @@ export function EmissionProjectListMigrationPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState("");
   const payloadState = useAsyncValue<HomePayload>(
-    () => fetchJson<HomePayload>(buildPublicApiPath("api/home")),
+    () => fetchHomePayload(),
     [en],
     {
       initialValue: initialPayload || { isLoggedIn: false, isEn: en, homeMenu: [] },
-      skipInitialLoad: Boolean(initialPayload),
       onError: () => undefined
     }
   );

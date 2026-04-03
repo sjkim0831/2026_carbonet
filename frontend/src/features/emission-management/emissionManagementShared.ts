@@ -15,9 +15,12 @@ export type MajorCategoryOption = {
 
 export type VariableSection = {
   id: string;
+  order: number;
   title: string;
   description: string;
   formula: string;
+  previewType: string;
+  relatedFactorCodes: string;
   codes: string[];
 };
 
@@ -192,7 +195,15 @@ export function isDerivedCarbonateFactorVariable(category: EmissionCategoryItem 
 }
 
 export function visibleVariablesForStep(category: EmissionCategoryItem | null, tier: number, variables: EmissionVariableDefinition[]) {
-  return variables.filter((variable) => !isDerivedCarbonateFactorVariable(category, tier, variable));
+  return variables.filter((variable) => {
+    if (isDerivedCarbonateFactorVariable(category, tier, variable)) {
+      return false;
+    }
+    if (isLimeTier2Scope(category, tier) && variableCodeOf(variable) === "MGO_CONTENT") {
+      return false;
+    }
+    return true;
+  });
 }
 
 export function displayVariableName(_category: EmissionCategoryItem | null, _tier: number, variable: EmissionVariableDefinition) {
@@ -262,7 +273,6 @@ export function limeTier2DerivedSummary(en: boolean, inputs: InputMap, rowIndex:
   const limeType = resolveLimeTier2Type(inputs, rowIndex);
   const mli = numberOf(rowValue(inputs, "MLI", rowIndex));
   const cao = ratioOf(rowValue(inputs, "CAO_CONTENT", rowIndex));
-  const mgo = ratioOf(rowValue(inputs, "MGO_CONTENT", rowIndex));
   const caoMgoRaw = ratioOf(rowValue(inputs, "CAO_MGO_CONTENT", rowIndex));
   const md = numberOf(rowValue(inputs, "MD", rowIndex));
   const cd = ratioOf(rowValue(inputs, "CD", rowIndex));
@@ -273,13 +283,13 @@ export function limeTier2DerivedSummary(en: boolean, inputs: InputMap, rowIndex:
 
   const usesCaoMgo = limeType === "DOLOMITIC" || limeType === "DOLOMITIC_HIGH" || limeType === "DOLOMITIC_LOW";
   const content = usesCaoMgo
-    ? (caoMgoRaw > 0 ? caoMgoRaw : (cao + mgo > 0 ? cao + mgo : defaultLimeTier2Content(limeType)))
+    ? (caoMgoRaw > 0 ? caoMgoRaw : defaultLimeTier2Content(limeType))
     : (cao > 0 ? cao : defaultLimeTier2Content(limeType));
   const ef = (usesCaoMgo ? SR_CAO_MGO_DEFAULT : SR_CAO_DEFAULT) * content;
   const cf = md > 0 && cd > 0 && fd > 0 && mli > 0 ? 1 + (md / mli) * cd * fd : LIME_CF_LKD_DEFAULT;
   const ch = hydratedYn === "N" ? 1 : hydratedYn === "Y" ? (x > 0 && y > 0 ? 1 - (x * y) : HYDRATED_LIME_CORRECTION_DEFAULT) : 1;
   const efA = SR_CAO_DEFAULT * (cao > 0 ? cao : defaultLimeTier2Content(limeType));
-  const combinedForB = caoMgoRaw > 0 ? caoMgoRaw : (cao + mgo > 0 ? cao + mgo : defaultLimeTier2Content(limeType));
+  const combinedForB = caoMgoRaw > 0 ? caoMgoRaw : defaultLimeTier2Content(limeType);
   const efB = SR_CAO_MGO_DEFAULT * combinedForB;
   const efC = SR_CAO_DEFAULT * (cao > 0 ? cao : defaultLimeTier2Content(limeType));
 
@@ -308,7 +318,7 @@ export function isLimeTier2Scope(category: EmissionCategoryItem | null, tier: nu
   return stringOf(category?.subCode).toUpperCase() === "LIME" && tier === 2;
 }
 
-export function buildVariableSections(en: boolean, category: EmissionCategoryItem | null, tier: number, variables: EmissionVariableDefinition[]): VariableSection[] {
+export function buildVariableSections(en: boolean, _category: EmissionCategoryItem | null, _tier: number, variables: EmissionVariableDefinition[]): VariableSection[] {
   const metadataSections = new Map<string, VariableSection>();
   variables.forEach((variable) => {
     const sectionId = stringOf(variable.sectionId);
@@ -323,23 +333,60 @@ export function buildVariableSections(en: boolean, category: EmissionCategoryIte
     }
     metadataSections.set(sectionId, {
       id: sectionId,
+      order: numberOf(variable.sectionOrder),
       title: stringOf(variable.sectionTitle) || (en ? "Variable Inputs" : "변수 입력"),
       description: stringOf(variable.sectionDescription),
       formula: stringOf(variable.sectionFormula),
+      previewType: stringOf(variable.sectionPreviewType),
+      relatedFactorCodes: stringOf(variable.sectionRelatedFactorCodes),
       codes: [code]
     });
   });
   if (metadataSections.size > 0) {
-    return Array.from(metadataSections.values());
+    return Array.from(metadataSections.values()).sort((left, right) => left.order - right.order || left.id.localeCompare(right.id));
   }
-  if (!isLimeTier2Scope(category, tier)) {
-    return [{
-      id: "default",
-      title: en ? "Variable Inputs" : "변수 입력",
-      description: en ? "Enter the variables required by the selected formula." : "선택한 계산식에 필요한 변수를 입력합니다.",
+
+  const repeatSections = new Map<string, VariableSection>();
+  const ungroupedCodes: string[] = [];
+  variables.forEach((variable) => {
+    const code = variableCodeOf(variable);
+    const groupKey = stringOf(variable.repeatGroupKey);
+    if (!groupKey || !isRepeatableVariable(variable)) {
+      ungroupedCodes.push(code);
+      return;
+    }
+    const existing = repeatSections.get(groupKey);
+    if (existing) {
+      existing.codes.push(code);
+      return;
+    }
+    repeatSections.set(groupKey, {
+      id: groupKey,
+      order: repeatSections.size + 1,
+      title: en ? "Grouped Inputs" : "묶음 입력",
+      description: en
+        ? "Repeated variables in the same calculation term are grouped together."
+        : "같은 계산항에 반복 사용되는 변수를 함께 묶어 입력합니다.",
       formula: "",
-      codes: variables.map((variable) => variableCodeOf(variable))
-    }];
+      previewType: "",
+      relatedFactorCodes: "",
+      codes: [code]
+    });
+  });
+  if (repeatSections.size > 0) {
+    return [
+      ...Array.from(repeatSections.values()),
+      ...(ungroupedCodes.length > 0 ? [{
+        id: "default",
+        order: repeatSections.size + 99,
+        title: en ? "Additional Inputs" : "추가 입력",
+        description: en ? "Enter the remaining variables required by the selected formula." : "선택한 계산식의 나머지 변수를 입력합니다.",
+        formula: "",
+        previewType: "",
+        relatedFactorCodes: "",
+        codes: ungroupedCodes
+      }] : [])
+    ];
   }
   return [];
 }
@@ -356,7 +403,7 @@ export function isLimeTier2DisabledField(category: EmissionCategoryItem | null, 
   const code = stringOf(varCode).toUpperCase();
   const resolvedType = resolveLimeTier2Type(inputs, rowIndex);
   const isDolomitic = resolvedType === "DOLOMITIC" || resolvedType === "DOLOMITIC_HIGH" || resolvedType === "DOLOMITIC_LOW";
-  if (!isDolomitic && (code === "CAO_MGO_CONTENT" || code === "MGO_CONTENT")) {
+  if (!isDolomitic && code === "CAO_MGO_CONTENT") {
     return true;
   }
   if ((code === "X" || code === "Y") && stringOf(inputs.HYDRATED_LIME_PRODUCTION_YN?.[rowIndex]?.value).toUpperCase() === "N") {
@@ -371,9 +418,6 @@ export function shouldShowLimeTier2Variable(category: EmissionCategoryItem | nul
     return true;
   }
   const code = stringOf(varCode).toUpperCase();
-  if (code === "MGO_CONTENT") {
-    return false;
-  }
   const limeRows = inputs.LIME_TYPE || [];
   const hasDolomitic = limeRows.some((_, rowIndex) => {
     const resolvedType = resolveLimeTier2Type(inputs, rowIndex);

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { preloadPageModule } from "../routes/pageRegistry";
 import { isReactManagedPath, parseLocationState, resolveCanonicalRuntimePath, resolvePageFromPath } from "../routes/runtime";
 import { getNavigationEventName, navigate, replace } from "../../lib/navigation/runtime";
-import { prefetchRoutePageData } from "../../lib/api/client";
+import { prefetchRouteBootstrap, prefetchRoutePageData } from "../../lib/api/client";
 
 function getCurrentLocationState() {
   return `${window.location.pathname}${window.location.search}${window.location.hash}`;
@@ -36,6 +36,7 @@ export function useRuntimeNavigation() {
       try {
         const nextPage = resolvePageFromPath(nextUrl.pathname, nextUrl.search);
         await Promise.all([
+          prefetchRouteBootstrap(nextPage, `${nextUrl.pathname}${nextUrl.search}`),
           preloadPageModule(nextPage),
           prefetchRoutePageData(nextPage, nextUrl.search).catch(() => undefined)
         ]);

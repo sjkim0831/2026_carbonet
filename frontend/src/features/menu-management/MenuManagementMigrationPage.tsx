@@ -192,7 +192,6 @@ export function MenuManagementMigrationPage() {
   const groupMenuOptions = ((page?.groupMenuOptions || []) as Array<Record<string, string>>);
   const iconOptions = ((page?.iconOptions || []) as string[]);
   const useAtOptions = ((page?.useAtOptions || []) as string[]);
-  const expsrAtOptions = ((page?.expsrAtOptions || []) as string[]);
 
   const originalSnapshot = useMemo(() => buildSnapshot(rows), [rows]);
   const filteredTreeData = useMemo(() => filterTree(treeData, deferredSearchKeyword), [deferredSearchKeyword, treeData]);
@@ -203,13 +202,6 @@ export function MenuManagementMigrationPage() {
     allNodes.filter((node) => {
       const snapshot = originalSnapshot[node.code];
       return snapshot && snapshot.sortOrdr !== node.sortOrdr;
-    })
-  ), [allNodes, originalSnapshot]);
-
-  const dirtyExposureRows = useMemo(() => (
-    allNodes.filter((node) => {
-      const snapshot = originalSnapshot[node.code];
-      return snapshot && snapshot.expsrAt !== node.expsrAt;
     })
   ), [allNodes, originalSnapshot]);
 
@@ -253,8 +245,7 @@ export function MenuManagementMigrationPage() {
       visibleNodeCount: visibleNodes.length,
       groupMenuOptionCount: groupMenuOptions.length,
       searchKeyword: deferredSearchKeyword,
-      dirtyOrderCount: dirtyOrderRows.length,
-      dirtyExposureCount: dirtyExposureRows.length
+      dirtyOrderCount: dirtyOrderRows.length
     });
     logGovernanceScope("COMPONENT", "menu-management-tree", {
       component: "menu-management-tree",
@@ -264,7 +255,6 @@ export function MenuManagementMigrationPage() {
     });
   }, [
     deferredSearchKeyword,
-    dirtyExposureRows.length,
     dirtyOrderRows.length,
     groupMenuOptions.length,
     menuType,
@@ -343,58 +333,12 @@ export function MenuManagementMigrationPage() {
     body.set("menuType", menuType);
     body.set("orderPayload", flattenPayload(treeData).join(","));
     await postFormUrlEncoded(
-      buildLocalizedPath("/admin/system/menu-management/order", "/en/admin/system/menu-management/order"),
+      buildLocalizedPath("/admin/system/menu/order", "/en/admin/system/menu/order"),
       body
     );
     refreshAdminMenuTree();
     await pageState.reload();
     setActionMessage(en ? "Menu order has been saved." : "메뉴 순서를 저장했습니다.");
-  }
-
-  async function saveExposure(code: string, expsrAt: string) {
-    const body = new URLSearchParams();
-    body.set("menuType", menuType);
-    body.set("menuCode", code);
-    body.set("expsrAt", expsrAt);
-    const responseBody = await postFormUrlEncoded<{ success?: boolean; message?: string }>(
-      buildLocalizedPath("/admin/system/menu-management/exposure", "/en/admin/system/menu-management/exposure"),
-      body
-    );
-    if (!responseBody.success) {
-      throw new Error(responseBody.message || "Failed to save menu exposure.");
-    }
-    return responseBody;
-  }
-
-  async function saveAllExposureChanges() {
-    if (dirtyExposureRows.length === 0) {
-      setActionMessage(en ? "There are no visibility changes to save." : "저장할 노출 변경이 없습니다.");
-      return;
-    }
-    logGovernanceScope("ACTION", "menu-management-save-all-exposure", {
-      menuType,
-      dirtyExposureCount: dirtyExposureRows.length
-    });
-    setActionError("");
-    setActionMessage("");
-    for (const row of dirtyExposureRows) {
-      await saveExposure(row.code, row.expsrAt);
-    }
-    refreshAdminMenuTree();
-    await pageState.reload();
-    setActionMessage(en ? "Visibility changes have been saved." : "노출 변경을 저장했습니다.");
-  }
-
-  function updateExposureValue(path: number[], value: string) {
-    setTreeData((current) => {
-      const clone = JSON.parse(JSON.stringify(current)) as MenuNode[];
-      let level = clone;
-      for (let i = 0; i < path.length - 1; i += 1) {
-        level = level[path[i]].children;
-      }
-      level[path[path.length - 1]].expsrAt = value;
-      return clone;
-    });
   }
 
   function findSuggestedPageCode() {
@@ -435,7 +379,7 @@ export function MenuManagementMigrationPage() {
     body.set("menuIcon", menuIcon);
     body.set("useAt", useAt);
     const responseBody = await postFormUrlEncoded<{ success?: boolean; message?: string; createdCode?: string }>(
-      buildLocalizedPath("/admin/system/menu-management/create-page", "/en/admin/system/menu-management/create-page"),
+      buildLocalizedPath("/admin/system/menu/create-page", "/en/admin/system/menu/create-page"),
       body
     );
     if (!responseBody.success) {
@@ -458,10 +402,9 @@ export function MenuManagementMigrationPage() {
           const currentPath = [...path, index];
           const snapshot = originalSnapshot[node.code];
           const orderChanged = Boolean(snapshot && snapshot.sortOrdr !== node.sortOrdr);
-          const exposureChanged = Boolean(snapshot && snapshot.expsrAt !== node.expsrAt);
           return (
             <li key={node.code}>
-              <div className={`gov-tree-node ${orderChanged || exposureChanged ? "ring-1 ring-[var(--kr-gov-blue)] ring-offset-1" : ""}`}>
+              <div className={`gov-tree-node ${orderChanged ? "ring-1 ring-[var(--kr-gov-blue)] ring-offset-1" : ""}`}>
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -469,9 +412,7 @@ export function MenuManagementMigrationPage() {
                       <strong className="text-base">{node.label}</strong>
                       <span className={`gov-chip ${chipClass}`}>{node.code}</span>
                       <span className={`gov-chip ${node.useAt === "Y" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>{node.useAt === "Y" ? (en ? "Use" : "사용") : (en ? "Unused" : "미사용")}</span>
-                      <span className={`gov-chip ${node.expsrAt === "Y" ? "bg-blue-100 text-blue-700" : "bg-red-100 text-red-700"}`}>{node.expsrAt === "Y" ? (en ? "Visible" : "노출") : (en ? "Hidden" : "숨김")}</span>
                       {orderChanged ? <span className="gov-chip bg-indigo-100 text-indigo-700">{en ? "Order changed" : "순서 변경"}</span> : null}
-                      {exposureChanged ? <span className="gov-chip bg-amber-100 text-amber-700">{en ? "Visibility changed" : "노출 변경"}</span> : null}
                     </div>
                     <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)] break-all">{node.url || (en ? "No linked URL" : "연결 URL 없음")}</p>
                     <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">
@@ -480,21 +421,6 @@ export function MenuManagementMigrationPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    {node.code.length === 8 ? (
-                      <>
-                        <select
-                          className="gov-select min-w-[110px]"
-                          value={node.expsrAt}
-                          onChange={(event) => updateExposureValue(currentPath, event.target.value)}
-                        >
-                          {(expsrAtOptions.length > 0 ? expsrAtOptions : ["Y", "N"]).map((option) => (
-                            <option key={option} value={option}>
-                              {option === "Y" ? (en ? "Visible" : "노출") : (en ? "Hidden" : "숨김")}
-                            </option>
-                          ))}
-                        </select>
-                      </>
-                    ) : null}
                     <button className="gov-btn gov-btn-outline" disabled={index === 0 || Boolean(deferredSearchKeyword)} onClick={() => updateLevel(currentPath, -1)} type="button">{en ? "Up" : "위로"}</button>
                     <button className="gov-btn gov-btn-outline" disabled={index === nodes.length - 1 || Boolean(deferredSearchKeyword)} onClick={() => updateLevel(currentPath, 1)} type="button">{en ? "Down" : "아래로"}</button>
                   </div>
@@ -513,11 +439,11 @@ export function MenuManagementMigrationPage() {
       breadcrumbs={[
         { label: en ? "Home" : "홈", href: buildLocalizedPath("/admin/", "/en/admin/") },
         { label: en ? "System" : "시스템" },
-        { label: en ? "Environment" : "환경" },
+        { label: en ? "Environment" : "환경설정" },
         { label: en ? "Menu Management" : "메뉴 관리" }
       ]}
       title={en ? "Menu Management" : "메뉴 관리"}
-      subtitle={en ? "Review menu hierarchy for home and admin screens and reorder within the same parent." : "홈과 관리자 메뉴 계층을 같은 기준으로 확인하고, 같은 레벨 안에서 순서를 조정합니다."}
+      subtitle={en ? "Manage the system environment menu hierarchy, register page menus quickly, and keep sibling order aligned." : "시스템 환경설정 메뉴 계층을 정리하고, 페이지 메뉴를 빠르게 등록하며, 같은 부모 아래 정렬 순서를 맞춥니다."}
     >
       <AdminWorkspacePageFrame>
         {page?.menuMgmtMessage || actionMessage ? <PageStatusNotice tone="success">{actionMessage || String(page?.menuMgmtMessage)}</PageStatusNotice> : null}
@@ -526,7 +452,7 @@ export function MenuManagementMigrationPage() {
         <section className="grid grid-cols-1 gap-3 xl:grid-cols-4">
           <SummaryMetricCard title={en ? "Visible Nodes" : "표시 노드"} value={`${visibleNodes.length} / ${allNodes.length}`} description={en ? "Search results / total" : "검색 결과 / 전체"} />
           <SummaryMetricCard title={en ? "Order Changes" : "순서 변경"} value={String(dirtyOrderRows.length)} description={en ? "Pending before save" : "저장 전 변경 건"} />
-          <SummaryMetricCard title={en ? "Visibility Changes" : "노출 변경"} value={String(dirtyExposureRows.length)} description={en ? "Pending before save" : "저장 전 변경 건"} />
+          <SummaryMetricCard title={en ? "Group Menus" : "그룹 메뉴"} value={String(groupMenuOptions.length)} description={en ? "Available parents" : "등록 가능 부모 메뉴"} />
           <SummaryMetricCard title={en ? "Current Scope" : "현재 구분"} value={menuType} description={en ? "Synced to URL query" : "URL 쿼리와 동기화"} />
         </section>
 
@@ -629,8 +555,8 @@ export function MenuManagementMigrationPage() {
 
         <section className="gov-card overflow-hidden p-0" data-help-id="menu-management-tree">
           <GridToolbar
-            actions={<div className="flex flex-wrap items-center gap-2"><button className="gov-btn gov-btn-outline" disabled={dirtyExposureRows.length === 0} onClick={() => { void saveAllExposureChanges().catch((error: Error) => setActionError(error.message)); }} type="button">{en ? "Save Visibility Changes" : "노출 변경 저장"}</button><button className="gov-btn gov-btn-primary" onClick={() => { void saveOrder().catch((error: Error) => setActionError(error.message)); }} type="button">{en ? "Save Order" : "순서 저장"}</button></div>}
-            meta={en ? "Review node depth, pending order changes, and visibility changes before saving." : "노드 깊이, 순서 변경, 노출 변경 상태를 확인한 뒤 저장합니다."}
+            actions={<div className="flex flex-wrap items-center gap-2"><button className="gov-btn gov-btn-primary" onClick={() => { void saveOrder().catch((error: Error) => setActionError(error.message)); }} type="button">{en ? "Save Order" : "순서 저장"}</button></div>}
+            meta={en ? "Review node depth and pending sibling order changes before saving." : "노드 깊이와 같은 부모 기준의 정렬 변경을 확인한 뒤 저장합니다."}
             title={en ? "Menu Tree" : "메뉴 트리"}
           />
           <div className="p-6">
@@ -650,20 +576,19 @@ export function MenuManagementMigrationPage() {
           </div>
         </div>
 
-        {(dirtyOrderRows.length > 0 || dirtyExposureRows.length > 0) ? (
-          <CollectionResultPanel className="mb-4" description={en ? "Rows below still have unsaved order or visibility changes." : "아래 행에는 아직 저장되지 않은 순서 또는 노출 변경이 남아 있습니다."} icon="pending_actions" title={en ? "Pending changes" : "저장 대기 변경"}>
+        {dirtyOrderRows.length > 0 ? (
+          <CollectionResultPanel className="mb-4" description={en ? "Rows below still have unsaved sibling order changes." : "아래 행에는 아직 저장되지 않은 같은 부모 기준 정렬 변경이 남아 있습니다."} icon="pending_actions" title={en ? "Pending changes" : "저장 대기 변경"}>
             <div className="mt-2 flex flex-wrap gap-2">
               {dirtyOrderRows.slice(0, 8).map((node) => <span className="gov-chip bg-indigo-100 text-indigo-700" key={`order-${node.code}`}>{`${node.code} ${en ? "order" : "순서"}`}</span>)}
-              {dirtyExposureRows.slice(0, 8).map((node) => <span className="gov-chip bg-amber-100 text-amber-700" key={`exposure-${node.code}`}>{`${node.code} ${en ? "visibility" : "노출"}`}</span>)}
-              {(dirtyOrderRows.length + dirtyExposureRows.length) > 8 ? <span className="gov-chip bg-slate-100 text-slate-700">+{dirtyOrderRows.length + dirtyExposureRows.length - 8}</span> : null}
+              {dirtyOrderRows.length > 8 ? <span className="gov-chip bg-slate-100 text-slate-700">+{dirtyOrderRows.length - 8}</span> : null}
             </div>
           </CollectionResultPanel>
         ) : null}
 
         <WarningPanel className="mb-4" title={en ? "Visibility rule" : "노출 규칙"}>
           {en
-            ? "Visibility only affects sidebar/menu exposure. Hidden menus remain accessible by direct route and linked buttons."
-            : "숨김은 좌측 메뉴 노출만 제어합니다. 숨김 처리된 메뉴도 직접 경로 접근과 연결 버튼 동작은 유지됩니다."}
+            ? "Sidebar or sitemap exposure is governed separately. This screen focuses on menu registration and sibling ordering."
+            : "사이드바나 사이트맵 노출 정책은 별도 관리 대상으로 분리합니다. 이 화면은 메뉴 등록과 같은 부모 기준 정렬에 집중합니다."}
         </WarningPanel>
 
         {visibleNodes.length === 0 ? (

@@ -1,10 +1,5 @@
 package egovframework.com.common.logging;
 
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
 public class AccessEventSearchVO {
 
     private int firstIndex;
@@ -15,4 +10,21 @@ public class AccessEventSearchVO {
     private String pageId;
     private String apiId;
     private String featureType;
+
+    public int getFirstIndex() { return firstIndex; }
+    public void setFirstIndex(int firstIndex) { this.firstIndex = firstIndex; }
+    public int getRecordCountPerPage() { return recordCountPerPage; }
+    public void setRecordCountPerPage(int recordCountPerPage) { this.recordCountPerPage = recordCountPerPage; }
+    public String getSearchKeyword() { return searchKeyword; }
+    public void setSearchKeyword(String searchKeyword) { this.searchKeyword = searchKeyword; }
+    public String getInsttId() { return insttId; }
+    public void setInsttId(String insttId) { this.insttId = insttId; }
+    public String getActorId() { return actorId; }
+    public void setActorId(String actorId) { this.actorId = actorId; }
+    public String getPageId() { return pageId; }
+    public void setPageId(String pageId) { this.pageId = pageId; }
+    public String getApiId() { return apiId; }
+    public void setApiId(String apiId) { this.apiId = apiId; }
+    public String getFeatureType() { return featureType; }
+    public void setFeatureType(String featureType) { this.featureType = featureType; }
 }

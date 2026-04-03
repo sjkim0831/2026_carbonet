@@ -17,4 +17,44 @@ public class LoginHistoryVO {
     private String loginPnttm;
     private String insttId;
     private String companyName;
+
+    public String getHistId() {
+        return histId;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public String getUserNm() {
+        return userNm;
+    }
+
+    public String getUserSe() {
+        return userSe;
+    }
+
+    public String getLoginResult() {
+        return loginResult;
+    }
+
+    public String getLoginIp() {
+        return loginIp;
+    }
+
+    public String getLoginMessage() {
+        return loginMessage;
+    }
+
+    public String getLoginPnttm() {
+        return loginPnttm;
+    }
+
+    public String getInsttId() {
+        return insttId;
+    }
+
+    public String getCompanyName() {
+        return companyName;
+    }
 }

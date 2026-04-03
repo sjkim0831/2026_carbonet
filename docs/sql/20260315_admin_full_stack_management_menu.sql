@@ -22,7 +22,7 @@ SELECT
           AND SUBSTR(d.CODE, 1, 6) = SUBSTR(base.MENU_CODE, 1, 6)
     ), 0) + 1 AS next_suffix
 FROM COMTNMENUINFO base
-WHERE base.MENU_URL = '/admin/system/menu-management';
+WHERE base.MENU_URL = '/admin/content/menu';
 
 SELECT
     'MENU_URL_EXISTS' AS check_name,
@@ -57,7 +57,7 @@ JOIN COMTNMENUFUNCTIONINFO f
   ON f.FEATURE_CODE = r.FEATURE_CODE
 JOIN COMTNMENUINFO m
   ON m.MENU_CODE = f.MENU_CODE
-WHERE m.MENU_URL = '/admin/system/menu-management'
+WHERE m.MENU_URL = '/admin/content/menu'
 GROUP BY r.AUTHOR_CODE
 ORDER BY r.AUTHOR_CODE;
 
@@ -90,7 +90,7 @@ SELECT
     CURRENT_DATETIME,
     'codex'
 FROM COMTNMENUINFO base
-WHERE base.MENU_URL = '/admin/system/menu-management'
+WHERE base.MENU_URL = '/admin/content/menu'
   AND NOT EXISTS (
       SELECT 1
       FROM COMTNMENUINFO m
@@ -202,7 +202,7 @@ FROM (
       ON f.FEATURE_CODE = r.FEATURE_CODE
     JOIN COMTNMENUINFO m
       ON m.MENU_CODE = f.MENU_CODE
-    WHERE m.MENU_URL = '/admin/system/menu-management'
+    WHERE m.MENU_URL = '/admin/content/menu'
 
     UNION ALL
 
@@ -215,7 +215,7 @@ FROM (
           ON f2.FEATURE_CODE = r2.FEATURE_CODE
         JOIN COMTNMENUINFO m2
           ON m2.MENU_CODE = f2.MENU_CODE
-        WHERE m2.MENU_URL = '/admin/system/menu-management'
+        WHERE m2.MENU_URL = '/admin/content/menu'
     )
 ) author_targets
 WHERE EXISTS (

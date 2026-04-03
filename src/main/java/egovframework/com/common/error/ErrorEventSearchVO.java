@@ -1,10 +1,5 @@
 package egovframework.com.common.error;
 
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
 public class ErrorEventSearchVO {
 
     private int firstIndex;
@@ -17,4 +12,25 @@ public class ErrorEventSearchVO {
     private String insttId;
     private String pageId;
     private String apiId;
+
+    public int getFirstIndex() { return firstIndex; }
+    public void setFirstIndex(int firstIndex) { this.firstIndex = firstIndex; }
+    public int getRecordCountPerPage() { return recordCountPerPage; }
+    public void setRecordCountPerPage(int recordCountPerPage) { this.recordCountPerPage = recordCountPerPage; }
+    public String getSearchKeyword() { return searchKeyword; }
+    public void setSearchKeyword(String searchKeyword) { this.searchKeyword = searchKeyword; }
+    public String getSourceType() { return sourceType; }
+    public void setSourceType(String sourceType) { this.sourceType = sourceType; }
+    public String getErrorType() { return errorType; }
+    public void setErrorType(String errorType) { this.errorType = errorType; }
+    public String getResultStatus() { return resultStatus; }
+    public void setResultStatus(String resultStatus) { this.resultStatus = resultStatus; }
+    public String getActorId() { return actorId; }
+    public void setActorId(String actorId) { this.actorId = actorId; }
+    public String getInsttId() { return insttId; }
+    public void setInsttId(String insttId) { this.insttId = insttId; }
+    public String getPageId() { return pageId; }
+    public void setPageId(String pageId) { this.pageId = pageId; }
+    public String getApiId() { return apiId; }
+    public void setApiId(String apiId) { this.apiId = apiId; }
 }

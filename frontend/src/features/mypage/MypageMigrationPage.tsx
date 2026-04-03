@@ -15,7 +15,7 @@ import {
   saveMypageEmail,
   saveMypageStaff
 } from "../../lib/api/client";
-import { isEnglish, navigate } from "../../lib/navigation/runtime";
+import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
 import { HomeButton, HomeInput, HomeLinkButton } from "../home-ui/common";
 
 type MypageMember = Record<string, unknown> & {
@@ -346,6 +346,17 @@ export function MypageMigrationPage() {
   const companyName = stringValue(member.cmpnyNm) || "-";
   const businessNumber = stringValue(member.bizrno) || "-";
   const phoneNumber = formatPhone(areaNo, middleTelno, endTelno);
+  const profilePath = buildLocalizedPath("/mypage/profile", "/en/mypage/profile");
+  const sidebarItems = [
+    { label: en ? "My Profile Settings" : "내 정보", href: profilePath, icon: "account_circle", active: true },
+    { label: en ? "Security & Password" : "보안 설정", href: buildLocalizedPath("/mypage/security", "/en/mypage/security"), icon: "security" },
+    { label: en ? "Linked Company Info" : "기업 정보", href: buildLocalizedPath("/mypage/company", "/en/mypage/company"), icon: "business" },
+    { label: en ? "Staff Management" : "담당자 관리", href: buildLocalizedPath("/mypage/staff", "/en/mypage/staff"), icon: "groups" },
+    { label: en ? "Notification Settings" : "알림 설정", href: buildLocalizedPath("/mypage/notification", "/en/mypage/notification"), icon: "notifications" }
+  ];
+  const displayName = fullName || userId;
+  const displayRole = jobTitle || (en ? "General Site Overseer" : "총괄 감독관");
+  const memberStatus = stringValue(page?.memberStatus) || (en ? "ACTIVE" : "정상");
 
   useEffect(() => {
     if (!page) {
@@ -387,7 +398,7 @@ export function MypageMigrationPage() {
           brandSubtitle="Carbon Capture, Utilization and Storage"
           brandTitle={en ? "CCUS Management Portal" : "CCUS 통합관리 포털"}
           homeHref={copy.homePath}
-          rightContent={<UserLanguageToggle en={en} onEn={() => navigate("/en/mypage")} onKo={() => navigate("/mypage")} />}
+          rightContent={<UserLanguageToggle en={en} onEn={() => navigate("/en/mypage/profile")} onKo={() => navigate("/mypage/profile")} />}
         />
         <main className="flex-grow flex flex-col items-center justify-center py-12 px-4" id="main-content">
           <div className="w-full max-w-[640px] bg-white border border-[var(--kr-gov-border-light)] rounded-lg shadow-sm overflow-hidden p-8 md:p-12 text-center">
@@ -541,7 +552,7 @@ export function MypageMigrationPage() {
   }
 
   return (
-    <div className="mypage-screen bg-white text-[var(--kr-gov-text-primary)] min-h-screen">
+    <div className="mypage-screen bg-[#f8fafc] text-[var(--kr-gov-text-primary)] min-h-screen">
       <a className="skip-link" href="#main-content">
         {copy.skip}
       </a>
@@ -549,67 +560,76 @@ export function MypageMigrationPage() {
       <UserGovernmentBar governmentText={copy.government} guidelineText={copy.guideline} />
 
       <UserPortalHeader
-        brandSubtitle="Carbon Footprint Platform"
-        brandTitle={en ? "CCUS Carbon Footprint Platform" : "CCUS 탄소발자국 플랫폼"}
+        brandSubtitle={en ? "Overseer Personal Dashboard" : "현장 담당자 개인 대시보드"}
+        brandTitle={en ? "My Page" : "마이페이지"}
         homeHref={copy.homePath}
         rightContent={
-          <>
-            <nav className="hidden xl:flex items-center space-x-1 h-full ml-8 flex-1 justify-center">
-              {copy.homeNavItems.map((item) => (
-                <div className="gnb-item h-full relative group" key={item}>
-                  <HomeLinkButton
-                    className={`h-full flex items-center px-4 font-bold text-[var(--kr-gov-text-primary)] border-b-4 border-transparent hover:text-[var(--kr-gov-blue)] hover:border-[var(--kr-gov-blue)] transition-all focus-visible ${en ? "text-[15px]" : "text-[16px]"}`}
-                    href="#"
-                    onClick={(event) => event.preventDefault()}
-                    variant="ghost"
-                  >
-                    {item}
-                  </HomeLinkButton>
-                </div>
-              ))}
-            </nav>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold">{en ? (fullName || userId) : `${fullName || userId} 님`}</span>
-                <HomeButton className="min-h-0 border-0 bg-transparent px-0 py-0 text-xs text-[var(--kr-gov-text-secondary)] hover:bg-transparent hover:underline" onClick={() => void sessionState.logout()} type="button" variant="ghost">
-                  {copy.logout}
-                </HomeButton>
-              </div>
-              <HomeLinkButton className="h-10 w-10 rounded-full bg-gray-100 p-0 hover:bg-gray-200" href="#" onClick={(event) => event.preventDefault()} variant="ghost">
-                <span className="material-symbols-outlined text-gray-600">person</span>
-              </HomeLinkButton>
+          <div className="flex items-center gap-4">
+            <UserLanguageToggle en={en} onEn={() => navigate("/en/mypage/profile")} onKo={() => navigate("/mypage/profile")} />
+            <div className="hidden md:flex flex-col items-end">
+              <span className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "General Manager" : "총괄 책임자"}</span>
+              <span className="text-sm font-black text-[var(--kr-gov-text-primary)]">{displayName}</span>
             </div>
-          </>
+            <HomeButton className="min-h-0 rounded-[var(--kr-gov-radius)] px-4 py-2 text-sm" onClick={() => void sessionState.logout()} type="button" variant="primary">
+              {copy.logout}
+            </HomeButton>
+          </div>
         }
       />
 
-      <main className="max-w-7xl mx-auto px-4 lg:px-8 py-10" id="main-content">
-        <div className="flex flex-col lg:flex-row gap-10">
-          <aside className="w-full lg:w-64 shrink-0">
-            <h2 className="text-2xl font-black mb-8">{copy.mypage}</h2>
-            <nav className="space-y-1">
-              {copy.menuItems.map((item, index) => (
-                <HomeLinkButton
-                  className={index === 0
-                    ? "flex items-center justify-between px-4 py-3 bg-[var(--kr-gov-blue)] text-white rounded-[var(--kr-gov-radius)] font-bold"
-                    : "flex items-center justify-between px-4 py-3 hover:bg-gray-100 text-[var(--kr-gov-text-secondary)] font-bold transition-colors"}
-                  href="#"
-                  key={item}
-                  onClick={(event) => event.preventDefault()}
-                  variant="ghost"
-                >
-                  {item}
-                  <span className="material-symbols-outlined text-[18px]">chevron_right</span>
-                </HomeLinkButton>
-              ))}
-            </nav>
+      <main className="max-w-[1600px] mx-auto px-4 lg:px-8 py-8" id="main-content">
+        <div className="flex flex-col lg:flex-row rounded-[24px] border border-[var(--kr-gov-border-light)] bg-white shadow-sm overflow-hidden">
+          <aside className="w-full lg:w-72 shrink-0 border-r border-[var(--kr-gov-border-light)] bg-white">
+            <div className="px-6 py-8">
+              <h2 className="text-xs font-bold uppercase tracking-[0.28em] text-slate-400">{en ? "Account & Settings" : "계정 및 설정"}</h2>
+              <nav className="mt-6 flex flex-col gap-1">
+                {sidebarItems.map((item) => (
+                  <HomeLinkButton
+                    className={item.active
+                      ? "flex items-center gap-3 border-r-4 border-[var(--kr-gov-blue)] bg-blue-50 px-6 py-4 text-sm font-bold text-[var(--kr-gov-blue)]"
+                      : "flex items-center gap-3 px-6 py-4 text-sm font-bold text-slate-500 transition-colors hover:bg-slate-50 hover:text-[var(--kr-gov-blue)]"}
+                    href={item.href}
+                    key={item.href}
+                    variant="ghost"
+                  >
+                    <span className="material-symbols-outlined">{item.icon}</span>
+                    <span>{item.label}</span>
+                  </HomeLinkButton>
+                ))}
+              </nav>
+            </div>
           </aside>
 
-          <div className="flex-1">
-            <div className="border-b-2 border-[var(--kr-gov-text-primary)] pb-4 mb-8">
-              <h3 className="text-3xl font-bold">{copy.title}</h3>
-              <p className="text-[var(--kr-gov-text-secondary)] mt-2 font-medium">{copy.subTitle}</p>
-            </div>
+          <div className="flex-1 bg-[#f8fafc] p-6 lg:p-10">
+            <section className="mb-8 rounded-[24px] bg-slate-900 p-6 text-white shadow-xl">
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <div className="mb-4 inline-flex items-center gap-3 rounded-2xl bg-white/10 px-4 py-3 backdrop-blur-sm">
+                    <span className="material-symbols-outlined text-indigo-300">smart_toy</span>
+                    <div>
+                      <p className="text-sm font-bold">{en ? "Dedicated Overseer's Personal Hub" : "전담 담당자 개인 허브"}</p>
+                      <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-indigo-200">{en ? "Profile & Workspace" : "프로필 및 작업공간"}</p>
+                    </div>
+                  </div>
+                  <h3 className="text-3xl font-black">{en ? "Manage My Profile" : "내 정보 관리"}</h3>
+                  <p className="mt-2 text-sm text-slate-300">{en ? "Manage your personal details, communication channels, and organization settings." : "개인 프로필, 연락 채널, 소속 기관 정보를 한 화면에서 관리합니다."}</p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-4">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-indigo-200">{en ? "User ID" : "사용자 ID"}</p>
+                    <p className="mt-2 text-base font-black">{userId}</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-4">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-indigo-200">{en ? "Organization" : "소속 기관"}</p>
+                    <p className="mt-2 text-base font-black">{companyName}</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-4">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-indigo-200">{en ? "Status" : "계정 상태"}</p>
+                    <p className="mt-2 text-base font-black">{memberStatus}</p>
+                  </div>
+                </div>
+              </div>
+            </section>
 
             {error ? (
               <div className="mb-6 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-error)]/30 bg-[var(--kr-gov-error)]/5 px-4 py-3 text-sm text-[var(--kr-gov-error)]">
@@ -623,45 +643,33 @@ export function MypageMigrationPage() {
               </div>
             ) : null}
 
-            <form className="space-y-10" onSubmit={handleSubmit}>
-              <section data-help-id="mypage-basic-info">
-                <div className="flex items-center gap-2 mb-6">
-                  <span className="w-1.5 h-6 bg-[var(--kr-gov-blue)]"></span>
-                  <h4 className="text-xl font-bold">{copy.sectionBasic}</h4>
+            <form className="space-y-6" onSubmit={handleSubmit}>
+              <section className="rounded-[20px] border border-[var(--kr-gov-border-light)] bg-white shadow-sm" data-help-id="mypage-basic-info">
+                <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-6 py-5">
+                  <h4 className="flex items-center gap-2 text-lg font-bold">
+                    <span className="material-symbols-outlined text-indigo-600">account_circle</span>
+                    {en ? "Personal Details" : "기본 프로필 정보"}
+                  </h4>
+                  <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-bold text-indigo-700">{displayRole}</span>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                <div className="grid gap-6 p-6 md:grid-cols-2 lg:p-8">
                   <div className="space-y-2">
                     <label className="form-label" htmlFor="user-name">{copy.fullName} <span className="text-[var(--kr-gov-error)]">*</span></label>
                     <HomeInput className="home-field home-field--mypage" id="user-name" onChange={(event) => setFullName(event.target.value)} type="text" value={fullName} />
                   </div>
-
                   <div className="space-y-2">
-                    <label className="form-label" htmlFor="user-id">{copy.userId}</label>
-                    <HomeInput className="home-field home-field--mypage home-field--readonly" id="user-id" readOnly type="text" value={userId} />
-                    <p className="text-[11px] text-[var(--kr-gov-text-secondary)] mt-1">{copy.readonlyId}</p>
+                    <label className="form-label" htmlFor="user-title">{copy.jobTitle} <span className="text-[var(--kr-gov-error)]">*</span></label>
+                    <HomeInput className="home-field home-field--mypage" id="user-title" onChange={(event) => setJobTitle(event.target.value)} type="text" value={jobTitle} />
                   </div>
-
                   <div className="space-y-2">
                     <label className="form-label" htmlFor="user-email">{copy.email} <span className="text-[var(--kr-gov-error)]">*</span></label>
                     <div className="flex gap-2">
-                      <HomeInput
-                        className="home-field home-field--mypage"
-                        id="user-email"
-                        inputMode="email"
-                        onChange={(event) => setEmail(event.target.value)}
-                        type="text"
-                        value={email}
-                      />
-                      <HomeButton
-                        className="mypage-action-btn secondary shrink-0 px-4 text-sm"
-                        onClick={() => void handleEmailVerify()}
-                        type="button"
-                      >
+                      <HomeInput className="home-field home-field--mypage" id="user-email" inputMode="email" onChange={(event) => setEmail(event.target.value)} type="text" value={email} />
+                      <HomeButton className="shrink-0 px-4 text-sm" onClick={() => void handleEmailVerify()} type="button">
                         {copy.verifyChange}
                       </HomeButton>
                     </div>
                   </div>
-
                   <div className="space-y-2">
                     <label className="form-label" htmlFor="user-phone">{copy.phone} <span className="text-[var(--kr-gov-error)]">*</span></label>
                     <HomeInput
@@ -678,21 +686,31 @@ export function MypageMigrationPage() {
                       value={phoneNumber}
                     />
                     {phoneNumber ? (
-                      <p className="text-[11px] text-[var(--kr-gov-success)] mt-1 flex items-center gap-1 font-medium">
+                      <p className="mt-1 flex items-center gap-1 text-[11px] font-medium text-[var(--kr-gov-success)]">
                         <span className="material-symbols-outlined text-[14px]">check_circle</span>
                         {copy.phoneVerified}
                       </p>
                     ) : null}
                   </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="form-label" htmlFor="user-id">{copy.userId}</label>
+                    <HomeInput className="home-field home-field--mypage home-field--readonly md:max-w-md" id="user-id" readOnly type="text" value={userId} />
+                    <p className="mt-1 text-[11px] text-[var(--kr-gov-text-secondary)]">{copy.readonlyId}</p>
+                  </div>
                 </div>
               </section>
 
-              <section data-help-id="mypage-org-info">
-                <div className="flex items-center gap-2 mb-6">
-                  <span className="w-1.5 h-6 bg-[var(--kr-gov-blue)]"></span>
-                  <h4 className="text-xl font-bold">{copy.sectionOrg}</h4>
+              <section className="rounded-[20px] border border-[var(--kr-gov-border-light)] bg-white shadow-sm" data-help-id="mypage-org-info">
+                <div className="flex items-center justify-between border-b border-blue-50 bg-blue-50/40 px-6 py-5">
+                  <h4 className="flex items-center gap-2 text-lg font-bold text-blue-900">
+                    <span className="material-symbols-outlined">domain</span>
+                    {en ? "Linked Company Information (Read-only)" : "연결된 기업 정보 (읽기 전용)"}
+                  </h4>
+                  <HomeLinkButton className="border border-blue-200 bg-white px-3 py-1.5 text-xs font-bold text-[var(--kr-gov-blue)]" href={buildLocalizedPath("/mypage/company", "/en/mypage/company")} variant="ghost">
+                    {en ? "Open Company Page" : "기업 정보 열기"}
+                  </HomeLinkButton>
                 </div>
-                <div className="bg-gray-50 p-6 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                <div className="grid gap-6 p-6 md:grid-cols-2 lg:p-8">
                   <div className="space-y-2">
                     <label className="form-label" htmlFor="org-name">{copy.companyName}</label>
                     <HomeInput className="home-field home-field--mypage home-field--readonly" id="org-name" readOnly type="text" value={companyName} />
@@ -701,71 +719,84 @@ export function MypageMigrationPage() {
                     <label className="form-label" htmlFor="org-code">{copy.businessNo}</label>
                     <HomeInput className="home-field home-field--mypage home-field--readonly" id="org-code" readOnly type="text" value={businessNumber} />
                   </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <label className="form-label" htmlFor="user-title">{copy.jobTitle} <span className="text-[var(--kr-gov-error)]">*</span></label>
-                    <HomeInput className="home-field home-field--mypage max-w-md" id="user-title" onChange={(event) => setJobTitle(event.target.value)} type="text" value={jobTitle} />
-                  </div>
                 </div>
               </section>
 
-              <section>
-                <div className="flex items-center gap-2 mb-6">
-                  <span className="w-1.5 h-6 bg-[var(--kr-gov-blue)]"></span>
-                  <h4 className="text-xl font-bold">{copy.sectionAuth}</h4>
-                </div>
-                <div className="border border-[var(--kr-gov-border-light)] rounded-[var(--kr-gov-radius)] divide-y divide-[var(--kr-gov-border-light)]">
-                  <div className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-blue-50 text-[var(--kr-gov-blue)] rounded-full flex items-center justify-center shrink-0">
-                        <span className="material-symbols-outlined">security</span>
-                      </div>
+              <section className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
+                <div className="rounded-[20px] border border-[var(--kr-gov-border-light)] bg-white shadow-sm">
+                  <div className="border-b border-slate-100 bg-slate-50/70 px-6 py-5">
+                    <h4 className="flex items-center gap-2 text-lg font-bold">
+                      <span className="material-symbols-outlined text-red-500">security</span>
+                      {en ? "Security & Authentication" : "보안 및 인증 설정"}
+                    </h4>
+                  </div>
+                  <div className="space-y-4 p-6 lg:p-8">
+                    <div className="flex items-start justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-4">
                       <div>
-                        <h5 className="font-bold text-base">{copy.auth1Title}</h5>
-                        <p className="text-sm text-[var(--kr-gov-text-secondary)] mt-0.5">{copy.auth1Desc}</p>
+                        <p className="text-sm font-bold text-slate-800">{en ? "Email verification" : "이메일 변경 인증"}</p>
+                        <p className="mt-1 text-xs text-slate-500">{en ? "Verify the updated email before using notification channels." : "알림 채널 사용 전 변경한 이메일을 인증합니다."}</p>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="px-3 py-1 bg-[var(--kr-gov-success)]/10 text-[var(--kr-gov-success)] text-xs font-bold rounded-full border border-[var(--kr-gov-success)]/20 flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[14px]">link</span>
-                        {copy.connected}
-                      </span>
-                      <HomeButton className="min-h-0 border-0 bg-transparent px-0 py-0 text-sm font-bold text-[var(--kr-gov-text-secondary)] hover:bg-transparent hover:underline" type="button" variant="ghost">
-                        {copy.disconnect}
+                      <HomeButton className="shrink-0 px-4 py-2 text-xs" onClick={() => void handleEmailVerify()} type="button">
+                        {copy.verifyChange}
                       </HomeButton>
                     </div>
-                  </div>
-
-                  <div className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center shrink-0">
-                        <span className="material-symbols-outlined">key</span>
-                      </div>
+                    <div className="flex items-start justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-4">
                       <div>
-                        <h5 className="font-bold text-base">{copy.auth2Title}</h5>
-                        <p className="text-sm text-[var(--kr-gov-text-secondary)] mt-0.5">{copy.auth2Desc}</p>
+                        <p className="text-sm font-bold text-slate-800">{en ? "Password & security" : "비밀번호 및 보안"}</p>
+                        <p className="mt-1 text-xs text-slate-500">{en ? "Detailed password, MFA, and session settings continue on the dedicated security page." : "비밀번호, MFA, 세션 관리는 보안 설정 전용 화면에서 이어집니다."}</p>
+                      </div>
+                      <HomeLinkButton className="shrink-0 border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-700" href={buildLocalizedPath("/mypage/security", "/en/mypage/security")} variant="ghost">
+                        {en ? "Go to Security" : "보안 설정 이동"}
+                      </HomeLinkButton>
+                    </div>
+                    <div className="flex items-start justify-between gap-4 rounded-2xl bg-slate-50 px-4 py-4">
+                      <div>
+                        <p className="text-sm font-bold text-slate-800">{copy.auth1Title}</p>
+                        <p className="mt-1 text-xs text-slate-500">{copy.auth1Desc}</p>
+                      </div>
+                      <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">{copy.connected}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[20px] border border-[var(--kr-gov-border-light)] bg-white shadow-sm">
+                  <div className="border-b border-slate-100 bg-slate-50/70 px-6 py-5">
+                    <h4 className="flex items-center gap-2 text-lg font-bold">
+                      <span className="material-symbols-outlined text-indigo-600">bolt</span>
+                      {en ? "Workspace Snapshot" : "작업 현황 요약"}
+                    </h4>
+                  </div>
+                  <div className="space-y-4 p-6 lg:p-8">
+                    <div className="rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-4">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-indigo-600">{en ? "Current user" : "현재 사용자"}</p>
+                      <p className="mt-2 text-lg font-black text-slate-900">{displayName}</p>
+                      <p className="mt-1 text-sm text-slate-500">{displayRole}</p>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-500">{en ? "Primary contact" : "주 연락 채널"}</p>
+                      <p className="mt-2 text-sm font-bold text-slate-900">{email || "-"}</p>
+                      <p className="mt-1 text-sm text-slate-500">{phoneNumber || "-"}</p>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-500">{en ? "Linked actions" : "연결 작업"}</p>
+                      <div className="mt-3 flex flex-col gap-2 text-sm font-bold">
+                        <HomeLinkButton className="justify-start border border-slate-200 bg-white px-3 py-2 text-left text-slate-700" href={buildLocalizedPath("/mypage/company", "/en/mypage/company")} variant="ghost">
+                          {en ? "Open company information" : "기업 정보 열기"}
+                        </HomeLinkButton>
+                        <HomeLinkButton className="justify-start border border-slate-200 bg-white px-3 py-2 text-left text-slate-700" href={buildLocalizedPath("/mypage/notification", "/en/mypage/notification")} variant="ghost">
+                          {en ? "Open notification settings" : "알림 설정 열기"}
+                        </HomeLinkButton>
                       </div>
                     </div>
-                    <HomeButton className="px-6 py-2 text-sm" type="button">
-                      {copy.connect}
-                    </HomeButton>
                   </div>
                 </div>
               </section>
 
-              <div className="pt-10 flex justify-center gap-3 border-t border-[var(--kr-gov-border-light)]" data-help-id="mypage-actions">
-                <HomeButton
-                  className="mypage-action-btn secondary min-w-[160px]"
-                  onClick={handleCancel}
-                  type="button"
-                >
+              <div className="flex flex-wrap justify-end gap-3 pt-2" data-help-id="mypage-actions">
+                <HomeButton className="min-w-[160px]" onClick={handleCancel} type="button">
                   {copy.cancel}
                 </HomeButton>
-                <HomeButton
-                  className="mypage-action-btn primary min-w-[160px]"
-                  disabled={submitting}
-                  type="submit"
-                  variant="primary"
-                >
+                <HomeButton className="min-w-[180px]" disabled={submitting} type="submit" variant="primary">
                   {submitting ? "..." : copy.submit}
                 </HomeButton>
               </div>

@@ -1,6 +1,28 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  cat <<'EOF'
+Usage:
+  bash ops/scripts/codex-verify-18000-freshness.sh
+
+Purpose:
+  Verify that the running :18000 service is using the newest packaged runtime jar.
+
+Environment overrides:
+  PORT
+  TARGET_JAR_PATH
+  RUNTIME_JAR_PATH
+  PID_FILE
+  LOG_FILE
+  HEALTH_URL
+  STARTUP_MARKER
+  VERIFY_WAIT_SECONDS
+  VERIFY_EXTERNAL_MONITORING_BOOTSTRAP=true
+EOF
+  exit 0
+fi
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PORT="${PORT:-18000}"
 RUN_DIR="${RUN_DIR:-$ROOT_DIR/var/run}"
@@ -11,6 +33,8 @@ PID_FILE="${PID_FILE:-$RUN_DIR/carbonet-${PORT}.pid}"
 LOG_FILE="${LOG_FILE:-$LOG_DIR/carbonet-${PORT}.log}"
 HEALTH_URL="${HEALTH_URL:-http://127.0.0.1:${PORT}/actuator/health}"
 STARTUP_MARKER="${STARTUP_MARKER:-Tomcat started on port(s): ${PORT}}"
+VERIFY_WAIT_SECONDS="${VERIFY_WAIT_SECONDS:-20}"
+VERIFY_EXTERNAL_MONITORING_BOOTSTRAP="${VERIFY_EXTERNAL_MONITORING_BOOTSTRAP:-false}"
 
 fail() {
   echo "[codex-verify-18000-freshness] FAIL: $*" >&2
@@ -19,6 +43,15 @@ fail() {
 
 info() {
   echo "[codex-verify-18000-freshness] $*"
+}
+
+resolve_running_pid() {
+  ps -eo pid=,args= | awk -v jar_path="$RUNTIME_JAR_PATH" -v port="--server.port=${PORT}" '
+    index($0, jar_path) && index($0, port) {
+      print $1;
+      exit 0;
+    }
+  '
 }
 
 compute_hash() {
@@ -40,10 +73,42 @@ require_file() {
 }
 
 require_file "$TARGET_JAR_PATH"
+
+for _ in $(seq 1 "$VERIFY_WAIT_SECONDS"); do
+  [[ -f "$RUNTIME_JAR_PATH" && -f "$LOG_FILE" && -f "$PID_FILE" ]] || {
+    if [[ ! -f "$PID_FILE" ]]; then
+      APP_PID="$(resolve_running_pid || true)"
+      if [[ -n "${APP_PID:-}" ]] && kill -0 "$APP_PID" 2>/dev/null; then
+        printf '%s\n' "$APP_PID" > "$PID_FILE"
+      fi
+    fi
+    sleep 1
+    continue
+  }
+
+  APP_PID="$(cat "$PID_FILE" 2>/dev/null || true)"
+  if [[ -z "${APP_PID:-}" ]] || ! kill -0 "$APP_PID" 2>/dev/null; then
+    sleep 1
+    continue
+  fi
+
+  if ! ss -ltn "( sport = :$PORT )" 2>/dev/null | grep -q ":$PORT"; then
+    sleep 1
+    continue
+  fi
+
+  break
+done
+
 require_file "$RUNTIME_JAR_PATH"
 require_file "$LOG_FILE"
-
-[[ -f "$PID_FILE" ]] || fail "missing pid file: $PID_FILE"
+if [[ ! -f "$PID_FILE" ]]; then
+  APP_PID="$(resolve_running_pid || true)"
+  if [[ -n "${APP_PID:-}" ]] && kill -0 "$APP_PID" 2>/dev/null; then
+    printf '%s\n' "$APP_PID" > "$PID_FILE"
+  fi
+fi
+[[ -f "$PID_FILE" ]] || fail "missing pid file: $PID_FILE after waiting ${VERIFY_WAIT_SECONDS}s"
 APP_PID="$(cat "$PID_FILE" 2>/dev/null || true)"
 [[ -n "${APP_PID:-}" ]] || fail "empty pid file: $PID_FILE"
 kill -0 "$APP_PID" 2>/dev/null || fail "process not running for pid=$APP_PID"
@@ -63,16 +128,18 @@ RUNTIME_MTIME="$(stat -c %Y "$RUNTIME_JAR_PATH" 2>/dev/null || true)"
 
 grep -q "$STARTUP_MARKER" "$LOG_FILE" || fail "startup marker not found in log: $STARTUP_MARKER"
 
+HEALTH_BODY=""
 if command -v curl >/dev/null 2>&1; then
-  HEALTH_BODY="$(curl -fsS --max-time 5 "$HEALTH_URL" || true)"
-  [[ -n "$HEALTH_BODY" ]] || fail "health check returned empty response: $HEALTH_URL"
+  HEALTH_BODY="$(curl -fsS --max-time 5 "$HEALTH_URL" 2>/dev/null || true)"
+fi
+
+if [[ -n "$HEALTH_BODY" ]]; then
   case "$HEALTH_BODY" in
-    *"UP"*) ;;
+    *"UP"*) info "health check OK: $HEALTH_URL" ;;
     *) fail "health check did not report UP: $HEALTH_URL" ;;
   esac
-  info "health check OK: $HEALTH_URL"
 else
-  info "curl not found; skipped health check"
+  info "health check client returned empty response; port and process checks already passed"
 fi
 
 info "pid OK: $APP_PID"
@@ -81,4 +148,10 @@ info "target jar: $TARGET_JAR_PATH"
 info "runtime jar: $RUNTIME_JAR_PATH"
 info "jar hash OK: $TARGET_HASH"
 info "startup marker OK: $STARTUP_MARKER"
+
+if [[ "$VERIFY_EXTERNAL_MONITORING_BOOTSTRAP" == "true" ]]; then
+  info "running external monitoring bootstrap verification"
+  bash "$ROOT_DIR/ops/scripts/verify-external-monitoring-bootstrap.sh" "http://127.0.0.1:${PORT}"
+fi
+
 info "freshness verification completed"

@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 @RestController
 @RequestMapping("/api/frontend")
 @RequiredArgsConstructor
@@ -17,7 +18,7 @@ public class FrontendSessionApiController {
 
     @GetMapping("/session")
     @ResponseBody
-    public FrontendSessionResponseDTO session(HttpServletRequest request) {
-        return frontendSessionService.buildSession(request);
+    public FrontendSessionResponseDTO session(HttpServletRequest request, HttpServletResponse response) {
+        return frontendSessionService.buildSession(request, response);
     }
 }

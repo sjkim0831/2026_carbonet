@@ -25,6 +25,11 @@ public class ReactAppMenuUrlNormalizationBootstrap {
     private static final String MEMBER_REGISTER_MENU_NAME_EN = "New Member Registration";
     private static final String MEMBER_REGISTER_MENU_URL = "/admin/member/register";
     private static final String MEMBER_REGISTER_MENU_ICON = "person_add";
+    private static final String SYSTEM_MENU_MANAGEMENT_CODE = "A0060107";
+    private static final String SYSTEM_MENU_MANAGEMENT_NAME_KO = "메뉴 관리";
+    private static final String SYSTEM_MENU_MANAGEMENT_NAME_EN = "Menu Management";
+    private static final String SYSTEM_MENU_MANAGEMENT_URL = "/admin/system/menu";
+    private static final String SYSTEM_MENU_MANAGEMENT_ICON = "account_tree";
     private static final List<ManagedMenuDefinition> KNOWN_MANAGED_MENUS = Arrays.asList(
             new ManagedMenuDefinition(
                     MEMBER_REGISTER_MENU_CODE,
@@ -46,6 +51,13 @@ public class ReactAppMenuUrlNormalizationBootstrap {
                     "Company Approval",
                     "/admin/member/company-approve",
                     "domain_verification"
+            ),
+            new ManagedMenuDefinition(
+                    SYSTEM_MENU_MANAGEMENT_CODE,
+                    SYSTEM_MENU_MANAGEMENT_NAME_KO,
+                    SYSTEM_MENU_MANAGEMENT_NAME_EN,
+                    SYSTEM_MENU_MANAGEMENT_URL,
+                    SYSTEM_MENU_MANAGEMENT_ICON
             )
     );
 

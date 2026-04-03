@@ -1,14 +1,16 @@
 package egovframework.com.common.audit;
 
 import egovframework.com.common.mapper.ObservabilityMapper;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.Locale;
 
 @Component
-@Slf4j
 public class PersistingAuditEventWriter implements AuditEventWriter {
+
+    private static final Logger log = LoggerFactory.getLogger(PersistingAuditEventWriter.class);
 
     private final ObservabilityMapper observabilityMapper;
 
@@ -37,8 +39,8 @@ public class PersistingAuditEventWriter implements AuditEventWriter {
                         .entityId(auditEvent.getEntityId())
                         .resultStatus(auditEvent.getResultStatus())
                         .reasonSummary(truncate(auditEvent.getReasonSummary(), 1000))
-                        .beforeSummaryJson("")
-                        .afterSummaryJson("")
+                        .beforeSummaryJson(null)
+                        .afterSummaryJson(null)
                         .requestUri(auditEvent.getRequestUri())
                         .httpMethod(auditEvent.getHttpMethod())
                         .ipAddress(auditEvent.getIpAddress())

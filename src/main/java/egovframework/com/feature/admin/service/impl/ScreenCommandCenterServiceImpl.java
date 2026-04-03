@@ -106,7 +106,16 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         addStaticPageOption(pages, knownPageIds, "backup-execution", "백업 실행", "/admin/system/backup", "A0060402", "admin");
         addStaticPageOption(pages, knownPageIds, "restore-execution", "복구 실행", "/admin/system/restore", "A0060403", "admin");
         addStaticPageOption(pages, knownPageIds, "version-management", "버전 관리", "/admin/system/version", "A0060404", "admin");
+        addStaticPageOption(pages, knownPageIds, "external-connection-add", "외부연계 등록", "/admin/external/connection_add", "A0050102", "admin");
+        addStaticPageOption(pages, knownPageIds, "external-keys", "외부 인증키 관리", "/admin/external/keys", "A0050103", "admin");
+        addStaticPageOption(pages, knownPageIds, "external-usage", "API 사용량", "/admin/external/usage", "A0050108", "admin");
+        addStaticPageOption(pages, knownPageIds, "external-logs", "외부 연계 로그", "/admin/external/logs", "A0050303", "admin");
+        addStaticPageOption(pages, knownPageIds, "external-webhooks", "웹훅 설정", "/admin/external/webhooks", "A0050203", "admin");
+        addStaticPageOption(pages, knownPageIds, "external-sync", "동기화 실행", "/admin/external/sync", "A0050104", "admin");
+        addStaticPageOption(pages, knownPageIds, "external-monitoring", "연계 모니터링", "/admin/external/monitoring", "A0050106", "admin");
+        addStaticPageOption(pages, knownPageIds, "external-maintenance", "점검 관리", "/admin/external/maintenance", "A0050107", "admin");
         addStaticPageOption(pages, knownPageIds, "wbs-management", "WBS 관리", "/admin/system/wbs-management", "A1900104", "admin");
+        addStaticPageOption(pages, knownPageIds, "new-page", "새 페이지", "/admin/system/new-page", "A1900106", "admin");
         addManagedMenuPageOptions(pages, knownPageIds, "AMENU1");
         addManagedMenuPageOptions(pages, knownPageIds, "HMENU1");
         for (Map<String, Object> registryPage : uiManifestRegistryService.selectActivePageOptions()) {
@@ -138,6 +147,8 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                 return buildAdminListPage();
             case "company-approve":
                 return buildCompanyApprovePage();
+            case "certificate-pending":
+                return buildCertificatePendingPage();
             case "signin-login":
                 return buildSigninLoginPage();
             case "signin-auth-choice":
@@ -190,6 +201,26 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                 return buildJoinWizardPage();
             case "observability":
                 return buildObservabilityPage();
+            case "sensor-list":
+                return buildSensorListPage();
+            case "external-connection-add":
+                return buildExternalConnectionAddPage();
+            case "external-keys":
+                return buildExternalKeysPage();
+            case "external-usage":
+                return buildExternalUsagePage();
+            case "external-logs":
+                return buildExternalLogsPage();
+            case "external-webhooks":
+                return buildExternalWebhooksPage();
+            case "external-sync":
+                return buildExternalSyncPage();
+            case "external-monitoring":
+                return buildExternalMonitoringPage();
+            case "external-maintenance":
+                return buildExternalMaintenancePage();
+            case "batch-management":
+                return buildBatchManagementPage();
             case "error-log":
                 return buildErrorLogPage();
             case "help-management":
@@ -228,10 +259,14 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                 return buildEnvironmentManagementPage();
             case "wbs-management":
                 return buildWbsManagementPage();
+            case "new-page":
+                return buildNewPage();
             case "sr-workbench":
                 return buildSrWorkbenchPage();
             case "member-list":
                 return buildMemberListPage();
+            case "emission-lci":
+                return buildEmissionLciPage();
             default:
                 return buildRegistryDraftPage(pageId);
         }
@@ -770,6 +805,56 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         page.put("apis", Collections.emptyList());
         page.put("schemas", Collections.emptyList());
         page.put("commonCodeGroups", Collections.emptyList());
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
+    private Map<String, Object> buildEmissionLciPage() {
+        Map<String, Object> page = pageOption("emission-lci", "LCI DB 조회", "/emission/lci", "H0010202", "home");
+        page.put("summary", "물질명, 공정, 지역, 영향 범주 기준으로 LCI 데이터셋을 조회하고 분석 대상 사업장 및 데이터 품질 지표를 함께 확인하는 공개 화면입니다.");
+        page.put("source", "frontend/src/features/emission-lci/EmissionLciMigrationPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("emission-lci-hero", "LCI 조건 검색", "[data-help-id=\"emission-lci-hero\"]", "EmissionLciHero", "header",
+                        Collections.singletonList("emission-lci-search"), "물질명, 공정, 지역, 영향 범주 조건으로 LCI 데이터셋을 탐색합니다."),
+                surface("emission-lci-results", "조회 결과 테이블", "[data-help-id=\"emission-lci-results\"]", "EmissionLciResults", "content",
+                        Arrays.asList("emission-lci-select-dataset", "emission-lci-change-page"), "데이터셋 코드, 기능단위, 배출계수, 출처, 신뢰도를 비교합니다."),
+                surface("emission-lci-sites", "분석 대상 사업장", "[data-help-id=\"emission-lci-sites\"]", "EmissionLciSites", "content",
+                        Collections.emptyList(), "연결된 사업장별 적용 범위와 후속 조치 상태를 카드로 보여줍니다."),
+                surface("emission-lci-quality", "품질 및 성과", "[data-help-id=\"emission-lci-quality\"]", "EmissionLciQuality", "content",
+                        Collections.emptyList(), "데이터 소스 비중, 무결성, 처리량, 분석 건수를 요약합니다.")
+        ));
+        page.put("events", Arrays.asList(
+                event("emission-lci-search", "LCI 데이터셋 조회", "submit", "handleSearch", "[data-help-id=\"emission-lci-hero\"] form",
+                        Arrays.asList("home.emission.lci.list", "home.emission.lci.summary"), "검색 조건에 맞는 LCI 데이터셋과 요약 지표를 갱신합니다."),
+                event("emission-lci-select-dataset", "LCI 데이터셋 선택", "click", "handleSelectDataset", "[data-help-id=\"emission-lci-results\"] [data-row-id]",
+                        Collections.emptyList(), "선택한 데이터셋을 기준으로 상세 비교와 사업장 연결 현황을 확인합니다."),
+                event("emission-lci-change-page", "LCI 결과 페이지 이동", "click", "handleChangePage", "[data-help-id=\"emission-lci-results\"] nav button",
+                        Arrays.asList("home.emission.lci.list"), "조회 결과 페이징을 변경합니다.")
+        ));
+        page.put("apis", Arrays.asList(
+                routeApi("home.emission.lci.route", "LCI DB 조회 화면", "/emission/lci", "H0010202"),
+                api("home.emission.lci.list", "LCI 데이터셋 목록 조회", "GET", "/api/emission/lci",
+                        "HomeEmissionLciController.selectLciList", "HomeEmissionLciService.selectLciList", "HomeEmissionLciMapper.selectLciList",
+                        Arrays.asList("LCI_DATASET", "LCI_SOURCE", "LCI_IMPACT_FACTOR"), Collections.singletonList("home-emission-lci-dataset"),
+                        "현재 화면은 정적 마이그레이션이지만 향후 실제 LCI 조회 API가 연결될 때의 표준 목록 endpoint 후보입니다."),
+                api("home.emission.lci.summary", "LCI 품질 요약 조회", "GET", "/api/emission/lci/summary",
+                        "HomeEmissionLciController.selectLciSummary", "HomeEmissionLciService.selectLciSummary", "HomeEmissionLciMapper.selectLciSummary",
+                        Arrays.asList("LCI_DATASET", "LCI_ANALYSIS_TARGET", "LCI_QUALITY_METRIC"), Collections.singletonList("home-emission-lci-quality"),
+                        "데이터 소스 구성비, 무결성 점수, 사업장 연결률을 요약하는 후보 endpoint입니다.")
+        ));
+        page.put("schemas", Arrays.asList(
+                schema("home-emission-lci-dataset", "LCI 데이터셋 스키마", "LCI_DATASET / LCI_SOURCE / LCI_IMPACT_FACTOR",
+                        Arrays.asList("DATASET_CODE", "MATERIAL_NAME", "PROCESS_NAME", "REGION_CODE", "IMPACT_CATEGORY", "FUNCTIONAL_UNIT", "GWP_VALUE", "SOURCE_NAME", "QUALITY_GRADE"),
+                        Arrays.asList("SELECT"), "LCI 데이터셋 검색 결과와 배출계수 출처 메타데이터를 구성하는 후보 스키마입니다."),
+                schema("home-emission-lci-quality", "LCI 품질/사업장 연결 스키마", "LCI_ANALYSIS_TARGET / LCI_QUALITY_METRIC",
+                        Arrays.asList("SITE_ID", "SITE_NAME", "MATCH_RATE", "FOLLOW_UP_STATUS", "INTEGRITY_SCORE", "MONTHLY_ANALYSIS_COUNT"),
+                        Arrays.asList("SELECT"), "사업장별 LCI 적용 현황과 품질 지표를 요약하는 후보 스키마입니다."))
+        );
+        page.put("commonCodeGroups", Arrays.asList(
+                codeGroup("HMENU1", "홈 메뉴 코드", Arrays.asList("H00102", "H0010202"), "LCA 분석 섹션과 LCI DB 조회 메뉴 코드입니다."),
+                codeGroup("LCI_IMPACT_CATEGORY", "영향 범주", Arrays.asList("GWP", "AP", "EP", "ODP"), "LCI 데이터셋 검색과 비교에 사용하는 대표 영향 범주입니다."),
+                codeGroup("LCI_REGION_SCOPE", "지역 범위", Arrays.asList("KR", "ASIA", "GLOBAL"), "LCI 데이터셋 적용 지역 범위를 구분하는 예시 코드군입니다."))
+        );
         page.put("changeTargets", defaultChangeTargets());
         return page;
     }
@@ -1910,6 +1995,48 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         return page;
     }
 
+    private Map<String, Object> buildCertificatePendingPage() {
+        Map<String, Object> page = pageOption("certificate-pending", "인증서 발급 대기 목록", "/admin/certificate/pending_list", "A0020302", "admin");
+        page.put("summary", "인증서 발급 신청 건의 수수료 상태, 검토 담당자, SLA, 이의신청 위험을 함께 보는 관리자 대기 큐입니다.");
+        page.put("source", "frontend/src/features/certificate-pending/CertificatePendingMigrationPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("certificate-pending-summary", "발급 대기 요약", "[data-help-id=\"certificate-pending-summary\"]", "CertificatePendingSummary", "actions",
+                        Collections.emptyList(), "검토 대기, 수수료 대기, 이의신청, 마감 임박 건수를 카드로 요약합니다."),
+                surface("certificate-pending-search", "발급 대기 검색", "[data-help-id=\"certificate-pending-search\"]", "CertificatePendingFilter", "actions",
+                        Arrays.asList("certificate-pending-search-submit"), "인증 유형, 처리 상태, 검색어 기준으로 발급 대기 큐를 조회합니다."),
+                surface("certificate-pending-table", "발급 대기 목록", "[data-help-id=\"certificate-pending-table\"]", "CertificatePendingTable", "content",
+                        Arrays.asList("certificate-pending-open-review", "certificate-pending-page-change"), "신청번호, 회원사, 수수료 상태, 검토 담당자, SLA를 한 행에서 확인합니다.")
+        ));
+        page.put("events", Arrays.asList(
+                event("certificate-pending-search-submit", "발급 대기 목록 조회", "click", "setFilters", "[data-help-id=\"certificate-pending-search\"] button",
+                        Arrays.asList("admin.certificate.pending.page"), "검색 조건 기준으로 인증서 발급 대기 큐를 다시 조회합니다."),
+                event("certificate-pending-open-review", "발급 검토 화면 이동", "click", "navigate", "[data-help-id=\"certificate-pending-table\"] a",
+                        Arrays.asList("route.admin.certificate.review"), "선택한 신청 건의 발급 검토 또는 이의신청 화면으로 이동합니다."),
+                event("certificate-pending-page-change", "발급 대기 페이지 이동", "click", "setFilters", "[data-help-id=\"certificate-pending-table\"] nav button",
+                        Arrays.asList("admin.certificate.pending.page"), "페이지 번호를 바꾸어 같은 조건의 대기 목록을 이어서 조회합니다.")
+        ));
+        page.put("apis", Arrays.asList(
+                api("admin.certificate.pending.page", "인증서 발급 대기 목록 조회", "GET", "/admin/certificate/pending_list/page-data",
+                        "AdminApprovalController.certificatePendingPageApi", "AdminApprovalController.buildCertificatePendingRows",
+                        "in-memory sample rows",
+                        Arrays.asList("CERTIFICATE_PENDING_QUEUE"), Arrays.asList("certificate-pending-schema"),
+                        "인증서 발급 신청 대기열과 요약 카드 데이터를 조회합니다."),
+                routeApi("route.admin.certificate.review", "발급 검토 화면 이동", "/admin/certificate/review", "A0020201"),
+                routeApi("route.admin.certificate.objection", "이의신청 처리 화면 이동", "/admin/certificate/objection_list", "A0020202")
+        ));
+        page.put("schemas", Arrays.asList(
+                schema("certificate-pending-schema", "인증서 발급 대기 모델", "sample queue payload",
+                        Arrays.asList("applicationId", "companyName", "certificateType", "processStatus", "submittedAt", "reviewerName", "slaDueAt"),
+                        Arrays.asList("SELECT"), "인증서 발급 신청 건의 대기 큐와 요약 메트릭에 사용됩니다.")
+        ));
+        page.put("commonCodeGroups", Arrays.asList(
+                codeGroup("CERTIFICATE_TYPE", "인증 유형", Arrays.asList("CCUS", "REPORT", "REC"), "발급 대기 검색 필터와 유형 라벨에 사용됩니다."),
+                codeGroup("CERTIFICATE_PROCESS_STATUS", "인증 처리 상태", Arrays.asList("PENDING", "FEE_WAIT", "IN_REVIEW", "OBJECTION"), "발급 대기 상태 배지와 필터에 사용됩니다.")
+        ));
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
     private Map<String, Object> buildMemberEditPage() {
         Map<String, Object> page = pageOption("member-edit", "회원 수정", "/admin/member/edit", "AMENU_MEMBER_EDIT", "admin");
         page.put("summary", "회원 기본 정보, 권한 롤/기능, 주소, 증빙 문서를 함께 수정하는 관리자 편집 화면입니다.");
@@ -2127,6 +2254,364 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         return page;
     }
 
+    private Map<String, Object> buildSensorListPage() {
+        Map<String, Object> page = pageOption("sensor-list", "센서 목록", "/admin/monitoring/sensor_list", "A0070201", "admin");
+        page.put("summary", "보안 모니터링 이벤트를 센서 단위로 재구성해 상태, 심각도, 차단 승격 여부를 빠르게 분류하는 관리자 화면입니다.");
+        page.put("source", "frontend/src/features/sensor-list/SensorListMigrationPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("sensor-list-summary", "센서 요약 카드", "[data-help-id=\"sensor-list-summary\"]", "SensorListSummaryCards", "header",
+                        Collections.emptyList(), "등록 센서, 경보, 검토, 안정, 활성 차단 건수를 요약합니다."),
+                surface("sensor-list-filters", "센서 검색 필터", "[data-help-id=\"sensor-list-filters\"]", "SensorListFilters", "actions",
+                        Arrays.asList("sensor-list-filter"), "키워드, 상태, 유형, 심각도 조건을 조합합니다."),
+                surface("sensor-list-table", "센서 목록 테이블", "[data-help-id=\"sensor-list-table\"]", "SensorListTable", "content",
+                        Arrays.asList("sensor-list-open-detail"), "센서 상태와 대상 URL, 감지 시각을 목록으로 보여줍니다."),
+                surface("sensor-list-focus", "센서 상세 패널", "[data-help-id=\"sensor-list-focus\"]", "SensorListFocusPanel", "content",
+                        Arrays.asList("sensor-list-open-detail"), "선택 센서의 메모, 담당자, 차단 상태를 요약합니다."),
+                surface("sensor-list-activity", "최근 활동", "[data-help-id=\"sensor-list-activity\"]", "SensorListActivityFeed", "content",
+                        Collections.emptyList(), "센서 관련 최근 운영 활동을 시간순으로 보여줍니다.")
+        ));
+        page.put("events", Arrays.asList(
+                event("sensor-list-filter", "센서 목록 필터링", "change", "applyFilter", "[data-help-id=\"sensor-list-filters\"] input, [data-help-id=\"sensor-list-filters\"] select",
+                        Arrays.asList("admin.sensor-list.page"), "조건 변경 시 센서 목록을 다시 계산합니다."),
+                event("sensor-list-open-detail", "센서 상세 열기", "click", "openSecurityMonitoringDetail", "[data-help-id=\"sensor-list-focus\"] a",
+                        Arrays.asList("route.admin.system.security-monitoring"), "선택한 fingerprint 기준으로 보안 모니터링 상세 화면으로 이동합니다.")
+        ));
+        page.put("apis", Arrays.asList(
+                api("admin.sensor-list.page", "센서 목록 화면 조회", "GET", "/admin/monitoring/sensor_list/page-data",
+                        "AdminObservabilityController.sensorListPageApi", "AdminObservabilityPageService.buildSensorListPagePayload",
+                        "AdminSummaryService.getSecurityMonitoringEvents / getSecurityMonitoringActivityRows / getSecurityMonitoringBlockCandidateRows",
+                        Arrays.asList("REQUEST_EXECUTION_LOG", "SNAPSHOT_CARD"),
+                        Arrays.asList("sensor-list-row-schema", "sensor-activity-schema"),
+                        "보안 모니터링 이벤트, 활동 로그, 차단 후보를 센서 목록 payload로 조립합니다."),
+                routeApi("route.admin.system.security-monitoring", "보안 모니터링 상세 이동", "/admin/system/security-monitoring", "A0060202")
+        ));
+        page.put("schemas", Arrays.asList(
+                schema("sensor-list-row-schema", "센서 목록 행 스키마", "REQUEST_EXECUTION_LOG + SNAPSHOT_CARD",
+                        Arrays.asList("fingerprint", "title", "severity", "stateStatus", "stateOwner", "sourceFingerprint", "status"),
+                        Arrays.asList("SELECT"),
+                        "보안 모니터링 원본 이벤트와 차단 후보 상태를 센서 행으로 재구성합니다."),
+                schema("sensor-activity-schema", "센서 활동 스키마", "SNAPSHOT_CARD",
+                        Arrays.asList("happenedAt", "action", "actorUserId", "target", "detail"),
+                        Arrays.asList("SELECT", "INSERT"),
+                        "센서 관련 운영 활동 로그를 시간순으로 조회합니다.")
+        ));
+        page.put("commonCodeGroups", Arrays.asList(
+                codeGroup("SENSOR_STATUS", "센서 상태", Arrays.asList("BLOCKED", "ALERT", "REVIEW", "STABLE"), "센서 상태 배지와 필터 기준입니다."),
+                codeGroup("SENSOR_TYPE", "센서 유형", Arrays.asList("AUTH", "ADMIN", "API", "OPS", "WEB"), "센서 분류 라벨과 검색 필터에 사용됩니다.")
+        ));
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
+    private Map<String, Object> buildBatchManagementPage() {
+        Map<String, Object> page = pageOption("batch-management", "배치 관리", "/admin/system/batch", "A0060304", "admin");
+        page.put("summary", "배치 잡, 큐 적체, 워커 노드, 최근 실행 이력을 한 화면에서 운영 점검하는 관리자 화면입니다.");
+        page.put("source", "frontend/src/features/batch-management/BatchManagementMigrationPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("batch-management-filters", "배치 조회 조건", "[data-help-id=\"batch-management-filters\"]", "BatchManagementFilters", "actions",
+                        Arrays.asList("batch-management-filter", "batch-management-reset"), "키워드, 잡 상태, 노드 상태로 배치 범위를 좁힙니다."),
+                surface("batch-management-summary", "배치 요약 카드", "[data-help-id=\"batch-management-summary\"]", "BatchManagementSummaryCards", "header",
+                        Collections.emptyList(), "조회 잡 수, 큐 적체, 정상 노드, 실패/재검토 실행을 요약합니다."),
+                surface("batch-management-jobs", "배치 잡 목록", "[data-help-id=\"batch-management-jobs\"]", "BatchManagementJobTable", "content",
+                        Collections.emptyList(), "배치 잡과 큐 소유, 실행 상태를 목록으로 제공합니다."),
+                surface("batch-management-queues", "큐 적체 현황", "[data-help-id=\"batch-management-queues\"]", "BatchManagementQueueTable", "content",
+                        Collections.emptyList(), "큐별 backlog, 소비 노드, 최근 메시지 시각을 보여줍니다."),
+                surface("batch-management-nodes", "워커 노드", "[data-help-id=\"batch-management-nodes\"]", "BatchManagementNodeTable", "content",
+                        Collections.emptyList(), "배치 노드 상태와 큐 affinity를 한눈에 확인합니다."),
+                surface("batch-management-executions", "최근 배치 실행", "[data-help-id=\"batch-management-executions\"]", "BatchManagementExecutionTable", "content",
+                        Collections.emptyList(), "최근 배치 실행 결과와 메시지를 확인합니다.")
+        ));
+        page.put("events", Arrays.asList(
+                event("batch-management-filter", "배치 조건 변경", "change", "applyBatchFilter", "[data-help-id=\"batch-management-filters\"] input, [data-help-id=\"batch-management-filters\"] select",
+                        Arrays.asList("admin.batch-management.page"), "조건 변경 시 배치 목록과 큐, 노드를 다시 계산합니다."),
+                event("batch-management-reset", "배치 조건 초기화", "click", "resetBatchFilter", "[data-help-id=\"batch-management-filters\"] button",
+                        Arrays.asList("admin.batch-management.page"), "조회 조건을 초기 상태로 되돌립니다.")
+        ));
+        page.put("apis", Arrays.asList(
+                api("admin.batch-management.page", "배치 관리 화면 조회", "GET", "/admin/system/batch/page-data",
+                        "AdminObservabilityController.batchPageApi", "AdminObservabilityPageService.buildBatchManagementPagePayload",
+                        "AdminSystemPageModelAssembler.populateSchedulerPage + AdminObservabilityPageService",
+                        Arrays.asList("SNAPSHOT_CARD"),
+                        Arrays.asList("batch-job-row-schema", "batch-queue-row-schema", "batch-node-row-schema", "batch-execution-row-schema"),
+                        "스케줄러 원본 payload를 배치 운영 화면에 맞게 재구성합니다."),
+                routeApi("route.admin.system.scheduler", "스케줄러 관리 이동", "/admin/system/scheduler", "A0060120")
+        ));
+        page.put("schemas", Arrays.asList(
+                schema("batch-job-row-schema", "배치 잡 행 스키마", "SCHEDULER_JOB + SNAPSHOT_CARD",
+                        Arrays.asList("jobId", "jobName", "queueName", "executionType", "jobStatus", "lastRunAt", "nextRunAt", "owner"),
+                        Arrays.asList("SELECT"),
+                        "배치 잡의 실행 주기와 큐 소속, 담당자를 보여주는 행입니다."),
+                schema("batch-queue-row-schema", "배치 큐 행 스키마", "SNAPSHOT_CARD",
+                        Arrays.asList("queueId", "queueName", "backlogCount", "consumerNode", "lastMessageAt", "status"),
+                        Arrays.asList("SELECT"),
+                        "큐 적체량과 소비 상태를 보여줍니다."),
+                schema("batch-node-row-schema", "배치 노드 행 스키마", "SNAPSHOT_CARD",
+                        Arrays.asList("nodeId", "role", "affinity", "status", "heartbeatAt"),
+                        Arrays.asList("SELECT"),
+                        "배치 워커 노드 상태와 affinity를 조회합니다."),
+                schema("batch-execution-row-schema", "배치 실행 행 스키마", "SCHEDULER_EXECUTION + SNAPSHOT_CARD",
+                        Arrays.asList("executedAt", "jobId", "result", "duration", "message"),
+                        Arrays.asList("SELECT"),
+                        "최근 배치 실행 결과와 메시지를 시간순으로 보여줍니다.")
+        ));
+        page.put("commonCodeGroups", Arrays.asList(
+                codeGroup("BATCH_JOB_STATUS", "배치 잡 상태", Arrays.asList("ACTIVE", "PAUSED", "REVIEW"), "배치 잡 상태 필터에 사용됩니다."),
+                codeGroup("BATCH_NODE_STATUS", "배치 노드 상태", Arrays.asList("HEALTHY", "STANDBY", "DEGRADED"), "워커 노드 상태 필터와 배지 기준입니다.")
+        ));
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
+    private Map<String, Object> buildExternalConnectionAddPage() {
+        Map<String, Object> page = pageOption("external-connection-add", "외부연계 등록", "/admin/external/connection_add", "A0050102", "admin");
+        page.put("summary", "외부연계 대상을 신규 등록하고 인증, 네트워크, 운영 담당 체계를 함께 정의하는 관리자 등록 화면입니다.");
+        page.put("source", "frontend/src/features/external-connection-add/ExternalConnectionAddMigrationPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("external-connection-add-actions", "외부연계 등록 액션바", "[data-help-id=\"external-connection-add-actions\"]", "ExternalConnectionAddActionBar", "actions",
+                        Arrays.asList("external-connection-add-validate"), "등록 초안 검증, 초기화, 운영 연결 화면 이동을 제공합니다.")
+        ));
+        page.put("events", Arrays.asList(
+                event("external-connection-add-validate", "외부연계 등록 초안 검증", "submit", "handleSubmit", "form",
+                        Collections.emptyList(), "필수 입력값과 운영 필드를 검증합니다.")
+        ));
+        page.put("apis", Arrays.asList(
+                routeApi("route.admin.system.ip-whitelist", "IP 화이트리스트 이동", "/admin/system/ip_whitelist", "A0060201"),
+                routeApi("route.admin.system.observability", "추적 조회 이동", "/admin/system/observability", "A0060303"),
+                routeApi("route.admin.system.batch", "배치 관리 이동", "/admin/system/batch", "A0060304")
+        ));
+        page.put("schemas", Arrays.asList(
+                schema("external-connection-draft-schema", "외부연계 등록 초안 스키마", "SNAPSHOT_CARD",
+                        Arrays.asList("connectionId", "connectionName", "partnerName", "endpointUrl", "authType", "ipPolicy", "syncCycle", "ownerName"),
+                        Arrays.asList("INSERT"),
+                        "외부연계 등록 화면에서 입력하는 초안 필드 묶음입니다.")
+        ));
+        page.put("commonCodeGroups", Arrays.asList(
+                codeGroup("EXTERNAL_CONNECTION_TYPE", "외부연계 유형", Arrays.asList("REST_API", "SOAP", "SFTP", "WEBHOOK", "MQ"), "외부연계 등록 유형 선택값입니다."),
+                codeGroup("EXTERNAL_AUTH_TYPE", "외부연계 인증 유형", Arrays.asList("OAUTH2_CLIENT", "API_KEY", "MUTUAL_TLS", "BASIC_AUTH"), "외부연계 인증 방식 선택값입니다.")
+        ));
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
+    private Map<String, Object> buildExternalKeysPage() {
+        Map<String, Object> page = pageOption("external-keys", "외부 인증키 관리", "/admin/external/keys", "A0050103", "admin");
+        page.put("summary", "외부연계 인증키의 교체 주기, 담당자, 만료 예정 상태를 비밀값 노출 없이 점검하는 관리자 운영 화면입니다.");
+        page.put("source", "frontend/src/features/external-keys/ExternalKeysMigrationPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("external-keys-filters", "외부 인증키 조회 조건", ".gov-card .gov-input, .gov-card .gov-select", "ExternalKeyFilters", "actions",
+                        Collections.emptyList(), "연계명, 인증 방식, 교체 상태 기준으로 관리 대상을 좁힙니다."),
+                surface("external-keys-inventory", "외부 인증키 인벤토리", ".gov-card table", "ExternalKeyInventoryTable", "content",
+                        Collections.emptyList(), "연계별 인증키 상태, 교체 예정일, 담당자를 함께 보여줍니다."),
+                surface("external-keys-rotation-queue", "외부 인증키 교체 큐", ".gov-card .w-full.border-collapse", "ExternalKeyRotationQueue", "content",
+                        Collections.emptyList(), "교체 시급도와 정책 기준으로 후속 조치 대상을 보여줍니다.")
+        ));
+        page.put("events", Arrays.asList(
+                event("external-keys-filter-change", "외부 인증키 조회 조건 변경", "change", "setKeyword/setAuthMethod/setRotationStatus", "form",
+                        Collections.emptyList(), "조회 조건에 따라 인증키 인벤토리를 필터링합니다.")
+        ));
+        page.put("apis", Arrays.asList(
+                routeApi("route.admin.external.connection-list", "외부연계 목록 이동", "/admin/external/connection_list", "A0050001"),
+                routeApi("route.admin.external.sync", "외부연계 동기화 이동", "/admin/external/sync", "A0050104"),
+                routeApi("route.admin.system.ip-whitelist", "IP 화이트리스트 이동", "/admin/system/ip_whitelist", "A0060201"),
+                routeApi("route.admin.system.observability", "추적 조회 이동", "/admin/system/observability", "A0060303")
+        ));
+        page.put("schemas", Arrays.asList(
+                schema("external-key-governance-schema", "외부 인증키 거버넌스 스키마", "TABLE",
+                        Arrays.asList("connectionId", "credentialLabel", "authMethod", "rotationPolicy", "lastRotatedAt", "expiresAt", "rotationStatus", "ownerName"),
+                        Arrays.asList("SELECT"),
+                        "외부 인증키 상태와 교체 우선순위를 보여주는 런타임 필드 묶음입니다.")
+        ));
+        page.put("commonCodeGroups", Arrays.asList(
+                codeGroup("EXTERNAL_AUTH_TYPE", "외부연계 인증 유형", Arrays.asList("OAUTH2", "API_KEY", "MUTUAL_TLS", "BASIC", "OBSERVED"), "외부 인증키 관리 화면의 인증 방식 필터와 상태 구분값입니다."),
+                codeGroup("EXTERNAL_KEY_ROTATION_STATUS", "외부 인증키 교체 상태", Arrays.asList("HEALTHY", "ROTATE_SOON", "ROTATE_NOW", "EXPIRED"), "외부 인증키 관리 화면의 교체 상태 배지 기준입니다.")
+        ));
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
+    private Map<String, Object> buildExternalSyncPage() {
+        Map<String, Object> page = pageOption("external-sync", "동기화 실행", "/admin/external/sync", "A0050104", "admin");
+        page.put("summary", "외부연계 동기화 대상의 실행 방식, 큐 적체, 최근 실행 결과를 함께 점검하는 관리자 운영 화면입니다.");
+        page.put("source", "frontend/src/features/external-sync/ExternalSyncMigrationPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("external-sync-filters", "동기화 조회 조건", ".gov-card .gov-input, .gov-card .gov-select", "ExternalSyncFilters", "actions",
+                        Collections.emptyList(), "연계명, 동기화 방식, 상태 기준으로 대상을 좁힙니다."),
+                surface("external-sync-registry", "동기화 대상 현황", ".gov-card table", "ExternalSyncRegistryTable", "content",
+                        Collections.emptyList(), "대상별 실행 방식, 스케줄, 적체, 상태를 함께 보여줍니다."),
+                surface("external-sync-queue", "동기화 큐 적체", ".gov-card .w-full.border-collapse", "ExternalSyncQueueTable", "content",
+                        Collections.emptyList(), "큐 적체와 소비 노드 상태를 운영 관점에서 확인합니다.")
+        ));
+        page.put("events", Arrays.asList(
+                event("external-sync-filter-change", "동기화 조회 조건 변경", "change", "setKeyword/setSyncMode/setStatus", "form",
+                        Collections.emptyList(), "조회 조건에 따라 동기화 대상 목록을 필터링합니다.")
+        ));
+        page.put("apis", Arrays.asList(
+                routeApi("route.admin.external.connection-list", "외부연계 목록 이동", "/admin/external/connection_list", "A0050001"),
+                routeApi("route.admin.system.scheduler", "스케줄러 관리 이동", "/admin/system/scheduler", "A0060305"),
+                routeApi("route.admin.system.batch", "배치 관리 이동", "/admin/system/batch", "A0060304"),
+                routeApi("route.admin.system.unified-log", "통합 로그 이동", "/admin/system/unified_log", "A0060301")
+        ));
+        page.put("schemas", Arrays.asList(
+                schema("external-sync-runtime-schema", "외부연계 동기화 런타임 스키마", "TABLE",
+                        Arrays.asList("jobId", "connectionId", "syncMode", "triggerType", "schedule", "lastSyncAt", "nextSyncAt", "backlogCount", "status"),
+                        Arrays.asList("SELECT"),
+                        "외부연계 동기화 실행 상태와 큐 적체를 조회하는 런타임 필드 묶음입니다.")
+        ));
+        page.put("commonCodeGroups", Arrays.asList(
+                codeGroup("EXTERNAL_SYNC_MODE", "외부연계 동기화 방식", Arrays.asList("SCHEDULED", "HYBRID", "WEBHOOK"), "동기화 실행 화면의 방식 필터와 상태 구분값입니다."),
+                codeGroup("EXTERNAL_SYNC_STATUS", "외부연계 동기화 상태", Arrays.asList("ACTIVE", "DEGRADED", "REVIEW", "DISABLED"), "동기화 실행 화면의 상태 배지와 필터 기준입니다.")
+        ));
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
+    private Map<String, Object> buildExternalWebhooksPage() {
+        Map<String, Object> page = pageOption("external-webhooks", "웹훅 설정", "/admin/external/webhooks", "A0050203", "admin");
+        page.put("summary", "외부연계 웹훅 대상의 엔드포인트 상태, 서명 검증, 재시도 정책을 함께 점검하는 관리자 운영 화면입니다.");
+        page.put("source", "frontend/src/features/external-webhooks/ExternalWebhooksMigrationPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("external-webhooks-filters", "웹훅 조회 조건", ".gov-card .gov-input, .gov-card .gov-select", "ExternalWebhookFilters", "actions",
+                        Collections.emptyList(), "엔드포인트, 상태, 전달 방식 기준으로 웹훅 대상을 좁힙니다."),
+                surface("external-webhooks-registry", "웹훅 엔드포인트 현황", ".gov-card table", "ExternalWebhookRegistryTable", "content",
+                        Collections.emptyList(), "엔드포인트, 서명 상태, 성공률, 실패 건수를 함께 보여줍니다."),
+                surface("external-webhooks-policy", "전달 정책", ".gov-card .w-full.border-collapse", "ExternalWebhookPolicyTable", "content",
+                        Collections.emptyList(), "이벤트 유형별 재시도 정책, 타임아웃, 실패 후 처리 기준을 운영 관점에서 확인합니다.")
+        ));
+        page.put("events", Arrays.asList(
+                event("external-webhooks-filter-change", "웹훅 조회 조건 변경", "change", "setKeyword/setStatus/setSyncMode", "form",
+                        Collections.emptyList(), "조회 조건에 따라 웹훅 엔드포인트 목록을 필터링합니다.")
+        ));
+        page.put("apis", Arrays.asList(
+                routeApi("route.admin.external.connection-list", "외부연계 목록 이동", "/admin/external/connection_list", "A0050101"),
+                routeApi("route.admin.external.sync", "외부연계 동기화 이동", "/admin/external/sync", "A0050104"),
+                routeApi("route.admin.system.unified-log", "통합 로그 이동", "/admin/system/unified_log", "A0060301"),
+                routeApi("route.admin.system.notification", "알림센터 이동", "/admin/system/notification", "A0060207")
+        ));
+        page.put("schemas", Arrays.asList(
+                schema("external-webhook-runtime-schema", "외부연계 웹훅 런타임 스키마", "TABLE",
+                        Arrays.asList("webhookId", "connectionId", "endpointUrl", "syncMode", "signatureStatus", "successRate", "failedCount", "lastEventAt", "status"),
+                        Arrays.asList("SELECT"),
+                        "외부연계 웹훅 엔드포인트 상태와 전달 정책을 조회하는 런타임 필드 묶음입니다.")
+        ));
+        page.put("commonCodeGroups", Arrays.asList(
+                codeGroup("EXTERNAL_SYNC_MODE", "외부연계 동기화 방식", Arrays.asList("WEBHOOK", "HYBRID"), "웹훅 설정 화면의 전달 방식 필터 값입니다."),
+                codeGroup("EXTERNAL_WEBHOOK_STATUS", "외부연계 웹훅 상태", Arrays.asList("ACTIVE", "DEGRADED", "REVIEW", "DISABLED"), "웹훅 설정 화면의 상태 배지 기준입니다.")
+        ));
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
+    private Map<String, Object> buildExternalMaintenancePage() {
+        Map<String, Object> page = pageOption("external-maintenance", "점검 관리", "/admin/external/maintenance", "A0050107", "admin");
+        page.put("summary", "외부연계 점검 윈도우, 영향 범위, 대체 절차, 복구 확인 항목을 함께 관리하는 관리자 운영 화면입니다.");
+        page.put("source", "frontend/src/features/external-maintenance/ExternalMaintenanceMigrationPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("external-maintenance-filters", "점검 조회 조건", ".gov-card .gov-input, .gov-card .gov-select", "ExternalMaintenanceFilters", "actions",
+                        Collections.emptyList(), "연계명, 동기화 방식, 점검 상태 기준으로 목록을 좁힙니다."),
+                surface("external-maintenance-table", "점검 대상 현황", ".gov-card table", "ExternalMaintenanceTable", "content",
+                        Collections.emptyList(), "점검 예정 시각, 영향 범위, 대체 경로, 상태를 함께 보여줍니다."),
+                surface("external-maintenance-runbook", "점검 운영 런북", ".gov-card .rounded-[var(--kr-gov-radius)]", "ExternalMaintenanceRunbook", "content",
+                        Collections.emptyList(), "사전, 점검 중, 복구 후 절차를 운영 관점에서 제공합니다.")
+        ));
+        page.put("events", Arrays.asList(
+                event("external-maintenance-filter-change", "점검 조회 조건 변경", "change", "setKeyword/setSyncMode/setStatus", "form",
+                        Collections.emptyList(), "조회 조건에 따라 점검 대상 목록을 필터링합니다.")
+        ));
+        page.put("apis", Arrays.asList(
+                routeApi("route.admin.external.sync", "외부연계 동기화 이동", "/admin/external/sync", "A0050104"),
+                routeApi("route.admin.external.webhooks", "외부연계 웹훅 이동", "/admin/external/webhooks", "A0050203"),
+                routeApi("route.admin.external.retry", "외부연계 재시도 이동", "/admin/external/retry", "A0050105"),
+                routeApi("route.admin.external.connection-list", "외부연계 목록 이동", "/admin/external/connection_list", "A0050101")
+        ));
+        page.put("schemas", Arrays.asList(
+                schema("external-maintenance-runtime-schema", "외부연계 점검 런타임 스키마", "TABLE",
+                        Arrays.asList("maintenanceId", "connectionId", "connectionName", "syncMode", "maintenanceWindow", "plannedAt", "impactScope", "fallbackRoute", "backlogCount", "maintenanceStatus"),
+                        Arrays.asList("SELECT"),
+                        "외부연계 점검 상태와 영향 범위를 함께 점검하는 운영 필드 묶음입니다.")
+        ));
+        page.put("commonCodeGroups", Arrays.asList(
+                codeGroup("EXTERNAL_MAINTENANCE_STATUS", "외부연계 점검 상태", Arrays.asList("READY", "DUE_SOON", "BLOCKED"), "점검 관리 화면의 상태 배지와 필터 기준입니다."),
+                codeGroup("EXTERNAL_MAINTENANCE_SYNC_MODE", "외부연계 점검 동기화 방식", Arrays.asList("SCHEDULED", "HYBRID", "WEBHOOK"), "점검 관리 화면의 동기화 방식 필터 기준입니다.")
+        ));
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
+    private Map<String, Object> buildExternalUsagePage() {
+        Map<String, Object> page = pageOption("external-usage", "API 사용량", "/admin/external/usage", "A0050108", "admin");
+        page.put("summary", "외부연계 API 호출량, 인증 방식별 소비 현황, 최근 호출 추이를 함께 점검하는 관리자 운영 화면입니다.");
+        page.put("source", "frontend/src/features/external-usage/ExternalUsageMigrationPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("external-usage-filters", "API 사용량 조회 조건", ".gov-card .gov-input, .gov-card .gov-select", "ExternalUsageFilters", "actions",
+                        Collections.emptyList(), "연계, 인증 방식, 상태 기준으로 사용량 범위를 좁힙니다."),
+                surface("external-usage-table", "외부연계 API 사용 현황", ".gov-card table", "ExternalUsageTable", "content",
+                        Collections.emptyList(), "연계별 호출 수, 성공률, 평균 지연, 최근 호출 시각을 함께 보여줍니다."),
+                surface("external-usage-trend", "최근 사용 추이", ".gov-card .w-full.border-collapse", "ExternalUsageTrendTable", "content",
+                        Collections.emptyList(), "일자별 호출 수와 오류 수를 운영 관점에서 비교합니다.")
+        ));
+        page.put("events", Arrays.asList(
+                event("external-usage-filter-change", "API 사용량 조회 조건 변경", "change", "setKeyword/setAuthMethod/setStatus", "form",
+                        Collections.emptyList(), "조회 조건에 따라 API 사용량 목록을 필터링합니다.")
+        ));
+        page.put("apis", Arrays.asList(
+                routeApi("route.admin.external.connection-list", "외부연계 목록 이동", "/admin/external/connection_list", "A0050001"),
+                routeApi("route.admin.external.sync", "외부연계 동기화 이동", "/admin/external/sync", "A0050104"),
+                routeApi("route.admin.system.unified-log", "통합 로그 이동", "/admin/system/unified_log", "A0060301"),
+                routeApi("route.admin.system.observability", "추적 조회 이동", "/admin/system/observability", "A0060303")
+        ));
+        page.put("schemas", Arrays.asList(
+                schema("external-usage-runtime-schema", "외부연계 API 사용량 런타임 스키마", "TABLE",
+                        Arrays.asList("connectionId", "connectionName", "partnerName", "authMethod", "requestCount", "successRate", "avgDurationMs", "lastSeenAt", "status"),
+                        Arrays.asList("SELECT"),
+                        "외부연계 API 호출량과 오류·지연 상태를 함께 점검하는 운영 필드 묶음입니다.")
+        ));
+        page.put("commonCodeGroups", Arrays.asList(
+                codeGroup("EXTERNAL_USAGE_AUTH_METHOD", "외부연계 인증 방식", Arrays.asList("OAUTH2", "API_KEY", "MUTUAL_TLS", "OBSERVED"), "API 사용량 화면의 인증 방식 필터 기준입니다."),
+                codeGroup("EXTERNAL_USAGE_STATUS", "외부연계 사용 상태", Arrays.asList("HEALTHY", "WARNING", "DEGRADED"), "API 사용량 화면의 상태 배지와 필터 기준입니다.")
+        ));
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
+    private Map<String, Object> buildExternalMonitoringPage() {
+        Map<String, Object> page = pageOption("external-monitoring", "연계 모니터링", "/admin/external/monitoring", "A0050106", "admin");
+        page.put("summary", "외부연계 상태, 동기화 적체, 웹훅 전달 위험, 최근 경보를 통합 관점으로 점검하는 관리자 운영 화면입니다.");
+        page.put("source", "frontend/src/features/external-monitoring/ExternalMonitoringMigrationPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("external-monitoring-filters", "모니터링 조회 조건", ".gov-card .gov-input, .gov-card .gov-select", "ExternalMonitoringFilters", "actions",
+                        Collections.emptyList(), "연계, 건강 상태, 경보 등급 기준으로 운영 범위를 좁힙니다."),
+                surface("external-monitoring-overview", "연계 모니터링 현황", ".gov-card table", "ExternalMonitoringOverviewTable", "content",
+                        Collections.emptyList(), "연계별 호출량, 성공률, 적체, 활성 경보를 한 테이블에서 보여줍니다."),
+                surface("external-monitoring-alerts", "활성 경보", ".gov-card .w-full.border-collapse", "ExternalMonitoringAlertTable", "content",
+                        Collections.emptyList(), "동기화 적체, 호출 오류, 웹훅 상태 저하를 하나의 조치 큐로 통합합니다.")
+        ));
+        page.put("events", Arrays.asList(
+                event("external-monitoring-filter-change", "모니터링 조회 조건 변경", "change", "setKeyword/setHealthStatus/setAlertLevel", "form",
+                        Collections.emptyList(), "조회 조건에 따라 연계 모니터링 현황을 필터링합니다.")
+        ));
+        page.put("apis", Arrays.asList(
+                api("admin.external.monitoring.page", "연계 모니터링 페이지 데이터 조회", "GET", "/admin/external/monitoring/page-data",
+                        "AdminObservabilityController.externalMonitoringPageApi", "AdminObservabilityPageService.buildExternalMonitoringPagePayload",
+                        "READ_ONLY", Arrays.asList("ACCESS_EVENT", "ERROR_EVENT", "TRACE_EVENT"), Collections.emptyList(), "외부연계 관측 데이터와 운영 경보를 통합한 payload를 반환합니다."),
+                routeApi("route.admin.external.connection-list", "외부연계 목록 이동", "/admin/external/connection_list", "A0050101"),
+                routeApi("route.admin.external.sync", "외부연계 동기화 이동", "/admin/external/sync", "A0050104"),
+                routeApi("route.admin.external.webhooks", "외부연계 웹훅 이동", "/admin/external/webhooks", "A0050203"),
+                routeApi("route.admin.external.usage", "외부연계 사용량 이동", "/admin/external/usage", "A0050108")
+        ));
+        page.put("schemas", Arrays.asList(
+                schema("external-monitoring-runtime-schema", "외부연계 모니터링 런타임 스키마", "TABLE",
+                        Arrays.asList("connectionId", "requestCount", "successRate", "backlogCount", "alertCount", "topAlertLevel", "status", "lastObservedAt"),
+                        Arrays.asList("SELECT"),
+                        "외부연계 운영 상태와 경보 우선순위를 함께 보여주는 통합 모니터링 필드 묶음입니다.")
+        ));
+        page.put("commonCodeGroups", Arrays.asList(
+                codeGroup("EXTERNAL_MONITORING_STATUS", "외부연계 모니터링 상태", Arrays.asList("ACTIVE", "REVIEW", "DEGRADED"), "연계 모니터링 화면의 건강 상태 필터와 배지 기준입니다."),
+                codeGroup("EXTERNAL_MONITORING_ALERT_LEVEL", "외부연계 경보 등급", Arrays.asList("CRITICAL", "HIGH", "MEDIUM", "NONE"), "연계 모니터링 화면의 경보 필터와 우선순위 기준입니다.")
+        ));
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
     private Map<String, Object> buildErrorLogPage() {
         Map<String, Object> page = pageOption("error-log", "에러 로그", "/admin/system/error-log", "A0060302", "admin");
         page.put("summary", "백엔드 오류, 페이지 격리 오류, 프런트 오류 리포트를 영구 추적으로 조회하는 관리자 화면입니다.");
@@ -2152,6 +2637,43 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                 schema("error-event-schema", "에러 이벤트 스키마", "ERROR_EVENT",
                         Arrays.asList("ERROR_ID", "TRACE_ID", "PAGE_ID", "API_ID", "SOURCE_TYPE", "ERROR_TYPE", "ACTOR_ID", "ACTOR_INSTT_ID", "REQUEST_URI", "MESSAGE", "RESULT_STATUS", "CREATED_AT"),
                         Arrays.asList("SELECT", "INSERT"), "영구 에러 로그 조회 테이블입니다.")
+        ));
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
+    private Map<String, Object> buildExternalLogsPage() {
+        Map<String, Object> page = pageOption("external-logs", "외부 연계 로그", "/admin/external/logs", "A0050303", "admin");
+        page.put("summary", "외부연계 access, error, trace 이벤트를 하나의 운영 큐로 합쳐 최근 이슈와 감시 대상을 함께 확인하는 관리자 화면입니다.");
+        page.put("source", "frontend/src/features/external-logs/ExternalLogsMigrationPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("external-logs-filters", "외부연계 로그 조회 조건", ".gov-card .gov-input, .gov-card .gov-select", "ExternalLogFilters", "actions",
+                        Arrays.asList("external-logs-filter-change"), "검색어, 로그 유형, 위험도 기준으로 최근 외부연계 로그를 좁힙니다."),
+                surface("external-logs-table", "외부연계 최근 로그", ".gov-card table", "ExternalLogTable", "content",
+                        Collections.emptyList(), "접근, 오류, 추적 로그를 시간 역순으로 조회합니다."),
+                surface("external-logs-watchlist", "외부연계 감시 대상", ".gov-card .w-full.border-collapse", "ExternalLogWatchList", "content",
+                        Collections.emptyList(), "상태 저하 연계와 최근 이슈를 함께 점검합니다.")
+        ));
+        page.put("events", Arrays.asList(
+                event("external-logs-filter-change", "외부연계 로그 조회 조건 변경", "change", "setKeyword/setLogType/setSeverity", "form",
+                        Arrays.asList("admin.external.logs.page"), "로그 필터를 갱신합니다.")
+        ));
+        page.put("apis", Arrays.asList(
+                api("admin.external.logs.page", "외부연계 로그 페이지 조회", "GET", "/admin/external/logs/page-data",
+                        "AdminObservabilityController.externalLogsPageApi", "AdminObservabilityPageService.buildExternalLogsPagePayload",
+                        "ObservabilityQueryService.selectAccessEventList / selectErrorEventList / selectTraceEventList",
+                        Arrays.asList("ACCESS_EVENT", "ERROR_EVENT", "TRACE_EVENT"),
+                        Arrays.asList("external-log-runtime-schema"), "외부연계 로그와 감시 대상을 함께 조회합니다.")
+        ));
+        page.put("schemas", Arrays.asList(
+                schema("external-log-runtime-schema", "외부연계 로그 런타임 스키마", "TABLE",
+                        Arrays.asList("occurredAt", "logType", "severity", "traceId", "apiId", "connectionName", "requestUri", "status", "detail"),
+                        Arrays.asList("SELECT"),
+                        "외부연계 운영 로그 화면의 통합 이벤트 행 스키마입니다.")
+        ));
+        page.put("commonCodeGroups", Arrays.asList(
+                codeGroup("EXTERNAL_LOG_TYPE", "외부연계 로그 유형", Arrays.asList("ACCESS", "ERROR", "TRACE"), "외부연계 로그 화면의 로그 유형 필터 기준입니다."),
+                codeGroup("EXTERNAL_LOG_SEVERITY", "외부연계 로그 위험도", Arrays.asList("DANGER", "WARNING", "NEUTRAL"), "외부연계 로그 화면의 위험도 배지와 필터 기준입니다.")
         ));
         page.put("changeTargets", defaultChangeTargets());
         return page;
@@ -2188,13 +2710,13 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                         Arrays.asList("COMTCCMMNDETAILCODE", "COMTNMENUINFO", "COMTNMENUORDER", "COMTNMENUFUNCTIONINFO"),
                         Arrays.asList("menu-tree-schema", "menu-feature-schema"),
                         "메뉴 트리, 그룹 메뉴 선택지, 아이콘, 사용 여부 목록을 조회합니다."),
-                api("admin.menu-management.create-page", "메뉴 기준 페이지 생성", "POST", "/admin/system/menu-management/create-page",
+                api("admin.menu-management.create-page", "메뉴 기준 페이지 생성", "POST", "/admin/system/menu/create-page",
                         "AdminSystemCodeController.createMenuManagedPageApi", "AdminCodeManageService.insertPageManagement + MenuFeatureManageService.insertMenuFeature",
                         "AdminCodeManageMapper.insertPageManagementDetail / insertPageManagementMenu / MenuInfoMapper.insertMenuOrder / MenuFeatureManageMapper.insertMenuFeature",
                         Arrays.asList("COMTCCMMNDETAILCODE", "COMTNMENUINFO", "COMTNMENUORDER", "COMTNMENUFUNCTIONINFO", "AUDIT_EVENT"),
                         Arrays.asList("menu-tree-schema", "menu-feature-schema"),
                         "새 8자리 페이지 메뉴와 기본 VIEW 기능을 생성합니다."),
-                api("admin.menu-management.order-save", "메뉴 순서 저장", "POST", "/admin/system/menu-management/order",
+                api("admin.menu-management.order-save", "메뉴 순서 저장", "POST", "/admin/system/menu/order",
                         "AdminSystemCodeController.saveMenuManagementOrder", "MenuInfoService.saveMenuOrder",
                         "MenuInfoMapper.insertMenuOrder / updateMenuOrder",
                         Arrays.asList("COMTNMENUORDER", "AUDIT_EVENT"), Arrays.asList("menu-order-schema"),
@@ -2641,6 +3163,40 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         page.put("commonCodeGroups", Arrays.asList(
                 codeGroup("AMENU1", "관리자 메뉴 코드", Arrays.asList("A1900104"), "WBS 관리 메뉴 분류입니다."),
                 codeGroup("WBS_STATUS", "WBS 상태", Arrays.asList("NOT_STARTED", "IN_PROGRESS", "DONE", "BLOCKED"), "WBS 진행 상태 분류입니다.")
+        ));
+        page.put("changeTargets", defaultChangeTargets());
+        return page;
+    }
+
+    private Map<String, Object> buildNewPage() {
+        Map<String, Object> page = pageOption("new-page", "새 페이지", "/admin/system/new-page", "A1900106", "admin");
+        page.put("summary", "대상 업무가 정해지기 전에 안전한 기본 골격으로 생성한 관리자 신규 페이지입니다.");
+        page.put("source", "frontend/src/features/new-page/NewPageMigrationPage.tsx");
+        page.put("surfaces", Arrays.asList(
+                surface("new-page-status", "기본 상태 안내", ".gov-card, section", "NewPageStatusNotice", "header",
+                        Collections.emptyList(), "이 페이지가 스캐폴드 상태임을 안내합니다."),
+                surface("new-page-summary", "기본 메트릭", ".gov-card", "NewPageSummaryCards", "actions",
+                        Collections.emptyList(), "기본 경로, 언어 범위, 현재 상태를 요약합니다."),
+                surface("new-page-checklist", "후속 구현 체크리스트", ".gov-card", "NewPageStarterChecklist", "content",
+                        Collections.emptyList(), "메뉴, API, 권한, 화면 타입 확정 순서를 안내합니다.")
+        ));
+        page.put("events", Collections.singletonList(
+                event("new-page-navigation", "새 페이지 진입", "click", "browser-navigation", "a[href=\"/admin/system/new-page\"]",
+                        Collections.emptyList(), "관리자 셸에서 새 페이지 스캐폴드로 이동합니다.")
+        ));
+        page.put("apis", Collections.singletonList(
+                api("admin.new-page.page", "새 페이지 진입", "GET", "/admin/system/new-page",
+                        "AdminSystemCodeController.newPage", "React migration redirect",
+                        "N/A", Arrays.asList("COMTNMENUINFO", "COMTNMENUFUNCTIONINFO"), Collections.emptyList(),
+                        "신규 관리자 페이지 스캐폴드의 React 진입 경로입니다.")
+        ));
+        page.put("schemas", Collections.singletonList(
+                schema("new-page-menu-schema", "새 페이지 메뉴 메타", "COMTNMENUINFO / COMTNMENUFUNCTIONINFO / COMTNAUTHORFUNCTIONRELATE",
+                        Arrays.asList("MENU_CODE", "MENU_URL", "FEATURE_CODE", "AUTHOR_CODE"),
+                        Arrays.asList("SELECT", "INSERT", "UPDATE"), "새 페이지 메뉴와 VIEW 권한 연결에 필요한 기본 메타데이터입니다.")
+        ));
+        page.put("commonCodeGroups", Collections.singletonList(
+                codeGroup("AMENU1", "관리자 메뉴 코드", Arrays.asList("A1900106"), "새 페이지 메뉴 코드 분류입니다.")
         ));
         page.put("changeTargets", defaultChangeTargets());
         return page;

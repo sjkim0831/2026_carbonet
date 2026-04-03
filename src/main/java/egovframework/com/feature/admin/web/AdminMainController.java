@@ -34,6 +34,7 @@ import egovframework.com.feature.admin.model.vo.SecurityAuditSnapshot;
 import egovframework.com.feature.admin.model.vo.UserAuthorityTargetVO;
 import egovframework.com.feature.admin.model.vo.UserFeatureOverrideVO;
 import egovframework.com.feature.admin.service.AdminLoginHistoryService;
+import egovframework.com.feature.admin.service.AdminShellBootstrapPageService;
 import egovframework.com.feature.admin.service.AdminSummaryService;
 import egovframework.com.feature.admin.service.AuthorRoleProfileService;
 import egovframework.com.feature.admin.service.AuthGroupManageService;
@@ -154,6 +155,7 @@ public class AdminMainController {
     private final CommonCodeService cmmUseService;
     private final AuthGroupManageService authGroupManageService;
     private final AdminLoginHistoryService adminLoginHistoryService;
+    private final ObjectProvider<AdminShellBootstrapPageService> adminShellBootstrapPageServiceProvider;
     private final ObjectProvider<AdminHotPathPagePayloadService> adminHotPathPagePayloadServiceProvider;
     private final ObjectProvider<AdminApprovalPageModelAssembler> adminApprovalPageModelAssemblerProvider;
     private final ObjectProvider<AdminListPageModelAssembler> adminListPageModelAssemblerProvider;
@@ -163,6 +165,7 @@ public class AdminMainController {
     private final AdminCompanyAccountService adminCompanyAccountService;
     private final AdminAdminPermissionService adminAdminPermissionService;
     private final AdminApprovalActionService adminApprovalActionService;
+    private final AdminCertificateApprovalService adminCertificateApprovalService;
     private final AuthService authService;
     private final AdminSummaryService adminSummaryService;
     private final AuthorRoleProfileService authorRoleProfileService;
@@ -180,6 +183,10 @@ public class AdminMainController {
 
     private AdminHotPathPagePayloadService adminHotPathPagePayloadService() {
         return adminHotPathPagePayloadServiceProvider.getObject();
+    }
+
+    private AdminShellBootstrapPageService adminShellBootstrapPageService() {
+        return adminShellBootstrapPageServiceProvider.getObject();
     }
 
     private AdminMemberPageModelAssembler adminMemberPageModelAssembler() {
@@ -228,6 +235,11 @@ public class AdminMainController {
 
     String member_register(HttpServletRequest request, Locale locale) {
         return redirectReactMigration(request, locale, "member-register");
+    }
+
+    @RequestMapping(value = "/external/connection_edit", method = { RequestMethod.GET, RequestMethod.POST })
+    public String externalConnectionEditPage(HttpServletRequest request, Locale locale) {
+        return redirectReactMigration(request, locale, "external-connection-edit");
     }
 
     ResponseEntity<Map<String, Object>> memberRegisterPageApi(HttpServletRequest request, Locale locale) {
@@ -529,6 +541,38 @@ public class AdminMainController {
         return canManage ? ResponseEntity.ok(response) : ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
     }
 
+    String certificateApprove(
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "requestType", required = false) String requestType,
+            @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "result", required = false) String result,
+            HttpServletRequest request,
+            Locale locale,
+            Model model) {
+        return redirectReactMigration(request, locale, "certificate-approve");
+    }
+
+    ResponseEntity<Map<String, Object>> certificateApprovePageApi(
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "requestType", required = false) String requestType,
+            @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "result", required = false) String result,
+            HttpServletRequest request,
+            Locale locale) {
+        Map<String, Object> response = adminHotPathPagePayloadService().buildCertificateApprovePagePayload(
+                pageIndexParam,
+                searchKeyword,
+                requestType,
+                status,
+                result,
+                request,
+                locale);
+        boolean canManage = Boolean.TRUE.equals(response.get("canViewCertificateApprove"));
+        return canManage ? ResponseEntity.ok(response) : ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
+    }
+
     String member_approveSubmit(
             @RequestParam(value = "action", required = false) String action,
             @RequestParam(value = "memberId", required = false) String memberId,
@@ -650,6 +694,32 @@ public class AdminMainController {
         recordApprovalAuditSafely(request, currentUserId, currentUserAuthorCode, "AMENU_COMPANY_APPROVE", "company-approve",
                 "COMPANY_APPROVAL_" + ("P".equals(result.getTargetStatus()) ? "APPROVE" : "REJECT"),
                 "COMPANY", result.getSelectedIds().toString(), "SUCCESS",
+                "{\"action\":\"" + safeJson(result.getAction()) + "\",\"selectedIds\":\"" + safeJson(result.getSelectedIds().toString()) + "\",\"rejectReason\":\"" + safeJson(result.getRejectReason()) + "\"}",
+                "{\"targetStatus\":\"" + result.getTargetStatus() + "\"}");
+        return result.toResponseEntity();
+    }
+
+    ResponseEntity<Map<String, Object>> certificateApproveSubmitApi(
+            @RequestBody Map<String, Object> payload,
+            HttpServletRequest request,
+            Locale locale) {
+        boolean isEn = isEnglishRequest(request, locale);
+        String currentUserId = extractCurrentUserId(request);
+        String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
+        AdminApprovalActionService.ActionResult result = adminCertificateApprovalService.submitApproval(
+                payload == null ? null : payload.get("action"),
+                payload == null ? null : payload.get("certificateId"),
+                payload == null ? null : payload.get("selectedIds"),
+                payload == null ? null : payload.get("rejectReason"),
+                isEn,
+                hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode),
+                this);
+        if (!result.isSuccess()) {
+            return result.toResponseEntity();
+        }
+        recordApprovalAuditSafely(request, currentUserId, currentUserAuthorCode, "AMENU_CERTIFICATE_APPROVE", "certificate-approve",
+                "CERTIFICATE_APPROVAL_" + ("P".equals(result.getTargetStatus()) ? "APPROVE" : "REJECT"),
+                "CERTIFICATE", result.getSelectedIds().toString(), "SUCCESS",
                 "{\"action\":\"" + safeJson(result.getAction()) + "\",\"selectedIds\":\"" + safeJson(result.getSelectedIds().toString()) + "\",\"rejectReason\":\"" + safeJson(result.getRejectReason()) + "\"}",
                 "{\"targetStatus\":\"" + result.getTargetStatus() + "\"}");
         return result.toResponseEntity();
@@ -1723,6 +1793,26 @@ public class AdminMainController {
         response.putAll(model);
         response.put("isEn", isEn);
         return ResponseEntity.ok(response);
+    }
+
+    String emission_result_detail(
+            @RequestParam(value = "resultId", required = false) String resultId,
+            HttpServletRequest request,
+            Locale locale,
+            Model model) {
+        return redirectReactMigration(request, locale, "emission-result-detail");
+    }
+
+    ResponseEntity<Map<String, Object>> emissionResultDetailPageApi(
+            @RequestParam(value = "resultId", required = false) String resultId,
+            HttpServletRequest request,
+            Locale locale) {
+        boolean isEn = isEnglishRequest(request, locale);
+        primeCsrfToken(request);
+        Map<String, Object> response = adminShellBootstrapPageService().buildEmissionResultDetailPageData(resultId, isEn);
+        return Boolean.TRUE.equals(response.get("found"))
+                ? ResponseEntity.ok(response)
+                : ResponseEntity.status(HttpServletResponse.SC_NOT_FOUND).body(response);
     }
 
     String company_detail(

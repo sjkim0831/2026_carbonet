@@ -175,7 +175,7 @@ export function ExternalSchemaMigrationPage() {
       <AdminWorkspacePageFrame>
         {pageState.error ? <PageStatusNotice tone="error">{pageState.error}</PageStatusNotice> : null}
 
-        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4" data-help-id="external-schema-summary">
           {summary.map((item, index) => (
             <SummaryMetricCard
               key={`${stringOf(item, "title")}-${index}`}

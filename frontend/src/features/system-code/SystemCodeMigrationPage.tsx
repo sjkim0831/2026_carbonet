@@ -291,6 +291,27 @@ function filterRowsByUseAt(rows: Array<Record<string, unknown>>, useStatusFilter
   return rows.filter((row) => (stringOf(row, "useAt", "USE_AT") || "Y") === useStatusFilter);
 }
 
+function hasClassCode(rows: Array<Record<string, unknown>>, classCode: string) {
+  if (!classCode) {
+    return false;
+  }
+  return rows.some((row) => stringOf(row, "clCode", "CL_CODE") === classCode);
+}
+
+function resolvePreferredGroupCreateClassCode(
+  rows: Array<Record<string, unknown>>,
+  filteredClassCode: string,
+  selectedClassCode: string
+) {
+  if (hasClassCode(rows, filteredClassCode)) {
+    return filteredClassCode;
+  }
+  if (hasClassCode(rows, selectedClassCode)) {
+    return selectedClassCode;
+  }
+  return stringOf(rows[0], "clCode", "CL_CODE");
+}
+
 function sortDetailRows(rows: Array<Record<string, unknown>>, sortOption: DetailSortOption) {
   const nextRows = [...rows];
   nextRows.sort((left, right) => {
@@ -331,6 +352,7 @@ export function SystemCodeMigrationPage() {
   const [useStatusFilter, setUseStatusFilter] = useState<UseStatusFilter>(initialUiState.useStatusFilter);
   const [selectedClassCode, setSelectedClassCode] = useState("");
   const [selectedGroupCodeId, setSelectedGroupCodeId] = useState("");
+  const [groupCreateClassCode, setGroupCreateClassCode] = useState("");
   const [selectedDetailRowKey, setSelectedDetailRowKey] = useState("");
   const [selectedDetailRowKeys, setSelectedDetailRowKeys] = useState<string[]>([]);
   const [copiedMessage, setCopiedMessage] = useState("");
@@ -362,6 +384,7 @@ export function SystemCodeMigrationPage() {
     || null;
   const selectedClassRefCount = selectedClassRow ? numberOf(classCodeRefCounts, stringOf(selectedClassRow, "clCode", "CL_CODE")) : 0;
   const selectedGroupRefCount = selectedGroupRow ? numberOf(codeDetailRefCounts, stringOf(selectedGroupRow, "codeId", "CODE_ID")) : 0;
+  const preferredGroupCreateClassCode = resolvePreferredGroupCreateClassCode(clCodeList, codeFilterClassCode, selectedClassCode);
 
   useEffect(() => {
     if (!detailCodeId && codeList.length > 0) {
@@ -380,12 +403,15 @@ export function SystemCodeMigrationPage() {
 
   useEffect(() => {
     setCodeFilterClassCode((currentValue) => {
-      if (currentValue && clCodeList.some((row) => stringOf(row, "clCode", "CL_CODE") === currentValue)) {
+      if (!currentValue) {
+        return "";
+      }
+      if (clCodeList.some((row) => stringOf(row, "clCode", "CL_CODE") === currentValue)) {
         return currentValue;
       }
-      return stringOf(filteredClassList[0], "clCode", "CL_CODE");
+      return "";
     });
-  }, [clCodeList, filteredClassList]);
+  }, [clCodeList]);
 
   useEffect(() => {
     setSelectedGroupCodeId((currentValue) => {
@@ -414,6 +440,23 @@ export function SystemCodeMigrationPage() {
       setDetailCodeId(selectedGroupCodeId);
     }
   }, [detailCodeId, selectedGroupCodeId, setDetailCodeId]);
+
+  useEffect(() => {
+    const nextClassCode = stringOf(selectedGroupRow, "clCode", "CL_CODE");
+    if (!nextClassCode) {
+      return;
+    }
+    setSelectedClassCode((currentValue) => currentValue === nextClassCode ? currentValue : nextClassCode);
+  }, [selectedGroupRow]);
+
+  useEffect(() => {
+    setGroupCreateClassCode((currentValue) => {
+      if (hasClassCode(clCodeList, currentValue)) {
+        return currentValue;
+      }
+      return preferredGroupCreateClassCode;
+    });
+  }, [clCodeList, preferredGroupCreateClassCode]);
 
   useEffect(() => {
     if (detailCodeId) {
@@ -581,8 +624,11 @@ export function SystemCodeMigrationPage() {
     }
     if (formKind === "group-create") {
       const codeId = normalizeCodeToken(formData.get("codeId"));
+      const clCode = normalizeCodeToken(formData.get("clCode"));
       setSelectedGroupCodeId(codeId);
       setDetailCodeId(codeId);
+      setSelectedClassCode(clCode);
+      setGroupCreateClassCode(clCode);
       setHighlightKey(`group:${codeId}`);
       pushRecentWork({
         id: `group:${codeId}:${Date.now()}`,
@@ -842,7 +888,17 @@ export function SystemCodeMigrationPage() {
       <AdminWorkspacePageFrame>
         <section className="gov-card" data-help-id="system-code-class">
           <GridToolbar
-            actions={<span className="material-symbols-outlined text-[var(--kr-gov-blue)]">category</span>}
+            actions={selectedClassRow ? (
+              <MemberButton
+                onClick={() => setCodeFilterClassCode(stringOf(selectedClassRow, "clCode", "CL_CODE"))}
+                type="button"
+                variant={codeFilterClassCode === stringOf(selectedClassRow, "clCode", "CL_CODE") ? "primary" : "secondary"}
+              >
+                {en ? "Filter Code IDs" : "코드 ID 필터 적용"}
+              </MemberButton>
+            ) : (
+              <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">category</span>
+            )}
             className="mb-4"
             meta={en ? "Search and select a class code before editing." : "검색 후 분류 코드를 선택해 수정합니다."}
             title={en ? "Class Codes" : "분류 코드"}
@@ -986,9 +1042,19 @@ export function SystemCodeMigrationPage() {
 
         <section className="gov-card" data-help-id="system-code-group">
           <GridToolbar
-            actions={<span className="material-symbols-outlined text-[var(--kr-gov-blue)]">list_alt</span>}
+            actions={codeFilterClassCode ? (
+              <MemberButton onClick={() => setCodeFilterClassCode("")} type="button" variant="secondary">
+                {en ? "Show All Classes" : "전체 분류 보기"}
+              </MemberButton>
+            ) : (
+              <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">list_alt</span>
+            )}
             className="mb-4"
-            meta={en ? "Search code IDs and bind the detail panel to the selected code." : "코드 ID를 검색하고 상세 코드 패널과 연결합니다."}
+            meta={codeFilterClassCode
+              ? (en
+                ? `Showing code IDs in class ${codeFilterClassCode}. Select "Show All Classes" to clear the scope.`
+                : `${codeFilterClassCode} 분류의 코드 ID만 표시 중입니다. "전체 분류 보기"로 범위를 해제할 수 있습니다.`)
+              : (en ? "Search code IDs and bind the detail panel to the selected code." : "코드 ID를 검색하고 상세 코드 패널과 연결합니다.")}
             title={en ? "Code IDs" : "코드 ID"}
           />
 
@@ -1001,7 +1067,7 @@ export function SystemCodeMigrationPage() {
               <label className="gov-label" htmlFor="codeFilterClassCode">{en ? "Class filter" : "분류 필터"}</label>
               <AdminSelect id="codeFilterClassCode" onChange={(event) => setCodeFilterClassCode(event.target.value)} value={codeFilterClassCode}>
                 <option value="">{en ? "All classes" : "전체 분류"}</option>
-                {filteredClassList.map((row) => {
+                {clCodeList.map((row) => {
                   const clCode = stringOf(row, "clCode", "CL_CODE");
                   return <option key={clCode} value={clCode}>{`${clCode} - ${stringOf(row, "clCodeNm", "CL_CODE_NM")}`}</option>;
                 })}
@@ -1034,7 +1100,7 @@ export function SystemCodeMigrationPage() {
             </div>
             <div>
               <label className="gov-label" htmlFor="groupClCode">{en ? "Class Code" : "분류 코드"}</label>
-              <AdminSelect id="groupClCode" name="clCode">
+              <AdminSelect id="groupClCode" name="clCode" onChange={(event) => setGroupCreateClassCode(event.target.value)} value={groupCreateClassCode}>
                 {clCodeList.map((row) => (
                   <option key={stringOf(row, "clCode", "CL_CODE")} value={stringOf(row, "clCode", "CL_CODE")}>
                     {`${stringOf(row, "clCode", "CL_CODE")} - ${stringOf(row, "clCodeNm", "CL_CODE_NM")}`}
@@ -1463,3 +1529,4 @@ function validateSystemCodeForm(
   }
   return "";
 }
+// agent note: updated by FreeAgent Ultra

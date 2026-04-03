@@ -15,4 +15,8 @@ public class AuthorInfoVO {
     public String getAuthorCode() {
         return authorCode;
     }
+
+    public String getAuthorNm() {
+        return authorNm;
+    }
 }

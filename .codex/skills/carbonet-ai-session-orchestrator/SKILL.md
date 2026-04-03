@@ -9,16 +9,17 @@ Use this skill first for any task that needs a safe session boundary decision.
 
 Read only what you need:
 
-- Read [`/opt/projects/carbonet-react-migration/STRUCTURE.md`](/opt/projects/carbonet-react-migration/STRUCTURE.md) for repository path boundaries.
-- Read [`/opt/projects/carbonet-react-migration/docs/ai/00-governance/ai-fast-path.md`](/opt/projects/carbonet-react-migration/docs/ai/00-governance/ai-fast-path.md) for default AI operating rules.
-- Read [`/opt/projects/carbonet-react-migration/docs/ai/00-governance/ai-session-partitioning.md`](/opt/projects/carbonet-react-migration/docs/ai/00-governance/ai-session-partitioning.md) for the canonical session split standard.
-- Read [`/opt/projects/carbonet-react-migration/docs/architecture/install-unit-lifecycle-and-resource-governance.md`](/opt/projects/carbonet-react-migration/docs/architecture/install-unit-lifecycle-and-resource-governance.md) when the request affects menu lifecycle, install/copy/delete, resource ownership, or garbage/orphan decisions.
-- Read [`/opt/projects/carbonet-react-migration/docs/architecture/platform-common-module-versioning.md`](/opt/projects/carbonet-react-migration/docs/architecture/platform-common-module-versioning.md) when the request affects common-platform sharing, jar/module packaging, or version-pinned rollout decisions.
-- Read [`/opt/projects/carbonet-react-migration/docs/architecture/common-module-taxonomy.md`](/opt/projects/carbonet-react-migration/docs/architecture/common-module-taxonomy.md) when the request affects whether work belongs in `SI_COMMON`, `OPS_COMMON`, or a project-specific module.
-- Read [`/opt/projects/carbonet-react-migration/docs/architecture/common-db-and-project-db-splitting.md`](/opt/projects/carbonet-react-migration/docs/architecture/common-db-and-project-db-splitting.md) when the request affects common DB retention, project DB splitting, or scaffolding and migration control across multiple DBs.
-- Read [`/opt/projects/carbonet-react-migration/docs/architecture/platform-console-information-architecture.md`](/opt/projects/carbonet-react-migration/docs/architecture/platform-console-information-architecture.md) when the request affects super-master workflow, project registry, or main-console scope definition.
-- Read [`/opt/projects/carbonet-react-migration/docs/architecture/db-migration-and-upgrade-operations.md`](/opt/projects/carbonet-react-migration/docs/architecture/db-migration-and-upgrade-operations.md) when the request affects release timing, DB migration sequencing, rollback planning, or cutover strategy.
-- Read [`/opt/projects/carbonet-react-migration/docs/architecture/platform-control-plane-data-model.md`](/opt/projects/carbonet-react-migration/docs/architecture/platform-control-plane-data-model.md) when the request affects common-DB table design for project registry, install units, resources, common modules, or release units.
+- Read [`/opt/projects/carbonet/docs/ai/00-governance/ai-fast-path.md`](/opt/projects/carbonet/docs/ai/00-governance/ai-fast-path.md) for default AI operating rules.
+- Read [`/opt/projects/carbonet/docs/ai/00-governance/ai-session-partitioning.md`](/opt/projects/carbonet/docs/ai/00-governance/ai-session-partitioning.md) for the canonical session split standard.
+- Read [`/opt/projects/carbonet/docs/ai/60-operations/session-orchestration/README.md`](/opt/projects/carbonet/docs/ai/60-operations/session-orchestration/README.md) before creating or reopening durable session artifacts.
+- Read [`/opt/projects/carbonet/docs/operations/account-relogin-continuity-playbook.md`](/opt/projects/carbonet/docs/operations/account-relogin-continuity-playbook.md) when the operator wants a fresh login or new account to resume work without overlap.
+- Read [`/opt/projects/carbonet/docs/architecture/install-unit-lifecycle-and-resource-governance.md`](/opt/projects/carbonet/docs/architecture/install-unit-lifecycle-and-resource-governance.md) when the request affects menu lifecycle, install/copy/delete, resource ownership, or garbage/orphan decisions.
+- Read [`/opt/projects/carbonet/docs/architecture/platform-common-module-versioning.md`](/opt/projects/carbonet/docs/architecture/platform-common-module-versioning.md) when the request affects common-platform sharing, jar/module packaging, or version-pinned rollout decisions.
+- Read [`/opt/projects/carbonet/docs/architecture/common-module-taxonomy.md`](/opt/projects/carbonet/docs/architecture/common-module-taxonomy.md) when the request affects whether work belongs in `SI_COMMON`, `OPS_COMMON`, or a project-specific module.
+- Read [`/opt/projects/carbonet/docs/architecture/common-db-and-project-db-splitting.md`](/opt/projects/carbonet/docs/architecture/common-db-and-project-db-splitting.md) when the request affects common DB retention, project DB splitting, or scaffolding and migration control across multiple DBs.
+- Read [`/opt/projects/carbonet/docs/architecture/platform-console-information-architecture.md`](/opt/projects/carbonet/docs/architecture/platform-console-information-architecture.md) when the request affects super-master workflow, project registry, or main-console scope definition.
+- Read [`/opt/projects/carbonet/docs/architecture/db-migration-and-upgrade-operations.md`](/opt/projects/carbonet/docs/architecture/db-migration-and-upgrade-operations.md) when the request affects release timing, DB migration sequencing, rollback planning, or cutover strategy.
+- Read [`/opt/projects/carbonet/docs/architecture/platform-control-plane-data-model.md`](/opt/projects/carbonet/docs/architecture/platform-control-plane-data-model.md) when the request affects common-DB table design for project registry, install units, resources, common modules, or release units.
 
 ## Use Cases
 
@@ -61,6 +62,16 @@ Read only what you need:
    - package ownership
    - delete or orphan rules
 9. Define handoff order and merge order.
+
+## Re-Login Continuity Rule
+
+When the operator wants work to survive account re-login or a new session:
+
+1. Reopen the latest durable plan under `docs/ai/60-operations/session-orchestration/active/`.
+2. Reconcile it against the real working tree with `git status --short`.
+3. Record shared-file ownership before doing new implementation.
+4. Capture current blockers, next step, and verification state in a handoff note before stopping.
+5. Do not open a new implementation lane until the resumed lane's allowed paths are clear.
 
 ## Delivery Rules
 

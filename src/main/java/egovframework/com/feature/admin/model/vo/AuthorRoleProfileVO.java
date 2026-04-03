@@ -65,4 +65,48 @@ public class AuthorRoleProfileVO {
     public String getUpdatedAt() {
         return updatedAt;
     }
+
+    public void setAuthorCode(String authorCode) {
+        this.authorCode = authorCode;
+    }
+
+    public void setDisplayTitle(String displayTitle) {
+        this.displayTitle = displayTitle;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public void setMemberEditVisibleYn(String memberEditVisibleYn) {
+        this.memberEditVisibleYn = memberEditVisibleYn;
+    }
+
+    public void setRoleType(String roleType) {
+        this.roleType = roleType;
+    }
+
+    public void setBaseRoleYn(String baseRoleYn) {
+        this.baseRoleYn = baseRoleYn;
+    }
+
+    public void setParentAuthorCode(String parentAuthorCode) {
+        this.parentAuthorCode = parentAuthorCode;
+    }
+
+    public void setAssignmentScope(String assignmentScope) {
+        this.assignmentScope = assignmentScope;
+    }
+
+    public void setUpdatedAt(String updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public void setPriorityWorks(List<String> priorityWorks) {
+        this.priorityWorks = priorityWorks;
+    }
+
+    public void setDefaultMemberTypes(List<String> defaultMemberTypes) {
+        this.defaultMemberTypes = defaultMemberTypes;
+    }
 }

@@ -1043,6 +1043,12 @@ export function SecurityMonitoringMigrationPage() {
                 >
                   {en ? "Open Policy Console" : "정책 콘솔 이동"}
                 </a>
+                <a
+                  className="inline-flex items-center rounded border border-[var(--kr-gov-border-light)] px-3 py-2 text-xs font-bold text-[var(--kr-gov-blue)] hover:bg-slate-50"
+                  href={buildLocalizedPath("/admin/monitoring/sensor_list", "/en/admin/monitoring/sensor_list")}
+                >
+                  {en ? "Open Sensor List" : "센서 목록 이동"}
+                </a>
                 <button
                   type="button"
                   className="inline-flex items-center rounded border border-[var(--kr-gov-border-light)] px-3 py-2 text-xs font-bold text-[var(--kr-gov-blue)] hover:bg-slate-50"

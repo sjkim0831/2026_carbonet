@@ -1,5 +1,8 @@
 package egovframework.com.feature.admin.service;
 
+import egovframework.com.common.trace.UiManifestRegistryService;
+import egovframework.com.feature.admin.dto.response.MenuInfoDTO;
+import egovframework.com.feature.admin.model.vo.AuthorInfoVO;
 import egovframework.com.feature.admin.model.vo.EmissionResultFilterSnapshot;
 import egovframework.com.feature.admin.model.vo.EmissionResultSummaryView;
 import egovframework.com.feature.admin.model.vo.SecurityAuditSnapshot;
@@ -15,6 +18,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -23,9 +27,13 @@ public class AdminShellBootstrapPageService {
 
     private final AdminSummaryService adminSummaryService;
     private final BackupConfigManagementService backupConfigManagementService;
+    private final MenuInfoService menuInfoService;
+    private final AuthGroupManageService authGroupManageService;
+    private final UiManifestRegistryService uiManifestRegistryService;
     private final ObjectProvider<egovframework.com.feature.admin.web.AdminObservabilityPageService> adminObservabilityPageServiceProvider;
 
     private static final int SECURITY_AUDIT_BOOTSTRAP_PAGE_SIZE = 10;
+    private final Map<String, Map<String, String>> tradeApprovalState = new ConcurrentHashMap<>();
 
     private egovframework.com.feature.admin.web.AdminObservabilityPageService adminObservabilityPageService() {
         return adminObservabilityPageServiceProvider.getObject();
@@ -174,83 +182,38 @@ public class AdminShellBootstrapPageService {
             String startDate,
             String endDate,
             boolean isEn) {
+        return adminObservabilityPageService().buildCertificateAuditLogPagePayload(
+                pageIndexParam,
+                searchKeyword,
+                auditType,
+                status,
+                certificateType,
+                startDate,
+                endDate,
+                isEn);
+    }
+
+    public Map<String, Object> buildCertificateRecCheckPageData(boolean isEn) {
+        List<Map<String, Object>> duplicateGroups = buildCertificateRecCheckGroups();
+        long blockedCount = duplicateGroups.stream()
+                .filter(row -> "BLOCKED".equals(stringValue(row.get("status"))))
+                .count();
+        long reviewCount = duplicateGroups.stream()
+                .filter(row -> "REVIEW".equals(stringValue(row.get("status"))))
+                .count();
+        int highestRisk = duplicateGroups.stream()
+                .mapToInt(row -> parseInt(row.get("riskScore")))
+                .max()
+                .orElse(0);
+
         Map<String, Object> response = new LinkedHashMap<>();
-        int pageIndex = 1;
-        if (!safeString(pageIndexParam).isEmpty()) {
-            try {
-                pageIndex = Integer.parseInt(pageIndexParam.trim());
-            } catch (NumberFormatException ignored) {
-                pageIndex = 1;
-            }
-        }
-
-        String normalizedKeyword = safeString(searchKeyword);
-        String normalizedAuditType = normalizeCertificateAuditType(auditType);
-        String normalizedStatus = normalizeCertificateAuditStatus(status);
-        String normalizedCertificateType = normalizeCertificateAuditCertificateType(certificateType);
-        String normalizedStartDate = normalizeCertificateAuditDate(startDate);
-        String normalizedEndDate = normalizeCertificateAuditDate(endDate);
-
-        List<Map<String, String>> allRows = buildCertificateAuditLogRows(isEn);
-        List<Map<String, String>> filteredRows = filterCertificateAuditLogRows(
-                allRows,
-                normalizedKeyword,
-                normalizedAuditType,
-                normalizedStatus,
-                normalizedCertificateType,
-                normalizedStartDate,
-                normalizedEndDate);
-
-        int pageSize = 10;
-        int totalCount = filteredRows.size();
-        int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
-        int currentPage = Math.max(1, Math.min(pageIndex, totalPages));
-        int startIndex = Math.max(currentPage - 1, 0) * pageSize;
-        int endIndex = Math.min(startIndex + pageSize, filteredRows.size());
-        List<Map<String, String>> pagedRows = startIndex >= endIndex
-                ? Collections.emptyList()
-                : new ArrayList<>(filteredRows.subList(startIndex, endIndex));
-
-        long pendingCount = filteredRows.stream().filter(row -> "PENDING".equals(safeString(row.get("statusCode")))).count();
-        long rejectedCount = filteredRows.stream().filter(row -> "REJECTED".equals(safeString(row.get("statusCode")))).count();
-        long reissuedCount = filteredRows.stream().filter(row -> "REISSUE".equals(safeString(row.get("auditTypeCode")))).count();
-        long highRiskCount = filteredRows.stream().filter(row -> "HIGH".equals(safeString(row.get("riskLevelCode")))).count();
-
         response.put("isEn", isEn);
-        response.put("pageIndex", currentPage);
-        response.put("pageSize", pageSize);
-        response.put("totalCount", totalCount);
-        response.put("totalPages", totalPages);
-        response.put("searchKeyword", normalizedKeyword);
-        response.put("auditType", normalizedAuditType);
-        response.put("status", normalizedStatus);
-        response.put("certificateType", normalizedCertificateType);
-        response.put("startDate", normalizedStartDate);
-        response.put("endDate", normalizedEndDate);
-        response.put("certificateAuditSummary", List.of(
-                mapOf(
-                        "label", isEn ? "Pending Reviews" : "검토 대기",
-                        "value", String.valueOf(pendingCount),
-                        "description", isEn ? "Requests waiting for approver action." : "승인자 조치 대기 건수",
-                        "tone", "warning"),
-                mapOf(
-                        "label", isEn ? "Rejected" : "반려",
-                        "value", String.valueOf(rejectedCount),
-                        "description", isEn ? "Requests returned with a rejection reason." : "반려 사유와 함께 반환된 건수",
-                        "tone", "danger"),
-                mapOf(
-                        "label", isEn ? "Reissued" : "재발급",
-                        "value", String.valueOf(reissuedCount),
-                        "description", isEn ? "Cases involving renewal or reissuance." : "갱신 또는 재발급이 포함된 건수",
-                        "tone", "neutral"),
-                mapOf(
-                        "label", isEn ? "High Risk" : "고위험",
-                        "value", String.valueOf(highRiskCount),
-                        "description", isEn ? "Events requiring dual review or immediate follow-up." : "이중 검토 또는 즉시 후속 조치가 필요한 이벤트",
-                        "tone", "danger")));
-        response.put("certificateAuditAlerts", buildCertificateAuditAlerts(filteredRows, isEn));
-        response.put("certificateAuditRows", pagedRows);
-        response.put("lastUpdated", safeString(allRows.isEmpty() ? "" : allRows.get(0).get("auditAt")));
+        response.put("duplicateGroups", duplicateGroups);
+        response.put("totalCount", duplicateGroups.size());
+        response.put("blockedCount", blockedCount);
+        response.put("reviewCount", reviewCount);
+        response.put("highestRisk", highestRisk);
+        response.put("lastRefreshedAt", "2026-03-30 09:20");
         return response;
     }
 
@@ -296,6 +259,73 @@ public class AdminShellBootstrapPageService {
 
     public Map<String, Object> buildBackupConfigPageData(boolean isEn) {
         return backupConfigManagementService.buildPageData(isEn);
+    }
+
+    public Map<String, Object> buildNewPagePageData(boolean isEn) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        String canonicalMenuUrl = "/admin/system/new-page";
+        String localizedMenuUrl = isEn ? "/en/admin/system/new-page" : canonicalMenuUrl;
+        String menuCode = "";
+        String requiredViewFeatureCode = "";
+        List<String> featureCodes = Collections.emptyList();
+        MenuInfoDTO menuDetail = null;
+        Map<String, Object> manifest = uiManifestRegistryService.getPageRegistry("new-page");
+
+        try {
+            menuDetail = menuInfoService.selectMenuDetailByUrl(canonicalMenuUrl);
+        } catch (Exception ignored) {
+            menuDetail = null;
+        }
+
+        try {
+            menuCode = safeString(authGroupManageService.selectMenuCodeByMenuUrl(canonicalMenuUrl));
+            requiredViewFeatureCode = safeString(authGroupManageService.selectRequiredViewFeatureCodeByMenuUrl(canonicalMenuUrl));
+            if (!menuCode.isEmpty()) {
+                featureCodes = new ArrayList<>(authGroupManageService.selectFeatureCodesByMenuCode(menuCode));
+            }
+        } catch (Exception ignored) {
+            featureCodes = Collections.emptyList();
+        }
+
+        if (menuCode.isEmpty()) {
+            menuCode = safeString(menuDetail == null ? null : menuDetail.getCode());
+        }
+        if (requiredViewFeatureCode.isEmpty() && !menuCode.isEmpty()) {
+            requiredViewFeatureCode = menuCode + "_VIEW";
+        }
+
+        List<MenuInfoDTO> menuRows = loadMenuTreeRows("AMENU1");
+        MenuInfoDTO selfRow = findMenuRow(menuRows, menuCode);
+        payload.put("isEn", isEn);
+        payload.put("pageId", "new-page");
+        payload.put("canonicalMenuUrl", canonicalMenuUrl);
+        payload.put("localizedMenuUrl", localizedMenuUrl);
+        payload.put("menuCode", menuCode);
+        payload.put("menuName", firstNonBlank(
+                safeString(menuDetail == null ? null : menuDetail.getCodeNm()),
+                safeString(selfRow == null ? null : selfRow.getCodeNm()),
+                "새 페이지"));
+        payload.put("menuNameEn", firstNonBlank(
+                safeString(menuDetail == null ? null : menuDetail.getCodeDc()),
+                safeString(selfRow == null ? null : selfRow.getCodeDc()),
+                "New Page"));
+        payload.put("menuIcon", firstNonBlank(
+                safeString(menuDetail == null ? null : menuDetail.getMenuIcon()),
+                safeString(selfRow == null ? null : selfRow.getMenuIcon()),
+                "note_stack"));
+        payload.put("useAt", firstNonBlank(
+                safeString(menuDetail == null ? null : menuDetail.getUseAt()),
+                safeString(selfRow == null ? null : selfRow.getUseAt()),
+                "Y"));
+        payload.put("sortOrder", selfRow == null ? null : selfRow.getSortOrdr());
+        payload.put("requiredViewFeatureCode", requiredViewFeatureCode);
+        payload.put("featureCodes", featureCodes);
+        payload.put("featureCount", featureCodes.size());
+        payload.put("roleAssignments", buildNewPageRoleAssignments(requiredViewFeatureCode, isEn));
+        payload.put("menuAncestry", buildMenuAncestry(menuRows, menuCode, isEn));
+        payload.put("manifest", manifest);
+        payload.put("governanceNotes", buildNewPageGovernanceNotes(isEn, requiredViewFeatureCode, manifest, featureCodes));
+        return payload;
     }
 
     public Map<String, Object> buildEmissionResultListPageData(
@@ -450,6 +480,635 @@ public class AdminShellBootstrapPageService {
                         "detail", isEn ? "Exception trades require operator note and counterparty confirmation."
                                 : "예외 거래는 운영 메모와 상대 기관 확인 절차가 필요합니다.",
                         "tone", "info")));
+        return response;
+    }
+
+    public Map<String, Object> buildTradeStatisticsPageData(
+            String pageIndexParam,
+            String searchKeyword,
+            String periodFilter,
+            String tradeType,
+            String settlementStatus,
+            boolean isEn) {
+        int pageIndex = 1;
+        if (!safeString(pageIndexParam).isEmpty()) {
+            try {
+                pageIndex = Integer.parseInt(pageIndexParam.trim());
+            } catch (NumberFormatException ignored) {
+                pageIndex = 1;
+            }
+        }
+
+        String normalizedKeyword = safeString(searchKeyword).toLowerCase(Locale.ROOT);
+        String normalizedPeriodFilter = normalizeTradeStatisticsPeriodFilter(periodFilter);
+        String normalizedTradeType = safeString(tradeType).toUpperCase(Locale.ROOT);
+        String normalizedSettlementStatus = safeString(settlementStatus).toUpperCase(Locale.ROOT);
+
+        List<Map<String, String>> institutionRows = buildTradeStatisticsInstitutionRows(isEn).stream()
+                .filter(row -> normalizedTradeType.isEmpty() || normalizedTradeType.equals(safeString(row.get("tradeTypeCode")).toUpperCase(Locale.ROOT)))
+                .filter(row -> normalizedSettlementStatus.isEmpty() || normalizedSettlementStatus.equals(safeString(row.get("settlementStatusCode")).toUpperCase(Locale.ROOT)))
+                .filter(row -> normalizedKeyword.isEmpty() || matchesTradeStatisticsKeyword(row, normalizedKeyword))
+                .collect(Collectors.toList());
+
+        List<Map<String, String>> monthlyRows = selectTradeStatisticsMonthlyRows(buildTradeStatisticsMonthlyRows(isEn), normalizedPeriodFilter);
+        List<Map<String, String>> tradeTypeRows = buildTradeStatisticsTypeRows(isEn).stream()
+                .filter(row -> normalizedTradeType.isEmpty() || normalizedTradeType.equals(safeString(row.get("tradeTypeCode")).toUpperCase(Locale.ROOT)))
+                .collect(Collectors.toList());
+
+        int pageSize = 6;
+        int totalCount = institutionRows.size();
+        int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
+        int currentPage = Math.max(1, Math.min(pageIndex, totalPages));
+        int fromIndex = Math.min((currentPage - 1) * pageSize, totalCount);
+        int toIndex = Math.min(fromIndex + pageSize, totalCount);
+        List<Map<String, String>> pageRows = institutionRows.subList(fromIndex, toIndex);
+
+        long totalTradeVolume = sumTradeStatistic(institutionRows, "tradeVolume");
+        long totalSettlementAmount = sumTradeStatistic(institutionRows, "settlementAmount");
+        long pendingSettlementCount = sumTradeStatistic(institutionRows, "pendingCount");
+        long exceptionCount = sumTradeStatistic(institutionRows, "exceptionCount");
+        long completedCount = sumTradeStatistic(institutionRows, "completedCount");
+        long requestCount = sumTradeStatistic(institutionRows, "requestCount");
+        String settlementCompletionRate = requestCount <= 0
+                ? "0.0"
+                : String.format(Locale.ROOT, "%.1f", (completedCount * 100.0) / requestCount);
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("isEn", isEn);
+        response.put("pageIndex", currentPage);
+        response.put("pageSize", pageSize);
+        response.put("totalPages", totalPages);
+        response.put("totalCount", totalCount);
+        response.put("searchKeyword", safeString(searchKeyword));
+        response.put("periodFilter", normalizedPeriodFilter);
+        response.put("tradeType", normalizedTradeType);
+        response.put("settlementStatus", normalizedSettlementStatus);
+        response.put("totalTradeVolume", totalTradeVolume);
+        response.put("totalSettlementAmount", totalSettlementAmount);
+        response.put("pendingSettlementCount", pendingSettlementCount);
+        response.put("exceptionCount", exceptionCount);
+        response.put("settlementCompletionRate", settlementCompletionRate);
+        response.put("avgSettlementDays", formatTradeLeadDays(institutionRows));
+        response.put("monthlyRows", monthlyRows);
+        response.put("tradeTypeRows", tradeTypeRows);
+        response.put("institutionRows", pageRows);
+        response.put("alertRows", buildTradeStatisticsAlertRows(isEn));
+        return response;
+    }
+
+    public Map<String, Object> buildTradeDuplicatePageData(
+            String pageIndexParam,
+            String searchKeyword,
+            String detectionType,
+            String reviewStatus,
+            String riskLevel,
+            boolean isEn) {
+        int pageIndex = 1;
+        if (!safeString(pageIndexParam).isEmpty()) {
+            try {
+                pageIndex = Integer.parseInt(pageIndexParam.trim());
+            } catch (NumberFormatException ignored) {
+                pageIndex = 1;
+            }
+        }
+
+        String keyword = safeString(searchKeyword).toLowerCase(Locale.ROOT);
+        String normalizedDetectionType = safeString(detectionType).toUpperCase(Locale.ROOT);
+        String normalizedReviewStatus = safeString(reviewStatus).toUpperCase(Locale.ROOT);
+        String normalizedRiskLevel = safeString(riskLevel).toUpperCase(Locale.ROOT);
+
+        List<Map<String, String>> allRows = buildTradeDuplicateRows(isEn);
+        List<Map<String, String>> filteredRows = new ArrayList<>();
+        for (Map<String, String> row : allRows) {
+            String searchable = String.join(" ",
+                    safeString(row.get("reviewId")),
+                    safeString(row.get("tradeId")),
+                    safeString(row.get("contractName")),
+                    safeString(row.get("sellerName")),
+                    safeString(row.get("buyerName")),
+                    safeString(row.get("analyst")),
+                    safeString(row.get("reason"))).toLowerCase(Locale.ROOT);
+            String rowDetectionType = safeString(row.get("detectionTypeCode")).toUpperCase(Locale.ROOT);
+            String rowReviewStatus = safeString(row.get("reviewStatusCode")).toUpperCase(Locale.ROOT);
+            String rowRiskLevel = safeString(row.get("riskLevelCode")).toUpperCase(Locale.ROOT);
+            boolean matchesKeyword = keyword.isEmpty() || searchable.contains(keyword);
+            boolean matchesDetectionType = normalizedDetectionType.isEmpty() || normalizedDetectionType.equals(rowDetectionType);
+            boolean matchesReviewStatus = normalizedReviewStatus.isEmpty() || normalizedReviewStatus.equals(rowReviewStatus);
+            boolean matchesRiskLevel = normalizedRiskLevel.isEmpty() || normalizedRiskLevel.equals(rowRiskLevel);
+            if (matchesKeyword && matchesDetectionType && matchesReviewStatus && matchesRiskLevel) {
+                filteredRows.add(row);
+            }
+        }
+
+        int pageSize = 10;
+        int totalCount = filteredRows.size();
+        int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
+        int currentPage = Math.max(1, Math.min(pageIndex, totalPages));
+        int fromIndex = Math.min((currentPage - 1) * pageSize, totalCount);
+        int toIndex = Math.min(fromIndex + pageSize, totalCount);
+        List<Map<String, String>> pageRows = filteredRows.subList(fromIndex, toIndex);
+
+        long criticalCount = allRows.stream()
+                .filter(row -> "CRITICAL".equalsIgnoreCase(safeString(row.get("riskLevelCode"))))
+                .count();
+        long reviewCount = allRows.stream()
+                .filter(row -> "REVIEW".equalsIgnoreCase(safeString(row.get("reviewStatusCode"))))
+                .count();
+        long settlementBlockedCount = allRows.stream()
+                .filter(row -> "BLOCKED".equalsIgnoreCase(safeString(row.get("reviewStatusCode"))))
+                .count();
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("isEn", isEn);
+        response.put("abnormalTradeRows", pageRows);
+        response.put("totalCount", totalCount);
+        response.put("criticalCount", criticalCount);
+        response.put("reviewCount", reviewCount);
+        response.put("settlementBlockedCount", settlementBlockedCount);
+        response.put("pageIndex", currentPage);
+        response.put("pageSize", pageSize);
+        response.put("totalPages", totalPages);
+        response.put("searchKeyword", safeString(searchKeyword));
+        response.put("detectionType", normalizedDetectionType);
+        response.put("reviewStatus", normalizedReviewStatus);
+        response.put("riskLevel", normalizedRiskLevel);
+        response.put("lastRefreshedAt", "2026-03-31 09:10");
+        response.put("detectionTypeOptions", List.of(
+                option("", isEn ? "All" : "전체"),
+                option("DUPLICATE_PARTY", isEn ? "Duplicate party" : "거래 당사자 중복"),
+                option("SPLIT_ORDER", isEn ? "Split order" : "주문 분할"),
+                option("SETTLEMENT_GAP", isEn ? "Settlement gap" : "정산 불일치"),
+                option("LIMIT_BREACH", isEn ? "Limit breach" : "한도 초과"),
+                option("PRICE_OUTLIER", isEn ? "Price outlier" : "가격 이상")));
+        response.put("reviewStatusOptions", List.of(
+                option("", isEn ? "All" : "전체"),
+                option("REVIEW", isEn ? "Under review" : "검토 중"),
+                option("ESCALATED", isEn ? "Escalated" : "상향 검토"),
+                option("BLOCKED", isEn ? "Settlement blocked" : "정산 보류"),
+                option("CLEARED", isEn ? "Cleared" : "해소")));
+        response.put("riskLevelOptions", List.of(
+                option("", isEn ? "All" : "전체"),
+                option("CRITICAL", isEn ? "Critical" : "치명"),
+                option("HIGH", isEn ? "High" : "높음"),
+                option("MEDIUM", isEn ? "Medium" : "중간"),
+                option("LOW", isEn ? "Low" : "낮음")));
+        response.put("escalationAlerts", List.of(
+                mapOf(
+                        "title", isEn ? "Linked counterpart duplication requires same-day review" : "동일 거래 당사자 반복 탐지 건은 당일 검토 필요",
+                        "detail", isEn ? "Three critical reviews share counterpart overlap and should remain blocked until operator sign-off."
+                                : "치명 등급 3건이 동일 당사자 중복 패턴을 보여 운영 승인 전까지 거래를 유지 차단해야 합니다.",
+                        "tone", "warning"),
+                mapOf(
+                        "title", isEn ? "Settlement mismatch is propagating to close queue" : "정산 불일치가 마감 큐로 전파 중",
+                        "detail", isEn ? "Mismatch cases should be reconciled before end-of-day settlement to avoid carry-over exceptions."
+                                : "정산 불일치 건은 일마감 전에 조정하지 않으면 예외 건이 다음 정산일로 이월됩니다.",
+                        "tone", "info")));
+        response.put("operatorGuidance", List.of(
+                mapOf(
+                        "title", isEn ? "Keep analyst note before release" : "해제 전 운영 메모 기록",
+                        "detail", isEn ? "Releasing a blocked trade requires an analyst note and counterpart confirmation in the same shift."
+                                : "정산 보류 거래를 해제할 때는 같은 근무조 안에서 운영 메모와 상대 기관 확인 기록을 함께 남깁니다."),
+                mapOf(
+                        "title", isEn ? "Escalate duplicate party patterns first" : "당사자 중복 패턴 우선 상향",
+                        "detail", isEn ? "Duplicate parties with repeated price deviation should move to escalated review before price-only outliers."
+                                : "거래 당사자 중복과 가격 편차가 함께 보이면 단순 가격 이상보다 먼저 상향 검토 대상으로 전환합니다."),
+                mapOf(
+                        "title", isEn ? "Clear settlement gap after ledger sync" : "원장 동기화 후 정산 불일치 해소",
+                        "detail", isEn ? "Settlement gap rows can be cleared only after the closing ledger and operator memo share the same values."
+                                : "정산 불일치 건은 마감 원장과 운영 메모 값이 일치한 뒤에만 해소 처리합니다.")));
+        return response;
+    }
+
+    public Map<String, Object> buildSettlementCalendarPageData(
+            String pageIndexParam,
+            String selectedMonth,
+            String searchKeyword,
+            String settlementStatus,
+            String riskLevel,
+            boolean isEn) {
+        int pageIndex = 1;
+        if (!safeString(pageIndexParam).isEmpty()) {
+            try {
+                pageIndex = Integer.parseInt(pageIndexParam.trim());
+            } catch (NumberFormatException ignored) {
+                pageIndex = 1;
+            }
+        }
+
+        String normalizedMonth = safeString(selectedMonth).isEmpty() ? "2026-04" : safeString(selectedMonth);
+        String normalizedKeyword = safeString(searchKeyword).toLowerCase(Locale.ROOT);
+        String normalizedStatus = safeString(settlementStatus).toUpperCase(Locale.ROOT);
+        String normalizedRisk = safeString(riskLevel).toUpperCase(Locale.ROOT);
+
+        List<Map<String, String>> allRows = buildSettlementCalendarRows(isEn);
+        List<Map<String, String>> filteredRows = new ArrayList<>();
+        for (Map<String, String> row : allRows) {
+            String searchable = String.join(" ",
+                    safeString(row.get("settlementId")),
+                    safeString(row.get("settlementTitle")),
+                    safeString(row.get("institutionName")),
+                    safeString(row.get("ownerName")),
+                    safeString(row.get("blockerReason"))).toLowerCase(Locale.ROOT);
+            boolean matchesMonth = normalizedMonth.equals(safeString(row.get("settlementMonth")));
+            boolean matchesKeyword = normalizedKeyword.isEmpty() || searchable.contains(normalizedKeyword);
+            boolean matchesStatus = normalizedStatus.isEmpty() || normalizedStatus.equals(safeString(row.get("statusCode")).toUpperCase(Locale.ROOT));
+            boolean matchesRisk = normalizedRisk.isEmpty() || normalizedRisk.equals(safeString(row.get("riskLevelCode")).toUpperCase(Locale.ROOT));
+            if (matchesMonth && matchesKeyword && matchesStatus && matchesRisk) {
+                filteredRows.add(row);
+            }
+        }
+
+        int pageSize = 10;
+        int totalCount = filteredRows.size();
+        int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
+        int currentPage = Math.max(1, Math.min(pageIndex, totalPages));
+        int fromIndex = Math.min((currentPage - 1) * pageSize, totalCount);
+        int toIndex = Math.min(fromIndex + pageSize, totalCount);
+        List<Map<String, String>> pageRows = filteredRows.subList(fromIndex, toIndex);
+
+        long dueTodayCount = filteredRows.stream()
+                .filter(row -> "2026-04-01".equals(safeString(row.get("dueDate"))))
+                .count();
+        long highRiskCount = filteredRows.stream()
+                .filter(row -> "HIGH".equalsIgnoreCase(safeString(row.get("riskLevelCode"))))
+                .count();
+        long completedCount = filteredRows.stream()
+                .filter(row -> "COMPLETED".equalsIgnoreCase(safeString(row.get("statusCode"))))
+                .count();
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("isEn", isEn);
+        response.put("selectedMonth", normalizedMonth);
+        response.put("searchKeyword", safeString(searchKeyword));
+        response.put("settlementStatus", normalizedStatus);
+        response.put("riskLevel", normalizedRisk);
+        response.put("totalScheduledCount", totalCount);
+        response.put("dueTodayCount", dueTodayCount);
+        response.put("highRiskCount", highRiskCount);
+        response.put("completedCount", completedCount);
+        response.put("pageIndex", currentPage);
+        response.put("pageSize", pageSize);
+        response.put("totalPages", totalPages);
+        response.put("monthOptions", List.of(
+                mapOf("value", "2026-04", "label", isEn ? "April 2026" : "2026년 4월"),
+                mapOf("value", "2026-05", "label", isEn ? "May 2026" : "2026년 5월"),
+                mapOf("value", "2026-06", "label", isEn ? "June 2026" : "2026년 6월")));
+        response.put("settlementStatusOptions", List.of(
+                option("", isEn ? "All" : "전체"),
+                option("PENDING", isEn ? "Pending" : "대기"),
+                option("READY", isEn ? "Ready" : "준비 완료"),
+                option("COMPLETED", isEn ? "Completed" : "완료"),
+                option("BLOCKED", isEn ? "Blocked" : "차단")));
+        response.put("riskLevelOptions", List.of(
+                option("", isEn ? "All" : "전체"),
+                option("HIGH", isEn ? "High" : "높음"),
+                option("MEDIUM", isEn ? "Medium" : "보통"),
+                option("LOW", isEn ? "Low" : "낮음")));
+        response.put("calendarDays", buildSettlementCalendarDays(normalizedMonth, isEn));
+        response.put("scheduleRows", pageRows);
+        response.put("alertRows", List.of(
+                mapOf(
+                        "title", isEn ? "Counterparty evidence still pending" : "상대 기관 증빙 대기",
+                        "description", isEn ? "Three high-risk schedules are blocked by unsigned counterparty evidence packets."
+                                : "고위험 일정 3건이 상대 기관 미서명 증빙 묶음 때문에 차단되어 있습니다.",
+                        "badgeLabel", isEn ? "High" : "높음",
+                        "badgeClassName", "bg-rose-100 text-rose-700",
+                        "actionLabel", isEn ? "Open trade list" : "거래 목록 열기",
+                        "actionUrl", isEn ? "/en/admin/trade/list?settlementStatus=PENDING" : "/admin/trade/list?settlementStatus=PENDING"),
+                mapOf(
+                        "title", isEn ? "Treasury confirmation window" : "재무 확인 시간대",
+                        "description", isEn ? "Ready schedules due on April 3 should be handed off before 15:00 treasury close."
+                                : "4월 3일 마감 준비 완료 건은 15시 재무 마감 전에 이관해야 합니다.",
+                        "badgeLabel", isEn ? "Watch" : "주의",
+                        "badgeClassName", "bg-amber-100 text-amber-700",
+                        "actionLabel", isEn ? "Open refund queue" : "환불 큐 열기",
+                        "actionUrl", isEn ? "/en/admin/payment/refund_list" : "/admin/payment/refund_list")));
+        return response;
+    }
+
+    public Map<String, Object> buildRefundListPageData(
+            String pageIndexParam,
+            String searchKeyword,
+            String status,
+            String riskLevel,
+            boolean isEn) {
+        int pageIndex = 1;
+        if (!safeString(pageIndexParam).isEmpty()) {
+            try {
+                pageIndex = Integer.parseInt(pageIndexParam.trim());
+            } catch (NumberFormatException ignored) {
+                pageIndex = 1;
+            }
+        }
+
+        String keyword = safeString(searchKeyword).toLowerCase(Locale.ROOT);
+        String normalizedStatus = safeString(status).toUpperCase(Locale.ROOT);
+        String normalizedRiskLevel = safeString(riskLevel).toUpperCase(Locale.ROOT);
+
+        List<Map<String, String>> allRows = buildRefundListRows(isEn);
+        List<Map<String, String>> filteredRows = new ArrayList<>();
+        for (Map<String, String> row : allRows) {
+            String searchable = String.join(" ",
+                    safeString(row.get("refundId")),
+                    safeString(row.get("companyName")),
+                    safeString(row.get("applicantName")),
+                    safeString(row.get("paymentMethodLabel")),
+                    safeString(row.get("reasonSummary")),
+                    safeString(row.get("accountMasked"))).toLowerCase(Locale.ROOT);
+            String rowStatus = safeString(row.get("statusCode")).toUpperCase(Locale.ROOT);
+            String rowRiskLevel = safeString(row.get("riskLevelCode")).toUpperCase(Locale.ROOT);
+            boolean matchesKeyword = keyword.isEmpty() || searchable.contains(keyword);
+            boolean matchesStatus = normalizedStatus.isEmpty() || normalizedStatus.equals(rowStatus);
+            boolean matchesRiskLevel = normalizedRiskLevel.isEmpty() || normalizedRiskLevel.equals(rowRiskLevel);
+            if (matchesKeyword && matchesStatus && matchesRiskLevel) {
+                filteredRows.add(row);
+            }
+        }
+
+        int pageSize = 8;
+        int totalCount = filteredRows.size();
+        int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
+        int currentPage = Math.max(1, Math.min(pageIndex, totalPages));
+        int fromIndex = Math.min((currentPage - 1) * pageSize, totalCount);
+        int toIndex = Math.min(fromIndex + pageSize, totalCount);
+        List<Map<String, String>> pageRows = filteredRows.subList(fromIndex, toIndex);
+
+        long pendingCount = allRows.stream()
+                .filter(row -> "RECEIVED".equalsIgnoreCase(safeString(row.get("statusCode"))) || "ACCOUNT_REVIEW".equalsIgnoreCase(safeString(row.get("statusCode"))))
+                .count();
+        long inReviewCount = allRows.stream()
+                .filter(row -> "IN_REVIEW".equalsIgnoreCase(safeString(row.get("statusCode"))))
+                .count();
+        long transferScheduledCount = allRows.stream()
+                .filter(row -> "TRANSFER_SCHEDULED".equalsIgnoreCase(safeString(row.get("statusCode"))))
+                .count();
+        long completedCount = allRows.stream()
+                .filter(row -> "COMPLETED".equalsIgnoreCase(safeString(row.get("statusCode"))))
+                .count();
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("isEn", isEn);
+        response.put("refundRows", pageRows);
+        response.put("totalCount", totalCount);
+        response.put("pendingCount", pendingCount);
+        response.put("inReviewCount", inReviewCount);
+        response.put("transferScheduledCount", transferScheduledCount);
+        response.put("completedCount", completedCount);
+        response.put("pageIndex", currentPage);
+        response.put("pageSize", pageSize);
+        response.put("totalPages", totalPages);
+        response.put("searchKeyword", safeString(searchKeyword));
+        response.put("status", normalizedStatus);
+        response.put("riskLevel", normalizedRiskLevel);
+        response.put("statusOptions", List.of(
+                option("", isEn ? "All" : "전체"),
+                option("RECEIVED", isEn ? "Received" : "접수"),
+                option("ACCOUNT_REVIEW", isEn ? "Account Review" : "계좌 검수"),
+                option("IN_REVIEW", isEn ? "In Review" : "검토중"),
+                option("APPROVED", isEn ? "Approved" : "승인"),
+                option("TRANSFER_SCHEDULED", isEn ? "Transfer Scheduled" : "이체 예정"),
+                option("COMPLETED", isEn ? "Completed" : "처리 완료"),
+                option("REJECTED", isEn ? "Rejected" : "반려")));
+        response.put("riskLevelOptions", List.of(
+                option("", isEn ? "All" : "전체"),
+                option("HIGH", isEn ? "High" : "높음"),
+                option("MEDIUM", isEn ? "Medium" : "보통"),
+                option("LOW", isEn ? "Low" : "낮음")));
+        response.put("refundAlerts", List.of(
+                mapOf(
+                        "title", isEn ? "Same-day transfer cut-off" : "당일 이체 마감 확인",
+                        "detail", isEn ? "Approved refunds after 16:00 move to the next business-day transfer batch."
+                                : "16시 이후 승인된 환불은 다음 영업일 이체 배치로 이월됩니다.",
+                        "tone", "warning"),
+                mapOf(
+                        "title", isEn ? "Account verification backlog" : "환불 계좌 검수 적체",
+                        "detail", isEn ? "Requests missing account-owner validation should stay blocked before approval."
+                                : "예금주 검증이 끝나지 않은 요청은 승인 전에 계속 보류해야 합니다.",
+                        "tone", "info")));
+        return response;
+    }
+
+    public Map<String, Object> buildTradeRejectPageData(String tradeId, String returnUrl, boolean isEn) {
+        String normalizedTradeId = safeString(tradeId);
+        String normalizedReturnUrl = safeString(returnUrl);
+        if (normalizedReturnUrl.isEmpty()) {
+            normalizedReturnUrl = buildAdminPath(isEn, "/trade/list");
+        }
+
+        Map<String, String> selectedTrade = buildTradeListRows(isEn).stream()
+                .filter(row -> normalizedTradeId.equalsIgnoreCase(safeString(row.get("tradeId"))))
+                .findFirst()
+                .orElse(null);
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("isEn", isEn);
+        response.put("tradeId", normalizedTradeId);
+        response.put("returnUrl", normalizedReturnUrl);
+        response.put("listUrl", buildAdminPath(isEn, "/trade/list"));
+        response.put("found", selectedTrade != null);
+
+        if (selectedTrade == null) {
+            response.put("pageError", normalizedTradeId.isEmpty()
+                    ? (isEn ? "A trade ID is required to review a rejection case." : "반려 검토를 하려면 거래 ID가 필요합니다.")
+                    : (isEn ? "The selected trade could not be found in the current operator queue." : "현재 운영 큐에서 선택한 거래를 찾을 수 없습니다."));
+            return response;
+        }
+
+        response.putAll(selectedTrade);
+        response.put("blockerCount", 3);
+        response.put("evidenceCount", 3);
+        response.put("historyCount", 4);
+        response.put("suggestedReason", isEn ? "Counterparty evidence mismatch" : "상대 기관 증빙 불일치");
+        response.put("rejectionChecklist", List.of(
+                mapOf(
+                        "title", isEn ? "Contract consistency" : "계약 정보 정합성",
+                        "detail", isEn ? "Seller and buyer submitted different contract quantities for the same settlement window."
+                                : "동일 정산 구간에 대해 매도·매수 기관이 제출한 계약 수량이 서로 다릅니다.",
+                        "severity", "high"),
+                mapOf(
+                        "title", isEn ? "Evidence completeness" : "증빙 첨부 완전성",
+                        "detail", isEn ? "Required settlement evidence is missing the counterparty signed attachment."
+                                : "필수 정산 증빙 중 상대 기관 서명 첨부가 누락되었습니다.",
+                        "severity", "medium"),
+                mapOf(
+                        "title", isEn ? "Operator handoff" : "운영 인수 조건",
+                        "detail", isEn ? "Rejection notice should include the exact resubmission scope and due date."
+                                : "반려 통지에는 재제출 범위와 기한을 명확히 적어야 합니다.",
+                        "severity", "medium")));
+        response.put("rejectionReasons", List.of(
+                mapOf("code", "EVIDENCE_GAP", "label", isEn ? "Missing evidence package" : "증빙 누락"),
+                mapOf("code", "COUNTERPARTY_MISMATCH", "label", isEn ? "Counterparty mismatch" : "상대 기관 정보 불일치"),
+                mapOf("code", "SETTLEMENT_SCOPE", "label", isEn ? "Settlement scope mismatch" : "정산 범위 불일치"),
+                mapOf("code", "COMPLIANCE_RISK", "label", isEn ? "Compliance or policy risk" : "준수 정책 위험")));
+        response.put("evidenceRows", List.of(
+                mapOf("fileName", isEn ? "trade-request-form.pdf" : "거래신청서.pdf", "category", isEn ? "Application" : "신청서", "statusLabel", isEn ? "Submitted" : "제출완료", "owner", selectedTrade.get("sellerName")),
+                mapOf("fileName", isEn ? "counterparty-confirmation.pdf" : "상대기관확인서.pdf", "category", isEn ? "Counterparty" : "상대기관 확인", "statusLabel", isEn ? "Missing signature" : "서명 누락", "owner", selectedTrade.get("buyerName")),
+                mapOf("fileName", isEn ? "settlement-sheet.xlsx" : "정산내역.xlsx", "category", isEn ? "Settlement" : "정산자료", "statusLabel", isEn ? "Value mismatch" : "수치 불일치", "owner", isEn ? "Operations desk" : "운영 데스크")));
+        response.put("historyRows", List.of(
+                mapOf("occurredAt", "2026-03-30 09:10", "actor", selectedTrade.get("sellerName"), "actionLabel", isEn ? "Requested trade registration" : "거래 등록 요청", "note", isEn ? "Initial trade request submitted." : "초기 거래 요청이 접수되었습니다."),
+                mapOf("occurredAt", "2026-03-30 10:05", "actor", isEn ? "Matching engine" : "매칭 엔진", "actionLabel", isEn ? "Detected mismatch" : "불일치 탐지", "note", isEn ? "Buyer quantity and submitted contract differ." : "매수 기관 수량과 제출 계약서 수치가 다릅니다."),
+                mapOf("occurredAt", "2026-03-30 10:40", "actor", isEn ? "Operations desk" : "운영 담당", "actionLabel", isEn ? "Requested resubmission evidence" : "보완 증빙 요청", "note", isEn ? "Counterparty signature was requested." : "상대 기관 서명 보완을 요청했습니다."),
+                mapOf("occurredAt", "2026-03-30 13:20", "actor", selectedTrade.get("buyerName"), "actionLabel", isEn ? "Uploaded revised file" : "수정 파일 업로드", "note", isEn ? "Updated file still omits settlement annex." : "수정 파일에도 정산 부속서가 누락되어 있습니다.")));
+        response.put("notificationPlan", List.of(
+                mapOf("target", selectedTrade.get("sellerName"), "channel", isEn ? "Portal inbox + email" : "포털 알림 + 이메일", "detail", isEn ? "Include resubmission deadline and evidence checklist." : "재제출 기한과 증빙 체크리스트를 함께 안내합니다."),
+                mapOf("target", selectedTrade.get("buyerName"), "channel", isEn ? "Portal inbox" : "포털 알림", "detail", isEn ? "Notify counterpart that trade was returned for correction." : "거래가 보완 요청 상태로 전환됐음을 통지합니다."),
+                mapOf("target", isEn ? "Settlement desk" : "정산 운영팀", "channel", isEn ? "Internal note" : "내부 메모", "detail", isEn ? "Keep settlement hold until corrected evidence arrives." : "보완 증빙 접수 전까지 정산 보류 상태를 유지합니다.")));
+        response.put("quickLinks", List.of(
+                mapOf("label", isEn ? "Back to trade list" : "거래 목록으로", "href", buildAdminPath(isEn, "/trade/list")),
+                mapOf("label", isEn ? "Open emission validation" : "검증 관리 이동", "href", buildAdminPath(isEn, "/emission/validate")),
+                mapOf("label", isEn ? "Open certificate review" : "발급 검토 이동", "href", buildAdminPath(isEn, "/certificate/review"))));
+        return response;
+    }
+
+    public Map<String, Object> buildTradeApprovePageData(
+            String pageIndexParam,
+            String searchKeyword,
+            String approvalStatus,
+            String tradeType,
+            boolean isEn) {
+        int pageIndex = 1;
+        if (!safeString(pageIndexParam).isEmpty()) {
+            try {
+                pageIndex = Integer.parseInt(pageIndexParam.trim());
+            } catch (NumberFormatException ignored) {
+                pageIndex = 1;
+            }
+        }
+
+        String normalizedKeyword = safeString(searchKeyword).toLowerCase(Locale.ROOT);
+        String normalizedApprovalStatus = safeString(approvalStatus).toUpperCase(Locale.ROOT);
+        if (normalizedApprovalStatus.isEmpty()) {
+            normalizedApprovalStatus = "PENDING";
+        }
+        String normalizedTradeType = safeString(tradeType).toUpperCase(Locale.ROOT);
+
+        List<Map<String, String>> allRows = buildTradeApproveRows(isEn);
+        List<Map<String, String>> filteredRows = new ArrayList<>();
+        for (Map<String, String> row : allRows) {
+            String searchable = String.join(" ",
+                    safeString(row.get("tradeId")),
+                    safeString(row.get("productType")),
+                    safeString(row.get("sellerName")),
+                    safeString(row.get("buyerName")),
+                    safeString(row.get("contractName"))).toLowerCase(Locale.ROOT);
+            boolean matchesKeyword = normalizedKeyword.isEmpty() || searchable.contains(normalizedKeyword);
+            boolean matchesStatus = "ALL".equals(normalizedApprovalStatus)
+                    || normalizedApprovalStatus.equalsIgnoreCase(safeString(row.get("approvalStatusCode")));
+            boolean matchesTradeType = normalizedTradeType.isEmpty()
+                    || normalizedTradeType.equalsIgnoreCase(safeString(row.get("tradeTypeCode")));
+            if (matchesKeyword && matchesStatus && matchesTradeType) {
+                filteredRows.add(row);
+            }
+        }
+
+        int pageSize = 10;
+        int totalCount = filteredRows.size();
+        int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
+        int currentPage = Math.max(1, Math.min(pageIndex, totalPages));
+        int fromIndex = Math.min((currentPage - 1) * pageSize, totalCount);
+        int toIndex = Math.min(fromIndex + pageSize, totalCount);
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("isEn", isEn);
+        response.put("approvalRows", filteredRows.subList(fromIndex, toIndex));
+        response.put("totalCount", totalCount);
+        response.put("pendingCount", countByApprovalStatus(allRows, "PENDING"));
+        response.put("approvedCount", countByApprovalStatus(allRows, "APPROVED"));
+        response.put("rejectedCount", countByApprovalStatus(allRows, "REJECTED"));
+        response.put("holdCount", countByApprovalStatus(allRows, "HOLD"));
+        response.put("pageIndex", currentPage);
+        response.put("pageSize", pageSize);
+        response.put("totalPages", totalPages);
+        response.put("searchKeyword", safeString(searchKeyword));
+        response.put("approvalStatus", normalizedApprovalStatus);
+        response.put("tradeType", normalizedTradeType);
+        response.put("approvalStatusOptions", List.of(
+                option("ALL", isEn ? "All" : "전체"),
+                option("PENDING", isEn ? "Pending" : "승인 대기"),
+                option("APPROVED", isEn ? "Approved" : "승인 완료"),
+                option("REJECTED", isEn ? "Rejected" : "반려"),
+                option("HOLD", isEn ? "On Hold" : "보류")));
+        response.put("tradeTypeOptions", List.of(
+                option("", isEn ? "All" : "전체"),
+                option("KETS", isEn ? "K-ETS Credit" : "배출권"),
+                option("REC", isEn ? "REC Package" : "REC 패키지"),
+                option("VOLUNTARY", isEn ? "Voluntary Credit" : "자발적 감축실적")));
+        response.put("canViewTradeApprove", true);
+        response.put("canUseTradeApproveAction", true);
+        return response;
+    }
+
+    public Map<String, Object> submitTradeApproveAction(Map<String, Object> payload, boolean isEn) {
+        String action = stringValue(payload == null ? null : payload.get("action")).toLowerCase(Locale.ROOT);
+        String tradeId = stringValue(payload == null ? null : payload.get("tradeId"));
+        List<String> selectedIds = normalizeSelectedIds(payload == null ? null : payload.get("selectedIds"), tradeId);
+        String rejectReason = stringValue(payload == null ? null : payload.get("rejectReason"));
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        if (selectedIds.isEmpty()) {
+            response.put("success", false);
+            response.put("message", isEn ? "Select at least one trade to process." : "처리할 거래를 하나 이상 선택해 주세요.");
+            return response;
+        }
+        boolean approveAction = "approve".equals(action) || "batch_approve".equals(action);
+        boolean rejectAction = "reject".equals(action) || "batch_reject".equals(action);
+        if (!approveAction && !rejectAction) {
+            response.put("success", false);
+            response.put("message", isEn ? "The requested trade action is invalid." : "요청한 거래 처리 작업이 올바르지 않습니다.");
+            return response;
+        }
+        if (rejectAction && rejectReason.isEmpty()) {
+            response.put("success", false);
+            response.put("message", isEn ? "Enter a reject reason before submitting rejection." : "반려 처리 전에 반려 사유를 입력해 주세요.");
+            return response;
+        }
+
+        ensureTradeApprovalState();
+        for (String selectedId : selectedIds) {
+            Map<String, String> state = tradeApprovalState.computeIfAbsent(selectedId, key -> defaultTradeApprovalState());
+            state.put("approvalStatusCode", approveAction ? "APPROVED" : "REJECTED");
+            state.put("reviewedAt", "2026-03-31 14:20");
+            state.put("reviewerName", isEn ? "Trade Ops Desk" : "거래 운영팀");
+            if (approveAction) {
+                state.put("rejectReason", "");
+            } else {
+                state.put("rejectReason", rejectReason);
+            }
+        }
+
+        response.put("success", true);
+        response.put("result", approveAction
+                ? (selectedIds.size() > 1 ? "batchApproved" : "approved")
+                : (selectedIds.size() > 1 ? "batchRejected" : "rejected"));
+        response.put("selectedIds", selectedIds);
+        return response;
+    }
+
+    public Map<String, Object> submitTradeRejectAction(Map<String, Object> payload, boolean isEn) {
+        String tradeId = stringValue(payload == null ? null : payload.get("tradeId"));
+        String rejectReason = stringValue(payload == null ? null : payload.get("rejectReason"));
+        String operatorNote = stringValue(payload == null ? null : payload.get("operatorNote"));
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        if (tradeId.isEmpty()) {
+            response.put("success", false);
+            response.put("message", isEn ? "Trade ID is required." : "거래 ID가 필요합니다.");
+            return response;
+        }
+        if (rejectReason.isEmpty()) {
+            response.put("success", false);
+            response.put("message", isEn ? "Select or enter a rejection reason before submitting." : "반려 사유를 선택하거나 입력한 뒤 제출하세요.");
+            return response;
+        }
+
+        response.put("success", true);
+        response.put("tradeId", tradeId);
+        response.put("message", isEn
+                ? String.format("Trade %s was marked for rejection review. Notify both counterparties with the updated evidence scope.", tradeId)
+                : String.format("%s 거래를 반려 검토 상태로 기록했습니다. 양측 기관에 보완 범위를 안내하세요.", tradeId));
+        response.put("reviewStatus", "REJECT_RECORDED");
+        response.put("rejectReason", rejectReason);
+        response.put("operatorNote", operatorNote);
         return response;
     }
 
@@ -645,6 +1304,14 @@ public class AdminShellBootstrapPageService {
         return "LAST_12_MONTHS";
     }
 
+    private String normalizeTradeStatisticsPeriodFilter(String value) {
+        String normalized = safeString(value).toUpperCase(Locale.ROOT);
+        if ("LAST_6_MONTHS".equals(normalized) || "Q1_2026".equals(normalized)) {
+            return normalized;
+        }
+        return "LAST_12_MONTHS";
+    }
+
     private boolean matchesCertificateStatisticsKeyword(Map<String, String> row, String normalizedKeyword) {
         return String.join(" ",
                         safeString(row.get("insttId")),
@@ -656,7 +1323,28 @@ public class AdminShellBootstrapPageService {
                 .contains(normalizedKeyword);
     }
 
+    private boolean matchesTradeStatisticsKeyword(Map<String, String> row, String normalizedKeyword) {
+        return String.join(" ",
+                        safeString(row.get("insttId")),
+                        safeString(row.get("insttName")),
+                        safeString(row.get("counterpartyName")),
+                        safeString(row.get("tradeTypeLabel")),
+                        safeString(row.get("primaryContractName")))
+                .toLowerCase(Locale.ROOT)
+                .contains(normalizedKeyword);
+    }
+
     private List<Map<String, String>> selectCertificateMonthlyRows(List<Map<String, String>> sourceRows, String periodFilter) {
+        if ("LAST_6_MONTHS".equals(periodFilter)) {
+            return sourceRows.subList(Math.max(sourceRows.size() - 6, 0), sourceRows.size());
+        }
+        if ("Q1_2026".equals(periodFilter)) {
+            return sourceRows.subList(Math.max(sourceRows.size() - 3, 0), sourceRows.size());
+        }
+        return sourceRows;
+    }
+
+    private List<Map<String, String>> selectTradeStatisticsMonthlyRows(List<Map<String, String>> sourceRows, String periodFilter) {
         if ("LAST_6_MONTHS".equals(periodFilter)) {
             return sourceRows.subList(Math.max(sourceRows.size() - 6, 0), sourceRows.size());
         }
@@ -682,11 +1370,48 @@ public class AdminShellBootstrapPageService {
         return total;
     }
 
+    private long sumTradeStatistic(List<Map<String, String>> rows, String key) {
+        long total = 0L;
+        for (Map<String, String> row : rows) {
+            String rawValue = safeString(row.get(key)).replace(",", "");
+            if (rawValue.isEmpty()) {
+                continue;
+            }
+            try {
+                total += Long.parseLong(rawValue);
+            } catch (NumberFormatException ignored) {
+                // Ignore malformed seed data and keep the screen available.
+            }
+        }
+        return total;
+    }
+
     private String formatCertificateLeadDays(List<Map<String, String>> rows) {
         double totalLeadDays = 0.0;
         int measuredRows = 0;
         for (Map<String, String> row : rows) {
             String rawValue = safeString(row.get("avgLeadDays")).replace(",", "");
+            if (rawValue.isEmpty()) {
+                continue;
+            }
+            try {
+                totalLeadDays += Double.parseDouble(rawValue);
+                measuredRows += 1;
+            } catch (NumberFormatException ignored) {
+                // Ignore malformed seed data and keep the screen available.
+            }
+        }
+        if (measuredRows == 0) {
+            return "0.0";
+        }
+        return String.format(Locale.ROOT, "%.1f", totalLeadDays / measuredRows);
+    }
+
+    private String formatTradeLeadDays(List<Map<String, String>> rows) {
+        double totalLeadDays = 0.0;
+        int measuredRows = 0;
+        for (Map<String, String> row : rows) {
+            String rawValue = safeString(row.get("avgSettlementDays")).replace(",", "");
             if (rawValue.isEmpty()) {
                 continue;
             }
@@ -761,6 +1486,83 @@ public class AdminShellBootstrapPageService {
                         "actionUrl", buildAdminPath(isEn, "/certificate/objection_list")));
     }
 
+    private List<Map<String, String>> buildTradeStatisticsMonthlyRowsLegacyA(boolean isEn) {
+        return List.of(
+                mapOf("monthLabel", isEn ? "Apr" : "04월", "tradeVolume", "31800", "settlementAmount", "784000000", "pendingCount", "12", "exceptionCount", "2"),
+                mapOf("monthLabel", isEn ? "May" : "05월", "tradeVolume", "33200", "settlementAmount", "826000000", "pendingCount", "11", "exceptionCount", "2"),
+                mapOf("monthLabel", isEn ? "Jun" : "06월", "tradeVolume", "34800", "settlementAmount", "874000000", "pendingCount", "13", "exceptionCount", "3"),
+                mapOf("monthLabel", isEn ? "Jul" : "07월", "tradeVolume", "36500", "settlementAmount", "915000000", "pendingCount", "14", "exceptionCount", "3"),
+                mapOf("monthLabel", isEn ? "Aug" : "08월", "tradeVolume", "38100", "settlementAmount", "963000000", "pendingCount", "15", "exceptionCount", "3"),
+                mapOf("monthLabel", isEn ? "Sep" : "09월", "tradeVolume", "39700", "settlementAmount", "1008000000", "pendingCount", "17", "exceptionCount", "4"),
+                mapOf("monthLabel", isEn ? "Oct" : "10월", "tradeVolume", "41200", "settlementAmount", "1055000000", "pendingCount", "16", "exceptionCount", "4"),
+                mapOf("monthLabel", isEn ? "Nov" : "11월", "tradeVolume", "42600", "settlementAmount", "1094000000", "pendingCount", "18", "exceptionCount", "4"),
+                mapOf("monthLabel", isEn ? "Dec" : "12월", "tradeVolume", "44100", "settlementAmount", "1148000000", "pendingCount", "19", "exceptionCount", "5"),
+                mapOf("monthLabel", isEn ? "Jan" : "01월", "tradeVolume", "45800", "settlementAmount", "1196000000", "pendingCount", "18", "exceptionCount", "4"),
+                mapOf("monthLabel", isEn ? "Feb" : "02월", "tradeVolume", "47200", "settlementAmount", "1232000000", "pendingCount", "20", "exceptionCount", "5"),
+                mapOf("monthLabel", isEn ? "Mar" : "03월", "tradeVolume", "48900", "settlementAmount", "1284000000", "pendingCount", "22", "exceptionCount", "6"));
+    }
+
+    private List<Map<String, String>> buildTradeStatisticsTypeRowsLegacyA(boolean isEn) {
+        return List.of(
+                mapOf("tradeTypeCode", "KETS", "tradeTypeLabel", isEn ? "K-ETS Credit" : "배출권", "requestCount", "164", "completedCount", "131", "pendingCount", "18", "exceptionCount", "5", "avgSettlementDays", "2.4", "settlementShare", "45.8"),
+                mapOf("tradeTypeCode", "REC", "tradeTypeLabel", isEn ? "REC Package" : "REC 패키지", "requestCount", "118", "completedCount", "89", "pendingCount", "19", "exceptionCount", "4", "avgSettlementDays", "2.8", "settlementShare", "28.6"),
+                mapOf("tradeTypeCode", "VOLUNTARY", "tradeTypeLabel", isEn ? "Voluntary Credit" : "자발적 감축실적", "requestCount", "96", "completedCount", "74", "pendingCount", "15", "exceptionCount", "6", "avgSettlementDays", "3.2", "settlementShare", "25.6"));
+    }
+
+    private List<Map<String, String>> buildTradeStatisticsInstitutionRowsLegacyA(boolean isEn) {
+        return List.of(
+                mapOf("insttId", "TRD-STAT-001", "insttName", isEn ? "Blue Energy" : "블루에너지", "counterpartyName", isEn ? "Hanul Steel" : "한울제철", "tradeTypeCode", "KETS", "tradeTypeLabel", isEn ? "K-ETS Credit" : "배출권", "settlementStatusCode", "PENDING", "tradeVolume", "12500", "settlementAmount", "418000000", "requestCount", "18", "completedCount", "12", "pendingCount", "4", "exceptionCount", "0", "avgSettlementDays", "2.6", "lastSettledAt", "2026-03-30 18:10", "primaryContractName", isEn ? "Quarterly offset bundle" : "분기 상쇄 배치", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=Blue%20Energy")),
+                mapOf("insttId", "TRD-STAT-002", "insttName", isEn ? "Seoul Mobility" : "서울모빌리티", "counterpartyName", isEn ? "Green Grid" : "그린그리드", "tradeTypeCode", "REC", "tradeTypeLabel", isEn ? "REC Package" : "REC 패키지", "settlementStatusCode", "IN_PROGRESS", "tradeVolume", "8000", "settlementAmount", "192000000", "requestCount", "14", "completedCount", "9", "pendingCount", "3", "exceptionCount", "0", "avgSettlementDays", "2.8", "lastSettledAt", "2026-03-30 16:25", "primaryContractName", isEn ? "Scope 2 hedge" : "Scope 2 헤지", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=Seoul%20Mobility")),
+                mapOf("insttId", "TRD-STAT-003", "insttName", isEn ? "Carbon Labs" : "카본랩스", "counterpartyName", isEn ? "Eco Farm" : "에코팜", "tradeTypeCode", "VOLUNTARY", "tradeTypeLabel", isEn ? "Voluntary Credit" : "자발적 감축실적", "settlementStatusCode", "PENDING", "tradeVolume", "4250", "settlementAmount", "87500000", "requestCount", "11", "completedCount", "7", "pendingCount", "3", "exceptionCount", "0", "avgSettlementDays", "3.1", "lastSettledAt", "2026-03-29 15:40", "primaryContractName", isEn ? "Biochar contract" : "바이오차 계약", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=Carbon%20Labs")),
+                mapOf("insttId", "TRD-STAT-004", "insttName", isEn ? "River Cement" : "리버시멘트", "counterpartyName", isEn ? "East Port" : "이스트포트", "tradeTypeCode", "KETS", "tradeTypeLabel", isEn ? "K-ETS Credit" : "배출권", "settlementStatusCode", "DONE", "tradeVolume", "15300", "settlementAmount", "522400000", "requestCount", "22", "completedCount", "20", "pendingCount", "1", "exceptionCount", "0", "avgSettlementDays", "2.2", "lastSettledAt", "2026-03-29 14:05", "primaryContractName", isEn ? "March balancing lot" : "3월 밸런싱 물량", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=River%20Cement")),
+                mapOf("insttId", "TRD-STAT-005", "insttName", isEn ? "Urban Data" : "어반데이터", "counterpartyName", isEn ? "Sun Network" : "선네트워크", "tradeTypeCode", "REC", "tradeTypeLabel", isEn ? "REC Package" : "REC 패키지", "settlementStatusCode", "EXCEPTION", "tradeVolume", "6400", "settlementAmount", "154000000", "requestCount", "13", "completedCount", "8", "pendingCount", "2", "exceptionCount", "3", "avgSettlementDays", "4.4", "lastSettledAt", "2026-03-28 13:15", "primaryContractName", isEn ? "Data center reserve" : "데이터센터 예비물량", "detailUrl", buildAdminPath(isEn, "/trade/reject?tradeId=TRD-202603-005")),
+                mapOf("insttId", "TRD-STAT-006", "insttName", isEn ? "Metro Heat" : "메트로히트", "counterpartyName", isEn ? "CCUS Plant A" : "CCUS 플랜트 A", "tradeTypeCode", "VOLUNTARY", "tradeTypeLabel", isEn ? "Voluntary Credit" : "자발적 감축실적", "settlementStatusCode", "IN_PROGRESS", "tradeVolume", "10100", "settlementAmount", "301000000", "requestCount", "19", "completedCount", "13", "pendingCount", "4", "exceptionCount", "1", "avgSettlementDays", "3.3", "lastSettledAt", "2026-03-28 17:42", "primaryContractName", isEn ? "Capture storage block" : "포집 저장 블록", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=Metro%20Heat")),
+                mapOf("insttId", "TRD-STAT-007", "insttName", isEn ? "Blue Energy" : "블루에너지", "counterpartyName", isEn ? "Nova Chemical" : "노바케미칼", "tradeTypeCode", "KETS", "tradeTypeLabel", isEn ? "K-ETS Credit" : "배출권", "settlementStatusCode", "PENDING", "tradeVolume", "9900", "settlementAmount", "333600000", "requestCount", "17", "completedCount", "11", "pendingCount", "5", "exceptionCount", "0", "avgSettlementDays", "2.7", "lastSettledAt", "2026-03-28 12:10", "primaryContractName", isEn ? "Seasonal hedge" : "계절성 헤지", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=Nova%20Chemical")),
+                mapOf("insttId", "TRD-STAT-008", "insttName", isEn ? "Harbor Cold Chain" : "하버콜드체인", "counterpartyName", isEn ? "Wind Core" : "윈드코어", "tradeTypeCode", "REC", "tradeTypeLabel", isEn ? "REC Package" : "REC 패키지", "settlementStatusCode", "DONE", "tradeVolume", "3200", "settlementAmount", "71000000", "requestCount", "9", "completedCount", "8", "pendingCount", "1", "exceptionCount", "0", "avgSettlementDays", "2.0", "lastSettledAt", "2026-03-28 10:32", "primaryContractName", isEn ? "Cold-chain coverage" : "콜드체인 커버리지", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=Harbor%20Cold%20Chain")),
+                mapOf("insttId", "TRD-STAT-009", "insttName", isEn ? "Green Grid" : "그린그리드", "counterpartyName", isEn ? "Forest Link" : "포레스트링크", "tradeTypeCode", "VOLUNTARY", "tradeTypeLabel", isEn ? "Voluntary Credit" : "자발적 감축실적", "settlementStatusCode", "PENDING", "tradeVolume", "5800", "settlementAmount", "126000000", "requestCount", "12", "completedCount", "9", "pendingCount", "2", "exceptionCount", "0", "avgSettlementDays", "2.9", "lastSettledAt", "2026-03-27 18:24", "primaryContractName", isEn ? "Afforestation offset" : "조림 상쇄 거래", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=Green%20Grid")),
+                mapOf("insttId", "TRD-STAT-010", "insttName", isEn ? "Seoul Mobility" : "서울모빌리티", "counterpartyName", isEn ? "River Cement" : "리버시멘트", "tradeTypeCode", "KETS", "tradeTypeLabel", isEn ? "K-ETS Credit" : "배출권", "settlementStatusCode", "DONE", "tradeVolume", "7700", "settlementAmount", "257000000", "requestCount", "15", "completedCount", "14", "pendingCount", "1", "exceptionCount", "0", "avgSettlementDays", "2.1", "lastSettledAt", "2026-03-27 09:08", "primaryContractName", isEn ? "Compliance shortfall fill" : "의무량 보전 계약", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=Seoul%20Mobility")),
+                mapOf("insttId", "TRD-STAT-011", "insttName", isEn ? "Metro Heat" : "메트로히트", "counterpartyName", isEn ? "North Solar" : "노스솔라", "tradeTypeCode", "REC", "tradeTypeLabel", isEn ? "REC Package" : "REC 패키지", "settlementStatusCode", "IN_PROGRESS", "tradeVolume", "2850", "settlementAmount", "59400000", "requestCount", "8", "completedCount", "5", "pendingCount", "2", "exceptionCount", "0", "avgSettlementDays", "3.0", "lastSettledAt", "2026-03-26 13:46", "primaryContractName", isEn ? "Heat network mix" : "열공급 믹스 거래", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=Metro%20Heat")),
+                mapOf("insttId", "TRD-STAT-012", "insttName", isEn ? "Hanul Steel" : "한울제철", "counterpartyName", isEn ? "Eco Farm" : "에코팜", "tradeTypeCode", "VOLUNTARY", "tradeTypeLabel", isEn ? "Voluntary Credit" : "자발적 감축실적", "settlementStatusCode", "EXCEPTION", "tradeVolume", "6900", "settlementAmount", "143500000", "requestCount", "10", "completedCount", "4", "pendingCount", "3", "exceptionCount", "2", "avgSettlementDays", "4.1", "lastSettledAt", "2026-03-25 16:18", "primaryContractName", isEn ? "Agriculture offset pool" : "농업 상쇄 풀", "detailUrl", buildAdminPath(isEn, "/trade/reject?tradeId=TRD-202603-012")));
+    }
+
+    private List<Map<String, String>> buildTradeStatisticsAlertRowsLegacyA(boolean isEn) {
+        return List.of(
+                mapOf("title", isEn ? "Pending settlement backlog" : "정산 대기 백로그",
+                        "description", isEn ? "Blue Energy and Seoul Mobility hold the largest unsettled queues this week." : "블루에너지와 서울모빌리티의 미정산 큐가 이번 주 가장 큽니다.",
+                        "badge", isEn ? "Attention" : "주의",
+                        "toneClassName", "bg-amber-100 text-amber-700",
+                        "actionLabel", isEn ? "Open trade queue" : "거래 목록 열기",
+                        "actionUrl", buildAdminPath(isEn, "/trade/list?settlementStatus=PENDING")),
+                mapOf("title", isEn ? "Settlement exceptions concentrated" : "정산 예외 기관 집중",
+                        "description", isEn ? "Urban Data and Hanul Steel need operator follow-up for exception resolution." : "어반데이터와 한울제철 건은 예외 해소를 위한 운영자 후속 조치가 필요합니다.",
+                        "badge", isEn ? "Action" : "조치",
+                        "toneClassName", "bg-rose-100 text-rose-700",
+                        "actionLabel", isEn ? "Open exception queue" : "예외 큐 열기",
+                        "actionUrl", buildAdminPath(isEn, "/trade/list?settlementStatus=EXCEPTION")),
+                mapOf("title", isEn ? "REC settlement pace slowing" : "REC 정산 속도 저하",
+                        "description", isEn ? "REC package settlement lead time exceeded the watch line for two consecutive weeks." : "REC 패키지의 정산 소요일이 2주 연속 감시선 이상입니다.",
+                        "badge", isEn ? "Watch" : "관찰",
+                        "toneClassName", "bg-sky-100 text-sky-700",
+                        "actionLabel", isEn ? "Filter REC reports" : "REC 리포트 보기",
+                        "actionUrl", buildAdminPath(isEn, "/trade/statistics?tradeType=REC")));
+    }
+
+    private List<Map<String, String>> buildTradeStatisticsMonthlyRows(boolean isEn) {
+        return buildTradeStatisticsMonthlyRowsLegacyA(isEn);
+    }
+
+    private List<Map<String, String>> buildTradeStatisticsTypeRows(boolean isEn) {
+        return buildTradeStatisticsTypeRowsLegacyA(isEn);
+    }
+
+    private List<Map<String, String>> buildTradeStatisticsInstitutionRows(boolean isEn) {
+        return buildTradeStatisticsInstitutionRowsLegacyA(isEn);
+    }
+
+    private List<Map<String, String>> buildTradeStatisticsAlertRows(boolean isEn) {
+        return buildTradeStatisticsAlertRowsLegacyA(isEn);
+    }
+
     private List<Map<String, String>> buildEmissionResultSiteRows(String resultId, boolean isEn) {
         if ("ER-2026-002".equalsIgnoreCase(safeString(resultId))) {
             return List.of(
@@ -830,12 +1632,17 @@ public class AdminShellBootstrapPageService {
         response.put("correctionCount", countEmissionHistoryByType(filteredRows, "CORRECTION"));
         response.put("approvalCount", countEmissionHistoryByType(filteredRows, "APPROVAL"));
         response.put("schemaCount", countEmissionHistoryByType(filteredRows, "SCHEMA"));
+        response.put("summaryCards", buildEmissionDataHistorySummaryCards(filteredRows, isEn));
         response.put("pageIndex", currentPage);
         response.put("pageSize", pageSize);
         response.put("totalPages", totalPages);
         response.put("searchKeyword", safeString(searchKeyword));
         response.put("changeType", normalizedChangeType);
         response.put("changeTarget", normalizedChangeTarget);
+        response.put("changeTypeOptions", buildEmissionDataHistoryChangeTypeOptions(isEn));
+        response.put("changeTargetOptions", buildEmissionDataHistoryChangeTargetOptions(isEn));
+        response.put("changeTypeMeta", buildEmissionDataHistoryChangeTypeMeta(isEn));
+        response.put("changeTargetMeta", buildEmissionDataHistoryChangeTargetMeta(isEn));
         response.put("detailBaseUrl", adminPrefix + "/emission/result_list");
         return response;
     }
@@ -848,7 +1655,7 @@ public class AdminShellBootstrapPageService {
         String selfUrl = adminPrefix + "/emission/site-management";
         String homeReferenceUrl = homePrefix + "/emission/project_list";
         String functionManagementUrl = adminPrefix + "/system/feature-management?menuType=ADMIN&searchMenuCode=" + menuCode;
-        String menuManagementUrl = adminPrefix + "/system/menu-management?menuType=ADMIN";
+        String menuManagementUrl = adminPrefix + "/system/menu?menuType=ADMIN";
         String resultListUrl = adminPrefix + "/emission/result_list";
         String dataHistoryUrl = adminPrefix + "/emission/data_history";
 
@@ -1118,6 +1925,16 @@ public class AdminShellBootstrapPageService {
         return row;
     }
 
+    private Map<String, String> summaryCard(String title,
+                                            String value,
+                                            String description,
+                                            String toneClass,
+                                            String surfaceClassName) {
+        Map<String, String> row = summaryCard(title, value, description, toneClass);
+        row.put("surfaceClassName", surfaceClassName);
+        return row;
+    }
+
     private Map<String, String> quickLink(String label, String url, String icon) {
         Map<String, String> row = new LinkedHashMap<>();
         row.put("label", label);
@@ -1225,6 +2042,70 @@ public class AdminShellBootstrapPageService {
         );
     }
 
+    private List<Map<String, String>> buildEmissionDataHistoryChangeTypeOptions(boolean isEn) {
+        return List.of(
+                mapOf("value", "", "label", isEn ? "All" : "전체"),
+                mapOf("value", "CORRECTION", "label", isEn ? "Correction" : "정정"),
+                mapOf("value", "APPROVAL", "label", isEn ? "Approval" : "승인 반영"),
+                mapOf("value", "SCHEMA", "label", isEn ? "Schema Sync" : "스키마 동기화"));
+    }
+
+    private Map<String, Map<String, String>> buildEmissionDataHistoryChangeTypeMeta(boolean isEn) {
+        Map<String, Map<String, String>> meta = new LinkedHashMap<>();
+        meta.put("CORRECTION", mapOf(
+                "label", isEn ? "Correction" : "정정",
+                "badgeClass", "bg-amber-100 text-amber-700"));
+        meta.put("APPROVAL", mapOf(
+                "label", isEn ? "Approval" : "승인 반영",
+                "badgeClass", "bg-emerald-100 text-emerald-700"));
+        meta.put("SCHEMA", mapOf(
+                "label", isEn ? "Schema Sync" : "스키마 동기화",
+                "badgeClass", "bg-indigo-100 text-indigo-700"));
+        return meta;
+    }
+
+    private List<Map<String, String>> buildEmissionDataHistoryChangeTargetOptions(boolean isEn) {
+        return List.of(
+                mapOf("value", "", "label", isEn ? "All" : "전체"),
+                mapOf("value", "ACTIVITY_DATA", "label", isEn ? "Activity Data" : "활동자료"),
+                mapOf("value", "VERIFICATION_STATUS", "label", isEn ? "Verification Status" : "검증 상태"),
+                mapOf("value", "RESULT_STATUS", "label", isEn ? "Result Status" : "산정 상태"),
+                mapOf("value", "ATTACHMENT", "label", isEn ? "Attachment" : "첨부 문서"),
+                mapOf("value", "SITE_METADATA", "label", isEn ? "Site Metadata" : "배출지 메타데이터"),
+                mapOf("value", "CALCULATION_FORMULA", "label", isEn ? "Calculation Formula" : "산정식"),
+                mapOf("value", "EMISSION_FACTOR", "label", isEn ? "Emission Factor" : "배출계수"),
+                mapOf("value", "MONITORING_RULE", "label", isEn ? "Monitoring Rule" : "모니터링 규칙"));
+    }
+
+    private Map<String, Map<String, String>> buildEmissionDataHistoryChangeTargetMeta(boolean isEn) {
+        Map<String, Map<String, String>> meta = new LinkedHashMap<>();
+        meta.put("ACTIVITY_DATA", mapOf(
+                "label", isEn ? "Activity Data" : "활동자료",
+                "badgeClass", "bg-blue-100 text-blue-700"));
+        meta.put("VERIFICATION_STATUS", mapOf(
+                "label", isEn ? "Verification Status" : "검증 상태",
+                "badgeClass", "bg-emerald-100 text-emerald-700"));
+        meta.put("RESULT_STATUS", mapOf(
+                "label", isEn ? "Result Status" : "산정 상태",
+                "badgeClass", "bg-amber-100 text-amber-700"));
+        meta.put("ATTACHMENT", mapOf(
+                "label", isEn ? "Attachment" : "첨부 문서",
+                "badgeClass", "bg-rose-100 text-rose-700"));
+        meta.put("SITE_METADATA", mapOf(
+                "label", isEn ? "Site Metadata" : "배출지 메타데이터",
+                "badgeClass", "bg-slate-100 text-slate-700"));
+        meta.put("CALCULATION_FORMULA", mapOf(
+                "label", isEn ? "Calculation Formula" : "산정식",
+                "badgeClass", "bg-slate-100 text-slate-700"));
+        meta.put("EMISSION_FACTOR", mapOf(
+                "label", isEn ? "Emission Factor" : "배출계수",
+                "badgeClass", "bg-slate-100 text-slate-700"));
+        meta.put("MONITORING_RULE", mapOf(
+                "label", isEn ? "Monitoring Rule" : "모니터링 규칙",
+                "badgeClass", "bg-slate-100 text-slate-700"));
+        return meta;
+    }
+
     private Map<String, String> emissionDataHistoryRow(String historyId,
                                                        String changedAt,
                                                        String projectName,
@@ -1251,6 +2132,29 @@ public class AdminShellBootstrapPageService {
         row.put("afterValue", afterValue);
         row.put("detailUrl", detailUrl);
         return row;
+    }
+
+    private List<Map<String, String>> buildEmissionDataHistorySummaryCards(List<Map<String, String>> rows, boolean isEn) {
+        return List.of(
+                summaryCard(isEn ? "Filtered History" : "조회 이력 수",
+                        String.valueOf(rows.size()),
+                        isEn ? "Rows matching the current filter set." : "현재 필터 조건에 맞는 이력 건수입니다.",
+                        "text-[var(--kr-gov-blue)]"),
+                summaryCard(isEn ? "Corrections" : "정정",
+                        String.valueOf(countEmissionHistoryByType(rows, "CORRECTION")),
+                        isEn ? "Operator corrections reflected in activity or attached evidence." : "활동자료나 첨부 증빙에 반영된 정정 건수입니다.",
+                        "text-amber-600",
+                        "bg-amber-50"),
+                summaryCard(isEn ? "Approvals" : "승인 반영",
+                        String.valueOf(countEmissionHistoryByType(rows, "APPROVAL")),
+                        isEn ? "Approval or review state changes reflected in the ledger." : "검토·승인 상태 변경이 반영된 건수입니다.",
+                        "text-emerald-600",
+                        "bg-emerald-50"),
+                summaryCard(isEn ? "Schema Sync" : "스키마 동기화",
+                        String.valueOf(countEmissionHistoryByType(rows, "SCHEMA")),
+                        isEn ? "Metadata or rule sync updates applied to emission calculation." : "배출 산정에 반영된 메타데이터·규칙 동기화 건수입니다.",
+                        "text-indigo-600",
+                        "bg-indigo-50"));
     }
 
     private boolean matchesEmissionHistoryKeyword(Map<String, String> row, String keyword) {
@@ -1873,6 +2777,73 @@ public class AdminShellBootstrapPageService {
         return alerts;
     }
 
+    private List<Map<String, String>> buildTradeStatisticsMonthlyRowsLegacyB(boolean isEn) {
+        return List.of(
+                mapOf("monthLabel", isEn ? "Apr" : "04월", "tradeVolume", "118000", "settlementAmount", "428000000", "pendingCount", "12", "exceptionCount", "3"),
+                mapOf("monthLabel", isEn ? "May" : "05월", "tradeVolume", "126500", "settlementAmount", "451000000", "pendingCount", "11", "exceptionCount", "2"),
+                mapOf("monthLabel", isEn ? "Jun" : "06월", "tradeVolume", "132800", "settlementAmount", "469000000", "pendingCount", "13", "exceptionCount", "4"),
+                mapOf("monthLabel", isEn ? "Jul" : "07월", "tradeVolume", "141400", "settlementAmount", "495000000", "pendingCount", "9", "exceptionCount", "3"),
+                mapOf("monthLabel", isEn ? "Aug" : "08월", "tradeVolume", "149600", "settlementAmount", "522000000", "pendingCount", "10", "exceptionCount", "2"),
+                mapOf("monthLabel", isEn ? "Sep" : "09월", "tradeVolume", "156200", "settlementAmount", "548000000", "pendingCount", "8", "exceptionCount", "3"),
+                mapOf("monthLabel", isEn ? "Oct" : "10월", "tradeVolume", "164300", "settlementAmount", "573000000", "pendingCount", "9", "exceptionCount", "3"),
+                mapOf("monthLabel", isEn ? "Nov" : "11월", "tradeVolume", "171900", "settlementAmount", "598000000", "pendingCount", "7", "exceptionCount", "2"),
+                mapOf("monthLabel", isEn ? "Dec" : "12월", "tradeVolume", "180500", "settlementAmount", "624000000", "pendingCount", "8", "exceptionCount", "3"),
+                mapOf("monthLabel", isEn ? "Jan" : "01월", "tradeVolume", "174200", "settlementAmount", "601000000", "pendingCount", "10", "exceptionCount", "4"),
+                mapOf("monthLabel", isEn ? "Feb" : "02월", "tradeVolume", "169800", "settlementAmount", "589000000", "pendingCount", "9", "exceptionCount", "4"),
+                mapOf("monthLabel", isEn ? "Mar" : "03월", "tradeVolume", "182400", "settlementAmount", "642000000", "pendingCount", "11", "exceptionCount", "5"));
+    }
+
+    private List<Map<String, String>> buildTradeStatisticsTypeRowsLegacyB(boolean isEn) {
+        return List.of(
+                mapOf("tradeTypeCode", "KETS", "tradeTypeLabel", isEn ? "K-ETS Credit" : "배출권", "requestCount", "248", "completedCount", "201", "pendingCount", "18", "exceptionCount", "6", "avgSettlementDays", "2.7", "shareRate", "38.6"),
+                mapOf("tradeTypeCode", "REC", "tradeTypeLabel", isEn ? "REC Package" : "REC 패키지", "requestCount", "214", "completedCount", "171", "pendingCount", "16", "exceptionCount", "5", "avgSettlementDays", "2.3", "shareRate", "33.3"),
+                mapOf("tradeTypeCode", "VOLUNTARY", "tradeTypeLabel", isEn ? "Voluntary Credit" : "자발적 감축실적", "requestCount", "136", "completedCount", "103", "pendingCount", "12", "exceptionCount", "7", "avgSettlementDays", "3.1", "shareRate", "21.2"),
+                mapOf("tradeTypeCode", "MIXED", "tradeTypeLabel", isEn ? "Mixed Settlement" : "혼합 정산", "requestCount", "44", "completedCount", "29", "pendingCount", "6", "exceptionCount", "3", "avgSettlementDays", "3.8", "shareRate", "6.9"));
+    }
+
+    private List<Map<String, String>> buildTradeStatisticsInstitutionRowsLegacyB(boolean isEn) {
+        return List.of(
+                mapOf("insttId", "INST-T001", "insttName", isEn ? "Hanul Steel" : "한울제철", "counterpartyName", isEn ? "Blue Energy" : "블루에너지", "tradeTypeCode", "KETS", "tradeTypeLabel", isEn ? "K-ETS Credit" : "배출권", "primaryContractName", isEn ? "Quarterly offset bundle" : "분기 상쇄 배치", "settlementStatusCode", "PENDING", "requestCount", "58", "tradeVolume", "41200", "settlementAmount", "148000000", "pendingCount", "6", "exceptionCount", "1", "completedCount", "49", "avgSettlementDays", "2.4", "lastSettledAt", "2026-03-29 17:10", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=Hanul")),
+                mapOf("insttId", "INST-T002", "insttName", isEn ? "Green Grid" : "그린그리드", "counterpartyName", isEn ? "Seoul Mobility" : "서울모빌리티", "tradeTypeCode", "REC", "tradeTypeLabel", isEn ? "REC Package" : "REC 패키지", "primaryContractName", isEn ? "Scope 2 hedge" : "Scope 2 헤지", "settlementStatusCode", "IN_PROGRESS", "requestCount", "61", "tradeVolume", "36800", "settlementAmount", "132000000", "pendingCount", "4", "exceptionCount", "1", "completedCount", "52", "avgSettlementDays", "2.1", "lastSettledAt", "2026-03-29 15:42", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=Green")),
+                mapOf("insttId", "INST-T003", "insttName", isEn ? "Eco Farm" : "에코팜", "counterpartyName", isEn ? "Carbon Labs" : "카본랩스", "tradeTypeCode", "VOLUNTARY", "tradeTypeLabel", isEn ? "Voluntary Credit" : "자발적 감축실적", "primaryContractName", isEn ? "Biochar contract" : "바이오차 계약", "settlementStatusCode", "EXCEPTION", "requestCount", "37", "tradeVolume", "21400", "settlementAmount", "78000000", "pendingCount", "5", "exceptionCount", "3", "completedCount", "26", "avgSettlementDays", "3.4", "lastSettledAt", "2026-03-27 10:18", "detailUrl", buildAdminPath(isEn, "/trade/duplicate?searchKeyword=Eco")),
+                mapOf("insttId", "INST-T004", "insttName", isEn ? "East Port" : "이스트포트", "counterpartyName", isEn ? "River Cement" : "리버시멘트", "tradeTypeCode", "KETS", "tradeTypeLabel", isEn ? "K-ETS Credit" : "배출권", "primaryContractName", isEn ? "March balancing lot" : "3월 밸런싱 물량", "settlementStatusCode", "DONE", "requestCount", "44", "tradeVolume", "29800", "settlementAmount", "121000000", "pendingCount", "1", "exceptionCount", "0", "completedCount", "41", "avgSettlementDays", "2.0", "lastSettledAt", "2026-03-30 09:05", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=East")),
+                mapOf("insttId", "INST-T005", "insttName", isEn ? "Sun Network" : "선네트워크", "counterpartyName", isEn ? "Urban Data" : "어반데이터", "tradeTypeCode", "REC", "tradeTypeLabel", isEn ? "REC Package" : "REC 패키지", "primaryContractName", isEn ? "Data center reserve" : "데이터센터 예비물량", "settlementStatusCode", "PENDING", "requestCount", "33", "tradeVolume", "18500", "settlementAmount", "64000000", "pendingCount", "4", "exceptionCount", "1", "completedCount", "26", "avgSettlementDays", "2.8", "lastSettledAt", "2026-03-26 14:28", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=Sun")),
+                mapOf("insttId", "INST-T006", "insttName", isEn ? "CCUS Plant A" : "CCUS 플랜트 A", "counterpartyName", isEn ? "Metro Heat" : "메트로히트", "tradeTypeCode", "VOLUNTARY", "tradeTypeLabel", isEn ? "Voluntary Credit" : "자발적 감축실적", "primaryContractName", isEn ? "Capture storage block" : "포집 저장 블록", "settlementStatusCode", "IN_PROGRESS", "requestCount", "29", "tradeVolume", "16900", "settlementAmount", "59000000", "pendingCount", "3", "exceptionCount", "0", "completedCount", "24", "avgSettlementDays", "2.6", "lastSettledAt", "2026-03-28 18:04", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=CCUS")),
+                mapOf("insttId", "INST-T007", "insttName", isEn ? "Nova Chemical" : "노바케미칼", "counterpartyName", isEn ? "Blue Energy" : "블루에너지", "tradeTypeCode", "KETS", "tradeTypeLabel", isEn ? "K-ETS Credit" : "배출권", "primaryContractName", isEn ? "Seasonal hedge" : "계절성 헤지", "settlementStatusCode", "PENDING", "requestCount", "31", "tradeVolume", "19200", "settlementAmount", "71000000", "pendingCount", "3", "exceptionCount", "1", "completedCount", "25", "avgSettlementDays", "2.9", "lastSettledAt", "2026-03-25 16:11", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=Nova")),
+                mapOf("insttId", "INST-T008", "insttName", isEn ? "Forest Link" : "포레스트링크", "counterpartyName", isEn ? "Green Grid" : "그린그리드", "tradeTypeCode", "MIXED", "tradeTypeLabel", isEn ? "Mixed Settlement" : "혼합 정산", "primaryContractName", isEn ? "Afforestation offset" : "조림 상쇄 거래", "settlementStatusCode", "EXCEPTION", "requestCount", "18", "tradeVolume", "8600", "settlementAmount", "29000000", "pendingCount", "2", "exceptionCount", "2", "completedCount", "11", "avgSettlementDays", "4.0", "lastSettledAt", "2026-03-24 11:39", "detailUrl", buildAdminPath(isEn, "/trade/duplicate?searchKeyword=Forest")));
+    }
+
+    private List<Map<String, String>> buildTradeStatisticsAlertRowsLegacyB(boolean isEn) {
+        return List.of(
+                mapOf("title", isEn ? "Pending settlement backlog is rising" : "정산 대기 백로그 증가",
+                        "description", isEn ? "K-ETS and REC trades due this week should be reviewed before treasury close." : "이번 주 마감 예정인 배출권·REC 거래는 재무 마감 전에 우선 점검해야 합니다.",
+                        "badge", isEn ? "Attention" : "주의",
+                        "toneClassName", "bg-amber-100 text-amber-700",
+                        "actionLabel", isEn ? "Open trade list" : "거래 목록 열기",
+                        "actionUrl", buildAdminPath(isEn, "/trade/list?settlementStatus=PENDING")),
+                mapOf("title", isEn ? "Exception concentration by institution" : "기관별 예외 거래 집중",
+                        "description", isEn ? "Eco Farm and Forest Link account for most settlement exceptions in the current window." : "현재 정산 예외는 에코팜과 포레스트링크에 집중되어 있습니다.",
+                        "badge", isEn ? "Watch" : "관찰",
+                        "toneClassName", "bg-sky-100 text-sky-700",
+                        "actionLabel", isEn ? "Open abnormal trade queue" : "이상거래 큐 열기",
+                        "actionUrl", buildAdminPath(isEn, "/trade/duplicate")),
+                mapOf("title", isEn ? "High-value month-end close" : "고액 월말 정산 마감",
+                        "description", isEn ? "High-value balancing lots should be handed off with a final operator memo." : "고액 밸런싱 거래는 최종 운영 메모를 남긴 뒤 정산 이관해야 합니다.",
+                        "badge", isEn ? "Action" : "조치",
+                        "toneClassName", "bg-rose-100 text-rose-700",
+                        "actionLabel", isEn ? "Open settlement calendar" : "정산 캘린더 열기",
+                        "actionUrl", buildAdminPath(isEn, "/payment/settlement")));
+    }
+
+    private List<Map<String, String>> buildTradeDuplicateRows(boolean isEn) {
+        return List.of(
+                mapOf("reviewId", "TDR-2026-0411", "tradeId", "TRD-202603-005", "contractName", isEn ? "Data center reserve" : "데이터센터 예비물량", "sellerName", isEn ? "Sun Network" : "선네트워크", "buyerName", isEn ? "Urban Data" : "어반데이터", "analyst", isEn ? "Jiwon Park" : "박지원", "reason", isEn ? "Repeated counterparties and settlement gap in the same closing window." : "같은 마감 창구에서 거래 당사자 반복과 정산 불일치가 함께 감지되었습니다.", "detectionTypeCode", "SETTLEMENT_GAP", "detectionTypeLabel", isEn ? "Settlement gap" : "정산 불일치", "reviewStatusCode", "BLOCKED", "reviewStatusLabel", isEn ? "Settlement blocked" : "정산 보류", "riskLevelCode", "CRITICAL", "riskLevelLabel", isEn ? "Critical" : "치명", "detectedAt", "2026-03-31 08:45", "quantity", "6,400 MWh", "amount", "KRW 154,000,000", "investigationSummary", isEn ? "Closing ledger and trade ledger diverged after a duplicate counterparty check." : "중복 상대기관 확인 이후 마감 원장과 거래 원장 값이 어긋났습니다.", "recommendedAction", isEn ? "Keep blocked until ledger sync is complete." : "원장 동기화 완료 전까지 차단을 유지합니다.", "settlementActionLabel", isEn ? "Block settlement batch" : "정산 배치 차단", "detailUrl", buildAdminPath(isEn, "/trade/reject?tradeId=TRD-202603-005")),
+                mapOf("reviewId", "TDR-2026-0410", "tradeId", "TRD-202603-007", "contractName", isEn ? "Seasonal hedge" : "계절성 헤지", "sellerName", isEn ? "Nova Chemical" : "노바케미칼", "buyerName", isEn ? "Blue Energy" : "블루에너지", "analyst", isEn ? "Dahye Seo" : "서다혜", "reason", isEn ? "Counterparty overlap with unusual price movement." : "거래 상대 중복과 비정상 가격 편차가 동시에 탐지되었습니다.", "detectionTypeCode", "DUPLICATE_PARTY", "detectionTypeLabel", isEn ? "Duplicate party" : "거래 당사자 중복", "reviewStatusCode", "ESCALATED", "reviewStatusLabel", isEn ? "Escalated" : "상향 검토", "riskLevelCode", "HIGH", "riskLevelLabel", isEn ? "High" : "높음", "detectedAt", "2026-03-31 08:12", "quantity", "9,900 tCO2eq", "amount", "KRW 333,600,000", "investigationSummary", isEn ? "The same counterpart group appeared in a high-premium hedge cluster." : "고프리미엄 헤지 묶음에서 동일 상대기관 그룹이 반복 확인되었습니다.", "recommendedAction", isEn ? "Escalate to supervisor and compare prior-day orders." : "상급자 검토로 전환하고 전일 주문과 대조합니다.", "settlementActionLabel", isEn ? "Supervisor approval required" : "상급자 승인 필요", "detailUrl", buildAdminPath(isEn, "/trade/duplicate?searchKeyword=Nova")),
+                mapOf("reviewId", "TDR-2026-0409", "tradeId", "TRD-202603-003", "contractName", isEn ? "Biochar contract" : "바이오차 계약", "sellerName", isEn ? "Eco Farm" : "에코팜", "buyerName", isEn ? "Carbon Labs" : "카본랩스", "analyst", isEn ? "Yuna Choi" : "최유나", "reason", isEn ? "Order split pattern was repeated within the same day." : "동일 일자 내 주문 분할 패턴이 반복 확인되었습니다.", "detectionTypeCode", "SPLIT_ORDER", "detectionTypeLabel", isEn ? "Split order" : "주문 분할", "reviewStatusCode", "REVIEW", "reviewStatusLabel", isEn ? "Under review" : "검토 중", "riskLevelCode", "MEDIUM", "riskLevelLabel", isEn ? "Medium" : "중간", "detectedAt", "2026-03-30 17:40", "quantity", "4,250 tCO2eq", "amount", "KRW 87,500,000", "investigationSummary", isEn ? "Child orders stayed below review threshold but share the same pattern." : "하위 주문이 검토 임계치 이하로 쪼개졌지만 동일 패턴이 반복됩니다.", "recommendedAction", isEn ? "Review trader note and execution policy." : "거래 메모와 실행 정책을 검토합니다.", "settlementActionLabel", isEn ? "Review before settlement" : "정산 전 검토", "detailUrl", buildAdminPath(isEn, "/trade/duplicate?searchKeyword=Eco")),
+                mapOf("reviewId", "TDR-2026-0407", "tradeId", "TRD-202603-012", "contractName", isEn ? "Agriculture offset pool" : "농업 상쇄 풀", "sellerName", isEn ? "Eco Farm" : "에코팜", "buyerName", isEn ? "Hanul Steel" : "한울제철", "analyst", isEn ? "Minji Lee" : "이민지", "reason", isEn ? "Trade volume exceeded the configured exposure threshold." : "거래 물량이 설정된 노출 한도를 초과했습니다.", "detectionTypeCode", "LIMIT_BREACH", "detectionTypeLabel", isEn ? "Limit breach" : "한도 초과", "reviewStatusCode", "REVIEW", "reviewStatusLabel", isEn ? "Under review" : "검토 중", "riskLevelCode", "HIGH", "riskLevelLabel", isEn ? "High" : "높음", "detectedAt", "2026-03-30 15:08", "quantity", "6,900 tCO2eq", "amount", "KRW 143,500,000", "investigationSummary", isEn ? "Exposure cap was already near limit from an earlier exception case." : "기존 예외 거래 영향으로 노출 한도가 이미 임계점에 가까웠습니다.", "recommendedAction", isEn ? "Confirm committee override or reject." : "위원회 예외승인 여부를 확인하거나 반려합니다.", "settlementActionLabel", isEn ? "Risk override required" : "리스크 예외승인 필요", "detailUrl", buildAdminPath(isEn, "/trade/reject?tradeId=TRD-202603-012")),
+                mapOf("reviewId", "TDR-2026-0405", "tradeId", "TRD-202603-011", "contractName", isEn ? "Heat network mix" : "열공급 믹스 거래", "sellerName", isEn ? "North Solar" : "노스솔라", "buyerName", isEn ? "Metro Heat" : "메트로히트", "analyst", isEn ? "Ara Yun" : "윤아라", "reason", isEn ? "Price outlier flagged against the same-week REC bundle benchmark." : "동주차 REC 묶음 벤치마크 대비 가격 이상이 감지되었습니다.", "detectionTypeCode", "PRICE_OUTLIER", "detectionTypeLabel", isEn ? "Price outlier" : "가격 이상", "reviewStatusCode", "CLEARED", "reviewStatusLabel", isEn ? "Cleared" : "해소", "riskLevelCode", "LOW", "riskLevelLabel", isEn ? "Low" : "낮음", "detectedAt", "2026-03-30 11:26", "quantity", "2,850 MWh", "amount", "KRW 59,400,000", "investigationSummary", isEn ? "Operator note matched a temporary REC market premium and was accepted." : "운영 메모상 일시적 REC 프리미엄 사유가 확인되어 해소 처리되었습니다.", "recommendedAction", isEn ? "Proceed with settlement and keep note attached." : "메모를 첨부한 채 정산을 진행합니다.", "settlementActionLabel", isEn ? "Settlement can proceed" : "정산 진행 가능", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=North")));
+    }
+
     private List<Map<String, String>> buildTradeListRows(boolean isEn) {
         List<Map<String, String>> rows = new ArrayList<>();
         rows.add(tradeRow("TRD-202603-001", isEn ? "K-ETS Credit" : "배출권", isEn ? "Hanul Steel" : "한울제철",
@@ -1924,6 +2895,334 @@ public class AdminShellBootstrapPageService {
                 "6,900 tCO2eq", "KRW 143,500,000", "2026-03-25 16:18", "HOLD",
                 isEn ? "On Hold" : "보류", "EXCEPTION", isEn ? "Exception" : "예외"));
         return rows;
+    }
+
+    private List<Map<String, String>> buildSettlementCalendarRows(boolean isEn) {
+        List<Map<String, String>> rows = new ArrayList<>();
+        rows.add(settlementScheduleRow("SET-202604-001", "2026-04", isEn ? "March offset close" : "3월 상쇄 정산", isEn ? "Hanul Steel" : "한울제철",
+                isEn ? "Lee Minji" : "이민지", "2026-04-01", "KRW 418,000,000", "PENDING", isEn ? "Pending" : "대기",
+                "HIGH", isEn ? "High" : "높음", isEn ? "Counterparty evidence not signed" : "상대 기관 증빙 미서명"));
+        rows.add(settlementScheduleRow("SET-202604-002", "2026-04", isEn ? "REC hedge settlement" : "REC 헤지 정산", isEn ? "Green Grid" : "그린그리드",
+                isEn ? "Park Jiwon" : "박지원", "2026-04-01", "KRW 192,000,000", "READY", isEn ? "Ready" : "준비 완료",
+                "MEDIUM", isEn ? "Medium" : "보통", isEn ? "Treasury confirmation pending" : "재무 확인 대기"));
+        rows.add(settlementScheduleRow("SET-202604-003", "2026-04", isEn ? "Biochar partner payout" : "바이오차 파트너 정산", isEn ? "Eco Farm" : "에코팜",
+                isEn ? "Choi Yuna" : "최유나", "2026-04-02", "KRW 87,500,000", "BLOCKED", isEn ? "Blocked" : "차단",
+                "HIGH", isEn ? "High" : "높음", isEn ? "Tax invoice mismatch" : "세금계산서 금액 불일치"));
+        rows.add(settlementScheduleRow("SET-202604-004", "2026-04", isEn ? "Balancing lot treasury release" : "밸런싱 물량 자금 집행", isEn ? "East Port" : "이스트포트",
+                isEn ? "Han Jaeho" : "한재호", "2026-04-02", "KRW 522,400,000", "READY", isEn ? "Ready" : "준비 완료",
+                "LOW", isEn ? "Low" : "낮음", isEn ? "Treasury batch assigned" : "재무 배치 편성 완료"));
+        rows.add(settlementScheduleRow("SET-202604-005", "2026-04", isEn ? "Data center reserve settlement" : "데이터센터 예비물량 정산", isEn ? "Sun Network" : "선네트워크",
+                isEn ? "Jeong Haein" : "정해인", "2026-04-03", "KRW 154,000,000", "PENDING", isEn ? "Pending" : "대기",
+                "MEDIUM", isEn ? "Medium" : "보통", isEn ? "Operator note update required" : "운영 메모 보완 필요"));
+        rows.add(settlementScheduleRow("SET-202604-006", "2026-04", isEn ? "Capture storage close" : "포집 저장 블록 정산", isEn ? "CCUS Plant A" : "CCUS 플랜트 A",
+                isEn ? "Kim Sujin" : "김수진", "2026-04-03", "KRW 301,000,000", "COMPLETED", isEn ? "Completed" : "완료",
+                "LOW", isEn ? "Low" : "낮음", isEn ? "Transferred to treasury archive" : "재무 이관 완료"));
+        rows.add(settlementScheduleRow("SET-202604-007", "2026-04", isEn ? "Seasonal hedge settlement" : "계절성 헤지 정산", isEn ? "Nova Chemical" : "노바케미칼",
+                isEn ? "Seo Dahye" : "서다혜", "2026-04-04", "KRW 333,600,000", "PENDING", isEn ? "Pending" : "대기",
+                "MEDIUM", isEn ? "Medium" : "보통", isEn ? "Need buyer confirmation" : "매수 기관 확인 필요"));
+        rows.add(settlementScheduleRow("SET-202604-008", "2026-04", isEn ? "Cold-chain settlement run" : "콜드체인 정산 실행", isEn ? "Wind Core" : "윈드코어",
+                isEn ? "Yun Ara" : "윤아라", "2026-04-05", "KRW 71,000,000", "COMPLETED", isEn ? "Completed" : "완료",
+                "LOW", isEn ? "Low" : "낮음", isEn ? "Month-end payout completed" : "월말 지급 완료"));
+        rows.add(settlementScheduleRow("SET-202605-001", "2026-05", isEn ? "Afforestation offset close" : "조림 상쇄 정산", isEn ? "Forest Link" : "포레스트링크",
+                isEn ? "Lee Minji" : "이민지", "2026-05-02", "KRW 126,000,000", "PENDING", isEn ? "Pending" : "대기",
+                "MEDIUM", isEn ? "Medium" : "보통", isEn ? "Awaiting evidence bundle" : "증빙 묶음 수신 대기"));
+        rows.add(settlementScheduleRow("SET-202605-002", "2026-05", isEn ? "Compliance fill settlement" : "의무량 보전 정산", isEn ? "River Cement" : "리버시멘트",
+                isEn ? "Han Jaeho" : "한재호", "2026-05-03", "KRW 257,000,000", "READY", isEn ? "Ready" : "준비 완료",
+                "LOW", isEn ? "Low" : "낮음", isEn ? "Queued for treasury handoff" : "재무 이관 대기열 편성"));
+        rows.add(settlementScheduleRow("SET-202606-001", "2026-06", isEn ? "Heat network mix settlement" : "열공급 믹스 정산", isEn ? "North Solar" : "노스솔라",
+                isEn ? "Park Jiwon" : "박지원", "2026-06-01", "KRW 59,400,000", "PENDING", isEn ? "Pending" : "대기",
+                "LOW", isEn ? "Low" : "낮음", isEn ? "Next month open queue" : "차월 오픈 큐"));
+        rows.add(settlementScheduleRow("SET-202606-002", "2026-06", isEn ? "Agriculture offset pool" : "농업 상쇄 풀 정산", isEn ? "Eco Farm" : "에코팜",
+                isEn ? "Choi Yuna" : "최유나", "2026-06-02", "KRW 143,500,000", "BLOCKED", isEn ? "Blocked" : "차단",
+                "HIGH", isEn ? "High" : "높음", isEn ? "Rejection memo not closed" : "반려 메모 미종결"));
+        return rows;
+    }
+
+    private Map<String, String> settlementScheduleRow(
+            String settlementId,
+            String settlementMonth,
+            String settlementTitle,
+            String institutionName,
+            String ownerName,
+            String dueDate,
+            String amount,
+            String statusCode,
+            String statusLabel,
+            String riskLevelCode,
+            String riskLevelLabel,
+            String blockerReason) {
+        return mapOf(
+                "settlementId", settlementId,
+                "settlementMonth", settlementMonth,
+                "settlementTitle", settlementTitle,
+                "institutionName", institutionName,
+                "ownerName", ownerName,
+                "dueDate", dueDate,
+                "amount", amount,
+                "statusCode", statusCode,
+                "statusLabel", statusLabel,
+                "riskLevelCode", riskLevelCode,
+                "riskLevelLabel", riskLevelLabel,
+                "blockerReason", blockerReason);
+    }
+
+    private List<Map<String, String>> buildSettlementCalendarDays(String selectedMonth, boolean isEn) {
+        if ("2026-05".equals(selectedMonth)) {
+            return List.of(
+                    settlementCalendarDay("2026-05-02", isEn ? "Fri" : "금", "02", "6", "1", isEn ? "Lee Minji" : "이민지", "MEDIUM", isEn ? "Medium" : "보통",
+                            isEn ? "Offset proof packet deadline" : "상쇄 증빙 패킷 마감"),
+                    settlementCalendarDay("2026-05-03", isEn ? "Sat" : "토", "03", "4", "0", isEn ? "Han Jaeho" : "한재호", "LOW", isEn ? "Low" : "낮음",
+                            isEn ? "Treasury handoff slots open" : "재무 이관 슬롯 오픈"));
+        }
+        if ("2026-06".equals(selectedMonth)) {
+            return List.of(
+                    settlementCalendarDay("2026-06-01", isEn ? "Mon" : "월", "01", "3", "0", isEn ? "Park Jiwon" : "박지원", "LOW", isEn ? "Low" : "낮음",
+                            isEn ? "Open next-cycle settlement queue" : "차기 정산 큐 개시"),
+                    settlementCalendarDay("2026-06-02", isEn ? "Tue" : "화", "02", "2", "1", isEn ? "Choi Yuna" : "최유나", "HIGH", isEn ? "High" : "높음",
+                            isEn ? "Blocked memo needs closure" : "차단 메모 종결 필요"));
+        }
+        return List.of(
+                settlementCalendarDay("2026-04-01", isEn ? "Wed" : "수", "01", "5", "1", isEn ? "Lee Minji" : "이민지", "HIGH", isEn ? "High" : "높음",
+                        isEn ? "Daily close and counterparty confirmation overlap." : "일 마감과 상대 기관 확인 일정이 겹칩니다."),
+                settlementCalendarDay("2026-04-02", isEn ? "Thu" : "목", "02", "4", "1", isEn ? "Han Jaeho" : "한재호", "MEDIUM", isEn ? "Medium" : "보통",
+                        isEn ? "Tax invoice mismatch should be resolved before treasury release." : "재무 집행 전에 세금계산서 불일치를 정리해야 합니다."),
+                settlementCalendarDay("2026-04-03", isEn ? "Fri" : "금", "03", "3", "0", isEn ? "Kim Sujin" : "김수진", "MEDIUM", isEn ? "Medium" : "보통",
+                        isEn ? "15:00 treasury cut-off for ready schedules." : "준비 완료 건은 15시 재무 마감 전에 넘겨야 합니다."),
+                settlementCalendarDay("2026-04-04", isEn ? "Sat" : "토", "04", "2", "0", isEn ? "Seo Dahye" : "서다혜", "LOW", isEn ? "Low" : "낮음",
+                        isEn ? "Buyer confirmation follow-up window." : "매수 기관 확인 추적 구간입니다."),
+                settlementCalendarDay("2026-04-05", isEn ? "Sun" : "일", "05", "1", "0", isEn ? "Yun Ara" : "윤아라", "LOW", isEn ? "Low" : "낮음",
+                        isEn ? "Archive completed payouts and close notes." : "지급 완료 건 아카이브와 마감 메모 정리를 진행합니다."));
+    }
+
+    private Map<String, String> settlementCalendarDay(
+            String date,
+            String weekdayLabel,
+            String dayLabel,
+            String scheduledCount,
+            String exceptionCount,
+            String ownerName,
+            String riskLevelCode,
+            String riskLevelLabel,
+            String focusNote) {
+        return mapOf(
+                "date", date,
+                "weekdayLabel", weekdayLabel,
+                "dayLabel", dayLabel,
+                "scheduledCount", scheduledCount,
+                "exceptionCount", exceptionCount,
+                "ownerName", ownerName,
+                "riskLevelCode", riskLevelCode,
+                "riskLevelLabel", riskLevelLabel,
+                "focusNote", focusNote);
+    }
+
+    private List<Map<String, String>> buildRefundListRows(boolean isEn) {
+        List<Map<String, String>> rows = new ArrayList<>();
+        rows.add(refundRow("RFD-202603-031", isEn ? "Hanul Steel" : "한울제철", isEn ? "Kim Minseo" : "김민서",
+                isEn ? "Card Refund" : "카드 취소", "Shinhan 123-45****-88", "KRW 1,280,000", "KRW 1,280,000",
+                "2026-03-31 15:10", "RECEIVED", isEn ? "Received" : "접수", "HIGH", isEn ? "High" : "높음",
+                isEn ? "Duplicate payment detected during invoice closing." : "세금계산서 마감 중 이중 결제가 확인되었습니다.",
+                isEn ? "Verify duplicate transaction evidence" : "중복 결제 증빙 확인"));
+        rows.add(refundRow("RFD-202603-030", isEn ? "Blue Energy" : "블루에너지", isEn ? "Park Jiwon" : "박지원",
+                isEn ? "Bank Transfer" : "계좌 이체", "KB 991-20****-11", "KRW 860,000", "KRW 860,000",
+                "2026-03-31 13:42", "ACCOUNT_REVIEW", isEn ? "Account Review" : "계좌 검수", "MEDIUM", isEn ? "Medium" : "보통",
+                isEn ? "Refund account was changed after submission." : "신청 후 환불 계좌가 변경되었습니다.",
+                isEn ? "Confirm account ownership" : "예금주 확인"));
+        rows.add(refundRow("RFD-202603-029", isEn ? "Metro Heat" : "메트로히트", isEn ? "Lee Seojun" : "이서준",
+                isEn ? "Card Refund" : "카드 취소", "Hyundai 883-10****-04", "KRW 540,000", "KRW 540,000",
+                "2026-03-31 11:05", "IN_REVIEW", isEn ? "In Review" : "검토중", "LOW", isEn ? "Low" : "낮음",
+                isEn ? "Service package downgrade before activation." : "서비스 개시 전 상품 등급 하향 요청입니다.",
+                isEn ? "Review downgrade effective date" : "등급 변경 적용일 검토"));
+        rows.add(refundRow("RFD-202603-028", isEn ? "Green Grid" : "그린그리드", isEn ? "Choi Yena" : "최예나",
+                isEn ? "Bank Transfer" : "계좌 이체", "NH 118-77****-90", "KRW 2,140,000", "KRW 1,920,000",
+                "2026-03-30 17:26", "APPROVED", isEn ? "Approved" : "승인", "MEDIUM", isEn ? "Medium" : "보통",
+                isEn ? "Partial refund after monthly settlement offset." : "월 정산 상계 후 부분 환불 승인 건입니다.",
+                isEn ? "Queue next transfer batch" : "다음 이체 배치 편성"));
+        rows.add(refundRow("RFD-202603-027", isEn ? "River Cement" : "리버시멘트", isEn ? "Han Jaeho" : "한재호",
+                isEn ? "Bank Transfer" : "계좌 이체", "Woori 227-00****-53", "KRW 3,400,000", "KRW 3,400,000",
+                "2026-03-30 15:11", "TRANSFER_SCHEDULED", isEn ? "Transfer Scheduled" : "이체 예정", "LOW", isEn ? "Low" : "낮음",
+                isEn ? "Approved full refund awaiting treasury batch." : "전액 환불 승인 후 자금 배치 대기 중입니다.",
+                isEn ? "Monitor transfer completion" : "이체 완료 모니터링"));
+        rows.add(refundRow("RFD-202603-026", isEn ? "Sun Network" : "선네트워크", isEn ? "Jeong Haein" : "정해인",
+                isEn ? "Card Refund" : "카드 취소", "Samsung 771-30****-61", "KRW 420,000", "KRW 420,000",
+                "2026-03-29 18:08", "COMPLETED", isEn ? "Completed" : "처리 완료", "LOW", isEn ? "Low" : "낮음",
+                isEn ? "Cancellation completed with card acquirer." : "카드 매입사 취소 처리가 완료되었습니다.",
+                isEn ? "Complete" : "완료"));
+        rows.add(refundRow("RFD-202603-025", isEn ? "Carbon Labs" : "카본랩스", isEn ? "Yun Ara" : "윤아라",
+                isEn ? "Bank Transfer" : "계좌 이체", "IBK 004-18****-32", "KRW 1,100,000", "KRW 0",
+                "2026-03-29 12:14", "REJECTED", isEn ? "Rejected" : "반려", "HIGH", isEn ? "High" : "높음",
+                isEn ? "Requested period already consumed by issued certificate." : "발급 완료된 인증서 사용 기간과 중복되어 반려되었습니다.",
+                isEn ? "Notify rejection reason" : "반려 사유 안내"));
+        rows.add(refundRow("RFD-202603-024", isEn ? "Seoul Mobility" : "서울모빌리티", isEn ? "Kang Doyun" : "강도윤",
+                isEn ? "Bank Transfer" : "계좌 이체", "KakaoBank 333-22****-71", "KRW 780,000", "KRW 780,000",
+                "2026-03-28 10:22", "IN_REVIEW", isEn ? "In Review" : "검토중", "MEDIUM", isEn ? "Medium" : "보통",
+                isEn ? "Support escalation attached for service outage credit." : "서비스 장애 보상 사유로 고객지원 이관 메모가 첨부되었습니다.",
+                isEn ? "Validate outage compensation rule" : "장애 보상 기준 확인"));
+        rows.add(refundRow("RFD-202603-023", isEn ? "Nova Chemical" : "노바케미칼", isEn ? "Seo Dahye" : "서다혜",
+                isEn ? "Card Refund" : "카드 취소", "Lotte 441-90****-15", "KRW 690,000", "KRW 690,000",
+                "2026-03-27 16:35", "TRANSFER_SCHEDULED", isEn ? "Transfer Scheduled" : "이체 예정", "LOW", isEn ? "Low" : "낮음",
+                isEn ? "Treasury approved same-week refund batch." : "재무팀이 주간 환불 배치를 승인했습니다.",
+                isEn ? "Await batch completion" : "배치 완료 대기"));
+        return rows;
+    }
+
+    private Map<String, String> refundRow(
+            String refundId,
+            String companyName,
+            String applicantName,
+            String paymentMethodLabel,
+            String accountMasked,
+            String requestedAmount,
+            String refundableAmount,
+            String requestedAt,
+            String statusCode,
+            String statusLabel,
+            String riskLevelCode,
+            String riskLevelLabel,
+            String reasonSummary,
+            String nextActionLabel) {
+        return mapOf(
+                "refundId", refundId,
+                "companyName", companyName,
+                "applicantName", applicantName,
+                "paymentMethodLabel", paymentMethodLabel,
+                "accountMasked", accountMasked,
+                "requestedAmount", requestedAmount,
+                "refundableAmount", refundableAmount,
+                "requestedAt", requestedAt,
+                "statusCode", statusCode,
+                "statusLabel", statusLabel,
+                "riskLevelCode", riskLevelCode,
+                "riskLevelLabel", riskLevelLabel,
+                "reasonSummary", reasonSummary,
+                "nextActionLabel", nextActionLabel);
+    }
+
+    private List<Map<String, String>> buildTradeApproveRows(boolean isEn) {
+        ensureTradeApprovalState();
+        List<Map<String, String>> rows = new ArrayList<>();
+        for (Map<String, String> baseRow : buildTradeListRows(isEn)) {
+            Map<String, String> state = tradeApprovalState.computeIfAbsent(
+                    safeString(baseRow.get("tradeId")),
+                    key -> defaultTradeApprovalState());
+            String approvalStatusCode = safeString(state.get("approvalStatusCode"));
+            String approvalStatusLabel = approvalStatusLabel(approvalStatusCode, isEn);
+            Map<String, String> row = mapOf(
+                    "tradeId", safeString(baseRow.get("tradeId")),
+                    "tradeTypeCode", inferTradeTypeCode(baseRow),
+                    "productType", safeString(baseRow.get("productType")),
+                    "sellerName", safeString(baseRow.get("sellerName")),
+                    "buyerName", safeString(baseRow.get("buyerName")),
+                    "contractName", safeString(baseRow.get("contractName")),
+                    "quantity", safeString(baseRow.get("quantity")),
+                    "amount", safeString(baseRow.get("amount")),
+                    "requestedAt", safeString(baseRow.get("requestedAt")),
+                    "settlementStatusCode", safeString(baseRow.get("settlementStatusCode")),
+                    "settlementStatusLabel", safeString(baseRow.get("settlementStatusLabel")),
+                    "approvalStatusCode", approvalStatusCode,
+                    "approvalStatusLabel", approvalStatusLabel,
+                    "reviewedAt", safeString(state.get("reviewedAt")),
+                    "reviewerName", safeString(state.get("reviewerName")),
+                    "reviewNote", safeString(isEn ? state.get("reviewNoteEn") : state.get("reviewNoteKo")),
+                    "rejectReason", safeString(state.get("rejectReason")));
+            rows.add(row);
+        }
+        rows.sort(Comparator.comparing((Map<String, String> row) -> safeString(row.get("requestedAt"))).reversed());
+        return rows;
+    }
+
+    private void ensureTradeApprovalState() {
+        if (!tradeApprovalState.isEmpty()) {
+            return;
+        }
+        tradeApprovalState.put("TRD-202603-001", tradeApprovalState("PENDING", "", "거래 운영팀", "초기 증빙 확인 완료. 상대 기관 응답 대기", "Initial evidence reviewed. Waiting for counterparty confirmation.", ""));
+        tradeApprovalState.put("TRD-202603-002", tradeApprovalState("HOLD", "", "거래 운영팀", "정산 연계 상태 점검 필요", "Settlement integration status needs review.", ""));
+        tradeApprovalState.put("TRD-202603-003", tradeApprovalState("APPROVED", "2026-03-30 17:20", "Trade Ops Desk", "검토 승인 후 정산 대기 전환", "Approved after review and moved to settlement pending.", ""));
+        tradeApprovalState.put("TRD-202603-004", tradeApprovalState("APPROVED", "2026-03-29 18:10", "Trade Ops Desk", "완료 거래로 후속 모니터링만 유지", "Completed trade retained for monitoring only.", ""));
+        tradeApprovalState.put("TRD-202603-005", tradeApprovalState("REJECTED", "2026-03-29 13:40", "거래 운영팀", "상대 기관 서명본 누락으로 반려", "Rejected due to missing signed counterpart evidence.", "상대 기관 서명본 누락"));
+        tradeApprovalState.put("TRD-202603-006", tradeApprovalState("HOLD", "", "Trade Ops Desk", "매칭 엔진 경고 검토 중", "Matching engine warning under review.", ""));
+        tradeApprovalState.put("TRD-202603-007", tradeApprovalState("PENDING", "", "거래 운영팀", "담당자 최종 검토 전", "Awaiting final operator review.", ""));
+        tradeApprovalState.put("TRD-202603-008", tradeApprovalState("APPROVED", "2026-03-28 11:50", "Trade Ops Desk", "정산 완료 거래", "Settlement completed trade.", ""));
+        tradeApprovalState.put("TRD-202603-009", tradeApprovalState("APPROVED", "2026-03-27 19:00", "거래 운영팀", "조림 상쇄 거래 승인 완료", "Afforestation offset trade approved.", ""));
+        tradeApprovalState.put("TRD-202603-010", tradeApprovalState("APPROVED", "2026-03-27 10:10", "Trade Ops Desk", "컴플라이언스 보전 거래 승인", "Compliance fill trade approved.", ""));
+        tradeApprovalState.put("TRD-202603-011", tradeApprovalState("PENDING", "", "거래 운영팀", "열공급 믹스 거래 검토 대기", "Heat network mix trade pending review.", ""));
+        tradeApprovalState.put("TRD-202603-012", tradeApprovalState("HOLD", "", "Trade Ops Desk", "농업 상쇄 풀 증빙 재확인 필요", "Agriculture offset pool evidence needs recheck.", ""));
+    }
+
+    private Map<String, String> tradeApprovalState(
+            String approvalStatusCode,
+            String reviewedAt,
+            String reviewerName,
+            String reviewNoteKo,
+            String reviewNoteEn,
+            String rejectReason) {
+        Map<String, String> state = defaultTradeApprovalState();
+        state.put("approvalStatusCode", approvalStatusCode);
+        state.put("reviewedAt", reviewedAt);
+        state.put("reviewerName", reviewerName);
+        state.put("reviewNoteKo", reviewNoteKo);
+        state.put("reviewNoteEn", reviewNoteEn);
+        state.put("reviewNote", reviewNoteKo);
+        state.put("rejectReason", rejectReason);
+        return state;
+    }
+
+    private Map<String, String> defaultTradeApprovalState() {
+        return mapOf(
+                "approvalStatusCode", "PENDING",
+                "reviewedAt", "",
+                "reviewerName", "",
+                "reviewNoteKo", "",
+                "reviewNoteEn", "",
+                "reviewNote", "",
+                "rejectReason", "");
+    }
+
+    private long countByApprovalStatus(List<Map<String, String>> rows, String approvalStatusCode) {
+        return rows.stream()
+                .filter(row -> approvalStatusCode.equalsIgnoreCase(safeString(row.get("approvalStatusCode"))))
+                .count();
+    }
+
+    private List<String> normalizeSelectedIds(Object selectedIds, String singleId) {
+        List<String> resolved = new ArrayList<>();
+        if (selectedIds instanceof List<?>) {
+            for (Object value : (List<?>) selectedIds) {
+                String normalized = stringValue(value);
+                if (!normalized.isEmpty()) {
+                    resolved.add(normalized);
+                }
+            }
+        }
+        String normalizedSingleId = safeString(singleId);
+        if (resolved.isEmpty() && !normalizedSingleId.isEmpty()) {
+            resolved.add(normalizedSingleId);
+        }
+        return resolved;
+    }
+
+    private String approvalStatusLabel(String approvalStatusCode, boolean isEn) {
+        switch (safeString(approvalStatusCode).toUpperCase(Locale.ROOT)) {
+            case "APPROVED":
+                return isEn ? "Approved" : "승인 완료";
+            case "REJECTED":
+                return isEn ? "Rejected" : "반려";
+            case "HOLD":
+                return isEn ? "On Hold" : "보류";
+            default:
+                return isEn ? "Pending" : "승인 대기";
+        }
+    }
+
+    private String inferTradeTypeCode(Map<String, String> row) {
+        String productType = safeString(row.get("productType")).toLowerCase(Locale.ROOT);
+        if (productType.contains("rec")) {
+            return "REC";
+        }
+        if (productType.contains("voluntary") || productType.contains("자발적")) {
+            return "VOLUNTARY";
+        }
+        return "KETS";
     }
 
     private Map<String, String> tradeRow(
@@ -2232,6 +3531,236 @@ public class AdminShellBootstrapPageService {
     private String normalizeCertificateAuditDate(String date) {
         String normalized = safeString(date);
         return normalized.matches("\\d{4}-\\d{2}-\\d{2}") ? normalized : "";
+    }
+
+    private List<Map<String, Object>> buildCertificateRecCheckGroups() {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        rows.add(mapOfObjects(
+                "id", "REC-DUP-240330-01",
+                "recNo", "REC-2026-001248",
+                "projectName", "여수 바이오매스 열병합",
+                "companyName", "한빛에너지",
+                "issuanceWindow", "2026-03-01 ~ 2026-03-15",
+                "duplicateCount", 3,
+                "riskScore", 98,
+                "matchBasis", "SERIAL",
+                "status", "BLOCKED",
+                "lastCheckedAt", "2026-03-30 09:15",
+                "actionOwner", "운영1팀 김주임",
+                "reason", mapOfObjects(
+                        "ko", "동일 REC 번호가 발급 검토 2건과 이의신청 반영 1건에 동시에 연결되었습니다.",
+                        "en", "The same REC number is attached to two review cases and one objection reflection case."
+                ),
+                "comparedCertificates", List.of(
+                        mapOfObjects("certificateId", "CERT-REVIEW-0912", "companyName", "한빛에너지", "status", "BLOCKED"),
+                        mapOfObjects("certificateId", "CERT-OBJ-0311", "companyName", "한빛에너지", "status", "PENDING"),
+                        mapOfObjects("certificateId", "CERT-REVIEW-0840", "companyName", "동해그린파워", "status", "PENDING")
+                )));
+        rows.add(mapOfObjects(
+                "id", "REC-DUP-240330-02",
+                "recNo", "REC-2026-001091",
+                "projectName", "포항 수소환원 제철",
+                "companyName", "에코스틸",
+                "issuanceWindow", "2026-02-21 ~ 2026-03-04",
+                "duplicateCount", 2,
+                "riskScore", 84,
+                "matchBasis", "REGISTRY",
+                "status", "REVIEW",
+                "lastCheckedAt", "2026-03-30 08:42",
+                "actionOwner", "심사팀 박대리",
+                "reason", mapOfObjects(
+                        "ko", "등록원장 기준 감축량 합계는 같지만 서로 다른 신청번호로 재검토 요청이 접수되었습니다.",
+                        "en", "The registry reduction total matches, but two different application numbers were submitted for re-review."
+                ),
+                "comparedCertificates", List.of(
+                        mapOfObjects("certificateId", "CERT-REVIEW-0868", "companyName", "에코스틸", "status", "PENDING"),
+                        mapOfObjects("certificateId", "CERT-REISSUE-0023", "companyName", "에코스틸", "status", "ELIGIBLE")
+                )));
+        rows.add(mapOfObjects(
+                "id", "REC-DUP-240330-03",
+                "recNo", "REC-2026-000774",
+                "projectName", "서남권 해상풍력 연계",
+                "companyName", "그린웨이브",
+                "issuanceWindow", "2026-01-10 ~ 2026-01-31",
+                "duplicateCount", 2,
+                "riskScore", 41,
+                "matchBasis", "PERIOD",
+                "status", "CLEARED",
+                "lastCheckedAt", "2026-03-29 18:10",
+                "actionOwner", "심사팀 오과장",
+                "reason", mapOfObjects(
+                        "ko", "동일 기간으로 보였으나 모니터링 보고서 버전 정정으로 실제 발급 구간이 분리되었습니다.",
+                        "en", "The periods initially looked identical, but a monitoring report revision separated the actual issuance windows."
+                ),
+                "comparedCertificates", List.of(
+                        mapOfObjects("certificateId", "CERT-REVIEW-0741", "companyName", "그린웨이브", "status", "ELIGIBLE"),
+                        mapOfObjects("certificateId", "CERT-REISSUE-0018", "companyName", "그린웨이브", "status", "ELIGIBLE")
+                )));
+        return rows;
+    }
+
+    private List<MenuInfoDTO> loadMenuTreeRows(String codeId) {
+        try {
+            List<MenuInfoDTO> rows = new ArrayList<>(menuInfoService.selectMenuTreeList(codeId));
+            rows.sort(Comparator.comparing(row -> safeString(row == null ? null : row.getCode())));
+            return rows;
+        } catch (Exception ignored) {
+            return Collections.emptyList();
+        }
+    }
+
+    private MenuInfoDTO findMenuRow(List<MenuInfoDTO> menuRows, String menuCode) {
+        String normalizedMenuCode = safeString(menuCode).toUpperCase(Locale.ROOT);
+        if (normalizedMenuCode.isEmpty()) {
+            return null;
+        }
+        for (MenuInfoDTO row : menuRows) {
+            if (normalizedMenuCode.equalsIgnoreCase(safeString(row == null ? null : row.getCode()))) {
+                return row;
+            }
+        }
+        return null;
+    }
+
+    private List<Map<String, Object>> buildMenuAncestry(List<MenuInfoDTO> menuRows, String menuCode, boolean isEn) {
+        String normalizedMenuCode = safeString(menuCode).toUpperCase(Locale.ROOT);
+        if (normalizedMenuCode.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<String> ancestryCodes = new ArrayList<>();
+        if (normalizedMenuCode.length() >= 4) {
+            ancestryCodes.add(normalizedMenuCode.substring(0, 4));
+        }
+        if (normalizedMenuCode.length() >= 6) {
+            ancestryCodes.add(normalizedMenuCode.substring(0, 6));
+        }
+        if (normalizedMenuCode.length() >= 8) {
+            ancestryCodes.add(normalizedMenuCode.substring(0, 8));
+        }
+        List<Map<String, Object>> ancestry = new ArrayList<>();
+        for (String code : ancestryCodes) {
+            MenuInfoDTO row = findMenuRow(menuRows, code);
+            if (row == null) {
+                continue;
+            }
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("code", safeString(row.getCode()));
+            item.put("label", isEn ? firstNonBlank(row.getCodeDc(), row.getCodeNm(), row.getCode()) : firstNonBlank(row.getCodeNm(), row.getCodeDc(), row.getCode()));
+            item.put("labelKo", firstNonBlank(row.getCodeNm(), row.getCodeDc(), row.getCode()));
+            item.put("labelEn", firstNonBlank(row.getCodeDc(), row.getCodeNm(), row.getCode()));
+            item.put("menuUrl", safeString(row.getMenuUrl()));
+            item.put("menuIcon", safeString(row.getMenuIcon()));
+            item.put("sortOrdr", row.getSortOrdr());
+            ancestry.add(item);
+        }
+        return ancestry;
+    }
+
+    private List<Map<String, String>> buildNewPageGovernanceNotes(boolean isEn,
+                                                                  String requiredViewFeatureCode,
+                                                                  Map<String, Object> manifest,
+                                                                  List<String> featureCodes) {
+        List<Map<String, String>> notes = new ArrayList<>();
+        notes.add(governanceNote(
+                isEn ? "Route contract" : "라우트 계약",
+                isEn
+                        ? "The route is bootstrap-ready and uses the same page-data contract on first render and follow-up fetch."
+                        : "이 경로는 bootstrap-ready 상태이며 첫 렌더와 후속 fetch에서 같은 page-data 계약을 사용합니다."));
+        notes.add(governanceNote(
+                isEn ? "Authority baseline" : "권한 기준선",
+                isEn
+                        ? "Required VIEW feature: " + firstNonBlank(requiredViewFeatureCode, "unresolved")
+                        : "필수 VIEW 기능: " + firstNonBlank(requiredViewFeatureCode, "미해결")));
+        notes.add(governanceNote(
+                isEn ? "Manifest coverage" : "매니페스트 범위",
+                isEn
+                        ? "UI manifest component count: " + stringValue(manifest == null ? null : manifest.get("componentCount"))
+                        : "UI 매니페스트 컴포넌트 수: " + stringValue(manifest == null ? null : manifest.get("componentCount"))));
+        notes.add(governanceNote(
+                isEn ? "Feature scope" : "기능 범위",
+                isEn
+                        ? "Linked feature count: " + featureCodes.size()
+                        : "연결 기능 수: " + featureCodes.size()));
+        return notes;
+    }
+
+    private List<Map<String, Object>> buildNewPageRoleAssignments(String requiredViewFeatureCode, boolean isEn) {
+        String normalizedFeatureCode = safeString(requiredViewFeatureCode).toUpperCase(Locale.ROOT);
+        if (normalizedFeatureCode.isEmpty()) {
+            return Collections.emptyList();
+        }
+        try {
+            List<Map<String, Object>> rows = new ArrayList<>();
+            for (AuthorInfoVO author : authGroupManageService.selectAuthorList()) {
+                String authorCode = safeString(author == null ? null : author.getAuthorCode()).toUpperCase(Locale.ROOT);
+                if (authorCode.isEmpty()) {
+                    continue;
+                }
+                boolean assigned = authGroupManageService.hasAuthorFeaturePermission(authorCode, normalizedFeatureCode);
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("authorCode", authorCode);
+                row.put("authorName", safeString(author == null ? null : author.getAuthorNm()));
+                row.put("authorDescription", safeString(author == null ? null : author.getAuthorDc()));
+                row.put("assigned", assigned);
+                row.put("statusLabel", assigned ? (isEn ? "Granted" : "부여됨") : (isEn ? "Not granted" : "미부여"));
+                row.put("statusTone", assigned ? "healthy" : "warning");
+                rows.add(row);
+            }
+            rows.sort((left, right) -> {
+                boolean leftAssigned = Boolean.TRUE.equals(left.get("assigned"));
+                boolean rightAssigned = Boolean.TRUE.equals(right.get("assigned"));
+                if (leftAssigned != rightAssigned) {
+                    return leftAssigned ? -1 : 1;
+                }
+                return safeString(String.valueOf(left.get("authorCode"))).compareTo(safeString(String.valueOf(right.get("authorCode"))));
+            });
+            return rows;
+        } catch (Exception ignored) {
+            return Collections.emptyList();
+        }
+    }
+
+    private Map<String, String> governanceNote(String title, String description) {
+        Map<String, String> note = new LinkedHashMap<>();
+        note.put("title", title);
+        note.put("description", description);
+        return note;
+    }
+
+    private String firstNonBlank(String... candidates) {
+        if (candidates == null) {
+            return "";
+        }
+        for (String candidate : candidates) {
+            String normalized = safeString(candidate);
+            if (!normalized.isEmpty()) {
+                return normalized;
+            }
+        }
+        return "";
+    }
+
+    private int parseInt(Object value) {
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        try {
+            return Integer.parseInt(stringValue(value));
+        } catch (NumberFormatException ex) {
+            return 0;
+        }
+    }
+
+    private String stringValue(Object value) {
+        return value == null ? "" : String.valueOf(value).trim();
+    }
+
+    private Map<String, Object> mapOfObjects(Object... values) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        for (int index = 0; index + 1 < values.length; index += 2) {
+            row.put(String.valueOf(values[index]), values[index + 1]);
+        }
+        return row;
     }
 
     private String safeString(String value) {

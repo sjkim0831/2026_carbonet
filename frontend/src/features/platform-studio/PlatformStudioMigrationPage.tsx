@@ -720,7 +720,7 @@ export function PlatformStudioMigrationPage() {
     body.set("menuType", menuType);
     ["parentCode", "codeNm", "codeDc", "menuUrl", "menuIcon", "useAt"].forEach((key) => body.set(key, String(formData.get(key) || "")));
     const result = await postFormUrlEncoded<{ success?: boolean; message?: string; createdCode?: string }>(
-      buildLocalizedPath("/admin/system/menu-management/create-page", "/en/admin/system/menu-management/create-page"),
+      buildLocalizedPath("/admin/system/menu/create-page", "/en/admin/system/menu/create-page"),
       body
     );
     if (!result.success) {

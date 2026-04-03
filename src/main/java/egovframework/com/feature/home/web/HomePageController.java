@@ -1,5 +1,6 @@
 package egovframework.com.feature.home.web;
 
+import egovframework.com.feature.admin.service.AdminShellBootstrapPageService;
 import egovframework.com.feature.home.service.HomeMenuService;
 import egovframework.com.feature.home.service.HomeMypageService;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class HomePageController {
 
+    private final AdminShellBootstrapPageService adminShellBootstrapPageService;
     private final HomeMenuService homeMenuService;
     private final HomeMypageService homeMypageService;
     private final ReactAppViewSupport reactAppViewSupport;
@@ -75,33 +77,113 @@ public class HomePageController {
     }
 
     @RequestMapping(value = { "/mypage" }, method = { RequestMethod.GET, RequestMethod.POST })
-    public String mypage(HttpServletRequest request, Model model) {
-        return reactAppViewSupport.render(model, "mypage", false, false);
+    public String mypage() {
+        return "redirect:/mypage/profile";
     }
 
     @RequestMapping(value = { "/ko/mypage" }, method = { RequestMethod.GET, RequestMethod.POST })
     public String legacyKoMypage() {
-        return "redirect:/mypage";
+        return "redirect:/mypage/profile";
     }
 
     @RequestMapping(value = { "/mypage/index", "/ko/mypage/index" }, method = { RequestMethod.GET, RequestMethod.POST })
     public String legacyMypageIndex() {
-        return "redirect:/mypage";
+        return "redirect:/mypage/profile";
     }
 
     @RequestMapping(value = { "/mypage/en" }, method = { RequestMethod.GET, RequestMethod.POST })
     public String legacyMypageEn() {
-        return "redirect:/en/mypage";
+        return "redirect:/en/mypage/profile";
     }
 
     @RequestMapping(value = { "/en/mypage/index", "/mypage/index/en" }, method = { RequestMethod.GET, RequestMethod.POST })
     public String legacyMypageIndexEn() {
-        return "redirect:/en/mypage";
+        return "redirect:/en/mypage/profile";
     }
 
     @RequestMapping(value = { "/en/mypage" }, method = { RequestMethod.GET, RequestMethod.POST })
-    public String mypageEn(HttpServletRequest request, Model model) {
-        return reactAppViewSupport.render(model, "mypage", true, false);
+    public String mypageEn() {
+        return "redirect:/en/mypage/profile";
+    }
+
+    @RequestMapping(value = { "/trade/list" }, method = { RequestMethod.GET, RequestMethod.POST })
+    public String tradeList(HttpServletRequest request, Model model) {
+        return reactAppViewSupport.render(model, "trade-list", false, false);
+    }
+
+    @RequestMapping(value = { "/en/trade/list" }, method = { RequestMethod.GET, RequestMethod.POST })
+    public String tradeListEn(HttpServletRequest request, Model model) {
+        return reactAppViewSupport.render(model, "trade-list", true, false);
+    }
+
+    @RequestMapping(value = { "/trade/market" }, method = { RequestMethod.GET, RequestMethod.POST })
+    public String tradeMarket(HttpServletRequest request, Model model) {
+        return reactAppViewSupport.render(model, "trade-market", false, false);
+    }
+
+    @RequestMapping(value = { "/en/trade/market" }, method = { RequestMethod.GET, RequestMethod.POST })
+    public String tradeMarketEn(HttpServletRequest request, Model model) {
+        return reactAppViewSupport.render(model, "trade-market", true, false);
+    }
+
+    @RequestMapping(value = { "/trade/report" }, method = { RequestMethod.GET, RequestMethod.POST })
+    public String tradeReport(HttpServletRequest request, Model model) {
+        return reactAppViewSupport.render(model, "trade-report", false, false);
+    }
+
+    @RequestMapping(value = { "/en/trade/report" }, method = { RequestMethod.GET, RequestMethod.POST })
+    public String tradeReportEn(HttpServletRequest request, Model model) {
+        return reactAppViewSupport.render(model, "trade-report", true, false);
+    }
+
+    @RequestMapping(value = { "/monitoring/statistics", "/monitoring/esg" }, method = { RequestMethod.GET, RequestMethod.POST })
+    public String monitoringStatistics(HttpServletRequest request, Model model) {
+        return reactAppViewSupport.render(model, "monitoring-statistics", false, false);
+    }
+
+    @RequestMapping(value = { "/en/monitoring/statistics", "/en/monitoring/esg" }, method = { RequestMethod.GET, RequestMethod.POST })
+    public String monitoringStatisticsEn(HttpServletRequest request, Model model) {
+        return reactAppViewSupport.render(model, "monitoring-statistics", true, false);
+    }
+
+    @RequestMapping(value = { "/payment/refund" }, method = { RequestMethod.GET, RequestMethod.POST })
+    public String paymentRefund(HttpServletRequest request, Model model) {
+        return reactAppViewSupport.render(model, "payment-refund", false, false);
+    }
+
+    @RequestMapping(value = { "/en/payment/refund" }, method = { RequestMethod.GET, RequestMethod.POST })
+    public String paymentRefundEn(HttpServletRequest request, Model model) {
+        return reactAppViewSupport.render(model, "payment-refund", true, false);
+    }
+
+    @GetMapping("/trade/list/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> tradeListPageData(
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "tradeStatus", required = false) String tradeStatus,
+            @RequestParam(value = "settlementStatus", required = false) String settlementStatus) {
+        return ResponseEntity.ok(adminShellBootstrapPageService.buildTradeListPageData(
+                pageIndexParam,
+                searchKeyword,
+                tradeStatus,
+                settlementStatus,
+                false));
+    }
+
+    @GetMapping("/en/trade/list/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> tradeListPageDataEn(
+            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "tradeStatus", required = false) String tradeStatus,
+            @RequestParam(value = "settlementStatus", required = false) String settlementStatus) {
+        return ResponseEntity.ok(adminShellBootstrapPageService.buildTradeListPageData(
+                pageIndexParam,
+                searchKeyword,
+                tradeStatus,
+                settlementStatus,
+                true));
     }
 
     @GetMapping("/api/mypage/context")

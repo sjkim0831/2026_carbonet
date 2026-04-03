@@ -6,6 +6,7 @@ import egovframework.com.common.logging.RequestExecutionLogPage;
 import egovframework.com.common.logging.RequestExecutionLogService;
 import egovframework.com.common.logging.RequestExecutionLogVO;
 import egovframework.com.feature.admin.mapper.AuthGroupManageMapper;
+import egovframework.com.feature.admin.mapper.AdminNotificationHistoryMapper;
 import egovframework.com.feature.admin.mapper.AdminSummarySnapshotMapper;
 import egovframework.com.feature.admin.model.vo.AdminSummarySnapshotVO;
 import egovframework.com.feature.admin.model.vo.EmissionResultFilterSnapshot;
@@ -71,6 +72,8 @@ public class AdminSummaryServiceImpl extends EgovAbstractServiceImpl implements 
     private static final String SNAPSHOT_TYPE_SECURITY_MONITORING_BLOCKLIST = "SECURITY_MONITORING_BLOCKLIST";
     private static final String SNAPSHOT_TYPE_SECURITY_HISTORY_ACTIONS = "SECURITY_HISTORY_ACTIONS";
     private static final DateTimeFormatter SNAPSHOT_TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final int SECURITY_INSIGHT_ACTIVITY_HISTORY_LIMIT = 500;
+    private static final int SECURITY_INSIGHT_DELIVERY_HISTORY_LIMIT = 500;
     private static final long SOURCE_SCAN_CACHE_TTL_MS = 30_000L;
     private static final int SOURCE_SCAN_MAX_MATCHES_PER_RULE = 12;
     private static final long SOURCE_SCAN_MAX_FILE_BYTES = 768L * 1024L;
@@ -364,6 +367,7 @@ public class AdminSummaryServiceImpl extends EgovAbstractServiceImpl implements 
     private final RequestExecutionLogService requestExecutionLogService;
     private final AdminSummarySnapshotMapper adminSummarySnapshotMapper;
     private final AuthGroupManageMapper authGroupManageMapper;
+    private final AdminNotificationHistoryMapper adminNotificationHistoryMapper;
     private final ObjectProvider<BlocklistPersistenceService> blocklistPersistenceServiceProvider;
     private final ObjectMapper objectMapper;
     private volatile SourceScanSnapshot cachedSourceScanSnapshot;
@@ -371,11 +375,13 @@ public class AdminSummaryServiceImpl extends EgovAbstractServiceImpl implements 
     public AdminSummaryServiceImpl(RequestExecutionLogService requestExecutionLogService,
             AdminSummarySnapshotMapper adminSummarySnapshotMapper,
             AuthGroupManageMapper authGroupManageMapper,
+            AdminNotificationHistoryMapper adminNotificationHistoryMapper,
             ObjectProvider<BlocklistPersistenceService> blocklistPersistenceServiceProvider,
             ObjectMapper objectMapper) {
         this.requestExecutionLogService = requestExecutionLogService;
         this.adminSummarySnapshotMapper = adminSummarySnapshotMapper;
         this.authGroupManageMapper = authGroupManageMapper;
+        this.adminNotificationHistoryMapper = adminNotificationHistoryMapper;
         this.blocklistPersistenceServiceProvider = blocklistPersistenceServiceProvider;
         this.objectMapper = objectMapper;
     }
@@ -2147,6 +2153,7 @@ public class AdminSummaryServiceImpl extends EgovAbstractServiceImpl implements 
     }
 
     private void appendSecurityInsightActivity(boolean isEn, String action, String actorUserId, String target, String detail) {
+        persistNotificationActivityHistory(action, actorUserId, target, detail);
         String snapshotKey = snapshotKey("SECURITY_INSIGHT_ACTIVITY", isEn);
         List<Map<String, String>> rows = new ArrayList<>(readSnapshotCards(snapshotKey));
         Map<String, String> row = new LinkedHashMap<>();
@@ -2158,7 +2165,7 @@ public class AdminSummaryServiceImpl extends EgovAbstractServiceImpl implements 
         row.put("source", "server");
         rows.add(0, row);
         persistSnapshot(snapshotKey,
-                rows.stream().limit(20).collect(Collectors.toList()),
+                trimSnapshotRows(rows, SECURITY_INSIGHT_ACTIVITY_HISTORY_LIMIT),
                 SNAPSHOT_TYPE_SECURITY_INSIGHT_ACTIVITY,
                 formatSnapshotTimestamp(LocalDateTime.now()));
     }
@@ -3279,9 +3286,10 @@ public class AdminSummaryServiceImpl extends EgovAbstractServiceImpl implements 
         row.put("slackStatus", deliveryResult.slackStatus());
         row.put("mailStatus", deliveryResult.mailStatus());
         row.put("webhookStatus", deliveryResult.webhookStatus());
+        persistNotificationDeliveryHistory(row);
         persisted.add(0, row);
         persistSnapshot(snapshotKey,
-                persisted.stream().limit(20).collect(Collectors.toList()),
+                trimSnapshotRows(persisted, SECURITY_INSIGHT_DELIVERY_HISTORY_LIMIT),
                 SNAPSHOT_TYPE_SECURITY_INSIGHT_DELIVERY,
                 formatSnapshotTimestamp(LocalDateTime.now()));
         if (digestRun) {
@@ -4152,6 +4160,64 @@ public class AdminSummaryServiceImpl extends EgovAbstractServiceImpl implements 
             }
         } catch (Exception e) {
             log.debug("Failed to persist admin summary snapshot. snapshotKey={}", snapshotKey, e);
+        }
+    }
+
+    private void persistNotificationDeliveryHistory(Map<String, String> row) {
+        try {
+            Map<String, Object> params = new LinkedHashMap<>();
+            params.put("deliveryId", "NDH-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS")));
+            params.put("actorUserId", safeString(row.get("actorUserId")));
+            params.put("deliveryMode", safeString(row.get("mode")));
+            params.put("findingCount", parseIntegerObject(row.get("findingCount")));
+            params.put("slackEnabled", safeString(row.get("slackEnabled")));
+            params.put("mailEnabled", safeString(row.get("mailEnabled")));
+            params.put("webhookEnabled", safeString(row.get("webhookEnabled")));
+            params.put("slackChannel", safeString(row.get("slackChannel")));
+            params.put("mailRecipients", safeString(row.get("mailRecipients")));
+            params.put("webhookUrl", safeString(row.get("webhookUrl")));
+            params.put("deliveryStatus", safeString(row.get("status")));
+            params.put("topFinding", safeString(row.get("topFinding")));
+            params.put("deliveryDetail", safeString(row.get("deliveryDetail")));
+            params.put("slackStatus", safeString(row.get("slackStatus")));
+            params.put("mailStatus", safeString(row.get("mailStatus")));
+            params.put("webhookStatus", safeString(row.get("webhookStatus")));
+            adminNotificationHistoryMapper.insertDeliveryHistory(params);
+        } catch (Exception e) {
+            log.debug("Failed to persist notification delivery history row. Falling back to snapshot only.", e);
+        }
+    }
+
+    private void persistNotificationActivityHistory(String action, String actorUserId, String target, String detail) {
+        try {
+            Map<String, Object> params = new LinkedHashMap<>();
+            params.put("activityId", "NAH-" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS")));
+            params.put("actionCode", safeString(action));
+            params.put("actorUserId", safeString(actorUserId));
+            params.put("targetText", safeString(target));
+            params.put("detailText", safeString(detail));
+            params.put("sourceType", "server");
+            adminNotificationHistoryMapper.insertActivityHistory(params);
+        } catch (Exception e) {
+            log.debug("Failed to persist notification activity history row. Falling back to snapshot only.", e);
+        }
+    }
+
+    private List<Map<String, String>> trimSnapshotRows(List<Map<String, String>> rows, int limit) {
+        if (rows == null || rows.isEmpty() || limit <= 0) {
+            return Collections.emptyList();
+        }
+        if (rows.size() <= limit) {
+            return rows;
+        }
+        return new ArrayList<>(rows.subList(0, limit));
+    }
+
+    private Integer parseIntegerObject(String value) {
+        try {
+            return Integer.valueOf(safeString(value));
+        } catch (NumberFormatException ignored) {
+            return 0;
         }
     }
 

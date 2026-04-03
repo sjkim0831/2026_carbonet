@@ -28,6 +28,35 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "AdminHomeProgress", instanceKey: "admin-home-progress", layoutZone: "content", propsSummary: ["reviewSteps"] }
     ]
   },
+  "popup-edit": {
+    pageId: "popup-edit",
+    routePath: "/admin/content/popup_edit",
+    menuCode: "A0040204",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "PopupEditSummary", instanceKey: "popup-edit-summary", layoutZone: "content", propsSummary: ["popupId", "exposureStatus", "dirtyCount"] },
+      { componentId: "PopupEditBasicForm", instanceKey: "popup-edit-basic", layoutZone: "content", propsSummary: ["popupTitle", "popupType", "priority", "useAt"] },
+      { componentId: "PopupEditScheduleForm", instanceKey: "popup-edit-schedule", layoutZone: "content", propsSummary: ["startDate", "endDate", "targetAudience", "displayScope"] },
+      { componentId: "PopupEditContentForm", instanceKey: "popup-edit-content", layoutZone: "content", propsSummary: ["headline", "body", "ctaLabel", "ctaUrl"] },
+      { componentId: "PopupEditActions", instanceKey: "popup-edit-actions", layoutZone: "actions", propsSummary: ["popupId", "canSave"] }
+    ]
+  },
+  "popup-list": {
+    pageId: "popup-list",
+    routePath: "/admin/content/popup_list",
+    menuCode: "A0040203",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "PopupListSummary", instanceKey: "popup-list-summary", layoutZone: "actions", propsSummary: ["summaryCards"] },
+      { componentId: "PopupListFilters", instanceKey: "popup-list-filters", layoutZone: "actions", propsSummary: ["searchKeyword", "status", "targetAudience"] },
+      { componentId: "PopupListTable", instanceKey: "popup-list-table", layoutZone: "content", propsSummary: ["popupRows", "pageIndex", "totalPages"] },
+      { componentId: "PopupListPreview", instanceKey: "popup-list-preview", layoutZone: "content", propsSummary: ["selectedPopup", "governanceNotes"] }
+    ]
+  },
   "admin-login": {
     pageId: "admin-login",
     routePath: "/admin/login/loginView",
@@ -492,6 +521,68 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "CertificatePendingTable", instanceKey: "certificate-pending-table", layoutZone: "content", propsSummary: ["certificatePendingRows", "pageIndex"] }
     ]
   },
+  "virtual-issue": {
+    pageId: "virtual-issue",
+    routePath: "/admin/payment/virtual_issue",
+    menuCode: "A0030303",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "RefundAccountReviewSummary", instanceKey: "virtual-issue-summary", layoutZone: "actions", propsSummary: ["refundAccountSummary"] },
+      { componentId: "RefundAccountReviewFilter", instanceKey: "virtual-issue-search", layoutZone: "actions", propsSummary: ["verificationStatus", "payoutStatus", "searchKeyword"] },
+      { componentId: "RefundAccountReviewTable", instanceKey: "virtual-issue-table", layoutZone: "content", propsSummary: ["refundAccountRows", "pageIndex"] },
+      { componentId: "RefundAccountReviewDetail", instanceKey: "virtual-issue-detail", layoutZone: "content", propsSummary: ["activeRequestId", "refundRequestId", "requestedAmount"] },
+      { componentId: "RefundAccountReviewChecklist", instanceKey: "virtual-issue-checklist", layoutZone: "content", propsSummary: ["checklist"] },
+      { componentId: "RefundAccountReviewGuidance", instanceKey: "virtual-issue-guidance", layoutZone: "content", propsSummary: ["refundAccountGuidance"] }
+    ]
+  },
+  "certificate-rec-check": {
+    pageId: "certificate-rec-check",
+    routePath: "/admin/certificate/rec_check",
+    menuCode: "A0020204",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "CertificateRecCheckSummary", instanceKey: "certificate-rec-check-summary", layoutZone: "content", propsSummary: ["totalCount", "blockedCount", "reviewCount", "highestRisk"] },
+      { componentId: "CertificateRecCheckFilters", instanceKey: "certificate-rec-check-filters", layoutZone: "actions", propsSummary: ["keyword", "status", "basis"] },
+      { componentId: "CertificateRecCheckTable", instanceKey: "certificate-rec-check-table", layoutZone: "content", propsSummary: ["filteredGroups", "selectedGroupId"] },
+      { componentId: "CertificateRecCheckDetail", instanceKey: "certificate-rec-check-detail", layoutZone: "content", propsSummary: ["selectedGroup"] },
+      { componentId: "CertificateRecCheckGuidance", instanceKey: "certificate-rec-check-guidance", layoutZone: "content", propsSummary: ["guidance"] },
+      { componentId: "CertificateRecCheckLinks", instanceKey: "certificate-rec-check-links", layoutZone: "content", propsSummary: ["quickLinks"] }
+    ]
+  },
+  "certificate-objection-list": {
+    pageId: "certificate-objection-list",
+    routePath: "/admin/certificate/objection_list",
+    menuCode: "A0020202",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "CertificateObjectionSummary", instanceKey: "certificate-objection-list-summary", layoutZone: "actions", propsSummary: ["certificateObjectionSummary"] },
+      { componentId: "CertificateObjectionFilter", instanceKey: "certificate-objection-list-search", layoutZone: "actions", propsSummary: ["status", "priority", "searchKeyword"] },
+      { componentId: "CertificateObjectionTable", instanceKey: "certificate-objection-list-table", layoutZone: "content", propsSummary: ["certificateObjectionRows", "pageIndex"] },
+      { componentId: "CertificateObjectionGuidance", instanceKey: "certificate-objection-list-guidance", layoutZone: "content", propsSummary: ["certificateObjectionGuidance"] }
+    ]
+  },
+  "certificate-statistics": {
+    pageId: "certificate-statistics",
+    routePath: "/admin/certificate/statistics",
+    menuCode: "A0020203",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "CertificateStatisticsSummary", instanceKey: "certificate-statistics-summary", layoutZone: "actions", propsSummary: ["totalIssuedCount", "pendingCount", "rejectedCount", "reissuedCount", "issuanceRate"] },
+      { componentId: "CertificateStatisticsFilter", instanceKey: "certificate-statistics-filter", layoutZone: "actions", propsSummary: ["periodFilter", "certificateType", "issuanceStatus", "searchKeyword"] },
+      { componentId: "CertificateStatisticsTrend", instanceKey: "certificate-statistics-trend", layoutZone: "content", propsSummary: ["monthlyRows", "periodFilter"] },
+      { componentId: "CertificateStatisticsAlerts", instanceKey: "certificate-statistics-alerts", layoutZone: "content", propsSummary: ["alertRows"] },
+      { componentId: "CertificateStatisticsTypeTable", instanceKey: "certificate-statistics-type-table", layoutZone: "content", propsSummary: ["certificateTypeRows"] },
+      { componentId: "CertificateStatisticsInstitutionTable", instanceKey: "certificate-statistics-institution-table", layoutZone: "content", propsSummary: ["institutionRows", "pageIndex", "totalPages"] }
+    ]
+  },
   "company-list": {
     pageId: "company-list",
     routePath: "/admin/member/company_list",
@@ -609,6 +700,75 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "JoinCompanyReapplyFiles", instanceKey: "join-company-reapply-files", layoutZone: "content", propsSummary: ["uploadRows", "fileCount"] }
     ]
   },
+  "my-inquiry": {
+    pageId: "my-inquiry",
+    routePath: "/mtn/my_inquiry",
+    menuCode: "HMENU_MY_INQUIRY",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "MyInquiryHero", instanceKey: "my-inquiry-hero", layoutZone: "header", propsSummary: ["supportMode", "managerName"] },
+      { componentId: "MyInquiryChat", instanceKey: "my-inquiry-chat", layoutZone: "content", propsSummary: ["chatCount", "suggestionCount", "assistantState"] },
+      { componentId: "MyInquiryForm", instanceKey: "my-inquiry-form", layoutZone: "content", propsSummary: ["inquiryType", "emissionSite", "attachmentCount"] }
+    ]
+  },
+  "support-faq": {
+    pageId: "support-faq",
+    routePath: "/support/faq",
+    menuCode: "H0050101",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "SupportFaqHero", instanceKey: "support-faq-hero", layoutZone: "header", propsSummary: ["searchValue", "keywordCount"] },
+      { componentId: "SupportFaqAccordion", instanceKey: "support-faq-accordion", layoutZone: "content", propsSummary: ["faqCount", "selectedCategory"] },
+      { componentId: "SupportFaqAnnouncements", instanceKey: "support-faq-announcements", layoutZone: "content", propsSummary: ["noticeCount", "urgentCount"] },
+      { componentId: "SupportFaqQuickSupport", instanceKey: "support-faq-quick-support", layoutZone: "sidebar", propsSummary: ["contactSummary", "responseWindow"] }
+    ]
+  },
+  "support-inquiry": {
+    pageId: "support-inquiry",
+    routePath: "/support/inquiry",
+    menuCode: "H0050102",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "SupportInquiryHero", instanceKey: "support-inquiry-hero", layoutZone: "header", propsSummary: ["draftValue", "keywordCount", "summaryMetrics"] },
+      { componentId: "SupportInquiryFilters", instanceKey: "support-inquiry-filters", layoutZone: "actions", propsSummary: ["searchKeyword", "statusFilter", "resultCount"] },
+      { componentId: "SupportInquiryThreadList", instanceKey: "support-inquiry-thread-list", layoutZone: "content", propsSummary: ["threadCount", "selectedInquiryId"] },
+      { componentId: "SupportInquiryChat", instanceKey: "support-inquiry-chat", layoutZone: "content", propsSummary: ["selectedInquiryId", "messageCount", "agentName"] }
+    ]
+  },
+  "download-list": {
+    pageId: "download-list",
+    routePath: "/support/download_list",
+    menuCode: "H0050102",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "DownloadListHero", instanceKey: "download-list-hero", layoutZone: "header", propsSummary: ["keyword", "selectedCategory"] },
+      { componentId: "DownloadListCards", instanceKey: "download-list-cards", layoutZone: "content", propsSummary: ["resourceCount", "featuredCount"] },
+      { componentId: "DownloadListSupportDesk", instanceKey: "download-list-support-desk", layoutZone: "sidebar", propsSummary: ["phoneNumber", "liveChannelCount"] },
+      { componentId: "DownloadListUrgentNotices", instanceKey: "download-list-urgent-notices", layoutZone: "sidebar", propsSummary: ["noticeCount", "relatedNoticePath"] }
+    ]
+  },
+  "qna-list": {
+    pageId: "qna-list",
+    routePath: "/support/qna_list",
+    menuCode: "H0050103",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "QnaListHero", instanceKey: "qna-list-hero", layoutZone: "header", propsSummary: ["keyword", "keywordCount"] },
+      { componentId: "QnaFeaturedCards", instanceKey: "qna-list-featured-cards", layoutZone: "content", propsSummary: ["cardCount", "criticalCount"] },
+      { componentId: "QnaListSidebar", instanceKey: "qna-list-sidebar", layoutZone: "sidebar", propsSummary: ["categoryCount", "supportContact"] },
+      { componentId: "QnaListFeed", instanceKey: "qna-list-feed", layoutZone: "content", propsSummary: ["entryCount", "sortBy", "activeFilter"] }
+    ]
+  },
   "join-terms": {
     pageId: "join-terms",
     routePath: "/join/step2",
@@ -660,7 +820,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
   },
   "mypage": {
     pageId: "mypage",
-    routePath: "/mypage",
+    routePath: "/mypage/profile",
     menuCode: "HMENU_MYPAGE",
     domainCode: "home",
     layoutVersion: "v1",
@@ -669,6 +829,110 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "MypageBasicInfoForm", instanceKey: "mypage-basic-info", layoutZone: "content", propsSummary: ["fullName", "userId", "email", "phone"] },
       { componentId: "MypageOrgInfoForm", instanceKey: "mypage-org-info", layoutZone: "content", propsSummary: ["companyName", "businessNumber", "jobTitle"] },
       { componentId: "MypageActions", instanceKey: "mypage-actions", layoutZone: "actions", propsSummary: ["submitting", "canSubmit"] }
+    ]
+  },
+  "mypage-notification": {
+    pageId: "mypage-notification",
+    routePath: "/mypage/notification",
+    menuCode: "H0080104",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "MypageNotificationHero", instanceKey: "mypage-notification-hero", layoutZone: "header", propsSummary: ["displayName", "email"] },
+      { componentId: "MypageNotificationSummary", instanceKey: "mypage-notification-summary", layoutZone: "actions", propsSummary: ["criticalCount", "responseSpeed", "unreadCount"] },
+      { componentId: "MypageNotificationSettings", instanceKey: "mypage-notification-settings", layoutZone: "content", propsSummary: ["emailEnabled", "smsReadonly", "appReadonly"] },
+      { componentId: "MypageNotificationMarketing", instanceKey: "mypage-notification-marketing", layoutZone: "content", propsSummary: ["marketingEnabled", "submitting"] }
+    ]
+  },
+  "mypage-marketing": {
+    pageId: "mypage-marketing",
+    routePath: "/mypage/marketing",
+    menuCode: "H0080204",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "MypageMarketingHero", instanceKey: "mypage-marketing-hero", layoutZone: "header", propsSummary: ["displayName", "marketingEnabled"] },
+      { componentId: "MypageMarketingConsent", instanceKey: "mypage-marketing-consent", layoutZone: "content", propsSummary: ["marketingEnabled", "submitting"] },
+      { componentId: "MypageMarketingPrivacy", instanceKey: "mypage-marketing-privacy", layoutZone: "sidebar", propsSummary: ["privacySummary", "faqSummary"] }
+    ]
+  },
+  "mypage-company": {
+    pageId: "mypage-company",
+    routePath: "/mypage/company",
+    menuCode: "HMENU_MYPAGE_COMPANY",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "MypageCompanyHero", instanceKey: "mypage-company-hero", layoutZone: "header", propsSummary: ["companyName", "siteCount", "searchKeyword"] },
+      { componentId: "MypageCompanyProfile", instanceKey: "mypage-company-profile", layoutZone: "content", propsSummary: ["companyName", "representative", "businessNumber"] },
+      { componentId: "MypageCompanySites", instanceKey: "mypage-company-sites", layoutZone: "content", propsSummary: ["siteCode", "siteStatus", "lastUpdated"] },
+      { componentId: "MypageCompanyContacts", instanceKey: "mypage-company-contacts", layoutZone: "sidebar", propsSummary: ["contactName", "role", "accessScope"] }
+    ]
+  },
+  "mypage-password": {
+    pageId: "mypage-password",
+    routePath: "/mypage/password",
+    menuCode: "HMENU_MYPAGE_PASSWORD",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "MypagePasswordHero", instanceKey: "mypage-password-hero", layoutZone: "header", propsSummary: ["securityStatus", "userName"] },
+      { componentId: "MypagePasswordMenu", instanceKey: "mypage-password-menu", layoutZone: "sidebar", propsSummary: ["activeMenu", "helpText"] },
+      { componentId: "MypagePasswordForm", instanceKey: "mypage-password-form", layoutZone: "content", propsSummary: ["currentPassword", "newPassword", "confirmPassword"] }
+    ]
+  },
+  "edu-my-course": {
+    pageId: "edu-my-course",
+    routePath: "/edu/my_course",
+    menuCode: "H0070104",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "EduMyCourseHero", instanceKey: "edu-my-course-hero", layoutZone: "header", propsSummary: ["pageTitle", "pageStatus", "learningGoalValue"] },
+      { componentId: "EduMyCourseSummary", instanceKey: "edu-my-course-summary", layoutZone: "actions", propsSummary: ["milestones", "completionValue", "learningGoalValue"] },
+      { componentId: "EduMyCourseFilters", instanceKey: "edu-my-course-filters", layoutZone: "actions", propsSummary: ["query", "status", "track"] },
+      { componentId: "EduMyCourseBoard", instanceKey: "edu-my-course-board", layoutZone: "content", propsSummary: ["courseCount", "status", "track"] },
+      { componentId: "EduMyCourseActivity", instanceKey: "edu-my-course-activity", layoutZone: "content", propsSummary: ["activityCount", "latestEvent"] },
+      { componentId: "EduMyCourseRecommend", instanceKey: "edu-my-course-recommend", layoutZone: "content", propsSummary: ["recommendationCount"] },
+      { componentId: "EduMyCourseTimeline", instanceKey: "edu-my-course-timeline", layoutZone: "content", propsSummary: ["timelineCount"] }
+    ]
+  },
+  "edu-progress": {
+    pageId: "edu-progress",
+    routePath: "/edu/progress",
+    menuCode: "H0070105",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "EduProgressHero", instanceKey: "edu-progress-hero", layoutZone: "header", propsSummary: ["heroTitle", "heroBody", "summaryCards"] },
+      { componentId: "EduProgressFilters", instanceKey: "edu-progress-filters", layoutZone: "actions", propsSummary: ["query", "status", "track"] },
+      { componentId: "EduProgressJourney", instanceKey: "edu-progress-journey", layoutZone: "content", propsSummary: ["journeyCount", "focusTrack"] },
+      { componentId: "EduProgressBoard", instanceKey: "edu-progress-board", layoutZone: "content", propsSummary: ["courseCount", "completionRate"] },
+      { componentId: "EduProgressCompetency", instanceKey: "edu-progress-competency", layoutZone: "content", propsSummary: ["competencyCount", "skillBadgeCount"] },
+      { componentId: "EduProgressActivity", instanceKey: "edu-progress-activity", layoutZone: "content", propsSummary: ["activityCount", "latestEvent"] },
+      { componentId: "EduProgressGuidance", instanceKey: "edu-progress-guidance", layoutZone: "actions", propsSummary: ["nextActionCount", "managerName"] }
+    ]
+  },
+  "edu-content": {
+    pageId: "edu-content",
+    routePath: "/edu/content",
+    menuCode: "HMENU_EDU_CONTENT",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "EduContentHero", instanceKey: "edu-content-hero", layoutZone: "header", propsSummary: ["heroTitle", "renewalCount", "query"] },
+      { componentId: "EduContentRenewalCards", instanceKey: "edu-content-renewal", layoutZone: "content", propsSummary: ["renewalCount", "urgentCount"] },
+      { componentId: "EduContentLinkedCourses", instanceKey: "edu-content-linked-courses", layoutZone: "content", propsSummary: ["courseCount", "completionRate"] },
+      { componentId: "EduContentLedger", instanceKey: "edu-content-ledger", layoutZone: "content", propsSummary: ["certificationCount", "renewalRiskCount"] },
+      { componentId: "EduContentRoadmap", instanceKey: "edu-content-roadmap", layoutZone: "actions", propsSummary: ["roadmapCount", "nextMilestone"] },
+      { componentId: "EduContentCompliance", instanceKey: "edu-content-compliance", layoutZone: "actions", propsSummary: ["complianceRate", "recommendation"] }
     ]
   },
   "emission-project-list": {
@@ -683,6 +947,560 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "EmissionProjectQueue", instanceKey: "emission-project-queue", layoutZone: "content", propsSummary: ["queueItems", "level", "due"] },
       { componentId: "EmissionProjectSiteCards", instanceKey: "emission-project-site-cards", layoutZone: "content", propsSummary: ["siteCards", "status", "value"] },
       { componentId: "EmissionProjectAdminLinkage", instanceKey: "emission-project-admin-linkage", layoutZone: "actions", propsSummary: ["adminSiteManagementHref", "session", "homeMenu"] }
+    ]
+  },
+  "emission-reduction": {
+    pageId: "emission-reduction",
+    routePath: "/emission/reduction",
+    menuCode: "H0010106",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "EmissionReductionHero", instanceKey: "emission-reduction-hero", layoutZone: "header", propsSummary: ["insights", "fuelSwitch", "efficiency", "renewable"] },
+      { componentId: "EmissionReductionInsights", instanceKey: "emission-reduction-insights", layoutZone: "content", propsSummary: ["optimalPath", "riskScenario"] },
+      { componentId: "EmissionReductionPlanner", instanceKey: "emission-reduction-planner", layoutZone: "content", propsSummary: ["trajectoryBars", "expectedImpact", "scenarioVariables"] },
+      { componentId: "EmissionReductionSites", instanceKey: "emission-reduction-sites", layoutZone: "content", propsSummary: ["siteCards", "scenarioEfficiency", "targetGap"] },
+      { componentId: "EmissionReductionReport", instanceKey: "emission-reduction-report", layoutZone: "content", propsSummary: ["verificationRate", "reportBars"] },
+      { componentId: "EmissionReductionFooter", instanceKey: "emission-reduction-footer", layoutZone: "footer", propsSummary: ["myPageUrl", "guideUrl"] }
+    ]
+  },
+  "emission-lci": {
+    pageId: "emission-lci",
+    routePath: "/emission/lci",
+    menuCode: "H0010202",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "EmissionLciHero", instanceKey: "emission-lci-hero", layoutZone: "header", propsSummary: ["materialKeyword", "processFilter", "regionFilter", "impactFilter"] },
+      { componentId: "EmissionLciResults", instanceKey: "emission-lci-results", layoutZone: "content", propsSummary: ["filteredRecords", "selectedCodes", "pageIndex"] },
+      { componentId: "EmissionLciSites", instanceKey: "emission-lci-sites", layoutZone: "content", propsSummary: ["siteCards", "progress"] },
+      { componentId: "EmissionLciQuality", instanceKey: "emission-lci-quality", layoutZone: "content", propsSummary: ["datasetShare", "integrityScore", "analysisCount"] }
+    ]
+  },
+  "emission-data-input": {
+    pageId: "emission-data-input",
+    routePath: "/emission/data_input",
+    menuCode: "H0010102",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "EmissionDataInputHero", instanceKey: "emission-data-input-hero", layoutZone: "header", propsSummary: ["queueCards", "goalProgress"] },
+      { componentId: "EmissionDataInputQueue", instanceKey: "emission-data-input-queue", layoutZone: "content", propsSummary: ["queueCards", "variant", "badge"] },
+      { componentId: "EmissionDataInputSearch", instanceKey: "emission-data-input-search", layoutZone: "actions", propsSummary: ["searchKeyword"] },
+      { componentId: "EmissionDataInputSites", instanceKey: "emission-data-input-sites", layoutZone: "content", propsSummary: ["dedicatedSites", "generalSites"] },
+      { componentId: "EmissionDataInputReport", instanceKey: "emission-data-input-report", layoutZone: "content", propsSummary: ["annualEmission", "verificationRate"] }
+    ]
+  },
+  "emission-report-submit": {
+    pageId: "emission-report-submit",
+    routePath: "/emission/report_submit",
+    menuCode: "H0010104",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "EmissionReportSubmitHero", instanceKey: "emission-report-submit-hero", layoutZone: "header", propsSummary: ["pageTitle", "draftSavedAt"] },
+      { componentId: "EmissionReportSubmitSteps", instanceKey: "emission-report-submit-steps", layoutZone: "content", propsSummary: ["stepItems", "currentStep"] },
+      { componentId: "EmissionReportSubmitScope1", instanceKey: "emission-report-submit-scope1", layoutZone: "content", propsSummary: ["facilityOptions", "periodStart", "periodEnd", "fuelUsage"] },
+      { componentId: "EmissionReportSubmitScope2", instanceKey: "emission-report-submit-scope2", layoutZone: "content", propsSummary: ["electricityUsage", "fileTypes", "fileLimitMb"] },
+      { componentId: "EmissionReportSubmitGuide", instanceKey: "emission-report-submit-guide", layoutZone: "actions", propsSummary: ["guideTitle", "cautionMessage", "factorLookupUrl"] },
+      { componentId: "EmissionReportSubmitActions", instanceKey: "emission-report-submit-actions", layoutZone: "actions", propsSummary: ["prevStepUrl", "saveDraftAction", "nextStepUrl"] }
+    ]
+  },
+  "emission-lca": {
+    pageId: "emission-lca",
+    routePath: "/emission/lca",
+    menuCode: "H0010201",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "EmissionLcaQueue", instanceKey: "emission-lca-queue", layoutZone: "header", propsSummary: ["queueAlerts", "regulatoryNotice"] },
+      { componentId: "EmissionLcaComplianceStatus", instanceKey: "emission-lca-status", layoutZone: "content", propsSummary: ["complianceRows", "appliedStandards", "emissionIntensity"] },
+      { componentId: "EmissionLcaMilestones", instanceKey: "emission-lca-milestones", layoutZone: "actions", propsSummary: ["milestones", "progress"] },
+      { componentId: "EmissionLcaWatch", instanceKey: "emission-lca-watch", layoutZone: "actions", propsSummary: ["watchHeadline", "watchButton"] },
+      { componentId: "EmissionLcaSiteHub", instanceKey: "emission-lca-site-hub", layoutZone: "content", propsSummary: ["siteCards", "gwpTotal", "dataQuality"] }
+    ]
+  },
+  "emission-simulate": {
+    pageId: "emission-simulate",
+    routePath: "/emission/simulate",
+    menuCode: "H0010204",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "EmissionSimulateHero", instanceKey: "emission-simulate-hero", layoutZone: "header", propsSummary: ["engineStatus", "recommendationCount"] },
+      { componentId: "EmissionSimulateRecommendations", instanceKey: "emission-simulate-recommendations", layoutZone: "content", propsSummary: ["recommendations", "category", "title"] },
+      { componentId: "EmissionSimulateChart", instanceKey: "emission-simulate-chart", layoutZone: "content", propsSummary: ["scenarioId", "forecastCurve", "capLine"] },
+      { componentId: "EmissionSimulateBuilder", instanceKey: "emission-simulate-builder", layoutZone: "actions", propsSummary: ["techInvestment", "efficiencyGain", "renewableRate", "ccusScale"] }
+    ]
+  },
+  "emission-home-validate": {
+    pageId: "emission-home-validate",
+    routePath: "/emission/validate",
+    menuCode: "H0010103",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "EmissionHomeValidateHero", instanceKey: "emission-home-validate-hero", layoutZone: "header", propsSummary: ["activeModuleCount", "selectedSite"] },
+      { componentId: "EmissionHomeValidateModules", instanceKey: "emission-home-validate-modules", layoutZone: "content", propsSummary: ["modules", "searchKeyword"] },
+      { componentId: "EmissionHomeValidateFineTuning", instanceKey: "emission-home-validate-fine-tuning", layoutZone: "content", propsSummary: ["calorificValue", "emissionFactor", "uncertainty"] },
+      { componentId: "EmissionHomeValidateActions", instanceKey: "emission-home-validate-actions", layoutZone: "content", propsSummary: ["recalculationAction", "verificationAction"] }
+    ]
+  },
+  "certificate-list": {
+    pageId: "certificate-list",
+    routePath: "/certificate/list",
+    menuCode: "H0020202",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "CertificateListSummary", instanceKey: "certificate-list-summary", layoutZone: "header", propsSummary: ["expiringCount", "renewalCount", "validCount", "verificationPendingCount"] },
+      { componentId: "CertificateListFilters", instanceKey: "certificate-list-filters", layoutZone: "actions", propsSummary: ["keyword", "statusFilter"] },
+      { componentId: "CertificateListToolbar", instanceKey: "certificate-list-toolbar", layoutZone: "actions", propsSummary: ["filteredCount", "workspaceHref"] },
+      { componentId: "CertificateListGrid", instanceKey: "certificate-list-grid", layoutZone: "content", propsSummary: ["certificateCards", "filteredCards"] }
+    ]
+  },
+  "certificate-apply": {
+    pageId: "certificate-apply",
+    routePath: "/certificate/apply",
+    menuCode: "H0020201",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "CertificateApplyHero", instanceKey: "certificate-apply-hero", layoutZone: "header", propsSummary: ["breadcrumbCurrent", "heroHeading", "heroBadge"] },
+      { componentId: "CertificateApplySteps", instanceKey: "certificate-apply-steps", layoutZone: "actions", propsSummary: ["steps", "stepCounter"] },
+      { componentId: "CertificateApplyForm", instanceKey: "certificate-apply-form", layoutZone: "content", propsSummary: ["selectedSiteId", "managerName", "managerContact", "periodStart", "periodEnd"] },
+      { componentId: "CertificateApplySites", instanceKey: "certificate-apply-sites", layoutZone: "content", propsSummary: ["sites", "selectedSiteId"] },
+      { componentId: "CertificateApplyTip", instanceKey: "certificate-apply-tip", layoutZone: "content", propsSummary: ["selectedSiteName", "tipTitle"] },
+      { componentId: "CertificateApplyActions", instanceKey: "certificate-apply-actions", layoutZone: "actions", propsSummary: ["previousStepAction", "nextStepAction"] },
+      { componentId: "CertificateApplyAssistant", instanceKey: "certificate-apply-assistant", layoutZone: "actions", propsSummary: ["assistantTitle", "assistantBody"] }
+    ]
+  },
+  "certificate-report-list": {
+    pageId: "certificate-report-list",
+    routePath: "/certificate/report_list",
+    menuCode: "H0020101",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "CertificateReportHero", instanceKey: "certificate-report-list-hero", layoutZone: "header", propsSummary: ["draftingCount", "reviewCount", "issuedCount", "urgentCount"] },
+      { componentId: "CertificateReportSummary", instanceKey: "certificate-report-list-summary", layoutZone: "actions", propsSummary: ["draftingCount", "reviewCount", "issuedCount", "urgentCount"] },
+      { componentId: "CertificateReportWorkflow", instanceKey: "certificate-report-list-workflow", layoutZone: "content", propsSummary: ["workflowCards", "stages"] },
+      { componentId: "CertificateReportFilters", instanceKey: "certificate-report-list-filters", layoutZone: "actions", propsSummary: ["searchKeyword", "stageFilter", "priorityFilter"] },
+      { componentId: "CertificateReportTable", instanceKey: "certificate-report-list-table", layoutZone: "content", propsSummary: ["documentRows", "filteredRows"] }
+    ]
+  },
+  "certificate-report-form": {
+    pageId: "certificate-report-form",
+    routePath: "/certificate/report_form",
+    menuCode: "H0020102",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "CertificateReportFormHero", instanceKey: "certificate-report-form-hero", layoutZone: "header", propsSummary: ["draftSaved", "completedPercent", "estimatedEmission"] },
+      { componentId: "CertificateReportFormSteps", instanceKey: "certificate-report-form-steps", layoutZone: "actions", propsSummary: ["steps", "completedPercent"] },
+      { componentId: "CertificateReportFormBasic", instanceKey: "certificate-report-form-basic", layoutZone: "content", propsSummary: ["reportType", "title", "company", "site", "assignee"] },
+      { componentId: "CertificateReportFormScope1", instanceKey: "certificate-report-form-scope1", layoutZone: "content", propsSummary: ["facility", "periodStart", "periodEnd", "fuelUsage", "estimatedEmission"] },
+      { componentId: "CertificateReportFormScope2", instanceKey: "certificate-report-form-scope2", layoutZone: "content", propsSummary: ["electricityUsage", "attachmentCount"] },
+      { componentId: "CertificateReportFormGuide", instanceKey: "certificate-report-form-guide", layoutZone: "content", propsSummary: ["guideTitle", "cautionTitle", "supportTitle"] },
+      { componentId: "CertificateReportFormActions", instanceKey: "certificate-report-form-actions", layoutZone: "actions", propsSummary: ["saveDraftAction", "nextStepAction"] }
+    ]
+  },
+  "certificate-report-edit": {
+    pageId: "certificate-report-edit",
+    routePath: "/certificate/report_edit",
+    menuCode: "H0020103",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "CertificateReportEditHero", instanceKey: "certificate-report-edit-hero", layoutZone: "header", propsSummary: ["documentId", "status", "deadline", "completionPercent"] },
+      { componentId: "CertificateReportEditSteps", instanceKey: "certificate-report-edit-steps", layoutZone: "actions", propsSummary: ["steps", "completionPercent"] },
+      { componentId: "CertificateReportEditTimeline", instanceKey: "certificate-report-edit-timeline", layoutZone: "content", propsSummary: ["timelineItems"] },
+      { componentId: "CertificateReportEditIssues", instanceKey: "certificate-report-edit-issues", layoutZone: "content", propsSummary: ["issueItems"] },
+      { componentId: "CertificateReportEditContext", instanceKey: "certificate-report-edit-context", layoutZone: "content", propsSummary: ["documentId", "company", "site", "revisionReason"] },
+      { componentId: "CertificateReportEditCorrections", instanceKey: "certificate-report-edit-corrections", layoutZone: "content", propsSummary: ["fuelUsage", "electricityUsage", "estimatedEmission"] },
+      { componentId: "CertificateReportEditRevalidation", instanceKey: "certificate-report-edit-revalidation", layoutZone: "content", propsSummary: ["attachmentCount", "checklistCompleted"] },
+      { componentId: "CertificateReportEditActions", instanceKey: "certificate-report-edit-actions", layoutZone: "actions", propsSummary: ["saveAction", "validateAction", "submitAction"] }
+    ]
+  },
+  "co2-production-list": {
+    pageId: "co2-production-list",
+    routePath: "/co2/production_list",
+    menuCode: "H0030101",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "Co2ProductionHero", instanceKey: "co2-production-hero", layoutZone: "header", propsSummary: ["assistantSuggestions", "managerName"] },
+      { componentId: "Co2ProductionSummaryCards", instanceKey: "co2-production-summary-cards", layoutZone: "content", propsSummary: ["totalProduction", "energyConsumption", "carbonEmission", "carbonIntensity"] },
+      { componentId: "Co2ProductionTrendCharts", instanceKey: "co2-production-trend-charts", layoutZone: "content", propsSummary: ["productionTrend", "energyTrend", "intensityTrend"] },
+      { componentId: "Co2ProductionFacilityCards", instanceKey: "co2-production-facilities", layoutZone: "content", propsSummary: ["facilityCount", "aiRecommendations"] },
+      { componentId: "Co2ProductionEventTable", instanceKey: "co2-production-events", layoutZone: "content", propsSummary: ["eventRows"] }
+    ]
+  },
+  "monitoring-dashboard": {
+    pageId: "monitoring-dashboard",
+    routePath: "/monitoring/dashboard",
+    menuCode: "H0050101",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "MonitoringDashboardHero", instanceKey: "monitoring-dashboard-hero", layoutZone: "header", propsSummary: ["pageTitle", "heroStatus", "navItems"] },
+      { componentId: "MonitoringDashboardSummary", instanceKey: "monitoring-dashboard-summary", layoutZone: "actions", propsSummary: ["insights", "assistantCount"] },
+      { componentId: "MonitoringDashboardWorkflow", instanceKey: "monitoring-dashboard-workflow", layoutZone: "content", propsSummary: ["sites", "legendActual", "legendForecast"] },
+      { componentId: "MonitoringDashboardQueue", instanceKey: "monitoring-dashboard-queue", layoutZone: "content", propsSummary: ["regionFilter", "visibleRegionCount"] },
+      { componentId: "MonitoringDashboardBoard", instanceKey: "monitoring-dashboard-board", layoutZone: "content", propsSummary: ["yearlyProjection", "progressWidth"] },
+      { componentId: "MonitoringDashboardStatus", instanceKey: "monitoring-dashboard-status", layoutZone: "content", propsSummary: ["comparisonBars", "reportUpdated"] },
+      { componentId: "MonitoringDashboardGuidance", instanceKey: "monitoring-dashboard-guidance", layoutZone: "content", propsSummary: ["accuracyCard", "modelValue"] }
+    ]
+  },
+  "monitoring-realtime": {
+    pageId: "monitoring-realtime",
+    routePath: "/monitoring/realtime",
+    menuCode: "H0050102",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "MonitoringRealtimeHero", instanceKey: "monitoring-dashboard-hero", layoutZone: "header", propsSummary: ["pageTitle", "heroStatus", "navItems"] },
+      { componentId: "MonitoringRealtimeSignals", instanceKey: "monitoring-dashboard-summary", layoutZone: "actions", propsSummary: ["queueItems", "assistantCount"] },
+      { componentId: "MonitoringRealtimeWorkflow", instanceKey: "monitoring-dashboard-workflow", layoutZone: "content", propsSummary: ["workflowSteps", "activeStep"] },
+      { componentId: "MonitoringRealtimeBoard", instanceKey: "monitoring-dashboard-queue", layoutZone: "content", propsSummary: ["guidanceCards", "linkedActions"] },
+      { componentId: "MonitoringRealtimeTimeline", instanceKey: "monitoring-dashboard-board", layoutZone: "content", propsSummary: ["timelineItems", "nextMilestone"] },
+      { componentId: "MonitoringRealtimeMetrics", instanceKey: "monitoring-dashboard-status", layoutZone: "content", propsSummary: ["heroPrimaryMetricValue", "heroSecondaryMetricValue"] },
+      { componentId: "MonitoringRealtimeContext", instanceKey: "monitoring-dashboard-guidance", layoutZone: "content", propsSummary: ["supervisorName", "systemButton"] }
+    ]
+  },
+  "monitoring-alerts": {
+    pageId: "monitoring-alerts",
+    routePath: "/monitoring/alerts",
+    menuCode: "H0050104",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "MonitoringAlertsHero", instanceKey: "monitoring-alerts-hero", layoutZone: "header", propsSummary: ["heroTitle", "heroPrimaryMetricValue", "heroSecondaryMetricValue"] },
+      { componentId: "MonitoringAlertsQueue", instanceKey: "monitoring-alerts-summary", layoutZone: "actions", propsSummary: ["alerts", "filterLabel", "visibleAlertCount"] },
+      { componentId: "MonitoringAlertsStatusLegend", instanceKey: "monitoring-alerts-workflow", layoutZone: "content", propsSummary: ["statusLegend", "statusLabels"] },
+      { componentId: "MonitoringAlertsMatrix", instanceKey: "monitoring-alerts-matrix", layoutZone: "content", propsSummary: ["responseSteps", "guidanceItems"] },
+      { componentId: "MonitoringAlertsRunbook", instanceKey: "monitoring-alerts-runbook", layoutZone: "content", propsSummary: ["guidanceItems", "responseTitle"] },
+      { componentId: "MonitoringAlertsCoverage", instanceKey: "monitoring-alerts-coverage", layoutZone: "content", propsSummary: ["coverageCards"] },
+      { componentId: "MonitoringAlertsLinks", instanceKey: "monitoring-alerts-links", layoutZone: "content", propsSummary: ["quickLinks"] },
+      { componentId: "MonitoringAlertsGuidance", instanceKey: "monitoring-alerts-guidance", layoutZone: "content", propsSummary: ["guidanceTitle", "guidanceItems"] }
+    ]
+  },
+  "payment-history": {
+    pageId: "payment-history",
+    routePath: "/payment/history",
+    menuCode: "HMENU_PAYMENT_HISTORY",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "PaymentHistoryHero", instanceKey: "payment-history-hero", layoutZone: "header", propsSummary: ["pageTitle", "periodLabel", "summaryCards"] },
+      { componentId: "PaymentHistoryFilters", instanceKey: "payment-history-filters", layoutZone: "actions", propsSummary: ["query", "category", "status", "selectedCount"] },
+      { componentId: "PaymentHistoryTable", instanceKey: "payment-history-table", layoutZone: "content", propsSummary: ["rowCount", "selectedCount", "statusLabels"] },
+      { componentId: "PaymentHistoryGuidance", instanceKey: "payment-history-guidance", layoutZone: "content", propsSummary: ["guidanceItems", "connectedFlowActions"] }
+    ]
+  },
+  "edu-course-detail": {
+    pageId: "edu-course-detail",
+    routePath: "/edu/course_detail",
+    menuCode: "H0070102",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "EduCourseDetailPrimaryNav", instanceKey: "edu-course-detail-primary-nav", layoutZone: "header", propsSummary: ["activeMenu", "managerName"] },
+      { componentId: "EduCourseDetailSummaryBar", instanceKey: "edu-course-detail-summary-bar", layoutZone: "header", propsSummary: ["courseTitle", "rating", "price"] },
+      { componentId: "EduCourseDetailSectionNav", instanceKey: "edu-course-detail-section-nav", layoutZone: "actions", propsSummary: ["anchorCount"] },
+      { componentId: "EduCourseDetailHero", instanceKey: "edu-course-detail-hero", layoutZone: "content", propsSummary: ["heroBadge", "heroTitle"] },
+      { componentId: "EduCourseDetailMethodology", instanceKey: "edu-course-detail-methodology", layoutZone: "content", propsSummary: ["methodologyCount"] },
+      { componentId: "EduCourseDetailCurriculum", instanceKey: "edu-course-detail-curriculum", layoutZone: "content", propsSummary: ["moduleCount", "expandedModule"] },
+      { componentId: "EduCourseDetailAudience", instanceKey: "edu-course-detail-prerequisites", layoutZone: "content", propsSummary: ["audienceCount", "prerequisiteCount"] },
+      { componentId: "EduCourseDetailInstructors", instanceKey: "edu-course-detail-instructors", layoutZone: "content", propsSummary: ["instructorCount"] },
+      { componentId: "EduCourseDetailTestimonials", instanceKey: "edu-course-detail-testimonials", layoutZone: "content", propsSummary: ["reviewCount"] },
+      { componentId: "EduCourseDetailPurchaseCard", instanceKey: "edu-course-detail-purchase", layoutZone: "actions", propsSummary: ["price", "discount", "benefitCount"] },
+      { componentId: "EduCourseDetailGroupBenefit", instanceKey: "edu-course-detail-group-benefit", layoutZone: "actions", propsSummary: ["groupDiscount"] }
+    ]
+  },
+  "edu-apply": {
+    pageId: "edu-apply",
+    routePath: "/edu/apply",
+    menuCode: "HMENU_EDU_APPLY",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "EduApplyHero", instanceKey: "edu-apply-hero", layoutZone: "header", propsSummary: ["heroHeading", "heroBadge", "summaryCards"] },
+      { componentId: "EduApplySteps", instanceKey: "edu-apply-steps", layoutZone: "actions", propsSummary: ["steps", "stepCounter"] },
+      { componentId: "EduApplyCourseSelection", instanceKey: "edu-apply-courses", layoutZone: "content", propsSummary: ["selectedCourseId", "courseCount"] },
+      { componentId: "EduApplyForm", instanceKey: "edu-apply-form", layoutZone: "content", propsSummary: ["applicantName", "organizationName", "contactNumber", "deliveryMode"] },
+      { componentId: "EduApplySidebar", instanceKey: "edu-apply-sidebar", layoutZone: "content", propsSummary: ["selectedSessionId", "guidanceItems", "supportWindow"] },
+      { componentId: "EduApplyActions", instanceKey: "edu-apply-actions", layoutZone: "actions", propsSummary: ["draftAction", "submitAction", "cancelAction"] }
+    ]
+  },
+  "monitoring-statistics": {
+    pageId: "monitoring-statistics",
+    routePath: "/monitoring/statistics",
+    menuCode: "H0050105",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "MonitoringStatisticsHero", instanceKey: "monitoring-statistics-hero", layoutZone: "header", propsSummary: ["heroTitle", "overviewMetricCount", "overviewActionCount"] },
+      { componentId: "MonitoringStatisticsFilters", instanceKey: "monitoring-statistics-filters", layoutZone: "actions", propsSummary: ["reportFilter", "kpiCount", "exportAction"] },
+      { componentId: "MonitoringStatisticsAnalysis", instanceKey: "monitoring-statistics-analysis", layoutZone: "content", propsSummary: ["trendBarCount", "trendCaption", "detailAction"] },
+      { componentId: "MonitoringStatisticsContributions", instanceKey: "monitoring-statistics-contributions", layoutZone: "content", propsSummary: ["complianceMetricCount", "certificationCount", "complianceAction"] },
+      { componentId: "MonitoringStatisticsInsights", instanceKey: "monitoring-statistics-insights", layoutZone: "content", propsSummary: ["insightCount", "linkedReportActions"] }
+    ]
+  },
+  "monitoring-share": {
+    pageId: "monitoring-share",
+    routePath: "/monitoring/share",
+    menuCode: "H0050106",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "MonitoringShareHero", instanceKey: "monitoring-share-hero", layoutZone: "header", propsSummary: ["heroTitle", "metricCount", "heroActionCount"] },
+      { componentId: "MonitoringShareBriefing", instanceKey: "monitoring-share-briefing", layoutZone: "content", propsSummary: ["summaryMetricCount", "tableRowCount", "milestoneCount"] },
+      { componentId: "MonitoringShareQueue", instanceKey: "monitoring-share-queue", layoutZone: "actions", propsSummary: ["audience", "queueCount", "assistantCount"] },
+      { componentId: "MonitoringShareSites", instanceKey: "monitoring-share-sites", layoutZone: "content", propsSummary: ["siteCardCount", "pinnedSiteCount", "linkedActions"] }
+    ]
+  },
+  "monitoring-track": {
+    pageId: "monitoring-track",
+    routePath: "/monitoring/track",
+    menuCode: "H0030204",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "MonitoringTrackHero", instanceKey: "monitoring-track-hero", layoutZone: "header", propsSummary: ["selectedNode", "integrityScore"] },
+      { componentId: "MonitoringTrackGraph", instanceKey: "monitoring-track-graph", layoutZone: "content", propsSummary: ["nodeCount", "selectedNodeId"] },
+      { componentId: "MonitoringTrackQueue", instanceKey: "monitoring-track-queue", layoutZone: "content", propsSummary: ["queueCount", "priorityItems"] },
+      { componentId: "MonitoringTrackSites", instanceKey: "monitoring-track-sites", layoutZone: "content", propsSummary: ["siteCards"] }
+    ]
+  },
+  "monitoring-reduction-trend": {
+    pageId: "monitoring-reduction-trend",
+    routePath: "/monitoring/reduction_trend",
+    menuCode: "H0050103",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "MonitoringReductionTrendHero", instanceKey: "monitoring-reduction-trend-hero", layoutZone: "header", propsSummary: ["heroTitle", "heroLabel", "heroAlerts"] },
+      { componentId: "MonitoringReductionTrendTimeline", instanceKey: "monitoring-reduction-trend-timeline", layoutZone: "content", propsSummary: ["range", "timelineTitle", "chartAlertTitle"] },
+      { componentId: "MonitoringReductionTrendStats", instanceKey: "monitoring-reduction-trend-stats", layoutZone: "actions", propsSummary: ["statCount", "status", "resultCount"] },
+      { componentId: "MonitoringReductionTrendFilters", instanceKey: "monitoring-reduction-trend-filters", layoutZone: "actions", propsSummary: ["keyword", "status", "siteCount"] },
+      { componentId: "MonitoringReductionTrendSiteCards", instanceKey: "monitoring-reduction-trend-site-cards", layoutZone: "content", propsSummary: ["filteredSiteCount", "pinnedSiteCount"] }
+    ]
+  },
+  "monitoring-export": {
+    pageId: "monitoring-export",
+    routePath: "/monitoring/export",
+    menuCode: "H0050106",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "MonitoringExportHero", instanceKey: "monitoring-export-hero", layoutZone: "header", propsSummary: ["heroTitle", "queueCount", "navItems"] },
+      { componentId: "MonitoringExportControls", instanceKey: "monitoring-export-controls", layoutZone: "actions", propsSummary: ["reportType", "period", "format", "exportActions"] },
+      { componentId: "MonitoringExportSummaryCards", instanceKey: "monitoring-export-summary-cards", layoutZone: "content", propsSummary: ["metricCount", "siteCount"] },
+      { componentId: "MonitoringExportTrend", instanceKey: "monitoring-export-trend", layoutZone: "content", propsSummary: ["monthCount", "currentValue", "targetValue"] },
+      { componentId: "MonitoringExportMix", instanceKey: "monitoring-export-mix", layoutZone: "content", propsSummary: ["processCount", "insightMessage"] },
+      { componentId: "MonitoringExportSites", instanceKey: "monitoring-export-sites", layoutZone: "content", propsSummary: ["siteCardCount", "prioritySiteCount"] }
+    ]
+  },
+  "co2-demand-list": {
+    pageId: "co2-demand-list",
+    routePath: "/co2/demand_list",
+    menuCode: "H0030201",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "Co2DemandAssistantHero", instanceKey: "co2-demand-assistant-hero", layoutZone: "header", propsSummary: ["assistantTitle", "queueCards"] },
+      { componentId: "Co2DemandDataMatrix", instanceKey: "co2-demand-data-matrix", layoutZone: "content", propsSummary: ["tableHeaders", "tableRows", "fulfillmentStats"] },
+      { componentId: "Co2DemandStatsCards", instanceKey: "co2-demand-stats-cards", layoutZone: "content", propsSummary: ["statsCard", "auditCard", "pendingCard"] }
+    ]
+  },
+  "co2-search": {
+    pageId: "co2-search",
+    routePath: "/co2/search",
+    menuCode: "H0030302",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "Co2SearchFilterPanel", instanceKey: "co2-search-filter", layoutZone: "actions", propsSummary: ["platformType", "status", "searchKeyword"] },
+      { componentId: "Co2SearchResultTable", instanceKey: "co2-search-results", layoutZone: "content", propsSummary: ["rows", "totalCount"] }
+    ]
+  },
+  "trade-buy-request": {
+    pageId: "trade-buy-request",
+    routePath: "/trade/buy_request",
+    menuCode: "H0040102",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "TradeBuyRequestHero", instanceKey: "trade-buy-request-hero", layoutZone: "header", propsSummary: ["currentLabel", "heroTitle", "heroBody"] },
+      { componentId: "TradeBuyRequestSteps", instanceKey: "trade-buy-request-steps", layoutZone: "actions", propsSummary: ["steps", "stepCounter", "wizardTitle"] },
+      { componentId: "TradeBuyRequestForm", instanceKey: "trade-buy-request-form", layoutZone: "content", propsSummary: ["category", "itemName", "quantity", "unit"] },
+      { componentId: "TradeBuyRequestGuide", instanceKey: "trade-buy-request-guide", layoutZone: "content", propsSummary: ["guides", "guideHint"] },
+      { componentId: "TradeBuyRequestActions", instanceKey: "trade-buy-request-actions", layoutZone: "actions", propsSummary: ["draftLabel", "nextLabel"] },
+      { componentId: "TradeBuyRequestPending", instanceKey: "trade-buy-request-pending", layoutZone: "content", propsSummary: ["requestCards", "searchKeyword"] }
+    ]
+  },
+  "trade-complete": {
+    pageId: "trade-complete",
+    routePath: "/trade/complete",
+    menuCode: "H0040104",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "TradeCompleteHero", instanceKey: "trade-complete-hero", layoutZone: "header", propsSummary: ["pageTitle", "managerName", "syncLabel"] },
+      { componentId: "TradeCompleteIntelligenceQueue", instanceKey: "trade-complete-alerts", layoutZone: "actions", propsSummary: ["insightCards"] },
+      { componentId: "TradeCompleteFilters", instanceKey: "trade-complete-filters", layoutZone: "actions", propsSummary: ["searchKeyword", "riskFilter"] },
+      { componentId: "TradeCompleteStrategyCards", instanceKey: "trade-complete-strategies", layoutZone: "content", propsSummary: ["strategyCards", "visibleStrategyCount"] },
+      { componentId: "TradeCompleteReport", instanceKey: "trade-complete-report", layoutZone: "content", propsSummary: ["reportCards"] }
+    ]
+  },
+  "trade-auto-order": {
+    pageId: "trade-auto-order",
+    routePath: "/trade/auto_order",
+    menuCode: "H0040105",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "TradeAutoOrderHero", instanceKey: "trade-auto-order-hero", layoutZone: "header", propsSummary: ["pageTitle", "portfolioValue", "analystName"] },
+      { componentId: "TradeAutoOrderOpportunities", instanceKey: "trade-auto-order-opportunities", layoutZone: "actions", propsSummary: ["opportunities"] },
+      { componentId: "TradeAutoOrderMarketPanel", instanceKey: "trade-auto-order-market", layoutZone: "content", propsSummary: ["tickers", "allocations"] },
+      { componentId: "TradeAutoOrderWorkspace", instanceKey: "trade-auto-order-workspace", layoutZone: "content", propsSummary: ["searchKeyword", "selectedOrderId", "visibleRows"] },
+      { componentId: "TradeAutoOrderSettings", instanceKey: "trade-auto-order-settings", layoutZone: "content", propsSummary: ["selectedAsset", "mode", "spreadThreshold", "maxQuantity", "approvalPolicy"] },
+      { componentId: "TradeAutoOrderActivity", instanceKey: "trade-auto-order-activity", layoutZone: "content", propsSummary: ["activityItems"] }
+    ]
+  },
+  "payment-pay": {
+    pageId: "payment-pay",
+    routePath: "/payment/pay",
+    menuCode: "H0060102",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "PaymentPayHero", instanceKey: "payment-pay-hero", layoutZone: "header", propsSummary: ["heroTitle", "urgentCount", "navItemCount"] },
+      { componentId: "PaymentPaySearch", instanceKey: "payment-pay-search", layoutZone: "actions", propsSummary: ["searchKeyword", "requestAccountAction"] },
+      { componentId: "PaymentPayManagedAccounts", instanceKey: "payment-pay-managed-accounts", layoutZone: "content", propsSummary: ["accountCount", "copiedAccount", "delayedAccountCount"] },
+      { componentId: "PaymentPaySites", instanceKey: "payment-pay-sites", layoutZone: "content", propsSummary: ["siteCardCount", "pendingSiteCount"] },
+      { componentId: "PaymentPayReport", instanceKey: "payment-pay-report", layoutZone: "content", propsSummary: ["reportCardCount", "portfolioBalance", "complianceScore"] }
+    ]
+  },
+  "payment-virtual-account": {
+    pageId: "payment-virtual-account",
+    routePath: "/payment/virtual_account",
+    menuCode: "H0060105",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "PaymentVirtualAccountHero", instanceKey: "payment-virtual-account-hero", layoutZone: "header", propsSummary: ["heroType", "navItemCount", "alertOrTimelineCount"] },
+      { componentId: "PaymentVirtualAccountSearch", instanceKey: "payment-virtual-account-search", layoutZone: "actions", propsSummary: ["searchKeyword", "issueButtonLabel"] },
+      { componentId: "PaymentVirtualAccountManagedAccounts", instanceKey: "payment-virtual-account-managed", layoutZone: "content", propsSummary: ["accountCount", "copiedAccount", "query"] },
+      { componentId: "PaymentVirtualAccountSites", instanceKey: "payment-virtual-account-sites", layoutZone: "content", propsSummary: ["siteCardCount", "addAccountShortcut"] },
+      { componentId: "PaymentVirtualAccountReport", instanceKey: "payment-virtual-account-report", layoutZone: "content", propsSummary: ["metricCount", "portfolioBalance", "score"] }
+    ]
+  },
+  "payment-refund": {
+    pageId: "payment-refund",
+    routePath: "/payment/refund",
+    menuCode: "H0060103",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "PaymentRefundPriorityQueue", instanceKey: "payment-refund-priority", layoutZone: "header", propsSummary: ["queueCardCount", "operatorRole", "highRiskCount"] },
+      { componentId: "PaymentRefundFilters", instanceKey: "payment-refund-filters", layoutZone: "actions", propsSummary: ["searchKeyword", "status", "visibleRowCount"] },
+      { componentId: "PaymentRefundRequestsTable", instanceKey: "payment-refund-table", layoutZone: "content", propsSummary: ["rowCount", "statusLabels", "pageSummary"] },
+      { componentId: "PaymentRefundMonitoring", instanceKey: "payment-refund-monitoring", layoutZone: "content", propsSummary: ["monthlyTotal", "reasonDistribution", "slaComplianceRate"] }
+    ]
+  },
+  "payment-refund-account": {
+    pageId: "payment-refund-account",
+    routePath: "/payment/refund_account",
+    menuCode: "H0060104",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "PaymentRefundAccountHero", instanceKey: "payment-refund-account-hero", layoutZone: "header", propsSummary: ["heroTitle", "urgentCount", "operatorName"] },
+      { componentId: "PaymentRefundAccountSearch", instanceKey: "payment-refund-account-search", layoutZone: "actions", propsSummary: ["searchKeyword", "requestAccountAction"] },
+      { componentId: "PaymentRefundAccountManagedAccounts", instanceKey: "payment-refund-account-managed", layoutZone: "content", propsSummary: ["accountCount", "copiedAccount", "delayedAccountCount"] },
+      { componentId: "PaymentRefundAccountSites", instanceKey: "payment-refund-account-sites", layoutZone: "content", propsSummary: ["siteCardCount", "pendingSiteCount"] },
+      { componentId: "PaymentRefundAccountReport", instanceKey: "payment-refund-account-report", layoutZone: "content", propsSummary: ["reportCardCount", "portfolioBalance", "complianceScore"] }
+    ]
+  },
+  "payment-notify": {
+    pageId: "payment-notify",
+    routePath: "/payment/notify",
+    menuCode: "HMENU_PAYMENT_NOTIFY",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "PaymentNotifyHero", instanceKey: "payment-notify-hero", layoutZone: "header", propsSummary: ["pageTitle", "summaryCardCount", "linkedProject"] },
+      { componentId: "PaymentNotifySearch", instanceKey: "payment-notify-search", layoutZone: "actions", propsSummary: ["query", "visibleItemCount", "historyAction"] },
+      { componentId: "PaymentNotifyAuditTools", instanceKey: "payment-notify-tools", layoutZone: "content", propsSummary: ["toolCount", "trailCount", "selectedMode"] },
+      { componentId: "PaymentNotifyDocument", instanceKey: "payment-notify-document", layoutZone: "content", propsSummary: ["invoiceLineCount", "approvalNumber", "amountMode"] },
+      { componentId: "PaymentNotifyRelatedPanel", instanceKey: "payment-notify-related", layoutZone: "content", propsSummary: ["recordCount", "allocationAmount", "commentDraft"] }
+    ]
+  },
+  "trade-sell": {
+    pageId: "trade-sell",
+    routePath: "/trade/sell",
+    menuCode: "H0040103",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "TradeSellHero", instanceKey: "trade-sell-hero", layoutZone: "header", propsSummary: ["pageTitle", "summaryLabel", "operatorName"] },
+      { componentId: "TradeSellPriorityAlerts", instanceKey: "trade-sell-alerts", layoutZone: "actions", propsSummary: ["alertCards"] },
+      { componentId: "TradeSellOrderTable", instanceKey: "trade-sell-table", layoutZone: "content", propsSummary: ["searchKeyword", "selectedOrderId", "visibleRows"] },
+      { componentId: "TradeSellQuickEntry", instanceKey: "trade-sell-quick-entry", layoutZone: "content", propsSummary: ["customer", "itemCode", "quantity", "shipDate"] },
+      { componentId: "TradeSellActivityLog", instanceKey: "trade-sell-activity-log", layoutZone: "content", propsSummary: ["activityItems"] }
+    ]
+  },
+  "trade-price-alert": {
+    pageId: "trade-price-alert",
+    routePath: "/trade/price_alert",
+    menuCode: "H0040202",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "TradePriceAlertHero", instanceKey: "trade-price-alert-hero", layoutZone: "header", propsSummary: ["pageTitle", "heroBody", "navItems"] },
+      { componentId: "TradePriceAlertSummary", instanceKey: "trade-price-alert-summary", layoutZone: "actions", propsSummary: ["summaryCards"] },
+      { componentId: "TradePriceAlertFeed", instanceKey: "trade-price-alert-alerts", layoutZone: "content", propsSummary: ["filter", "alerts", "alertCount"] },
+      { componentId: "TradePriceAlertWatchlist", instanceKey: "trade-price-alert-watch", layoutZone: "content", propsSummary: ["watchItems"] },
+      { componentId: "TradePriceAlertConfig", instanceKey: "trade-price-alert-config", layoutZone: "content", propsSummary: ["asset", "threshold", "channel"] },
+      { componentId: "TradePriceAlertInsight", instanceKey: "trade-price-alert-insight", layoutZone: "content", propsSummary: ["assistantBody", "insights"] }
     ]
   },
   "observability": {
@@ -924,9 +1742,150 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
     components: [
+      { componentId: "TradeListPendingQueue", instanceKey: "trade-list-pending-queue", layoutZone: "header", propsSummary: ["tradeRows", "pendingActionCount"] },
       { componentId: "TradeListSummary", instanceKey: "trade-list-summary", layoutZone: "actions", propsSummary: ["totalCount", "matchingCount", "settlementPendingCount", "completedCount"] },
-      { componentId: "TradeListFilter", instanceKey: "trade-list-filter", layoutZone: "content", propsSummary: ["searchKeyword", "tradeStatus", "settlementStatus"] },
-      { componentId: "TradeListTable", instanceKey: "trade-list-table", layoutZone: "content", propsSummary: ["tradeRows", "pageIndex", "totalPages"] }
+      { componentId: "TradeListFilter", instanceKey: "trade-list-filter", layoutZone: "actions", propsSummary: ["searchKeyword", "tradeStatus", "settlementStatus"] },
+      { componentId: "TradeListTable", instanceKey: "trade-list-table", layoutZone: "content", propsSummary: ["tradeRows", "pageIndex", "totalPages"] },
+      { componentId: "TradeListAlerts", instanceKey: "trade-list-alerts", layoutZone: "content", propsSummary: ["settlementAlerts"] },
+      { componentId: "TradeListStatusGuide", instanceKey: "trade-list-status-guide", layoutZone: "content", propsSummary: ["tradeStatus", "settlementStatus"] }
+    ]
+  },
+  "trade-market": {
+    pageId: "trade-market",
+    routePath: "/trade/market",
+    menuCode: "HMENU_TRADE_MARKET",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "TradeMarketHero", instanceKey: "trade-market-hero", layoutZone: "header", propsSummary: ["heroTitle", "heroBody"] },
+      { componentId: "TradeMarketTrending", instanceKey: "trade-market-trending", layoutZone: "content", propsSummary: ["assets"] },
+      { componentId: "TradeMarketOverview", instanceKey: "trade-market-overview", layoutZone: "actions", propsSummary: ["cards"] },
+      { componentId: "TradeMarketFilter", instanceKey: "trade-market-filter", layoutZone: "actions", propsSummary: ["keyword", "status", "category", "region"] },
+      { componentId: "TradeMarketTable", instanceKey: "trade-market-table", layoutZone: "content", propsSummary: ["filteredAssets"] },
+      { componentId: "TradeMarketWatchlist", instanceKey: "trade-market-watchlist", layoutZone: "content", propsSummary: ["watchItems"] },
+      { componentId: "TradeMarketPulse", instanceKey: "trade-market-pulse", layoutZone: "content", propsSummary: ["pulseItems"] }
+    ]
+  },
+  "trade-report": {
+    pageId: "trade-report",
+    routePath: "/trade/report",
+    menuCode: "H0040204",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "TradeReportHero", instanceKey: "trade-report-hero", layoutZone: "header", propsSummary: ["heroTitle", "heroBody"] },
+      { componentId: "TradeReportTasks", instanceKey: "trade-report-tasks", layoutZone: "content", propsSummary: ["tasks"] },
+      { componentId: "TradeReportSearch", instanceKey: "trade-report-search", layoutZone: "actions", propsSummary: ["keyword", "reportStatus", "deadline"] },
+      { componentId: "TradeReportAccounts", instanceKey: "trade-report-accounts", layoutZone: "content", propsSummary: ["accounts"] },
+      { componentId: "TradeReportTable", instanceKey: "trade-report-table", layoutZone: "content", propsSummary: ["reports"] },
+      { componentId: "TradeReportWatch", instanceKey: "trade-report-watch", layoutZone: "content", propsSummary: ["watchSignals"] }
+    ]
+  },
+  "trade-statistics": {
+    pageId: "trade-statistics",
+    routePath: "/admin/trade/statistics",
+    menuCode: "A0030202",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "TradeStatisticsSummary", instanceKey: "trade-statistics-summary", layoutZone: "actions", propsSummary: ["totalTradeVolume", "totalSettlementAmount", "pendingSettlementCount", "exceptionCount", "settlementCompletionRate"] },
+      { componentId: "TradeStatisticsFilter", instanceKey: "trade-statistics-filter", layoutZone: "actions", propsSummary: ["periodFilter", "tradeType", "settlementStatus", "searchKeyword"] },
+      { componentId: "TradeStatisticsTrend", instanceKey: "trade-statistics-trend", layoutZone: "content", propsSummary: ["monthlyRows", "periodFilter"] },
+      { componentId: "TradeStatisticsAlerts", instanceKey: "trade-statistics-alerts", layoutZone: "content", propsSummary: ["alertRows"] },
+      { componentId: "TradeStatisticsTypeTable", instanceKey: "trade-statistics-type-table", layoutZone: "content", propsSummary: ["tradeTypeRows"] },
+      { componentId: "TradeStatisticsInstitutionTable", instanceKey: "trade-statistics-institution-table", layoutZone: "content", propsSummary: ["institutionRows", "pageIndex", "totalPages"] }
+    ]
+  },
+  "refund-list": {
+    pageId: "refund-list",
+    routePath: "/admin/payment/refund_list",
+    menuCode: "A0030301",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "RefundListSummary", instanceKey: "refund-list-summary", layoutZone: "actions", propsSummary: ["totalCount", "pendingCount", "inReviewCount", "transferScheduledCount", "completedCount"] },
+      { componentId: "RefundListFilter", instanceKey: "refund-list-filter", layoutZone: "content", propsSummary: ["searchKeyword", "status", "riskLevel"] },
+      { componentId: "RefundListTable", instanceKey: "refund-list-table", layoutZone: "content", propsSummary: ["refundRows", "pageIndex", "totalPages"] }
+    ]
+  },
+  "refund-process": {
+    pageId: "refund-process",
+    routePath: "/admin/payment/refund_process",
+    menuCode: "A0030302",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "RefundProcessSummary", instanceKey: "refund-process-summary", layoutZone: "actions", propsSummary: ["refundSummary"] },
+      { componentId: "RefundProcessFilter", instanceKey: "refund-process-search", layoutZone: "actions", propsSummary: ["searchKeyword", "refundStatus", "refundChannel", "priority"] },
+      { componentId: "RefundProcessTable", instanceKey: "refund-process-table", layoutZone: "content", propsSummary: ["refundRows", "pageIndex", "totalPages"] },
+      { componentId: "RefundProcessGuidance", instanceKey: "refund-process-guidance", layoutZone: "content", propsSummary: ["refundGuidance"] }
+    ]
+  },
+  "settlement-calendar": {
+    pageId: "settlement-calendar",
+    routePath: "/admin/payment/settlement",
+    menuCode: "A0030203",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "SettlementCalendarSummary", instanceKey: "settlement-calendar-summary", layoutZone: "actions", propsSummary: ["totalScheduledCount", "dueTodayCount", "highRiskCount", "completedCount"] },
+      { componentId: "SettlementCalendarFilter", instanceKey: "settlement-calendar-filter", layoutZone: "content", propsSummary: ["selectedMonth", "searchKeyword", "settlementStatus", "riskLevel"] },
+      { componentId: "SettlementCalendarBoard", instanceKey: "settlement-calendar-board", layoutZone: "content", propsSummary: ["calendarDays", "selectedMonth"] },
+      { componentId: "SettlementCalendarTable", instanceKey: "settlement-calendar-table", layoutZone: "content", propsSummary: ["scheduleRows", "pageIndex", "totalPages"] }
+    ]
+  },
+  "trade-duplicate": {
+    pageId: "trade-duplicate",
+    routePath: "/admin/trade/duplicate",
+    menuCode: "A0030104",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "TradeDuplicateSummary", instanceKey: "trade-duplicate-summary", layoutZone: "actions", propsSummary: ["totalCount", "criticalCount", "reviewCount", "settlementBlockedCount"] },
+      { componentId: "TradeDuplicateAlerts", instanceKey: "trade-duplicate-alerts", layoutZone: "content", propsSummary: ["escalationAlerts"] },
+      { componentId: "TradeDuplicateFilters", instanceKey: "trade-duplicate-filters", layoutZone: "actions", propsSummary: ["searchKeyword", "detectionType", "reviewStatus", "riskLevel"] },
+      { componentId: "TradeDuplicateTable", instanceKey: "trade-duplicate-table", layoutZone: "content", propsSummary: ["abnormalTradeRows", "pageIndex", "totalPages"] },
+      { componentId: "TradeDuplicateDetail", instanceKey: "trade-duplicate-detail", layoutZone: "content", propsSummary: ["selectedReviewId", "recommendedAction", "settlementActionLabel"] },
+      { componentId: "TradeDuplicateGuidance", instanceKey: "trade-duplicate-guidance", layoutZone: "content", propsSummary: ["operatorGuidance"] }
+    ]
+  },
+  "trade-approve": {
+    pageId: "trade-approve",
+    routePath: "/admin/trade/approve",
+    menuCode: "A0030102",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "TradeApproveSummary", instanceKey: "trade-approve-summary", layoutZone: "actions", propsSummary: ["pendingCount", "approvedCount", "rejectedCount", "holdCount"] },
+      { componentId: "TradeApproveFilter", instanceKey: "trade-approve-search", layoutZone: "content", propsSummary: ["searchKeyword", "approvalStatus", "tradeType"] },
+      { componentId: "TradeApproveBatchActions", instanceKey: "trade-approve-batch-actions", layoutZone: "actions", propsSummary: ["selectedIds", "canUseTradeApproveAction"] },
+      { componentId: "TradeApproveTable", instanceKey: "trade-approve-table", layoutZone: "content", propsSummary: ["approvalRows", "pageIndex", "totalPages"] }
+    ]
+  },
+  "trade-reject": {
+    pageId: "trade-reject",
+    routePath: "/admin/trade/reject",
+    menuCode: "AMENU_TRADE_REJECT",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "TradeRejectSummary", instanceKey: "trade-reject-summary", layoutZone: "actions", propsSummary: ["tradeId", "blockerCount", "evidenceCount", "historyCount"] },
+      { componentId: "TradeRejectOverview", instanceKey: "trade-reject-overview", layoutZone: "content", propsSummary: ["contractName", "sellerName", "buyerName", "tradeStatusLabel"] },
+      { componentId: "TradeRejectChecklist", instanceKey: "trade-reject-checklist", layoutZone: "content", propsSummary: ["rejectionChecklist"] },
+      { componentId: "TradeRejectForm", instanceKey: "trade-reject-form", layoutZone: "content", propsSummary: ["suggestedReason"] },
+      { componentId: "TradeRejectEvidence", instanceKey: "trade-reject-evidence", layoutZone: "content", propsSummary: ["evidenceRows"] },
+      { componentId: "TradeRejectHistory", instanceKey: "trade-reject-history", layoutZone: "content", propsSummary: ["historyRows"] },
+      { componentId: "TradeRejectNotification", instanceKey: "trade-reject-notification", layoutZone: "content", propsSummary: ["notificationPlan"] },
+      { componentId: "TradeRejectActions", instanceKey: "trade-reject-actions", layoutZone: "actions", propsSummary: ["returnUrl"] }
     ]
   },
   "emission-result-list": {
@@ -1041,7 +2000,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
   },
   "menu-management": {
     pageId: "menu-management",
-    routePath: "/admin/system/menu-management",
+    routePath: "/admin/system/menu",
     menuCode: "AMENU_MENU_MANAGEMENT",
     domainCode: "admin",
     layoutVersion: "v1",
@@ -1203,6 +2162,128 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "SchedulerManagementExecutions", instanceKey: "scheduler-management-executions", layoutZone: "content", propsSummary: ["schedulerExecutionRows"] }
     ]
   },
+  "board-list": {
+    pageId: "board-list",
+    routePath: "/admin/content/board_list",
+    menuCode: "A0040101",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "AdminMenuPlaceholderCard", instanceKey: "admin-menu-placeholder-card", layoutZone: "content", propsSummary: ["placeholderTitle", "placeholderUrl"] }
+    ]
+  },
+  "board-add": {
+    pageId: "board-add",
+    routePath: "/admin/content/board_add",
+    menuCode: "A0040103",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "BoardAddScope", instanceKey: "board-add-scope", layoutZone: "actions", propsSummary: ["audience", "channels", "urgent"] },
+      { componentId: "BoardAddForm", instanceKey: "board-add-form", layoutZone: "content", propsSummary: ["title", "summary", "publishAt", "expireAt"] },
+      { componentId: "BoardAddOptions", instanceKey: "board-add-options", layoutZone: "content", propsSummary: ["pinned", "urgent", "allowComments"] },
+      { componentId: "BoardAddPreview", instanceKey: "board-add-preview", layoutZone: "content", propsSummary: ["title", "summary", "body", "tags"] },
+      { componentId: "BoardAddAudience", instanceKey: "board-add-audience", layoutZone: "content", propsSummary: ["recipientEstimate", "audience", "channels"] }
+    ]
+  },
+  "post-list": {
+    pageId: "post-list",
+    routePath: "/admin/content/post_list",
+    menuCode: "A0040102",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "PostListSummary", instanceKey: "post-list-summary", layoutZone: "actions", propsSummary: ["summaryCards"] },
+      { componentId: "PostListFilters", instanceKey: "post-list-filters", layoutZone: "actions", propsSummary: ["searchKeyword", "status", "category"] },
+      { componentId: "PostListTable", instanceKey: "post-list-table", layoutZone: "content", propsSummary: ["postRows", "pageIndex", "totalPages"] },
+      { componentId: "PostListPreview", instanceKey: "post-list-preview", layoutZone: "content", propsSummary: ["selectedPost"] }
+    ]
+  },
+  "banner-list": {
+    pageId: "banner-list",
+    routePath: "/admin/content/banner_list",
+    menuCode: "A0040201",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "BannerListFilters", instanceKey: "banner-list-filters", layoutZone: "actions", propsSummary: ["searchKeyword", "status", "placement"] },
+      { componentId: "BannerListSummary", instanceKey: "banner-list-summary", layoutZone: "actions", propsSummary: ["summaryCards"] },
+      { componentId: "BannerListTable", instanceKey: "banner-list-table", layoutZone: "content", propsSummary: ["bannerRows"] },
+      { componentId: "BannerListPreview", instanceKey: "banner-list-preview", layoutZone: "content", propsSummary: ["selectedBanner"] }
+    ]
+  },
+  "banner-edit": {
+    pageId: "banner-edit",
+    routePath: "/admin/content/banner_edit",
+    menuCode: "A0040202",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "BannerEditScopeNotice", instanceKey: "banner-edit-scope", layoutZone: "content", propsSummary: ["bannerId", "message"] },
+      { componentId: "BannerEditSummaryCards", instanceKey: "banner-edit-summary", layoutZone: "content", propsSummary: ["summaryCards"] },
+      { componentId: "BannerEditForm", instanceKey: "banner-edit-form", layoutZone: "content", propsSummary: ["title", "targetUrl", "status", "placement", "startAt", "endAt"] },
+      { componentId: "BannerEditPreview", instanceKey: "banner-edit-preview", layoutZone: "content", propsSummary: ["bannerId", "title", "targetUrl", "status", "startAt", "endAt"] },
+      { componentId: "BannerEditActions", instanceKey: "banner-edit-actions", layoutZone: "actions", propsSummary: ["bannerId", "canSave"] }
+    ]
+  },
+  "qna-category": {
+    pageId: "qna-category",
+    routePath: "/admin/content/qna",
+    menuCode: "A0040302",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "QnaCategorySummary", instanceKey: "qna-category-summary", layoutZone: "content", propsSummary: ["categoryCount", "activeCount", "pendingCount", "totalQuestions"] },
+      { componentId: "QnaCategorySearch", instanceKey: "qna-category-search", layoutZone: "actions", propsSummary: ["searchKeyword", "useAt", "channel"] },
+      { componentId: "QnaCategoryTable", instanceKey: "qna-category-table", layoutZone: "content", propsSummary: ["code", "categoryName", "channel", "qnaCount", "pendingCount", "useAt"] },
+      { componentId: "QnaCategoryDetail", instanceKey: "qna-category-detail", layoutZone: "content", propsSummary: ["selectedCategoryId", "owner", "sortOrder", "lastChangedAt"] }
+    ]
+  },
+  "faq-menu-management": {
+    pageId: "faq-menu-management",
+    routePath: "/admin/content/menu",
+    menuCode: "A0040304",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "AdminMenuPlaceholderCard", instanceKey: "admin-menu-placeholder-card", layoutZone: "content", propsSummary: ["placeholderTitle", "placeholderUrl"] }
+    ]
+  },
+  "faq-management": {
+    pageId: "faq-management",
+    routePath: "/admin/content/faq_list",
+    menuCode: "A0040301",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "FaqManagementSummary", instanceKey: "faq-management-summary", layoutZone: "content", propsSummary: ["faqCount", "publishedCount", "reviewCount", "publicCount"] },
+      { componentId: "FaqManagementSearch", instanceKey: "faq-management-search", layoutZone: "actions", propsSummary: ["searchKeyword", "status", "exposure", "category"] },
+      { componentId: "FaqManagementTable", instanceKey: "faq-management-table", layoutZone: "content", propsSummary: ["faqRows", "pageIndex", "totalPages"] },
+      { componentId: "FaqManagementDetail", instanceKey: "faq-management-detail", layoutZone: "content", propsSummary: ["selectedFaqId", "owner", "displayOrder", "lastChangedAt"] }
+    ]
+  },
+  "file-management": {
+    pageId: "file-management",
+    routePath: "/admin/content/file",
+    menuCode: "A0040104",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "FileManagementSummary", instanceKey: "file-management-summary", layoutZone: "actions", propsSummary: ["fileCount", "activeCount", "reviewCount", "archiveCount"] },
+      { componentId: "FileManagementFilters", instanceKey: "file-management-filters", layoutZone: "actions", propsSummary: ["searchKeyword", "status", "visibility"] },
+      { componentId: "FileManagementTable", instanceKey: "file-management-table", layoutZone: "content", propsSummary: ["fileRows", "extension", "linkedScreens", "visibility", "status"] },
+      { componentId: "FileManagementDetail", instanceKey: "file-management-detail", layoutZone: "content", propsSummary: ["selectedFileId", "owner", "retention", "securityGrade", "downloadCount"] }
+    ]
+  },
   "admin-sitemap": {
     pageId: "admin-sitemap",
     routePath: "/admin/content/sitemap",
@@ -1213,6 +2294,20 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     components: [
       { componentId: "AdminSitemapHero", instanceKey: "admin-sitemap-hero", layoutZone: "header" },
       { componentId: "AdminSitemapTree", instanceKey: "admin-sitemap-tree", layoutZone: "content", propsSummary: ["siteMapSections"] }
+    ]
+  },
+  "tag-management": {
+    pageId: "tag-management",
+    routePath: "/admin/content/tag",
+    menuCode: "A0040303",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "TagManagementFilters", instanceKey: "tag-management-filters", layoutZone: "actions", propsSummary: ["searchKeyword", "status"] },
+      { componentId: "TagManagementSummary", instanceKey: "tag-management-summary", layoutZone: "actions", propsSummary: ["summaryCards"] },
+      { componentId: "TagManagementTable", instanceKey: "tag-management-table", layoutZone: "content", propsSummary: ["tagRows"] },
+      { componentId: "TagManagementUsage", instanceKey: "tag-management-usage", layoutZone: "content", propsSummary: ["usageRows"] }
     ]
   },
   "admin-menu-placeholder": {
@@ -1359,6 +2454,19 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "WbsCodexPrompt", instanceKey: "wbs-codex-prompt", layoutZone: "content", propsSummary: ["codexPrompt", "codexInstruction"] }
     ]
   },
+  "new-page": {
+    pageId: "new-page",
+    routePath: "/admin/system/new-page",
+    menuCode: "AMENU_SYSTEM_NEW_PAGE",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "NewPageStatusNotice", instanceKey: "new-page-status", layoutZone: "header", propsSummary: ["route", "scope", "status"] },
+      { componentId: "NewPageSummaryCards", instanceKey: "new-page-summary", layoutZone: "actions", propsSummary: ["defaultRoute", "localeScope", "draftStatus"] },
+      { componentId: "NewPageStarterChecklist", instanceKey: "new-page-checklist", layoutZone: "content", propsSummary: ["nextStepCount", "assumptionCount"] }
+    ]
+  },
   "external-retry": {
     pageId: "external-retry",
     routePath: "/admin/external/retry",
@@ -1372,7 +2480,8 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "ExternalRetryQueue", instanceKey: "external-retry-queue", layoutZone: "content", propsSummary: ["rows", "filteredRows", "refreshedAt"] },
       { componentId: "ExternalRetryPolicy", instanceKey: "external-retry-policy", layoutZone: "content", propsSummary: ["policyRows", "ownerName", "status"] },
       { componentId: "ExternalRetryHistory", instanceKey: "external-retry-history", layoutZone: "content", propsSummary: ["executionRows", "result", "duration"] },
-      { componentId: "ExternalRetryGuidance", instanceKey: "external-retry-guidance", layoutZone: "content", propsSummary: ["quickLinks", "guidance"] }
+      { componentId: "ExternalRetryQuickLinks", instanceKey: "external-retry-links", layoutZone: "content", propsSummary: ["quickLinks"] },
+      { componentId: "ExternalRetryGuidance", instanceKey: "external-retry-guidance", layoutZone: "content", propsSummary: ["guidance"] }
     ]
   },
   "sr-workbench": {

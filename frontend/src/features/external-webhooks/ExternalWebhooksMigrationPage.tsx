@@ -60,7 +60,7 @@ export function ExternalWebhooksMigrationPage() {
     >
       <AdminWorkspacePageFrame>
         {pageState.error ? <PageStatusNotice tone="error">{pageState.error}</PageStatusNotice> : null}
-        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4" data-help-id="external-webhooks-summary">
           {summary.map((item, index) => <SummaryMetricCard key={`${stringOf(item, "title")}-${index}`} title={stringOf(item, "title")} value={stringOf(item, "value")} description={stringOf(item, "description")} />)}
         </section>
         <CollectionResultPanel data-help-id="external-webhooks-filters" title={en ? "Webhook Filters" : "웹훅 조회 조건"} description={en ? "Narrow targets by keyword, sync mode, or delivery status before opening the connection detail." : "연계 상세로 이동하기 전에 검색어, 연계 방식, 전달 상태 기준으로 범위를 좁힙니다."} icon="tune">

@@ -32,23 +32,27 @@ public class HomeMenuFallbackController {
             value = {
                     "/emission/**", "/certificate/**", "/co2/**", "/trade/**", "/monitoring/**",
                     "/payment/**", "/edu/**", "/support/**", "/mtn/**",
-                    "/mypage/profile", "/mypage/company", "/mypage/staff", "/mypage/notification",
-                    "/mypage/password", "/mypage/email", "/mypage/marketing",
+                    "/mypage/**",
                     "/en/emission/**", "/en/certificate/**", "/en/co2/**", "/en/trade/**", "/en/monitoring/**",
                     "/en/payment/**", "/en/edu/**", "/en/support/**", "/en/mtn/**",
-                    "/en/mypage/profile", "/en/mypage/company", "/en/mypage/staff", "/en/mypage/notification",
-                    "/en/mypage/password", "/en/mypage/email", "/en/mypage/marketing"
+                    "/en/mypage/**"
             },
             method = { RequestMethod.GET })
     public String homeMenuPlaceholder(HttpServletRequest request, Locale locale, Model model) {
         boolean isEn = isEnglishRequest(request, locale);
         String normalized = normalizeRequestUri(request);
-        if (normalized.startsWith("/mypage/")) {
+        if ("/mypage/profile".equals(normalized)) {
             return reactAppViewSupport.render(model, "mypage", isEn, false);
         }
         String routeId = ReactPageUrlMapper.resolveRouteIdForPath(request == null ? "" : request.getRequestURI());
         if ("emission_project_list".equals(routeId)) {
             return reactAppViewSupport.render(model, "emission-project-list", isEn, false);
+        }
+        if ("emission_home_validate".equals(routeId)) {
+            return reactAppViewSupport.render(model, "emission-home-validate", isEn, false);
+        }
+        if (!routeId.isEmpty()) {
+            return reactAppViewSupport.render(model, routeId.replace('_', '-'), isEn, false);
         }
         MenuInfoDTO menu = loadMenu(normalized);
         if (menu == null) {
@@ -88,7 +92,7 @@ public class HomeMenuFallbackController {
             HttpServletRequest request,
             Locale locale,
             boolean forceEn) {
-        boolean isEn = forceEn || isEnglishRequest(request, locale);
+        boolean isEn = forceEn || resolveEnglishFromRequestPath(requestPath, request, locale);
         String normalized = normalizeRequestPath(requestPath, request);
         MenuInfoDTO menu = loadMenu(normalized);
         Map<String, Object> payload = new LinkedHashMap<>();
@@ -103,6 +107,14 @@ public class HomeMenuFallbackController {
             payload.put("placeholderIcon", safeString(menu.getMenuIcon()).isEmpty() ? "web" : safeString(menu.getMenuIcon()));
         }
         return payload;
+    }
+
+    private boolean resolveEnglishFromRequestPath(String requestPath, HttpServletRequest request, Locale locale) {
+        String value = safeString(requestPath);
+        if (!value.isEmpty()) {
+            return value.startsWith("/en/");
+        }
+        return isEnglishRequest(request, locale);
     }
 
     private boolean isEnglishRequest(HttpServletRequest request, Locale locale) {

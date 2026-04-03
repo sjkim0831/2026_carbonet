@@ -123,12 +123,15 @@ final class EmissionVariableDefinitionAssembler {
         VariableSectionDefinition section = hasSectionMetadata(variable)
                 ? new VariableSectionDefinition(
                 safe(variable.getSectionId()),
+                variable.getSectionOrder() == null ? 0 : variable.getSectionOrder(),
                 safe(variable.getSectionTitle()),
                 safe(variable.getSectionDescription()),
-                safe(variable.getSectionFormula()))
+                safe(variable.getSectionFormula()),
+                safe(variable.getSectionPreviewType()),
+                safe(variable.getSectionRelatedFactorCodes()))
                 : definition.uiDefinition.section(varCode);
         if (section != null && !section.id.isEmpty()) {
-            setSection(variable, section.id, section.title, section.description, section.formula);
+            setSection(variable, section.id, section.order, section.title, section.description, section.formula, section.previewType, section.relatedFactorCodes);
         }
     }
 
@@ -138,13 +141,19 @@ final class EmissionVariableDefinitionAssembler {
 
     private void setSection(EmissionVariableDefinitionVO variable,
                             String sectionId,
+                            Integer sectionOrder,
                             String sectionTitle,
                             String sectionDescription,
-                            String sectionFormula) {
+                            String sectionFormula,
+                            String sectionPreviewType,
+                            String sectionRelatedFactorCodes) {
         variable.setSectionId(sectionId);
+        variable.setSectionOrder(sectionOrder);
         variable.setSectionTitle(sectionTitle);
         variable.setSectionDescription(sectionDescription);
         variable.setSectionFormula(sectionFormula);
+        variable.setSectionPreviewType(sectionPreviewType);
+        variable.setSectionRelatedFactorCodes(sectionRelatedFactorCodes);
     }
 
     private List<Map<String, String>> loadCommonCodeOptions(String codeId) {

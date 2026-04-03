@@ -689,7 +689,7 @@ export function EnvironmentManagementHubPage() {
     body.set("menuIcon", menuIcon);
     body.set("useAt", useAt);
     const responseBody = await postFormUrlEncoded<{ success?: boolean; message?: string; createdCode?: string }>(
-      buildLocalizedPath("/admin/system/menu-management/create-page", "/en/admin/system/menu-management/create-page"),
+      buildLocalizedPath("/admin/system/menu/create-page", "/en/admin/system/menu/create-page"),
       body
     );
     if (!responseBody.success) {
@@ -1079,6 +1079,9 @@ export function EnvironmentManagementHubPage() {
         <GridToolbar
           actions={(
             <div className="flex flex-wrap gap-2">
+              <MemberLinkButton href={buildLocalizedPath("/admin/system/infra", "/en/admin/system/infra")} size="sm" variant="secondary">
+                {en ? "Infra Console" : "인프라 콘솔"}
+              </MemberLinkButton>
               <MemberLinkButton href={buildLocalizedPath("/admin/system/full-stack-management", "/en/admin/system/full-stack-management")} size="sm" variant="secondary">
                 {en ? "Full-stack Registry" : "풀스택 레지스트리"}
               </MemberLinkButton>

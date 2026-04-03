@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
 import { fetchExternalSyncPage, type ExternalSyncPagePayload } from "../../lib/api/client";
-import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
+import { buildLocalizedPath, isEnglish, replace } from "../../lib/navigation/runtime";
 import { stringOf } from "../admin-system/adminSystemShared";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { CollectionResultPanel, GridToolbar, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
@@ -23,8 +23,25 @@ function badgeClass(value: string) {
   return "bg-slate-100 text-slate-700";
 }
 
+function readInitialFilters() {
+  if (typeof window === "undefined") {
+    return {
+      keyword: "",
+      syncMode: "ALL",
+      status: "ALL"
+    };
+  }
+  const search = new URLSearchParams(window.location.search);
+  return {
+    keyword: search.get("keyword") || "",
+    syncMode: search.get("syncMode") || "ALL",
+    status: search.get("status") || "ALL"
+  };
+}
+
 export function ExternalSyncMigrationPage() {
   const en = isEnglish();
+  const initialFilters = useMemo(() => readInitialFilters(), []);
   const pageState = useAsyncValue<ExternalSyncPagePayload>(fetchExternalSyncPage, [], {});
   const page = pageState.value;
   const summary = useMemo(() => ((page?.externalSyncSummary || []) as Array<Record<string, string>>), [page]);
@@ -33,9 +50,9 @@ export function ExternalSyncMigrationPage() {
   const executionRows = useMemo(() => ((page?.externalSyncExecutionRows || []) as Array<Record<string, string>>), [page]);
   const quickLinks = useMemo(() => ((page?.externalSyncQuickLinks || []) as Array<Record<string, string>>), [page]);
   const guidance = useMemo(() => ((page?.externalSyncGuidance || []) as Array<Record<string, string>>), [page]);
-  const [keyword, setKeyword] = useState("");
-  const [syncMode, setSyncMode] = useState("ALL");
-  const [status, setStatus] = useState("ALL");
+  const [keyword, setKeyword] = useState(initialFilters.keyword);
+  const [syncMode, setSyncMode] = useState(initialFilters.syncMode);
+  const [status, setStatus] = useState(initialFilters.status);
 
   function resetFilters() {
     setKeyword("");
@@ -60,6 +77,21 @@ export function ExternalSyncMigrationPage() {
   }, [keyword, rows, status, syncMode]);
 
   useEffect(() => {
+    const search = new URLSearchParams();
+    if (keyword.trim()) {
+      search.set("keyword", keyword.trim());
+    }
+    if (syncMode !== "ALL") {
+      search.set("syncMode", syncMode);
+    }
+    if (status !== "ALL") {
+      search.set("status", status);
+    }
+    const query = search.toString();
+    replace(`${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`);
+  }, [keyword, status, syncMode]);
+
+  useEffect(() => {
     logGovernanceScope("PAGE", "external-sync", {
       language: en ? "en" : "ko",
       totalCount: rows.length,
@@ -68,6 +100,20 @@ export function ExternalSyncMigrationPage() {
       status
     });
   }, [en, filteredRows.length, rows.length, status, syncMode]);
+
+  const activeFilterLabels = useMemo(() => {
+    const labels: string[] = [];
+    if (keyword.trim()) {
+      labels.push(en ? `Keyword: ${keyword.trim()}` : `검색어: ${keyword.trim()}`);
+    }
+    if (syncMode !== "ALL") {
+      labels.push(en ? `Sync Mode: ${syncMode}` : `동기화 방식: ${syncMode}`);
+    }
+    if (status !== "ALL") {
+      labels.push(en ? `Status: ${status}` : `상태: ${status}`);
+    }
+    return labels;
+  }, [en, keyword, status, syncMode]);
 
   return (
     <AdminPageShell
@@ -94,7 +140,7 @@ export function ExternalSyncMigrationPage() {
       <AdminWorkspacePageFrame>
         {pageState.error ? <PageStatusNotice tone="error">{pageState.error}</PageStatusNotice> : null}
 
-        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4" data-help-id="external-sync-summary">
           {summary.map((item, index) => (
             <SummaryMetricCard
               key={`${stringOf(item, "title")}-${index}`}
@@ -111,6 +157,15 @@ export function ExternalSyncMigrationPage() {
           description={en ? "Narrow by target, mode, or runtime status before checking queue backlog or recent executions." : "큐 적체와 최근 실행 이력을 보기 전에 대상, 동기화 방식, 런타임 상태 기준으로 범위를 좁힙니다."}
           icon="sync"
         >
+          {activeFilterLabels.length > 0 ? (
+            <div className="mb-4 flex flex-wrap gap-2">
+              {activeFilterLabels.map((label) => (
+                <span key={label} className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+                  {label}
+                </span>
+              ))}
+            </div>
+          ) : null}
           <div className="grid grid-cols-1 gap-3 md:grid-cols-4 xl:w-[68rem]">
             <div>
               <label className="mb-1 block text-sm font-bold" htmlFor="externalSyncKeyword">{en ? "Keyword" : "검색어"}</label>

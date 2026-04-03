@@ -452,10 +452,12 @@ public class SiteMapServiceImpl implements SiteMapService {
                 || "/admin/system/help-management".equals(value)
                 || "/admin/system/sr-workbench".equals(value)
                 || "/admin/system/wbs-management".equals(value)
+                || "/admin/system/new-page".equals(value)
                 || "/admin/system/codex-request".equals(value)) {
             return false;
         }
         return "/admin/member/company-approve".equals(value)
+                || "/admin/certificate/pending_list".equals(value)
                 || "/admin/member/company_list".equals(value)
                 || "/admin/member/company_detail".equals(value)
                 || "/admin/member/company_account".equals(value)

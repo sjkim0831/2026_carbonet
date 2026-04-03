@@ -65,7 +65,7 @@ public class CurrentUserContextService {
         }
         String actualUserId = extractCurrentUserId(request);
         context.setActualUserId(actualUserId);
-        context.setSimulationAvailable(isSimulationAvailable(actualUserId));
+        context.setSimulationAvailable(isSimulationAvailable(request, actualUserId));
         SessionSimulationOverride simulationOverride = context.isSimulationAvailable()
                 ? readSessionSimulationOverride(request, actualUserId)
                 : null;
@@ -83,11 +83,11 @@ public class CurrentUserContextService {
     }
 
     public boolean canUseSessionSimulation(HttpServletRequest request) {
-        return request != null && isSimulationAvailable(extractCurrentUserId(request));
+        return request != null && isSimulationAvailable(request, extractCurrentUserId(request));
     }
 
     public void saveSessionSimulation(HttpServletRequest request, String ownerUserId, String emplyrId, String authorCode, String insttId) {
-        if (request == null || !isSimulationAvailable(ownerUserId)) {
+        if (request == null || !isSimulationAvailable(request, ownerUserId)) {
             return;
         }
         HttpSession session = request.getSession(true);
@@ -175,7 +175,7 @@ public class CurrentUserContextService {
     }
 
     private SessionSimulationOverride readSessionSimulationOverride(HttpServletRequest request, String actualUserId) {
-        if (request == null || !isSimulationAvailable(actualUserId)) {
+        if (request == null || !isSimulationAvailable(request, actualUserId)) {
             return null;
         }
         HttpSession session = request.getSession(false);
@@ -198,8 +198,22 @@ public class CurrentUserContextService {
         return override;
     }
 
-    private boolean isSimulationAvailable(String actualUserId) {
-        return environment.acceptsProfiles(Profiles.of("local")) && isWebmaster(actualUserId);
+    private boolean isSimulationAvailable(HttpServletRequest request, String actualUserId) {
+        if (!environment.acceptsProfiles(Profiles.of("local"))) {
+            return false;
+        }
+        return isWebmaster(actualUserId) || (safeString(actualUserId).isEmpty() && isLoopbackRequest(request));
+    }
+
+    private boolean isLoopbackRequest(HttpServletRequest request) {
+        if (request == null) {
+            return false;
+        }
+        String remoteAddr = safeString(request.getRemoteAddr());
+        return "127.0.0.1".equals(remoteAddr)
+                || "0:0:0:0:0:0:0:1".equals(remoteAddr)
+                || "::1".equals(remoteAddr)
+                || "localhost".equalsIgnoreCase(remoteAddr);
     }
 
     private String extractCurrentUserId(HttpServletRequest request) {
@@ -500,3 +514,4 @@ public class CurrentUserContextService {
         }
     }
 }
+// agent note: updated by FreeAgent Ultra

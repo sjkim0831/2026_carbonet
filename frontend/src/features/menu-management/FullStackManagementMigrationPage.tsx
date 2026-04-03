@@ -703,7 +703,7 @@ export function FullStackManagementMigrationPage() {
     body.set("menuType", menuType);
     body.set("orderPayload", flattenPayload(treeData).join(","));
     await postFormUrlEncoded(
-      buildLocalizedPath("/admin/system/menu-management/order", "/en/admin/system/menu-management/order"),
+      buildLocalizedPath("/admin/system/menu/order", "/en/admin/system/menu/order"),
       body
     );
     await pageState.reload();
@@ -743,7 +743,7 @@ export function FullStackManagementMigrationPage() {
     body.set("menuIcon", menuIcon);
     body.set("useAt", useAt);
     const responseBody = await postFormUrlEncoded<{ success?: boolean; message?: string; createdCode?: string }>(
-      buildLocalizedPath("/admin/system/menu-management/create-page", "/en/admin/system/menu-management/create-page"),
+      buildLocalizedPath("/admin/system/menu/create-page", "/en/admin/system/menu/create-page"),
       body
     );
     if (!responseBody.success) {
@@ -927,6 +927,16 @@ export function FullStackManagementMigrationPage() {
       ]}
       title={en ? "Full-Stack Management" : "풀스택 관리"}
       subtitle={en ? "Create and govern menu-linked frontend, backend, API, schema, permission, and column metadata from one admin surface." : "메뉴에 연결된 프론트엔드, 백엔드, API, 스키마, 권한, 컬럼 메타데이터를 하나의 관리자 화면에서 함께 관리합니다."}
+      actions={
+        <div className="flex flex-wrap gap-2">
+          <a className="gov-btn gov-btn-outline" href={buildLocalizedPath("/admin/system/infra", "/en/admin/system/infra")}>
+            {en ? "Infra Console" : "인프라 콘솔"}
+          </a>
+          <a className="gov-btn gov-btn-outline" href={buildLocalizedPath("/admin/system/performance", "/en/admin/system/performance")}>
+            {en ? "Performance" : "성능"}
+          </a>
+        </div>
+      }
       contextStrip={
         <ContextKeyStrip items={authorDesignContextKeys} />
       }

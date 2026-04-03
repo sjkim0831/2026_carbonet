@@ -14,4 +14,12 @@ public class RequestExecutionLogPage {
         this.items = items == null ? Collections.emptyList() : items;
         this.totalCount = Math.max(totalCount, 0);
     }
+
+    public List<RequestExecutionLogVO> getItems() {
+        return items;
+    }
+
+    public int getTotalCount() {
+        return totalCount;
+    }
 }

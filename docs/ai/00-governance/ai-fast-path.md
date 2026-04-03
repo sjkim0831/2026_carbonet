@@ -10,11 +10,13 @@ Use this file as the default starting point for AI-assisted work in this reposit
 4. `docs/ai/10-architecture/repo-layout.md`
 5. `docs/ai/70-reference/screen-design-source-map.md`
 6. `docs/ai/00-governance/ai-session-partitioning.md` before planning or implementation so session ownership is decided early
-7. `docs/ai/60-operations/session-orchestration/README.md` when the task needs durable plan, contract, or handoff artifacts
-8. `docs/ai/60-operations/react-refresh-and-cache-control.md` when frontend delivery, React shell behavior, or cache freshness matters
-9. `docs/operations/backup-db-fast-workflow.md` when the task touches the backup DB server, CUBRID runtime operations, or remote DB inspection/update work
-10. `docs/operations/fast-bootstrap-runtime-freshness.md` when the task touches compile, package, restart, bootstrap freshness, runtime jar freshness, or local `:18000` verification
-11. `AGENTS.md` when the task touches local build/restart/freshness rules so the repository-local runtime verification path is followed
+7. `bash ops/scripts/codex-resume-status.sh` when reopening work after re-login or before joining an already-active task
+8. `bash ops/scripts/codex-admin-status.sh` when the task touches admin screens and you need the current full admin route status table
+9. `docs/ai/60-operations/session-orchestration/README.md` when the task needs durable plan, contract, or handoff artifacts
+10. `docs/ai/60-operations/react-refresh-and-cache-control.md` when frontend delivery, React shell behavior, or cache freshness matters
+11. `docs/operations/backup-db-fast-workflow.md` when the task touches the backup DB server, CUBRID runtime operations, or remote DB inspection/update work
+12. `docs/operations/fast-bootstrap-runtime-freshness.md` when the task touches compile, package, restart, bootstrap freshness, runtime jar freshness, or local `:18000` verification
+13. `AGENTS.md` when the task touches local build/restart/freshness rules so the repository-local runtime verification path is followed
 
 If the task comes from local design assets, read these external files first:
 

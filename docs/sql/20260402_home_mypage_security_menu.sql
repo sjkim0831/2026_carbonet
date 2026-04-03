@@ -1,0 +1,10 @@
+-- Align My Page security settings menu URL with the dedicated runtime path.
+
+UPDATE COMTNMENUINFO
+SET MENU_URL = 'mypage/security',
+    LAST_UPDT_PNTTM = CURRENT_DATETIME
+WHERE MENU_CODE = 'H0080203';
+
+SELECT MENU_CODE, MENU_URL, USE_AT
+FROM COMTNMENUINFO
+WHERE MENU_CODE = 'H0080203';

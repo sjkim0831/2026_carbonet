@@ -52,4 +52,20 @@ public class LoginResponseDTO extends ComDefaultVO implements Serializable {
         this.ip = ip;
         this.authorCode = authorCode;
     }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getUniqId() {
+        return uniqId;
+    }
+
+    public String getAuthorList() {
+        return authorList;
+    }
 }

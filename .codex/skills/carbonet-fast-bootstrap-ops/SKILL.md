@@ -78,6 +78,7 @@ Read only what you need:
    - correct port listening
    - health or route responds
    - newest jar copied into `var/run`
+   - when the task is a page or route, request the exact changed URL after restart and confirm it returns the React shell or expected page response
 5. If the task changes startup, bootstrap, or refresh behavior, update the doc in the same turn.
 
 ## Delivery Rules
@@ -87,6 +88,7 @@ Read only what you need:
 - Do not claim success based only on `target/` output.
 - Do not claim freshness based only on source files.
 - When local `:18000` is involved, verify runtime jar and startup log behavior.
+- When the task adds or changes a concrete route such as `/edu/...` or `/admin/...`, verify that exact route over HTTP after `codex-verify-18000-freshness.sh`.
 - If changes can affect hard refresh behavior, mention whether shell freshness and asset freshness are both preserved.
 
 ## Verification Minimum

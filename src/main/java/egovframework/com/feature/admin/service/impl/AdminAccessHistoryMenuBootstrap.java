@@ -5,7 +5,8 @@ import egovframework.com.feature.admin.dto.response.CodexProvisionResponse;
 import egovframework.com.feature.admin.service.AdminCodeManageService;
 import egovframework.com.feature.admin.service.CodexProvisioningService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -14,8 +15,9 @@ import java.util.Arrays;
 
 @Component
 @RequiredArgsConstructor
-@Slf4j
 public class AdminAccessHistoryMenuBootstrap {
+
+    private static final Logger log = LoggerFactory.getLogger(AdminAccessHistoryMenuBootstrap.class);
 
     private static final String DOMAIN_CODE = "A006";
     private static final String DOMAIN_NAME = "시스템";

@@ -22,9 +22,9 @@ final class CorrectionFactorStrategy {
             return ResolvedFactor.derived(1d + (md / mass) * cd * fd);
         }
         if (factorValues.containsKey("CF_LKD")) {
-            return ResolvedFactor.stored(factorValues.get("CF_LKD"));
+            return ResolvedFactor.combined(factorValues.get("CF_LKD"), true, FactorSource.STORED);
         }
-        return ResolvedFactor.fallback(limeCfLkdDefault);
+        return ResolvedFactor.combined(limeCfLkdDefault, true, FactorSource.FALLBACK);
     }
 
     ResolvedFactor resolveLimeTier2HydrationCorrection(String hydratedProductionRaw,
@@ -40,9 +40,9 @@ final class CorrectionFactorStrategy {
                 return ResolvedFactor.calculated(1d - (hydrateRatio * moistureContent));
             }
             if (factorValues.containsKey("HYDRATED_LIME_CORRECTION_DEFAULT")) {
-                return ResolvedFactor.stored(factorValues.get("HYDRATED_LIME_CORRECTION_DEFAULT"));
+                return ResolvedFactor.combined(factorValues.get("HYDRATED_LIME_CORRECTION_DEFAULT"), true, FactorSource.STORED);
             }
-            return ResolvedFactor.fallback(hydratedLimeCorrectionDefault);
+            return ResolvedFactor.combined(hydratedLimeCorrectionDefault, true, FactorSource.FALLBACK);
         }
         if (hydrateRatio > 0d && moistureContent > 0d) {
             return ResolvedFactor.calculated(1d - (hydrateRatio * moistureContent));

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useFrontendSession } from "../../app/hooks/useFrontendSession";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { buildPublicApiPath, fetchJson } from "../../lib/api/core";
 import { buildLocalizedPath, getNavigationEventName, isEnglish, navigate } from "../../lib/navigation/runtime";
 import { LOCALIZED_CONTENT, HOME_ENTRY_ASSETS } from "./homeEntryContent";
 import {
@@ -17,7 +16,7 @@ import {
   SummarySection
 } from "./HomeEntrySections";
 import { HomePayload } from "./homeEntryTypes";
-import { readBootstrappedHomePayload } from "../../lib/api/client";
+import { fetchHomePayload, readBootstrappedHomePayload } from "../../lib/api/client";
 
 export function HomeLandingPage() {
   const en = isEnglish();
@@ -25,11 +24,10 @@ export function HomeLandingPage() {
   const initialPayload = useMemo(() => readBootstrappedHomePayload() as HomePayload | null, []);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const payloadState = useAsyncValue<HomePayload>(
-    () => fetchJson<HomePayload>(buildPublicApiPath("api/home")),
+    () => fetchHomePayload(),
     [en],
     {
       initialValue: initialPayload || { isLoggedIn: false, isEn: en, homeMenu: [] },
-      skipInitialLoad: Boolean(initialPayload),
       onError: () => undefined
     }
   );

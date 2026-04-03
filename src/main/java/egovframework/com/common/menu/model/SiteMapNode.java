@@ -15,4 +15,24 @@ public class SiteMapNode {
     private String url;
     private String icon;
     private List<SiteMapNode> children = new ArrayList<>();
+
+    public String getCode() {
+        return code;
+    }
+
+    public String getLabel() {
+        return label;
+    }
+
+    public String getUrl() {
+        return url;
+    }
+
+    public String getIcon() {
+        return icon;
+    }
+
+    public List<SiteMapNode> getChildren() {
+        return children;
+    }
 }

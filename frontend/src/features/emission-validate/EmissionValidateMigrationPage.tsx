@@ -55,24 +55,85 @@ function verificationToneClass(code: string) {
   }
 }
 
+function readReturnUrl() {
+  if (typeof window === "undefined") {
+    return "";
+  }
+  const raw = new URLSearchParams(window.location.search).get("returnUrl") || "";
+  if (!raw) {
+    return "";
+  }
+  try {
+    const decoded = decodeURIComponent(raw);
+    const nextUrl = new URL(decoded, window.location.origin);
+    if (nextUrl.origin !== window.location.origin) {
+      return "";
+    }
+    if (!(nextUrl.pathname.startsWith("/admin/") || nextUrl.pathname.startsWith("/en/admin/"))) {
+      return "";
+    }
+    return `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`;
+  } catch {
+    return "";
+  }
+}
+
+function withReturnUrl(targetUrl: string, returnUrl: string) {
+  const normalizedTargetUrl = String(targetUrl || "").trim();
+  if (!normalizedTargetUrl || !returnUrl || typeof window === "undefined") {
+    return normalizedTargetUrl;
+  }
+  try {
+    const nextUrl = new URL(normalizedTargetUrl, window.location.origin);
+    nextUrl.searchParams.set("returnUrl", returnUrl);
+    return `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`;
+  } catch {
+    return normalizedTargetUrl;
+  }
+}
+
+function readInitialFilters(): Filters {
+  if (typeof window === "undefined") {
+    return {
+      pageIndex: 1,
+      resultId: "",
+      searchKeyword: "",
+      verificationStatus: "",
+      priorityFilter: ""
+    };
+  }
+  const search = new URLSearchParams(window.location.search);
+  return {
+    pageIndex: Number(search.get("pageIndex") || "1") || 1,
+    resultId: search.get("resultId") || "",
+    searchKeyword: search.get("searchKeyword") || "",
+    verificationStatus: search.get("verificationStatus") || "",
+    priorityFilter: search.get("priorityFilter") || ""
+  };
+}
+
+function matchesInitialValidatePayload(payload: EmissionValidatePagePayload | null, filters: Filters) {
+  if (!payload) {
+    return false;
+  }
+  return Number(payload.pageIndex || 1) === filters.pageIndex
+    && String(payload.resultId || "") === filters.resultId
+    && String(payload.searchKeyword || "") === filters.searchKeyword
+    && String(payload.verificationStatus || "") === filters.verificationStatus
+    && String(payload.priorityFilter || "") === filters.priorityFilter;
+}
+
 export function EmissionValidateMigrationPage() {
   const en = isEnglish();
-  const initial = useMemo<Filters>(() => {
-    const search = new URLSearchParams(window.location.search);
-    return {
-      pageIndex: Number(search.get("pageIndex") || "1") || 1,
-      resultId: search.get("resultId") || "",
-      searchKeyword: search.get("searchKeyword") || "",
-      verificationStatus: search.get("verificationStatus") || "",
-      priorityFilter: search.get("priorityFilter") || ""
-    };
-  }, []);
+  const returnUrl = readReturnUrl();
+  const initial = useMemo<Filters>(() => readInitialFilters(), []);
   const initialPayload = useMemo(() => readBootstrappedEmissionValidatePageData(), []);
+  const canUseInitialPayload = matchesInitialValidatePayload(initialPayload, initial);
   const [filters, setFilters] = useState(initial);
   const [draft, setDraft] = useState(initial);
   const pageState = useAsyncValue<EmissionValidatePagePayload>(() => fetchEmissionValidatePage(filters), [filters.pageIndex, filters.resultId, filters.searchKeyword, filters.verificationStatus, filters.priorityFilter], {
-    initialValue: initialPayload,
-    skipInitialLoad: Boolean(initialPayload),
+    initialValue: canUseInitialPayload ? initialPayload : null,
+    skipInitialLoad: canUseInitialPayload,
     onSuccess(payload) {
       const next = {
         pageIndex: Number(payload.pageIndex || 1),
@@ -103,6 +164,9 @@ export function EmissionValidateMigrationPage() {
     if (filters.pageIndex > 1) {
       search.set("pageIndex", String(filters.pageIndex));
     }
+    if (returnUrl) {
+      search.set("returnUrl", returnUrl);
+    }
     if (filters.resultId) {
       search.set("resultId", filters.resultId);
     }
@@ -118,7 +182,7 @@ export function EmissionValidateMigrationPage() {
     const nextQuery = search.toString();
     const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}`;
     window.history.replaceState({}, "", nextUrl);
-  }, [filters]);
+  }, [filters, returnUrl]);
 
   useEffect(() => {
     logGovernanceScope("PAGE", "emission-validate", {
@@ -137,11 +201,25 @@ export function EmissionValidateMigrationPage() {
     });
   }, [currentPage, en, filters.priorityFilter, filters.resultId, filters.searchKeyword, filters.verificationStatus, queueRows.length, totalPages]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const handlePopState = () => {
+      const next = readInitialFilters();
+      setFilters((current) => sameFilters(current, next) ? current : next);
+      setDraft((current) => sameFilters(current, next) ? current : next);
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
   return (
     <AdminPageShell
       breadcrumbs={[
         { label: en ? "Home" : "홈", href: buildLocalizedPath("/admin/", "/en/admin/") },
         { label: en ? "Calculation & Certification" : "산정·인증" },
+        ...(returnUrl ? [{ label: en ? "Emission Result Detail" : "산정 결과 상세", href: returnUrl }] : []),
         { label: en ? "Verification Management" : "검증 관리" }
       ]}
       title={en ? "Verification Management" : "검증 관리"}
@@ -245,12 +323,12 @@ export function EmissionValidateMigrationPage() {
         <section className="gov-card" data-help-id="emission-validate-links">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
             {actionLinks.map((link, index) => (
-              <a className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-4 transition hover:border-[var(--kr-gov-blue)] hover:bg-blue-50" href={stringOf(link, "url")} key={`${stringOf(link, "label")}-${index}`}>
+              <a className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-4 transition hover:border-[var(--kr-gov-blue)] hover:bg-blue-50" href={withReturnUrl(stringOf(link, "url"), returnUrl)} key={`${stringOf(link, "label")}-${index}`}>
                 <div className="flex items-center gap-3">
                   <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">{stringOf(link, "icon")}</span>
                   <div>
                     <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{stringOf(link, "label")}</p>
-                    <p className="mt-1 break-all text-xs text-[var(--kr-gov-text-secondary)]">{stringOf(link, "url")}</p>
+                    <p className="mt-1 break-all text-xs text-[var(--kr-gov-text-secondary)]">{withReturnUrl(stringOf(link, "url"), returnUrl)}</p>
                   </div>
                 </div>
               </a>
@@ -307,7 +385,7 @@ export function EmissionValidateMigrationPage() {
                       <td className="px-6 py-4">{stringOf(row, "assignee")}</td>
                       <td className="px-6 py-4 text-[13px] leading-6 text-[var(--kr-gov-text-secondary)]">{stringOf(row, "priorityReason")}</td>
                       <td className="px-6 py-4 text-center">
-                        <a className="inline-flex rounded-[var(--kr-gov-radius)] bg-[var(--kr-gov-blue)] px-3 py-1.5 text-[12px] font-bold text-white hover:bg-[var(--kr-gov-blue-hover)]" href={stringOf(row, "detailUrl")}>
+                        <a className="inline-flex rounded-[var(--kr-gov-radius)] bg-[var(--kr-gov-blue)] px-3 py-1.5 text-[12px] font-bold text-white hover:bg-[var(--kr-gov-blue-hover)]" href={withReturnUrl(stringOf(row, "detailUrl"), returnUrl)}>
                           {stringOf(row, "actionLabel")}
                         </a>
                       </td>

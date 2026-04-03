@@ -36,6 +36,10 @@ public class ObservabilityMapper extends BaseMapperSupport {
         return selectList("ObservabilityMapper.selectAuditEventList", searchVO);
     }
 
+    public List<AuditEventRecordVO> selectAuditEventListCompact(AuditEventSearchVO searchVO) {
+        return selectList("ObservabilityMapper.selectAuditEventListCompact", searchVO);
+    }
+
     public void insertTraceEvent(TraceEventRecordVO traceEventRecordVO) {
         insert("ObservabilityMapper.insertTraceEvent", traceEventRecordVO);
     }
@@ -53,6 +57,10 @@ public class ObservabilityMapper extends BaseMapperSupport {
         return selectList("ObservabilityMapper.selectAccessEventList", searchVO);
     }
 
+    public List<AccessEventRecordVO> selectAccessEventListCompact(AccessEventSearchVO searchVO) {
+        return selectList("ObservabilityMapper.selectAccessEventListCompact", searchVO);
+    }
+
     public void insertErrorEvent(ErrorEventRecordVO errorEventRecordVO) {
         insert("ObservabilityMapper.insertErrorEvent", errorEventRecordVO);
     }
@@ -64,6 +72,10 @@ public class ObservabilityMapper extends BaseMapperSupport {
 
     public List<ErrorEventRecordVO> selectErrorEventList(ErrorEventSearchVO searchVO) {
         return selectList("ObservabilityMapper.selectErrorEventList", searchVO);
+    }
+
+    public List<ErrorEventRecordVO> selectErrorEventListCompact(ErrorEventSearchVO searchVO) {
+        return selectList("ObservabilityMapper.selectErrorEventListCompact", searchVO);
     }
 
     public int selectTraceEventCount(TraceEventSearchVO searchVO) {

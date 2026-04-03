@@ -40,7 +40,7 @@ public class ObservabilityQueryServiceImpl extends EgovAbstractServiceImpl imple
 
     @Override
     public List<AuditEventRecordVO> selectAuditEventList(AuditEventSearchVO searchVO) {
-        return observabilityMapper.selectAuditEventList(searchVO);
+        return loadAuditEventListSafely(searchVO);
     }
 
     @Override
@@ -60,7 +60,7 @@ public class ObservabilityQueryServiceImpl extends EgovAbstractServiceImpl imple
 
     @Override
     public List<AccessEventRecordVO> selectAccessEventList(AccessEventSearchVO searchVO) {
-        return observabilityMapper.selectAccessEventList(searchVO);
+        return loadAccessEventListSafely(searchVO);
     }
 
     @Override
@@ -70,7 +70,7 @@ public class ObservabilityQueryServiceImpl extends EgovAbstractServiceImpl imple
 
     @Override
     public List<ErrorEventRecordVO> selectErrorEventList(ErrorEventSearchVO searchVO) {
-        return observabilityMapper.selectErrorEventList(searchVO);
+        return loadErrorEventListSafely(searchVO);
     }
 
     @Override
@@ -140,7 +140,7 @@ public class ObservabilityQueryServiceImpl extends EgovAbstractServiceImpl imple
         searchVO.setApiId(safe(searchDTO.getApiId()));
         searchVO.setFeatureType(safe(searchDTO.getDetailType()));
         List<AdminUnifiedLogRowResponse> rows = new ArrayList<>();
-        for (AccessEventRecordVO item : observabilityMapper.selectAccessEventList(searchVO)) {
+        for (AccessEventRecordVO item : observabilityMapper.selectAccessEventListCompact(searchVO)) {
             AdminUnifiedLogRowResponse row = new AdminUnifiedLogRowResponse();
             row.setLogId(item.getEventId());
             row.setLogType("ACCESS");
@@ -168,6 +168,21 @@ public class ObservabilityQueryServiceImpl extends EgovAbstractServiceImpl imple
         return rows;
     }
 
+    private List<AccessEventRecordVO> loadAccessEventListSafely(AccessEventSearchVO searchVO) {
+        try {
+            return observabilityMapper.selectAccessEventList(searchVO);
+        } catch (Exception e) {
+            log.warn("Access event list lookup failed with full payload. Retrying with compact projection. actorId={}, insttId={}, pageId={}, apiId={}, featureType={}",
+                    safe(searchVO == null ? null : searchVO.getActorId()),
+                    safe(searchVO == null ? null : searchVO.getInsttId()),
+                    safe(searchVO == null ? null : searchVO.getPageId()),
+                    safe(searchVO == null ? null : searchVO.getApiId()),
+                    safe(searchVO == null ? null : searchVO.getFeatureType()),
+                    e);
+            return observabilityMapper.selectAccessEventListCompact(searchVO);
+        }
+    }
+
     private List<AdminUnifiedLogRowResponse> mapAuditRows(AdminUnifiedLogSearchRequestDTO searchDTO) {
         AuditEventSearchVO searchVO = new AuditEventSearchVO();
         searchVO.setFirstIndex(0);
@@ -180,7 +195,7 @@ public class ObservabilityQueryServiceImpl extends EgovAbstractServiceImpl imple
         searchVO.setResultStatus(safe(searchDTO.getResultCode()));
         searchVO.setSearchKeyword(safe(searchDTO.getSearchKeyword()));
         List<AdminUnifiedLogRowResponse> rows = new ArrayList<>();
-        for (AuditEventRecordVO item : observabilityMapper.selectAuditEventList(searchVO)) {
+        for (AuditEventRecordVO item : observabilityMapper.selectAuditEventListCompact(searchVO)) {
             AdminUnifiedLogRowResponse row = new AdminUnifiedLogRowResponse();
             row.setLogId(item.getAuditId());
             row.setLogType("AUDIT");
@@ -207,6 +222,22 @@ public class ObservabilityQueryServiceImpl extends EgovAbstractServiceImpl imple
         return rows;
     }
 
+    private List<AuditEventRecordVO> loadAuditEventListSafely(AuditEventSearchVO searchVO) {
+        try {
+            return observabilityMapper.selectAuditEventList(searchVO);
+        } catch (Exception e) {
+            log.warn("Audit event list lookup failed with full payload. Retrying with compact projection. traceId={}, actorId={}, actionCode={}, menuCode={}, pageId={}, resultStatus={}",
+                    safe(searchVO == null ? null : searchVO.getTraceId()),
+                    safe(searchVO == null ? null : searchVO.getActorId()),
+                    safe(searchVO == null ? null : searchVO.getActionCode()),
+                    safe(searchVO == null ? null : searchVO.getMenuCode()),
+                    safe(searchVO == null ? null : searchVO.getPageId()),
+                    safe(searchVO == null ? null : searchVO.getResultStatus()),
+                    e);
+            return observabilityMapper.selectAuditEventListCompact(searchVO);
+        }
+    }
+
     private List<AdminUnifiedLogRowResponse> mapErrorRows(AdminUnifiedLogSearchRequestDTO searchDTO) {
         ErrorEventSearchVO searchVO = new ErrorEventSearchVO();
         searchVO.setFirstIndex(0);
@@ -220,7 +251,7 @@ public class ObservabilityQueryServiceImpl extends EgovAbstractServiceImpl imple
         searchVO.setPageId(safe(searchDTO.getPageId()));
         searchVO.setApiId(safe(searchDTO.getApiId()));
         List<AdminUnifiedLogRowResponse> rows = new ArrayList<>();
-        for (ErrorEventRecordVO item : observabilityMapper.selectErrorEventList(searchVO)) {
+        for (ErrorEventRecordVO item : observabilityMapper.selectErrorEventListCompact(searchVO)) {
             AdminUnifiedLogRowResponse row = new AdminUnifiedLogRowResponse();
             row.setLogId(item.getErrorId());
             row.setLogType("ERROR");
@@ -258,7 +289,7 @@ public class ObservabilityQueryServiceImpl extends EgovAbstractServiceImpl imple
         searchVO.setResultCode(safe(searchDTO.getResultCode()));
         searchVO.setSearchKeyword(safe(searchDTO.getSearchKeyword()));
         List<AdminUnifiedLogRowResponse> rows = new ArrayList<>();
-        for (TraceEventRecordVO item : loadTraceEventListSafely(searchVO)) {
+        for (TraceEventRecordVO item : observabilityMapper.selectTraceEventListCompact(searchVO)) {
             AdminUnifiedLogRowResponse row = new AdminUnifiedLogRowResponse();
             row.setLogId(item.getEventId());
             row.setLogType("TRACE");
@@ -293,6 +324,22 @@ public class ObservabilityQueryServiceImpl extends EgovAbstractServiceImpl imple
                     safe(searchVO == null ? null : searchVO.getEventType()),
                     e);
             return observabilityMapper.selectTraceEventListCompact(searchVO);
+        }
+    }
+
+    private List<ErrorEventRecordVO> loadErrorEventListSafely(ErrorEventSearchVO searchVO) {
+        try {
+            return observabilityMapper.selectErrorEventList(searchVO);
+        } catch (Exception e) {
+            log.warn("Error event list lookup failed with full payload. Retrying with compact projection. actorId={}, insttId={}, pageId={}, apiId={}, sourceType={}, errorType={}",
+                    safe(searchVO == null ? null : searchVO.getActorId()),
+                    safe(searchVO == null ? null : searchVO.getInsttId()),
+                    safe(searchVO == null ? null : searchVO.getPageId()),
+                    safe(searchVO == null ? null : searchVO.getApiId()),
+                    safe(searchVO == null ? null : searchVO.getSourceType()),
+                    safe(searchVO == null ? null : searchVO.getErrorType()),
+                    e);
+            return observabilityMapper.selectErrorEventListCompact(searchVO);
         }
     }
 

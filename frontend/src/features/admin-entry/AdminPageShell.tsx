@@ -246,6 +246,10 @@ function resolveMenuComparablePath(value: string, preserveDirectMenu = true) {
       return pathname.startsWith("/en/") ? "/en/admin/member/admin_list" : "/admin/member/admin_list";
     }
 
+    if (pathname === "/admin/emission/result_detail" || pathname === "/en/admin/emission/result_detail") {
+      return pathname.startsWith("/en/") ? "/en/admin/emission/result_list" : "/admin/emission/result_list";
+    }
+
     if (!preserveDirectMenu) {
       return `${pathname}${url.search}`;
     }

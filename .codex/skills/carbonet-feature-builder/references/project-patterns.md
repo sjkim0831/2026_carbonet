@@ -23,14 +23,14 @@
   - request/response DTOs under `dto`
   - query/result carriers under `model/vo`
 
-## Template pattern
+## Page delivery pattern
 
-- Admin templates: `src/main/resources/templates/egovframework/com/admin`
-- Auth templates: `src/main/resources/templates/egovframework/com/auth`
-- Home templates: `src/main/resources/templates/egovframework/com/home`
-- Member templates: `src/main/resources/templates/egovframework/com/member`
-- File names use `snake_case`
-- English pages use `_en` suffix
+- The active shell page is `src/main/resources/static/react-shell/index.html`
+- Built React entry assets live under `src/main/resources/static/react-app/`
+- Spring controllers commonly return `reactAppViewSupport.render(...)`, which forwards to `/react-shell/index.html`
+- Korean and English variants are usually separated by request path, such as `/admin/...` and `/en/admin/...`, or `/home` and `/en/home`
+- Route ids and bootstrap payloads matter more than server-side template names in the current production flow
+- Static HTML still exists for error or operational cases, so verify whether a page is a React shell route or a direct HTML response before changing it
 
 ## URL and locale pattern
 
@@ -38,7 +38,7 @@
 - English admin routes use `/en/admin/...`
 - User/home routes follow existing patterns such as `/home`, `/en/home`, `/mypage`, `/join/...`
 - Existing controllers often detect English by request path or `language=en`
-- When adding a view page, add the English template and route variant together unless explicitly out of scope
+- When adding a view page, add the English route variant together unless explicitly out of scope
 
 ## Mapper pattern
 
@@ -66,11 +66,11 @@
 - Keep external eGovFrame style names such as `Egov*`
 - Use feature or role based names for repository-owned classes
 - Reuse nearby naming before inventing new terms
-- Keep URL, template name, DTO name, and VO name aligned with the menu or business noun
+- Keep URL, route id, DTO name, and VO name aligned with the menu or business noun
 
 ## Delivery guidance
 
 - If the feature is mostly admin management, prefer extending `feature/admin`
 - If the feature is member-facing or membership-related, prefer `feature/member`
 - If the feature only exposes JSON for an existing page, add an API endpoint alongside the page controller only if the current domain already follows that split
-- Reuse existing list/detail/register/edit patterns from admin templates before inventing new screens
+- Reuse existing list/detail/register/edit patterns from nearby React-backed admin screens before inventing new screens

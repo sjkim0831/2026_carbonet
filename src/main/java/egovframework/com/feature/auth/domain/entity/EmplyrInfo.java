@@ -202,4 +202,64 @@ public class EmplyrInfo implements CommonEntity {
         this.mbtlNum = mbtlNum;
     }
 
+    public String getEmplyrId() {
+        return emplyrId;
+    }
+
+    public String getOffmTelno() {
+        return offmTelno;
+    }
+
+    public void setOffmTelno(String offmTelno) {
+        this.offmTelno = offmTelno;
+    }
+
+    public String getOfcpsNm() {
+        return ofcpsNm;
+    }
+
+    public void setOfcpsNm(String ofcpsNm) {
+        this.ofcpsNm = ofcpsNm;
+    }
+
+    public String getEsntlId() {
+        return esntlId;
+    }
+
+    public String getEmplyrStusCode() {
+        return emplyrStusCode;
+    }
+
+    public LocalDateTime getSbscrbDe() {
+        return sbscrbDe;
+    }
+
+    public void setLockAt(String lockAt) {
+        this.lockAt = lockAt;
+    }
+
+    public void setLockCnt(Integer lockCnt) {
+        this.lockCnt = lockCnt;
+    }
+
+    public void setLockLastPnttm(LocalDateTime lockLastPnttm) {
+        this.lockLastPnttm = lockLastPnttm;
+    }
+
+    public void setAuthTy(String authTy) {
+        this.authTy = authTy;
+    }
+
+    public void setAuthDn(String authDn) {
+        this.authDn = authDn;
+    }
+
+    public void setAuthCi(String authCi) {
+        this.authCi = authCi;
+    }
+
+    public void setAuthDi(String authDi) {
+        this.authDi = authDi;
+    }
+
 }

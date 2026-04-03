@@ -17,6 +17,7 @@ import egovframework.com.feature.admin.model.vo.UserAuthorityTargetVO;
 import egovframework.com.feature.admin.service.AdminCodeManageService;
 import egovframework.com.feature.admin.dto.response.MenuInfoDTO;
 import egovframework.com.feature.admin.dto.response.SystemAccessHistoryRowResponse;
+import egovframework.com.feature.admin.service.AdminShellBootstrapPageService;
 import egovframework.com.feature.admin.service.AuthGroupManageService;
 import egovframework.com.feature.admin.service.FullStackGovernanceRegistryService;
 import egovframework.com.feature.admin.service.IpWhitelistFirewallService;
@@ -82,6 +83,7 @@ public class AdminSystemCodeController {
     private static final DateTimeFormatter IP_WHITELIST_TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private final AdminCodeManageService adminCodeManageService;
+    private final AdminShellBootstrapPageService adminShellBootstrapPageService;
     private final MenuInfoService menuInfoService;
     private final MenuFeatureManageService menuFeatureManageService;
     private final AuthGroupManageService authGroupManageService;
@@ -476,6 +478,11 @@ public class AdminSystemCodeController {
         return redirectReactMigration(request, locale, "full-stack-management");
     }
 
+    @RequestMapping(value = "/infra", method = RequestMethod.GET)
+    public String infraManagement(HttpServletRequest request, Locale locale) {
+        return redirectReactMigration(request, locale, "infra");
+    }
+
     @RequestMapping(value = "/environment-management", method = RequestMethod.GET)
     public String environmentManagement(HttpServletRequest request, Locale locale) {
         return redirectReactMigration(request, locale, "environment-management");
@@ -484,6 +491,20 @@ public class AdminSystemCodeController {
     @RequestMapping(value = "/wbs-management", method = RequestMethod.GET)
     public String wbsManagement(HttpServletRequest request, Locale locale) {
         return redirectReactMigration(request, locale, "wbs-management");
+    }
+
+    @RequestMapping(value = "/new-page", method = RequestMethod.GET)
+    public String newPage(HttpServletRequest request, Locale locale) {
+        return redirectReactMigration(request, locale, "new-page");
+    }
+
+    @GetMapping("/new-page/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> newPagePageApi(
+            HttpServletRequest request,
+            Locale locale) {
+        boolean isEn = isEnglishRequest(request, locale);
+        return buildPageDataResponse(request, model -> model.addAllAttributes(adminShellBootstrapPageService.buildNewPagePageData(isEn)));
     }
 
     @GetMapping("/wbs-management/page-data")
@@ -1769,7 +1790,7 @@ public class AdminSystemCodeController {
     private String redirectMenuManagementError(HttpServletRequest request, Locale locale, String menuType, String errorMessage) {
         StringBuilder redirect = new StringBuilder("redirect:")
                 .append(adminPrefix(request, locale))
-                .append("/system/menu-management?menuType=")
+                .append("/system/menu?menuType=")
                 .append(urlEncode(menuType));
         return appendErrorQuery(redirect, true, errorMessage);
     }

@@ -44,7 +44,7 @@ These routes already have React page modules and must be kept in parity with the
 | `system-code` | `/admin/system/code` | `system_code.html` |
 | `page-management` | `/admin/system/page-management` | `page_management.html` |
 | `function-management` | `/admin/system/function-management` | `function_management.html` |
-| `menu-management` | `/admin/system/menu-management` | `menu_management.html` |
+| `menu-management` | `/admin/content/menu` | `menu_management.html` |
 | `ip-whitelist` | `/admin/system/ip_whitelist` | `ip_whitelist.html` |
 | `login-history` | `/admin/member/login_history` | `login_history.html` |
 | `security-history` | `/admin/system/security` | `security_history.html` |
@@ -57,6 +57,7 @@ These routes already have React page modules and must be kept in parity with the
 | `observability` | `/admin/system/observability` | no direct 1:1 source in `com/admin`; custom React admin screen |
 | `help-management` | `/admin/system/help-management` | no direct 1:1 source in `com/admin`; custom React admin screen |
 | `sr-workbench` | `/admin/system/sr-workbench` | no direct 1:1 source in `com/admin`; custom React admin screen |
+| `popup-list` | `/admin/content/popup_list` | no direct 1:1 source in `com/admin`; custom React admin screen |
 
 ## Source Templates Not Yet React-Connected
 

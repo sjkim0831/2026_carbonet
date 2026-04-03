@@ -223,19 +223,34 @@
             document.head.appendChild(csrfHeaderMeta);
         }
 
-        if (config.reactAppProdCss && !document.querySelector(`link[data-carbonet-react-css="${config.reactAppProdCss}"]`)) {
-            const style = document.createElement("link");
-            style.rel = "stylesheet";
-            style.href = config.reactAppProdCss;
-            style.dataset.carbonetReactCss = config.reactAppProdCss;
-            document.head.appendChild(style);
+        const currentCss = config.reactAppProdCss || "";
+        if (currentCss) {
+            document.querySelectorAll("link[data-carbonet-react-css]").forEach((style) => {
+                if (style.dataset.carbonetReactCss !== currentCss) {
+                    style.remove();
+                }
+            });
+            if (!document.querySelector(`link[data-carbonet-react-css="${currentCss}"]`)) {
+                const style = document.createElement("link");
+                style.rel = "stylesheet";
+                style.href = currentCss;
+                style.dataset.carbonetReactCss = currentCss;
+                document.head.appendChild(style);
+            }
         }
 
-        if (!document.querySelector('script[data-carbonet-react-app="1"]')) {
+        const currentScriptSrc = useDevServer ? `${config.reactAppDevUrl}/src/main.tsx` : (config.reactAppProdJs || "");
+        const existingScript = document.querySelector('script[data-carbonet-react-app="1"]');
+        if (existingScript && existingScript.dataset.carbonetReactSrc !== currentScriptSrc) {
+            existingScript.remove();
+        }
+
+        if (!document.querySelector('script[data-carbonet-react-app="1"]') && currentScriptSrc) {
             const script = document.createElement("script");
             script.type = "module";
-            script.src = useDevServer ? `${config.reactAppDevUrl}/src/main.tsx` : config.reactAppProdJs;
+            script.src = currentScriptSrc;
             script.dataset.carbonetReactApp = "1";
+            script.dataset.carbonetReactSrc = currentScriptSrc;
             script.onerror = () => {
                 console.error("React bundle could not be loaded.", config.reactAppProdJs);
             };

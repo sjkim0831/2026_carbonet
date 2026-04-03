@@ -4,6 +4,7 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
+    "postinstall": "node scripts/fix-playwright-responses-output.mjs",
     "generate:system-component-catalog": "node scripts/generate-system-component-catalog.mjs",
     "generate:framework-contract-metadata": "node scripts/generate-framework-contract-metadata.mjs",
     "predev": "npm run generate:system-component-catalog && npm run generate:framework-contract-metadata",

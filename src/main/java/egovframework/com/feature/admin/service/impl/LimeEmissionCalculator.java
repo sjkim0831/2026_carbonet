@@ -31,14 +31,14 @@ final class LimeEmissionCalculator {
             );
             double lineTotal = mass * factor.factor.value;
             total += lineTotal;
-            trace.addLog("석회 합계", lineNo, "Ml,i × EF_lime,i", support.format("%s × %s", mass, factor.factor.value), lineTotal, factor.note);
+            trace.addLog("석회 합계", lineNo, "Ml,i × EF석회,i", support.format("%s × %s", mass, factor.factor.value), lineTotal, factor.note);
         }
-        trace.addLog("최종 합계", null, "Σ(EF_lime,i × Ml,i)", support.format("%s", total), total, null);
+        trace.addLog("최종 합계", null, "Σ(EF석회,i × Ml,i)", support.format("%s", total), total, null);
         return new CalculationResult(total, context.definition.formulaSummary, context.definition.formulaDisplay, support.format("CO2 = %s", total), trace.appliedFactors(), trace.logs(), trace.defaultApplied());
     }
 
     CalculationResult calculateTier2(CalculationContext context) {
-        Set<Integer> lineIndexes = support.lineIndexes(context.lineValues, "MLI", "CAO_CONTENT", "CAO_MGO_CONTENT", "MGO_CONTENT", "MD", "CD", "FD", "X", "Y");
+        Set<Integer> lineIndexes = support.lineIndexes(context.lineValues, "MLI", "CAO_CONTENT", "CAO_MGO_CONTENT", "MD", "CD", "FD", "X", "Y");
         double total = 0d;
         CalculationTrace trace = new CalculationTrace();
         for (Integer lineNo : lineIndexes) {
@@ -50,12 +50,12 @@ final class LimeEmissionCalculator {
             trace.addResolvedFactor("EF_LIME[" + lineNo + "]", lineCalculation.factor);
             trace.addResolvedFactor("CF_LKD[" + lineNo + "]", lineCalculation.cfLkd);
             trace.addResolvedFactor("C_H[" + lineNo + "]", lineCalculation.hydrationCorrection);
-            trace.addLog("석회 배출계수", lineNo, "EF_lime,i", support.format("%s", lineCalculation.factor.value), lineCalculation.factor.value, lineCalculation.factorNote);
+            trace.addLog("석회 배출계수", lineNo, "EF석회,i", support.format("%s", lineCalculation.factor.value), lineCalculation.factor.value, lineCalculation.factorNote);
             trace.addLog("LKD 보정계수", lineNo, "CF_lkd,i", support.format("%s", lineCalculation.cfLkd.value), lineCalculation.cfLkd.value, lineCalculation.cfLkdNote);
             trace.addLog("수화석회 보정계수", lineNo, "C_h,i", support.format("%s", lineCalculation.hydrationCorrection.value), lineCalculation.hydrationCorrection.value, lineCalculation.hydrationCorrectionNote);
-            trace.addLog("석회 합계", lineNo, "Ml,i × EF_lime,i × CF_lkd,i × C_h,i", support.format("%s × %s × %s × %s", lineCalculation.mass, lineCalculation.factor.value, lineCalculation.cfLkd.value, lineCalculation.hydrationCorrection.value), lineCalculation.lineTotal, null);
+            trace.addLog("석회 합계", lineNo, "Ml,i × EF석회,i × CF_lkd,i × C_h,i", support.format("%s × %s × %s × %s", lineCalculation.mass, lineCalculation.factor.value, lineCalculation.cfLkd.value, lineCalculation.hydrationCorrection.value), lineCalculation.lineTotal, null);
         }
-        trace.addLog("최종 합계", null, "Σ(EF_lime,i × Ml,i × CF_lkd,i × C_h,i)", support.format("%s", total), total, null);
+        trace.addLog("최종 합계", null, "Σ(EF석회,i × Ml,i × CF_lkd,i × C_h,i)", support.format("%s", total), total, null);
         return new CalculationResult(total, context.definition.formulaSummary, context.definition.formulaDisplay, support.format("CO2 = %s", total), trace.appliedFactors(), trace.logs(), trace.defaultApplied());
     }
 
@@ -95,8 +95,7 @@ final class LimeEmissionCalculator {
         double mass = support.lineNumber(lineValues, "MLI", lineNo);
         double caoContent = support.ratio(support.lineNumber(lineValues, "CAO_CONTENT", lineNo));
         double caoMgoContent = support.ratio(support.lineNumber(lineValues, "CAO_MGO_CONTENT", lineNo));
-        double mgoContent = support.ratio(support.lineNumber(lineValues, "MGO_CONTENT", lineNo));
-        double combinedContent = caoMgoContent > 0d ? caoMgoContent : caoContent + mgoContent;
+        double combinedContent = caoMgoContent > 0d ? caoMgoContent : 0d;
         double md = support.lineNumber(lineValues, "MD", lineNo);
         double cd = support.ratio(support.lineNumber(lineValues, "CD", lineNo));
         double fd = support.ratio(support.lineNumber(lineValues, "FD", lineNo));
@@ -120,7 +119,7 @@ final class LimeEmissionCalculator {
                 mass * factor.value * cfLkd.value * hydrationCorrection.value,
                 support.joinNoteParts(
                         support.factorSourceNote(factor, EmissionCalculationSupport.LIME_TIER2_FACTOR_POLICY),
-                        support.format("LIME_TYPE=%s, CaO=%s, CaO+MgO=%s", limeType, caoContent, combinedContent)
+                        support.format("LIME_TYPE=%s, CaO=%s, CaO·MgO=%s", limeType, caoContent, combinedContent)
                 ),
                 support.joinNoteParts(
                         support.factorSourceNote(cfLkd, EmissionCalculationSupport.LIME_TIER2_CFKLD_POLICY),

@@ -1,0 +1,317 @@
+import { useEffect, useMemo, useState } from "react";
+import { useAsyncValue } from "../../app/hooks/useAsyncValue";
+import { logGovernanceScope } from "../../app/policy/debug";
+import { fetchExternalKeysPage, type ExternalKeysPagePayload } from "../../lib/api/client";
+import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
+import { stringOf } from "../admin-system/adminSystemShared";
+import { AdminPageShell } from "../admin-entry/AdminPageShell";
+import { CollectionResultPanel, GridToolbar, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
+import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
+import { AdminInput, AdminSelect } from "../member/common";
+
+function badgeClass(value: string) {
+  const upper = value.toUpperCase();
+  if (upper.includes("EXPIRED") || upper.includes("ROTATE_NOW") || upper.includes("CRITICAL")) {
+    return "bg-red-100 text-red-700";
+  }
+  if (upper.includes("SOON") || upper.includes("REVIEW") || upper.includes("MANUAL")) {
+    return "bg-amber-100 text-amber-700";
+  }
+  if (upper.includes("HEALTHY") || upper.includes("ACTIVE") || upper.includes("AUTO")) {
+    return "bg-emerald-100 text-emerald-700";
+  }
+  return "bg-slate-100 text-slate-700";
+}
+
+export function ExternalKeysMigrationPage() {
+  const en = isEnglish();
+  const pageState = useAsyncValue<ExternalKeysPagePayload>(fetchExternalKeysPage, [], {});
+  const page = pageState.value;
+  const summary = useMemo(() => ((page?.externalKeysSummary || []) as Array<Record<string, string>>), [page]);
+  const rows = useMemo(() => ((page?.externalKeyRows || []) as Array<Record<string, string>>), [page]);
+  const rotationRows = useMemo(() => ((page?.externalKeyRotationRows || []) as Array<Record<string, string>>), [page]);
+  const quickLinks = useMemo(() => ((page?.externalKeyQuickLinks || []) as Array<Record<string, string>>), [page]);
+  const guidance = useMemo(() => ((page?.externalKeyGuidance || []) as Array<Record<string, string>>), [page]);
+  const [keyword, setKeyword] = useState("");
+  const [authMethod, setAuthMethod] = useState("ALL");
+  const [rotationStatus, setRotationStatus] = useState("ALL");
+
+  const filteredRows = useMemo(() => {
+    const normalizedKeyword = keyword.trim().toLowerCase();
+    return rows.filter((row) => {
+      const matchesKeyword = !normalizedKeyword || [
+        stringOf(row, "connectionId"),
+        stringOf(row, "connectionName"),
+        stringOf(row, "partnerName"),
+        stringOf(row, "ownerName"),
+        stringOf(row, "credentialLabel")
+      ].join(" ").toLowerCase().includes(normalizedKeyword);
+      const matchesAuthMethod = authMethod === "ALL" || stringOf(row, "authMethod").toUpperCase() === authMethod;
+      const matchesRotationStatus = rotationStatus === "ALL" || stringOf(row, "rotationStatus").toUpperCase() === rotationStatus;
+      return matchesKeyword && matchesAuthMethod && matchesRotationStatus;
+    });
+  }, [authMethod, keyword, rotationStatus, rows]);
+
+  const urgentRows = useMemo(
+    () => rows.filter((row) => ["ROTATE_NOW", "EXPIRED"].includes(stringOf(row, "rotationStatus").toUpperCase())),
+    [rows]
+  );
+
+  const authMethodRows = useMemo(() => {
+    const totals = new Map<string, { count: number; urgent: number; manual: number }>();
+    rows.forEach((row) => {
+      const auth = stringOf(row, "authMethod") || "UNKNOWN";
+      const current = totals.get(auth) || { count: 0, urgent: 0, manual: 0 };
+      current.count += 1;
+      if (["ROTATE_NOW", "EXPIRED"].includes(stringOf(row, "rotationStatus").toUpperCase())) current.urgent += 1;
+      if (stringOf(row, "rotationPolicy").toUpperCase() === "MANUAL") current.manual += 1;
+      totals.set(auth, current);
+    });
+    return Array.from(totals.entries())
+      .map(([authMethodValue, stats]) => ({
+        authMethod: authMethodValue,
+        connectionCount: String(stats.count),
+        urgentCount: String(stats.urgent),
+        manualCount: String(stats.manual)
+      }))
+      .sort((left, right) => Number(right.urgentCount) - Number(left.urgentCount) || Number(right.connectionCount) - Number(left.connectionCount));
+  }, [rows]);
+
+  useEffect(() => {
+    logGovernanceScope("PAGE", "external-keys", {
+      language: en ? "en" : "ko",
+      totalCount: rows.length,
+      filteredCount: filteredRows.length,
+      authMethod,
+      rotationStatus
+    });
+  }, [authMethod, en, filteredRows.length, rotationStatus, rows.length]);
+
+  return (
+    <AdminPageShell
+      breadcrumbs={[
+        { label: en ? "Home" : "홈", href: buildLocalizedPath("/admin/", "/en/admin/") },
+        { label: en ? "External Integration" : "외부 연계" },
+        { label: en ? "Credential Keys" : "외부 인증키 관리" }
+      ]}
+      title={en ? "Credential Keys" : "외부 인증키 관리"}
+      subtitle={en ? "Track external integration credential health, rotation timing, and owner handoff without exposing secret values." : "외부 연계 비밀값은 노출하지 않고 인증키 상태, 교체 시점, 운영 담당 인계 체계를 함께 점검합니다."}
+      actions={
+        <div className="flex flex-wrap items-center gap-2">
+          <a className="gov-btn gov-btn-outline" href={buildLocalizedPath("/admin/external/connection_list", "/en/admin/external/connection_list")}>
+            {en ? "Connection Registry" : "외부 연계 목록"}
+          </a>
+          <a className="gov-btn" href={buildLocalizedPath("/admin/external/sync", "/en/admin/external/sync")}>
+            {en ? "Sync Execution" : "동기화 실행"}
+          </a>
+        </div>
+      }
+      loading={pageState.loading && !page}
+      loadingLabel={en ? "Loading external keys..." : "외부 인증키 현황을 불러오는 중입니다."}
+    >
+      <AdminWorkspacePageFrame>
+        {pageState.error ? <PageStatusNotice tone="error">{pageState.error}</PageStatusNotice> : null}
+        {urgentRows.length > 0 ? (
+          <PageStatusNotice tone="warning">
+            {en
+              ? `${urgentRows.length} credential records need immediate owner review or rotation before the next downstream window.`
+              : `${urgentRows.length}건의 인증키가 즉시 검토 또는 교체 대상입니다. 다음 하위 시스템 점검 창 이전에 담당자 확인이 필요합니다.`}
+          </PageStatusNotice>
+        ) : null}
+
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4" data-help-id="external-keys-summary">
+          {summary.map((item, index) => (
+            <SummaryMetricCard
+              key={`${stringOf(item, "title")}-${index}`}
+              title={stringOf(item, "title")}
+              value={stringOf(item, "value")}
+              description={stringOf(item, "description")}
+            />
+          ))}
+        </section>
+
+        <CollectionResultPanel
+          data-help-id="external-keys-filters"
+          title={en ? "Credential Filters" : "인증키 조회 조건"}
+          description={en ? "Filter by connection, auth method, or rotation urgency before opening the owning connection flow." : "운영 연결 화면으로 이동하기 전에 연계, 인증 방식, 교체 긴급도 기준으로 범위를 좁힙니다."}
+          icon="vpn_key"
+        >
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-4 xl:w-[68rem]">
+            <div>
+              <label className="mb-1 block text-sm font-bold" htmlFor="externalKeyKeyword">{en ? "Keyword" : "검색어"}</label>
+              <AdminInput id="externalKeyKeyword" placeholder={en ? "Connection, owner, credential" : "연계명, 담당자, 인증키"} value={keyword} onChange={(event) => setKeyword(event.target.value)} />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-bold" htmlFor="externalKeyAuthMethod">{en ? "Auth Method" : "인증 방식"}</label>
+              <AdminSelect id="externalKeyAuthMethod" value={authMethod} onChange={(event) => setAuthMethod(event.target.value)}>
+                <option value="ALL">{en ? "All" : "전체"}</option>
+                <option value="API_KEY">API_KEY</option>
+                <option value="OAUTH2">OAUTH2</option>
+                <option value="BASIC">BASIC</option>
+                <option value="MUTUAL_TLS">MUTUAL_TLS</option>
+                <option value="OBSERVED">OBSERVED</option>
+              </AdminSelect>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-bold" htmlFor="externalKeyRotationStatus">{en ? "Rotation Status" : "교체 상태"}</label>
+              <AdminSelect id="externalKeyRotationStatus" value={rotationStatus} onChange={(event) => setRotationStatus(event.target.value)}>
+                <option value="ALL">{en ? "All" : "전체"}</option>
+                <option value="HEALTHY">HEALTHY</option>
+                <option value="ROTATE_SOON">ROTATE_SOON</option>
+                <option value="ROTATE_NOW">ROTATE_NOW</option>
+                <option value="EXPIRED">EXPIRED</option>
+              </AdminSelect>
+            </div>
+            <div className="flex items-end">
+              <button className="gov-btn gov-btn-outline w-full" type="button" onClick={() => { setKeyword(""); setAuthMethod("ALL"); setRotationStatus("ALL"); }}>
+                {en ? "Reset Filters" : "검색 조건 초기화"}
+              </button>
+            </div>
+          </div>
+        </CollectionResultPanel>
+
+        <section className="gov-card overflow-hidden p-0" data-help-id="external-keys-inventory">
+          <GridToolbar
+            actions={<p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? `Visible ${filteredRows.length} of ${rows.length}` : `전체 ${rows.length}건 중 ${filteredRows.length}건 표시`}</p>}
+            meta={(en ? "Refreshed at " : "갱신 시각 ") + stringOf(page as Record<string, unknown>, "refreshedAt")}
+            title={en ? "Credential Inventory" : "인증키 인벤토리"}
+          />
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
+                <tr>
+                  <th className="px-4 py-3">{en ? "Connection" : "연계"}</th>
+                  <th className="px-4 py-3">{en ? "Credential" : "인증키"}</th>
+                  <th className="px-4 py-3">{en ? "Auth" : "방식"}</th>
+                  <th className="px-4 py-3">{en ? "Scope" : "권한 범위"}</th>
+                  <th className="px-4 py-3">{en ? "Last Rotated" : "최근 교체"}</th>
+                  <th className="px-4 py-3">{en ? "Expires" : "만료 예정"}</th>
+                  <th className="px-4 py-3">{en ? "Rotation" : "교체 상태"}</th>
+                  <th className="px-4 py-3">{en ? "Owner" : "담당"}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRows.map((row, index) => (
+                  <tr key={`${stringOf(row, "connectionId")}-${index}`} className="border-t border-[var(--kr-gov-border-light)]">
+                    <td className="px-4 py-3">
+                      <a className="font-bold text-[var(--kr-gov-blue)] underline-offset-2 hover:underline" href={stringOf(row, "targetRoute")}>
+                        {stringOf(row, "connectionName")}
+                      </a>
+                      <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{stringOf(row, "connectionId")} / {stringOf(row, "partnerName")}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="font-bold">{stringOf(row, "credentialLabel")}</div>
+                      <div className="mt-1 font-mono text-xs text-[var(--kr-gov-text-secondary)]">{stringOf(row, "maskedReference")}</div>
+                    </td>
+                    <td className="px-4 py-3">{stringOf(row, "authMethod")}</td>
+                    <td className="px-4 py-3">{stringOf(row, "scopeSummary")}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">{stringOf(row, "lastRotatedAt")}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">{stringOf(row, "expiresAt")}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-black ${badgeClass(stringOf(row, "rotationStatus"))}`}>{stringOf(row, "rotationStatus")}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div>{stringOf(row, "ownerName") || "-"}</div>
+                      <div className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{stringOf(row, "ownerContact") || "-"}</div>
+                    </td>
+                  </tr>
+                ))}
+                {filteredRows.length === 0 ? (
+                  <tr className="border-t border-[var(--kr-gov-border-light)]">
+                    <td className="px-4 py-8 text-center text-[var(--kr-gov-text-secondary)]" colSpan={8}>
+                      {en ? "No external credentials match the current filters." : "현재 조건에 맞는 외부 인증키가 없습니다."}
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.15fr,1fr]">
+          <article className="gov-card overflow-hidden p-0" data-help-id="external-keys-rotation-queue">
+            <GridToolbar meta={en ? "Urgent rows are sorted first to keep rotation handoff visible." : "긴급 항목을 위로 올려 교체 인계 우선순위를 바로 확인할 수 있게 정렬했습니다."} title={en ? "Rotation Queue" : "교체 큐"} />
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-left text-sm">
+                <thead>
+                  <tr className="gov-table-header">
+                    <th className="px-4 py-3">{en ? "Connection" : "연계"}</th>
+                    <th className="px-4 py-3">{en ? "Rotation Window" : "교체 일정"}</th>
+                    <th className="px-4 py-3">{en ? "Policy" : "정책"}</th>
+                    <th className="px-4 py-3">{en ? "Reason" : "사유"}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {rotationRows.map((row, index) => (
+                    <tr key={`${stringOf(row, "connectionId")}-${index}`}>
+                      <td className="px-4 py-3">
+                        <a className="font-bold text-[var(--kr-gov-blue)] underline-offset-2 hover:underline" href={stringOf(row, "targetRoute")}>
+                          {stringOf(row, "connectionName")}
+                        </a>
+                        <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{stringOf(row, "credentialLabel")}</p>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">{stringOf(row, "rotationWindow")}</td>
+                      <td className="px-4 py-3"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-black ${badgeClass(stringOf(row, "rotationPolicy"))}`}>{stringOf(row, "rotationPolicy")}</span></td>
+                      <td className="px-4 py-3">{stringOf(row, "reason")}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <div className="space-y-4">
+            <CollectionResultPanel data-help-id="external-keys-auth-breakdown" title={en ? "Auth Method Breakdown" : "인증 방식 분해"} description={en ? "Review where urgent and manual rotation load is concentrated before assigning owners." : "담당자 배정 전에 긴급 교체와 수동 교체 부담이 어느 인증 방식에 몰려 있는지 먼저 확인합니다."} icon="rule">
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left text-sm">
+                  <thead>
+                    <tr className="gov-table-header">
+                      <th className="px-4 py-3">{en ? "Auth Method" : "인증 방식"}</th>
+                      <th className="px-4 py-3">{en ? "Connections" : "연계 수"}</th>
+                      <th className="px-4 py-3">{en ? "Urgent" : "긴급"}</th>
+                      <th className="px-4 py-3">{en ? "Manual" : "수동"}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {authMethodRows.map((row, index) => (
+                      <tr key={`${row.authMethod}-${index}`}>
+                        <td className="px-4 py-3 font-bold">{row.authMethod}</td>
+                        <td className="px-4 py-3">{row.connectionCount}</td>
+                        <td className="px-4 py-3">{row.urgentCount}</td>
+                        <td className="px-4 py-3">{row.manualCount}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CollectionResultPanel>
+
+            <CollectionResultPanel data-help-id="external-keys-quick-links" title={en ? "Quick Links" : "바로가기"} description={en ? "Move into owning connection, whitelist, or observability pages without exposing secrets." : "비밀값 노출 없이 연결 관리, 화이트리스트, 추적 화면으로 바로 이동합니다."} icon="link">
+              <div className="grid grid-cols-1 gap-3">
+                {quickLinks.map((item, index) => (
+                  <a key={`${stringOf(item, "label")}-${index}`} className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] px-4 py-3 text-sm font-bold text-[var(--kr-gov-blue)] hover:border-[var(--kr-gov-blue)]" href={stringOf(item, "targetRoute", "href")}>
+                    {stringOf(item, "label", "title")}
+                  </a>
+                ))}
+              </div>
+            </CollectionResultPanel>
+
+            <CollectionResultPanel data-help-id="external-keys-guidance" title={en ? "Operating Guidance" : "운영 가이드"} description={en ? "Use the same control baseline for rotation, expiry, and incident review." : "교체, 만료, 장애 점검에 동일한 통제 기준을 적용할 수 있도록 정리했습니다."} icon="fact_check">
+              <div className="space-y-3">
+                {guidance.map((item, index) => (
+                  <article key={`${stringOf(item, "title")}-${index}`} className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] ${badgeClass(stringOf(item, "tone"))}`}>{stringOf(item, "tone") || "INFO"}</span>
+                      <h3 className="text-sm font-black text-[var(--kr-gov-text-primary)]">{stringOf(item, "title")}</h3>
+                    </div>
+                    <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">{stringOf(item, "body", "description")}</p>
+                  </article>
+                ))}
+              </div>
+            </CollectionResultPanel>
+          </div>
+        </section>
+      </AdminWorkspacePageFrame>
+    </AdminPageShell>
+  );
+}

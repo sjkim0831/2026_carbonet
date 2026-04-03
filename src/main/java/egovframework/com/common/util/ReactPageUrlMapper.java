@@ -23,6 +23,8 @@ public final class ReactPageUrlMapper {
         registerAdmin(adminPathToRoute, adminRouteToPath, "admin-login", "/admin/login/loginView", "/admin/login/loginView");
         registerAdmin(adminPathToRoute, adminRouteToPath, "member-approve", "/admin/member/approve", "/admin/member/approve");
         registerAdmin(adminPathToRoute, adminRouteToPath, "company-approve", "/admin/member/company-approve", "/admin/member/company-approve");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "certificate-pending", "/admin/certificate/pending_list", "/admin/certificate/pending_list");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "virtual-issue", "/admin/payment/virtual_issue", "/admin/payment/virtual_issue");
         registerAdmin(adminPathToRoute, adminRouteToPath, "member-edit", "/admin/member/edit", "/admin/member/edit");
         registerAdmin(adminPathToRoute, adminRouteToPath, "member-detail", "/admin/member/detail", "/admin/member/detail");
         registerAdmin(adminPathToRoute, adminRouteToPath, "password-reset", "/admin/member/reset_password", "/admin/member/reset_password");
@@ -37,15 +39,31 @@ public final class ReactPageUrlMapper {
         registerAdmin(adminPathToRoute, adminRouteToPath, "admin-permission", "/admin/member/admin_account/permissions", "/admin/member/admin_account/permissions");
         registerAdmin(adminPathToRoute, adminRouteToPath, "member-stats", "/admin/member/stats", "/admin/member/stats");
         registerAdmin(adminPathToRoute, adminRouteToPath, "member-register", "/admin/member/register", "/admin/member/register");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "trade-list", "/admin/trade/list", "/admin/trade/list");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "trade-duplicate", "/admin/trade/duplicate", "/admin/trade/duplicate");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "trade-approve", "/admin/trade/approve", "/admin/trade/approve");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "settlement-calendar", "/admin/payment/settlement", "/admin/payment/settlement");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "refund-list", "/admin/payment/refund_list", "/admin/payment/refund_list");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "refund-process", "/admin/payment/refund_process", "/admin/payment/refund_process");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "trade-reject", "/admin/trade/reject", "/admin/trade/reject");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "certificate-review", "/admin/certificate/review", "/admin/certificate/review");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "certificate-statistics", "/admin/certificate/statistics", "/admin/certificate/statistics");
         registerAdmin(adminPathToRoute, adminRouteToPath, "auth-group", "/admin/auth/group", "/admin/auth/group", "/admin/member/auth-group", "/admin/system/role");
         registerAdmin(adminPathToRoute, adminRouteToPath, "auth-change", "/admin/member/auth-change", "/admin/member/auth-change", "/admin/system/auth-change");
         registerAdmin(adminPathToRoute, adminRouteToPath, "dept-role", "/admin/member/dept-role-mapping", "/admin/member/dept-role-mapping", "/admin/system/dept-role-mapping");
         registerAdmin(adminPathToRoute, adminRouteToPath, "emission-result-list", "/admin/emission/result_list", "/admin/emission/result_list");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "emission-result-detail", "/admin/emission/result_detail", "/admin/emission/result_detail");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "emission-validate", "/admin/emission/validate", "/admin/emission/validate");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "emission-data-history", "/admin/emission/data_history", "/admin/emission/data_history");
         registerAdmin(adminPathToRoute, adminRouteToPath, "emission-site-management", "/admin/emission/site-management", "/admin/emission/site-management");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "certificate-rec-check", "/admin/certificate/rec_check", "/admin/certificate/rec_check");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "certificate-objection-list", "/admin/certificate/objection_list", "/admin/certificate/objection_list");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "certificate-audit-log", "/admin/certificate/audit-log", "/admin/certificate/audit-log");
         registerAdmin(adminPathToRoute, adminRouteToPath, "system-code", "/admin/system/code", "/admin/system/code");
         registerAdmin(adminPathToRoute, adminRouteToPath, "page-management", "/admin/system/page-management", "/admin/system/page-management");
         registerAdmin(adminPathToRoute, adminRouteToPath, "function-management", "/admin/system/feature-management", "/admin/system/feature-management");
-        registerAdmin(adminPathToRoute, adminRouteToPath, "menu-management", "/admin/system/menu-management", "/admin/system/menu-management");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "menu-management", "/admin/system/menu", "/admin/system/menu", "/admin/system/menu-management");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "faq-menu-management", "/admin/content/menu", "/admin/content/menu");
         registerAdmin(adminPathToRoute, adminRouteToPath, "ip-whitelist", "/admin/system/ip_whitelist", "/admin/system/ip_whitelist");
         registerAdmin(adminPathToRoute, adminRouteToPath, "access-history", "/admin/system/access_history", "/admin/system/access_history");
         registerAdmin(adminPathToRoute, adminRouteToPath, "unified-log",
@@ -64,6 +82,21 @@ public final class ReactPageUrlMapper {
         registerAdmin(adminPathToRoute, adminRouteToPath, "security-monitoring", "/admin/system/security-monitoring", "/admin/system/security-monitoring");
         registerAdmin(adminPathToRoute, adminRouteToPath, "blocklist", "/admin/system/blocklist", "/admin/system/blocklist");
         registerAdmin(adminPathToRoute, adminRouteToPath, "security-audit", "/admin/system/security-audit", "/admin/system/security-audit");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "sensor-add", "/admin/monitoring/sensor_add", "/admin/monitoring/sensor_add");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "sensor-edit", "/admin/monitoring/sensor_edit", "/admin/monitoring/sensor_edit");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "sensor-list", "/admin/monitoring/sensor_list", "/admin/monitoring/sensor_list");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "external-connection-list", "/admin/external/connection_list", "/admin/external/connection_list");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "external-schema", "/admin/external/schema", "/admin/external/schema");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "external-keys", "/admin/external/keys", "/admin/external/keys");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "external-usage", "/admin/external/usage", "/admin/external/usage");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "external-logs", "/admin/external/logs", "/admin/external/logs");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "external-webhooks", "/admin/external/webhooks", "/admin/external/webhooks");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "external-sync", "/admin/external/sync", "/admin/external/sync");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "external-maintenance", "/admin/external/maintenance", "/admin/external/maintenance");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "external-retry", "/admin/external/retry", "/admin/external/retry");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "external-connection-add", "/admin/external/connection_add", "/admin/external/connection_add");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "external-connection-edit", "/admin/external/connection_edit", "/admin/external/connection_edit");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "batch-management", "/admin/system/batch", "/admin/system/batch");
         registerAdmin(adminPathToRoute, adminRouteToPath, "scheduler-management", "/admin/system/scheduler", "/admin/system/scheduler");
         registerAdmin(adminPathToRoute, adminRouteToPath, "backup-config", "/admin/system/backup_config", "/admin/system/backup_config");
         registerAdmin(adminPathToRoute, adminRouteToPath, "backup-execution", "/admin/system/backup", "/admin/system/backup");
@@ -73,6 +106,7 @@ public final class ReactPageUrlMapper {
         registerAdmin(adminPathToRoute, adminRouteToPath, "observability", "/admin/system/observability", "/admin/system/observability");
         registerAdmin(adminPathToRoute, adminRouteToPath, "help-management", "/admin/system/help-management", "/admin/system/help-management");
         registerAdmin(adminPathToRoute, adminRouteToPath, "full-stack-management", "/admin/system/full-stack-management", "/admin/system/full-stack-management");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "infra", "/admin/system/infra", "/admin/system/infra");
         registerAdmin(adminPathToRoute, adminRouteToPath, "platform-studio", "/admin/system/platform-studio", "/admin/system/platform-studio");
         registerAdmin(adminPathToRoute, adminRouteToPath, "screen-elements-management", "/admin/system/screen-elements-management", "/admin/system/screen-elements-management");
         registerAdmin(adminPathToRoute, adminRouteToPath, "event-management-console", "/admin/system/event-management-console", "/admin/system/event-management-console");
@@ -86,11 +120,26 @@ public final class ReactPageUrlMapper {
         registerAdmin(adminPathToRoute, adminRouteToPath, "screen-flow-management", "/admin/system/screen-flow-management", "/admin/system/screen-flow-management");
         registerAdmin(adminPathToRoute, adminRouteToPath, "screen-menu-assignment-management", "/admin/system/screen-menu-assignment-management", "/admin/system/screen-menu-assignment-management");
         registerAdmin(adminPathToRoute, adminRouteToPath, "wbs-management", "/admin/system/wbs-management", "/admin/system/wbs-management");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "new-page", "/admin/system/new-page", "/admin/system/new-page");
         registerAdmin(adminPathToRoute, adminRouteToPath, "sr-workbench", "/admin/system/sr-workbench", "/admin/system/sr-workbench");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "board-list", "/admin/content/board_list", "/admin/content/board_list");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "board-add", "/admin/content/board_add", "/admin/content/board_add");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "post-list", "/admin/content/post_list", "/admin/content/post_list");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "popup-list", "/admin/content/popup_list", "/admin/content/popup_list");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "popup-edit", "/admin/content/popup_edit", "/admin/content/popup_edit");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "qna-category", "/admin/content/qna", "/admin/content/qna");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "faq-management", "/admin/content/faq_list", "/admin/content/faq_list");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "banner-list", "/admin/content/banner_list", "/admin/content/banner_list");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "banner-edit", "/admin/content/banner_edit", "/admin/content/banner_edit");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "tag-management", "/admin/content/tag", "/admin/content/tag");
         registerAdmin(adminPathToRoute, adminRouteToPath, "error-log", "/admin/system/error-log", "/admin/system/error-log");
 
         registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "home", "/home", "/en/home", "/home");
-        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "mypage", "/mypage", "/en/mypage", "/mypage");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "mypage", "/mypage/profile", "/en/mypage/profile", "/mypage", "/mypage/profile");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "mypage_notification", "/mypage/notification", "/en/mypage/notification", "/mypage/notification");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "mypage_marketing", "/mypage/marketing", "/en/mypage/marketing", "/mypage/marketing");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "mypage_company", "/mypage/company", "/en/mypage/company", "/mypage/company");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "mypage_password", "/mypage/password", "/en/mypage/password", "/mypage/password");
         registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "signin_login", "/signin/loginView", "/en/signin/loginView", "/signin/loginView");
         registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "signin_auth_choice", "/signin/authChoice", "/en/signin/authChoice", "/signin/authChoice");
         registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "signin_find_id", "/signin/findId", "/en/signin/findId", "/signin/findId", "/signin/findId/overseas");
@@ -108,7 +157,54 @@ public final class ReactPageUrlMapper {
         registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "join_company_status", "/join/companyJoinStatusSearch", "/join/en/companyJoinStatusSearch", "/join/companyJoinStatusSearch", "/join/companyJoinStatusDetail");
         registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "join_company_status_guide", "/join/companyJoinStatusGuide", "/join/en/companyJoinStatusGuide", "/join/companyJoinStatusGuide");
         registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "join_company_reapply", "/join/companyReapply", "/join/en/companyReapply", "/join/companyReapply");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "support_faq", "/support/faq", "/en/support/faq", "/support/faq");
         registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "emission_project_list", "/emission/project_list", "/en/emission/project_list", "/emission/project_list");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "emission_lci", "/emission/lci", "/en/emission/lci", "/emission/lci");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "emission_simulate", "/emission/simulate", "/en/emission/simulate", "/emission/simulate");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "monitoring_reduction_trend", "/monitoring/reduction_trend", "/en/monitoring/reduction_trend", "/monitoring/reduction_trend");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "monitoring_statistics", "/monitoring/statistics", "/en/monitoring/statistics", "/monitoring/statistics", "/monitoring/esg");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "monitoring_share", "/monitoring/share", "/en/monitoring/share", "/monitoring/share");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "co2_production_list", "/co2/production_list", "/en/co2/production_list", "/co2/production_list");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "monitoring_dashboard", "/monitoring/dashboard", "/en/monitoring/dashboard", "/monitoring/dashboard");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "monitoring_realtime", "/monitoring/realtime", "/en/monitoring/realtime", "/monitoring/realtime");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "monitoring_alerts", "/monitoring/alerts", "/en/monitoring/alerts", "/monitoring/alerts");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "monitoring_track", "/monitoring/track", "/en/monitoring/track", "/monitoring/track");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "monitoring_export", "/monitoring/export", "/en/monitoring/export", "/monitoring/export");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "co2_integrity", "/co2/integrity", "/en/co2/integrity", "/co2/integrity");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "co2_credit", "/co2/credits", "/en/co2/credits", "/co2/credit", "/co2/credits");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "co2_analysis", "/co2/analysis", "/en/co2/analysis", "/co2/analysis");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "co2_search", "/co2/search", "/en/co2/search", "/co2/search", "/trade/matching");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "trade_buy_request", "/trade/buy_request", "/en/trade/buy_request", "/trade/buy_request");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "trade_complete", "/trade/complete", "/en/trade/complete", "/trade/complete");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "trade_auto_order", "/trade/auto_order", "/en/trade/auto_order", "/trade/auto_order");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "trade_list", "/trade/list", "/en/trade/list", "/trade/list");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "trade_market", "/trade/market", "/en/trade/market", "/trade/market");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "trade_report", "/trade/report", "/en/trade/report", "/trade/report");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "trade_sell", "/trade/sell", "/en/trade/sell", "/trade/sell");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "trade_price_alert", "/trade/price_alert", "/en/trade/price_alert", "/trade/price_alert");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "payment_pay", "/payment/pay", "/en/payment/pay", "/payment/pay");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "payment_refund", "/payment/refund", "/en/payment/refund", "/payment/refund");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "payment_refund_account", "/payment/refund_account", "/en/payment/refund_account", "/payment/refund_account", "/payment/refundAccount");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "payment_notify", "/payment/notify", "/en/payment/notify", "/payment/notify");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "emission_home_validate", "/emission/validate", "/en/emission/validate", "/emission/validate");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "certificate_list", "/certificate/list", "/en/certificate/list", "/certificate/list");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "certificate_apply", "/certificate/apply", "/en/certificate/apply", "/certificate/apply");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "certificate_report_list", "/certificate/report_list", "/en/certificate/report_list", "/certificate/report_list");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "certificate_report_form", "/certificate/report_form", "/en/certificate/report_form", "/certificate/report_form");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "certificate_report_edit", "/certificate/report_edit", "/en/certificate/report_edit", "/certificate/report_edit");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "payment_history", "/payment/history", "/en/payment/history", "/payment/history");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "edu_course_list", "/edu/course_list", "/en/edu/course_list", "/edu/course_list");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "edu_my_course", "/edu/my_course", "/en/edu/my_course", "/edu/my_course");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "edu_progress", "/edu/progress", "/en/edu/progress", "/edu/progress");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "edu_content", "/edu/content", "/en/edu/content", "/edu/content");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "edu_course_detail", "/edu/course_detail", "/en/edu/course_detail", "/edu/course_detail");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "edu_apply", "/edu/apply", "/en/edu/apply", "/edu/apply");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "edu_survey", "/edu/survey", "/en/edu/survey", "/edu/survey");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "edu_certificate", "/edu/certificate", "/en/edu/certificate", "/edu/certificate");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "payment_receipt", "/payment/receipt", "/en/payment/receipt", "/payment/receipt");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "mypage_email", "/mypage/email", "/en/mypage/email", "/mypage/email");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "mypage_staff", "/mypage/staff", "/en/mypage/staff", "/mypage/staff");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "notice_list", "/support/notice_list", "/en/support/notice_list", "/support/notice_list");
 
         ADMIN_PATH_TO_ROUTE = Collections.unmodifiableMap(adminPathToRoute);
         ADMIN_ROUTE_TO_PATH = Collections.unmodifiableMap(adminRouteToPath);
@@ -166,11 +262,19 @@ public final class ReactPageUrlMapper {
         String path = stripEnglishPrefix(normalized);
         if (path.startsWith("/admin/app")) {
             String mapped = ADMIN_ROUTE_TO_PATH.get(extractRoute(path));
-            return mapped == null || mapped.isEmpty() ? stripQuery(path) : mapped;
+            String querySuffix = extractNonRouteQuerySuffix(path);
+            if (mapped == null || mapped.isEmpty()) {
+                return stripQuery(path);
+            }
+            return querySuffix.isEmpty() ? mapped : mapped + "?" + querySuffix;
         }
         if (path.startsWith("/app")) {
             String mapped = HOME_ROUTE_TO_PATH.get(extractRoute(path));
-            return mapped == null || mapped.isEmpty() ? stripQuery(path) : mapped;
+            String querySuffix = extractNonRouteQuerySuffix(path);
+            if (mapped == null || mapped.isEmpty()) {
+                return stripQuery(path);
+            }
+            return querySuffix.isEmpty() ? mapped : mapped + "?" + querySuffix;
         }
         String querySuffix = extractQuerySuffix(path);
         String basePath = stripQuery(path);
@@ -231,9 +335,6 @@ public final class ReactPageUrlMapper {
         if (path == null || path.isEmpty()) {
             return "";
         }
-        if ("/mypage".equals(path) || path.startsWith("/mypage/")) {
-            return "mypage";
-        }
         String route = HOME_PATH_TO_ROUTE.get(path);
         return route == null ? "" : route;
     }
@@ -241,9 +342,6 @@ public final class ReactPageUrlMapper {
     private static String localizeHomePath(String path) {
         if (path == null || path.isEmpty()) {
             return "";
-        }
-        if ("/mypage".equals(path) || path.startsWith("/mypage/")) {
-            return "/en" + path;
         }
         String localized = HOME_LOCALIZED_PATHS.get(path);
         return localized == null ? path : localized;
@@ -274,6 +372,24 @@ public final class ReactPageUrlMapper {
             return "";
         }
         return value.substring(queryIndex + 1);
+    }
+
+    private static String extractNonRouteQuerySuffix(String value) {
+        String query = extractQuerySuffix(value);
+        if (query.isEmpty()) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder();
+        for (String pair : query.split("&")) {
+            if (pair == null || pair.isEmpty() || pair.startsWith("route=")) {
+                continue;
+            }
+            if (builder.length() > 0) {
+                builder.append('&');
+            }
+            builder.append(pair);
+        }
+        return builder.toString();
     }
 
     private static String stripEnglishPrefix(String value) {

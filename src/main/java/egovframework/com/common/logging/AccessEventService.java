@@ -12,7 +12,8 @@ import egovframework.com.feature.auth.domain.repository.EnterpriseMemberReposito
 import egovframework.com.feature.auth.util.JwtTokenProvider;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
 
@@ -23,8 +24,9 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class AccessEventService {
+
+    private static final Logger log = LoggerFactory.getLogger(AccessEventService.class);
 
     private final ObservabilityMapper observabilityMapper;
     private final JwtTokenProvider jwtTokenProvider;

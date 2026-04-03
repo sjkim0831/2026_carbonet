@@ -57,4 +57,29 @@ public class AdminEmissionResultController {
                 request,
                 locale);
     }
+
+    @RequestMapping(value = "/emission/result_detail", method = { RequestMethod.GET, RequestMethod.POST })
+    public String emissionResultDetailPage(
+            @RequestParam(value = "resultId", required = false) String resultId,
+            HttpServletRequest request,
+            Locale locale,
+            Model model) {
+        return adminMainController.emission_result_detail(
+                resultId,
+                request,
+                locale,
+                model);
+    }
+
+    @GetMapping("/emission/result_detail/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> emissionResultDetailPageApi(
+            @RequestParam(value = "resultId", required = false) String resultId,
+            HttpServletRequest request,
+            Locale locale) {
+        return adminMainController.emissionResultDetailPageApi(
+                resultId,
+                request,
+                locale);
+    }
 }

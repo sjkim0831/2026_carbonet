@@ -20,4 +20,56 @@ public class TraceEventRecordVO {
     private Integer durationMs;
     private String payloadSummaryJson;
     private String createdAt;
+
+    public String getEventId() {
+        return eventId;
+    }
+
+    public String getTraceId() {
+        return traceId;
+    }
+
+    public String getSpanId() {
+        return spanId;
+    }
+
+    public String getParentSpanId() {
+        return parentSpanId;
+    }
+
+    public String getEventType() {
+        return eventType;
+    }
+
+    public String getPageId() {
+        return pageId;
+    }
+
+    public String getComponentId() {
+        return componentId;
+    }
+
+    public String getFunctionId() {
+        return functionId;
+    }
+
+    public String getApiId() {
+        return apiId;
+    }
+
+    public String getResultCode() {
+        return resultCode;
+    }
+
+    public Integer getDurationMs() {
+        return durationMs;
+    }
+
+    public String getPayloadSummaryJson() {
+        return payloadSummaryJson;
+    }
+
+    public String getCreatedAt() {
+        return createdAt;
+    }
 }

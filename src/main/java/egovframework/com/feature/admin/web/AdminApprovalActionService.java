@@ -147,6 +147,10 @@ class AdminApprovalActionService {
             return base(action, selectedIds, rejectReason);
         }
 
+        static ActionResult certificate(String action, List<String> selectedIds, String rejectReason) {
+            return base(action, selectedIds, rejectReason);
+        }
+
         private static ActionResult base(String action, List<String> selectedIds, String rejectReason) {
             ActionResult result = new ActionResult();
             result.action = action == null ? "" : action;

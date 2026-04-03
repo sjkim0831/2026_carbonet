@@ -18,4 +18,44 @@ public class FeatureCatalogItemVO {
     private String useAt;
     private int assignedRoleCount;
     private boolean unassignedToRole;
+
+    public String getMenuCode() {
+        return menuCode;
+    }
+
+    public String getMenuNm() {
+        return menuNm;
+    }
+
+    public String getMenuNmEn() {
+        return menuNmEn;
+    }
+
+    public String getMenuUrl() {
+        return menuUrl;
+    }
+
+    public void setMenuUrl(String menuUrl) {
+        this.menuUrl = menuUrl;
+    }
+
+    public String getFeatureCode() {
+        return featureCode;
+    }
+
+    public String getFeatureNm() {
+        return featureNm;
+    }
+
+    public int getAssignedRoleCount() {
+        return assignedRoleCount;
+    }
+
+    public void setAssignedRoleCount(int assignedRoleCount) {
+        this.assignedRoleCount = assignedRoleCount;
+    }
+
+    public void setUnassignedToRole(boolean unassignedToRole) {
+        this.unassignedToRole = unassignedToRole;
+    }
 }

@@ -42,9 +42,35 @@ final class CalculationTrace {
     private Map<String, Object> factorEntry(String factorCode, double factorValue, boolean defaultApplied) {
         Map<String, Object> factor = new java.util.LinkedHashMap<>();
         factor.put("factorCode", factorCode);
+        factor.put("lineNo", lineNoOf(factorCode));
+        factor.put("source", sourceOf(factorCode));
         factor.put("factorValue", factorValue);
         factor.put("defaultApplied", defaultApplied);
         return factor;
+    }
+
+    private Integer lineNoOf(String factorCode) {
+        if (factorCode == null) {
+            return null;
+        }
+        int start = factorCode.indexOf('[');
+        int end = factorCode.indexOf(']');
+        if (start < 0 || end <= start + 1) {
+            return null;
+        }
+        try {
+            return Integer.valueOf(factorCode.substring(start + 1, end));
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    private String sourceOf(String factorCode) {
+        if (factorCode == null) {
+            return "";
+        }
+        int start = factorCode.indexOf('[');
+        return start > 0 ? factorCode.substring(0, start) : factorCode;
     }
 
     private Map<String, Object> logEntry(String label,

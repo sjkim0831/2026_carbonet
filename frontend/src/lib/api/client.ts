@@ -587,9 +587,12 @@ export type EmissionVariableDefinition = Record<string, unknown> & {
   supplementalYn?: string;
   repeatGroupKey?: string;
   sectionId?: string;
+  sectionOrder?: number;
   sectionTitle?: string;
   sectionDescription?: string;
   sectionFormula?: string;
+  sectionPreviewType?: string;
+  sectionRelatedFactorCodes?: string;
 };
 
 export type EmissionFactorDefinition = Record<string, unknown> & {
@@ -4162,11 +4165,23 @@ export async function fetchMenuManagementPage(menuType?: string, saved?: string)
   if (menuType) search.set("menuType", menuType);
   if (saved) search.set("saved", saved);
   const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/admin/content/menu/page-data${query ? `?${query}` : ""}`, `/en/admin/content/menu/page-data${query ? `?${query}` : ""}`), {
+  const response = await fetch(buildLocalizedPath(`/admin/system/menu/page-data${query ? `?${query}` : ""}`, `/en/admin/system/menu/page-data${query ? `?${query}` : ""}`), {
     credentials: "include"
   });
   const body = await response.json();
   if (!response.ok) throw new Error(body.menuMgmtError || `Failed to load menu management page: ${response.status}`);
+  return body as MenuManagementPagePayload;
+}
+
+export async function fetchContentMenuManagementPage(saved?: string) {
+  const search = new URLSearchParams();
+  if (saved) search.set("saved", saved);
+  const query = search.toString();
+  const response = await fetch(buildLocalizedPath(`/admin/content/menu/page-data${query ? `?${query}` : ""}`, `/en/admin/content/menu/page-data${query ? `?${query}` : ""}`), {
+    credentials: "include"
+  });
+  const body = await response.json();
+  if (!response.ok) throw new Error(body.menuMgmtError || `Failed to load content menu management page: ${response.status}`);
   return body as MenuManagementPagePayload;
 }
 
@@ -5470,7 +5485,7 @@ export async function fetchTradeListPage(params?: { pageIndex?: number; searchKe
   if (params?.tradeStatus) search.set("tradeStatus", params.tradeStatus);
   if (params?.settlementStatus) search.set("settlementStatus", params.settlementStatus);
   const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/admin/trade/list/page-data${query ? `?${query}` : ""}`, `/en/admin/trade/list/page-data${query ? `?${query}` : ""}`), {
+  const response = await fetch(buildLocalizedPath(`/trade/list/page-data${query ? `?${query}` : ""}`, `/en/trade/list/page-data${query ? `?${query}` : ""}`), {
     credentials: "include"
   });
   const body = await response.json();

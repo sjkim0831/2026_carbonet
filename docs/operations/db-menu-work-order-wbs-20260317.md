@@ -104,7 +104,7 @@
 | HOME | `H00802` | GROUP | 계정 관리 | Account Management | `mypage/index` | Y |  |
 | HOME | `H0080201` | PAGE | 비밀번호 변경 | Change Password | `mypage/password` | Y |  |
 | HOME | `H0080202` | PAGE | 이메일/전화 변경 | Update Email/Phone | `mypage/email` | Y |  |
-| HOME | `H0080203` | PAGE | 보안 설정 | Security Settings | `mypage/index` | Y |  |
+| HOME | `H0080203` | PAGE | 보안 설정 | Security Settings | `mypage/security` | Y |  |
 | HOME | `H0080204` | PAGE | 마케팅 수신 | Marketing Preferences | `mypage/marketing` | Y |  |
 | HOME | `H009` | TOP | 고객지원 | Customer Support | `support/index` | Y |  |
 | HOME | `H00901` | GROUP | 고객센터 | Support Center | `support/index` | Y |  |
@@ -158,6 +158,7 @@
 | ADMIN | `A1010201` | PAGE | Codex 요청 관리 | Codex Request Management | `/admin/system/codex-request` | Y | 1 |
 | ADMIN | `A19001` | GROUP | AI 작업센터 | AI Workbench |  | Y | 1 |
 | ADMIN | `A1900101` | PAGE | 화면 도움말 운영 | Help Management | `/admin/system/help-management` | Y | 1 |
+| ADMIN | `A1900106` | PAGE | 새 페이지 | New Page | `/admin/system/new-page` | Y | 1 |
 | ADMIN | `A0010102` | PAGE | 신규 회원 등록 | New Member Registration | `/admin/member/company_account` | Y | 2 |
 | ADMIN | `A00102` | GROUP | 회원사 | Member Companies | `#` | Y | 2 |
 | ADMIN | `A0010203` | PAGE | 회원사 추가 | Add Company | `/admin/member/company_account` | Y | 2 |
@@ -168,7 +169,7 @@
 | ADMIN | `A0020102` | PAGE | 결과 상세 | Result Detail | `/admin/emission/result_detail` | Y | 2 |
 | ADMIN | `A00202` | GROUP | 인증 | Certification | `#` | Y | 2 |
 | ADMIN | `A0020202` | PAGE | 이의신청 처리 | Objection Handling | `/admin/certificate/objection_list` | Y | 2 |
-| ADMIN | `A0020302` | PAGE | 승인자 이력 | Approver History | `/admin/certificate/pending_list` | Y | 2 |
+| ADMIN | `A0020302` | PAGE | 인증서 발급 대기 목록 | Certificate Pending Queue | `/admin/certificate/pending_list` | Y | 2 |
 | ADMIN | `A0030102` | PAGE | 거래 승인 | Trade Approval | `/admin/trade/approve` | Y | 2 |
 | ADMIN | `A00302` | GROUP | 정산 | Settlement | `#` | Y | 2 |
 | ADMIN | `A0030202` | PAGE | 정산 리포트 | Settlement Reports | `/admin/trade/statistics` | Y | 2 |
@@ -234,7 +235,7 @@
 | ADMIN | `A0050104` | PAGE | 동기화 실행 | Run Synchronization | `/admin/external/sync` | Y | 4 |
 | ADMIN | `A0050204` | PAGE | 스키마 맵핑 | Schema Mapping | `/admin/external/schema` | Y | 4 |
 | ADMIN | `A0050304` | PAGE | 점검 모드 | Maintenance Mode | `/admin/external/maintenance` | Y | 4 |
-| ADMIN | `A0060107` | PAGE | 메뉴 관리 | Menu Management | `/admin/system/menu-management` | Y | 4 |
+| ADMIN | `A0060107` | PAGE | 메뉴 관리 | Menu Management | `/admin/content/menu` | Y | 4 |
 | ADMIN | `A00602` | GROUP | 보안운영 | Security Operations | `#` | Y | 4 |
 | ADMIN | `A0060204` | PAGE | IP 화이트리스트 | IP Whitelist | `/admin/system/ip_whitelist` | Y | 4 |
 | ADMIN | `A0060304` | PAGE | 통합 로그 | Unified Logs | `/admin/system/unified_log` | Y | 4 |
@@ -314,7 +315,7 @@
 | A4.09 | ADMIN | Wave 4. 시스템 운영 | `A0060206` | 보안 감사 로그 | `/admin/system/security-audit` | 보안/운영 | 정책/감사/운영 점검표 | Wave 3 | 중간 |
 | A4.02 | ADMIN | Wave 4. 시스템 운영 | `A1010201` | Codex 요청 관리 | `/admin/system/codex-request` | 보안/운영 | 정책/감사/운영 점검표 | Wave 3 | 중간 |
 | A5.05 | ADMIN | Wave 5. 플랫폼/거버넌스 | `A0060105` | 페이지 관리 | `/admin/system/page-management` | 메타/플랫폼 관리 | 거버넌스/도구 메뉴 점검표 | Wave 4 | 중간 |
-| A5.04 | ADMIN | Wave 5. 플랫폼/거버넌스 | `A0060107` | 메뉴 관리 | `/admin/system/menu-management` | 메타/플랫폼 관리 | 거버넌스/도구 메뉴 점검표 | Wave 4 | 중간 |
+| A5.04 | ADMIN | Wave 5. 플랫폼/거버넌스 | `A0060107` | 메뉴 관리 | `/admin/content/menu` | 메타/플랫폼 관리 | 거버넌스/도구 메뉴 점검표 | Wave 4 | 중간 |
 | A5.06 | ADMIN | Wave 5. 플랫폼/거버넌스 | `A0060108` | 풀스택 관리 | `/admin/system/full-stack-management` | 메타/플랫폼 관리 | 거버넌스/도구 메뉴 점검표 | Wave 4 | 중간 |
 | A5.07 | ADMIN | Wave 5. 플랫폼/거버넌스 | `A0060109` | 플랫폼 스튜디오 | `/admin/system/platform-studio` | 메타/플랫폼 관리 | 거버넌스/도구 메뉴 점검표 | Wave 4 | 중간 |
 | A5.08 | ADMIN | Wave 5. 플랫폼/거버넌스 | `A0060110` | 화면 요소 관리 | `/admin/system/screen-elements-management` | 메타/플랫폼 관리 | 거버넌스/도구 메뉴 점검표 | Wave 4 | 중간 |
@@ -390,7 +391,7 @@
 | H5.60 | HOME | Wave 5. 공개 기타 | `H0080104` | 알림 설정 | `mypage/notification` | 공개 기타 메뉴 | 메뉴별 readiness 점검표 | Wave 1 | 중간 |
 | H5.61 | HOME | Wave 5. 공개 기타 | `H0080201` | 비밀번호 변경 | `mypage/password` | 공개 기타 메뉴 | 메뉴별 readiness 점검표 | Wave 1 | 중간 |
 | H5.62 | HOME | Wave 5. 공개 기타 | `H0080202` | 이메일/전화 변경 | `mypage/email` | 공개 기타 메뉴 | 메뉴별 readiness 점검표 | Wave 1 | 중간 |
-| H5.63 | HOME | Wave 5. 공개 기타 | `H0080203` | 보안 설정 | `mypage/index` | 공개 기타 메뉴 | 메뉴별 readiness 점검표 | Wave 1 | 중간 |
+| H5.63 | HOME | Wave 5. 공개 기타 | `H0080203` | 보안 설정 | `mypage/security` | 공개 기타 메뉴 | 메뉴별 readiness 점검표 | Wave 1 | 중간 |
 | H5.64 | HOME | Wave 5. 공개 기타 | `H0080204` | 마케팅 수신 | `mypage/marketing` | 공개 기타 메뉴 | 메뉴별 readiness 점검표 | Wave 1 | 중간 |
 | H5.65 | HOME | Wave 5. 공개 기타 | `H0090101` | 공지사항 | `support/notice_list` | 공개 기타 메뉴 | 메뉴별 readiness 점검표 | Wave 1 | 중간 |
 | H5.66 | HOME | Wave 5. 공개 기타 | `H0090102` | FAQ | `support/faq` | 공개 기타 메뉴 | 메뉴별 readiness 점검표 | Wave 1 | 중간 |
@@ -406,7 +407,7 @@
 | A6.35 | ADMIN | Wave 6. 기타 관리자 | `A0020203` | 인증서 통계 | `/admin/certificate/statistics` | 기타 관리자 메뉴 | 개별 메뉴 readiness 점검표 | Wave 3 | 낮음 |
 | A6.51 | ADMIN | Wave 6. 기타 관리자 | `A0020204` | REC 중복 확인 | `/admin/certificate/rec_check` | 기타 관리자 메뉴 | 개별 메뉴 readiness 점검표 | Wave 3 | 낮음 |
 | A6.03 | ADMIN | Wave 6. 기타 관리자 | `A0020301` | 감사 로그 | `/admin/certificate/audit-log` | 기타 관리자 메뉴 | 개별 메뉴 readiness 점검표 | Wave 3 | 낮음 |
-| A6.20 | ADMIN | Wave 6. 기타 관리자 | `A0020302` | 승인자 이력 | `/admin/certificate/pending_list` | 기타 관리자 메뉴 | 개별 메뉴 readiness 점검표 | Wave 3 | 낮음 |
+| A6.20 | ADMIN | Wave 6. 기타 관리자 | `A0020302` | 인증서 발급 대기 목록 | `/admin/certificate/pending_list` | 기타 관리자 메뉴 | 개별 메뉴 readiness 점검표 | Wave 3 | 낮음 |
 | A6.36 | ADMIN | Wave 6. 기타 관리자 | `A0020303` | 반려 사유 관리 | `/admin/certificate/approve` | 기타 관리자 메뉴 | 개별 메뉴 readiness 점검표 | Wave 3 | 낮음 |
 | A6.04 | ADMIN | Wave 6. 기타 관리자 | `A0030101` | 거래 목록 | `/admin/trade/list` | 기타 관리자 메뉴 | 개별 메뉴 readiness 점검표 | Wave 3 | 낮음 |
 | A6.21 | ADMIN | Wave 6. 기타 관리자 | `A0030102` | 거래 승인 | `/admin/trade/approve` | 기타 관리자 메뉴 | 개별 메뉴 readiness 점검표 | Wave 3 | 낮음 |

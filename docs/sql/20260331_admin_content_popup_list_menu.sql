@@ -1,0 +1,244 @@
+-- CUBRID-safe admin content popup_list menu registration
+--
+-- Creates:
+-- - COMTCCMMNDETAILCODE
+-- - COMTNMENUINFO
+-- - COMTNMENUORDER
+-- - COMTNMENUFUNCTIONINFO
+-- - COMTNAUTHORFUNCTIONRELATE
+
+-- =========================================================
+-- 1) Pre-check
+-- =========================================================
+
+SELECT
+    d.CODE_ID,
+    d.CODE,
+    d.CODE_NM,
+    m.MENU_URL,
+    f.FEATURE_CODE
+FROM COMTCCMMNDETAILCODE d
+LEFT JOIN COMTNMENUINFO m
+  ON m.MENU_CODE = d.CODE
+LEFT JOIN COMTNMENUFUNCTIONINFO f
+  ON f.MENU_CODE = d.CODE
+WHERE d.CODE_ID = 'AMENU1'
+  AND d.CODE = 'A0040203';
+
+SELECT
+    'MENU_URL_EXISTS' AS check_name,
+    COUNT(*) AS row_count
+FROM COMTNMENUINFO
+WHERE MENU_URL = '/admin/content/popup_list'
+UNION ALL
+SELECT
+    'FEATURE_CODE_EXISTS' AS check_name,
+    COUNT(*) AS row_count
+FROM COMTNMENUFUNCTIONINFO
+WHERE FEATURE_CODE = 'ADMIN_A0040203_VIEW'
+UNION ALL
+SELECT
+    'AUTHOR_REL_EXISTS' AS check_name,
+    COUNT(*) AS row_count
+FROM COMTNAUTHORFUNCTIONRELATE
+WHERE FEATURE_CODE = 'ADMIN_A0040203_VIEW';
+
+SELECT
+    r.AUTHOR_CODE,
+    COUNT(*) AS current_banner_list_feature_count
+FROM COMTNAUTHORFUNCTIONRELATE r
+JOIN COMTNMENUFUNCTIONINFO f
+  ON f.FEATURE_CODE = r.FEATURE_CODE
+JOIN COMTNMENUINFO m
+  ON m.MENU_CODE = f.MENU_CODE
+WHERE m.MENU_URL = '/admin/content/banner_list'
+GROUP BY r.AUTHOR_CODE
+ORDER BY r.AUTHOR_CODE;
+
+-- =========================================================
+-- 2) Insert detail code + menu
+-- =========================================================
+
+INSERT INTO COMTCCMMNDETAILCODE (
+    CODE_ID,
+    CODE,
+    CODE_NM,
+    CODE_DC,
+    USE_AT,
+    FRST_REGIST_PNTTM,
+    FRST_REGISTER_ID
+)
+SELECT
+    'AMENU1',
+    'A0040203',
+    '팝업 목록',
+    'Popup List',
+    'Y',
+    CURRENT_DATETIME,
+    'codex'
+FROM db_root
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM COMTCCMMNDETAILCODE d
+    WHERE d.CODE_ID = 'AMENU1'
+      AND d.CODE = 'A0040203'
+);
+
+INSERT INTO COMTNMENUINFO (
+    MENU_CODE,
+    MENU_NM,
+    MENU_NM_EN,
+    MENU_URL,
+    MENU_ICON,
+    USE_AT,
+    FRST_REGIST_PNTTM,
+    LAST_UPDT_PNTTM
+)
+SELECT
+    'A0040203',
+    '팝업 목록',
+    'Popup List',
+    '/admin/content/popup_list',
+    'web_asset',
+    'Y',
+    CURRENT_DATETIME,
+    CURRENT_DATETIME
+FROM db_root
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM COMTNMENUINFO m
+    WHERE m.MENU_URL = '/admin/content/popup_list'
+);
+
+INSERT INTO COMTNMENUORDER (
+    MENU_CODE,
+    SORT_ORDR,
+    FRST_REGIST_PNTTM,
+    LAST_UPDT_PNTTM
+)
+SELECT
+    'A0040203',
+    3,
+    CURRENT_DATETIME,
+    CURRENT_DATETIME
+FROM db_root
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM COMTNMENUORDER o
+    WHERE o.MENU_CODE = 'A0040203'
+);
+
+INSERT INTO COMTNMENUFUNCTIONINFO (
+    MENU_CODE,
+    FEATURE_CODE,
+    FEATURE_NM,
+    FEATURE_NM_EN,
+    FEATURE_DC,
+    USE_AT,
+    FRST_REGIST_PNTTM,
+    LAST_UPDT_PNTTM
+)
+SELECT
+    'A0040203',
+    'ADMIN_A0040203_VIEW',
+    '팝업 목록',
+    'View Popup List',
+    '팝업 목록 기본 VIEW 권한',
+    'Y',
+    CURRENT_DATETIME,
+    CURRENT_DATETIME
+FROM db_root
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM COMTNMENUFUNCTIONINFO f
+    WHERE f.FEATURE_CODE = 'ADMIN_A0040203_VIEW'
+);
+
+INSERT INTO COMTNAUTHORFUNCTIONRELATE (
+    AUTHOR_CODE,
+    FEATURE_CODE,
+    GRANT_AUTHORITY_YN,
+    CREAT_DT
+)
+SELECT
+    author_targets.AUTHOR_CODE,
+    'ADMIN_A0040203_VIEW',
+    'N',
+    CURRENT_DATETIME
+FROM (
+    SELECT DISTINCT
+        r.AUTHOR_CODE
+    FROM COMTNAUTHORFUNCTIONRELATE r
+    JOIN COMTNMENUFUNCTIONINFO f
+      ON f.FEATURE_CODE = r.FEATURE_CODE
+    JOIN COMTNMENUINFO m
+      ON m.MENU_CODE = f.MENU_CODE
+    WHERE m.MENU_URL = '/admin/content/banner_list'
+
+    UNION ALL
+
+    SELECT 'ROLE_ADMIN'
+    FROM db_root
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM COMTNAUTHORFUNCTIONRELATE r2
+        JOIN COMTNMENUFUNCTIONINFO f2
+          ON f2.FEATURE_CODE = r2.FEATURE_CODE
+        JOIN COMTNMENUINFO m2
+          ON m2.MENU_CODE = f2.MENU_CODE
+        WHERE m2.MENU_URL = '/admin/content/banner_list'
+    )
+) author_targets
+WHERE EXISTS (
+    SELECT 1
+    FROM COMTNAUTHORINFO a
+    WHERE a.AUTHOR_CODE = author_targets.AUTHOR_CODE
+)
+AND EXISTS (
+    SELECT 1
+    FROM COMTNMENUFUNCTIONINFO f3
+    WHERE f3.FEATURE_CODE = 'ADMIN_A0040203_VIEW'
+)
+AND NOT EXISTS (
+    SELECT 1
+    FROM COMTNAUTHORFUNCTIONRELATE r3
+    WHERE r3.AUTHOR_CODE = author_targets.AUTHOR_CODE
+      AND r3.FEATURE_CODE = 'ADMIN_A0040203_VIEW'
+);
+
+DELETE FROM COMTNAUTHORFUNCTIONRELATE
+WHERE FEATURE_CODE = 'A0040203_VIEW';
+
+DELETE FROM COMTNMENUFUNCTIONINFO
+WHERE FEATURE_CODE = 'A0040203_VIEW';
+
+-- =========================================================
+-- 3) Post-check
+-- =========================================================
+
+SELECT
+    d.CODE_ID,
+    d.CODE,
+    d.CODE_NM,
+    d.CODE_DC,
+    d.USE_AT,
+    m.MENU_URL,
+    m.MENU_ICON,
+    o.SORT_ORDR,
+    f.FEATURE_CODE
+FROM COMTCCMMNDETAILCODE d
+LEFT JOIN COMTNMENUINFO m
+  ON m.MENU_CODE = d.CODE
+LEFT JOIN COMTNMENUORDER o
+  ON o.MENU_CODE = d.CODE
+LEFT JOIN COMTNMENUFUNCTIONINFO f
+  ON f.MENU_CODE = d.CODE
+WHERE d.CODE_ID = 'AMENU1'
+  AND d.CODE = 'A0040203';
+
+SELECT
+    r.AUTHOR_CODE,
+    r.FEATURE_CODE
+FROM COMTNAUTHORFUNCTIONRELATE r
+WHERE r.FEATURE_CODE = 'ADMIN_A0040203_VIEW'
+ORDER BY r.AUTHOR_CODE;

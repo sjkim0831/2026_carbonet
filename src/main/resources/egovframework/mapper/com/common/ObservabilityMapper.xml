@@ -331,6 +331,32 @@
         OFFSET #{firstIndex}
     </select>
 
+    <select id="selectAuditEventListCompact" parameterType="egovframework.com.common.audit.AuditEventSearchVO" resultType="egovframework.com.common.audit.AuditEventRecordVO">
+        SELECT
+            AUDIT_ID AS auditId,
+            TRACE_ID AS traceId,
+            REQUEST_ID AS requestId,
+            ACTOR_ID AS actorId,
+            ACTOR_ROLE AS actorRole,
+            MENU_CODE AS menuCode,
+            PAGE_ID AS pageId,
+            ACTION_CODE AS actionCode,
+            ENTITY_TYPE AS entityType,
+            ENTITY_ID AS entityId,
+            '' AS beforeSummaryJson,
+            '[after summary omitted: compact fallback]' AS afterSummaryJson,
+            RESULT_STATUS AS resultStatus,
+            REASON_SUMMARY AS reasonSummary,
+            IP_ADDRESS AS ipAddress,
+            USER_AGENT AS userAgent,
+            TO_CHAR(CREATED_AT, 'YYYY-MM-DD HH24:MI:SS') AS createdAt
+        FROM AUDIT_EVENT
+        <include refid="auditEventWhere" />
+        ORDER BY CREATED_AT DESC
+        LIMIT #{recordCountPerPage}
+        OFFSET #{firstIndex}
+    </select>
+
     <select id="selectTraceEventCount" parameterType="egovframework.com.common.trace.TraceEventSearchVO" resultType="int">
         SELECT COUNT(*)
         FROM TRACE_EVENT
@@ -376,6 +402,39 @@
         OFFSET #{firstIndex}
     </select>
 
+    <select id="selectAccessEventListCompact" parameterType="egovframework.com.common.logging.AccessEventSearchVO" resultType="egovframework.com.common.logging.AccessEventRecordVO">
+        SELECT
+            EVENT_ID AS eventId,
+            TRACE_ID AS traceId,
+            REQUEST_ID AS requestId,
+            PAGE_ID AS pageId,
+            API_ID AS apiId,
+            REQUEST_URI AS requestUri,
+            HTTP_METHOD AS httpMethod,
+            FEATURE_TYPE AS featureType,
+            ACTOR_ID AS actorId,
+            ACTOR_TYPE AS actorType,
+            ACTOR_ROLE AS actorRole,
+            ACTOR_INSTT_ID AS actorInsttId,
+            COMPANY_CONTEXT_ID AS companyContextId,
+            TARGET_COMPANY_CONTEXT_ID AS targetCompanyContextId,
+            REMOTE_ADDR AS remoteAddr,
+            RESPONSE_STATUS AS responseStatus,
+            DURATION_MS AS durationMs,
+            REQUEST_CONTENT_TYPE AS requestContentType,
+            "QUERY_STRING" AS queryString,
+            '' AS parameterSummary,
+            '' AS errorMessage,
+            COMPANY_SCOPE_DECISION AS companyScopeDecision,
+            '[company scope reason omitted: compact fallback]' AS companyScopeReason,
+            TO_CHAR(CREATED_AT, 'YYYY-MM-DD HH24:MI:SS') AS createdAt
+        FROM ACCESS_EVENT
+        <include refid="accessEventWhere" />
+        ORDER BY CREATED_AT DESC
+        LIMIT #{recordCountPerPage}
+        OFFSET #{firstIndex}
+    </select>
+
     <select id="selectErrorEventCount" parameterType="egovframework.com.common.error.ErrorEventSearchVO" resultType="int">
         SELECT COUNT(*)
         FROM ERROR_EVENT
@@ -398,6 +457,32 @@
             REMOTE_ADDR AS remoteAddr,
             MESSAGE AS message,
             STACK_SUMMARY AS stackSummary,
+            RESULT_STATUS AS resultStatus,
+            USER_AGENT AS userAgent,
+            TO_CHAR(CREATED_AT, 'YYYY-MM-DD HH24:MI:SS') AS createdAt
+        FROM ERROR_EVENT
+        <include refid="errorEventWhere" />
+        ORDER BY CREATED_AT DESC
+        LIMIT #{recordCountPerPage}
+        OFFSET #{firstIndex}
+    </select>
+
+    <select id="selectErrorEventListCompact" parameterType="egovframework.com.common.error.ErrorEventSearchVO" resultType="egovframework.com.common.error.ErrorEventRecordVO">
+        SELECT
+            ERROR_ID AS errorId,
+            TRACE_ID AS traceId,
+            REQUEST_ID AS requestId,
+            PAGE_ID AS pageId,
+            API_ID AS apiId,
+            SOURCE_TYPE AS sourceType,
+            ERROR_TYPE AS errorType,
+            ACTOR_ID AS actorId,
+            ACTOR_ROLE AS actorRole,
+            ACTOR_INSTT_ID AS actorInsttId,
+            REQUEST_URI AS requestUri,
+            REMOTE_ADDR AS remoteAddr,
+            '[message omitted: compact fallback]' AS message,
+            '' AS stackSummary,
             RESULT_STATUS AS resultStatus,
             USER_AGENT AS userAgent,
             TO_CHAR(CREATED_AT, 'YYYY-MM-DD HH24:MI:SS') AS createdAt

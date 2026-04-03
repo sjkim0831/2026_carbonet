@@ -8,7 +8,7 @@ final class EmissionCategoryMetadataProvider {
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("factorValue", EmissionCalculationConstants.LIME_DEFAULT_FACTOR);
         response.put("unit", "tCO2/t-lime");
-        response.put("rule", "85% 고칼슘 + 15% 고토석회 + 0% 수화석");
+        response.put("rule", "85% 고칼슘석회 + 15% 고토석회 + 0% 수화석회");
         return response;
     }
 }

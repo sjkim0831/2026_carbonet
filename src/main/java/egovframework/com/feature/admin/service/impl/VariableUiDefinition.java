@@ -108,6 +108,10 @@ final class VariableUiDefinition {
             return this;
         }
 
+        Builder groupedSection(String groupKey, VariableSectionDefinition section, String... varCodes) {
+            return repeatGroup(groupKey, varCodes).section(section, varCodes);
+        }
+
         Builder section(VariableSectionDefinition section, String... varCodes) {
             for (String varCode : varCodes) {
                 sections.put(varCode, section);

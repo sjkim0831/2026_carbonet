@@ -112,6 +112,24 @@ public class AdminHotPathPagePayloadService {
                 locale);
     }
 
+    public Map<String, Object> buildCertificateApprovePagePayload(
+            String pageIndexParam,
+            String searchKeyword,
+            String requestType,
+            String status,
+            String result,
+            HttpServletRequest request,
+            Locale locale) {
+        return approvalPagePayloadService.buildCertificateApprovePagePayload(
+                pageIndexParam,
+                searchKeyword,
+                requestType,
+                status,
+                result,
+                request,
+                locale);
+    }
+
     public Map<String, Object> buildMemberListPagePayload(
             String pageIndexParam,
             String searchKeyword,

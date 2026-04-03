@@ -150,7 +150,7 @@ public class HomeMenuServiceImpl implements HomeMenuService {
             return normalizeHomeMenuUrl(mapped, isEn);
         }
         if ("H008".equals(code) || "H0080101".equals(code)) {
-            return isEn ? "/en/mypage" : "/mypage";
+            return isEn ? "/en/mypage/profile" : "/mypage/profile";
         }
         return "#";
     }
@@ -206,6 +206,9 @@ public class HomeMenuServiceImpl implements HomeMenuService {
         }
         if (!url.startsWith("/")) {
             url = "/" + url;
+        }
+        if ("/mypage".equals(url) || url.startsWith("/mypage/")) {
+            return isEn && !url.startsWith("/en/") ? "/en" + url : url;
         }
         String reactMapped = mapReactMigrationUrl(url, isEn);
         if (!reactMapped.isEmpty()) {

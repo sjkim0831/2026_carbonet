@@ -26,6 +26,26 @@ public class AdminEmissionSiteController {
         return redirectReactMigration(request, locale, "emission-site-management");
     }
 
+    @RequestMapping(value = "/management", method = RequestMethod.GET)
+    public String emissionManagementPage(HttpServletRequest request, Locale locale) {
+        return redirectReactMigration(request, locale, "emission-management");
+    }
+
+    @GetMapping("/management/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> emissionManagementPageApi(HttpServletRequest request, Locale locale) {
+        boolean isEn = isEnglishRequest(request, locale);
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("isEn", isEn);
+        payload.put("menuCode", "A0020107");
+        payload.put("menuUrl", isEn ? "/en/admin/emission/management" : "/admin/emission/management");
+        payload.put("pageTitle", "배출 변수 관리");
+        payload.put("pageTitleEn", "Emission Variable Management");
+        payload.put("pageDescription", "카테고리, Tier, 입력 세션, 계산 실행을 관리자 작업공간에서 직접 검증합니다.");
+        payload.put("pageDescriptionEn", "Validate category, tier, input session, and calculation execution directly from the admin workspace.");
+        return ResponseEntity.ok(payload);
+    }
+
     @GetMapping("/site-management/page-data")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> emissionSiteManagementPageApi(HttpServletRequest request, Locale locale) {

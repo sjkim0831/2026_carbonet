@@ -15,5 +15,5 @@ Suggested sections:
 Current notes:
 
 - repository: `carbonet-react-migration`
-- mixed stack: Spring Boot, Thymeleaf/JSP-style legacy patterns, React migration
+- mixed stack: Spring Boot with React shell delivery for most active pages, plus a small set of direct static/server-generated HTML responses for error or operational states
 - bilingual handling exists in several user flows

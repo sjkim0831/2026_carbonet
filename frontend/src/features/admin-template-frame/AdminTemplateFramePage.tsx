@@ -47,8 +47,8 @@ const ADMIN_TEMPLATE_FRAME_CONFIG: Record<string, TemplateFrameConfig> = {
   "menu-management": {
     titleKo: "메뉴 관리",
     titleEn: "Menu Management",
-    koPath: "/admin/system/menu-management",
-    enPath: "/en/admin/system/menu-management"
+    koPath: "/admin/system/menu",
+    enPath: "/en/admin/system/menu"
   },
   "full-stack-management": {
     titleKo: "풀스택 관리",

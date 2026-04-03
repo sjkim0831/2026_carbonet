@@ -7,6 +7,7 @@ RUN_DIR="${RUN_DIR:-$ROOT_DIR/var/run}"
 CONFIG_DIR="${CONFIG_DIR:-$ROOT_DIR/ops/config}"
 PID_FILE="$RUN_DIR/carbonet-${PORT}.pid"
 TMUX_SESSION_NAME="${TMUX_SESSION_NAME:-carbonet${PORT}}"
+JAR_PATH="$RUN_DIR/carbonet-${PORT}.jar"
 
 load_optional_env() {
   local env_file="$1"
@@ -73,6 +74,15 @@ EOF
   return 0
 }
 
+find_running_pid_without_pid_file() {
+  ps -eo pid=,args= | awk -v jar_path="$JAR_PATH" -v port="--server.port=${PORT}" '
+    index($0, jar_path) && index($0, port) {
+      print $1;
+      exit 0;
+    }
+  '
+}
+
 load_optional_env "$CONFIG_DIR/carbonet-${PORT}.env"
 load_optional_env "$CONFIG_DIR/codex-runner.env"
 
@@ -81,11 +91,16 @@ if command -v tmux >/dev/null 2>&1 && tmux has-session -t "$TMUX_SESSION_NAME" 2
 fi
 
 if [[ ! -f "$PID_FILE" ]]; then
-  echo "[stop-18000] pid file not found: $PID_FILE"
-  exit 0
+  APP_PID="$(find_running_pid_without_pid_file || true)"
+  if [[ -z "${APP_PID:-}" ]]; then
+    echo "[stop-18000] pid file not found: $PID_FILE"
+    exit 0
+  fi
+  echo "[stop-18000] pid file missing; recovered running pid=$APP_PID"
+else
+  APP_PID="$(cat "$PID_FILE" 2>/dev/null || true)"
 fi
 
-APP_PID="$(cat "$PID_FILE" 2>/dev/null || true)"
 if [[ -z "${APP_PID:-}" ]]; then
   rm -f "$PID_FILE"
   echo "[stop-18000] stale pid file removed"

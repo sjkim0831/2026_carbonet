@@ -266,5 +266,69 @@ class AdminCompanyAccountService {
             }
             return ResponseEntity.status(statusCode).body(response);
         }
+
+        boolean isForbidden() {
+            return forbidden;
+        }
+
+        boolean isSuccess() {
+            return success;
+        }
+
+        String getMessage() {
+            return message;
+        }
+
+        String getInsttId() {
+            return insttId;
+        }
+
+        String getMembershipType() {
+            return membershipType;
+        }
+
+        String getAgencyName() {
+            return agencyName;
+        }
+
+        String getRepresentativeName() {
+            return representativeName;
+        }
+
+        String getBizRegistrationNumber() {
+            return bizRegistrationNumber;
+        }
+
+        String getZipCode() {
+            return zipCode;
+        }
+
+        String getCompanyAddress() {
+            return companyAddress;
+        }
+
+        String getCompanyAddressDetail() {
+            return companyAddressDetail;
+        }
+
+        String getChargerName() {
+            return chargerName;
+        }
+
+        String getChargerEmail() {
+            return chargerEmail;
+        }
+
+        String getChargerTel() {
+            return chargerTel;
+        }
+
+        List<InsttFileVO> getExistingFiles() {
+            return existingFiles;
+        }
+
+        List<String> getErrors() {
+            return errors;
+        }
     }
 }

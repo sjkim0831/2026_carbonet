@@ -25,5 +25,6 @@ export {
   MemberSectionToolbar,
   PageStatusNotice,
   MemberToolbar,
-  PageHeaderActions
+  PageHeaderActions,
+  SummaryMetricCard
 } from "../admin-ui/common";

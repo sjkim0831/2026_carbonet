@@ -1538,6 +1538,54 @@
       }
     ]
   },
+  "emission-management": {
+    "title": "배출 변수 관리 도움말",
+    "summary": "KTL 시멘트·석회 변수 정리 문서와 표 2.1, 표 2.4 기준으로 카테고리/Tier별 입력을 저장하고 서버 계산식을 검증하는 관리자 운영 화면입니다.",
+    "items": [
+      {
+        "id": "summary",
+        "title": "상단 요약 카드",
+        "body": "선택 카테고리, Tier, 변수 수, 현재 세션 번호를 먼저 확인해 지금 어떤 계산 범위를 다루는지 빠르게 파악합니다.",
+        "anchorSelector": "[data-help-id=\"emission-management-summary\"]"
+      },
+      {
+        "id": "scope",
+        "title": "범위 선택",
+        "body": "카테고리 검색 후 카테고리와 Tier를 선택하면 해당 범위의 변수 정의와 계수 참조가 다시 로드됩니다. URL에 sessionId가 있으면 마지막 저장 세션을 복원합니다.",
+        "anchorSelector": "[data-help-id=\"emission-management-scope\"]"
+      },
+      {
+        "id": "definition",
+        "title": "정의 카탈로그",
+        "body": "현재 계산식, 입력 항목, 단위, 필수 여부, 반복 입력 여부와 저장된 계수 행을 확인합니다. 시멘트 Tier 1은 [SUM(Mci×Ccli)-Im+Ex]×EFclc 구조이며 MCI와 CCLI를 line별로 반복 입력할 수 있습니다. Tier 2는 Mcl×EFcl×CFckd, Tier 3은 SUM(EFi×Mi×Fi)-Md×Cd×(1-Fd)×EFd+SUM(Mk×Xk×EFk) 구조이며 원료 묶음도 탄산염 종류 선택으로 EFk를 유도할 수 있습니다. 석회 Tier 1은 SUM(EF석회,i×Ml,i), Tier 2는 SUM(EF석회,i×Ml,i×CF_lkd,i×C_h,i), Tier 3은 SUM(EFi×Mi×Fi)-Md×Cd×(1-Fd)×EFd 구조입니다.",
+        "anchorSelector": "[data-help-id=\"emission-management-definition\"]"
+      },
+      {
+        "id": "input",
+        "title": "입력 작업공간",
+        "body": "Summation 변수로 표시된 반복 입력 항목은 행 추가로 라인별 값을 입력합니다. 석회 Tier 1·2의 EF석회,i 유형도 공통코드 선택형으로 제공되며, Tier 2 기본 입력은 CaO 함유량 또는 CaO·MgO 함유량, LKD 질량(Md), LKD 원래 탄산염 비율(Cd), LKD 소성 비율(Fd), 수화석회 생산 여부, 수화석회 비율(x), 석회 수분 함유량(y)입니다. 고칼슘석회·수경성석회는 CaO 함유량을 사용하고, 고토석회(선진국/개도국)는 CaO·MgO 함유량을 사용합니다. 각 함유량이 비어 있으면 문서 기본값을 fallback으로 적용합니다. Md/Cd/Fd가 있으면 CF_lkd,i = 1 + (Md / Ml,i) × Cd × Fd를 적용하고, 없으면 기본값 1.02를 사용합니다. 수화석회를 생산하지 않으면 C_h,i = 1.00, 생산했는데 x,y 자료가 없으면 C_h,i = 0.97을 사용하며, x,y가 있으면 C_h,i = 1 - (x × y)를 적용합니다. 탄산염 종류, 원료 탄산염 종류, 손실 CKD 탄산염 종류는 공통코드 선택형으로 제공되며, 선택값은 표 2.1 기준 탄산염 계수로 자동 매핑됩니다. 시멘트 Tier 3의 EFi와 EFk는 탄산염 종류 선택값으로 자동 계산되며 직접 수정할 수 없습니다. 계산 실행 후 하단 결과 영역에서 CO2를 확인합니다.",
+        "anchorSelector": "[data-help-id=\"emission-management-input\"]"
+      },
+      {
+        "id": "actions",
+        "title": "세션 저장 및 계산",
+        "body": "세션 저장은 현재 입력값을 작업 단위로 고정하고 URL에 sessionId를 반영합니다. 계산 실행은 기존 세션이 없으면 먼저 저장한 뒤 같은 세션으로 서버 계산을 수행합니다.",
+        "anchorSelector": "[data-help-id=\"emission-management-actions\"]"
+      },
+      {
+        "id": "rules",
+        "title": "입력 규칙과 오류 처리",
+        "body": "허용되지 않은 변수 코드를 보내면 서버가 오류를 반환합니다. 고토석회는 Tier 1 기본계수나 Tier 2 default 함유량을 사용할 때 선진국 0.86/0.95 또는 개도국 0.77/0.85를 구분해야 합니다. POST 호출은 세션과 CSRF 토큰이 함께 있어야 합니다.",
+        "anchorSelector": "[data-help-id=\"emission-management-actions\"]"
+      },
+      {
+        "id": "result",
+        "title": "계산 결과 검토",
+        "body": "최신 계산 결과에서 총 배출량, 문서 default fallback 사용 여부, 적용 계수 스냅샷을 확인합니다. 표 2.1 기준 탄산염 매핑이 적용되면 factor snapshot에 EFI[n], EFD 값이 함께 남습니다.",
+        "anchorSelector": "[data-help-id=\"emission-management-result\"]"
+      }
+    ]
+  },
   "emission-result-list": {
     "title": "산정 결과 목록 도움말",
     "summary": "배출량 산정 결과를 상태별로 조회하고 상세 화면으로 이동합니다.",
@@ -2453,6 +2501,48 @@
         "title": "연결 메뉴 정보",
         "body": "메뉴 코드, URL, 설명을 통해 현재 placeholder 연결 상태를 확인합니다.",
         "anchorSelector": "[data-help-id=\"admin-menu-placeholder-card\"]"
+      }
+    ]
+  },
+  "faq-menu-management": {
+    "title": "FAQ 메뉴 운영 대시보드 도움말",
+    "summary": "FAQ 메뉴 가지의 우선 작업, 등록, 트리 정렬을 한 화면에서 운영하는 대시보드입니다.",
+    "items": [
+      {
+        "id": "hero",
+        "title": "운영 허브",
+        "body": "FAQ 메뉴 전체 상태와 오늘 우선 조치가 필요한 작업 수를 상단 허브에서 확인합니다.",
+        "anchorSelector": "[data-help-id=\"faq-menu-management-hero\"]"
+      },
+      {
+        "id": "queue",
+        "title": "우선 작업 큐",
+        "body": "저장 필요 항목, 미연결 메뉴, 비노출 메뉴 검증 같은 후속 작업을 카드형으로 처리합니다.",
+        "anchorSelector": "[data-help-id=\"faq-menu-management-queue\"]"
+      },
+      {
+        "id": "metrics",
+        "title": "핵심 지표",
+        "body": "표시 노드 수, 연결 URL 수, 비노출·미사용 건수, 순서 변경 건수를 빠르게 확인합니다.",
+        "anchorSelector": "[data-help-id=\"faq-menu-management-metrics\"]"
+      },
+      {
+        "id": "search",
+        "title": "범위와 검색",
+        "body": "FAQ 가지의 관리 범위와 검색 조건을 확인하고 원하는 메뉴만 좁혀 봅니다.",
+        "anchorSelector": "[data-help-id=\"content-menu-management-search\"]"
+      },
+      {
+        "id": "register",
+        "title": "빠른 페이지 등록",
+        "body": "선택한 FAQ 그룹 아래에 신규 콘텐츠 페이지를 생성하고 기본 메뉴 메타데이터를 함께 등록합니다.",
+        "anchorSelector": "[data-help-id=\"content-menu-management-register\"]"
+      },
+      {
+        "id": "tree",
+        "title": "FAQ 메뉴 트리",
+        "body": "동일 부모 내 메뉴 순서를 조정하고 저장 전 변경사항을 점검합니다.",
+        "anchorSelector": "[data-help-id=\"content-menu-management-tree\"]"
       }
     ]
   },

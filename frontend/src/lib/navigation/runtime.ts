@@ -19,13 +19,27 @@ declare global {
       mypagePayload?: unknown;
       mypageContext?: unknown;
       memberStatsPageData?: unknown;
+      tradeListPageData?: unknown;
+      tradeStatisticsPageData?: unknown;
+      tradeDuplicatePageData?: unknown;
+      refundListPageData?: unknown;
+      settlementCalendarPageData?: unknown;
+      tradeApprovePageData?: unknown;
+      certificateReviewPageData?: unknown;
       securityPolicyPageData?: unknown;
+      notificationPageData?: unknown;
       securityMonitoringPageData?: unknown;
       securityAuditPageData?: unknown;
+      certificateAuditLogPageData?: unknown;
+      certificateRecCheckPageData?: unknown;
       schedulerManagementPageData?: unknown;
       backupConfigPageData?: unknown;
       emissionResultListPageData?: unknown;
+      emissionResultDetailPageData?: unknown;
+      certificateStatisticsPageData?: unknown;
+      emissionDataHistoryPageData?: unknown;
       emissionSiteManagementPageData?: unknown;
+      emissionValidatePageData?: unknown;
       screenBuilderPageData?: unknown;
     };
   }

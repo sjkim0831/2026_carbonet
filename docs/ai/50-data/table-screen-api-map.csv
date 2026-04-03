@@ -1,4 +1,8 @@
 table_name,screen_id,screen_family,api_id,controller_action,query_id,write_type,data_sensitivity,audit_required,notes
+COMTNMENUINFO,USER-CERTIFICATE-REPORT-LIST,certificate-report-dashboard,USER-CERTIFICATE-REPORT-LIST-PAGE,HomeMenuFallbackController.homeMenuPlaceholder,MenuInfoService.selectMenuDetailByUrl,SELECT,LOW,N,사용자 메뉴 URL과 홈 fallback 경로가 보고서 및 인증서 목록 React 화면으로 연결되는지 확인
+COMTNMENUINFO,ADMIN-NEW-PAGE,admin-scaffold,ADMIN-NEW-PAGE-PAGE,AdminSystemCodeController.newPage,React admin route forward,SELECT,LOW,N,새 페이지 메뉴 URL과 React 화면 진입 메타데이터 확인
+COMTNMENUFUNCTIONINFO,ADMIN-NEW-PAGE,admin-scaffold,ADMIN-NEW-PAGE-PAGE,AdminSystemCodeController.newPage,AuthGroupManageService.selectRequiredViewFeatureCodeByMenuUrl,SELECT,LOW,N,새 페이지 VIEW 기능코드와 권한 요구사항 확인
+COMTNAUTHORFUNCTIONRELATE,ADMIN-NEW-PAGE,admin-scaffold,ADMIN-NEW-PAGE-PAGE,AdminSystemCodeController.newPage,AuthGroupManageService.hasAuthorFeaturePermission,SELECT,MEDIUM,N,현재 관리자 권한에 따라 새 페이지 접근 가능 여부를 판단
 COMTCCMMNDETAILCODE,COMMON-SITEMAP,common-sitemap,COMMON-SITEMAP-PAGE,SiteMapPageController.sitemap,MenuInfoMapper.selectMenuTreeList,SELECT,LOW,N,HMENU1 메뉴명과 사용여부를 읽고 공개 로그인·회원가입 플로우와 합쳐 사용자 사이트맵 트리를 구성
 COMTNMENUINFO,COMMON-SITEMAP,common-sitemap,COMMON-SITEMAP-PAGE,SiteMapPageController.sitemap,MenuInfoMapper.selectMenuTreeList,SELECT,LOW,N,사용자 사이트맵 링크 URL과 아이콘 메타데이터 조회
 COMTNMENUORDER,COMMON-SITEMAP,common-sitemap,COMMON-SITEMAP-PAGE,SiteMapPageController.sitemap,MenuInfoMapper.selectMenuTreeList,SELECT,LOW,N,사용자 사이트맵 정렬 순서 반영
@@ -7,6 +11,9 @@ COMTNMENUINFO,ADMIN-CONTENT-SITEMAP,admin-sitemap,ADMIN-SITEMAP-PAGE,AdminSiteMa
 COMTNMENUORDER,ADMIN-CONTENT-SITEMAP,admin-sitemap,ADMIN-SITEMAP-PAGE,AdminSiteMapController.sitemap,MenuInfoMapper.selectMenuTreeList,SELECT,LOW,N,관리자 사이트맵 정렬 순서 반영
 COMTNMENUFUNCTIONINFO,ADMIN-CONTENT-SITEMAP,admin-sitemap,ADMIN-SITEMAP-PAGE,AdminSiteMapController.sitemap,AuthGroupManageService.selectRequiredViewFeatureCodeByMenuUrl,SELECT,LOW,N,관리자 메뉴 URL별 VIEW 기능코드 조회
 COMTNAUTHORFUNCTIONRELATE,ADMIN-CONTENT-SITEMAP,admin-sitemap,ADMIN-SITEMAP-PAGE,AdminSiteMapController.sitemap,AuthGroupManageService.hasAuthorFeaturePermission,SELECT,MEDIUM,N,현재 관리자 권한에 따른 사이트맵 메뉴 노출 여부 판단
+COMTNMENUINFO,ADMIN-TAG-MANAGEMENT,tag-management,ADMIN-TAG-MANAGEMENT-PAGE,AdminTagManagementController.tagManagement,React admin route forward,SELECT,LOW,N,태그 관리 메뉴 URL과 React 화면 진입 메타데이터 확인
+COMTNMENUFUNCTIONINFO,ADMIN-TAG-MANAGEMENT,tag-management,ADMIN-TAG-MANAGEMENT-DATA,AdminTagManagementController.tagManagementApi,AuthGroupManageService.selectRequiredViewFeatureCodeByMenuUrl,SELECT,LOW,N,태그 관리 메뉴 URL 기준 VIEW 기능 코드 해석
+COMTNAUTHORFUNCTIONRELATE,ADMIN-TAG-MANAGEMENT,tag-management,ADMIN-TAG-MANAGEMENT-DATA,AdminTagManagementController.tagManagementApi,AuthGroupManageService.hasAuthorFeaturePermission,SELECT,MEDIUM,N,현재 관리자 권한에 따라 태그 관리 payload 접근 여부를 판단
 COMTNAUTHORFUNCTIONRELATE,ADMIN-AUTH-GROUP,auth-group,ADMIN-AUTH-GROUP-PAGE,AdminMainController.authGroupPageApi,"AuthGroupManageMapper.selectAuthorFeatureCodes; selectFeatureAssignmentStats",SELECT,MEDIUM,N,권한 그룹별 기능 조회는 현재 관리자 grantable 범위 기준으로 프론트에 노출
 COMTNAUTHORFUNCTIONRELATE,ADMIN-AUTH-GROUP,auth-group,ADMIN-AUTH-GROUP-FEATURE-SAVE,AdminMainController.saveAuthGroupFeaturesApi,AuthGroupManageMapper.deleteAuthorFeatureRelations / insertAuthorFeatureRelation,UPSERT,MEDIUM,Y,권한 그룹 기능 저장 시 비관리 기능은 보존하고 변경 감사로그 남김
 COMTNUSERFEATUREOVERRIDE,ADMIN-MEMBER-EDIT,member-management,ADMIN-MEMBER-EDIT-SAVE,AdminMainController.memberEditSubmitApi,AuthGroupManageMapper.deleteUserFeatureOverrides / insertUserFeatureOverride,UPSERT,MEDIUM,Y,회원 세부 기능 권한 저장 시 instt_id 범위와 grantable 기능 범위 내에서만 수정
@@ -74,3 +81,6 @@ COMTNAUTHORFUNCTIONRELATE,ADMIN-EMISSION-RESULT-DETAIL,emission-result-detail,AD
 COMTNMENUINFO,ADMIN-EMISSION-VALIDATE,emission-validate,ADMIN-EMISSION-VALIDATE-PAGE,AdminEmissionSiteController.emissionValidatePage,React admin route forward,SELECT,LOW,N,검증 관리 메뉴 URL과 화면 진입 메타데이터 확인
 COMTNMENUFUNCTIONINFO,ADMIN-EMISSION-VALIDATE,emission-validate,ADMIN-EMISSION-VALIDATE-DATA,AdminEmissionSiteController.emissionValidatePageApi,AuthGroupManageService.selectRequiredViewFeatureCodeByMenuUrl,SELECT,LOW,N,검증 관리 VIEW 기능코드와 권한 요구사항 확인
 COMTNAUTHORFUNCTIONRELATE,ADMIN-EMISSION-VALIDATE,emission-validate,ADMIN-EMISSION-VALIDATE-DATA,AdminEmissionSiteController.emissionValidatePageApi,AuthGroupManageService.hasAuthorFeaturePermission,SELECT,MEDIUM,N,현재 관리자 권한에 따라 검증 관리 payload 접근 가능 여부를 판단
+COMTNMENUINFO,ADMIN-REFUND-PROCESS,refund-process,ADMIN-REFUND-PROCESS-PAGE,AdminApprovalController.refundProcessPage,React admin route forward,SELECT,LOW,N,환불 처리 메뉴 URL과 화면 진입 메타데이터 확인
+COMTNMENUFUNCTIONINFO,ADMIN-REFUND-PROCESS,refund-process,ADMIN-REFUND-PROCESS-DATA,AdminApprovalController.refundProcessPageApi,AuthGroupManageService.selectRequiredViewFeatureCodeByMenuUrl,SELECT,LOW,N,환불 처리 VIEW 기능코드와 권한 요구사항 확인
+COMTNAUTHORFUNCTIONRELATE,ADMIN-REFUND-PROCESS,refund-process,ADMIN-REFUND-PROCESS-DATA,AdminApprovalController.refundProcessPageApi,AuthGroupManageService.hasAuthorFeaturePermission,SELECT,MEDIUM,N,현재 관리자 권한에 따라 환불 처리 payload 접근 가능 여부를 판단

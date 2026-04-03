@@ -319,7 +319,7 @@ FROM (
         '/admin/member/admin_list',
         '/admin/member/admin_account',
         '/admin/member/admin_account/permissions',
-        '/admin/system/menu-management',
+        '/admin/content/menu',
         '/admin/system/page-management',
         '/admin/system/feature-management',
         '/admin/system/help-management',

@@ -107,4 +107,32 @@ public class GnrlMber implements CommonEntity {
         return groupId;
     }
 
+    public void setLockAt(String lockAt) {
+        this.lockAt = lockAt;
+    }
+
+    public void setLockCnt(Integer lockCnt) {
+        this.lockCnt = lockCnt;
+    }
+
+    public void setLockLastPnttm(LocalDateTime lockLastPnttm) {
+        this.lockLastPnttm = lockLastPnttm;
+    }
+
+    public void setAuthTy(String authTy) {
+        this.authTy = authTy;
+    }
+
+    public void setAuthDn(String authDn) {
+        this.authDn = authDn;
+    }
+
+    public void setAuthCi(String authCi) {
+        this.authCi = authCi;
+    }
+
+    public void setAuthDi(String authDi) {
+        this.authDi = authDi;
+    }
+
 }

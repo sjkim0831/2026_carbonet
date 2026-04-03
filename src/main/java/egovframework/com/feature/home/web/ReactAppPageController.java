@@ -27,7 +27,7 @@ public class ReactAppPageController {
     private Object renderHomeShell(String route, Model model, boolean english) {
         String normalizedRoute = normalizeRoute(route);
         if ("mypage".equals(normalizedRoute)) {
-            return new RedirectView(english ? "/en/mypage" : "/mypage");
+            return new RedirectView(english ? "/en/mypage/profile" : "/mypage/profile");
         }
         if ("join-wizard".equals(normalizedRoute)) {
             return new RedirectView(english ? "/join/en/step1" : "/join/step1");

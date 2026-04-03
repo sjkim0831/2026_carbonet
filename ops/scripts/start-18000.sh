@@ -14,6 +14,16 @@ LOCK_FILE="$RUN_DIR/carbonet-${PORT}.lock"
 STARTUP_WAIT_SECONDS="${STARTUP_WAIT_SECONDS:-60}"
 START_RETRY_COUNT="${START_RETRY_COUNT:-10}"
 RETRY_DELAY_SECONDS="${RETRY_DELAY_SECONDS:-5}"
+LOG_ROTATE_MAX_BYTES="${LOG_ROTATE_MAX_BYTES:-104857600}"
+
+resolve_running_pid() {
+  ps -eo pid=,args= | awk -v jar_path="$JAR_PATH" -v port="--server.port=${PORT}" '
+    index($0, jar_path) && index($0, port) {
+      print $1;
+      exit 0;
+    }
+  '
+}
 
 load_optional_env() {
   local env_file="$1"
@@ -28,12 +38,42 @@ load_optional_env() {
 load_optional_env "$CONFIG_DIR/carbonet-${PORT}.env"
 load_optional_env "$CONFIG_DIR/codex-runner.env"
 
+require_env() {
+  local env_name="$1"
+  if [[ -z "${!env_name:-}" ]]; then
+    echo "[start-18000] missing required env: $env_name" >&2
+    exit 1
+  fi
+}
+
+rotate_large_log_if_needed() {
+  local file_path="$1"
+  local max_bytes="$2"
+  local file_size
+  local rotated_path
+
+  if [[ ! -f "$file_path" ]]; then
+    return 0
+  fi
+
+  file_size="$(stat -c %s "$file_path" 2>/dev/null || echo 0)"
+  if [[ "${file_size:-0}" -lt "$max_bytes" ]]; then
+    return 0
+  fi
+
+  rotated_path="${file_path}.bak-$(date '+%Y%m%d-%H%M%S')"
+  mv "$file_path" "$rotated_path"
+  echo "[start-18000] rotated oversized log: $file_path -> $rotated_path size=$file_size" >&2
+}
+
 mkdir -p "$LOG_DIR" "$RUN_DIR"
 exec 9>"$LOCK_FILE"
 if ! flock -n 9; then
   echo "[start-18000] another startup is already in progress: port=$PORT lock=$LOCK_FILE" >&2
   exit 1
 fi
+
+rotate_large_log_if_needed "$LOG_FILE" "$LOG_ROTATE_MAX_BYTES"
 
 DB_HOST="${CUBRID_HOST:-127.0.0.1}"
 DB_PORT="${CUBRID_PORT:-33000}"
@@ -42,6 +82,9 @@ DB_USER="${CUBRID_USER:-dba}"
 DB_PASSWORD="${CUBRID_PASSWORD:-}"
 DB_URL="jdbc:cubrid:${DB_HOST}:${DB_PORT}:${DB_NAME}:::?charset=UTF-8"
 
+require_env "TOKEN_ACCESS_SECRET"
+require_env "TOKEN_REFRESH_SECRET"
+
 if [[ ! -f "$SOURCE_JAR_PATH" ]]; then
   echo "[start-18000] missing source jar: $SOURCE_JAR_PATH" >&2
   exit 1
@@ -49,10 +92,9 @@ fi
 
 cp "$SOURCE_JAR_PATH" "$JAR_PATH"
 
-LOG_START_LINE=1
+LOG_START_OFFSET=0
 if [[ -f "$LOG_FILE" ]]; then
-  EXISTING_LOG_LINES="$(wc -l < "$LOG_FILE" 2>/dev/null || echo 0)"
-  LOG_START_LINE=$((EXISTING_LOG_LINES + 1))
+  LOG_START_OFFSET="$(stat -c %s "$LOG_FILE" 2>/dev/null || echo 0)"
 fi
 
 if [[ -f "$PID_FILE" ]]; then
@@ -65,6 +107,12 @@ if [[ -f "$PID_FILE" ]]; then
 fi
 
 if ss -ltn "( sport = :$PORT )" 2>/dev/null | grep -q ":$PORT"; then
+  EXISTING_PID="$(resolve_running_pid || true)"
+  if [[ -n "${EXISTING_PID:-}" ]] && kill -0 "$EXISTING_PID" 2>/dev/null; then
+    printf '%s\n' "$EXISTING_PID" > "$PID_FILE"
+    echo "[start-18000] recovered pid file: pid=$EXISTING_PID port=$PORT"
+    exit 0
+  fi
   echo "[start-18000] port already in use: $PORT" >&2
   exit 1
 fi
@@ -80,7 +128,7 @@ for attempt in $(seq 1 "$START_RETRY_COUNT"); do
     "$([[ -n "${SECURITY_CODEX_RUNNER_PLAN_COMMAND:-}" ]] && echo configured || echo missing)" \
     "$([[ -n "${SECURITY_CODEX_RUNNER_BUILD_COMMAND:-}" ]] && echo configured || echo missing)" \
     >>"$LOG_FILE"
-  setsid java \
+  setsid bash -c 'exec 9>&-; exec java "$@"' bash \
     -jar "$JAR_PATH" \
     --server.port="$PORT" \
     --spring.datasource.url="$DB_URL" \
@@ -95,7 +143,8 @@ for attempt in $(seq 1 "$START_RETRY_COUNT"); do
     if ! kill -0 "$APP_PID" 2>/dev/null; then
       break
     fi
-    if tail -n +"$LOG_START_LINE" "$LOG_FILE" 2>/dev/null | grep -q "Tomcat started on port(s): $PORT"; then
+    if ss -ltn "( sport = :$PORT )" 2>/dev/null | grep -q ":$PORT"; then
+      printf '%s\n' "$APP_PID" > "$PID_FILE"
       echo "[start-18000] started: pid=$APP_PID port=$PORT log=$LOG_FILE"
       exit 0
     fi
@@ -110,12 +159,12 @@ for attempt in $(seq 1 "$START_RETRY_COUNT"); do
       continue
     fi
     echo "[start-18000] process exited early. recent log:" >&2
-    tail -n +"$LOG_START_LINE" "$LOG_FILE" | tail -n 60 >&2 || true
+    tail -c +"$((LOG_START_OFFSET + 1))" "$LOG_FILE" | tail -n 60 >&2 || true
     exit 1
   fi
 
   echo "[start-18000] process is running but startup was not confirmed in ${STARTUP_WAIT_SECONDS}s. recent log:" >&2
-  tail -n +"$LOG_START_LINE" "$LOG_FILE" | tail -n 60 >&2 || true
+  tail -c +"$((LOG_START_OFFSET + 1))" "$LOG_FILE" | tail -n 60 >&2 || true
   exit 1
 done
 

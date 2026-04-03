@@ -38,4 +38,32 @@ public class AuditEventRecordVO {
     public String getCreatedAt() {
         return createdAt;
     }
+
+    public String getActorId() {
+        return actorId;
+    }
+
+    public String getActionCode() {
+        return actionCode;
+    }
+
+    public String getAuditId() {
+        return auditId;
+    }
+
+    public String getPageId() {
+        return pageId;
+    }
+
+    public String getReasonSummary() {
+        return reasonSummary;
+    }
+
+    public String getEntityId() {
+        return entityId;
+    }
+
+    public String getResultStatus() {
+        return resultStatus;
+    }
 }
