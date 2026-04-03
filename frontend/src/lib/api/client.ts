@@ -5715,7 +5715,7 @@ export async function saveEmissionInputSession(payload: EmissionInputSessionSave
   const response = await fetch(buildAdminApiPath("/api/admin/emission-management/input-sessions"), {
     method: "POST",
     credentials: "include",
-    headers: buildCsrfHeaders({ "Content-Type": "application/json", Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }),
+    headers: await buildResilientCsrfHeaders({ "Content-Type": "application/json", Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }),
     body: JSON.stringify(payload)
   });
   return readJsonResponse<Record<string, unknown>>(response);
@@ -5733,7 +5733,7 @@ export async function calculateEmissionInputSession(sessionId: number) {
   const response = await fetch(buildAdminApiPath(`/api/admin/emission-management/input-sessions/${encodeURIComponent(String(sessionId))}/calculate`), {
     method: "POST",
     credentials: "include",
-    headers: buildCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
+    headers: await buildResilientCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
   });
   return readJsonResponse<Record<string, unknown>>(response);
 }

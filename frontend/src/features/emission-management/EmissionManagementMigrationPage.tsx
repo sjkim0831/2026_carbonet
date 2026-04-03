@@ -1592,11 +1592,20 @@ export function EmissionManagementMigrationPage() {
     }
     const categoryCode = stringOf(categoryOverride?.subCode).toUpperCase();
     const code = stringOf(variable.varCode).toUpperCase();
+    if (categoryCode === "CEMENT" && tierOverride === 1) {
+      return code === "EFCLC";
+    }
+    if (categoryCode === "CEMENT" && tierOverride === 3) {
+      return code === "EFD";
+    }
     if (categoryCode === "LIME" && tierOverride === 1) {
       return code === "LIME_TYPE";
     }
     if (categoryCode === "LIME" && tierOverride === 2) {
       return ["LIME_TYPE", "CAO_CONTENT", "CAO_MGO_CONTENT", "MD", "CD", "FD", "HYDRATED_LIME_PRODUCTION_YN", "X", "Y"].includes(code);
+    }
+    if (categoryCode === "LIME" && tierOverride === 3) {
+      return code === "EFD";
     }
     return false;
   }
@@ -1640,17 +1649,6 @@ export function EmissionManagementMigrationPage() {
     return en
       ? "Some variables in this tier can fall back to stored coefficients or documented defaults."
       : "이 Tier의 일부 변수는 저장 계수 또는 문서 기본값으로 대체될 수 있습니다.";
-  }
-
-  function tierGuideResolutionItems(category: EmissionCategoryItem | null, tierNumber: number, guideVariables: EmissionVariableDefinition[]) {
-    return guideVariables
-      .map((variable) => ({
-        code: variableCodeOf(variable),
-        name: displayVariableName(category, tierNumber, variable),
-        guide: resolutionGuideForVariable(en, category, tierNumber, variable)
-      }))
-      .filter((item): item is { code: string; name: string; guide: NonNullable<ReturnType<typeof resolutionGuideForVariable>> } => Boolean(item.guide))
-      .filter((item, index, array) => array.findIndex((candidate) => candidate.code === item.code) === index);
   }
 
   function repeatGroupValidationWarning() {
@@ -2087,7 +2085,6 @@ export function EmissionManagementMigrationPage() {
                       const tierNumber = numberOf(tier.tier);
                       const guide = tierGuideMap[tierNumber];
                       const guideVariables = guide?.variables ? visibleVariablesForStep(selectedCategory, tierNumber, guide.variables) : [];
-                      const resolutionItems = tierGuideResolutionItems(selectedCategory, tierNumber, guideVariables);
                       return (
                         <article className="rounded-[var(--kr-gov-radius)] border border-white bg-white px-4 py-4" key={`tier-guide-${tierNumber}`}>
                           <div className="flex items-center justify-between gap-3">
@@ -2117,29 +2114,8 @@ export function EmissionManagementMigrationPage() {
                               </p>
                             </div>
                           ) : null}
-                          {resolutionItems.length > 0 ? (
-                            <div className="mt-3 rounded-[var(--kr-gov-radius)] border border-sky-200 bg-sky-50 px-3 py-3">
-                              <p className="text-xs font-bold uppercase tracking-wide text-sky-700">
-                                {en ? "Resolution Rules" : "값 결정 규칙"}
-                              </p>
-                              <div className="mt-2 space-y-2">
-                                {resolutionItems.map((item) => (
-                                  <div className="rounded-[var(--kr-gov-radius)] border border-white bg-white px-3 py-3" key={`tier-guide-resolution-${tierNumber}-${item.code}`}>
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{item.name}</p>
-                                      <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-bold text-sky-700">
-                                        {item.guide.badge}
-                                      </span>
-                                    </div>
-                                    <p className="mt-1 text-xs leading-5 text-[var(--kr-gov-text-secondary)]">{item.guide.description}</p>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          ) : null}
                           <div className="mt-4 space-y-2">
                             {guideVariables.length > 0 ? guideVariables.map((variable) => {
-                              const resolutionGuide = resolutionGuideForVariable(en, selectedCategory, tierNumber, variable);
                               return (
                                 <div
                                   className={`rounded-[var(--kr-gov-radius)] border px-3 py-3 ${
@@ -2153,12 +2129,11 @@ export function EmissionManagementMigrationPage() {
                                     <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{displayVariableName(selectedCategory, tierNumber, variable)}</p>
                                     <div className="flex flex-wrap gap-2">
                                       {supportsFallbackInput(variable, selectedCategory, tierNumber) ? <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700">{en ? "Default-capable" : "기본 계수 사용 가능"}</span> : null}
-                                      {resolutionGuide ? <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-bold text-sky-700">{resolutionGuide.badge}</span> : null}
                                       {isRepeatableVariable(variable) ? <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-700">{en ? "Summation" : "Summation"}</span> : null}
+                                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-700">{stringOf(variable.inputType) || "TEXT"}</span>
                                     </div>
                                   </div>
                                   <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{displayUnitLabel(stringOf(variable.unit), en)}</p>
-                                  {resolutionGuide ? <p className="mt-2 text-xs leading-5 text-[var(--kr-gov-text-secondary)]">{resolutionGuide.description}</p> : null}
                                 </div>
                               );
                             }) : (
