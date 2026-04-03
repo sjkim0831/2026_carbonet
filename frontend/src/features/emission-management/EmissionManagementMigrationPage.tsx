@@ -34,9 +34,11 @@ import {
   buildTierGuide,
   buildVariableSections,
   carbonateFactorOf,
+  cementTier2DerivedSummary,
   displayVariableCode,
   displayVariableName,
   hydrateInputs,
+  isCementTier2Scope,
   isDerivedCarbonateFactorVariable,
   isLimeTier2DisabledField,
   isLimeTier2Scope,
@@ -581,7 +583,18 @@ export function EmissionManagementMigrationPage() {
 
   function derivedPreviewCards(section: (typeof variableSections)[number]) {
     const previewType = stringOf(section.previewType);
-    if (!previewType || !isLimeTier2Scope(selectedCategory, selectedTier)) {
+    if (!previewType) {
+      return [];
+    }
+    if (previewType === "cement-tier2-cf" && isCementTier2Scope(selectedCategory, selectedTier)) {
+      const preview = cementTier2DerivedSummary(en, inputs);
+      return [{
+        title: en ? "Tier 2 correction preview" : "Tier 2 보정계수 미리보기",
+        lines: [preview.efcText, preview.efclText, preview.cfckdText],
+        emphasis: preview.totalText
+      }];
+    }
+    if (!isLimeTier2Scope(selectedCategory, selectedTier)) {
       return [];
     }
     return (inputs.MLI || [DEFAULT_INPUT_ROW]).map((_, rowIndex) => {
@@ -1573,6 +1586,9 @@ export function EmissionManagementMigrationPage() {
     categoryOverride: EmissionCategoryItem | null = selectedCategory,
     tierOverride = selectedTier
   ) {
+    if (stringOf(variable.supplementalYn).toUpperCase() === "Y") {
+      return true;
+    }
     const categoryCode = stringOf(categoryOverride?.subCode).toUpperCase();
     const code = stringOf(variable.varCode).toUpperCase();
     if (categoryCode === "LIME" && tierOverride === 1) {
@@ -1603,6 +1619,26 @@ export function EmissionManagementMigrationPage() {
       return false;
     }
     return !hasInputValue(variable, rowIndex);
+  }
+
+  function tierGuideFallbackSummary(category: EmissionCategoryItem | null, tierNumber: number, guideVariables: EmissionVariableDefinition[]) {
+    const fallbackVariables = guideVariables.filter((variable) => supportsFallbackInput(variable, category, tierNumber));
+    if (fallbackVariables.length === 0) {
+      return "";
+    }
+    if (isCementTier2Scope(category, tierNumber)) {
+      return en
+        ? "Tier 2 supports fallback handling for Md, Cd, Fd, EFc, EFcl, and CFckd. If derivation inputs are incomplete, stored coefficients or documented defaults are used."
+        : "Tier 2에서는 Md, Cd, Fd, EFc, EFcl, CFckd에 대체값 흐름이 적용됩니다. 유도식 입력이 부족하면 저장 계수 또는 문서 기본값을 사용합니다.";
+    }
+    if (isLimeTier2Scope(category, tierNumber)) {
+      return en
+        ? "Tier 2 supports fallback handling for lime-type-based factors and correction terms. Missing composition or hydration inputs can switch to mapped or documented defaults."
+        : "Tier 2에서는 석회 유형 기반 계수와 보정항에 대체값 흐름이 적용됩니다. 조성값이나 수화 입력이 없으면 매핑값 또는 문서 기본값으로 전환될 수 있습니다.";
+    }
+    return en
+      ? "Some variables in this tier can fall back to stored coefficients or documented defaults."
+      : "이 Tier의 일부 변수는 저장 계수 또는 문서 기본값으로 대체될 수 있습니다.";
   }
 
   function repeatGroupValidationWarning() {
@@ -2051,6 +2087,16 @@ export function EmissionManagementMigrationPage() {
                               <FormulaNotation active formula={guide?.formulaDisplay || guide?.formulaSummary || "-"} />
                             </div>
                           </div>
+                          {tierGuideFallbackSummary(selectedCategory, tierNumber, guideVariables) ? (
+                            <div className="mt-3 rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-3 py-3">
+                              <p className="text-xs font-bold uppercase tracking-wide text-amber-700">
+                                {en ? "Fallback Guidance" : "대체값 안내"}
+                              </p>
+                              <p className="mt-2 text-sm leading-6 text-amber-900">
+                                {tierGuideFallbackSummary(selectedCategory, tierNumber, guideVariables)}
+                              </p>
+                            </div>
+                          ) : null}
                           <div className="mt-4 space-y-2">
                             {guideVariables.length > 0 ? guideVariables.map((variable) => (
                               <div

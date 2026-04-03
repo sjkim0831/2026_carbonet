@@ -652,6 +652,10 @@ class AdminEmissionManagementServiceImplTest {
         mci.setVarCode("MCI");
         EmissionVariableDefinitionVO im = new EmissionVariableDefinitionVO();
         im.setVarCode("IM");
+        EmissionVariableDefinitionVO cementMd = new EmissionVariableDefinitionVO();
+        cementMd.setVarCode("MD");
+        EmissionVariableDefinitionVO cementCfckd = new EmissionVariableDefinitionVO();
+        cementCfckd.setVarCode("CFCKD");
         EmissionVariableDefinitionVO cao = new EmissionVariableDefinitionVO();
         cao.setVarCode("CAO_CONTENT");
         EmissionVariableDefinitionVO hydratedYn = new EmissionVariableDefinitionVO();
@@ -671,6 +675,9 @@ class AdminEmissionManagementServiceImplTest {
             Integer tier = ((Number) params.get("tier")).intValue();
             if (categoryId == 1L && tier == 1) {
                 return List.of(mci, im);
+            }
+            if (categoryId == 1L && tier == 2) {
+                return List.of(cementMd, cementCfckd);
             }
             if (categoryId == 1L && tier == 3) {
                 return List.of(carbonateType, efi);
@@ -701,6 +708,16 @@ class AdminEmissionManagementServiceImplTest {
         assertEquals("cement-tier3-carbonate", cementVariables.get(0).getSectionId());
         assertEquals(1, cementVariables.get(0).getSectionOrder());
         assertEquals("Y", cementVariables.get(1).getDerivedYn());
+
+        @SuppressWarnings("unchecked")
+        List<EmissionVariableDefinitionVO> cementTier2Variables = (List<EmissionVariableDefinitionVO>) service.getVariableDefinitions(1L, 2).get("variables");
+        assertEquals("Y", cementTier2Variables.get(0).getSupplementalYn());
+        assertTrue(cementTier2Variables.get(0).getUiHint().contains("CFckd"));
+        assertEquals("cement-tier2-correction", cementTier2Variables.get(0).getSectionId());
+        assertEquals("cement-tier2-cf", cementTier2Variables.get(0).getSectionPreviewType());
+        assertEquals("EFC,EFCL,CFCKD", cementTier2Variables.get(0).getSectionRelatedFactorCodes());
+        assertEquals("CFckd", cementTier2Variables.get(1).getDisplayCode());
+        assertEquals("Y", cementTier2Variables.get(1).getSupplementalYn());
 
         @SuppressWarnings("unchecked")
         List<EmissionVariableDefinitionVO> limeVariables = (List<EmissionVariableDefinitionVO>) service.getVariableDefinitions(2L, 2).get("variables");

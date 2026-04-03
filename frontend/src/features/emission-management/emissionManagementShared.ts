@@ -47,6 +47,9 @@ const MNCO3_FACTOR = 0.38286;
 const NA2CO3_FACTOR = 0.41492;
 const SR_CAO_DEFAULT = 0.785;
 const SR_CAO_MGO_DEFAULT = 0.913;
+const CEMENT_EFC_DEFAULT = 0.4397;
+const CEMENT_EFCL_DEFAULT = 0.51;
+const CEMENT_CFCKD_DEFAULT = 1.02;
 const HIGH_CALCIUM_CONTENT_DEFAULT = 0.95;
 const DOLOMITIC_HIGH_CONTENT_DEFAULT = 0.95;
 const DOLOMITIC_LOW_CONTENT_DEFAULT = 0.85;
@@ -314,8 +317,40 @@ export function limeTier2DerivedSummary(en: boolean, inputs: InputMap, rowIndex:
   };
 }
 
+export function cementTier2DerivedSummary(en: boolean, inputs: InputMap) {
+  const mcl = numberOf(rowValue(inputs, "MCL", 0));
+  const md = numberOf(rowValue(inputs, "MD", 0));
+  const cd = ratioOf(rowValue(inputs, "CD", 0));
+  const fd = ratioOf(rowValue(inputs, "FD", 0));
+  const efc = numberOf(rowValue(inputs, "EFC", 0)) || CEMENT_EFC_DEFAULT;
+  const efcl = numberOf(rowValue(inputs, "EFCL", 0)) || CEMENT_EFCL_DEFAULT;
+  const directCfckd = numberOf(rowValue(inputs, "CFCKD", 0));
+  const canDeriveCfckd = mcl > 0 && md > 0 && cd > 0 && fd > 0 && efcl > 0;
+  const derivedCfckd = canDeriveCfckd ? 1 + (md / mcl) * cd * fd * (efc / efcl) : CEMENT_CFCKD_DEFAULT;
+  const appliedCfckd = directCfckd > 0 ? directCfckd : derivedCfckd;
+  const total = mcl > 0 && efcl > 0 ? mcl * efcl * appliedCfckd : 0;
+
+  return {
+    efcText: `${en ? "EFc" : "EFc"} = ${efc.toFixed(4)}${numberOf(rowValue(inputs, "EFC", 0)) > 0 ? "" : ` ${en ? "(default/stored fallback)" : "(기본/저장 fallback)"}`}`,
+    efclText: `${en ? "EFcl" : "EFcl"} = ${efcl.toFixed(4)}${numberOf(rowValue(inputs, "EFCL", 0)) > 0 ? "" : ` ${en ? "(default/stored fallback)" : "(기본/저장 fallback)"}`}`,
+    cfckdText: directCfckd > 0
+      ? `${en ? "CFckd" : "CFckd"} = ${directCfckd.toFixed(6)} ${en ? "(direct input)" : "(직접 입력값)"}`
+      : canDeriveCfckd
+        ? `${en ? "CFckd" : "CFckd"} = 1 + (${md} / ${mcl}) × ${cd.toFixed(4)} × ${fd.toFixed(4)} × (${efc.toFixed(4)} / ${efcl.toFixed(4)}) = ${derivedCfckd.toFixed(6)}`
+        : `${en ? "CFckd" : "CFckd"} = ${CEMENT_CFCKD_DEFAULT.toFixed(2)} ${en ? "(default/stored fallback)" : "(기본/저장 fallback)"}`,
+    totalText: total > 0
+      ? `${en ? "CO2" : "CO2"} = ${mcl} × ${efcl.toFixed(4)} × ${appliedCfckd.toFixed(6)} = ${total.toFixed(6)}`
+      : (en ? "Enter Mcl and related factors to preview CO2." : "Mcl과 관련 계수를 입력하면 CO2 미리보기가 표시됩니다."),
+    canDeriveCfckd
+  };
+}
+
 export function isLimeTier2Scope(category: EmissionCategoryItem | null, tier: number) {
   return stringOf(category?.subCode).toUpperCase() === "LIME" && tier === 2;
+}
+
+export function isCementTier2Scope(category: EmissionCategoryItem | null, tier: number) {
+  return stringOf(category?.subCode).toUpperCase() === "CEMENT" && tier === 2;
 }
 
 export function buildVariableSections(en: boolean, _category: EmissionCategoryItem | null, _tier: number, variables: EmissionVariableDefinition[]): VariableSection[] {

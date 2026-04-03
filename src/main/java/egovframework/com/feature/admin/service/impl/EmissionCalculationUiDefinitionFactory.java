@@ -66,7 +66,7 @@ final class EmissionCalculationUiDefinitionFactory {
                 "CFckd 산정 입력",
                 "Md, Cd, Fd와 계수 항목을 함께 관리해 CFckd 또는 기본/저장 계수를 적용합니다.",
                 "산정식: CFckd = 1 + (Md / Mcl) × Cd × Fd × (EFc / EFcl)",
-                "",
+                "cement-tier2-cf",
                 "EFC,EFCL,CFCKD"
         );
         return VariableUiDefinition.builder()
@@ -77,6 +77,13 @@ final class EmissionCalculationUiDefinitionFactory {
                 .displayCode("EFC", "EFc")
                 .displayCode("EFCL", "EFcl")
                 .displayCode("CFCKD", "CFckd")
+                .supplemental("MD", "CD", "FD", "EFC", "EFCL", "CFCKD")
+                .uiHint("MD", "문서 기준 원입력값입니다. CKD 질량 보정이 있으면 CFckd 유도식에 사용하고, 비워두면 저장 계수 또는 기본값 흐름으로 전환됩니다.")
+                .uiHint("CD", "문서 기준 원입력값입니다. CKD의 원래 탄산염 비율이며, 비워두면 CFckd는 직접 입력값 또는 저장/기본 계수를 사용합니다.")
+                .uiHint("FD", "문서 기준 원입력값입니다. CKD 소성 비율이며, 비워두면 CFckd는 직접 입력값 또는 저장/기본 계수를 사용합니다.")
+                .uiHint("EFC", "문서 기준 계수 항목입니다. 직접 입력이 없으면 저장 계수 0.4397 또는 기본 계수로 보완됩니다.")
+                .uiHint("EFCL", "문서 기준 계수 항목입니다. 직접 입력이 없으면 저장 계수 0.51 또는 기본 계수로 보완됩니다.")
+                .uiHint("CFCKD", "Md, Cd, Fd, EFc, EFcl이 모두 있으면 유도식으로 계산하고, 부족하면 저장 계수 또는 기본값 1.02를 사용합니다.")
                 .section(productionSection, "MCL")
                 .section(correctionSection, "MD", "CD", "FD", "EFC", "EFCL", "CFCKD")
                 .build();
