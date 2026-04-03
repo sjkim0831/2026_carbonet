@@ -149,6 +149,7 @@ Expected work:
 - restart
 - runtime freshness verification
 - emission-management flow verification
+- rollout board snapshot fill when the task depends on `READY/BLOCKED/SHADOW_ONLY/LEGACY_ONLY` status
 
 Add this on top of the implementation estimate:
 
@@ -159,6 +160,8 @@ Use:
 
 - `bash ops/scripts/build-restart-verify-emission-management-18000.sh`
 - `bash ops/scripts/verify-emission-management-flow.sh`
+- `bash ops/scripts/fill-emission-management-rollout-snapshots.sh`
+- `bash ops/scripts/build-restart-fill-verify-emission-management-rollout-18000.sh`
 
 Also read:
 
@@ -227,6 +230,88 @@ When the task changes emission input UX or validation, also include:
 - an explicit note on whether the change affected badge rules, warning rules, or both
 - a repeat-group empty-input check for lime/cement flows that use line-based entry
 - local `:18000` verification that the changed route still loads after restart
+
+When the task changes definition comparison or rollout-board behavior, also include:
+
+- one save/calculate proof with `bash ops/scripts/verify-emission-management-flow.sh`
+- scope fill for the supported rollout matrix with `bash ops/scripts/fill-emission-management-rollout-snapshots.sh`
+- final confirmation that requested scopes are `READY` in `/admin/emission/management/page-data`
+
+## Rollout Board Verification
+
+Use these scripts when the operator must see the rollout board populated instead of only proving that one calculate call succeeds.
+
+- `bash ops/scripts/help-emission-management-rollout.sh`
+  use `EMISSION_HELP_OUTPUT=json bash ops/scripts/help-emission-management-rollout.sh` for a machine-readable command catalog
+  or `EMISSION_HELP_OUTPUT=flat-json bash ops/scripts/help-emission-management-rollout.sh` for a versioned flat command catalog
+  or `EMISSION_HELP_OUTPUT=commands bash ops/scripts/help-emission-management-rollout.sh` for a flat command list
+  invalid `EMISSION_HELP_OUTPUT` values now fail fast instead of silently falling back to text output
+- `bash ops/scripts/show-emission-management-rollout-board.sh`
+- `bash ops/scripts/show-emission-management-rollout-status.sh`
+- `bash ops/scripts/verify-emission-management-rollout-board-ready.sh`
+- `bash ops/scripts/verify-emission-management-rollout-readonly.sh`
+- `bash ops/scripts/fill-emission-management-rollout-snapshots.sh`
+- `bash ops/scripts/verify-emission-management-rollout-scope.sh CEMENT:1`
+- `bash ops/scripts/build-restart-fill-verify-emission-management-rollout-18000.sh`
+
+Recommended command choice:
+
+- supported rollout scope list only: `bash ops/scripts/list-emission-management-rollout-scopes.sh`
+  if you need a copy-pasteable default scope set, use:
+  `EMISSION_SCOPE_LIST_OUTPUT=scopes bash ops/scripts/list-emission-management-rollout-scopes.sh`
+  for machine-readable metadata output, use:
+  `EMISSION_SCOPE_LIST_OUTPUT=json bash ops/scripts/list-emission-management-rollout-scopes.sh`
+- rollout metadata and fixture consistency only: `bash ops/scripts/verify-emission-management-rollout-fixtures.sh`
+  for machine-readable verification output, use:
+  `EMISSION_FIXTURE_VERIFY_OUTPUT=json bash ops/scripts/verify-emission-management-rollout-fixtures.sh`
+- non-runtime helper smoke verification only:
+  `bash ops/scripts/verify-emission-management-rollout-tooling.sh`
+- one read-only status summary for scopes plus fixtures plus current board:
+  `bash ops/scripts/show-emission-management-rollout-status.sh`
+  for machine-readable summary output without hitting the board, use:
+  `EMISSION_STATUS_OUTPUT=json EMISSION_STATUS_INCLUDE_BOARD=false bash ops/scripts/show-emission-management-rollout-status.sh`
+- current board state only: `bash ops/scripts/show-emission-management-rollout-board.sh`
+- read-only verification bundle for fixture consistency plus READY board assertion:
+  `bash ops/scripts/verify-emission-management-rollout-readonly.sh`
+  for machine-readable verification output, use:
+  `EMISSION_READONLY_VERIFY_OUTPUT=json bash ops/scripts/verify-emission-management-rollout-readonly.sh`
+- read-only READY assertion for the current default scope set: `bash ops/scripts/verify-emission-management-rollout-board-ready.sh`
+- one scope replay with canonical fixture: `bash ops/scripts/verify-emission-management-rollout-scope.sh CEMENT:1`
+  use `bash ops/scripts/verify-emission-management-rollout-scope.sh list` to see supported scope arguments
+  or `bash ops/scripts/verify-emission-management-rollout-scope.sh list-scopes` to emit the space-separated default set
+- all supported scopes replay without rebuild: `bash ops/scripts/fill-emission-management-rollout-snapshots.sh`
+- rebuild, restart, refill, verify, then optionally print final board summary: `bash ops/scripts/build-restart-fill-verify-emission-management-rollout-18000.sh`
+  this wrapper now starts with the fixture consistency check automatically
+  and ends by read-only asserting the same scope set by default
+
+Important behavior:
+
+- `show-emission-management-rollout-board.sh` is the read-only status command for summary cards and per-scope rollout rows.
+- `verify-emission-management-rollout-readonly.sh` is the read-only verification bundle for the common operator case: metadata/fixture consistency plus current board READY assertion.
+- `verify-emission-management-rollout-readonly.sh` can emit machine-readable JSON through `EMISSION_READONLY_VERIFY_OUTPUT=json`.
+- the rollout help catalog JSON and the read-only JSON payloads now include `schemaVersion=1`.
+- `list-emission-management-rollout-scopes.sh` JSON includes `schemaVersion=1`, `scopeCount`, and `scopes`.
+- `verify-emission-management-rollout-fixtures.sh` JSON includes `schemaVersion=1` and `status=ok`.
+- `show-emission-management-rollout-status.sh` JSON includes `expectedReadyScopes`, which defaults to the metadata-derived scope set when `EMISSION_EXPECT_READY_SCOPES` is omitted.
+- `verify-emission-management-rollout-readonly.sh` JSON includes `expectedReadyScopes`, which defaults to the metadata-derived scope set when `EMISSION_EXPECT_READY_SCOPES` is omitted.
+- `show-emission-management-rollout-board.sh` can emit machine-readable JSON through `EMISSION_ROLLOUT_OUTPUT=json`, can limit rows with `EMISSION_ROLLOUT_FILTER_SCOPES="CEMENT:1 LIME:2"`, and can fail unless selected scopes are `READY` through `EMISSION_EXPECT_READY_SCOPES`.
+- `verify-emission-management-rollout-board-ready.sh` is the shortcut for the common read-only case: assert the default metadata-derived scope set is `READY` without running save or calculate.
+- rollout helper and status output selectors now fail fast on unsupported values instead of silently falling back to text or default boolean behavior.
+- `verify-emission-management-flow.sh` proves one authenticated load/save/calculate path and can also assert rollout-board status for the selected scope.
+- `verify-emission-management-flow.sh` now retries transient localhost HTTP failures through `EMISSION_HTTP_RETRIES` and `EMISSION_HTTP_RETRY_SECONDS`.
+- `verify-emission-management-flow.sh` accepts `SAVE_PAYLOAD_FILE` for category-specific payload replay without embedding large JSON in one command line.
+- `verify-emission-management-rollout-scope.sh` is the short wrapper for one canonical scope fixture and also retries at the scope level through `EMISSION_SCOPE_VERIFY_RETRIES`.
+- `fill-emission-management-rollout-snapshots.sh` runs that verified path for each requested scope and can fail unless every requested scope ends up `READY`.
+- `EMISSION_SCOPES` can restrict the rollout fill to a subset such as `CEMENT:1 LIME:2`.
+- `EMISSION_SCOPE_DELAY_SECONDS` can be used when rapid save requests risk `sessionId` collisions.
+- `EMISSION_PRINT_COMMANDS=true bash ops/scripts/fill-emission-management-rollout-snapshots.sh` prints the exact per-scope `verify-emission-management-rollout-scope.sh` commands for environments where one long parent shell cannot reliably reach local `:18000`.
+- canonical rollout payload fixtures now live under `ops/fixtures/emission-management-rollout/` and are referenced directly by the printed commands.
+- the supported rollout scope matrix itself is tracked in `ops/fixtures/emission-management-rollout/scopes.tsv`.
+- when `EMISSION_SCOPES` is omitted, the fill script and full wrapper now derive the default scope set from `ops/fixtures/emission-management-rollout/scopes.tsv`.
+- scope metadata lookup and default-scope derivation are shared through `ops/scripts/emission-management-auth-common.sh`, so scope additions propagate through the rollout scripts together.
+- rollout JSON and text rendering helpers are shared through `ops/scripts/emission_rollout_json_common.py`, so schema and text row formats stay aligned across help/list/status/readonly flows.
+- `verify-emission-management-rollout-fixtures.sh` checks that `scopes.tsv` and the referenced fixture payload files stay in sync.
+- the scope wrapper already carries the correct scope-specific input-variable check, so `CEMENT` scopes do not fall back to the default `MLI` check.
 
 ## Refactor Direction
 

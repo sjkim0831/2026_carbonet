@@ -33,15 +33,27 @@ Environment overrides:
   EXPECTED_TIER
   EXPECTED_CO2_TOTAL
   EXPECTED_FORMULA_SUMMARY
+  EXPECTED_PROMOTION_STATUS
+  EXPECTED_DRAFT_ID_PREFIX
+  EXPECTED_READY_SCOPES
   INVALID_INPUT_VAR_CODE
   SAVE_PAYLOAD_JSON
+  SAVE_PAYLOAD_FILE
   VERIFY_SAVED_VALUE
   VERIFY_INVALID_VARIABLE_CODE
+  VERIFY_ROLLOUT_STATUS
+  VERIFY_CO2_TOTAL
+  VERIFY_FORMULA_SUMMARY
+  EMISSION_VERIFY_CACHE_DIR
+  EMISSION_HTTP_RETRIES
+  EMISSION_HTTP_RETRY_SECONDS
 EOF
   exit 0
 fi
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+EMISSION_SCRIPT_NAME="verify-emission-management-flow"
+source "$ROOT_DIR/ops/scripts/emission-management-auth-common.sh"
 BASE_URL="${1:-http://127.0.0.1:18000}"
 PORT="${PORT:-18000}"
 CONFIG_DIR="${CONFIG_DIR:-$ROOT_DIR/ops/config}"
@@ -52,15 +64,25 @@ EXPECTED_INPUT_VALUE="${EXPECTED_INPUT_VALUE:-10}"
 EXPECTED_TIER="${EXPECTED_TIER:-}"
 EXPECTED_CO2_TOTAL="${EXPECTED_CO2_TOTAL:-7.5}"
 EXPECTED_FORMULA_SUMMARY="${EXPECTED_FORMULA_SUMMARY:-SUM(EF석회,i * Ml,i)}"
+EXPECTED_PROMOTION_STATUS="${EXPECTED_PROMOTION_STATUS:-READY}"
+EXPECTED_DRAFT_ID_PREFIX="${EXPECTED_DRAFT_ID_PREFIX:-BUILTIN:}"
+EXPECTED_READY_SCOPES="${EXPECTED_READY_SCOPES:-}"
 INVALID_INPUT_VAR_CODE="${INVALID_INPUT_VAR_CODE:-INVALID_VAR_CODE}"
 SAVE_PAYLOAD_JSON="${SAVE_PAYLOAD_JSON:-}"
+SAVE_PAYLOAD_FILE="${SAVE_PAYLOAD_FILE:-}"
 VERIFY_SAVED_VALUE="${VERIFY_SAVED_VALUE:-true}"
 VERIFY_INVALID_VARIABLE_CODE="${VERIFY_INVALID_VARIABLE_CODE:-true}"
+VERIFY_ROLLOUT_STATUS="${VERIFY_ROLLOUT_STATUS:-true}"
+VERIFY_CO2_TOTAL="${VERIFY_CO2_TOTAL:-true}"
+VERIFY_FORMULA_SUMMARY="${VERIFY_FORMULA_SUMMARY:-true}"
+EMISSION_VERIFY_CACHE_DIR="${EMISSION_VERIFY_CACHE_DIR:-/tmp/emission-management-verify-cache}"
+EMISSION_HTTP_RETRIES="${EMISSION_HTTP_RETRIES:-3}"
+EMISSION_HTTP_RETRY_SECONDS="${EMISSION_HTTP_RETRY_SECONDS:-1}"
 
 TMP_DIR="$(mktemp -d /tmp/emission-management-flow.XXXXXX)"
-CLASSPATH_FILE="$TMP_DIR/runtime.classpath"
-JAVA_SOURCE="$TMP_DIR/ForgeEmissionManagementToken.java"
-JAVA_CLASS_DIR="$TMP_DIR/classes"
+CLASSPATH_FILE="$EMISSION_VERIFY_CACHE_DIR/runtime.classpath"
+JAVA_SOURCE="$EMISSION_VERIFY_CACHE_DIR/ForgeEmissionManagementToken.java"
+JAVA_CLASS_DIR="$EMISSION_VERIFY_CACHE_DIR/classes"
 COOKIE_JAR="$TMP_DIR/cookies.txt"
 SESSION_JSON="$TMP_DIR/session.json"
 HTML_FILE="$TMP_DIR/page.html"
@@ -79,109 +101,23 @@ cleanup() {
   rm -rf "$TMP_DIR"
 }
 trap cleanup EXIT
-
-fail() {
-  echo "[verify-emission-management-flow] FAIL: $*" >&2
-  exit 1
-}
-
-info() {
-  echo "[verify-emission-management-flow] $*"
-}
-
-load_optional_env() {
-  local env_file="$1"
-  if [[ -f "$env_file" ]]; then
-    set -a
-    # shellcheck disable=SC1090
-    source "$env_file"
-    set +a
-  fi
-}
-
-require_cmd() {
-  local name="$1"
-  command -v "$name" >/dev/null 2>&1 || fail "required command not found: $name"
-}
-
-require_file() {
-  local path="$1"
-  [[ -f "$path" ]] || fail "required file not found: $path"
-}
-
-load_optional_env "$ENV_FILE"
+emission_load_optional_env "$ENV_FILE"
 TOKEN_ACCESS_SECRET="${TOKEN_ACCESS_SECRET:-change-me-access-secret}"
 TOKEN_REFRESH_SECRET="${TOKEN_REFRESH_SECRET:-change-me-refresh-secret}"
 
-require_cmd curl
-require_cmd mvn
-require_cmd javac
-require_cmd java
-require_cmd python3
-require_file "$ROOT_DIR/pom.xml"
-require_file "$ROOT_DIR/target/classes/egovframework/com/feature/auth/util/JwtTokenProvider.class"
+emission_require_cmd curl
+emission_require_cmd mvn
+emission_require_cmd javac
+emission_require_cmd java
+emission_require_cmd python3
+emission_require_file "$ROOT_DIR/pom.xml"
+emission_require_file "$ROOT_DIR/target/classes/egovframework/com/feature/auth/util/JwtTokenProvider.class"
 
-mkdir -p "$JAVA_CLASS_DIR"
+emission_prepare_cached_runtime_artifacts
+emission_create_cookie_jar "$COOKIE_JAR"
 
-info "building runtime classpath"
-mvn -q -f "$ROOT_DIR/pom.xml" -DincludeScope=runtime dependency:build-classpath "-Dmdep.outputFile=$CLASSPATH_FILE" >/dev/null
-require_file "$CLASSPATH_FILE"
-
-cat > "$JAVA_SOURCE" <<'EOF'
-import egovframework.com.feature.auth.dto.response.LoginResponseDTO;
-import egovframework.com.feature.auth.util.JwtTokenProvider;
-import org.egovframe.boot.crypto.EgovCryptoConfiguration;
-import org.egovframe.boot.crypto.EgovCryptoProperties;
-import org.egovframe.boot.crypto.service.impl.EgovEnvCryptoServiceImpl;
-
-public class ForgeEmissionManagementToken {
-    public static void main(String[] args) {
-        String accessSecret = args.length > 0 ? args[0] : "change-me-access-secret";
-        String refreshSecret = args.length > 1 ? args[1] : "change-me-refresh-secret";
-
-        EgovCryptoProperties props = new EgovCryptoProperties();
-        props.setAlgorithm("SHA-256");
-        props.setAlgorithmKey("egovframe");
-        props.setAlgorithmKeyHash("gdyYs/IZqY86VcWhT8emCYfqY1ahw2vtLG+/FzNqtrQ=");
-
-        EgovEnvCryptoServiceImpl crypto = new EgovCryptoConfiguration(props).egovEnvCryptoService();
-        JwtTokenProvider provider = new JwtTokenProvider(crypto);
-
-        LoginResponseDTO dto = new LoginResponseDTO();
-        dto.setUserId("webmaster");
-        dto.setName("webmaster");
-        dto.setUniqId("USRCNFRM_99999999999");
-        dto.setAuthorList("ROLE_SYSTEM_MASTER");
-
-        try {
-            for (String[] item : new String[][] {
-                    {"accessSecret", accessSecret},
-                    {"refreshSecret", refreshSecret},
-                    {"accessExpiration", "3600000"},
-                    {"refreshExpiration", "3600000"}
-            }) {
-                java.lang.reflect.Field field = JwtTokenProvider.class.getDeclaredField(item[0]);
-                field.setAccessible(true);
-                field.set(provider, item[1]);
-            }
-        } catch (Exception ex) {
-            throw new RuntimeException(ex);
-        }
-
-        System.out.println(provider.createAccessToken(dto));
-    }
-}
-EOF
-
-javac -cp "$ROOT_DIR/target/classes:$(cat "$CLASSPATH_FILE")" -d "$JAVA_CLASS_DIR" "$JAVA_SOURCE"
-ACCESS_TOKEN="$(java -cp "$JAVA_CLASS_DIR:$ROOT_DIR/target/classes:$(cat "$CLASSPATH_FILE")" ForgeEmissionManagementToken "$TOKEN_ACCESS_SECRET" "$TOKEN_REFRESH_SECRET" | tr -d '\r\n')"
-[[ -n "$ACCESS_TOKEN" ]] || fail "failed to forge access token"
-
-printf '# Netscape HTTP Cookie File\n' > "$COOKIE_JAR"
-printf '127.0.0.1\tFALSE\t/\tFALSE\t0\taccessToken\t%s\n' "$ACCESS_TOKEN" >> "$COOKIE_JAR"
-
-info "verifying authenticated frontend session"
-curl -fsS -b "$COOKIE_JAR" -c "$COOKIE_JAR" "$BASE_URL/api/frontend/session" > "$SESSION_JSON" || fail "frontend session request failed"
+emission_info "verifying authenticated frontend session"
+emission_curl_to_file_with_retry "$SESSION_JSON" -b "$COOKIE_JAR" -c "$COOKIE_JAR" "$BASE_URL/api/frontend/session" || emission_fail "frontend session request failed"
 
 python3 - <<'PY' "$SESSION_JSON"
 import json, sys
@@ -208,14 +144,14 @@ PY
 )"
 CSRF_TOKEN="$(printf '%s\n' "$CSRF_INFO" | sed -n '1p')"
 CSRF_HEADER="$(printf '%s\n' "$CSRF_INFO" | sed -n '2p')"
-[[ -n "$CSRF_TOKEN" ]] || fail "csrfToken is missing from frontend session"
+[[ -n "$CSRF_TOKEN" ]] || emission_fail "csrfToken is missing from frontend session"
 
-info "loading admin shell route"
-curl -fsS -b "$COOKIE_JAR" -c "$COOKIE_JAR" "$BASE_URL/admin/emission/management" > "$HTML_FILE" || fail "route request failed"
-grep -q 'window\.__CARBONET_REACT_BOOTSTRAP__ = config\.reactBootstrapPayload || {};' "$HTML_FILE" || fail "shell bootstrap assignment is missing"
+emission_info "loading admin shell route"
+emission_curl_to_file_with_retry "$HTML_FILE" -b "$COOKIE_JAR" -c "$COOKIE_JAR" "$BASE_URL/admin/emission/management" || emission_fail "route request failed"
+grep -q 'window\.__CARBONET_REACT_BOOTSTRAP__ = config\.reactBootstrapPayload || {};' "$HTML_FILE" || emission_fail "shell bootstrap assignment is missing"
 
-info "loading emission management page-data"
-curl -fsS -b "$COOKIE_JAR" -c "$COOKIE_JAR" "$BASE_URL/admin/emission/management/page-data" > "$PAGE_DATA_JSON" || fail "page-data request failed"
+emission_info "loading emission management page-data"
+emission_curl_to_file_with_retry "$PAGE_DATA_JSON" -b "$COOKIE_JAR" -c "$COOKIE_JAR" "$BASE_URL/admin/emission/management/page-data" || emission_fail "page-data request failed"
 python3 - <<'PY' "$PAGE_DATA_JSON"
 import json, sys
 data = json.load(open(sys.argv[1], encoding="utf-8"))
@@ -223,8 +159,8 @@ if data.get("menuCode") != "A0020107":
     raise SystemExit("page-data menuCode is not A0020107")
 PY
 
-info "loading categories"
-curl -fsS -b "$COOKIE_JAR" -c "$COOKIE_JAR" "$BASE_URL/admin/api/admin/emission-management/categories" > "$CATEGORIES_JSON" || fail "categories request failed"
+emission_info "loading categories"
+emission_curl_to_file_with_retry "$CATEGORIES_JSON" -b "$COOKIE_JAR" -c "$COOKIE_JAR" "$BASE_URL/admin/api/admin/emission-management/categories" || emission_fail "categories request failed"
 CATEGORY_ID="$(python3 - <<'PY' "$CATEGORIES_JSON" "$EXPECTED_CATEGORY_SUBCODE"
 import json, sys
 items = json.load(open(sys.argv[1], encoding="utf-8")).get("items") or []
@@ -235,10 +171,10 @@ if not chosen:
 print(chosen.get("categoryId") or "")
 PY
 )"
-[[ -n "$CATEGORY_ID" ]] || fail "failed to resolve category id"
+[[ -n "$CATEGORY_ID" ]] || emission_fail "failed to resolve category id"
 
-info "loading tiers"
-curl -fsS -b "$COOKIE_JAR" -c "$COOKIE_JAR" "$BASE_URL/admin/api/admin/emission-management/categories/$CATEGORY_ID/tiers" > "$TIERS_JSON" || fail "tiers request failed"
+emission_info "loading tiers"
+emission_curl_to_file_with_retry "$TIERS_JSON" -b "$COOKIE_JAR" -c "$COOKIE_JAR" "$BASE_URL/admin/api/admin/emission-management/categories/$CATEGORY_ID/tiers" || emission_fail "tiers request failed"
 TIER="$(python3 - <<'PY' "$TIERS_JSON" "$EXPECTED_TIER"
 import json, sys
 tiers = json.load(open(sys.argv[1], encoding="utf-8")).get("tiers") or []
@@ -254,10 +190,10 @@ if expected_tier:
 print(tiers[0].get("tier") or "")
 PY
 )"
-[[ -n "$TIER" ]] || fail "failed to resolve tier"
+[[ -n "$TIER" ]] || emission_fail "failed to resolve tier"
 
-info "loading variable definitions"
-curl -fsS -b "$COOKIE_JAR" -c "$COOKIE_JAR" "$BASE_URL/admin/api/admin/emission-management/categories/$CATEGORY_ID/tiers/$TIER/variables" > "$VARIABLES_JSON" || fail "variables request failed"
+emission_info "loading variable definitions"
+emission_curl_to_file_with_retry "$VARIABLES_JSON" -b "$COOKIE_JAR" -c "$COOKIE_JAR" "$BASE_URL/admin/api/admin/emission-management/categories/$CATEGORY_ID/tiers/$TIER/variables" || emission_fail "variables request failed"
 python3 - <<'PY' "$VARIABLES_JSON" "$EXPECTED_INPUT_VAR_CODE"
 import json, sys
 data = json.load(open(sys.argv[1], encoding="utf-8"))
@@ -267,11 +203,11 @@ if expected_code not in variable_codes:
     raise SystemExit(f"expected variable code is missing: {expected_code}")
 PY
 
-info "loading lime default factor"
-curl -fsS -b "$COOKIE_JAR" -c "$COOKIE_JAR" "$BASE_URL/admin/api/admin/emission-management/lime/default-factor" > "$LIME_FACTOR_JSON" || fail "lime default factor request failed"
+emission_info "loading lime default factor"
+emission_curl_to_file_with_retry "$LIME_FACTOR_JSON" -b "$COOKIE_JAR" -c "$COOKIE_JAR" "$BASE_URL/admin/api/admin/emission-management/lime/default-factor" || emission_fail "lime default factor request failed"
 
 if [[ "$VERIFY_INVALID_VARIABLE_CODE" == "true" ]]; then
-  info "verifying invalid variable rejection"
+  emission_info "verifying invalid variable rejection"
   python3 - <<'PY' "$SAVE_REQUEST_JSON" "$CATEGORY_ID" "$TIER" "$INVALID_INPUT_VAR_CODE"
 import json, sys
 path, category_id, tier, invalid_var_code = sys.argv[1:5]
@@ -283,13 +219,16 @@ payload = {
 }
 open(path, "w", encoding="utf-8").write(json.dumps(payload, ensure_ascii=False))
 PY
-  INVALID_STATUS="$(curl -sS -o "$INVALID_RESPONSE_JSON" -w '%{http_code}' -b "$COOKIE_JAR" -c "$COOKIE_JAR" -X POST -H "$CSRF_HEADER: $CSRF_TOKEN" -H 'Content-Type: application/json' --data @"$SAVE_REQUEST_JSON" "$BASE_URL/admin/api/admin/emission-management/input-sessions")"
-  [[ "$INVALID_STATUS" == "500" ]] || fail "invalid variable request should fail with 500 but was $INVALID_STATUS"
-  grep -q '"status":"error"' "$INVALID_RESPONSE_JSON" || fail "invalid variable response did not return error payload"
+  INVALID_STATUS="$(emission_curl_status_with_retry "$INVALID_RESPONSE_JSON" -b "$COOKIE_JAR" -c "$COOKIE_JAR" -X POST -H "$CSRF_HEADER: $CSRF_TOKEN" -H 'Content-Type: application/json' --data @"$SAVE_REQUEST_JSON" "$BASE_URL/admin/api/admin/emission-management/input-sessions")" || emission_fail "invalid variable request failed"
+  [[ "$INVALID_STATUS" == "500" ]] || emission_fail "invalid variable request should fail with 500 but was $INVALID_STATUS"
+  grep -q '"status":"error"' "$INVALID_RESPONSE_JSON" || emission_fail "invalid variable response did not return error payload"
 fi
 
-info "saving input session"
-if [[ -n "$SAVE_PAYLOAD_JSON" ]]; then
+emission_info "saving input session"
+if [[ -n "$SAVE_PAYLOAD_FILE" ]]; then
+  emission_require_file "$SAVE_PAYLOAD_FILE"
+  cp "$SAVE_PAYLOAD_FILE" "$SAVE_REQUEST_JSON"
+elif [[ -n "$SAVE_PAYLOAD_JSON" ]]; then
   printf '%s' "$SAVE_PAYLOAD_JSON" > "$SAVE_REQUEST_JSON"
 else
 python3 - <<'PY' "$SAVE_REQUEST_JSON" "$CATEGORY_ID" "$TIER" "$EXPECTED_INPUT_VALUE"
@@ -307,8 +246,8 @@ payload = {
 open(path, "w", encoding="utf-8").write(json.dumps(payload, ensure_ascii=False))
 PY
 fi
-SAVE_STATUS="$(curl -sS -o "$SAVE_RESPONSE_JSON" -w '%{http_code}' -b "$COOKIE_JAR" -c "$COOKIE_JAR" -X POST -H "$CSRF_HEADER: $CSRF_TOKEN" -H 'Content-Type: application/json' --data @"$SAVE_REQUEST_JSON" "$BASE_URL/admin/api/admin/emission-management/input-sessions")"
-[[ "$SAVE_STATUS" == "200" ]] || fail "save request failed with status $SAVE_STATUS"
+SAVE_STATUS="$(emission_curl_status_with_retry "$SAVE_RESPONSE_JSON" -b "$COOKIE_JAR" -c "$COOKIE_JAR" -X POST -H "$CSRF_HEADER: $CSRF_TOKEN" -H 'Content-Type: application/json' --data @"$SAVE_REQUEST_JSON" "$BASE_URL/admin/api/admin/emission-management/input-sessions")" || emission_fail "save request transport failed"
+[[ "$SAVE_STATUS" == "200" ]] || emission_fail "save request failed with status $SAVE_STATUS"
 
 SESSION_ID="$(python3 - <<'PY' "$SAVE_RESPONSE_JSON"
 import json, sys
@@ -318,11 +257,11 @@ if not data.get("success"):
 print(data.get("sessionId") or "")
 PY
 )"
-[[ -n "$SESSION_ID" ]] || fail "save response did not include sessionId"
+[[ -n "$SESSION_ID" ]] || emission_fail "save response did not include sessionId"
 
-info "loading saved input session"
-GET_STATUS="$(curl -sS -o "$SESSION_RESPONSE_JSON" -w '%{http_code}' -b "$COOKIE_JAR" -c "$COOKIE_JAR" "$BASE_URL/admin/api/admin/emission-management/input-sessions/$SESSION_ID")"
-[[ "$GET_STATUS" == "200" ]] || fail "input session lookup failed with status $GET_STATUS"
+emission_info "loading saved input session"
+GET_STATUS="$(emission_curl_status_with_retry "$SESSION_RESPONSE_JSON" -b "$COOKIE_JAR" -c "$COOKIE_JAR" "$BASE_URL/admin/api/admin/emission-management/input-sessions/$SESSION_ID")" || emission_fail "input session lookup transport failed"
+[[ "$GET_STATUS" == "200" ]] || emission_fail "input session lookup failed with status $GET_STATUS"
 if [[ "$VERIFY_SAVED_VALUE" == "true" ]]; then
 python3 - <<'PY' "$SESSION_RESPONSE_JSON" "$EXPECTED_INPUT_VAR_CODE" "$EXPECTED_INPUT_VALUE"
 import json, sys
@@ -339,25 +278,115 @@ if abs(actual - expected_value) > 1e-9:
 PY
 fi
 
-info "executing calculation"
-CALC_STATUS="$(curl -sS -o "$CALC_RESPONSE_JSON" -w '%{http_code}' -b "$COOKIE_JAR" -c "$COOKIE_JAR" -X POST -H "$CSRF_HEADER: $CSRF_TOKEN" -H 'Content-Type: application/json' --data '{}' "$BASE_URL/admin/api/admin/emission-management/input-sessions/$SESSION_ID/calculate")"
-[[ "$CALC_STATUS" == "200" ]] || fail "calculate request failed with status $CALC_STATUS"
-python3 - <<'PY' "$CALC_RESPONSE_JSON" "$EXPECTED_CO2_TOTAL" "$EXPECTED_FORMULA_SUMMARY"
+emission_info "executing calculation"
+CALC_STATUS="$(emission_curl_status_with_retry "$CALC_RESPONSE_JSON" -b "$COOKIE_JAR" -c "$COOKIE_JAR" -X POST -H "$CSRF_HEADER: $CSRF_TOKEN" -H 'Content-Type: application/json' --data '{}' "$BASE_URL/admin/api/admin/emission-management/input-sessions/$SESSION_ID/calculate")" || emission_fail "calculate request transport failed"
+[[ "$CALC_STATUS" == "200" ]] || emission_fail "calculate request failed with status $CALC_STATUS"
+CALC_INFO="$(python3 - <<'PY' "$CALC_RESPONSE_JSON"
 import json, sys
 data = json.load(open(sys.argv[1], encoding="utf-8"))
+print(data.get("co2Total"))
+print(str(data.get("formulaSummary", "")).strip())
+PY
+)"
+ACTUAL_CO2_TOTAL="$(printf '%s\n' "$CALC_INFO" | sed -n '1p')"
+ACTUAL_FORMULA_SUMMARY="$(printf '%s\n' "$CALC_INFO" | sed -n '2p')"
+if [[ "$VERIFY_CO2_TOTAL" == "true" ]]; then
+  python3 - <<'PY' "$ACTUAL_CO2_TOTAL" "$EXPECTED_CO2_TOTAL"
+import sys
+actual_total = float(sys.argv[1])
 expected_total = float(sys.argv[2])
-expected_formula = sys.argv[3]
-actual_total = float(data.get("co2Total"))
 if abs(actual_total - expected_total) > 1e-9:
     raise SystemExit(f"co2Total mismatch: expected={expected_total}, actual={actual_total}")
-if str(data.get("formulaSummary", "")).strip() != expected_formula:
-    raise SystemExit("formulaSummary mismatch")
 PY
+fi
+if [[ "$VERIFY_FORMULA_SUMMARY" == "true" ]]; then
+  [[ "$ACTUAL_FORMULA_SUMMARY" == "$EXPECTED_FORMULA_SUMMARY" ]] || emission_fail "formulaSummary mismatch"
+fi
+if [[ "$VERIFY_ROLLOUT_STATUS" == "true" ]]; then
+  emission_info "verifying rollout board status"
+  emission_curl_to_file_with_retry "$PAGE_DATA_JSON" -b "$COOKIE_JAR" -c "$COOKIE_JAR" "$BASE_URL/admin/emission/management/page-data" || emission_fail "page-data request failed during rollout verification"
+  python3 - <<'PY' "$ROOT_DIR" "$PAGE_DATA_JSON" "$EXPECTED_CATEGORY_SUBCODE" "$TIER" "$EXPECTED_PROMOTION_STATUS" "$EXPECTED_DRAFT_ID_PREFIX" "$EXPECTED_READY_SCOPES"
+import json
+import sys
+from pathlib import Path
 
-info "session OK"
-info "page-data OK: /admin/emission/management/page-data"
-info "category OK: $EXPECTED_CATEGORY_SUBCODE"
-info "tier OK: $TIER"
-info "save OK: sessionId=$SESSION_ID"
-info "calculate OK: co2Total=$EXPECTED_CO2_TOTAL"
-info "verification completed"
+root_dir = Path(sys.argv[1])
+sys.path.insert(0, str(root_dir / "ops/scripts"))
+
+from emission_rollout_json_common import split_scopes
+
+data = json.load(open(sys.argv[2], encoding="utf-8"))
+expected_category = sys.argv[3].strip().upper()
+expected_tier = int(sys.argv[4])
+expected_status = sys.argv[5].strip().upper()
+expected_draft_prefix = sys.argv[6]
+expected_ready_scopes = split_scopes(sys.argv[7])
+
+rows = data.get("rolloutStatusRows") or []
+row = next((
+    item for item in rows
+    if str(item.get("categoryCode", "")).strip().upper() == expected_category
+    and int(item.get("tier")) == expected_tier
+), None)
+if row is None:
+    raise SystemExit(f"rollout row not found for {expected_category}:{expected_tier}")
+
+actual_status = str(row.get("promotionStatus", "")).strip().upper()
+if actual_status != expected_status:
+    raise SystemExit(f"promotionStatus mismatch: expected={expected_status}, actual={actual_status}")
+if not bool(row.get("definitionFormulaAdopted")):
+    raise SystemExit("definitionFormulaAdopted is false on rollout row")
+draft_id = str(row.get("draftId") or "")
+if expected_draft_prefix and not draft_id.startswith(expected_draft_prefix):
+    raise SystemExit(f"draftId prefix mismatch: expected_prefix={expected_draft_prefix}, actual={draft_id}")
+
+cards = data.get("rolloutSummaryCards") or []
+ready_card = next((card for card in cards if str(card.get("title", "")).strip() == "Ready"), None)
+if ready_card is None:
+    raise SystemExit("Ready summary card is missing")
+if int(str(ready_card.get("value") or "0")) < 1:
+    raise SystemExit("Ready summary card should be at least 1 after calculate")
+
+if expected_ready_scopes:
+    row_map = {
+        f"{str(item.get('categoryCode') or '').strip().upper()}:{int(item.get('tier'))}": item
+        for item in rows
+        if item.get("tier") is not None
+    }
+    missing = []
+    not_ready = []
+    not_adopted = []
+    for scope in expected_ready_scopes:
+        scope_row = row_map.get(scope)
+        if scope_row is None:
+            missing.append(scope)
+            continue
+        if str(scope_row.get("promotionStatus") or "").strip().upper() != "READY":
+            not_ready.append(f"{scope}={scope_row.get('promotionStatus')}")
+        if not bool(scope_row.get("definitionFormulaAdopted")):
+            not_adopted.append(scope)
+    if missing or not_ready or not_adopted:
+        problems = []
+        if missing:
+            problems.append("missing rows: " + ", ".join(missing))
+        if not_ready:
+            problems.append("non-READY rows: " + ", ".join(not_ready))
+        if not_adopted:
+            problems.append("definitionFormulaAdopted=false: " + ", ".join(not_adopted))
+        raise SystemExit("; ".join(problems))
+PY
+fi
+
+emission_info "session OK"
+emission_info "page-data OK: /admin/emission/management/page-data"
+emission_info "category OK: $EXPECTED_CATEGORY_SUBCODE"
+emission_info "tier OK: $TIER"
+emission_info "save OK: sessionId=$SESSION_ID"
+emission_info "calculate OK: co2Total=$EXPECTED_CO2_TOTAL"
+if [[ "$VERIFY_ROLLOUT_STATUS" == "true" ]]; then
+  emission_info "rollout OK: $EXPECTED_CATEGORY_SUBCODE:$TIER -> $EXPECTED_PROMOTION_STATUS"
+  if [[ -n "$EXPECTED_READY_SCOPES" ]]; then
+    emission_info "rollout READY scopes OK: $EXPECTED_READY_SCOPES"
+  fi
+fi
+emission_info "verification completed"

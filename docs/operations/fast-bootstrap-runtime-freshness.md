@@ -34,6 +34,10 @@ If the task is specifically the `/admin/emission/management` load plus save/calc
 
 1. `bash ops/scripts/build-restart-verify-emission-management-18000.sh`
 
+If the task is specifically the `/admin/emission/management` rollout board and all supported scopes must be repopulated and rechecked, you can also use:
+
+1. `bash ops/scripts/build-restart-fill-verify-emission-management-rollout-18000.sh`
+
 That script already enforces:
 
 1. frontend build
@@ -237,6 +241,82 @@ When the task specifically needs proof that `/admin/emission/management` can loa
 
 - `bash ops/scripts/verify-emission-management-flow.sh`
 - `bash ops/scripts/build-restart-verify-emission-management-18000.sh`
+
+When the task specifically needs proof that `/admin/emission/management` rollout-board rows are populated for the current supported scopes, also run:
+
+- `bash ops/scripts/help-emission-management-rollout.sh`
+- `EMISSION_HELP_OUTPUT=json bash ops/scripts/help-emission-management-rollout.sh`
+- `EMISSION_HELP_OUTPUT=flat-json bash ops/scripts/help-emission-management-rollout.sh`
+- `EMISSION_HELP_OUTPUT=commands bash ops/scripts/help-emission-management-rollout.sh`
+- `bash ops/scripts/list-emission-management-rollout-scopes.sh`
+- `bash ops/scripts/verify-emission-management-rollout-fixtures.sh`
+- `bash ops/scripts/verify-emission-management-rollout-tooling.sh`
+- `bash ops/scripts/show-emission-management-rollout-status.sh`
+- `bash ops/scripts/show-emission-management-rollout-board.sh`
+- `bash ops/scripts/verify-emission-management-rollout-readonly.sh`
+- `bash ops/scripts/verify-emission-management-rollout-board-ready.sh`
+- `bash ops/scripts/fill-emission-management-rollout-snapshots.sh`
+- `bash ops/scripts/verify-emission-management-rollout-scope.sh CEMENT:1`
+- `bash ops/scripts/build-restart-fill-verify-emission-management-rollout-18000.sh`
+
+For the read-only board command, these output controls are also available:
+
+- `EMISSION_ROLLOUT_OUTPUT=json`
+- `EMISSION_ROLLOUT_FILTER_SCOPES="CEMENT:1 LIME:2"`
+
+For the read-only verification bundle, this output control is also available:
+
+- `EMISSION_READONLY_VERIFY_OUTPUT=json`
+- `EMISSION_EXPECT_READY_SCOPES="CEMENT:1 LIME:2"`
+
+If `EMISSION_EXPECT_READY_SCOPES` is omitted for the read-only status or
+verification commands, they derive the expected scope set from
+`ops/fixtures/emission-management-rollout/scopes.tsv`.
+
+Useful read-only JSON shortcuts:
+
+- `EMISSION_STATUS_OUTPUT=json EMISSION_STATUS_INCLUDE_BOARD=false bash ops/scripts/show-emission-management-rollout-status.sh`
+- `EMISSION_READONLY_VERIFY_OUTPUT=json bash ops/scripts/verify-emission-management-rollout-readonly.sh`
+
+These JSON outputs, and the help catalog JSON, currently expose `schemaVersion=1`.
+The `commands` help mode is intentionally unstructured, and invalid `EMISSION_HELP_OUTPUT` values now fail fast instead of silently falling back to text output.
+
+To emit the default rollout scope set in a copy-pasteable form before setting `EMISSION_SCOPES`, use:
+
+- `EMISSION_SCOPE_LIST_OUTPUT=scopes bash ops/scripts/list-emission-management-rollout-scopes.sh`
+- `EMISSION_SCOPE_LIST_OUTPUT=json bash ops/scripts/list-emission-management-rollout-scopes.sh`
+- `EMISSION_FIXTURE_VERIFY_OUTPUT=json bash ops/scripts/verify-emission-management-rollout-fixtures.sh`
+
+Scope metadata lookup/default-scope derivation are shared through `ops/scripts/emission-management-auth-common.sh`, and rollout schema/text render helpers are shared through `ops/scripts/emission_rollout_json_common.py`.
+
+The full wrapper now ends with `show-emission-management-rollout-board.sh`, so on a normal local shell it should print the final summary cards and scope rows after the fill and verify steps complete.
+It also starts with `verify-emission-management-rollout-fixtures.sh`, so scope metadata and canonical payload fixtures are checked before any rebuild or restart work begins.
+By default, that final read-only board step asserts the same scope set passed in `EMISSION_SCOPES`. You can override the asserted set through `EMISSION_EXPECT_READY_SCOPES`.
+When `EMISSION_SCOPES` is omitted, the wrapper now derives its default scope set from `ops/fixtures/emission-management-rollout/scopes.tsv`.
+
+If you want the wrapper to skip that last read-only summary step, or to fail hard when the summary cannot be loaded, use:
+
+- `SHOW_ROLLOUT_BOARD_AT_END=false`
+- `IGNORE_ROLLOUT_BOARD_SHOW_FAILURE=false`
+
+These wrapper boolean selectors also fail fast on unsupported values instead of silently falling back.
+
+If one long parent shell cannot reliably reach local `:18000` in your execution environment, print the split commands and run them one by one:
+
+- `EMISSION_PRINT_COMMANDS=true bash ops/scripts/fill-emission-management-rollout-snapshots.sh`
+
+If transient local HTTP failures occur while reproducing the authenticated emission-management flow, these retry controls are available:
+
+- `EMISSION_HTTP_RETRIES`
+- `EMISSION_HTTP_RETRY_SECONDS`
+- `EMISSION_SCOPE_VERIFY_RETRIES`
+- `EMISSION_SCOPE_VERIFY_DELAY_SECONDS`
+
+Use this when:
+
+- rollout summary cards must move out of `LEGACY_ONLY`
+- category and tier comparison rows must be visible after login
+- definition-comparison fallback or adoption behavior changed
 
 If the verifier is being run immediately after a restart and the supervised loop needs a little time to recreate the pid file, you can override the grace period:
 
