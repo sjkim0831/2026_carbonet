@@ -50,6 +50,7 @@ import {
   majorCategoryKey,
   majorCategoryLabel,
   numberOf,
+  resolutionGuideForVariable,
   shouldShowLimeTier2Variable,
   stringOf,
   syncLineNumbers,
@@ -1622,10 +1623,6 @@ export function EmissionManagementMigrationPage() {
   }
 
   function tierGuideFallbackSummary(category: EmissionCategoryItem | null, tierNumber: number, guideVariables: EmissionVariableDefinition[]) {
-    const fallbackVariables = guideVariables.filter((variable) => supportsFallbackInput(variable, category, tierNumber));
-    if (fallbackVariables.length === 0) {
-      return "";
-    }
     if (isCementTier2Scope(category, tierNumber)) {
       return en
         ? "Tier 2 supports fallback handling for Md, Cd, Fd, EFc, EFcl, and CFckd. If derivation inputs are incomplete, stored coefficients or documented defaults are used."
@@ -1636,9 +1633,24 @@ export function EmissionManagementMigrationPage() {
         ? "Tier 2 supports fallback handling for lime-type-based factors and correction terms. Missing composition or hydration inputs can switch to mapped or documented defaults."
         : "Tier 2에서는 석회 유형 기반 계수와 보정항에 대체값 흐름이 적용됩니다. 조성값이나 수화 입력이 없으면 매핑값 또는 문서 기본값으로 전환될 수 있습니다.";
     }
+    const fallbackVariables = guideVariables.filter((variable) => supportsFallbackInput(variable, category, tierNumber));
+    if (fallbackVariables.length === 0) {
+      return "";
+    }
     return en
       ? "Some variables in this tier can fall back to stored coefficients or documented defaults."
       : "이 Tier의 일부 변수는 저장 계수 또는 문서 기본값으로 대체될 수 있습니다.";
+  }
+
+  function tierGuideResolutionItems(category: EmissionCategoryItem | null, tierNumber: number, guideVariables: EmissionVariableDefinition[]) {
+    return guideVariables
+      .map((variable) => ({
+        code: variableCodeOf(variable),
+        name: displayVariableName(category, tierNumber, variable),
+        guide: resolutionGuideForVariable(en, category, tierNumber, variable)
+      }))
+      .filter((item): item is { code: string; name: string; guide: NonNullable<ReturnType<typeof resolutionGuideForVariable>> } => Boolean(item.guide))
+      .filter((item, index, array) => array.findIndex((candidate) => candidate.code === item.code) === index);
   }
 
   function repeatGroupValidationWarning() {
@@ -2075,10 +2087,18 @@ export function EmissionManagementMigrationPage() {
                       const tierNumber = numberOf(tier.tier);
                       const guide = tierGuideMap[tierNumber];
                       const guideVariables = guide?.variables ? visibleVariablesForStep(selectedCategory, tierNumber, guide.variables) : [];
+                      const resolutionItems = tierGuideResolutionItems(selectedCategory, tierNumber, guideVariables);
                       return (
                         <article className="rounded-[var(--kr-gov-radius)] border border-white bg-white px-4 py-4" key={`tier-guide-${tierNumber}`}>
                           <div className="flex items-center justify-between gap-3">
-                            <h4 className="text-sm font-black text-[var(--kr-gov-text-primary)]">{stringOf(tier.tierLabel) || `Tier ${tierNumber}`}</h4>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h4 className="text-sm font-black text-[var(--kr-gov-text-primary)]">{stringOf(tier.tierLabel) || `Tier ${tierNumber}`}</h4>
+                              {tierGuideFallbackSummary(selectedCategory, tierNumber, guideVariables) ? (
+                                <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-bold text-amber-700">
+                                  {en ? "Fallback Available" : "대체값 적용 가능"}
+                                </span>
+                              ) : null}
+                            </div>
                             <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">{guideVariables.length}</span>
                           </div>
                           <div className="mt-3 rounded-[var(--kr-gov-radius)] border border-blue-200 bg-blue-50 px-3 py-3">
@@ -2097,26 +2117,51 @@ export function EmissionManagementMigrationPage() {
                               </p>
                             </div>
                           ) : null}
-                          <div className="mt-4 space-y-2">
-                            {guideVariables.length > 0 ? guideVariables.map((variable) => (
-                              <div
-                                className={`rounded-[var(--kr-gov-radius)] border px-3 py-3 ${
-                                  supportsFallbackInput(variable, selectedCategory, tierNumber)
-                                    ? "border-amber-200 bg-amber-50/70"
-                                    : "border-[var(--kr-gov-border-light)] bg-slate-50"
-                                }`}
-                                key={`tier-guide-${tierNumber}-${stringOf(variable.varCode)}`}
-                              >
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                  <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{displayVariableName(selectedCategory, tierNumber, variable)}</p>
-                                  <div className="flex flex-wrap gap-2">
-                                    {supportsFallbackInput(variable, selectedCategory, tierNumber) ? <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700">{en ? "Default-capable" : "기본 계수 사용 가능"}</span> : null}
-                                    {isRepeatableVariable(variable) ? <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-700">{en ? "Summation" : "Summation"}</span> : null}
+                          {resolutionItems.length > 0 ? (
+                            <div className="mt-3 rounded-[var(--kr-gov-radius)] border border-sky-200 bg-sky-50 px-3 py-3">
+                              <p className="text-xs font-bold uppercase tracking-wide text-sky-700">
+                                {en ? "Resolution Rules" : "값 결정 규칙"}
+                              </p>
+                              <div className="mt-2 space-y-2">
+                                {resolutionItems.map((item) => (
+                                  <div className="rounded-[var(--kr-gov-radius)] border border-white bg-white px-3 py-3" key={`tier-guide-resolution-${tierNumber}-${item.code}`}>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{item.name}</p>
+                                      <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-bold text-sky-700">
+                                        {item.guide.badge}
+                                      </span>
+                                    </div>
+                                    <p className="mt-1 text-xs leading-5 text-[var(--kr-gov-text-secondary)]">{item.guide.description}</p>
                                   </div>
-                                </div>
-                                <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{displayUnitLabel(stringOf(variable.unit), en)}</p>
+                                ))}
                               </div>
-                            )) : (
+                            </div>
+                          ) : null}
+                          <div className="mt-4 space-y-2">
+                            {guideVariables.length > 0 ? guideVariables.map((variable) => {
+                              const resolutionGuide = resolutionGuideForVariable(en, selectedCategory, tierNumber, variable);
+                              return (
+                                <div
+                                  className={`rounded-[var(--kr-gov-radius)] border px-3 py-3 ${
+                                    supportsFallbackInput(variable, selectedCategory, tierNumber)
+                                      ? "border-amber-200 bg-amber-50/70"
+                                      : "border-[var(--kr-gov-border-light)] bg-slate-50"
+                                  }`}
+                                  key={`tier-guide-${tierNumber}-${stringOf(variable.varCode)}`}
+                                >
+                                  <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{displayVariableName(selectedCategory, tierNumber, variable)}</p>
+                                    <div className="flex flex-wrap gap-2">
+                                      {supportsFallbackInput(variable, selectedCategory, tierNumber) ? <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700">{en ? "Default-capable" : "기본 계수 사용 가능"}</span> : null}
+                                      {resolutionGuide ? <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-bold text-sky-700">{resolutionGuide.badge}</span> : null}
+                                      {isRepeatableVariable(variable) ? <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-bold text-blue-700">{en ? "Summation" : "Summation"}</span> : null}
+                                    </div>
+                                  </div>
+                                  <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{displayUnitLabel(stringOf(variable.unit), en)}</p>
+                                  {resolutionGuide ? <p className="mt-2 text-xs leading-5 text-[var(--kr-gov-text-secondary)]">{resolutionGuide.description}</p> : null}
+                                </div>
+                              );
+                            }) : (
                               <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "No variable guide is available for this tier yet." : "이 Tier의 변수 안내를 아직 불러오지 못했습니다."}</p>
                             )}
                           </div>
@@ -2144,29 +2189,34 @@ export function EmissionManagementMigrationPage() {
               <p className="mt-4 text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Loading categories and metadata..." : "카테고리와 메타데이터를 불러오는 중입니다..."}</p>
             ) : null}
             <div className="mt-4 space-y-3">
-              {visibleVariables.map((variable) => (
-                <article
-                  className={`rounded-[var(--kr-gov-radius)] border px-4 py-3 ${
-                    supportsFallbackInput(variable)
-                      ? "border-amber-200 bg-amber-50/60"
-                      : "border-[var(--kr-gov-border-light)] bg-white"
-                  }`}
-                  key={stringOf(variable.varCode)}
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-black text-[var(--kr-gov-text-primary)]">{displayVariableName(selectedCategory, selectedTier, variable)}</p>
-                      <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{displayUnitLabel(stringOf(variable.unit), en)}</p>
+              {visibleVariables.map((variable) => {
+                const resolutionGuide = resolutionGuideForVariable(en, selectedCategory, selectedTier, variable);
+                return (
+                  <article
+                    className={`rounded-[var(--kr-gov-radius)] border px-4 py-3 ${
+                      supportsFallbackInput(variable)
+                        ? "border-amber-200 bg-amber-50/60"
+                        : "border-[var(--kr-gov-border-light)] bg-white"
+                    }`}
+                    key={stringOf(variable.varCode)}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-black text-[var(--kr-gov-text-primary)]">{displayVariableName(selectedCategory, selectedTier, variable)}</p>
+                        <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{displayUnitLabel(stringOf(variable.unit), en)}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {supportsFallbackInput(variable) ? <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-700">{en ? "Default-capable" : "기본 계수 사용 가능"}</span> : null}
+                        {resolutionGuide ? <span className="rounded-full bg-sky-100 px-2.5 py-1 text-xs font-bold text-sky-700">{resolutionGuide.badge}</span> : null}
+                        {isRepeatableVariable(variable) ? <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-bold text-blue-700">{en ? "Summation" : "Summation 변수"}</span> : null}
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">{stringOf(variable.inputType) || "TEXT"}</span>
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {supportsFallbackInput(variable) ? <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-700">{en ? "Default-capable" : "기본 계수 사용 가능"}</span> : null}
-                      {isRepeatableVariable(variable) ? <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-bold text-blue-700">{en ? "Summation" : "Summation 변수"}</span> : null}
-                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">{stringOf(variable.inputType) || "TEXT"}</span>
-                    </div>
-                  </div>
-                  {stringOf(variable.varDesc) ? <p className="mt-3 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">{stringOf(variable.varDesc)}</p> : null}
-                </article>
-              ))}
+                    {stringOf(variable.varDesc) ? <p className="mt-3 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">{stringOf(variable.varDesc)}</p> : null}
+                    {resolutionGuide ? <p className="mt-2 text-xs leading-5 text-[var(--kr-gov-text-secondary)]">{resolutionGuide.description}</p> : null}
+                  </article>
+                );
+              })}
               {!definitionLoading && visibleVariables.length === 0 ? (
                 <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Select a category and tier to load variable definitions." : "카테고리와 Tier를 선택하면 변수 정의가 표시됩니다."}</p>
               ) : null}

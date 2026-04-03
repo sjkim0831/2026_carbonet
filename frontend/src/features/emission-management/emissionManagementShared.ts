@@ -30,6 +30,11 @@ export type TierGuide = {
   variables: EmissionVariableDefinition[];
 };
 
+export type ResolutionGuide = {
+  badge: string;
+  description: string;
+};
+
 type TierUiDefinition = {
   summationGroups?: string[][];
 };
@@ -351,6 +356,107 @@ export function isLimeTier2Scope(category: EmissionCategoryItem | null, tier: nu
 
 export function isCementTier2Scope(category: EmissionCategoryItem | null, tier: number) {
   return stringOf(category?.subCode).toUpperCase() === "CEMENT" && tier === 2;
+}
+
+export function resolutionGuideForVariable(en: boolean, category: EmissionCategoryItem | null, tier: number, variable: EmissionVariableDefinition): ResolutionGuide | null {
+  const subCode = stringOf(category?.subCode).toUpperCase();
+  const code = variableCodeOf(variable);
+
+  if (subCode === "CEMENT" && tier === 1 && code === "EFCLC") {
+    return {
+      badge: en ? "Stored/Default Fallback" : "저장/기본 대체",
+      description: en
+        ? "If EFclc is omitted, the calculator uses a stored coefficient first and then the documented default."
+        : "EFclc가 비어 있으면 저장 계수를 우선 사용하고, 없으면 문서 기본값을 적용합니다."
+    };
+  }
+
+  if (subCode === "CEMENT" && tier === 2) {
+    if (code === "EFC" || code === "EFCL") {
+      return {
+        badge: en ? "Stored/Default Fallback" : "저장/기본 대체",
+        description: en
+          ? `${code} falls back to a stored coefficient and then the documented default when direct input is missing.`
+          : `${code}는 직접 입력이 없으면 저장 계수, 그다음 문서 기본값으로 대체됩니다.`
+      };
+    }
+    if (code === "CFCKD") {
+      return {
+        badge: en ? "Derived Or Fallback" : "유도식/대체값",
+        description: en
+          ? "CFckd is derived from Md, Cd, Fd, Mcl, EFc, and EFcl when available. Otherwise it switches to a stored coefficient or the default 1.02."
+          : "CFckd는 Md, Cd, Fd, Mcl, EFc, EFcl이 있으면 유도식으로 계산하고, 부족하면 저장 계수 또는 기본값 1.02로 전환됩니다."
+      };
+    }
+    if (code === "MD" || code === "CD" || code === "FD") {
+      return {
+        badge: en ? "Derivation Input" : "유도식 입력",
+        description: en
+          ? "This value is used to derive CFckd. If it is omitted, the calculator falls back to stored/default CFckd handling."
+          : "이 값은 CFckd 유도식에 사용됩니다. 비어 있으면 계산기는 저장/기본 CFckd 흐름으로 전환됩니다."
+      };
+    }
+  }
+
+  if (subCode === "CEMENT" && tier === 3) {
+    if (code === "CARBONATE_TYPE" || code === "RAW_MATERIAL_CARBONATE_TYPE" || code === "LKD_CARBONATE_TYPE") {
+      return {
+        badge: en ? "Type Mapping" : "유형 매핑",
+        description: en
+          ? "Selecting the carbonate type maps the emission factor from the document table."
+          : "탄산염 유형을 선택하면 문서 기준 표에서 배출계수를 매핑합니다."
+      };
+    }
+    if (code === "EFD") {
+      return {
+        badge: en ? "Mapped/Stored/Default" : "매핑/저장/기본",
+        description: en
+          ? "EFd can come from direct input, carbonate-type mapping, a stored coefficient, or the documented default."
+          : "EFd는 직접 입력, 탄산염 유형 매핑, 저장 계수, 문서 기본값 순으로 적용될 수 있습니다."
+      };
+    }
+  }
+
+  if (subCode === "LIME" && tier === 1 && code === "LIME_TYPE") {
+    return {
+      badge: en ? "Type Or Fallback" : "유형/대체값",
+      description: en
+        ? "The selected lime type determines EF_lime,i. If the type is blank, the calculator uses a stored coefficient or the default."
+        : "선택한 석회 유형이 EF석회,i를 결정합니다. 유형이 비어 있으면 저장 계수 또는 기본값을 사용합니다."
+    };
+  }
+
+  if (subCode === "LIME" && tier === 2) {
+    if (["LIME_TYPE", "CAO_CONTENT", "CAO_MGO_CONTENT", "MD", "CD", "FD", "HYDRATED_LIME_PRODUCTION_YN", "X", "Y"].includes(code)) {
+      return {
+        badge: en ? "Derived Or Fallback" : "유도식/대체값",
+        description: en
+          ? "This input participates in lime Tier 2 factor or correction derivation. Missing values can switch the calculator to mapped, stored, or documented defaults."
+          : "이 입력값은 석회 Tier 2 계수 또는 보정항 유도식에 참여합니다. 값이 부족하면 매핑값, 저장 계수, 문서 기본값으로 전환될 수 있습니다."
+      };
+    }
+  }
+
+  if (subCode === "LIME" && tier === 3) {
+    if (code === "CARBONATE_TYPE" || code === "LKD_CARBONATE_TYPE") {
+      return {
+        badge: en ? "Type Mapping" : "유형 매핑",
+        description: en
+          ? "Selecting the carbonate type maps the emission factor from the document table."
+          : "탄산염 유형을 선택하면 문서 기준 표에서 배출계수를 매핑합니다."
+      };
+    }
+    if (code === "EFD") {
+      return {
+        badge: en ? "Mapped/Stored/Default" : "매핑/저장/기본",
+        description: en
+          ? "EFd can come from direct input, carbonate-type mapping, a stored coefficient, or the documented default."
+          : "EFd는 직접 입력, 탄산염 유형 매핑, 저장 계수, 문서 기본값 순으로 적용될 수 있습니다."
+      };
+    }
+  }
+
+  return null;
 }
 
 export function buildVariableSections(en: boolean, _category: EmissionCategoryItem | null, _tier: number, variables: EmissionVariableDefinition[]): VariableSection[] {
