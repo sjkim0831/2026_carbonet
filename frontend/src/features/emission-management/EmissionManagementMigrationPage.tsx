@@ -2187,7 +2187,7 @@ export function EmissionManagementMigrationPage() {
               </div>
             </div>
             {formulaSummary ? (
-              <div className="sticky top-24 z-20 mt-4 rounded-[var(--kr-gov-radius)] border border-blue-200 bg-blue-50 px-4 py-3 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-blue-50/95">
+              <div className="sticky top-[-2rem] z-20 mt-4 rounded-[var(--kr-gov-radius)] border border-blue-200 bg-blue-50 px-4 py-3 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-blue-50/95">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-blue)]">{en ? "Document Formula" : "문서 기준 계산식"}</p>

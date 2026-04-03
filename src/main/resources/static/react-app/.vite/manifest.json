@@ -167,7 +167,7 @@
     "name": "vendor-react"
   },
   "index.html": {
-    "file": "assets/index-Dp1ynsLI.js",
+    "file": "assets/index-DXEejFNU.js",
     "name": "index",
     "src": "index.html",
     "isEntry": true,
@@ -538,7 +538,7 @@
       "_platformStudio-hS3Zu0FR.js"
     ],
     "css": [
-      "assets/index-CrhLcNfd.css"
+      "assets/index-BjM-Bc91.css"
     ]
   },
   "src/app/screen-registry/helpContent.ts": {
@@ -1202,7 +1202,7 @@
     ]
   },
   "src/features/emission-management/EmissionManagementMigrationPage.tsx": {
-    "file": "assets/EmissionManagementMigrationPage-DFwNHKp9.js",
+    "file": "assets/EmissionManagementMigrationPage-DtiWW78_.js",
     "name": "EmissionManagementMigrationPage",
     "src": "src/features/emission-management/EmissionManagementMigrationPage.tsx",
     "isDynamicEntry": true,
