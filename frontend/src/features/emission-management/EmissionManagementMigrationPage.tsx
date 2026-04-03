@@ -936,6 +936,7 @@ export function EmissionManagementMigrationPage() {
                   const derivedFactorVariable = isDerivedCarbonateFactorVariable(selectedCategory, selectedTier, variable);
                   const limeTier2SupplementalVariable = isLimeTier2SupplementalVariable(selectedCategory, selectedTier, variable);
                   const limeTier2Hint = limeTier2VariableHint(en, selectedCategory, selectedTier, variable);
+                  const resolutionGuide = resolutionGuideForVariable(en, selectedCategory, selectedTier, variable);
                   return (
                     <section
                       className={`rounded-[var(--kr-gov-radius)] border px-4 py-4 ${
@@ -960,13 +961,19 @@ export function EmissionManagementMigrationPage() {
                           ) : null}
                           <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{displayUnitLabel(stringOf(variable.unit), en)}</p>
                           {supportsFallbackInput(variable) ? (
-                            <p className="mt-2 text-xs leading-5 text-amber-700">
-                              {en ? "If this value is omitted, a defined default coefficient or mapped fallback may be used." : "이 값이 없으면 정의된 기본 계수 또는 매핑 fallback 값이 적용될 수 있습니다."}
-                            </p>
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-700">
+                                {en ? "Default-capable" : "기본 계수 사용 가능"}
+                              </span>
+                              <p className="text-xs leading-5 text-amber-700">
+                                {en ? "If this value is omitted, a documented default coefficient may be used." : "이 값이 없으면 문서 기준 기본 계수가 적용될 수 있습니다."}
+                              </p>
+                            </div>
                           ) : null}
                           {limeTier2Hint ? <p className="mt-2 text-xs leading-5 text-[var(--kr-gov-text-secondary)]">{limeTier2Hint}</p> : null}
                         </div>
                         <div className="flex items-center gap-2">
+                          {resolutionGuide ? <span className="rounded-full bg-sky-100 px-2.5 py-1 text-xs font-bold text-sky-700">{resolutionGuide.badge}</span> : null}
                           {limeTier2SupplementalVariable ? <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-700">{en ? "Tier 2 only" : "Tier 2 전용"}</span> : null}
                           {isRepeatableVariable(variable) ? <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-bold text-blue-700">{en ? "Summation variable" : "Summation 변수"}</span> : null}
                           {derivedFactorVariable ? <span className="rounded-full bg-rose-100 px-2.5 py-1 text-xs font-bold text-rose-700">{en ? "Auto from carbonate type" : "탄산염 종류 자동 반영"}</span> : null}
@@ -1587,27 +1594,29 @@ export function EmissionManagementMigrationPage() {
     categoryOverride: EmissionCategoryItem | null = selectedCategory,
     tierOverride = selectedTier
   ) {
-    if (stringOf(variable.supplementalYn).toUpperCase() === "Y") {
-      return true;
-    }
     const categoryCode = stringOf(categoryOverride?.subCode).toUpperCase();
     const code = stringOf(variable.varCode).toUpperCase();
     if (categoryCode === "CEMENT" && tierOverride === 1) {
       return code === "EFCLC";
     }
-    if (categoryCode === "CEMENT" && tierOverride === 3) {
-      return code === "EFD";
-    }
-    if (categoryCode === "LIME" && tierOverride === 1) {
-      return code === "LIME_TYPE";
+    if (categoryCode === "CEMENT" && tierOverride === 2) {
+      return ["EFC", "EFCL", "CFCKD"].includes(code);
     }
     if (categoryCode === "LIME" && tierOverride === 2) {
-      return ["LIME_TYPE", "CAO_CONTENT", "CAO_MGO_CONTENT", "MD", "CD", "FD", "HYDRATED_LIME_PRODUCTION_YN", "X", "Y"].includes(code);
-    }
-    if (categoryCode === "LIME" && tierOverride === 3) {
-      return code === "EFD";
+      return ["CAO_CONTENT", "CAO_MGO_CONTENT", "HYDRATED_LIME_PRODUCTION_YN"].includes(code);
     }
     return false;
+  }
+
+  function canOmitDirectInputWarning(
+    variable: EmissionVariableDefinition,
+    categoryOverride: EmissionCategoryItem | null = selectedCategory,
+    tierOverride = selectedTier
+  ) {
+    if (stringOf(variable.supplementalYn).toUpperCase() === "Y") {
+      return true;
+    }
+    return supportsFallbackInput(variable, categoryOverride, tierOverride);
   }
 
   function hasInputValue(variable: EmissionVariableDefinition, rowIndex = 0) {
@@ -1625,22 +1634,38 @@ export function EmissionManagementMigrationPage() {
     if (!isRequiredVariable(variable)) {
       return false;
     }
-    if (supportsFallbackInput(variable)) {
+    if (canOmitDirectInputWarning(variable)) {
       return false;
     }
     return !hasInputValue(variable, rowIndex);
   }
 
   function tierGuideFallbackSummary(category: EmissionCategoryItem | null, tierNumber: number, guideVariables: EmissionVariableDefinition[]) {
+    const categoryCode = stringOf(category?.subCode).toUpperCase();
+    if (categoryCode === "CEMENT" && tierNumber === 1) {
+      return en
+        ? "If EFclc is omitted, the documented coefficient flow uses a stored value and then the default."
+        : "EFclc를 비워두면 문서 기준 흐름에 따라 저장 계수 후 기본 계수를 사용합니다.";
+    }
     if (isCementTier2Scope(category, tierNumber)) {
       return en
-        ? "Tier 2 supports fallback handling for Md, Cd, Fd, EFc, EFcl, and CFckd. If derivation inputs are incomplete, stored coefficients or documented defaults are used."
-        : "Tier 2에서는 Md, Cd, Fd, EFc, EFcl, CFckd에 대체값 흐름이 적용됩니다. 유도식 입력이 부족하면 저장 계수 또는 문서 기본값을 사용합니다.";
+        ? "EFc, EFcl, and CFckd use stored or default coefficients when direct or derived values are not available."
+        : "EFc, EFcl, CFckd는 직접값이나 유도값이 없으면 저장 계수 또는 문서 기본 계수를 사용합니다.";
     }
     if (isLimeTier2Scope(category, tierNumber)) {
       return en
-        ? "Tier 2 supports fallback handling for lime-type-based factors and correction terms. Missing composition or hydration inputs can switch to mapped or documented defaults."
-        : "Tier 2에서는 석회 유형 기반 계수와 보정항에 대체값 흐름이 적용됩니다. 조성값이나 수화 입력이 없으면 매핑값 또는 문서 기본값으로 전환될 수 있습니다.";
+        ? "Composition and hydration inputs can switch EF_lime,i or C_h,i to documented default handling."
+        : "조성값과 수화 입력이 없으면 EF석회,i 또는 C_h,i가 문서 기준 기본값 흐름으로 전환될 수 있습니다.";
+    }
+    if (categoryCode === "CEMENT" && tierNumber === 3) {
+      return en
+        ? "Carbonate-type selections map factors from the document table, and EFd can still fall back to stored/default handling."
+        : "탄산염 유형 선택으로 문서 표 계수를 매핑하고, EFd는 저장/기본 계수 흐름도 가질 수 있습니다.";
+    }
+    if (categoryCode === "LIME" && tierNumber === 3) {
+      return en
+        ? "Carbonate-type selections map factors from the document table, and EFd can still fall back to stored/default handling."
+        : "탄산염 유형 선택으로 문서 표 계수를 매핑하고, EFd는 저장/기본 계수 흐름도 가질 수 있습니다.";
     }
     const fallbackVariables = guideVariables.filter((variable) => supportsFallbackInput(variable, category, tierNumber));
     if (fallbackVariables.length === 0) {
