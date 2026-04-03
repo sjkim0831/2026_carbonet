@@ -1,0 +1,72 @@
+{
+  "EMISSION_DEF_BEC99F38491B" : {
+    "draftId" : "EMISSION_DEF_BEC99F38491B",
+    "categoryCode" : "LIME",
+    "categoryName" : "Codex verification definition",
+    "tierLabel" : "Tier 1",
+    "formula" : "SUM(EF석회,i * Ml,i)",
+    "formulaTree" : [ {
+      "kind" : "sum",
+      "iterator" : "i",
+      "items" : [ {
+        "kind" : "token",
+        "token" : "EF석회,i"
+      }, {
+        "kind" : "token",
+        "joiner" : "×",
+        "token" : "Ml,i"
+      } ]
+    } ],
+    "inputMode" : "NUMBER",
+    "policies" : [ "input_required_yn", "default_capable_yn" ],
+    "directRequiredCodes" : [ "MLI" ],
+    "fallbackCodes" : [ "EF_LIME" ],
+    "autoCalculatedCodes" : [ ],
+    "supplementalCodes" : [ ],
+    "sections" : [ ],
+    "variableDefinitions" : [ ],
+    "runtimeMode" : "PRIMARY",
+    "note" : "Codex runtime-mode verification snapshot",
+    "lastSavedAt" : "2026-04-04 02:09",
+    "lastSavedBy" : "system",
+    "status" : "PUBLISHED",
+    "publishedVersionId" : "published-emission_def_bec99f38491b-a9103b1f",
+    "publishedSavedAt" : "2026-04-04 02:09",
+    "lastPublishedBy" : "system"
+  },
+  "EMISSION_DEF_529006E43F9D" : {
+    "draftId" : "EMISSION_DEF_529006E43F9D",
+    "categoryCode" : "LIME",
+    "categoryName" : "Codex verification definition",
+    "tierLabel" : "Tier 1",
+    "formula" : "SUM(EF석회,i * Ml,i)",
+    "formulaTree" : [ {
+      "kind" : "sum",
+      "iterator" : "i",
+      "items" : [ {
+        "kind" : "token",
+        "token" : "EF석회,i"
+      }, {
+        "kind" : "token",
+        "joiner" : "×",
+        "token" : "Ml,i"
+      } ]
+    } ],
+    "inputMode" : "NUMBER",
+    "policies" : [ "input_required_yn", "default_capable_yn" ],
+    "directRequiredCodes" : [ "MLI" ],
+    "fallbackCodes" : [ "EF_LIME" ],
+    "autoCalculatedCodes" : [ ],
+    "supplementalCodes" : [ ],
+    "sections" : [ ],
+    "variableDefinitions" : [ ],
+    "runtimeMode" : "PRIMARY",
+    "note" : "Codex runtime-mode verification snapshot",
+    "lastSavedAt" : "2026-04-04 02:10",
+    "lastSavedBy" : "system",
+    "status" : "PUBLISHED",
+    "publishedVersionId" : "published-emission_def_529006e43f9d-080c13d9",
+    "publishedSavedAt" : "2026-04-04 02:10",
+    "lastPublishedBy" : "system"
+  }
+}

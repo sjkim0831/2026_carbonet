@@ -1364,6 +1364,18 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
       { id: "result", title: "계산 결과 검토", body: "최신 계산 결과에서 총 배출량, 문서 default fallback 사용 여부, 적용 계수 스냅샷을 확인합니다. 표 2.1 기준 탄산염 매핑이 적용되면 factor snapshot에 EFI[n], EFD 값이 함께 남습니다.", anchorSelector: '[data-help-id="emission-management-result"]' }
     ]
   },
+  "emission-definition-studio": {
+    pageId: "emission-definition-studio",
+    title: "배출 정의 관리 도움말",
+    summary: "카테고리, Tier, 변수, 수식, 해석 규칙을 하드코딩 대신 저장 가능한 정의 단위로 옮기기 위한 관리자 준비 화면입니다.",
+    items: [
+      { id: "summary", title: "상단 요약 카드", body: "현재 시드 분류 수, 기존 Tier 수, 저장 정책 수, 우선 구현 단계를 확인합니다.", anchorSelector: '[data-help-id="emission-definition-summary"]' },
+      { id: "links", title: "직접 연결 링크", body: "배출 변수 관리, 기능 관리, 메뉴 관리로 이동해 기존 운영 화면과 정의 관리 화면을 함께 점검합니다.", anchorSelector: '[data-help-id="emission-definition-links"]' },
+      { id: "draft", title: "정의 초안 빌더", body: "새 카테고리 코드, Tier 레이블, 수식, 기본계수 사용 여부, 저장/매핑/유도식 정책을 한 번에 초안으로 정리합니다.", anchorSelector: '[data-help-id="emission-definition-draft"]' },
+      { id: "preview", title: "저장 페이로드 미리보기", body: "현재 화면 입력이 어떤 저장 구조로 떨어질지 JSON 초안으로 바로 확인합니다.", anchorSelector: '[data-help-id="emission-definition-preview"]' },
+      { id: "checklist", title: "저장 전 체크리스트", body: "메뉴 코드, VIEW 기능, validation 정책, resolution 정책, 감사 로그 범위를 저장 전에 확인합니다.", anchorSelector: '[data-help-id="emission-definition-checklist"]' }
+    ]
+  },
   "emission-result-list": {
     pageId: "emission-result-list",
     title: "산정 결과 목록 도움말",

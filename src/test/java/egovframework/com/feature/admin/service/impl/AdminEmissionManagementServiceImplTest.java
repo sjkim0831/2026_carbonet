@@ -113,6 +113,14 @@ class AdminEmissionManagementServiceImplTest {
         assertEquals("CO2 = 7.5", response.get("substitutedFormula"));
         assertFalse(Boolean.TRUE.equals(response.get("defaultApplied")));
         assertFalse(((List<?>) response.get("calculationLogs")).isEmpty());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> preview = (Map<String, Object>) response.get("definitionFormulaPreview");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> comparison = (Map<String, Object>) response.get("definitionFormulaComparison");
+        assertEquals("BUILTIN:LIME:1", preview.get("draftId"));
+        assertEquals(7.5d, ((Number) preview.get("total")).doubleValue(), 0.0000001d);
+        assertEquals("READY", comparison.get("promotionStatus"));
+        assertTrue(Boolean.TRUE.equals(comparison.get("matched")));
         verify(mapper, times(1)).insertEmissionCalcResult(anyMap());
         verify(mapper, times(1)).selectEmissionInputValues(anyLong());
     }

@@ -211,4 +211,34 @@
         LIMIT 1
     </select>
 
+    <select id="selectLatestEmissionCalcResultsByScope" resultType="hashmap">
+        SELECT
+            c.category_id AS categoryId,
+            c.sub_code AS categoryCode,
+            c.sub_name AS categoryName,
+            s.tier AS tier,
+            r.result_id AS resultId,
+            r.session_id AS sessionId,
+            r.co2_total AS co2Total,
+            r.formula_summary AS formulaSummary,
+            r.factor_snapshot_json AS factorSnapshotJson,
+            r.default_applied_yn AS defaultAppliedYn,
+            r.created_at AS createdAt
+        FROM emission_calc_result r
+        INNER JOIN emission_input_session s ON s.session_id = r.session_id
+        INNER JOIN emission_category c ON c.category_id = s.category_id
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM emission_calc_result newer
+            INNER JOIN emission_input_session newer_session ON newer_session.session_id = newer.session_id
+            WHERE newer_session.category_id = s.category_id
+              AND newer_session.tier = s.tier
+              AND (
+                  newer.created_at > r.created_at
+                  OR (newer.created_at = r.created_at AND newer.result_id > r.result_id)
+              )
+        )
+        ORDER BY c.sub_name, s.tier
+    </select>
+
 </mapper>

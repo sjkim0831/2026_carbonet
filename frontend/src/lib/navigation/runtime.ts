@@ -38,6 +38,7 @@ declare global {
       emissionResultDetailPageData?: unknown;
       certificateStatisticsPageData?: unknown;
       emissionDataHistoryPageData?: unknown;
+      emissionDefinitionStudioPageData?: unknown;
       emissionSiteManagementPageData?: unknown;
       emissionValidatePageData?: unknown;
       screenBuilderPageData?: unknown;

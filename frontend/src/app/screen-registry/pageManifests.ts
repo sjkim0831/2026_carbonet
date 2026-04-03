@@ -1961,6 +1961,20 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "EmissionSiteFeatureCatalog", instanceKey: "emission-site-feature-catalog", layoutZone: "content", propsSummary: ["featureRows", "featureCode", "manageUrl"] }
     ]
   },
+  "emission-definition-studio": {
+    pageId: "emission-definition-studio",
+    routePath: "/admin/emission/definition-studio",
+    menuCode: "A0020108",
+    domainCode: "admin",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "EmissionDefinitionSummary", instanceKey: "emission-definition-summary", layoutZone: "actions", propsSummary: ["summaryCards", "menuCode"] },
+      { componentId: "EmissionDefinitionQuickLinks", instanceKey: "emission-definition-quick-links", layoutZone: "content", propsSummary: ["quickLinks", "menuCode"] },
+      { componentId: "EmissionDefinitionDraftBuilder", instanceKey: "emission-definition-draft-builder", layoutZone: "content", propsSummary: ["seedCategories", "seedTiers", "policyOptions"] },
+      { componentId: "EmissionDefinitionChecklist", instanceKey: "emission-definition-checklist", layoutZone: "content", propsSummary: ["saveChecklist", "governanceNotes"] }
+    ]
+  },
   "system-code": {
     pageId: "system-code",
     routePath: "/admin/system/code",

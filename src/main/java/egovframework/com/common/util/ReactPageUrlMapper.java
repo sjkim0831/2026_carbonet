@@ -54,6 +54,7 @@ public final class ReactPageUrlMapper {
         registerAdmin(adminPathToRoute, adminRouteToPath, "emission-result-list", "/admin/emission/result_list", "/admin/emission/result_list");
         registerAdmin(adminPathToRoute, adminRouteToPath, "emission-result-detail", "/admin/emission/result_detail", "/admin/emission/result_detail");
         registerAdmin(adminPathToRoute, adminRouteToPath, "emission-validate", "/admin/emission/validate", "/admin/emission/validate");
+        registerAdmin(adminPathToRoute, adminRouteToPath, "emission-definition-studio", "/admin/emission/definition-studio", "/admin/emission/definition-studio");
         registerAdmin(adminPathToRoute, adminRouteToPath, "emission-data-history", "/admin/emission/data_history", "/admin/emission/data_history");
         registerAdmin(adminPathToRoute, adminRouteToPath, "emission-site-management", "/admin/emission/site-management", "/admin/emission/site-management");
         registerAdmin(adminPathToRoute, adminRouteToPath, "certificate-rec-check", "/admin/certificate/rec_check", "/admin/certificate/rec_check");

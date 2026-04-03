@@ -47,6 +47,7 @@ export type MigrationPageId =
   | "certificate-statistics"
   | "emission-validate"
   | "emission-management"
+  | "emission-definition-studio"
   | "emission-data-history"
   | "emission-site-management"
   | "certificate-rec-check"
@@ -260,6 +261,7 @@ export const ROUTES: RouteDefinition[] = [
   { id: "certificate-statistics", label: "인증서 통계", group: "admin", koPath: "/admin/certificate/statistics", enPath: "/en/admin/certificate/statistics" },
   { id: "emission-validate", label: "검증 관리", group: "admin", koPath: "/admin/emission/validate", enPath: "/en/admin/emission/validate" },
   { id: "emission-management", label: "배출 변수 관리", group: "admin", koPath: "/admin/emission/management", enPath: "/en/admin/emission/management" },
+  { id: "emission-definition-studio", label: "배출 정의 관리", group: "admin", koPath: "/admin/emission/definition-studio", enPath: "/en/admin/emission/definition-studio" },
   { id: "emission-data-history", label: "데이터 변경 이력", group: "admin", koPath: "/admin/emission/data_history", enPath: "/en/admin/emission/data_history" },
   { id: "emission-site-management", label: "배출지 관리", group: "admin", koPath: "/admin/emission/site-management", enPath: "/en/admin/emission/site-management" },
   { id: "certificate-rec-check", label: "REC 중복 확인", group: "admin", koPath: "/admin/certificate/rec_check", enPath: "/en/admin/certificate/rec_check" },
