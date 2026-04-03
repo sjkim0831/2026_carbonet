@@ -30,9 +30,15 @@ Read these code paths only as needed:
    - any of the above plus local `:18000` runtime proof
 2. Confirm whether the requested pair already exists in `EmissionCalculationDefinitionRegistry`.
 3. Check whether option binding, derived-variable handling, repeat groups, or section metadata depend on code rather than DB rows.
-4. Estimate in the sizing bands from the guide instead of giving an unbounded guess.
-5. If implementation is requested, change SQL, backend calculation support, UI metadata, and tests in one pass.
-6. If local proof is required, follow `carbonet-fast-bootstrap-ops` and `docs/operations/fast-bootstrap-runtime-freshness.md`.
+4. Separate these UI concerns before estimating:
+   - documented default-capable badge criteria
+   - runtime missing-input warning suppression
+   - repeat-group empty validation
+   - Step 1 tier-summary wording
+   - Step 2 variable-resolution wording
+5. Estimate in the sizing bands from the guide instead of giving an unbounded guess.
+6. If implementation is requested, change SQL, backend calculation support, UI metadata, and tests in one pass.
+7. If local proof is required, follow `carbonet-fast-bootstrap-ops` and `docs/operations/fast-bootstrap-runtime-freshness.md`.
 
 ## Estimation Rules
 
@@ -46,6 +52,17 @@ Read these code paths only as needed:
 - Do not assume DB inserts alone are enough because tier exposure is DB-driven.
 - Do not assume a new tier is safe unless a calculation definition exists.
 - Do not assume frontend behavior is generic when lime-specific helper logic or derived fields are involved.
+- Do not assume a variable with a default-capable badge should also suppress direct-input warnings.
+- Do not assume repeat-group validation is safe just because at least one line pattern works; verify the fully blank case too.
+
+## Validation Reminders
+
+- For `LIME` repeat-entry tiers, verify that a completely blank repeat group cannot proceed to calculate.
+- When changing Step 1 guidance, keep it short and tier-specific; do not dump Step 2-style resolution detail there.
+- When changing Step 2 guidance, prefer explicit badges for:
+  - default-capable
+  - type mapping
+  - derived or fallback
 
 ## Output Shape
 

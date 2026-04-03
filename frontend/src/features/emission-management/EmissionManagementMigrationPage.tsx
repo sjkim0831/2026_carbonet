@@ -1452,6 +1452,25 @@ export function EmissionManagementMigrationPage() {
         });
 
         if (populatedLines.size === 0) {
+          const requiredGroupVariables = group
+            .map((groupCode) => findVariableByCode(groupCode))
+            .filter((item): item is EmissionVariableDefinition => Boolean(item))
+            .filter((item) => isRequiredVariable(item));
+          requiredGroupVariables.forEach((requiredVariable) => {
+            const requiredCode = variableCodeOf(requiredVariable);
+            if (isLimeTier2DisabledField(selectedCategory, selectedTier, inputs, requiredCode, 0)) {
+              return;
+            }
+            const section = sectionForVariableCode(requiredCode);
+            issues.push({
+              sectionId: section?.id || "default",
+              sectionTitle: section?.title || (en ? "Variable Inputs" : "변수 입력"),
+              lineNo: 1,
+              inputCode: requiredCode,
+              variableLabel: displayVariableName(selectedCategory, selectedTier, requiredVariable),
+              formulaLabel: formulaCodeOf(requiredVariable) || requiredCode
+            });
+          });
           continue;
         }
 
