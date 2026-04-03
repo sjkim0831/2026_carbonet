@@ -9,6 +9,10 @@ Usage:
 Purpose:
   Run the standard :18000 build and restart flow, then verify
   /admin/emission/management route, session bootstrap, save, and calculate flow.
+
+Examples:
+  bash ops/scripts/build-restart-verify-emission-management-18000.sh
+  env VERIFY_DEFINITION_PUBLISH=true DEFINITION_RUNTIME_MODE=PRIMARY EXPECTED_PROMOTION_STATUS=PRIMARY_READY EXPECTED_DRAFT_ID_PREFIX='' bash ops/scripts/build-restart-verify-emission-management-18000.sh
 EOF
   exit 0
 fi

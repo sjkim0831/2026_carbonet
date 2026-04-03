@@ -207,9 +207,6 @@ export function visibleVariablesForStep(category: EmissionCategoryItem | null, t
     if (isDerivedCarbonateFactorVariable(category, tier, variable)) {
       return false;
     }
-    if (isLimeTier2Scope(category, tier) && variableCodeOf(variable) === "MGO_CONTENT") {
-      return false;
-    }
     return true;
   });
 }
@@ -255,6 +252,68 @@ export function resolveLimeTier2Type(inputs: InputMap, rowIndex: number) {
     return "DOLOMITIC";
   }
   return "BLANK";
+}
+
+function normalizeConditionToken(value: string) {
+  return stringOf(value)
+    .toUpperCase()
+    .replace(/ /g, "")
+    .replace(/-/g, "")
+    .replace(/·/g, "")
+    .replace(/\./g, "")
+    .replace(/내지/g, "");
+}
+
+function resolveConditionValue(category: EmissionCategoryItem | null, tier: number, inputs: InputMap, rowIndex: number, operand: string) {
+  const normalizedOperand = stringOf(operand).trim().toUpperCase();
+  if (normalizedOperand === "LIME_TYPE" && isLimeTier2Scope(category, tier)) {
+    return resolveLimeTier2Type(inputs, rowIndex);
+  }
+  if (normalizedOperand === "BLANK") {
+    return "BLANK";
+  }
+  return normalizeConditionToken(rowValue(inputs, normalizedOperand, rowIndex)) || "BLANK";
+}
+
+function parseConditionRule(rule: string) {
+  const normalized = stringOf(rule).replace(/\s+/g, " ").trim();
+  const upper = normalized.toUpperCase();
+  if (upper.includes(" NOTIN ")) {
+    const [left, right] = upper.split(" NOTIN ", 2);
+    return { left, operator: "NOTIN" as const, values: right.split("|").map((item) => item.trim()).filter(Boolean) };
+  }
+  if (upper.includes(" IN ")) {
+    const [left, right] = upper.split(" IN ", 2);
+    return { left, operator: "IN" as const, values: right.split("|").map((item) => item.trim()).filter(Boolean) };
+  }
+  if (upper.includes("!=")) {
+    const [left, right] = upper.split("!=", 2);
+    return { left, operator: "NE" as const, values: [right.trim()] };
+  }
+  if (upper.includes("=")) {
+    const [left, right] = upper.split("=", 2);
+    return { left, operator: "EQ" as const, values: [right.trim()] };
+  }
+  return null;
+}
+
+function evaluateConditionRule(category: EmissionCategoryItem | null, tier: number, inputs: InputMap, rowIndex: number, rule: string) {
+  const parsed = parseConditionRule(rule);
+  if (!parsed) {
+    return false;
+  }
+  const leftValue = resolveConditionValue(category, tier, inputs, rowIndex, parsed.left);
+  const normalizedValues = parsed.values.map((value) => normalizeConditionToken(value));
+  if (parsed.operator === "NOTIN") {
+    return !normalizedValues.includes(leftValue);
+  }
+  if (parsed.operator === "IN") {
+    return normalizedValues.includes(leftValue);
+  }
+  if (parsed.operator === "NE") {
+    return leftValue !== normalizedValues[0];
+  }
+  return leftValue === normalizedValues[0];
 }
 
 function rowValue(inputs: InputMap, code: string, rowIndex: number) {
@@ -459,7 +518,13 @@ export function resolutionGuideForVariable(en: boolean, category: EmissionCatego
   return null;
 }
 
-export function buildVariableSections(en: boolean, _category: EmissionCategoryItem | null, _tier: number, variables: EmissionVariableDefinition[]): VariableSection[] {
+export function buildVariableSections(
+  en: boolean,
+  _category: EmissionCategoryItem | null,
+  _tier: number,
+  variables: EmissionVariableDefinition[],
+  sectionDefinitions: Array<Record<string, unknown>> = []
+): VariableSection[] {
   const metadataSections = new Map<string, VariableSection>();
   variables.forEach((variable) => {
     const sectionId = stringOf(variable.sectionId);
@@ -482,6 +547,30 @@ export function buildVariableSections(en: boolean, _category: EmissionCategoryIt
       relatedFactorCodes: stringOf(variable.sectionRelatedFactorCodes),
       codes: [code]
     });
+  });
+  sectionDefinitions.forEach((sectionDefinition, index) => {
+    const sectionId = stringOf(sectionDefinition.sectionId);
+    if (!sectionId) {
+      return;
+    }
+    const existing = metadataSections.get(sectionId);
+    const nextSection: VariableSection = existing || {
+      id: sectionId,
+      order: numberOf(sectionDefinition.sectionOrder) || ((index + 1) * 10),
+      title: stringOf(sectionDefinition.sectionTitle) || (en ? "Variable Inputs" : "변수 입력"),
+      description: stringOf(sectionDefinition.sectionDescription),
+      formula: stringOf(sectionDefinition.sectionFormula),
+      previewType: stringOf(sectionDefinition.sectionPreviewType),
+      relatedFactorCodes: stringOf(sectionDefinition.sectionRelatedFactorCodes),
+      codes: []
+    };
+    nextSection.order = numberOf(sectionDefinition.sectionOrder) || nextSection.order;
+    nextSection.title = stringOf(sectionDefinition.sectionTitle) || nextSection.title;
+    nextSection.description = stringOf(sectionDefinition.sectionDescription) || nextSection.description;
+    nextSection.formula = stringOf(sectionDefinition.sectionFormula) || nextSection.formula;
+    nextSection.previewType = stringOf(sectionDefinition.sectionPreviewType) || nextSection.previewType;
+    nextSection.relatedFactorCodes = stringOf(sectionDefinition.sectionRelatedFactorCodes) || nextSection.relatedFactorCodes;
+    metadataSections.set(sectionId, nextSection);
   });
   if (metadataSections.size > 0) {
     return Array.from(metadataSections.values()).sort((left, right) => left.order - right.order || left.id.localeCompare(right.id));
@@ -532,49 +621,33 @@ export function buildVariableSections(en: boolean, _category: EmissionCategoryIt
   return [];
 }
 
-export function isLimeTier2DisabledField(category: EmissionCategoryItem | null, tier: number, inputs: InputMap, varCode: string, rowIndex: number) {
-  const subCode = stringOf(category?.subCode).toUpperCase();
-  if (subCode !== "LIME" || tier !== 2) {
+export function isConditionallyDisabledVariable(category: EmissionCategoryItem | null, tier: number, inputs: InputMap, variable: EmissionVariableDefinition | null, rowIndex: number) {
+  if (!variable) {
     return false;
   }
-  const limeType = limeTypeTokenForRow(inputs, rowIndex);
-  if (!limeType) {
-    return false;
-  }
-  const code = stringOf(varCode).toUpperCase();
-  const resolvedType = resolveLimeTier2Type(inputs, rowIndex);
-  const isDolomitic = resolvedType === "DOLOMITIC" || resolvedType === "DOLOMITIC_HIGH" || resolvedType === "DOLOMITIC_LOW";
-  if (!isDolomitic && code === "CAO_MGO_CONTENT") {
+  const visibleWhen = stringOf(variable.visibleWhen);
+  if (visibleWhen && !evaluateConditionRule(category, tier, inputs, rowIndex, visibleWhen)) {
     return true;
   }
-  if ((code === "X" || code === "Y") && stringOf(inputs.HYDRATED_LIME_PRODUCTION_YN?.[rowIndex]?.value).toUpperCase() === "N") {
+  const disabledWhen = stringOf(variable.disabledWhen);
+  if (disabledWhen && evaluateConditionRule(category, tier, inputs, rowIndex, disabledWhen)) {
     return true;
   }
   return false;
 }
 
-export function shouldShowLimeTier2Variable(category: EmissionCategoryItem | null, tier: number, inputs: InputMap, varCode: string) {
-  const subCode = stringOf(category?.subCode).toUpperCase();
-  if (subCode !== "LIME" || tier !== 2) {
+export function shouldShowConditionalVariable(category: EmissionCategoryItem | null, tier: number, inputs: InputMap, variable: EmissionVariableDefinition | null) {
+  if (!variable) {
     return true;
   }
-  const code = stringOf(varCode).toUpperCase();
-  const limeRows = inputs.LIME_TYPE || [];
-  const hasDolomitic = limeRows.some((_, rowIndex) => {
-    const resolvedType = resolveLimeTier2Type(inputs, rowIndex);
-    return resolvedType === "DOLOMITIC" || resolvedType === "DOLOMITIC_HIGH" || resolvedType === "DOLOMITIC_LOW";
-  });
-  const hasNonDolomitic = limeRows.length === 0 || limeRows.some((_, rowIndex) => {
-    const resolvedType = resolveLimeTier2Type(inputs, rowIndex);
-    return resolvedType === "BLANK" || resolvedType === "HIGH_CALCIUM" || resolvedType === "HYDRAULIC";
-  });
-  if (code === "CAO_CONTENT") {
-    return hasNonDolomitic;
+  const visibleWhen = stringOf(variable.visibleWhen);
+  if (!visibleWhen) {
+    return true;
   }
-  if (code === "CAO_MGO_CONTENT") {
-    return hasDolomitic;
-  }
-  return true;
+  const anchorRows = inputs.LIME_TYPE?.length || inputs[variableCodeOf(variable)]?.length || 1;
+  return Array.from({ length: Math.max(anchorRows, 1) }, (_, rowIndex) => (
+    evaluateConditionRule(category, tier, inputs, rowIndex, visibleWhen)
+  )).some(Boolean);
 }
 
 export function isLimeTier2SupplementalVariable(_category: EmissionCategoryItem | null, _tier: number, variable: EmissionVariableDefinition) {
@@ -593,10 +666,15 @@ export function limeTier2VariableHint(_en: boolean, _category: EmissionCategoryI
 }
 
 export function tier2FieldPlaceholder(en: boolean, category: EmissionCategoryItem | null, tier: number, inputs: InputMap, varCode: string, rowIndex: number, unit: string) {
-  if (!isLimeTier2DisabledField(category, tier, inputs, varCode, rowIndex)) {
+  void category;
+  void tier;
+  void inputs;
+  void varCode;
+  void rowIndex;
+  if (unit) {
     return unit || (en ? "Enter value" : "값 입력");
   }
-  return en ? "Not used for the selected lime type" : "선택한 석회 유형에서는 사용하지 않습니다";
+  return en ? "Enter value" : "값 입력";
 }
 
 export function majorCategoryKey(category: EmissionCategoryItem | null | undefined) {

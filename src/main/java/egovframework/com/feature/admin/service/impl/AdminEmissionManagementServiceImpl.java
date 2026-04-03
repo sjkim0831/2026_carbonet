@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import egovframework.com.feature.admin.dto.request.EmissionInputSessionSaveRequest;
 import egovframework.com.feature.admin.mapper.AdminEmissionManagementMapper;
 import egovframework.com.feature.admin.service.AdminEmissionManagementService;
+import egovframework.com.feature.admin.service.AdminEmissionDefinitionStudioService;
 import egovframework.com.common.service.CommonCodeService;
 import org.egovframe.rte.fdl.cmmn.EgovAbstractServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,24 +34,33 @@ public class AdminEmissionManagementServiceImpl extends EgovAbstractServiceImpl 
                                        CommonCodeService commonCodeService,
                                        ObjectMapper objectMapper) {
         EmissionManagementConfiguration configuration = new EmissionManagementConfiguration();
+        AdminEmissionDefinitionStudioService adminEmissionDefinitionStudioService =
+                new AdminEmissionDefinitionStudioService(objectMapper);
         EmissionCalculationDefinitionRegistry calculationDefinitionRegistry =
                 configuration.emissionCalculationDefinitionRegistry();
         EmissionCalculationInputMapper calculationInputMapper =
                 configuration.emissionCalculationInputMapper();
+        EmissionVariableDefinitionAssembler variableDefinitionAssembler =
+                configuration.emissionVariableDefinitionAssembler(commonCodeService);
         EmissionManagementValidationSupport validationSupport =
-                configuration.emissionManagementValidationSupport(adminEmissionManagementMapper, calculationDefinitionRegistry);
+                configuration.emissionManagementValidationSupport(
+                        adminEmissionManagementMapper,
+                        calculationDefinitionRegistry,
+                        adminEmissionDefinitionStudioService,
+                        variableDefinitionAssembler
+                );
         EmissionCalculationResultTransformer resultTransformer =
                 configuration.emissionCalculationResultTransformer(objectMapper);
+        DefinitionFormulaPreviewService definitionFormulaPreviewService =
+                configuration.definitionFormulaPreviewService(objectMapper);
         EmissionCategoryTierDataProvider categoryTierDataProvider =
                 configuration.emissionCategoryTierDataProvider(adminEmissionManagementMapper);
         EmissionInputSavePolicySupport inputSavePolicySupport =
-                configuration.emissionInputSavePolicySupport(adminEmissionManagementMapper);
+                configuration.emissionInputSavePolicySupport(adminEmissionManagementMapper, adminEmissionDefinitionStudioService);
         EmissionManagementCommandBuilder commandBuilder =
                 configuration.emissionManagementCommandBuilder();
         EmissionCategoryMetadataProvider categoryMetadataProvider =
                 configuration.emissionCategoryMetadataProvider();
-        EmissionVariableDefinitionAssembler variableDefinitionAssembler =
-                configuration.emissionVariableDefinitionAssembler(commonCodeService);
 
         this.responsePresenter = configuration.emissionManagementResponsePresenter();
         this.queryService = configuration.emissionManagementQueryService(
@@ -60,7 +70,8 @@ public class AdminEmissionManagementServiceImpl extends EgovAbstractServiceImpl 
                 validationSupport,
                 resultTransformer,
                 categoryTierDataProvider,
-                categoryMetadataProvider
+                categoryMetadataProvider,
+                adminEmissionDefinitionStudioService
         );
         this.inputSaveApplicationService = configuration.emissionInputSaveApplicationService(
                 adminEmissionManagementMapper,
@@ -75,7 +86,8 @@ public class AdminEmissionManagementServiceImpl extends EgovAbstractServiceImpl 
                 validationSupport,
                 resultTransformer,
                 categoryTierDataProvider,
-                commandBuilder
+                commandBuilder,
+                definitionFormulaPreviewService
         );
     }
 
@@ -98,7 +110,8 @@ public class AdminEmissionManagementServiceImpl extends EgovAbstractServiceImpl 
                 execution.tier,
                 execution.variables,
                 execution.factors,
-                execution.definition
+                execution.definition,
+                execution.publishedDefinition
         );
     }
 
@@ -135,5 +148,10 @@ public class AdminEmissionManagementServiceImpl extends EgovAbstractServiceImpl 
     @Override
     public Map<String, Object> getLimeDefaultFactor() {
         return queryService.getLimeDefaultFactor();
+    }
+
+    @Override
+    public Map<String, Object> getRolloutStatusSummary() {
+        return responsePresenter.rolloutStatusSummary(queryService.getLatestCalculationRolloutRows());
     }
 }

@@ -163,6 +163,10 @@ Use:
 - `bash ops/scripts/fill-emission-management-rollout-snapshots.sh`
 - `bash ops/scripts/build-restart-fill-verify-emission-management-rollout-18000.sh`
 
+If the task explicitly changes published-definition runtime adoption, add a `PRIMARY` mode verifier run:
+
+- `env VERIFY_DEFINITION_PUBLISH=true DEFINITION_RUNTIME_MODE=PRIMARY EXPECTED_PROMOTION_STATUS=PRIMARY_READY EXPECTED_DRAFT_ID_PREFIX='' bash ops/scripts/verify-emission-management-flow.sh`
+
 Also read:
 
 - `docs/operations/fast-bootstrap-runtime-freshness.md`

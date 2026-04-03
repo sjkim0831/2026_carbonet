@@ -55,4 +55,8 @@ public class AdminEmissionManagementMapper extends BaseMapperSupport {
     public Map<String, Object> selectLatestEmissionCalcResult(Long sessionId) {
         return selectOne("AdminEmissionManagementMapper.selectLatestEmissionCalcResult", sessionId);
     }
+
+    public List<Map<String, Object>> selectLatestEmissionCalcResultsByScope() {
+        return selectList("AdminEmissionManagementMapper.selectLatestEmissionCalcResultsByScope");
+    }
 }

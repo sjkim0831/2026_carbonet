@@ -32,14 +32,18 @@ final class EmissionManagementResponsePresenter {
                                             int tier,
                                             List<EmissionVariableDefinitionVO> variables,
                                             List<EmissionFactorVO> factors,
-                                            CalculationDefinition definition) {
+                                            CalculationDefinition definition,
+                                            Map<String, Object> publishedDefinition) {
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("category", category);
         response.put("tier", tier);
         response.put("variables", variables);
         response.put("factors", factors);
-        response.put("formulaSummary", definition.formulaSummary);
-        response.put("formulaDisplay", definition.formulaDisplay);
+        String publishedFormula = EmissionManagementValueSupport.safe(EmissionManagementValueSupport.stringValue(publishedDefinition == null ? null : publishedDefinition.get("formula")));
+        response.put("formulaSummary", publishedFormula.isEmpty() ? definition.formulaSummary : publishedFormula);
+        response.put("formulaDisplay", publishedFormula.isEmpty() ? definition.formulaDisplay : publishedFormula);
+        response.put("publishedDefinition", publishedDefinition == null ? new LinkedHashMap<>() : publishedDefinition);
+        response.put("publishedDefinitionApplied", !publishedFormula.isEmpty());
         return response;
     }
 
@@ -84,7 +88,50 @@ final class EmissionManagementResponsePresenter {
         response.put("appliedFactors", result.appliedFactors);
         response.put("calculationLogs", result.calculationLogs);
         response.put("defaultApplied", result.defaultApplied);
+        response.put("definitionFormulaPreview", result.definitionFormulaPreview);
+        response.put("definitionFormulaComparison", result.definitionFormulaComparison);
+        response.put("definitionFormulaAdopted", result.definitionFormulaAdopted);
+        response.put("calculationSource", result.calculationSource);
+        response.put("legacyFormulaDisplay", result.legacyFormulaDisplay);
+        response.put("legacySubstitutedFormula", result.legacySubstitutedFormula);
+        response.put("legacyCalculationLogs", result.legacyCalculationLogs);
         response.put("resultId", resultId);
         return response;
+    }
+
+    Map<String, Object> rolloutStatusSummary(List<Map<String, Object>> rows) {
+        int readyCount = 0;
+        int blockedCount = 0;
+        int shadowCount = 0;
+        int legacyOnlyCount = 0;
+        for (Map<String, Object> row : rows) {
+            String status = EmissionManagementValueSupport.safe(row == null ? null : String.valueOf(row.get("promotionStatus")));
+            if ("READY".equals(status) || "PRIMARY_READY".equals(status)) {
+                readyCount += 1;
+            } else if ("BLOCKED".equals(status)) {
+                blockedCount += 1;
+            } else if ("SHADOW_ONLY".equals(status) || "PRIMARY_WITH_DRIFT".equals(status)) {
+                shadowCount += 1;
+            } else {
+                legacyOnlyCount += 1;
+            }
+        }
+        List<Map<String, String>> summaryCards = new java.util.ArrayList<>();
+        summaryCards.add(summaryCard("Ready", String.valueOf(readyCount), "Legacy and definition totals match, so runtime can adopt the definition result."));
+        summaryCards.add(summaryCard("Blocked", String.valueOf(blockedCount), "Definition preview still has unresolved tokens or invalid arithmetic."));
+        summaryCards.add(summaryCard("Shadow", String.valueOf(shadowCount), "Definition formula evaluates, but the result still differs from the legacy calculator."));
+        summaryCards.add(summaryCard("Legacy only", String.valueOf(legacyOnlyCount), "No server-side comparison result has been recorded yet for this scope."));
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("rolloutSummaryCards", summaryCards);
+        response.put("rolloutStatusRows", rows);
+        return response;
+    }
+
+    private Map<String, String> summaryCard(String title, String value, String description) {
+        Map<String, String> card = new LinkedHashMap<>();
+        card.put("title", title);
+        card.put("value", value);
+        card.put("description", description);
+        return card;
     }
 }

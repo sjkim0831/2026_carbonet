@@ -1,7 +1,9 @@
 package egovframework.com.feature.admin.web;
 
+import egovframework.com.feature.admin.dto.request.EmissionManagementElementSaveRequest;
 import egovframework.com.feature.admin.dto.request.EmissionInputSessionSaveRequest;
 import egovframework.com.feature.admin.service.AdminEmissionManagementService;
+import egovframework.com.feature.admin.service.AdminEmissionManagementElementRegistryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,6 +28,7 @@ import java.util.Map;
 public class AdminEmissionManagementApiController {
 
     private final AdminEmissionManagementService adminEmissionManagementService;
+    private final AdminEmissionManagementElementRegistryService adminEmissionManagementElementRegistryService;
 
     @GetMapping("/categories")
     public ResponseEntity<Map<String, Object>> getCategories(
@@ -65,6 +68,21 @@ public class AdminEmissionManagementApiController {
         return ResponseEntity.ok(adminEmissionManagementService.getLimeDefaultFactor());
     }
 
+    @GetMapping("/element-definitions")
+    public ResponseEntity<Map<String, Object>> getElementDefinitions(HttpServletRequest request) {
+        return ResponseEntity.ok(adminEmissionManagementElementRegistryService.buildRegistryPayload(isEnglishRequest(request)));
+    }
+
+    @PostMapping("/element-definitions")
+    public ResponseEntity<Map<String, Object>> saveElementDefinition(@RequestBody EmissionManagementElementSaveRequest request,
+                                                                     HttpServletRequest httpServletRequest) {
+        return ResponseEntity.ok(adminEmissionManagementElementRegistryService.saveElementDefinition(
+                request,
+                resolveActorId(httpServletRequest),
+                isEnglishRequest(httpServletRequest)
+        ));
+    }
+
     private String resolveActorId(HttpServletRequest request) {
         if (request == null) {
             return "";
@@ -83,5 +101,10 @@ public class AdminEmissionManagementApiController {
         } catch (Exception ignored) {
             return "";
         }
+    }
+
+    private boolean isEnglishRequest(HttpServletRequest request) {
+        String uri = request == null ? "" : String.valueOf(request.getRequestURI());
+        return uri.startsWith("/en/");
     }
 }

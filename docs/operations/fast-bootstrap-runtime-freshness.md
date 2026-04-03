@@ -242,6 +242,11 @@ When the task specifically needs proof that `/admin/emission/management` can loa
 - `bash ops/scripts/verify-emission-management-flow.sh`
 - `bash ops/scripts/build-restart-verify-emission-management-18000.sh`
 
+When the task specifically needs proof that a published emission definition snapshot is running in `PRIMARY` mode instead of only `AUTO` parity mode, use:
+
+- `env VERIFY_DEFINITION_PUBLISH=true DEFINITION_RUNTIME_MODE=PRIMARY EXPECTED_PROMOTION_STATUS=PRIMARY_READY EXPECTED_DRAFT_ID_PREFIX='' bash ops/scripts/verify-emission-management-flow.sh`
+- `env VERIFY_DEFINITION_PUBLISH=true DEFINITION_RUNTIME_MODE=PRIMARY EXPECTED_PROMOTION_STATUS=PRIMARY_READY EXPECTED_DRAFT_ID_PREFIX='' bash ops/scripts/build-restart-verify-emission-management-18000.sh`
+
 When the task specifically needs proof that `/admin/emission/management` rollout-board rows are populated for the current supported scopes, also run:
 
 - `bash ops/scripts/help-emission-management-rollout.sh`

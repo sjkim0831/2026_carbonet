@@ -541,6 +541,96 @@ export type EmissionManagementPagePayload = Record<string, unknown> & {
   pageTitleEn?: string;
   pageDescription?: string;
   pageDescriptionEn?: string;
+  elementRegistrySummary?: Array<Record<string, string>>;
+  elementRegistryRows?: Array<Record<string, unknown>>;
+  selectedElementDefinition?: Record<string, unknown>;
+  elementTypeOptions?: Array<Record<string, string>>;
+  layoutZoneOptions?: Array<Record<string, string>>;
+  componentTypeOptions?: Array<Record<string, string>>;
+  formulaReference?: Record<string, unknown>;
+  rolloutSummaryCards?: Array<Record<string, string>>;
+  rolloutStatusRows?: Array<Record<string, unknown>>;
+  definitionDraftRows?: Array<Record<string, unknown>>;
+  definitionPolicyOptions?: Array<Record<string, string>>;
+  selectedDefinitionDraft?: Record<string, unknown>;
+  publishedDefinitionRows?: Array<Record<string, unknown>>;
+  selectedPublishedDefinition?: Record<string, unknown>;
+};
+
+export type EmissionManagementElementSavePayload = {
+  definitionId?: string;
+  elementKey: string;
+  elementName: string;
+  elementType: string;
+  layoutZone: string;
+  componentType: string;
+  bindingTarget: string;
+  defaultLabel: string;
+  defaultLabelEn: string;
+  description: string;
+  variableScope: string;
+  policyNote: string;
+  directRequiredCodes: string[];
+  fallbackCodes: string[];
+  autoCalculatedCodes: string[];
+  useYn: string;
+  tags: string[];
+};
+
+export type EmissionManagementElementSaveResponse = Record<string, unknown> & {
+  saved?: boolean;
+  definitionId?: string;
+  message?: string;
+  elementRegistryRows?: Array<Record<string, unknown>>;
+  selectedElementDefinition?: Record<string, unknown>;
+};
+
+export type EmissionDefinitionStudioPagePayload = Record<string, unknown> & {
+  isEn?: boolean;
+  menuCode?: string;
+  menuUrl?: string;
+  pageTitle?: string;
+  pageTitleEn?: string;
+  pageDescription?: string;
+  pageDescriptionEn?: string;
+  summaryCards?: Array<Record<string, string>>;
+  quickLinks?: Array<Record<string, string>>;
+  seedCategories?: Array<Record<string, string>>;
+  seedTiers?: Array<Record<string, string>>;
+  policyOptions?: Array<Record<string, string>>;
+  saveChecklist?: Array<Record<string, string>>;
+  governanceNotes?: Array<Record<string, string>>;
+  definitionRows?: Array<Record<string, unknown>>;
+  selectedDefinition?: Record<string, unknown>;
+  sections?: Array<Record<string, unknown>>;
+};
+
+export type EmissionDefinitionDraftSavePayload = {
+  draftId?: string;
+  categoryCode: string;
+  categoryName: string;
+  tierLabel: string;
+  formula: string;
+  formulaTree?: Array<Record<string, unknown>>;
+  inputMode: string;
+  policies: string[];
+  directRequiredCodes: string[];
+  fallbackCodes: string[];
+  autoCalculatedCodes: string[];
+  supplementalCodes: string[];
+  sections: Array<Record<string, unknown>>;
+  variableDefinitions: Array<Record<string, unknown>>;
+  runtimeMode?: string;
+  note: string;
+};
+
+export type EmissionDefinitionDraftSaveResponse = Record<string, unknown> & {
+  saved?: boolean;
+  published?: boolean;
+  draftId?: string;
+  message?: string;
+  draftDetail?: Record<string, unknown>;
+  definitionRows?: Array<Record<string, unknown>>;
 };
 
 export type EmissionCategoryItem = Record<string, unknown> & {
@@ -593,6 +683,8 @@ export type EmissionVariableDefinition = Record<string, unknown> & {
   sectionFormula?: string;
   sectionPreviewType?: string;
   sectionRelatedFactorCodes?: string;
+  visibleWhen?: string;
+  disabledWhen?: string;
 };
 
 export type EmissionFactorDefinition = Record<string, unknown> & {
@@ -2530,6 +2622,7 @@ type BootstrapPayloadKey =
   | "emissionResultDetailPageData"
   | "certificateStatisticsPageData"
   | "emissionDataHistoryPageData"
+  | "emissionDefinitionStudioPageData"
   | "emissionSiteManagementPageData"
   | "emissionValidatePageData"
   | "screenBuilderPageData";
@@ -3482,6 +3575,10 @@ export function readBootstrappedAdminHomePageData(): AdminHomePagePayload | null
 
 export function readBootstrappedNewPagePageData(): NewPagePagePayload | null {
   return consumeRuntimeBootstrap<NewPagePagePayload>("newPagePageData");
+}
+
+export function readBootstrappedEmissionDefinitionStudioPageData(): EmissionDefinitionStudioPagePayload | null {
+  return consumeRuntimeBootstrap<EmissionDefinitionStudioPagePayload>("emissionDefinitionStudioPageData");
 }
 
 export function readBootstrappedAuthGroupPageData(): AuthGroupPagePayload | null {
@@ -5659,6 +5756,50 @@ export async function fetchEmissionManagementPage() {
   return readJsonResponse<EmissionManagementPagePayload>(response);
 }
 
+export async function saveEmissionManagementElementDefinition(payload: EmissionManagementElementSavePayload) {
+  const response = await fetch(buildLocalizedPath("/admin/api/admin/emission-management/element-definitions", "/en/admin/api/admin/emission-management/element-definitions"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload)
+  });
+  return readJsonResponse<EmissionManagementElementSaveResponse>(response);
+}
+
+export async function fetchEmissionDefinitionStudioPage() {
+  const response = await fetch(buildLocalizedPath("/admin/emission/definition-studio/page-data", "/en/admin/emission/definition-studio/page-data"), {
+    credentials: "include"
+  });
+  return readJsonResponse<EmissionDefinitionStudioPagePayload>(response);
+}
+
+export async function saveEmissionDefinitionDraft(payload: EmissionDefinitionDraftSavePayload) {
+  const response = await fetch(buildLocalizedPath("/admin/api/admin/emission-definition-studio/drafts", "/en/admin/api/admin/emission-definition-studio/drafts"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload)
+  });
+  return readJsonResponse<EmissionDefinitionDraftSaveResponse>(response);
+}
+
+export async function publishEmissionDefinitionDraft(draftId: string) {
+  const response = await fetch(buildLocalizedPath(`/admin/api/admin/emission-definition-studio/drafts/${encodeURIComponent(draftId)}/publish`, `/en/admin/api/admin/emission-definition-studio/drafts/${encodeURIComponent(draftId)}/publish`), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "X-Requested-With": "XMLHttpRequest"
+    })
+  });
+  return readJsonResponse<EmissionDefinitionDraftSaveResponse>(response);
+}
+
 export async function fetchEmissionValidatePage(params?: { pageIndex?: number; resultId?: string; searchKeyword?: string; verificationStatus?: string; priorityFilter?: string; }) {
   const search = new URLSearchParams();
   if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
@@ -5708,6 +5849,8 @@ export async function fetchEmissionVariableDefinitions(categoryId: number, tier:
     factors?: EmissionFactorDefinition[];
     formulaSummary?: string;
     formulaDisplay?: string;
+    publishedDefinition?: Record<string, unknown>;
+    publishedDefinitionApplied?: boolean;
   }>(response);
 }
 

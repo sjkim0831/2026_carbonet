@@ -14,6 +14,8 @@ final class VariableUiDefinition {
     final Set<String> supplementalCodes;
     final Map<String, String> repeatGroupKeys;
     final Map<String, VariableSectionDefinition> sections;
+    final Map<String, String> visibleWhenRules;
+    final Map<String, String> disabledWhenRules;
 
     VariableUiDefinition(Map<String, String> displayNames,
                          Map<String, String> displayCodes,
@@ -21,7 +23,9 @@ final class VariableUiDefinition {
                          Set<String> derivedCodes,
                          Set<String> supplementalCodes,
                          Map<String, String> repeatGroupKeys,
-                         Map<String, VariableSectionDefinition> sections) {
+                         Map<String, VariableSectionDefinition> sections,
+                         Map<String, String> visibleWhenRules,
+                         Map<String, String> disabledWhenRules) {
         this.displayNames = displayNames;
         this.displayCodes = displayCodes;
         this.uiHints = uiHints;
@@ -29,6 +33,8 @@ final class VariableUiDefinition {
         this.supplementalCodes = supplementalCodes;
         this.repeatGroupKeys = repeatGroupKeys;
         this.sections = sections;
+        this.visibleWhenRules = visibleWhenRules;
+        this.disabledWhenRules = disabledWhenRules;
     }
 
     static Builder builder() {
@@ -67,6 +73,14 @@ final class VariableUiDefinition {
         return sections.get(varCode);
     }
 
+    String visibleWhen(String varCode) {
+        return visibleWhenRules.getOrDefault(varCode, "");
+    }
+
+    String disabledWhen(String varCode) {
+        return disabledWhenRules.getOrDefault(varCode, "");
+    }
+
     static final class Builder {
         private final Map<String, String> displayNames = new LinkedHashMap<>();
         private final Map<String, String> displayCodes = new LinkedHashMap<>();
@@ -75,6 +89,8 @@ final class VariableUiDefinition {
         private final Set<String> supplementalCodes = new LinkedHashSet<>();
         private final Map<String, String> repeatGroupKeys = new LinkedHashMap<>();
         private final Map<String, VariableSectionDefinition> sections = new LinkedHashMap<>();
+        private final Map<String, String> visibleWhenRules = new LinkedHashMap<>();
+        private final Map<String, String> disabledWhenRules = new LinkedHashMap<>();
 
         Builder displayName(String varCode, String label) {
             displayNames.put(varCode, label);
@@ -119,6 +135,16 @@ final class VariableUiDefinition {
             return this;
         }
 
+        Builder visibleWhen(String varCode, String rule) {
+            visibleWhenRules.put(varCode, rule);
+            return this;
+        }
+
+        Builder disabledWhen(String varCode, String rule) {
+            disabledWhenRules.put(varCode, rule);
+            return this;
+        }
+
         VariableUiDefinition build() {
             return new VariableUiDefinition(
                     new LinkedHashMap<>(displayNames),
@@ -127,7 +153,9 @@ final class VariableUiDefinition {
                     new LinkedHashSet<>(derivedCodes),
                     new LinkedHashSet<>(supplementalCodes),
                     new LinkedHashMap<>(repeatGroupKeys),
-                    new LinkedHashMap<>(sections)
+                    new LinkedHashMap<>(sections),
+                    new LinkedHashMap<>(visibleWhenRules),
+                    new LinkedHashMap<>(disabledWhenRules)
             );
         }
     }

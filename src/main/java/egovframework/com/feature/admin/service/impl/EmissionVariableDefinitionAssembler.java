@@ -10,14 +10,18 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
 import static egovframework.com.feature.admin.service.impl.EmissionManagementValueSupport.firstNonBlank;
+import static egovframework.com.feature.admin.service.impl.EmissionManagementValueSupport.intValue;
+import static egovframework.com.feature.admin.service.impl.EmissionManagementValueSupport.longValue;
 import static egovframework.com.feature.admin.service.impl.EmissionManagementValueSupport.option;
 import static egovframework.com.feature.admin.service.impl.EmissionManagementValueSupport.safe;
+import static egovframework.com.feature.admin.service.impl.EmissionManagementValueSupport.stringValue;
 
 final class EmissionVariableDefinitionAssembler {
     private static final Logger log = LoggerFactory.getLogger(EmissionVariableDefinitionAssembler.class);
@@ -66,6 +70,43 @@ final class EmissionVariableDefinitionAssembler {
             applyVariableUiMetadata(variable, definition);
         }
         return variables;
+    }
+
+    List<EmissionVariableDefinitionVO> applyDefinitionOverrides(List<EmissionVariableDefinitionVO> baseVariables,
+                                                                Map<String, Object> definitionDraft,
+                                                                Long categoryId,
+                                                                Integer tier) {
+        if (baseVariables == null || baseVariables.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<Map<String, Object>> overrides = asMapList(definitionDraft == null ? null : definitionDraft.get("variableDefinitions"));
+        if (overrides.isEmpty()) {
+            return baseVariables;
+        }
+        List<EmissionVariableDefinitionVO> merged = new ArrayList<>();
+        Map<String, Integer> indexByCode = new LinkedHashMap<>();
+        for (EmissionVariableDefinitionVO variable : baseVariables) {
+            EmissionVariableDefinitionVO copy = copyVariable(variable);
+            indexByCode.put(safe(copy.getVarCode()).toUpperCase(Locale.ROOT), merged.size());
+            merged.add(copy);
+        }
+        for (int index = 0; index < overrides.size(); index += 1) {
+            Map<String, Object> override = overrides.get(index);
+            String varCode = safe(stringValue(override == null ? null : override.get("varCode"))).toUpperCase(Locale.ROOT);
+            if (varCode.isEmpty()) {
+                continue;
+            }
+            EmissionVariableDefinitionVO normalized = buildOverrideVariable(override, categoryId, tier, index, varCode);
+            Integer existingIndex = indexByCode.get(varCode);
+            if (existingIndex != null) {
+                mergeVariable(merged.get(existingIndex), normalized);
+                continue;
+            }
+            indexByCode.put(varCode, merged.size());
+            merged.add(normalized);
+        }
+        merged.sort((left, right) -> Integer.compare(left.getSortOrder() == null ? 0 : left.getSortOrder(), right.getSortOrder() == null ? 0 : right.getSortOrder()));
+        return merged;
     }
 
     private void applyVariableOptions(EmissionVariableDefinitionVO variable,
@@ -119,6 +160,14 @@ final class EmissionVariableDefinitionAssembler {
         String repeatGroupKey = firstNonBlank(safe(variable.getRepeatGroupKey()), definition.uiDefinition.repeatGroupKey(varCode));
         if (!repeatGroupKey.isEmpty()) {
             variable.setRepeatGroupKey(repeatGroupKey);
+        }
+        String visibleWhen = firstNonBlank(safe(variable.getVisibleWhen()), definition.uiDefinition.visibleWhen(varCode));
+        if (!visibleWhen.isEmpty()) {
+            variable.setVisibleWhen(visibleWhen);
+        }
+        String disabledWhen = firstNonBlank(safe(variable.getDisabledWhen()), definition.uiDefinition.disabledWhen(varCode));
+        if (!disabledWhen.isEmpty()) {
+            variable.setDisabledWhen(disabledWhen);
         }
         VariableSectionDefinition section = hasSectionMetadata(variable)
                 ? new VariableSectionDefinition(
@@ -181,5 +230,173 @@ final class EmissionVariableDefinitionAssembler {
         option.put("label", firstNonBlank(safe(detailCode.getCodeNm()), safe(detailCode.getCode())));
         option.put("description", safe(detailCode.getCodeDc()));
         return option;
+    }
+
+    private EmissionVariableDefinitionVO copyVariable(EmissionVariableDefinitionVO source) {
+        EmissionVariableDefinitionVO copy = new EmissionVariableDefinitionVO();
+        mergeVariable(copy, source);
+        return copy;
+    }
+
+    private EmissionVariableDefinitionVO buildOverrideVariable(Map<String, Object> override,
+                                                               Long categoryId,
+                                                               Integer tier,
+                                                               int overrideIndex,
+                                                               String varCode) {
+        EmissionVariableDefinitionVO variable = new EmissionVariableDefinitionVO();
+        variable.setVariableId(longValue(override.get("variableId")));
+        variable.setCategoryId(longValue(override.get("categoryId")) == null ? categoryId : longValue(override.get("categoryId")));
+        variable.setTier(intValue(override.get("tier")) == null ? tier : intValue(override.get("tier")));
+        variable.setVarCode(varCode);
+        variable.setVarName(firstNonBlank(safe(stringValue(override.get("varName"))), varCode));
+        variable.setVarDesc(safe(stringValue(override.get("varDesc"))));
+        variable.setUnit(safe(stringValue(override.get("unit"))));
+        variable.setInputType(firstNonBlank(safe(stringValue(override.get("inputType"))), "TEXT"));
+        variable.setSourceType(safe(stringValue(override.get("sourceType"))));
+        variable.setRepeatable(safe(stringValue(override.get("isRepeatable"))));
+        variable.setRequired(safe(stringValue(override.get("isRequired"))));
+        variable.setSortOrder(intValue(override.get("sortOrder")) == null ? 1000 + overrideIndex : intValue(override.get("sortOrder")));
+        variable.setUseYn(firstNonBlank(safe(stringValue(override.get("useYn"))), "Y"));
+        variable.setCommonCodeId(safe(stringValue(override.get("commonCodeId"))));
+        variable.setOptions(asStringMapList(override.get("options")));
+        variable.setDisplayName(safe(stringValue(override.get("displayName"))));
+        variable.setDisplayCode(safe(stringValue(override.get("displayCode"))));
+        variable.setUiHint(safe(stringValue(override.get("uiHint"))));
+        variable.setDerivedYn(safe(stringValue(override.get("derivedYn"))));
+        variable.setSupplementalYn(safe(stringValue(override.get("supplementalYn"))));
+        variable.setRepeatGroupKey(safe(stringValue(override.get("repeatGroupKey"))));
+        variable.setSectionId(safe(stringValue(override.get("sectionId"))));
+        variable.setSectionOrder(intValue(override.get("sectionOrder")) == null ? 0 : intValue(override.get("sectionOrder")));
+        variable.setSectionTitle(safe(stringValue(override.get("sectionTitle"))));
+        variable.setSectionDescription(safe(stringValue(override.get("sectionDescription"))));
+        variable.setSectionFormula(safe(stringValue(override.get("sectionFormula"))));
+        variable.setSectionPreviewType(safe(stringValue(override.get("sectionPreviewType"))));
+        variable.setSectionRelatedFactorCodes(safe(stringValue(override.get("sectionRelatedFactorCodes"))));
+        variable.setVisibleWhen(safe(stringValue(override.get("visibleWhen"))));
+        variable.setDisabledWhen(safe(stringValue(override.get("disabledWhen"))));
+        return variable;
+    }
+
+    private void mergeVariable(EmissionVariableDefinitionVO target, EmissionVariableDefinitionVO source) {
+        if (target == null || source == null) {
+            return;
+        }
+        if (source.getVariableId() != null) {
+            target.setVariableId(source.getVariableId());
+        }
+        if (source.getCategoryId() != null) {
+            target.setCategoryId(source.getCategoryId());
+        }
+        if (source.getTier() != null) {
+            target.setTier(source.getTier());
+        }
+        if (!safe(source.getVarCode()).isEmpty()) {
+            target.setVarCode(source.getVarCode());
+        }
+        if (!safe(source.getVarName()).isEmpty()) {
+            target.setVarName(source.getVarName());
+        }
+        if (!safe(source.getVarDesc()).isEmpty()) {
+            target.setVarDesc(source.getVarDesc());
+        }
+        if (!safe(source.getUnit()).isEmpty()) {
+            target.setUnit(source.getUnit());
+        }
+        if (!safe(source.getInputType()).isEmpty()) {
+            target.setInputType(source.getInputType());
+        }
+        if (!safe(source.getSourceType()).isEmpty()) {
+            target.setSourceType(source.getSourceType());
+        }
+        if (!safe(source.getRepeatable()).isEmpty()) {
+            target.setRepeatable(source.getRepeatable());
+        }
+        if (!safe(source.getRequired()).isEmpty()) {
+            target.setRequired(source.getRequired());
+        }
+        if (source.getSortOrder() != null) {
+            target.setSortOrder(source.getSortOrder());
+        }
+        if (!safe(source.getUseYn()).isEmpty()) {
+            target.setUseYn(source.getUseYn());
+        }
+        if (!safe(source.getCommonCodeId()).isEmpty()) {
+            target.setCommonCodeId(source.getCommonCodeId());
+        }
+        if (source.getOptions() != null && !source.getOptions().isEmpty()) {
+            target.setOptions(source.getOptions());
+        }
+        if (!safe(source.getDisplayName()).isEmpty()) {
+            target.setDisplayName(source.getDisplayName());
+        }
+        if (!safe(source.getDisplayCode()).isEmpty()) {
+            target.setDisplayCode(source.getDisplayCode());
+        }
+        if (!safe(source.getUiHint()).isEmpty()) {
+            target.setUiHint(source.getUiHint());
+        }
+        if (!safe(source.getDerivedYn()).isEmpty()) {
+            target.setDerivedYn(source.getDerivedYn());
+        }
+        if (!safe(source.getSupplementalYn()).isEmpty()) {
+            target.setSupplementalYn(source.getSupplementalYn());
+        }
+        if (!safe(source.getRepeatGroupKey()).isEmpty()) {
+            target.setRepeatGroupKey(source.getRepeatGroupKey());
+        }
+        if (!safe(source.getSectionId()).isEmpty()) {
+            target.setSectionId(source.getSectionId());
+        }
+        if (source.getSectionOrder() != null) {
+            target.setSectionOrder(source.getSectionOrder());
+        }
+        if (!safe(source.getSectionTitle()).isEmpty()) {
+            target.setSectionTitle(source.getSectionTitle());
+        }
+        if (!safe(source.getSectionDescription()).isEmpty()) {
+            target.setSectionDescription(source.getSectionDescription());
+        }
+        if (!safe(source.getSectionFormula()).isEmpty()) {
+            target.setSectionFormula(source.getSectionFormula());
+        }
+        if (!safe(source.getSectionPreviewType()).isEmpty()) {
+            target.setSectionPreviewType(source.getSectionPreviewType());
+        }
+        if (!safe(source.getSectionRelatedFactorCodes()).isEmpty()) {
+            target.setSectionRelatedFactorCodes(source.getSectionRelatedFactorCodes());
+        }
+        if (!safe(source.getVisibleWhen()).isEmpty()) {
+            target.setVisibleWhen(source.getVisibleWhen());
+        }
+        if (!safe(source.getDisabledWhen()).isEmpty()) {
+            target.setDisabledWhen(source.getDisabledWhen());
+        }
+    }
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> asMapList(Object value) {
+        if (value instanceof List<?>) {
+            List<Map<String, Object>> rows = new ArrayList<>();
+            for (Object item : (List<Object>) value) {
+                if (item instanceof Map<?, ?>) {
+                    rows.add(new LinkedHashMap<>((Map<String, Object>) item));
+                }
+            }
+            return rows;
+        }
+        return Collections.emptyList();
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, String>> asStringMapList(Object value) {
+        if (value instanceof List<?>) {
+            List<Map<String, String>> rows = new ArrayList<>();
+            for (Object item : (List<Object>) value) {
+                if (item instanceof Map<?, ?>) {
+                    rows.add(new LinkedHashMap<>((Map<String, String>) item));
+                }
+            }
+            return rows;
+        }
+        return Collections.emptyList();
     }
 }

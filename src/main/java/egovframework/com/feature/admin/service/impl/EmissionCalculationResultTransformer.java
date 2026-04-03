@@ -39,12 +39,26 @@ final class EmissionCalculationResultTransformer {
             storedResult.put("formulaDisplay", snapshot.getOrDefault("formulaDisplay", ""));
             storedResult.put("substitutedFormula", snapshot.getOrDefault("substitutedFormula", ""));
             storedResult.put("calculationLogs", snapshot.getOrDefault("calculationLogs", Collections.emptyList()));
+            storedResult.put("definitionFormulaPreview", snapshot.getOrDefault("definitionFormulaPreview", Collections.emptyMap()));
+            storedResult.put("definitionFormulaComparison", snapshot.getOrDefault("definitionFormulaComparison", Collections.emptyMap()));
+            storedResult.put("definitionFormulaAdopted", snapshot.getOrDefault("definitionFormulaAdopted", false));
+            storedResult.put("calculationSource", snapshot.getOrDefault("calculationSource", "LEGACY"));
+            storedResult.put("legacyFormulaDisplay", snapshot.getOrDefault("legacyFormulaDisplay", ""));
+            storedResult.put("legacySubstitutedFormula", snapshot.getOrDefault("legacySubstitutedFormula", ""));
+            storedResult.put("legacyCalculationLogs", snapshot.getOrDefault("legacyCalculationLogs", Collections.emptyList()));
             storedResult.put("defaultApplied", "Y".equalsIgnoreCase(stringValue(storedResult.get("defaultAppliedYn"))));
         } catch (Exception ignored) {
             storedResult.put("appliedFactors", Collections.emptyList());
             storedResult.put("formulaDisplay", "");
             storedResult.put("substitutedFormula", "");
             storedResult.put("calculationLogs", Collections.emptyList());
+            storedResult.put("definitionFormulaPreview", Collections.emptyMap());
+            storedResult.put("definitionFormulaComparison", Collections.emptyMap());
+            storedResult.put("definitionFormulaAdopted", false);
+            storedResult.put("calculationSource", "LEGACY");
+            storedResult.put("legacyFormulaDisplay", "");
+            storedResult.put("legacySubstitutedFormula", "");
+            storedResult.put("legacyCalculationLogs", Collections.emptyList());
             storedResult.put("defaultApplied", "Y".equalsIgnoreCase(stringValue(storedResult.get("defaultAppliedYn"))));
         }
         return storedResult;

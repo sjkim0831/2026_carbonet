@@ -39,12 +39,13 @@ final class EmissionInputSaveApplicationService {
                 EmissionManagementValueSupport.safe(request.getCreatedBy()),
                 "anonymous"
         );
+        validationSupport.validateRequiredDirectInputs(category, normalizedTier, values);
 
         Map<String, Object> sessionParams = commandBuilder.inputSession(category.getCategoryId(), normalizedTier, createdBy);
         adminEmissionManagementMapper.insertEmissionInputSession(sessionParams);
         Long sessionId = validationSupport.requireGeneratedId(sessionParams, "sessionId", "emission input session");
 
-        Set<String> acceptedCodes = inputSavePolicySupport.loadAcceptedVariableCodes(category.getCategoryId(), normalizedTier);
+        Set<String> acceptedCodes = inputSavePolicySupport.loadAcceptedVariableCodes(category, normalizedTier);
         int savedCount = 0;
         for (EmissionInputValueRequest value : values) {
             String varCode = EmissionManagementValueSupport.safe(value == null ? null : value.getVarCode()).toUpperCase(Locale.ROOT);

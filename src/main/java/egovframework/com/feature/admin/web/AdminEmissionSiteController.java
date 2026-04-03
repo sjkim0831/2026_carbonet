@@ -1,6 +1,9 @@
 package egovframework.com.feature.admin.web;
 
 import egovframework.com.feature.admin.service.AdminShellBootstrapPageService;
+import egovframework.com.feature.admin.service.AdminEmissionDefinitionStudioService;
+import egovframework.com.feature.admin.service.AdminEmissionManagementService;
+import egovframework.com.feature.admin.service.AdminEmissionManagementElementRegistryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -20,6 +23,9 @@ import java.util.Map;
 public class AdminEmissionSiteController {
 
     private final AdminShellBootstrapPageService adminShellBootstrapPageService;
+    private final AdminEmissionDefinitionStudioService adminEmissionDefinitionStudioService;
+    private final AdminEmissionManagementService adminEmissionManagementService;
+    private final AdminEmissionManagementElementRegistryService adminEmissionManagementElementRegistryService;
 
     @RequestMapping(value = "/site-management", method = RequestMethod.GET)
     public String emissionSiteManagementPage(HttpServletRequest request, Locale locale) {
@@ -29,6 +35,11 @@ public class AdminEmissionSiteController {
     @RequestMapping(value = "/management", method = RequestMethod.GET)
     public String emissionManagementPage(HttpServletRequest request, Locale locale) {
         return redirectReactMigration(request, locale, "emission-management");
+    }
+
+    @RequestMapping(value = "/definition-studio", method = RequestMethod.GET)
+    public String emissionDefinitionStudioPage(HttpServletRequest request, Locale locale) {
+        return redirectReactMigration(request, locale, "emission-definition-studio");
     }
 
     @GetMapping("/management/page-data")
@@ -43,7 +54,21 @@ public class AdminEmissionSiteController {
         payload.put("pageTitleEn", "Emission Variable Management");
         payload.put("pageDescription", "카테고리, Tier, 입력 세션, 계산 실행을 관리자 작업공간에서 직접 검증합니다.");
         payload.put("pageDescriptionEn", "Validate category, tier, input session, and calculation execution directly from the admin workspace.");
+        payload.putAll(adminEmissionManagementElementRegistryService.buildRegistryPayload(isEn));
+        payload.putAll(adminEmissionManagementService.getRolloutStatusSummary());
+        Map<String, Object> definitionStudioPayload = adminEmissionDefinitionStudioService.buildPagePayload(isEn);
+        payload.put("definitionDraftRows", definitionStudioPayload.get("definitionRows"));
+        payload.put("definitionPolicyOptions", definitionStudioPayload.get("policyOptions"));
+        payload.put("selectedDefinitionDraft", definitionStudioPayload.get("selectedDefinition"));
+        payload.put("publishedDefinitionRows", adminEmissionDefinitionStudioService.buildPublishedDefinitionRows(isEn));
+        payload.put("selectedPublishedDefinition", adminEmissionDefinitionStudioService.findLatestPublishedDefinition(isEn));
         return ResponseEntity.ok(payload);
+    }
+
+    @GetMapping("/definition-studio/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> emissionDefinitionStudioPageApi(HttpServletRequest request, Locale locale) {
+        return ResponseEntity.ok(adminEmissionDefinitionStudioService.buildPagePayload(isEnglishRequest(request, locale)));
     }
 
     @GetMapping("/site-management/page-data")
@@ -93,4 +118,5 @@ public class AdminEmissionSiteController {
     private String safe(String value) {
         return value == null ? "" : value.trim();
     }
+
 }

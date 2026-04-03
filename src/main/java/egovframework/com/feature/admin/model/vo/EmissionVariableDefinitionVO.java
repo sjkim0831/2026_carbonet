@@ -38,4 +38,6 @@ public class EmissionVariableDefinitionVO {
     private String sectionFormula;
     private String sectionPreviewType;
     private String sectionRelatedFactorCodes;
+    private String visibleWhen;
+    private String disabledWhen;
 }

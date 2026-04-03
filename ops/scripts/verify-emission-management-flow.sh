@@ -35,10 +35,14 @@ Environment overrides:
   EXPECTED_FORMULA_SUMMARY
   EXPECTED_PROMOTION_STATUS
   EXPECTED_DRAFT_ID_PREFIX
+  EXPECTED_CALCULATION_SOURCE
   EXPECTED_READY_SCOPES
   INVALID_INPUT_VAR_CODE
   SAVE_PAYLOAD_JSON
   SAVE_PAYLOAD_FILE
+  VERIFY_DEFINITION_PUBLISH
+  DEFINITION_RUNTIME_MODE
+  DEFINITION_FORMULA
   VERIFY_SAVED_VALUE
   VERIFY_INVALID_VARIABLE_CODE
   VERIFY_ROLLOUT_STATUS
@@ -66,10 +70,14 @@ EXPECTED_CO2_TOTAL="${EXPECTED_CO2_TOTAL:-7.5}"
 EXPECTED_FORMULA_SUMMARY="${EXPECTED_FORMULA_SUMMARY:-SUM(EF석회,i * Ml,i)}"
 EXPECTED_PROMOTION_STATUS="${EXPECTED_PROMOTION_STATUS:-READY}"
 EXPECTED_DRAFT_ID_PREFIX="${EXPECTED_DRAFT_ID_PREFIX:-BUILTIN:}"
+EXPECTED_CALCULATION_SOURCE="${EXPECTED_CALCULATION_SOURCE:-PUBLISHED_DEFINITION}"
 EXPECTED_READY_SCOPES="${EXPECTED_READY_SCOPES:-}"
 INVALID_INPUT_VAR_CODE="${INVALID_INPUT_VAR_CODE:-INVALID_VAR_CODE}"
 SAVE_PAYLOAD_JSON="${SAVE_PAYLOAD_JSON:-}"
 SAVE_PAYLOAD_FILE="${SAVE_PAYLOAD_FILE:-}"
+VERIFY_DEFINITION_PUBLISH="${VERIFY_DEFINITION_PUBLISH:-false}"
+DEFINITION_RUNTIME_MODE="${DEFINITION_RUNTIME_MODE:-AUTO}"
+DEFINITION_FORMULA="${DEFINITION_FORMULA:-SUM(EF석회,i * Ml,i)}"
 VERIFY_SAVED_VALUE="${VERIFY_SAVED_VALUE:-true}"
 VERIFY_INVALID_VARIABLE_CODE="${VERIFY_INVALID_VARIABLE_CODE:-true}"
 VERIFY_ROLLOUT_STATUS="${VERIFY_ROLLOUT_STATUS:-true}"
@@ -96,6 +104,9 @@ SAVE_RESPONSE_JSON="$TMP_DIR/save-response.json"
 SESSION_RESPONSE_JSON="$TMP_DIR/input-session.json"
 CALC_RESPONSE_JSON="$TMP_DIR/calc-response.json"
 INVALID_RESPONSE_JSON="$TMP_DIR/invalid-response.json"
+DEFINITION_SAVE_REQUEST_JSON="$TMP_DIR/definition-save-request.json"
+DEFINITION_SAVE_RESPONSE_JSON="$TMP_DIR/definition-save-response.json"
+DEFINITION_PUBLISH_RESPONSE_JSON="$TMP_DIR/definition-publish-response.json"
 
 cleanup() {
   rm -rf "$TMP_DIR"
@@ -112,6 +123,8 @@ emission_require_cmd java
 emission_require_cmd python3
 emission_require_file "$ROOT_DIR/pom.xml"
 emission_require_file "$ROOT_DIR/target/classes/egovframework/com/feature/auth/util/JwtTokenProvider.class"
+emission_require_allowed_value "VERIFY_DEFINITION_PUBLISH" "$VERIFY_DEFINITION_PUBLISH" "true" "false"
+emission_require_allowed_value "DEFINITION_RUNTIME_MODE" "$DEFINITION_RUNTIME_MODE" "AUTO" "SHADOW" "PRIMARY"
 
 emission_prepare_cached_runtime_artifacts
 emission_create_cookie_jar "$COOKIE_JAR"
@@ -145,6 +158,55 @@ PY
 CSRF_TOKEN="$(printf '%s\n' "$CSRF_INFO" | sed -n '1p')"
 CSRF_HEADER="$(printf '%s\n' "$CSRF_INFO" | sed -n '2p')"
 [[ -n "$CSRF_TOKEN" ]] || emission_fail "csrfToken is missing from frontend session"
+
+if [[ "$VERIFY_DEFINITION_PUBLISH" == "true" ]]; then
+  emission_info "saving definition draft for runtime-mode verification"
+  python3 - <<'PY' "$DEFINITION_SAVE_REQUEST_JSON" "$EXPECTED_CATEGORY_SUBCODE" "$DEFINITION_FORMULA" "$DEFINITION_RUNTIME_MODE"
+import json, sys
+path, category_code, formula, runtime_mode = sys.argv[1:5]
+category_code = category_code.strip().upper()
+draft = {
+    "categoryCode": category_code,
+    "categoryName": "Codex verification definition",
+    "tierLabel": "Tier 1",
+    "formula": formula,
+    "formulaTree": [{
+        "joiner": "",
+        "kind": "sum",
+        "iterator": "i",
+        "items": [
+            {"joiner": "", "kind": "token", "token": "EF석회,i"},
+            {"joiner": "×", "kind": "token", "token": "Ml,i"},
+        ],
+    }],
+    "inputMode": "NUMBER",
+    "policies": ["input_required_yn", "default_capable_yn"],
+    "directRequiredCodes": ["MLI"],
+    "fallbackCodes": ["EF_LIME"],
+    "autoCalculatedCodes": [],
+    "supplementalCodes": [],
+    "sections": [],
+    "variableDefinitions": [],
+    "runtimeMode": runtime_mode,
+    "note": "Codex runtime-mode verification snapshot"
+}
+open(path, "w", encoding="utf-8").write(json.dumps(draft, ensure_ascii=False))
+PY
+  DEFINITION_SAVE_STATUS="$(emission_curl_status_with_retry "$DEFINITION_SAVE_RESPONSE_JSON" -b "$COOKIE_JAR" -c "$COOKIE_JAR" -X POST -H "$CSRF_HEADER: $CSRF_TOKEN" -H 'Content-Type: application/json' --data @"$DEFINITION_SAVE_REQUEST_JSON" "$BASE_URL/admin/api/admin/emission-definition-studio/drafts")" || emission_fail "definition draft save transport failed"
+  [[ "$DEFINITION_SAVE_STATUS" == "200" ]] || emission_fail "definition draft save failed with status $DEFINITION_SAVE_STATUS"
+  EXPECTED_DRAFT_ID_PREFIX="$(python3 - <<'PY' "$DEFINITION_SAVE_RESPONSE_JSON"
+import json, sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+draft_id = str(data.get("draftId") or "")
+if not draft_id:
+    raise SystemExit("definition draft save response missing draftId")
+print(draft_id)
+PY
+)"
+  emission_info "publishing definition draft: $EXPECTED_DRAFT_ID_PREFIX"
+  DEFINITION_PUBLISH_STATUS="$(emission_curl_status_with_retry "$DEFINITION_PUBLISH_RESPONSE_JSON" -b "$COOKIE_JAR" -c "$COOKIE_JAR" -X POST -H "$CSRF_HEADER: $CSRF_TOKEN" -H 'X-Requested-With: XMLHttpRequest' "$BASE_URL/admin/api/admin/emission-definition-studio/drafts/$EXPECTED_DRAFT_ID_PREFIX/publish")" || emission_fail "definition publish transport failed"
+  [[ "$DEFINITION_PUBLISH_STATUS" == "200" ]] || emission_fail "definition publish failed with status $DEFINITION_PUBLISH_STATUS"
+fi
 
 emission_info "loading admin shell route"
 emission_curl_to_file_with_retry "$HTML_FILE" -b "$COOKIE_JAR" -c "$COOKIE_JAR" "$BASE_URL/admin/emission/management" || emission_fail "route request failed"
@@ -286,10 +348,12 @@ import json, sys
 data = json.load(open(sys.argv[1], encoding="utf-8"))
 print(data.get("co2Total"))
 print(str(data.get("formulaSummary", "")).strip())
+print(str(data.get("calculationSource", "")).strip())
 PY
 )"
 ACTUAL_CO2_TOTAL="$(printf '%s\n' "$CALC_INFO" | sed -n '1p')"
 ACTUAL_FORMULA_SUMMARY="$(printf '%s\n' "$CALC_INFO" | sed -n '2p')"
+ACTUAL_CALCULATION_SOURCE="$(printf '%s\n' "$CALC_INFO" | sed -n '3p')"
 if [[ "$VERIFY_CO2_TOTAL" == "true" ]]; then
   python3 - <<'PY' "$ACTUAL_CO2_TOTAL" "$EXPECTED_CO2_TOTAL"
 import sys
@@ -301,6 +365,9 @@ PY
 fi
 if [[ "$VERIFY_FORMULA_SUMMARY" == "true" ]]; then
   [[ "$ACTUAL_FORMULA_SUMMARY" == "$EXPECTED_FORMULA_SUMMARY" ]] || emission_fail "formulaSummary mismatch"
+fi
+if [[ -n "$EXPECTED_CALCULATION_SOURCE" ]]; then
+  [[ "$ACTUAL_CALCULATION_SOURCE" == "$EXPECTED_CALCULATION_SOURCE" ]] || emission_fail "calculationSource mismatch: expected=$EXPECTED_CALCULATION_SOURCE actual=$ACTUAL_CALCULATION_SOURCE"
 fi
 if [[ "$VERIFY_ROLLOUT_STATUS" == "true" ]]; then
   emission_info "verifying rollout board status"

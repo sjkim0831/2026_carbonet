@@ -2,6 +2,7 @@ package egovframework.com.feature.admin.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import egovframework.com.feature.admin.mapper.AdminEmissionManagementMapper;
+import egovframework.com.feature.admin.service.AdminEmissionDefinitionStudioService;
 import egovframework.com.common.service.CommonCodeService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,8 +21,15 @@ class EmissionManagementConfiguration {
 
     @Bean
     EmissionManagementValidationSupport emissionManagementValidationSupport(AdminEmissionManagementMapper adminEmissionManagementMapper,
-                                                                            EmissionCalculationDefinitionRegistry calculationDefinitionRegistry) {
-        return new EmissionManagementValidationSupport(adminEmissionManagementMapper, calculationDefinitionRegistry);
+                                                                            EmissionCalculationDefinitionRegistry calculationDefinitionRegistry,
+                                                                            egovframework.com.feature.admin.service.AdminEmissionDefinitionStudioService adminEmissionDefinitionStudioService,
+                                                                            EmissionVariableDefinitionAssembler emissionVariableDefinitionAssembler) {
+        return new EmissionManagementValidationSupport(
+                adminEmissionManagementMapper,
+                calculationDefinitionRegistry,
+                adminEmissionDefinitionStudioService,
+                emissionVariableDefinitionAssembler
+        );
     }
 
     @Bean
@@ -30,13 +38,19 @@ class EmissionManagementConfiguration {
     }
 
     @Bean
+    DefinitionFormulaPreviewService definitionFormulaPreviewService(ObjectMapper objectMapper) {
+        return new DefinitionFormulaPreviewService(objectMapper);
+    }
+
+    @Bean
     EmissionCategoryTierDataProvider emissionCategoryTierDataProvider(AdminEmissionManagementMapper adminEmissionManagementMapper) {
         return new EmissionCategoryTierDataProvider(adminEmissionManagementMapper);
     }
 
     @Bean
-    EmissionInputSavePolicySupport emissionInputSavePolicySupport(AdminEmissionManagementMapper adminEmissionManagementMapper) {
-        return new EmissionInputSavePolicySupport(adminEmissionManagementMapper);
+    EmissionInputSavePolicySupport emissionInputSavePolicySupport(AdminEmissionManagementMapper adminEmissionManagementMapper,
+                                                                  egovframework.com.feature.admin.service.AdminEmissionDefinitionStudioService adminEmissionDefinitionStudioService) {
+        return new EmissionInputSavePolicySupport(adminEmissionManagementMapper, adminEmissionDefinitionStudioService);
     }
 
     @Bean
@@ -74,7 +88,8 @@ class EmissionManagementConfiguration {
                                                                   EmissionManagementValidationSupport validationSupport,
                                                                   EmissionCalculationResultTransformer resultTransformer,
                                                                   EmissionCategoryTierDataProvider categoryTierDataProvider,
-                                                                  EmissionCategoryMetadataProvider categoryMetadataProvider) {
+                                                                  EmissionCategoryMetadataProvider categoryMetadataProvider,
+                                                                  AdminEmissionDefinitionStudioService adminEmissionDefinitionStudioService) {
         return new EmissionManagementQueryService(
                 adminEmissionManagementMapper,
                 calculationDefinitionRegistry,
@@ -82,7 +97,8 @@ class EmissionManagementConfiguration {
                 validationSupport,
                 resultTransformer,
                 categoryTierDataProvider,
-                categoryMetadataProvider
+                categoryMetadataProvider,
+                adminEmissionDefinitionStudioService
         );
     }
 
@@ -106,7 +122,8 @@ class EmissionManagementConfiguration {
                                                                                 EmissionManagementValidationSupport validationSupport,
                                                                                 EmissionCalculationResultTransformer resultTransformer,
                                                                                 EmissionCategoryTierDataProvider categoryTierDataProvider,
-                                                                                EmissionManagementCommandBuilder commandBuilder) {
+                                                                                EmissionManagementCommandBuilder commandBuilder,
+                                                                                DefinitionFormulaPreviewService definitionFormulaPreviewService) {
         return new EmissionCalculationApplicationService(
                 adminEmissionManagementMapper,
                 calculationDefinitionRegistry,
@@ -114,7 +131,8 @@ class EmissionManagementConfiguration {
                 validationSupport,
                 resultTransformer,
                 categoryTierDataProvider,
-                commandBuilder
+                commandBuilder,
+                definitionFormulaPreviewService
         );
     }
 }

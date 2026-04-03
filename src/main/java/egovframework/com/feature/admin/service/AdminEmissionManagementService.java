@@ -19,4 +19,6 @@ public interface AdminEmissionManagementService {
     Map<String, Object> calculateInputSession(Long sessionId);
 
     Map<String, Object> getLimeDefaultFactor();
+
+    Map<String, Object> getRolloutStatusSummary();
 }
