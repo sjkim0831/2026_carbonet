@@ -18,16 +18,22 @@ public class AdminEmissionManagementServiceImpl extends EgovAbstractServiceImpl 
     private final EmissionManagementQueryService queryService;
     private final EmissionInputSaveApplicationService inputSaveApplicationService;
     private final EmissionCalculationApplicationService calculationApplicationService;
+    private final EmissionScopeStatusService emissionScopeStatusService;
+    private final EmissionDefinitionMaterializationService emissionDefinitionMaterializationService;
 
     @Autowired
     public AdminEmissionManagementServiceImpl(EmissionManagementResponsePresenter responsePresenter,
                                               EmissionManagementQueryService queryService,
                                               EmissionInputSaveApplicationService inputSaveApplicationService,
-                                              EmissionCalculationApplicationService calculationApplicationService) {
+                                              EmissionCalculationApplicationService calculationApplicationService,
+                                              EmissionScopeStatusService emissionScopeStatusService,
+                                              EmissionDefinitionMaterializationService emissionDefinitionMaterializationService) {
         this.responsePresenter = responsePresenter;
         this.queryService = queryService;
         this.inputSaveApplicationService = inputSaveApplicationService;
         this.calculationApplicationService = calculationApplicationService;
+        this.emissionScopeStatusService = emissionScopeStatusService;
+        this.emissionDefinitionMaterializationService = emissionDefinitionMaterializationService;
     }
 
     AdminEmissionManagementServiceImpl(AdminEmissionManagementMapper adminEmissionManagementMapper,
@@ -87,7 +93,21 @@ public class AdminEmissionManagementServiceImpl extends EgovAbstractServiceImpl 
                 resultTransformer,
                 categoryTierDataProvider,
                 commandBuilder,
-                definitionFormulaPreviewService
+                definitionFormulaPreviewService,
+                new EmissionRuntimeTransitionHistoryService(objectMapper)
+        );
+        this.emissionScopeStatusService = configuration.emissionScopeStatusService(
+                adminEmissionManagementMapper,
+                adminEmissionDefinitionStudioService,
+                validationSupport,
+                resultTransformer,
+                new EmissionMaterializationHistoryService(objectMapper),
+                new EmissionRuntimeTransitionHistoryService(objectMapper)
+        );
+        this.emissionDefinitionMaterializationService = new EmissionDefinitionMaterializationService(
+                adminEmissionManagementMapper,
+                adminEmissionDefinitionStudioService,
+                new EmissionMaterializationHistoryService(objectMapper)
         );
     }
 
@@ -153,5 +173,29 @@ public class AdminEmissionManagementServiceImpl extends EgovAbstractServiceImpl 
     @Override
     public Map<String, Object> getRolloutStatusSummary() {
         return responsePresenter.rolloutStatusSummary(queryService.getLatestCalculationRolloutRows());
+    }
+
+    @Override
+    public Map<String, Object> getDefinitionScopeSummary() {
+        return responsePresenter.definitionScopeSummary(queryService.getPublishedDefinitionScopeRows());
+    }
+
+    @Override
+    public Map<String, Object> getScopeStatus(String categoryCode, Integer tier, boolean isEn) {
+        return responsePresenter.scopeStatus(
+                emissionScopeStatusService.getScopeStatus(categoryCode, tier == null ? 0 : tier, isEn)
+        );
+    }
+
+    @Override
+    public Map<String, Object> precheckPublishedDefinitionScope(String draftId, boolean isEn) {
+        return responsePresenter.scopeStatus(
+                emissionScopeStatusService.precheckPublishedDefinitionScope(draftId, isEn)
+        );
+    }
+
+    @Override
+    public Map<String, Object> materializePublishedDefinitionScope(String draftId, String actorId, boolean isEn) {
+        return emissionDefinitionMaterializationService.materialize(draftId, actorId, isEn);
     }
 }

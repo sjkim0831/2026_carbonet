@@ -13,4 +13,11 @@ public class EmissionCategoryVO {
     private String subCode;
     private String subName;
     private String useYn;
+
+    public String scopeKey(Integer tier) {
+        if (subCode == null || subCode.trim().isEmpty() || tier == null) {
+            return "";
+        }
+        return subCode.trim().toUpperCase() + ":" + tier;
+    }
 }

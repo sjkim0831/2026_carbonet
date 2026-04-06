@@ -1,4 +1,4 @@
-import { findManifestByPageId } from "../../app/screen-registry/pageManifestIndex";
+import { findManifestByPageId } from "../../platform/screen-registry/pageManifestIndex";
 
 function isExternalUrl(value: string) {
   return /^https?:\/\//i.test(value) || value === "#";

@@ -2,7 +2,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
 import {
+  deleteEmissionSurveyDraftSet,
+  deleteEmissionSurveyCaseDraft,
   fetchEmissionSurveyAdminPage,
+  getEmissionSurveySampleDownloadUrl,
+  getEmissionSurveyTemplateDownloadUrl,
+  saveEmissionSurveyDraftSet,
   saveEmissionSurveyCaseDraft,
   uploadEmissionSurveyWorkbook,
   type EmissionSurveyAdminPagePayload,
@@ -25,8 +30,27 @@ type DraftCase = {
 };
 
 type DraftState = Record<string, DraftCase>;
+type SavedDatasetEntry = {
+  draftKey: string;
+  sectionCode: string;
+  caseCode: string;
+  majorCode: string;
+  sectionLabel: string;
+  savedAt: string;
+  rowCount: number;
+  columns: Array<Record<string, string>>;
+  rows: DraftRow[];
+};
+type SavedDraftSetEntry = {
+  setId: string;
+  setName: string;
+  savedAt: string;
+  sourceFileName: string;
+  sectionCount: number;
+  sections: Array<Record<string, unknown>>;
+};
 
-const STORAGE_KEY = "carbonet.emission-survey-admin.draft.v1";
+const STORAGE_KEY = "carbonet.emission-survey-admin.draft.v2";
 
 function stringOf(row: Record<string, unknown> | null | undefined, key: string) {
   if (!row) {
@@ -42,7 +66,21 @@ function readDraftState(): DraftState {
   }
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) as DraftState : {};
+    if (!raw) {
+      return {};
+    }
+    const parsed = JSON.parse(raw) as DraftState;
+    const next: DraftState = {};
+    Object.entries(parsed).forEach(([draftKey, draftCase]) => {
+      next[draftKey] = {
+        ...draftCase,
+        rows: (draftCase.rows || []).map((row, index) => ({
+          rowId: row.rowId || `${draftKey}-${index + 1}`,
+          values: normalizeRowValuesForSection(extractSectionCode(draftKey), row.values || {})
+        }))
+      };
+    });
+    return next;
   } catch {
     return {};
   }
@@ -62,7 +100,7 @@ function normalizeServerDraftState(page: EmissionSurveyAdminPagePayload | null |
     const rows = Array.isArray(value.rows)
       ? (value.rows as Array<Record<string, unknown>>).map((row, index) => ({
           rowId: stringOf(row, "rowId") || `${key}-${index + 1}`,
-          values: { ...((row.values || {}) as Record<string, string>) }
+          values: normalizeRowValuesForSection(extractSectionCode(key), { ...((row.values || {}) as Record<string, string>) })
         }))
       : [];
     next[key] = {
@@ -77,16 +115,47 @@ function buildDraftKey(sectionCode: string, caseCode: string) {
   return `${sectionCode}:${caseCode}`;
 }
 
+function extractSectionCode(draftKey: string) {
+  return String(draftKey || "").split(":")[0] || "";
+}
+
+function normalizeRowValuesForSection(sectionCode: string, values: Record<string, string>) {
+  const next = { ...values };
+  if (sectionCode === "INPUT_RAW_MATERIALS" && next.transportMethod) {
+    return {
+      ...next,
+      marineTransport: next.transportMethod || next.marineTransport || "",
+      marineTonKm: next.marineTransport || next.marineTonKm || "",
+      roadTransport: next.marineTonKm || next.roadTransport || "",
+      roadTonKm: next.roadTransport || next.roadTonKm || "",
+      transportRoute: next.roadTonKm || next.transportRoute || "",
+      remark: next.transportRoute || next.remark || ""
+    };
+  }
+  if (sectionCode === "OUTPUT_WASTE" && next.transportMethod) {
+    return {
+      ...next,
+      treatmentMethod: next.treatmentMethod || next.transportTonKm || "",
+      transportTonKm: next.transportMethod || next.transportTonKm || ""
+    };
+  }
+  return next;
+}
+
 function buildRowsFromSection(section: EmissionSurveyAdminSection | undefined): DraftRow[] {
   return ((section?.rows || []) as Array<Record<string, unknown>>).map((row, index) => ({
     rowId: stringOf(row, "rowId") || `${section?.sectionCode || "section"}-${index + 1}`,
-    values: { ...(((row.values || {}) as Record<string, string>)) }
+    values: normalizeRowValuesForSection(section?.sectionCode || "", { ...(((row.values || {}) as Record<string, string>)) })
   }));
+}
+
+function buildEditableColumns(columns: Array<Record<string, string>>, _sectionCode?: string) {
+  return columns;
 }
 
 function createEmptyRow(section: EmissionSurveyAdminSection | undefined, index: number): DraftRow {
   const values: Record<string, string> = {};
-  ((section?.columns || []) as Array<Record<string, string>>).forEach((column) => {
+  buildEditableColumns(((section?.columns || []) as Array<Record<string, string>>), section?.sectionCode).forEach((column) => {
     const key = stringOf(column, "key");
     if (key) {
       values[key] = "";
@@ -123,6 +192,206 @@ function reseedDraftsForPayload(current: DraftState, page: EmissionSurveyAdminPa
   return next;
 }
 
+function parseHeaderPath(column: Record<string, string>) {
+  const raw = stringOf(column as Record<string, unknown>, "headerPath");
+  if (!raw) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(raw) as string[];
+    return Array.isArray(parsed) ? parsed.map((entry) => String(entry || "").trim()).filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
+function buildDisplayColumnLabels(columns: Array<Record<string, string>>, sectionCode?: string) {
+  const filteredColumns = buildEditableColumns(columns, sectionCode);
+  return filteredColumns.map((column) => {
+    const rawLabel = stringOf(column, "label");
+    const headerPath = parseHeaderPath(column);
+    const leafLabel = headerPath[headerPath.length - 1] || rawLabel;
+    const parts = leafLabel
+      .split("\n")
+      .map((part) => part.trim())
+      .filter(Boolean);
+    return {
+      key: stringOf(column, "key"),
+      fullLabel: rawLabel,
+      displayLines: parts.length > 0 ? parts : [leafLabel || rawLabel || "-"],
+      headerPath: headerPath.length > 0 ? headerPath : [rawLabel || "-"]
+    };
+  });
+}
+
+type HeaderGroup = {
+  key: string;
+  lines: string[];
+  columnStart: number;
+  rowStart: number;
+  colSpan: number;
+  rowSpan: number;
+};
+
+type HeaderColumn = {
+  key: string;
+  fullLabel: string;
+  displayLines: string[];
+  headerPath: string[];
+};
+
+function buildHeaderModel(columns: HeaderColumn[]) {
+  const depth = Math.max(...columns.map((column) => column.headerPath.length), 1);
+  const cells: HeaderGroup[] = [];
+  for (let level = 0; level < depth; level += 1) {
+    let index = 0;
+    while (index < columns.length) {
+      const column = columns[index];
+      if (level >= column.headerPath.length) {
+        index += 1;
+        continue;
+      }
+      const label = column.headerPath[level];
+      const prefix = column.headerPath.slice(0, level).join("\u0000");
+      let span = 1;
+      while (index + span < columns.length) {
+        const candidate = columns[index + span];
+        if (level >= candidate.headerPath.length) {
+          break;
+        }
+        if (candidate.headerPath[level] !== label) {
+          break;
+        }
+        if (candidate.headerPath.slice(0, level).join("\u0000") !== prefix) {
+          break;
+        }
+        span += 1;
+      }
+      const columnStart = index + 2;
+      cells.push({
+        key: `${level}-${index}-${label}`,
+        lines: label
+          .split("\n")
+          .map((entry) => entry.trim())
+          .filter(Boolean),
+        columnStart,
+        rowStart: level + 1,
+        colSpan: span,
+        rowSpan: level === column.headerPath.length - 1 ? depth - level : 1
+      });
+      index += span;
+    }
+  }
+  return {
+    columns,
+    cells,
+    depth,
+    hasMergedHeader: depth > 1
+  };
+}
+
+function buildGridTemplate(columns: Array<{ key: string; fullLabel: string }>, sectionCode?: string) {
+  if (sectionCode === "INPUT_RAW_MATERIALS") {
+    const widths = columns.map((column) => {
+      const key = column.key;
+      const label = column.fullLabel;
+      if (key === "group" || label.includes("구분")) {
+        return "92px";
+      }
+      if (key === "materialName" || label.includes("물질명")) {
+        return "minmax(220px, 2.2fr)";
+      }
+      if (key === "amount" || label.endsWith("양")) {
+        return "minmax(110px, 0.9fr)";
+      }
+      if (key === "annualUnit" || label.includes("연간")) {
+        return "minmax(110px, 0.9fr)";
+      }
+      if (key === "emissionFactor" || label.includes("배출계수")) {
+        return "minmax(120px, 1fr)";
+      }
+      if (key === "emissionUnit" || label === "단위") {
+        return "minmax(110px, 0.9fr)";
+      }
+      if (label.includes("비고")) {
+        return "minmax(140px, 1.1fr)";
+      }
+      return "minmax(110px, 1fr)";
+    });
+    return `64px ${widths.join(" ")} 78px`;
+  }
+  return `64px repeat(${Math.max(columns.length, 1)}, minmax(110px, 1fr)) 78px`;
+}
+
+function hasMeaningfulRowValue(row: DraftRow) {
+  return Object.values(row.values || {}).some((value) => String(value || "").trim() !== "");
+}
+
+function shouldReseedCase31Draft(currentRows: DraftRow[] | undefined, sectionRows: DraftRow[]) {
+  if (!currentRows || currentRows.length === 0) {
+    return true;
+  }
+  if (currentRows.length !== sectionRows.length) {
+    return true;
+  }
+  const currentHasData = currentRows.some(hasMeaningfulRowValue);
+  const sectionHasData = sectionRows.some(hasMeaningfulRowValue);
+  if (!currentHasData && sectionHasData) {
+    return true;
+  }
+  return false;
+}
+
+function buildSavedDatasetEntries(page: EmissionSurveyAdminPagePayload | null | undefined): SavedDatasetEntry[] {
+  const raw = (page?.savedCaseMap || {}) as Record<string, Record<string, unknown>>;
+  return Object.entries(raw).map(([draftKey, item]) => ({
+    draftKey,
+    sectionCode: stringOf(item, "sectionCode"),
+    caseCode: stringOf(item, "caseCode"),
+    majorCode: stringOf(item, "majorCode"),
+    sectionLabel: stringOf(item, "sectionLabel"),
+    savedAt: stringOf(item, "savedAt"),
+    rowCount: Array.isArray(item.rows) ? (item.rows as Array<unknown>).length : 0,
+    columns: Array.isArray(item.columns) ? (item.columns as Array<Record<string, string>>) : [],
+    rows: Array.isArray(item.rows)
+      ? (item.rows as Array<Record<string, unknown>>).map((row, index) => ({
+          rowId: stringOf(row, "rowId") || `${draftKey}-${index + 1}`,
+          values: normalizeRowValuesForSection(stringOf(item, "sectionCode"), { ...((row.values || {}) as Record<string, string>) })
+        }))
+      : []
+  })).sort((left, right) => `${left.majorCode}-${left.sectionCode}-${left.caseCode}`.localeCompare(`${right.majorCode}-${right.sectionCode}-${right.caseCode}`));
+}
+
+function buildSavedDraftSetEntries(page: EmissionSurveyAdminPagePayload | null | undefined): SavedDraftSetEntry[] {
+  const raw = (page?.savedSetMap || {}) as Record<string, Record<string, unknown>>;
+  return Object.values(raw).map((item) => ({
+    setId: stringOf(item, "setId"),
+    setName: stringOf(item, "setName"),
+    savedAt: stringOf(item, "savedAt"),
+    sourceFileName: stringOf(item, "sourceFileName"),
+    sectionCount: Number(item.sectionCount || 0),
+    sections: Array.isArray(item.sections) ? (item.sections as Array<Record<string, unknown>>) : []
+  })).sort((left, right) => right.savedAt.localeCompare(left.savedAt));
+}
+
+function downloadDraftCsv(entry: SavedDatasetEntry) {
+  const columns = entry.columns.length > 0
+    ? entry.columns
+    : Object.keys(entry.rows[0]?.values || {}).map((key) => ({ key, label: key }));
+  const escapeCell = (value: string) => `"${String(value || "").replace(/"/g, "\"\"")}"`;
+  const lines = [
+    columns.map((column) => escapeCell(stringOf(column, "label"))).join(","),
+    ...entry.rows.map((row) => columns.map((column) => escapeCell(row.values[stringOf(column, "key")] || "")).join(","))
+  ];
+  const blob = new Blob([`\uFEFF${lines.join("\n")}`], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `${entry.sectionCode}-${entry.caseCode}-${new Date().toISOString().slice(0, 10)}.csv`;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
 function CaseEditor({
   title,
   description,
@@ -150,7 +419,11 @@ function CaseEditor({
   savedAt: string;
   seedCase: boolean;
 }) {
-  const columns = ((section?.columns || []) as Array<Record<string, string>>);
+  const columns = buildEditableColumns(((section?.columns || []) as Array<Record<string, string>>), section?.sectionCode);
+  const displayColumns = buildDisplayColumnLabels(columns, section?.sectionCode);
+  const gridTemplateColumns = buildGridTemplate(displayColumns, section?.sectionCode);
+  const headerModel = buildHeaderModel(displayColumns);
+  const resolvedDisplayColumns = headerModel.columns;
 
   return (
     <article className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white shadow-sm">
@@ -165,55 +438,107 @@ function CaseEditor({
           <p>대분류: {section?.majorLabel || "-"}</p>
           <p>중분류: {section?.sectionLabel || "-"}</p>
           <p>소분류: {title}</p>
-          <p>데이터 원본: {seedCase ? "업로드 엑셀 seed" : "빈 draft"}</p>
+          <p>엑셀 섹션 제목: {section?.titleRowLabel || "-"}</p>
+          <p>데이터 원본: {seedCase ? "엑셀 예시 seed (기본 4건)" : "빈 draft"}</p>
           <p>저장 시각: {savedAt || "저장 전"}</p>
+          {((section?.metadata || []) as Array<Record<string, string>>).map((item) => (
+            <p key={`${section?.sectionCode || "section"}-${stringOf(item, "key")}`}>{stringOf(item, "label")}: {stringOf(item, "value") || "-"}</p>
+          ))}
         </div>
       </div>
       <div className="px-5 py-5">
         <MemberSectionToolbar
           title={<span>하단 데이터 섹션</span>}
-          meta={<span>{seedCase ? "엑셀 seed 후 편집 가능 / 입력 컬럼은 가로 배치" : "동일 컬럼 구조의 빈 행으로 시작 / 입력 컬럼은 가로 배치"}</span>}
+          meta={<span>{seedCase ? "엑셀 예시와 동일한 기본 4건을 먼저 보여주고, 나머지는 직접 행을 추가해서 입력합니다. 양식 다운로드 후 입력한 엑셀을 업로드해 8개 섹션 예시 구조를 기준으로 저장할 수 있습니다." : "동일 컬럼 구조의 빈 행으로 시작하며, 필요한 만큼 행을 직접 추가해 입력합니다."}</span>}
           actions={<MemberButton onClick={onAddRow} size="sm" type="button" variant="secondary">+ 행 추가</MemberButton>}
         />
-        <div className="mt-4 space-y-4">
+        <div className="mt-4">
           {rows.length === 0 ? (
             <div className="rounded-[var(--kr-gov-radius)] border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-500">
               현재 행이 없습니다. `+ 행 추가`로 동일 구조의 입력 행을 만들 수 있습니다.
             </div>
-          ) : null}
-          {rows.map((row, index) => (
-            <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-4" key={row.rowId}>
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">행 {index + 1}</p>
-                <MemberButton onClick={() => onRemoveRow(row.rowId)} size="sm" type="button" variant="secondary">삭제</MemberButton>
-              </div>
-              <div className="mt-4 overflow-x-auto">
-                <div className="min-w-max rounded-[var(--kr-gov-radius)] border border-slate-200 bg-white">
-                  <div className="grid auto-cols-[minmax(180px,1fr)] grid-flow-col border-b border-slate-200 bg-slate-100">
-                    {columns.map((column) => (
-                      <div className="px-3 py-2 text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]" key={`${row.rowId}-${stringOf(column, "key")}-header`}>
-                        {stringOf(column, "label")}
-                      </div>
-                    ))}
+          ) : (
+            <div className="overflow-hidden rounded-[var(--kr-gov-radius)] border border-slate-200 bg-white">
+              {headerModel.hasMergedHeader ? (
+                <div
+                  className="grid border-b border-slate-200 bg-slate-100"
+                  style={{ gridTemplateColumns }}
+                >
+                  <div
+                    className="border-r border-slate-200 px-2 py-2 text-center text-[10px] font-bold tracking-tight text-[var(--kr-gov-text-secondary)]"
+                    style={{ gridRow: `span ${headerModel.depth}` }}
+                  >
+                    행
                   </div>
-                  <div className="grid auto-cols-[minmax(180px,1fr)] grid-flow-col gap-0">
-                    {columns.map((column) => {
-                      const key = stringOf(column, "key");
-                      return (
-                        <label className="block border-r border-slate-200 px-3 py-3 last:border-r-0" key={`${row.rowId}-${key}`}>
-                          <span className="sr-only">{stringOf(column, "label")}</span>
-                          <AdminInput
-                            onChange={(event) => onChangeCell(row.rowId, key, event.target.value)}
-                            value={row.values[key] || ""}
-                          />
-                        </label>
-                      );
-                    })}
+                  {headerModel.cells.map((cell) => (
+                    <div
+                      className="border-r border-b border-slate-200 px-2 py-2 text-center text-[10px] font-bold tracking-tight text-[var(--kr-gov-text-secondary)] last:border-r-0"
+                      key={cell.key}
+                      style={{
+                        gridColumn: `${cell.columnStart} / span ${cell.colSpan}`,
+                        gridRow: `${cell.rowStart} / span ${cell.rowSpan}`
+                      }}
+                    >
+                      {cell.lines.map((line, index) => (
+                        <span className="block leading-4" key={`${cell.key}-${index}`}>{line}</span>
+                      ))}
+                    </div>
+                  ))}
+                  <div
+                    className="px-2 py-2 text-center text-[10px] font-bold tracking-tight text-[var(--kr-gov-text-secondary)]"
+                    style={{ gridRow: `span ${headerModel.depth}` }}
+                  >
+                    관리
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div
+                  className="grid border-b border-slate-200 bg-slate-100"
+                  style={{ gridTemplateColumns }}
+                >
+                  <div className="border-r border-slate-200 px-2 py-2 text-center text-[10px] font-bold tracking-tight text-[var(--kr-gov-text-secondary)]">행</div>
+                  {resolvedDisplayColumns.map((column) => (
+                    <div
+                      className="border-r border-slate-200 px-2 py-2 text-[10px] font-bold tracking-tight text-[var(--kr-gov-text-secondary)] last:border-r-0"
+                      key={`header-${column.key}`}
+                      title={column.fullLabel}
+                    >
+                      {column.displayLines.map((line, index) => (
+                        <span className="block leading-4" key={`${column.key}-${index}`}>{line}</span>
+                      ))}
+                    </div>
+                  ))}
+                  <div className="px-2 py-2 text-center text-[10px] font-bold tracking-tight text-[var(--kr-gov-text-secondary)]">관리</div>
+                </div>
+              )}
+              {rows.map((row, index) => (
+                <div
+                  className="grid border-b border-slate-200 last:border-b-0"
+                  key={row.rowId}
+                  style={{ gridTemplateColumns }}
+                >
+                  <div className="flex items-center justify-center border-r border-slate-200 bg-slate-50 px-2 py-2 text-xs font-bold text-[var(--kr-gov-text-secondary)]">
+                    {index + 1}
+                  </div>
+                  {resolvedDisplayColumns.map((column) => {
+                    const key = column.key;
+                    return (
+                      <label className="block border-r border-slate-200 px-2 py-2 last:border-r-0" key={`${row.rowId}-${key}`} title={column.fullLabel}>
+                        <span className="sr-only">{column.fullLabel}</span>
+                        <AdminInput
+                          onChange={(event) => onChangeCell(row.rowId, key, event.target.value)}
+                          value={row.values[key] || ""}
+                        />
+                      </label>
+                    );
+                  })}
+                  <div className="flex items-center justify-center px-2 py-2">
+                    <MemberButton onClick={() => onRemoveRow(row.rowId)} size="sm" type="button" variant="secondary">삭제</MemberButton>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
         <div className="mt-5 flex justify-end">
           <MemberButton onClick={onSave} type="button" variant="primary">케이스 저장</MemberButton>
@@ -230,6 +555,7 @@ export function EmissionSurveyAdminMigrationPage() {
   const [sectionCode, setSectionCode] = useState("");
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [setName, setSetName] = useState("");
   const [uploading, setUploading] = useState(false);
   const [pageOverride, setPageOverride] = useState<EmissionSurveyAdminPagePayload | null>(null);
   const [drafts, setDrafts] = useState<DraftState>(readDraftState);
@@ -281,6 +607,8 @@ export function EmissionSurveyAdminMigrationPage() {
 
   const currentSection = resolveSection(pagePayload, sectionCode);
   const sectionRows = useMemo(() => buildRowsFromSection(currentSection), [currentSection]);
+  const savedDatasetEntries = useMemo(() => buildSavedDatasetEntries(page), [page]);
+  const savedDraftSetEntries = useMemo(() => buildSavedDraftSetEntries(page), [page]);
   const case31Key = buildDraftKey(sectionCode || "unknown", "CASE_3_1");
   const case32Key = buildDraftKey(sectionCode || "unknown", "CASE_3_2");
   const case31 = drafts[case31Key] || { rows: sectionRows, savedAt: "" };
@@ -293,7 +621,7 @@ export function EmissionSurveyAdminMigrationPage() {
     setDrafts((current) => {
       let mutated = false;
       const next = { ...current };
-      if (!next[case31Key]) {
+      if (shouldReseedCase31Draft(next[case31Key]?.rows, sectionRows)) {
         next[case31Key] = { rows: sectionRows, savedAt: "" };
         mutated = true;
       }
@@ -308,6 +636,14 @@ export function EmissionSurveyAdminMigrationPage() {
       return current;
     });
   }, [case31Key, case32Key, sectionCode, sectionRows]);
+
+  useEffect(() => {
+    if (setName) {
+      return;
+    }
+    const timestamp = new Date().toISOString().slice(0, 19).replace("T", " ");
+    setSetName(`배출 설문 세트 ${timestamp}`);
+  }, [setName]);
 
   function updateCaseRows(caseKey: string, rows: DraftRow[], savedAt?: string) {
     setDrafts((current) => {
@@ -340,6 +676,36 @@ export function EmissionSurveyAdminMigrationPage() {
     );
   }
 
+  function handleLoadSavedDataset(entry: SavedDatasetEntry) {
+    setMajorCode(entry.majorCode || "INPUT");
+    setSectionCode(entry.sectionCode || "");
+    updateCaseRows(buildDraftKey(entry.sectionCode, entry.caseCode), entry.rows, entry.savedAt);
+    setMessage(en ? "Saved dataset loaded." : "저장된 데이터셋을 불러왔습니다.");
+    setErrorMessage("");
+  }
+
+  async function handleDeleteSavedDataset(entry: SavedDatasetEntry) {
+    try {
+      const response = await deleteEmissionSurveyCaseDraft(entry.sectionCode, entry.caseCode);
+      setDrafts((current) => {
+        const next = { ...current };
+        delete next[entry.draftKey];
+        saveDraftState(next);
+        return next;
+      });
+      if (page) {
+        setPageOverride({
+          ...page,
+          savedCaseMap: (response.savedCaseMap || {}) as Record<string, Record<string, unknown>>
+        });
+      }
+      setMessage(String(response.message || (en ? "Saved dataset deleted." : "저장된 데이터셋을 삭제했습니다.")));
+      setErrorMessage("");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : (en ? "Failed to delete saved dataset." : "저장된 데이터셋 삭제에 실패했습니다."));
+    }
+  }
+
   async function handleSaveCase(caseKey: string, caseCode: string) {
     const savedAt = new Date().toLocaleString("ko-KR");
     const rows = drafts[caseKey]?.rows || [];
@@ -355,7 +721,7 @@ export function EmissionSurveyAdminMigrationPage() {
         targetPath: stringOf(page as Record<string, unknown>, "targetPath"),
         titleRowLabel: currentSection?.titleRowLabel || "",
         guidance: ((currentSection?.guidance || []) as string[]),
-        columns: ((currentSection?.columns || []) as Array<{ key: string; label: string }>),
+        columns: buildEditableColumns(((currentSection?.columns || []) as Array<{ key: string; label: string }>), currentSection?.sectionCode) as Array<{ key: string; label: string }>,
         rows
       });
       const persistedAt = String(response.savedAt || savedAt);
@@ -405,6 +771,92 @@ export function EmissionSurveyAdminMigrationPage() {
     }
   }
 
+  function buildDraftSetSections() {
+    return (((page?.sections || []) as EmissionSurveyAdminSection[])).map((section) => {
+      const sectionDraftKey31 = buildDraftKey(section.sectionCode || "unknown", "CASE_3_1");
+      const sectionDraftKey32 = buildDraftKey(section.sectionCode || "unknown", "CASE_3_2");
+      return {
+        sectionCode: section.sectionCode || "",
+        majorCode: section.majorCode || "",
+        majorLabel: section.majorLabel || "",
+        sectionLabel: section.sectionLabel || "",
+        sheetName: section.sheetName || "",
+        titleRowLabel: section.titleRowLabel || "",
+        guidance: (section.guidance || []) as string[],
+        metadata: (section.metadata || []) as Array<Record<string, string>>,
+        columns: buildEditableColumns(((section.columns || []) as Array<Record<string, string>>), section.sectionCode),
+        case31Rows: (drafts[sectionDraftKey31]?.rows || buildRowsFromSection(section)).map((row) => ({ rowId: row.rowId, values: row.values })),
+        case32Rows: (drafts[sectionDraftKey32]?.rows || []).map((row) => ({ rowId: row.rowId, values: row.values }))
+      };
+    });
+  }
+
+  async function handleSaveDraftSet() {
+    try {
+      const response = await saveEmissionSurveyDraftSet({
+        setName: setName.trim(),
+        sourceFileName: stringOf(page as Record<string, unknown>, "sourceFileName"),
+        sourcePath: stringOf(page as Record<string, unknown>, "sourcePath"),
+        targetPath: stringOf(page as Record<string, unknown>, "targetPath"),
+        sections: buildDraftSetSections()
+      });
+      if (page) {
+        setPageOverride({
+          ...page,
+          savedSetMap: (response.savedSetMap || {}) as Record<string, Record<string, unknown>>
+        });
+      }
+      setMessage(String(response.message || "초안 세트를 저장했습니다."));
+      setErrorMessage("");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "초안 세트 저장에 실패했습니다.");
+    }
+  }
+
+  function handleLoadDraftSet(entry: SavedDraftSetEntry) {
+    const nextDrafts = { ...drafts };
+    entry.sections.forEach((section) => {
+      const sectionCodeValue = stringOf(section, "sectionCode");
+      const case31Rows = Array.isArray(section.case31Rows)
+        ? (section.case31Rows as Array<Record<string, unknown>>).map((row, index) => ({
+            rowId: stringOf(row, "rowId") || `${sectionCodeValue}-CASE_3_1-${index + 1}`,
+            values: normalizeRowValuesForSection(sectionCodeValue, { ...((row.values || {}) as Record<string, string>) })
+          }))
+        : [];
+      const case32Rows = Array.isArray(section.case32Rows)
+        ? (section.case32Rows as Array<Record<string, unknown>>).map((row, index) => ({
+            rowId: stringOf(row, "rowId") || `${sectionCodeValue}-CASE_3_2-${index + 1}`,
+            values: normalizeRowValuesForSection(sectionCodeValue, { ...((row.values || {}) as Record<string, string>) })
+          }))
+        : [];
+      nextDrafts[buildDraftKey(sectionCodeValue, "CASE_3_1")] = { rows: case31Rows, savedAt: entry.savedAt };
+      nextDrafts[buildDraftKey(sectionCodeValue, "CASE_3_2")] = { rows: case32Rows, savedAt: entry.savedAt };
+    });
+    saveDraftState(nextDrafts);
+    setDrafts(nextDrafts);
+    setMajorCode("INPUT");
+    setSectionCode(resolveInitialSectionCode(pagePayload, "INPUT"));
+    setSetName(entry.setName);
+    setMessage(en ? "Draft set loaded." : "초안 세트를 불러왔습니다.");
+    setErrorMessage("");
+  }
+
+  async function handleDeleteDraftSet(entry: SavedDraftSetEntry) {
+    try {
+      const response = await deleteEmissionSurveyDraftSet(entry.setId);
+      if (page) {
+        setPageOverride({
+          ...page,
+          savedSetMap: (response.savedSetMap || {}) as Record<string, Record<string, unknown>>
+        });
+      }
+      setMessage(String(response.message || "초안 세트를 삭제했습니다."));
+      setErrorMessage("");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "초안 세트 삭제에 실패했습니다.");
+    }
+  }
+
   const summaryCards = ((page?.summaryCards || []) as Array<Record<string, string>>);
   const majorOptions = ((page?.majorOptions || []) as Array<Record<string, string>>).map((option) => ({
     value: stringOf(option, "value"),
@@ -449,8 +901,18 @@ export function EmissionSurveyAdminMigrationPage() {
         <section className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-5 shadow-sm">
           <MemberSectionToolbar
             title={<span>엑셀 업로드 및 분류 선택</span>}
-            meta={<span>탭 3, 4의 예시 영역을 읽어 Case 3-1 / 3-2 데이터를 구성하고, 저장 시 서버 초안과 브라우저 fallback을 함께 사용합니다.</span>}
-            actions={<MemberButton onClick={() => fileInputRef.current?.click()} type="button" variant="primary">{uploading ? "업로드 중..." : "엑셀 업로드"}</MemberButton>}
+            meta={<span>빈 양식은 실제 업로드용으로 내려받고, 샘플 양식은 기존 예시 구조 확인용으로 별도 내려받을 수 있습니다. 업로드 후에는 입력된 값을 기준으로 8개 섹션 draft를 구성합니다.</span>}
+            actions={(
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <a className="inline-flex min-h-[40px] items-center justify-center rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border)] bg-white px-4 py-2 text-sm font-bold text-[var(--kr-gov-text-primary)]" href={getEmissionSurveyTemplateDownloadUrl()}>
+                  빈 양식 다운로드
+                </a>
+                <a className="inline-flex min-h-[40px] items-center justify-center rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border)] bg-white px-4 py-2 text-sm font-bold text-[var(--kr-gov-text-primary)]" href={getEmissionSurveySampleDownloadUrl()}>
+                  샘플 다운로드
+                </a>
+                <MemberButton onClick={() => fileInputRef.current?.click()} type="button" variant="primary">{uploading ? "업로드 중..." : "엑셀 업로드"}</MemberButton>
+              </div>
+            )}
           />
           <input accept=".xlsx" className="hidden" onChange={handleUploadChange} ref={fileInputRef} type="file" />
           <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -489,12 +951,81 @@ export function EmissionSurveyAdminMigrationPage() {
             className="mt-4"
             title="섹션 가이드"
           >
+            {((currentSection?.metadata || []) as Array<Record<string, string>>).length > 0 ? (
+              <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
+                {((currentSection?.metadata || []) as Array<Record<string, string>>).map((item) => (
+                  <p className="text-sm text-[var(--kr-gov-text-secondary)]" key={`${currentSection?.sectionCode || "section"}-meta-${stringOf(item, "key")}`}>
+                    {stringOf(item, "label")}: <span className="font-bold text-[var(--kr-gov-text-primary)]">{stringOf(item, "value") || "-"}</span>
+                  </p>
+                ))}
+              </div>
+            ) : null}
             <ul className="space-y-2">
               {((currentSection?.guidance || []) as string[]).map((item, index) => (
                 <li key={`${currentSection?.sectionCode || "guidance"}-${index}`}>{item}</li>
               ))}
             </ul>
           </CollectionResultPanel>
+        </section>
+
+        <section className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-5 shadow-sm">
+          <MemberSectionToolbar
+            title={<span>저장 세트 목록</span>}
+            meta={<span>투입물 4개와 산출물 4개, 총 8개 섹션 전체를 하나의 세트로 저장하고 다시 불러올 수 있습니다.</span>}
+            actions={(
+              <div className="flex flex-wrap items-end gap-2">
+                <label className="block min-w-[260px]">
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">세트명</span>
+                  <AdminInput onChange={(event) => setSetName(event.target.value)} value={setName} />
+                </label>
+                <MemberButton onClick={() => void handleSaveDraftSet()} type="button" variant="primary">8개 섹션 세트 저장</MemberButton>
+              </div>
+            )}
+          />
+          <div className="mt-4 space-y-3">
+            {savedDraftSetEntries.length === 0 ? (
+              <div className="rounded-[var(--kr-gov-radius)] border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-sm text-slate-500">
+                저장된 세트가 없습니다.
+              </div>
+            ) : savedDraftSetEntries.map((entry) => (
+              <div className="flex flex-col gap-3 rounded-[var(--kr-gov-radius)] border border-slate-200 px-4 py-4 lg:flex-row lg:items-center lg:justify-between" key={entry.setId}>
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{entry.setName}</p>
+                  <p className="text-xs text-[var(--kr-gov-text-secondary)]">섹션 {entry.sectionCount}개 / 원본 {entry.sourceFileName || "-"} / 저장 {entry.savedAt || "-"}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <MemberButton onClick={() => handleLoadDraftSet(entry)} size="sm" type="button" variant="secondary">불러오기</MemberButton>
+                  <MemberButton onClick={() => void handleDeleteDraftSet(entry)} size="sm" type="button" variant="secondary">삭제</MemberButton>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white p-5 shadow-sm">
+          <MemberSectionToolbar
+            title={<span>개별 케이스 목록</span>}
+            meta={<span>개별 섹션 케이스도 별도로 저장, 불러오기, 삭제, CSV 다운로드가 가능합니다.</span>}
+          />
+          <div className="mt-4 space-y-3">
+            {savedDatasetEntries.length === 0 ? (
+              <div className="rounded-[var(--kr-gov-radius)] border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-sm text-slate-500">
+                저장된 케이스가 없습니다.
+              </div>
+            ) : savedDatasetEntries.map((entry) => (
+              <div className="flex flex-col gap-3 rounded-[var(--kr-gov-radius)] border border-slate-200 px-4 py-4 lg:flex-row lg:items-center lg:justify-between" key={entry.draftKey}>
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-[var(--kr-gov-text-primary)]">{entry.sectionLabel || entry.sectionCode}</p>
+                  <p className="text-xs text-[var(--kr-gov-text-secondary)]">{entry.majorCode} / {entry.caseCode} / 행 {entry.rowCount}개 / 저장 {entry.savedAt || "-"}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <MemberButton onClick={() => handleLoadSavedDataset(entry)} size="sm" type="button" variant="secondary">불러오기</MemberButton>
+                  <MemberButton onClick={() => downloadDraftCsv(entry)} size="sm" type="button" variant="secondary">CSV 다운로드</MemberButton>
+                  <MemberButton onClick={() => void handleDeleteSavedDataset(entry)} size="sm" type="button" variant="secondary">삭제</MemberButton>
+                </div>
+              </div>
+            ))}
+          </div>
         </section>
 
         <div className="mt-6 space-y-6">

@@ -1,17 +1,17 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import { getMissingInsttWarningEventName } from "./app/telemetry/fetch";
-import { usePageTelemetry } from "./app/telemetry/usePageTelemetry";
-import { useTelemetryTransport } from "./app/telemetry/useTelemetryTransport";
+import { getMissingInsttWarningEventName } from "./platform/telemetry/fetch";
+import { usePageTelemetry } from "./platform/telemetry/usePageTelemetry";
+import { useTelemetryTransport } from "./platform/telemetry/useTelemetryTransport";
 import { useGlobalErrorHandler } from "./app/hooks/useGlobalErrorHandler";
 import { useRuntimeNavigation } from "./app/hooks/useRuntimeNavigation";
 import { type MatchedContext, useScreenContextMenu } from "./app/hooks/useScreenContextMenu";
-import { getTraceContext } from "./app/telemetry/traceContext";
+import { getTraceContext } from "./platform/telemetry/traceContext";
 import { getPageComponent } from "./app/routes/pageRegistry";
-import { publishTelemetryEvent } from "./app/telemetry/events";
+import { publishTelemetryEvent } from "./platform/telemetry/events";
 import { ErrorBoundary } from "./components/error/ErrorBoundary";
 import { getRuntimeLocale, navigate } from "./lib/navigation/runtime";
-import type { PageHelpContent } from "./app/screen-registry/helpContent";
-import type { PageManifest } from "./app/screen-registry/types";
+import type { PageHelpContent } from "./platform/screen-registry/helpContent";
+import type { PageManifest } from "./platform/screen-registry/types";
 import {
   addSrWorkbenchStackItem,
   getScreenCommandChainValues,
@@ -213,7 +213,7 @@ export default function App() {
       return;
     }
     let cancelled = false;
-    import("./app/screen-registry/helpContent")
+    import("./platform/screen-registry/helpContent")
       .then(async (module) => {
         if (cancelled) {
           return;
@@ -233,7 +233,7 @@ export default function App() {
   useEffect(() => {
     let cancelled = false;
     setManifest(null);
-    import("./app/screen-registry/pageManifests")
+    import("./platform/screen-registry/pageManifests")
       .then((module) => {
         if (!cancelled) {
           setManifest(module.getPageManifest(page));

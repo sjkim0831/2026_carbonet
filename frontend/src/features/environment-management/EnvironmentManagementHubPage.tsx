@@ -16,7 +16,7 @@ import {
   updateEnvironmentManagedPage
 } from "../../lib/api/environmentManagement";
 import { postFormUrlEncoded } from "../../lib/api/core";
-import { fetchAuditEvents } from "../../lib/api/observability";
+import { fetchAuditEvents } from "../../platform/observability/observability";
 import { rebuildScreenBuilderStatusSummary } from "../../lib/api/screenBuilder";
 import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";

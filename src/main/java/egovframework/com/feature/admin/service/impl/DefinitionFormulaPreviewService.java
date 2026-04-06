@@ -49,6 +49,10 @@ final class DefinitionFormulaPreviewService {
         return preview;
     }
 
+    Map<String, Object> findPublishedDefinition(EmissionCategoryVO category, Integer tier) {
+        return new LinkedHashMap<>(findMatchingDraft(category, tier));
+    }
+
     private Map<String, Object> findMatchingDraft(EmissionCategoryVO category, Integer tier) {
         String categoryCode = safe(category == null ? null : category.getSubCode()).toUpperCase(Locale.ROOT);
         String tierLabel = "TIER " + (tier == null ? 0 : tier);

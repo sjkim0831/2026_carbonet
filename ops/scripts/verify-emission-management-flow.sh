@@ -43,6 +43,10 @@ Environment overrides:
   VERIFY_DEFINITION_PUBLISH
   DEFINITION_RUNTIME_MODE
   DEFINITION_FORMULA
+  DEFINITION_TIER_LABEL
+  DEFINITION_DRAFT_JSON
+  DEFINITION_DRAFT_FILE
+  DEFINITION_MATERIALIZE
   VERIFY_SAVED_VALUE
   VERIFY_INVALID_VARIABLE_CODE
   VERIFY_ROLLOUT_STATUS
@@ -78,6 +82,10 @@ SAVE_PAYLOAD_FILE="${SAVE_PAYLOAD_FILE:-}"
 VERIFY_DEFINITION_PUBLISH="${VERIFY_DEFINITION_PUBLISH:-false}"
 DEFINITION_RUNTIME_MODE="${DEFINITION_RUNTIME_MODE:-AUTO}"
 DEFINITION_FORMULA="${DEFINITION_FORMULA:-SUM(EF석회,i * Ml,i)}"
+DEFINITION_TIER_LABEL="${DEFINITION_TIER_LABEL:-Tier 1}"
+DEFINITION_DRAFT_JSON="${DEFINITION_DRAFT_JSON:-}"
+DEFINITION_DRAFT_FILE="${DEFINITION_DRAFT_FILE:-}"
+DEFINITION_MATERIALIZE="${DEFINITION_MATERIALIZE:-false}"
 VERIFY_SAVED_VALUE="${VERIFY_SAVED_VALUE:-true}"
 VERIFY_INVALID_VARIABLE_CODE="${VERIFY_INVALID_VARIABLE_CODE:-true}"
 VERIFY_ROLLOUT_STATUS="${VERIFY_ROLLOUT_STATUS:-true}"
@@ -107,6 +115,7 @@ INVALID_RESPONSE_JSON="$TMP_DIR/invalid-response.json"
 DEFINITION_SAVE_REQUEST_JSON="$TMP_DIR/definition-save-request.json"
 DEFINITION_SAVE_RESPONSE_JSON="$TMP_DIR/definition-save-response.json"
 DEFINITION_PUBLISH_RESPONSE_JSON="$TMP_DIR/definition-publish-response.json"
+DEFINITION_MATERIALIZE_RESPONSE_JSON="$TMP_DIR/definition-materialize-response.json"
 
 cleanup() {
   rm -rf "$TMP_DIR"
@@ -125,6 +134,7 @@ emission_require_file "$ROOT_DIR/pom.xml"
 emission_require_file "$ROOT_DIR/target/classes/egovframework/com/feature/auth/util/JwtTokenProvider.class"
 emission_require_allowed_value "VERIFY_DEFINITION_PUBLISH" "$VERIFY_DEFINITION_PUBLISH" "true" "false"
 emission_require_allowed_value "DEFINITION_RUNTIME_MODE" "$DEFINITION_RUNTIME_MODE" "AUTO" "SHADOW" "PRIMARY"
+emission_require_allowed_value "DEFINITION_MATERIALIZE" "$DEFINITION_MATERIALIZE" "true" "false"
 
 emission_prepare_cached_runtime_artifacts
 emission_create_cookie_jar "$COOKIE_JAR"
@@ -161,14 +171,20 @@ CSRF_HEADER="$(printf '%s\n' "$CSRF_INFO" | sed -n '2p')"
 
 if [[ "$VERIFY_DEFINITION_PUBLISH" == "true" ]]; then
   emission_info "saving definition draft for runtime-mode verification"
-  python3 - <<'PY' "$DEFINITION_SAVE_REQUEST_JSON" "$EXPECTED_CATEGORY_SUBCODE" "$DEFINITION_FORMULA" "$DEFINITION_RUNTIME_MODE"
+  if [[ -n "$DEFINITION_DRAFT_FILE" ]]; then
+    emission_require_file "$DEFINITION_DRAFT_FILE"
+    cp "$DEFINITION_DRAFT_FILE" "$DEFINITION_SAVE_REQUEST_JSON"
+  elif [[ -n "$DEFINITION_DRAFT_JSON" ]]; then
+    printf '%s' "$DEFINITION_DRAFT_JSON" > "$DEFINITION_SAVE_REQUEST_JSON"
+  else
+    python3 - <<'PY' "$DEFINITION_SAVE_REQUEST_JSON" "$EXPECTED_CATEGORY_SUBCODE" "$DEFINITION_FORMULA" "$DEFINITION_RUNTIME_MODE" "$DEFINITION_TIER_LABEL"
 import json, sys
-path, category_code, formula, runtime_mode = sys.argv[1:5]
+path, category_code, formula, runtime_mode, tier_label = sys.argv[1:6]
 category_code = category_code.strip().upper()
 draft = {
     "categoryCode": category_code,
     "categoryName": "Codex verification definition",
-    "tierLabel": "Tier 1",
+    "tierLabel": tier_label,
     "formula": formula,
     "formulaTree": [{
         "joiner": "",
@@ -192,6 +208,7 @@ draft = {
 }
 open(path, "w", encoding="utf-8").write(json.dumps(draft, ensure_ascii=False))
 PY
+  fi
   DEFINITION_SAVE_STATUS="$(emission_curl_status_with_retry "$DEFINITION_SAVE_RESPONSE_JSON" -b "$COOKIE_JAR" -c "$COOKIE_JAR" -X POST -H "$CSRF_HEADER: $CSRF_TOKEN" -H 'Content-Type: application/json' --data @"$DEFINITION_SAVE_REQUEST_JSON" "$BASE_URL/admin/api/admin/emission-definition-studio/drafts")" || emission_fail "definition draft save transport failed"
   [[ "$DEFINITION_SAVE_STATUS" == "200" ]] || emission_fail "definition draft save failed with status $DEFINITION_SAVE_STATUS"
   EXPECTED_DRAFT_ID_PREFIX="$(python3 - <<'PY' "$DEFINITION_SAVE_RESPONSE_JSON"
@@ -206,6 +223,11 @@ PY
   emission_info "publishing definition draft: $EXPECTED_DRAFT_ID_PREFIX"
   DEFINITION_PUBLISH_STATUS="$(emission_curl_status_with_retry "$DEFINITION_PUBLISH_RESPONSE_JSON" -b "$COOKIE_JAR" -c "$COOKIE_JAR" -X POST -H "$CSRF_HEADER: $CSRF_TOKEN" -H 'X-Requested-With: XMLHttpRequest' "$BASE_URL/admin/api/admin/emission-definition-studio/drafts/$EXPECTED_DRAFT_ID_PREFIX/publish")" || emission_fail "definition publish transport failed"
   [[ "$DEFINITION_PUBLISH_STATUS" == "200" ]] || emission_fail "definition publish failed with status $DEFINITION_PUBLISH_STATUS"
+  if [[ "$DEFINITION_MATERIALIZE" == "true" ]]; then
+    emission_info "materializing published definition scope: $EXPECTED_DRAFT_ID_PREFIX"
+    DEFINITION_MATERIALIZE_STATUS="$(emission_curl_status_with_retry "$DEFINITION_MATERIALIZE_RESPONSE_JSON" -b "$COOKIE_JAR" -c "$COOKIE_JAR" -X POST -H "$CSRF_HEADER: $CSRF_TOKEN" -H 'X-Requested-With: XMLHttpRequest' "$BASE_URL/admin/api/admin/emission-management/definition-scopes/$EXPECTED_DRAFT_ID_PREFIX/materialize")" || emission_fail "definition materialize transport failed"
+    [[ "$DEFINITION_MATERIALIZE_STATUS" == "200" ]] || emission_fail "definition materialize failed with status $DEFINITION_MATERIALIZE_STATUS"
+  fi
 fi
 
 emission_info "loading admin shell route"
@@ -289,7 +311,13 @@ fi
 emission_info "saving input session"
 if [[ -n "$SAVE_PAYLOAD_FILE" ]]; then
   emission_require_file "$SAVE_PAYLOAD_FILE"
-  cp "$SAVE_PAYLOAD_FILE" "$SAVE_REQUEST_JSON"
+  python3 - <<'PY' "$SAVE_PAYLOAD_FILE" "$SAVE_REQUEST_JSON" "$CATEGORY_ID" "$TIER"
+import pathlib, sys
+source_path, output_path, category_id, tier = sys.argv[1:5]
+text = pathlib.Path(source_path).read_text(encoding="utf-8")
+text = text.replace("__CATEGORY_ID__", category_id).replace("__TIER__", tier)
+pathlib.Path(output_path).write_text(text, encoding="utf-8")
+PY
 elif [[ -n "$SAVE_PAYLOAD_JSON" ]]; then
   printf '%s' "$SAVE_PAYLOAD_JSON" > "$SAVE_REQUEST_JSON"
 else

@@ -83,6 +83,36 @@ public class AdminEmissionManagementApiController {
         ));
     }
 
+    @PostMapping("/definition-scopes/{draftId}/materialize")
+    public ResponseEntity<Map<String, Object>> materializeDefinitionScope(@PathVariable("draftId") String draftId,
+                                                                          HttpServletRequest httpServletRequest) {
+        return ResponseEntity.ok(adminEmissionManagementService.materializePublishedDefinitionScope(
+                draftId,
+                resolveActorId(httpServletRequest),
+                isEnglishRequest(httpServletRequest)
+        ));
+    }
+
+    @GetMapping("/scopes/{categoryCode}/{tier}/status")
+    public ResponseEntity<Map<String, Object>> getScopeStatus(@PathVariable("categoryCode") String categoryCode,
+                                                              @PathVariable("tier") Integer tier,
+                                                              HttpServletRequest httpServletRequest) {
+        return ResponseEntity.ok(adminEmissionManagementService.getScopeStatus(
+                categoryCode,
+                tier,
+                isEnglishRequest(httpServletRequest)
+        ));
+    }
+
+    @PostMapping("/definition-scopes/{draftId}/precheck")
+    public ResponseEntity<Map<String, Object>> precheckDefinitionScope(@PathVariable("draftId") String draftId,
+                                                                       HttpServletRequest httpServletRequest) {
+        return ResponseEntity.ok(adminEmissionManagementService.precheckPublishedDefinitionScope(
+                draftId,
+                isEnglishRequest(httpServletRequest)
+        ));
+    }
+
     private String resolveActorId(HttpServletRequest request) {
         if (request == null) {
             return "";

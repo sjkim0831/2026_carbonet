@@ -4,7 +4,7 @@ import egovframework.com.feature.admin.dto.request.CodexProvisionRequest;
 import egovframework.com.feature.admin.dto.response.CodexProvisionResponse;
 import egovframework.com.feature.admin.mapper.AuthGroupManageMapper;
 import egovframework.com.feature.admin.service.AdminCodeManageService;
-import egovframework.com.feature.admin.service.CodexProvisioningService;
+import egovframework.com.platform.codex.service.CodexProvisioningService;
 import egovframework.com.feature.admin.service.MenuFeatureManageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

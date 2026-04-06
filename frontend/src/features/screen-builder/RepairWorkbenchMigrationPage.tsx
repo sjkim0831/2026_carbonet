@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
-import { fetchAuditEvents } from "../../lib/api/observability";
+import { fetchAuditEvents } from "../../platform/observability/observability";
 import { logGovernanceScope } from "../../app/policy/debug";
 import {
   RESONANCE_PROJECT_ID,

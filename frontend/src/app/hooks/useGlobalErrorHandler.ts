@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { publishTelemetryEvent } from "../telemetry/events";
+import { publishTelemetryEvent } from "../../platform/telemetry/events";
 
 interface ErrorReportPayload {
   errorType: "WINDOW_ERROR" | "UNHANDLED_REJECTION" | "REACT_ERROR_BOUNDARY";

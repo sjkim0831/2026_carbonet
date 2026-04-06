@@ -2,6 +2,8 @@ package egovframework.com.feature.home.web;
 
 import egovframework.com.common.util.ReactPageUrlMapper;
 import org.springframework.stereotype.Controller;
+import org.springframework.http.CacheControl;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,6 +16,7 @@ import org.springframework.security.web.csrf.CsrfToken;
 import javax.servlet.http.HttpServletRequest;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Controller
 @RequiredArgsConstructor
@@ -73,7 +76,7 @@ public class ReactAppPageController {
             @RequestParam(value = "route", required = false, defaultValue = "mypage") String route,
             @RequestParam(value = "path", required = false) String path,
             HttpServletRequest request) {
-        return ResponseEntity.ok(buildBootstrapPayload(route, path, request, false));
+        return bootstrapResponse(buildBootstrapPayload(route, path, request, false));
     }
 
     @GetMapping({"/api/admin/app/bootstrap", "/en/api/admin/app/bootstrap"})
@@ -82,7 +85,7 @@ public class ReactAppPageController {
             @RequestParam(value = "route", required = false, defaultValue = "auth-group") String route,
             @RequestParam(value = "path", required = false) String path,
             HttpServletRequest request) {
-        return ResponseEntity.ok(buildBootstrapPayload(route, path, request, true));
+        return bootstrapResponse(buildBootstrapPayload(route, path, request, true));
     }
 
     private Map<String, Object> buildBootstrapPayload(String route, String path, HttpServletRequest request, boolean admin) {
@@ -113,6 +116,14 @@ public class ReactAppPageController {
             }
         }
         return payload;
+    }
+
+    private ResponseEntity<Map<String, Object>> bootstrapResponse(Map<String, Object> payload) {
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore().mustRevalidate())
+                .header(HttpHeaders.PRAGMA, "no-cache")
+                .header(HttpHeaders.EXPIRES, "0")
+                .body(payload);
     }
 
     private boolean isEnglishRequest(HttpServletRequest request) {

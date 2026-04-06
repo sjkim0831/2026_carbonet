@@ -1,5 +1,5 @@
 import { Component, ErrorInfo, ReactNode } from "react";
-import { publishTelemetryEvent } from "../../app/telemetry/events";
+import { publishTelemetryEvent } from "../../platform/telemetry/events";
 
 interface Props {
   children: ReactNode;

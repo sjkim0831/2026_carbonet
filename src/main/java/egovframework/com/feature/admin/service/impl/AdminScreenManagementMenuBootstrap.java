@@ -3,7 +3,7 @@ package egovframework.com.feature.admin.service.impl;
 import egovframework.com.feature.admin.dto.request.CodexProvisionRequest;
 import egovframework.com.feature.admin.dto.response.CodexProvisionResponse;
 import egovframework.com.feature.admin.service.AdminCodeManageService;
-import egovframework.com.feature.admin.service.CodexProvisioningService;
+import egovframework.com.platform.codex.service.CodexProvisioningService;
 import egovframework.com.feature.admin.service.AuthGroupManageService;
 import egovframework.com.feature.admin.service.MenuFeatureManageService;
 import lombok.RequiredArgsConstructor;

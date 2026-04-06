@@ -7,7 +7,7 @@ import egovframework.com.feature.admin.dto.response.CodexProvisionResponse;
 import egovframework.com.feature.admin.model.vo.CodexAdminActorContextVO;
 import egovframework.com.feature.admin.service.AuthGroupManageService;
 import egovframework.com.feature.admin.service.CodexExecutionAdminService;
-import egovframework.com.feature.admin.service.SrTicketWorkbenchService;
+import egovframework.com.platform.workbench.service.SrTicketWorkbenchService;
 import egovframework.com.feature.auth.domain.entity.EmplyrInfo;
 import egovframework.com.feature.auth.domain.repository.EmployeeMemberRepository;
 import egovframework.com.feature.auth.util.JwtTokenProvider;

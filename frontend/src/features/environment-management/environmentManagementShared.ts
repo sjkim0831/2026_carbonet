@@ -1,4 +1,4 @@
-import { findManifestByMenuCodeOrRoutePath, normalizeManifestLookupPath } from "../../app/screen-registry/pageManifestIndex";
+import { findManifestByMenuCodeOrRoutePath, normalizeManifestLookupPath } from "../../platform/screen-registry/pageManifestIndex";
 import { getScreenCommandChainValues, type FullStackGovernanceRegistryEntry, type ScreenCommandPagePayload } from "../../lib/api/client";
 import { numberOf, stringOf } from "../admin-system/adminSystemShared";
 import { toDisplayMenuUrl } from "../menu-management/menuUrlDisplay";

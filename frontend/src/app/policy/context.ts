@@ -8,7 +8,7 @@ import type {
   GovernanceRuntimeContext,
   GovernanceTargetContext
 } from "./governance";
-import type { PageComponentManifest, PageManifest } from "../screen-registry/types";
+import type { PageComponentManifest, PageManifest } from "../../platform/screen-registry/types";
 
 function normalizeMemberType(authorCode: string, capabilityCodes: string[]): GovernanceMemberType {
   const normalizedAuthorCode = String(authorCode || "").toUpperCase();

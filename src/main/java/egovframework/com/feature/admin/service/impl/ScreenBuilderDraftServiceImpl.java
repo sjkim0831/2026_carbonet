@@ -17,7 +17,7 @@ import egovframework.com.feature.admin.model.ScreenBuilderNodeVO;
 import egovframework.com.feature.admin.model.ScreenBuilderSaveRequestVO;
 import egovframework.com.feature.admin.model.ScreenBuilderVersionSummaryVO;
 import egovframework.com.feature.admin.service.MenuInfoService;
-import egovframework.com.feature.admin.service.ResonanceControlPlaneService;
+import egovframework.com.platform.runtimecontrol.service.ResonanceControlPlaneService;
 import egovframework.com.feature.admin.service.ScreenCommandCenterService;
 import egovframework.com.feature.admin.service.ScreenBuilderDraftService;
 import egovframework.com.framework.authority.model.FrameworkAuthorityRoleContractVO;

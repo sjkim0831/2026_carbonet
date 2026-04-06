@@ -1,4 +1,4 @@
-import { tracedFetch } from "../../app/telemetry/fetch";
+import { tracedFetch } from "../../platform/telemetry/fetch";
 import type { MigrationPageId } from "../../app/routes/definitions";
 import { buildLocalizedPath, getCsrfMeta, getRuntimeLocale } from "../navigation/runtime";
 
@@ -233,6 +233,62 @@ export type QnaCategorySavePayload = {
   sortOrder: number;
   ownerKo: string;
   ownerEn: string;
+};
+
+export type EmissionGwpValuesPagePayload = Record<string, unknown> & {
+  isEn?: boolean;
+  menuCode?: string;
+  searchKeyword?: string;
+  sectionCode?: string;
+  selectedRowId?: string;
+  documentName?: string;
+  documentSourcePath?: string;
+  documentTargetPath?: string;
+  pdfOcrStatus?: string;
+  pdfOcrStatusLabel?: string;
+  pdfOcrStatusDetail?: string;
+  pdfOcrInstallHint?: string;
+  pdfComparePolicy?: string;
+  pdfComparePolicyLabel?: string;
+  pdfComparePolicyOptions?: Array<Record<string, string>>;
+  pdfCompareLoaded?: boolean;
+  pdfCompareScope?: string;
+  summaryCards?: Array<Record<string, string>>;
+  pdfComparisonSummary?: Array<Record<string, string>>;
+  sectionOptions?: Array<Record<string, string>>;
+  gwpRows?: Array<Record<string, string>>;
+  selectedRow?: Record<string, string>;
+  governanceNotes?: Array<Record<string, string>>;
+  methaneGuidance?: Array<Record<string, string>>;
+};
+
+export type EmissionGwpValueSavePayload = {
+  rowId?: string;
+  sectionCode: string;
+  commonName: string;
+  formula: string;
+  ar4Value: string;
+  ar5Value: string;
+  ar6Value: string;
+  note: string;
+  sortOrder: number;
+};
+
+export type EmissionGwpValueSaveResponse = {
+  success: boolean;
+  message: string;
+  rowId?: string;
+  row?: Record<string, string>;
+  compareStatus?: string;
+  compareStatusLabel?: string;
+  compareMismatchLabels?: string;
+  compareMismatchFields?: string[];
+  pdfCompareStatus?: string;
+  pdfCompareStatusLabel?: string;
+  pdfComparePage?: string;
+  pdfCompareSource?: string;
+  pdfCompareSourceLabel?: string;
+  pdfCompareDetail?: string;
 };
 
 export type BannerManagementPagePayload = Record<string, unknown> & {
@@ -550,11 +606,82 @@ export type EmissionManagementPagePayload = Record<string, unknown> & {
   formulaReference?: Record<string, unknown>;
   rolloutSummaryCards?: Array<Record<string, string>>;
   rolloutStatusRows?: Array<Record<string, unknown>>;
+  definitionScopeSummaryCards?: Array<Record<string, string>>;
+  definitionScopeRows?: Array<Record<string, unknown>>;
   definitionDraftRows?: Array<Record<string, unknown>>;
   definitionPolicyOptions?: Array<Record<string, string>>;
   selectedDefinitionDraft?: Record<string, unknown>;
   publishedDefinitionRows?: Array<Record<string, unknown>>;
   selectedPublishedDefinition?: Record<string, unknown>;
+};
+
+export type EmissionSurveyAdminColumn = {
+  key: string;
+  label: string;
+  headerPath?: string;
+};
+
+export type EmissionSurveyAdminRow = {
+  rowId?: string;
+  values?: Record<string, string>;
+};
+
+export type EmissionSurveyAdminSection = {
+  sectionCode?: string;
+  majorCode?: string;
+  majorLabel?: string;
+  sectionLabel?: string;
+  sheetName?: string;
+  titleRowLabel?: string;
+  guidance?: string[];
+  metadata?: Array<Record<string, string>>;
+  columns?: EmissionSurveyAdminColumn[];
+  rows?: EmissionSurveyAdminRow[];
+};
+
+export type EmissionSurveyAdminPagePayload = Record<string, unknown> & {
+  isEn?: boolean;
+  menuCode?: string;
+  pageTitle?: string;
+  pageDescription?: string;
+  sourceFileName?: string;
+  sourcePath?: string;
+  targetPath?: string;
+  uploaded?: boolean;
+  summaryCards?: Array<Record<string, string>>;
+  majorOptions?: Array<Record<string, string>>;
+  sectionOptions?: Array<Record<string, string>>;
+  caseOptions?: Array<Record<string, string>>;
+  workbookGuidance?: string[];
+  sections?: EmissionSurveyAdminSection[];
+  savedCaseMap?: Record<string, Record<string, unknown>>;
+  savedSetMap?: Record<string, Record<string, unknown>>;
+};
+
+export type EmissionSurveyCaseDraftSavePayload = {
+  sectionCode: string;
+  caseCode: string;
+  majorCode: string;
+  sectionLabel: string;
+  sourceFileName?: string;
+  sourcePath?: string;
+  targetPath?: string;
+  titleRowLabel?: string;
+  guidance?: string[];
+  columns?: EmissionSurveyAdminColumn[];
+  rows: Array<{
+    rowId: string;
+    values: Record<string, string>;
+  }>;
+};
+
+export type EmissionSurveyDraftSetSavePayload = {
+  setId?: string;
+  setName: string;
+  sourceFileName?: string;
+  sourcePath?: string;
+  targetPath?: string;
+  sections: Array<Record<string, unknown>>;
 };
 
 export type EmissionManagementElementSavePayload = {
@@ -631,6 +758,19 @@ export type EmissionDefinitionDraftSaveResponse = Record<string, unknown> & {
   message?: string;
   draftDetail?: Record<string, unknown>;
   definitionRows?: Array<Record<string, unknown>>;
+};
+
+export type EmissionDefinitionMaterializeResponse = Record<string, unknown> & {
+  success?: boolean;
+  draftId?: string;
+  categoryId?: number;
+  categoryCode?: string;
+  tier?: number;
+  createdCategory?: boolean;
+  insertedVariableCount?: number;
+  updatedVariableCount?: number;
+  skippedFields?: string[];
+  message?: string;
 };
 
 export type EmissionCategoryItem = Record<string, unknown> & {
@@ -3335,6 +3475,56 @@ export async function deleteQnaCategory(categoryId: string): Promise<{ success: 
   return readJsonResponse(response);
 }
 
+export async function fetchEmissionGwpValuesPage(params?: {
+  searchKeyword?: string;
+  sectionCode?: string;
+  rowId?: string;
+  pdfComparePolicy?: string;
+  includePdfCompare?: boolean;
+  pdfCompareScope?: string;
+}): Promise<EmissionGwpValuesPagePayload> {
+  const search = new URLSearchParams();
+  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
+  if (params?.sectionCode) search.set("sectionCode", params.sectionCode);
+  if (params?.rowId) search.set("rowId", params.rowId);
+  if (params?.pdfComparePolicy) search.set("pdfComparePolicy", params.pdfComparePolicy);
+  if (params?.includePdfCompare) search.set("includePdfCompare", "true");
+  if (params?.pdfCompareScope) search.set("pdfCompareScope", params.pdfCompareScope);
+  const query = search.toString();
+  const response = await fetch(`${buildLocalizedPath("/admin/emission/gwp-values/page-data", "/en/admin/emission/gwp-values/page-data")}${query ? `?${query}` : ""}`, {
+    credentials: "include"
+  });
+  return readJsonResponse<EmissionGwpValuesPagePayload>(response);
+}
+
+export async function saveEmissionGwpValue(payload: EmissionGwpValueSavePayload): Promise<EmissionGwpValueSaveResponse> {
+  const { token, headerName } = getCsrfMeta();
+  const response = await fetch(buildAdminApiPath("/emission/api/gwp-values/save"), {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { [headerName]: token } : {})
+    },
+    body: JSON.stringify(payload)
+  });
+  return readJsonResponse(response);
+}
+
+export async function deleteEmissionGwpValue(rowId: string): Promise<{ success: boolean; message: string; rowId?: string }> {
+  const { token, headerName } = getCsrfMeta();
+  const response = await fetch(buildAdminApiPath("/emission/api/gwp-values/delete"), {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { [headerName]: token } : {})
+    },
+    body: JSON.stringify({ rowId })
+  });
+  return readJsonResponse(response);
+}
+
 export async function fetchBannerManagementPage(params?: {
   searchKeyword?: string;
   status?: string;
@@ -5756,6 +5946,88 @@ export async function fetchEmissionManagementPage() {
   return readJsonResponse<EmissionManagementPagePayload>(response);
 }
 
+export async function fetchEmissionSurveyAdminPage() {
+  const response = await fetch(buildLocalizedPath("/admin/emission/survey-admin/page-data", "/en/admin/emission/survey-admin/page-data"), {
+    credentials: "include",
+    headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
+  });
+  return readJsonResponse<EmissionSurveyAdminPagePayload>(response);
+}
+
+export async function uploadEmissionSurveyWorkbook(uploadFile: File) {
+  const form = new FormData();
+  form.set("uploadFile", uploadFile);
+  const headers = await buildResilientCsrfHeaders({
+    "X-Requested-With": "XMLHttpRequest"
+  });
+  delete headers["Content-Type"];
+  const response = await fetch(buildLocalizedPath("/admin/api/admin/emission-survey-admin/parse-workbook", "/en/admin/api/admin/emission-survey-admin/parse-workbook"), {
+    method: "POST",
+    credentials: "include",
+    headers,
+    body: form
+  });
+  return readJsonResponse<EmissionSurveyAdminPagePayload>(response);
+}
+
+export async function saveEmissionSurveyCaseDraft(payload: EmissionSurveyCaseDraftSavePayload) {
+  const response = await fetch(buildLocalizedPath("/admin/api/admin/emission-survey-admin/case-drafts", "/en/admin/api/admin/emission-survey-admin/case-drafts"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload)
+  });
+  return readJsonResponse<Record<string, unknown>>(response);
+}
+
+export async function deleteEmissionSurveyCaseDraft(sectionCode: string, caseCode: string) {
+  const query = new URLSearchParams({ sectionCode, caseCode }).toString();
+  const response = await fetch(`${buildLocalizedPath("/admin/api/admin/emission-survey-admin/case-drafts", "/en/admin/api/admin/emission-survey-admin/case-drafts")}?${query}`, {
+    method: "DELETE",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "X-Requested-With": "XMLHttpRequest"
+    })
+  });
+  return readJsonResponse<Record<string, unknown>>(response);
+}
+
+export async function saveEmissionSurveyDraftSet(payload: EmissionSurveyDraftSetSavePayload) {
+  const response = await fetch(buildLocalizedPath("/admin/api/admin/emission-survey-admin/draft-sets", "/en/admin/api/admin/emission-survey-admin/draft-sets"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload)
+  });
+  return readJsonResponse<Record<string, unknown>>(response);
+}
+
+export async function deleteEmissionSurveyDraftSet(setId: string) {
+  const query = new URLSearchParams({ setId }).toString();
+  const response = await fetch(`${buildLocalizedPath("/admin/api/admin/emission-survey-admin/draft-sets", "/en/admin/api/admin/emission-survey-admin/draft-sets")}?${query}`, {
+    method: "DELETE",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "X-Requested-With": "XMLHttpRequest"
+    })
+  });
+  return readJsonResponse<Record<string, unknown>>(response);
+}
+
+export function getEmissionSurveyTemplateDownloadUrl() {
+  return buildLocalizedPath("/admin/api/admin/emission-survey-admin/template-download", "/en/admin/api/admin/emission-survey-admin/template-download");
+}
+
+export function getEmissionSurveySampleDownloadUrl() {
+  return buildLocalizedPath("/admin/api/admin/emission-survey-admin/sample-download", "/en/admin/api/admin/emission-survey-admin/sample-download");
+}
+
 export async function saveEmissionManagementElementDefinition(payload: EmissionManagementElementSavePayload) {
   const response = await fetch(buildLocalizedPath("/admin/api/admin/emission-management/element-definitions", "/en/admin/api/admin/emission-management/element-definitions"), {
     method: "POST",
@@ -5874,6 +6146,32 @@ export async function fetchEmissionInputSession(sessionId: number) {
 
 export async function calculateEmissionInputSession(sessionId: number) {
   const response = await fetch(buildAdminApiPath(`/api/admin/emission-management/input-sessions/${encodeURIComponent(String(sessionId))}/calculate`), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
+  });
+  return readJsonResponse<Record<string, unknown>>(response);
+}
+
+export async function materializeEmissionDefinitionScope(draftId: string) {
+  const response = await fetch(buildAdminApiPath(`/api/admin/emission-management/definition-scopes/${encodeURIComponent(draftId)}/materialize`), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
+  });
+  return readJsonResponse<EmissionDefinitionMaterializeResponse>(response);
+}
+
+export async function fetchEmissionScopeStatus(categoryCode: string, tier: number) {
+  const response = await fetch(buildAdminApiPath(`/api/admin/emission-management/scopes/${encodeURIComponent(categoryCode)}/${encodeURIComponent(String(tier))}/status`), {
+    credentials: "include",
+    headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
+  });
+  return readJsonResponse<Record<string, unknown>>(response);
+}
+
+export async function precheckEmissionDefinitionScope(draftId: string) {
+  const response = await fetch(buildAdminApiPath(`/api/admin/emission-management/definition-scopes/${encodeURIComponent(draftId)}/precheck`), {
     method: "POST",
     credentials: "include",
     headers: await buildResilientCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })

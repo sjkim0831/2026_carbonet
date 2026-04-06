@@ -3,7 +3,7 @@ package egovframework.com.feature.admin.tools;
 import egovframework.com.CarbonetApplication;
 import egovframework.com.feature.admin.dto.request.SrTicketApprovalRequest;
 import egovframework.com.feature.admin.dto.request.SrTicketCreateRequest;
-import egovframework.com.feature.admin.service.SrTicketWorkbenchService;
+import egovframework.com.platform.workbench.service.SrTicketWorkbenchService;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;

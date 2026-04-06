@@ -7,9 +7,12 @@ import egovframework.com.feature.admin.model.vo.EmissionVariableDefinitionVO;
 import egovframework.com.feature.admin.service.AdminEmissionDefinitionStudioService;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import static egovframework.com.feature.admin.service.impl.EmissionManagementValueSupport.buildTierItems;
 import static egovframework.com.feature.admin.service.impl.EmissionManagementValueSupport.buildUnsupportedTierItems;
@@ -52,7 +55,7 @@ final class EmissionManagementQueryService {
         List<Integer> supportedTiers = new ArrayList<>();
         List<Integer> unsupportedTiers = new ArrayList<>();
         for (Integer tier : adminEmissionManagementMapper.selectEmissionTierList(categoryId)) {
-            if (calculationDefinitionRegistry.supports(category, tier)) {
+            if (validationSupport.hasRuntimeSupport(category, tier)) {
                 supportedTiers.add(tier);
             } else {
                 unsupportedTiers.add(tier);
@@ -68,14 +71,14 @@ final class EmissionManagementQueryService {
     EmissionVariableDefinitionsExecution getVariableDefinitions(Long categoryId, Integer tier) {
         EmissionCategoryVO category = validationSupport.requireCategory(categoryId);
         int normalizedTier = validationSupport.requireTier(category, tier);
-        CalculationDefinition definition = calculationDefinitionRegistry.require(category, normalizedTier);
+        Map<String, Object> publishedDefinition = definitionStudioService.findPublishedDefinitionRaw(category.getSubCode(), normalizedTier);
+        CalculationDefinition definition = resolveCalculationDefinition(category, normalizedTier, publishedDefinition);
         List<EmissionVariableDefinitionVO> variables = variableDefinitionAssembler.enrich(
                 category,
                 normalizedTier,
                 categoryTierDataProvider.loadVariableDefinitions(categoryId, normalizedTier),
                 definition
         );
-        Map<String, Object> publishedDefinition = definitionStudioService.findPublishedDefinitionRaw(category.getSubCode(), normalizedTier);
         variables = variableDefinitionAssembler.applyDefinitionOverrides(variables, publishedDefinition, categoryId, normalizedTier);
         List<EmissionFactorVO> factors = categoryTierDataProvider.loadFactors(categoryId, normalizedTier);
         return new EmissionVariableDefinitionsExecution(category, normalizedTier, variables, factors, definition, publishedDefinition);
@@ -126,6 +129,119 @@ final class EmissionManagementQueryService {
             rows.add(row);
         }
         return rows;
+    }
+
+    List<Map<String, Object>> getPublishedDefinitionScopeRows() {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        Map<String, EmissionCategoryVO> categoryByCode = new LinkedHashMap<>();
+        for (EmissionCategoryVO category : adminEmissionManagementMapper.selectEmissionCategories("")) {
+            String categoryCode = safe(category == null ? null : category.getSubCode()).toUpperCase(Locale.ROOT);
+            if (!categoryCode.isEmpty()) {
+                categoryByCode.put(categoryCode, category);
+            }
+        }
+
+        Set<String> seenScopes = new LinkedHashSet<>();
+        for (Map<String, Object> definition : definitionStudioService.buildPublishedDefinitionRows(false)) {
+            String categoryCode = safe(definition == null ? null : String.valueOf(definition.get("categoryCode"))).toUpperCase(Locale.ROOT);
+            int tier = parseTierLabel(definition == null ? null : definition.get("tierLabel"));
+            if (categoryCode.isEmpty() || tier <= 0) {
+                continue;
+            }
+            String scopeKey = categoryCode + ":" + tier;
+            if (!seenScopes.add(scopeKey)) {
+                continue;
+            }
+
+            EmissionCategoryVO category = categoryByCode.get(categoryCode);
+            boolean dbCategoryPresent = category != null;
+            boolean dbTierPresent = dbCategoryPresent
+                    && adminEmissionManagementMapper.selectEmissionTierList(category.getCategoryId()).contains(tier);
+            boolean runtimeSupported = dbTierPresent && validationSupport.hasRuntimeSupport(category, tier);
+
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("draftId", definition.get("draftId"));
+            row.put("publishedVersionId", definition.get("publishedVersionId"));
+            row.put("publishedSavedAt", definition.get("publishedSavedAt"));
+            row.put("categoryId", category == null ? null : category.getCategoryId());
+            row.put("categoryCode", categoryCode);
+            row.put("categoryName", firstNonBlank(
+                    category == null ? null : category.getSubName(),
+                    definition == null ? null : String.valueOf(definition.get("categoryName"))));
+            row.put("tier", tier);
+            row.put("tierLabel", "Tier " + tier);
+            row.put("runtimeMode", definition == null ? null : definition.get("runtimeMode"));
+            row.put("dbCategoryPresent", dbCategoryPresent);
+            row.put("dbTierPresent", dbTierPresent);
+            row.put("runtimeSupported", runtimeSupported);
+
+            String status;
+            String statusMessage;
+            if (runtimeSupported) {
+                status = "READY";
+                statusMessage = calculationDefinitionRegistry.supports(category, tier)
+                        ? "Published definition can already be inspected from emission management."
+                        : "Published definition is ready for definition-backed runtime calculation.";
+            } else if (!dbCategoryPresent) {
+                status = "STUDIO_ONLY_CATEGORY";
+                statusMessage = "Definition is published in studio, but the management category does not exist in DB metadata yet.";
+            } else if (!dbTierPresent) {
+                status = "STUDIO_ONLY_TIER";
+                statusMessage = "Definition is published in studio, but the management tier does not exist in DB metadata yet.";
+            } else {
+                status = "MISSING_CALCULATION";
+                statusMessage = "DB metadata exists, but no runtime calculation definition is registered for this scope yet.";
+            }
+            row.put("status", status);
+            row.put("statusMessage", statusMessage);
+            rows.add(row);
+        }
+        return rows;
+    }
+
+    private CalculationDefinition resolveCalculationDefinition(EmissionCategoryVO category,
+                                                               int tier,
+                                                               Map<String, Object> publishedDefinition) {
+        if (calculationDefinitionRegistry.supports(category, tier)) {
+            return calculationDefinitionRegistry.require(category, tier);
+        }
+        return definitionBackedDefinition(category, tier, publishedDefinition);
+    }
+
+    private CalculationDefinition definitionBackedDefinition(EmissionCategoryVO category,
+                                                             int tier,
+                                                             Map<String, Object> publishedDefinition) {
+        String formula = safe(publishedDefinition == null ? null : String.valueOf(publishedDefinition.get("formula")));
+        return new CalculationDefinition(
+                safe(category == null ? null : category.getSubCode()),
+                tier,
+                formula,
+                formula,
+                VariableUiDefinition.empty(),
+                context -> {
+                    throw new IllegalStateException("Definition-backed scope does not use a built-in executor.");
+                }
+        );
+    }
+
+    private int parseTierLabel(Object tierLabel) {
+        String raw = safe(tierLabel == null ? null : String.valueOf(tierLabel)).toUpperCase(Locale.ROOT);
+        if (raw.isEmpty()) {
+            return 0;
+        }
+        String digits = raw.replaceAll("[^0-9]", "");
+        if (digits.isEmpty()) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(digits);
+        } catch (NumberFormatException ignored) {
+            return 0;
+        }
+    }
+
+    private String firstNonBlank(String left, String right) {
+        return safe(left).isEmpty() ? safe(right) : safe(left);
     }
 
     @SuppressWarnings("unchecked")

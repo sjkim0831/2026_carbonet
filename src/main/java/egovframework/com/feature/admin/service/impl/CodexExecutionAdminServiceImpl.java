@@ -14,7 +14,7 @@ import egovframework.com.feature.admin.mapper.MenuInfoMapper;
 import egovframework.com.feature.admin.model.vo.CodexAdminActorContextVO;
 import egovframework.com.feature.admin.model.vo.CodexExecutionLogVO;
 import egovframework.com.feature.admin.service.CodexExecutionAdminService;
-import egovframework.com.feature.admin.service.CodexProvisioningService;
+import egovframework.com.platform.codex.service.CodexProvisioningService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.egovframe.boot.security.bean.EgovReloadableFilterInvocationSecurityMetadataSource;

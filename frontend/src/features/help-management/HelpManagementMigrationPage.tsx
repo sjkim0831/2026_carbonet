@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { findManifestByPageId, listPageManifestOptions } from "../../app/screen-registry/pageManifestIndex";
+import { findManifestByPageId, listPageManifestOptions } from "../../platform/screen-registry/pageManifestIndex";
 import { logGovernanceScope } from "../../app/policy/debug";
 import {
   AuditEventSearchPayload,

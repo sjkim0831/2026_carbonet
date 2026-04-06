@@ -8,6 +8,7 @@ import egovframework.com.feature.admin.dto.request.RepairApplyRequest;
 import egovframework.com.feature.admin.dto.request.RepairOpenRequest;
 import egovframework.com.feature.admin.dto.request.VerificationMenuRequest;
 import egovframework.com.feature.admin.mapper.ResonanceControlPlaneMapper;
+import egovframework.com.platform.runtimecontrol.service.impl.ResonanceControlPlaneServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;

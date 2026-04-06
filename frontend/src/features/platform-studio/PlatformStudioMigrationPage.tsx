@@ -1,7 +1,7 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { findManifestByMenuCodeOrRoutePath, normalizeManifestLookupPath } from "../../app/screen-registry/pageManifestIndex";
+import { findManifestByMenuCodeOrRoutePath, normalizeManifestLookupPath } from "../../platform/screen-registry/pageManifestIndex";
 import {
   autoCollectFullStackGovernanceRegistry,
   createSrTicket,

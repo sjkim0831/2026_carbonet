@@ -4,7 +4,7 @@ import {
   type ScreenBuilderStatusSummaryItem,
   type ScreenCommandPagePayload
 } from "../../lib/api/client";
-import { fetchAuditEvents, fetchTraceEvents } from "../../lib/api/observability";
+import { fetchAuditEvents, fetchTraceEvents } from "../../platform/observability/observability";
 import { fetchScreenBuilderStatusSummary } from "../../lib/api/screenBuilder";
 import { autoCollectFullStackGovernanceRegistry, fetchFullStackGovernanceRegistry, fetchScreenCommandPage } from "../../lib/api/screenGovernance";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";

@@ -1,4 +1,4 @@
-import { publishTelemetryEvent } from "../telemetry/events";
+import { publishTelemetryEvent } from "../../platform/telemetry/events";
 
 type GovernanceLogPayload = Record<string, unknown>;
 

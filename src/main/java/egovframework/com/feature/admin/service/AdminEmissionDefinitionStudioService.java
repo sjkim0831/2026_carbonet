@@ -77,6 +77,15 @@ public class AdminEmissionDefinitionStudioService {
         return new LinkedHashMap<>(findLatestMatchingDefinition(filterPublishedEntries(loadAll()), categoryCode, tier));
     }
 
+    public synchronized Map<String, Object> findPublishedDefinitionByDraftIdRaw(String draftId) {
+        String normalizedDraftId = safe(draftId);
+        if (normalizedDraftId.isEmpty()) {
+            return new LinkedHashMap<>();
+        }
+        Map<String, Object> matched = filterPublishedEntries(loadAll()).get(normalizedDraftId);
+        return matched == null ? new LinkedHashMap<>() : new LinkedHashMap<>(matched);
+    }
+
     public synchronized Map<String, Object> saveDraft(EmissionDefinitionDraftSaveRequest request, String actorId, boolean isEn) {
         if (request == null) {
             throw new IllegalArgumentException(isEn ? "Request is required." : "요청값이 필요합니다.");

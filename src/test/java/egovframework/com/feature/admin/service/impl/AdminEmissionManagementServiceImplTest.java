@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.any;
@@ -882,5 +883,60 @@ class AdminEmissionManagementServiceImplTest {
         assertEquals(0.304956d, ((Number) response.get("co2Total")).doubleValue(), 0.0000001d);
         assertTrue(String.valueOf(response.get("substitutedFormula")).contains("0.304956"));
         assertFalse(((List<?>) response.get("calculationLogs")).isEmpty());
+    }
+
+    @Test
+    void getScopeStatusReportsMaterializeBlockedWhenPublishedDefinitionHasNoCategory() {
+        AdminEmissionManagementMapper mapper = mock(AdminEmissionManagementMapper.class);
+        AdminEmissionManagementServiceImpl service = service(mapper);
+
+        Map<String, Object> response = service.getScopeStatus("LIME", 4, false);
+
+        assertEquals("MATERIALIZE_BLOCKED", response.get("lifecycleStatus"));
+        assertEquals(false, response.get("materializable"));
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> blockingReasons = (List<Map<String, Object>>) response.get("blockingReasons");
+        assertNotNull(blockingReasons);
+        assertEquals("MISSING_CATEGORY", String.valueOf(blockingReasons.get(0).get("code")));
+    }
+
+    @Test
+    void getScopeStatusReportsRuntimeBlockedWhenMetadataExistsWithoutRuntimeSupport() {
+        AdminEmissionManagementMapper mapper = mock(AdminEmissionManagementMapper.class);
+        AdminEmissionManagementServiceImpl service = service(mapper);
+
+        EmissionCategoryVO category = category(9L, "GLASS", "유리 생산");
+        when(mapper.selectEmissionCategoryBySubCode("GLASS")).thenReturn(category);
+        when(mapper.selectEmissionTierList(9L)).thenReturn(List.of(1));
+        when(mapper.selectEmissionVariableDefinitionCount(anyMap())).thenReturn(1);
+
+        Map<String, Object> response = service.getScopeStatus("GLASS", 1, false);
+
+        assertEquals("RUNTIME_BLOCKED", response.get("lifecycleStatus"));
+        assertEquals(false, response.get("runtimeSupported"));
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> blockingReasons = (List<Map<String, Object>>) response.get("blockingReasons");
+        assertEquals("MISSING_RUNTIME_SUPPORT", String.valueOf(blockingReasons.get(0).get("code")));
+    }
+
+    @Test
+    void getScopeStatusMarksPrimaryActiveWhenLatestPromotionStatusIsPrimaryReady() {
+        AdminEmissionManagementMapper mapper = mock(AdminEmissionManagementMapper.class);
+        AdminEmissionManagementServiceImpl service = service(mapper);
+
+        EmissionCategoryVO category = limeCategory();
+        when(mapper.selectEmissionCategoryBySubCode("LIME")).thenReturn(category);
+        when(mapper.selectEmissionTierList(2L)).thenReturn(List.of(1, 2, 3));
+        when(mapper.selectEmissionVariableDefinitionCount(anyMap())).thenReturn(1);
+        when(mapper.selectLatestEmissionCalcResultsByScope()).thenReturn(List.of(Map.of(
+                "scope", "LIME:1",
+                "promotionStatus", "PRIMARY_READY"
+        )));
+
+        Map<String, Object> response = service.getScopeStatus("LIME", 1, false);
+
+        assertEquals("MATERIALIZED", response.get("lifecycleStatus"));
+        assertEquals("PRIMARY_READY", response.get("promotionStatus"));
+        assertEquals(true, response.get("primaryActive"));
     }
 }

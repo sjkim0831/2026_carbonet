@@ -62,7 +62,7 @@ import egovframework.com.feature.auth.service.AuthService;
 import egovframework.com.feature.auth.util.JwtTokenProvider;
 import egovframework.com.feature.auth.util.ClientIpUtil;
 import egovframework.com.common.audit.AuditTrailService;
-import egovframework.com.common.service.ObservabilityQueryService;
+import egovframework.com.platform.observability.service.ObservabilityQueryService;
 import egovframework.com.common.util.FeatureCodeBitmap;
 import egovframework.com.common.util.ReactPageUrlMapper;
 import egovframework.com.framework.authority.service.FrameworkAuthorityPolicyService;

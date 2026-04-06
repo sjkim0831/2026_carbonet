@@ -1,4 +1,4 @@
-import { tracedFetch } from "../../app/telemetry/fetch";
+import { tracedFetch } from "../../platform/telemetry/fetch";
 import { buildLocalizedPath, getCsrfMeta } from "../navigation/runtime";
 
 export const apiFetch = tracedFetch;

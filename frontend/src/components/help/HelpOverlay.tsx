@@ -1,7 +1,7 @@
 import { PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { publishTelemetryEvent } from "../../app/telemetry/events";
-import { PageHelpContent } from "../../app/screen-registry/helpContent";
+import { publishTelemetryEvent } from "../../platform/telemetry/events";
+import { PageHelpContent } from "../../platform/screen-registry/helpContent";
 
 type HelpOverlayProps = {
   open: boolean;

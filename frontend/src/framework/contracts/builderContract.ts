@@ -1,4 +1,4 @@
-import type { LayoutZone } from "../../app/screen-registry/types";
+import type { LayoutZone } from "../../platform/screen-registry/types";
 
 export type FrameworkContractSource = "frontend-static-registry" | "backend-runtime-registry";
 
@@ -57,4 +57,3 @@ export type FrameworkBuilderContract = {
   components: FrameworkBuilderComponentContract[];
   builderProfiles: FrameworkBuilderProfiles;
 };
-

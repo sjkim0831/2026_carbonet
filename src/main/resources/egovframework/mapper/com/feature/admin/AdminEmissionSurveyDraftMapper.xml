@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="AdminEmissionSurveyDraftMapper">
+
+    <select id="countCaseTable" resultType="int">
+        SELECT COUNT(*)
+        FROM ADMIN_EMISSION_SURVEY_CASE
+    </select>
+
+    <select id="selectCaseHeaders" resultType="hashmap">
+        SELECT
+            CASE_ID AS "caseId",
+            SECTION_CODE AS "sectionCode",
+            CASE_CODE AS "caseCode",
+            MAJOR_CODE AS "majorCode",
+            SECTION_LABEL AS "sectionLabel",
+            SOURCE_FILE_NM AS "sourceFileName",
+            SOURCE_PATH AS "sourcePath",
+            TARGET_PATH AS "targetPath",
+            CASE_STATUS AS "caseStatus",
+            ROW_COUNT AS "rowCount",
+            ROW_SCHEMA_JSON AS "rowSchemaJson",
+            GUIDANCE_JSON AS "guidanceJson",
+            LAST_SAVED_BY AS "lastSavedBy",
+            TO_CHAR(LAST_SAVED_AT, 'YYYY-MM-DD HH24:MI:SS') AS "savedAt"
+        FROM ADMIN_EMISSION_SURVEY_CASE
+        ORDER BY MAJOR_CODE, SECTION_CODE, CASE_CODE
+    </select>
+
+    <select id="selectCaseRows" parameterType="string" resultType="hashmap">
+        SELECT
+            CASE_ROW_ID AS "caseRowId",
+            CASE_ID AS "caseId",
+            ROW_ORDR AS "rowOrder",
+            ROW_KEY AS "rowKey",
+            ROW_VALUES_JSON AS "rowValuesJson"
+        FROM ADMIN_EMISSION_SURVEY_CASE_ROW
+        WHERE CASE_ID = #{_parameter}
+          AND USE_AT = 'Y'
+        ORDER BY ROW_ORDR
+    </select>
+
+    <insert id="insertCaseHeader" parameterType="hashmap">
+        INSERT INTO ADMIN_EMISSION_SURVEY_CASE (
+            CASE_ID, SECTION_CODE, CASE_CODE, MAJOR_CODE, SECTION_LABEL,
+            SOURCE_FILE_NM, SOURCE_PATH, TARGET_PATH, CASE_STATUS, ROW_COUNT,
+            ROW_SCHEMA_JSON, GUIDANCE_JSON, LAST_SAVED_BY, LAST_SAVED_AT,
+            FRST_REGIST_PNTTM, FRST_REGISTER_ID, LAST_UPDT_PNTTM, LAST_UPDUSR_ID
+        ) VALUES (
+            #{caseId}, #{sectionCode}, #{caseCode}, #{majorCode}, #{sectionLabel},
+            #{sourceFileName}, #{sourcePath}, #{targetPath}, #{caseStatus}, #{rowCount},
+            #{rowSchemaJson}, #{guidanceJson}, #{actorId}, CURRENT_DATETIME,
+            CURRENT_DATETIME, #{actorId}, CURRENT_DATETIME, #{actorId}
+        )
+    </insert>
+
+    <update id="updateCaseHeader" parameterType="hashmap">
+        UPDATE ADMIN_EMISSION_SURVEY_CASE
+        SET MAJOR_CODE = #{majorCode},
+            SECTION_LABEL = #{sectionLabel},
+            SOURCE_FILE_NM = #{sourceFileName},
+            SOURCE_PATH = #{sourcePath},
+            TARGET_PATH = #{targetPath},
+            CASE_STATUS = #{caseStatus},
+            ROW_COUNT = #{rowCount},
+            ROW_SCHEMA_JSON = #{rowSchemaJson},
+            GUIDANCE_JSON = #{guidanceJson},
+            LAST_SAVED_BY = #{actorId},
+            LAST_SAVED_AT = CURRENT_DATETIME,
+            LAST_UPDT_PNTTM = CURRENT_DATETIME,
+            LAST_UPDUSR_ID = #{actorId}
+        WHERE SECTION_CODE = #{sectionCode}
+          AND CASE_CODE = #{caseCode}
+    </update>
+
+    <delete id="deleteCaseRows" parameterType="string">
+        DELETE FROM ADMIN_EMISSION_SURVEY_CASE_ROW
+        WHERE CASE_ID = #{_parameter}
+    </delete>
+
+    <delete id="deleteCaseHeader" parameterType="string">
+        DELETE FROM ADMIN_EMISSION_SURVEY_CASE
+        WHERE CASE_ID = #{_parameter}
+    </delete>
+
+    <insert id="insertCaseRow" parameterType="hashmap">
+        INSERT INTO ADMIN_EMISSION_SURVEY_CASE_ROW (
+            CASE_ROW_ID, CASE_ID, ROW_ORDR, ROW_KEY, ROW_VALUES_JSON, USE_AT,
+            FRST_REGIST_PNTTM, FRST_REGISTER_ID, LAST_UPDT_PNTTM, LAST_UPDUSR_ID
+        ) VALUES (
+            #{caseRowId}, #{caseId}, #{rowOrder}, #{rowKey}, #{rowValuesJson}, 'Y',
+            CURRENT_DATETIME, #{actorId}, CURRENT_DATETIME, #{actorId}
+        )
+    </insert>
+
+</mapper>

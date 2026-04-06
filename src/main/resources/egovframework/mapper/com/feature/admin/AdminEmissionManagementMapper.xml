@@ -38,6 +38,20 @@
         WHERE category_id = #{_parameter}
     </select>
 
+    <select id="selectEmissionCategoryBySubCode" parameterType="string" resultType="egovframework.com.feature.admin.model.vo.EmissionCategoryVO">
+        SELECT
+            category_id AS categoryId,
+            major_code AS majorCode,
+            major_name AS majorName,
+            sub_code AS subCode,
+            sub_name AS subName,
+            use_yn AS useYn
+        FROM emission_category
+        WHERE sub_code = #{_parameter}
+        ORDER BY category_id
+        LIMIT 1
+    </select>
+
     <select id="selectEmissionTierList" parameterType="long" resultType="int">
         SELECT DISTINCT tier
         FROM emission_variable_def
@@ -76,6 +90,33 @@
           AND tier = #{tier}
           AND use_yn = 'Y'
         ORDER BY sort_order, variable_id
+    </select>
+
+    <select id="selectEmissionVariableDefinition" parameterType="map" resultType="hashmap">
+        SELECT
+            variable_id AS variableId,
+            category_id AS categoryId,
+            tier,
+            var_code AS varCode
+        FROM emission_variable_def
+        WHERE category_id = #{categoryId}
+          AND tier = #{tier}
+          AND var_code = #{varCode}
+        LIMIT 1
+    </select>
+
+    <select id="selectEmissionVariableDefinitionCount" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+        FROM emission_variable_def
+        WHERE category_id = #{categoryId}
+          AND tier = #{tier}
+    </select>
+
+    <select id="selectEmissionVariableDefinitionLastUpdatedAt" parameterType="map" resultType="string">
+        SELECT TO_CHAR(MAX(updated_at), 'YYYY-MM-DD HH24:MI:SS')
+        FROM emission_variable_def
+        WHERE category_id = #{categoryId}
+          AND tier = #{tier}
     </select>
 
     <select id="selectEmissionFactors" parameterType="map" resultType="egovframework.com.feature.admin.model.vo.EmissionFactorVO">
@@ -195,6 +236,221 @@
             FROM db_root
         </selectKey>
     </insert>
+
+    <insert id="insertEmissionCategory" parameterType="map">
+        INSERT INTO emission_category (
+            major_code,
+            major_name,
+            sub_code,
+            sub_name,
+            use_yn,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{majorCode},
+            #{majorName},
+            #{subCode},
+            #{subName},
+            #{useYn},
+            CURRENT_DATETIME,
+            CURRENT_DATETIME
+        )
+        <selectKey keyProperty="categoryId" resultType="long" order="AFTER">
+            SELECT emission_category_ai_category_id.current_value
+            FROM db_root
+        </selectKey>
+    </insert>
+
+    <insert id="insertEmissionVariableDefinition" parameterType="map">
+        <selectKey keyProperty="variableId" resultType="long" order="BEFORE">
+            SELECT COALESCE(MAX(variable_id), 0) + 1
+            FROM emission_variable_def
+        </selectKey>
+        INSERT INTO emission_variable_def (
+            variable_id,
+            category_id,
+            tier,
+            var_code,
+            var_name,
+            var_desc,
+            unit,
+            input_type,
+            source_type,
+            is_repeatable,
+            is_required,
+            sort_order,
+            display_name,
+            display_code,
+            ui_hint,
+            derived_yn,
+            supplemental_yn,
+            repeat_group_key,
+            section_id,
+            section_title,
+            section_description,
+            section_formula,
+            use_yn,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{variableId},
+            #{categoryId},
+            #{tier},
+            #{varCode},
+            #{varName},
+            #{varDesc},
+            #{unit},
+            #{inputType},
+            #{sourceType},
+            #{repeatable},
+            #{required},
+            #{sortOrder},
+            #{displayName},
+            #{displayCode},
+            #{uiHint},
+            #{derivedYn},
+            #{supplementalYn},
+            #{repeatGroupKey},
+            #{sectionId},
+            #{sectionTitle},
+            #{sectionDescription},
+            #{sectionFormula},
+            #{useYn},
+            CURRENT_DATETIME,
+            CURRENT_DATETIME
+        )
+    </insert>
+
+    <update id="updateEmissionVariableDefinition" parameterType="map">
+        UPDATE emission_variable_def
+        SET var_name = #{varName},
+            var_desc = #{varDesc},
+            unit = #{unit},
+            input_type = #{inputType},
+            source_type = #{sourceType},
+            is_repeatable = #{repeatable},
+            is_required = #{required},
+            sort_order = #{sortOrder},
+            display_name = #{displayName},
+            display_code = #{displayCode},
+            ui_hint = #{uiHint},
+            derived_yn = #{derivedYn},
+            supplemental_yn = #{supplementalYn},
+            repeat_group_key = #{repeatGroupKey},
+            section_id = #{sectionId},
+            section_title = #{sectionTitle},
+            section_description = #{sectionDescription},
+            section_formula = #{sectionFormula},
+            use_yn = #{useYn},
+            updated_at = CURRENT_DATETIME
+        WHERE category_id = #{categoryId}
+          AND tier = #{tier}
+          AND var_code = #{varCode}
+    </update>
+
+    <insert id="insertEmissionMaterializationHistory" parameterType="map">
+        INSERT INTO emission_materialization_history (
+            scope,
+            category_code,
+            tier,
+            draft_id,
+            published_version_id,
+            materialized_by,
+            materialized_at,
+            created_category_yn,
+            inserted_variable_count,
+            updated_variable_count
+        ) VALUES (
+            #{scope},
+            #{categoryCode},
+            #{tier},
+            #{draftId},
+            #{publishedVersionId},
+            #{materializedBy},
+            CURRENT_DATETIME,
+            #{createdCategoryYn},
+            #{insertedVariableCount},
+            #{updatedVariableCount}
+        )
+    </insert>
+
+    <select id="selectLatestEmissionMaterializationHistory" parameterType="map" resultType="hashmap">
+        SELECT
+            history_id AS historyId,
+            scope,
+            category_code AS categoryCode,
+            tier,
+            draft_id AS draftId,
+            published_version_id AS publishedVersionId,
+            materialized_by AS materializedBy,
+            TO_CHAR(materialized_at, 'YYYY-MM-DD HH24:MI:SS') AS materializedAt,
+            created_category_yn AS createdCategoryYn,
+            inserted_variable_count AS insertedVariableCount,
+            updated_variable_count AS updatedVariableCount
+        FROM emission_materialization_history
+        WHERE category_code = #{categoryCode}
+          AND tier = #{tier}
+        ORDER BY history_id DESC
+        LIMIT 1
+    </select>
+
+    <insert id="insertEmissionRuntimeTransitionHistory" parameterType="map">
+        INSERT INTO emission_runtime_transition_history (
+            scope,
+            category_code,
+            tier,
+            transitioned_by,
+            transitioned_at,
+            session_id,
+            result_id,
+            runtime_mode,
+            promotion_status,
+            promotion_message,
+            definition_formula_adopted_yn,
+            legacy_total,
+            definition_total,
+            delta
+        ) VALUES (
+            #{scope},
+            #{categoryCode},
+            #{tier},
+            #{transitionedBy},
+            CURRENT_DATETIME,
+            #{sessionId},
+            #{resultId},
+            #{runtimeMode},
+            #{promotionStatus},
+            #{promotionMessage},
+            #{definitionFormulaAdoptedYn},
+            #{legacyTotal},
+            #{definitionTotal},
+            #{delta}
+        )
+    </insert>
+
+    <select id="selectLatestEmissionRuntimeTransitionHistory" parameterType="map" resultType="hashmap">
+        SELECT
+            history_id AS historyId,
+            scope,
+            category_code AS categoryCode,
+            tier,
+            transitioned_by AS transitionedBy,
+            TO_CHAR(transitioned_at, 'YYYY-MM-DD HH24:MI:SS') AS transitionedAt,
+            session_id AS sessionId,
+            result_id AS resultId,
+            runtime_mode AS runtimeMode,
+            promotion_status AS promotionStatus,
+            promotion_message AS promotionMessage,
+            definition_formula_adopted_yn AS definitionFormulaAdoptedYn,
+            legacy_total AS legacyTotal,
+            definition_total AS definitionTotal,
+            delta
+        FROM emission_runtime_transition_history
+        WHERE category_code = #{categoryCode}
+          AND tier = #{tier}
+        ORDER BY history_id DESC
+        LIMIT 1
+    </select>
 
     <select id="selectLatestEmissionCalcResult" parameterType="long" resultType="hashmap">
         SELECT

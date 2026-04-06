@@ -1,5 +1,5 @@
-import { PAGE_MANIFESTS } from "../../app/screen-registry/pageManifests";
-import type { PageManifest } from "../../app/screen-registry/types";
+import { PAGE_MANIFESTS } from "../../platform/screen-registry/pageManifests";
+import type { PageManifest } from "../../platform/screen-registry/types";
 import type { FrameworkBuilderPageContract } from "../contracts/builderContract";
 
 function buildPageLabel(page: PageManifest): string {
@@ -31,4 +31,3 @@ export function buildFrameworkPageRegistry(): FrameworkBuilderPageContract[] {
     }))
     .sort((left, right) => left.pageId.localeCompare(right.pageId));
 }
-

@@ -6,7 +6,6 @@ import egovframework.com.common.audit.AuditTrailService;
 import egovframework.com.common.security.AdminActionRateLimitService;
 import egovframework.com.common.audit.AuditEventRecordVO;
 import egovframework.com.common.audit.AuditEventSearchVO;
-import egovframework.com.common.service.ObservabilityQueryService;
 import egovframework.com.common.trace.TraceEventSearchVO;
 import egovframework.com.feature.admin.dto.request.AdminBackupConfigSaveRequestDTO;
 import egovframework.com.feature.admin.dto.request.AdminBackupRunRequestDTO;
@@ -14,6 +13,7 @@ import egovframework.com.feature.admin.dto.request.AdminBackupVersionRestoreRequ
 import egovframework.com.feature.admin.dto.request.AdminUnifiedLogSearchRequestDTO;
 import egovframework.com.feature.admin.service.AdminShellBootstrapPageService;
 import egovframework.com.feature.auth.service.CurrentUserContextService;
+import egovframework.com.platform.observability.service.ObservabilityQueryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.http.HttpHeaders;

@@ -66,7 +66,7 @@ final class EmissionManagementValidationSupport {
         if (!tiers.contains(tier)) {
             throw new IllegalArgumentException("Unsupported tier for category.");
         }
-        if (!calculationDefinitionRegistry.supports(category, tier)) {
+        if (!hasRuntimeSupport(category, tier)) {
             throw new IllegalArgumentException("Tier is defined in metadata but no calculation definition is registered for "
                     + EmissionManagementValueSupport.safe(category == null ? null : category.getSubCode())
                     + "/" + tier + ".");
@@ -276,6 +276,25 @@ final class EmissionManagementValidationSupport {
 
     private Map<String, Object> publishedDefinition(EmissionCategoryVO category, int tier) {
         return definitionStudioService.findPublishedDefinitionRaw(category == null ? null : category.getSubCode(), tier);
+    }
+
+    boolean hasRuntimeSupport(EmissionCategoryVO category, Integer tier) {
+        return calculationDefinitionRegistry.supports(category, tier) || hasDefinitionBackedRuntime(category, tier);
+    }
+
+    boolean hasDefinitionBackedRuntime(EmissionCategoryVO category, Integer tier) {
+        if (tier == null) {
+            return false;
+        }
+        Map<String, Object> publishedDefinition = publishedDefinition(category, tier);
+        if (publishedDefinition.isEmpty()) {
+            return false;
+        }
+        Object formulaTree = publishedDefinition.get("formulaTree");
+        if (formulaTree instanceof List<?>) {
+            return !((List<?>) formulaTree).isEmpty();
+        }
+        return !safe(String.valueOf(publishedDefinition.get("formula"))).isEmpty();
     }
 
     private PolicyCodes policyCodes(Map<String, Object> publishedDefinition) {

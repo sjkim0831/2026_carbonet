@@ -21,4 +21,12 @@ public interface AdminEmissionManagementService {
     Map<String, Object> getLimeDefaultFactor();
 
     Map<String, Object> getRolloutStatusSummary();
+
+    Map<String, Object> getDefinitionScopeSummary();
+
+    Map<String, Object> getScopeStatus(String categoryCode, Integer tier, boolean isEn);
+
+    Map<String, Object> precheckPublishedDefinitionScope(String draftId, boolean isEn);
+
+    Map<String, Object> materializePublishedDefinitionScope(String draftId, String actorId, boolean isEn);
 }

@@ -123,7 +123,8 @@ class EmissionManagementConfiguration {
                                                                                 EmissionCalculationResultTransformer resultTransformer,
                                                                                 EmissionCategoryTierDataProvider categoryTierDataProvider,
                                                                                 EmissionManagementCommandBuilder commandBuilder,
-                                                                                DefinitionFormulaPreviewService definitionFormulaPreviewService) {
+                                                                                DefinitionFormulaPreviewService definitionFormulaPreviewService,
+                                                                                EmissionRuntimeTransitionHistoryService runtimeTransitionHistoryService) {
         return new EmissionCalculationApplicationService(
                 adminEmissionManagementMapper,
                 calculationDefinitionRegistry,
@@ -132,7 +133,25 @@ class EmissionManagementConfiguration {
                 resultTransformer,
                 categoryTierDataProvider,
                 commandBuilder,
-                definitionFormulaPreviewService
+                definitionFormulaPreviewService,
+                runtimeTransitionHistoryService
+        );
+    }
+
+    @Bean
+    EmissionScopeStatusService emissionScopeStatusService(AdminEmissionManagementMapper adminEmissionManagementMapper,
+                                                          AdminEmissionDefinitionStudioService adminEmissionDefinitionStudioService,
+                                                          EmissionManagementValidationSupport validationSupport,
+                                                          EmissionCalculationResultTransformer resultTransformer,
+                                                          EmissionMaterializationHistoryService materializationHistoryService,
+                                                          EmissionRuntimeTransitionHistoryService runtimeTransitionHistoryService) {
+        return new EmissionScopeStatusService(
+                adminEmissionManagementMapper,
+                adminEmissionDefinitionStudioService,
+                validationSupport,
+                resultTransformer,
+                materializationHistoryService,
+                runtimeTransitionHistoryService
         );
     }
 }

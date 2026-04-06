@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
-import { fetchAuditEvents } from "../../lib/api/observability";
+import { fetchAuditEvents } from "../../platform/observability/observability";
 import { RESONANCE_PROJECT_ID, fetchParityCompare, type ResonanceParityCompareRow } from "../../lib/api/resonanceControlPlane";
 import { fetchScreenBuilderPage, fetchScreenBuilderPreview } from "../../lib/api/screenBuilder";
 import { buildLocalizedPath, getSearchParam, isEnglish } from "../../lib/navigation/runtime";

@@ -13,8 +13,11 @@ import {
   fetchEmissionInputSession,
   fetchEmissionLimeDefaultFactor,
   fetchEmissionManagementPage,
+  fetchEmissionScopeStatus,
   fetchEmissionTiers,
   fetchEmissionVariableDefinitions,
+  materializeEmissionDefinitionScope,
+  precheckEmissionDefinitionScope,
   saveEmissionManagementElementDefinition,
   saveEmissionInputSession
 } from "../../lib/api/client";
@@ -241,6 +244,322 @@ function rolloutStatusLabel(status: string, en: boolean) {
   return en ? "Legacy only" : "레거시만";
 }
 
+function definitionScopeStatusTone(status: string) {
+  if (status === "READY") {
+    return "bg-emerald-100 text-emerald-700";
+  }
+  if (status === "MISSING_CALCULATION") {
+    return "bg-amber-100 text-amber-800";
+  }
+  return "bg-slate-200 text-slate-700";
+}
+
+function definitionScopeStatusLabel(status: string, en: boolean) {
+  if (status === "READY") {
+    return en ? "Runtime ready" : "런타임 가능";
+  }
+  if (status === "MISSING_CALCULATION") {
+    return en ? "Calc missing" : "계산기 미연결";
+  }
+  if (status === "STUDIO_ONLY_TIER") {
+    return en ? "Studio-only tier" : "스튜디오 전용 Tier";
+  }
+  if (status === "STUDIO_ONLY_CATEGORY") {
+    return en ? "Studio-only category" : "스튜디오 전용 분류";
+  }
+  return en ? "Pending" : "대기";
+}
+
+function scopeBlockingReasonLabel(code: string, en: boolean) {
+  if (code === "MISSING_CATEGORY") {
+    return en ? "Management category missing" : "management 카테고리 없음";
+  }
+  if (code === "MISSING_TIER") {
+    return en ? "Management tier missing" : "management Tier 없음";
+  }
+  if (code === "MISSING_VARIABLES") {
+    return en ? "Variable metadata missing" : "변수 메타데이터 없음";
+  }
+  if (code === "MISSING_RUNTIME_SUPPORT") {
+    return en ? "Runtime support missing" : "런타임 지원 없음";
+  }
+  if (code === "EMPTY_FORMULA_TREE") {
+    return en ? "Formula tree empty" : "formulaTree 비어 있음";
+  }
+  return code || (en ? "Unknown issue" : "알 수 없는 이슈");
+}
+
+function scopeRecommendedAction(status: Record<string, unknown> | null, precheck: Record<string, unknown> | null, en: boolean) {
+  const lifecycleStatus = stringOf(status?.lifecycleStatus).toUpperCase();
+  const promotionStatus = stringOf(status?.promotionStatus).toUpperCase();
+  const blockingReasons = arrayOf<Record<string, unknown>>(precheck?.blockingReasons || status?.blockingReasons);
+  const firstReasonCode = stringOf(blockingReasons[0]?.code).toUpperCase();
+
+  if (precheck && Boolean(precheck.materializable)) {
+    return en
+      ? "Precheck passed. You can materialize metadata for this published definition now."
+      : "사전 점검이 통과했습니다. 이 publish 정의를 바로 메타 반영할 수 있습니다.";
+  }
+  if (firstReasonCode === "MISSING_CATEGORY") {
+    return en
+      ? "Create or map the management category first, then rerun precheck."
+      : "먼저 management 카테고리를 만들거나 연결한 뒤 사전 점검을 다시 실행하세요.";
+  }
+  if (firstReasonCode === "MISSING_TIER") {
+    return en
+      ? "Add the missing management tier row, then rerun precheck."
+      : "누락된 management Tier를 추가한 뒤 사전 점검을 다시 실행하세요.";
+  }
+  if (firstReasonCode === "MISSING_VARIABLES") {
+    return en
+      ? "Materialize or complete variable metadata before trying runtime verification."
+      : "런타임 검증 전에 변수 메타데이터를 먼저 반영하거나 보완하세요.";
+  }
+  if (firstReasonCode === "MISSING_RUNTIME_SUPPORT") {
+    return en
+      ? "Metadata is present, but calculator/runtime support is still missing. Keep this scope blocked until runtime support is added."
+      : "메타데이터는 있지만 계산기/런타임 지원이 아직 없습니다. 런타임 지원이 추가될 때까지 이 scope는 차단 상태로 유지해야 합니다.";
+  }
+  if (firstReasonCode === "EMPTY_FORMULA_TREE") {
+    return en
+      ? "Republish the definition with a valid formula tree before materialization."
+      : "유효한 formulaTree를 포함하도록 정의를 다시 publish 한 뒤 반영하세요.";
+  }
+  if (lifecycleStatus === "MATERIALIZED" && promotionStatus === "PRIMARY_READY") {
+    return en
+      ? "This scope is already primary-active. Monitor parity and drift only."
+      : "이 scope는 이미 primary 활성 상태입니다. parity와 drift만 계속 모니터링하면 됩니다.";
+  }
+  if (lifecycleStatus === "MATERIALIZED" && promotionStatus === "READY") {
+    return en
+      ? "Parity is aligned. This scope is ready for runtime promotion."
+      : "parity가 맞았습니다. 이 scope는 런타임 전환 후보입니다.";
+  }
+  if (lifecycleStatus === "MATERIALIZED") {
+    return en
+      ? "Metadata is already materialized. Run calculate and review rollout status."
+      : "메타 반영은 끝났습니다. calculate를 실행하고 rollout 상태를 확인하세요.";
+  }
+  if (lifecycleStatus === "DRAFT") {
+    return en
+      ? "No published definition snapshot is available yet. Publish from definition studio first."
+      : "아직 publish 된 정의 스냅샷이 없습니다. 먼저 definition studio에서 publish 하세요.";
+  }
+  return en
+    ? "Review the current blocking reasons and rerun precheck after the missing prerequisites are fixed."
+    : "현재 차단 사유를 확인하고, 누락된 선행 조건을 보완한 뒤 사전 점검을 다시 실행하세요.";
+}
+
+function buildScopeTimeline(status: Record<string, unknown> | null, en: boolean) {
+  const published = Boolean(status?.published);
+  const materialized = Boolean(status?.materialized);
+  const lifecycleStatus = stringOf(status?.lifecycleStatus).toUpperCase();
+  const promotionStatus = stringOf(status?.promotionStatus).toUpperCase();
+  const lastPublishedAt = stringOf(status?.lastPublishedAt) || "-";
+  const lastVerifiedAt = stringOf(status?.lastVerifiedAt) || "-";
+  const lastRuntimeTransitionAt = stringOf(status?.lastRuntimeTransitionAt) || "-";
+  const lastRuntimePromotionStatus = stringOf(status?.lastRuntimePromotionStatus).toUpperCase() || "-";
+
+  return [
+    {
+      key: "published",
+      label: en ? "Published" : "정의 확정",
+      description: published
+        ? (en ? `Published snapshot recorded at ${lastPublishedAt}.` : `${lastPublishedAt} 기준 publish 스냅샷이 기록됐습니다.`)
+        : (en ? "No published definition snapshot exists yet." : "아직 publish 된 정의 스냅샷이 없습니다."),
+      completed: published
+    },
+    {
+      key: "materialized",
+      label: en ? "Metadata" : "메타 반영",
+      description: materialized
+        ? (en ? "Management metadata is already materialized." : "management 메타데이터 반영이 완료됐습니다.")
+        : (en ? "Management metadata is not materialized yet." : "management 메타데이터가 아직 반영되지 않았습니다."),
+      completed: materialized
+    },
+    {
+      key: "runtime",
+      label: en ? "Runtime ready" : "런타임 준비",
+      description: promotionStatus === "PRIMARY_READY" || promotionStatus === "READY"
+        ? (en
+          ? `Runtime verification is aligned. Last verification: ${lastVerifiedAt}. Last transition: ${lastRuntimeTransitionAt}.`
+          : `런타임 검증이 정렬됐습니다. 마지막 검증 시각: ${lastVerifiedAt}. 마지막 전환 시각: ${lastRuntimeTransitionAt}.`)
+        : lifecycleStatus === "RUNTIME_BLOCKED"
+          ? (en ? "Runtime support is still blocked for this scope." : "이 scope는 아직 런타임 지원이 차단 상태입니다.")
+          : (en
+            ? `Runtime verification is not complete yet. Latest recorded transition status: ${lastRuntimePromotionStatus}.`
+            : `런타임 검증이 아직 완료되지 않았습니다. 최근 기록된 전환 상태: ${lastRuntimePromotionStatus}.`),
+      completed: promotionStatus === "PRIMARY_READY" || promotionStatus === "READY"
+    },
+    {
+      key: "primary",
+      label: en ? "Primary active" : "운영 적용",
+      description: promotionStatus === "PRIMARY_READY"
+        ? (en ? "Definition-backed path is active in primary runtime." : "정의 기반 경로가 primary 런타임에서 활성 상태입니다.")
+        : (en ? "Primary runtime adoption has not happened yet." : "primary 런타임 전환은 아직 되지 않았습니다."),
+      completed: promotionStatus === "PRIMARY_READY"
+    }
+  ];
+}
+
+function scopeEvidenceItems(status: Record<string, unknown> | null, en: boolean) {
+  return [
+    {
+      key: "draft",
+      label: en ? "Draft ID" : "Draft ID",
+      value: stringOf(status?.draftId) || "-",
+      tone: "slate"
+    },
+    {
+      key: "version",
+      label: en ? "Published version" : "Publish 버전",
+      value: stringOf(status?.publishedVersionId) || "-",
+      tone: "slate"
+    },
+    {
+      key: "publishedAt",
+      label: en ? "Last published" : "마지막 publish",
+      value: stringOf(status?.lastPublishedAt) || "-",
+      tone: stringOf(status?.lastPublishedAt) ? "blue" : "slate"
+    },
+    {
+      key: "materializedAt",
+      label: en ? "Last materialized" : "마지막 메타 반영",
+      value: stringOf(status?.lastMaterializedAt) || "-",
+      tone: stringOf(status?.lastMaterializedAt) ? "indigo" : "slate"
+    },
+    {
+      key: "materializedBy",
+      label: en ? "Materialized by" : "메타 반영 작업자",
+      value: stringOf(status?.lastMaterializedBy) || "-",
+      tone: stringOf(status?.lastMaterializedBy) ? "indigo" : "slate"
+    },
+    {
+      key: "verifiedAt",
+      label: en ? "Last verified" : "마지막 검증",
+      value: stringOf(status?.lastVerifiedAt) || "-",
+      tone: stringOf(status?.lastVerifiedAt) ? "emerald" : "slate"
+    },
+    {
+      key: "runtimeMode",
+      label: en ? "Runtime mode" : "런타임 모드",
+      value: stringOf(status?.lastRuntimeMode) || stringOf(status?.runtimeMode) || "-",
+      tone: stringOf(status?.lastRuntimeMode) || stringOf(status?.runtimeMode) ? "emerald" : "slate"
+    },
+    {
+      key: "runtimeStatus",
+      label: en ? "Last transition status" : "마지막 전환 상태",
+      value: stringOf(status?.lastRuntimePromotionStatus) || stringOf(status?.promotionStatus) || "-",
+      tone: stringOf(status?.lastRuntimePromotionStatus) || stringOf(status?.promotionStatus) ? "emerald" : "slate"
+    },
+    {
+      key: "runtimeAt",
+      label: en ? "Last runtime transition" : "마지막 런타임 전환",
+      value: stringOf(status?.lastRuntimeTransitionAt) || "-",
+      tone: stringOf(status?.lastRuntimeTransitionAt) ? "emerald" : "slate"
+    },
+    {
+      key: "runtimeBy",
+      label: en ? "Runtime transition by" : "런타임 전환 작업자",
+      value: stringOf(status?.lastRuntimeTransitionBy) || "-",
+      tone: stringOf(status?.lastRuntimeTransitionBy) ? "emerald" : "slate"
+    }
+  ];
+}
+
+function buildScopeActivityFeed(status: Record<string, unknown> | null, en: boolean) {
+  const backendItems = arrayOf<Record<string, unknown>>(status?.activityFeed);
+  if (backendItems.length > 0) {
+    return backendItems.map((item) => ({
+      key: stringOf(item.type) || "activity",
+      at: stringOf(item.at) || "-",
+      title:
+        stringOf(item.type) === "published"
+          ? (en ? "Published snapshot" : "publish 스냅샷")
+          : stringOf(item.type) === "materialized"
+            ? (en ? "Metadata materialized" : "메타 반영")
+            : stringOf(item.type) === "runtime-transition"
+              ? (en ? "Runtime transition" : "런타임 전환")
+              : (en ? "Calculation verified" : "계산 검증"),
+      detail: stringOf(item.actor)
+        ? `${stringOf(item.status) || "-"} · ${stringOf(item.actor)}`
+        : stringOf(item.status) || "-",
+      tone:
+        stringOf(item.type) === "published"
+          ? "blue"
+          : stringOf(item.type) === "materialized"
+            ? "indigo"
+            : "emerald",
+      message: stringOf(item.message)
+    }));
+  }
+
+  const items = [
+    stringOf(status?.lastPublishedAt)
+      ? {
+          key: "published",
+          at: stringOf(status?.lastPublishedAt),
+          title: en ? "Published snapshot" : "publish 스냅샷",
+          detail: stringOf(status?.publishedVersionId)
+            ? (en
+              ? `Published version ${stringOf(status?.publishedVersionId)} was recorded.`
+              : `Publish 버전 ${stringOf(status?.publishedVersionId)} 이 기록됐습니다.`)
+            : (en ? "A published definition snapshot was recorded." : "publish 된 정의 스냅샷이 기록됐습니다."),
+          tone: "blue"
+        }
+      : null,
+    stringOf(status?.lastMaterializedAt)
+      ? {
+          key: "materialized",
+          at: stringOf(status?.lastMaterializedAt),
+          title: en ? "Metadata materialized" : "메타 반영",
+          detail: stringOf(status?.lastMaterializedBy)
+            ? (en
+              ? `Metadata was materialized by ${stringOf(status?.lastMaterializedBy)}.`
+              : `${stringOf(status?.lastMaterializedBy)} 작업자가 메타를 반영했습니다.`)
+            : (en ? "Management metadata was materialized." : "management 메타데이터가 반영됐습니다."),
+          tone: "indigo"
+        }
+      : null,
+    stringOf(status?.lastRuntimeTransitionAt)
+      ? {
+          key: "runtime-transition",
+          at: stringOf(status?.lastRuntimeTransitionAt),
+          title: en ? "Runtime transition" : "런타임 전환",
+          detail: (() => {
+            const parts = [
+              stringOf(status?.lastRuntimeMode) ? `${en ? "mode" : "모드"} ${stringOf(status?.lastRuntimeMode)}` : "",
+              stringOf(status?.lastRuntimePromotionStatus) ? `${en ? "status" : "상태"} ${stringOf(status?.lastRuntimePromotionStatus)}` : "",
+              stringOf(status?.lastRuntimeTransitionBy) ? `${en ? "by" : "작업자"} ${stringOf(status?.lastRuntimeTransitionBy)}` : ""
+            ].filter(Boolean);
+            return parts.length > 0
+              ? parts.join(" · ")
+              : (en ? "A runtime transition snapshot was recorded." : "런타임 전환 스냅샷이 기록됐습니다.");
+          })(),
+          tone: "emerald"
+        }
+      : null,
+    stringOf(status?.lastVerifiedAt)
+      ? {
+          key: "verified",
+          at: stringOf(status?.lastVerifiedAt),
+          title: en ? "Calculation verified" : "계산 검증",
+          detail: stringOf(status?.promotionStatus)
+            ? (en
+              ? `Latest verified promotion status is ${stringOf(status?.promotionStatus)}.`
+              : `최근 검증된 전환 상태는 ${stringOf(status?.promotionStatus)} 입니다.`)
+            : (en ? "A calculation verification snapshot was recorded." : "계산 검증 스냅샷이 기록됐습니다."),
+          tone: "emerald"
+        }
+      : null
+  ].filter(Boolean) as Array<{ key: string; at: string; title: string; detail: string; tone: string }>;
+
+  return items.sort((left, right) => right.at.localeCompare(left.at)).map((item) => ({
+    ...item,
+    message: item.detail
+  }));
+}
+
 function presentCalculationText(value: string, en: boolean) {
   return stringOf(value)
     .replace(/\bHIGH_CALCIUM\b/g, localizedLimeTypeLabel("HIGH_CALCIUM", en))
@@ -370,6 +689,19 @@ function findCategoryById(categories: EmissionCategoryItem[], categoryId: number
   return categories.find((item) => numberOf(item.categoryId) === categoryId) || null;
 }
 
+function findCategoryByCode(categories: EmissionCategoryItem[], categoryCode: string) {
+  const normalizedCode = stringOf(categoryCode).toUpperCase();
+  return categories.find((item) => stringOf(item.subCode).toUpperCase() === normalizedCode) || null;
+}
+
+function virtualCategoryIdForCode(categoryCode: string) {
+  const normalized = stringOf(categoryCode).toUpperCase();
+  if (!normalized) {
+    return 0;
+  }
+  return -Array.from(normalized).reduce((accumulator, character) => accumulator + character.charCodeAt(0), 0);
+}
+
 function readSessionIdFromUrl() {
   if (typeof window === "undefined") {
     return 0;
@@ -402,6 +734,12 @@ export function EmissionManagementMigrationPage() {
     formulaLabel: string;
   };
 
+  type ScopeBlockingReason = {
+    code?: string;
+    message?: string;
+    blocking?: boolean;
+  };
+
   const en = isEnglish();
   const [page, setPage] = useState<EmissionManagementPagePayload | null>(null);
   const [elementRegistryRows, setElementRegistryRows] = useState<Array<Record<string, unknown>>>([]);
@@ -430,15 +768,21 @@ export function EmissionManagementMigrationPage() {
   const [tierGuideLoading, setTierGuideLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [calculating, setCalculating] = useState(false);
+  const [materializingDraftId, setMaterializingDraftId] = useState("");
+  const [precheckingDraftId, setPrecheckingDraftId] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [warning, setWarning] = useState("");
+  const [selectedScopeStatus, setSelectedScopeStatus] = useState<Record<string, unknown> | null>(null);
+  const [scopeStatusLoading, setScopeStatusLoading] = useState(false);
+  const [selectedScopePrecheck, setSelectedScopePrecheck] = useState<Record<string, unknown> | null>(null);
   const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([]);
   const [pendingValidationFocus, setPendingValidationFocus] = useState<ValidationIssue | null>(null);
   const [activeFormulaStep, setActiveFormulaStep] = useState(0);
   const [focusedFormulaToken, setFocusedFormulaToken] = useState("");
   const [hoveredFormulaToken, setHoveredFormulaToken] = useState("");
   const [highlightedHelpId, setHighlightedHelpId] = useState("");
+  const [activityFeedOverlayOpen, setActivityFeedOverlayOpen] = useState(false);
   const elementRegistrySummary = (page?.elementRegistrySummary || []) as Array<Record<string, string>>;
   const elementTypeOptions = (page?.elementTypeOptions || []) as Array<Record<string, string>>;
   const layoutZoneOptions = (page?.layoutZoneOptions || []) as Array<Record<string, string>>;
@@ -446,6 +790,8 @@ export function EmissionManagementMigrationPage() {
   const formulaReference = (page?.formulaReference || null) as Record<string, unknown> | null;
   const rolloutSummaryCards = (page?.rolloutSummaryCards || []) as Array<Record<string, string>>;
   const rolloutStatusRows = (page?.rolloutStatusRows || []) as Array<Record<string, unknown>>;
+  const definitionScopeSummaryCards = (page?.definitionScopeSummaryCards || []) as Array<Record<string, string>>;
+  const definitionScopeRows = (page?.definitionScopeRows || []) as Array<Record<string, unknown>>;
   const definitionDraftRows = ((page?.publishedDefinitionRows || page?.definitionDraftRows || []) as Array<Record<string, unknown>>);
   const definitionPolicyOptions = (page?.definitionPolicyOptions || []) as Array<Record<string, string>>;
   const selectedPublishedDefinition = (page?.selectedPublishedDefinition || null) as Record<string, unknown> | null;
@@ -473,6 +819,12 @@ export function EmissionManagementMigrationPage() {
     return `${stringOf(category.subCode)} ${stringOf(category.subName)}`.toLowerCase().includes(keyword);
   });
   const selectedMajorOption = majorOptions.find((option) => option.key === selectedMajorKey) || null;
+  const hasSelectedCategory = selectedCategoryId !== 0;
+  const selectedTierItem = tiers.find((tier) => numberOf(tier.tier) === selectedTier) || null;
+  const selectedCategoryDefinitionScopeRows = definitionScopeRows.filter((row) => {
+    return stringOf(row.categoryCode).toUpperCase() === stringOf(selectedCategory?.subCode).toUpperCase();
+  });
+  const blockedSelectedCategoryDefinitionScopeRows = selectedCategoryDefinitionScopeRows.filter((row) => !Boolean(row.runtimeSupported));
   const matchingDefinitionDrafts = definitionDraftRows.filter((row) => draftMatchesScope(row, stringOf(selectedCategory?.subCode), selectedTier));
   const appliedDefinitionDraft = matchingDefinitionDrafts.find((row) => stringOf(row.draftId) === appliedDefinitionDraftId)
     || matchingDefinitionDrafts[0]
@@ -492,6 +844,19 @@ export function EmissionManagementMigrationPage() {
   const appliedDefinitionPolicies = definitionPolicyBadges(appliedDefinitionDraft);
   const effectiveFormulaSummary = stringOf(appliedDefinitionDraft?.formula) || formulaSummary;
   const appliedFormulaTree = normalizeFormulaTreeBlocks(appliedDefinitionDraft?.formulaTree);
+  const selectedScopeBlockingReasons = arrayOf<ScopeBlockingReason>(selectedScopeStatus?.blockingReasons);
+  const selectedScopeWarnings = arrayOf<string>(selectedScopeStatus?.warnings);
+  const selectedScopePrecheckBlockingReasons = arrayOf<ScopeBlockingReason>(selectedScopePrecheck?.blockingReasons);
+  const selectedScopeActionGuide = scopeRecommendedAction(selectedScopeStatus, selectedScopePrecheck, en);
+  const selectedScopeTimeline = buildScopeTimeline(selectedScopeStatus, en);
+  const selectedScopeEvidence = scopeEvidenceItems(selectedScopeStatus, en);
+  const selectedScopeActivityFeed = buildScopeActivityFeed(selectedScopeStatus, en);
+  const selectedScopeActivityFeedPreview = selectedScopeActivityFeed.slice(0, 4);
+  const hasAdditionalSelectedScopeActivityFeed = selectedScopeActivityFeed.length > selectedScopeActivityFeedPreview.length;
+
+  useEffect(() => {
+    setActivityFeedOverlayOpen(false);
+  }, [selectedCategoryId, selectedTier]);
 
   function normalizeTierLabelValue(value: unknown) {
     return stringOf(value).replace(/\s+/g, " ").trim().toUpperCase();
@@ -537,6 +902,73 @@ export function EmissionManagementMigrationPage() {
       return definitionDraftForScope(categoryCode, tierOverride);
     }
     return appliedDefinitionDraft;
+  }
+
+  function mergeCategoriesWithDefinitionScopes(baseCategories: EmissionCategoryItem[], scopeRows: Array<Record<string, unknown>>) {
+    const merged = baseCategories.map((category) => ({ ...category }));
+    const indexByCode = new Map<string, number>();
+    merged.forEach((category, index) => {
+      indexByCode.set(stringOf(category.subCode).toUpperCase(), index);
+    });
+    scopeRows.forEach((row) => {
+      const categoryCode = stringOf(row.categoryCode).toUpperCase();
+      if (!categoryCode) {
+        return;
+      }
+      const categoryName = stringOf(row.categoryName) || categoryCode;
+      const existingIndex = indexByCode.get(categoryCode);
+      if (typeof existingIndex === "number") {
+        const existing = merged[existingIndex];
+        merged[existingIndex] = {
+          ...existing,
+          definitionPublishedCount: numberOf(existing.definitionPublishedCount) + 1,
+          blockedDefinitionCount: numberOf(existing.blockedDefinitionCount) + (Boolean(row.runtimeSupported) ? 0 : 1),
+          hasPublishedDefinition: true
+        };
+        return;
+      }
+      indexByCode.set(categoryCode, merged.length);
+      merged.push({
+        categoryId: virtualCategoryIdForCode(categoryCode),
+        majorCode: "STUDIO",
+        majorName: en ? "Definition studio" : "정의 스튜디오",
+        subCode: categoryCode,
+        subName: categoryName,
+        useYn: "Y",
+        sourceType: "STUDIO_ONLY",
+        virtualCategory: true,
+        hasPublishedDefinition: true,
+        definitionPublishedCount: 1,
+        blockedDefinitionCount: Boolean(row.runtimeSupported) ? 0 : 1
+      });
+    });
+    return merged;
+  }
+
+  function tierItemsForDefinitionScope(categoryCode: string, existingTiers: EmissionTierItem[] = []) {
+    const tierMap = new Map<number, EmissionTierItem>();
+    existingTiers.forEach((tier) => {
+      tierMap.set(numberOf(tier.tier), { ...tier });
+    });
+    const scopeRows = definitionScopeRows.filter((row) => stringOf(row.categoryCode).toUpperCase() === stringOf(categoryCode).toUpperCase());
+    scopeRows.forEach((row) => {
+      const tierNumber = numberOf(row.tier);
+      if (tierNumber <= 0) {
+        return;
+      }
+      const existing = tierMap.get(tierNumber) || {};
+      tierMap.set(tierNumber, {
+        ...existing,
+        tier: tierNumber,
+        tierLabel: stringOf(existing.tierLabel) || stringOf(row.tierLabel) || `Tier ${tierNumber}`,
+        runtimeSupported: Boolean(row.runtimeSupported),
+        status: stringOf(row.status) || stringOf(existing.status),
+        statusMessage: stringOf(row.statusMessage) || stringOf(existing.statusMessage),
+        runtimeMode: stringOf(row.runtimeMode) || stringOf(existing.runtimeMode),
+        publishedDefinition: true
+      });
+    });
+    return Array.from(tierMap.values()).sort((left, right) => numberOf(left.tier) - numberOf(right.tier));
   }
 
   function definitionPolicyCodeLists(categoryOverride: EmissionCategoryItem | null = selectedCategory, tierOverride = selectedTier) {
@@ -1853,9 +2285,12 @@ export function EmissionManagementMigrationPage() {
     });
   }
 
-  async function loadCategories() {
+  async function loadCategories(pagePayload?: EmissionManagementPagePayload | null) {
     const response = await fetchEmissionCategories("");
-    const nextCategories = response.items || [];
+    const nextCategories = mergeCategoriesWithDefinitionScopes(
+      response.items || [],
+      ((pagePayload?.definitionScopeRows || []) as Array<Record<string, unknown>>)
+    );
     setCategories(nextCategories);
     if (!selectedCategoryId && nextCategories.length === 1) {
       const nextCategory = nextCategories[0];
@@ -1865,6 +2300,13 @@ export function EmissionManagementMigrationPage() {
         await handleCategoryChange(nextCategoryId, nextCategories);
       }
     }
+  }
+
+  async function reloadManagementPage() {
+    const pageResponse = await fetchEmissionManagementPage().catch(() => null);
+    setPage(pageResponse);
+    await loadCategories(pageResponse);
+    return pageResponse;
   }
 
   async function loadDefinitions(categoryId: number, tier: number, existingValues?: Array<Record<string, unknown>>, existingResult?: Record<string, unknown> | null) {
@@ -1884,18 +2326,19 @@ export function EmissionManagementMigrationPage() {
     }
   }
 
-  async function loadTierGuides(categoryId: number, tierItems: EmissionTierItem[]) {
+  async function loadTierGuides(categoryId: number, tierItems: EmissionTierItem[], categoryOverride?: EmissionCategoryItem | null) {
     if (categoryId <= 0 || tierItems.length === 0) {
       setTierGuideMap({});
       return;
     }
     setTierGuideLoading(true);
     try {
+      const supportedTierItems = tierItems.filter((tierItem) => Boolean(tierItem.runtimeSupported ?? true));
       const results = await Promise.allSettled(
-        tierItems.map(async (tierItem) => {
+        supportedTierItems.map(async (tierItem) => {
           const tierNumber = numberOf(tierItem.tier);
           const response = await fetchEmissionVariableDefinitions(categoryId, tierNumber);
-          const mergedVariables = mergeDefinitionVariableOverrides(response.variables || [], selectedCategory, tierNumber);
+          const mergedVariables = mergeDefinitionVariableOverrides(response.variables || [], categoryOverride || selectedCategory, tierNumber);
           return {
             tier: tierNumber,
             guide: buildTierGuide(mergedVariables, response.formulaSummary, response.formulaDisplay)
@@ -1927,12 +2370,28 @@ export function EmissionManagementMigrationPage() {
       setTiers([]);
       return;
     }
+    if (Boolean(nextCategory?.virtualCategory)) {
+      const nextTiers = tierItemsForDefinitionScope(stringOf(nextCategory?.subCode));
+      setTiers(nextTiers);
+      setWarning(en
+        ? "This category exists only in published definition studio scopes. Runtime input/calculation stays blocked until DB metadata and calculator support are added."
+        : "이 분류는 현재 publish 된 definition studio 범위에만 존재합니다. DB 메타데이터와 계산기 지원이 추가되기 전까지는 런타임 입력/계산이 막혀 있습니다.");
+      setTierGuideMap({});
+      return;
+    }
     const response = await fetchEmissionTiers(categoryId);
-    setSelectedCategory((response.category as EmissionCategoryItem) || nextCategory);
-    const nextTiers = response.tiers || [];
+    const resolvedCategory = (response.category as EmissionCategoryItem) || nextCategory;
+    setSelectedCategory(resolvedCategory);
+    const nextTiers = tierItemsForDefinitionScope(
+      stringOf(resolvedCategory?.subCode),
+      [
+        ...((response.tiers || []) as EmissionTierItem[]).map((tier) => ({ ...tier, runtimeSupported: true })),
+        ...((response.unsupportedTiers || []) as EmissionTierItem[]).map((tier) => ({ ...tier, runtimeSupported: false }))
+      ]
+    );
     setTiers(nextTiers);
     setWarning(stringOf(response.warning));
-    await loadTierGuides(categoryId, nextTiers);
+    await loadTierGuides(categoryId, nextTiers, resolvedCategory);
   }
 
   async function handleTierChange(tier: number) {
@@ -1960,13 +2419,19 @@ export function EmissionManagementMigrationPage() {
     const restoredCategory = (tiersResponse.category as EmissionCategoryItem) || null;
     setSelectedCategory(restoredCategory);
     setSelectedMajorKey(majorCategoryKey(restoredCategory));
-    setTiers(tiersResponse.tiers || []);
+    setTiers(tierItemsForDefinitionScope(
+      stringOf(restoredCategory?.subCode),
+      [
+        ...((tiersResponse.tiers || []) as EmissionTierItem[]).map((item) => ({ ...item, runtimeSupported: true })),
+        ...((tiersResponse.unsupportedTiers || []) as EmissionTierItem[]).map((item) => ({ ...item, runtimeSupported: false }))
+      ]
+    ));
     setWarning(stringOf(tiersResponse.warning));
     await loadDefinitions(categoryId, tier, existingValues, existingResult);
   }
 
   async function proceedToInputStep() {
-    if (selectedCategoryId <= 0) {
+    if (selectedCategoryId === 0) {
       setError(en ? "Select a major and subcategory first." : "대분류와 중분류를 먼저 선택하세요.");
       return;
     }
@@ -1974,11 +2439,104 @@ export function EmissionManagementMigrationPage() {
       setError(en ? "Select a tier first." : "Tier를 먼저 선택하세요.");
       return;
     }
+    if (!Boolean(selectedTierItem?.runtimeSupported ?? true)) {
+      setError(en
+        ? "The selected tier is published in definition studio, but management cannot open it yet because runtime support is still missing."
+        : "선택한 Tier는 definition studio에는 publish 되어 있지만, management 런타임 지원이 없어 아직 열 수 없습니다.");
+      return;
+    }
     setError("");
     setWarning("");
     setMessage("");
     await loadDefinitions(selectedCategoryId, selectedTier);
     setWizardStep(2);
+  }
+
+  async function handleMaterializeDefinitionScope(draftId: string) {
+    if (!draftId) {
+      return;
+    }
+    setMaterializingDraftId(draftId);
+    setError("");
+    try {
+      const response = await materializeEmissionDefinitionScope(draftId);
+      setMessage(stringOf(response.message) || (en ? "Definition scope materialized." : "정의 범위를 반영했습니다."));
+      await reloadManagementPage();
+      if (stringOf(selectedCategory?.subCode) && selectedTier > 0) {
+        await loadSelectedScopeStatus(stringOf(selectedCategory?.subCode), selectedTier);
+      }
+      setSelectedScopePrecheck(null);
+    } catch (materializeError) {
+      setError(materializeError instanceof Error
+        ? materializeError.message
+        : (en ? "Failed to materialize the definition scope." : "정의 범위 반영에 실패했습니다."));
+    } finally {
+      setMaterializingDraftId("");
+    }
+  }
+
+  async function loadSelectedScopeStatus(categoryCode: string, tier: number) {
+    if (!categoryCode || tier <= 0) {
+      setSelectedScopeStatus(null);
+      return;
+    }
+    setScopeStatusLoading(true);
+    try {
+      const response = await fetchEmissionScopeStatus(categoryCode, tier);
+      setSelectedScopeStatus(response);
+    } catch (scopeStatusError) {
+      setSelectedScopeStatus(null);
+      setError(scopeStatusError instanceof Error
+        ? scopeStatusError.message
+        : (en ? "Failed to load the scope status." : "선택 scope 상태를 불러오지 못했습니다."));
+    } finally {
+      setScopeStatusLoading(false);
+    }
+  }
+
+  async function handlePrecheckDefinitionScope(draftId: string) {
+    if (!draftId) {
+      return;
+    }
+    setPrecheckingDraftId(draftId);
+    setError("");
+    try {
+      const response = await precheckEmissionDefinitionScope(draftId);
+      setSelectedScopePrecheck(response);
+      setMessage(stringOf(response.displayStatusDescription)
+        || (en ? "Definition scope precheck completed." : "정의 범위 사전 점검을 완료했습니다."));
+    } catch (precheckError) {
+      setError(precheckError instanceof Error
+        ? precheckError.message
+        : (en ? "Failed to precheck the definition scope." : "정의 범위 사전 점검에 실패했습니다."));
+    } finally {
+      setPrecheckingDraftId("");
+    }
+  }
+
+  async function focusDefinitionScope(row: Record<string, unknown>) {
+    const categoryCode = stringOf(row.categoryCode);
+    const tierNumber = numberOf(row.tier);
+    if (!categoryCode || tierNumber <= 0) {
+      return;
+    }
+    const matchedCategory = findCategoryByCode(categories, categoryCode);
+    if (!matchedCategory) {
+      setError(en ? "Unable to find the matching category for this scope." : "이 scope와 일치하는 카테고리를 찾지 못했습니다.");
+      return;
+    }
+    const categoryId = numberOf(matchedCategory.categoryId);
+    if (categoryId === 0) {
+      setError(en ? "The matching category does not expose a valid selection id." : "일치하는 카테고리에 유효한 선택 id가 없습니다.");
+      return;
+    }
+    setError("");
+    setMessage("");
+    await handleCategoryChange(categoryId, categories);
+    setSelectedTier(tierNumber);
+    if (stringOf(row.draftId)) {
+      setAppliedDefinitionDraftId(stringOf(row.draftId));
+    }
   }
 
   function updateInput(varCode: string, rowIndex: number, value: string) {
@@ -2812,7 +3370,7 @@ export function EmissionManagementMigrationPage() {
         setElementRegistryRows(((pageResponse?.elementRegistryRows || []) as Array<Record<string, unknown>>));
         applyElementDefinition(((pageResponse?.selectedElementDefinition || null) as Record<string, unknown> | null));
         setLimeDefaultFactor(limeResponse);
-        await loadCategories();
+        await loadCategories(pageResponse);
         const initialSessionId = readSessionIdFromUrl();
         if (initialSessionId > 0) {
           await restoreSession(initialSessionId);
@@ -2849,6 +3407,15 @@ export function EmissionManagementMigrationPage() {
       setAppliedDefinitionDraftId(stringOf(matchingDefinitionDrafts[0]?.draftId));
     }
   }, [appliedDefinitionDraftId, matchingDefinitionDrafts]);
+
+  useEffect(() => {
+    if (!stringOf(selectedCategory?.subCode) || selectedTier <= 0) {
+      setSelectedScopeStatus(null);
+      setSelectedScopePrecheck(null);
+      return;
+    }
+    void loadSelectedScopeStatus(stringOf(selectedCategory?.subCode), selectedTier);
+  }, [en, selectedCategory?.subCode, selectedTier]);
 
   useEffect(() => {
     logGovernanceScope("PAGE", "emission-management", {
@@ -3007,6 +3574,430 @@ export function EmissionManagementMigrationPage() {
             </div>
           </section>
         ) : null}
+
+        <section className="gov-card" data-help-id="emission-management-definition-scope-status">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-blue)]">{en ? "Studio scope bridge" : "스튜디오-런타임 연결 현황"}</p>
+              <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+                {en
+                  ? "Shows whether each published definition scope is already backed by management metadata and a registered calculator."
+                  : "publish 된 정의 범위가 management 메타데이터와 런타임 계산기에 이미 연결됐는지 보여 줍니다."}
+              </p>
+            </div>
+            <a className="gov-btn gov-btn-secondary" href={buildLocalizedPath("/admin/emission/definition-studio", "/en/admin/emission/definition-studio")}>
+              {en ? "Open definition studio" : "배출 정의 관리 열기"}
+            </a>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
+            {definitionScopeSummaryCards.map((card) => (
+              <SummaryMetricCard
+                key={`${stringOf(card.title)}-${stringOf(card.value)}`}
+                title={stringOf(card.title)}
+                value={stringOf(card.value)}
+                description={stringOf(card.description)}
+              />
+            ))}
+          </div>
+
+          {selectedCategoryDefinitionScopeRows.length > 0 ? (
+            <div className="mt-4 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--kr-gov-blue)]">
+                    {en ? "Selected category scope status" : "선택 분류의 정의 연결 상태"}
+                  </p>
+                  <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+                    {en
+                      ? "Published scopes under the currently selected category."
+                      : "현재 선택한 분류 아래 publish 된 범위들입니다."}
+                  </p>
+                </div>
+                <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-700">{selectedCategoryDefinitionScopeRows.length}</span>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {selectedCategoryDefinitionScopeRows.map((row) => (
+                  <span className={`rounded-full px-3 py-1 text-xs font-bold ${definitionScopeStatusTone(stringOf(row.status))}`} key={`selected-scope-${stringOf(row.categoryCode)}-${stringOf(row.tier)}`}>
+                    {`${stringOf(row.tierLabel) || `Tier ${numberOf(row.tier)}`} · ${definitionScopeStatusLabel(stringOf(row.status), en)}`}
+                  </span>
+                ))}
+              </div>
+              {blockedSelectedCategoryDefinitionScopeRows.length > 0 ? (
+                <div className="mt-4 rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-4 py-4">
+                  <p className="text-sm font-bold text-amber-900">
+                    {en
+                      ? "Some published tiers in this category cannot be opened from management yet."
+                      : "이 분류에는 management에서 아직 열 수 없는 publish Tier가 있습니다."}
+                  </p>
+                  <div className="mt-2 space-y-2">
+                    {blockedSelectedCategoryDefinitionScopeRows.map((row) => (
+                      <p className="text-xs leading-5 text-amber-900" key={`selected-scope-message-${stringOf(row.categoryCode)}-${stringOf(row.tier)}`}>
+                        {`${stringOf(row.tierLabel) || `Tier ${numberOf(row.tier)}`} · ${stringOf(row.statusMessage)}`}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {selectedCategory && selectedTier > 0 ? (
+            <div className="mt-4 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--kr-gov-blue)]">
+                    {en ? "Selected scope runtime status" : "선택 scope 런타임 상태"}
+                  </p>
+                  <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+                    {en
+                      ? "Live status for the currently selected category/tier, including materialization and runtime readiness."
+                      : "현재 선택한 카테고리/Tier의 메타 반영 여부와 런타임 준비 상태를 바로 확인합니다."}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {appliedDefinitionDraft && stringOf(appliedDefinitionDraft.draftId) ? (
+                    <MemberButton
+                      disabled={precheckingDraftId === stringOf(appliedDefinitionDraft.draftId)}
+                      onClick={() => {
+                        void handlePrecheckDefinitionScope(stringOf(appliedDefinitionDraft.draftId));
+                      }}
+                      type="button"
+                      variant="secondary"
+                    >
+                      {precheckingDraftId === stringOf(appliedDefinitionDraft.draftId)
+                        ? (en ? "Prechecking..." : "점검 중...")
+                        : (en ? "Run precheck" : "사전 점검")}
+                    </MemberButton>
+                  ) : null}
+                  <MemberButton
+                    disabled={scopeStatusLoading}
+                    onClick={() => {
+                      void loadSelectedScopeStatus(stringOf(selectedCategory?.subCode), selectedTier);
+                    }}
+                    type="button"
+                    variant="secondary"
+                  >
+                    {scopeStatusLoading ? (en ? "Refreshing..." : "새로고침 중...") : (en ? "Refresh status" : "상태 새로고침")}
+                  </MemberButton>
+                </div>
+              </div>
+
+              {selectedScopeStatus ? (
+                <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)]">
+                  <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-4">
+                    <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">
+                      {en ? "Current status" : "현재 상태"}
+                    </p>
+                    <p className="mt-2 text-lg font-black text-[var(--kr-gov-text-primary)]">{stringOf(selectedScopeStatus.displayStatusLabel) || "-"}</p>
+                    <p className="mt-2 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">{stringOf(selectedScopeStatus.displayStatusDescription) || "-"}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-[var(--kr-gov-blue)]">{stringOf(selectedScopeStatus.lifecycleStatus) || "-"}</span>
+                      <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-slate-700">{stringOf(selectedScopeStatus.promotionStatus) || "LEGACY_ONLY"}</span>
+                      <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-slate-700">{stringOf(selectedScopeStatus.runtimeMode) || "AUTO"}</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-4">
+                      <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">
+                        {en ? "Status evidence" : "상태 증적"}
+                      </p>
+                      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                        {selectedScopeEvidence.map((item) => (
+                          <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-3" key={`selected-scope-evidence-${item.key}`}>
+                            <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">{item.label}</p>
+                            <p
+                              className={`mt-2 break-all text-sm font-bold ${
+                                item.tone === "blue"
+                                  ? "text-[var(--kr-gov-blue)]"
+                                  : item.tone === "indigo"
+                                    ? "text-indigo-700"
+                                  : item.tone === "emerald"
+                                    ? "text-emerald-700"
+                                    : "text-[var(--kr-gov-text-primary)]"
+                              }`}
+                            >
+                              {item.value}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-4">
+                      <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">
+                        {en ? "Lifecycle timeline" : "전환 타임라인"}
+                      </p>
+                      <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-4">
+                        {selectedScopeTimeline.map((step, index) => (
+                          <div
+                            className={`rounded-[var(--kr-gov-radius)] border px-3 py-3 ${
+                              step.completed
+                                ? "border-emerald-200 bg-emerald-50"
+                                : "border-slate-200 bg-white"
+                            }`}
+                            key={`selected-scope-timeline-${step.key}`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <p className={`text-xs font-bold uppercase tracking-wide ${step.completed ? "text-emerald-800" : "text-[var(--kr-gov-text-secondary)]"}`}>
+                                {step.label}
+                              </p>
+                              <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${step.completed ? "bg-white text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
+                                {step.completed ? (en ? "Done" : "완료") : `${index + 1}`}
+                              </span>
+                            </div>
+                            <p className={`mt-2 text-sm leading-6 ${step.completed ? "text-emerald-950" : "text-[var(--kr-gov-text-secondary)]"}`}>
+                              {step.description}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">
+                          {en ? "Transition feed" : "전환 이력 피드"}
+                        </p>
+                        {selectedScopeActivityFeed.length > 0 ? (
+                          <MemberButton
+                            onClick={() => {
+                              setActivityFeedOverlayOpen(true);
+                            }}
+                            type="button"
+                            variant="secondary"
+                          >
+                            {en ? "View all activity" : "전체 이력 보기"}
+                          </MemberButton>
+                        ) : null}
+                      </div>
+                      {selectedScopeActivityFeed.length > 0 ? (
+                        <div className="mt-3 space-y-3">
+                          {selectedScopeActivityFeedPreview.map((item) => (
+                            <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-3 py-3" key={`selected-scope-activity-${item.key}-${item.at}`}>
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <p
+                                  className={`text-xs font-bold uppercase tracking-wide ${
+                                    item.tone === "blue"
+                                      ? "text-[var(--kr-gov-blue)]"
+                                      : item.tone === "indigo"
+                                        ? "text-indigo-700"
+                                        : "text-emerald-700"
+                                  }`}
+                                >
+                                  {item.title}
+                                </p>
+                                <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-slate-700">
+                                  {item.at}
+                                </span>
+                              </div>
+                              <p className="mt-2 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">{item.detail}</p>
+                              {stringOf(item.message) && stringOf(item.message) !== stringOf(item.detail) ? (
+                                <p className="mt-2 text-xs leading-5 text-[var(--kr-gov-text-secondary)]">{stringOf(item.message)}</p>
+                              ) : null}
+                            </div>
+                          ))}
+                          {hasAdditionalSelectedScopeActivityFeed ? (
+                            <p className="text-xs leading-5 text-[var(--kr-gov-text-secondary)]">
+                              {en
+                                ? `${selectedScopeActivityFeed.length - selectedScopeActivityFeedPreview.length} more transition records are available in the overlay.`
+                                : `추가 전환 이력 ${selectedScopeActivityFeed.length - selectedScopeActivityFeedPreview.length}건은 전체 보기에서 확인할 수 있습니다.`}
+                            </p>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <p className="mt-3 text-sm text-[var(--kr-gov-text-secondary)]">
+                          {en ? "No transition evidence has been recorded for this scope yet." : "이 scope에는 아직 기록된 전환 이력이 없습니다."}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="rounded-[var(--kr-gov-radius)] border border-indigo-200 bg-indigo-50 px-4 py-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-xs font-bold uppercase tracking-wide text-indigo-800">{en ? "Recommended next action" : "권장 다음 작업"}</p>
+                        {appliedDefinitionDraft && stringOf(appliedDefinitionDraft.draftId) && Boolean(selectedScopePrecheck?.materializable) ? (
+                          <MemberButton
+                            disabled={materializingDraftId === stringOf(appliedDefinitionDraft.draftId)}
+                            onClick={() => {
+                              void handleMaterializeDefinitionScope(stringOf(appliedDefinitionDraft.draftId));
+                            }}
+                            type="button"
+                            variant="secondary"
+                          >
+                            {materializingDraftId === stringOf(appliedDefinitionDraft.draftId)
+                              ? (en ? "Materializing..." : "반영 중...")
+                              : (en ? "Materialize now" : "지금 메타 반영")}
+                          </MemberButton>
+                        ) : null}
+                      </div>
+                      <p className="mt-2 text-sm leading-6 text-indigo-950">{selectedScopeActionGuide}</p>
+                    </div>
+
+                    <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-4">
+                      <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">
+                        {en ? "Blocking reasons" : "차단 사유"}
+                      </p>
+                      {selectedScopeBlockingReasons.length > 0 ? (
+                        <div className="mt-3 space-y-2">
+                          {selectedScopeBlockingReasons.map((reason, index) => (
+                            <div className="rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-3 py-3" key={`selected-scope-blocking-${stringOf(reason.code)}-${index}`}>
+                              <p className="text-xs font-bold text-amber-900">{scopeBlockingReasonLabel(stringOf(reason.code), en)}</p>
+                              <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-amber-700">{stringOf(reason.code) || "-"}</p>
+                              <p className="mt-1 text-sm leading-6 text-amber-900">{stringOf(reason.message) || "-"}</p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="mt-3 text-sm text-[var(--kr-gov-text-secondary)]">
+                          {en ? "No blocking reason is currently reported for this scope." : "현재 이 scope에는 차단 사유가 보고되지 않았습니다."}
+                        </p>
+                      )}
+                    </div>
+
+                    {selectedScopeWarnings.length > 0 ? (
+                      <div className="rounded-[var(--kr-gov-radius)] border border-sky-200 bg-sky-50 px-4 py-4">
+                        <p className="text-xs font-bold uppercase tracking-wide text-sky-800">{en ? "Warnings" : "주의"}</p>
+                        <div className="mt-3 space-y-2">
+                          {selectedScopeWarnings.map((item, index) => (
+                            <p className="text-sm leading-6 text-sky-900" key={`selected-scope-warning-${index}`}>{item}</p>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {selectedScopePrecheck ? (
+                      <div className="rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-4">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-xs font-bold uppercase tracking-wide text-emerald-800">{en ? "Precheck result" : "사전 점검 결과"}</p>
+                          <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-emerald-800">
+                            {Boolean(selectedScopePrecheck.materializable)
+                              ? (en ? "Materializable" : "반영 가능")
+                              : (en ? "Blocked" : "반영 차단")}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-sm leading-6 text-emerald-900">{stringOf(selectedScopePrecheck.displayStatusDescription) || "-"}</p>
+                        {selectedScopePrecheckBlockingReasons.length > 0 ? (
+                          <div className="mt-3 space-y-2">
+                            {selectedScopePrecheckBlockingReasons.map((reason, index) => (
+                              <div className="rounded-[var(--kr-gov-radius)] border border-white bg-white px-3 py-3" key={`selected-scope-precheck-${stringOf(reason.code)}-${index}`}>
+                                <p className="text-xs font-bold text-[var(--kr-gov-text-primary)]">{scopeBlockingReasonLabel(stringOf(reason.code), en)}</p>
+                                <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">{stringOf(reason.code) || "-"}</p>
+                                <p className="mt-1 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">{stringOf(reason.message) || "-"}</p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-4 text-sm text-[var(--kr-gov-text-secondary)]">
+                  {scopeStatusLoading
+                    ? (en ? "Loading scope status..." : "scope 상태를 불러오는 중입니다...")
+                    : (en ? "Select a concrete category/tier scope to inspect runtime status." : "구체적인 카테고리/Tier를 선택하면 런타임 상태를 확인할 수 있습니다.")}
+                </p>
+              )}
+            </div>
+          ) : null}
+
+          <div className="mt-6 overflow-x-auto rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)]">
+            <table className="min-w-full divide-y divide-[var(--kr-gov-border-light)] text-sm">
+              <thead className="bg-slate-50">
+                <tr className="text-left text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">
+                  <th className="px-4 py-3">{en ? "Scope" : "범위"}</th>
+                  <th className="px-4 py-3">{en ? "Bridge status" : "연결 상태"}</th>
+                  <th className="px-4 py-3">{en ? "Runtime mode" : "런타임 모드"}</th>
+                  <th className="px-4 py-3">{en ? "Published at" : "Publish 시각"}</th>
+                  <th className="px-4 py-3">{en ? "Actions" : "작업"}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--kr-gov-border-light)] bg-white">
+                {definitionScopeRows.length > 0 ? definitionScopeRows.map((row) => {
+                  const isSelectedScope = stringOf(row.categoryCode).toUpperCase() === stringOf(selectedCategory?.subCode).toUpperCase()
+                    && numberOf(row.tier) === selectedTier;
+                  return (
+                  <tr
+                    className={isSelectedScope ? "bg-blue-50/40" : ""}
+                    key={`definition-scope-${stringOf(row.categoryCode)}-${stringOf(row.tier)}`}
+                  >
+                    <td className="px-4 py-3 align-top">
+                      <p className="font-bold text-[var(--kr-gov-text-primary)]">{stringOf(row.categoryName) || stringOf(row.categoryCode)}</p>
+                      <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{`${stringOf(row.categoryCode)} / ${stringOf(row.tierLabel) || `Tier ${numberOf(row.tier)}`}`}</p>
+                      {isSelectedScope ? (
+                        <span className="mt-2 inline-flex rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-[var(--kr-gov-blue)]">
+                          {en ? "Selected" : "선택됨"}
+                        </span>
+                      ) : null}
+                    </td>
+                    <td className="px-4 py-3 align-top">
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${definitionScopeStatusTone(stringOf(row.status))}`}>
+                        {definitionScopeStatusLabel(stringOf(row.status), en)}
+                      </span>
+                      <p className="mt-2 max-w-[340px] text-xs leading-5 text-[var(--kr-gov-text-secondary)]">{stringOf(row.statusMessage)}</p>
+                    </td>
+                    <td className="px-4 py-3 align-top text-xs text-[var(--kr-gov-text-secondary)]">{stringOf(row.runtimeMode) || "AUTO"}</td>
+                    <td className="px-4 py-3 align-top">
+                      <p className="text-xs text-[var(--kr-gov-text-secondary)]">{stringOf(row.publishedSavedAt) || "-"}</p>
+                      {!Boolean(row.runtimeSupported) && stringOf(row.draftId) ? (
+                        <div className="mt-3">
+                          <MemberButton
+                            disabled={materializingDraftId === stringOf(row.draftId)}
+                            onClick={() => {
+                              void handleMaterializeDefinitionScope(stringOf(row.draftId));
+                            }}
+                            type="button"
+                            variant="secondary"
+                          >
+                            {materializingDraftId === stringOf(row.draftId)
+                              ? (en ? "Materializing..." : "반영 중...")
+                              : (en ? "Materialize metadata" : "메타 반영")}
+                          </MemberButton>
+                        </div>
+                      ) : null}
+                    </td>
+                    <td className="px-4 py-3 align-top">
+                      <div className="flex flex-wrap gap-2">
+                        <MemberButton
+                          onClick={() => {
+                            void focusDefinitionScope(row);
+                          }}
+                          type="button"
+                          variant="secondary"
+                        >
+                          {en ? "Use this scope" : "이 scope 선택"}
+                        </MemberButton>
+                        {stringOf(row.draftId) ? (
+                          <MemberButton
+                            disabled={precheckingDraftId === stringOf(row.draftId)}
+                            onClick={() => {
+                              void focusDefinitionScope(row).then(() => handlePrecheckDefinitionScope(stringOf(row.draftId)));
+                            }}
+                            type="button"
+                            variant="secondary"
+                          >
+                            {precheckingDraftId === stringOf(row.draftId)
+                              ? (en ? "Prechecking..." : "점검 중...")
+                              : (en ? "Precheck" : "사전 점검")}
+                          </MemberButton>
+                        ) : null}
+                      </div>
+                    </td>
+                  </tr>
+                );}) : (
+                  <tr>
+                    <td className="px-4 py-6 text-sm text-[var(--kr-gov-text-secondary)]" colSpan={5}>
+                      {en
+                        ? "No published definition scope has been recorded yet."
+                        : "아직 publish 된 정의 범위가 없습니다."}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
 
         <section className="gov-card" data-help-id="emission-management-definition-overlay">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -3527,12 +4518,12 @@ export function EmissionManagementMigrationPage() {
                     onChange={(event) => {
                       void handleCategoryChange(Number(event.target.value) || 0);
                     }}
-                    value={selectedCategoryId > 0 ? String(selectedCategoryId) : ""}
+                    value={hasSelectedCategory ? String(selectedCategoryId) : ""}
                   >
                     <option value="">{en ? "Select subcategory" : "중분류 선택"}</option>
                     {visibleCategories.map((category) => (
                       <option key={stringOf(category.categoryId)} value={stringOf(category.categoryId)}>
-                        {`${stringOf(category.subName)}${stringOf(category.subCode) ? ` (${stringOf(category.subCode)})` : ""}`}
+                        {`${stringOf(category.subName)}${stringOf(category.subCode) ? ` (${stringOf(category.subCode)})` : ""}${Boolean(category.virtualCategory) ? (en ? " [Studio only]" : " [Studio 전용]") : ""}`}
                       </option>
                     ))}
                   </AdminSelect>
@@ -3540,7 +4531,7 @@ export function EmissionManagementMigrationPage() {
                 <label className="mt-4 flex flex-col gap-2">
                   <span className="text-sm font-bold">Tier</span>
                   <AdminSelect
-                    disabled={selectedCategoryId <= 0}
+                    disabled={!hasSelectedCategory}
                     onChange={(event) => {
                       void handleTierChange(Number(event.target.value) || 0);
                     }}
@@ -3549,7 +4540,7 @@ export function EmissionManagementMigrationPage() {
                     <option value="">{en ? "Select tier" : "Tier 선택"}</option>
                     {tiers.map((tier) => (
                       <option key={`${stringOf(tier.tier)}-${stringOf(tier.tierLabel)}`} value={stringOf(tier.tier)}>
-                        {stringOf(tier.tierLabel) || `Tier ${stringOf(tier.tier)}`}
+                        {`${stringOf(tier.tierLabel) || `Tier ${stringOf(tier.tier)}`}${Boolean(tier.runtimeSupported ?? true) ? "" : (en ? " [Unavailable]" : " [미개통]")}`}
                       </option>
                     ))}
                   </AdminSelect>
@@ -3564,7 +4555,7 @@ export function EmissionManagementMigrationPage() {
                 </label>
                 <div className="mt-6 flex items-center justify-end">
                   <MemberButton
-                    disabled={loading || definitionLoading || selectedCategoryId <= 0 || selectedTier <= 0}
+                    disabled={loading || definitionLoading || !hasSelectedCategory || selectedTier <= 0}
                     onClick={() => {
                       void proceedToInputStep();
                     }}
@@ -3575,7 +4566,7 @@ export function EmissionManagementMigrationPage() {
                 </div>
               </section>
             </div>
-            {selectedCategoryId > 0 ? (
+            {hasSelectedCategory ? (
               <section className="mt-6 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-5 py-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -3600,6 +4591,7 @@ export function EmissionManagementMigrationPage() {
                       const tierDefinitionDraft = definitionDraftForScope(stringOf(selectedCategory?.subCode), tierNumber);
                       const tierDefinitionPolicies = definitionPolicyBadges(tierDefinitionDraft);
                       const tierFormulaSummary = stringOf(tierDefinitionDraft?.formula) || guide?.formulaDisplay || guide?.formulaSummary || "-";
+                      const runtimeSupported = Boolean(tier.runtimeSupported ?? true);
                       return (
                         <article className="rounded-[var(--kr-gov-radius)] border border-white bg-white px-4 py-4" key={`tier-guide-${tierNumber}`}>
                           <div className="flex items-center justify-between gap-3">
@@ -3615,6 +4607,11 @@ export function EmissionManagementMigrationPage() {
                                   {en ? "Fallback Available" : "대체값 적용 가능"}
                                 </span>
                               ) : null}
+                              {!runtimeSupported ? (
+                                <span className="rounded-full bg-slate-200 px-2.5 py-1 text-[11px] font-bold text-slate-700">
+                                  {en ? "Runtime unavailable" : "런타임 미개통"}
+                                </span>
+                              ) : null}
                             </div>
                             <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">{guideVariables.length}</span>
                           </div>
@@ -3624,6 +4621,13 @@ export function EmissionManagementMigrationPage() {
                               <FormulaNotation active formula={tierFormulaSummary} />
                             </div>
                           </div>
+                          {!runtimeSupported ? (
+                            <div className="mt-3 rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-3 py-3">
+                              <p className="text-xs leading-5 text-amber-900">
+                                {stringOf(tier.statusMessage) || (en ? "This tier is published in studio, but management runtime support is not ready." : "이 Tier는 studio에 publish 되었지만 management 런타임 지원이 아직 준비되지 않았습니다.")}
+                              </p>
+                            </div>
+                          ) : null}
                           {tierDefinitionPolicies.length > 0 ? (
                             <div className="mt-3 flex flex-wrap gap-2">
                               {tierDefinitionPolicies.map((policy) => (
@@ -3851,29 +4855,31 @@ export function EmissionManagementMigrationPage() {
               </div>
             </div>
             {effectiveFormulaSummary ? (
-              <div className="sticky top-[-2rem] z-20 mt-4 rounded-[var(--kr-gov-radius)] border border-blue-200 bg-blue-50 px-4 py-3 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-blue-50/95">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-blue)]">
-                      {appliedDefinitionDraft ? (en ? "Definition Formula" : "정의 기준 계산식") : (en ? "Document Formula" : "문서 기준 계산식")}
-                    </p>
-                    <p className="mt-1 text-xs leading-5 text-[var(--kr-gov-text-secondary)]">
-                      {appliedDefinitionDraft
-                        ? (en ? "A published definition snapshot is currently driving the high-level formula and policy summary for this scope." : "현재 범위에서는 publish 된 정의 스냅샷이 상위 계산식과 정책 요약을 우선 반영합니다.")
-                        : (en ? "Review the full formula here before entering values in the blocks below." : "아래 블록 입력 전에 전체 계산식을 여기서 먼저 확인합니다.")}
-                    </p>
+              <div className="mt-4">
+                <div className="rounded-[var(--kr-gov-radius)] border border-blue-200 bg-blue-50 px-4 py-3 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-blue-50/95 xl:sticky xl:top-20 xl:z-10">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-blue)]">
+                        {appliedDefinitionDraft ? (en ? "Definition Formula" : "정의 기준 계산식") : (en ? "Document Formula" : "문서 기준 계산식")}
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-[var(--kr-gov-text-secondary)]">
+                        {appliedDefinitionDraft
+                          ? (en ? "A published definition snapshot is currently driving the high-level formula and policy summary for this scope." : "현재 범위에서는 publish 된 정의 스냅샷이 상위 계산식과 정책 요약을 우선 반영합니다.")
+                          : (en ? "Review the full formula here before entering values in the blocks below." : "아래 블록 입력 전에 전체 계산식을 여기서 먼저 확인합니다.")}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-[var(--kr-gov-blue)]">
+                      {appliedDefinitionDraft ? (en ? "Definition-backed" : "정의 반영") : (en ? "Input context" : "입력 기준")}
+                    </span>
                   </div>
-                  <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-[var(--kr-gov-blue)]">
-                    {appliedDefinitionDraft ? (en ? "Definition-backed" : "정의 반영") : (en ? "Input context" : "입력 기준")}
-                  </span>
-                </div>
-                <div className="mt-3 overflow-x-auto rounded-[var(--kr-gov-radius)] border border-white bg-white px-4 py-3">
-                  <div className="min-w-max">
-                    <FormulaNotation active formula={stringOf(appliedDefinitionDraft?.formula) || tierGuideMap[selectedTier]?.formulaDisplay || effectiveFormulaSummary} />
+                  <div className="mt-3 overflow-x-auto rounded-[var(--kr-gov-radius)] border border-white bg-white px-4 py-3">
+                    <div className="min-w-max">
+                      <FormulaNotation active formula={stringOf(appliedDefinitionDraft?.formula) || tierGuideMap[selectedTier]?.formulaDisplay || effectiveFormulaSummary} />
+                    </div>
                   </div>
                 </div>
                 {appliedDefinitionPolicies.length > 0 ? (
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <div className="mt-3 flex flex-wrap gap-2 rounded-[var(--kr-gov-radius)] border border-blue-100 bg-blue-50/60 px-4 py-3">
                     <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-indigo-700">
                       {en ? "Sections" : "섹션"} {Array.isArray(appliedDefinitionDraft?.sections) ? appliedDefinitionDraft.sections.length : 0}
                     </span>
@@ -3885,7 +4891,7 @@ export function EmissionManagementMigrationPage() {
                     ))}
                   </div>
                 ) : appliedDefinitionDraft ? (
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <div className="mt-3 flex flex-wrap gap-2 rounded-[var(--kr-gov-radius)] border border-blue-100 bg-blue-50/60 px-4 py-3">
                     <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-indigo-700">
                       {en ? "Sections" : "섹션"} {Array.isArray(appliedDefinitionDraft.sections) ? appliedDefinitionDraft.sections.length : 0}
                     </span>
@@ -3895,7 +4901,9 @@ export function EmissionManagementMigrationPage() {
                   </div>
                 ) : null}
                 {stringOf(appliedDefinitionDraft?.note) ? (
-                  <p className="mt-3 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">{stringOf(appliedDefinitionDraft.note)}</p>
+                  <div className="mt-3 rounded-[var(--kr-gov-radius)] border border-slate-200 bg-white px-4 py-3">
+                    <p className="text-sm leading-6 text-[var(--kr-gov-text-secondary)]">{stringOf(appliedDefinitionDraft.note)}</p>
+                  </div>
                 ) : null}
                 {definitionFormulaPreview ? (
                   <div className="mt-3 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-4">
@@ -4433,6 +5441,82 @@ export function EmissionManagementMigrationPage() {
           )}
         </DiagnosticCard>
       </AdminWorkspacePageFrame>
+      {activityFeedOverlayOpen && selectedScopeActivityFeed.length > 0 ? (
+        <div
+          aria-labelledby="scope-activity-feed-title"
+          aria-modal="true"
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/30 px-4 backdrop-blur-[2px]"
+          onClick={() => {
+            setActivityFeedOverlayOpen(false);
+          }}
+          role="dialog"
+        >
+          <div
+            className="max-h-[85vh] w-full max-w-4xl overflow-hidden rounded-[calc(var(--kr-gov-radius)*1.2)] border border-[var(--kr-gov-border-light)] bg-white shadow-2xl"
+            onClick={(event) => {
+              event.stopPropagation();
+            }}
+          >
+            <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--kr-gov-border-light)] bg-slate-50 px-5 py-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-blue)]">
+                  {en ? "Scope activity history" : "scope 활동 이력"}
+                </p>
+                <h2 className="mt-1 text-lg font-black text-[var(--kr-gov-text-primary)]" id="scope-activity-feed-title">
+                  {stringOf(selectedScopeStatus?.scope) || (en ? "Selected scope" : "선택된 scope")}
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
+                  {en
+                    ? "Review the recent publish, materialization, runtime transition, and verification evidence for this scope."
+                    : "이 scope의 publish, 메타 반영, 런타임 전환, 검증 증적을 최근 순서대로 확인합니다."}
+                </p>
+              </div>
+              <MemberButton
+                onClick={() => {
+                  setActivityFeedOverlayOpen(false);
+                }}
+                type="button"
+                variant="secondary"
+              >
+                {en ? "Close" : "닫기"}
+              </MemberButton>
+            </div>
+            <div className="max-h-[calc(85vh-8rem)] overflow-y-auto px-5 py-5">
+              <div className="space-y-3">
+                {selectedScopeActivityFeed.map((item) => (
+                  <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-4" key={`selected-scope-activity-overlay-${item.key}-${item.at}`}>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p
+                        className={`text-xs font-bold uppercase tracking-wide ${
+                          item.tone === "blue"
+                            ? "text-[var(--kr-gov-blue)]"
+                            : item.tone === "indigo"
+                              ? "text-indigo-700"
+                              : "text-emerald-700"
+                        }`}
+                      >
+                        {item.title}
+                      </p>
+                      <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-slate-700">
+                        {item.at}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">{item.detail}</p>
+                    {stringOf(item.message) && stringOf(item.message) !== stringOf(item.detail) ? (
+                      <div className="mt-3 rounded-[var(--kr-gov-radius)] border border-white bg-white px-3 py-3">
+                        <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">
+                          {en ? "Recorded note" : "기록 메모"}
+                        </p>
+                        <p className="mt-2 text-xs leading-5 text-[var(--kr-gov-text-secondary)]">{stringOf(item.message)}</p>
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </AdminPageShell>
   );
 }

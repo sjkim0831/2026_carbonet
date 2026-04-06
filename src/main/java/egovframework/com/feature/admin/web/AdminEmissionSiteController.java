@@ -2,17 +2,24 @@ package egovframework.com.feature.admin.web;
 
 import egovframework.com.feature.admin.service.AdminShellBootstrapPageService;
 import egovframework.com.feature.admin.service.AdminEmissionDefinitionStudioService;
+import egovframework.com.feature.admin.service.AdminEmissionGwpValueService;
 import egovframework.com.feature.admin.service.AdminEmissionManagementService;
 import egovframework.com.feature.admin.service.AdminEmissionManagementElementRegistryService;
+import egovframework.com.feature.admin.dto.request.AdminEmissionGwpValueSaveRequestDTO;
+import egovframework.com.common.audit.AuditTrailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -24,8 +31,10 @@ public class AdminEmissionSiteController {
 
     private final AdminShellBootstrapPageService adminShellBootstrapPageService;
     private final AdminEmissionDefinitionStudioService adminEmissionDefinitionStudioService;
+    private final AdminEmissionGwpValueService adminEmissionGwpValueService;
     private final AdminEmissionManagementService adminEmissionManagementService;
     private final AdminEmissionManagementElementRegistryService adminEmissionManagementElementRegistryService;
+    private final AuditTrailService auditTrailService;
 
     @RequestMapping(value = "/site-management", method = RequestMethod.GET)
     public String emissionSiteManagementPage(HttpServletRequest request, Locale locale) {
@@ -42,6 +51,11 @@ public class AdminEmissionSiteController {
         return redirectReactMigration(request, locale, "emission-definition-studio");
     }
 
+    @RequestMapping(value = "/gwp-values", method = RequestMethod.GET)
+    public String emissionGwpValuesPage(HttpServletRequest request, Locale locale) {
+        return redirectReactMigration(request, locale, "emission-gwp-values");
+    }
+
     @GetMapping("/management/page-data")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> emissionManagementPageApi(HttpServletRequest request, Locale locale) {
@@ -56,6 +70,7 @@ public class AdminEmissionSiteController {
         payload.put("pageDescriptionEn", "Validate category, tier, input session, and calculation execution directly from the admin workspace.");
         payload.putAll(adminEmissionManagementElementRegistryService.buildRegistryPayload(isEn));
         payload.putAll(adminEmissionManagementService.getRolloutStatusSummary());
+        payload.putAll(adminEmissionManagementService.getDefinitionScopeSummary());
         Map<String, Object> definitionStudioPayload = adminEmissionDefinitionStudioService.buildPagePayload(isEn);
         payload.put("definitionDraftRows", definitionStudioPayload.get("definitionRows"));
         payload.put("definitionPolicyOptions", definitionStudioPayload.get("policyOptions"));
@@ -69,6 +84,99 @@ public class AdminEmissionSiteController {
     @ResponseBody
     public ResponseEntity<Map<String, Object>> emissionDefinitionStudioPageApi(HttpServletRequest request, Locale locale) {
         return ResponseEntity.ok(adminEmissionDefinitionStudioService.buildPagePayload(isEnglishRequest(request, locale)));
+    }
+
+    @GetMapping("/gwp-values/page-data")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> emissionGwpValuesPageApi(
+            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
+            @RequestParam(value = "sectionCode", required = false) String sectionCode,
+            @RequestParam(value = "rowId", required = false) String rowId,
+            @RequestParam(value = "pdfComparePolicy", required = false) String pdfComparePolicy,
+            @RequestParam(value = "includePdfCompare", required = false) String includePdfCompare,
+            @RequestParam(value = "pdfCompareScope", required = false) String pdfCompareScope,
+            HttpServletRequest request,
+            Locale locale) {
+        return ResponseEntity.ok(adminEmissionGwpValueService.buildPagePayload(
+                searchKeyword,
+                sectionCode,
+                rowId,
+                pdfComparePolicy,
+                parseBooleanParam(includePdfCompare),
+                pdfCompareScope,
+                isEnglishRequest(request, locale)));
+    }
+
+    @PostMapping("/api/gwp-values/save")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> saveEmissionGwpValue(
+            @RequestBody AdminEmissionGwpValueSaveRequestDTO request,
+            HttpServletRequest httpServletRequest,
+            Locale locale) {
+        boolean isEn = isEnglishRequest(httpServletRequest, locale);
+        try {
+            Map<String, Object> saved = adminEmissionGwpValueService.save(request, resolveActorId(httpServletRequest), isEn);
+            String savedRowId = safe(String.valueOf(saved.getOrDefault("rowId", "")));
+            String compareMismatchLabels = safe(String.valueOf(saved.getOrDefault("compareMismatchLabels", "")));
+            String compareStatusLabel = safe(String.valueOf(saved.getOrDefault("compareStatusLabel", "")));
+            String pdfCompareStatusLabel = safe(String.valueOf(saved.getOrDefault("pdfCompareStatusLabel", "")));
+            String pdfComparePage = safe(String.valueOf(saved.getOrDefault("pdfComparePage", "")));
+            auditTrailService.record(
+                    resolveActorId(httpServletRequest),
+                    resolveActorRole(httpServletRequest),
+                    "A0020109",
+                    "emission-gwp-values",
+                    "EMISSION_GWP_SAVE",
+                    "EMISSION_GWP_VALUE",
+                    savedRowId,
+                    "SUCCESS",
+                    buildGwpSaveAuditReason(isEn, compareStatusLabel, compareMismatchLabels, pdfCompareStatusLabel, pdfComparePage),
+                    "",
+                    saved.toString(),
+                    resolveRequestIp(httpServletRequest),
+                    httpServletRequest == null ? "" : safe(httpServletRequest.getHeader("User-Agent"))
+            );
+            return ResponseEntity.ok(saved);
+        } catch (IllegalArgumentException e) {
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("success", false);
+            response.put("message", safe(e.getMessage()));
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    @PostMapping("/api/gwp-values/delete")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> deleteEmissionGwpValue(
+            @RequestBody Map<String, String> request,
+            HttpServletRequest httpServletRequest,
+            Locale locale) {
+        boolean isEn = isEnglishRequest(httpServletRequest, locale);
+        try {
+            String rowId = safe(request == null ? null : request.get("rowId"));
+            Map<String, Object> deleted = adminEmissionGwpValueService.delete(rowId, isEn);
+            auditTrailService.record(
+                    resolveActorId(httpServletRequest),
+                    resolveActorRole(httpServletRequest),
+                    "A0020109",
+                    "emission-gwp-values",
+                    "EMISSION_GWP_DELETE",
+                    "EMISSION_GWP_VALUE",
+                    rowId,
+                    "SUCCESS",
+                    isEn ? "GWP value deleted" : "GWP 값 삭제",
+                    "",
+                    deleted.toString(),
+                    resolveRequestIp(httpServletRequest),
+                    httpServletRequest == null ? "" : safe(httpServletRequest.getHeader("User-Agent"))
+            );
+            return ResponseEntity.ok(deleted);
+        } catch (IllegalArgumentException e) {
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("success", false);
+            response.put("message", safe(e.getMessage()));
+            return ResponseEntity.badRequest().body(response);
+        }
     }
 
     @GetMapping("/site-management/page-data")
@@ -117,6 +225,85 @@ public class AdminEmissionSiteController {
 
     private String safe(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private boolean parseBooleanParam(String value) {
+        String normalized = safe(value).toLowerCase(Locale.ROOT);
+        if (normalized.isEmpty()) {
+            return false;
+        }
+        return "true".equals(normalized)
+                || "1".equals(normalized)
+                || "y".equals(normalized)
+                || "yes".equals(normalized)
+                || "on".equals(normalized);
+    }
+
+    private String resolveActorId(HttpServletRequest request) {
+        if (request == null) {
+            return "";
+        }
+        HttpSession session = request.getSession(false);
+        if (session == null) {
+            return "";
+        }
+        Object loginVO = session.getAttribute("LoginVO");
+        if (loginVO == null) {
+            return "";
+        }
+        try {
+            Object value = loginVO.getClass().getMethod("getId").invoke(loginVO);
+            return value == null ? "" : value.toString();
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private String resolveActorRole(HttpServletRequest request) {
+        if (request == null) {
+            return "";
+        }
+        HttpSession session = request.getSession(false);
+        if (session == null) {
+            return "";
+        }
+        Object loginVO = session.getAttribute("LoginVO");
+        if (loginVO == null) {
+            return "";
+        }
+        try {
+            Object value = loginVO.getClass().getMethod("getAuthorCode").invoke(loginVO);
+            return value == null ? "" : value.toString();
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private String resolveRequestIp(HttpServletRequest request) {
+        if (request == null) {
+            return "";
+        }
+        String forwarded = safe(request.getHeader("X-Forwarded-For"));
+        if (!forwarded.isEmpty()) {
+            int commaIndex = forwarded.indexOf(',');
+            return commaIndex >= 0 ? forwarded.substring(0, commaIndex).trim() : forwarded;
+        }
+        return safe(request.getRemoteAddr());
+    }
+
+    private String buildGwpSaveAuditReason(boolean isEn, String compareStatusLabel, String compareMismatchLabels, String pdfCompareStatusLabel, String pdfComparePage) {
+        String base = isEn ? "GWP value saved" : "GWP 값 저장";
+        String reason = base;
+        if (!compareStatusLabel.isEmpty()) {
+            reason = reason + " / " + compareStatusLabel;
+        }
+        if (!compareMismatchLabels.isEmpty()) {
+            reason = reason + " / " + compareMismatchLabels;
+        }
+        if (!pdfCompareStatusLabel.isEmpty()) {
+            reason = reason + " / " + pdfCompareStatusLabel + (pdfComparePage.isEmpty() ? "" : " p." + pdfComparePage);
+        }
+        return reason;
     }
 
 }
