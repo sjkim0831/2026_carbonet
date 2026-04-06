@@ -62,7 +62,6 @@ fi
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 EMISSION_SCRIPT_NAME="verify-emission-management-flow"
 source "$ROOT_DIR/ops/scripts/emission-management-auth-common.sh"
-BASE_URL="${1:-http://127.0.0.1:18000}"
 PORT="${PORT:-18000}"
 CONFIG_DIR="${CONFIG_DIR:-$ROOT_DIR/ops/config}"
 ENV_FILE="${ENV_FILE:-$CONFIG_DIR/carbonet-${PORT}.env}"
@@ -124,6 +123,7 @@ trap cleanup EXIT
 emission_load_optional_env "$ENV_FILE"
 TOKEN_ACCESS_SECRET="${TOKEN_ACCESS_SECRET:-change-me-access-secret}"
 TOKEN_REFRESH_SECRET="${TOKEN_REFRESH_SECRET:-change-me-refresh-secret}"
+BASE_URL="${1:-$(carbonet_runtime_base_url)}"
 
 emission_require_cmd curl
 emission_require_cmd mvn

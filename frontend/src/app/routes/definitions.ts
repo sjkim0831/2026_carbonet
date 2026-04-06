@@ -139,6 +139,8 @@ export type MigrationPageId =
   | "join-company-status-detail"
   | "join-company-reapply"
   | "my-inquiry"
+  | "mtn-status"
+  | "mtn-version"
   | "support-faq"
   | "support-inquiry"
   | "emission-project-list"
@@ -407,6 +409,8 @@ export const ROUTES: RouteDefinition[] = [
   { id: "join-info", label: "회원가입 정보입력", group: "join", koPath: "/join/step4", enPath: "/join/en/step4" },
   { id: "join-complete", label: "회원가입 완료", group: "join", koPath: "/join/step5", enPath: "/join/en/step5" },
   { id: "my-inquiry", label: "1:1 문의", group: "home", koPath: "/mtn/my_inquiry", enPath: "/en/mtn/my_inquiry" },
+  { id: "mtn-status", label: "서비스 상태", group: "home", koPath: "/mtn/status", enPath: "/en/mtn/status" },
+  { id: "mtn-version", label: "버전 관리", group: "home", koPath: "/mtn/version", enPath: "/en/mtn/version" },
   { id: "support-faq", label: "FAQ", group: "home", koPath: "/support/faq", enPath: "/en/support/faq" },
   { id: "support-inquiry", label: "문의 내역", group: "home", koPath: "/support/inquiry", enPath: "/en/support/inquiry" },
   { id: "mypage", label: "마이페이지", group: "home", koPath: "/mypage/profile", enPath: "/en/mypage/profile" },

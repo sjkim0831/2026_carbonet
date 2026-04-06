@@ -20,7 +20,7 @@ EOF
 fi
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-BASE_URL="${1:-http://127.0.0.1:18000}"
+source "$ROOT_DIR/ops/scripts/runtime-url-common.sh"
 RUNTIME_LOG="${RUNTIME_LOG:-/tmp/carbonet-runtime-18000.log}"
 CONFIG_DIR="${CONFIG_DIR:-$ROOT_DIR/ops/config}"
 PORT="${PORT:-18000}"
@@ -59,7 +59,7 @@ retry_curl() {
   shift
   local attempt
   for attempt in $(seq 1 20); do
-    if curl -fsS "$@" > "$output_file"; then
+    if curl "${CARBONET_CURL_ARGS[@]}" -fsS "$@" > "$output_file"; then
       return 0
     fi
     sleep 1
@@ -90,6 +90,8 @@ require_file "$RUNTIME_LOG"
 load_optional_env "$ENV_FILE"
 TOKEN_ACCESS_SECRET="${TOKEN_ACCESS_SECRET:-change-me-access-secret}"
 TOKEN_REFRESH_SECRET="${TOKEN_REFRESH_SECRET:-change-me-refresh-secret}"
+BASE_URL="${1:-$(carbonet_runtime_base_url)}"
+carbonet_set_curl_args
 
 mkdir -p "$JAVA_CLASS_DIR"
 

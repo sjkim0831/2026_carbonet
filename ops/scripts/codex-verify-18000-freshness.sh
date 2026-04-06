@@ -24,17 +24,29 @@ EOF
 fi
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+source "$ROOT_DIR/ops/scripts/runtime-url-common.sh"
 PORT="${PORT:-18000}"
+CONFIG_DIR="${CONFIG_DIR:-$ROOT_DIR/ops/config}"
+ENV_FILE="${ENV_FILE:-$CONFIG_DIR/carbonet-${PORT}.env}"
 RUN_DIR="${RUN_DIR:-$ROOT_DIR/var/run}"
 LOG_DIR="${LOG_DIR:-$ROOT_DIR/var/logs}"
 TARGET_JAR_PATH="${TARGET_JAR_PATH:-$ROOT_DIR/target/carbonet.jar}"
 RUNTIME_JAR_PATH="${RUNTIME_JAR_PATH:-$RUN_DIR/carbonet-${PORT}.jar}"
 PID_FILE="${PID_FILE:-$RUN_DIR/carbonet-${PORT}.pid}"
 LOG_FILE="${LOG_FILE:-$LOG_DIR/carbonet-${PORT}.log}"
-HEALTH_URL="${HEALTH_URL:-http://127.0.0.1:${PORT}/actuator/health}"
+HEALTH_URL="${HEALTH_URL:-$(carbonet_runtime_health_url)}"
 STARTUP_MARKER="${STARTUP_MARKER:-Tomcat started on port(s): ${PORT}}"
 VERIFY_WAIT_SECONDS="${VERIFY_WAIT_SECONDS:-20}"
 VERIFY_EXTERNAL_MONITORING_BOOTSTRAP="${VERIFY_EXTERNAL_MONITORING_BOOTSTRAP:-false}"
+
+if [[ -f "$ENV_FILE" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+  set +a
+fi
+
+carbonet_set_curl_args
 
 fail() {
   echo "[codex-verify-18000-freshness] FAIL: $*" >&2
@@ -130,7 +142,7 @@ grep -q "$STARTUP_MARKER" "$LOG_FILE" || fail "startup marker not found in log: 
 
 HEALTH_BODY=""
 if command -v curl >/dev/null 2>&1; then
-  HEALTH_BODY="$(curl -fsS --max-time 5 "$HEALTH_URL" 2>/dev/null || true)"
+  HEALTH_BODY="$(curl "${CARBONET_CURL_ARGS[@]}" -fsS --max-time 5 "$HEALTH_URL" 2>/dev/null || true)"
 fi
 
 if [[ -n "$HEALTH_BODY" ]]; then
@@ -139,7 +151,19 @@ if [[ -n "$HEALTH_BODY" ]]; then
     *) fail "health check did not report UP: $HEALTH_URL" ;;
   esac
 else
-  info "health check client returned empty response; port and process checks already passed"
+  if [[ "$(carbonet_runtime_scheme)" == "https" ]] && command -v curl >/dev/null 2>&1; then
+    HTTP_TLS_PROBE="$(curl -sS --max-time 5 "http://127.0.0.1:${PORT}/actuator/health" 2>/dev/null || true)"
+    case "$HTTP_TLS_PROBE" in
+      *"requires TLS"*)
+        info "HTTPS runtime detected: plain HTTP probe reported TLS required"
+        ;;
+      *)
+        info "health check client returned empty response; port and process checks already passed"
+        ;;
+    esac
+  else
+    info "health check client returned empty response; port and process checks already passed"
+  fi
 fi
 
 info "pid OK: $APP_PID"
@@ -151,7 +175,7 @@ info "startup marker OK: $STARTUP_MARKER"
 
 if [[ "$VERIFY_EXTERNAL_MONITORING_BOOTSTRAP" == "true" ]]; then
   info "running external monitoring bootstrap verification"
-  bash "$ROOT_DIR/ops/scripts/verify-external-monitoring-bootstrap.sh" "http://127.0.0.1:${PORT}"
+  bash "$ROOT_DIR/ops/scripts/verify-external-monitoring-bootstrap.sh" "$(carbonet_runtime_base_url)"
 fi
 
 info "freshness verification completed"

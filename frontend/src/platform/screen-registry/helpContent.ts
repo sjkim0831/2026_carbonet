@@ -102,6 +102,26 @@ const PAGE_HELP: Record<string, PageHelpContent> = {
       { id: "chat", title: "대화 상세 패널", body: "우측에서 상담원 응답 이력과 추가 메시지 입력 영역을 확인합니다.", anchorSelector: '[data-help-id="support-inquiry-chat"]', placement: "top", iconName: "chat", highlightStyle: "neutral" }
     ]
   },
+  "mtn-status": {
+    pageId: "mtn-status",
+    title: "서비스 상태 도움말",
+    summary: "업데이트 큐, 핵심 배출지 카드, 운영 타임라인과 종합 리포트를 안내합니다.",
+    items: [
+      { id: "hero", title: "업데이트 큐", body: "상단에서 우선순위 업무와 바로가기 액션을 확인합니다.", anchorSelector: '[data-help-id="mtn-status-hero"]', placement: "bottom", iconName: "priority_high", highlightStyle: "focus" },
+      { id: "sites", title: "핵심 관리 배출지", body: "중앙 카드에서 상태, 경고, 빠른 조치 버튼을 확인합니다.", anchorSelector: '[data-help-id="mtn-status-pinned-sites"]', placement: "top", iconName: "push_pin", highlightStyle: "success" },
+      { id: "timeline", title: "운영 타임라인", body: "우측 패널에서 오늘의 감지 이벤트와 리포트 요약을 확인합니다.", anchorSelector: '[data-help-id="mtn-status-timeline"]', placement: "left", iconName: "schedule", highlightStyle: "warning" }
+    ]
+  },
+  "mtn-version": {
+    pageId: "mtn-version",
+    title: "버전 관리 도움말",
+    summary: "업데이트 비서 헤더, 버전 비교 요약, 빠른 작업 영역을 안내합니다.",
+    items: [
+      { id: "hero", title: "업데이트 비서 헤더", body: "상단에서 현재 버전 관리 목적과 전체 워크플로우 진입 버튼을 확인합니다.", anchorSelector: '[data-help-id="mtn-version-hero"]', placement: "bottom", iconName: "auto_awesome", highlightStyle: "focus" },
+      { id: "summary", title: "버전 비교 요약", body: "현재 운영 버전과 최신 배포 버전 비교, 상태 안내 문구를 확인합니다.", anchorSelector: '[data-help-id="mtn-version-summary"]', placement: "left", iconName: "update", highlightStyle: "success" },
+      { id: "actions", title: "빠른 작업", body: "문의, FAQ, 자료실 등 후속 화면으로 이동하는 작업 카드를 바로 실행합니다.", anchorSelector: '[data-help-id="mtn-version-actions"]', placement: "top", iconName: "bolt", highlightStyle: "warning" }
+    ]
+  },
   "emission-simulate": {
     pageId: "emission-simulate",
     title: "감축 시뮬레이션 도움말",

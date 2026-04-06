@@ -32,7 +32,6 @@ fi
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 EMISSION_SCRIPT_NAME="show-emission-management-rollout-board"
 source "$ROOT_DIR/ops/scripts/emission-management-auth-common.sh"
-BASE_URL="${1:-http://127.0.0.1:18000}"
 PORT="${PORT:-18000}"
 CONFIG_DIR="${CONFIG_DIR:-$ROOT_DIR/ops/config}"
 ENV_FILE="${ENV_FILE:-$CONFIG_DIR/carbonet-${PORT}.env}"
@@ -42,6 +41,8 @@ EMISSION_HTTP_RETRY_SECONDS="${EMISSION_HTTP_RETRY_SECONDS:-1}"
 EMISSION_ROLLOUT_OUTPUT="${EMISSION_ROLLOUT_OUTPUT:-text}"
 EMISSION_ROLLOUT_FILTER_SCOPES="${EMISSION_ROLLOUT_FILTER_SCOPES:-}"
 EMISSION_EXPECT_READY_SCOPES="${EMISSION_EXPECT_READY_SCOPES:-}"
+emission_load_optional_env "$ENV_FILE"
+BASE_URL="${1:-$(carbonet_runtime_base_url)}"
 emission_require_allowed_value "EMISSION_ROLLOUT_OUTPUT" "$EMISSION_ROLLOUT_OUTPUT" text json
 
 TMP_DIR="$(mktemp -d /tmp/emission-rollout-board.XXXXXX)"

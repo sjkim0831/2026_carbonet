@@ -37,7 +37,11 @@ EMISSION_SCRIPT_NAME="fill-emission-management-rollout-snapshots"
 source "$ROOT_DIR/ops/scripts/emission-management-auth-common.sh"
 FIXTURE_DIR="$ROOT_DIR/ops/fixtures/emission-management-rollout"
 SCOPE_METADATA_FILE="$(emission_rollout_scope_metadata_file)"
-BASE_URL="${1:-http://127.0.0.1:18000}"
+PORT="${PORT:-18000}"
+CONFIG_DIR="${CONFIG_DIR:-$ROOT_DIR/ops/config}"
+ENV_FILE="${ENV_FILE:-$CONFIG_DIR/carbonet-${PORT}.env}"
+emission_load_optional_env "$ENV_FILE"
+BASE_URL="${1:-$(carbonet_runtime_base_url)}"
 DEFAULT_EMISSION_SCOPES="$(emission_rollout_default_scopes "$SCOPE_METADATA_FILE")"
 EMISSION_SCOPES="${EMISSION_SCOPES:-$DEFAULT_EMISSION_SCOPES}"
 EMISSION_SCOPE_DELAY_SECONDS="${EMISSION_SCOPE_DELAY_SECONDS:-1}"
@@ -48,8 +52,9 @@ EMISSION_PRINT_COMMANDS="${EMISSION_PRINT_COMMANDS:-false}"
 
 wait_for_runtime() {
   local attempt=1
+  carbonet_set_curl_args
   while true; do
-    if curl -fsS "$BASE_URL/actuator/health" >/dev/null; then
+    if curl "${CARBONET_CURL_ARGS[@]}" -fsS "$BASE_URL/actuator/health" >/dev/null; then
       return 0
     fi
     if [[ "$attempt" -ge "$EMISSION_PRECHECK_RETRIES" ]]; then

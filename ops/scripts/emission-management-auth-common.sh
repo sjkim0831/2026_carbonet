@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+source "$ROOT_DIR/ops/scripts/runtime-url-common.sh"
+
 emission_fail() {
   echo "[$EMISSION_SCRIPT_NAME] FAIL: $*" >&2
   exit 1
@@ -33,8 +35,9 @@ emission_curl_to_file_with_retry() {
   local output_path="$1"
   shift
   local attempt=1
+  carbonet_set_curl_args
   while true; do
-    if curl -fsS "$@" > "$output_path"; then
+    if curl "${CARBONET_CURL_ARGS[@]}" -fsS "$@" > "$output_path"; then
       return 0
     fi
     if [[ "$attempt" -ge "$EMISSION_HTTP_RETRIES" ]]; then
@@ -51,8 +54,9 @@ emission_curl_status_with_retry() {
   shift
   local attempt=1
   local status=""
+  carbonet_set_curl_args
   while true; do
-    status="$(curl -sS -o "$output_path" -w '%{http_code}' "$@")" && {
+    status="$(curl "${CARBONET_CURL_ARGS[@]}" -sS -o "$output_path" -w '%{http_code}' "$@")" && {
       printf '%s\n' "$status"
       return 0
     }
@@ -147,12 +151,18 @@ emission_create_cookie_jar() {
   local token_access_secret="${TOKEN_ACCESS_SECRET:-change-me-access-secret}"
   local token_refresh_secret="${TOKEN_REFRESH_SECRET:-change-me-refresh-secret}"
   local access_token
+  local cookie_host="${CARBONET_RUNTIME_HOST:-127.0.0.1}"
+
+  if [[ -n "${BASE_URL:-}" ]]; then
+    cookie_host="${BASE_URL#*://}"
+    cookie_host="${cookie_host%%[:/]*}"
+  fi
 
   access_token="$(java -cp "$java_class_dir:$ROOT_DIR/target/classes:$(cat "$classpath_file")" ForgeEmissionManagementToken "$token_access_secret" "$token_refresh_secret" | tr -d '\r\n')"
   [[ -n "$access_token" ]] || emission_fail "failed to forge access token"
 
   printf '# Netscape HTTP Cookie File\n' > "$cookie_jar"
-  printf '127.0.0.1\tFALSE\t/\tFALSE\t0\taccessToken\t%s\n' "$access_token" >> "$cookie_jar"
+  printf '%s\tFALSE\t/\tFALSE\t0\taccessToken\t%s\n' "$cookie_host" "$access_token" >> "$cookie_jar"
 }
 
 emission_default_scopes_from_metadata() {

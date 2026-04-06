@@ -205,9 +205,14 @@ public final class ReactPageUrlMapper {
         registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "edu_survey", "/edu/survey", "/en/edu/survey", "/edu/survey");
         registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "edu_certificate", "/edu/certificate", "/en/edu/certificate", "/edu/certificate");
         registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "payment_receipt", "/payment/receipt", "/en/payment/receipt", "/payment/receipt");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "my_inquiry", "/mtn/my_inquiry", "/en/mtn/my_inquiry", "/mtn/my_inquiry");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "mtn_status", "/mtn/status", "/en/mtn/status", "/mtn/status");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "support_inquiry", "/support/inquiry", "/en/support/inquiry", "/support/inquiry");
         registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "mypage_email", "/mypage/email", "/en/mypage/email", "/mypage/email");
         registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "mypage_staff", "/mypage/staff", "/en/mypage/staff", "/mypage/staff");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "download_list", "/support/download_list", "/en/support/download_list", "/support/download_list");
         registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "notice_list", "/support/notice_list", "/en/support/notice_list", "/support/notice_list");
+        registerHome(homePathToRoute, homeRouteToPath, homeLocalizedPaths, "qna_list", "/support/qna_list", "/en/support/qna_list", "/support/qna_list");
 
         ADMIN_PATH_TO_ROUTE = Collections.unmodifiableMap(adminPathToRoute);
         ADMIN_ROUTE_TO_PATH = Collections.unmodifiableMap(adminRouteToPath);

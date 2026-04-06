@@ -1,6 +1,16 @@
 server:
   port: 18000
   forward-headers-strategy: native
+  ssl:
+    enabled: ${SERVER_SSL_ENABLED:false}
+    key-store: ${SERVER_SSL_KEY_STORE:}
+    key-store-password: ${SERVER_SSL_KEY_STORE_PASSWORD:}
+    key-store-type: ${SERVER_SSL_KEY_STORE_TYPE:PKCS12}
+    key-alias: ${SERVER_SSL_KEY_ALIAS:}
+  servlet:
+    session:
+      cookie:
+        secure: ${SERVER_SSL_ENABLED:false}
 
 egov:
   page:
@@ -110,7 +120,7 @@ security:
       frontend-verify-command: ${SECURITY_CODEX_RUNNER_FRONTEND_VERIFY_COMMAND:bash {repoRoot}/ops/scripts/codex-frontend-verify.sh {repoRoot} {diffFile}}
       frontend-verify-workdir: ${SECURITY_CODEX_RUNNER_FRONTEND_VERIFY_WORKDIR:frontend}
       deploy-command: ${SECURITY_CODEX_RUNNER_DEPLOY_COMMAND:bash {repoRoot}/ops/scripts/codex-apply-and-deploy.sh {repoRoot} {diffFile}}
-      health-check-url: ${SECURITY_CODEX_RUNNER_HEALTH_CHECK_URL:http://127.0.0.1:18000/actuator/health}
+      health-check-url: ${SECURITY_CODEX_RUNNER_HEALTH_CHECK_URL:${CARBONET_HEALTH_CHECK_URL:http://127.0.0.1:18000/actuator/health}}
       health-check-timeout-seconds: ${SECURITY_CODEX_RUNNER_HEALTH_CHECK_TIMEOUT_SECONDS:60}
       health-check-interval-seconds: ${SECURITY_CODEX_RUNNER_HEALTH_CHECK_INTERVAL_SECONDS:5}
       rollback-command: ${SECURITY_CODEX_RUNNER_ROLLBACK_COMMAND:}

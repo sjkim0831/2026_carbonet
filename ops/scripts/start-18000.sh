@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+source "$ROOT_DIR/ops/scripts/runtime-url-common.sh"
 PORT="${PORT:-18000}"
 LOG_DIR="${LOG_DIR:-$ROOT_DIR/var/logs}"
 RUN_DIR="${RUN_DIR:-$ROOT_DIR/var/run}"
@@ -37,6 +38,7 @@ load_optional_env() {
 
 load_optional_env "$CONFIG_DIR/carbonet-${PORT}.env"
 load_optional_env "$CONFIG_DIR/codex-runner.env"
+carbonet_set_curl_args
 
 require_env() {
   local env_name="$1"
@@ -84,6 +86,15 @@ DB_URL="jdbc:cubrid:${DB_HOST}:${DB_PORT}:${DB_NAME}:::?charset=UTF-8"
 
 require_env "TOKEN_ACCESS_SECRET"
 require_env "TOKEN_REFRESH_SECRET"
+
+if carbonet_bool_true "${SERVER_SSL_ENABLED:-false}"; then
+  require_env "SERVER_SSL_KEY_STORE"
+  require_env "SERVER_SSL_KEY_STORE_PASSWORD"
+  if [[ ! -f "$SERVER_SSL_KEY_STORE" ]]; then
+    echo "[start-18000] missing SSL key store: $SERVER_SSL_KEY_STORE" >&2
+    exit 1
+  fi
+fi
 
 if [[ ! -f "$SOURCE_JAR_PATH" ]]; then
   echo "[start-18000] missing source jar: $SOURCE_JAR_PATH" >&2

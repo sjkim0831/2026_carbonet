@@ -5,7 +5,7 @@ source "$SCRIPT_DIR/common.sh"
 
 log_info "Running Self-Healing Pattern Analysis Job"
 
-API_URL="${API_BASE_URL:-http://localhost:18000}"
+API_URL="${API_BASE_URL:-${APP_URL%/home}}"
 API_KEY="${CARBONET_API_KEY:-}"
 
 if [ -z "$API_KEY" ]; then
@@ -13,7 +13,7 @@ if [ -z "$API_KEY" ]; then
     exit 0
 fi
 
-RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+RESPONSE=$(curl "${CARBONET_CURL_ARGS[@]}" -s -w "\n%{http_code}" -X POST \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $API_KEY" \
     "$API_URL/api/admin/self-healing/analyze")

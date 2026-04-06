@@ -713,6 +713,34 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
       { componentId: "MyInquiryForm", instanceKey: "my-inquiry-form", layoutZone: "content", propsSummary: ["inquiryType", "emissionSite", "attachmentCount"] }
     ]
   },
+  "mtn-status": {
+    pageId: "mtn-status",
+    routePath: "/mtn/status",
+    menuCode: "HMENU_MTN_STATUS",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "MtnStatusHero", instanceKey: "mtn-status-hero", layoutZone: "header", propsSummary: ["queueCount", "searchPlaceholder", "primaryAction"] },
+      { componentId: "MtnStatusPinnedSites", instanceKey: "mtn-status-pinned-sites", layoutZone: "content", propsSummary: ["siteCount", "priorityAlertCount"] },
+      { componentId: "MtnStatusTimeline", instanceKey: "mtn-status-timeline", layoutZone: "sidebar", propsSummary: ["timelineCount", "reportUpdatedAt"] }
+    ]
+  },
+  "mtn-version": {
+    pageId: "mtn-version",
+    routePath: "/mtn/version",
+    menuCode: "H0090204",
+    domainCode: "home",
+    layoutVersion: "v1",
+    designTokenVersion: "krds-current",
+    components: [
+      { componentId: "MtnVersionHero", instanceKey: "mtn-version-hero", layoutZone: "header", propsSummary: ["heroEyebrow", "heroTitle", "heroButton"] },
+      { componentId: "MtnVersionSummary", instanceKey: "mtn-version-summary", layoutZone: "header", propsSummary: ["currentVersion", "latestVersion", "currentStatus"] },
+      { componentId: "MtnVersionQueue", instanceKey: "mtn-version-queue", layoutZone: "content", propsSummary: ["queueCount", "relatedInquiryLabel"] },
+      { componentId: "MtnVersionReleaseNotes", instanceKey: "mtn-version-release-notes", layoutZone: "content", propsSummary: ["releaseCount", "latestReleaseVersion"] },
+      { componentId: "MtnVersionActions", instanceKey: "mtn-version-actions", layoutZone: "sidebar", propsSummary: ["actionCount", "referenceNoteTitle"] }
+    ]
+  },
   "support-faq": {
     pageId: "support-faq",
     routePath: "/support/faq",
