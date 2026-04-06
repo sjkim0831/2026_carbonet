@@ -1,8 +1,8 @@
 package egovframework.com.common.logging;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -23,9 +23,9 @@ import java.util.function.Predicate;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Service("requestExecutionLogService")
-@RequiredArgsConstructor
-@Slf4j
 public class FileRequestExecutionLogService implements RequestExecutionLogService {
+
+    private static final Logger log = LoggerFactory.getLogger(FileRequestExecutionLogService.class);
 
     private final ObjectMapper objectMapper;
 
@@ -36,6 +36,10 @@ public class FileRequestExecutionLogService implements RequestExecutionLogServic
     private String requestLogFile;
 
     private final ReentrantLock lock = new ReentrantLock();
+
+    public FileRequestExecutionLogService(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
 
     @Override
     public void append(RequestExecutionLogVO item) {
