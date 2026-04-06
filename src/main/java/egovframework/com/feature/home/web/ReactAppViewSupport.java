@@ -1,6 +1,7 @@
 package egovframework.com.feature.home.web;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.ui.Model;
 import org.springframework.web.context.request.RequestAttributes;
@@ -8,6 +9,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -38,6 +40,7 @@ public class ReactAppViewSupport {
         ReactAppAssetResolver.ReactAppAssets assets = reactAppAssetResolver.resolveAssets();
         String jsPath = adaptAssetPath(assets.getJsPath(), admin, en);
         String cssPath = adaptAssetPath(assets.getCssPath(), admin, en);
+        applyNoStoreCacheHeaders(currentResponse());
         model.addAttribute("reactRoute", normalizeRoute(route, admin));
         model.addAttribute("reactLocale", en ? "en" : "ko");
         model.addAttribute("reactAdmin", admin);
@@ -92,6 +95,23 @@ public class ReactAppViewSupport {
             return ((ServletRequestAttributes) requestAttributes).getRequest();
         }
         return null;
+    }
+
+    private HttpServletResponse currentResponse() {
+        RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
+        if (requestAttributes instanceof ServletRequestAttributes) {
+            return ((ServletRequestAttributes) requestAttributes).getResponse();
+        }
+        return null;
+    }
+
+    private void applyNoStoreCacheHeaders(HttpServletResponse response) {
+        if (response == null) {
+            return;
+        }
+        response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store, no-cache, must-revalidate, max-age=0");
+        response.setHeader(HttpHeaders.PRAGMA, "no-cache");
+        response.setDateHeader(HttpHeaders.EXPIRES, 0);
     }
 
     private String adaptAssetPath(String path, boolean admin, boolean en) {
