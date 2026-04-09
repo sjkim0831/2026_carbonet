@@ -27,8 +27,12 @@ import java.util.Map;
 @RequestMapping({
         "/api/platform/help-management",
         "/en/api/platform/help-management",
+        "/api/admin/help-management",
+        "/en/api/admin/help-management",
         "/admin/api/platform/help-management",
-        "/en/admin/api/platform/help-management"
+        "/en/admin/api/platform/help-management",
+        "/admin/api/admin/help-management",
+        "/en/admin/api/admin/help-management"
 })
 public class HelpManagementApiController {
 
