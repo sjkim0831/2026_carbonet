@@ -3,7 +3,7 @@ package egovframework.com.feature.admin.tools;
 import egovframework.com.CarbonetApplication;
 import egovframework.com.platform.request.workbench.SrTicketApprovalRequest;
 import egovframework.com.platform.request.workbench.SrTicketCreateRequest;
-import egovframework.com.platform.workbench.service.SrTicketWorkbenchService;
+import egovframework.com.platform.service.workbench.SrTicketWorkbenchPort;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -33,7 +33,7 @@ public class SrTicketSafePlanTool {
         try (ConfigurableApplicationContext context = new SpringApplicationBuilder(CarbonetApplication.class)
                 .web(WebApplicationType.NONE)
                 .run(args)) {
-            SrTicketWorkbenchService service = context.getBean(SrTicketWorkbenchService.class);
+            SrTicketWorkbenchPort service = context.getBean(SrTicketWorkbenchPort.class);
 
             SrTicketCreateRequest createRequest = new SrTicketCreateRequest();
             createRequest.setTicketId(ticketId);

@@ -3,7 +3,7 @@ package egovframework.com.feature.admin.service.impl;
 import egovframework.com.feature.admin.model.vo.SrTicketRecordVO;
 import egovframework.com.feature.admin.service.SrSelfHealingService;
 import egovframework.com.platform.request.workbench.SrTicketCreateRequest;
-import egovframework.com.platform.workbench.service.SrTicketWorkbenchService;
+import egovframework.com.platform.service.workbench.SrTicketWorkbenchPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,7 +18,7 @@ import java.util.*;
 @RequiredArgsConstructor
 public class SrSelfHealingServiceImpl implements SrSelfHealingService {
 
-    private final SrTicketWorkbenchService srTicketWorkbenchService;
+    private final SrTicketWorkbenchPort srTicketWorkbenchService;
     
     private static final DateTimeFormatter TS_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final int AUTO_HEAL_THRESHOLD = 3;
