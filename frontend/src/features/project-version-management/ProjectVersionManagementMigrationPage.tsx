@@ -18,6 +18,7 @@ import {
   runProjectPipeline,
   type ResonanceProjectPipelineResponse
 } from "../../lib/api/resonanceControlPlane";
+import { buildUnifiedLogPath, buildUnifiedLogTracePath } from "../../platform/routes/families/platformPaths";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { GridToolbar, KeyValueGridPanel, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
@@ -173,12 +174,10 @@ function buildDeployTraceHref(projectId: string, traceId: string) {
   if (!normalizedTraceId) {
     return "";
   }
-  const search = new URLSearchParams();
-  search.set("traceId", normalizedTraceId);
-  if (projectId.trim()) {
-    search.set("projectId", projectId.trim());
-  }
-  return `${buildLocalizedPath("/admin/system/unified_log/trace", "/en/admin/system/unified_log/trace")}?${search.toString()}`;
+  return buildUnifiedLogTracePath({
+    traceId: normalizedTraceId,
+    projectId: projectId.trim()
+  });
 }
 
 function buildUnifiedLogTargetHref(projectId: string, targetType: string, targetId: string) {
@@ -187,13 +186,11 @@ function buildUnifiedLogTargetHref(projectId: string, targetType: string, target
   if (!normalizedType || !normalizedId) {
     return "";
   }
-  const search = new URLSearchParams();
-  search.set("targetType", normalizedType);
-  search.set("targetId", normalizedId);
-  if (projectId.trim()) {
-    search.set("projectId", projectId.trim());
-  }
-  return `${buildLocalizedPath("/admin/system/unified_log", "/en/admin/system/unified_log")}?${search.toString()}`;
+  return buildUnifiedLogPath({
+    projectId: projectId.trim(),
+    targetType: normalizedType,
+    targetId: normalizedId
+  });
 }
 
 export function ProjectVersionManagementMigrationPage() {

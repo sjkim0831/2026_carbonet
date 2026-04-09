@@ -1,7 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { ScreenBuilderComponentRegistryItem, ScreenBuilderComponentUsage } from "../../../../lib/api/client";
-import { buildLocalizedPath } from "../../../../lib/navigation/runtime";
 import { GridToolbar, MemberButton, MemberLinkButton } from "../../../admin-ui/common";
+import { buildScreenBuilderPath, buildScreenRuntimePath } from "../../screenBuilderPaths";
 import type { VirtualWindow } from "./shared";
 
 type Props = {
@@ -109,10 +109,20 @@ export default function GovernanceRegistryUsageSection(props: Props) {
                         <td className="px-4 py-3 font-mono text-[11px] text-[var(--kr-gov-text-secondary)]">{row.menuUrl || "-"}</td>
                         <td className="px-4 py-3 text-[12px] text-[var(--kr-gov-text-secondary)]">{row.layoutZone || row.nodeId || row.instanceKey || "-"}</td>
                         <td className="px-4 py-3">
-                          {row.menuCode ? (
+                              {row.menuCode ? (
                             <div className="flex flex-wrap gap-2">
-                              <MemberLinkButton href={buildLocalizedPath(`/admin/system/screen-builder?menuCode=${encodeURIComponent(row.menuCode)}&pageId=${encodeURIComponent(row.pageId || "")}&menuTitle=${encodeURIComponent(row.menuTitle || "")}&menuUrl=${encodeURIComponent(row.menuUrl || "")}`, `/en/admin/system/screen-builder?menuCode=${encodeURIComponent(row.menuCode)}&pageId=${encodeURIComponent(row.pageId || "")}&menuTitle=${encodeURIComponent(row.menuTitle || "")}&menuUrl=${encodeURIComponent(row.menuUrl || "")}`)} variant="secondary">{en ? "Builder" : "빌더"}</MemberLinkButton>
-                              {row.usageSource === "PUBLISHED" ? <MemberLinkButton href={buildLocalizedPath(`/admin/system/screen-runtime?menuCode=${encodeURIComponent(row.menuCode)}&pageId=${encodeURIComponent(row.pageId || "")}&menuTitle=${encodeURIComponent(row.menuTitle || "")}&menuUrl=${encodeURIComponent(row.menuUrl || "")}`, `/en/admin/system/screen-runtime?menuCode=${encodeURIComponent(row.menuCode)}&pageId=${encodeURIComponent(row.pageId || "")}&menuTitle=${encodeURIComponent(row.menuTitle || "")}&menuUrl=${encodeURIComponent(row.menuUrl || "")}`)} variant="secondary">{en ? "Runtime" : "런타임"}</MemberLinkButton> : null}
+                              <MemberLinkButton href={buildScreenBuilderPath({
+                                menuCode: row.menuCode,
+                                pageId: row.pageId || "",
+                                menuTitle: row.menuTitle || "",
+                                menuUrl: row.menuUrl || ""
+                              })} variant="secondary">{en ? "Builder" : "빌더"}</MemberLinkButton>
+                              {row.usageSource === "PUBLISHED" ? <MemberLinkButton href={buildScreenRuntimePath({
+                                menuCode: row.menuCode,
+                                pageId: row.pageId || "",
+                                menuTitle: row.menuTitle || "",
+                                menuUrl: row.menuUrl || ""
+                              })} variant="secondary">{en ? "Runtime" : "런타임"}</MemberLinkButton> : null}
                             </div>
                           ) : "-"}
                         </td>

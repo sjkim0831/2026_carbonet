@@ -5,6 +5,7 @@ import {
   type ScreenCommandPagePayload
 } from "../../lib/api/client";
 import { fetchAuditEvents, fetchTraceEvents } from "../../platform/observability/observability";
+import { buildFullStackManagementPath, buildPlatformStudioPath } from "../../platform/routes/families/platformPaths";
 import { fetchScreenBuilderStatusSummary } from "../../lib/api/screenBuilder";
 import { autoCollectFullStackGovernanceRegistry, fetchFullStackGovernanceRegistry, fetchScreenCommandPage } from "../../lib/api/screenGovernance";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";
@@ -141,7 +142,7 @@ export function useEnvironmentGovernance({
         description: en
           ? "Create or save the page manifest so the menu is traceable from route to implementation."
           : "페이지 manifest를 생성하거나 저장해 메뉴를 route와 구현 정보에 연결하세요.",
-        href: buildLocalizedPath("/admin/system/full-stack-management", "/en/admin/system/full-stack-management"),
+        href: buildFullStackManagementPath(),
         actionLabel: en ? "Open Full-Stack Management" : "풀스택 관리 열기",
         actionKind: "link"
       });
@@ -152,7 +153,7 @@ export function useEnvironmentGovernance({
         description: en
           ? "Run auto-collection or save the screen registry so draft-only linkage becomes operational metadata."
           : "자동 수집 또는 화면 registry 저장으로 draft 연결을 운영 메타데이터로 승격하세요.",
-        href: governancePageId ? undefined : buildLocalizedPath("/admin/system/platform-studio", "/en/admin/system/platform-studio"),
+        href: governancePageId ? undefined : buildPlatformStudioPath(),
         actionLabel: governancePageId ? (en ? "Run Auto Collect" : "자동 수집 실행") : (en ? "Open Platform Studio" : "플랫폼 스튜디오 열기"),
         actionKind: governancePageId ? "autoCollect" : "link"
       });
@@ -163,7 +164,7 @@ export function useEnvironmentGovernance({
         description: en
           ? "Review event-to-API mappings and persist controller/service/mapper linkage."
           : "이벤트-API 매핑을 검토하고 controller/service/mapper 연결을 저장하세요.",
-        href: governancePageId ? undefined : buildLocalizedPath("/admin/system/platform-studio", "/en/admin/system/platform-studio"),
+        href: governancePageId ? undefined : buildPlatformStudioPath(),
         actionLabel: governancePageId ? (en ? "Run Auto Collect" : "자동 수집 실행") : (en ? "Review In Platform Studio" : "플랫폼 스튜디오에서 검토"),
         actionKind: governancePageId ? "autoCollect" : "link"
       });
@@ -174,7 +175,7 @@ export function useEnvironmentGovernance({
         description: en
           ? "Register related schema and table metadata so operational impact can be traced before change."
           : "관련 스키마와 테이블 메타데이터를 등록해 변경 전 영향도를 추적 가능하게 하세요.",
-        href: governancePageId ? undefined : buildLocalizedPath("/admin/system/full-stack-management", "/en/admin/system/full-stack-management"),
+        href: governancePageId ? undefined : buildFullStackManagementPath(),
         actionLabel: governancePageId ? (en ? "Run Auto Collect" : "자동 수집 실행") : (en ? "Review In Full-Stack Management" : "풀스택 관리에서 검토"),
         actionKind: governancePageId ? "autoCollect" : "link"
       });

@@ -1,7 +1,7 @@
 import { DiagnosticCard, GridToolbar, MemberButton, MemberButtonGroup, MemberLinkButton } from "../../admin-ui/common";
-import { buildLocalizedPath } from "../../../lib/navigation/runtime";
 import { TEMPLATE_OPTIONS, type BuilderTemplateType } from "../shared/screenBuilderShared";
 import type { BuilderInstallQueueSummary } from "../shared/installableBuilderContract";
+import { buildCurrentRuntimeComparePath, buildRepairWorkbenchPath, buildScreenRuntimePath } from "../screenBuilderPaths";
 
 type Props = {
   en: boolean;
@@ -277,30 +277,39 @@ export default function ScreenBuilderOverviewPanels({
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-2">
                         <MemberLinkButton
-                          href={buildLocalizedPath(
-                            `/admin/system/screen-runtime?menuCode=${encodeURIComponent(page?.menuCode || "")}&pageId=${encodeURIComponent(page?.pageId || "")}&menuTitle=${encodeURIComponent(page?.menuTitle || "")}&menuUrl=${encodeURIComponent(page?.menuUrl || "")}&snapshotVersionId=${encodeURIComponent(version.versionId)}`,
-                            `/en/admin/system/screen-runtime?menuCode=${encodeURIComponent(page?.menuCode || "")}&pageId=${encodeURIComponent(page?.pageId || "")}&menuTitle=${encodeURIComponent(page?.menuTitle || "")}&menuUrl=${encodeURIComponent(page?.menuUrl || "")}&snapshotVersionId=${encodeURIComponent(version.versionId)}`
-                          )}
+                          href={buildScreenRuntimePath({
+                            menuCode: page?.menuCode || "",
+                            pageId: page?.pageId || "",
+                            menuTitle: page?.menuTitle || "",
+                            menuUrl: page?.menuUrl || "",
+                            snapshotVersionId: version.versionId
+                          })}
                           size="xs"
                           variant="secondary"
                         >
                           {en ? "Runtime Validator" : "런타임 검증"}
                         </MemberLinkButton>
                         <MemberLinkButton
-                          href={buildLocalizedPath(
-                            `/admin/system/current-runtime-compare?menuCode=${encodeURIComponent(page?.menuCode || "")}&pageId=${encodeURIComponent(page?.pageId || "")}&menuTitle=${encodeURIComponent(page?.menuTitle || "")}&menuUrl=${encodeURIComponent(page?.menuUrl || "")}&snapshotVersionId=${encodeURIComponent(version.versionId)}`,
-                            `/en/admin/system/current-runtime-compare?menuCode=${encodeURIComponent(page?.menuCode || "")}&pageId=${encodeURIComponent(page?.pageId || "")}&menuTitle=${encodeURIComponent(page?.menuTitle || "")}&menuUrl=${encodeURIComponent(page?.menuUrl || "")}&snapshotVersionId=${encodeURIComponent(version.versionId)}`
-                          )}
+                          href={buildCurrentRuntimeComparePath({
+                            menuCode: page?.menuCode || "",
+                            pageId: page?.pageId || "",
+                            menuTitle: page?.menuTitle || "",
+                            menuUrl: page?.menuUrl || "",
+                            snapshotVersionId: version.versionId
+                          })}
                           size="xs"
                           variant="secondary"
                         >
                           {en ? "Repair Validator" : "복구 검증"}
                         </MemberLinkButton>
                         <MemberLinkButton
-                          href={buildLocalizedPath(
-                            `/admin/system/repair-workbench?menuCode=${encodeURIComponent(page?.menuCode || "")}&pageId=${encodeURIComponent(page?.pageId || "")}&menuTitle=${encodeURIComponent(page?.menuTitle || "")}&menuUrl=${encodeURIComponent(page?.menuUrl || "")}&snapshotVersionId=${encodeURIComponent(version.versionId)}`,
-                            `/en/admin/system/repair-workbench?menuCode=${encodeURIComponent(page?.menuCode || "")}&pageId=${encodeURIComponent(page?.pageId || "")}&menuTitle=${encodeURIComponent(page?.menuTitle || "")}&menuUrl=${encodeURIComponent(page?.menuUrl || "")}&snapshotVersionId=${encodeURIComponent(version.versionId)}`
-                          )}
+                          href={buildRepairWorkbenchPath({
+                            menuCode: page?.menuCode || "",
+                            pageId: page?.pageId || "",
+                            menuTitle: page?.menuTitle || "",
+                            menuUrl: page?.menuUrl || "",
+                            snapshotVersionId: version.versionId
+                          })}
                           size="xs"
                           variant="secondary"
                         >

@@ -18,6 +18,16 @@ import {
 import { postFormUrlEncoded } from "../../lib/api/core";
 import { resolveResonanceProjectId } from "../../lib/api/resonanceControlPlane";
 import { fetchAuditEvents } from "../../platform/observability/observability";
+import {
+  buildFeatureManagementCreatePath,
+  buildFeatureManagementPath,
+  buildFullStackManagementPath,
+  buildHelpManagementPath,
+  buildInfraPath,
+  buildMenuCreatePagePath,
+  buildObservabilityPath,
+  buildPlatformStudioPath
+} from "../../platform/routes/families/platformPaths";
 import { rebuildScreenBuilderStatusSummary } from "../../lib/api/screenBuilder";
 import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
@@ -38,6 +48,9 @@ import {
 } from "../screen-builder/shared/installableBuilderContract";
 import {
   buildSuggestedPageCode,
+  buildCurrentRuntimeComparePath,
+  buildScreenBuilderPath,
+  buildScreenRuntimePath,
   createEmptyFeatureDraft,
   createEmptySelectedMenuDraft,
   describeScreenBuilderFilter,
@@ -116,6 +129,39 @@ export function EnvironmentManagementHubPage() {
   const [metadataExpanded, setMetadataExpanded] = useState(false);
   const [selectedSummaryRebuildBusy, setSelectedSummaryRebuildBusy] = useState(false);
   const [allSummaryRebuildBusy, setAllSummaryRebuildBusy] = useState(false);
+
+  const resolveManagedPageId = (menuCode: string, pageId?: string | null) => pageId || menuCode.toLowerCase();
+
+  const buildManagedBuilderHref = (menu: { code: string; label: string; menuUrl?: string }, pageId?: string | null) =>
+    buildScreenBuilderPath({
+      menuCode: menu.code,
+      pageId: resolveManagedPageId(menu.code, pageId),
+      menuTitle: menu.label,
+      menuUrl: menu.menuUrl || ""
+    });
+
+  const buildManagedRuntimeHref = (menu: { code: string; label: string; menuUrl?: string }, pageId?: string | null) =>
+    buildScreenRuntimePath({
+      menuCode: menu.code,
+      pageId: resolveManagedPageId(menu.code, pageId),
+      menuTitle: menu.label,
+      menuUrl: menu.menuUrl || ""
+    });
+
+  const buildManagedCompareHref = (menu: { code: string; label: string; menuUrl?: string }, pageId?: string | null) =>
+    buildCurrentRuntimeComparePath({
+      menuCode: menu.code,
+      pageId: resolveManagedPageId(menu.code, pageId),
+      menuTitle: menu.label,
+      menuUrl: menu.menuUrl || ""
+    });
+
+  const buildManagedObservabilityHref = (menu: { code: string }, pageId?: string | null, searchKeyword = "SCREEN_BUILDER_") =>
+    buildObservabilityPath({
+      menuCode: menu.code,
+      pageId: resolveManagedPageId(menu.code, pageId),
+      searchKeyword
+    });
 
   const governanceEngineCards = useMemo(() => ([
     {
@@ -862,7 +908,7 @@ export function EnvironmentManagementHubPage() {
     body.set("menuIcon", menuIcon);
     body.set("useAt", useAt);
     const responseBody = await postFormUrlEncoded<{ success?: boolean; message?: string; createdCode?: string }>(
-      buildLocalizedPath("/admin/system/menu/create-page", "/en/admin/system/menu/create-page"),
+      buildMenuCreatePagePath(),
       body
     );
     if (!responseBody.success) {
@@ -1298,13 +1344,13 @@ export function EnvironmentManagementHubPage() {
         <GridToolbar
           actions={(
             <div className="flex flex-wrap gap-2">
-              <MemberLinkButton href={buildLocalizedPath("/admin/system/infra", "/en/admin/system/infra")} size="sm" variant="secondary">
+              <MemberLinkButton href={buildInfraPath()} size="sm" variant="secondary">
                 {en ? "Infra Console" : "인프라 콘솔"}
               </MemberLinkButton>
-              <MemberLinkButton href={buildLocalizedPath("/admin/system/full-stack-management", "/en/admin/system/full-stack-management")} size="sm" variant="secondary">
+              <MemberLinkButton href={buildFullStackManagementPath()} size="sm" variant="secondary">
                 {en ? "Full-stack Registry" : "풀스택 레지스트리"}
               </MemberLinkButton>
-              <MemberLinkButton href={buildLocalizedPath("/admin/system/help-management", "/en/admin/system/help-management")} size="sm" variant="secondary">
+              <MemberLinkButton href={buildHelpManagementPath()} size="sm" variant="secondary">
                 {en ? "Screen Command" : "화면 커맨드"}
               </MemberLinkButton>
             </div>
@@ -1863,10 +1909,12 @@ export function EnvironmentManagementHubPage() {
                               </p>
                               <div className="mt-2 flex flex-wrap gap-2">
                                 <MemberLinkButton
-                                  href={buildLocalizedPath(
-                                    `/admin/system/screen-builder?menuCode=${encodeURIComponent(row.code)}&pageId=${encodeURIComponent(row.code.toLowerCase())}&menuTitle=${encodeURIComponent(row.label)}&menuUrl=${encodeURIComponent(row.menuUrl || "")}`,
-                                    `/en/admin/system/screen-builder?menuCode=${encodeURIComponent(row.code)}&pageId=${encodeURIComponent(row.code.toLowerCase())}&menuTitle=${encodeURIComponent(row.label)}&menuUrl=${encodeURIComponent(row.menuUrl || "")}`
-                                  )}
+                                  href={buildScreenBuilderPath({
+                                    menuCode: row.code,
+                                    pageId: row.code.toLowerCase(),
+                                    menuTitle: row.label,
+                                    menuUrl: row.menuUrl || ""
+                                  })}
                                   size="xs"
                                   variant={rowPublishReady ? "secondary" : "info"}
                                 >
@@ -1875,20 +1923,24 @@ export function EnvironmentManagementHubPage() {
                                 {screenBuilderPublishedMap[row.code] ? (
                                   <>
                                     <MemberLinkButton
-                                      href={buildLocalizedPath(
-                                        `/admin/system/screen-runtime?menuCode=${encodeURIComponent(row.code)}&pageId=${encodeURIComponent(row.code.toLowerCase())}&menuTitle=${encodeURIComponent(row.label)}&menuUrl=${encodeURIComponent(row.menuUrl || "")}`,
-                                        `/en/admin/system/screen-runtime?menuCode=${encodeURIComponent(row.code)}&pageId=${encodeURIComponent(row.code.toLowerCase())}&menuTitle=${encodeURIComponent(row.label)}&menuUrl=${encodeURIComponent(row.menuUrl || "")}`
-                                      )}
+                                      href={buildScreenRuntimePath({
+                                        menuCode: row.code,
+                                        pageId: row.code.toLowerCase(),
+                                        menuTitle: row.label,
+                                        menuUrl: row.menuUrl || ""
+                                      })}
                                       size="xs"
                                       variant="secondary"
                                     >
                                       {en ? "Validate Runtime" : "런타임 검증"}
                                     </MemberLinkButton>
                                     <MemberLinkButton
-                                      href={buildLocalizedPath(
-                                        `/admin/system/current-runtime-compare?menuCode=${encodeURIComponent(row.code)}&pageId=${encodeURIComponent(row.code.toLowerCase())}&menuTitle=${encodeURIComponent(row.label)}&menuUrl=${encodeURIComponent(row.menuUrl || "")}`,
-                                        `/en/admin/system/current-runtime-compare?menuCode=${encodeURIComponent(row.code)}&pageId=${encodeURIComponent(row.code.toLowerCase())}&menuTitle=${encodeURIComponent(row.label)}&menuUrl=${encodeURIComponent(row.menuUrl || "")}`
-                                      )}
+                                      href={buildCurrentRuntimeComparePath({
+                                        menuCode: row.code,
+                                        pageId: row.code.toLowerCase(),
+                                        menuTitle: row.label,
+                                        menuUrl: row.menuUrl || ""
+                                      })}
                                       size="xs"
                                       variant={rowParity?.state === "GAP" || rowParity?.state === "DRIFT" ? "info" : "secondary"}
                                     >
@@ -1897,10 +1949,11 @@ export function EnvironmentManagementHubPage() {
                                   </>
                                 ) : null}
                                 <MemberLinkButton
-                                  href={buildLocalizedPath(
-                                    `/admin/system/observability?menuCode=${encodeURIComponent(row.code)}&pageId=${encodeURIComponent(row.code.toLowerCase())}&searchKeyword=${encodeURIComponent("SCREEN_BUILDER_")}`,
-                                    `/en/admin/system/observability?menuCode=${encodeURIComponent(row.code)}&pageId=${encodeURIComponent(row.code.toLowerCase())}&searchKeyword=${encodeURIComponent("SCREEN_BUILDER_")}`
-                                  )}
+                                  href={buildObservabilityPath({
+                                    menuCode: row.code,
+                                    pageId: row.code.toLowerCase(),
+                                    searchKeyword: "SCREEN_BUILDER_"
+                                  })}
                                   size="xs"
                                   variant="secondary"
                                 >
@@ -1984,7 +2037,7 @@ export function EnvironmentManagementHubPage() {
                   <MemberLinkButton href={buildLocalizedPath("/admin/auth/group", "/en/admin/auth/group")} size="sm" variant="secondary">
                     {en ? "Open Authority Binding" : "권한 바인딩 열기"}
                   </MemberLinkButton>
-                  <MemberLinkButton href={buildLocalizedPath(`/admin/system/feature-management?menuType=${encodeURIComponent(menuType)}&searchMenuCode=${encodeURIComponent(selectedMenu.code)}`, `/en/admin/system/feature-management?menuType=${encodeURIComponent(menuType)}&searchMenuCode=${encodeURIComponent(selectedMenu.code)}`)} size="sm" variant="secondary">
+                  <MemberLinkButton href={buildFeatureManagementPath({ menuType, searchMenuCode: selectedMenu.code })} size="sm" variant="secondary">
                     {en ? "Open Feature Binding" : "기능 바인딩 열기"}
                   </MemberLinkButton>
                     <MemberButton
@@ -2012,30 +2065,35 @@ export function EnvironmentManagementHubPage() {
                           : (en ? "Rebuild This Summary" : "이 메뉴 요약 재생성")}
                       </MemberButton>
                       <MemberLinkButton
-                        href={buildLocalizedPath(
-                          `/admin/system/screen-builder?menuCode=${encodeURIComponent(selectedMenu.code)}&pageId=${encodeURIComponent(governancePageId || selectedMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(selectedMenu.label)}&menuUrl=${encodeURIComponent(selectedMenu.menuUrl || "")}`,
-                          `/en/admin/system/screen-builder?menuCode=${encodeURIComponent(selectedMenu.code)}&pageId=${encodeURIComponent(governancePageId || selectedMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(selectedMenu.label)}&menuUrl=${encodeURIComponent(selectedMenu.menuUrl || "")}`
-                        )}
+                        href={buildScreenBuilderPath({
+                          menuCode: selectedMenu.code,
+                          pageId: governancePageId || selectedMenu.code.toLowerCase(),
+                          menuTitle: selectedMenu.label,
+                          menuUrl: selectedMenu.menuUrl || ""
+                        })}
                         size="sm"
                         variant="info"
                       >
                         {en ? "Open Screen Builder" : "화면 빌더 열기"}
                       </MemberLinkButton>
                       <MemberLinkButton
-                        href={buildLocalizedPath(
-                          `/admin/system/screen-runtime?menuCode=${encodeURIComponent(selectedMenu.code)}&pageId=${encodeURIComponent(governancePageId || selectedMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(selectedMenu.label)}&menuUrl=${encodeURIComponent(selectedMenu.menuUrl || "")}`,
-                          `/en/admin/system/screen-runtime?menuCode=${encodeURIComponent(selectedMenu.code)}&pageId=${encodeURIComponent(governancePageId || selectedMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(selectedMenu.label)}&menuUrl=${encodeURIComponent(selectedMenu.menuUrl || "")}`
-                        )}
+                        href={buildScreenRuntimePath({
+                          menuCode: selectedMenu.code,
+                          pageId: governancePageId || selectedMenu.code.toLowerCase(),
+                          menuTitle: selectedMenu.label,
+                          menuUrl: selectedMenu.menuUrl || ""
+                        })}
                         size="sm"
                         variant="secondary"
                       >
                         {en ? "Open Published Runtime" : "발행 런타임 열기"}
                       </MemberLinkButton>
                       <MemberLinkButton
-                        href={buildLocalizedPath(
-                          `/admin/system/observability?menuCode=${encodeURIComponent(selectedMenu.code)}&pageId=${encodeURIComponent(governancePageId || selectedMenu.code.toLowerCase())}&searchKeyword=${encodeURIComponent("SCREEN_BUILDER_")}`,
-                          `/en/admin/system/observability?menuCode=${encodeURIComponent(selectedMenu.code)}&pageId=${encodeURIComponent(governancePageId || selectedMenu.code.toLowerCase())}&searchKeyword=${encodeURIComponent("SCREEN_BUILDER_")}`
-                        )}
+                        href={buildObservabilityPath({
+                          menuCode: selectedMenu.code,
+                          pageId: governancePageId || selectedMenu.code.toLowerCase(),
+                          searchKeyword: "SCREEN_BUILDER_"
+                        })}
                         size="sm"
                         variant="secondary"
                       >
@@ -2130,20 +2188,23 @@ export function EnvironmentManagementHubPage() {
                           </div>
                           <div className="flex flex-wrap gap-2">
                             <MemberLinkButton
-                              href={buildLocalizedPath(
-                                `/admin/system/screen-builder?menuCode=${encodeURIComponent(selectedMenu.code)}&pageId=${encodeURIComponent(governancePageId || selectedMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(selectedMenu.label)}&menuUrl=${encodeURIComponent(selectedMenu.menuUrl || "")}`,
-                                `/en/admin/system/screen-builder?menuCode=${encodeURIComponent(selectedMenu.code)}&pageId=${encodeURIComponent(governancePageId || selectedMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(selectedMenu.label)}&menuUrl=${encodeURIComponent(selectedMenu.menuUrl || "")}`
-                              )}
+                              href={buildScreenBuilderPath({
+                                menuCode: selectedMenu.code,
+                                pageId: governancePageId || selectedMenu.code.toLowerCase(),
+                                menuTitle: selectedMenu.label,
+                                menuUrl: selectedMenu.menuUrl || ""
+                              })}
                               size="sm"
                               variant={selectedMenuPublishReady ? "secondary" : "info"}
                             >
                               {en ? "Open Builder Now" : "지금 빌더 열기"}
                             </MemberLinkButton>
                             <MemberLinkButton
-                              href={buildLocalizedPath(
-                                `/admin/system/observability?menuCode=${encodeURIComponent(selectedMenu.code)}&pageId=${encodeURIComponent(governancePageId || selectedMenu.code.toLowerCase())}&searchKeyword=${encodeURIComponent("SCREEN_BUILDER_")}`,
-                                `/en/admin/system/observability?menuCode=${encodeURIComponent(selectedMenu.code)}&pageId=${encodeURIComponent(governancePageId || selectedMenu.code.toLowerCase())}&searchKeyword=${encodeURIComponent("SCREEN_BUILDER_")}`
-                              )}
+                              href={buildObservabilityPath({
+                                menuCode: selectedMenu.code,
+                                pageId: governancePageId || selectedMenu.code.toLowerCase(),
+                                searchKeyword: "SCREEN_BUILDER_"
+                              })}
                               size="sm"
                               variant="secondary"
                             >
@@ -2292,30 +2353,35 @@ export function EnvironmentManagementHubPage() {
                                         {previousPublishedSameIssueMenu.code} / {previousPublishedSameIssueMenu.label}
                                       </span>
                                       <MemberLinkButton
-                                        href={buildLocalizedPath(
-                                          `/admin/system/screen-builder?menuCode=${encodeURIComponent(previousPublishedSameIssueMenu.code)}&pageId=${encodeURIComponent(previousPublishedSameIssueMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(previousPublishedSameIssueMenu.label)}&menuUrl=${encodeURIComponent(previousPublishedSameIssueMenu.menuUrl || "")}`,
-                                          `/en/admin/system/screen-builder?menuCode=${encodeURIComponent(previousPublishedSameIssueMenu.code)}&pageId=${encodeURIComponent(previousPublishedSameIssueMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(previousPublishedSameIssueMenu.label)}&menuUrl=${encodeURIComponent(previousPublishedSameIssueMenu.menuUrl || "")}`
-                                        )}
+                                        href={buildScreenBuilderPath({
+                                          menuCode: previousPublishedSameIssueMenu.code,
+                                          pageId: previousPublishedSameIssueMenu.code.toLowerCase(),
+                                          menuTitle: previousPublishedSameIssueMenu.label,
+                                          menuUrl: previousPublishedSameIssueMenu.menuUrl || ""
+                                        })}
                                         size="xs"
                                         variant="secondary"
                                       >
                                         {en ? "Builder" : "빌더"}
                                       </MemberLinkButton>
                                       <MemberLinkButton
-                                        href={buildLocalizedPath(
-                                          `/admin/system/screen-runtime?menuCode=${encodeURIComponent(previousPublishedSameIssueMenu.code)}&pageId=${encodeURIComponent(previousPublishedSameIssueMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(previousPublishedSameIssueMenu.label)}&menuUrl=${encodeURIComponent(previousPublishedSameIssueMenu.menuUrl || "")}`,
-                                          `/en/admin/system/screen-runtime?menuCode=${encodeURIComponent(previousPublishedSameIssueMenu.code)}&pageId=${encodeURIComponent(previousPublishedSameIssueMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(previousPublishedSameIssueMenu.label)}&menuUrl=${encodeURIComponent(previousPublishedSameIssueMenu.menuUrl || "")}`
-                                        )}
+                                        href={buildScreenRuntimePath({
+                                          menuCode: previousPublishedSameIssueMenu.code,
+                                          pageId: previousPublishedSameIssueMenu.code.toLowerCase(),
+                                          menuTitle: previousPublishedSameIssueMenu.label,
+                                          menuUrl: previousPublishedSameIssueMenu.menuUrl || ""
+                                        })}
                                         size="xs"
                                         variant="secondary"
                                       >
                                         {en ? "Runtime" : "런타임"}
                                       </MemberLinkButton>
                                       <MemberLinkButton
-                                        href={buildLocalizedPath(
-                                          `/admin/system/observability?menuCode=${encodeURIComponent(previousPublishedSameIssueMenu.code)}&pageId=${encodeURIComponent(previousPublishedSameIssueMenu.code.toLowerCase())}&searchKeyword=${encodeURIComponent("SCREEN_BUILDER_")}`,
-                                          `/en/admin/system/observability?menuCode=${encodeURIComponent(previousPublishedSameIssueMenu.code)}&pageId=${encodeURIComponent(previousPublishedSameIssueMenu.code.toLowerCase())}&searchKeyword=${encodeURIComponent("SCREEN_BUILDER_")}`
-                                        )}
+                                        href={buildObservabilityPath({
+                                          menuCode: previousPublishedSameIssueMenu.code,
+                                          pageId: previousPublishedSameIssueMenu.code.toLowerCase(),
+                                          searchKeyword: "SCREEN_BUILDER_"
+                                        })}
                                         size="xs"
                                         variant="secondary"
                                       >
@@ -2334,20 +2400,14 @@ export function EnvironmentManagementHubPage() {
                                         {previousDraftSameIssueMenu.code} / {previousDraftSameIssueMenu.label}
                                       </span>
                                       <MemberLinkButton
-                                        href={buildLocalizedPath(
-                                          `/admin/system/screen-builder?menuCode=${encodeURIComponent(previousDraftSameIssueMenu.code)}&pageId=${encodeURIComponent(previousDraftSameIssueMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(previousDraftSameIssueMenu.label)}&menuUrl=${encodeURIComponent(previousDraftSameIssueMenu.menuUrl || "")}`,
-                                          `/en/admin/system/screen-builder?menuCode=${encodeURIComponent(previousDraftSameIssueMenu.code)}&pageId=${encodeURIComponent(previousDraftSameIssueMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(previousDraftSameIssueMenu.label)}&menuUrl=${encodeURIComponent(previousDraftSameIssueMenu.menuUrl || "")}`
-                                        )}
+                                        href={buildManagedBuilderHref(previousDraftSameIssueMenu)}
                                         size="xs"
                                         variant="secondary"
                                       >
                                         {en ? "Builder" : "빌더"}
                                       </MemberLinkButton>
                                       <MemberLinkButton
-                                        href={buildLocalizedPath(
-                                          `/admin/system/observability?menuCode=${encodeURIComponent(previousDraftSameIssueMenu.code)}&pageId=${encodeURIComponent(previousDraftSameIssueMenu.code.toLowerCase())}&searchKeyword=${encodeURIComponent("SCREEN_BUILDER_")}`,
-                                          `/en/admin/system/observability?menuCode=${encodeURIComponent(previousDraftSameIssueMenu.code)}&pageId=${encodeURIComponent(previousDraftSameIssueMenu.code.toLowerCase())}&searchKeyword=${encodeURIComponent("SCREEN_BUILDER_")}`
-                                        )}
+                                        href={buildManagedObservabilityHref(previousDraftSameIssueMenu)}
                                         size="xs"
                                         variant="secondary"
                                       >
@@ -2370,30 +2430,21 @@ export function EnvironmentManagementHubPage() {
                                           {nextRemainingPublishedSameIssueMenu.code} / {nextRemainingPublishedSameIssueMenu.label}
                                         </span>
                                         <MemberLinkButton
-                                          href={buildLocalizedPath(
-                                            `/admin/system/screen-builder?menuCode=${encodeURIComponent(nextRemainingPublishedSameIssueMenu.code)}&pageId=${encodeURIComponent(nextRemainingPublishedSameIssueMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(nextRemainingPublishedSameIssueMenu.label)}&menuUrl=${encodeURIComponent(nextRemainingPublishedSameIssueMenu.menuUrl || "")}`,
-                                            `/en/admin/system/screen-builder?menuCode=${encodeURIComponent(nextRemainingPublishedSameIssueMenu.code)}&pageId=${encodeURIComponent(nextRemainingPublishedSameIssueMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(nextRemainingPublishedSameIssueMenu.label)}&menuUrl=${encodeURIComponent(nextRemainingPublishedSameIssueMenu.menuUrl || "")}`
-                                          )}
+                                          href={buildManagedBuilderHref(nextRemainingPublishedSameIssueMenu)}
                                           size="xs"
                                           variant="secondary"
                                         >
                                           {en ? "Builder" : "빌더"}
                                         </MemberLinkButton>
                                         <MemberLinkButton
-                                          href={buildLocalizedPath(
-                                            `/admin/system/screen-runtime?menuCode=${encodeURIComponent(nextRemainingPublishedSameIssueMenu.code)}&pageId=${encodeURIComponent(nextRemainingPublishedSameIssueMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(nextRemainingPublishedSameIssueMenu.label)}&menuUrl=${encodeURIComponent(nextRemainingPublishedSameIssueMenu.menuUrl || "")}`,
-                                            `/en/admin/system/screen-runtime?menuCode=${encodeURIComponent(nextRemainingPublishedSameIssueMenu.code)}&pageId=${encodeURIComponent(nextRemainingPublishedSameIssueMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(nextRemainingPublishedSameIssueMenu.label)}&menuUrl=${encodeURIComponent(nextRemainingPublishedSameIssueMenu.menuUrl || "")}`
-                                          )}
+                                          href={buildManagedRuntimeHref(nextRemainingPublishedSameIssueMenu)}
                                           size="xs"
                                           variant="secondary"
                                         >
                                           {en ? "Runtime" : "런타임"}
                                         </MemberLinkButton>
                                         <MemberLinkButton
-                                          href={buildLocalizedPath(
-                                            `/admin/system/observability?menuCode=${encodeURIComponent(nextRemainingPublishedSameIssueMenu.code)}&pageId=${encodeURIComponent(nextRemainingPublishedSameIssueMenu.code.toLowerCase())}&searchKeyword=${encodeURIComponent("SCREEN_BUILDER_")}`,
-                                            `/en/admin/system/observability?menuCode=${encodeURIComponent(nextRemainingPublishedSameIssueMenu.code)}&pageId=${encodeURIComponent(nextRemainingPublishedSameIssueMenu.code.toLowerCase())}&searchKeyword=${encodeURIComponent("SCREEN_BUILDER_")}`
-                                          )}
+                                          href={buildManagedObservabilityHref(nextRemainingPublishedSameIssueMenu)}
                                           size="xs"
                                           variant="secondary"
                                         >
@@ -2417,20 +2468,14 @@ export function EnvironmentManagementHubPage() {
                                           {nextRemainingDraftSameIssueMenu.code} / {nextRemainingDraftSameIssueMenu.label}
                                         </span>
                                         <MemberLinkButton
-                                          href={buildLocalizedPath(
-                                            `/admin/system/screen-builder?menuCode=${encodeURIComponent(nextRemainingDraftSameIssueMenu.code)}&pageId=${encodeURIComponent(nextRemainingDraftSameIssueMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(nextRemainingDraftSameIssueMenu.label)}&menuUrl=${encodeURIComponent(nextRemainingDraftSameIssueMenu.menuUrl || "")}`,
-                                            `/en/admin/system/screen-builder?menuCode=${encodeURIComponent(nextRemainingDraftSameIssueMenu.code)}&pageId=${encodeURIComponent(nextRemainingDraftSameIssueMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(nextRemainingDraftSameIssueMenu.label)}&menuUrl=${encodeURIComponent(nextRemainingDraftSameIssueMenu.menuUrl || "")}`
-                                          )}
+                                          href={buildManagedBuilderHref(nextRemainingDraftSameIssueMenu)}
                                           size="xs"
                                           variant="secondary"
                                         >
                                           {en ? "Builder" : "빌더"}
                                         </MemberLinkButton>
                                         <MemberLinkButton
-                                          href={buildLocalizedPath(
-                                            `/admin/system/observability?menuCode=${encodeURIComponent(nextRemainingDraftSameIssueMenu.code)}&pageId=${encodeURIComponent(nextRemainingDraftSameIssueMenu.code.toLowerCase())}&searchKeyword=${encodeURIComponent("SCREEN_BUILDER_")}`,
-                                            `/en/admin/system/observability?menuCode=${encodeURIComponent(nextRemainingDraftSameIssueMenu.code)}&pageId=${encodeURIComponent(nextRemainingDraftSameIssueMenu.code.toLowerCase())}&searchKeyword=${encodeURIComponent("SCREEN_BUILDER_")}`
-                                          )}
+                                          href={buildManagedObservabilityHref(nextRemainingDraftSameIssueMenu)}
                                           size="xs"
                                           variant="secondary"
                                         >
@@ -2471,10 +2516,7 @@ export function EnvironmentManagementHubPage() {
                                 </div>
                                 <div className="mt-2 flex flex-wrap gap-2">
                                   <MemberLinkButton
-                                    href={buildLocalizedPath(
-                                      `/admin/system/screen-builder?menuCode=${encodeURIComponent(selectedMenu.code)}&pageId=${encodeURIComponent(governancePageId || selectedMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(selectedMenu.label)}&menuUrl=${encodeURIComponent(selectedMenu.menuUrl || "")}`,
-                                      `/en/admin/system/screen-builder?menuCode=${encodeURIComponent(selectedMenu.code)}&pageId=${encodeURIComponent(governancePageId || selectedMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(selectedMenu.label)}&menuUrl=${encodeURIComponent(selectedMenu.menuUrl || "")}`
-                                    )}
+                                    href={buildManagedBuilderHref(selectedMenu, governancePageId)}
                                     size="xs"
                                     variant="secondary"
                                   >
@@ -2482,10 +2524,7 @@ export function EnvironmentManagementHubPage() {
                                   </MemberLinkButton>
                                   {screenBuilderStatus?.publishedVersionId ? (
                                     <MemberLinkButton
-                                      href={buildLocalizedPath(
-                                        `/admin/system/screen-runtime?menuCode=${encodeURIComponent(selectedMenu.code)}&pageId=${encodeURIComponent(governancePageId || selectedMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(selectedMenu.label)}&menuUrl=${encodeURIComponent(selectedMenu.menuUrl || "")}`,
-                                        `/en/admin/system/screen-runtime?menuCode=${encodeURIComponent(selectedMenu.code)}&pageId=${encodeURIComponent(governancePageId || selectedMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(selectedMenu.label)}&menuUrl=${encodeURIComponent(selectedMenu.menuUrl || "")}`
-                                      )}
+                                      href={buildManagedRuntimeHref(selectedMenu, governancePageId)}
                                       size="xs"
                                       variant="secondary"
                                     >
@@ -2493,10 +2532,7 @@ export function EnvironmentManagementHubPage() {
                                     </MemberLinkButton>
                                   ) : null}
                                   <MemberLinkButton
-                                    href={buildLocalizedPath(
-                                      `/admin/system/observability?menuCode=${encodeURIComponent(selectedMenu.code)}&pageId=${encodeURIComponent(governancePageId || selectedMenu.code.toLowerCase())}&searchKeyword=${encodeURIComponent("SCREEN_BUILDER_")}`,
-                                      `/en/admin/system/observability?menuCode=${encodeURIComponent(selectedMenu.code)}&pageId=${encodeURIComponent(governancePageId || selectedMenu.code.toLowerCase())}&searchKeyword=${encodeURIComponent("SCREEN_BUILDER_")}`
-                                    )}
+                                    href={buildManagedObservabilityHref(selectedMenu, governancePageId)}
                                     size="xs"
                                     variant="secondary"
                                   >
@@ -2504,10 +2540,7 @@ export function EnvironmentManagementHubPage() {
                                   </MemberLinkButton>
                                   {screenBuilderStatus?.publishedVersionId ? (
                                     <MemberLinkButton
-                                      href={buildLocalizedPath(
-                                        `/admin/system/current-runtime-compare?menuCode=${encodeURIComponent(selectedMenu.code)}&pageId=${encodeURIComponent(governancePageId || selectedMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(selectedMenu.label)}&menuUrl=${encodeURIComponent(selectedMenu.menuUrl || "")}`,
-                                        `/en/admin/system/current-runtime-compare?menuCode=${encodeURIComponent(selectedMenu.code)}&pageId=${encodeURIComponent(governancePageId || selectedMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(selectedMenu.label)}&menuUrl=${encodeURIComponent(selectedMenu.menuUrl || "")}`
-                                      )}
+                                      href={buildManagedCompareHref(selectedMenu, governancePageId)}
                                       size="xs"
                                       variant="secondary"
                                     >
@@ -2606,10 +2639,7 @@ export function EnvironmentManagementHubPage() {
                                 </div>
                                 <div className="mt-2 flex flex-wrap gap-2">
                                   <MemberLinkButton
-                                    href={buildLocalizedPath(
-                                      `/admin/system/screen-builder?menuCode=${encodeURIComponent(previousSameIssueMenu.code)}&pageId=${encodeURIComponent(previousSameIssueMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(previousSameIssueMenu.label)}&menuUrl=${encodeURIComponent(previousSameIssueMenu.menuUrl || "")}`,
-                                      `/en/admin/system/screen-builder?menuCode=${encodeURIComponent(previousSameIssueMenu.code)}&pageId=${encodeURIComponent(previousSameIssueMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(previousSameIssueMenu.label)}&menuUrl=${encodeURIComponent(previousSameIssueMenu.menuUrl || "")}`
-                                    )}
+                                    href={buildManagedBuilderHref(previousSameIssueMenu)}
                                     size="xs"
                                     variant="secondary"
                                   >
@@ -2617,10 +2647,7 @@ export function EnvironmentManagementHubPage() {
                                   </MemberLinkButton>
                                   {previousSameIssueMenuIsPublished ? (
                                     <MemberLinkButton
-                                      href={buildLocalizedPath(
-                                        `/admin/system/screen-runtime?menuCode=${encodeURIComponent(previousSameIssueMenu.code)}&pageId=${encodeURIComponent(previousSameIssueMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(previousSameIssueMenu.label)}&menuUrl=${encodeURIComponent(previousSameIssueMenu.menuUrl || "")}`,
-                                        `/en/admin/system/screen-runtime?menuCode=${encodeURIComponent(previousSameIssueMenu.code)}&pageId=${encodeURIComponent(previousSameIssueMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(previousSameIssueMenu.label)}&menuUrl=${encodeURIComponent(previousSameIssueMenu.menuUrl || "")}`
-                                      )}
+                                      href={buildManagedRuntimeHref(previousSameIssueMenu)}
                                       size="xs"
                                       variant="secondary"
                                     >
@@ -2628,10 +2655,7 @@ export function EnvironmentManagementHubPage() {
                                     </MemberLinkButton>
                                   ) : null}
                                   <MemberLinkButton
-                                    href={buildLocalizedPath(
-                                      `/admin/system/observability?menuCode=${encodeURIComponent(previousSameIssueMenu.code)}&pageId=${encodeURIComponent(previousSameIssueMenu.code.toLowerCase())}&searchKeyword=${encodeURIComponent("SCREEN_BUILDER_")}`,
-                                      `/en/admin/system/observability?menuCode=${encodeURIComponent(previousSameIssueMenu.code)}&pageId=${encodeURIComponent(previousSameIssueMenu.code.toLowerCase())}&searchKeyword=${encodeURIComponent("SCREEN_BUILDER_")}`
-                                    )}
+                                    href={buildManagedObservabilityHref(previousSameIssueMenu)}
                                     size="xs"
                                     variant="secondary"
                                   >
@@ -2666,10 +2690,7 @@ export function EnvironmentManagementHubPage() {
                                 </div>
                                 <div className="mt-2 flex flex-wrap gap-2">
                                   <MemberLinkButton
-                                    href={buildLocalizedPath(
-                                      `/admin/system/screen-builder?menuCode=${encodeURIComponent(nextSameIssueMenu.code)}&pageId=${encodeURIComponent(nextSameIssueMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(nextSameIssueMenu.label)}&menuUrl=${encodeURIComponent(nextSameIssueMenu.menuUrl || "")}`,
-                                      `/en/admin/system/screen-builder?menuCode=${encodeURIComponent(nextSameIssueMenu.code)}&pageId=${encodeURIComponent(nextSameIssueMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(nextSameIssueMenu.label)}&menuUrl=${encodeURIComponent(nextSameIssueMenu.menuUrl || "")}`
-                                    )}
+                                    href={buildManagedBuilderHref(nextSameIssueMenu)}
                                     size="xs"
                                     variant="secondary"
                                   >
@@ -2677,10 +2698,7 @@ export function EnvironmentManagementHubPage() {
                                   </MemberLinkButton>
                                   {nextSameIssueMenuIsPublished ? (
                                     <MemberLinkButton
-                                      href={buildLocalizedPath(
-                                        `/admin/system/screen-runtime?menuCode=${encodeURIComponent(nextSameIssueMenu.code)}&pageId=${encodeURIComponent(nextSameIssueMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(nextSameIssueMenu.label)}&menuUrl=${encodeURIComponent(nextSameIssueMenu.menuUrl || "")}`,
-                                        `/en/admin/system/screen-runtime?menuCode=${encodeURIComponent(nextSameIssueMenu.code)}&pageId=${encodeURIComponent(nextSameIssueMenu.code.toLowerCase())}&menuTitle=${encodeURIComponent(nextSameIssueMenu.label)}&menuUrl=${encodeURIComponent(nextSameIssueMenu.menuUrl || "")}`
-                                      )}
+                                      href={buildManagedRuntimeHref(nextSameIssueMenu)}
                                       size="xs"
                                       variant="secondary"
                                     >
@@ -2688,10 +2706,7 @@ export function EnvironmentManagementHubPage() {
                                     </MemberLinkButton>
                                   ) : null}
                                   <MemberLinkButton
-                                    href={buildLocalizedPath(
-                                      `/admin/system/observability?menuCode=${encodeURIComponent(nextSameIssueMenu.code)}&pageId=${encodeURIComponent(nextSameIssueMenu.code.toLowerCase())}&searchKeyword=${encodeURIComponent("SCREEN_BUILDER_")}`,
-                                      `/en/admin/system/observability?menuCode=${encodeURIComponent(nextSameIssueMenu.code)}&pageId=${encodeURIComponent(nextSameIssueMenu.code.toLowerCase())}&searchKeyword=${encodeURIComponent("SCREEN_BUILDER_")}`
-                                    )}
+                                    href={buildManagedObservabilityHref(nextSameIssueMenu)}
                                     size="xs"
                                     variant="secondary"
                                   >
@@ -2919,7 +2934,7 @@ export function EnvironmentManagementHubPage() {
             </p>
             {selectedMenu && selectedMenuIsPage ? (
               <>
-                <form action={buildLocalizedPath("/admin/system/feature-management/create", "/en/admin/system/feature-management/create")} className="grid gap-4" method="post" onSubmit={handleFeatureSubmit}>
+                <form action={buildFeatureManagementCreatePath()} className="grid gap-4" method="post" onSubmit={handleFeatureSubmit}>
                   <input name="menuType" type="hidden" value={menuType} />
                   <input name="menuCode" type="hidden" value={selectedMenu.code} />
                   <div>
@@ -3358,10 +3373,10 @@ export function EnvironmentManagementHubPage() {
               <WarningPanel
                 actions={
                   <>
-                    <a className="gov-btn gov-btn-outline-blue" href={buildLocalizedPath("/admin/system/full-stack-management", "/en/admin/system/full-stack-management")}>
+                    <a className="gov-btn gov-btn-outline-blue" href={buildFullStackManagementPath()}>
                       {en ? "Open Full-Stack Management" : "풀스택 관리 바로가기"}
                     </a>
-                    <a className="gov-btn gov-btn-outline-blue" href={buildLocalizedPath("/admin/system/platform-studio", "/en/admin/system/platform-studio")}>
+                    <a className="gov-btn gov-btn-outline-blue" href={buildPlatformStudioPath()}>
                       {en ? "Open Platform Studio" : "플랫폼 스튜디오 바로가기"}
                     </a>
                   </>

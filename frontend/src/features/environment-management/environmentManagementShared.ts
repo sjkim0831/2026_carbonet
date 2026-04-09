@@ -3,6 +3,11 @@ import { getScreenCommandChainValues, type FullStackGovernanceRegistryEntry, typ
 import { numberOf, stringOf } from "../admin-system/adminSystemShared";
 import { buildSuggestedPageCode as buildSharedSuggestedPageCode } from "../menu-management/menuTreeShared";
 import { toDisplayMenuUrl } from "../menu-management/menuUrlDisplay";
+export {
+  buildCurrentRuntimeComparePath,
+  buildScreenBuilderPath,
+  buildScreenRuntimePath
+} from "../screen-builder/screenBuilderPaths";
 
 export type ManagedMenuRow = {
   code: string;

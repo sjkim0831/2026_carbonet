@@ -18,6 +18,7 @@ import { fetchScreenBuilderPage, fetchScreenBuilderPreview } from "../../lib/api
 import { buildLocalizedPath, getSearchParam, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";
+import { buildCurrentRuntimeComparePath, buildScreenBuilderPath } from "./screenBuilderPaths";
 import {
   AdminSelect,
   AdminTextarea,
@@ -599,7 +600,7 @@ export function RepairWorkbenchMigrationPage() {
       breadcrumbs={[
         { label: en ? "Home" : "홈", href: buildLocalizedPath("/admin/", "/en/admin/") },
         { label: en ? "System" : "시스템" },
-        { label: en ? "Screen Builder" : "화면 빌더", href: buildLocalizedPath("/admin/system/screen-builder", "/en/admin/system/screen-builder") },
+        { label: en ? "Screen Builder" : "화면 빌더", href: buildScreenBuilderPath() },
         { label: en ? "Rollback History Console" : "롤백 이력 콘솔" }
       ]}
       title={en ? "Rollback History Console" : "롤백 이력 콘솔"}
@@ -993,10 +994,12 @@ export function RepairWorkbenchMigrationPage() {
             actions={(
               <>
                 <MemberLinkButton
-                  href={buildLocalizedPath(
-                    `/admin/system/current-runtime-compare?menuCode=${encodeURIComponent(query.menuCode)}&pageId=${encodeURIComponent(query.pageId)}&menuTitle=${encodeURIComponent(query.menuTitle)}&menuUrl=${encodeURIComponent(query.menuUrl)}`,
-                    `/en/admin/system/current-runtime-compare?menuCode=${encodeURIComponent(query.menuCode)}&pageId=${encodeURIComponent(query.pageId)}&menuTitle=${encodeURIComponent(query.menuTitle)}&menuUrl=${encodeURIComponent(query.menuUrl)}`
-                  )}
+                  href={buildCurrentRuntimeComparePath({
+                    menuCode: query.menuCode,
+                    pageId: query.pageId,
+                    menuTitle: query.menuTitle,
+                    menuUrl: query.menuUrl
+                  })}
                   size="sm"
                   variant="secondary"
                 >

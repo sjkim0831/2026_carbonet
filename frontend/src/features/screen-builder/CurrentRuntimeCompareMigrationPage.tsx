@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
 import { fetchAuditEvents } from "../../platform/observability/observability";
+import { buildObservabilityPath } from "../../platform/routes/families/platformPaths";
 import {
   fetchParityCompare,
   fetchProjectPipelineStatus,
@@ -18,6 +19,7 @@ import { GridToolbar, KeyValueGridPanel, MemberButton, MemberLinkButton, PageSta
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 import { resolveRuntimeCompareContextKeys } from "../admin-ui/contextKeyPresets";
 import { resolveScreenBuilderQuery, sortScreenBuilderNodes } from "./shared/screenBuilderUtils";
+import { buildRepairWorkbenchPath, buildScreenBuilderPath, buildScreenRuntimePath } from "./screenBuilderPaths";
 
 type CompareRow = {
   label: string;
@@ -610,7 +612,7 @@ export function CurrentRuntimeCompareMigrationPage() {
       breadcrumbs={[
         { label: en ? "Home" : "홈", href: buildLocalizedPath("/admin/", "/en/admin/") },
         { label: en ? "System" : "시스템" },
-        { label: en ? "Screen Builder" : "화면 빌더", href: buildLocalizedPath("/admin/system/screen-builder", "/en/admin/system/screen-builder") },
+        { label: en ? "Screen Builder" : "화면 빌더", href: buildScreenBuilderPath() },
         { label: en ? "Repair Validator Console" : "복구 검증 콘솔" }
       ]}
       title={en ? "Repair Validator Console" : "복구 검증 콘솔"}
@@ -1025,30 +1027,35 @@ export function CurrentRuntimeCompareMigrationPage() {
             actions={(
               <>
                 <MemberLinkButton
-                  href={buildLocalizedPath(
-                    `/admin/system/repair-workbench?menuCode=${encodeURIComponent(page?.menuCode || query.menuCode)}&pageId=${encodeURIComponent(page?.pageId || query.pageId)}&menuTitle=${encodeURIComponent(page?.menuTitle || query.menuTitle)}&menuUrl=${encodeURIComponent(page?.menuUrl || query.menuUrl)}`,
-                    `/en/admin/system/repair-workbench?menuCode=${encodeURIComponent(page?.menuCode || query.menuCode)}&pageId=${encodeURIComponent(page?.pageId || query.pageId)}&menuTitle=${encodeURIComponent(page?.menuTitle || query.menuTitle)}&menuUrl=${encodeURIComponent(page?.menuUrl || query.menuUrl)}`
-                  )}
+                  href={buildRepairWorkbenchPath({
+                    menuCode: page?.menuCode || query.menuCode,
+                    pageId: page?.pageId || query.pageId,
+                    menuTitle: page?.menuTitle || query.menuTitle,
+                    menuUrl: page?.menuUrl || query.menuUrl
+                  })}
                   size="sm"
                   variant="secondary"
                 >
                   {en ? "Open Repair" : "복구 열기"}
                 </MemberLinkButton>
                 <MemberLinkButton
-                  href={buildLocalizedPath(
-                    `/admin/system/screen-runtime?menuCode=${encodeURIComponent(page?.menuCode || query.menuCode)}&pageId=${encodeURIComponent(page?.pageId || query.pageId)}&menuTitle=${encodeURIComponent(page?.menuTitle || query.menuTitle)}&menuUrl=${encodeURIComponent(page?.menuUrl || query.menuUrl)}`,
-                    `/en/admin/system/screen-runtime?menuCode=${encodeURIComponent(page?.menuCode || query.menuCode)}&pageId=${encodeURIComponent(page?.pageId || query.pageId)}&menuTitle=${encodeURIComponent(page?.menuTitle || query.menuTitle)}&menuUrl=${encodeURIComponent(page?.menuUrl || query.menuUrl)}`
-                  )}
+                  href={buildScreenRuntimePath({
+                    menuCode: page?.menuCode || query.menuCode,
+                    pageId: page?.pageId || query.pageId,
+                    menuTitle: page?.menuTitle || query.menuTitle,
+                    menuUrl: page?.menuUrl || query.menuUrl
+                  })}
                   size="sm"
                   variant="secondary"
                 >
                   {en ? "Open Runtime" : "런타임 열기"}
                 </MemberLinkButton>
                 <MemberLinkButton
-                  href={buildLocalizedPath(
-                    `/admin/system/observability?menuCode=${encodeURIComponent(page?.menuCode || query.menuCode)}&pageId=${encodeURIComponent(page?.pageId || query.pageId)}&searchKeyword=${encodeURIComponent("SCREEN_BUILDER_")}`,
-                    `/en/admin/system/observability?menuCode=${encodeURIComponent(page?.menuCode || query.menuCode)}&pageId=${encodeURIComponent(page?.pageId || query.pageId)}&searchKeyword=${encodeURIComponent("SCREEN_BUILDER_")}`
-                  )}
+                  href={buildObservabilityPath({
+                    menuCode: page?.menuCode || query.menuCode,
+                    pageId: page?.pageId || query.pageId,
+                    searchKeyword: "SCREEN_BUILDER_"
+                  })}
                   size="sm"
                   variant="secondary"
                 >
