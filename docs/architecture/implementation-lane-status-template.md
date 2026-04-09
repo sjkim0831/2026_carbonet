@@ -82,3 +82,11 @@ operator or to another lane.
 - parity blocker count: `0`
 - phrase:
   - `HANDOFF READY: 09 can continue from runtime shell and compare frame wiring; current blocker count is 0.`
+
+## Builder Resource-Ownership Continuation Note
+
+If the active status is really about continuing `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, open first:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+- `docs/architecture/builder-resource-ownership-status-tracker.md`

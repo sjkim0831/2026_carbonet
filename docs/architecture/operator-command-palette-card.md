@@ -73,10 +73,13 @@ Use with:
 - `06 재개`
 - `08 재개`
 - `09 재개`
+- `builder resource ownership 재개`
 
 Use with:
 
 - `docs/architecture/operator-next-day-restart-card.md`
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
 
 ## Reopen Command
 

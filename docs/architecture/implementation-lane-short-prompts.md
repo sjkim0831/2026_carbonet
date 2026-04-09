@@ -40,6 +40,11 @@ Use them when the lane already has:
 
 - `04 lane: build the first screen-builder frame and governed asset editor shell from asset-studio and screen-builder, keeping registered assets mandatory and screen-family-rule locking visible.`
 
+Additional rule:
+
+- `if 04 is continuing builder resource ownership instead of ordinary builder UI work, read builder-resource-ownership-current-closeout.md and builder-resource-ownership-queue-map.md first, then continue from the next row-specific review card.`
+- `04 lane resource-ownership mode: continue BUILDER_RESOURCE_OWNERSHIP_CLOSURE from the current closeout and queue map, keep structure-governance closed, and work only on the next queued row review card and provisional handoff shape.`
+
 ## 03 Theme
 
 - `03 lane: build template-line and theme-set selector models from the approved theme contracts, preserving public/admin split and canonical screen-family-rule usage.`

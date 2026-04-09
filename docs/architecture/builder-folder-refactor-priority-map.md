@@ -11,6 +11,29 @@ Use this document together with:
 - `docs/architecture/large-move-completion-contract.md`
 - `docs/architecture/screenbuilder-module-source-inventory.md`
 - `docs/architecture/screenbuilder-multimodule-cutover-plan.md`
+- `docs/architecture/builder-structure-wave-20260409-closure.md`
+
+After the closed structure-governance family, continue from:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+
+## Current Wave Freeze
+
+For the current owner wave, the closed family is:
+
+- `BUILDER_STRUCTURE_GOVERNANCE`
+
+Treat this document as the execution order for that family, not as proof that broader builder completion is already done.
+
+If that family is already accepted as closed, do not keep using this document as the live execution queue.
+
+Use:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+
+for the next active builder continuation.
 
 ## Core Rule
 
@@ -163,6 +186,28 @@ Recommended one-owner order:
 6. build/compile
 7. remove transitional duplicate only if verification passes
 
+## Shim Or Delete Check
+
+Before keeping any old builder path, ask these in order:
+
+1. does the canonical module path already exist and act as the source of truth
+2. is the old path needed only for one remaining caller or runtime entry
+3. is the old path extension-free
+4. is the next removal condition documented
+
+If any answer is no:
+
+- do not call it a shim
+- keep the family open
+
+If all answers are yes:
+
+- the old path may remain only as an explicit transitional shim
+
+If the old path is no longer needed at all:
+
+- delete it instead of preserving a dormant duplicate
+
 ## Done Criteria
 
 The refactor slice is complete when:
@@ -172,3 +217,9 @@ The refactor slice is complete when:
 - app, module, frontend, and template ownership are easy to explain from the folder alone
 
 For a broad structural wave, use `large-move-completion-contract.md` as the final closure standard.
+
+For the current builder owner wave, use:
+
+- `docs/architecture/builder-structure-wave-20260409-closure.md`
+
+as the final family-close authority.

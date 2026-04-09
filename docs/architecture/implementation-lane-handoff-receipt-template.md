@@ -86,3 +86,12 @@ It keeps receipt, acceptance, and immediate blockers in one consistent format.
 - reopen of `01` required now: `no`
 - receipt phrase:
   - `ACCEPTED: 06 will continue from repair API flow under existing governed identity rules.`
+
+## Builder Resource-Ownership Continuation Note
+
+If the receiving lane is accepting builder resource-ownership continuation, read first:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+
+Then accept one row-specific review card rather than reopening structure-governance.

@@ -47,6 +47,7 @@ Confirm:
 - any partial result left a completion note
 - any drift was recorded with a drift report
 - any template-line or theme-set exception is either documented in `03` governance or escalated as a real contract issue
+- any family-scoped closeout claim names its closed family and source-of-truth path explicitly
 
 ## 4. Contract Discipline
 
@@ -87,3 +88,13 @@ Default tomorrow order:
 or
 
 - `DAY CLOSEOUT WARN: unresolved blockers remain; review launch board and blocker notes before tomorrow.`
+
+For builder structure-governance wave close questions, also check:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-structure-wave-closeout.md`
+
+For builder resource-ownership family closeout continuation, also check:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+- `docs/architecture/builder-resource-ownership-status-tracker.md`

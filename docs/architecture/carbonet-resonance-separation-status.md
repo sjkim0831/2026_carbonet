@@ -18,6 +18,48 @@ This document is the current-state companion to:
 - `docs/architecture/api-prefix-boundary-plan.md`
 - `docs/architecture/screenbuilder-core-jar-adapter-plan.md`
 - `docs/architecture/system-builder-project-domain-install-target.md`
+- `docs/architecture/builder-structure-wave-20260409-closure.md`
+
+## Current Wave Freeze
+
+For the current structure-governance owner wave, the only family explicitly counted as closed is:
+
+- `BUILDER_STRUCTURE_GOVERNANCE`
+
+For the current app-closure owner wave, the following family is also explicitly counted as closed:
+
+- `APP_ASSEMBLY_BUILD_RUNTIME_CLOSURE`
+
+That closure means:
+
+- builder source-of-truth paths are frozen
+- old-path shim versus delete criteria are frozen
+- `large-move-completion-contract.md` is interpreted as a family-scoped close for this wave
+
+That closure does not mean:
+
+- every remaining builder compatibility shim is already removed
+- broader control-plane composition split is done
+- repository-wide separation is done
+
+Builder resource-ownership continuation note:
+
+- after `BUILDER_STRUCTURE_GOVERNANCE` is accepted as closed, continue builder ownership work from:
+  - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+  - `docs/architecture/builder-resource-ownership-queue-map.md`
+
+App-closure continuation note:
+
+- local canonical app assembly now uses `apps/carbonet-app`
+- canonical packaged jar is now `apps/carbonet-app/target/carbonet.jar`
+- closure and runtime proof now run through:
+  - `ops/scripts/verify-app-closure-all.sh`
+  - `ops/scripts/codex-verify-18000-freshness.sh`
+- route and shell runtime proof for the recovered React route registry now covers:
+  - admin and public route responses
+  - packaged jar versus runtime jar hash equality
+  - packaged jar versus runtime jar React manifest and shell index equality
+  - live `/assets/react/...` static asset responses from `:18000`
 
 ## Current Summary
 
@@ -45,6 +87,8 @@ That means the codebase currently has:
   - partly done
 - `runtime and control-plane composition split`
   - not done yet
+- `app assembly, package, runtime, and asset freshness closure`
+  - done for the current owner wave
 
 ## Status By Area
 
@@ -140,6 +184,13 @@ Not completed:
 - screen-builder legacy compatibility wrappers still live under `feature/admin`
 - controller and page-service boundaries are still assembled from `feature/admin`
 
+Builder-family interpretation note:
+
+- builder module lane ownership is frozen enough for structure-governance close
+- backend package and composition closure remains partial
+- do not treat this section alone as evidence that the whole builder cutover is done
+- builder resource-ownership row progress should be read from the current closeout and queue map, not inferred from this status page alone
+
 ### 4. Resonance Control-Plane DB Draft
 
 Status: `PARTIAL`
@@ -203,6 +254,37 @@ Today:
 - menu bootstrap for control-plane screens still occurs from runtime-admin package families
 
 This is the main reason the split should still be treated as in progress.
+
+### 7. App Assembly And Runtime Closure
+
+Status: `DONE`
+
+Completed:
+
+- canonical app assembly is now `apps/carbonet-app`
+- canonical packaged jar is now `apps/carbonet-app/target/carbonet.jar`
+- owner scripts under `ops/scripts/**` now point at the canonical app jar and canonical package line
+- closure verification now runs through `verify-app-closure-all.sh`
+- runtime freshness proof now runs through `codex-verify-18000-freshness.sh`
+- fresh build line for the React route-registry recovery is restored
+- `:18000` runtime proof now includes route response checks for:
+  - `/admin/system/version`
+  - `/admin/system/environment-management`
+  - `/admin/system/screen-builder`
+  - `/admin/system/current-runtime-compare`
+  - `/home`
+  - `/signin/loginView`
+  - `/admin/login/loginView`
+  - `/join/companyJoinStatusSearch`
+  - and their `en` variants
+- packaged jar and runtime jar hashes now match for the current app line
+- packaged jar and runtime jar now carry the same React manifest and shell `index.html`
+- shell-linked assets under `/assets/react/assets/...` now respond on `:18000`
+
+Not completed:
+
+- this closure does not by itself finish control-plane composition separation
+- this closure does not imply repository-wide frontend cleanup beyond the route-registry recovery slice
 
 ## Already Separated
 

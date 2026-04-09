@@ -21,6 +21,13 @@ This plan assumes the reversible-boundary rules in:
 - `docs/architecture/installable-builder-upgrade-roadmap.md`
 - `docs/architecture/page-systemization-minimum-contract.md`
 - `docs/architecture/system-folder-structure-alignment.md`
+- `docs/architecture/builder-structure-wave-20260409-closure.md`
+- `docs/architecture/builder-source-of-truth-matrix.md`
+
+For the live builder continuation after structure-governance closure, use:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
 
 ## Direct Answer
 
@@ -90,6 +97,15 @@ Recommended frontend artifacts:
   - Carbonet menu and authority wiring
 
 ## Current Repository Mapping
+
+For the fastest current answer to canonical path versus transitional path, use:
+
+- `docs/architecture/builder-source-of-truth-matrix.md`
+
+If the canonical-path answer is already accepted and the remaining question is about builder-owned resources or fallback lines, continue from:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
 
 Current reusable core candidates:
 

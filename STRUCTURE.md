@@ -11,10 +11,13 @@ When AI starts work, prefer this order:
 5. `docs/ai/00-governance/ai-fast-path.md`
 6. `docs/ai/10-architecture/repo-layout.md`
 7. `docs/architecture/system-folder-structure-alignment.md`
-8. `/home/imaneya/workspace/화면설계/1. main_home_menu_designed.html`
-9. `/home/imaneya/workspace/화면설계/2. main_home_menu.html`
-10. `/home/imaneya/workspace/화면설계/3. admin_menu_dashboard.html`
-11. `/home/imaneya/workspace/화면설계/4. requirements_gap_dashboard.html`
+8. `docs/architecture/builder-structure-wave-20260409-closure.md` when the task is about builder structure closure, source-of-truth, or shim/delete rules
+9. `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md` when the task is about continuing builder resource ownership closure
+10. `docs/architecture/builder-resource-ownership-queue-map.md` when the task needs the shortest builder resource ownership row queue
+11. `/home/imaneya/workspace/화면설계/1. main_home_menu_designed.html`
+12. `/home/imaneya/workspace/화면설계/2. main_home_menu.html`
+13. `/home/imaneya/workspace/화면설계/3. admin_menu_dashboard.html`
+14. `/home/imaneya/workspace/화면설계/4. requirements_gap_dashboard.html`
 
 Avoid spending time in `target/`, `frontend/node_modules/`, and `var/logs/` unless the task is specifically about runtime output or build artifacts.
 
@@ -162,6 +165,9 @@ Avoid spending time in `target/`, `frontend/node_modules/`, and `var/logs/` unle
 - 새 bootstrap/install 자산은 `templates/` 아래에 둔다.
 - 루트 `src/` 는 전환 경로로 보고, 이미 live module이 있는 family는 다시 루트로 키우지 않는다.
 - 빌더 관련 공통 코어는 `screenbuilder-core`, 공통 기본정책은 `screenbuilder-runtime-common-adapter`, Carbonet 전용 연결은 `screenbuilder-carbonet-adapter` 를 우선한다.
+- 빌더 구조 정리의 wave-level 완료 판단은 `docs/architecture/builder-structure-wave-20260409-closure.md` 를 source of truth로 본다.
+- 루트 legacy builder 경로는 source of truth가 아니며, 남아 있다면 explicit shim 또는 제거 대상이다.
+- 빌더 resource ownership continuation은 `builder-resource-ownership-current-closeout.md` 와 `builder-resource-ownership-queue-map.md` 를 먼저 보고 row별 review card로 들어간다.
 
 ## Notes
 - 외부 프레임워크 타입명 `Egov*` 는 유지한다.

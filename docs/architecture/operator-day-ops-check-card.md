@@ -43,6 +43,10 @@ Use:
 - `docs/architecture/implementation-handoff-health-checklist.md`
 - `docs/architecture/implementation-drift-report-template.md`
 - `docs/frontend/admin-template-parity-inventory.md`
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md` when the active owner should resume the latest provisional resource-ownership state first
+- `docs/architecture/builder-resource-ownership-queue-map.md` when the operator needs the shortest row-by-row builder resource ownership queue
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-kickoff.md` when the active owner is continuing builder resource ownership closure
+- `docs/architecture/builder-resource-ownership-status-tracker.md` when the active owner must update builder resource ownership family status rows during the day
 
 ## 3. End Of Day
 
@@ -61,6 +65,9 @@ Use:
 - `docs/architecture/implementation-lane-completion-template.md`
 - `docs/architecture/operator-lane-launch-board-template.md`
 - `docs/architecture/operator-end-of-day-closeout-card.md`
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md` when the latest provisional closeout must be updated rather than recreated
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-closeout-template.md` when the day ended inside builder resource ownership closure
+- `docs/architecture/builder-resource-ownership-status-tracker.md` when the closeout must leave updated resource-family status rows
 
 ## 4. Reopen Rule
 

@@ -8,6 +8,12 @@ This file explains which folders matter most for AI speed and which ones should 
   - top-level path-change note for repository moves or folder renames
 - `docs/architecture/system-folder-structure-alignment.md`
   - canonical current folder-ownership and cleanup direction for `apps/`, `modules/`, `frontend/`, `templates/`, and legacy root `src/`
+- `docs/architecture/builder-structure-wave-20260409-closure.md`
+  - canonical wave-close answer when the task is about builder source-of-truth, shim-versus-delete, or large-move closure scope
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+  - canonical current-state answer when the task is about continuing builder resource ownership closure
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+  - shortest row-by-row execution queue for builder resource ownership closure
 - `apps/carbonet-app`
   - executable runtime assembly target
 - `modules`

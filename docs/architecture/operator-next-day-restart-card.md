@@ -15,6 +15,10 @@ Open in this order:
 2. `docs/architecture/operator-lane-launch-board-template.md`
 3. `docs/architecture/implementation-handoff-health-checklist.md`
 4. `docs/architecture/operator-quickstart-cheatsheet.md`
+5. `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md` if the next owner is resuming the latest builder resource ownership state
+6. `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-kickoff.md` if the next owner is resuming builder resource ownership closure
+7. `docs/architecture/builder-resource-ownership-status-tracker.md` if the next owner must resume builder resource ownership family status from yesterday
+8. `docs/architecture/builder-resource-review-builder-observability.md` if the next review target is row `3` after the current provisional closeout is accepted
 
 ## 2. Resume Order
 
@@ -42,6 +46,8 @@ Confirm:
 - any blocker still has a named owner lane
 - no pending reopen request was left unresolved
 - `05` and `09` still have a valid theme-set/template-line/parity baseline from `03`
+- any builder resource ownership closeout from yesterday left updated tracker rows and an explicit blocker count
+- if rows `1` and `2` remain provisional blockers, the next review target for the resumed owner is clearly named
 
 ## 4. Drift Check
 

@@ -2,6 +2,19 @@
 
 This file records the current full-stack package-to-domain mapping used in Carbonet.
 
+For builder structure-governance close questions, read:
+
+- `docs/architecture/builder-structure-wave-20260409-closure.md`
+
+before treating this map as a completion signal.
+
+For builder resource-ownership continuation questions, read:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+
+before deciding which row-specific review card to open next.
+
 ## Backend Packages
 
 - `apps/carbonet-app`
@@ -16,6 +29,9 @@ This file records the current full-stack package-to-domain mapping used in Carbo
 - `modules/screenbuilder-carbonet-adapter`
   - Domain: Carbonet-specific builder adapter
   - Responsibility: Carbonet menu, authority, route, and runtime bridge wiring for builder flows
+- builder lane close note:
+  - these three `modules/screenbuilder-*` lanes are the canonical builder structure source of truth for the current wave
+  - remaining legacy root builder paths are transitional only and do not change the canonical ownership answer
 - `modules/platform-*`
   - Domain: reusable platform control-plane families
   - Responsibility: request contracts, service contracts, help, observability, runtime control, version control, and related platform jars

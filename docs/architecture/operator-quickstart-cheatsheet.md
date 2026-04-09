@@ -40,6 +40,11 @@ Then:
 7. `docs/architecture/operator-end-of-day-closeout-card.md`
 8. `docs/architecture/operator-next-day-restart-card.md`
 
+If the resumed family is `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, also open:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+
 For `05` and `09`, also open:
 
 - `docs/architecture/public-admin-template-line-schema.md`

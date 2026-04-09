@@ -12,6 +12,7 @@ Use together with:
 - `docs/architecture/system-folder-refactor-checklist.md`
 - `docs/architecture/builder-folder-refactor-priority-map.md`
 - `docs/architecture/page-systemization-minimum-contract.md`
+- `docs/architecture/builder-structure-wave-20260409-closure.md` when the current wave closes only the builder structure-governance family
 
 ## Core Rule
 
@@ -97,6 +98,23 @@ over:
 
 - many families
 - all partially transitional
+
+## Family-Scoped Completion Rule
+
+When a wave explicitly closes only one family, completion must be judged only against that named family.
+
+For example:
+
+- a builder-structure-governance wave may be marked complete even if builder resource ownership or broader control-plane composition is still open
+
+But only when:
+
+- the selected family is named explicitly
+- the canonical source-of-truth path is explicit
+- old-path treatment is explicit
+- the remaining open families are named explicitly
+
+Do not inflate a family-scoped closed wave into a repository-wide completion claim.
 
 ## Existing Session Completion Rule
 

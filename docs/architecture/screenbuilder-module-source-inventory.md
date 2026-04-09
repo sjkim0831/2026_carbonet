@@ -13,7 +13,13 @@ Use this file together with:
 
 - `docs/architecture/screenbuilder-multimodule-cutover-plan.md`
 - `docs/architecture/system-folder-structure-alignment.md`
+- `docs/architecture/builder-resource-ownership-closure-plan.md`
 - `ops/scripts/audit-screenbuilder-module-boundary.sh`
+
+For the live continuation queue after builder structure-governance closure, use:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
 
 ## Core Candidates
 
@@ -158,6 +164,15 @@ These still need real cutover work even though live module ownership is now esta
 - builder-owned resource paths now live under module resources, and `ops/scripts/audit-screenbuilder-legacy-root-resources.sh` fails if removed legacy builder resources are reintroduced at the root
 - `ops/scripts/audit-screenbuilder-module-jars.sh` now fails if the packaged module jars are missing core builder classes or builder-owned resources
 - `apps/carbonet-app` explicitly excludes builder-owned root resources so the executable app jar must consume them from the dedicated builder modules instead of the legacy root resource tree
+
+These exceptions are the primary handoff input for:
+
+- `docs/architecture/builder-resource-ownership-closure-plan.md`
+
+The active continuation entry for those exceptions is:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
 
 ## Verification Command
 

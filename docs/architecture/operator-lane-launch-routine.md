@@ -17,6 +17,11 @@ Open in this order:
 2. `docs/architecture/implementation-handoff-document-index.md`
 3. `docs/architecture/operator-lane-launch-board-template.md`
 
+If the resumed family is `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, also open:
+
+4. `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+5. `docs/architecture/builder-resource-ownership-queue-map.md`
+
 ### 2. Launch The First Wave
 
 Start:
@@ -64,6 +69,7 @@ When a lane finishes a meaningful scope:
 - use `docs/architecture/implementation-lane-completion-template.md`
 - if another lane can continue, leave `HANDOFF READY`
 - if the scope is fully done, leave `DONE`
+- for builder resource-ownership continuation, do not skip the current closeout or queue map when preparing the handoff phrase
 
 ### 7. Monitor Health
 

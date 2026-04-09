@@ -32,6 +32,7 @@ Confirm:
 - lanes use `ACCEPTED`, `HANDOFF READY`, `BLOCKED`, or `DONE` style reporting
 - lanes do not reopen `01` for routine implementation detail
 - reopen requests name a contract-level reason
+- family-scoped closeout claims name both the closed family and the family source-of-truth path
 
 ## 4. Surface Discipline
 
@@ -70,3 +71,13 @@ If any answer is no, decide one of:
 or
 
 - `HEALTH WARN: drift or ownership ambiguity detected; follow the blocker or reopen protocol.`
+
+For builder structure-governance closure checks, use:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-structure-wave-closeout.md`
+
+For active builder resource-ownership continuation checks, use in this order:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+- `docs/architecture/builder-resource-ownership-status-tracker.md`

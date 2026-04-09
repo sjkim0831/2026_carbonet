@@ -40,6 +40,11 @@ Generated on 2026-03-21 for immediate execution after the `01` handoff.
 
 - `04 레인: asset-studio와 screen-builder 기준으로 첫 screen-builder frame과 governed asset editor shell을 만들고, 등록된 자산만 사용하도록 강제하며 screen-family-rule 잠금 상태를 항상 보이게 하세요.`
 
+추가 규칙:
+
+- `04` 레인이 builder resource ownership continuation을 받으면 먼저 `builder-resource-ownership-current-closeout.md` 와 `builder-resource-ownership-queue-map.md` 를 읽고 해당 row review card부터 이어가세요.
+- `04` 레인 resource-ownership 모드: `BUILDER_RESOURCE_OWNERSHIP_CLOSURE` 를 current closeout과 queue map 기준으로 이어가고, 구조-governance는 다시 열지 말고 다음 queued row review card와 provisional handoff shape만 진행하세요.
+
 ## 03 테마
 
 - `03 레인: 승인된 theme 계약 기준으로 template-line selector와 theme-set selector 모델을 만들고, public/admin 분리와 canonical screen-family-rule 사용을 유지하세요.`

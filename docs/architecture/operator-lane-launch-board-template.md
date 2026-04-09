@@ -47,6 +47,8 @@ When a lane finishes or hands off:
 
 - `docs/architecture/operator-quickstart-cheatsheet.md`
 - `docs/architecture/implementation-handoff-document-index.md`
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
 - `docs/architecture/public-admin-template-line-schema.md`
 - `docs/architecture/theme-set-schema.md`
 - `docs/frontend/admin-template-parity-inventory.md`

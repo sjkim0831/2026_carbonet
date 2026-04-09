@@ -100,6 +100,8 @@ Leave one of:
 - `docs/architecture/element-design-set-schema.md`
 - `docs/architecture/page-assembly-schema.md`
 - `docs/architecture/context-key-strip-contract.md`
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md` when `04` is resuming builder resource ownership continuation
+- `docs/architecture/builder-resource-ownership-queue-map.md` when `04` needs the shortest row-by-row builder ownership queue
 - `docs/prototypes/resonance-ui/asset-studio.html`
 - `docs/prototypes/resonance-ui/screen-builder.html`
 
@@ -114,6 +116,7 @@ Leave one of:
 - builder does not bypass registered assets
 - screen family rules stay visible and locked where required
 - missing-asset and repair loops remain reachable
+- if the work is builder resource ownership continuation, do not reopen structure-governance; continue from the queued row instead
 
 ### End Of First Hour
 

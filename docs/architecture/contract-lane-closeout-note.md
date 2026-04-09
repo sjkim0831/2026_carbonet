@@ -27,6 +27,20 @@ Forward progress should now come from:
 4. `09` verify/compare/repair implementation
 5. `07` DB/SQL follow-up after backend names stabilize
 
+## Builder Structure Wave Note
+
+The contract lane closeout does not by itself answer whether the current builder structure wave is closed.
+
+For that question, use:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-structure-wave-closeout.md`
+
+Current interpretation:
+
+- contract lane: closed
+- builder structure-governance wave: closed
+- repository-wide builder completion: not closed
+
 ## Reopen Policy
 
 Do not reopen `01` for normal execution detail.

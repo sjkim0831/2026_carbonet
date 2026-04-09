@@ -54,6 +54,12 @@ lane handoff.
   - handoff to another lane
   - `01` reopen under protocol
 
+If the resumed family is `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`:
+
+- open `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- open `docs/architecture/builder-resource-ownership-queue-map.md`
+- continue from the next queued row instead of reopening structure-governance
+
 ## References
 
 - `docs/architecture/operator-day-ops-check-card.md`

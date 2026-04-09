@@ -13,6 +13,13 @@ Use together with:
 
 - `docs/architecture/page-systemization-minimum-contract.md`
 - `docs/architecture/system-folder-structure-alignment.md`
+- `docs/architecture/builder-structure-wave-20260409-closure.md`
+- `docs/architecture/builder-source-of-truth-matrix.md`
+
+If the structure-governance answers are already accepted and the next question is about remaining builder-owned resources, continue from:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
 
 Operating ownership split:
 
@@ -38,6 +45,17 @@ Backend canonical layer:
 - `modules/carbonet-web-support`
 
 Legacy root framework paths under `src/main/java/egovframework/com/framework/**` should be treated as transitional when equivalent live module ownership exists.
+
+For a path-by-path close judgment during the current wave, defer to:
+
+- `docs/architecture/builder-source-of-truth-matrix.md`
+
+Do not keep using this document to reopen canonical-path answers after `BUILDER_STRUCTURE_GOVERNANCE` is closed.
+
+Use the live continuation set instead:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
 
 Existing feature folders remain valid. They are implementation folders, not contract folders.
 

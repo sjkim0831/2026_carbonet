@@ -10,6 +10,11 @@ Keep Carbonet and Resonance work easy to move in both directions:
 This document exists so implementation does not optimize only for today's placement.
 It should optimize for future promotion, extraction, rebinding, and upgrade too.
 
+For the live builder continuation after the closed structure-governance family, use:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+
 ## Core Principle
 
 Do not ask only:
@@ -90,6 +95,12 @@ Use when the target code is already stable and should become common now.
 ### `WRAP`
 
 Use when old project paths must stay working while new common ownership becomes the source of truth.
+
+Rule:
+
+- wrapper paths are compatibility shims only
+- wrapper paths must not regain feature growth
+- if the wrapper becomes a live extension point again, the transition is open and incomplete
 
 ### `PORT_ADAPTER`
 
@@ -213,6 +224,24 @@ When in doubt, do these first:
 3. definition plus binding split
 4. thin controller or thin route adapter
 5. only then deeper feature logic
+
+## Old Path Decision Heuristic
+
+When choosing between keeping an old path or deleting it, use this order:
+
+1. if the new canonical path is not yet real, do not claim closure
+2. if the old path is still extended, it is not a shim
+3. if the old path only forwards one remaining entry, keep it as an explicit shim
+4. if no remaining entry needs it, delete it
+
+Prefer explicit deletion over passive duplication.
+
+For builder-owned paths, do not reopen canonical-path answers here once `BUILDER_STRUCTURE_GOVERNANCE` is frozen.
+
+Use the live continuation set instead:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
 
 ## Success Test
 

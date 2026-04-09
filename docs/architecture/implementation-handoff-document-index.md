@@ -31,6 +31,7 @@ For the shortest operator-facing summary, see:
 - `docs/architecture/contract-lane-final-completion-checklist.md`
 - `docs/architecture/implementation-blocker-audit.md`
 - `docs/architecture/contract-lane-reopen-protocol.md`
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-structure-wave-closeout.md` when the current question is whether the builder structure wave itself is already closed
 
 ### 3. Global Execution Order
 
@@ -43,6 +44,9 @@ For the shortest operator-facing summary, see:
 - `docs/architecture/session-implementation-handoff-map.md`
 - `docs/architecture/lane-start-instructions-05-06-08-09.md`
 - `docs/architecture/lane-start-instructions-07-10-04-03-02.md`
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-kickoff.md` when the next family is builder resource ownership closure
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md` when builder resource ownership closure should resume from the current provisional state
+- `docs/architecture/builder-resource-ownership-queue-map.md` for the shortest row-by-row builder resource ownership queue
 
 ### 4-A. Theme And Template Governance For 05 And 09
 
@@ -66,6 +70,9 @@ For the shortest operator-facing summary, see:
 - `docs/architecture/implementation-lane-status-template.md`
 - `docs/architecture/implementation-lane-handoff-receipt-template.md`
 - `docs/architecture/implementation-lane-completion-template.md`
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-structure-wave-closeout.md` for family-scoped closeout reporting
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-closeout-template.md` for resource-ownership-family reporting
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md` for the latest resumable resource-ownership-family state
 - `docs/architecture/implementation-handoff-health-checklist.md`
 - `docs/architecture/implementation-drift-report-template.md`
 - `docs/architecture/operator-lane-launch-board-template.md`

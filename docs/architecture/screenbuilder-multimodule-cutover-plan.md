@@ -18,6 +18,31 @@ This document is the implementation companion to:
 - `docs/architecture/carbonet-resonance-separation-status.md`
 - `docs/architecture/screenbuilder-module-source-inventory.md`
 - `docs/architecture/system-folder-structure-alignment.md`
+- `docs/architecture/builder-structure-wave-20260409-closure.md`
+
+For live continuation after the closed structure-governance family, use:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+
+## Current Wave Closure Scope
+
+For the 2026-04-09 structure-governance wave, treat this document as the builder-family implementation inventory, not the wave-close decision by itself.
+
+Wave-close authority for this family now lives in:
+
+- `docs/architecture/builder-structure-wave-20260409-closure.md`
+
+That means:
+
+- this document tracks the cutover and remaining blockers
+- the closure doc decides which family is considered closed today
+- this document should not be read as claiming repository-wide builder completion on its own
+
+If the question has shifted from structure-governance to remaining builder-owned resources, continue from:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
 
 ## Current Constraint
 

@@ -45,12 +45,14 @@ Confirm before editing:
 - the builder target uses registered assets, not freeform page-local creation
 - the screen family rule is known for the first builder target
 - missing-asset and repair loops already exist as target surfaces
+- if the task is builder resource ownership continuation, the owner has opened `builder-resource-ownership-current-closeout.md` and `builder-resource-ownership-queue-map.md`
 
 Stop and mark `BLOCKED` if:
 
 - the builder would need to invent new asset shapes outside the contracts
 - template line or screen family rule is not known
 - registered-asset-only behavior cannot be preserved
+- the queued builder resource ownership row is unclear or would reopen structure-governance
 
 ## 03 Theme And Design-System Checklist
 

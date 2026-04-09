@@ -16,6 +16,12 @@ For execution order, use:
 
 - `docs/architecture/builder-folder-refactor-priority-map.md`
 - `docs/architecture/large-move-completion-contract.md`
+- `docs/architecture/builder-structure-wave-20260409-closure.md`
+
+For continuation after the closed structure-governance wave, resume from:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
 
 ## Current Top-Level Direction
 
@@ -158,6 +164,19 @@ Do not expand root `src/` with new common/platform code when a module path alrea
 
 ## Builder-Specific Folder Rules
 
+For the currently frozen wave-level owner decision, use:
+
+- `docs/architecture/builder-structure-wave-20260409-closure.md`
+
+That document closes `BUILDER_STRUCTURE_GOVERNANCE` only.
+
+Do not reopen source-of-truth or shim-vs-delete debates here once that family is accepted as closed.
+
+The next active continuation is:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+
 Use this builder-aligned split:
 
 - `modules/screenbuilder-core`
@@ -180,6 +199,17 @@ Do not reintroduce builder core classes into:
 - `src/main/java/egovframework/com/feature/admin/**`
 - `src/main/java/egovframework/com/platform/screenbuilder/**`
 - arbitrary project-local copied paths
+
+For the current wave, interpret the builder lanes as:
+
+- `modules/screenbuilder-core/**`
+  - builder-core source of truth
+- `modules/screenbuilder-runtime-common-adapter/**`
+  - reusable runtime-common policy source of truth
+- `modules/screenbuilder-carbonet-adapter/**`
+  - Carbonet-specific project-binding and bridge source of truth
+- root legacy builder paths
+  - transitional only, never canonical
 
 ## Platform Folder Rules
 

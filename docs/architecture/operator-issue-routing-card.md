@@ -32,6 +32,10 @@ Use when:
 Use:
 
 - `docs/architecture/implementation-lane-completion-template.md`
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md` when the handoff should continue from the latest provisional builder resource ownership state
+- `docs/architecture/builder-resource-ownership-queue-map.md` when the shortest row-by-row builder resource ownership queue is needed
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-closeout-template.md` when the active family is `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`
+- `docs/architecture/builder-resource-ownership-status-tracker.md` when the issue changes the current resource-family status or blocker count
 
 Phrase:
 
@@ -120,3 +124,10 @@ If the issue changes contracts, go to `reopen`.
 
 If the issue does not change contracts, use `status`, `completion`, or `drift`
 instead.
+
+If the issue is specifically about builder resource ownership after structure-governance is already closed, start from:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-kickoff.md`
+- `docs/architecture/builder-resource-ownership-status-tracker.md`
