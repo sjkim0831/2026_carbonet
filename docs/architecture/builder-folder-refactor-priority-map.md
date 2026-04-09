@@ -20,6 +20,8 @@ After the closed structure-governance family, continue from:
 
 Treat those two docs as the single live entry pair for the next active builder continuation.
 
+If continuation state changes blocker count, active row, next review target, or partial-closeout wording, update both continuation docs in the same turn.
+
 ## Current Wave Freeze
 
 For the current owner wave, the closed family is:

@@ -14,6 +14,8 @@ For this family, always resume from:
 2. `docs/architecture/builder-resource-ownership-queue-map.md`
 
 Do not start from review cards or partial examples unless this entry pair already points you there.
+Treat this entry pair as the `single live entry pair` for the active family.
+If kickoff refresh changes blocker count, active row, next review target, or partial-closeout wording, update both entry-pair docs in the same turn.
 
 ## Prerequisite
 

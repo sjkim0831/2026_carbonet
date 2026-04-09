@@ -19,6 +19,9 @@ Before drafting a new closeout, read in this order:
 - `docs/architecture/builder-resource-ownership-queue-map.md`
 - `docs/architecture/builder-resource-ownership-status-tracker.md`
 
+Treat the first two docs above as the `single live entry pair`.
+If a closeout note changes blocker count, active row, next review target, or partial-closeout wording, update both entry-pair docs in the same turn.
+
 ## Required Fields
 
 - selected resource families

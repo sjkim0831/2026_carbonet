@@ -38,10 +38,12 @@ Operator-ready closeout note:
   - move control-plane menu/bootstrap and observability entry composition out of `feature/admin`
   - keep compatibility shims only where runtime routes still need them
 
-Most recent direct-coupling reductions already completed:
+Most recent direct-coupling and compatibility-shim reductions already completed:
 
 - `feature/admin` observability entry points now use `PlatformObservabilityAdminPagePort`
-- `feature/admin` help compatibility controllers now use `PlatformHelpManagementPort`
+- `AdminSessionSimulationService` is now further narrowed to `PlatformObservabilityCompanyScopePort`
+- admin-facing help API aliases now terminate directly in `platform-help` `HelpManagementApiController`
+- `feature/admin` help ownership is now reduced to the page-forwarding shim for `/admin/system/help-management`
 - `feature/admin` self-healing and safe-plan workbench entry points now use `SrTicketWorkbenchPort`
 - `feature/admin` authority payload support now uses `PlatformObservabilityAuditQueryPort`
 - direct `platform.* service/web` imports under `feature/admin` are now `0`

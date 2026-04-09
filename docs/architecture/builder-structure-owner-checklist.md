@@ -115,3 +115,7 @@ If the structure-governance family is already closed, continue with:
 - `docs/architecture/builder-resource-ownership-queue-map.md`
 
 instead of reopening the same source-of-truth decision.
+
+Treat those two docs as the `single live entry pair` for the continuation family.
+
+If continuation state later changes blocker count, active row, next review target, or partial-closeout wording, update both continuation docs in the same turn.

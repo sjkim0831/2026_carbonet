@@ -25,6 +25,8 @@ After this family is accepted as closed, continue from:
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
 
+If continuation state later changes blocker count, active row, next review target, or partial-closeout wording, update both continuation docs in the same turn.
+
 ## Current Wave Owner Decision
 
 The current wave closes only the builder structure-governance family.
@@ -187,3 +189,5 @@ For the live continuation entry, use:
 
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
+
+Treat those two docs as the `single live entry pair` for the next family.

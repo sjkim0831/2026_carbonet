@@ -144,6 +144,7 @@
 - 현재 family single live entry pair:
   - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
   - `docs/architecture/builder-resource-ownership-queue-map.md`
+- 이 pair의 blocker count, active row, next review target, partial-closeout wording이 바뀌면 두 문서를 같은 턴에 같이 갱신합니다
 - 다음 1개 행동: `05/06/08/09`가 실제 구현에 들어간 뒤 예외 blocker가 생기면 reopen 여부만 판단합니다
 - 목적: 공통 계약, 스키마, 점검표, 공통 규칙을 먼저 확정합니다
 - 최근 변경 파일:

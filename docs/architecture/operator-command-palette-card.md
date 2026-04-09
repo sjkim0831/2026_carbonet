@@ -83,6 +83,8 @@ Use with:
 
 Treat the last two docs above as the single live entry pair for `builder resource ownership 재개`.
 
+If the restart command results in a changed blocker count, active row, next review target, or partial-closeout wording, update both entry-pair docs in the same turn.
+
 ## Reopen Command
 
 - `01 reopen`

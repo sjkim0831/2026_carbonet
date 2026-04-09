@@ -11,6 +11,7 @@ Read first:
 
 Treat those two docs as the single live entry pair for
 `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`.
+If matrix updates change blocker count, active row, next review target, or partial-closeout wording, update both docs in the same turn.
 
 Use this when the question is:
 

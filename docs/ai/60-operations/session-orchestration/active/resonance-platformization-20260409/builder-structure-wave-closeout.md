@@ -73,6 +73,10 @@ Live continuation entry:
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
 
+Treat those two docs as the `single live entry pair` for the next builder family.
+
+If next-family continuation state changes blocker count, active row, next review target, or partial-closeout wording, update both continuation docs in the same turn.
+
 ## Handoff Phrase
 
 `HANDOFF READY: builder structure-governance closure is frozen; next owner should continue from builder resource ownership closure instead of reopening source-of-truth debate.`

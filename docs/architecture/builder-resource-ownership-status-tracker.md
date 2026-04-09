@@ -16,6 +16,8 @@ Use this tracker after reading:
 
 Treat the first two docs above as the single live entry pair before editing tracker rows.
 
+If tracker edits change blocker count, active row, next review target, or partial-closeout wording, update both entry-pair docs in the same turn.
+
 ## Decision Codes
 
 - `TODO`

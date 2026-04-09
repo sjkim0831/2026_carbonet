@@ -57,3 +57,5 @@ When a lane finishes or hands off:
 - `docs/architecture/implementation-lane-completion-template.md`
 
 For `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, treat the current closeout and queue map above as the single live entry pair.
+
+If board updates change blocker count, active row, next review target, or partial-closeout wording, update both entry-pair docs in the same turn.

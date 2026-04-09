@@ -133,3 +133,5 @@ If the issue is specifically about builder resource ownership after structure-go
 - `docs/architecture/builder-resource-ownership-status-tracker.md`
 
 Treat the first two docs above as the single live entry pair before opening kickoff, tracker, review cards, or examples.
+
+If the issue changes blocker count, active row, next review target, or partial-closeout wording, update both entry-pair docs in the same turn before routing deeper.

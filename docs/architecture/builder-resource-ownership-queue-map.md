@@ -12,6 +12,22 @@ Together with
 `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`,
 this is the single live entry pair for `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`.
 
+## Pair Maintenance Contract
+
+When one of these changes:
+
+- active row
+- row state
+- provisional blocker count
+- next review target
+- current partial-closeout wording
+
+update this file and
+`docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+in the same turn.
+
+Do not leave queue state newer than current closeout, or current closeout newer than queue state.
+
 ## Current Queue
 
 | Row | Resource family | Current state | Current decision shape | Open next |

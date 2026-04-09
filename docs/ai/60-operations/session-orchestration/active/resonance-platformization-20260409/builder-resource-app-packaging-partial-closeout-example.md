@@ -8,6 +8,8 @@ Updated on `2026-04-09`.
 2. `docs/architecture/builder-resource-ownership-queue-map.md`
 
 Use this example only after the live family entry confirms row `4` is the active partial-closeout target.
+Treat those two docs as the `single live entry pair`.
+If the example is copied into a real update that changes blocker count, active row, next review target, or partial-closeout wording, update both entry-pair docs in the same turn.
 
 Use this example when the owner starts row `4` but has only bounded the packaging-line review surface, not the final delete-versus-shim verdict.
 

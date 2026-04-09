@@ -100,6 +100,7 @@ This document defines the current Carbonet skill taxonomy, overlap rules, and th
 - For active builder resource-ownership continuation, treat these as the single live entry pair before picking the next row-specific review card:
   - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
   - `docs/architecture/builder-resource-ownership-queue-map.md`
+- If routing guidance changes blocker count, active row, next review target, or partial-closeout wording, update both docs in the same turn.
 
 ### `carbonet-feature-builder` vs `carbonet-codex-execution-console`
 

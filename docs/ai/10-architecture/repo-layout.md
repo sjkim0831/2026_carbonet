@@ -17,6 +17,7 @@ This file explains which folders matter most for AI speed and which ones should 
 
 Treat those two docs as the single live entry pair for
 `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`.
+If blocker count, active row, next review target, or partial-closeout wording changes, update both docs in the same turn.
 - `apps/carbonet-app`
   - executable runtime assembly target
 - `modules`

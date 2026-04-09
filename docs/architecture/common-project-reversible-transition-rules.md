@@ -16,6 +16,7 @@ For the live builder continuation after the closed structure-governance family, 
 - `docs/architecture/builder-resource-ownership-queue-map.md`
 
 Treat those two docs as the single live entry pair for builder resource-ownership continuation.
+If continuation state changes blocker count, active row, next review target, or partial-closeout wording, update both docs in the same turn.
 
 ## Core Principle
 

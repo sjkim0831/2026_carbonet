@@ -95,5 +95,6 @@ If the receiving lane is accepting builder resource-ownership continuation, read
 - `docs/architecture/builder-resource-ownership-queue-map.md`
 
 Treat those two docs as the single live entry pair for the accepted family.
+If receipt handling changes blocker count, active row, next review target, or partial-closeout wording, update both docs in the same turn.
 
 Then accept one row-specific review card rather than reopening structure-governance.

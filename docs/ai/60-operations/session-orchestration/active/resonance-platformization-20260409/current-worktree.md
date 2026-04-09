@@ -68,3 +68,4 @@ Reconciled on `2026-04-09` from `git status --short`.
 - single live entry pair for this family is:
   - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
   - `docs/architecture/builder-resource-ownership-queue-map.md`
+- if worktree-note refresh changes blocker count, active row, next review target, or partial-closeout wording, update both entry-pair docs in the same turn

@@ -100,3 +100,5 @@ For builder resource-ownership family closeout continuation, also check:
 - `docs/architecture/builder-resource-ownership-status-tracker.md`
 
 Treat the current closeout and queue map as the single live entry pair before opening tracker rows or row-specific review docs.
+
+If the end-of-day update changes blocker count, active row, next review target, or partial-closeout wording, update both entry-pair docs in the same turn.

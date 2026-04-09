@@ -60,6 +60,7 @@ If the resumed family is `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`:
 - open `docs/architecture/builder-resource-ownership-queue-map.md`
 - continue from the next queued row instead of reopening structure-governance
 - treat those two docs as the single live entry pair before opening any row-specific review card
+- if first-hour review changes blocker count, active row, next review target, or partial-closeout wording, update both entry-pair docs in the same turn
 
 ## References
 

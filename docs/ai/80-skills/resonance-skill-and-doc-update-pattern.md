@@ -191,6 +191,7 @@ Rule:
 
 - do not reopen `BUILDER_STRUCTURE_GOVERNANCE`
 - treat the current closeout and queue map as the single live entry pair
+- when active row, blocker count, or next review target changes, update both docs in the same turn
 - each row should have one review card and one provisional handoff shape before claiming the family is easy to resume
 
 ### New business screen family

@@ -47,6 +47,7 @@ Confirm before editing:
 - missing-asset and repair loops already exist as target surfaces
 - if the task is builder resource ownership continuation, the owner has opened `builder-resource-ownership-current-closeout.md` and `builder-resource-ownership-queue-map.md`
 - for builder resource ownership continuation, those two docs are treated as the single live entry pair
+- if checklist-driven work changes blocker count, active row, next review target, or partial-closeout wording, update both docs in the same turn
 
 Stop and mark `BLOCKED` if:
 

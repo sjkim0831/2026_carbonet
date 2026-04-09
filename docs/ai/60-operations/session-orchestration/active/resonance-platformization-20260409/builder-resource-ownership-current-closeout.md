@@ -14,6 +14,23 @@ For this family, always resume from:
 2. `docs/architecture/builder-resource-ownership-queue-map.md`
 
 Do not start from a row-specific review card or partial example unless this document and the queue map already point to that row.
+Treat this entry pair as the `single live entry pair` for `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`.
+
+## Pair Maintenance Contract
+
+When one of these changes:
+
+- active row
+- row state
+- provisional blocker count
+- next review target
+- active partial-closeout wording
+
+update this document and
+`docs/architecture/builder-resource-ownership-queue-map.md`
+in the same turn.
+
+Do not let one of the two stay newer than the other for the same family state.
 
 ## Current Result
 

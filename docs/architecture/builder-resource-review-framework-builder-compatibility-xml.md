@@ -7,6 +7,8 @@
 3. `docs/architecture/builder-resource-ownership-status-tracker.md`
 
 Use this review card only after the live family entry confirms row `1` is the active target.
+Treat the first two docs above as the `single live entry pair`.
+If this review changes blocker count, active row, next review target, or partial-closeout wording, update both entry-pair docs in the same turn.
 
 ## Family
 

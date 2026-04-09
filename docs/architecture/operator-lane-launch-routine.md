@@ -24,6 +24,8 @@ If the resumed family is `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, also open:
 
 Treat these two docs as the single live entry pair for that family.
 
+If launch-time review changes blocker count, active row, next review target, or partial-closeout wording, update both entry-pair docs in the same turn.
+
 ### 2. Launch The First Wave
 
 Start:
@@ -73,6 +75,7 @@ When a lane finishes a meaningful scope:
 - if the scope is fully done, leave `DONE`
 - for builder resource-ownership continuation, do not skip the current closeout or queue map when preparing the handoff phrase
 - for builder resource-ownership continuation, treat the current closeout and queue map as the single live entry pair
+- if completion changes blocker count, active row, next review target, or partial-closeout wording, update both entry-pair docs in the same turn
 
 ### 7. Monitor Health
 

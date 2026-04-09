@@ -50,6 +50,8 @@ Use:
 
 For this family, treat the current closeout and queue map as the single live entry pair.
 
+If mid-day work changes blocker count, active row, next review target, or partial-closeout wording, update both entry-pair docs in the same turn.
+
 ## 3. End Of Day
 
 Confirm:
@@ -72,6 +74,8 @@ Use:
 - `docs/architecture/builder-resource-ownership-status-tracker.md` when the closeout must leave updated resource-family status rows
 
 Again, treat the current closeout and queue map as the single live entry pair before opening row-specific builder resource ownership docs.
+
+If end-of-day reporting changes blocker count, active row, next review target, or partial-closeout wording, update both entry-pair docs in the same turn.
 
 ## 4. Reopen Rule
 

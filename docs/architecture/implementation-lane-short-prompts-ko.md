@@ -44,6 +44,7 @@ Generated on 2026-03-21 for immediate execution after the `01` handoff.
 
 - `04` 레인이 builder resource ownership continuation을 받으면 먼저 `builder-resource-ownership-current-closeout.md` 와 `builder-resource-ownership-queue-map.md` 를 읽고 해당 row review card부터 이어가세요.
 - `이 두 문서는 해당 모드의 single live entry pair 로 취급하세요.`
+- `이 작업으로 blocker count, active row, next review target, partial-closeout wording 이 바뀌면 두 문서를 같은 턴에 같이 갱신하세요.`
 - `04` 레인 resource-ownership 모드: `BUILDER_RESOURCE_OWNERSHIP_CLOSURE` 를 current closeout과 queue map 기준으로 이어가고, 구조-governance는 다시 열지 말고 다음 queued row review card와 provisional handoff shape만 진행하세요.
 
 ## 03 테마

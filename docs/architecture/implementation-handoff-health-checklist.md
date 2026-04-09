@@ -83,3 +83,4 @@ For active builder resource-ownership continuation checks, use in this order:
 - `docs/architecture/builder-resource-ownership-status-tracker.md`
 
 Treat the first two docs above as the single live entry pair before opening tracker rows, review cards, or examples.
+If health-check review changes blocker count, active row, next review target, or partial-closeout wording, update both docs in the same turn.

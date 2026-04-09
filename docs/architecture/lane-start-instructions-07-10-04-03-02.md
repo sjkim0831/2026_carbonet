@@ -110,6 +110,8 @@ If `04` is in builder resource-ownership mode, treat these as the single live en
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
 
+If start-instruction-driven work changes blocker count, active row, next review target, or partial-closeout wording, update both docs in the same turn.
+
 ### First Targets
 
 - one builder surface frame

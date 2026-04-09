@@ -53,6 +53,8 @@ For `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, treat these as the single live entry p
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
 
+If blocker count, active row, next review target, or partial-closeout wording changes, update both entry-pair docs in the same turn before handing off to row-specific material.
+
 ### 4-A. Theme And Template Governance For 05 And 09
 
 - `docs/architecture/public-admin-template-line-schema.md`

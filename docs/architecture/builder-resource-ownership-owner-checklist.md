@@ -12,6 +12,8 @@ Before using this checklist, reopen:
 2. `docs/architecture/builder-resource-ownership-queue-map.md`
 
 Use this checklist only after that pair confirms the active row.
+Treat that pair as the `single live entry pair` for this family.
+If checklist-driven review changes blocker count, active row, next review target, or partial-closeout wording, update both docs in the same turn.
 
 ## Read Order
 

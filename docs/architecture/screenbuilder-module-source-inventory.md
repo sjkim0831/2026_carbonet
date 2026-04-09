@@ -23,6 +23,7 @@ For the live continuation queue after builder structure-governance closure, use:
 
 Treat those two docs as the single live entry pair for
 `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`.
+If continuation state changes blocker count, active row, next review target, or partial-closeout wording, update both docs in the same turn.
 
 ## Core Candidates
 

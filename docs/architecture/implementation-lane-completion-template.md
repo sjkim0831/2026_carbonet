@@ -166,3 +166,5 @@ For active builder resource-ownership continuation, prefer these references befo
 - `docs/architecture/builder-resource-ownership-status-tracker.md`
 
 Treat the first two docs above as the single live entry pair before opening tracker rows, review cards, or provisional examples.
+
+If blocker count, active row, next review target, or partial-closeout wording changes, update both entry-pair docs in the same turn before leaving the completion note.

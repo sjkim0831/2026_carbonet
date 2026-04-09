@@ -23,6 +23,8 @@ If the current question is no longer "which path is canonical" but "which builde
 
 Treat those two docs as the single live entry pair for the continuation family.
 
+If continuation state changes blocker count, active row, next review target, or partial-closeout wording, update both continuation docs in the same turn.
+
 ## Current Matrix
 
 | Family slice | Canonical path | Old or competing path | Current treatment | Notes |

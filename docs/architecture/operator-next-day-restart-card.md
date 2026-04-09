@@ -25,6 +25,8 @@ For this family, the single live entry pair is:
 1. `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 2. `docs/architecture/builder-resource-ownership-queue-map.md`
 
+If restart work changes blocker count, active row, next review target, or partial-closeout wording, update both entry-pair docs in the same turn.
+
 ## 2. Resume Order
 
 Resume in this order:

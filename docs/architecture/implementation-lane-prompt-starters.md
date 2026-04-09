@@ -88,6 +88,7 @@ If `04` is continuing builder resource ownership instead of ordinary builder UI 
 - `docs/architecture/builder-resource-ownership-queue-map.md`
 
 Treat those two docs as the single live entry pair before opening the next row-specific review card.
+If prompt-guided work changes blocker count, active row, next review target, or partial-closeout wording, update both docs in the same turn.
 
 Prompt starter:
 

@@ -10,6 +10,7 @@ Read first:
 - `docs/architecture/builder-resource-ownership-queue-map.md`
 
 Treat those two docs as the single live entry pair before choosing any row.
+If priority-board use changes blocker count, active row, next review target, or partial-closeout wording, update both docs in the same turn.
 
 This board does not redefine ownership.
 It only decides which resource families should be reviewed first.

@@ -16,6 +16,7 @@ For builder resource-ownership continuation questions, read:
 before deciding which row-specific review card to open next.
 
 Treat those two docs as the single live entry pair for that family.
+If package-map guidance changes blocker count, active row, next review target, or partial-closeout wording, update both docs in the same turn.
 
 ## Backend Packages
 

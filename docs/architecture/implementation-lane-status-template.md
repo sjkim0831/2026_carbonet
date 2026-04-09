@@ -92,3 +92,5 @@ If the active status is really about continuing `BUILDER_RESOURCE_OWNERSHIP_CLOS
 - `docs/architecture/builder-resource-ownership-status-tracker.md`
 
 Treat the first two docs above as the single live entry pair before opening tracker rows, review cards, or examples.
+
+If blocker count, active row, next review target, or partial-closeout wording changes while writing status, update both entry-pair docs in the same turn.

@@ -47,6 +47,8 @@ If the resumed family is `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, also open:
 
 Treat those two docs as the single live entry pair for that family.
 
+If blocker count, active row, next review target, or partial-closeout wording changes, update both entry-pair docs in the same turn.
+
 For `05` and `09`, also open:
 
 - `docs/architecture/public-admin-template-line-schema.md`
