@@ -47,6 +47,7 @@ Builder resource-ownership continuation note:
 - after `BUILDER_STRUCTURE_GOVERNANCE` is accepted as closed, continue builder ownership work from:
   - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
   - `docs/architecture/builder-resource-ownership-queue-map.md`
+- treat those two docs as the single live entry pair for `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`
 
 App-closure continuation note:
 
@@ -161,6 +162,9 @@ Completed:
 - `feature/admin` menu and command-page bridges now implement adapter `Source` interfaces while `screenbuilder-carbonet-adapter` supplies the public `ScreenBuilder*Port` beans
 - `UiManifestRegistryService` is now consumed through `UiManifestRegistryPort`, so screen-command/help/admin code no longer depends on the concrete builder-observability service class directly
 - platform observability backup action contracts now use platform-owned request DTOs, with legacy admin DTO conversion isolated in the delegate bridge
+- `feature/admin` observability composition now consumes `PlatformObservabilityAdminPagePort` instead of the concrete `PlatformObservabilityAdminPageFacade` in the remaining admin entry points that still assemble control-plane payloads
+- `feature/admin` help compatibility controllers now consume `PlatformHelpManagementPort` instead of directly depending on the platform help web controller type
+- `feature/admin` self-healing and safe-plan workbench entry points now consume `SrTicketWorkbenchPort` instead of directly depending on the workbench service type
 - `screenbuilder-core`, `screenbuilder-carbonet-adapter`, `carbonet-contract-metadata`, and `carbonet-builder-observability` now package real builder classes/resources into dedicated jars
 - root `feature/admin/model/ScreenBuilder*` compatibility wrappers have now been removed
 - root `feature/admin/screenbuilder`, `feature/admin/framework/builder`, and `AdminScreenBuilderController` copies have now been removed
@@ -183,6 +187,8 @@ Not completed:
 - admin composition still owns many control-plane entry points
 - screen-builder legacy compatibility wrappers still live under `feature/admin`
 - controller and page-service boundaries are still assembled from `feature/admin`
+- one `feature/admin` authority payload support path still depends on the `ObservabilityQueryService` interface for audit lookup
+- screen-command metadata strings still contain a small number of legacy concrete names where the underlying runtime wiring has not been port-lifted yet
 
 Builder-family interpretation note:
 

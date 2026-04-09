@@ -131,3 +131,5 @@ If the issue is specifically about builder resource ownership after structure-go
 - `docs/architecture/builder-resource-ownership-queue-map.md`
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-kickoff.md`
 - `docs/architecture/builder-resource-ownership-status-tracker.md`
+
+Treat the first two docs above as the single live entry pair before opening kickoff, tracker, review cards, or examples.

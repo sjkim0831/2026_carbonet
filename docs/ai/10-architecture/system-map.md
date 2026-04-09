@@ -26,3 +26,4 @@ Builder structure-governance note:
 Builder resource-ownership continuation note:
 
 - when the subsystem question is about which builder resource row is currently blocked, provisional, or next, use `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md` first and then `docs/architecture/builder-resource-ownership-queue-map.md`
+- treat those two docs as the single live entry pair before opening row-specific review cards

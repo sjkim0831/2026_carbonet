@@ -97,7 +97,9 @@ This document defines the current Carbonet skill taxonomy, overlap rules, and th
 - If the cleanup crosses many shared paths or owner families, use a dedicated refactor wave instead.
 - If the request is specifically about “what is closed in this wave”, “which path is source of truth”, or “whether the old path is a shim or delete candidate”, treat that as a structure-governance wave first, not as ordinary builder implementation.
 - If the request has already accepted structure-governance closure and now asks which builder resource owner is canonical or whether a root resource still blocks closeout, treat it as the resource-ownership family instead of reopening the structure-governance family.
-- For active builder resource-ownership continuation, read `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md` first and then `docs/architecture/builder-resource-ownership-queue-map.md` before picking the next row-specific review card.
+- For active builder resource-ownership continuation, treat these as the single live entry pair before picking the next row-specific review card:
+  - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+  - `docs/architecture/builder-resource-ownership-queue-map.md`
 
 ### `carbonet-feature-builder` vs `carbonet-codex-execution-console`
 

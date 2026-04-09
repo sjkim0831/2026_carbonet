@@ -164,3 +164,5 @@ For active builder resource-ownership continuation, prefer these references befo
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
 - `docs/architecture/builder-resource-ownership-status-tracker.md`
+
+Treat the first two docs above as the single live entry pair before opening tracker rows, review cards, or provisional examples.

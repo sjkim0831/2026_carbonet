@@ -46,6 +46,7 @@ Confirm before editing:
 - the screen family rule is known for the first builder target
 - missing-asset and repair loops already exist as target surfaces
 - if the task is builder resource ownership continuation, the owner has opened `builder-resource-ownership-current-closeout.md` and `builder-resource-ownership-queue-map.md`
+- for builder resource ownership continuation, those two docs are treated as the single live entry pair
 
 Stop and mark `BLOCKED` if:
 

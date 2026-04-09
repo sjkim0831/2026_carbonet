@@ -25,6 +25,9 @@ For live continuation after the closed structure-governance family, use:
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
 
+Treat those two docs as the single live entry pair for
+`BUILDER_RESOURCE_OWNERSHIP_CLOSURE`.
+
 ## Current Wave Closure Scope
 
 For the 2026-04-09 structure-governance wave, treat this document as the builder-family implementation inventory, not the wave-close decision by itself.
@@ -43,6 +46,8 @@ If the question has shifted from structure-governance to remaining builder-owned
 
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
+
+Again, treat those two docs as the single live entry pair before opening row-specific review material.
 
 ## Current Constraint
 

@@ -48,6 +48,11 @@ For the shortest operator-facing summary, see:
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md` when builder resource ownership closure should resume from the current provisional state
 - `docs/architecture/builder-resource-ownership-queue-map.md` for the shortest row-by-row builder resource ownership queue
 
+For `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, treat these as the single live entry pair:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+
 ### 4-A. Theme And Template Governance For 05 And 09
 
 - `docs/architecture/public-admin-template-line-schema.md`

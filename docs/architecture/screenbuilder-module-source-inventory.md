@@ -21,6 +21,9 @@ For the live continuation queue after builder structure-governance closure, use:
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
 
+Treat those two docs as the single live entry pair for
+`BUILDER_RESOURCE_OWNERSHIP_CLOSURE`.
+
 ## Core Candidates
 
 These paths are now live-owned by `screenbuilder-core`.
@@ -173,6 +176,8 @@ The active continuation entry for those exceptions is:
 
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
+
+Treat those two docs as the single live entry pair before opening row-specific review cards.
 
 ## Verification Command
 

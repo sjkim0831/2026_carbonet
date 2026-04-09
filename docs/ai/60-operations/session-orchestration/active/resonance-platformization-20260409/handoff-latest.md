@@ -38,6 +38,17 @@ Operator-ready closeout note:
   - move control-plane menu/bootstrap and observability entry composition out of `feature/admin`
   - keep compatibility shims only where runtime routes still need them
 
+Most recent direct-coupling reductions already completed:
+
+- `feature/admin` observability entry points now use `PlatformObservabilityAdminPagePort`
+- `feature/admin` help compatibility controllers now use `PlatformHelpManagementPort`
+- `feature/admin` self-healing and safe-plan workbench entry points now use `SrTicketWorkbenchPort`
+
+Current narrow remainder:
+
+- `AdminAuthorityPagePayloadSupport` still uses the `ObservabilityQueryService` interface
+- `ScreenCommandCenterServiceImpl` still has a very small number of legacy concrete names in metadata strings where runtime wiring has not changed
+
 Do not reopen the app-closure owner slice unless one of these changes again:
 
 - canonical app jar path

@@ -55,3 +55,5 @@ When a lane finishes or hands off:
 - `docs/architecture/implementation-lane-handoff-receipt-template.md`
 - `docs/architecture/implementation-lane-status-template.md`
 - `docs/architecture/implementation-lane-completion-template.md`
+
+For `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, treat the current closeout and queue map above as the single live entry pair.

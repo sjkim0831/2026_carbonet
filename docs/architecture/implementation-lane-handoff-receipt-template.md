@@ -94,4 +94,6 @@ If the receiving lane is accepting builder resource-ownership continuation, read
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
 
+Treat those two docs as the single live entry pair for the accepted family.
+
 Then accept one row-specific review card rather than reopening structure-governance.

@@ -22,6 +22,8 @@ If the resumed family is `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, also open:
 4. `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 5. `docs/architecture/builder-resource-ownership-queue-map.md`
 
+Treat these two docs as the single live entry pair for that family.
+
 ### 2. Launch The First Wave
 
 Start:
@@ -70,6 +72,7 @@ When a lane finishes a meaningful scope:
 - if another lane can continue, leave `HANDOFF READY`
 - if the scope is fully done, leave `DONE`
 - for builder resource-ownership continuation, do not skip the current closeout or queue map when preparing the handoff phrase
+- for builder resource-ownership continuation, treat the current closeout and queue map as the single live entry pair
 
 ### 7. Monitor Health
 

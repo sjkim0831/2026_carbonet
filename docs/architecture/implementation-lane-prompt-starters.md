@@ -82,6 +82,17 @@ Prompt starter:
 
 - `04 lane: implement the first builder surface frame and governed asset editor shell from asset-studio and screen-builder while keeping screen family rules visible and registered assets mandatory.`
 
+If `04` is continuing builder resource ownership instead of ordinary builder UI work, start from:
+
+- `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+
+Treat those two docs as the single live entry pair before opening the next row-specific review card.
+
+Prompt starter:
+
+- `04 lane: continue BUILDER_RESOURCE_OWNERSHIP_CLOSURE from the current closeout and queue map, keep BUILDER_STRUCTURE_GOVERNANCE closed, and work only on the next queued row-specific review card and provisional handoff shape.`
+
 ## 03 Theme
 
 Start from:

@@ -81,6 +81,8 @@ Use with:
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
 
+Treat the last two docs above as the single live entry pair for `builder resource ownership 재개`.
+
 ## Reopen Command
 
 - `01 reopen`

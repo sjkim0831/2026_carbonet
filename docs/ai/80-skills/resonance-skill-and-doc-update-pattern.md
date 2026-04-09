@@ -190,7 +190,7 @@ Update in this order:
 Rule:
 
 - do not reopen `BUILDER_STRUCTURE_GOVERNANCE`
-- continue from the current closeout and queue map first
+- treat the current closeout and queue map as the single live entry pair
 - each row should have one review card and one provisional handoff shape before claiming the family is easy to resume
 
 ### New business screen family

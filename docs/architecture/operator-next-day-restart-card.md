@@ -20,6 +20,11 @@ Open in this order:
 7. `docs/architecture/builder-resource-ownership-status-tracker.md` if the next owner must resume builder resource ownership family status from yesterday
 8. `docs/architecture/builder-resource-review-builder-observability.md` if the next review target is row `3` after the current provisional closeout is accepted
 
+For this family, the single live entry pair is:
+
+1. `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+2. `docs/architecture/builder-resource-ownership-queue-map.md`
+
 ## 2. Resume Order
 
 Resume in this order:

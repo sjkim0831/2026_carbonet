@@ -59,6 +59,7 @@ If the resumed family is `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`:
 - open `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - open `docs/architecture/builder-resource-ownership-queue-map.md`
 - continue from the next queued row instead of reopening structure-governance
+- treat those two docs as the single live entry pair before opening any row-specific review card
 
 ## References
 

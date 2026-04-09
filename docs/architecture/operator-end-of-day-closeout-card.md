@@ -98,3 +98,5 @@ For builder resource-ownership family closeout continuation, also check:
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
 - `docs/architecture/builder-resource-ownership-status-tracker.md`
+
+Treat the current closeout and queue map as the single live entry pair before opening tracker rows or row-specific review docs.

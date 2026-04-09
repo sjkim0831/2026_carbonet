@@ -45,6 +45,8 @@ If the resumed family is `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, also open:
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
 
+Treat those two docs as the single live entry pair for that family.
+
 For `05` and `09`, also open:
 
 - `docs/architecture/public-admin-template-line-schema.md`

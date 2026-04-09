@@ -48,6 +48,8 @@ Use:
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-kickoff.md` when the active owner is continuing builder resource ownership closure
 - `docs/architecture/builder-resource-ownership-status-tracker.md` when the active owner must update builder resource ownership family status rows during the day
 
+For this family, treat the current closeout and queue map as the single live entry pair.
+
 ## 3. End Of Day
 
 Confirm:
@@ -68,6 +70,8 @@ Use:
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md` when the latest provisional closeout must be updated rather than recreated
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-closeout-template.md` when the day ended inside builder resource ownership closure
 - `docs/architecture/builder-resource-ownership-status-tracker.md` when the closeout must leave updated resource-family status rows
+
+Again, treat the current closeout and queue map as the single live entry pair before opening row-specific builder resource ownership docs.
 
 ## 4. Reopen Rule
 

@@ -43,6 +43,7 @@ Use them when the lane already has:
 Additional rule:
 
 - `if 04 is continuing builder resource ownership instead of ordinary builder UI work, read builder-resource-ownership-current-closeout.md and builder-resource-ownership-queue-map.md first, then continue from the next row-specific review card.`
+- `treat builder-resource-ownership-current-closeout.md and builder-resource-ownership-queue-map.md as the single live entry pair for that mode.`
 - `04 lane resource-ownership mode: continue BUILDER_RESOURCE_OWNERSHIP_CLOSURE from the current closeout and queue map, keep structure-governance closed, and work only on the next queued row review card and provisional handoff shape.`
 
 ## 03 Theme
