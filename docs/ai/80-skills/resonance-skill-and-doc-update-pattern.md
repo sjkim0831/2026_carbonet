@@ -158,6 +158,41 @@ If one family changes, update all directly affected linked families.
 
 ## Reusable Change Shapes
 
+### Builder structure-governance closure
+
+Update in this order:
+
+- `docs/architecture/system-folder-structure-alignment.md`
+- `docs/architecture/builder-folder-refactor-priority-map.md`
+- `docs/architecture/screenbuilder-multimodule-cutover-plan.md`
+- `docs/architecture/large-move-completion-contract.md`
+- one wave-close doc such as `docs/architecture/builder-structure-wave-20260409-closure.md`
+- `STRUCTURE.md`
+- `docs/ai/10-architecture/repo-layout.md`
+- the active session-orchestration handoff docs if the owner or closed family changes
+
+Rule:
+
+- do not spread the closure decision across many notes
+- one wave-close document must declare the selected family, source-of-truth paths, shim/delete rule, and completion interpretation
+
+### Builder resource-ownership continuation
+
+Update in this order:
+
+- `docs/ai/60-operations/session-orchestration/active/.../builder-resource-ownership-current-closeout.md`
+- `docs/architecture/builder-resource-ownership-queue-map.md`
+- `docs/architecture/builder-resource-ownership-status-tracker.md`
+- the row-specific review card
+- the row-specific partial closeout example when the row remains provisional
+- operator or skill entry docs only if the shortest discovery path changed
+
+Rule:
+
+- do not reopen `BUILDER_STRUCTURE_GOVERNANCE`
+- continue from the current closeout and queue map first
+- each row should have one review card and one provisional handoff shape before claiming the family is easy to resume
+
 ### New business screen family
 
 Update:

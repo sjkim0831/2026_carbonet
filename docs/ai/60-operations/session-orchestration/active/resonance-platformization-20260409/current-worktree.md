@@ -7,6 +7,7 @@ Reconciled on `2026-04-09` from `git status --short`.
 - the worktree is already heavily in flight across frontend, backend, docs, ops scripts, and generated runtime assets
 - this request should not assume a clean branch
 - new work should stay inside the owner paths defined in `session-plan.md`
+- for builder structure-governance decisions, treat `docs/architecture/builder-structure-wave-20260409-closure.md` as the current wave source of truth
 
 ## Shared Frontend Contract Families Already In Play
 
@@ -55,3 +56,15 @@ Reconciled on `2026-04-09` from `git status --short`.
 - do not open a second lane that edits `src/main/java/egovframework/com/feature/admin/**` and `src/main/java/egovframework/com/platform/**` together without one owner
 - do not treat `src/main/resources/static/react-app/**` as the source of truth for builder or route logic
 - do not mix deploy-governance edits with unrelated feature-page edits in the same lane
+- do not reopen builder source-of-truth or shim/delete debate outside the current wave-close document unless the owner path itself changes
+
+## Builder Resource Ownership Provisional State
+
+- `BUILDER_RESOURCE_OWNERSHIP_CLOSURE` is now the active builder follow-up family after structure-governance close
+- tracker rows `1` and `2` are intentionally left at provisional `BLOCKS_CLOSEOUT`
+- current provisional blocker count from reviewed start-now rows is `2`
+- next owner should continue from the resource review cards and partial closeout example instead of reopening structure-governance
+- current resumable note is `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+- single live entry pair for this family is:
+  - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+  - `docs/architecture/builder-resource-ownership-queue-map.md`

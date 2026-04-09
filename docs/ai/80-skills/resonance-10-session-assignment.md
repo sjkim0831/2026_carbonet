@@ -136,9 +136,21 @@
 - 상태: `HANDOFF`
 - 추정 진행률: `96%`
 - 운영 메모: 공통 계약 문서군과 이름 규약, handoff 기준, 구현 시작 규칙이 정리되어 구현 세션 착수 준비가 완료됐습니다
+- 현재 구조 정리 wave에서 닫힌 family: `BUILDER_STRUCTURE_GOVERNANCE`
+- 현재 구조 정리 wave source of truth: `docs/architecture/builder-structure-wave-20260409-closure.md`
+- 현재 builder resource ownership 이어가기 entry:
+  - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+  - `docs/architecture/builder-resource-ownership-queue-map.md`
+- 현재 family single live entry pair:
+  - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+  - `docs/architecture/builder-resource-ownership-queue-map.md`
 - 다음 1개 행동: `05/06/08/09`가 실제 구현에 들어간 뒤 예외 blocker가 생기면 reopen 여부만 판단합니다
 - 목적: 공통 계약, 스키마, 점검표, 공통 규칙을 먼저 확정합니다
 - 최근 변경 파일:
+  - `docs/architecture/builder-structure-wave-20260409-closure.md`
+  - `docs/architecture/builder-resource-ownership-queue-map.md`
+  - `docs/architecture/system-folder-structure-alignment.md`
+  - `docs/architecture/large-move-completion-contract.md`
   - `docs/architecture/platform-console-information-architecture.md`
   - `docs/architecture/operator-feature-completeness-checklist.md`
   - `docs/architecture/page-assembly-schema.md`

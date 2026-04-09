@@ -82,6 +82,7 @@ This document defines the current Carbonet skill taxonomy, overlap rules, and th
 - Use `carbonet-common-project-boundary-switcher` to decide what should become common, what should stay project-owned, and where ports, adapters, wrappers, or def-plus-bind splits are needed first.
 - Use `carbonet-feature-builder` or `carbonet-screen-builder` after that to implement the chosen shape.
 - Rule: reversible ownership first, concrete implementation second.
+- For builder structure-governance closure questions, read `docs/architecture/builder-structure-wave-20260409-closure.md` first and do not reopen the family-close decision during later implementation slices.
 
 ### `carbonet-screen-builder` vs `carbonet-feature-builder`
 
@@ -94,6 +95,9 @@ This document defines the current Carbonet skill taxonomy, overlap rules, and th
 - Do not assume builder work and folder cleanup must always be split into separate waves.
 - If the cleanup stays inside the same builder ownership family, prefer implementing the builder slice and cleaning its folder placement in the same turn.
 - If the cleanup crosses many shared paths or owner families, use a dedicated refactor wave instead.
+- If the request is specifically about “what is closed in this wave”, “which path is source of truth”, or “whether the old path is a shim or delete candidate”, treat that as a structure-governance wave first, not as ordinary builder implementation.
+- If the request has already accepted structure-governance closure and now asks which builder resource owner is canonical or whether a root resource still blocks closeout, treat it as the resource-ownership family instead of reopening the structure-governance family.
+- For active builder resource-ownership continuation, read `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md` first and then `docs/architecture/builder-resource-ownership-queue-map.md` before picking the next row-specific review card.
 
 ### `carbonet-feature-builder` vs `carbonet-codex-execution-console`
 

@@ -61,6 +61,20 @@
 - inputs: current separation docs, builder notes, deploy architecture docs, working-tree snapshot
 - outputs: updated execution backlog, active session contracts, handoff notes
 - doneCriteria: next implementation slice is explicit and shared-file ownership is frozen
+- current builder-structure wave authority:
+  - `docs/architecture/builder-structure-wave-20260409-closure.md`
+- current wave closes:
+  - `BUILDER_STRUCTURE_GOVERNANCE`
+- current wave does not close:
+  - builder resource ownership
+  - compatibility shim removal
+  - broader control-plane composition split
+- current builder resource-ownership continuation entry:
+  - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+  - `docs/architecture/builder-resource-ownership-queue-map.md`
+- single live entry pair for that family:
+  - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
+  - `docs/architecture/builder-resource-ownership-queue-map.md`
 
 ### Session B
 
