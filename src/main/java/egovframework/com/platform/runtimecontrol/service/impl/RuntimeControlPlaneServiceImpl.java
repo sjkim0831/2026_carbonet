@@ -2,6 +2,8 @@ package egovframework.com.platform.runtimecontrol.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import egovframework.com.platform.screenbuilder.support.ScreenBuilderArtifactSetNormalizer;
+import egovframework.com.platform.screenbuilder.support.ScreenBuilderPlatformFamilyRegistry;
 import egovframework.com.platform.versioncontrol.mapper.ProjectVersionManagementMapper;
 import egovframework.com.platform.runtimecontrol.model.ParityCompareRequest;
 import egovframework.com.platform.runtimecontrol.model.ProjectPipelineRunRequest;
@@ -65,7 +67,7 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
 
         List<Map<String, Object>> compareTargetSet = new ArrayList<Map<String, Object>>();
         compareTargetSet.add(compareRow("layout-shell", "runtime/header-shell:v1", "builder/header-shell:v2", "guided-state", "layout"));
-        compareTargetSet.add(compareRow("event-binding", "runtime/onClick->legacyAction", "builder/onClick->projectAction", "adapter-contract", "binding"));
+        compareTargetSet.add(compareRow("event-binding", "runtime/onClick->legacyAction", "builder/onClick->projectAction", adapterContractArtifactId(projectId), "binding"));
         compareTargetSet.add(compareRow("theme-token", "runtime/color.brand.500", "builder/color.primary.600", "theme-governance", "theme"));
 
         List<String> blockerSet = new ArrayList<String>();
@@ -83,10 +85,10 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
         response.put("guidedStateId", orDefault(request.getGuidedStateId(), projectId + ".guided-state"));
         response.put("templateLineId", orDefault(request.getTemplateLineId(), "template.runtime.standard"));
         response.put("screenFamilyRuleId", orDefault(request.getScreenFamilyRuleId(), "screen-family.standard"));
-        response.put("ownerLane", orDefault(request.getOwnerLane(), "project-adapter"));
+        response.put("ownerLane", orDefault(request.getOwnerLane(), ownerLane()));
         response.put("selectedScreenId", orDefault(request.getSelectedScreenId(), "screen.runtime.main"));
         response.put("releaseUnitId", orDefault(request.getReleaseUnitId(), buildReleaseUnitId("rel", projectId)));
-        response.put("compareBaseline", orDefault(request.getCompareBaseline(), "governed-runtime-truth"));
+        response.put("compareBaseline", orDefault(request.getCompareBaseline(), compareBaseline()));
         response.put("selectedElementSet", selectedElementSet);
         response.put("builderInput", builderInput);
         response.put("runtimeEvidence", runtimeEvidence);
@@ -116,7 +118,7 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
         response.put("guidedStateId", orDefault(request.getGuidedStateId(), projectId + ".guided-state"));
         response.put("templateLineId", orDefault(request.getTemplateLineId(), "template.runtime.standard"));
         response.put("screenFamilyRuleId", orDefault(request.getScreenFamilyRuleId(), "screen-family.standard"));
-        response.put("ownerLane", orDefault(request.getOwnerLane(), "project-adapter"));
+        response.put("ownerLane", orDefault(request.getOwnerLane(), ownerLane()));
         response.put("selectedScreenId", orDefault(request.getSelectedScreenId(), "screen.runtime.main"));
         response.put("builderInput", normalizeObjectMap(request.getBuilderInput()));
         response.put("runtimeEvidence", normalizeObjectMap(request.getRuntimeEvidence()));
@@ -126,7 +128,7 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
         response.put("reuseRecommendationSet", mergeStringLists(
                 normalizeStringList(request.getExistingAssetReuseSet()),
                 stringList("reuse governed layout shell", "reuse project boundary adapter bridge")));
-        response.put("requiredContractSet", stringList("common-core.theme.contract", "project-adapter.binding.contract"));
+        response.put("requiredContractSet", stringList("common-core.theme.contract", ownerLane() + ".binding.contract"));
         response.put("status", "OPEN");
         response.put("result", "READY_FOR_REPAIR");
         response.put("releaseUnitId", releaseUnitId);
@@ -156,7 +158,7 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
         response.put("repairSessionId", required(request.getRepairSessionId(), "repairSessionId"));
         response.put("guidedStateId", orDefault(request.getGuidedStateId(), projectId + ".guided-state"));
         response.put("templateLineId", orDefault(request.getTemplateLineId(), "template.runtime.standard"));
-        response.put("ownerLane", orDefault(request.getOwnerLane(), "project-adapter"));
+        response.put("ownerLane", orDefault(request.getOwnerLane(), ownerLane()));
         response.put("builderInput", normalizeObjectMap(request.getBuilderInput()));
         response.put("runtimeEvidence", normalizeObjectMap(request.getRuntimeEvidence()));
         response.put("updatedAssetTraceSet", mergeStringLists(
@@ -184,7 +186,7 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
         response.put("requestedBy", orDefault(request.getRequestedBy(), "system"));
         response.put("requestedByType", orDefault(request.getRequestedByType(), "PLATFORM_OPERATOR"));
         response.put("changeSummary", orDefault(request.getChangeSummary(), "Applied governed repair patch set."));
-        response.put("compareBaseline", orDefault(request.getCompareBaseline(), "governed-runtime-truth"));
+        response.put("compareBaseline", orDefault(request.getCompareBaseline(), compareBaseline()));
         response.put("occurredAt", now());
         response.put("traceId", "trace-" + shortId());
         if (canUseDatabase()) {
@@ -204,7 +206,7 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
                 ? request.getRuntimePackageId().trim()
                 : buildRuntimePackageId(orDefault(request.getRuntimePackagePrefix(), "pkg"), projectId);
         String pipelineRunId = "pipe-" + shortId();
-        String releaseFamilyId = projectId + "-family";
+        String releaseFamilyId = ScreenBuilderPlatformFamilyRegistry.releaseFamilyId(projectId);
         String deployTraceId = "deploy-" + shortId();
         String artifactManifestId = "manifest-" + shortId();
         String rollbackTargetReleaseUnitId = buildReleaseUnitId("rollback", projectId);
@@ -222,7 +224,7 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
 
         Map<String, Object> boundarySummary = orderedMap();
         boundarySummary.put("commonCoreOwnership", "framework-common");
-        boundarySummary.put("projectAdapterOwnership", projectId + "-adapter");
+        boundarySummary.put("projectAdapterOwnership", adapterArtifactId(projectId));
         boundarySummary.put("adapterBoundaryStatus", "GOVERNED");
         boundarySummary.put("projectId", projectId);
 
@@ -239,9 +241,9 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
         stageSet.add(stage("rollback-ready", "READY", "rollback anchor persisted"));
 
         Map<String, Object> artifactVersionSet = orderedMap();
-        artifactVersionSet.put("common-core", versionStamp("common-core"));
-        artifactVersionSet.put(projectId + "-adapter-contract", versionStamp("adapter-contract"));
-        artifactVersionSet.put(projectId + "-adapter-artifact", versionStamp("adapter-artifact"));
+        artifactVersionSet.put(ScreenBuilderPlatformFamilyRegistry.COMMON_CORE_ARTIFACT_ID, versionStamp("common-core"));
+        artifactVersionSet.put(adapterContractArtifactId(projectId), versionStamp("adapter-contract"));
+        artifactVersionSet.put(adapterArtifactId(projectId), versionStamp("adapter-artifact"));
         artifactVersionSet.put("runtime-package", runtimePackageId);
 
         Map<String, Object> artifactLineage = orderedMap();
@@ -251,12 +253,18 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
         artifactLineage.put("rollbackAnchorReleaseUnitId", rollbackTargetReleaseUnitId);
 
         List<Map<String, Object>> artifactRegistryEntrySet = new ArrayList<Map<String, Object>>();
-        artifactRegistryEntrySet.add(orderedMap("artifactId", "common-core", "artifactVersion", artifactVersionSet.get("common-core"), "installScope", "COMMON"));
-        artifactRegistryEntrySet.add(orderedMap("artifactId", projectId + "-adapter", "artifactVersion", artifactVersionSet.get(projectId + "-adapter-artifact"), "installScope", "PROJECT"));
+        artifactRegistryEntrySet.add(orderedMap(
+                "artifactId", ScreenBuilderPlatformFamilyRegistry.COMMON_CORE_ARTIFACT_ID,
+                "artifactVersion", artifactVersionSet.get(ScreenBuilderPlatformFamilyRegistry.COMMON_CORE_ARTIFACT_ID),
+                "installScope", ScreenBuilderPlatformFamilyRegistry.resolveInstallScope(ScreenBuilderPlatformFamilyRegistry.COMMON_CORE_ARTIFACT_ID)));
+        artifactRegistryEntrySet.add(orderedMap(
+                "artifactId", adapterArtifactId(projectId),
+                "artifactVersion", artifactVersionSet.get(adapterArtifactId(projectId)),
+                "installScope", ScreenBuilderPlatformFamilyRegistry.resolveInstallScope(adapterArtifactId(projectId))));
         artifactRegistryEntrySet.add(orderedMap("artifactId", runtimePackageId, "artifactVersion", runtimePackageId, "installScope", "INSTALLABLE_PRODUCT"));
 
         Map<String, Object> deployContract = orderedMap();
-        deployContract.put("artifactTargetSystem", orDefault(request.getArtifactTargetSystem(), "resonance-runtime"));
+        deployContract.put("artifactTargetSystem", orDefault(request.getArtifactTargetSystem(), ScreenBuilderPlatformFamilyRegistry.PLATFORM_ARTIFACT_TARGET_SYSTEM));
         deployContract.put("deploymentTarget", orDefault(request.getDeploymentTarget(), "ops-runtime-main-01"));
         deployContract.put("deploymentRouteSet", buildDeploymentRouteSet(orDefault(request.getDeploymentTarget(), "ops-runtime-main-01")));
         deployContract.put("deploymentMode", "ARTIFACT_LINEAGE_CONTROLLED");
@@ -276,17 +284,17 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
         response.put("guidedStateId", orDefault(request.getGuidedStateId(), projectId + ".guided-state"));
         response.put("templateLineId", orDefault(request.getTemplateLineId(), "template.runtime.standard"));
         response.put("screenFamilyRuleId", orDefault(request.getScreenFamilyRuleId(), "screen-family.standard"));
-        response.put("ownerLane", orDefault(request.getOwnerLane(), "project-adapter"));
+        response.put("ownerLane", orDefault(request.getOwnerLane(), ownerLane()));
         response.put("menuRoot", orDefault(request.getMenuRoot(), "admin.runtime"));
         response.put("runtimeClass", orDefault(request.getRuntimeClass(), projectId + ".Runtime"));
         response.put("menuScope", orDefault(request.getMenuScope(), "ADMIN"));
-        response.put("artifactTargetSystem", orDefault(request.getArtifactTargetSystem(), "resonance-runtime"));
+        response.put("artifactTargetSystem", orDefault(request.getArtifactTargetSystem(), ScreenBuilderPlatformFamilyRegistry.PLATFORM_ARTIFACT_TARGET_SYSTEM));
         response.put("deploymentTarget", orDefault(request.getDeploymentTarget(), "ops-runtime-main-01"));
         response.put("releaseUnitId", releaseUnitId);
         response.put("runtimePackageId", runtimePackageId);
         response.put("deployTraceId", deployTraceId);
-        response.put("commonArtifactSet", stringList("common-core", "builder-validator", "deploy-contract"));
-        response.put("projectAdapterArtifactSet", stringList(projectId + "-adapter-contract", projectId + "-adapter-artifact"));
+        response.put("commonArtifactSet", commonArtifactSet());
+        response.put("projectAdapterArtifactSet", projectAdapterArtifactSet(projectId));
         response.put("installableArtifactSet", stringList(runtimePackageId, artifactManifestId));
         response.put("installableProduct", installableProduct);
         response.put("boundarySummary", boundarySummary);
@@ -350,11 +358,15 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
             return null;
         }
 
-        List<Map<String, Object>> installedArtifacts = projectVersionManagementMapper.selectInstalledArtifacts(request.getProjectId());
+        List<Map<String, Object>> installedArtifacts = canonicalArtifactRows(
+                request.getProjectId(),
+                projectVersionManagementMapper.selectInstalledArtifacts(request.getProjectId()));
         List<Map<String, Object>> serverStates = projectVersionManagementMapper.selectServerDeploymentState(request.getProjectId());
         Map<String, Object> projectRegistry = projectVersionManagementMapper.selectProjectRegistry(request.getProjectId());
 
-        Map<String, Object> packageVersionSet = parseJsonObject(selectedReleaseUnit.get("packageVersionSetJson"));
+        Map<String, Object> packageVersionSet = canonicalizeArtifactVersionSet(
+                request.getProjectId(),
+                parseJsonObject(selectedReleaseUnit.get("packageVersionSetJson")));
         String releaseUnitId = value(selectedReleaseUnit, "releaseUnitId");
         String runtimePackageId = value(selectedReleaseUnit, "runtimePackageId");
         String rollbackTargetReleaseUnitId = value(selectedReleaseUnit, "rollbackTargetReleaseId");
@@ -378,7 +390,7 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
             String installScope = value(entry, "installScope");
             if ("COMMON".equalsIgnoreCase(installScope)) {
                 commonArtifactSet.add(artifactId);
-            } else if (artifactId.contains("adapter")) {
+            } else if (isProjectAdapterArtifact(request.getProjectId(), artifactId)) {
                 projectAdapterArtifactSet.add(artifactId);
             } else {
                 installableArtifactSet.add(artifactId);
@@ -456,7 +468,7 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
         response.put("guidedStateId", request.getProjectId() + ".guided-state");
         response.put("templateLineId", "template.runtime.standard");
         response.put("screenFamilyRuleId", "screen-family.standard");
-        response.put("ownerLane", "project-adapter");
+        response.put("ownerLane", ownerLane());
         response.put("menuRoot", "admin.runtime");
         response.put("runtimeClass", firstNonBlank(value(projectRegistry, "projectCode"), request.getProjectId()) + ".Runtime");
         response.put("menuScope", "ADMIN");
@@ -613,10 +625,14 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
         String rollbackTargetReleaseId = value(valueMap(response, "rollbackPlan"), "rollbackTargetReleaseUnitId");
         String operator = firstNonBlank(value(response, "operator"), orDefault(request.getOperator(), "system"));
 
-        Map<String, Object> artifactVersionSet = new LinkedHashMap<String, Object>(valueMap(response, "artifactVersionSet"));
+        Map<String, Object> artifactVersionSet = canonicalizeArtifactVersionSet(
+                projectId,
+                new LinkedHashMap<String, Object>(valueMap(response, "artifactVersionSet")));
         List<String> commonArtifactSet = normalizeObjectStringList(response.get("commonArtifactSet"));
         List<String> installableArtifactSet = normalizeObjectStringList(response.get("installableArtifactSet"));
-        List<Map<String, Object>> artifactRegistryEntrySet = normalizeObjectMapList(response.get("artifactRegistryEntrySet"));
+        List<Map<String, Object>> artifactRegistryEntrySet = canonicalArtifactRows(
+                projectId,
+                normalizeObjectMapList(response.get("artifactRegistryEntrySet")));
 
         projectVersionManagementMapper.insertReleaseUnitRegistry(orderedMap(
                 "releaseUnitId", releaseUnitId,
@@ -624,15 +640,17 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
                 "runtimePackageId", runtimePackageId,
                 "projectRuntimeVersion", runtimePackageId,
                 "adapterArtifactVersion", firstNonBlank(
-                        valueFromMap(artifactVersionSet, projectId + "-adapter-artifact"),
-                        valueFromMap(artifactVersionSet, projectId + "-adapter")),
-                "adapterContractVersion", valueFromMap(artifactVersionSet, projectId + "-adapter-contract"),
+                        valueFromMap(artifactVersionSet, adapterArtifactId(projectId)),
+                        ""),
+                "adapterContractVersion", valueFromMap(artifactVersionSet, adapterContractArtifactId(projectId)),
                 "commonArtifactSetJson", objectMapper.writeValueAsString(commonArtifactSet),
                 "packageVersionSetJson", objectMapper.writeValueAsString(artifactVersionSet),
                 "rollbackTargetReleaseId", rollbackTargetReleaseId,
                 "approvedBy", operator));
 
-        List<Map<String, Object>> currentInstalls = projectVersionManagementMapper.selectInstalledArtifacts(projectId);
+        List<Map<String, Object>> currentInstalls = canonicalArtifactRows(
+                projectId,
+                projectVersionManagementMapper.selectInstalledArtifacts(projectId));
         Map<String, String> rollbackVersionByArtifactId = new LinkedHashMap<String, String>();
         for (Map<String, Object> installed : currentInstalls) {
             rollbackVersionByArtifactId.put(value(installed, "artifactId"), value(installed, "installedArtifactVersion"));
@@ -662,9 +680,8 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
         }
 
         String adapterArtifactVersion = firstNonBlank(
-                valueFromMap(artifactVersionSet, projectId + "-adapter-artifact"),
-                valueFromMap(artifactVersionSet, projectId + "-adapter"));
-        String adapterContractVersion = valueFromMap(artifactVersionSet, projectId + "-adapter-contract");
+                valueFromMap(artifactVersionSet, adapterArtifactId(projectId)));
+        String adapterContractVersion = valueFromMap(artifactVersionSet, adapterContractArtifactId(projectId));
         if (hasText(adapterArtifactVersion) || hasText(adapterContractVersion)) {
             projectVersionManagementMapper.insertAdapterChangeLog(orderedMap(
                     "adapterChangeId", "chg-" + shortId(),
@@ -716,7 +733,7 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
                 "deploymentRouteSet", buildDeploymentRouteSet(deploymentTarget),
                 "deploymentMode", "REPAIR_CANDIDATE_FLOW",
                 "versionTrackingYn", Boolean.TRUE,
-                "releaseFamilyId", projectId + "-family",
+                "releaseFamilyId", ScreenBuilderPlatformFamilyRegistry.releaseFamilyId(projectId),
                 "releaseUnitId", releaseUnitId);
     }
 
@@ -894,7 +911,9 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
 
         List<Map<String, Object>> releaseUnits = projectVersionManagementMapper.selectReleaseUnits(projectId);
         Map<String, Object> baseReleaseUnit = selectBaseReleaseUnit(releaseUnits, request.getReleaseUnitId());
-        List<Map<String, Object>> currentInstalls = projectVersionManagementMapper.selectInstalledArtifacts(projectId);
+        List<Map<String, Object>> currentInstalls = canonicalArtifactRows(
+                projectId,
+                projectVersionManagementMapper.selectInstalledArtifacts(projectId));
         Map<String, Object> packageVersionSet = buildRepairPackageVersionSet(projectId, baseReleaseUnit, currentInstalls);
 
         boolean adapterArtifactChanged = !normalizeStringList(request.getUpdatedAssetSet()).isEmpty()
@@ -903,16 +922,16 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
 
         String adapterArtifactVersion = buildRepairAdapterVersion(
                 packageVersionSet,
-                projectId + "-adapter-artifact",
+                adapterArtifactId(projectId),
                 adapterArtifactChanged,
                 "repair-adapter-artifact");
         String adapterContractVersion = buildRepairAdapterVersion(
                 packageVersionSet,
-                projectId + "-adapter-contract",
+                adapterContractArtifactId(projectId),
                 adapterContractChanged,
                 "repair-adapter-contract");
-        packageVersionSet.put(projectId + "-adapter-artifact", adapterArtifactVersion);
-        packageVersionSet.put(projectId + "-adapter-contract", adapterContractVersion);
+        packageVersionSet.put(adapterArtifactId(projectId), adapterArtifactVersion);
+        packageVersionSet.put(adapterContractArtifactId(projectId), adapterContractVersion);
         packageVersionSet.put("runtime-package", candidateRuntimePackageId);
 
         List<String> commonArtifactSet = buildCommonArtifactSet(baseReleaseUnit, currentInstalls);
@@ -972,23 +991,23 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
     ) throws Exception {
         Map<String, Object> packageVersionSet = orderedMap();
         if (baseReleaseUnit != null && hasText(value(baseReleaseUnit, "packageVersionSetJson"))) {
-            packageVersionSet.putAll(parseJsonObject(baseReleaseUnit.get("packageVersionSetJson")));
+            packageVersionSet.putAll(canonicalizeArtifactVersionSet(projectId, parseJsonObject(baseReleaseUnit.get("packageVersionSetJson"))));
         }
         for (Map<String, Object> installed : currentInstalls) {
-            String artifactId = value(installed, "artifactId");
+            String artifactId = canonicalArtifactId(projectId, value(installed, "artifactId"));
             String artifactVersion = value(installed, "installedArtifactVersion");
             if (hasText(artifactId) && hasText(artifactVersion)) {
                 packageVersionSet.put(artifactId, artifactVersion);
             }
         }
-        if (!hasText(valueFromMap(packageVersionSet, "common-core"))) {
-            packageVersionSet.put("common-core", versionStamp("common-core"));
+        if (!hasText(valueFromMap(packageVersionSet, ScreenBuilderPlatformFamilyRegistry.COMMON_CORE_ARTIFACT_ID))) {
+            packageVersionSet.put(ScreenBuilderPlatformFamilyRegistry.COMMON_CORE_ARTIFACT_ID, versionStamp("common-core"));
         }
-        if (!hasText(valueFromMap(packageVersionSet, projectId + "-adapter-artifact"))) {
-            packageVersionSet.put(projectId + "-adapter-artifact", versionStamp("adapter-artifact"));
+        if (!hasText(valueFromMap(packageVersionSet, adapterArtifactId(projectId)))) {
+            packageVersionSet.put(adapterArtifactId(projectId), versionStamp("adapter-artifact"));
         }
-        if (!hasText(valueFromMap(packageVersionSet, projectId + "-adapter-contract"))) {
-            packageVersionSet.put(projectId + "-adapter-contract", versionStamp("adapter-contract"));
+        if (!hasText(valueFromMap(packageVersionSet, adapterContractArtifactId(projectId)))) {
+            packageVersionSet.put(adapterContractArtifactId(projectId), versionStamp("adapter-contract"));
         }
         return packageVersionSet;
     }
@@ -1009,8 +1028,11 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
     private List<String> buildCommonArtifactSet(Map<String, Object> baseReleaseUnit, List<Map<String, Object>> currentInstalls) throws Exception {
         List<String> commonArtifactSet = new ArrayList<String>();
         for (Map<String, Object> installed : currentInstalls) {
-            if ("COMMON".equalsIgnoreCase(value(installed, "installScope"))) {
-                String artifactId = value(installed, "artifactId");
+            String installScope = firstNonBlank(
+                    value(installed, "installScope"),
+                    ScreenBuilderPlatformFamilyRegistry.resolveInstallScope(value(installed, "artifactId")));
+            if ("COMMON".equalsIgnoreCase(installScope)) {
+                String artifactId = canonicalArtifactId(value(baseReleaseUnit, "projectId"), value(installed, "artifactId"));
                 if (hasText(artifactId) && !commonArtifactSet.contains(artifactId)) {
                     commonArtifactSet.add(artifactId);
                 }
@@ -1020,7 +1042,7 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
             commonArtifactSet.addAll(parseJsonArray(baseReleaseUnit.get("commonArtifactSetJson")));
         }
         if (commonArtifactSet.isEmpty()) {
-            commonArtifactSet.add("common-core");
+            commonArtifactSet.add(ScreenBuilderPlatformFamilyRegistry.COMMON_CORE_ARTIFACT_ID);
         }
         return commonArtifactSet;
     }
@@ -1175,14 +1197,55 @@ public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneServic
         return result;
     }
 
+    private List<Map<String, Object>> canonicalArtifactRows(String projectId, List<Map<String, Object>> rows) {
+        return ScreenBuilderArtifactSetNormalizer.normalizeArtifactSet(projectId, rows);
+    }
+
+    private Map<String, Object> canonicalizeArtifactVersionSet(String projectId, Map<String, Object> source) {
+        Map<String, Object> normalized = new LinkedHashMap<String, Object>();
+        if (source == null || source.isEmpty()) {
+            return normalized;
+        }
+        for (Map.Entry<String, Object> entry : source.entrySet()) {
+            normalized.put(canonicalArtifactId(projectId, entry.getKey()), entry.getValue());
+        }
+        return normalized;
+    }
+
+    private String canonicalArtifactId(String projectId, String artifactId) {
+        return ScreenBuilderPlatformFamilyRegistry.canonicalArtifactId(projectId, artifactId);
+    }
+
+    private boolean isProjectAdapterArtifact(String projectId, String artifactId) {
+        return ScreenBuilderPlatformFamilyRegistry.isProjectAdapterArtifact(projectId, artifactId);
+    }
+
+    private String ownerLane() {
+        return ScreenBuilderPlatformFamilyRegistry.PROJECT_ADAPTER_OWNER_LANE;
+    }
+
+    private String compareBaseline() {
+        return ScreenBuilderPlatformFamilyRegistry.PLATFORM_COMPARE_BASELINE;
+    }
+
+    private String adapterArtifactId(String projectId) {
+        return ScreenBuilderPlatformFamilyRegistry.projectAdapterArtifactId(projectId);
+    }
+
+    private String adapterContractArtifactId(String projectId) {
+        return ScreenBuilderPlatformFamilyRegistry.projectAdapterContractArtifactId(projectId);
+    }
+
+    private List<String> commonArtifactSet() {
+        return new ArrayList<String>(ScreenBuilderPlatformFamilyRegistry.commonArtifactSet());
+    }
+
+    private List<String> projectAdapterArtifactSet(String projectId) {
+        return new ArrayList<String>(ScreenBuilderPlatformFamilyRegistry.projectAdapterArtifactSet(projectId));
+    }
+
     private String resolveInstallScope(String artifactId) {
-        if ("common-core".equals(artifactId)) {
-            return "COMMON";
-        }
-        if (artifactId.contains("adapter")) {
-            return "PROJECT";
-        }
-        return "PROJECT";
+        return ScreenBuilderPlatformFamilyRegistry.resolveInstallScope(artifactId);
     }
 
     private List<String> mergeStringLists(List<String> first, List<String> second) {

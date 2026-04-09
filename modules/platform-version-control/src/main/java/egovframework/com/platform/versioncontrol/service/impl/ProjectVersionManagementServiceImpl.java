@@ -2,6 +2,8 @@ package egovframework.com.platform.versioncontrol.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import egovframework.com.platform.screenbuilder.support.ScreenBuilderArtifactSetNormalizer;
+import egovframework.com.platform.screenbuilder.support.ScreenBuilderPlatformFamilyRegistry;
 import egovframework.com.platform.versioncontrol.mapper.ProjectVersionManagementMapper;
 import egovframework.com.platform.versioncontrol.model.ProjectApplyUpgradeRequest;
 import egovframework.com.platform.versioncontrol.model.ProjectRollbackRequest;
@@ -38,7 +40,9 @@ public class ProjectVersionManagementServiceImpl implements ProjectVersionManage
     public Map<String, Object> getProjectVersionOverview(String projectId) throws Exception {
         String normalizedProjectId = required(projectId, "projectId");
         Map<String, Object> overview = defaultMap(projectVersionManagementMapper.selectProjectOverview(normalizedProjectId));
-        List<Map<String, Object>> installedArtifacts = safeList(projectVersionManagementMapper.selectInstalledArtifactList(normalizedProjectId));
+        List<Map<String, Object>> installedArtifacts = canonicalArtifactRows(
+                normalizedProjectId,
+                safeList(projectVersionManagementMapper.selectInstalledArtifactList(normalizedProjectId)));
         List<Map<String, Object>> installedPackages = safeList(projectVersionManagementMapper.selectInstalledPackageList(normalizedProjectId));
         return orderedMap(
                 "projectId", normalizedProjectId,
@@ -86,10 +90,12 @@ public class ProjectVersionManagementServiceImpl implements ProjectVersionManage
         Map<String, Object> params = pagingParams(projectId, request);
         Map<String, Object> overview = getProjectVersionOverview(projectId);
         String activeAdapterContractVersion = stringValue(overview.get("activeAdapterContractVersion"));
-        List<Map<String, Object>> installedArtifacts = safeList(overview.get("installedArtifactSet"));
+        List<Map<String, Object>> installedArtifacts = canonicalArtifactRows(projectId, safeList(overview.get("installedArtifactSet")));
         Map<String, String> installedVersionByArtifact = installedVersionMap(installedArtifacts);
         Map<String, String> latestVersionByArtifact = new LinkedHashMap<String, String>();
-        List<Map<String, Object>> rawCandidates = safeList(projectVersionManagementMapper.selectCandidateArtifactList(params));
+        List<Map<String, Object>> rawCandidates = canonicalArtifactRows(
+                projectId,
+                safeList(projectVersionManagementMapper.selectCandidateArtifactList(params)));
         for (Map<String, Object> rawCandidate : rawCandidates) {
             String artifactId = stringValue(rawCandidate.get("artifactId"));
             if (!artifactId.isEmpty() && !latestVersionByArtifact.containsKey(artifactId)) {
@@ -115,7 +121,7 @@ public class ProjectVersionManagementServiceImpl implements ProjectVersionManage
     public Map<String, Object> analyzeUpgradeImpact(ProjectUpgradeImpactRequest request) throws Exception {
         String projectId = required(request == null ? null : request.getProjectId(), "projectId");
         Map<String, Object> overview = getProjectVersionOverview(projectId);
-        List<Map<String, Object>> targetArtifactSet = safeList(request == null ? null : request.getTargetArtifactSet());
+        List<Map<String, Object>> targetArtifactSet = normalizeArtifactSet(projectId, request == null ? null : request.getTargetArtifactSet());
         String currentAdapterContractVersion = stringValue(overview.get("activeAdapterContractVersion"));
         List<String> blockerSet = new ArrayList<String>();
         List<Map<String, Object>> deltaSet = new ArrayList<Map<String, Object>>();
@@ -183,10 +189,10 @@ public class ProjectVersionManagementServiceImpl implements ProjectVersionManage
         Map<String, Object> overview = getProjectVersionOverview(projectId);
         Map<String, Object> currentVersionSet = defaultMap((Map<String, Object>) impact.get("currentVersionSet"));
         Map<String, Object> targetVersionSet = defaultMap((Map<String, Object>) impact.get("targetVersionSet"));
-        List<Map<String, Object>> targetArtifactSet = safeList(targetVersionSet.get("targetArtifactSet"));
+        List<Map<String, Object>> targetArtifactSet = normalizeArtifactSet(projectId, targetVersionSet.get("targetArtifactSet"));
         String releaseUnitId = "ru-" + projectId + "-" + RELEASE_DATE.format(LocalDateTime.now()) + "-01";
         String runtimePackageId = "rp-" + projectId + "-" + System.currentTimeMillis();
-        String adapterArtifactVersion = resolveAdapterArtifactVersion(targetArtifactSet, stringValue(currentVersionSet.get("adapterArtifactVersion")));
+        String adapterArtifactVersion = resolveAdapterArtifactVersion(projectId, targetArtifactSet, stringValue(currentVersionSet.get("adapterArtifactVersion")));
         String adapterContractVersion = resolveAdapterContractVersion(targetArtifactSet, stringValue(currentVersionSet.get("adapterContractVersion")));
         Map<String, Object> row = orderedMap(
                 "releaseUnitId", releaseUnitId,
@@ -264,7 +270,7 @@ public class ProjectVersionManagementServiceImpl implements ProjectVersionManage
         if (!projectId.equals(stringValue(releaseUnit.get("projectId")))) {
             throw new IllegalArgumentException("Target release unit does not belong to the requested project.");
         }
-        List<Map<String, Object>> rollbackArtifactSet = parseReleaseUnitArtifactSet(releaseUnit.get("commonArtifactSet"));
+        List<Map<String, Object>> rollbackArtifactSet = parseReleaseUnitArtifactSet(projectId, releaseUnit.get("commonArtifactSet"));
         if (rollbackArtifactSet.isEmpty()) {
             throw new IllegalArgumentException("Target release unit does not contain a rollback artifact set.");
         }
@@ -348,10 +354,10 @@ public class ProjectVersionManagementServiceImpl implements ProjectVersionManage
         return "No adapter rewrite required.";
     }
 
-    private String resolveAdapterArtifactVersion(List<Map<String, Object>> targetArtifactSet, String fallback) {
+    private String resolveAdapterArtifactVersion(String projectId, List<Map<String, Object>> targetArtifactSet, String fallback) {
         for (Map<String, Object> targetArtifact : targetArtifactSet) {
-            String artifactId = stringValue(targetArtifact.get("artifactId")).toLowerCase();
-            if (artifactId.contains("adapter")) {
+            String artifactId = stringValue(targetArtifact.get("artifactId"));
+            if (adapterArtifactId(projectId).equals(artifactId)) {
                 return stringValue(targetArtifact.get("artifactVersion"));
             }
         }
@@ -379,13 +385,13 @@ public class ProjectVersionManagementServiceImpl implements ProjectVersionManage
         }
     }
 
-    private List<Map<String, Object>> parseReleaseUnitArtifactSet(Object rawCommonArtifactSet) {
+    private List<Map<String, Object>> parseReleaseUnitArtifactSet(String projectId, Object rawCommonArtifactSet) {
         Map<String, Object> parsed = parseJsonMap(rawCommonArtifactSet);
-        List<Map<String, Object>> artifactSet = safeList(parsed.get("targetArtifactSet"));
+        List<Map<String, Object>> artifactSet = normalizeArtifactSet(projectId, parsed == null ? null : safeList(parsed.get("targetArtifactSet")));
         if (!artifactSet.isEmpty()) {
             return artifactSet;
         }
-        return parseLegacyArtifactSet(stringValue(rawCommonArtifactSet));
+        return ScreenBuilderArtifactSetNormalizer.parseLegacyArtifactSet(projectId, stringValue(rawCommonArtifactSet));
     }
 
     private Map<String, Object> parseJsonMap(Object rawValue) {
@@ -400,33 +406,24 @@ public class ProjectVersionManagementServiceImpl implements ProjectVersionManage
         }
     }
 
-    private List<Map<String, Object>> parseLegacyArtifactSet(String raw) {
-        List<Map<String, Object>> artifactSet = new ArrayList<Map<String, Object>>();
-        if (raw.isEmpty()) {
-            return artifactSet;
-        }
-        String[] chunks = raw.split("artifactId=");
-        for (int index = 1; index < chunks.length; index++) {
-            String chunk = chunks[index];
-            int artifactVersionMarker = chunk.indexOf(", artifactVersion=");
-            if (artifactVersionMarker < 0) {
-                continue;
-            }
-            String artifactId = chunk.substring(0, artifactVersionMarker).trim();
-            String versionChunk = chunk.substring(artifactVersionMarker + ", artifactVersion=".length());
-            int endMarker = versionChunk.indexOf('}');
-            String artifactVersion = (endMarker >= 0 ? versionChunk.substring(0, endMarker) : versionChunk).trim();
-            if (!artifactId.isEmpty() && !artifactVersion.isEmpty()) {
-                artifactSet.add(orderedMap(
-                        "artifactId", artifactId,
-                        "artifactVersion", artifactVersion));
-            }
-        }
-        return artifactSet;
-    }
-
     private String firstNonBlank(String primary, String fallback) {
         return safe(primary).isEmpty() ? safe(fallback) : safe(primary);
+    }
+
+    private String resolveInstallScope(String artifactId) {
+        return ScreenBuilderPlatformFamilyRegistry.resolveInstallScope(artifactId);
+    }
+
+    private List<Map<String, Object>> normalizeArtifactSet(String projectId, Object value) {
+        return ScreenBuilderArtifactSetNormalizer.normalizeArtifactSet(projectId, safeList(value));
+    }
+
+    private List<Map<String, Object>> canonicalArtifactRows(String projectId, List<Map<String, Object>> rows) {
+        return ScreenBuilderArtifactSetNormalizer.normalizeArtifactSet(projectId, rows);
+    }
+
+    private String adapterArtifactId(String projectId) {
+        return ScreenBuilderPlatformFamilyRegistry.projectAdapterArtifactId(projectId);
     }
 
     private Map<String, String> installedVersionMap(List<Map<String, Object>> installedArtifacts) {

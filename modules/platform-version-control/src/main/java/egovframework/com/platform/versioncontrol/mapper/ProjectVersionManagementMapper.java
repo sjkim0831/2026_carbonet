@@ -35,12 +35,20 @@ public class ProjectVersionManagementMapper extends BaseMapperSupport {
         return selectList(NAMESPACE + ".selectReleaseUnitList", params);
     }
 
+    public List<Map<String, Object>> selectReleaseUnits(String projectId) {
+        return selectReleaseUnitList(defaultPageParams(projectId));
+    }
+
     public Integer countReleaseUnits(String projectId) {
         return selectOne(NAMESPACE + ".countReleaseUnits", projectId);
     }
 
     public List<Map<String, Object>> selectServerDeploymentStateList(String projectId) {
         return selectList(NAMESPACE + ".selectServerDeploymentStateList", projectId);
+    }
+
+    public List<Map<String, Object>> selectServerDeploymentState(String projectId) {
+        return selectServerDeploymentStateList(projectId);
     }
 
     public List<Map<String, Object>> selectCandidateArtifactList(Map<String, Object> params) {
@@ -55,6 +63,10 @@ public class ProjectVersionManagementMapper extends BaseMapperSupport {
         return selectOne(NAMESPACE + ".selectArtifactVersion", params);
     }
 
+    public Map<String, Object> selectArtifactVersionByKey(Map<String, Object> params) {
+        return selectArtifactVersion(params);
+    }
+
     public Map<String, Object> selectActiveInstalledArtifact(Map<String, Object> params) {
         return selectOne(NAMESPACE + ".selectActiveInstalledArtifact", params);
     }
@@ -63,8 +75,32 @@ public class ProjectVersionManagementMapper extends BaseMapperSupport {
         return selectOne(NAMESPACE + ".selectReleaseUnit", releaseUnitId);
     }
 
+    public Map<String, Object> selectProjectRegistry(String projectId) {
+        return selectOne(NAMESPACE + ".selectProjectRegistry", projectId);
+    }
+
+    public List<Map<String, Object>> selectInstalledArtifacts(String projectId) {
+        return selectInstalledArtifactList(projectId);
+    }
+
+    public Integer countArtifactVersionRegistry() {
+        return selectOne(NAMESPACE + ".countArtifactVersionRegistry");
+    }
+
+    public Integer countProjectArtifactInstall() {
+        return selectOne(NAMESPACE + ".countProjectArtifactInstall");
+    }
+
+    public Integer countReleaseUnitRegistry() {
+        return selectOne(NAMESPACE + ".countReleaseUnitRegistry");
+    }
+
     public int deactivateArtifactInstall(Map<String, Object> params) {
         return update(NAMESPACE + ".deactivateArtifactInstall", params);
+    }
+
+    public int deactivateProjectArtifactInstalls(String projectId) {
+        return update(NAMESPACE + ".deactivateProjectArtifactInstalls", projectId);
     }
 
     public void insertProjectArtifactInstall(Map<String, Object> params) {
@@ -77,5 +113,17 @@ public class ProjectVersionManagementMapper extends BaseMapperSupport {
 
     public void insertReleaseUnitRegistry(Map<String, Object> params) {
         insert(NAMESPACE + ".insertReleaseUnitRegistry", params);
+    }
+
+    public void insertServerDeploymentState(Map<String, Object> params) {
+        insert(NAMESPACE + ".insertServerDeploymentState", params);
+    }
+
+    private Map<String, Object> defaultPageParams(String projectId) {
+        Map<String, Object> params = new java.util.LinkedHashMap<String, Object>();
+        params.put("projectId", projectId);
+        params.put("pageSize", Integer.valueOf(200));
+        params.put("offset", Integer.valueOf(0));
+        return params;
     }
 }

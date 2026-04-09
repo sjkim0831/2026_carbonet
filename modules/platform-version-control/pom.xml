@@ -24,6 +24,11 @@
         </dependency>
         <dependency>
             <groupId>egovframework</groupId>
+            <artifactId>screenbuilder-core</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>egovframework</groupId>
             <artifactId>carbonet-web-support</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
