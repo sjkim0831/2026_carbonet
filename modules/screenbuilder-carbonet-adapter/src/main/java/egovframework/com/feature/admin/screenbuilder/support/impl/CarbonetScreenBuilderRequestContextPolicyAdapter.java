@@ -1,12 +1,10 @@
 package egovframework.com.feature.admin.screenbuilder.support.impl;
 
 import egovframework.com.platform.screenbuilder.support.ScreenBuilderRequestContextPolicyPort;
-import org.springframework.stereotype.Component;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Locale;
 
-@Component
 public class CarbonetScreenBuilderRequestContextPolicyAdapter implements ScreenBuilderRequestContextPolicyPort {
 
     @Override

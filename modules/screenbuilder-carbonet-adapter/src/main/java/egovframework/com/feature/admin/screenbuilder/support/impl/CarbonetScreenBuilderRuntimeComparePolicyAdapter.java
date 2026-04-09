@@ -1,9 +1,7 @@
 package egovframework.com.feature.admin.screenbuilder.support.impl;
 
 import egovframework.com.platform.screenbuilder.support.ScreenBuilderRuntimeComparePolicyPort;
-import org.springframework.stereotype.Component;
 
-@Component
 public class CarbonetScreenBuilderRuntimeComparePolicyAdapter implements ScreenBuilderRuntimeComparePolicyPort {
 
     private static final String LIST_PAGE = "LIST_PAGE";

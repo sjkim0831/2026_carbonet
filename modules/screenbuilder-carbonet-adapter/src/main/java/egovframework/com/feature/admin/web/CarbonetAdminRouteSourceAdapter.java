@@ -1,16 +1,13 @@
 package egovframework.com.feature.admin.web;
 
-import org.springframework.stereotype.Component;
-
 import javax.servlet.http.HttpServletRequest;
 import java.util.Locale;
 
-@Component
-public class CarbonetAdminRouteSourceBridge implements CarbonetAdminRouteSource {
+public class CarbonetAdminRouteSourceAdapter implements CarbonetAdminRouteSource {
 
     private final AdminReactRouteSupport adminReactRouteSupport;
 
-    public CarbonetAdminRouteSourceBridge(AdminReactRouteSupport adminReactRouteSupport) {
+    public CarbonetAdminRouteSourceAdapter(AdminReactRouteSupport adminReactRouteSupport) {
         this.adminReactRouteSupport = adminReactRouteSupport;
     }
 

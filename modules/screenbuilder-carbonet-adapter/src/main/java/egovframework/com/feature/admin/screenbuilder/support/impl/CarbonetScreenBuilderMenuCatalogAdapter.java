@@ -7,13 +7,11 @@ import egovframework.com.platform.screenbuilder.support.ScreenBuilderMenuCatalog
 import egovframework.com.platform.screenbuilder.support.ScreenBuilderRuntimeComparePolicyPort;
 import egovframework.com.platform.screenbuilder.support.model.ScreenBuilderMenuDescriptor;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @RequiredArgsConstructor
-@Component
 public class CarbonetScreenBuilderMenuCatalogAdapter implements ScreenBuilderMenuCatalogPort {
 
     private final CarbonetScreenBuilderMenuSource carbonetScreenBuilderMenuSource;

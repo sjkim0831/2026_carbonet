@@ -4,9 +4,7 @@ import egovframework.com.feature.admin.framework.builder.support.CarbonetFramewo
 import egovframework.com.framework.builder.support.FrameworkBuilderMetadataPort;
 import egovframework.com.framework.contract.model.FrameworkContractMetadataVO;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 
-@Component
 @RequiredArgsConstructor
 public class CarbonetFrameworkBuilderMetadataAdapter implements FrameworkBuilderMetadataPort {
 

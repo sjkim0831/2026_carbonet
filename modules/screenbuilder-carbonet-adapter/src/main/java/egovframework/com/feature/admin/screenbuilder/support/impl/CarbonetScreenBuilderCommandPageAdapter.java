@@ -3,12 +3,10 @@ package egovframework.com.feature.admin.screenbuilder.support.impl;
 import egovframework.com.feature.admin.screenbuilder.support.CarbonetScreenBuilderCommandPageSource;
 import egovframework.com.platform.screenbuilder.support.ScreenBuilderCommandPagePort;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
 @RequiredArgsConstructor
-@Component
 public class CarbonetScreenBuilderCommandPageAdapter implements ScreenBuilderCommandPagePort {
 
     private final CarbonetScreenBuilderCommandPageSource carbonetScreenBuilderCommandPageSource;

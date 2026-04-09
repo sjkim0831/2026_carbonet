@@ -2,12 +2,10 @@ package egovframework.com.feature.admin.framework.builder.support.impl;
 
 import egovframework.com.feature.admin.framework.builder.mapper.FrameworkBuilderCompatibilityMapper;
 import egovframework.com.framework.builder.support.FrameworkBuilderCompatibilityPersistencePort;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
 
-@Component
 public class CarbonetFrameworkBuilderCompatibilityPersistenceAdapter implements FrameworkBuilderCompatibilityPersistencePort {
 
     private final FrameworkBuilderCompatibilityMapper frameworkBuilderCompatibilityMapper;

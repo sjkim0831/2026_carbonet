@@ -1,12 +1,10 @@
 package egovframework.com.feature.admin.framework.builder.support.impl;
 
 import egovframework.com.framework.builder.support.FrameworkBuilderRequestContextPort;
-import org.springframework.stereotype.Component;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Locale;
 
-@Component
 public class CarbonetFrameworkBuilderRequestContextAdapter implements FrameworkBuilderRequestContextPort {
 
     @Override

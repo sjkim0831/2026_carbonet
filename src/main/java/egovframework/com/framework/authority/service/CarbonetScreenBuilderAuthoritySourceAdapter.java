@@ -1,18 +1,20 @@
 package egovframework.com.framework.authority.service;
 
+import egovframework.com.feature.admin.screenbuilder.support.CarbonetScreenBuilderAuthoritySource;
 import egovframework.com.framework.authority.model.FrameworkAuthorityRoleContractVO;
-import egovframework.com.platform.screenbuilder.support.ScreenBuilderAuthorityContractPort;
-import org.springframework.stereotype.Component;
 
 import java.util.Collections;
 import java.util.List;
 
-@Component
-public class CarbonetScreenBuilderAuthoritySourceBridge implements ScreenBuilderAuthorityContractPort {
+/**
+ * Framework-owned authority source adapter consumed by the screenbuilder
+ * project adapter module.
+ */
+public class CarbonetScreenBuilderAuthoritySourceAdapter implements CarbonetScreenBuilderAuthoritySource {
 
     private final FrameworkAuthorityContractService frameworkAuthorityContractService;
 
-    public CarbonetScreenBuilderAuthoritySourceBridge(FrameworkAuthorityContractService frameworkAuthorityContractService) {
+    public CarbonetScreenBuilderAuthoritySourceAdapter(FrameworkAuthorityContractService frameworkAuthorityContractService) {
         this.frameworkAuthorityContractService = frameworkAuthorityContractService;
     }
 

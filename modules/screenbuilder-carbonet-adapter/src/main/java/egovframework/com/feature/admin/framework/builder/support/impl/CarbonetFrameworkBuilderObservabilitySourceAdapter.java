@@ -5,16 +5,14 @@ import egovframework.com.common.trace.UiPageComponentDetailVO;
 import egovframework.com.common.trace.UiPageManifestVO;
 import egovframework.com.feature.admin.framework.builder.support.CarbonetFrameworkBuilderObservabilitySource;
 import egovframework.com.framework.builder.runtime.mapper.FrameworkBuilderObservabilityMapper;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-@Component
-public class CarbonetFrameworkBuilderObservabilitySourceBridge implements CarbonetFrameworkBuilderObservabilitySource {
+public class CarbonetFrameworkBuilderObservabilitySourceAdapter implements CarbonetFrameworkBuilderObservabilitySource {
 
     private final FrameworkBuilderObservabilityMapper frameworkBuilderObservabilityMapper;
 
-    public CarbonetFrameworkBuilderObservabilitySourceBridge(FrameworkBuilderObservabilityMapper frameworkBuilderObservabilityMapper) {
+    public CarbonetFrameworkBuilderObservabilitySourceAdapter(FrameworkBuilderObservabilityMapper frameworkBuilderObservabilityMapper) {
         this.frameworkBuilderObservabilityMapper = frameworkBuilderObservabilityMapper;
     }
 

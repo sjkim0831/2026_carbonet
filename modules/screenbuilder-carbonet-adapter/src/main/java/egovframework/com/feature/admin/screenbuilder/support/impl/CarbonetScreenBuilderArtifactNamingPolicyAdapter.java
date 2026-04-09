@@ -2,13 +2,11 @@ package egovframework.com.feature.admin.screenbuilder.support.impl;
 
 import egovframework.com.platform.screenbuilder.model.ScreenBuilderDraftDocumentVO;
 import egovframework.com.platform.screenbuilder.support.ScreenBuilderArtifactNamingPolicyPort;
-import org.springframework.stereotype.Component;
 
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
-@Component
 public class CarbonetScreenBuilderArtifactNamingPolicyAdapter implements ScreenBuilderArtifactNamingPolicyPort {
 
     @Override

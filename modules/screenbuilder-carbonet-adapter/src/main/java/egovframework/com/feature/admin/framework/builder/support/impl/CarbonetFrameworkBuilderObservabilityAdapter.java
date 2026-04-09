@@ -6,11 +6,9 @@ import egovframework.com.common.trace.UiPageManifestVO;
 import egovframework.com.feature.admin.framework.builder.support.CarbonetFrameworkBuilderObservabilitySource;
 import egovframework.com.framework.builder.support.FrameworkBuilderObservabilityPort;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-@Component
 @RequiredArgsConstructor
 public class CarbonetFrameworkBuilderObservabilityAdapter implements FrameworkBuilderObservabilityPort {
 

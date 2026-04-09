@@ -2,13 +2,11 @@ package egovframework.com.feature.admin.screenbuilder.support.impl;
 
 import egovframework.com.platform.screenbuilder.support.ScreenBuilderMenuBindingPolicyPort;
 import egovframework.com.platform.screenbuilder.support.model.ScreenBuilderMenuDescriptor;
-import org.springframework.stereotype.Component;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
-@Component
 public class CarbonetScreenBuilderMenuBindingPolicyAdapter implements ScreenBuilderMenuBindingPolicyPort {
 
     @Override
