@@ -1,4 +1,4 @@
-import type { MigrationPageId } from "../../../app/routes/definitions";
+import type { MigrationPageId } from "../../../app/routes/appRouteTypes";
 
 const platformSpecialCasePrefixes: Array<readonly [string, MigrationPageId]> = [
   ["/admin/system/unified_log", "unified-log"]

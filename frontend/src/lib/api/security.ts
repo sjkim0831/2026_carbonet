@@ -1,17 +1,19 @@
 import { buildLocalizedPath } from "../navigation/runtime";
 import { apiFetch, buildAdminApiPath, buildResilientCsrfHeaders, readJsonResponse } from "./core";
 import type {
+  IpWhitelistPagePayload,
+} from "./client";
+import type {
   AccessHistoryPagePayload,
   BlocklistPagePayload,
   ErrorLogPagePayload,
-  IpWhitelistPagePayload,
   LoginHistoryPagePayload,
   MenuPermissionAutoCleanupResponse,
   SecurityAuditPagePayload,
   SecurityHistoryActionResponse,
   SecurityMonitoringPagePayload,
   SecurityPolicyPagePayload
-} from "./client";
+} from "./securityTypes";
 
 function buildQueryString(params?: Record<string, string | number | boolean | null | undefined>): string {
   if (!params) {

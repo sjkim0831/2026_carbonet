@@ -10,7 +10,7 @@ import type {
   TradeListPagePayload,
   TradeRejectPagePayload,
   TradeStatisticsPagePayload
-} from "./client";
+} from "./tradeTypes";
 
 async function fetchJsonPage<T>(url: string, fallbackMessage: string): Promise<T> {
   const response = await apiFetch(url, {

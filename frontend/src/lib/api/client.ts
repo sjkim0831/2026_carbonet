@@ -25,6 +25,29 @@ export type {
   AdminSessionSimulationPayload,
   FrontendSession
 } from "./adminShellTypes";
+export type {
+  AccessHistoryPagePayload,
+  BlocklistPagePayload,
+  ErrorLogPagePayload,
+  LoginHistoryPagePayload,
+  MenuPermissionAutoCleanupResponse,
+  NotificationPagePayload,
+  SecurityAuditPagePayload,
+  SecurityHistoryActionResponse,
+  SecurityMonitoringPagePayload,
+  SecurityPolicyPagePayload
+} from "./securityTypes";
+export type {
+  CertificateStatisticsPagePayload,
+  RefundListPagePayload,
+  RefundProcessPagePayload,
+  SettlementCalendarPagePayload,
+  TradeApprovePagePayload,
+  TradeDuplicatePagePayload,
+  TradeListPagePayload,
+  TradeRejectPagePayload,
+  TradeStatisticsPagePayload
+} from "./tradeTypes";
 import {
   removeSessionStorageCache,
   SESSION_STORAGE_CACHE_PREFIX
@@ -1779,27 +1802,6 @@ export type CertificateRecCheckPagePayload = Record<string, unknown> & {
   isEn?: boolean;
 };
 
-export type TradeDuplicatePagePayload = Record<string, unknown> & {
-  abnormalTradeRows?: Array<Record<string, unknown>>;
-  totalCount?: number;
-  criticalCount?: number;
-  reviewCount?: number;
-  settlementBlockedCount?: number;
-  pageIndex?: number;
-  pageSize?: number;
-  totalPages?: number;
-  searchKeyword?: string;
-  detectionType?: string;
-  reviewStatus?: string;
-  riskLevel?: string;
-  detectionTypeOptions?: Array<Record<string, unknown>>;
-  reviewStatusOptions?: Array<Record<string, unknown>>;
-  riskLevelOptions?: Array<Record<string, unknown>>;
-  escalationAlerts?: Array<Record<string, unknown>>;
-  operatorGuidance?: Array<Record<string, unknown>>;
-  lastRefreshedAt?: string;
-  isEn?: boolean;
-};
 
 export type MemberListPagePayload = Record<string, unknown> & {
   member_list?: Array<Record<string, unknown>>;
@@ -1944,77 +1946,6 @@ export type IpWhitelistPagePayload = Record<string, unknown> & {
   status?: string;
 };
 
-export type AccessHistoryPagePayload = Record<string, unknown> & {
-  accessHistoryList?: Array<Record<string, unknown>>;
-  companyOptions?: Array<Record<string, string>>;
-  selectedInsttId?: string;
-  canViewAccessHistory?: boolean;
-  canManageAllCompanies?: boolean;
-  totalCount?: number;
-  pageIndex?: number;
-  pageSize?: number;
-  totalPages?: number;
-  startPage?: number;
-  endPage?: number;
-  prevPage?: number;
-  nextPage?: number;
-  searchKeyword?: string;
-  accessHistoryError?: string;
-  isEn?: boolean;
-};
-
-export type ErrorLogPagePayload = Record<string, unknown> & {
-  errorLogList?: Array<Record<string, unknown>>;
-  companyOptions?: Array<Record<string, string>>;
-  sourceTypeOptions?: Array<Record<string, string>>;
-  errorTypeOptions?: Array<Record<string, string>>;
-  selectedInsttId?: string;
-  selectedSourceType?: string;
-  selectedErrorType?: string;
-  canViewErrorLog?: boolean;
-  canManageAllCompanies?: boolean;
-  totalCount?: number;
-  pageIndex?: number;
-  pageSize?: number;
-  totalPages?: number;
-  startPage?: number;
-  endPage?: number;
-  prevPage?: number;
-  nextPage?: number;
-  searchKeyword?: string;
-  errorLogError?: string;
-  isEn?: boolean;
-};
-
-export type LoginHistoryPagePayload = Record<string, unknown> & {
-  loginHistoryList?: Array<Record<string, unknown>>;
-  companyOptions?: Array<Record<string, string>>;
-  securityHistoryActionRows?: Array<Record<string, string>>;
-  securityHistoryActionByHistoryKey?: Record<string, Record<string, string>>;
-  securityHistoryRelatedCountByHistoryKey?: Record<string, Record<string, number>>;
-  securityHistoryAggregate?: Record<string, unknown>;
-  selectedInsttId?: string;
-  canManageAllCompanies?: boolean;
-  totalCount?: number;
-  pageIndex?: number;
-  pageSize?: number;
-  totalPages?: number;
-  startPage?: number;
-  endPage?: number;
-  prevPage?: number;
-  nextPage?: number;
-  searchKeyword?: string;
-  userSe?: string;
-  loginResult?: string;
-  loginHistoryError?: string;
-  isEn?: boolean;
-};
-
-export type SecurityHistoryActionResponse = Record<string, unknown> & {
-  success?: boolean;
-  message?: string;
-  savedAction?: Record<string, string>;
-};
 
 export type AdminHomePagePayload = Record<string, unknown> & {
   summaryCards?: Array<Record<string, string>>;
@@ -2052,105 +1983,6 @@ export type MemberRegisterPagePayload = Record<string, unknown> & {
   isEn?: boolean;
 };
 
-export type SecurityPolicyPagePayload = Record<string, unknown> & {
-  securityPolicySummary?: Array<Record<string, string>>;
-  securityPolicyRows?: Array<Record<string, string>>;
-  securityPolicyPlaybooks?: Array<Record<string, string>>;
-  menuPermissionDiagnosticSqlDownloadUrl?: string;
-  menuPermissionAuthGroupUrl?: string;
-  menuPermissionEnvironmentUrl?: string;
-  menuPermissionDiagnostics?: {
-    generatedAt?: string;
-    menuUrlDuplicateCount?: number;
-    viewFeatureDuplicateCount?: number;
-    cleanupRecommendationCount?: number;
-    integrityIssueCount?: number;
-    highRiskExposureCount?: number;
-    scopeViolationCount?: number;
-    message?: string;
-    autoCleanupExecutableCount?: number;
-    codexReviewRequiredCount?: number;
-    duplicatedMenuUrls?: Array<Record<string, string>>;
-    duplicatedViewMappings?: Array<Record<string, string>>;
-    menusMissingView?: Array<Record<string, string>>;
-    inactiveAuthorFeatureRelations?: Array<Record<string, string>>;
-    inactiveUserOverrides?: Array<Record<string, string>>;
-    sensitiveRoleExposures?: Array<Record<string, string>>;
-    companyScopeSensitiveExposures?: Array<Record<string, string>>;
-    securityInsightItems?: Array<Record<string, string>>;
-    securityInsightTotal?: number;
-    securityInsightActionRequiredCount?: number;
-    securityInsightGradeCounts?: Record<string, number>;
-    securityInsightGate?: Record<string, unknown>;
-    securityInsightConfig?: Record<string, unknown>;
-    securityInsightExplorer?: Record<string, unknown>;
-    securityInsightMessage?: string;
-  };
-  isEn?: boolean;
-};
-
-export type NotificationPagePayload = SecurityPolicyPagePayload;
-
-export type MenuPermissionAutoCleanupResponse = {
-  success?: boolean;
-  message?: string;
-  disabledMenuCodes?: string[];
-  processedMenuUrls?: string[];
-  disabledMenuCount?: number;
-  processedTargetCount?: number;
-  diagnostics?: SecurityPolicyPagePayload["menuPermissionDiagnostics"];
-};
-
-export type SecurityMonitoringPagePayload = Record<string, unknown> & {
-  securityMonitoringCards?: Array<Record<string, string>>;
-  securityMonitoringTargets?: Array<Record<string, string>>;
-  securityMonitoringIps?: Array<Record<string, string>>;
-  securityMonitoringEvents?: Array<Record<string, string>>;
-  securityMonitoringActivityRows?: Array<Record<string, string>>;
-  securityMonitoringBlockCandidates?: Array<Record<string, string>>;
-  isEn?: boolean;
-};
-
-export type BlocklistPagePayload = Record<string, unknown> & {
-  searchKeyword?: string;
-  blockType?: string;
-  status?: string;
-  blocklistSummary?: Array<Record<string, string>>;
-  blocklistRows?: Array<Record<string, string>>;
-  blocklistReleaseQueue?: Array<Record<string, string>>;
-  blocklistReleaseHistory?: Array<Record<string, string>>;
-  isEn?: boolean;
-};
-
-export type SecurityAuditPagePayload = Record<string, unknown> & {
-  pageIndex?: number;
-  pageSize?: number;
-  totalCount?: number;
-  totalPages?: number;
-  searchKeyword?: string;
-  actionType?: string;
-  routeGroup?: string;
-  startDate?: string;
-  endDate?: string;
-  sortKey?: string;
-  sortDirection?: string;
-  filteredBlockedCount?: number;
-  filteredAllowedCount?: number;
-  filteredUniqueActorCount?: number;
-  filteredRouteCount?: number;
-  filteredErrorCount?: number;
-  filteredSlowCount?: number;
-  filteredRepeatedActorCount?: number;
-  filteredRepeatedTargetCount?: number;
-  filteredRepeatedRemoteAddrCount?: number;
-  latestSecurityAuditRow?: Record<string, string> | null;
-  securityAuditSummary?: Array<Record<string, string>>;
-  securityAuditRepeatedActors?: Array<Record<string, string>>;
-  securityAuditRepeatedTargets?: Array<Record<string, string>>;
-  securityAuditRepeatedRemoteAddrs?: Array<Record<string, string>>;
-  securityAuditRows?: Array<Record<string, string>>;
-  isEn?: boolean;
-};
 
 export type CertificateAuditLogPagePayload = Record<string, unknown> & {
   pageIndex?: number;
@@ -2427,151 +2259,6 @@ export type EmissionResultListPagePayload = Record<string, unknown> & {
   isEn?: boolean;
 };
 
-export type TradeListPagePayload = Record<string, unknown> & {
-  tradeRows?: Array<Record<string, unknown>>;
-  totalCount?: number;
-  matchingCount?: number;
-  settlementPendingCount?: number;
-  completedCount?: number;
-  pageIndex?: number;
-  pageSize?: number;
-  totalPages?: number;
-  searchKeyword?: string;
-  tradeStatus?: string;
-  settlementStatus?: string;
-  tradeStatusOptions?: Array<Record<string, unknown>>;
-  settlementStatusOptions?: Array<Record<string, unknown>>;
-  settlementAlerts?: Array<Record<string, unknown>>;
-  isEn?: boolean;
-};
-
-export type TradeStatisticsPagePayload = Record<string, unknown> & {
-  totalTradeVolume?: number;
-  totalSettlementAmount?: number;
-  pendingSettlementCount?: number;
-  exceptionCount?: number;
-  settlementCompletionRate?: string;
-  avgSettlementDays?: string;
-  pageIndex?: number;
-  pageSize?: number;
-  totalPages?: number;
-  totalCount?: number;
-  searchKeyword?: string;
-  periodFilter?: string;
-  tradeType?: string;
-  settlementStatus?: string;
-  monthlyRows?: Array<Record<string, unknown>>;
-  tradeTypeRows?: Array<Record<string, unknown>>;
-  institutionRows?: Array<Record<string, unknown>>;
-  alertRows?: Array<Record<string, unknown>>;
-  isEn?: boolean;
-};
-
-export type SettlementCalendarPagePayload = Record<string, unknown> & {
-  selectedMonth?: string;
-  searchKeyword?: string;
-  settlementStatus?: string;
-  riskLevel?: string;
-  totalScheduledCount?: number;
-  dueTodayCount?: number;
-  highRiskCount?: number;
-  completedCount?: number;
-  pageIndex?: number;
-  pageSize?: number;
-  totalPages?: number;
-  monthOptions?: Array<Record<string, unknown>>;
-  settlementStatusOptions?: Array<Record<string, unknown>>;
-  riskLevelOptions?: Array<Record<string, unknown>>;
-  calendarDays?: Array<Record<string, unknown>>;
-  scheduleRows?: Array<Record<string, unknown>>;
-  alertRows?: Array<Record<string, unknown>>;
-  isEn?: boolean;
-};
-
-export type RefundListPagePayload = Record<string, unknown> & {
-  refundRows?: Array<Record<string, unknown>>;
-  totalCount?: number;
-  pendingCount?: number;
-  inReviewCount?: number;
-  transferScheduledCount?: number;
-  completedCount?: number;
-  pageIndex?: number;
-  pageSize?: number;
-  totalPages?: number;
-  searchKeyword?: string;
-  status?: string;
-  riskLevel?: string;
-  statusOptions?: Array<Record<string, unknown>>;
-  riskLevelOptions?: Array<Record<string, unknown>>;
-  refundAlerts?: Array<Record<string, unknown>>;
-  isEn?: boolean;
-};
-
-export type TradeApprovePagePayload = Record<string, unknown> & {
-  approvalRows?: Array<Record<string, unknown>>;
-  totalCount?: number;
-  pendingCount?: number;
-  approvedCount?: number;
-  rejectedCount?: number;
-  holdCount?: number;
-  pageIndex?: number;
-  pageSize?: number;
-  totalPages?: number;
-  searchKeyword?: string;
-  approvalStatus?: string;
-  tradeType?: string;
-  approvalStatusOptions?: Array<Record<string, unknown>>;
-  tradeTypeOptions?: Array<Record<string, unknown>>;
-  canViewTradeApprove?: boolean;
-  canUseTradeApproveAction?: boolean;
-  isEn?: boolean;
-};
-
-export type RefundProcessPagePayload = Record<string, unknown> & {
-  refundRows?: Array<Record<string, unknown>>;
-  refundSummary?: Array<Record<string, unknown>>;
-  refundGuidance?: Array<Record<string, unknown>>;
-  totalCount?: number;
-  pageIndex?: number;
-  pageSize?: number;
-  totalPages?: number;
-  searchKeyword?: string;
-  refundStatus?: string;
-  refundChannel?: string;
-  priority?: string;
-  canViewRefundProcess?: boolean;
-  isEn?: boolean;
-};
-
-export type TradeRejectPagePayload = Record<string, unknown> & {
-  found?: boolean;
-  tradeId?: string;
-  returnUrl?: string;
-  listUrl?: string;
-  pageError?: string;
-  productType?: string;
-  sellerName?: string;
-  buyerName?: string;
-  contractName?: string;
-  quantity?: string;
-  amount?: string;
-  requestedAt?: string;
-  tradeStatusCode?: string;
-  tradeStatusLabel?: string;
-  settlementStatusCode?: string;
-  settlementStatusLabel?: string;
-  blockerCount?: number;
-  evidenceCount?: number;
-  historyCount?: number;
-  suggestedReason?: string;
-  rejectionChecklist?: Array<Record<string, unknown>>;
-  rejectionReasons?: Array<Record<string, unknown>>;
-  evidenceRows?: Array<Record<string, unknown>>;
-  historyRows?: Array<Record<string, unknown>>;
-  notificationPlan?: Array<Record<string, unknown>>;
-  quickLinks?: Array<Record<string, unknown>>;
-  isEn?: boolean;
-};
 
 export type EmissionResultDetailPagePayload = Record<string, unknown> & {
   found?: boolean;
@@ -2602,28 +2289,6 @@ export type EmissionResultDetailPagePayload = Record<string, unknown> & {
   isEn?: boolean;
 };
 
-export type CertificateStatisticsPagePayload = Record<string, unknown> & {
-  totalIssuedCount?: number;
-  pendingCount?: number;
-  rejectedCount?: number;
-  reissuedCount?: number;
-  totalRequestCount?: number;
-  avgLeadDays?: string;
-  issuanceRate?: string;
-  pageIndex?: number;
-  pageSize?: number;
-  totalPages?: number;
-  totalCount?: number;
-  searchKeyword?: string;
-  periodFilter?: string;
-  certificateType?: string;
-  issuanceStatus?: string;
-  monthlyRows?: Array<Record<string, string>>;
-  certificateTypeRows?: Array<Record<string, string>>;
-  institutionRows?: Array<Record<string, string>>;
-  alertRows?: Array<Record<string, string>>;
-  isEn?: boolean;
-};
 
 export type EmissionDataHistoryPagePayload = Record<string, unknown> & {
   historyRows?: Array<Record<string, unknown>>;

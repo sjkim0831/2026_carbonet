@@ -1,5 +1,6 @@
 import { buildLocalizedPath } from "../navigation/runtime";
 import { apiFetch, buildResilientCsrfHeaders, readJsonResponse } from "./core";
+import type { SecurityAuditPagePayload } from "./securityTypes";
 import type {
   BackupConfigPagePayload,
   BatchManagementPagePayload,
@@ -17,7 +18,6 @@ import type {
   OperationsCenterPagePayload,
   PerformancePagePayload,
   SchedulerManagementPagePayload,
-  SecurityAuditPagePayload,
   SensorListPagePayload
 } from "./client";
 

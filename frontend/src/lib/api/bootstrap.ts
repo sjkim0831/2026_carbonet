@@ -6,6 +6,22 @@ import {
 } from "./pageCache";
 import type { BootstrappedHomePayload } from "./appBootstrapTypes";
 import type {
+  NotificationPagePayload,
+  SecurityAuditPagePayload,
+  SecurityMonitoringPagePayload,
+  SecurityPolicyPagePayload
+} from "./securityTypes";
+import type {
+  CertificateStatisticsPagePayload,
+  RefundListPagePayload,
+  SettlementCalendarPagePayload,
+  TradeApprovePagePayload,
+  TradeDuplicatePagePayload,
+  TradeListPagePayload,
+  TradeRejectPagePayload,
+  TradeStatisticsPagePayload
+} from "./tradeTypes";
+import type {
   AdminHomePagePayload,
   AuthChangePagePayload,
   AuthGroupPagePayload,
@@ -13,7 +29,6 @@ import type {
   CertificateAuditLogPagePayload,
   CertificateRecCheckPagePayload,
   CertificateReviewPagePayload,
-  CertificateStatisticsPagePayload,
   DeptRolePagePayload,
   EmissionDataHistoryPagePayload,
   EmissionDefinitionStudioPagePayload,
@@ -26,19 +41,8 @@ import type {
   MemberStatsPagePayload,
   MypagePayload,
   NewPagePagePayload,
-  NotificationPagePayload,
-  RefundListPagePayload,
   SchedulerManagementPagePayload,
   ScreenBuilderPagePayload,
-  SecurityAuditPagePayload,
-  SecurityMonitoringPagePayload,
-  SecurityPolicyPagePayload,
-  SettlementCalendarPagePayload,
-  TradeApprovePagePayload,
-  TradeDuplicatePagePayload,
-  TradeListPagePayload,
-  TradeRejectPagePayload,
-  TradeStatisticsPagePayload
 } from "./client";
 
 export type BootstrapPayloadKey =
