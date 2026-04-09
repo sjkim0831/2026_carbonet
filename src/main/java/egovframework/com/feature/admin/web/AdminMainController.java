@@ -60,13 +60,12 @@ import egovframework.com.feature.auth.service.AuthService;
 import egovframework.com.feature.auth.util.JwtTokenProvider;
 import egovframework.com.feature.auth.util.ClientIpUtil;
 import egovframework.com.common.audit.AuditTrailService;
-import egovframework.com.platform.observability.service.ObservabilityQueryService;
 import egovframework.com.common.util.FeatureCodeBitmap;
 import egovframework.com.common.util.ReactPageUrlMapper;
 import egovframework.com.framework.authority.service.FrameworkAuthorityPolicyService;
 import egovframework.com.feature.home.web.ReactAppViewSupport;
-import egovframework.com.platform.observability.service.PlatformObservabilityAdminPageFacade;
 import egovframework.com.platform.read.AdminSummaryReadPort;
+import egovframework.com.platform.service.observability.PlatformObservabilityAdminPagePort;
 import io.jsonwebtoken.Claims;
 import egovframework.com.common.service.CmmnDetailCode;
 import egovframework.com.common.model.ComDefaultCodeVO;
@@ -171,13 +170,12 @@ public class AdminMainController {
     private final AuthorRoleProfileService authorRoleProfileService;
     private final AdminAuthorityPagePayloadSupport adminAuthorityPagePayloadSupport;
     private final AdminAuthorityCommandService adminAuthorityCommandService;
-    private final PlatformObservabilityAdminPageFacade platformObservabilityAdminPageFacade;
+    private final PlatformObservabilityAdminPagePort platformObservabilityAdminPagePort;
     private final AdminMenuShellService adminMenuShellService;
     private final AdminMemberExportService adminMemberExportService;
     private final AuditTrailService auditTrailService;
     private final FrameworkAuthorityPolicyService frameworkAuthorityPolicyService;
     private final RequestExecutionLogService requestExecutionLogService;
-    private final ObservabilityQueryService observabilityQueryService;
     private final ObjectMapper objectMapper;
     private final AdminReactRouteSupport adminReactRouteSupport;
     private final ConcurrentMap<String, String> companyNameCache = new ConcurrentHashMap<>();
@@ -3100,11 +3098,11 @@ public class AdminMainController {
     }
 
     List<Map<String, String>> loadAccessHistoryCompanyOptions() {
-        return platformObservabilityAdminPageFacade.loadAccessHistoryCompanyOptions();
+        return platformObservabilityAdminPagePort.loadAccessHistoryCompanyOptions();
     }
 
     List<Map<String, String>> buildScopedAccessHistoryCompanyOptions(String insttId) {
-        return platformObservabilityAdminPageFacade.buildScopedAccessHistoryCompanyOptions(insttId);
+        return platformObservabilityAdminPagePort.buildScopedAccessHistoryCompanyOptions(insttId);
     }
 
     private String lookupCompanyNameByInsttId(String normalizedInsttId) {

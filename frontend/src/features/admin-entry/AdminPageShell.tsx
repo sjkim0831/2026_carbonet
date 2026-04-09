@@ -541,7 +541,7 @@ export function AdminPageShell({
     () => (initialMenuTree && Object.keys(initialMenuTree).length ? initialMenuTree : {}),
     [initialMenuTree]
   );
-  const menuTree = useMemo(
+  const menuTree = useMemo<Record<string, AdminMenuDomain>>(
     () => Object.keys(menuState.value || {}).length ? (menuState.value || {}) : fallbackMenuTree,
     [fallbackMenuTree, menuState.value]
   );
@@ -631,7 +631,7 @@ export function AdminPageShell({
     }
     setOpenGroups((current) => {
       const nextState: Record<string, boolean> = { ...current };
-      (selectedDomain.groups || []).forEach((group, index) => {
+      (selectedDomain.groups || []).forEach((group: AdminMenuGroup, index: number) => {
         const groupKey = getMenuGroupKey(selectedDomainKey, group, index);
         const hasActiveLink = activeMenuEntry?.domainKey === selectedDomainKey && activeMenuEntry.groupKey === groupKey;
         if (typeof current[groupKey] === "boolean") {
@@ -780,7 +780,7 @@ export function AdminPageShell({
     if (!domainEntries.length) {
       return [];
     }
-    return domainEntries.map(([domainKey, domain]) => ({
+    return domainEntries.map(([domainKey, domain]: [string, AdminMenuDomain]) => ({
       key: domainKey,
       label: resolveSidebarDomainLabel(domainKey, domain, en),
       href: resolveFirstDomainPath(domain),

@@ -6,11 +6,10 @@ import egovframework.com.feature.admin.model.vo.AuthorInfoVO;
 import egovframework.com.feature.admin.model.vo.EmissionResultFilterSnapshot;
 import egovframework.com.feature.admin.model.vo.EmissionResultSummaryView;
 import egovframework.com.feature.admin.model.vo.SecurityAuditSnapshot;
-import egovframework.com.platform.observability.service.PlatformObservabilityAdminPageFacade;
 import egovframework.com.platform.read.AdminSummaryReadPort;
 import egovframework.com.platform.read.MenuInfoReadPort;
+import egovframework.com.platform.service.observability.PlatformObservabilityAdminPagePort;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -39,14 +38,10 @@ public class AdminShellBootstrapPageService {
     private final MenuInfoReadPort menuInfoReadPort;
     private final AuthGroupManageService authGroupManageService;
     private final UiManifestRegistryPort uiManifestRegistryPort;
-    private final ObjectProvider<PlatformObservabilityAdminPageFacade> platformObservabilityAdminPageFacadeProvider;
+    private final PlatformObservabilityAdminPagePort platformObservabilityAdminPagePort;
 
     private static final int SECURITY_AUDIT_BOOTSTRAP_PAGE_SIZE = 10;
     private final Map<String, Map<String, String>> tradeApprovalState = new ConcurrentHashMap<>();
-
-    private PlatformObservabilityAdminPageFacade platformObservabilityAdminPageFacade() {
-        return platformObservabilityAdminPageFacadeProvider.getObject();
-    }
 
     public Map<String, Object> buildMemberStatsPageData(boolean isEn) {
         Map<String, Object> response = new LinkedHashMap<>();
@@ -82,7 +77,7 @@ public class AdminShellBootstrapPageService {
     }
 
     public Map<String, Object> buildExternalMonitoringPageData(boolean isEn) {
-        return platformObservabilityAdminPageFacade().buildExternalMonitoringPagePayload(isEn);
+        return platformObservabilityAdminPagePort.buildExternalMonitoringPagePayload(isEn);
     }
 
     public Map<String, Object> buildSecurityAuditPageData(
@@ -116,7 +111,7 @@ public class AdminShellBootstrapPageService {
             String startDate,
             String endDate,
             boolean isEn) {
-        return platformObservabilityAdminPageFacade().buildCertificateAuditLogPagePayload(
+        return platformObservabilityAdminPagePort.buildCertificateAuditLogPagePayload(
                 pageIndexParam,
                 searchKeyword,
                 auditType,
