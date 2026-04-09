@@ -1,6 +1,6 @@
 import { getRuntimeLocale } from "../../../lib/navigation/runtime";
 import { createRuntimePathRegistry, normalizeComparablePath } from "../../../framework/routes/runtimePathRegistry";
-import { resolvePlatformSpecialCasePage } from "../../../platform/routes/families/platformRuntimeRules";
+import { resolvePlatformSpecialCasePage } from "../../../platform/routes/platformRuntimeRules";
 import type { MigrationPageId } from "./appRouteTypes";
 import { appRouteAliases, reactShellPaths, resolveAppRouteFallback, resolveAppSpecialCasePage } from "./appRoutePolicies";
 import { ROUTES, getRouteDefinition, normalizeRouteId } from "../definitions";

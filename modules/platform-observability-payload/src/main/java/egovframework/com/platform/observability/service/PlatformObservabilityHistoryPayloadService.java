@@ -1,5 +1,6 @@
 package egovframework.com.platform.observability.service;
 
+import egovframework.com.platform.service.observability.PlatformObservabilityHistoryPagePayloadPort;
 import egovframework.com.platform.service.observability.PlatformObservabilitySummaryReadPort;
 import egovframework.com.platform.service.observability.history.LoginHistoryDatasetSnapshot;
 import egovframework.com.platform.service.observability.history.LoginHistoryRowSnapshot;
@@ -18,11 +19,12 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
-public class PlatformObservabilityHistoryPayloadService {
+public class PlatformObservabilityHistoryPayloadService implements PlatformObservabilityHistoryPagePayloadPort {
 
     private final PlatformObservabilityHistoryDataPort platformObservabilityHistoryDataPort;
     private final PlatformObservabilitySummaryReadPort adminSummaryReadPort;
 
+    @Override
     public Map<String, Object> buildSecurityHistoryPagePayload(
             String pageIndexParam,
             String searchKeyword,
