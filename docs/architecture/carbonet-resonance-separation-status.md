@@ -169,7 +169,8 @@ Completed:
 - `AdminMemberController` now consumes a dedicated `PlatformObservabilityHistoryPagePayloadPort` for member security-history page data instead of the broader observability page-facade port
 - `AdminShellBootstrapPageService` now consumes `ExternalMonitoringPayloadPort` and `CertificateAuditLogPageDataPort` instead of the broader observability page-facade port
 - certificate-audit page-data ownership is now implemented directly by `PlatformObservabilityCertificateAuditPayloadService`, so the old reverse bridge back into `AdminShellBootstrapPageService` is removed
-- `ScreenCommandCenterServiceImpl` observability metadata for external monitoring and external logs now points at `ExternalMonitoringPayloadPort` and `ExternalLogsPayloadPort`; the remaining broad observability page-facade metadata mention is batch-management only
+- `PlatformObservabilityBatchManagementPayloadService` now implements `BatchManagementPagePayloadPort`, and `ScreenCommandCenterServiceImpl` batch metadata now points at that dedicated port
+- `ScreenCommandCenterServiceImpl` observability metadata for batch-management, external monitoring, and external logs now points at dedicated ports instead of the broad observability page-facade contract
 - admin-facing help API aliases now terminate directly in `platform-help` `HelpManagementApiController`, so `feature/admin` only keeps the page-forwarding shim for `/admin/system/help-management`
 - `feature/admin` self-healing and safe-plan workbench entry points now consume `SrTicketWorkbenchPort` instead of directly depending on the workbench service type
 - `feature/admin` authority payload support now consumes `PlatformObservabilityAuditQueryPort` instead of directly depending on the observability query service type

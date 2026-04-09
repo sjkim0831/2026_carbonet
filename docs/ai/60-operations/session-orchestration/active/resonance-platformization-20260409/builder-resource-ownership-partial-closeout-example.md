@@ -6,6 +6,7 @@ Updated on `2026-04-09`.
 
 1. `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 2. `docs/architecture/builder-resource-ownership-queue-map.md`
+3. `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
 
 Use this example only after the live family entry confirms rows `1` and `2` are the active partial-closeout target.
 Treat those two docs as the `single live entry pair`.
@@ -17,6 +18,7 @@ Start from:
 
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
+- `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
 
 ## Example Note
 

@@ -4,7 +4,8 @@
 
 1. `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 2. `docs/architecture/builder-resource-ownership-queue-map.md`
-3. `docs/architecture/builder-resource-ownership-status-tracker.md`
+3. `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+4. `docs/architecture/builder-resource-ownership-status-tracker.md`
 
 Use this review card only after the live family entry confirms row `3` is the active target.
 Treat the first two docs above as the `single live entry pair`.

@@ -46,7 +46,8 @@ Most recent direct-coupling and compatibility-shim reductions already completed:
 - `AdminMemberController` security-history page data is now narrowed to `PlatformObservabilityHistoryPagePayloadPort`
 - `AdminShellBootstrapPageService` external-monitoring and certificate-audit bootstrap payloads are now narrowed to `ExternalMonitoringPayloadPort` and `CertificateAuditLogPageDataPort`
 - certificate-audit page-data no longer routes back through a reverse bridge into `AdminShellBootstrapPageService`
-- `ScreenCommandCenterServiceImpl` observability metadata is now narrowed for external monitoring and external logs; the remaining broad page-facade metadata mention is batch-management
+- `PlatformObservabilityBatchManagementPayloadService` now implements `BatchManagementPagePayloadPort`
+- `ScreenCommandCenterServiceImpl` observability metadata is now narrowed for batch-management, external monitoring, and external logs
 - admin-facing help API aliases now terminate directly in `platform-help` `HelpManagementApiController`
 - `feature/admin` help ownership is now reduced to the page-forwarding shim for `/admin/system/help-management`
 - `feature/admin` self-healing and safe-plan workbench entry points now use `SrTicketWorkbenchPort`
@@ -56,7 +57,7 @@ Most recent direct-coupling and compatibility-shim reductions already completed:
 Current narrow remainder:
 
 - remaining `feature/admin` dependence is now at contract-interface and composition ownership level, not direct platform service/web type imports
-- remaining `feature/admin` observability references are now narrowed contract ports plus metadata strings in `ScreenCommandCenterServiceImpl`
+- remaining `feature/admin` observability references are now narrowed contract ports; broad observability page-facade references are cleared from live `feature/admin` code and metadata
 
 Do not reopen the app-closure owner slice unless one of these changes again:
 
