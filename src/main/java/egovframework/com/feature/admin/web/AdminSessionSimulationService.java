@@ -5,7 +5,7 @@ import egovframework.com.feature.admin.service.AuthGroupManageService;
 import egovframework.com.feature.auth.domain.entity.EmplyrInfo;
 import egovframework.com.feature.auth.domain.repository.EmployeeMemberRepository;
 import egovframework.com.feature.auth.service.CurrentUserContextService;
-import egovframework.com.platform.service.observability.PlatformObservabilityAdminPagePort;
+import egovframework.com.platform.service.observability.PlatformObservabilityCompanyScopePort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
@@ -30,7 +30,7 @@ public class AdminSessionSimulationService {
     private final CurrentUserContextService currentUserContextService;
     private final AuthGroupManageService authGroupManageService;
     private final EmployeeMemberRepository employeeMemberRepository;
-    private final PlatformObservabilityAdminPagePort platformObservabilityAdminPagePort;
+    private final PlatformObservabilityCompanyScopePort platformObservabilityCompanyScopePort;
 
     public Map<String, Object> buildPayload(HttpServletRequest request, String insttId) {
         CurrentUserContextService.CurrentUserContext context = currentUserContextService.resolve(request);
@@ -237,7 +237,7 @@ public class AdminSessionSimulationService {
     }
 
     private String resolveCompanyName(String insttId) {
-        List<Map<String, String>> options = platformObservabilityAdminPagePort.buildScopedAccessHistoryCompanyOptions(insttId);
+        List<Map<String, String>> options = platformObservabilityCompanyScopePort.buildScopedAccessHistoryCompanyOptions(insttId);
         if (options.isEmpty()) {
             return insttId;
         }

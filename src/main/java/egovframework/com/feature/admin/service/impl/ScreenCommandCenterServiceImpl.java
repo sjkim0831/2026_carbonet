@@ -2897,17 +2897,17 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         ));
         page.put("apis", Arrays.asList(
                 api("platform.help-management.page", "도움말 페이지 조회", "GET", "/api/platform/help-management/page",
-                        "AdminHelpManagementController.getHelpPage", "HelpContentService.getPageHelpForAdmin",
+                        "HelpManagementApiController.getHelpPage", "HelpContentService.getPageHelpForAdmin",
                         "HelpContentMapper.selectPage / selectItems",
                         Arrays.asList("UI_HELP_PAGE", "UI_HELP_ITEM"), Arrays.asList("ui-help-page-schema"),
                         "도움말 기본 정보와 step 항목을 함께 조회합니다."),
                 api("platform.help-management.save", "도움말 저장", "POST", "/api/platform/help-management/save",
-                        "AdminHelpManagementController.saveHelpPage", "HelpContentService.savePageHelp",
+                        "HelpManagementApiController.saveHelpPage", "HelpContentService.savePageHelp",
                         "HelpContentMapper.upsertPage / replaceItems",
                         Arrays.asList("UI_HELP_PAGE", "UI_HELP_ITEM", "AUDIT_EVENT"), Arrays.asList("ui-help-page-schema", "audit-event-schema"),
                         "도움말 저장 후 감사 로그를 남깁니다."),
                 api("platform.help-management.screen-command.page", "수정 디렉션 메타데이터 조회", "GET", "/api/platform/help-management/screen-command/page",
-                        "AdminHelpManagementController.getScreenCommandPage", "ScreenCommandCenterService.getScreenCommandPage",
+                        "HelpManagementApiController.getScreenCommandPage", "ScreenCommandCenterService.getScreenCommandPage",
                         "Metadata-only", Arrays.asList("COMTNMENUINFO", "COMTNMENUFUNCTIONINFO", "COMTNAUTHORFUNCTIONRELATE"),
                         Arrays.asList("menu-feature-schema"), "화면-요소-이벤트-API-권한 연결 메타데이터를 조회합니다.")
         ));

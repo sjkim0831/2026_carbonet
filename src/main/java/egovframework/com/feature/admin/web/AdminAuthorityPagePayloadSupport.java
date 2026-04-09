@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import egovframework.com.common.audit.AuditEventRecordVO;
 import egovframework.com.common.audit.AuditEventSearchVO;
-import egovframework.com.platform.observability.service.ObservabilityQueryService;
 import egovframework.com.common.util.FeatureCodeBitmap;
 import egovframework.com.common.util.ReactPageUrlMapper;
 import egovframework.com.feature.admin.model.vo.UserFeatureOverrideVO;
@@ -18,6 +17,7 @@ import egovframework.com.feature.admin.model.vo.UserAuthorityTargetVO;
 import egovframework.com.feature.admin.service.AuthGroupManageService;
 import egovframework.com.feature.auth.service.CurrentUserContextService;
 import egovframework.com.framework.authority.service.FrameworkAuthorityPolicyService;
+import egovframework.com.platform.service.observability.PlatformObservabilityAuditQueryPort;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +48,7 @@ public class AdminAuthorityPagePayloadSupport {
     private static final String ROLE_OPERATION_ADMIN = "ROLE_OPERATION_ADMIN";
 
     private final AuthGroupManageService authGroupManageService;
-    private final ObservabilityQueryService observabilityQueryService;
+    private final PlatformObservabilityAuditQueryPort platformObservabilityAuditQueryPort;
     private final FrameworkAuthorityPolicyService frameworkAuthorityPolicyService;
     private final CurrentUserContextService currentUserContextService;
     private final ObjectMapper objectMapper;
@@ -312,7 +312,7 @@ public class AdminAuthorityPagePayloadSupport {
         searchVO.setActionCode("ADMIN_ROLE_ASSIGNMENT_SAVE");
         List<AuditEventRecordVO> items;
         try {
-            items = observabilityQueryService.selectAuditEventList(searchVO);
+            items = platformObservabilityAuditQueryPort.selectAuditEventList(searchVO);
         } catch (Exception e) {
             log.warn("Failed to load recent admin role change history.", e);
             return Collections.emptyList();
