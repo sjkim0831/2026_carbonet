@@ -44,6 +44,10 @@ Use this execution priority:
 Do not restart the architecture from zero because the wording changed.
 Continue from the last governed step and add only the next missing governed piece.
 
+For `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`, use
+`docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+as the explicit maintenance contract behind the single live entry pair.
+
 ## No-Duplication Rule
 
 Use these layers consistently:

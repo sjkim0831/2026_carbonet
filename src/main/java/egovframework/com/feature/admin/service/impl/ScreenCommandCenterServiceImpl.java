@@ -2591,7 +2591,7 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         ));
         page.put("apis", Arrays.asList(
                 api("admin.external.monitoring.page", "연계 모니터링 페이지 데이터 조회", "GET", "/admin/external/monitoring/page-data",
-                        "PlatformObservabilityPageDataController.externalMonitoringPageApi", "PlatformObservabilityAdminPagePort.buildExternalMonitoringPagePayload",
+                        "PlatformObservabilityPageDataController.externalMonitoringPageApi", "ExternalMonitoringPayloadPort.buildExternalMonitoringPagePayload",
                         "READ_ONLY", Arrays.asList("ACCESS_EVENT", "ERROR_EVENT", "TRACE_EVENT"), Collections.emptyList(), "외부연계 관측 데이터와 운영 경보를 통합한 payload를 반환합니다."),
                 routeApi("route.admin.external.connection-list", "외부연계 목록 이동", "/admin/external/connection_list", "A0050101"),
                 routeApi("route.admin.external.sync", "외부연계 동기화 이동", "/admin/external/sync", "A0050104"),
@@ -2660,7 +2660,7 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         ));
         page.put("apis", Arrays.asList(
                 api("admin.external.logs.page", "외부연계 로그 페이지 조회", "GET", "/admin/external/logs/page-data",
-                        "PlatformObservabilityPageDataController.externalLogsPageApi", "PlatformObservabilityAdminPagePort.buildExternalLogsPagePayload",
+                        "PlatformObservabilityPageDataController.externalLogsPageApi", "ExternalLogsPayloadPort.buildExternalLogsPagePayload",
                         "ObservabilityQueryService.selectAccessEventList / selectErrorEventList / selectTraceEventList",
                         Arrays.asList("ACCESS_EVENT", "ERROR_EVENT", "TRACE_EVENT"),
                         Arrays.asList("external-log-runtime-schema"), "외부연계 로그와 감시 대상을 함께 조회합니다.")

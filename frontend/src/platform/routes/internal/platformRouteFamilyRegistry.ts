@@ -1,6 +1,6 @@
 import { ENVIRONMENT_MANAGEMENT_PAGE_UNITS, ENVIRONMENT_MANAGEMENT_ROUTE_UNITS } from "../../../features/environment-management/environmentManagementPageUnit";
 import { SCREEN_BUILDER_PAGE_UNITS, SCREEN_BUILDER_ROUTE_UNITS } from "../../../features/screen-builder/screenBuilderPageUnit";
-import { PLATFORM_FOUNDATION_PAGE_UNITS, PLATFORM_FOUNDATION_ROUTE_UNITS } from "./platformFoundationRouteUnits";
+import { PLATFORM_FOUNDATION_PAGE_UNITS, PLATFORM_FOUNDATION_ROUTE_UNITS } from "../families/platformFoundationRouteUnits";
 
 export const PLATFORM_ROUTE_DEFINITION_FAMILIES = [
   PLATFORM_FOUNDATION_ROUTE_UNITS,
