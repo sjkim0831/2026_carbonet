@@ -1,7 +1,7 @@
 import { createRouteDefinitionRegistry, createRouteIdNormalizer, normalizeRouteLookupPath } from "../../../framework/routes/routeDefinitionRegistry";
 import { resolveAppRouteIdAlias } from "./appRoutePolicies";
 import type { MigrationPageId, RouteDefinition } from "./appRouteTypes";
-import { ALL_ROUTE_DEFINITIONS } from "../families/allRouteDefinitionFamilies";
+import { ALL_ROUTE_DEFINITIONS } from "../appRouteFamilies";
 
 export { normalizeRouteLookupPath };
 

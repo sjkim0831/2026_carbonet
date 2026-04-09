@@ -1,6 +1,5 @@
 import type { RouteUnitDefinition } from "../../../framework/routes/pageUnitTypes";
-import type { AllPageRouteId as AllPageRouteFamilyId } from "../families/allPageUnitFamilies";
-import type { AllRouteId } from "../families/allRouteDefinitionFamilies";
+import type { AllPageRouteId as AllPageRouteFamilyId, AllRouteId } from "../appRouteFamilies";
 
 export type MigrationPageId = AllRouteId;
 export type AllPageRouteId = AllPageRouteFamilyId;

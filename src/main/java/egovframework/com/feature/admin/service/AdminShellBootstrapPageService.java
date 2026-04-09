@@ -8,7 +8,8 @@ import egovframework.com.feature.admin.model.vo.EmissionResultSummaryView;
 import egovframework.com.feature.admin.model.vo.SecurityAuditSnapshot;
 import egovframework.com.platform.read.AdminSummaryReadPort;
 import egovframework.com.platform.read.MenuInfoReadPort;
-import egovframework.com.platform.service.observability.PlatformObservabilityAdminPagePort;
+import egovframework.com.platform.service.observability.CertificateAuditLogPageDataPort;
+import egovframework.com.platform.service.observability.ExternalMonitoringPayloadPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -38,7 +39,8 @@ public class AdminShellBootstrapPageService {
     private final MenuInfoReadPort menuInfoReadPort;
     private final AuthGroupManageService authGroupManageService;
     private final UiManifestRegistryPort uiManifestRegistryPort;
-    private final PlatformObservabilityAdminPagePort platformObservabilityAdminPagePort;
+    private final ExternalMonitoringPayloadPort externalMonitoringPayloadPort;
+    private final CertificateAuditLogPageDataPort certificateAuditLogPageDataPort;
 
     private static final int SECURITY_AUDIT_BOOTSTRAP_PAGE_SIZE = 10;
     private final Map<String, Map<String, String>> tradeApprovalState = new ConcurrentHashMap<>();
@@ -77,7 +79,7 @@ public class AdminShellBootstrapPageService {
     }
 
     public Map<String, Object> buildExternalMonitoringPageData(boolean isEn) {
-        return platformObservabilityAdminPagePort.buildExternalMonitoringPagePayload(isEn);
+        return externalMonitoringPayloadPort.buildExternalMonitoringPagePayload(isEn);
     }
 
     public Map<String, Object> buildSecurityAuditPageData(
@@ -111,7 +113,7 @@ public class AdminShellBootstrapPageService {
             String startDate,
             String endDate,
             boolean isEn) {
-        return platformObservabilityAdminPagePort.buildCertificateAuditLogPagePayload(
+        return certificateAuditLogPageDataPort.buildCertificateAuditLogPageData(
                 pageIndexParam,
                 searchKeyword,
                 auditType,
