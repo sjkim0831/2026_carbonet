@@ -1,6 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  cat <<'EOF'
+Usage:
+  bash ops/scripts/stop-18000.sh
+
+Purpose:
+  Stop the local :18000 runtime and clean up the runtime pid file.
+
+Related start path:
+  bash ops/scripts/start-18000.sh
+EOF
+  exit 0
+fi
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PORT="${PORT:-18000}"
 RUN_DIR="${RUN_DIR:-$ROOT_DIR/var/run}"

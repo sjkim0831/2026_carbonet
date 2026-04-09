@@ -1,6 +1,26 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  cat <<'EOF'
+Usage:
+  bash ops/scripts/deploy-193-to-221.sh
+
+Purpose:
+  Build from a detached worktree, verify canonical app closure,
+  upload the canonical app jar, restart the remote runtime, and verify
+  remote freshness.
+
+Canonical app jar:
+  apps/carbonet-app/target/carbonet.jar
+
+Related checks:
+  bash ops/scripts/verify-large-move-app-closure.sh
+  bash ops/scripts/codex-verify-18000-freshness.sh
+EOF
+  exit 0
+fi
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 REPO_DIR="${REPO_DIR:-$ROOT_DIR}"
 PRESSURE_CHECK_SCRIPT="${PRESSURE_CHECK_SCRIPT:-$ROOT_DIR/ops/scripts/check-runtime-pressure.sh}"
@@ -115,29 +135,33 @@ prepare_build_worktree() {
 
 build_artifact() {
   local frontend_dir="$BUILD_DIR/frontend"
-  local jar_path="$BUILD_DIR/target/carbonet.jar"
+  local jar_path="$BUILD_DIR/apps/carbonet-app/target/carbonet.jar"
 
   log "frontend build started"
   (cd "$frontend_dir" && npm run build)
 
   log "backend package started"
-  (cd "$BUILD_DIR" && mvn -q -DskipTests package)
+  (cd "$BUILD_DIR" && mvn -q -pl apps/carbonet-app -am -DskipTests package)
 
   if [[ ! -f "$jar_path" ]]; then
     echo "Built jar not found: $jar_path" >&2
     exit 1
   fi
+
+  log "app closure verification started"
+  bash "$BUILD_DIR/ops/scripts/verify-large-move-app-closure.sh"
 }
 
 deploy_remote() {
   local remote_tmp="/tmp/${DEPLOY_ARTIFACT_NAME}"
-  local remote_target="$DEPLOY_REMOTE_ROOT/target/${DEPLOY_ARTIFACT_NAME}"
+  local remote_target="$DEPLOY_REMOTE_ROOT/apps/carbonet-app/target/${DEPLOY_ARTIFACT_NAME}"
   local remote_backup_dir="$DEPLOY_REMOTE_ROOT/var/backups/manual-deploy"
   local remote_restart="$DEPLOY_REMOTE_ROOT/ops/scripts/restart-18000.sh"
-  local jar_path="$BUILD_DIR/target/carbonet.jar"
+  local remote_verify="$DEPLOY_REMOTE_ROOT/ops/scripts/codex-verify-18000-freshness.sh"
+  local jar_path="$BUILD_DIR/apps/carbonet-app/target/carbonet.jar"
 
   log "prepare remote directories"
-  ssh_cmd "mkdir -p '$DEPLOY_REMOTE_ROOT/target' '$remote_backup_dir'"
+  ssh_cmd "mkdir -p '$DEPLOY_REMOTE_ROOT/apps/carbonet-app/target' '$remote_backup_dir'"
 
   if [[ "$NGINX_SITE_SYNC_ENABLED" == "true" ]]; then
     if [[ ! -f "$NGINX_SITE_CONFIG_SOURCE" ]]; then
@@ -172,6 +196,7 @@ deploy_remote() {
     fi
     mv '$remote_tmp' '$remote_target'
     bash '$remote_restart'
+    bash '$remote_verify'
   "
 }
 

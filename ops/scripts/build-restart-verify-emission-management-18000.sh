@@ -22,6 +22,9 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 echo "[build-restart-verify-emission-management-18000] build + restart started"
 bash "$ROOT_DIR/ops/scripts/build-restart-18000.sh"
 
+echo "[build-restart-verify-emission-management-18000] app closure verification started"
+bash "$ROOT_DIR/ops/scripts/verify-large-move-app-closure.sh"
+
 echo "[build-restart-verify-emission-management-18000] runtime freshness verification started"
 VERIFY_WAIT_SECONDS="${VERIFY_WAIT_SECONDS:-20}" bash "$ROOT_DIR/ops/scripts/codex-verify-18000-freshness.sh"
 

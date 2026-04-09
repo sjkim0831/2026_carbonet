@@ -1,15 +1,33 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  cat <<'EOF'
+Usage:
+  bash ops/scripts/start-18000.sh
+
+Purpose:
+  Start a local runtime from the canonical app jar and copy it into
+  the runtime jar path for the selected port.
+
+Canonical app jar:
+  apps/carbonet-app/target/carbonet.jar
+
+Related checks:
+  bash ops/scripts/run-large-move-app-closure.sh
+  bash ops/scripts/codex-verify-18000-freshness.sh
+EOF
+  exit 0
+fi
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 source "$ROOT_DIR/ops/scripts/runtime-url-common.sh"
 PORT="${PORT:-18000}"
 LOG_DIR="${LOG_DIR:-$ROOT_DIR/var/logs}"
 RUN_DIR="${RUN_DIR:-$ROOT_DIR/var/run}"
 CONFIG_DIR="${CONFIG_DIR:-$ROOT_DIR/ops/config}"
-ROOT_TARGET_JAR_PATH="$ROOT_DIR/target/carbonet.jar"
 APP_TARGET_JAR_PATH="$ROOT_DIR/apps/carbonet-app/target/carbonet.jar"
-SOURCE_JAR_PATH="${SOURCE_JAR_PATH:-}"
+SOURCE_JAR_PATH="${SOURCE_JAR_PATH:-$APP_TARGET_JAR_PATH}"
 JAR_PATH="${JAR_PATH:-$RUN_DIR/carbonet-${PORT}.jar}"
 PID_FILE="$RUN_DIR/carbonet-${PORT}.pid"
 LOG_FILE="$LOG_DIR/carbonet-${PORT}.log"
@@ -41,14 +59,6 @@ load_optional_env() {
 load_optional_env "$CONFIG_DIR/carbonet-${PORT}.env"
 load_optional_env "$CONFIG_DIR/codex-runner.env"
 carbonet_set_curl_args
-
-if [[ -z "$SOURCE_JAR_PATH" ]]; then
-  if [[ -f "$ROOT_TARGET_JAR_PATH" ]]; then
-    SOURCE_JAR_PATH="$ROOT_TARGET_JAR_PATH"
-  else
-    SOURCE_JAR_PATH="$APP_TARGET_JAR_PATH"
-  fi
-fi
 
 require_env() {
   local env_name="$1"

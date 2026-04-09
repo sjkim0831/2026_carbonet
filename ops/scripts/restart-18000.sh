@@ -1,6 +1,25 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  cat <<'EOF'
+Usage:
+  bash ops/scripts/restart-18000.sh
+
+Purpose:
+  Run the canonical fresh restart line for :18000, or runtime-only restart
+  when RESTART_MODE=runtime-only.
+
+Canonical app jar:
+  apps/carbonet-app/target/carbonet.jar
+
+Related checks:
+  bash ops/scripts/run-large-move-app-closure.sh
+  bash ops/scripts/codex-verify-18000-freshness.sh
+EOF
+  exit 0
+fi
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 RESTART_MODE="${RESTART_MODE:-fresh}"
 
@@ -16,6 +35,6 @@ fi
 
 echo "[restart-18000] fresh restart started"
 (cd "$ROOT_DIR/frontend" && npm run build)
-(cd "$ROOT_DIR" && mvn -q -DskipTests package)
+(cd "$ROOT_DIR" && mvn -q -pl apps/carbonet-app -am -DskipTests package)
 bash "$ROOT_DIR/ops/scripts/restart-18000-runtime.sh"
 echo "[restart-18000] fresh restart completed"
