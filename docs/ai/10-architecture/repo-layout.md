@@ -14,6 +14,8 @@ This file explains which folders matter most for AI speed and which ones should 
   - canonical current-state answer when the task is about continuing builder resource ownership closure
 - `docs/architecture/builder-resource-ownership-queue-map.md`
   - shortest row-by-row execution queue for builder resource ownership closure
+- `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+  - same-turn maintenance contract for the live builder resource ownership entry pair
 
 Treat those two docs as the single live entry pair for
 `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`.

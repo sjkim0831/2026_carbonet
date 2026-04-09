@@ -2329,8 +2329,8 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         ));
         page.put("apis", Arrays.asList(
                 api("admin.batch-management.page", "배치 관리 화면 조회", "GET", "/admin/system/batch/page-data",
-                        "PlatformObservabilityPageDataController.batchPageApi", "PlatformObservabilityAdminPagePort.buildBatchManagementPagePayload",
-                        "PlatformObservabilityAdminPagePort.buildBatchManagementPagePayload",
+                        "PlatformObservabilityPageDataController.batchPageApi", "BatchManagementPagePayloadPort.buildBatchManagementPagePayload",
+                        "BatchManagementPagePayloadPort.buildBatchManagementPagePayload",
                         Arrays.asList("SNAPSHOT_CARD"),
                         Arrays.asList("batch-job-row-schema", "batch-queue-row-schema", "batch-node-row-schema", "batch-execution-row-schema"),
                         "스케줄러 원본 payload를 배치 운영 화면에 맞게 재구성합니다."),

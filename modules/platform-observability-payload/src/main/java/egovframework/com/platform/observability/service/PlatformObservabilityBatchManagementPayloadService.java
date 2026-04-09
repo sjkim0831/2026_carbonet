@@ -1,5 +1,6 @@
 package egovframework.com.platform.observability.service;
 
+import egovframework.com.platform.service.observability.BatchManagementPagePayloadPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -12,10 +13,11 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
-public class PlatformObservabilityBatchManagementPayloadService {
+public class PlatformObservabilityBatchManagementPayloadService implements BatchManagementPagePayloadPort {
 
     private final PlatformObservabilitySchedulerPayloadService schedulerPayloadService;
 
+    @Override
     public Map<String, Object> buildBatchManagementPagePayload(boolean isEn) {
         Map<String, Object> schedulerPayload = schedulerPayloadService.buildSchedulerPagePayload("", "", isEn);
         List<Map<String, String>> batchJobRows = buildBatchJobRows(castStringRowList(schedulerPayload.get("schedulerJobRows")), isEn);

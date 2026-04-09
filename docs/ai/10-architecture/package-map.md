@@ -12,6 +12,7 @@ For builder resource-ownership continuation questions, read:
 
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
+- `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
 
 before deciding which row-specific review card to open next.
 

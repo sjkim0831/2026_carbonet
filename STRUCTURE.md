@@ -14,10 +14,11 @@ When AI starts work, prefer this order:
 8. `docs/architecture/builder-structure-wave-20260409-closure.md` when the task is about builder structure closure, source-of-truth, or shim/delete rules
 9. `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md` when the task is about continuing builder resource ownership closure
 10. `docs/architecture/builder-resource-ownership-queue-map.md` when the task needs the shortest builder resource ownership row queue
-11. `/home/imaneya/workspace/화면설계/1. main_home_menu_designed.html`
-12. `/home/imaneya/workspace/화면설계/2. main_home_menu.html`
-13. `/home/imaneya/workspace/화면설계/3. admin_menu_dashboard.html`
-14. `/home/imaneya/workspace/화면설계/4. requirements_gap_dashboard.html`
+11. `docs/architecture/builder-resource-entry-pair-maintenance-contract.md` when the task changes live builder resource ownership continuation state
+12. `/home/imaneya/workspace/화면설계/1. main_home_menu_designed.html`
+13. `/home/imaneya/workspace/화면설계/2. main_home_menu.html`
+14. `/home/imaneya/workspace/화면설계/3. admin_menu_dashboard.html`
+15. `/home/imaneya/workspace/화면설계/4. requirements_gap_dashboard.html`
 
 Avoid spending time in `target/`, `frontend/node_modules/`, and `var/logs/` unless the task is specifically about runtime output or build artifacts.
 
