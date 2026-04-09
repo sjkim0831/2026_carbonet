@@ -1,22 +1,10 @@
 import { getRuntimeLocale } from "../../lib/navigation/runtime";
+import { createRuntimePathRegistry, normalizeComparablePath } from "../../framework/routes/runtimePathRegistry";
 import { resolvePlatformSpecialCasePage } from "../../platform/routes/families/platformRuntimeRules";
-import { MigrationPageId, ROUTES, getRouteDefinition, normalizeRouteId, normalizeRouteLookupPath } from "./definitions";
-import { appRouteAliases, appSpecialCasePages, reactShellPaths } from "./appRuntimeRules";
+import { MigrationPageId, ROUTES, getRouteDefinition, normalizeRouteId } from "./definitions";
+import { appRouteAliases, reactShellPaths, resolveAppRouteFallback, resolveAppSpecialCasePage } from "./appRoutePolicies";
 
-const routeByComparablePath = new Map<string, MigrationPageId>();
-
-ROUTES.forEach((entry) => {
-  routeByComparablePath.set(normalizeComparablePath(entry.koPath), entry.id);
-  routeByComparablePath.set(normalizeComparablePath(entry.enPath), entry.id);
-});
-
-appRouteAliases.forEach(([path, pageId]) => {
-  routeByComparablePath.set(normalizeComparablePath(path), pageId);
-});
-
-export function normalizeComparablePath(value: string): string {
-  return normalizeRouteLookupPath(value);
-}
+const runtimePathRegistry = createRuntimePathRegistry(ROUTES, appRouteAliases);
 
 export function isReactShellPath(pathname: string): boolean {
   return reactShellPaths.has(normalizeComparablePath(pathname));
@@ -28,7 +16,7 @@ function resolveKoComparablePath(pathname: string): string {
 
 function resolveSpecialCasePage(pathname: string): MigrationPageId | null {
   const normalizedKoPath = resolveKoComparablePath(pathname);
-  return resolvePlatformSpecialCasePage(normalizedKoPath) || appSpecialCasePages.get(normalizedKoPath) || null;
+  return resolvePlatformSpecialCasePage(normalizedKoPath) || resolveAppSpecialCasePage(normalizedKoPath);
 }
 
 export function isReactManagedPath(pathname: string): boolean {
@@ -40,7 +28,7 @@ export function isReactManagedPath(pathname: string): boolean {
   if (resolveSpecialCasePage(koComparable)) {
     return true;
   }
-  return routeByComparablePath.has(koComparable) || routeByComparablePath.has(normalizedPath);
+  return runtimePathRegistry.hasPath(koComparable) || runtimePathRegistry.hasPath(normalizedPath);
 }
 
 export function resolveCanonicalRuntimePath(): string {
@@ -75,15 +63,11 @@ export function resolvePageFromPath(pathname: string, search = ""): MigrationPag
     return specialCasePage;
   }
   const normalizedKoPath = resolveKoComparablePath(pathname);
-  const matched = routeByComparablePath.get(normalizedKoPath) || routeByComparablePath.get(normalizedCurrentPath);
+  const matched = runtimePathRegistry.getByPath(normalizedKoPath) || runtimePathRegistry.getByPath(normalizedCurrentPath);
   if (matched) {
     return matched;
   }
-  const nextUrl = `${pathname}${search}`;
-  if (nextUrl.startsWith("/admin") || nextUrl.startsWith("/en/admin")) {
-    return "admin-home";
-  }
-  return "home";
+  return resolveAppRouteFallback(`${pathname}${search}`);
 }
 
 export function parseLocationState(locationState: string) {

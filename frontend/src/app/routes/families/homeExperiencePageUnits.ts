@@ -1,0 +1,32 @@
+import type { LazyPageUnit } from "../../../framework/routes/pageUnitTypes";
+
+export const HOME_EXPERIENCE_PAGE_UNITS: LazyPageUnit[] = [
+  { id: "edu-course-list", exportName: "EduCourseListMigrationPage", loader: () => import("../../../features/edu-course-list/EduCourseListMigrationPage") },
+  { id: "edu-my-course", exportName: "EduMyCourseMigrationPage", loader: () => import("../../../features/edu-my-course/EduMyCourseMigrationPage") },
+  { id: "edu-progress", exportName: "EduProgressMigrationPage", loader: () => import("../../../features/edu-progress/EduProgressMigrationPage") },
+  { id: "edu-content", exportName: "EduContentMigrationPage", loader: () => import("../../../features/edu-content/EduContentMigrationPage") },
+  { id: "edu-course-detail", exportName: "EduCourseDetailMigrationPage", loader: () => import("../../../features/edu-course-detail/EduCourseDetailMigrationPage") },
+  { id: "edu-apply", exportName: "EduApplyMigrationPage", loader: () => import("../../../features/edu-apply/EduApplyMigrationPage") },
+  { id: "edu-survey", exportName: "EduSurveyMigrationPage", loader: () => import("../../../features/edu-survey/EduSurveyMigrationPage") },
+  { id: "edu-certificate", exportName: "EduCertificateMigrationPage", loader: () => import("../../../features/edu-certificate/EduCertificateMigrationPage") },
+  { id: "join-company-register", exportName: "JoinCompanyRegisterMigrationPage", loader: () => import("../../../features/join-company-register/JoinCompanyRegisterMigrationPage") },
+  { id: "join-company-register-complete", exportName: "JoinCompanyRegisterCompleteMigrationPage", loader: () => import("../../../features/join-company-register/JoinCompanyRegisterCompleteMigrationPage") },
+  { id: "join-company-reapply", exportName: "JoinCompanyReapplyMigrationPage", loader: () => import("../../../features/join-company-reapply/JoinCompanyReapplyMigrationPage") },
+  { id: "my-inquiry", exportName: "MyInquiryMigrationPage", loader: () => import("../../../features/my-inquiry/MyInquiryMigrationPage") },
+  { id: "mtn-status", exportName: "MtnStatusMigrationPage", loader: () => import("../../../features/mtn-status/MtnStatusMigrationPage") },
+  { id: "mtn-version", exportName: "VersionManagementMigrationPage", loader: () => import("../../../features/version-management") },
+  { id: "support-faq", exportName: "SupportFaqMigrationPage", loader: () => import("../../../features/support-faq/SupportFaqMigrationPage") },
+  { id: "support-inquiry", exportName: "SupportInquiryMigrationPage", loader: () => import("../../../features/support-inquiry/SupportInquiryMigrationPage") },
+  { id: "join-wizard", exportName: "JoinWizardMigrationPage", loader: () => import("../../../features/join-wizard/JoinWizardMigrationPage") },
+  { id: "join-terms", exportName: "JoinTermsMigrationPage", loader: () => import("../../../features/join-wizard/JoinTermsMigrationPage") },
+  { id: "join-auth", exportName: "JoinAuthMigrationPage", loader: () => import("../../../features/join-wizard/JoinAuthMigrationPage") },
+  { id: "join-info", exportName: "JoinInfoMigrationPage", loader: () => import("../../../features/join-wizard/JoinInfoMigrationPage") },
+  { id: "join-complete", exportName: "JoinCompleteMigrationPage", loader: () => import("../../../features/join-wizard/JoinCompleteMigrationPage") },
+  { id: "mypage", exportName: "MypageMigrationPage", loader: () => import("../../../features/mypage/MypageMigrationPage") },
+  { id: "mypage-email", exportName: "MypageEmailMigrationPage", loader: () => import("../../../features/mypage-email/MypageEmailMigrationPage") },
+  { id: "mypage-notification", exportName: "MypageNotificationMigrationPage", loader: () => import("../../../features/mypage/MypageNotificationMigrationPage") },
+  { id: "mypage-marketing", exportName: "MypageMarketingMigrationPage", loader: () => import("../../../features/mypage/MypageMarketingMigrationPage") },
+  { id: "mypage-company", exportName: "MypageCompanyMigrationPage", loader: () => import("../../../features/mypage-company/MypageCompanyMigrationPage") },
+  { id: "mypage-password", exportName: "MypagePasswordMigrationPage", loader: () => import("../../../features/mypage-password/MypagePasswordMigrationPage") },
+  { id: "mypage-staff", exportName: "MypageStaffMigrationPage", loader: () => import("../../../features/mypage-staff/MypageStaffMigrationPage") }
+];

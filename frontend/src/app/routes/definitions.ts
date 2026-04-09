@@ -1,7 +1,10 @@
 import type { RouteUnitDefinition } from "../../framework/routes/pageUnitTypes";
-import { createRouteDefinitionRegistry, normalizeRouteLookupPath } from "../../framework/routes/routeDefinitionRegistry";
+import { createRouteDefinitionRegistry, createRouteIdNormalizer, normalizeRouteLookupPath } from "../../framework/routes/routeDefinitionRegistry";
+import { resolveAppRouteIdAlias } from "./appRoutePolicies";
 import type { AllRouteId } from "./families/allRouteDefinitionFamilies";
 import { ALL_ROUTE_DEFINITIONS } from "./families/allRouteDefinitionFamilies";
+
+export { normalizeRouteLookupPath };
 
 export type MigrationPageId = AllRouteId;
 
@@ -9,6 +12,7 @@ export type RouteDefinition = RouteUnitDefinition<MigrationPageId>;
 
 export const ROUTES: RouteDefinition[] = [...ALL_ROUTE_DEFINITIONS];
 const routeRegistry = createRouteDefinitionRegistry(ROUTES);
+const normalizeRouteIdValue = createRouteIdNormalizer<MigrationPageId>(routeRegistry.hasId, resolveAppRouteIdAlias);
 
 export function getRouteDefinition(value: string | null | undefined): RouteDefinition | null {
   return routeRegistry.getById(value);
@@ -19,12 +23,5 @@ export function findRouteDefinitionByPath(path: string): RouteDefinition | null 
 }
 
 export function normalizeRouteId(value: string | null | undefined): MigrationPageId | "" {
-  if (!value) {
-    return "";
-  }
-  const normalized = value.trim().replace(/_/g, "-");
-  if (normalized === "codex-provision") {
-    return "codex-request";
-  }
-  return routeRegistry.hasId(normalized) ? normalized as MigrationPageId : "";
+  return normalizeRouteIdValue(value);
 }

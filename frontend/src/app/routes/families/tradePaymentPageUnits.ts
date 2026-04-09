@@ -1,0 +1,33 @@
+import type { LazyPageUnit } from "../../../framework/routes/pageUnitTypes";
+
+export const TRADE_PAYMENT_PAGE_UNITS: LazyPageUnit[] = [
+  { id: "trade-list", exportName: "TradeListMigrationPage", loader: () => import("../../../features/trade-list/TradeListMigrationPage") },
+  { id: "trade-market", exportName: "TradeMarketMigrationPage", loader: () => import("../../../features/trade-market/TradeMarketMigrationPage") },
+  { id: "trade-report", exportName: "TradeReportMigrationPage", loader: () => import("../../../features/trade-report/TradeReportMigrationPage") },
+  { id: "trade-statistics", exportName: "TradeStatisticsMigrationPage", loader: () => import("../../../features/trade-statistics/TradeStatisticsMigrationPage") },
+  { id: "refund-list", exportName: "RefundListMigrationPage", loader: () => import("../../../features/refund-list/RefundListMigrationPage") },
+  { id: "settlement-calendar", exportName: "SettlementCalendarMigrationPage", loader: () => import("../../../features/settlement-calendar/SettlementCalendarMigrationPage") },
+  { id: "trade-duplicate", exportName: "TradeDuplicateMigrationPage", loader: () => import("../../../features/trade-duplicate/TradeDuplicateMigrationPage") },
+  { id: "trade-approve", exportName: "TradeApproveMigrationPage", loader: () => import("../../../features/trade-approve/TradeApproveMigrationPage") },
+  { id: "trade-reject", exportName: "TradeRejectMigrationPage", loader: () => import("../../../features/trade-reject/TradeRejectMigrationPage") },
+  { id: "refund-process", exportName: "RefundProcessMigrationPage", loader: () => import("../../../features/refund-process/RefundProcessMigrationPage") },
+  { id: "certificate-review", exportName: "CertificateReviewMigrationPage", loader: () => import("../../../features/certificate-review/CertificateReviewMigrationPage") },
+  { id: "certificate-statistics", exportName: "CertificateStatisticsMigrationPage", loader: () => import("../../../features/certificate-statistics/CertificateStatisticsMigrationPage") },
+  { id: "trade-buy-request", exportName: "TradeBuyRequestMigrationPage", loader: () => import("../../../features/trade-buy-request/TradeBuyRequestMigrationPage") },
+  { id: "trade-complete", exportName: "TradeCompleteMigrationPage", loader: () => import("../../../features/trade-complete/TradeCompleteMigrationPage") },
+  { id: "trade-auto-order", exportName: "TradeAutoOrderMigrationPage", loader: () => import("../../../features/trade-auto-order/TradeAutoOrderMigrationPage") },
+  { id: "trade-sell", exportName: "TradeSellMigrationPage", loader: () => import("../../../features/trade-sell/TradeSellMigrationPage") },
+  { id: "trade-price-alert", exportName: "TradePriceAlertMigrationPage", loader: () => import("../../../features/trade-price-alert/TradePriceAlertMigrationPage") },
+  { id: "payment-pay", exportName: "PaymentPayMigrationPage", loader: () => import("../../../features/payment-pay/PaymentPayMigrationPage") },
+  { id: "payment-virtual-account", exportName: "PaymentVirtualAccountMigrationPage", loader: () => import("../../../features/payment-virtual-account/PaymentVirtualAccountMigrationPage") },
+  { id: "payment-refund", exportName: "PaymentRefundMigrationPage", loader: () => import("../../../features/payment-refund/PaymentRefundMigrationPage") },
+  { id: "payment-refund-account", exportName: "PaymentRefundAccountMigrationPage", loader: () => import("../../../features/payment-refund-account/PaymentRefundAccountMigrationPage") },
+  { id: "payment-notify", exportName: "PaymentNotifyMigrationPage", loader: () => import("../../../features/payment-notify/PaymentNotifyMigrationPage") },
+  { id: "payment-receipt", exportName: "PaymentReceiptMigrationPage", loader: () => import("../../../features/payment-receipt/PaymentReceiptMigrationPage") },
+  { id: "certificate-list", exportName: "CertificateListMigrationPage", loader: () => import("../../../features/certificate-list/CertificateListMigrationPage") },
+  { id: "certificate-apply", exportName: "CertificateApplyMigrationPage", loader: () => import("../../../features/certificate-apply/CertificateApplyMigrationPage") },
+  { id: "certificate-report-list", exportName: "CertificateReportListMigrationPage", loader: () => import("../../../features/certificate-report-list/CertificateReportListMigrationPage") },
+  { id: "certificate-report-form", exportName: "CertificateReportFormMigrationPage", loader: () => import("../../../features/certificate-report-form/CertificateReportFormMigrationPage") },
+  { id: "certificate-report-edit", exportName: "CertificateReportEditMigrationPage", loader: () => import("../../../features/certificate-report-edit/CertificateReportEditMigrationPage") },
+  { id: "payment-history", exportName: "PaymentHistoryMigrationPage", loader: () => import("../../../features/payment-history/PaymentHistoryMigrationPage") }
+];
