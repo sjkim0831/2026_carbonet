@@ -97,7 +97,8 @@
                     <exclude>egovframework/mapper/com/framework/builder/runtime/FrameworkBuilderObservabilityMapper.xml</exclude>
                     <exclude>egovframework/mapper/com/common/UiObservabilityRegistryMapper.xml</exclude>
                     <exclude>egovframework/mapper/com/common/HelpContentMapper.xml</exclude>
-                    <exclude>egovframework/mapper/com/platform/versioncontrol/ProjectVersionManagementMapper.xml</exclude>
+                    <exclude>egovframework/mapper/com/platform/versioncontrol/**</exclude>
+                    <exclude>egovframework/mapper/com/platform/runtimecontrol/**</exclude>
                     <exclude>help/page-help.json</exclude>
                 </excludes>
             </resource>
