@@ -4,12 +4,12 @@ import {
   SESSION_STORAGE_CACHE_PREFIX,
   writeSessionStorageCache
 } from "./pageCache";
+import type { BootstrappedHomePayload } from "./appBootstrapTypes";
 import type {
   AdminHomePagePayload,
   AuthChangePagePayload,
   AuthGroupPagePayload,
   BackupConfigPagePayload,
-  BootstrappedHomePayload,
   CertificateAuditLogPagePayload,
   CertificateRecCheckPagePayload,
   CertificateReviewPagePayload,

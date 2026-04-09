@@ -1,7 +1,7 @@
 package egovframework.com.feature.admin.web;
 
 import egovframework.com.common.help.HelpManagementSaveRequest;
-import egovframework.com.platform.help.web.HelpManagementApiController;
+import egovframework.com.platform.service.help.PlatformHelpManagementPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -24,7 +24,7 @@ import java.util.Map;
 public class AdminHelpManagementController {
 
     private final AdminReactRouteSupport adminReactRouteSupport;
-    private final HelpManagementApiController platformHelpManagementApiController;
+    private final PlatformHelpManagementPort platformHelpManagementPort;
 
     @RequestMapping(value = "/system/help-management", method = RequestMethod.GET)
     public String helpManagementPage(HttpServletRequest request, Locale locale, Model model) {
@@ -35,14 +35,14 @@ public class AdminHelpManagementController {
     @ResponseBody
     public ResponseEntity<Map<String, Object>> getHelpPage(
             @RequestParam(value = "pageId", required = false) String pageId) {
-        return platformHelpManagementApiController.getHelpPage(pageId);
+        return platformHelpManagementPort.getHelpPage(pageId);
     }
 
     @GetMapping("/api/admin/help-management/screen-command/page")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> getScreenCommandPage(
             @RequestParam(value = "pageId", required = false) String pageId) throws Exception {
-        return platformHelpManagementApiController.getScreenCommandPage(pageId);
+        return platformHelpManagementPort.getScreenCommandPage(pageId);
     }
 
     @PostMapping("/api/admin/help-management/save")
@@ -50,7 +50,7 @@ public class AdminHelpManagementController {
     public ResponseEntity<Map<String, Object>> saveHelpPage(
             @RequestBody HelpManagementSaveRequest request,
             HttpServletRequest httpServletRequest) {
-        return platformHelpManagementApiController.saveHelpPage(request, httpServletRequest);
+        return platformHelpManagementPort.saveHelpPage(request, httpServletRequest);
     }
 
     @PostMapping("/api/admin/help-management/screen-command/map-menu")
@@ -58,6 +58,6 @@ public class AdminHelpManagementController {
     public ResponseEntity<Map<String, Object>> saveScreenCommandMenuMapping(
             @RequestBody Map<String, Object> requestBody,
             HttpServletRequest httpServletRequest) throws Exception {
-        return platformHelpManagementApiController.saveScreenCommandMenuMapping(requestBody, httpServletRequest);
+        return platformHelpManagementPort.saveScreenCommandMenuMapping(requestBody, httpServletRequest);
     }
 }

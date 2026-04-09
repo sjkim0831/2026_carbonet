@@ -10,7 +10,7 @@ import egovframework.com.platform.codex.model.CodexExecutionHistoryResponse;
 import egovframework.com.platform.codex.model.CodexProvisionResponse;
 import egovframework.com.platform.codex.service.CodexExecutionAdminPort;
 import egovframework.com.platform.request.codex.CodexProvisionRequest;
-import egovframework.com.platform.workbench.service.SrTicketWorkbenchService;
+import egovframework.com.platform.service.workbench.SrTicketWorkbenchPort;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,7 +51,7 @@ public class CodexProvisionAdminApiController {
     private String configuredApiKey;
 
     private final CodexExecutionAdminPort codexExecutionAdminService;
-    private final SrTicketWorkbenchService srTicketWorkbenchService;
+    private final SrTicketWorkbenchPort srTicketWorkbenchService;
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthGroupManageService authGroupManageService;
     private final EmployeeMemberRepository employeeMemberRepository;

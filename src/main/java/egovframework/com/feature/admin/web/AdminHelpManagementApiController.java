@@ -1,7 +1,7 @@
 package egovframework.com.feature.admin.web;
 
 import egovframework.com.common.help.HelpManagementSaveRequest;
-import egovframework.com.platform.help.web.HelpManagementApiController;
+import egovframework.com.platform.service.help.PlatformHelpManagementPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,24 +19,24 @@ import java.util.Map;
 @RequestMapping("/api/admin/help-management")
 public class AdminHelpManagementApiController {
 
-    private final HelpManagementApiController platformHelpManagementApiController;
+    private final PlatformHelpManagementPort platformHelpManagementPort;
 
     @GetMapping("/page")
     public ResponseEntity<Map<String, Object>> getHelpPage(
             @RequestParam(value = "pageId", required = false) String pageId) {
-        return platformHelpManagementApiController.getHelpPage(pageId);
+        return platformHelpManagementPort.getHelpPage(pageId);
     }
 
     @GetMapping("/screen-command/page")
     public ResponseEntity<Map<String, Object>> getScreenCommandPage(
             @RequestParam(value = "pageId", required = false) String pageId) throws Exception {
-        return platformHelpManagementApiController.getScreenCommandPage(pageId);
+        return platformHelpManagementPort.getScreenCommandPage(pageId);
     }
 
     @PostMapping("/save")
     public ResponseEntity<Map<String, Object>> saveHelpPage(
             @RequestBody HelpManagementSaveRequest request,
             HttpServletRequest httpServletRequest) {
-        return platformHelpManagementApiController.saveHelpPage(request, httpServletRequest);
+        return platformHelpManagementPort.saveHelpPage(request, httpServletRequest);
     }
 }

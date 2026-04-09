@@ -36,11 +36,10 @@ import * as tradeApi from "./trade";
 import type {
   AdminMenuPlaceholderPagePayload,
   BootstrappedHomePayload,
-  CertificateAuditLogPagePayload,
   HomeMenuPlaceholderPagePayload,
-  MypagePayload,
   SitemapPagePayload
-} from "./client";
+} from "./appBootstrapTypes";
+import type { CertificateAuditLogPagePayload, MypagePayload } from "./client";
 
 const SESSION_CACHE_TTL_MS = 5 * 60 * 1000;
 

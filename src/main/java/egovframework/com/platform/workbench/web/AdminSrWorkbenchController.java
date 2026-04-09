@@ -5,7 +5,7 @@ import egovframework.com.platform.request.workbench.SrTicketApprovalRequest;
 import egovframework.com.platform.request.workbench.SrTicketCreateRequest;
 import egovframework.com.platform.request.workbench.SrTicketExecuteRequest;
 import egovframework.com.platform.request.workbench.SrWorkbenchStackItemCreateRequest;
-import egovframework.com.platform.workbench.service.SrTicketWorkbenchService;
+import egovframework.com.platform.service.workbench.SrTicketWorkbenchPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.ResponseEntity;
@@ -30,7 +30,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AdminSrWorkbenchController {
 
-    private final SrTicketWorkbenchService srTicketWorkbenchService;
+    private final SrTicketWorkbenchPort srTicketWorkbenchService;
     private final ObjectProvider<ReactAppViewSupport> reactAppViewSupportProvider;
 
     @RequestMapping(value = "/system/sr-workbench", method = RequestMethod.GET)

@@ -1,5 +1,12 @@
 import * as adminShellApi from "./adminShell";
 import * as appBootstrapApi from "./appBootstrap";
+export type {
+  AdminMenuPlaceholderPagePayload,
+  BootstrappedHomePayload,
+  HomeMenuPlaceholderPagePayload,
+  SitemapNode,
+  SitemapPagePayload
+} from "./appBootstrapTypes";
 import type {
   AdminMenuTreePayload,
   AdminSessionSimulationPayload,
@@ -46,26 +53,6 @@ export {
   saveExternalConnection
 } from "./ops";
 export { createIpWhitelistRequest, restoreBackupConfigVersion, runBackupExecution } from "./ops";
-
-export type BootstrappedHomePayload = {
-  isLoggedIn: boolean;
-  isEn: boolean;
-  homeMenu: Array<Record<string, unknown>>;
-};
-
-export type SitemapNode = {
-  code?: string;
-  label?: string;
-  url?: string;
-  icon?: string;
-  children?: SitemapNode[];
-};
-
-export type SitemapPagePayload = {
-  isEn?: boolean;
-  isLoggedIn?: boolean;
-  siteMapSections?: SitemapNode[];
-};
 
 export type TagManagementPagePayload = Record<string, unknown> & {
   isEn?: boolean;
@@ -419,19 +406,6 @@ export type FaqSaveResponse = Record<string, unknown> & {
   message?: string;
   faq?: Record<string, string>;
 };
-
-export type HomeMenuPlaceholderPagePayload = {
-  placeholderTitle?: string;
-  placeholderTitleEn?: string;
-  placeholderCode?: string;
-  placeholderUrl?: string;
-  placeholderIcon?: string;
-  placeholderDescription?: string;
-  isLoggedIn?: boolean;
-  isEn?: boolean;
-};
-
-export type AdminMenuPlaceholderPagePayload = HomeMenuPlaceholderPagePayload;
 
 export type AuthGroupOption = {
   code: string;

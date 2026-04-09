@@ -1,5 +1,6 @@
 import { buildLocalizedPath } from "../navigation/runtime";
 import { apiFetch, buildResilientCsrfHeaders, readJsonResponse } from "./core";
+import type { SitemapPagePayload } from "./appBootstrapTypes";
 import type {
   BannerEditPagePayload,
   BannerManagementPagePayload,
@@ -18,8 +19,7 @@ import type {
   PostManagementPagePayload,
   QnaCategoryPagePayload,
   QnaCategorySavePayload,
-  TagManagementPagePayload,
-  SitemapPagePayload
+  TagManagementPagePayload
 } from "./client";
 
 function buildQueryString(params?: Record<string, string | number | boolean | null | undefined>): string {
