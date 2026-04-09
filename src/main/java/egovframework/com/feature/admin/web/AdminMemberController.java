@@ -5,7 +5,7 @@ import egovframework.com.feature.admin.dto.request.AdminMemberEditSaveRequestDTO
 import egovframework.com.feature.admin.dto.request.AdminMemberRegisterSaveRequestDTO;
 import egovframework.com.feature.admin.dto.request.AdminPermissionSaveRequestDTO;
 import egovframework.com.feature.member.dto.response.CompanySearchResponseDTO;
-import egovframework.com.platform.observability.service.PlatformObservabilityAdminPageFacade;
+import egovframework.com.platform.service.observability.PlatformObservabilityAdminPagePort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.web.csrf.CsrfToken;
@@ -34,7 +34,7 @@ public class AdminMemberController {
 
     private final AdminReactRouteSupport adminReactRouteSupport;
     private final AdminMainController adminMainController;
-    private final PlatformObservabilityAdminPageFacade platformObservabilityAdminPageFacade;
+    private final PlatformObservabilityAdminPagePort platformObservabilityAdminPagePort;
 
     @RequestMapping(value = "/member/stats", method = { RequestMethod.GET, RequestMethod.POST })
     public String memberStatsPage(HttpServletRequest request, Locale locale) {
@@ -192,7 +192,7 @@ public class AdminMemberController {
             HttpServletRequest request,
             Locale locale) {
         primeCsrfToken(request);
-        return ResponseEntity.ok(platformObservabilityAdminPageFacade.buildSecurityHistoryPagePayload(
+        return ResponseEntity.ok(platformObservabilityAdminPagePort.buildSecurityHistoryPagePayload(
                 pageIndexParam,
                 searchKeyword,
                 userSe,

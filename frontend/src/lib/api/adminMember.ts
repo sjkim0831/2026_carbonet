@@ -128,6 +128,13 @@ export async function fetchMemberEditPage(memberId: string, options?: { updated?
   });
 }
 
+export async function checkMemberRegisterId(memberId: string) {
+  return checkIdentifierAvailability(
+    `${buildAdminApiPath("/api/admin/member/register/check-id")}?memberId=${encodeURIComponent(memberId)}`,
+    "Failed to check member ID"
+  );
+}
+
 export async function fetchAdminPermissionPage(emplyrId: string, options?: { updated?: string; mode?: string }) {
   const search = new URLSearchParams();
   search.set("emplyrId", emplyrId);

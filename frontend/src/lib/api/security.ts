@@ -4,6 +4,7 @@ import type {
   AccessHistoryPagePayload,
   BlocklistPagePayload,
   ErrorLogPagePayload,
+  IpWhitelistPagePayload,
   LoginHistoryPagePayload,
   MenuPermissionAutoCleanupResponse,
   SecurityAuditPagePayload,
@@ -70,6 +71,28 @@ export async function fetchErrorLogPage(params?: { pageIndex?: number; searchKey
   const body = await readJsonResponse<ErrorLogPagePayload>(response);
   if (!response.ok) {
     throw new Error(String(body.errorLogError || `Failed to load error log page: ${response.status}`));
+  }
+  return body;
+}
+
+export async function fetchIpWhitelistPage(params?: { searchIp?: string; accessScope?: string; status?: string; }) {
+  const response = await apiFetch(`${buildLocalizedPath("/admin/system/ip_whitelist/page-data", "/en/admin/system/ip_whitelist/page-data")}${buildQueryString(params)}`, {
+    credentials: "include"
+  });
+  const body = await readJsonResponse<IpWhitelistPagePayload>(response);
+  if (!response.ok) {
+    throw new Error(`Failed to load IP whitelist page: ${response.status}`);
+  }
+  return body;
+}
+
+export async function decideIpWhitelistRequest(payload: Record<string, unknown>) {
+  const body = await postAdminJson<{ success?: boolean; message?: string; requestId?: string } & Record<string, unknown>>(
+    "/api/admin/system/ip-whitelist/request-decision",
+    payload || {}
+  );
+  if (body.success === false) {
+    throw new Error(String(body.message || "Failed to process IP whitelist request"));
   }
   return body;
 }
