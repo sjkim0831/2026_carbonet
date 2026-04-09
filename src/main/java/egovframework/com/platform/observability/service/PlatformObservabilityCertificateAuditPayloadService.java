@@ -3,6 +3,7 @@ package egovframework.com.platform.observability.service;
 import egovframework.com.common.audit.AuditEventRecordVO;
 import egovframework.com.common.audit.AuditEventSearchVO;
 import egovframework.com.feature.admin.web.AdminCertificateApprovalService;
+import egovframework.com.platform.service.observability.CertificateAuditLogPageDataPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -20,7 +21,7 @@ import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
-public class PlatformObservabilityCertificateAuditPayloadService {
+public class PlatformObservabilityCertificateAuditPayloadService implements CertificateAuditLogPageDataPort {
 
     private static final int CERTIFICATE_AUDIT_LOG_PAGE_SIZE = 10;
     private static final int CERTIFICATE_AUDIT_LOG_FETCH_SIZE = 200;
@@ -125,6 +126,21 @@ public class PlatformObservabilityCertificateAuditPayloadService {
         payload.put("certificateAuditAlerts", buildCertificateAuditAlerts(filteredRows, isEn));
         payload.put("certificateAuditRows", pagedRows);
         return payload;
+    }
+
+    @Override
+    public Map<String, Object> buildCertificateAuditLogPageData(String pageIndexParam, String searchKeyword, String auditType,
+                                                                String status, String certificateType, String startDate,
+                                                                String endDate, boolean isEn) {
+        return buildCertificateAuditLogPagePayload(
+                pageIndexParam,
+                searchKeyword,
+                auditType,
+                status,
+                certificateType,
+                startDate,
+                endDate,
+                isEn);
     }
 
     private Map<String, String> metricRow(String label, String value, String description) {
