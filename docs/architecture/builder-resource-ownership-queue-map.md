@@ -14,6 +14,10 @@ this is the single live entry pair for `BUILDER_RESOURCE_OWNERSHIP_CLOSURE`.
 
 ## Pair Maintenance Contract
 
+Reference:
+
+- `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
+
 When one of these changes:
 
 - active row

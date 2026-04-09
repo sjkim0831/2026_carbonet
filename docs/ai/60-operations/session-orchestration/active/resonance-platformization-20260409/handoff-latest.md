@@ -42,6 +42,10 @@ Most recent direct-coupling and compatibility-shim reductions already completed:
 
 - `feature/admin` observability entry points now use `PlatformObservabilityAdminPagePort`
 - `AdminSessionSimulationService` is now further narrowed to `PlatformObservabilityCompanyScopePort`
+- `AdminMainController` access-history company-option helpers are now also narrowed to `PlatformObservabilityCompanyScopePort`
+- `AdminMemberController` security-history page data is now narrowed to `PlatformObservabilityHistoryPagePayloadPort`
+- `AdminShellBootstrapPageService` external-monitoring and certificate-audit bootstrap payloads are now narrowed to `ExternalMonitoringPayloadPort` and `CertificateAuditLogPageDataPort`
+- certificate-audit page-data no longer routes back through a reverse bridge into `AdminShellBootstrapPageService`
 - admin-facing help API aliases now terminate directly in `platform-help` `HelpManagementApiController`
 - `feature/admin` help ownership is now reduced to the page-forwarding shim for `/admin/system/help-management`
 - `feature/admin` self-healing and safe-plan workbench entry points now use `SrTicketWorkbenchPort`
@@ -51,6 +55,7 @@ Most recent direct-coupling and compatibility-shim reductions already completed:
 Current narrow remainder:
 
 - remaining `feature/admin` dependence is now at contract-interface and composition ownership level, not direct platform service/web type imports
+- remaining `feature/admin` observability references are now narrowed contract ports plus metadata strings in `ScreenCommandCenterServiceImpl`
 
 Do not reopen the app-closure owner slice unless one of these changes again:
 
@@ -63,6 +68,7 @@ Builder-family next kickoff:
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-kickoff.md`
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
+- `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-partial-closeout-example.md` for the first provisional handoff shape on rows `1` and `2`
 
 For active continuation, treat these as the single live entry pair:

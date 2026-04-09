@@ -165,6 +165,10 @@ Completed:
 - platform observability backup action contracts now use platform-owned request DTOs, with legacy admin DTO conversion isolated in the delegate bridge
 - `feature/admin` observability composition now consumes `PlatformObservabilityAdminPagePort` instead of the concrete `PlatformObservabilityAdminPageFacade` in the remaining admin entry points that still assemble control-plane payloads
 - `AdminSessionSimulationService` now consumes the narrower `PlatformObservabilityCompanyScopePort` instead of the broader observability page-facade port because it only needs scoped company-option resolution
+- `AdminMainController` now also uses `PlatformObservabilityCompanyScopePort` for access-history company-option helpers instead of the broader observability page-facade port
+- `AdminMemberController` now consumes a dedicated `PlatformObservabilityHistoryPagePayloadPort` for member security-history page data instead of the broader observability page-facade port
+- `AdminShellBootstrapPageService` now consumes `ExternalMonitoringPayloadPort` and `CertificateAuditLogPageDataPort` instead of the broader observability page-facade port
+- certificate-audit page-data ownership is now implemented directly by `PlatformObservabilityCertificateAuditPayloadService`, so the old reverse bridge back into `AdminShellBootstrapPageService` is removed
 - admin-facing help API aliases now terminate directly in `platform-help` `HelpManagementApiController`, so `feature/admin` only keeps the page-forwarding shim for `/admin/system/help-management`
 - `feature/admin` self-healing and safe-plan workbench entry points now consume `SrTicketWorkbenchPort` instead of directly depending on the workbench service type
 - `feature/admin` authority payload support now consumes `PlatformObservabilityAuditQueryPort` instead of directly depending on the observability query service type

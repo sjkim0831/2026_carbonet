@@ -12,6 +12,7 @@ For this family, always resume from:
 
 1. `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 2. `docs/architecture/builder-resource-ownership-queue-map.md`
+3. `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
 
 Do not start from review cards or partial examples unless this entry pair already points you there.
 Treat this entry pair as the `single live entry pair` for the active family.
@@ -33,21 +34,21 @@ Source-of-truth set for that prerequisite:
 
 1. `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 2. `docs/architecture/builder-resource-ownership-queue-map.md`
-3. `docs/architecture/builder-resource-ownership-owner-checklist.md`
-4. `docs/architecture/builder-resource-ownership-status-tracker.md`
-5. `docs/architecture/builder-resource-ownership-closure-plan.md`
-6. `docs/architecture/builder-resource-ownership-matrix.md`
-7. `docs/architecture/builder-resource-ownership-priority-board.md`
-8. `docs/architecture/screenbuilder-module-source-inventory.md`
-9. `docs/architecture/screenbuilder-multimodule-cutover-plan.md`
-10. one matching start-now review card:
+4. `docs/architecture/builder-resource-ownership-owner-checklist.md`
+5. `docs/architecture/builder-resource-ownership-status-tracker.md`
+6. `docs/architecture/builder-resource-ownership-closure-plan.md`
+7. `docs/architecture/builder-resource-ownership-matrix.md`
+8. `docs/architecture/builder-resource-ownership-priority-board.md`
+9. `docs/architecture/screenbuilder-module-source-inventory.md`
+10. `docs/architecture/screenbuilder-multimodule-cutover-plan.md`
+11. one matching start-now review card:
    - `docs/architecture/builder-resource-review-framework-builder-compatibility-xml.md`
    - `docs/architecture/builder-resource-review-framework-contract-metadata.md`
-11. for the next review-next family:
+12. for the next review-next family:
    - `docs/architecture/builder-resource-review-builder-observability.md`
-12. for the app-packaging exclusion family after row `3`:
+13. for the app-packaging exclusion family after row `3`:
    - `docs/architecture/builder-resource-review-app-packaging-exclusion.md`
-13. for the executable-app fallback blocker sink after row `4`:
+14. for the executable-app fallback blocker sink after row `4`:
    - `docs/architecture/builder-resource-review-executable-app-fallback.md`
 
 ## Current Objective

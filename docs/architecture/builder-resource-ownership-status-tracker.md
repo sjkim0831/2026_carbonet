@@ -10,6 +10,7 @@ Use this tracker after reading:
 
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
+- `docs/architecture/builder-resource-entry-pair-maintenance-contract.md`
 - `docs/architecture/builder-resource-ownership-closure-plan.md`
 - `docs/architecture/builder-resource-ownership-matrix.md`
 - `docs/architecture/builder-resource-ownership-priority-board.md`
