@@ -1,6 +1,25 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  cat <<'EOF'
+Usage:
+  bash ops/scripts/codex-apply-and-deploy.sh <repo-root> <diff-file>
+
+Purpose:
+  Apply a prepared diff, rebuild the canonical app jar, verify app closure,
+  then schedule restart and runtime freshness verification.
+
+Canonical app jar:
+  apps/carbonet-app/target/carbonet.jar
+
+Related checks:
+  bash ops/scripts/verify-large-move-app-closure.sh
+  bash ops/scripts/codex-verify-18000-freshness.sh
+EOF
+  exit 0
+fi
+
 REPO_ROOT="${1:?repo root is required}"
 DIFF_FILE="${2:?diff file is required}"
 ARTIFACTS_ROOT="$(cd "$(dirname "$DIFF_FILE")" && pwd)"
@@ -24,7 +43,7 @@ BACKUP_DIR="$REPO_ROOT/var/backups/codex-deploy"
 mkdir -p "$BACKUP_DIR"
 BACKUP_SOURCE="$REPO_ROOT/var/run/carbonet-18000.jar"
 if [[ ! -f "$BACKUP_SOURCE" ]]; then
-  BACKUP_SOURCE="$REPO_ROOT/target/carbonet.jar"
+  BACKUP_SOURCE="$REPO_ROOT/apps/carbonet-app/target/carbonet.jar"
 fi
 if [[ -f "$BACKUP_SOURCE" ]]; then
   BACKUP_JAR_PATH="$BACKUP_DIR/carbonet-18000-$(date '+%Y%m%d-%H%M%S').jar"
@@ -83,12 +102,15 @@ if [[ -d "$REPO_ROOT/frontend" ]]; then
   )
 fi
 
-mvn -q -DskipTests package
+mvn -q -pl apps/carbonet-app -am -DskipTests package
+
+echo "App closure verification started"
+bash "$REPO_ROOT/ops/scripts/verify-large-move-app-closure.sh"
 
 schedule_restart() {
   local restart_command log_file
   log_file="$ASYNC_RESTART_LOG"
-  restart_command="sleep $DEFER_RESTART_SECONDS && bash \"$REPO_ROOT/ops/scripts/restart-18000.sh\""
+  restart_command="sleep $DEFER_RESTART_SECONDS && bash \"$REPO_ROOT/ops/scripts/restart-18000.sh\" && bash \"$REPO_ROOT/ops/scripts/codex-verify-18000-freshness.sh\""
   nohup bash -lc "$restart_command" >"$log_file" 2>&1 </dev/null &
 }
 

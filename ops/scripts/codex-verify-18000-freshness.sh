@@ -9,6 +9,12 @@ Usage:
 Purpose:
   Verify that the running :18000 service is using the newest packaged runtime jar.
 
+Canonical app jar:
+  apps/carbonet-app/target/carbonet.jar
+
+Quick guide:
+  bash ops/scripts/app-closure-help.sh
+
 Environment overrides:
   PORT
   TARGET_JAR_PATH
@@ -30,9 +36,8 @@ CONFIG_DIR="${CONFIG_DIR:-$ROOT_DIR/ops/config}"
 ENV_FILE="${ENV_FILE:-$CONFIG_DIR/carbonet-${PORT}.env}"
 RUN_DIR="${RUN_DIR:-$ROOT_DIR/var/run}"
 LOG_DIR="${LOG_DIR:-$ROOT_DIR/var/logs}"
-ROOT_TARGET_JAR_PATH="$ROOT_DIR/target/carbonet.jar"
 APP_TARGET_JAR_PATH="$ROOT_DIR/apps/carbonet-app/target/carbonet.jar"
-TARGET_JAR_PATH="${TARGET_JAR_PATH:-}"
+TARGET_JAR_PATH="${TARGET_JAR_PATH:-$APP_TARGET_JAR_PATH}"
 RUNTIME_JAR_PATH="${RUNTIME_JAR_PATH:-$RUN_DIR/carbonet-${PORT}.jar}"
 PID_FILE="${PID_FILE:-$RUN_DIR/carbonet-${PORT}.pid}"
 LOG_FILE="${LOG_FILE:-$LOG_DIR/carbonet-${PORT}.log}"
@@ -46,14 +51,6 @@ if [[ -f "$ENV_FILE" ]]; then
   # shellcheck disable=SC1090
   source "$ENV_FILE"
   set +a
-fi
-
-if [[ -z "$TARGET_JAR_PATH" ]]; then
-  if [[ -f "$ROOT_TARGET_JAR_PATH" ]]; then
-    TARGET_JAR_PATH="$ROOT_TARGET_JAR_PATH"
-  else
-    TARGET_JAR_PATH="$APP_TARGET_JAR_PATH"
-  fi
 fi
 
 carbonet_set_curl_args

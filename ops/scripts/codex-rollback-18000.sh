@@ -1,6 +1,24 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  cat <<'EOF'
+Usage:
+  bash ops/scripts/codex-rollback-18000.sh <repo-root> <backup-jar-path>
+
+Purpose:
+  Restore a backup jar into the canonical app jar path and restart :18000.
+
+Canonical app jar:
+  apps/carbonet-app/target/carbonet.jar
+
+Related checks:
+  bash ops/scripts/run-large-move-app-closure.sh
+  bash ops/scripts/codex-verify-18000-freshness.sh
+EOF
+  exit 0
+fi
+
 REPO_ROOT="${1:?repo root is required}"
 BACKUP_JAR_PATH="${2:?backup jar path is required}"
 
@@ -14,7 +32,7 @@ if [[ ! -f "$BACKUP_JAR_PATH" ]]; then
   exit 1
 fi
 
-TARGET_JAR="$REPO_ROOT/target/carbonet.jar"
+TARGET_JAR="$REPO_ROOT/apps/carbonet-app/target/carbonet.jar"
 cp "$BACKUP_JAR_PATH" "$TARGET_JAR"
 ROLLBACK_LOG_DIR="$REPO_ROOT/var/logs"
 mkdir -p "$ROLLBACK_LOG_DIR"
