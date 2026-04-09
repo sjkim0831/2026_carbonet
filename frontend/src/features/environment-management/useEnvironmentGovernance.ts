@@ -5,7 +5,7 @@ import {
   type ScreenCommandPagePayload
 } from "../../lib/api/client";
 import { fetchAuditEvents, fetchTraceEvents } from "../../platform/observability/observability";
-import { buildFullStackManagementPath, buildPlatformStudioPath } from "../../platform/routes/families/platformPaths";
+import { buildFullStackManagementPath, buildPlatformStudioPath } from "../../platform/routes/platformPaths";
 import { fetchScreenBuilderStatusSummary } from "../../lib/api/screenBuilder";
 import { autoCollectFullStackGovernanceRegistry, fetchFullStackGovernanceRegistry, fetchScreenCommandPage } from "../../lib/api/screenGovernance";
 import { buildLocalizedPath } from "../../lib/navigation/runtime";

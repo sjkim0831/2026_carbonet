@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
 import { fetchAuditEvents } from "../../platform/observability/observability";
-import { buildObservabilityPath } from "../../platform/routes/families/platformPaths";
+import { buildObservabilityPath } from "../../platform/routes/platformPaths";
 import { fetchScreenBuilderPage, fetchScreenBuilderPreview } from "../../lib/api/screenBuilder";
 import { buildLocalizedPath, getSearchParam, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";

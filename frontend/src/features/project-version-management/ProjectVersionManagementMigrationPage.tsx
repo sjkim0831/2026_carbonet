@@ -18,7 +18,7 @@ import {
   runProjectPipeline,
   type ResonanceProjectPipelineResponse
 } from "../../lib/api/resonanceControlPlane";
-import { buildUnifiedLogPath, buildUnifiedLogTracePath } from "../../platform/routes/families/platformPaths";
+import { buildUnifiedLogPath, buildUnifiedLogTracePath } from "../../platform/routes/platformPaths";
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { GridToolbar, KeyValueGridPanel, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";

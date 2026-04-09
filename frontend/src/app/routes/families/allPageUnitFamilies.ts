@@ -1,5 +1,5 @@
 import { PROJECT_VERSION_MANAGEMENT_PAGE_UNITS } from "../../../features/project-version-management/projectVersionManagementPageUnit";
-import { PLATFORM_PAGE_UNIT_FAMILIES } from "../../../platform/routes/families/platformRouteFamilies";
+import { PLATFORM_PAGE_UNIT_FAMILIES } from "../../../platform/routes/platformRouteFamilies";
 import { APP_ROUTE_PAGE_UNIT_FAMILIES } from "./pageUnitFamilies";
 
 export const ALL_ROUTE_PAGE_UNIT_FAMILIES = [

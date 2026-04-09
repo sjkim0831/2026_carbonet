@@ -27,7 +27,7 @@ import {
   buildMenuCreatePagePath,
   buildObservabilityPath,
   buildPlatformStudioPath
-} from "../../platform/routes/families/platformPaths";
+} from "../../platform/routes/platformPaths";
 import { rebuildScreenBuilderStatusSummary } from "../../lib/api/screenBuilder";
 import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";

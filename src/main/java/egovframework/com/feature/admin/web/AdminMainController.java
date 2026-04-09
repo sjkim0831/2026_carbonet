@@ -65,7 +65,7 @@ import egovframework.com.common.util.ReactPageUrlMapper;
 import egovframework.com.framework.authority.service.FrameworkAuthorityPolicyService;
 import egovframework.com.feature.home.web.ReactAppViewSupport;
 import egovframework.com.platform.read.AdminSummaryReadPort;
-import egovframework.com.platform.service.observability.PlatformObservabilityAdminPagePort;
+import egovframework.com.platform.service.observability.PlatformObservabilityCompanyScopePort;
 import io.jsonwebtoken.Claims;
 import egovframework.com.common.service.CmmnDetailCode;
 import egovframework.com.common.model.ComDefaultCodeVO;
@@ -170,7 +170,7 @@ public class AdminMainController {
     private final AuthorRoleProfileService authorRoleProfileService;
     private final AdminAuthorityPagePayloadSupport adminAuthorityPagePayloadSupport;
     private final AdminAuthorityCommandService adminAuthorityCommandService;
-    private final PlatformObservabilityAdminPagePort platformObservabilityAdminPagePort;
+    private final PlatformObservabilityCompanyScopePort platformObservabilityCompanyScopePort;
     private final AdminMenuShellService adminMenuShellService;
     private final AdminMemberExportService adminMemberExportService;
     private final AuditTrailService auditTrailService;
@@ -3098,11 +3098,11 @@ public class AdminMainController {
     }
 
     List<Map<String, String>> loadAccessHistoryCompanyOptions() {
-        return platformObservabilityAdminPagePort.loadAccessHistoryCompanyOptions();
+        return platformObservabilityCompanyScopePort.loadAccessHistoryCompanyOptions();
     }
 
     List<Map<String, String>> buildScopedAccessHistoryCompanyOptions(String insttId) {
-        return platformObservabilityAdminPagePort.buildScopedAccessHistoryCompanyOptions(insttId);
+        return platformObservabilityCompanyScopePort.buildScopedAccessHistoryCompanyOptions(insttId);
     }
 
     private String lookupCompanyNameByInsttId(String normalizedInsttId) {
