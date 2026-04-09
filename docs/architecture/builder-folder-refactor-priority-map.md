@@ -18,6 +18,8 @@ After the closed structure-governance family, continue from:
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
 
+Treat those two docs as the single live entry pair for the next active builder continuation.
+
 ## Current Wave Freeze
 
 For the current owner wave, the closed family is:

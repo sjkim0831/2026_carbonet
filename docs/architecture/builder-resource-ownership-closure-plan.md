@@ -19,6 +19,13 @@ For quick execution, also use:
 - `docs/architecture/builder-resource-ownership-priority-board.md`
 - `docs/architecture/builder-resource-ownership-status-tracker.md`
 
+Treat the first two docs above as the single live entry pair for this family.
+
+Maintenance rule:
+
+- if active row, blocker count, or next review target changes, update both documents in the same turn
+- do not treat one as the live source while the other still reflects older queue state
+
 ## Comes After
 
 This family starts only after:

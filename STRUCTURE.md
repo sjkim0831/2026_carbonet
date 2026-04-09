@@ -168,6 +168,7 @@ Avoid spending time in `target/`, `frontend/node_modules/`, and `var/logs/` unle
 - 빌더 구조 정리의 wave-level 완료 판단은 `docs/architecture/builder-structure-wave-20260409-closure.md` 를 source of truth로 본다.
 - 루트 legacy builder 경로는 source of truth가 아니며, 남아 있다면 explicit shim 또는 제거 대상이다.
 - 빌더 resource ownership continuation은 `builder-resource-ownership-current-closeout.md` 와 `builder-resource-ownership-queue-map.md` 를 먼저 보고 row별 review card로 들어간다.
+- 위 두 문서는 `BUILDER_RESOURCE_OWNERSHIP_CLOSURE` 의 single live entry pair 로 취급한다.
 
 ## Notes
 - 외부 프레임워크 타입명 `Egov*` 는 유지한다.

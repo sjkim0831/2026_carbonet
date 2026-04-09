@@ -29,6 +29,8 @@ For the live builder continuation after structure-governance closure, use:
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
 
+Treat those two docs as the single live entry pair for that continuation.
+
 ## Direct Answer
 
 For backend: yes, the builder core should be imported as a `jar`.

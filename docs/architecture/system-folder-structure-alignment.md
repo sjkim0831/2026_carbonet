@@ -23,6 +23,9 @@ For continuation after the closed structure-governance wave, resume from:
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
 
+Treat those two docs as the single live entry pair for
+`BUILDER_RESOURCE_OWNERSHIP_CLOSURE`.
+
 ## Current Top-Level Direction
 
 Use this top-level structure as the preferred long-term shape:

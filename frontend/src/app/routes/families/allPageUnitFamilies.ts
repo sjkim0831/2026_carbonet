@@ -7,3 +7,5 @@ export const ALL_ROUTE_PAGE_UNIT_FAMILIES = [
   ...PLATFORM_PAGE_UNIT_FAMILIES,
   PROJECT_VERSION_MANAGEMENT_PAGE_UNITS
 ] as const;
+
+export type AllPageRouteId = (typeof ALL_ROUTE_PAGE_UNIT_FAMILIES)[number][number]["id"];

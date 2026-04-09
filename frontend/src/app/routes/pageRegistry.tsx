@@ -1,16 +1,16 @@
 import { ComponentType } from "react";
-import type { MigrationPageId } from "./definitions";
 import { ALL_ROUTE_PAGE_UNIT_FAMILIES } from "./families/allPageUnitFamilies";
+import type { AllPageRouteId } from "./appRouteTypes";
 import { createPageModuleRegistry } from "../../framework/routes/pageRegistryHelpers";
 
-const pageModuleRegistry = createPageModuleRegistry(ALL_ROUTE_PAGE_UNIT_FAMILIES, "home");
+const pageModuleRegistry = createPageModuleRegistry<AllPageRouteId>(ALL_ROUTE_PAGE_UNIT_FAMILIES, "home");
 
-export const pageComponents: Partial<Record<MigrationPageId, ComponentType>> = pageModuleRegistry.components;
+export const pageComponents: Partial<Record<AllPageRouteId, ComponentType>> = pageModuleRegistry.components;
 
-export function getPageComponent(route: MigrationPageId): ComponentType {
+export function getPageComponent(route: AllPageRouteId): ComponentType {
   return pageModuleRegistry.getPageComponent(route);
 }
 
-export function preloadPageModule(route: MigrationPageId) {
+export function preloadPageModule(route: AllPageRouteId) {
   return pageModuleRegistry.preloadPageModule(route);
 }

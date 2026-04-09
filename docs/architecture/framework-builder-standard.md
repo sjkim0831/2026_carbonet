@@ -21,6 +21,8 @@ If the structure-governance answers are already accepted and the next question i
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
 
+Treat those two docs as the single live entry pair for that continuation.
+
 Operating ownership split:
 
 - `carbonet-ops` owns builder rules, publish policy, compatibility, and regeneration control

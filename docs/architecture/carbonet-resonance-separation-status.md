@@ -165,6 +165,8 @@ Completed:
 - `feature/admin` observability composition now consumes `PlatformObservabilityAdminPagePort` instead of the concrete `PlatformObservabilityAdminPageFacade` in the remaining admin entry points that still assemble control-plane payloads
 - `feature/admin` help compatibility controllers now consume `PlatformHelpManagementPort` instead of directly depending on the platform help web controller type
 - `feature/admin` self-healing and safe-plan workbench entry points now consume `SrTicketWorkbenchPort` instead of directly depending on the workbench service type
+- `feature/admin` authority payload support now consumes `PlatformObservabilityAuditQueryPort` instead of directly depending on the observability query service type
+- direct `platform.* service/web` imports from `src/main/java/egovframework/com/feature/admin/**` are now reduced to `0` for live code paths
 - `screenbuilder-core`, `screenbuilder-carbonet-adapter`, `carbonet-contract-metadata`, and `carbonet-builder-observability` now package real builder classes/resources into dedicated jars
 - root `feature/admin/model/ScreenBuilder*` compatibility wrappers have now been removed
 - root `feature/admin/screenbuilder`, `feature/admin/framework/builder`, and `AdminScreenBuilderController` copies have now been removed
@@ -187,8 +189,7 @@ Not completed:
 - admin composition still owns many control-plane entry points
 - screen-builder legacy compatibility wrappers still live under `feature/admin`
 - controller and page-service boundaries are still assembled from `feature/admin`
-- one `feature/admin` authority payload support path still depends on the `ObservabilityQueryService` interface for audit lookup
-- screen-command metadata strings still contain a small number of legacy concrete names where the underlying runtime wiring has not been port-lifted yet
+- some `feature/admin` composition still depends on platform-owned contract interfaces and bridge-driven metadata even though direct service/web type imports are now removed
 
 Builder-family interpretation note:
 

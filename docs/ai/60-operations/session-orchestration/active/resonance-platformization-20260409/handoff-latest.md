@@ -43,11 +43,12 @@ Most recent direct-coupling reductions already completed:
 - `feature/admin` observability entry points now use `PlatformObservabilityAdminPagePort`
 - `feature/admin` help compatibility controllers now use `PlatformHelpManagementPort`
 - `feature/admin` self-healing and safe-plan workbench entry points now use `SrTicketWorkbenchPort`
+- `feature/admin` authority payload support now uses `PlatformObservabilityAuditQueryPort`
+- direct `platform.* service/web` imports under `feature/admin` are now `0`
 
 Current narrow remainder:
 
-- `AdminAuthorityPagePayloadSupport` still uses the `ObservabilityQueryService` interface
-- `ScreenCommandCenterServiceImpl` still has a very small number of legacy concrete names in metadata strings where runtime wiring has not changed
+- remaining `feature/admin` dependence is now at contract-interface and composition ownership level, not direct platform service/web type imports
 
 Do not reopen the app-closure owner slice unless one of these changes again:
 
@@ -66,6 +67,8 @@ For active continuation, treat these as the single live entry pair:
 
 - `docs/ai/60-operations/session-orchestration/active/resonance-platformization-20260409/builder-resource-ownership-current-closeout.md`
 - `docs/architecture/builder-resource-ownership-queue-map.md`
+
+If handoff refresh changes blocker count, active row, next review target, or partial-closeout wording, update both entry-pair docs in the same turn.
 
 Current builder resource-ownership provisional state:
 
