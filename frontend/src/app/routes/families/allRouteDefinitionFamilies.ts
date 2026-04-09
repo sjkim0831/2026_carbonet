@@ -3,8 +3,8 @@ import { PROJECT_VERSION_MANAGEMENT_ROUTE_UNITS } from "../../../features/projec
 import { flattenRouteDefinitionFamilies } from "../../../framework/routes/routeFamilyHelpers";
 import type { PlatformRouteId } from "../../../platform/routes/platformRouteFamilies";
 import { PLATFORM_ROUTE_DEFINITION_FAMILIES } from "../../../platform/routes/platformRouteFamilies";
-import type { AppRouteFamilyId } from "./routeDefinitionFamilies";
-import { APP_ROUTE_DEFINITION_FAMILIES } from "./routeDefinitionFamilies";
+import type { AppRouteFamilyId } from "../appRouteFamilies";
+import { APP_ROUTE_DEFINITION_FAMILIES } from "../appRouteFamilies";
 
 export type AllRouteId =
   | AppRouteFamilyId
