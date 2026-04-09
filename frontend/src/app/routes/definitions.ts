@@ -1,4 +1,3 @@
-import type { RouteUnitDefinition } from "../../framework/routes/pageUnitTypes";
 import { createRouteDefinitionRegistry, createRouteIdNormalizer, normalizeRouteLookupPath } from "../../framework/routes/routeDefinitionRegistry";
 import { resolveAppRouteIdAlias } from "./appRoutePolicies";
 import type { AllRouteId } from "./families/allRouteDefinitionFamilies";
@@ -8,9 +7,9 @@ export { normalizeRouteLookupPath };
 
 export type MigrationPageId = AllRouteId;
 
-export type RouteDefinition = RouteUnitDefinition<MigrationPageId>;
+export type RouteDefinition = (typeof ALL_ROUTE_DEFINITIONS)[number];
 
-export const ROUTES: RouteDefinition[] = [...ALL_ROUTE_DEFINITIONS];
+export const ROUTES = ALL_ROUTE_DEFINITIONS;
 const routeRegistry = createRouteDefinitionRegistry(ROUTES);
 const normalizeRouteIdValue = createRouteIdNormalizer<MigrationPageId>(routeRegistry.hasId, resolveAppRouteIdAlias);
 

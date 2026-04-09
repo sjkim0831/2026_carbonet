@@ -3016,7 +3016,7 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                         "SR runner workspace + history", Arrays.asList("SR_TICKET_JSONL", "SR_RUNNER_ARTIFACTS"), Arrays.asList("sr-ticket-runner-schema"),
                         "선택 티켓에 대해 read-only plan 실행과 artifact 생성을 수행합니다."),
                 api("platform.codex-request.ticket-build", "SR 티켓 빌드 실행", "POST", "/admin/system/codex-request/tickets/{ticketId}/execute",
-                        "CodexProvisionAdminApiController.executeTicket", "SrTicketWorkbenchService.executeTicket",
+                        "CodexProvisionAdminApiController.executeTicket", "SrTicketWorkbenchPort.executeTicket",
                         "SR runner workspace + history", Arrays.asList("SR_TICKET_JSONL", "SR_RUNNER_ARTIFACTS"), Arrays.asList("sr-ticket-runner-schema"),
                         "PLAN_COMPLETED 티켓에 대해 build 실행과 verify를 수행합니다."),
                 api("platform.codex-request.ticket-delete", "SR 티켓 삭제", "POST", "/admin/system/codex-request/tickets/{ticketId}/delete",
@@ -3078,7 +3078,7 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         ));
         page.put("apis", Arrays.asList(
                 api("platform.workbench.page", "SR 워크벤치 조회", "GET", "/api/platform/workbench/page",
-                        "AdminSrWorkbenchController.getPage", "SrTicketWorkbenchService.getPage",
+                        "AdminSrWorkbenchController.getPage", "SrTicketWorkbenchPort.getPage",
                         "File-backed read", Arrays.asList("SR_TICKET_JSONL", "COMTNMENUINFO", "COMTNMENUFUNCTIONINFO", "COMTNAUTHORFUNCTIONRELATE"),
                         Arrays.asList("sr-ticket-schema", "menu-feature-schema"), "워크벤치 화면 데이터와 최근 티켓 목록을 조회합니다."),
                 api("platform.workbench.ticket.create", "SR 티켓 발행", "POST", "/api/platform/workbench/tickets",

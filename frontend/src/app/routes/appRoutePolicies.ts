@@ -1,12 +1,12 @@
-import type { MigrationPageId } from "./definitions";
+import type { AllRouteId } from "./families/allRouteDefinitionFamilies";
 
-const routeIdAliases = new Map<string, MigrationPageId>([
+const routeIdAliases = new Map<string, AllRouteId>([
   ["codex-provision", "codex-request"]
 ]);
 
 export const reactShellPaths = new Set(["/app", "/en/app", "/admin/app", "/en/admin/app"]);
 
-const appSpecialCasePages = new Map<string, MigrationPageId>([
+const appSpecialCasePages = new Map<string, AllRouteId>([
   ["/admin/member/withdrawn", "member-list"],
   ["/admin/member/activate", "member-list"],
   ["/admin/system/menu", "menu-management"],
@@ -17,7 +17,7 @@ const appSpecialCasePages = new Map<string, MigrationPageId>([
   ["/co2/credit", "co2-credit"]
 ]);
 
-export const appRouteAliases: Array<readonly [string, MigrationPageId]> = [
+export const appRouteAliases: Array<readonly [string, AllRouteId]> = [
   ["/admin/trade/list", "trade-list"],
   ["/en/admin/trade/list", "trade-list"],
   ["/trade/matching", "co2-search"],
@@ -32,15 +32,15 @@ export const appRouteAliases: Array<readonly [string, MigrationPageId]> = [
   ["/en/payment/refundAccount", "payment-refund-account"]
 ];
 
-export function resolveAppRouteIdAlias(value: string): MigrationPageId | "" {
+export function resolveAppRouteIdAlias(value: string): AllRouteId | "" {
   return routeIdAliases.get(value) || "";
 }
 
-export function resolveAppSpecialCasePage(pathname: string): MigrationPageId | null {
+export function resolveAppSpecialCasePage(pathname: string): AllRouteId | null {
   return appSpecialCasePages.get(pathname) || null;
 }
 
-export function resolveAppRouteFallback(pathname: string): MigrationPageId {
+export function resolveAppRouteFallback(pathname: string): AllRouteId {
   if (pathname.startsWith("/admin") || pathname.startsWith("/en/admin")) {
     return "admin-home";
   }
