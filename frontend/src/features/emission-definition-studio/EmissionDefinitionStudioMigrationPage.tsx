@@ -12,9 +12,17 @@ import {
 import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { AdminInput, AdminSelect, MemberButton, PageStatusNotice } from "../admin-ui/common";
+import { EmissionClassificationCatalogPanel } from "../emission-common/EmissionClassificationCatalogPanel";
 
 function stringOf(row: Record<string, unknown> | undefined, key: string) {
   return row ? String(row[key] || "") : "";
+}
+
+function readInitialClassificationCode() {
+  if (typeof window === "undefined") {
+    return "";
+  }
+  return new URLSearchParams(window.location.search).get("code") || "";
 }
 
 function localizedCardText(en: boolean, row: Record<string, string>, baseKey: string) {
@@ -470,10 +478,15 @@ export function EmissionDefinitionStudioMigrationPage() {
   const governanceNotes = (page.governanceNotes || []) as Array<Record<string, string>>;
   const initialDefinitionRows = (page.definitionRows || []) as Array<Record<string, unknown>>;
   const initialSelectedDefinition = (page.selectedDefinition || null) as Record<string, unknown> | null;
+  const classificationCatalog = (page.classificationCatalog || null) as Record<string, unknown> | null;
+  const classificationRows = Array.isArray(classificationCatalog?.rows)
+    ? (classificationCatalog.rows as Array<Record<string, unknown>>)
+    : [];
 
   const [draftId, setDraftId] = useState("");
   const [categoryCode, setCategoryCode] = useState("CEMENT");
   const [categoryName, setCategoryName] = useState(en ? "Cement production extension" : "시멘트 생산 확장");
+  const [selectedClassificationCode, setSelectedClassificationCode] = useState(readInitialClassificationCode);
   const [tierLabel, setTierLabel] = useState("Tier 4");
   const [formula, setFormula] = useState("SUM(activity × factor) - correction");
   const [formulaBlocks, setFormulaBlocks] = useState<FormulaBlock[]>([
@@ -597,6 +610,24 @@ export function EmissionDefinitionStudioMigrationPage() {
     (parsedSectionDefinitions || []).map((row) => normalizeSectionDefinitionRow(row))
   ), [parsedSectionDefinitions]);
 
+  const classificationOptions = useMemo(() => (
+    classificationRows
+      .filter((row) => stringOf(row, "code"))
+      .map((row) => ({
+        code: stringOf(row, "code"),
+        label: stringOf(row, "label"),
+        level: stringOf(row, "level"),
+        pathLabel: stringOf(row, "pathLabel"),
+        tierLabel: stringOf(row, "tierLabel"),
+        useAt: stringOf(row, "useAt")
+      }))
+  ), [classificationRows]);
+
+  const selectedClassification = useMemo(
+    () => classificationRows.find((row) => stringOf(row, "code") === selectedClassificationCode) || null,
+    [classificationRows, selectedClassificationCode]
+  );
+
   const formulaTokenOptions = useMemo(() => {
     const tokens = new Set<string>([
       "Mci",
@@ -675,6 +706,26 @@ export function EmissionDefinitionStudioMigrationPage() {
       applyDraft(initialSelectedDefinition);
     }
   }, [initialSelectedDefinition]);
+
+  useEffect(() => {
+    if (!selectedClassificationCode) {
+      return;
+    }
+    const matched = classificationRows.find((row) => stringOf(row, "code") === selectedClassificationCode);
+    if (!matched) {
+      return;
+    }
+    setCategoryCode(stringOf(matched, "code"));
+    setCategoryName(stringOf(matched, "pathLabel") || stringOf(matched, "label"));
+  }, [classificationRows, selectedClassificationCode]);
+
+  useEffect(() => {
+    const matched = classificationRows.find((row) => stringOf(row, "code") === categoryCode);
+    const nextCode = matched ? stringOf(matched, "code") : "";
+    if (nextCode !== selectedClassificationCode) {
+      setSelectedClassificationCode(nextCode);
+    }
+  }, [categoryCode, classificationRows, selectedClassificationCode]);
 
   useEffect(() => {
     logGovernanceScope("PAGE", "emission-definition-studio", {
@@ -1471,6 +1522,14 @@ export function EmissionDefinitionStudioMigrationPage() {
         ))}
       </section>
 
+      <div className="mb-6">
+        <EmissionClassificationCatalogPanel
+          catalog={classificationCatalog}
+          highlightedCode={selectedClassificationCode}
+          title={en ? "LCI DB Classification Seed" : "LCI DB 분류 시드"}
+        />
+      </div>
+
       <section className="gov-card mb-6" data-help-id="emission-definition-links">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
@@ -1511,6 +1570,24 @@ export function EmissionDefinitionStudioMigrationPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <label className="flex flex-col gap-2 md:col-span-2">
+              <span className="text-sm font-bold">{en ? "Apply LCI classification" : "LCI 분류 적용"}</span>
+              <AdminSelect onChange={(event) => setSelectedClassificationCode(event.target.value)} value={selectedClassificationCode}>
+                <option value="">{en ? "Not linked" : "연결 안 함"}</option>
+                {classificationOptions.map((item) => (
+                  <option key={item.code} value={item.code}>
+                    {`${item.code} | ${item.pathLabel || item.label}${item.tierLabel ? ` | ${item.tierLabel}` : ""}${item.useAt === "N" ? ` | ${en ? "Hidden" : "숨김"}` : ""}`}
+                  </option>
+                ))}
+              </AdminSelect>
+              {selectedClassification ? (
+                <p className="text-xs text-[var(--kr-gov-text-secondary)]">
+                  {en
+                    ? `Applied classification: ${stringOf(selectedClassification, "pathLabel") || stringOf(selectedClassification, "label")} (${stringOf(selectedClassification, "level")}${stringOf(selectedClassification, "tierLabel") ? `, ${stringOf(selectedClassification, "tierLabel")}` : ""})`
+                    : `적용 분류: ${stringOf(selectedClassification, "pathLabel") || stringOf(selectedClassification, "label")} (${stringOf(selectedClassification, "level")}${stringOf(selectedClassification, "tierLabel") ? `, ${stringOf(selectedClassification, "tierLabel")}` : ""})`}
+                </p>
+              ) : null}
+            </label>
             <label className="flex flex-col gap-2">
               <span className="text-sm font-bold">{en ? "Category code" : "분류 코드"}</span>
               <AdminInput onChange={(event) => setCategoryCode(event.target.value)} value={categoryCode} />

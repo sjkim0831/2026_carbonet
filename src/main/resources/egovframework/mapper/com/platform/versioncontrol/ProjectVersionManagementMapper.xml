@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ProjectVersionManagementMapper">
+
+    <select id="countArtifactVersionRegistry" resultType="int">
+        SELECT COUNT(*)
+        FROM ARTIFACT_VERSION_REGISTRY
+    </select>
+
+    <select id="countProjectArtifactInstall" resultType="int">
+        SELECT COUNT(*)
+        FROM PROJECT_ARTIFACT_INSTALL
+    </select>
+
+    <select id="countAdapterChangeLog" resultType="int">
+        SELECT COUNT(*)
+        FROM ADAPTER_CHANGE_LOG
+    </select>
+
+    <select id="countReleaseUnitRegistry" resultType="int">
+        SELECT COUNT(*)
+        FROM RELEASE_UNIT_REGISTRY
+    </select>
+
+    <select id="countServerDeploymentState" resultType="int">
+        SELECT COUNT(*)
+        FROM SERVER_DEPLOYMENT_STATE
+    </select>
+
+    <select id="selectProjectRegistry" parameterType="string" resultType="hashmap">
+        SELECT
+            PROJECT_ID AS "projectId",
+            PROJECT_CODE AS "projectCode",
+            PROJECT_NAME AS "projectName",
+            ROUTE_PREFIX AS "routePrefix",
+            DEPLOYMENT_TARGET AS "deploymentTarget",
+            PLATFORM_VERSION AS "platformVersion",
+            PROJECT_MODULE_VERSION AS "projectModuleVersion",
+            STATUS AS "status"
+        FROM PROJECT_REGISTRY
+        WHERE PROJECT_ID = #{_parameter}
+    </select>
+
+    <select id="selectInstalledArtifacts" parameterType="string" resultType="hashmap">
+        SELECT
+            pai.PROJECT_ID AS "projectId",
+            avr.ARTIFACT_ID AS "artifactId",
+            avr.ARTIFACT_TYPE AS "artifactType",
+            avr.ARTIFACT_FAMILY AS "artifactFamily",
+            avr.ARTIFACT_VERSION AS "installedArtifactVersion",
+            pai.INSTALL_SCOPE AS "installScope",
+            CASE WHEN pai.ACTIVE_YN = 'Y' THEN 1 ELSE 0 END AS "activeYn",
+            pai.RELEASE_UNIT_ID AS "releaseUnitId",
+            pai.ROLLBACK_TARGET_VERSION AS "rollbackTargetVersion",
+            TO_CHAR(pai.INSTALLED_AT, 'YYYY-MM-DD HH24:MI:SS') AS "installedAt"
+        FROM PROJECT_ARTIFACT_INSTALL pai
+        JOIN ARTIFACT_VERSION_REGISTRY avr
+          ON avr.ARTIFACT_VERSION_ID = pai.ARTIFACT_VERSION_ID
+        WHERE pai.PROJECT_ID = #{_parameter}
+          AND pai.ACTIVE_YN = 'Y'
+        ORDER BY pai.INSTALLED_AT DESC, avr.ARTIFACT_ID
+    </select>
+
+    <select id="selectAdapterHistory" parameterType="string" resultType="hashmap">
+        SELECT
+            PROJECT_ID AS "projectId",
+            TO_CHAR(RECORDED_AT, 'YYYY-MM-DD HH24:MI:SS') AS "recordedAt",
+            ADAPTER_CONTRACT_VERSION AS "adapterContractVersion",
+            ADAPTER_ARTIFACT_VERSION AS "adapterArtifactVersion",
+            COMPATIBILITY_CLASS AS "compatibilityClass",
+            CASE WHEN MIGRATION_REQUIRED_YN = 'Y' THEN 1 ELSE 0 END AS "migrationRequiredYn",
+            CHANGED_PORT_SET_JSON AS "changedPortSetJson",
+            CHANGED_DTO_SET_JSON AS "changedDtoSetJson",
+            MAPPING_IMPACT_SUMMARY AS "mappingImpactSummary",
+            RELATED_RELEASE_UNIT_ID AS "relatedReleaseUnitId"
+        FROM ADAPTER_CHANGE_LOG
+        WHERE PROJECT_ID = #{_parameter}
+        ORDER BY RECORDED_AT DESC
+    </select>
+
+    <select id="selectReleaseUnits" parameterType="string" resultType="hashmap">
+        SELECT
+            RELEASE_UNIT_ID AS "releaseUnitId",
+            PROJECT_ID AS "projectId",
+            RUNTIME_PACKAGE_ID AS "runtimePackageId",
+            PROJECT_RUNTIME_VERSION AS "projectRuntimeVersion",
+            ADAPTER_ARTIFACT_VERSION AS "adapterArtifactVersion",
+            ADAPTER_CONTRACT_VERSION AS "adapterContractVersion",
+            COMMON_ARTIFACT_SET_JSON AS "commonArtifactSetJson",
+            PACKAGE_VERSION_SET_JSON AS "packageVersionSetJson",
+            ROLLBACK_TARGET_RELEASE_ID AS "rollbackTargetReleaseId",
+            TO_CHAR(BUILT_AT, 'YYYY-MM-DD HH24:MI:SS') AS "builtAt",
+            TO_CHAR(APPROVED_AT, 'YYYY-MM-DD HH24:MI:SS') AS "approvedAt",
+            APPROVED_BY AS "approvedBy"
+        FROM RELEASE_UNIT_REGISTRY
+        WHERE PROJECT_ID = #{_parameter}
+        ORDER BY BUILT_AT DESC
+    </select>
+
+    <select id="selectServerDeploymentState" parameterType="string" resultType="hashmap">
+        SELECT
+            SERVER_DEPLOYMENT_ID AS "serverDeploymentId",
+            SERVER_ID AS "serverId",
+            SERVER_ROLE AS "serverRole",
+            PROJECT_ID AS "projectId",
+            RELEASE_UNIT_ID AS "activeReleaseUnitId",
+            DEPLOY_TRACE_ID AS "deployTraceId",
+            HEALTH_STATUS AS "healthStatus",
+            TO_CHAR(DEPLOYED_AT, 'YYYY-MM-DD HH24:MI:SS') AS "deployedAt",
+            DEPLOYED_BY AS "deployedBy"
+        FROM SERVER_DEPLOYMENT_STATE
+        WHERE PROJECT_ID = #{_parameter}
+        ORDER BY DEPLOYED_AT DESC
+    </select>
+
+    <select id="selectCandidateArtifacts" parameterType="hashmap" resultType="hashmap">
+        SELECT
+            ARTIFACT_VERSION_ID AS "artifactVersionId",
+            ARTIFACT_ID AS "artifactId",
+            ARTIFACT_TYPE AS "artifactType",
+            ARTIFACT_FAMILY AS "artifactFamily",
+            ARTIFACT_VERSION AS "artifactVersion",
+            COMMON_CORE_VERSION AS "commonCoreVersion",
+            ADAPTER_CONTRACT_VERSION AS "adapterContractVersion",
+            API_CONTRACT_VERSION AS "apiContractVersion",
+            MANIFEST_CONTRACT_VERSION AS "manifestContractVersion",
+            CAPABILITY_CATALOG_VERSION AS "capabilityCatalogVersion",
+            COMPATIBILITY_STATUS AS "compatibilityStatus",
+            PUBLISHED_YN AS "publishedYn",
+            TO_CHAR(PUBLISHED_AT, 'YYYY-MM-DD HH24:MI:SS') AS "publishedAt",
+            TO_CHAR(BUILT_AT, 'YYYY-MM-DD HH24:MI:SS') AS "builtAt"
+        FROM ARTIFACT_VERSION_REGISTRY
+        WHERE (
+            ARTIFACT_ID = 'common-core'
+            OR ARTIFACT_ID LIKE CONCAT(#{projectId}, '-%')
+            OR GROUP_LINE = #{projectId}
+        )
+        ORDER BY BUILT_AT DESC, ARTIFACT_ID
+    </select>
+
+    <select id="selectReleaseUnitById" parameterType="string" resultType="hashmap">
+        SELECT
+            RELEASE_UNIT_ID AS "releaseUnitId",
+            PROJECT_ID AS "projectId",
+            RUNTIME_PACKAGE_ID AS "runtimePackageId",
+            PROJECT_RUNTIME_VERSION AS "projectRuntimeVersion",
+            ADAPTER_ARTIFACT_VERSION AS "adapterArtifactVersion",
+            ADAPTER_CONTRACT_VERSION AS "adapterContractVersion",
+            COMMON_ARTIFACT_SET_JSON AS "commonArtifactSetJson",
+            PACKAGE_VERSION_SET_JSON AS "packageVersionSetJson",
+            ROLLBACK_TARGET_RELEASE_ID AS "rollbackTargetReleaseId",
+            TO_CHAR(BUILT_AT, 'YYYY-MM-DD HH24:MI:SS') AS "builtAt",
+            TO_CHAR(APPROVED_AT, 'YYYY-MM-DD HH24:MI:SS') AS "approvedAt",
+            APPROVED_BY AS "approvedBy"
+        FROM RELEASE_UNIT_REGISTRY
+        WHERE RELEASE_UNIT_ID = #{_parameter}
+    </select>
+
+    <select id="selectArtifactVersionByKey" parameterType="hashmap" resultType="hashmap">
+        SELECT
+            ARTIFACT_VERSION_ID AS "artifactVersionId",
+            ARTIFACT_ID AS "artifactId",
+            ARTIFACT_TYPE AS "artifactType",
+            ARTIFACT_FAMILY AS "artifactFamily",
+            ARTIFACT_VERSION AS "artifactVersion",
+            ADAPTER_CONTRACT_VERSION AS "adapterContractVersion",
+            COMMON_CORE_VERSION AS "commonCoreVersion",
+            COMPATIBILITY_STATUS AS "compatibilityStatus"
+        FROM ARTIFACT_VERSION_REGISTRY
+        WHERE ARTIFACT_ID = #{artifactId}
+          AND ARTIFACT_VERSION = #{artifactVersion}
+    </select>
+
+    <update id="deactivateProjectArtifactInstalls" parameterType="string">
+        UPDATE PROJECT_ARTIFACT_INSTALL
+        SET ACTIVE_YN = 'N'
+        WHERE PROJECT_ID = #{_parameter}
+          AND ACTIVE_YN = 'Y'
+    </update>
+
+    <insert id="insertReleaseUnitRegistry" parameterType="hashmap">
+        INSERT INTO RELEASE_UNIT_REGISTRY (
+            RELEASE_UNIT_ID,
+            PROJECT_ID,
+            RUNTIME_PACKAGE_ID,
+            PROJECT_RUNTIME_VERSION,
+            ADAPTER_ARTIFACT_VERSION,
+            ADAPTER_CONTRACT_VERSION,
+            COMMON_ARTIFACT_SET_JSON,
+            PACKAGE_VERSION_SET_JSON,
+            ROLLBACK_TARGET_RELEASE_ID,
+            BUILT_AT,
+            APPROVED_AT,
+            APPROVED_BY
+        ) VALUES (
+            #{releaseUnitId},
+            #{projectId},
+            #{runtimePackageId},
+            #{projectRuntimeVersion},
+            #{adapterArtifactVersion},
+            #{adapterContractVersion},
+            #{commonArtifactSetJson},
+            #{packageVersionSetJson},
+            #{rollbackTargetReleaseId},
+            CURRENT_DATETIME,
+            CURRENT_DATETIME,
+            #{approvedBy}
+        )
+    </insert>
+
+    <insert id="insertProjectArtifactInstall" parameterType="hashmap">
+        INSERT INTO PROJECT_ARTIFACT_INSTALL (
+            PROJECT_ARTIFACT_INSTALL_ID,
+            PROJECT_ID,
+            ARTIFACT_VERSION_ID,
+            INSTALL_SCOPE,
+            RELEASE_UNIT_ID,
+            ACTIVE_YN,
+            ROLLBACK_TARGET_VERSION,
+            INSTALLED_AT,
+            INSTALLED_BY
+        ) VALUES (
+            #{projectArtifactInstallId},
+            #{projectId},
+            #{artifactVersionId},
+            #{installScope},
+            #{releaseUnitId},
+            'Y',
+            #{rollbackTargetVersion},
+            CURRENT_DATETIME,
+            #{installedBy}
+        )
+    </insert>
+
+    <insert id="insertAdapterChangeLog" parameterType="hashmap">
+        INSERT INTO ADAPTER_CHANGE_LOG (
+            ADAPTER_CHANGE_ID,
+            PROJECT_ID,
+            ADAPTER_ARTIFACT_VERSION,
+            ADAPTER_CONTRACT_VERSION,
+            CHANGED_PORT_SET_JSON,
+            CHANGED_DTO_SET_JSON,
+            MAPPING_IMPACT_SUMMARY,
+            COMPATIBILITY_CLASS,
+            MIGRATION_REQUIRED_YN,
+            RELATED_RELEASE_UNIT_ID,
+            RECORDED_AT,
+            RECORDED_BY
+        ) VALUES (
+            #{adapterChangeId},
+            #{projectId},
+            #{adapterArtifactVersion},
+            #{adapterContractVersion},
+            #{changedPortSetJson},
+            #{changedDtoSetJson},
+            #{mappingImpactSummary},
+            #{compatibilityClass},
+            #{migrationRequiredYn},
+            #{relatedReleaseUnitId},
+            CURRENT_DATETIME,
+            #{recordedBy}
+        )
+    </insert>
+
+    <insert id="insertServerDeploymentState" parameterType="hashmap">
+        INSERT INTO SERVER_DEPLOYMENT_STATE (
+            SERVER_DEPLOYMENT_ID,
+            SERVER_ID,
+            SERVER_ROLE,
+            PROJECT_ID,
+            RELEASE_UNIT_ID,
+            DEPLOY_TRACE_ID,
+            HEALTH_STATUS,
+            DEPLOYED_AT,
+            DEPLOYED_BY
+        ) VALUES (
+            #{serverDeploymentId},
+            #{serverId},
+            #{serverRole},
+            #{projectId},
+            #{releaseUnitId},
+            #{deployTraceId},
+            #{healthStatus},
+            CURRENT_DATETIME,
+            #{deployedBy}
+        )
+    </insert>
+
+</mapper>

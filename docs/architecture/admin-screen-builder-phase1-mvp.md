@@ -6,6 +6,11 @@ Phase 1 should prove one thing only:
 
 Carbonet can attach a builder-managed draft screen to an existing admin menu and render that draft in a controlled preview/runtime path.
 
+Use together with:
+
+- `docs/architecture/page-systemization-minimum-contract.md`
+- `docs/architecture/system-folder-structure-alignment.md`
+
 Do not attempt universal screen creation in Phase 1.
 
 ## Phase 1 Deliverable
@@ -21,6 +26,14 @@ An operator can:
 5. place approved components
 6. save a draft schema
 7. preview the rendered draft
+
+Even in Phase 1, the pilot page should still keep explicit:
+
+- `pageId`
+- `menuCode`
+- canonical route
+- authority scope baseline
+- builder ownership lane
 
 ### Out of scope
 
@@ -124,7 +137,11 @@ This keeps draft compare and later publish history possible without redesign.
 
 Recommended package:
 
-- `src/main/java/egovframework/com/feature/admin/screenbuilder`
+- prefer module-owned builder paths first:
+  - `modules/screenbuilder-core`
+  - `modules/screenbuilder-carbonet-adapter`
+
+Use root `src/main/java/egovframework/com/feature/admin/screenbuilder` only when the slice is still transitional and has not been cut over yet.
 
 ### 2. Java files
 

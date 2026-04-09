@@ -33,7 +33,7 @@ public class ReactAppBootstrapService {
         FrontendSessionResponseDTO frontendSession = frontendSessionService.buildSession(request);
         payload.put("frontendSession", frontendSession);
 
-        String normalizedRoute = route == null ? "" : route.trim().replace('-', '_').toLowerCase();
+        String normalizedRoute = ReactRouteSupport.normalizeBootstrapRoute(route);
         if (!admin && "home".equals(normalizedRoute)) {
             Map<String, Object> homePayload = new LinkedHashMap<>();
             homePayload.put("isLoggedIn", frontendSession.isAuthenticated());
@@ -46,208 +46,329 @@ public class ReactAppBootstrapService {
             payload.put("mypageContext", homeMypageService.buildMypageContext(en, request));
         }
         if (admin) {
-            boolean adminLoginRoute = "admin_login".equals(normalizedRoute);
-            if (!adminLoginRoute && frontendSession.isAuthenticated()) {
-                payload.put("adminMenuTree", adminMenuTreeService.buildAdminMenuTree(en, request));
-            }
-            if ("admin_home".equals(normalizedRoute)) {
-                payload.put("adminHomePageData", adminShellBootstrapPageService.buildAdminHomePageData(en));
-            } else if ("auth_group".equals(normalizedRoute) && request != null) {
-                payload.put("authGroupPageData", adminHotPathPagePayloadService.buildAuthGroupPagePayload(
-                        request.getParameter("authorCode"),
-                        request.getParameter("roleCategory"),
-                        request.getParameter("insttId"),
-                        request.getParameter("menuCode"),
-                        request.getParameter("featureCode"),
-                        request.getParameter("userSearchKeyword"),
-                        request,
-                        requestLocale(en)));
-            } else if ("dept_role".equals(normalizedRoute) && request != null) {
-                Integer memberPageIndex = null;
-                try {
-                    String rawPageIndex = request.getParameter("memberPageIndex");
-                    if (rawPageIndex != null && !rawPageIndex.trim().isEmpty()) {
-                        memberPageIndex = Integer.valueOf(rawPageIndex.trim());
-                    }
-                } catch (NumberFormatException ignored) {
-                    memberPageIndex = null;
-                }
-                payload.put("deptRolePageData", adminHotPathPagePayloadService.buildDeptRolePagePayload(
-                        request.getParameter("updated"),
-                        request.getParameter("insttId"),
-                        request.getParameter("memberSearchKeyword"),
-                        memberPageIndex,
-                        request.getParameter("error"),
-                        request,
-                        requestLocale(en)));
-            } else if ("auth_change".equals(normalizedRoute) && request != null) {
-                Integer assignmentPageIndex = null;
-                try {
-                    String rawPageIndex = request.getParameter("pageIndex");
-                    if (rawPageIndex != null && !rawPageIndex.trim().isEmpty()) {
-                        assignmentPageIndex = Integer.valueOf(rawPageIndex.trim());
-                    }
-                } catch (NumberFormatException ignored) {
-                    assignmentPageIndex = null;
-                }
-                payload.put("authChangePageData", adminHotPathPagePayloadService.buildAuthChangePagePayload(
-                        request.getParameter("updated"),
-                        request.getParameter("targetUserId"),
-                        request.getParameter("searchKeyword"),
-                        assignmentPageIndex,
-                        request.getParameter("error"),
-                        request,
-                        requestLocale(en)));
-            } else if ("member_edit".equals(normalizedRoute) && request != null) {
-                payload.put("memberEditPageData", adminHotPathPagePayloadService.buildMemberEditPagePayload(
-                        request.getParameter("memberId"),
-                        request.getParameter("updated"),
-                        request,
-                        requestLocale(en)));
-            } else if ("member_stats".equals(normalizedRoute)) {
-                payload.put("memberStatsPageData", adminShellBootstrapPageService.buildMemberStatsPageData(en));
-            } else if ("certificate_statistics".equals(normalizedRoute)) {
-                payload.put("certificateStatisticsPageData", adminShellBootstrapPageService.buildCertificateStatisticsPageData(
-                        request == null ? "" : request.getParameter("pageIndex"),
-                        request == null ? "" : request.getParameter("searchKeyword"),
-                        request == null ? "" : request.getParameter("periodFilter"),
-                        request == null ? "" : request.getParameter("certificateType"),
-                        request == null ? "" : request.getParameter("issuanceStatus"),
-                        en));
-            } else if ("certificate_review".equals(normalizedRoute)) {
-                payload.put("certificateReviewPageData", adminApprovalController.buildCertificateReviewPagePayload(
-                        request == null ? "" : request.getParameter("pageIndex"),
-                        request == null ? "" : request.getParameter("searchKeyword"),
-                        request == null ? "" : request.getParameter("status"),
-                        request == null ? "" : request.getParameter("certificateType"),
-                        request == null ? "" : request.getParameter("applicationId"),
-                        request,
-                        requestLocale(en)));
-            } else if ("certificate_rec_check".equals(normalizedRoute)) {
-                payload.put("certificateRecCheckPageData", adminShellBootstrapPageService.buildCertificateRecCheckPageData(en));
-            } else if ("trade_list".equals(normalizedRoute)) {
-                payload.put("tradeListPageData", adminShellBootstrapPageService.buildTradeListPageData(
-                        request == null ? "" : request.getParameter("pageIndex"),
-                        request == null ? "" : request.getParameter("searchKeyword"),
-                        request == null ? "" : request.getParameter("tradeStatus"),
-                        request == null ? "" : request.getParameter("settlementStatus"),
-                        en));
-            } else if ("trade_statistics".equals(normalizedRoute)) {
-                payload.put("tradeStatisticsPageData", adminShellBootstrapPageService.buildTradeStatisticsPageData(
-                        request == null ? "" : request.getParameter("pageIndex"),
-                        request == null ? "" : request.getParameter("searchKeyword"),
-                        request == null ? "" : request.getParameter("periodFilter"),
-                        request == null ? "" : request.getParameter("tradeType"),
-                        request == null ? "" : request.getParameter("settlementStatus"),
-                        en));
-            } else if ("trade_duplicate".equals(normalizedRoute)) {
-                payload.put("tradeDuplicatePageData", adminShellBootstrapPageService.buildTradeDuplicatePageData(
-                        request == null ? "" : request.getParameter("pageIndex"),
-                        request == null ? "" : request.getParameter("searchKeyword"),
-                        request == null ? "" : request.getParameter("detectionType"),
-                        request == null ? "" : request.getParameter("reviewStatus"),
-                        request == null ? "" : request.getParameter("riskLevel"),
-                        en));
-            } else if ("trade_approve".equals(normalizedRoute)) {
-                payload.put("tradeApprovePageData", adminShellBootstrapPageService.buildTradeApprovePageData(
-                        request == null ? "" : request.getParameter("pageIndex"),
-                        request == null ? "" : request.getParameter("searchKeyword"),
-                        request == null ? "" : request.getParameter("approvalStatus"),
-                        request == null ? "" : request.getParameter("tradeType"),
-                        en));
-            } else if ("settlement_calendar".equals(normalizedRoute)) {
-                payload.put("settlementCalendarPageData", adminShellBootstrapPageService.buildSettlementCalendarPageData(
-                        request == null ? "" : request.getParameter("pageIndex"),
-                        request == null ? "" : request.getParameter("selectedMonth"),
-                        request == null ? "" : request.getParameter("searchKeyword"),
-                        request == null ? "" : request.getParameter("settlementStatus"),
-                        request == null ? "" : request.getParameter("riskLevel"),
-                        en));
-            } else if ("refund_list".equals(normalizedRoute)) {
-                payload.put("refundListPageData", adminShellBootstrapPageService.buildRefundListPageData(
-                        request == null ? "" : request.getParameter("pageIndex"),
-                        request == null ? "" : request.getParameter("searchKeyword"),
-                        request == null ? "" : request.getParameter("status"),
-                        request == null ? "" : request.getParameter("riskLevel"),
-                        en));
-            } else if ("trade_reject".equals(normalizedRoute)) {
-                payload.put("tradeRejectPageData", adminShellBootstrapPageService.buildTradeRejectPageData(
-                        request == null ? "" : request.getParameter("tradeId"),
-                        request == null ? "" : request.getParameter("returnUrl"),
-                        en));
-            } else if ("security_policy".equals(normalizedRoute)) {
-                payload.put("securityPolicyPageData", adminShellBootstrapPageService.buildSecurityPolicyPageData(en));
-            } else if ("external_monitoring".equals(normalizedRoute)) {
-                payload.put("externalMonitoringPageData", adminShellBootstrapPageService.buildExternalMonitoringPageData(en));
-            } else if ("security_monitoring".equals(normalizedRoute)) {
-                payload.put("securityMonitoringPageData", adminShellBootstrapPageService.buildSecurityMonitoringPageData(en));
-            } else if ("security_audit".equals(normalizedRoute)) {
-                payload.put("securityAuditPageData", adminShellBootstrapPageService.buildSecurityAuditPageData(
-                        request == null ? "" : request.getParameter("pageIndex"),
-                        request == null ? "" : request.getParameter("searchKeyword"),
-                        request == null ? "" : request.getParameter("actionType"),
-                        request == null ? "" : request.getParameter("routeGroup"),
-                        request == null ? "" : request.getParameter("startDate"),
-                        request == null ? "" : request.getParameter("endDate"),
-                        request == null ? "" : request.getParameter("sortKey"),
-                        request == null ? "" : request.getParameter("sortDirection"),
-                        en));
-            } else if ("certificate_audit_log".equals(normalizedRoute)) {
-                payload.put("certificateAuditLogPageData", adminShellBootstrapPageService.buildCertificateAuditLogPageData(
-                        request == null ? "" : request.getParameter("pageIndex"),
-                        request == null ? "" : request.getParameter("searchKeyword"),
-                        request == null ? "" : request.getParameter("auditType"),
-                        request == null ? "" : request.getParameter("status"),
-                        request == null ? "" : request.getParameter("certificateType"),
-                        request == null ? "" : request.getParameter("startDate"),
-                        request == null ? "" : request.getParameter("endDate"),
-                        en));
-            } else if ("scheduler_management".equals(normalizedRoute)) {
-                payload.put("schedulerManagementPageData", adminShellBootstrapPageService.buildSchedulerPageData(
-                        request == null ? "" : request.getParameter("jobStatus"),
-                        request == null ? "" : request.getParameter("executionType"),
-                        en));
-            } else if ("backup_config".equals(normalizedRoute)) {
-                payload.put("backupConfigPageData", adminShellBootstrapPageService.buildBackupConfigPageData(en));
-            } else if ("backup_execution".equals(normalizedRoute)) {
-                payload.put("backupConfigPageData", adminShellBootstrapPageService.buildBackupConfigPageData(en));
-            } else if ("new_page".equals(normalizedRoute)) {
-                payload.put("newPagePageData", adminShellBootstrapPageService.buildNewPagePageData(en));
-            } else if ("restore_execution".equals(normalizedRoute)) {
-                payload.put("backupConfigPageData", adminShellBootstrapPageService.buildBackupConfigPageData(en));
-            } else if ("version_management".equals(normalizedRoute)) {
-                payload.put("backupConfigPageData", adminShellBootstrapPageService.buildBackupConfigPageData(en));
-            } else if ("emission_result_list".equals(normalizedRoute)) {
-                payload.put("emissionResultListPageData", adminShellBootstrapPageService.buildEmissionResultListPageData(
-                        request == null ? "" : request.getParameter("pageIndex"),
-                        request == null ? "" : request.getParameter("searchKeyword"),
-                        request == null ? "" : request.getParameter("resultStatus"),
-                        request == null ? "" : request.getParameter("verificationStatus"),
-                        en));
-            } else if ("emission_result_detail".equals(normalizedRoute)) {
-                payload.put("emissionResultDetailPageData", adminShellBootstrapPageService.buildEmissionResultDetailPageData(
-                        request == null ? "" : request.getParameter("resultId"),
-                        en));
-            } else if ("emission_data_history".equals(normalizedRoute)) {
-                payload.put("emissionDataHistoryPageData", adminShellBootstrapPageService.buildEmissionDataHistoryPageData(
-                        request == null ? "" : request.getParameter("pageIndex"),
-                        request == null ? "" : request.getParameter("searchKeyword"),
-                        request == null ? "" : request.getParameter("changeType"),
-                        request == null ? "" : request.getParameter("changeTarget"),
-                        en));
-            } else if ("emission_validate".equals(normalizedRoute)) {
-                payload.put("emissionValidatePageData", adminShellBootstrapPageService.buildEmissionValidatePageData(
-                        request == null ? "" : request.getParameter("pageIndex"),
-                        request == null ? "" : request.getParameter("resultId"),
-                        request == null ? "" : request.getParameter("searchKeyword"),
-                        request == null ? "" : request.getParameter("verificationStatus"),
-                        request == null ? "" : request.getParameter("priorityFilter"),
-                        en));
-            } else if ("emission_site_management".equals(normalizedRoute)) {
-                payload.put("emissionSiteManagementPageData", adminShellBootstrapPageService.buildEmissionSiteManagementPageData(en));
-            }
+            appendAdminBootstrapPayload(payload, normalizedRoute, en, request, frontendSession);
         }
         return payload;
+    }
+
+    private void appendAdminBootstrapPayload(Map<String, Object> payload,
+                                             String normalizedRoute,
+                                             boolean en,
+                                             HttpServletRequest request,
+                                             FrontendSessionResponseDTO frontendSession) {
+        Locale locale = requestLocale(en);
+        if (!"admin_login".equals(normalizedRoute) && frontendSession.isAuthenticated()) {
+            payload.put("adminMenuTree", adminMenuTreeService.buildAdminMenuTree(en, request));
+        }
+        if (appendAdminHotPathPayload(payload, normalizedRoute, request, locale)) {
+            return;
+        }
+        if (appendAdminTradePayload(payload, normalizedRoute, request, en)) {
+            return;
+        }
+        if (appendAdminAuditPayload(payload, normalizedRoute, request, en)) {
+            return;
+        }
+        if (appendAdminEmissionPayload(payload, normalizedRoute, request, en)) {
+            return;
+        }
+        if (appendAdminCertificatePayload(payload, normalizedRoute, request, en, locale)) {
+            return;
+        }
+        if (appendAdminOperationsPayload(payload, normalizedRoute, request, en)) {
+            return;
+        }
+        switch (normalizedRoute) {
+            case "admin_home":
+                payload.put("adminHomePageData", adminShellBootstrapPageService.buildAdminHomePageData(en));
+                break;
+            case "member_stats":
+                payload.put("memberStatsPageData", adminShellBootstrapPageService.buildMemberStatsPageData(en));
+                break;
+            case "security_policy":
+                payload.put("securityPolicyPageData", adminShellBootstrapPageService.buildSecurityPolicyPageData(en));
+                break;
+            case "external_monitoring":
+                payload.put("externalMonitoringPageData", adminShellBootstrapPageService.buildExternalMonitoringPageData(en));
+                break;
+            case "security_monitoring":
+                payload.put("securityMonitoringPageData", adminShellBootstrapPageService.buildSecurityMonitoringPageData(en));
+                break;
+            default:
+                break;
+        }
+    }
+
+    private boolean appendAdminHotPathPayload(Map<String, Object> payload,
+                                              String normalizedRoute,
+                                              HttpServletRequest request,
+                                              Locale locale) {
+        if (request == null) {
+            return false;
+        }
+        switch (normalizedRoute) {
+            case "auth_group":
+                payload.put("authGroupPageData", adminHotPathPagePayloadService.buildAuthGroupPagePayload(
+                        param(request, "authorCode"),
+                        param(request, "roleCategory"),
+                        param(request, "insttId"),
+                        param(request, "menuCode"),
+                        param(request, "featureCode"),
+                        param(request, "userSearchKeyword"),
+                        request,
+                        locale));
+                return true;
+            case "dept_role":
+                payload.put("deptRolePageData", adminHotPathPagePayloadService.buildDeptRolePagePayload(
+                        param(request, "updated"),
+                        param(request, "insttId"),
+                        param(request, "memberSearchKeyword"),
+                        integerParam(request, "memberPageIndex"),
+                        param(request, "error"),
+                        request,
+                        locale));
+                return true;
+            case "auth_change":
+                payload.put("authChangePageData", adminHotPathPagePayloadService.buildAuthChangePagePayload(
+                        param(request, "updated"),
+                        param(request, "targetUserId"),
+                        param(request, "searchKeyword"),
+                        integerParam(request, "pageIndex"),
+                        param(request, "error"),
+                        request,
+                        locale));
+                return true;
+            case "member_edit":
+                payload.put("memberEditPageData", adminHotPathPagePayloadService.buildMemberEditPagePayload(
+                        param(request, "memberId"),
+                        param(request, "updated"),
+                        request,
+                        locale));
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private boolean appendAdminTradePayload(Map<String, Object> payload,
+                                            String normalizedRoute,
+                                            HttpServletRequest request,
+                                            boolean en) {
+        switch (normalizedRoute) {
+            case "trade_list":
+                payload.put("tradeListPageData", adminShellBootstrapPageService.buildTradeListPageData(
+                        param(request, "pageIndex"),
+                        param(request, "searchKeyword"),
+                        param(request, "tradeStatus"),
+                        param(request, "settlementStatus"),
+                        en));
+                return true;
+            case "trade_statistics":
+                payload.put("tradeStatisticsPageData", adminShellBootstrapPageService.buildTradeStatisticsPageData(
+                        param(request, "pageIndex"),
+                        param(request, "searchKeyword"),
+                        param(request, "periodFilter"),
+                        param(request, "tradeType"),
+                        param(request, "settlementStatus"),
+                        en));
+                return true;
+            case "trade_duplicate":
+                payload.put("tradeDuplicatePageData", adminShellBootstrapPageService.buildTradeDuplicatePageData(
+                        param(request, "pageIndex"),
+                        param(request, "searchKeyword"),
+                        param(request, "detectionType"),
+                        param(request, "reviewStatus"),
+                        param(request, "riskLevel"),
+                        en));
+                return true;
+            case "trade_approve":
+                payload.put("tradeApprovePageData", adminShellBootstrapPageService.buildTradeApprovePageData(
+                        param(request, "pageIndex"),
+                        param(request, "searchKeyword"),
+                        param(request, "approvalStatus"),
+                        param(request, "tradeType"),
+                        en));
+                return true;
+            case "settlement_calendar":
+                payload.put("settlementCalendarPageData", adminShellBootstrapPageService.buildSettlementCalendarPageData(
+                        param(request, "pageIndex"),
+                        param(request, "selectedMonth"),
+                        param(request, "searchKeyword"),
+                        param(request, "settlementStatus"),
+                        param(request, "riskLevel"),
+                        en));
+                return true;
+            case "refund_list":
+                payload.put("refundListPageData", adminShellBootstrapPageService.buildRefundListPageData(
+                        param(request, "pageIndex"),
+                        param(request, "searchKeyword"),
+                        param(request, "status"),
+                        param(request, "riskLevel"),
+                        en));
+                return true;
+            case "trade_reject":
+                payload.put("tradeRejectPageData", adminShellBootstrapPageService.buildTradeRejectPageData(
+                        param(request, "tradeId"),
+                        param(request, "returnUrl"),
+                        en));
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private boolean appendAdminAuditPayload(Map<String, Object> payload,
+                                            String normalizedRoute,
+                                            HttpServletRequest request,
+                                            boolean en) {
+        switch (normalizedRoute) {
+            case "security_audit":
+                payload.put("securityAuditPageData", adminShellBootstrapPageService.buildSecurityAuditPageData(
+                        param(request, "pageIndex"),
+                        param(request, "searchKeyword"),
+                        param(request, "actionType"),
+                        param(request, "routeGroup"),
+                        param(request, "startDate"),
+                        param(request, "endDate"),
+                        param(request, "sortKey"),
+                        param(request, "sortDirection"),
+                        en));
+                return true;
+            case "certificate_audit_log":
+                payload.put("certificateAuditLogPageData", adminShellBootstrapPageService.buildCertificateAuditLogPageData(
+                        param(request, "pageIndex"),
+                        param(request, "searchKeyword"),
+                        param(request, "auditType"),
+                        param(request, "status"),
+                        param(request, "certificateType"),
+                        param(request, "startDate"),
+                        param(request, "endDate"),
+                        en));
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private boolean appendAdminEmissionPayload(Map<String, Object> payload,
+                                               String normalizedRoute,
+                                               HttpServletRequest request,
+                                               boolean en) {
+        switch (normalizedRoute) {
+            case "emission_result_list":
+                payload.put("emissionResultListPageData", adminShellBootstrapPageService.buildEmissionResultListPageData(
+                        param(request, "pageIndex"),
+                        param(request, "searchKeyword"),
+                        param(request, "resultStatus"),
+                        param(request, "verificationStatus"),
+                        en));
+                return true;
+            case "emission_result_detail":
+                payload.put("emissionResultDetailPageData", adminShellBootstrapPageService.buildEmissionResultDetailPageData(
+                        param(request, "resultId"),
+                        en));
+                return true;
+            case "emission_data_history":
+                payload.put("emissionDataHistoryPageData", adminShellBootstrapPageService.buildEmissionDataHistoryPageData(
+                        param(request, "pageIndex"),
+                        param(request, "searchKeyword"),
+                        param(request, "changeType"),
+                        param(request, "changeTarget"),
+                        en));
+                return true;
+            case "emission_validate":
+                payload.put("emissionValidatePageData", adminShellBootstrapPageService.buildEmissionValidatePageData(
+                        param(request, "pageIndex"),
+                        param(request, "resultId"),
+                        param(request, "searchKeyword"),
+                        param(request, "verificationStatus"),
+                        param(request, "priorityFilter"),
+                        en));
+                return true;
+            case "emission_site_management":
+                payload.put("emissionSiteManagementPageData", adminShellBootstrapPageService.buildEmissionSiteManagementPageData(en));
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private boolean appendAdminCertificatePayload(Map<String, Object> payload,
+                                                  String normalizedRoute,
+                                                  HttpServletRequest request,
+                                                  boolean en,
+                                                  Locale locale) {
+        switch (normalizedRoute) {
+            case "certificate_statistics":
+                payload.put("certificateStatisticsPageData", adminShellBootstrapPageService.buildCertificateStatisticsPageData(
+                        param(request, "pageIndex"),
+                        param(request, "searchKeyword"),
+                        param(request, "periodFilter"),
+                        param(request, "certificateType"),
+                        param(request, "issuanceStatus"),
+                        en));
+                return true;
+            case "certificate_review":
+                payload.put("certificateReviewPageData", adminApprovalController.buildCertificateReviewPagePayload(
+                        param(request, "pageIndex"),
+                        param(request, "searchKeyword"),
+                        param(request, "status"),
+                        param(request, "certificateType"),
+                        param(request, "applicationId"),
+                        request,
+                        locale));
+                return true;
+            case "certificate_rec_check":
+                payload.put("certificateRecCheckPageData", adminShellBootstrapPageService.buildCertificateRecCheckPageData(en));
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private boolean appendAdminOperationsPayload(Map<String, Object> payload,
+                                                 String normalizedRoute,
+                                                 HttpServletRequest request,
+                                                 boolean en) {
+        switch (normalizedRoute) {
+            case "scheduler_management":
+                payload.put("schedulerManagementPageData", adminShellBootstrapPageService.buildSchedulerPageData(
+                        param(request, "jobStatus"),
+                        param(request, "executionType"),
+                        en));
+                return true;
+            case "backup_config":
+            case "backup_execution":
+            case "restore_execution":
+            case "version_management":
+                payload.put("backupConfigPageData", adminShellBootstrapPageService.buildBackupConfigPageData(en));
+                return true;
+            case "new_page":
+                payload.put("newPagePageData", adminShellBootstrapPageService.buildNewPagePageData(en));
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private String param(HttpServletRequest request, String name) {
+        if (request == null || name == null || name.trim().isEmpty()) {
+            return "";
+        }
+        String value = request.getParameter(name);
+        return value == null ? "" : value;
+    }
+
+    private Integer integerParam(HttpServletRequest request, String name) {
+        String rawValue = param(request, name).trim();
+        if (rawValue.isEmpty()) {
+            return null;
+        }
+        try {
+            return Integer.valueOf(rawValue);
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 
     private Locale requestLocale(boolean en) {

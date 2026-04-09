@@ -1,7 +1,8 @@
 package egovframework.com.feature.admin.web;
 
-import egovframework.com.feature.admin.model.vo.SecurityAuditSnapshot;
-import egovframework.com.feature.admin.service.AdminSummaryService;
+import egovframework.com.feature.admin.service.AdminSchedulerBootstrapReadService;
+import egovframework.com.feature.admin.service.AdminSecurityBootstrapReadService;
+import egovframework.com.platform.read.AdminSummaryReadPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
@@ -17,7 +18,9 @@ import java.util.Map;
 public class AdminSystemPageModelAssembler {
 
     private final ObjectProvider<AdminMainController> adminMainControllerProvider;
-    private final AdminSummaryService adminSummaryService;
+    private final AdminSummaryReadPort adminSummaryReadPort;
+    private final AdminSecurityBootstrapReadService adminSecurityBootstrapReadService;
+    private final AdminSchedulerBootstrapReadService adminSchedulerBootstrapReadService;
     private final ObjectProvider<egovframework.com.feature.admin.service.AdminShellBootstrapPageService> adminShellBootstrapPageServiceProvider;
 
     private AdminMainController adminMainController() {
@@ -29,24 +32,11 @@ public class AdminSystemPageModelAssembler {
     }
 
     public void populateSecurityPolicyPage(Model model, boolean isEn) {
-        AdminMainController controller = adminMainController();
-        model.addAttribute("securityPolicySummary", adminSummaryService.getSecurityPolicySummary(isEn));
-        model.addAttribute("securityPolicyRows", controller.buildSecurityPolicyRows(isEn));
-        model.addAttribute("securityPolicyPlaybooks", controller.buildSecurityPolicyPlaybooks(isEn));
-        model.addAttribute("menuPermissionDiagnostics", adminSummaryService.buildMenuPermissionDiagnosticSummary(isEn));
-        model.addAttribute("menuPermissionDiagnosticSqlDownloadUrl", "/downloads/menu-permission-diagnostics.sql");
-        model.addAttribute("menuPermissionAuthGroupUrl", controller.adminPrefix(null, null) + "/auth/group");
-        model.addAttribute("menuPermissionEnvironmentUrl", controller.adminPrefix(null, null) + "/system/environment-management");
+        model.addAllAttributes(adminSecurityBootstrapReadService.buildSecurityPolicyPageData(isEn));
     }
 
     public void populateSecurityMonitoringPage(Model model, boolean isEn) {
-        AdminMainController controller = adminMainController();
-        model.addAttribute("securityMonitoringCards", adminSummaryService.getSecurityMonitoringCards(isEn));
-        model.addAttribute("securityMonitoringTargets", adminSummaryService.getSecurityMonitoringTargets(isEn));
-        model.addAttribute("securityMonitoringIps", adminSummaryService.getSecurityMonitoringIps(isEn));
-        model.addAttribute("securityMonitoringEvents", adminSummaryService.mergeSecurityMonitoringEventState(adminSummaryService.getSecurityMonitoringEvents(isEn), isEn));
-        model.addAttribute("securityMonitoringActivityRows", adminSummaryService.getSecurityMonitoringActivityRows(isEn));
-        model.addAttribute("securityMonitoringBlockCandidates", adminSummaryService.getSecurityMonitoringBlockCandidateRows(isEn));
+        model.addAllAttributes(adminSecurityBootstrapReadService.buildSecurityMonitoringPageData(isEn));
     }
 
     public void populateBlocklistPage(
@@ -65,16 +55,16 @@ public class AdminSystemPageModelAssembler {
         model.addAttribute("blockType", normalizedBlockType);
         model.addAttribute("status", normalizedStatus);
         model.addAttribute("source", controller.safeString(source));
-        model.addAttribute("blocklistSummary", adminSummaryService.getBlocklistSummary(isEn));
-        List<Map<String, String>> blocklistRows = new ArrayList<>(adminSummaryService.getBlocklistRows(isEn));
+        model.addAttribute("blocklistSummary", adminSummaryReadPort.getBlocklistSummary(isEn));
+        List<Map<String, String>> blocklistRows = new ArrayList<>(adminSummaryReadPort.getBlocklistRows(isEn));
         model.addAttribute("blocklistRows", blocklistRows.stream()
                 .filter(row -> matchesBlocklistFilter(row, normalizedKeyword, normalizedBlockType, normalizedStatus, normalizedSource, controller))
                 .toList());
-        List<Map<String, String>> releaseQueue = new ArrayList<>(adminSummaryService.getBlocklistReleaseQueue(isEn));
+        List<Map<String, String>> releaseQueue = new ArrayList<>(adminSummaryReadPort.getBlocklistReleaseQueue(isEn));
         model.addAttribute("blocklistReleaseQueue", releaseQueue.stream()
                 .filter(row -> matchesQueueFilter(row, normalizedKeyword, normalizedSource, controller))
                 .toList());
-        List<Map<String, String>> releaseHistory = new ArrayList<>(adminSummaryService.getBlocklistReleaseHistory(isEn));
+        List<Map<String, String>> releaseHistory = new ArrayList<>(adminSummaryReadPort.getBlocklistReleaseHistory(isEn));
         model.addAttribute("blocklistReleaseHistory", releaseHistory.stream()
                 .filter(row -> matchesHistoryFilter(row, normalizedKeyword, normalizedSource, controller))
                 .toList());
@@ -137,9 +127,16 @@ public class AdminSystemPageModelAssembler {
     }
 
     public void populateSecurityAuditPage(Model model, boolean isEn) {
-        SecurityAuditSnapshot auditSnapshot = adminSummaryService.loadSecurityAuditSnapshot();
-        model.addAttribute("securityAuditSummary", adminSummaryService.getSecurityAuditSummary(auditSnapshot, isEn));
-        model.addAttribute("securityAuditRows", adminSummaryService.buildSecurityAuditRows(auditSnapshot.getAuditLogs(), isEn));
+        model.addAllAttributes(adminSecurityBootstrapReadService.buildSecurityAuditPageData(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                isEn));
     }
 
     public void populateSchedulerPage(
@@ -147,27 +144,7 @@ public class AdminSystemPageModelAssembler {
             String executionType,
             Model model,
             boolean isEn) {
-        AdminMainController controller = adminMainController();
-        String normalizedJobStatus = controller.safeString(jobStatus).toUpperCase(Locale.ROOT);
-        String normalizedExecutionType = controller.safeString(executionType).toUpperCase(Locale.ROOT);
-        List<Map<String, String>> jobRows = controller.buildSchedulerJobRows(isEn);
-        List<Map<String, String>> filteredRows = new ArrayList<>();
-        for (Map<String, String> row : jobRows) {
-            String rowStatus = controller.safeString(row.get("jobStatus")).toUpperCase(Locale.ROOT);
-            String rowType = controller.safeString(row.get("executionTypeCode")).toUpperCase(Locale.ROOT);
-            boolean matchesStatus = normalizedJobStatus.isEmpty() || normalizedJobStatus.equals(rowStatus);
-            boolean matchesType = normalizedExecutionType.isEmpty() || normalizedExecutionType.equals(rowType);
-            if (matchesStatus && matchesType) {
-                filteredRows.add(row);
-            }
-        }
-        model.addAttribute("jobStatus", normalizedJobStatus);
-        model.addAttribute("executionType", normalizedExecutionType);
-        model.addAttribute("schedulerSummary", adminSummaryService.getSchedulerSummary(isEn));
-        model.addAttribute("schedulerJobRows", filteredRows);
-        model.addAttribute("schedulerNodeRows", controller.buildSchedulerNodeRows(isEn));
-        model.addAttribute("schedulerExecutionRows", controller.buildSchedulerExecutionRows(isEn));
-        model.addAttribute("schedulerPlaybooks", controller.buildSchedulerPlaybooks(isEn));
+        model.addAllAttributes(adminSchedulerBootstrapReadService.buildSchedulerPageData(jobStatus, executionType, isEn));
     }
 
     public void populateBackupConfigPage(Model model, boolean isEn) {

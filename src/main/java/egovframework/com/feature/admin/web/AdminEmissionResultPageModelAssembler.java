@@ -2,7 +2,7 @@ package egovframework.com.feature.admin.web;
 
 import egovframework.com.feature.admin.model.vo.EmissionResultFilterSnapshot;
 import egovframework.com.feature.admin.model.vo.EmissionResultSummaryView;
-import egovframework.com.feature.admin.service.AdminSummaryService;
+import egovframework.com.platform.read.AdminSummaryReadPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.ui.Model;
@@ -14,7 +14,7 @@ import java.util.Locale;
 @RequiredArgsConstructor
 class AdminEmissionResultPageModelAssembler {
 
-    private final AdminSummaryService adminSummaryService;
+    private final AdminSummaryReadPort adminSummaryReadPort;
 
     void populateEmissionResultList(
             String pageIndexParam,
@@ -28,7 +28,7 @@ class AdminEmissionResultPageModelAssembler {
         String normalizedResultStatus = safeString(resultStatus).toUpperCase(Locale.ROOT);
         String normalizedVerificationStatus = safeString(verificationStatus).toUpperCase(Locale.ROOT);
 
-        EmissionResultFilterSnapshot filterSnapshot = adminSummaryService.buildEmissionResultFilterSnapshot(
+        EmissionResultFilterSnapshot filterSnapshot = adminSummaryReadPort.buildEmissionResultFilterSnapshot(
                 isEn,
                 keyword,
                 normalizedResultStatus,

@@ -100,61 +100,37 @@ public class AuthPageController {
     @GetMapping("/authChoice")
     public String authChoice(@RequestParam(value = "language", required = false) String language, Model model,
             HttpServletRequest request) {
-        String resolvedLanguage = resolveLanguage(language, request);
-        if (shouldRedirectToCanonicalPublicSignin(request, resolvedLanguage)) {
-            return redirectToCanonicalSignin(request, resolvedLanguage, "/authChoice");
-        }
-        return reactAppViewSupport.render(model, "signin-auth-choice", "en".equals(resolvedLanguage), false);
+        return renderPublicSigninPage(language, model, request, "/authChoice", "signin-auth-choice");
     }
 
     @GetMapping("/findId")
     public String findId(@RequestParam(value = "language", required = false) String language, Model model,
             HttpServletRequest request) {
-        String resolvedLanguage = resolveLanguage(language, request);
-        if (shouldRedirectToCanonicalPublicSignin(request, resolvedLanguage)) {
-            return redirectToCanonicalSignin(request, resolvedLanguage, "/findId");
-        }
-        return reactAppViewSupport.render(model, "signin-find-id", "en".equals(resolvedLanguage), false);
+        return renderPublicSigninPage(language, model, request, "/findId", "signin-find-id");
     }
 
     @GetMapping("/findId/overseas")
     public String findIdOverseas(@RequestParam(value = "language", required = false) String language, Model model,
             HttpServletRequest request) {
-        String resolvedLanguage = resolveLanguage(language, request);
-        if (shouldRedirectToCanonicalPublicSignin(request, resolvedLanguage)) {
-            return redirectToCanonicalSignin(request, resolvedLanguage, "/findId/overseas");
-        }
-        return reactAppViewSupport.render(model, "signin-find-id", "en".equals(resolvedLanguage), false);
+        return renderPublicSigninPage(language, model, request, "/findId/overseas", "signin-find-id");
     }
 
     @GetMapping("/findPassword")
     public String findPassword(@RequestParam(value = "language", required = false) String language, Model model,
             HttpServletRequest request) {
-        String resolvedLanguage = resolveLanguage(language, request);
-        if (shouldRedirectToCanonicalPublicSignin(request, resolvedLanguage)) {
-            return redirectToCanonicalSignin(request, resolvedLanguage, "/findPassword");
-        }
-        return reactAppViewSupport.render(model, "signin-find-password", "en".equals(resolvedLanguage), false);
+        return renderPublicSigninPage(language, model, request, "/findPassword", "signin-find-password");
     }
 
     @GetMapping("/findPassword/overseas")
     public String findPasswordOverseas(@RequestParam(value = "language", required = false) String language, Model model,
             HttpServletRequest request) {
-        String resolvedLanguage = resolveLanguage(language, request);
-        if (shouldRedirectToCanonicalPublicSignin(request, resolvedLanguage)) {
-            return redirectToCanonicalSignin(request, resolvedLanguage, "/findPassword/overseas");
-        }
-        return reactAppViewSupport.render(model, "signin-find-password", "en".equals(resolvedLanguage), false);
+        return renderPublicSigninPage(language, model, request, "/findPassword/overseas", "signin-find-password");
     }
 
     @GetMapping("/findPassword/result")
     public String findPasswordResult(@RequestParam(value = "language", required = false) String language, Model model,
             HttpServletRequest request) {
-        String resolvedLanguage = resolveLanguage(language, request);
-        if (shouldRedirectToCanonicalPublicSignin(request, resolvedLanguage)) {
-            return redirectToCanonicalSignin(request, resolvedLanguage, "/findPassword/result");
-        }
-        return reactAppViewSupport.render(model, "signin-find-password-result", "en".equals(resolvedLanguage), false);
+        return renderPublicSigninPage(language, model, request, "/findPassword/result", "signin-find-password-result");
     }
 
     @GetMapping("/findId/result")
@@ -163,11 +139,7 @@ public class AuthPageController {
             @RequestParam(value = "email", required = false) String email,
             @RequestParam(value = "tab", required = false, defaultValue = "domestic") String tab,
             Model model, HttpServletRequest request) {
-        String resolvedLanguage = resolveLanguage(language, request);
-        if (shouldRedirectToCanonicalPublicSignin(request, resolvedLanguage)) {
-            return redirectToCanonicalSignin(request, resolvedLanguage, "/findId/result");
-        }
-        return reactAppViewSupport.render(model, "signin-find-id-result", "en".equals(resolvedLanguage), false);
+        return renderPublicSigninPage(language, model, request, "/findId/result", "signin-find-id-result");
     }
 
     @GetMapping("/api/findId/result")
@@ -280,6 +252,19 @@ public class AuthPageController {
         return "redirect:" + builder.build().encode().toUriString();
     }
 
+    private String renderPublicSigninPage(
+            String language,
+            Model model,
+            HttpServletRequest request,
+            String canonicalPath,
+            String routeId) {
+        String resolvedLanguage = resolveLanguage(language, request);
+        if (shouldRedirectToCanonicalPublicSignin(request, resolvedLanguage)) {
+            return redirectToCanonicalSignin(request, resolvedLanguage, canonicalPath);
+        }
+        return reactAppViewSupport.render(model, routeId, "en".equals(resolvedLanguage), false);
+    }
+
     private String safeString(String value) {
         return value == null ? "" : value.trim();
     }
@@ -307,12 +292,8 @@ public class AuthPageController {
             @RequestParam(value = "pathCode", required = false, defaultValue = "1") String pathCode,
             Model model,
             HttpServletRequest request) {
-        String resolvedLanguage = resolveLanguage(language, request);
-        if (shouldRedirectToCanonicalPublicSignin(request, resolvedLanguage)) {
-            return redirectToCanonicalSignin(request, resolvedLanguage, "/loginForbidden");
-        }
         model.addAttribute("pathCode", pathCode);
-        return reactAppViewSupport.render(model, "signin-forbidden", "en".equals(resolvedLanguage), false);
+        return renderPublicSigninPage(language, model, request, "/loginForbidden", "signin-forbidden");
     }
 
 }

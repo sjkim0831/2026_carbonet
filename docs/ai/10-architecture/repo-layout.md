@@ -6,6 +6,12 @@ This file explains which folders matter most for AI speed and which ones should 
 
 - `PROJECT_PATHS.md`
   - top-level path-change note for repository moves or folder renames
+- `docs/architecture/system-folder-structure-alignment.md`
+  - canonical current folder-ownership and cleanup direction for `apps/`, `modules/`, `frontend/`, `templates/`, and legacy root `src/`
+- `apps/carbonet-app`
+  - executable runtime assembly target
+- `modules`
+  - reusable backend module ownership
 - `src/main/java/egovframework/com/feature`
   - business controllers, services, domain logic
 - `src/main/java/egovframework/com/common`
@@ -16,6 +22,10 @@ This file explains which folders matter most for AI speed and which ones should 
   - MyBatis XML source of truth
 - `frontend/src/features`
   - React migration screens
+- `frontend/src/platform`
+  - platform telemetry, screen registry, manifest, and observability metadata
+- `frontend/src/framework`
+  - shared frontend contract boundary for builder and authority flows
 - `frontend/src/components`
   - reusable React UI components
   - shared concerns should be split into subfolders such as `access/` and `help/` to reduce multi-session conflicts
@@ -63,6 +73,9 @@ Preferred locations:
 - AI-oriented maps -> `docs/ai/`
 - SQL changes -> `docs/sql/`
 - utility scripts -> `ops/scripts/`
+- reusable backend modules -> `modules/`
+- executable runtime assembly concerns -> `apps/`
+- bootstrap/install starter assets -> `templates/`
 - temporary analysis -> keep out of git or place under a clearly scoped doc folder
 
 ## Naming Rule For New Docs

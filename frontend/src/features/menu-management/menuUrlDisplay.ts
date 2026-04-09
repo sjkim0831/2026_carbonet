@@ -1,11 +1,15 @@
-import { findManifestByPageId } from "../../platform/screen-registry/pageManifestIndex";
+import { getRouteDefinition, normalizeRouteId } from "../../app/routes/definitions";
 
 function isExternalUrl(value: string) {
   return /^https?:\/\//i.test(value) || value === "#";
 }
 
 function findRoutePath(routeToken: string) {
-  return findManifestByPageId(routeToken)?.routePath || "";
+  const routeId = normalizeRouteId(routeToken);
+  if (!routeId) {
+    return "";
+  }
+  return getRouteDefinition(routeId)?.koPath || "";
 }
 
 function localizePath(path: string, english: boolean) {

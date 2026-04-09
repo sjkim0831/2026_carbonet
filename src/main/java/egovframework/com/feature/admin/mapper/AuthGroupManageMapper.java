@@ -104,6 +104,10 @@ public class AuthGroupManageMapper extends BaseMapperSupport {
         return selectList("AuthGroupManageMapper.selectFeatureCodesByMenuCode", menuCode);
     }
 
+    public List<String> selectAuthorCodesByFeatureCode(String featureCode) {
+        return selectList("AuthGroupManageMapper.selectAuthorCodesByFeatureCode", featureCode);
+    }
+
     public int countAuthorFeaturePermission(String authorCode, String featureCode) {
         Map<String, String> params = new java.util.HashMap<>();
         params.put("authorCode", authorCode);

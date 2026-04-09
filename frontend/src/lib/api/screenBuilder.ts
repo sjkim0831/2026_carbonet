@@ -54,7 +54,7 @@ export async function fetchScreenBuilderPage(params?: {
   const query = search.toString();
   return fetchCachedJson<ScreenBuilderPagePayload>({
     cacheKey: buildPageCacheKey(`screen-builder/page?${query}`),
-    url: `${buildAdminApiPath("/api/admin/screen-builder/page")}${query ? `?${query}` : ""}`,
+    url: `${buildAdminApiPath("/api/platform/screen-builder/page")}${query ? `?${query}` : ""}`,
     mapError: (body, status) => String(body.screenBuilderMessage || `Failed to load screen builder page: ${status}`)
   });
 }
@@ -73,7 +73,7 @@ export async function fetchScreenBuilderPreview(params?: {
   if (params?.menuUrl) search.set("menuUrl", params.menuUrl);
   if (params?.versionStatus) search.set("versionStatus", params.versionStatus);
   const query = search.toString();
-  const response = await apiFetch(`${buildAdminApiPath("/api/admin/screen-builder/preview")}${query ? `?${query}` : ""}`, {
+  const response = await apiFetch(`${buildAdminApiPath("/api/platform/screen-builder/preview")}${query ? `?${query}` : ""}`, {
     credentials: "include"
   });
   const body = await readJsonResponse<ScreenBuilderPreviewPayload & Record<string, unknown>>(response);
@@ -91,7 +91,7 @@ export async function fetchScreenBuilderStatusSummary(menuCodes: string[]) {
   const query = search.toString();
   return fetchCachedJson<ScreenBuilderStatusSummaryResponse>({
     cacheKey: buildPageCacheKey(`screen-builder/status-summary?${query}`),
-    url: `${buildAdminApiPath("/api/admin/screen-builder/status-summary")}${query ? `?${query}` : ""}`,
+    url: `${buildAdminApiPath("/api/platform/screen-builder/status-summary")}${query ? `?${query}` : ""}`,
     mapError: (_body, status) => `Failed to load screen builder status summary: ${status}`
   });
 }
@@ -102,7 +102,7 @@ export async function rebuildScreenBuilderStatusSummary(menuCodes: string[] = []
     search.append("menuCode", menuCode);
   });
   const query = search.toString();
-  const response = await apiFetch(`${buildAdminApiPath("/api/admin/screen-builder/status-summary/rebuild")}${query ? `?${query}` : ""}`, {
+  const response = await apiFetch(`${buildAdminApiPath("/api/platform/screen-builder/status-summary/rebuild")}${query ? `?${query}` : ""}`, {
     method: "POST",
     credentials: "include",
     headers: await buildResilientCsrfHeaders({
@@ -127,7 +127,7 @@ export async function saveScreenBuilderDraft(payload: {
   nodes: ScreenBuilderNode[];
   events: ScreenBuilderEventBinding[];
 }) {
-  const response = await apiFetch(buildAdminApiPath("/api/admin/screen-builder/draft"), {
+  const response = await apiFetch(buildAdminApiPath("/api/platform/screen-builder/draft"), {
     method: "POST",
     credentials: "include",
     headers: await buildResilientCsrfHeaders({
@@ -148,7 +148,7 @@ export async function restoreScreenBuilderDraft(payload: {
   menuCode: string;
   versionId: string;
 }) {
-  const response = await apiFetch(buildAdminApiPath("/api/admin/screen-builder/restore"), {
+  const response = await apiFetch(buildAdminApiPath("/api/platform/screen-builder/restore"), {
     method: "POST",
     credentials: "include",
     headers: await buildResilientCsrfHeaders({
@@ -168,7 +168,7 @@ export async function restoreScreenBuilderDraft(payload: {
 export async function publishScreenBuilderDraft(payload: {
   menuCode: string;
 }) {
-  const response = await apiFetch(buildAdminApiPath("/api/admin/screen-builder/publish"), {
+  const response = await apiFetch(buildAdminApiPath("/api/platform/screen-builder/publish"), {
     method: "POST",
     credentials: "include",
     headers: await buildResilientCsrfHeaders({
@@ -196,7 +196,7 @@ export async function registerScreenBuilderComponent(payload: {
   description?: string;
   propsTemplate?: Record<string, unknown>;
 }) {
-  const response = await apiFetch(buildAdminApiPath("/api/admin/screen-builder/component-registry"), {
+  const response = await apiFetch(buildAdminApiPath("/api/platform/screen-builder/component-registry"), {
     method: "POST",
     credentials: "include",
     headers: await buildResilientCsrfHeaders({
@@ -224,7 +224,7 @@ export async function updateScreenBuilderComponentRegistry(payload: {
   propsTemplate?: Record<string, unknown>;
   menuCode?: string;
 }) {
-  const response = await apiFetch(buildAdminApiPath("/api/admin/screen-builder/component-registry/update"), {
+  const response = await apiFetch(buildAdminApiPath("/api/platform/screen-builder/component-registry/update"), {
     method: "POST",
     credentials: "include",
     headers: await buildResilientCsrfHeaders({
@@ -242,7 +242,7 @@ export async function updateScreenBuilderComponentRegistry(payload: {
 }
 
 export async function fetchScreenBuilderComponentRegistryUsage(componentId: string) {
-  const response = await apiFetch(buildAdminApiPath(`/api/admin/screen-builder/component-registry/usage?componentId=${encodeURIComponent(componentId)}`), {
+  const response = await apiFetch(buildAdminApiPath(`/api/platform/screen-builder/component-registry/usage?componentId=${encodeURIComponent(componentId)}`), {
     credentials: "include"
   });
   const body = await readJsonResponse<{ componentId?: string; items?: ScreenBuilderComponentUsage[] } & Record<string, unknown>>(response);
@@ -255,7 +255,7 @@ export async function fetchScreenBuilderComponentRegistryUsage(componentId: stri
 export async function deleteScreenBuilderComponentRegistryItem(payload: {
   componentId: string;
 }) {
-  const response = await apiFetch(buildAdminApiPath("/api/admin/screen-builder/component-registry/delete"), {
+  const response = await apiFetch(buildAdminApiPath("/api/platform/screen-builder/component-registry/delete"), {
     method: "POST",
     credentials: "include",
     headers: await buildResilientCsrfHeaders({
@@ -276,7 +276,7 @@ export async function remapScreenBuilderComponentRegistryUsage(payload: {
   fromComponentId: string;
   toComponentId: string;
 }) {
-  const response = await apiFetch(buildAdminApiPath("/api/admin/screen-builder/component-registry/remap"), {
+  const response = await apiFetch(buildAdminApiPath("/api/platform/screen-builder/component-registry/remap"), {
     method: "POST",
     credentials: "include",
     headers: await buildResilientCsrfHeaders({
@@ -296,7 +296,7 @@ export async function remapScreenBuilderComponentRegistryUsage(payload: {
 export async function autoReplaceDeprecatedScreenBuilderComponents(payload: {
   menuCode: string;
 }) {
-  const response = await apiFetch(buildAdminApiPath("/api/admin/screen-builder/component-registry/auto-replace"), {
+  const response = await apiFetch(buildAdminApiPath("/api/platform/screen-builder/component-registry/auto-replace"), {
     method: "POST",
     credentials: "include",
     headers: await buildResilientCsrfHeaders({
@@ -316,7 +316,7 @@ export async function autoReplaceDeprecatedScreenBuilderComponents(payload: {
 export async function previewAutoReplaceDeprecatedScreenBuilderComponents(payload: {
   menuCode: string;
 }) {
-  const response = await apiFetch(buildAdminApiPath("/api/admin/screen-builder/component-registry/auto-replace-preview"), {
+  const response = await apiFetch(buildAdminApiPath("/api/platform/screen-builder/component-registry/auto-replace-preview"), {
     method: "POST",
     credentials: "include",
     headers: await buildResilientCsrfHeaders({
@@ -333,7 +333,7 @@ export async function previewAutoReplaceDeprecatedScreenBuilderComponents(payloa
 }
 
 export async function scanScreenBuilderRegistryDiagnostics() {
-  const response = await apiFetch(buildAdminApiPath("/api/admin/screen-builder/component-registry/scan"), {
+  const response = await apiFetch(buildAdminApiPath("/api/platform/screen-builder/component-registry/scan"), {
     credentials: "include"
   });
   const body = await readJsonResponse<{ items?: ScreenBuilderRegistryScanItem[]; totalCount?: number } & Record<string, unknown>>(response);
@@ -349,7 +349,7 @@ export async function addScreenBuilderNodeFromComponent(payload: {
   parentNodeId?: string;
   props?: Record<string, unknown>;
 }) {
-  const response = await apiFetch(buildAdminApiPath("/api/admin/screen-builder/component-registry/add-node"), {
+  const response = await apiFetch(buildAdminApiPath("/api/platform/screen-builder/component-registry/add-node"), {
     method: "POST",
     credentials: "include",
     headers: await buildResilientCsrfHeaders({
@@ -376,7 +376,7 @@ export async function addScreenBuilderNodeTreeFromComponents(payload: {
     props?: Record<string, unknown>;
   }>;
 }) {
-  const response = await apiFetch(buildAdminApiPath("/api/admin/screen-builder/component-registry/add-node-tree"), {
+  const response = await apiFetch(buildAdminApiPath("/api/platform/screen-builder/component-registry/add-node-tree"), {
     method: "POST",
     credentials: "include",
     headers: await buildResilientCsrfHeaders({

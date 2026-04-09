@@ -59,14 +59,15 @@ When changing React migration code:
 3. verify a hard refresh loads new hashed asset names
 4. verify unchanged assets remain browser-cacheable
 
-For local port `18000`, use the repository sequence instead of `restart-18000.sh` alone:
+For local port `18000`, the repository default restart path is freshness-safe:
 
 - `bash ops/scripts/build-restart-18000.sh`
+- `bash ops/scripts/restart-18000.sh`
 
 Reason:
 
-- `restart-18000.sh` only restarts `var/run/carbonet-18000.jar`
-- if `mvn package` was not run after the frontend build, the runtime jar can still contain older React assets
+- both commands rebuild frontend assets and package the backend jar before the runtime restart
+- if you intentionally bypass that with `RESTART_MODE=runtime-only`, the runtime jar can still contain older React assets
 
 ## Verification Checklist
 

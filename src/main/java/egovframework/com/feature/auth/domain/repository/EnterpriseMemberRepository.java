@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository("uiaEnterpriseMemberRepository")
 public interface EnterpriseMemberRepository extends JpaRepository<EntrprsMber, String> {
 
@@ -29,4 +31,8 @@ public interface EnterpriseMemberRepository extends JpaRepository<EntrprsMber, S
             "AND a.entrprsMberStus IN ('A','P','R') "
     )
     LoginResponseDTO findByIdAndPassword(String userId, String password);
+
+    Optional<EntrprsMber> findFirstByAuthCi(String authCi);
+
+    Optional<EntrprsMber> findFirstByAuthDi(String authDi);
 }

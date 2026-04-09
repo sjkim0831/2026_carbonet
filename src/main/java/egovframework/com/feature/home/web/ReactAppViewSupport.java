@@ -41,7 +41,7 @@ public class ReactAppViewSupport {
         String jsPath = adaptAssetPath(assets.getJsPath(), admin, en);
         String cssPath = adaptAssetPath(assets.getCssPath(), admin, en);
         applyNoStoreCacheHeaders(currentResponse());
-        model.addAttribute("reactRoute", normalizeRoute(route, admin));
+        model.addAttribute("reactRoute", ReactRouteSupport.normalizeViewRoute(route, admin));
         model.addAttribute("reactLocale", en ? "en" : "ko");
         model.addAttribute("reactAdmin", admin);
         model.addAttribute("reactShellTitle", admin
@@ -65,7 +65,7 @@ public class ReactAppViewSupport {
         String jsPath = adaptAssetPath(assets.getJsPath(), admin, en);
         String cssPath = adaptAssetPath(assets.getCssPath(), admin, en);
         Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("reactRoute", normalizeRoute(route, admin));
+        payload.put("reactRoute", ReactRouteSupport.normalizeViewRoute(route, admin));
         payload.put("reactLocale", en ? "en" : "ko");
         payload.put("reactAdmin", admin);
         payload.put("reactShellTitle", admin
@@ -79,14 +79,6 @@ public class ReactAppViewSupport {
         payload.put("reactAppProdCss", cssPath);
         payload.put("reactBootstrapPayload", reactAppBootstrapService.buildBootstrapPayload(route, en, admin, request));
         return payload;
-    }
-
-    private String normalizeRoute(String route, boolean admin) {
-        String normalized = route == null ? "" : route.trim();
-        if (normalized.isEmpty()) {
-            return admin ? "auth-group" : "mypage";
-        }
-        return normalized.replace('_', '-');
     }
 
     private HttpServletRequest currentRequest() {

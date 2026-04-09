@@ -43,7 +43,7 @@ export type PageManifest = {
   pageId: string;
   routePath: string;
   menuCode?: string;
-  domainCode: "admin" | "join" | "home";
+  domainCode: "admin" | "platform" | "join" | "home";
   layoutVersion: string;
   designTokenVersion: string;
   governance?: ComponentGovernanceManifest;

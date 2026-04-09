@@ -1,4 +1,4 @@
-import type { FrameworkBuilderContract } from "./contracts/builderContract";
+import type { FrameworkBuilderContract } from "./contracts";
 import { getFrameworkContractMetadata } from "./contractMetadata";
 import { buildFrameworkComponentCatalog } from "./registry/frameworkComponentCatalog";
 import { buildFrameworkPageRegistry } from "./registry/frameworkPageRegistry";

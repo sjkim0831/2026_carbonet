@@ -1,0 +1,4 @@
+egovframework/com/common/trace/UiManifestRegistryService.class
+egovframework/com/common/mapper/UiObservabilityRegistryMapper.class
+egovframework/com/framework/builder/runtime/mapper/FrameworkBuilderObservabilityMapper.class
+egovframework/com/common/trace/UiManifestRegistryPort.class

@@ -7,6 +7,10 @@ See also:
 - `docs/architecture/operations-platform-console-architecture.md`
 - `docs/architecture/platform-common-module-versioning.md`
 - `docs/architecture/common-module-taxonomy.md`
+- `docs/architecture/artifact-registry-and-project-version-governance.md`
+- `docs/architecture/artifact-and-release-naming-contract.md`
+- `docs/architecture/project-version-management-console-ia.md`
+- `docs/architecture/project-version-management-api-contracts.md`
 
 ## Goal
 
@@ -113,6 +117,8 @@ Shows and manages:
 - parameter and result contract registry
 - security-sensitive dependency updates
 - facade and adapter ownership
+- adapter contract versions
+- adapter change history
 - common jar lines by framework version
 - import-aware upgrade reviews
 - project selection matrix for common lines
@@ -137,6 +143,8 @@ Shows and manages:
 - selected common jar line
 - selected frontend common bundle line
 - selected feature module line
+- installed adapter contract version
+- installed adapter artifact version
 - main server, sub server, idle-node participation, and DB server-role bindings
 - per-server deploy-readiness state by project unit
 - current DB attachment target
@@ -257,6 +265,8 @@ Shows and manages:
 - common jar and frontend bundle selection by project
 - scaffold baseline versus packaged artifact version comparison
 - attached library and feature-module asset matrix
+- adapter change impact summary
+- compatible versus incompatible candidate versions
 
 All release and deploy views should visibly expose:
 

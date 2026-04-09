@@ -30,6 +30,12 @@ This rule applies equally to:
 - theme, token, CSS, and JS shared assets
 - installable feature modules and optional libraries used during scaffolded system delivery
 
+One more governance rule applies to AI-driven common-core evolution:
+
+- stable project adapter contracts should change slowly
+- common-core internals may evolve faster behind those stable contracts
+- breaking adapter or DTO changes require explicit versioned contract lines
+
 Additional rule:
 
 - module additions should preserve one governed pattern family and one governed structural depth per module family
@@ -58,6 +64,8 @@ Runtime source fetching creates:
 Every deployed project should record:
 
 - `platformVersion`
+- `commonCoreVersion`
+- `adapterContractVersion`
 - `egovFrameworkVersion`
 - `frontendPlatformVersion`
 - `uiCommonVersion`
@@ -69,6 +77,8 @@ Every deployed project should record:
 - `javaVersion`
 - `dbDriverVersion`
 - `apiContractVersion`
+- `manifestContractVersion`
+- `capabilityCatalogVersion`
 - `builtAt`
 - `deployedAt`
 
@@ -164,6 +174,7 @@ Use this rule:
 - general runtime systems should contain mostly low-churn, lightweight source
 - heavy shared behavior should move into centrally versioned jars or bundles
 - project source should survive common upgrades with minimal or no import changes in the normal case
+- stable adapter layers should survive common-core patch and minor upgrades without rewrites in the normal case
 
 Product delivery rule:
 
@@ -214,6 +225,17 @@ Upgrade policy should distinguish:
 - `import-aware upgrade`
   - project import or signature alignment may be required
   - must be centrally tracked and explicitly approved
+
+Add one more distinction:
+
+- `adapter-safe upgrade`
+  - common-core internals changed
+  - adapter contract and DTO meaning remain stable
+  - project adapter rewrites should not be required
+
+Reference:
+
+- `docs/architecture/stable-adapter-and-common-core-versioning.md`
 
 ## eGovFrame Version Separation Rule
 

@@ -6,6 +6,14 @@ Suggested routing:
 
 - Use `carbonet-ai-session-orchestrator` first on any implementation request to decide whether the work stays in one session or should split across multiple sessions with conflict-free path ownership.
 - Use `carbonet-audit-trace-architecture` when the task is about audit logging, trace correlation, page or component registry, or system-wide governance across frontend and backend.
+- Use `carbonet-common-project-boundary-switcher` when the real question is whether a page, module, menu, or contract should become common definition plus project binding instead of staying project-local.
+- Use `carbonet-screen-builder` when the task is about turning existing pages into builder-managed or installable page units, not only when a drag-and-drop editor is explicitly mentioned.
+- Use `docs/architecture/page-systemization-minimum-contract.md` as the first checklist when someone asks whether a page is really systemized, reusable, installable, or authority-scope-complete.
+- Use `docs/architecture/builder-folder-refactor-priority-map.md` when the task is specifically about builder-oriented folder cleanup, path ordering, or module cutover execution order.
+- When builder implementation is already in progress, prefer same-family incremental folder cleanup during that builder slice rather than leaving obvious structural drift for later.
+- Use `docs/architecture/large-move-completion-contract.md` when the user explicitly wants a large move to finish in a closed state with one source of truth per selected family.
+- If the currently active sessions already cover the needed ownership families, prefer finishing with those sessions rather than opening more implementation lanes.
+- For builder-oriented platformization, common/project boundary work, large folder moves, or ownership closure, treat `4 sessions` as the default partition regardless of whether they are opened under 1 account or several accounts.
 - Use `carbonet-react-refresh-consistency` when changing React build output, shell templates, Spring static resource delivery, or any cache behavior that affects whether frontend changes appear immediately after a hard refresh.
 - Use `carbonet-screen-design-workspace` when the task starts from `/home/imaneya/workspace/화면설계`, especially when the top-level `1.`, `2.`, `3.`, `4.` HTML files should drive scope, IA, or workflow interpretation.
 - Use `carbonet-feature-builder` when implementing or extending a Carbonet screen, menu, service, mapper, or DB metadata.

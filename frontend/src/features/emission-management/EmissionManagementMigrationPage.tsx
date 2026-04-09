@@ -25,6 +25,7 @@ import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { AdminInput, AdminSelect, CollectionResultPanel, DiagnosticCard, LookupContextStrip, MemberActionBar, MemberButton, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
+import { EmissionClassificationCatalogPanel } from "../emission-common/EmissionClassificationCatalogPanel";
 import {
   type InputMap,
   type InputRow,
@@ -34,7 +35,6 @@ import {
   alignedRowsForRemoval,
   arrayOf,
   buildEmptyInputs,
-  buildMajorCategoryOptions,
   buildSummationGroups,
   buildTierGuide,
   buildVariableSections,
@@ -52,8 +52,6 @@ import {
   isRequiredVariable,
   limeTier2DerivedSummary,
   limeTier2VariableHint,
-  majorCategoryKey,
-  majorCategoryLabel,
   numberOf,
   resolutionGuideForVariable,
   shouldShowConditionalVariable,
@@ -268,6 +266,117 @@ function definitionScopeStatusLabel(status: string, en: boolean) {
     return en ? "Studio-only category" : "스튜디오 전용 분류";
   }
   return en ? "Pending" : "대기";
+}
+
+type ClassificationOption = {
+  code: string;
+  label: string;
+};
+
+type CategoryClassificationMeta = {
+  majorCode: string;
+  majorName: string;
+  middleCode: string;
+  middleName: string;
+  smallCode: string;
+  smallName: string;
+  tierLabel: string;
+  pathLabel: string;
+};
+
+function classificationRowForCategory(category: EmissionCategoryItem | null | undefined, catalogRows: Array<Record<string, unknown>>) {
+  const classificationCode = stringOf(category?.classificationCode);
+  const alias = stringOf(category?.subCode).trim().toUpperCase();
+  return catalogRows.find((row) => {
+    if (stringOf(row.code) === classificationCode) {
+      return true;
+    }
+    const aliases = Array.isArray(row.aliases) ? (row.aliases as Array<unknown>).map((item) => stringOf(item).trim().toUpperCase()) : [];
+    return alias.length > 0 && aliases.includes(alias);
+  }) || null;
+}
+
+function classificationMetaOf(category: EmissionCategoryItem | null | undefined, catalogRows: Array<Record<string, unknown>>): CategoryClassificationMeta {
+  const matched = classificationRowForCategory(category, catalogRows);
+  const pathParts = stringOf(category?.classificationPath)
+    .split("/")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const classificationCode = stringOf(category?.classificationCode);
+  const majorCode = stringOf(matched?.majorCode) || (classificationCode.length >= 2 ? classificationCode.slice(0, 2) : "");
+  const middleCode = stringOf(matched?.middleCode) || (classificationCode.length >= 4 ? classificationCode.slice(0, 4) : "");
+  const smallCode = stringOf(matched?.smallCode) || (classificationCode.length >= 6 ? classificationCode.slice(0, 6) : classificationCode);
+  const majorName = stringOf(matched?.majorName) || pathParts[0] || stringOf(category?.majorName);
+  const middleName = stringOf(matched?.middleName) || pathParts[1];
+  const smallName = stringOf(matched?.smallName) || pathParts[2] || stringOf(category?.subName);
+  const pathLabel = stringOf(category?.classificationPath) || stringOf(matched?.pathLabel);
+  const tierLabel = stringOf(category?.classificationTierLabel) || stringOf(matched?.tierLabel);
+  return {
+    majorCode,
+    majorName,
+    middleCode,
+    middleName,
+    smallCode,
+    smallName,
+    tierLabel,
+    pathLabel
+  };
+}
+
+function buildClassificationMajorOptions(categories: EmissionCategoryItem[], catalogRows: Array<Record<string, unknown>>) {
+  const deduped = new Map<string, ClassificationOption>();
+  categories.forEach((category) => {
+    const meta = classificationMetaOf(category, catalogRows);
+    if (!meta.majorCode || deduped.has(meta.majorCode)) {
+      return;
+    }
+    deduped.set(meta.majorCode, {
+      code: meta.majorCode,
+      label: `${meta.majorName}${meta.majorCode ? ` (${meta.majorCode})` : ""}`
+    });
+  });
+  return Array.from(deduped.values()).sort((left, right) => left.label.localeCompare(right.label, "ko"));
+}
+
+function candidateStatusTone(status: string) {
+  if (status === "READY") {
+    return "bg-emerald-100 text-emerald-700";
+  }
+  if (status === "STUDIO_ONLY") {
+    return "bg-blue-100 text-blue-700";
+  }
+  if (status === "PLANNED") {
+    return "bg-amber-100 text-amber-700";
+  }
+  return "bg-slate-100 text-slate-700";
+}
+
+function candidateStatusLabel(status: string, en: boolean) {
+  if (status === "READY") {
+    return en ? "Operational" : "운영중";
+  }
+  if (status === "STUDIO_ONLY") {
+    return en ? "Definition only" : "정의만 있음";
+  }
+  if (status === "PLANNED") {
+    return en ? "Tier planned" : "Tier 후보 있음";
+  }
+  return en ? "Not implemented" : "미구현";
+}
+
+function buildClassificationMiddleOptions(categories: EmissionCategoryItem[], catalogRows: Array<Record<string, unknown>>, selectedMajorCode: string) {
+  const deduped = new Map<string, ClassificationOption>();
+  categories.forEach((category) => {
+    const meta = classificationMetaOf(category, catalogRows);
+    if (!meta.middleCode || (selectedMajorCode && meta.majorCode !== selectedMajorCode) || deduped.has(meta.middleCode)) {
+      return;
+    }
+    deduped.set(meta.middleCode, {
+      code: meta.middleCode,
+      label: `${meta.middleName}${meta.middleCode ? ` (${meta.middleCode})` : ""}`
+    });
+  });
+  return Array.from(deduped.values()).sort((left, right) => left.label.localeCompare(right.label, "ko"));
 }
 
 function scopeBlockingReasonLabel(code: string, en: boolean) {
@@ -753,8 +862,10 @@ export function EmissionManagementMigrationPage() {
   const [inputs, setInputs] = useState<InputMap>({});
   const [wizardStep, setWizardStep] = useState<WizardStep>(1);
   const [majorSearchKeyword, setMajorSearchKeyword] = useState("");
+  const [middleSearchKeyword, setMiddleSearchKeyword] = useState("");
   const [subCategorySearchKeyword, setSubCategorySearchKeyword] = useState("");
   const [selectedMajorKey, setSelectedMajorKey] = useState("");
+  const [selectedMiddleCode, setSelectedMiddleCode] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState(0);
   const [selectedTier, setSelectedTier] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<EmissionCategoryItem | null>(null);
@@ -799,28 +910,102 @@ export function EmissionManagementMigrationPage() {
     ? selectedPublishedDefinition
     : ((page?.selectedDefinitionDraft || null) as Record<string, unknown> | null));
   const [appliedDefinitionDraftId, setAppliedDefinitionDraftId] = useState("");
-  const majorOptions = buildMajorCategoryOptions(categories);
+  const classificationCatalog = (page?.classificationCatalog || null) as Record<string, unknown> | null;
+  const classificationCatalogRows = Array.isArray(classificationCatalog?.rows)
+    ? (classificationCatalog.rows as Array<Record<string, unknown>>)
+    : [];
+  const majorOptions = buildClassificationMajorOptions(categories, classificationCatalogRows);
   const filteredMajorOptions = majorOptions.filter((option) => {
     const keyword = majorSearchKeyword.trim().toLowerCase();
     if (!keyword) {
       return true;
     }
-    return `${option.majorCode} ${option.majorName}`.toLowerCase().includes(keyword);
+    return `${option.code} ${option.label}`.toLowerCase().includes(keyword);
+  });
+  const middleOptions = buildClassificationMiddleOptions(categories, classificationCatalogRows, selectedMajorKey);
+  const filteredMiddleOptions = middleOptions.filter((option) => {
+    const keyword = middleSearchKeyword.trim().toLowerCase();
+    if (!keyword) {
+      return true;
+    }
+    return `${option.code} ${option.label}`.toLowerCase().includes(keyword);
   });
   const visibleCategories = categories.filter((category) => {
-    const matchesMajor = !selectedMajorKey || majorCategoryKey(category) === selectedMajorKey;
+    const meta = classificationMetaOf(category, classificationCatalogRows);
+    const matchesMajor = !selectedMajorKey || meta.majorCode === selectedMajorKey;
     if (!matchesMajor) {
+      return false;
+    }
+    const matchesMiddle = !selectedMiddleCode || meta.middleCode === selectedMiddleCode;
+    if (!matchesMiddle) {
       return false;
     }
     const keyword = subCategorySearchKeyword.trim().toLowerCase();
     if (!keyword) {
       return true;
     }
-    return `${stringOf(category.subCode)} ${stringOf(category.subName)}`.toLowerCase().includes(keyword);
+    return `${meta.smallCode} ${meta.smallName} ${stringOf(category.subCode)} ${stringOf(category.subName)} ${meta.pathLabel}`.toLowerCase().includes(keyword);
   });
-  const selectedMajorOption = majorOptions.find((option) => option.key === selectedMajorKey) || null;
+  const selectedMajorOption = majorOptions.find((option) => option.code === selectedMajorKey) || null;
+  const selectedMiddleOption = middleOptions.find((option) => option.code === selectedMiddleCode) || null;
   const hasSelectedCategory = selectedCategoryId !== 0;
   const selectedTierItem = tiers.find((tier) => numberOf(tier.tier) === selectedTier) || null;
+  const selectedClassificationMeta = classificationMetaOf(selectedCategory, classificationCatalogRows);
+  const lciSmallCandidates = classificationCatalogRows
+    .filter((row) => stringOf(row.level).toUpperCase() === "SMALL")
+    .map((row) => {
+      const aliases = Array.isArray(row.aliases) ? (row.aliases as Array<unknown>).map((item) => stringOf(item).trim().toUpperCase()).filter(Boolean) : [];
+      const matchedCategories = categories.filter((category) => aliases.includes(stringOf(category.subCode).trim().toUpperCase()));
+      const matchedDefinitionScopes = definitionScopeRows.filter((scopeRow) => aliases.includes(stringOf(scopeRow.categoryCode).trim().toUpperCase()));
+      const runtimeTiers = new Set<number>();
+      const plannedTiers = new Set<number>();
+      matchedCategories.forEach((category) => {
+        tierItemsForDefinitionScope(stringOf(category.subCode)).forEach((tierItem) => {
+          const tierNumber = numberOf(tierItem.tier);
+          if (tierNumber <= 0) {
+            return;
+          }
+          if (Boolean(tierItem.runtimeSupported ?? true)) {
+            runtimeTiers.add(tierNumber);
+          } else {
+            plannedTiers.add(tierNumber);
+          }
+        });
+      });
+      matchedDefinitionScopes.forEach((scopeRow) => {
+        const tierNumber = numberOf(scopeRow.tier);
+        if (tierNumber <= 0) {
+          return;
+        }
+        if (Boolean(scopeRow.runtimeSupported)) {
+          runtimeTiers.add(tierNumber);
+        } else {
+          plannedTiers.add(tierNumber);
+        }
+      });
+      let status = "UNMAPPED";
+      if (runtimeTiers.size > 0) {
+        status = "READY";
+      } else if (matchedDefinitionScopes.length > 0 || matchedCategories.some((category) => Boolean(category.virtualCategory))) {
+        status = "STUDIO_ONLY";
+      } else if (plannedTiers.size > 0) {
+        status = "PLANNED";
+      }
+      return {
+        code: stringOf(row.code),
+        majorName: stringOf(row.majorName),
+        middleName: stringOf(row.middleName),
+        smallName: stringOf(row.smallName),
+        tierLabel: stringOf(row.tierLabel),
+        aliases,
+        matchedCategories,
+        matchedDefinitionScopes,
+        runtimeTiers: Array.from(runtimeTiers).sort((left, right) => left - right),
+        plannedTiers: Array.from(plannedTiers).sort((left, right) => left - right),
+        status
+      };
+    })
+    .sort((left, right) => `${left.majorName}/${left.middleName}/${left.smallName}`.localeCompare(`${right.majorName}/${right.middleName}/${right.smallName}`, "ko"));
   const selectedCategoryDefinitionScopeRows = definitionScopeRows.filter((row) => {
     return stringOf(row.categoryCode).toUpperCase() === stringOf(selectedCategory?.subCode).toUpperCase();
   });
@@ -2296,7 +2481,6 @@ export function EmissionManagementMigrationPage() {
       const nextCategory = nextCategories[0];
       const nextCategoryId = numberOf(nextCategory.categoryId);
       if (nextCategoryId > 0) {
-        setSelectedMajorKey(majorCategoryKey(nextCategory));
         await handleCategoryChange(nextCategoryId, nextCategories);
       }
     }
@@ -2364,8 +2548,10 @@ export function EmissionManagementMigrationPage() {
     setTierGuideMap({});
     setWarning("");
     const nextCategory = findCategoryById(sourceCategories || categories, categoryId);
+    const nextClassificationMeta = classificationMetaOf(nextCategory, classificationCatalogRows);
     setSelectedCategory(nextCategory);
-    setSelectedMajorKey(majorCategoryKey(nextCategory));
+    setSelectedMajorKey(nextClassificationMeta.majorCode);
+    setSelectedMiddleCode(nextClassificationMeta.middleCode);
     if (categoryId <= 0) {
       setTiers([]);
       return;
@@ -2417,8 +2603,10 @@ export function EmissionManagementMigrationPage() {
     setSelectedTier(tier);
     const tiersResponse = await fetchEmissionTiers(categoryId);
     const restoredCategory = (tiersResponse.category as EmissionCategoryItem) || null;
+    const restoredClassificationMeta = classificationMetaOf(restoredCategory, classificationCatalogRows);
     setSelectedCategory(restoredCategory);
-    setSelectedMajorKey(majorCategoryKey(restoredCategory));
+    setSelectedMajorKey(restoredClassificationMeta.majorCode);
+    setSelectedMiddleCode(restoredClassificationMeta.middleCode);
     setTiers(tierItemsForDefinitionScope(
       stringOf(restoredCategory?.subCode),
       [
@@ -2432,7 +2620,7 @@ export function EmissionManagementMigrationPage() {
 
   async function proceedToInputStep() {
     if (selectedCategoryId === 0) {
-      setError(en ? "Select a major and subcategory first." : "대분류와 중분류를 먼저 선택하세요.");
+      setError(en ? "Select major, middle, and small classification first." : "대분류, 중분류, 소분류를 먼저 선택하세요.");
       return;
     }
     if (selectedTier <= 0) {
@@ -3515,22 +3703,113 @@ export function EmissionManagementMigrationPage() {
             label={en ? "Current selection" : "현재 선택 범위"}
             value={(
               <span className="font-semibold">
-                {`${majorCategoryLabel(selectedMajorOption, en)} / ${selectedCategory ? stringOf(selectedCategory.subName) : (en ? "Not selected" : "미선택")} / ${selectedTier > 0 ? `Tier ${selectedTier}` : "-"}`}
+                {`${selectedClassificationMeta.pathLabel || (en ? "Not selected" : "미선택")} / ${selectedTier > 0 ? `Tier ${selectedTier}` : "-"}`}
               </span>
             )}
           />
         ) : null}
 
-        <section className={`grid grid-cols-1 gap-4 xl:grid-cols-4 ${highlightedHelpId === "emission-management-summary" ? "rounded-[var(--kr-gov-radius)] ring-2 ring-[var(--kr-gov-blue)] ring-offset-4 ring-offset-white" : ""}`} data-help-id="emission-management-summary">
-          <div className="xl:col-span-4 flex justify-end">
+        <section className={`grid grid-cols-1 gap-4 xl:grid-cols-5 ${highlightedHelpId === "emission-management-summary" ? "rounded-[var(--kr-gov-radius)] ring-2 ring-[var(--kr-gov-blue)] ring-offset-4 ring-offset-white" : ""}`} data-help-id="emission-management-summary">
+          <div className="xl:col-span-5 flex justify-end">
             <MemberButton onClick={() => openElementDefinitionByHelpId("emission-management-summary")} type="button" variant="secondary">
               {en ? "Open element definition" : "요소 정의 열기"}
             </MemberButton>
           </div>
-          <SummaryMetricCard title={en ? "Selected Major" : "선택 대분류"} value={majorCategoryLabel(selectedMajorOption, en)} description={en ? "Search the major classification to narrow the workflow scope." : "대분류 검색으로 작업 범위를 먼저 좁힙니다."} />
-          <SummaryMetricCard title={en ? "Selected Subcategory" : "선택 중분류"} value={selectedCategory ? stringOf(selectedCategory.subName) : (en ? "Not selected" : "미선택")} description={en ? "Subcategory selection determines the available tier list." : "중분류 선택에 따라 사용 가능한 Tier 목록이 결정됩니다."} />
+          <SummaryMetricCard title={en ? "Selected Major" : "선택 대분류"} value={selectedMajorOption?.label || (en ? "Not selected" : "미선택")} description={en ? "Choose the LCI top-level family first." : "LCI 대분류로 상위 범위를 먼저 정합니다."} />
+          <SummaryMetricCard title={en ? "Selected Middle" : "선택 중분류"} value={selectedMiddleOption?.label || (en ? "Not selected" : "미선택")} description={en ? "Middle classification narrows the eligible small categories." : "중분류를 선택하면 연결 가능한 소분류만 남습니다."} />
+          <SummaryMetricCard title={en ? "Selected Small" : "선택 소분류"} value={selectedClassificationMeta.smallName || (en ? "Not selected" : "미선택")} description={en ? "Small classification binds the runtime category and tier scope." : "소분류 선택으로 실제 계산 카테고리와 Tier 범위가 결정됩니다."} />
           <SummaryMetricCard title="Tier" value={selectedTier > 0 ? `Tier ${selectedTier}` : "-"} description={en ? "Tier selection controls formula and variable definitions." : "Tier 선택에 따라 계산식과 입력 변수가 바뀝니다."} />
           <SummaryMetricCard title={en ? "Step" : "단계"} value={wizardStep === 1 ? (en ? "Step 1" : "1단계") : (en ? "Step 2" : "2단계")} description={wizardStep === 1 ? (en ? "Select scope and tier." : "범위와 Tier를 선택합니다.") : (en ? "Enter variables and calculate." : "변수를 입력하고 계산합니다.")} />
+        </section>
+
+        <EmissionClassificationCatalogPanel
+          catalog={(page?.classificationCatalog || null) as Record<string, unknown> | null}
+          highlightedAlias={stringOf(selectedCategory?.subCode)}
+          title={en ? "LCI DB Classification Alignment" : "LCI DB 분류 체계 연계"}
+        />
+
+        <section className="gov-card">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-blue)]">{en ? "LCI Candidate Backlog" : "LCI 후보 백로그"}</p>
+              <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
+                {en
+                  ? "All LCI small classifications are listed here even when management metadata is not created yet. Use this board to identify which scopes need a later development request."
+                  : "management 메타데이터가 아직 없어도 LCI 소분류 전체를 여기서 확인할 수 있습니다. 이후 개발 요청이 필요한 범위를 식별하는 용도입니다."}
+              </p>
+            </div>
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">{lciSmallCandidates.length}</span>
+          </div>
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-4">
+            <SummaryMetricCard title={en ? "Operational" : "운영중"} value={String(lciSmallCandidates.filter((item) => item.status === "READY").length)} description={en ? "Small classifications already connected to runtime tiers." : "런타임 Tier까지 연결된 소분류"} />
+            <SummaryMetricCard title={en ? "Definition only" : "정의만 있음"} value={String(lciSmallCandidates.filter((item) => item.status === "STUDIO_ONLY").length)} description={en ? "Published scope exists but runtime category/tier is not ready." : "publish scope는 있으나 runtime category/tier가 미완료"} />
+            <SummaryMetricCard title={en ? "Tier planned" : "Tier 후보 있음"} value={String(lciSmallCandidates.filter((item) => item.status === "PLANNED").length)} description={en ? "Tier metadata exists but runtime support is not ready." : "Tier 후보는 있으나 runtime 지원이 미완료"} />
+            <SummaryMetricCard title={en ? "Not implemented" : "미구현"} value={String(lciSmallCandidates.filter((item) => item.status === "UNMAPPED").length)} description={en ? "No management or definition linkage has been created yet." : "management/definition 연결이 아직 없는 소분류"} />
+          </div>
+          <div className="mt-4 overflow-x-auto rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)]">
+            <table className="min-w-full divide-y divide-[var(--kr-gov-border-light)] text-sm">
+              <thead className="bg-slate-50">
+                <tr className="text-left text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">
+                  <th className="px-4 py-3">{en ? "LCI classification" : "LCI 분류"}</th>
+                  <th className="px-4 py-3">{en ? "Status" : "상태"}</th>
+                  <th className="px-4 py-3">{en ? "Runtime code linkage" : "런타임 코드 연결"}</th>
+                  <th className="px-4 py-3">{en ? "Tier coverage" : "Tier 범위"}</th>
+                  <th className="px-4 py-3">{en ? "Follow-up" : "후속 조치"}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--kr-gov-border-light)] bg-white">
+                {lciSmallCandidates.map((candidate) => (
+                  <tr key={`lci-candidate-${candidate.code}`}>
+                    <td className="px-4 py-3 align-top">
+                      <p className="font-bold text-[var(--kr-gov-text-primary)]">{candidate.smallName || candidate.code}</p>
+                      <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{`${candidate.majorName} / ${candidate.middleName} / ${candidate.smallName}`}</p>
+                      <p className="mt-1 font-mono text-[11px] text-slate-500">{candidate.code}</p>
+                    </td>
+                    <td className="px-4 py-3 align-top">
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${candidateStatusTone(candidate.status)}`}>
+                        {candidateStatusLabel(candidate.status, en)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 align-top">
+                      {candidate.aliases.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {candidate.aliases.map((alias) => (
+                            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700" key={`${candidate.code}-${alias}`}>{alias}</span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-[var(--kr-gov-text-secondary)]">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 align-top">
+                      <div className="flex flex-wrap gap-2">
+                        {candidate.runtimeTiers.map((tierNumber) => (
+                          <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700" key={`${candidate.code}-runtime-${tierNumber}`}>{`Tier ${tierNumber}`}</span>
+                        ))}
+                        {candidate.plannedTiers.filter((tierNumber) => !candidate.runtimeTiers.includes(tierNumber)).map((tierNumber) => (
+                          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-700" key={`${candidate.code}-planned-${tierNumber}`}>{`Tier ${tierNumber}`}</span>
+                        ))}
+                        {candidate.runtimeTiers.length === 0 && candidate.plannedTiers.length === 0 ? (
+                          <span className="text-xs text-[var(--kr-gov-text-secondary)]">-</span>
+                        ) : null}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 align-top">
+                      <p className="text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
+                        {candidate.status === "READY"
+                          ? (en ? "No immediate action. Use the existing small classification from the scope selector." : "즉시 조치 불필요. 범위 선택기에서 기존 소분류를 사용하면 됩니다.")
+                          : candidate.status === "STUDIO_ONLY"
+                            ? (en ? "Create management category/tier metadata or submit a rollout request for runtime linkage." : "management category/tier 메타를 만들거나 런타임 연결 개발 요청으로 넘기세요.")
+                            : candidate.status === "PLANNED"
+                              ? (en ? "Tier candidate exists. Runtime support still needs follow-up development." : "Tier 후보는 있으나 런타임 지원 개발이 추가로 필요합니다.")
+                              : (en ? "No mapping exists yet. Register the scope through a later development request." : "아직 매핑이 없습니다. 이후 개발 요청으로 범위를 등록하세요.")}
+                      </p>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
 
         <section className={`gov-card ${highlightedHelpId === "emission-management-definition-link" ? "ring-2 ring-[var(--kr-gov-blue)] ring-offset-4 ring-offset-white" : ""}`} data-help-id="emission-management-definition-link">
@@ -4446,19 +4725,19 @@ export function EmissionManagementMigrationPage() {
             className={highlightedHelpId === "emission-management-scope" ? "ring-2 ring-[var(--kr-gov-blue)] ring-offset-4 ring-offset-white" : ""}
             data-help-id="emission-management-scope"
             title={en ? "Step 1. Scope And Tier Selection" : "1단계. 범위 및 Tier 선택"}
-            description={en ? "Search major and subcategory names, decide the tier, then move to the input page." : "대분류와 중분류를 검색해 선택하고 Tier를 정한 뒤 입력 페이지로 이동합니다."}
+            description={en ? "Choose LCI major, middle, and small classification, then decide the tier before moving to input." : "LCI 대분류, 중분류, 소분류를 선택하고 Tier를 정한 뒤 입력 페이지로 이동합니다."}
           >
             <div className="mb-4 flex justify-end">
               <MemberButton onClick={() => openElementDefinitionByHelpId("emission-management-scope")} type="button" variant="secondary">
                 {en ? "Open element definition" : "요소 정의 열기"}
               </MemberButton>
             </div>
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_1fr]">
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-[0.95fr_0.95fr_1.1fr]">
               <section className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-5 py-5">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <h3 className="text-base font-bold">{en ? "Major Category" : "대분류"}</h3>
-                    <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Search and select the business family first." : "먼저 업무 대분류를 검색하고 선택합니다."}</p>
+                    <h3 className="text-base font-bold">{en ? "Major Classification" : "대분류"}</h3>
+                    <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Select the LCI top-level classification first." : "먼저 LCI 대분류를 검색하고 선택합니다."}</p>
                   </div>
                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">{filteredMajorOptions.length}</span>
                 </div>
@@ -4471,12 +4750,13 @@ export function EmissionManagementMigrationPage() {
                   />
                 </label>
                 <label className="mt-4 flex flex-col gap-2">
-                  <span className="text-sm font-bold">{en ? "Major Category" : "대분류 선택"}</span>
+                  <span className="text-sm font-bold">{en ? "Major Classification" : "대분류 선택"}</span>
                   <AdminSelect
                     onChange={(event) => {
-                      const nextMajorKey = event.target.value;
-                      setSelectedMajorKey(nextMajorKey);
+                      setSelectedMajorKey(event.target.value);
+                      setMiddleSearchKeyword("");
                       setSubCategorySearchKeyword("");
+                      setSelectedMiddleCode("");
                       setSelectedCategoryId(0);
                       setSelectedCategory(null);
                       setTiers([]);
@@ -4484,10 +4764,10 @@ export function EmissionManagementMigrationPage() {
                     }}
                     value={selectedMajorKey}
                   >
-                    <option value="">{en ? "Select major category" : "대분류 선택"}</option>
+                    <option value="">{en ? "Select major classification" : "대분류 선택"}</option>
                     {filteredMajorOptions.map((option) => (
-                      <option key={option.key} value={option.key}>
-                        {majorCategoryLabel(option, en)}
+                      <option key={option.code} value={option.code}>
+                        {option.label}
                       </option>
                     ))}
                   </AdminSelect>
@@ -4497,35 +4777,79 @@ export function EmissionManagementMigrationPage() {
               <section className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-5 py-5">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <h3 className="text-base font-bold">{en ? "Subcategory And Tier" : "중분류 및 Tier"}</h3>
-                    <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Search the detailed module and choose the tier to generate the variable form." : "상세 모듈을 검색하고 Tier를 선택하면 변수 입력 폼이 생성됩니다."}</p>
+                    <h3 className="text-base font-bold">{en ? "Middle Classification" : "중분류"}</h3>
+                    <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">{en ? "After selecting the major group, narrow the scope with the middle classification." : "대분류를 선택한 뒤 중분류로 범위를 더 좁힙니다."}</p>
+                  </div>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">{filteredMiddleOptions.length}</span>
+                </div>
+                <label className="mt-4 flex flex-col gap-2">
+                  <span className="text-sm font-bold">{en ? "Middle Search" : "중분류 검색"}</span>
+                  <AdminInput
+                    disabled={!selectedMajorKey}
+                    onChange={(event) => setMiddleSearchKeyword(event.target.value)}
+                    placeholder={en ? "Search middle code or name" : "중분류 코드 또는 명 검색"}
+                    value={middleSearchKeyword}
+                  />
+                </label>
+                <label className="mt-4 flex flex-col gap-2">
+                  <span className="text-sm font-bold">{en ? "Middle Classification" : "중분류 선택"}</span>
+                  <AdminSelect
+                    disabled={!selectedMajorKey}
+                    onChange={(event) => {
+                      setSelectedMiddleCode(event.target.value);
+                      setSubCategorySearchKeyword("");
+                      setSelectedCategoryId(0);
+                      setSelectedCategory(null);
+                      setTiers([]);
+                      resetSelectionState();
+                    }}
+                    value={selectedMiddleCode}
+                  >
+                    <option value="">{en ? "Select middle classification" : "중분류 선택"}</option>
+                    {filteredMiddleOptions.map((option) => (
+                      <option key={option.code} value={option.code}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </AdminSelect>
+                </label>
+              </section>
+
+              <section className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-5 py-5">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-base font-bold">{en ? "Small Classification And Tier" : "소분류 및 Tier"}</h3>
+                    <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Choose the runtime small classification, then pick the tier for formula and variable generation." : "실행할 소분류를 선택한 뒤 Tier를 정하면 계산식과 입력 변수가 구성됩니다."}</p>
                   </div>
                   <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-[var(--kr-gov-blue)]">{selectedTier > 0 ? `Tier ${selectedTier}` : (en ? "Pending" : "선택 대기")}</span>
                 </div>
                 <label className="mt-4 flex flex-col gap-2">
-                  <span className="text-sm font-bold">{en ? "Subcategory Search" : "중분류 검색"}</span>
+                  <span className="text-sm font-bold">{en ? "Small Search" : "소분류 검색"}</span>
                   <AdminInput
-                    disabled={!selectedMajorKey}
+                    disabled={!selectedMajorKey || !selectedMiddleCode}
                     onChange={(event) => setSubCategorySearchKeyword(event.target.value)}
-                    placeholder={en ? "Search subcategory code or name" : "중분류 코드 또는 명 검색"}
+                    placeholder={en ? "Search small classification or runtime code" : "소분류 또는 런타임 코드 검색"}
                     value={subCategorySearchKeyword}
                   />
                 </label>
                 <label className="mt-4 flex flex-col gap-2">
-                  <span className="text-sm font-bold">{en ? "Subcategory" : "중분류 선택"}</span>
+                  <span className="text-sm font-bold">{en ? "Small Classification" : "소분류 선택"}</span>
                   <AdminSelect
-                    disabled={!selectedMajorKey}
+                    disabled={!selectedMajorKey || !selectedMiddleCode}
                     onChange={(event) => {
                       void handleCategoryChange(Number(event.target.value) || 0);
                     }}
                     value={hasSelectedCategory ? String(selectedCategoryId) : ""}
                   >
-                    <option value="">{en ? "Select subcategory" : "중분류 선택"}</option>
-                    {visibleCategories.map((category) => (
-                      <option key={stringOf(category.categoryId)} value={stringOf(category.categoryId)}>
-                        {`${stringOf(category.subName)}${stringOf(category.subCode) ? ` (${stringOf(category.subCode)})` : ""}${Boolean(category.virtualCategory) ? (en ? " [Studio only]" : " [Studio 전용]") : ""}`}
-                      </option>
-                    ))}
+                    <option value="">{en ? "Select small classification" : "소분류 선택"}</option>
+                    {visibleCategories.map((category) => {
+                      const meta = classificationMetaOf(category, classificationCatalogRows);
+                      return (
+                        <option key={stringOf(category.categoryId)} value={stringOf(category.categoryId)}>
+                          {`${meta.smallName || stringOf(category.subName)}${meta.smallCode ? ` (${meta.smallCode})` : ""}${stringOf(category.subCode) ? ` · ${stringOf(category.subCode)}` : ""}${Boolean(category.virtualCategory) ? (en ? " [Studio only]" : " [Studio 전용]") : ""}`}
+                        </option>
+                      );
+                    })}
                   </AdminSelect>
                 </label>
                 <label className="mt-4 flex flex-col gap-2">
@@ -4547,9 +4871,11 @@ export function EmissionManagementMigrationPage() {
                   <div className="rounded-[var(--kr-gov-radius)] border border-amber-200 bg-amber-50 px-3 py-3">
                     <p className="text-[11px] font-bold uppercase tracking-wide text-amber-700">{en ? "Tier Guidance" : "Tier 안내"}</p>
                     <p className="mt-1 text-sm font-bold leading-6 text-amber-900">
-                      {en
-                        ? "Choosing a higher tier generally improves carbon emission accuracy."
-                        : "조금 더 높은 Tier를 선택할수록 탄소배출량 산정 정확도가 높아집니다."}
+                      {selectedClassificationMeta.tierLabel
+                        ? (en ? `LCI recommended scope: ${selectedClassificationMeta.tierLabel}` : `LCI 권장 범위: ${selectedClassificationMeta.tierLabel}`)
+                        : (en
+                          ? "Choosing a higher tier generally improves carbon emission accuracy."
+                          : "조금 더 높은 Tier를 선택할수록 탄소배출량 산정 정확도가 높아집니다.")}
                     </p>
                   </div>
                 </label>
@@ -4573,8 +4899,8 @@ export function EmissionManagementMigrationPage() {
                     <h3 className="text-base font-bold">{en ? "Tier Input Guide" : "Tier별 입력값 안내"}</h3>
                     <p className="mt-1 text-sm text-[var(--kr-gov-text-secondary)]">
                       {en
-                        ? "After selecting a subcategory, review the formula and main inputs required for each tier before deciding."
-                        : "중분류를 선택한 뒤 각 Tier에서 요구하는 계산식과 주요 입력값을 먼저 확인할 수 있습니다."}
+                        ? "After selecting a small classification, review the formula and main inputs required for each tier before deciding."
+                        : "소분류를 선택한 뒤 각 Tier에서 요구하는 계산식과 주요 입력값을 먼저 확인할 수 있습니다."}
                     </p>
                   </div>
                   <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-700">{tiers.length}</span>
@@ -4840,110 +5166,116 @@ export function EmissionManagementMigrationPage() {
                   : "Summation 변수로 표시된 항목은 여러 줄 입력이 가능합니다. 반복 항목은 행 추가로 입력하고, 계산 실행 후 하단에서 CO2 결과를 확인합니다."}
               </p>
             </div>
-            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
+            <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-4">
               <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-3">
-                <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">{en ? "Major Category" : "대분류"}</p>
-                <p className="mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)]">{majorCategoryLabel(selectedMajorOption, en)}</p>
+                <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">{en ? "Major Classification" : "대분류"}</p>
+                <p className="mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)]">{selectedMajorOption?.label || "-"}</p>
               </div>
               <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-3">
-                <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">{en ? "Subcategory" : "중분류"}</p>
-                <p className="mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)]">{selectedCategory ? stringOf(selectedCategory.subName) : "-"}</p>
+                <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">{en ? "Middle Classification" : "중분류"}</p>
+                <p className="mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)]">{selectedMiddleOption?.label || "-"}</p>
+              </div>
+              <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-3">
+                <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">{en ? "Small Classification" : "소분류"}</p>
+                <p className="mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)]">{selectedClassificationMeta.smallName || "-"}</p>
               </div>
               <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-slate-50 px-4 py-3">
                 <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-text-secondary)]">Tier</p>
                 <p className="mt-2 text-sm font-bold text-[var(--kr-gov-text-primary)]">{selectedTier > 0 ? `Tier ${selectedTier}` : "-"}</p>
               </div>
             </div>
-            {effectiveFormulaSummary ? (
-              <div className="mt-4">
-                <div className="rounded-[var(--kr-gov-radius)] border border-blue-200 bg-blue-50 px-4 py-3 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-blue-50/95 xl:sticky xl:top-20 xl:z-10">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-blue)]">
-                        {appliedDefinitionDraft ? (en ? "Definition Formula" : "정의 기준 계산식") : (en ? "Document Formula" : "문서 기준 계산식")}
-                      </p>
-                      <p className="mt-1 text-xs leading-5 text-[var(--kr-gov-text-secondary)]">
-                        {appliedDefinitionDraft
-                          ? (en ? "A published definition snapshot is currently driving the high-level formula and policy summary for this scope." : "현재 범위에서는 publish 된 정의 스냅샷이 상위 계산식과 정책 요약을 우선 반영합니다.")
-                          : (en ? "Review the full formula here before entering values in the blocks below." : "아래 블록 입력 전에 전체 계산식을 여기서 먼저 확인합니다.")}
-                      </p>
-                    </div>
-                    <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-[var(--kr-gov-blue)]">
-                      {appliedDefinitionDraft ? (en ? "Definition-backed" : "정의 반영") : (en ? "Input context" : "입력 기준")}
-                    </span>
-                  </div>
-                  <div className="mt-3 overflow-x-auto rounded-[var(--kr-gov-radius)] border border-white bg-white px-4 py-3">
-                    <div className="min-w-max">
-                      <FormulaNotation active formula={stringOf(appliedDefinitionDraft?.formula) || tierGuideMap[selectedTier]?.formulaDisplay || effectiveFormulaSummary} />
-                    </div>
-                  </div>
-                </div>
-                {appliedDefinitionPolicies.length > 0 ? (
-                  <div className="mt-3 flex flex-wrap gap-2 rounded-[var(--kr-gov-radius)] border border-blue-100 bg-blue-50/60 px-4 py-3">
-                    <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-indigo-700">
-                      {en ? "Sections" : "섹션"} {Array.isArray(appliedDefinitionDraft?.sections) ? appliedDefinitionDraft.sections.length : 0}
-                    </span>
-                    <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-violet-700">
-                      {en ? "Variables" : "변수"} {Array.isArray(appliedDefinitionDraft?.variableDefinitions) ? appliedDefinitionDraft.variableDefinitions.length : 0}
-                    </span>
-                    {appliedDefinitionPolicies.map((policy) => (
-                      <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-[var(--kr-gov-blue)]" key={`workspace-policy-${policy}`}>{policy}</span>
-                    ))}
-                  </div>
-                ) : appliedDefinitionDraft ? (
-                  <div className="mt-3 flex flex-wrap gap-2 rounded-[var(--kr-gov-radius)] border border-blue-100 bg-blue-50/60 px-4 py-3">
-                    <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-indigo-700">
-                      {en ? "Sections" : "섹션"} {Array.isArray(appliedDefinitionDraft.sections) ? appliedDefinitionDraft.sections.length : 0}
-                    </span>
-                    <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-violet-700">
-                      {en ? "Variables" : "변수"} {Array.isArray(appliedDefinitionDraft.variableDefinitions) ? appliedDefinitionDraft.variableDefinitions.length : 0}
-                    </span>
-                  </div>
-                ) : null}
-                {stringOf(appliedDefinitionDraft?.note) ? (
-                  <div className="mt-3 rounded-[var(--kr-gov-radius)] border border-slate-200 bg-white px-4 py-3">
-                    <p className="text-sm leading-6 text-[var(--kr-gov-text-secondary)]">{stringOf(appliedDefinitionDraft.note)}</p>
-                  </div>
-                ) : null}
-                {definitionFormulaPreview ? (
-                  <div className="mt-3 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-4">
+            <div className={`mt-4 ${effectiveFormulaSummary ? "lg:grid lg:grid-cols-[minmax(320px,360px)_minmax(0,1fr)] lg:items-start lg:gap-4" : ""}`}>
+              {effectiveFormulaSummary ? (
+                <div className="lg:sticky lg:top-20 lg:z-10">
+                  <div className="rounded-[var(--kr-gov-radius)] border border-blue-200 bg-blue-50 px-4 py-3 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-blue-50/95">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">{en ? "Definition formula preview" : "정의 수식 실행 미리보기"}</p>
-                        <p className="mt-1 text-xs leading-5 text-emerald-900">
-                          {en
-                            ? "This preview executes the saved formula tree against the current inputs before backend calculate."
-                            : "이 미리보기는 백엔드 계산 전에 저장된 formulaTree를 현재 입력값으로 먼저 실행합니다."}
+                        <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-blue)]">
+                          {appliedDefinitionDraft ? (en ? "Definition Formula" : "정의 기준 계산식") : (en ? "Document Formula" : "문서 기준 계산식")}
+                        </p>
+                        <p className="mt-1 text-xs leading-5 text-[var(--kr-gov-text-secondary)]">
+                          {appliedDefinitionDraft
+                            ? (en ? "A published definition snapshot is currently driving the high-level formula and policy summary for this scope." : "현재 범위에서는 publish 된 정의 스냅샷이 상위 계산식과 정책 요약을 우선 반영합니다.")
+                            : (en ? "Review the full formula here before entering values in the blocks below." : "아래 블록 입력 전에 전체 계산식을 여기서 먼저 확인합니다.")}
                         </p>
                       </div>
-                      <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-emerald-700">
-                        {Number.isFinite(definitionFormulaPreview.total) ? definitionFormulaPreview.total.toFixed(6) : (en ? "Invalid" : "계산 불가")}
+                      <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-[var(--kr-gov-blue)]">
+                        {appliedDefinitionDraft ? (en ? "Definition-backed" : "정의 반영") : (en ? "Input context" : "입력 기준")}
                       </span>
                     </div>
                     <div className="mt-3 overflow-x-auto rounded-[var(--kr-gov-radius)] border border-white bg-white px-4 py-3">
                       <div className="min-w-max">
-                        <FormulaNotation active formula={definitionFormulaPreview.formula} />
+                        <FormulaNotation active formula={stringOf(appliedDefinitionDraft?.formula) || tierGuideMap[selectedTier]?.formulaDisplay || effectiveFormulaSummary} />
                       </div>
                     </div>
-                    <div className="mt-3 grid grid-cols-1 gap-2">
-                      {definitionFormulaPreview.trace.map((entry, index) => (
-                        <div className="rounded-[var(--kr-gov-radius)] border border-white bg-white px-3 py-3" key={`definition-formula-trace-${index}`}>
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <p className="text-xs font-bold text-[var(--kr-gov-text-primary)]">{entry.label}</p>
-                            <span className="text-sm font-black text-emerald-700">{Number.isFinite(entry.result) ? entry.result.toFixed(6) : "NaN"}</span>
-                          </div>
-                          <div className="mt-1">
-                            <FormulaNotation compact formula={entry.expression} />
-                          </div>
-                          {entry.note ? <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{entry.note}</p> : null}
-                        </div>
+                  </div>
+                  {appliedDefinitionPolicies.length > 0 ? (
+                    <div className="mt-3 flex flex-wrap gap-2 rounded-[var(--kr-gov-radius)] border border-blue-100 bg-blue-50/60 px-4 py-3">
+                      <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-indigo-700">
+                        {en ? "Sections" : "섹션"} {Array.isArray(appliedDefinitionDraft?.sections) ? appliedDefinitionDraft.sections.length : 0}
+                      </span>
+                      <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-violet-700">
+                        {en ? "Variables" : "변수"} {Array.isArray(appliedDefinitionDraft?.variableDefinitions) ? appliedDefinitionDraft.variableDefinitions.length : 0}
+                      </span>
+                      {appliedDefinitionPolicies.map((policy) => (
+                        <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-[var(--kr-gov-blue)]" key={`workspace-policy-${policy}`}>{policy}</span>
                       ))}
                     </div>
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-            <div className="mt-4 rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-4">
+                  ) : appliedDefinitionDraft ? (
+                    <div className="mt-3 flex flex-wrap gap-2 rounded-[var(--kr-gov-radius)] border border-blue-100 bg-blue-50/60 px-4 py-3">
+                      <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-indigo-700">
+                        {en ? "Sections" : "섹션"} {Array.isArray(appliedDefinitionDraft.sections) ? appliedDefinitionDraft.sections.length : 0}
+                      </span>
+                      <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-violet-700">
+                        {en ? "Variables" : "변수"} {Array.isArray(appliedDefinitionDraft.variableDefinitions) ? appliedDefinitionDraft.variableDefinitions.length : 0}
+                      </span>
+                    </div>
+                  ) : null}
+                  {stringOf(appliedDefinitionDraft?.note) ? (
+                    <div className="mt-3 rounded-[var(--kr-gov-radius)] border border-slate-200 bg-white px-4 py-3">
+                      <p className="text-sm leading-6 text-[var(--kr-gov-text-secondary)]">{stringOf(appliedDefinitionDraft.note)}</p>
+                    </div>
+                  ) : null}
+                  {definitionFormulaPreview ? (
+                    <div className="mt-3 rounded-[var(--kr-gov-radius)] border border-emerald-200 bg-emerald-50 px-4 py-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">{en ? "Definition formula preview" : "정의 수식 실행 미리보기"}</p>
+                          <p className="mt-1 text-xs leading-5 text-emerald-900">
+                            {en
+                              ? "This preview executes the saved formula tree against the current inputs before backend calculate."
+                              : "이 미리보기는 백엔드 계산 전에 저장된 formulaTree를 현재 입력값으로 먼저 실행합니다."}
+                          </p>
+                        </div>
+                        <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-emerald-700">
+                          {Number.isFinite(definitionFormulaPreview.total) ? definitionFormulaPreview.total.toFixed(6) : (en ? "Invalid" : "계산 불가")}
+                        </span>
+                      </div>
+                      <div className="mt-3 overflow-x-auto rounded-[var(--kr-gov-radius)] border border-white bg-white px-4 py-3">
+                        <div className="min-w-max">
+                          <FormulaNotation active formula={definitionFormulaPreview.formula} />
+                        </div>
+                      </div>
+                      <div className="mt-3 grid grid-cols-1 gap-2">
+                        {definitionFormulaPreview.trace.map((entry, index) => (
+                          <div className="rounded-[var(--kr-gov-radius)] border border-white bg-white px-3 py-3" key={`definition-formula-trace-${index}`}>
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <p className="text-xs font-bold text-[var(--kr-gov-text-primary)]">{entry.label}</p>
+                              <span className="text-sm font-black text-emerald-700">{Number.isFinite(entry.result) ? entry.result.toFixed(6) : "NaN"}</span>
+                            </div>
+                            <div className="mt-1">
+                              <FormulaNotation compact formula={entry.expression} />
+                            </div>
+                            {entry.note ? <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{entry.note}</p> : null}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+              <div className={effectiveFormulaSummary ? "mt-4 lg:mt-0" : ""}>
+                <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-white px-4 py-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-blue)]">{en ? "Formula workflow" : "수식 진행 워크플로우"}</p>
@@ -5046,54 +5378,56 @@ export function EmissionManagementMigrationPage() {
                 </div>
               ) : null}
             </div>
-            <div className="mt-4 space-y-5">
-              {variableSections[activeFormulaStep] ? renderFormulaSection(variableSections[activeFormulaStep], activeFormulaStep) : null}
-              {variableSections
-                .map((section, sectionIndex) => ({ section, sectionIndex }))
-                .filter(({ sectionIndex }) => sectionIndex !== activeFormulaStep)
-                .map(({ section, sectionIndex }) => renderFormulaSection(section, sectionIndex))}
-              {visibleVariables.length === 0 ? <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Variable inputs will appear here after a scope is selected." : "범위를 선택하면 여기에 변수 입력 항목이 나타납니다."}</p> : null}
-            </div>
-
-            <MemberActionBar
-              dataHelpId="emission-management-actions"
-              description={en ? "Save the current input values into a session when you need a persistent work item. Run calculation always saves the latest on-screen inputs first, then calculates with that newest session." : "지속적인 작업 항목이 필요하면 현재 입력값을 세션으로 저장하세요. 계산 실행은 항상 현재 화면 입력값을 먼저 저장한 뒤, 그 최신 세션으로 계산합니다."}
-              eyebrow={en ? "Execution" : "실행"}
-              secondary={{
-                label: saving ? (en ? "Saving..." : "저장 중...") : (en ? "Save session" : "세션 저장"),
-                onClick: () => {
-                  void handleSave();
-                }
-              }}
-              primary={(
-                <div className="flex flex-wrap items-center justify-end gap-3">
-                  <MemberButton
-                    disabled={saving || calculating || selectedCategoryId <= 0 || selectedTier <= 0 || variables.length === 0}
-                    onClick={() => {
-                      resetCurrentDraft();
-                    }}
-                    type="button"
-                    variant="secondary"
-                  >
-                    {en ? "Reset draft" : "입력 초기화"}
-                  </MemberButton>
-                  <MemberButton
-                    disabled={saving || calculating}
-                    onClick={() => {
-                      setWizardStep(1);
-                    }}
-                    type="button"
-                    variant="secondary"
-                  >
-                    {en ? "Change selection" : "선택 변경"}
-                  </MemberButton>
-                  <MemberButton disabled={saving || calculating || visibleVariables.length === 0} onClick={() => void handleCalculate()} type="button">
-                    {calculating ? (en ? "Calculating..." : "계산 중...") : (en ? "Run calculation" : "계산 실행")}
-                  </MemberButton>
+                <div className="mt-4 space-y-5">
+                  {variableSections[activeFormulaStep] ? renderFormulaSection(variableSections[activeFormulaStep], activeFormulaStep) : null}
+                  {variableSections
+                    .map((section, sectionIndex) => ({ section, sectionIndex }))
+                    .filter(({ sectionIndex }) => sectionIndex !== activeFormulaStep)
+                    .map(({ section, sectionIndex }) => renderFormulaSection(section, sectionIndex))}
+                  {visibleVariables.length === 0 ? <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "Variable inputs will appear here after a scope is selected." : "범위를 선택하면 여기에 변수 입력 항목이 나타납니다."}</p> : null}
                 </div>
-              )}
-              title={en ? "Session Save And Calculation" : "세션 저장 및 계산"}
-            />
+
+                <MemberActionBar
+                  dataHelpId="emission-management-actions"
+                  description={en ? "Save the current input values into a session when you need a persistent work item. Run calculation always saves the latest on-screen inputs first, then calculates with that newest session." : "지속적인 작업 항목이 필요하면 현재 입력값을 세션으로 저장하세요. 계산 실행은 항상 현재 화면 입력값을 먼저 저장한 뒤, 그 최신 세션으로 계산합니다."}
+                  eyebrow={en ? "Execution" : "실행"}
+                  secondary={{
+                    label: saving ? (en ? "Saving..." : "저장 중...") : (en ? "Save session" : "세션 저장"),
+                    onClick: () => {
+                      void handleSave();
+                    }
+                  }}
+                  primary={(
+                    <div className="flex flex-wrap items-center justify-end gap-3">
+                      <MemberButton
+                        disabled={saving || calculating || selectedCategoryId <= 0 || selectedTier <= 0 || variables.length === 0}
+                        onClick={() => {
+                          resetCurrentDraft();
+                        }}
+                        type="button"
+                        variant="secondary"
+                      >
+                        {en ? "Reset draft" : "입력 초기화"}
+                      </MemberButton>
+                      <MemberButton
+                        disabled={saving || calculating}
+                        onClick={() => {
+                          setWizardStep(1);
+                        }}
+                        type="button"
+                        variant="secondary"
+                      >
+                        {en ? "Change selection" : "선택 변경"}
+                      </MemberButton>
+                      <MemberButton disabled={saving || calculating || visibleVariables.length === 0} onClick={() => void handleCalculate()} type="button">
+                        {calculating ? (en ? "Calculating..." : "계산 중...") : (en ? "Run calculation" : "계산 실행")}
+                      </MemberButton>
+                    </div>
+                  )}
+                  title={en ? "Session Save And Calculation" : "세션 저장 및 계산"}
+                />
+              </div>
+            </div>
           </DiagnosticCard>
           </div>
         </div>
@@ -5114,8 +5448,8 @@ export function EmissionManagementMigrationPage() {
         >
           {calculationResult ? (
             <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[0.8fr_1.2fr]">
-              <div className="space-y-4 xl:self-start">
-                <div className="xl:sticky xl:top-24 xl:z-10 space-y-4">
+              <div className="space-y-4 lg:self-start">
+                <div className="space-y-4 lg:sticky lg:top-24 lg:z-10">
                   <div className="rounded-[var(--kr-gov-radius)] border border-blue-200 bg-blue-50 px-4 py-4 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-blue-50/95">
                     <p className="text-xs font-bold uppercase tracking-wide text-[var(--kr-gov-blue)]">
                       {stringOf(calculationResult.calculationSource) === "PUBLISHED_DEFINITION"

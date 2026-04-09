@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import egovframework.com.feature.admin.dto.request.FullStackGovernanceAutoCollectRequest;
 import egovframework.com.feature.admin.dto.request.FullStackGovernanceSaveRequest;
+import egovframework.com.platform.read.FullStackGovernanceRegistryReadPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -33,20 +34,16 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 @Service
-public class FullStackGovernanceRegistryService {
+public class FullStackGovernanceRegistryService implements FullStackGovernanceRegistryReadPort, FullStackGovernanceRegistryCommandService {
 
     private static final Logger log = LoggerFactory.getLogger(FullStackGovernanceRegistryService.class);
 
-    private static final Pattern MENU_CODE_PATTERN = Pattern.compile("^[A-Z0-9]{8}$");
-    private static final Pattern PAGE_ID_PATTERN = Pattern.compile("^[a-z0-9][a-z0-9-]*$");
-    private static final Pattern DB_NAME_PATTERN = Pattern.compile("^[A-Z][A-Z0-9_]*$");
-    private static final Pattern COLUMN_REF_PATTERN = Pattern.compile("^[A-Z][A-Z0-9_]*\\.[A-Z][A-Z0-9_]*$");
-    private static final Pattern UPPER_TOKEN_PATTERN = Pattern.compile("^[A-Z][A-Z0-9_]*$");
     private static final DateTimeFormatter DB_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final String TABLE_NAME = "FULL_STACK_GOVERNANCE_REGISTRY";
 
     private final ObjectMapper objectMapper;
     private final ScreenCommandCenterService screenCommandCenterService;
+    private final FullStackGovernanceRegistrySupport support;
     private final DataSource dataSource;
     private final Path registryPath = Paths.get("data", "full-stack-management", "registry.json");
 
@@ -54,16 +51,18 @@ public class FullStackGovernanceRegistryService {
 
     public FullStackGovernanceRegistryService(ObjectMapper objectMapper,
                                               ScreenCommandCenterService screenCommandCenterService,
+                                              FullStackGovernanceRegistrySupport support,
                                               DataSource dataSource) {
         this.objectMapper = objectMapper;
         this.screenCommandCenterService = screenCommandCenterService;
+        this.support = support;
         this.dataSource = dataSource;
     }
 
     public synchronized Map<String, Object> getEntry(String menuCode) {
-        String normalizedMenuCode = normalize(menuCode).toUpperCase(Locale.ROOT);
+        String normalizedMenuCode = support.normalize(menuCode).toUpperCase(Locale.ROOT);
         if (normalizedMenuCode.isEmpty()) {
-            return defaultEntry("");
+            return support.defaultEntry("");
         }
         Map<String, Object> dbEntry = loadDbEntry(normalizedMenuCode);
         if (dbEntry != null) {
@@ -71,9 +70,9 @@ public class FullStackGovernanceRegistryService {
         }
         Map<String, Object> entry = loadAll().get(normalizedMenuCode);
         if (entry == null) {
-            return defaultEntry(normalizedMenuCode);
+            return support.defaultEntry(normalizedMenuCode);
         }
-        Map<String, Object> normalized = normalizeEntry(entry);
+        Map<String, Object> normalized = support.normalizeEntry(entry);
         normalized.put("source", "FILE");
         return normalized;
     }
@@ -83,72 +82,72 @@ public class FullStackGovernanceRegistryService {
     }
 
     public synchronized Map<String, Object> saveEntry(FullStackGovernanceSaveRequest request) {
-        String menuCode = normalize(request == null ? null : request.getMenuCode()).toUpperCase(Locale.ROOT);
-        List<String> errors = validateRequest(request, menuCode);
+        String menuCode = support.normalize(request == null ? null : request.getMenuCode()).toUpperCase(Locale.ROOT);
+        List<String> errors = support.validateRequest(request, menuCode);
         if (!errors.isEmpty()) {
             throw new IllegalArgumentException(String.join(" ", errors));
         }
 
         Map<String, Object> entry = buildEntryFromRequest(request, menuCode, "MANUAL");
         saveEntryInternal(entry);
-        return normalizeEntry(entry);
+        return support.normalizeEntry(entry);
     }
 
     public synchronized Map<String, Object> autoCollectEntry(FullStackGovernanceAutoCollectRequest request) throws Exception {
-        String menuCode = normalize(request == null ? null : request.getMenuCode()).toUpperCase(Locale.ROOT);
-        if (menuCode.isEmpty() || !MENU_CODE_PATTERN.matcher(menuCode).matches()) {
+        String menuCode = support.normalize(request == null ? null : request.getMenuCode()).toUpperCase(Locale.ROOT);
+        if (menuCode.isEmpty() || !support.isValidMenuCode(menuCode)) {
             throw new IllegalArgumentException("menuCode must be an 8-character uppercase menu code.");
         }
-        String pageId = normalize(request == null ? null : request.getPageId());
+        String pageId = support.normalize(request == null ? null : request.getPageId());
         if (pageId.isEmpty()) {
             throw new IllegalArgumentException("pageId is required for auto collect.");
         }
-        if (!PAGE_ID_PATTERN.matcher(pageId).matches()) {
+        if (!support.isValidPageId(pageId)) {
             throw new IllegalArgumentException("pageId must use lowercase letters, numbers, and hyphen only.");
         }
 
         Map<String, Object> commandResponse = screenCommandCenterService.getScreenCommandPage(pageId);
-        Map<String, Object> page = safeMap(commandResponse.get("page"));
+        Map<String, Object> page = support.safeMap(commandResponse.get("page"));
         if (page.isEmpty()) {
             throw new IllegalArgumentException("screen command metadata not found.");
         }
 
-        Map<String, Object> existing = request != null && request.isMergeExisting() ? getEntry(menuCode) : defaultEntry(menuCode);
-        Map<String, Object> collected = buildEntryFromCommandMetadata(menuCode, pageId, normalize(request == null ? null : request.getMenuUrl()), page, existing);
+        Map<String, Object> existing = request != null && request.isMergeExisting() ? getEntry(menuCode) : support.defaultEntry(menuCode);
+        Map<String, Object> collected = buildEntryFromCommandMetadata(menuCode, pageId, support.normalize(request == null ? null : request.getMenuUrl()), page, existing);
 
         if (request == null || request.isSave()) {
             saveEntryInternal(collected);
         }
-        return normalizeEntry(collected);
+        return support.normalizeEntry(collected);
     }
 
     private Map<String, Object> buildEntryFromRequest(FullStackGovernanceSaveRequest request, String menuCode, String sourceType) {
         Map<String, Object> entry = new LinkedHashMap<>();
         entry.put("menuCode", menuCode);
-        entry.put("pageId", normalize(request == null ? null : request.getPageId()));
-        entry.put("menuUrl", normalize(request == null ? null : request.getMenuUrl()));
-        entry.put("summary", normalize(request == null ? null : request.getSummary()));
-        entry.put("ownerScope", normalize(request == null ? null : request.getOwnerScope()));
-        entry.put("notes", normalize(request == null ? null : request.getNotes()));
-        entry.put("frontendSources", normalizeList(request == null ? null : request.getFrontendSources()));
-        entry.put("componentIds", normalizeList(request == null ? null : request.getComponentIds()));
-        entry.put("eventIds", normalizeList(request == null ? null : request.getEventIds()));
-        entry.put("functionIds", normalizeList(request == null ? null : request.getFunctionIds()));
-        entry.put("parameterSpecs", normalizeFieldSpecs(request == null ? null : request.getParameterSpecs()));
-        entry.put("resultSpecs", normalizeFieldSpecs(request == null ? null : request.getResultSpecs()));
-        entry.put("apiIds", normalizeList(request == null ? null : request.getApiIds()));
-        entry.put("controllerActions", normalizeList(request == null ? null : request.getControllerActions()));
-        entry.put("serviceMethods", normalizeList(request == null ? null : request.getServiceMethods()));
-        entry.put("mapperQueries", normalizeList(request == null ? null : request.getMapperQueries()));
-        entry.put("schemaIds", normalizeList(request == null ? null : request.getSchemaIds()));
-        List<String> normalizedColumns = normalizeColumns(request == null ? null : request.getColumnNames());
-        List<String> normalizedTables = normalizeTables(request == null ? null : request.getTableNames(), normalizedColumns);
+        entry.put("pageId", support.normalize(request == null ? null : request.getPageId()));
+        entry.put("menuUrl", support.normalize(request == null ? null : request.getMenuUrl()));
+        entry.put("summary", support.normalize(request == null ? null : request.getSummary()));
+        entry.put("ownerScope", support.normalize(request == null ? null : request.getOwnerScope()));
+        entry.put("notes", support.normalize(request == null ? null : request.getNotes()));
+        entry.put("frontendSources", support.normalizeList(request == null ? null : request.getFrontendSources()));
+        entry.put("componentIds", support.normalizeList(request == null ? null : request.getComponentIds()));
+        entry.put("eventIds", support.normalizeList(request == null ? null : request.getEventIds()));
+        entry.put("functionIds", support.normalizeList(request == null ? null : request.getFunctionIds()));
+        entry.put("parameterSpecs", support.normalizeFieldSpecs(request == null ? null : request.getParameterSpecs()));
+        entry.put("resultSpecs", support.normalizeFieldSpecs(request == null ? null : request.getResultSpecs()));
+        entry.put("apiIds", support.normalizeList(request == null ? null : request.getApiIds()));
+        entry.put("controllerActions", support.normalizeList(request == null ? null : request.getControllerActions()));
+        entry.put("serviceMethods", support.normalizeList(request == null ? null : request.getServiceMethods()));
+        entry.put("mapperQueries", support.normalizeList(request == null ? null : request.getMapperQueries()));
+        entry.put("schemaIds", support.normalizeList(request == null ? null : request.getSchemaIds()));
+        List<String> normalizedColumns = support.normalizeColumns(request == null ? null : request.getColumnNames());
+        List<String> normalizedTables = support.normalizeTables(request == null ? null : request.getTableNames(), normalizedColumns);
         entry.put("tableNames", normalizedTables);
         entry.put("columnNames", normalizedColumns);
-        entry.put("featureCodes", normalizeUpperTokens(request == null ? null : request.getFeatureCodes()));
-        entry.put("commonCodeGroups", normalizeUpperTokens(request == null ? null : request.getCommonCodeGroups()));
-        entry.put("tags", normalizeList(request == null ? null : request.getTags()));
-        entry.put("updatedAt", nowString());
+        entry.put("featureCodes", support.normalizeUpperTokens(request == null ? null : request.getFeatureCodes()));
+        entry.put("commonCodeGroups", support.normalizeUpperTokens(request == null ? null : request.getCommonCodeGroups()));
+        entry.put("tags", support.normalizeList(request == null ? null : request.getTags()));
+        entry.put("updatedAt", support.nowString());
         entry.put("source", sourceType);
         return entry;
     }
@@ -159,41 +158,41 @@ public class FullStackGovernanceRegistryService {
                                                               Map<String, Object> page,
                                                               Map<String, Object> existing) {
         Map<String, Object> entry = new LinkedHashMap<>();
-        List<Map<String, Object>> surfaces = safeMapList(page.get("surfaces"));
-        List<Map<String, Object>> events = safeMapList(page.get("events"));
-        List<Map<String, Object>> apis = safeMapList(page.get("apis"));
-        List<Map<String, Object>> schemas = safeMapList(page.get("schemas"));
-        List<Map<String, Object>> commonCodeGroups = safeMapList(page.get("commonCodeGroups"));
-        Map<String, Object> menuPermission = safeMap(page.get("menuPermission"));
-        Map<String, Object> manifestRegistry = safeMap(page.get("manifestRegistry"));
+        List<Map<String, Object>> surfaces = support.safeMapList(page.get("surfaces"));
+        List<Map<String, Object>> events = support.safeMapList(page.get("events"));
+        List<Map<String, Object>> apis = support.safeMapList(page.get("apis"));
+        List<Map<String, Object>> schemas = support.safeMapList(page.get("schemas"));
+        List<Map<String, Object>> commonCodeGroups = support.safeMapList(page.get("commonCodeGroups"));
+        Map<String, Object> menuPermission = support.safeMap(page.get("menuPermission"));
+        Map<String, Object> manifestRegistry = support.safeMap(page.get("manifestRegistry"));
 
-        List<String> frontendSources = mergeLists(existing.get("frontendSources"), List.of(stringValue(page.get("source"))));
-        List<String> componentIds = mergeLists(existing.get("componentIds"), collectComponentIds(surfaces, manifestRegistry));
-        List<String> eventIds = mergeLists(existing.get("eventIds"), collectSimpleValues(events, "eventId"));
-        List<String> functionIds = mergeLists(existing.get("functionIds"), collectSimpleValues(events, "frontendFunction"));
-        List<String> parameterSpecs = mergeFieldSpecs(existing.get("parameterSpecs"), collectFieldSpecs(events, apis, true));
-        List<String> resultSpecs = mergeFieldSpecs(existing.get("resultSpecs"), collectFieldSpecs(events, apis, false));
-        List<String> apiIds = mergeLists(existing.get("apiIds"), collectSimpleValues(apis, "apiId"));
-        List<String> controllerActions = mergeLists(existing.get("controllerActions"), collectChainValues(apis, "controllerActions", "controllerAction"));
-        List<String> serviceMethods = mergeLists(existing.get("serviceMethods"), collectChainValues(apis, "serviceMethods", "serviceMethod"));
-        List<String> mapperQueries = mergeLists(existing.get("mapperQueries"), collectChainValues(apis, "mapperQueries", "mapperQuery"));
-        List<String> schemaIds = mergeLists(existing.get("schemaIds"), collectSimpleValues(schemas, "schemaId"));
-        List<String> tableNames = mergeUpper(existing.get("tableNames"), collectTables(apis, schemas, menuPermission));
-        List<String> columnNames = mergeUpper(existing.get("columnNames"), collectColumns(schemas));
-        List<String> featureCodes = mergeUpper(existing.get("featureCodes"), collectFeatureCodes(menuPermission));
-        List<String> codeGroups = mergeUpper(existing.get("commonCodeGroups"), collectSimpleValues(commonCodeGroups, "codeGroupId"));
-        List<String> tags = mergeLists(existing.get("tags"), buildAutoTags(page, manifestRegistry, menuPermission, events, apis, schemas, componentIds, controllerActions, serviceMethods, mapperQueries));
+        List<String> frontendSources = support.mergeLists(existing.get("frontendSources"), List.of(support.stringValue(page.get("source"))));
+        List<String> componentIds = support.mergeLists(existing.get("componentIds"), collectComponentIds(surfaces, manifestRegistry));
+        List<String> eventIds = support.mergeLists(existing.get("eventIds"), collectSimpleValues(events, "eventId"));
+        List<String> functionIds = support.mergeLists(existing.get("functionIds"), collectSimpleValues(events, "frontendFunction"));
+        List<String> parameterSpecs = support.mergeFieldSpecs(existing.get("parameterSpecs"), collectFieldSpecs(events, apis, true));
+        List<String> resultSpecs = support.mergeFieldSpecs(existing.get("resultSpecs"), collectFieldSpecs(events, apis, false));
+        List<String> apiIds = support.mergeLists(existing.get("apiIds"), collectSimpleValues(apis, "apiId"));
+        List<String> controllerActions = support.mergeLists(existing.get("controllerActions"), collectChainValues(apis, "controllerActions", "controllerAction"));
+        List<String> serviceMethods = support.mergeLists(existing.get("serviceMethods"), collectChainValues(apis, "serviceMethods", "serviceMethod"));
+        List<String> mapperQueries = support.mergeLists(existing.get("mapperQueries"), collectChainValues(apis, "mapperQueries", "mapperQuery"));
+        List<String> schemaIds = support.mergeLists(existing.get("schemaIds"), collectSimpleValues(schemas, "schemaId"));
+        List<String> tableNames = support.mergeUpper(existing.get("tableNames"), collectTables(apis, schemas, menuPermission));
+        List<String> columnNames = support.mergeUpper(existing.get("columnNames"), collectColumns(schemas));
+        List<String> featureCodes = support.mergeUpper(existing.get("featureCodes"), collectFeatureCodes(menuPermission));
+        List<String> codeGroups = support.mergeUpper(existing.get("commonCodeGroups"), collectSimpleValues(commonCodeGroups, "codeGroupId"));
+        List<String> tags = support.mergeLists(existing.get("tags"), buildAutoTags(page, manifestRegistry, menuPermission, events, apis, schemas, componentIds, controllerActions, serviceMethods, mapperQueries));
 
         entry.put("menuCode", menuCode);
         entry.put("pageId", pageId);
-        entry.put("menuUrl", firstNonBlank(requestedMenuUrl, stringValue(page.get("menuLookupUrl")), normalize(stringValue(existing.get("menuUrl")))));
-        entry.put("summary", firstNonBlank(
-                normalize(stringValue(existing.get("summary"))),
+        entry.put("menuUrl", support.firstNonBlank(requestedMenuUrl, support.stringValue(page.get("menuLookupUrl")), support.normalize(support.stringValue(existing.get("menuUrl")))));
+        entry.put("summary", support.firstNonBlank(
+                support.normalize(support.stringValue(existing.get("summary"))),
                 buildAutoSummary(page, events, apis, schemas),
-                normalize(stringValue(page.get("summary")))
+                support.normalize(support.stringValue(page.get("summary")))
         ));
-        entry.put("ownerScope", firstNonBlank(normalize(stringValue(existing.get("ownerScope"))), "PAGE"));
-        entry.put("notes", firstNonBlank(normalize(stringValue(existing.get("notes"))), "자동 수집: Screen Command Center metadata"));
+        entry.put("ownerScope", support.firstNonBlank(support.normalize(support.stringValue(existing.get("ownerScope"))), "PAGE"));
+        entry.put("notes", support.firstNonBlank(support.normalize(support.stringValue(existing.get("notes"))), "자동 수집: Screen Command Center metadata"));
         entry.put("frontendSources", frontendSources);
         entry.put("componentIds", componentIds);
         entry.put("eventIds", eventIds);
@@ -205,26 +204,26 @@ public class FullStackGovernanceRegistryService {
         entry.put("serviceMethods", serviceMethods);
         entry.put("mapperQueries", mapperQueries);
         entry.put("schemaIds", schemaIds);
-        entry.put("tableNames", normalizeTables(tableNames, normalizeColumns(columnNames)));
-        entry.put("columnNames", normalizeColumns(columnNames));
+        entry.put("tableNames", support.normalizeTables(tableNames, support.normalizeColumns(columnNames)));
+        entry.put("columnNames", support.normalizeColumns(columnNames));
         entry.put("featureCodes", featureCodes);
         entry.put("commonCodeGroups", codeGroups);
         entry.put("tags", tags);
-        entry.put("updatedAt", nowString());
+        entry.put("updatedAt", support.nowString());
         entry.put("source", isDbTableAvailable() ? "AUTO_DB" : "AUTO_FILE");
-        return normalizeEntry(entry);
+        return support.normalizeEntry(entry);
     }
 
     private List<String> collectComponentIds(List<Map<String, Object>> surfaces, Map<String, Object> manifestRegistry) {
         LinkedHashSet<String> unique = new LinkedHashSet<>();
         for (Map<String, Object> surface : surfaces) {
-            unique.add(normalize(stringValue(surface.get("componentId"))));
-            unique.add(normalize(stringValue(surface.get("surfaceId"))));
+            unique.add(support.normalize(support.stringValue(surface.get("componentId"))));
+            unique.add(support.normalize(support.stringValue(surface.get("surfaceId"))));
         }
-        for (Map<String, Object> component : safeMapList(manifestRegistry.get("components"))) {
-            unique.add(normalize(stringValue(component.get("componentId"))));
-            unique.add(normalize(stringValue(component.get("componentName"))));
-            unique.add(normalize(stringValue(component.get("instanceKey"))));
+        for (Map<String, Object> component : support.safeMapList(manifestRegistry.get("components"))) {
+            unique.add(support.normalize(support.stringValue(component.get("componentId"))));
+            unique.add(support.normalize(support.stringValue(component.get("componentName"))));
+            unique.add(support.normalize(support.stringValue(component.get("instanceKey"))));
         }
         unique.remove("");
         return new ArrayList<>(unique);
@@ -233,8 +232,8 @@ public class FullStackGovernanceRegistryService {
     private List<String> collectChainValues(List<Map<String, Object>> rows, String arrayKey, String singleKey) {
         LinkedHashSet<String> unique = new LinkedHashSet<>();
         for (Map<String, Object> row : rows) {
-            unique.addAll(normalizeObjectList(row.get(arrayKey)));
-            String single = normalize(stringValue(row.get(singleKey)));
+            unique.addAll(support.normalizeObjectList(row.get(arrayKey)));
+            String single = support.normalize(support.stringValue(row.get(singleKey)));
             if (!single.isEmpty()) {
                 unique.add(single);
             }
@@ -245,7 +244,7 @@ public class FullStackGovernanceRegistryService {
     private List<String> collectSimpleValues(List<Map<String, Object>> rows, String key) {
         LinkedHashSet<String> unique = new LinkedHashSet<>();
         for (Map<String, Object> row : rows) {
-            String value = normalize(stringValue(row.get(key)));
+            String value = support.normalize(support.stringValue(row.get(key)));
             if (!value.isEmpty()) {
                 unique.add(value);
             }
@@ -257,7 +256,7 @@ public class FullStackGovernanceRegistryService {
         LinkedHashSet<String> specs = new LinkedHashSet<>();
         for (Map<String, Object> event : events) {
             String source = input ? "function" : "function";
-            List<Map<String, Object>> fields = safeMapList(event.get(input ? "functionInputs" : "functionOutputs"));
+            List<Map<String, Object>> fields = support.safeMapList(event.get(input ? "functionInputs" : "functionOutputs"));
             for (Map<String, Object> field : fields) {
                 String spec = buildFieldSpec(field, source);
                 if (!spec.isEmpty()) {
@@ -267,7 +266,7 @@ public class FullStackGovernanceRegistryService {
         }
         for (Map<String, Object> api : apis) {
             String source = input ? "api" : "api";
-            List<Map<String, Object>> fields = safeMapList(api.get(input ? "requestFields" : "responseFields"));
+            List<Map<String, Object>> fields = support.safeMapList(api.get(input ? "requestFields" : "responseFields"));
             for (Map<String, Object> field : fields) {
                 String spec = buildFieldSpec(field, source);
                 if (!spec.isEmpty()) {
@@ -279,39 +278,39 @@ public class FullStackGovernanceRegistryService {
     }
 
     private String buildFieldSpec(Map<String, Object> field, String defaultSource) {
-        String fieldId = normalize(stringValue(field.get("fieldId")));
-        String type = normalize(stringValue(field.get("type")));
-        String source = normalize(stringValue(field.get("source")));
+        String fieldId = support.normalize(support.stringValue(field.get("fieldId")));
+        String type = support.normalize(support.stringValue(field.get("type")));
+        String source = support.normalize(support.stringValue(field.get("source")));
         if (fieldId.isEmpty() || type.isEmpty()) {
             return "";
         }
-        return fieldId + ":" + type + ":" + firstNonBlank(source, defaultSource);
+        return fieldId + ":" + type + ":" + support.firstNonBlank(source, defaultSource);
     }
 
     private List<String> collectTables(List<Map<String, Object>> apis, List<Map<String, Object>> schemas, Map<String, Object> menuPermission) {
         LinkedHashSet<String> tables = new LinkedHashSet<>();
         for (Map<String, Object> api : apis) {
-            tables.addAll(normalizeUpperTokenList(normalizeObjectList(api.get("relatedTables")), DB_NAME_PATTERN));
+            tables.addAll(support.normalizeDbNames(support.normalizeObjectList(api.get("relatedTables"))));
         }
         for (Map<String, Object> schema : schemas) {
-            String tableName = normalize(stringValue(schema.get("tableName"))).toUpperCase(Locale.ROOT);
-            if (DB_NAME_PATTERN.matcher(tableName).matches()) {
+            String tableName = support.normalize(support.stringValue(schema.get("tableName"))).toUpperCase(Locale.ROOT);
+            if (support.isValidDbName(tableName)) {
                 tables.add(tableName);
             }
         }
-        tables.addAll(normalizeUpperTokenList(normalizeObjectList(menuPermission.get("relationTables")), DB_NAME_PATTERN));
+        tables.addAll(support.normalizeDbNames(support.normalizeObjectList(menuPermission.get("relationTables"))));
         return new ArrayList<>(tables);
     }
 
     private List<String> collectFeatureCodes(Map<String, Object> menuPermission) {
-        LinkedHashSet<String> featureCodes = new LinkedHashSet<>(normalizeUpperTokens(normalizeObjectList(menuPermission.get("featureCodes"))));
-        String requiredViewFeatureCode = normalize(stringValue(menuPermission.get("requiredViewFeatureCode"))).toUpperCase(Locale.ROOT);
-        if (UPPER_TOKEN_PATTERN.matcher(requiredViewFeatureCode).matches()) {
+        LinkedHashSet<String> featureCodes = new LinkedHashSet<>(support.normalizeUpperTokens(support.normalizeObjectList(menuPermission.get("featureCodes"))));
+        String requiredViewFeatureCode = support.normalize(support.stringValue(menuPermission.get("requiredViewFeatureCode"))).toUpperCase(Locale.ROOT);
+        if (support.isValidUpperToken(requiredViewFeatureCode)) {
             featureCodes.add(requiredViewFeatureCode);
         }
-        for (Map<String, Object> featureRow : safeMapList(menuPermission.get("featureRows"))) {
-            String featureCode = normalize(stringValue(featureRow.get("featureCode"))).toUpperCase(Locale.ROOT);
-            if (UPPER_TOKEN_PATTERN.matcher(featureCode).matches()) {
+        for (Map<String, Object> featureRow : support.safeMapList(menuPermission.get("featureRows"))) {
+            String featureCode = support.normalize(support.stringValue(featureRow.get("featureCode"))).toUpperCase(Locale.ROOT);
+            if (support.isValidUpperToken(featureCode)) {
                 featureCodes.add(featureCode);
             }
         }
@@ -331,10 +330,10 @@ public class FullStackGovernanceRegistryService {
         LinkedHashSet<String> tags = new LinkedHashSet<>();
         tags.add("AUTO_COLLECTED");
         tags.add("SCREEN_COMMAND_SYNC");
-        if (!normalize(stringValue(page.get("pageId"))).isEmpty()) {
+        if (!support.normalize(support.stringValue(page.get("pageId"))).isEmpty()) {
             tags.add("HAS_SCREEN_COMMAND");
         }
-        if (!normalize(stringValue(manifestRegistry.get("pageId"))).isEmpty()) {
+        if (!support.normalize(support.stringValue(manifestRegistry.get("pageId"))).isEmpty()) {
             tags.add("HAS_MANIFEST");
         }
         if (!componentIds.isEmpty()) {
@@ -358,10 +357,10 @@ public class FullStackGovernanceRegistryService {
         if (!schemas.isEmpty()) {
             tags.add("HAS_SCHEMAS");
         }
-        if (!normalize(stringValue(menuPermission.get("requiredViewFeatureCode"))).isEmpty()) {
+        if (!support.normalize(support.stringValue(menuPermission.get("requiredViewFeatureCode"))).isEmpty()) {
             tags.add("HAS_VIEW_FEATURE");
         }
-        if (!normalizeObjectList(menuPermission.get("relationTables")).isEmpty()) {
+        if (!support.normalizeObjectList(menuPermission.get("relationTables")).isEmpty()) {
             tags.add("HAS_RELATION_TABLES");
         }
         return new ArrayList<>(tags);
@@ -370,13 +369,13 @@ public class FullStackGovernanceRegistryService {
     private List<String> collectColumns(List<Map<String, Object>> schemas) {
         LinkedHashSet<String> columns = new LinkedHashSet<>();
         for (Map<String, Object> schema : schemas) {
-            String tableName = normalize(stringValue(schema.get("tableName"))).toUpperCase(Locale.ROOT);
-            if (!DB_NAME_PATTERN.matcher(tableName).matches()) {
+            String tableName = support.normalize(support.stringValue(schema.get("tableName"))).toUpperCase(Locale.ROOT);
+            if (!support.isValidDbName(tableName)) {
                 continue;
             }
-            for (String column : normalizeObjectList(schema.get("columns"))) {
-                String upperColumn = normalize(column).toUpperCase(Locale.ROOT);
-                if (DB_NAME_PATTERN.matcher(upperColumn).matches()) {
+            for (String column : support.normalizeObjectList(schema.get("columns"))) {
+                String upperColumn = support.normalize(column).toUpperCase(Locale.ROOT);
+                if (support.isValidDbName(upperColumn)) {
                     columns.add(tableName + "." + upperColumn);
                 }
             }
@@ -388,19 +387,19 @@ public class FullStackGovernanceRegistryService {
                                     List<Map<String, Object>> events,
                                     List<Map<String, Object>> apis,
                                     List<Map<String, Object>> schemas) {
-        String label = firstNonBlank(stringValue(page.get("label")), stringValue(page.get("pageId")));
+        String label = support.firstNonBlank(support.stringValue(page.get("label")), support.stringValue(page.get("pageId")));
         return label + " 자동 수집 레지스트리: 이벤트 " + events.size() + "건, API " + apis.size() + "건, 스키마 " + schemas.size() + "건";
     }
 
     private void saveEntryInternal(Map<String, Object> entry) {
-        Map<String, Object> normalized = normalizeEntry(entry);
+        Map<String, Object> normalized = support.normalizeEntry(entry);
         saveToFile(normalized);
         saveToDb(normalized);
     }
 
     private void saveToFile(Map<String, Object> entry) {
         Map<String, Map<String, Object>> allEntries = loadAll();
-        allEntries.put(stringValue(entry.get("menuCode")), entry);
+        allEntries.put(support.stringValue(entry.get("menuCode")), entry);
         saveAll(allEntries);
     }
 
@@ -418,9 +417,9 @@ public class FullStackGovernanceRegistryService {
                 return normalized;
             }
             for (Map.Entry<String, Map<String, Object>> entry : raw.entrySet()) {
-                String menuCode = normalize(entry.getKey()).toUpperCase(Locale.ROOT);
+                String menuCode = support.normalize(entry.getKey()).toUpperCase(Locale.ROOT);
                 if (!menuCode.isEmpty()) {
-                    normalized.put(menuCode, normalizeEntry(entry.getValue()));
+                    normalized.put(menuCode, support.normalizeEntry(entry.getValue()));
                 }
             }
             return normalized;
@@ -652,25 +651,7 @@ public class FullStackGovernanceRegistryService {
     }
 
     private List<String> validateRequest(FullStackGovernanceSaveRequest request, String menuCode) {
-        List<String> errors = new ArrayList<>();
-        if (menuCode.isEmpty()) {
-            errors.add("menuCode is required.");
-        } else if (!MENU_CODE_PATTERN.matcher(menuCode).matches()) {
-            errors.add("menuCode must be an 8-character uppercase menu code.");
-        }
-
-        String pageId = normalize(request == null ? null : request.getPageId());
-        if (!pageId.isEmpty() && !PAGE_ID_PATTERN.matcher(pageId).matches()) {
-            errors.add("pageId must use lowercase letters, numbers, and hyphen only.");
-        }
-
-        validateUpperTokenList(request == null ? null : request.getTableNames(), "tableNames", DB_NAME_PATTERN, "TABLE_NAME", errors);
-        validateUpperTokenList(request == null ? null : request.getColumnNames(), "columnNames", COLUMN_REF_PATTERN, "TABLE_NAME.COLUMN_NAME", errors);
-        validateUpperTokenList(request == null ? null : request.getFeatureCodes(), "featureCodes", UPPER_TOKEN_PATTERN, "FEATURE_CODE", errors);
-        validateUpperTokenList(request == null ? null : request.getCommonCodeGroups(), "commonCodeGroups", UPPER_TOKEN_PATTERN, "CODE_GROUP", errors);
-        validateFieldSpecList(request == null ? null : request.getParameterSpecs(), "parameterSpecs", errors);
-        validateFieldSpecList(request == null ? null : request.getResultSpecs(), "resultSpecs", errors);
-        return errors;
+        return support.validateRequest(request, menuCode);
     }
 
     private List<String> normalizeList(List<String> values) {
@@ -703,22 +684,15 @@ public class FullStackGovernanceRegistryService {
     }
 
     private List<String> normalizeTables(List<String> values, List<String> normalizedColumns) {
-        LinkedHashSet<String> unique = new LinkedHashSet<>(normalizeUpperTokenList(values, DB_NAME_PATTERN));
-        for (String column : normalizedColumns) {
-            int index = column.indexOf('.');
-            if (index > 0) {
-                unique.add(column.substring(0, index));
-            }
-        }
-        return unique.isEmpty() ? Collections.emptyList() : new ArrayList<>(unique);
+        return support.normalizeTables(values, normalizedColumns);
     }
 
     private List<String> normalizeColumns(List<String> values) {
-        return normalizeUpperTokenList(values, COLUMN_REF_PATTERN);
+        return support.normalizeColumns(values);
     }
 
     private List<String> normalizeUpperTokens(List<String> values) {
-        return normalizeUpperTokenList(values, UPPER_TOKEN_PATTERN);
+        return support.normalizeUpperTokens(values);
     }
 
     private List<String> normalizeUpperTokenList(List<String> values, Pattern pattern) {

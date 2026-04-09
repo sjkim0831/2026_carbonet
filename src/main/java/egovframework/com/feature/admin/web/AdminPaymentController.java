@@ -20,6 +20,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AdminPaymentController {
 
+    private final AdminReactRouteSupport adminReactRouteSupport;
     private final AdminShellBootstrapPageService adminShellBootstrapPageService;
 
     @RequestMapping(value = "/payment/refund_list", method = { RequestMethod.GET, RequestMethod.POST })
@@ -30,7 +31,7 @@ public class AdminPaymentController {
             @RequestParam(value = "riskLevel", required = false) String riskLevel,
             HttpServletRequest request,
             Locale locale) {
-        return forwardReactMigration(request, locale, "refund-list");
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "refund-list");
     }
 
     @GetMapping("/payment/refund_list/page-data")
@@ -47,24 +48,6 @@ public class AdminPaymentController {
                 searchKeyword,
                 status,
                 riskLevel,
-                isEnglishRequest(request, locale))));
-    }
-
-    private boolean isEnglishRequest(HttpServletRequest request, Locale locale) {
-        if (request != null && request.getRequestURI() != null && request.getRequestURI().startsWith("/en/admin")) {
-            return true;
-        }
-        return locale != null && "en".equalsIgnoreCase(locale.getLanguage());
-    }
-
-    private String forwardReactMigration(HttpServletRequest request, Locale locale, String route) {
-        StringBuilder builder = new StringBuilder("forward:");
-        builder.append(isEnglishRequest(request, locale) ? "/en/admin/app?route=" : "/admin/app?route=");
-        builder.append(route);
-        String query = request == null ? "" : request.getQueryString();
-        if (query != null && !query.trim().isEmpty()) {
-            builder.append("&").append(query.trim());
-        }
-        return builder.toString();
+                adminReactRouteSupport.isEnglishRequest(request, locale))));
     }
 }

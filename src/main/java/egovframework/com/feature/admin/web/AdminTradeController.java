@@ -22,6 +22,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AdminTradeController {
 
+    private final AdminReactRouteSupport adminReactRouteSupport;
     private final AdminShellBootstrapPageService adminShellBootstrapPageService;
 
     @RequestMapping(value = "/trade/list", method = { RequestMethod.GET, RequestMethod.POST })
@@ -32,7 +33,7 @@ public class AdminTradeController {
             @RequestParam(value = "settlementStatus", required = false) String settlementStatus,
             HttpServletRequest request,
             Locale locale) {
-        return forwardReactMigration(request, locale, "trade-list");
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "trade-list");
     }
 
     @RequestMapping(value = "/trade/duplicate", method = { RequestMethod.GET, RequestMethod.POST })
@@ -44,7 +45,7 @@ public class AdminTradeController {
             @RequestParam(value = "riskLevel", required = false) String riskLevel,
             HttpServletRequest request,
             Locale locale) {
-        return forwardReactMigration(request, locale, "trade-duplicate");
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "trade-duplicate");
     }
 
     @GetMapping("/trade/list/page-data")
@@ -61,7 +62,7 @@ public class AdminTradeController {
                 searchKeyword,
                 tradeStatus,
                 settlementStatus,
-                isEnglishRequest(request, locale))));
+                adminReactRouteSupport.isEnglishRequest(request, locale))));
     }
 
     @RequestMapping(value = "/trade/statistics", method = { RequestMethod.GET, RequestMethod.POST })
@@ -73,7 +74,7 @@ public class AdminTradeController {
             @RequestParam(value = "settlementStatus", required = false) String settlementStatus,
             HttpServletRequest request,
             Locale locale) {
-        return forwardReactMigration(request, locale, "trade-statistics");
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "trade-statistics");
     }
 
     @GetMapping("/trade/statistics/page-data")
@@ -92,7 +93,7 @@ public class AdminTradeController {
                 periodFilter,
                 tradeType,
                 settlementStatus,
-                isEnglishRequest(request, locale))));
+                adminReactRouteSupport.isEnglishRequest(request, locale))));
     }
 
     @GetMapping("/trade/duplicate/page-data")
@@ -111,7 +112,7 @@ public class AdminTradeController {
                 detectionType,
                 reviewStatus,
                 riskLevel,
-                isEnglishRequest(request, locale))));
+                adminReactRouteSupport.isEnglishRequest(request, locale))));
     }
 
     @RequestMapping(value = "/trade/approve", method = { RequestMethod.GET, RequestMethod.POST })
@@ -122,7 +123,7 @@ public class AdminTradeController {
             @RequestParam(value = "tradeType", required = false) String tradeType,
             HttpServletRequest request,
             Locale locale) {
-        return forwardReactMigration(request, locale, "trade-approve");
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "trade-approve");
     }
 
     @GetMapping("/trade/approve/page-data")
@@ -139,7 +140,7 @@ public class AdminTradeController {
                 searchKeyword,
                 approvalStatus,
                 tradeType,
-                isEnglishRequest(request, locale))));
+                adminReactRouteSupport.isEnglishRequest(request, locale))));
     }
 
     @RequestMapping(value = "/payment/settlement", method = { RequestMethod.GET, RequestMethod.POST })
@@ -151,7 +152,7 @@ public class AdminTradeController {
             @RequestParam(value = "riskLevel", required = false) String riskLevel,
             HttpServletRequest request,
             Locale locale) {
-        return forwardReactMigration(request, locale, "settlement-calendar");
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "settlement-calendar");
     }
 
     @GetMapping("/payment/settlement/page-data")
@@ -170,7 +171,7 @@ public class AdminTradeController {
                 searchKeyword,
                 settlementStatus,
                 riskLevel,
-                isEnglishRequest(request, locale))));
+                adminReactRouteSupport.isEnglishRequest(request, locale))));
     }
 
     @PostMapping("/api/admin/trade/approve/action")
@@ -181,7 +182,7 @@ public class AdminTradeController {
             Locale locale) {
         Map<String, Object> response = new LinkedHashMap<>(adminShellBootstrapPageService.submitTradeApproveAction(
                 payload,
-                isEnglishRequest(request, locale)));
+                adminReactRouteSupport.isEnglishRequest(request, locale)));
         boolean success = Boolean.TRUE.equals(response.get("success"));
         return ResponseEntity.status(success ? 200 : 400).body(response);
     }
@@ -192,7 +193,7 @@ public class AdminTradeController {
             @RequestParam(value = "returnUrl", required = false) String returnUrl,
             HttpServletRequest request,
             Locale locale) {
-        return forwardReactMigration(request, locale, "trade-reject");
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "trade-reject");
     }
 
     @GetMapping("/trade/reject/page-data")
@@ -205,7 +206,7 @@ public class AdminTradeController {
         return ResponseEntity.ok(new LinkedHashMap<>(adminShellBootstrapPageService.buildTradeRejectPageData(
                 tradeId,
                 returnUrl,
-                isEnglishRequest(request, locale))));
+                adminReactRouteSupport.isEnglishRequest(request, locale))));
     }
 
     @PostMapping("/trade/reject/action")
@@ -216,24 +217,6 @@ public class AdminTradeController {
             Locale locale) {
         return ResponseEntity.ok(new LinkedHashMap<>(adminShellBootstrapPageService.submitTradeRejectAction(
                 payload,
-                isEnglishRequest(request, locale))));
-    }
-
-    private boolean isEnglishRequest(HttpServletRequest request, Locale locale) {
-        if (request != null && request.getRequestURI() != null && request.getRequestURI().startsWith("/en/admin")) {
-            return true;
-        }
-        return locale != null && "en".equalsIgnoreCase(locale.getLanguage());
-    }
-
-    private String forwardReactMigration(HttpServletRequest request, Locale locale, String route) {
-        StringBuilder builder = new StringBuilder("forward:");
-        builder.append(isEnglishRequest(request, locale) ? "/en/admin/app?route=" : "/admin/app?route=");
-        builder.append(route);
-        String query = request == null ? "" : request.getQueryString();
-        if (query != null && !query.trim().isEmpty()) {
-            builder.append("&").append(query.trim());
-        }
-        return builder.toString();
+                adminReactRouteSupport.isEnglishRequest(request, locale))));
     }
 }

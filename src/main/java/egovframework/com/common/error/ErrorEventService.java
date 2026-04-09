@@ -6,8 +6,9 @@ import egovframework.com.common.trace.TraceContext;
 import egovframework.com.common.trace.TraceContextHolder;
 import egovframework.com.common.trace.TraceIdGenerator;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.PrintWriter;
@@ -18,8 +19,9 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class ErrorEventService {
+
+    private static final Logger log = LoggerFactory.getLogger(ErrorEventService.class);
 
     private final ObservabilityMapper observabilityMapper;
 

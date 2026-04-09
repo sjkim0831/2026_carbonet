@@ -2,6 +2,7 @@ package egovframework.com.feature.admin.web;
 
 import egovframework.com.feature.admin.dto.request.EmissionManagementElementSaveRequest;
 import egovframework.com.feature.admin.dto.request.EmissionInputSessionSaveRequest;
+import egovframework.com.feature.admin.service.EmissionClassificationCatalogService;
 import egovframework.com.feature.admin.service.AdminEmissionManagementService;
 import egovframework.com.feature.admin.service.AdminEmissionManagementElementRegistryService;
 import lombok.RequiredArgsConstructor;
@@ -27,13 +28,17 @@ import java.util.Map;
 })
 public class AdminEmissionManagementApiController {
 
+    private final AdminReactRouteSupport adminReactRouteSupport;
     private final AdminEmissionManagementService adminEmissionManagementService;
     private final AdminEmissionManagementElementRegistryService adminEmissionManagementElementRegistryService;
+    private final EmissionClassificationCatalogService emissionClassificationCatalogService;
 
     @GetMapping("/categories")
     public ResponseEntity<Map<String, Object>> getCategories(
             @RequestParam(value = "searchKeyword", required = false) String searchKeyword) {
-        return ResponseEntity.ok(adminEmissionManagementService.getCategoryList(searchKeyword));
+        Map<String, Object> response = adminEmissionManagementService.getCategoryList(searchKeyword);
+        emissionClassificationCatalogService.enrichCategoryItems(response.get("items"));
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/categories/{categoryId}/tiers")
@@ -70,7 +75,8 @@ public class AdminEmissionManagementApiController {
 
     @GetMapping("/element-definitions")
     public ResponseEntity<Map<String, Object>> getElementDefinitions(HttpServletRequest request) {
-        return ResponseEntity.ok(adminEmissionManagementElementRegistryService.buildRegistryPayload(isEnglishRequest(request)));
+        return ResponseEntity.ok(adminEmissionManagementElementRegistryService.buildRegistryPayload(
+                adminReactRouteSupport.isEnglishRequest(request, null)));
     }
 
     @PostMapping("/element-definitions")
@@ -79,7 +85,7 @@ public class AdminEmissionManagementApiController {
         return ResponseEntity.ok(adminEmissionManagementElementRegistryService.saveElementDefinition(
                 request,
                 resolveActorId(httpServletRequest),
-                isEnglishRequest(httpServletRequest)
+                adminReactRouteSupport.isEnglishRequest(httpServletRequest, null)
         ));
     }
 
@@ -89,7 +95,7 @@ public class AdminEmissionManagementApiController {
         return ResponseEntity.ok(adminEmissionManagementService.materializePublishedDefinitionScope(
                 draftId,
                 resolveActorId(httpServletRequest),
-                isEnglishRequest(httpServletRequest)
+                adminReactRouteSupport.isEnglishRequest(httpServletRequest, null)
         ));
     }
 
@@ -100,7 +106,7 @@ public class AdminEmissionManagementApiController {
         return ResponseEntity.ok(adminEmissionManagementService.getScopeStatus(
                 categoryCode,
                 tier,
-                isEnglishRequest(httpServletRequest)
+                adminReactRouteSupport.isEnglishRequest(httpServletRequest, null)
         ));
     }
 
@@ -109,7 +115,7 @@ public class AdminEmissionManagementApiController {
                                                                        HttpServletRequest httpServletRequest) {
         return ResponseEntity.ok(adminEmissionManagementService.precheckPublishedDefinitionScope(
                 draftId,
-                isEnglishRequest(httpServletRequest)
+                adminReactRouteSupport.isEnglishRequest(httpServletRequest, null)
         ));
     }
 
@@ -133,8 +139,4 @@ public class AdminEmissionManagementApiController {
         }
     }
 
-    private boolean isEnglishRequest(HttpServletRequest request) {
-        String uri = request == null ? "" : String.valueOf(request.getRequestURI());
-        return uri.startsWith("/en/");
-    }
 }

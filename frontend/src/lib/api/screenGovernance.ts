@@ -7,7 +7,7 @@ import { apiFetch, buildAdminApiPath, buildResilientCsrfHeaders, readJsonRespons
 
 export async function fetchScreenCommandPage(pageId: string): Promise<ScreenCommandPagePayload> {
   const query = pageId ? `?pageId=${encodeURIComponent(pageId)}` : "";
-  const response = await apiFetch(`${buildAdminApiPath("/api/admin/help-management/screen-command/page")}${query}`, {
+  const response = await apiFetch(`${buildAdminApiPath("/api/platform/help-management/screen-command/page")}${query}`, {
     credentials: "include",
     apiId: "admin.help-management.screen-command.page"
   });

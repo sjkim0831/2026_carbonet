@@ -28,7 +28,7 @@ That means Codex can usually find the pieces, but still spends time reassembling
 
 Primary backend anchors:
 
-- `src/main/java/egovframework/com/feature/admin/web/CodexProvisionAdminController.java`
+- `src/main/java/egovframework/com/platform/codex/web/CodexProvisionAdminApiController.java`
 - `src/main/java/egovframework/com/feature/admin/web/AdminSrWorkbenchController.java`
 - `src/main/java/egovframework/com/feature/admin/web/AdminScreenBuilderController.java`
 - `src/main/java/egovframework/com/feature/admin/web/AdminHelpManagementController.java`

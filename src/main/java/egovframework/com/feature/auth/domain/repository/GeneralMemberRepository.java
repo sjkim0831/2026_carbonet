@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository("uiaGeneralMemberRepository")
 public interface GeneralMemberRepository extends JpaRepository<GnrlMber, String> {
 
@@ -30,4 +32,7 @@ public interface GeneralMemberRepository extends JpaRepository<GnrlMber, String>
     )
     LoginResponseDTO findByIdAndPassword(String userId, String password);
 
+    Optional<GnrlMber> findFirstByAuthCi(String authCi);
+
+    Optional<GnrlMber> findFirstByAuthDi(String authDi);
 }

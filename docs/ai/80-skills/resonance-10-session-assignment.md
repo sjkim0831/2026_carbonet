@@ -390,16 +390,17 @@
 
 - 상태: `IN_PROGRESS`
 - 추정 진행률: `90%`
-- 운영 메모: 제어 평면 API, 서비스, 매퍼, XML, 테스트가 실제 코드로 연결돼 있고 `07/09`가 바로 받을 수 있는 stable payload naming과 release-unit trace linkage 기준도 문서로 고정했습니다. 현재 루프 기준 `mvn -o -Dtest=ResonanceControlPlaneServiceImplTest,ResonanceControlPlaneMapperXmlContractTest test`는 `org.apache.maven.surefire:surefire-junit-platform:2.22.2` 로컬 부재 때문에 `BLOCKED`이며, XML `occurredAt` 바인딩 카운트는 현재 `4`로 mapper contract test 기대치와 맞췄습니다
-- 다음 1개 행동: `src/test/java`를 포함한 현재 `06` 범위에서 mapper/DB drift를 다시 훑고, 로컬 Maven surefire 아티팩트를 복구할 수 있는지 확인한 뒤 제어 평면 테스트를 재실행합니다
+- 운영 메모: 제어 평면 진입점은 `platform.*` 패키지로 대부분 올라왔고, runtime-control의 현재 구현은 MyBatis XML이 아니라 `RuntimeControlPlaneServiceImpl` 의 JSONL 저장 경로를 기준으로 동작합니다. 따라서 stale `feature/admin` mapper/XML 테스트는 제거하고 현재 서비스 계약 테스트로 갱신하는 단계까지 진행됐습니다
+- 다음 1개 행동: `platform.runtimecontrol` 기준 서비스 테스트와 DB draft 문서가 같은 truth를 보도록 정리하고, stale handoff 문서 경로를 계속 치웁니다
 - 상시 운영 해석: 운영자가 `6번 붙어서 무한 반복 1분마다 재실행 혹은 이어서 해줘`라고 말한 상태로 간주하고, 중지 지시가 없으면 이 레인을 계속 순환합니다
 - 목적: 제어 평면 인터페이스, 레지스트리, 수명주기, 비교, 보정, 릴리스 서비스를 구현합니다
 - 최근 변경 파일:
   - `docs/architecture/module-selection-api-contracts.md`
   - `docs/architecture/repair-and-verification-api-contracts.md`
   - `docs/prototypes/resonance-ui/backend-chain-explorer.html`
-  - `src/main/java/egovframework/com/feature/admin/service/impl/ResonanceControlPlaneServiceImpl.java`
-  - `src/test/java/egovframework/com/feature/admin/service/impl/ResonanceControlPlaneServiceImplTest.java`
+  - `src/main/java/egovframework/com/platform/runtimecontrol/service/impl/RuntimeControlPlaneServiceImpl.java`
+  - `src/test/java/egovframework/com/platform/runtimecontrol/service/impl/RuntimeControlPlaneServiceImplTest.java`
+  - `modules/platform-runtime-control/pom.xml`
 - 실행 명령:
   - 무한 반복: `cd /opt/projects/carbonet/frontend && npm run lane:06:loop`
   - 1회 점검: `cd /opt/projects/carbonet/frontend && npm run lane:06:loop -- --once`
@@ -415,11 +416,10 @@
   - `docs/architecture/lane-code-start-checklists-05-06-08-09.md`
   - `docs/architecture/module-selection-api-contracts.md`
   - `docs/architecture/repair-and-verification-api-contracts.md`
-  - `src/main/java/egovframework/com/feature/admin/web/ResonanceControlPlaneApiController.java`
-  - `src/main/java/egovframework/com/feature/admin/service/impl/ResonanceControlPlaneServiceImpl.java`
-  - `src/main/resources/egovframework/mapper/com/feature/admin/ResonanceControlPlaneMapper.xml`
-  - `src/test/java/egovframework/com/feature/admin/service/impl/ResonanceControlPlaneServiceImplTest.java`
-  - `src/test/java/egovframework/com/feature/admin/mapper/ResonanceControlPlaneMapperXmlContractTest.java`
+  - `src/main/java/egovframework/com/platform/runtimecontrol/web/RuntimeControlPlaneApiController.java`
+  - `src/main/java/egovframework/com/platform/runtimecontrol/service/impl/RuntimeControlPlaneServiceImpl.java`
+  - `docs/sql/20260321_resonance_repair_module_selection_schema.sql`
+  - `src/test/java/egovframework/com/platform/runtimecontrol/service/impl/RuntimeControlPlaneServiceImplTest.java`
 - 반복 실행 규칙:
   - 직전 루프의 마지막 작업 위치, 미완료 메모, 열린 인터페이스/서비스/매퍼 불일치 목록을 그대로 이어받아 다음 루프 시작점으로 사용합니다
   - 이 지시는 새 `06` 세션 생성이나 범위 확장을 뜻하지 않고, 이미 열려 있던 `06` 컨텍스트의 마지막 미완료 지점을 그대로 복구해 이어가는 뜻으로 고정합니다

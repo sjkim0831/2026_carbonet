@@ -7,7 +7,9 @@ PORT="${PORT:-18000}"
 LOG_DIR="${LOG_DIR:-$ROOT_DIR/var/logs}"
 RUN_DIR="${RUN_DIR:-$ROOT_DIR/var/run}"
 CONFIG_DIR="${CONFIG_DIR:-$ROOT_DIR/ops/config}"
-SOURCE_JAR_PATH="${SOURCE_JAR_PATH:-$ROOT_DIR/target/carbonet.jar}"
+ROOT_TARGET_JAR_PATH="$ROOT_DIR/target/carbonet.jar"
+APP_TARGET_JAR_PATH="$ROOT_DIR/apps/carbonet-app/target/carbonet.jar"
+SOURCE_JAR_PATH="${SOURCE_JAR_PATH:-}"
 JAR_PATH="${JAR_PATH:-$RUN_DIR/carbonet-${PORT}.jar}"
 PID_FILE="$RUN_DIR/carbonet-${PORT}.pid"
 LOG_FILE="$LOG_DIR/carbonet-${PORT}.log"
@@ -39,6 +41,14 @@ load_optional_env() {
 load_optional_env "$CONFIG_DIR/carbonet-${PORT}.env"
 load_optional_env "$CONFIG_DIR/codex-runner.env"
 carbonet_set_curl_args
+
+if [[ -z "$SOURCE_JAR_PATH" ]]; then
+  if [[ -f "$ROOT_TARGET_JAR_PATH" ]]; then
+    SOURCE_JAR_PATH="$ROOT_TARGET_JAR_PATH"
+  else
+    SOURCE_JAR_PATH="$APP_TARGET_JAR_PATH"
+  fi
+fi
 
 require_env() {
   local env_name="$1"

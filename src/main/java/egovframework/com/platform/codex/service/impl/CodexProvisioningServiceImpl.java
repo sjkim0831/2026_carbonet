@@ -2,14 +2,14 @@ package egovframework.com.platform.codex.service.impl;
 
 import egovframework.com.feature.admin.dto.request.AdminCodeCommandDTO;
 import egovframework.com.feature.admin.dto.request.AdminMenuFeatureCommandDTO;
-import egovframework.com.feature.admin.dto.request.CodexProvisionRequest;
-import egovframework.com.feature.admin.dto.response.CodexProvisionResponse;
 import egovframework.com.feature.admin.mapper.AdminCodeManageMapper;
 import egovframework.com.feature.admin.mapper.AuthGroupManageMapper;
 import egovframework.com.feature.admin.mapper.MenuFeatureManageMapper;
 import egovframework.com.feature.admin.mapper.MenuInfoMapper;
 import egovframework.com.feature.admin.model.vo.AuthorInfoVO;
+import egovframework.com.platform.codex.model.CodexProvisionResponse;
 import egovframework.com.platform.codex.service.CodexProvisioningService;
+import egovframework.com.platform.request.codex.CodexProvisionRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -57,6 +57,12 @@ public class CodexProvisioningServiceImpl implements CodexProvisioningService {
                 response.getRequestId(), actorId, response.getCreatedCount(), response.getExistingCount(),
                 response.getSkippedCount());
         return response;
+    }
+
+    @Override
+    @Transactional
+    public CodexProvisionResponse provision(egovframework.com.feature.admin.dto.request.CodexProvisionRequest request) {
+        return provision(toPlatformRequest(request));
     }
 
     private void ensurePage(String codeId, CodexProvisionRequest.PageRequest page, String actorId,
@@ -317,6 +323,25 @@ public class CodexProvisioningServiceImpl implements CodexProvisioningService {
 
     private String resolveCodeId(String menuType) {
         return "USER".equals(menuType) ? "HMENU1" : "AMENU1";
+    }
+
+    private CodexProvisionRequest toPlatformRequest(egovframework.com.feature.admin.dto.request.CodexProvisionRequest request) {
+        if (request == null) {
+            return null;
+        }
+        CodexProvisionRequest platformRequest = new CodexProvisionRequest();
+        platformRequest.setRequestId(request.getRequestId());
+        platformRequest.setActorId(request.getActorId());
+        platformRequest.setTargetApiPath(request.getTargetApiPath());
+        platformRequest.setCompanyId(request.getCompanyId());
+        platformRequest.setInsttId(request.getInsttId());
+        platformRequest.setMenuType(request.getMenuType());
+        platformRequest.setReloadSecurityMetadata(request.isReloadSecurityMetadata());
+        platformRequest.setPage(request.getPage());
+        platformRequest.setFeatures(request.getFeatures());
+        platformRequest.setAuthors(request.getAuthors());
+        platformRequest.setCommonCodeGroups(request.getCommonCodeGroups());
+        return platformRequest;
     }
 
     private String normalizeMenuType(String value) {

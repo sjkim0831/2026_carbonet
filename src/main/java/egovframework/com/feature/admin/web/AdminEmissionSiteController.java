@@ -5,6 +5,7 @@ import egovframework.com.feature.admin.service.AdminEmissionDefinitionStudioServ
 import egovframework.com.feature.admin.service.AdminEmissionGwpValueService;
 import egovframework.com.feature.admin.service.AdminEmissionManagementService;
 import egovframework.com.feature.admin.service.AdminEmissionManagementElementRegistryService;
+import egovframework.com.feature.admin.service.EmissionClassificationCatalogService;
 import egovframework.com.feature.admin.dto.request.AdminEmissionGwpValueSaveRequestDTO;
 import egovframework.com.common.audit.AuditTrailService;
 import lombok.RequiredArgsConstructor;
@@ -30,36 +31,38 @@ import java.util.Map;
 public class AdminEmissionSiteController {
 
     private final AdminShellBootstrapPageService adminShellBootstrapPageService;
+    private final AdminReactRouteSupport adminReactRouteSupport;
     private final AdminEmissionDefinitionStudioService adminEmissionDefinitionStudioService;
     private final AdminEmissionGwpValueService adminEmissionGwpValueService;
     private final AdminEmissionManagementService adminEmissionManagementService;
     private final AdminEmissionManagementElementRegistryService adminEmissionManagementElementRegistryService;
+    private final EmissionClassificationCatalogService emissionClassificationCatalogService;
     private final AuditTrailService auditTrailService;
 
     @RequestMapping(value = "/site-management", method = RequestMethod.GET)
     public String emissionSiteManagementPage(HttpServletRequest request, Locale locale) {
-        return redirectReactMigration(request, locale, "emission-site-management");
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "emission-site-management");
     }
 
     @RequestMapping(value = "/management", method = RequestMethod.GET)
     public String emissionManagementPage(HttpServletRequest request, Locale locale) {
-        return redirectReactMigration(request, locale, "emission-management");
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "emission-management");
     }
 
     @RequestMapping(value = "/definition-studio", method = RequestMethod.GET)
     public String emissionDefinitionStudioPage(HttpServletRequest request, Locale locale) {
-        return redirectReactMigration(request, locale, "emission-definition-studio");
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "emission-definition-studio");
     }
 
     @RequestMapping(value = "/gwp-values", method = RequestMethod.GET)
     public String emissionGwpValuesPage(HttpServletRequest request, Locale locale) {
-        return redirectReactMigration(request, locale, "emission-gwp-values");
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "emission-gwp-values");
     }
 
     @GetMapping("/management/page-data")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> emissionManagementPageApi(HttpServletRequest request, Locale locale) {
-        boolean isEn = isEnglishRequest(request, locale);
+        boolean isEn = adminReactRouteSupport.isEnglishRequest(request, locale);
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("isEn", isEn);
         payload.put("menuCode", "A0020107");
@@ -71,6 +74,7 @@ public class AdminEmissionSiteController {
         payload.putAll(adminEmissionManagementElementRegistryService.buildRegistryPayload(isEn));
         payload.putAll(adminEmissionManagementService.getRolloutStatusSummary());
         payload.putAll(adminEmissionManagementService.getDefinitionScopeSummary());
+        payload.put("classificationCatalog", emissionClassificationCatalogService.buildPayload(isEn));
         Map<String, Object> definitionStudioPayload = adminEmissionDefinitionStudioService.buildPagePayload(isEn);
         payload.put("definitionDraftRows", definitionStudioPayload.get("definitionRows"));
         payload.put("definitionPolicyOptions", definitionStudioPayload.get("policyOptions"));
@@ -83,7 +87,10 @@ public class AdminEmissionSiteController {
     @GetMapping("/definition-studio/page-data")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> emissionDefinitionStudioPageApi(HttpServletRequest request, Locale locale) {
-        return ResponseEntity.ok(adminEmissionDefinitionStudioService.buildPagePayload(isEnglishRequest(request, locale)));
+        boolean isEn = adminReactRouteSupport.isEnglishRequest(request, locale);
+        Map<String, Object> payload = new LinkedHashMap<>(adminEmissionDefinitionStudioService.buildPagePayload(isEn));
+        payload.put("classificationCatalog", emissionClassificationCatalogService.buildPayload(isEn));
+        return ResponseEntity.ok(payload);
     }
 
     @GetMapping("/gwp-values/page-data")
@@ -97,14 +104,17 @@ public class AdminEmissionSiteController {
             @RequestParam(value = "pdfCompareScope", required = false) String pdfCompareScope,
             HttpServletRequest request,
             Locale locale) {
-        return ResponseEntity.ok(adminEmissionGwpValueService.buildPagePayload(
+        boolean isEn = adminReactRouteSupport.isEnglishRequest(request, locale);
+        Map<String, Object> payload = new LinkedHashMap<>(adminEmissionGwpValueService.buildPagePayload(
                 searchKeyword,
                 sectionCode,
                 rowId,
                 pdfComparePolicy,
                 parseBooleanParam(includePdfCompare),
                 pdfCompareScope,
-                isEnglishRequest(request, locale)));
+                isEn));
+        payload.put("classificationCatalog", emissionClassificationCatalogService.buildPayload(isEn));
+        return ResponseEntity.ok(payload);
     }
 
     @PostMapping("/api/gwp-values/save")
@@ -113,7 +123,7 @@ public class AdminEmissionSiteController {
             @RequestBody AdminEmissionGwpValueSaveRequestDTO request,
             HttpServletRequest httpServletRequest,
             Locale locale) {
-        boolean isEn = isEnglishRequest(httpServletRequest, locale);
+        boolean isEn = adminReactRouteSupport.isEnglishRequest(httpServletRequest, locale);
         try {
             Map<String, Object> saved = adminEmissionGwpValueService.save(request, resolveActorId(httpServletRequest), isEn);
             String savedRowId = safe(String.valueOf(saved.getOrDefault("rowId", "")));
@@ -151,7 +161,7 @@ public class AdminEmissionSiteController {
             @RequestBody Map<String, String> request,
             HttpServletRequest httpServletRequest,
             Locale locale) {
-        boolean isEn = isEnglishRequest(httpServletRequest, locale);
+        boolean isEn = adminReactRouteSupport.isEnglishRequest(httpServletRequest, locale);
         try {
             String rowId = safe(request == null ? null : request.get("rowId"));
             Map<String, Object> deleted = adminEmissionGwpValueService.delete(rowId, isEn);
@@ -182,12 +192,13 @@ public class AdminEmissionSiteController {
     @GetMapping("/site-management/page-data")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> emissionSiteManagementPageApi(HttpServletRequest request, Locale locale) {
-        return ResponseEntity.ok(new LinkedHashMap<>(adminShellBootstrapPageService.buildEmissionSiteManagementPageData(isEnglishRequest(request, locale))));
+        return ResponseEntity.ok(new LinkedHashMap<>(adminShellBootstrapPageService.buildEmissionSiteManagementPageData(
+                adminReactRouteSupport.isEnglishRequest(request, locale))));
     }
 
     @RequestMapping(value = "/validate", method = RequestMethod.GET)
     public String emissionValidatePage(HttpServletRequest request, Locale locale) {
-        return redirectReactMigration(request, locale, "emission-validate");
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "emission-validate");
     }
 
     @GetMapping("/validate/page-data")
@@ -201,26 +212,7 @@ public class AdminEmissionSiteController {
                 request == null ? "" : request.getParameter("searchKeyword"),
                 request == null ? "" : request.getParameter("verificationStatus"),
                 request == null ? "" : request.getParameter("priorityFilter"),
-                isEnglishRequest(request, locale))));
-    }
-
-    private boolean isEnglishRequest(HttpServletRequest request, Locale locale) {
-        String uri = request == null ? "" : safe(request.getRequestURI());
-        if (uri.startsWith("/en/")) {
-            return true;
-        }
-        return locale != null && Locale.ENGLISH.getLanguage().equalsIgnoreCase(locale.getLanguage());
-    }
-
-    private String redirectReactMigration(HttpServletRequest request, Locale locale, String route) {
-        StringBuilder builder = new StringBuilder("forward:");
-        builder.append(isEnglishRequest(request, locale) ? "/en/admin/app?route=" : "/admin/app?route=");
-        builder.append(route == null ? "" : route.replace('-', '_'));
-        String query = request == null ? "" : safe(request.getQueryString());
-        if (!query.isEmpty()) {
-            builder.append("&").append(query);
-        }
-        return builder.toString();
+                adminReactRouteSupport.isEnglishRequest(request, locale))));
     }
 
     private String safe(String value) {

@@ -73,6 +73,19 @@ When the operator wants work to survive account re-login or a new session:
 4. Capture current blockers, next step, and verification state in a handoff note before stopping.
 5. Do not open a new implementation lane until the resumed lane's allowed paths are clear.
 
+## Existing Session Completion Rule
+
+If the current active sessions already cover the needed ownership families, prefer finishing with those sessions instead of opening extra lanes.
+
+Use this rule:
+
+- do not add a new implementation session merely to increase parallelism
+- keep one active owner per shared file family
+- keep one active owner per large-move family
+- close selected families wave by wave with the active session set
+
+Open a new session only when a required ownership family has no safe current owner.
+
 ## Delivery Rules
 
 - For simple isolated work, allow the classification to end in one session.
@@ -112,3 +125,33 @@ When the request is about platformization, explicitly group work as:
 ## Default Rule
 
 Apply this skill automatically before starting implementation, even if the final result is a single-session execution plan.
+
+## Default Four-Session Rule
+
+For builder-oriented platformization, common-vs-project separation, large folder moves, or ownership-closure work, default to four sessions regardless of how many paid accounts are available.
+
+Use this split first unless there is a strong reason not to:
+
+1. `Coordinator / Completion Owner`
+   - docs, ownership freeze, wave scope, handoff, completion judgment
+2. `Backend Structure Owner`
+   - `modules/`, root backend legacy cutover, builder/platform/backend ownership closure
+3. `Frontend Structure Owner`
+   - `frontend/src/app`, `frontend/src/platform`, `frontend/src/framework`, builder-related frontend ownership closure
+4. `Build / Runtime / Resource Owner`
+   - `apps/`, `templates/`, build/package/runtime freshness, resource closure, final verification
+
+This rule is about work partition, not account count.
+
+Use the same four-session split whether:
+
+- one account opens four sessions
+- four accounts each run one session
+- any other account/session combination produces the same four ownership lanes
+
+Do not collapse these into one giant implementation lane by default if the task includes:
+
+- builder family cutover
+- common/platform vs project boundary moves
+- route and registry ownership moves
+- large-move completion work

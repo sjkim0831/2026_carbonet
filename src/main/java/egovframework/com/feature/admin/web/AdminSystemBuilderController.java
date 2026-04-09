@@ -1,6 +1,6 @@
 package egovframework.com.feature.admin.web;
 
-import egovframework.com.feature.admin.service.AdminSummaryService;
+import egovframework.com.feature.admin.service.AdminSummaryCommandService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -29,7 +29,7 @@ import java.util.Set;
 public class AdminSystemBuilderController {
 
     private final AdminMainController adminMainController;
-    private final AdminSummaryService adminSummaryService;
+    private final AdminSummaryCommandService adminSummaryCommandService;
 
     @GetMapping("/api/admin/system/menu-permission-diagnostics")
     @ResponseBody
@@ -58,7 +58,7 @@ public class AdminSystemBuilderController {
             return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
         }
         Object menuUrls = payload == null ? null : payload.get("menuUrls");
-        return ResponseEntity.ok(adminSummaryService.runMenuPermissionAutoCleanup(
+        return ResponseEntity.ok(adminSummaryCommandService.runMenuPermissionAutoCleanup(
                 currentUserId,
                 isEn,
                 toStringList(menuUrls)));
@@ -72,7 +72,7 @@ public class AdminSystemBuilderController {
             Locale locale) {
         boolean isEn = adminMainController.isEnglishRequest(request, locale);
         String currentUserId = adminMainController.extractCurrentUserId(request);
-        return ResponseEntity.ok(adminSummaryService.updateSecurityInsightState(currentUserId, isEn, payload == null ? Map.of() : payload));
+        return ResponseEntity.ok(adminSummaryCommandService.updateSecurityInsightState(currentUserId, isEn, payload == null ? Map.of() : payload));
     }
 
     @PostMapping("/api/admin/system/security-monitoring/state")
@@ -83,7 +83,7 @@ public class AdminSystemBuilderController {
             Locale locale) {
         boolean isEn = adminMainController.isEnglishRequest(request, locale);
         String currentUserId = adminMainController.extractCurrentUserId(request);
-        return ResponseEntity.ok(adminSummaryService.updateSecurityMonitoringState(currentUserId, isEn, payload == null ? Map.of() : payload));
+        return ResponseEntity.ok(adminSummaryCommandService.updateSecurityMonitoringState(currentUserId, isEn, payload == null ? Map.of() : payload));
     }
 
     @PostMapping("/api/admin/system/security-monitoring/block-candidates")
@@ -104,7 +104,7 @@ public class AdminSystemBuilderController {
                     : "차단 후보 등록은 전체 관리자만 수행할 수 있습니다.");
             return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
         }
-        return ResponseEntity.ok(adminSummaryService.registerSecurityMonitoringBlockCandidate(currentUserId, isEn, payload == null ? Map.of() : payload));
+        return ResponseEntity.ok(adminSummaryCommandService.registerSecurityMonitoringBlockCandidate(currentUserId, isEn, payload == null ? Map.of() : payload));
     }
 
     @PostMapping("/api/admin/system/security-monitoring/block-candidates/state")
@@ -125,7 +125,7 @@ public class AdminSystemBuilderController {
                     : "차단 후보 상태 변경은 전체 관리자만 수행할 수 있습니다.");
             return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
         }
-        return ResponseEntity.ok(adminSummaryService.updateSecurityMonitoringBlockCandidate(currentUserId, isEn, payload == null ? Map.of() : payload));
+        return ResponseEntity.ok(adminSummaryCommandService.updateSecurityMonitoringBlockCandidate(currentUserId, isEn, payload == null ? Map.of() : payload));
     }
 
     @PostMapping("/api/admin/system/security-monitoring/notify")
@@ -146,7 +146,7 @@ public class AdminSystemBuilderController {
                     : "보안 모니터링 알림 발송은 전체 관리자만 수행할 수 있습니다.");
             return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
         }
-        return ResponseEntity.ok(adminSummaryService.dispatchSecurityMonitoringNotification(currentUserId, isEn, payload == null ? Map.of() : payload));
+        return ResponseEntity.ok(adminSummaryCommandService.dispatchSecurityMonitoringNotification(currentUserId, isEn, payload == null ? Map.of() : payload));
     }
 
     @PostMapping("/api/admin/system/security-history/action")
@@ -181,7 +181,7 @@ public class AdminSystemBuilderController {
                 return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
             }
         }
-        return ResponseEntity.ok(adminSummaryService.executeSecurityHistoryAction(currentUserId, isEn, safePayload));
+        return ResponseEntity.ok(adminSummaryCommandService.executeSecurityHistoryAction(currentUserId, isEn, safePayload));
     }
 
     @PostMapping("/api/admin/system/security-policy/clear-suppressions")
@@ -191,7 +191,7 @@ public class AdminSystemBuilderController {
             Locale locale) {
         boolean isEn = adminMainController.isEnglishRequest(request, locale);
         String currentUserId = adminMainController.extractCurrentUserId(request);
-        return ResponseEntity.ok(adminSummaryService.clearSecurityInsightSuppressions(currentUserId, isEn));
+        return ResponseEntity.ok(adminSummaryCommandService.clearSecurityInsightSuppressions(currentUserId, isEn));
     }
 
     @PostMapping("/api/admin/system/security-policy/auto-fix")
@@ -212,7 +212,7 @@ public class AdminSystemBuilderController {
                     : "보안 정책 자동 정리는 전체 관리자만 실행할 수 있습니다.");
             return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
         }
-        return ResponseEntity.ok(adminSummaryService.runSecurityInsightAutoFix(currentUserId, isEn, payload == null ? Map.of() : payload));
+        return ResponseEntity.ok(adminSummaryCommandService.runSecurityInsightAutoFix(currentUserId, isEn, payload == null ? Map.of() : payload));
     }
 
     @PostMapping("/api/admin/system/security-policy/auto-fix-bulk")
@@ -249,7 +249,7 @@ public class AdminSystemBuilderController {
                 }
             }
         }
-        return ResponseEntity.ok(adminSummaryService.runSecurityInsightBulkAutoFix(currentUserId, isEn, rows));
+        return ResponseEntity.ok(adminSummaryCommandService.runSecurityInsightBulkAutoFix(currentUserId, isEn, rows));
     }
 
     @PostMapping("/api/admin/system/security-policy/notification-config")
@@ -270,7 +270,7 @@ public class AdminSystemBuilderController {
                     : "보안 알림 라우팅은 전체 관리자만 저장할 수 있습니다.");
             return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
         }
-        return ResponseEntity.ok(adminSummaryService.saveSecurityInsightNotificationConfig(currentUserId, isEn, payload == null ? Map.of() : payload));
+        return ResponseEntity.ok(adminSummaryCommandService.saveSecurityInsightNotificationConfig(currentUserId, isEn, payload == null ? Map.of() : payload));
     }
 
     @PostMapping("/api/admin/system/security-policy/rollback")
@@ -291,7 +291,7 @@ public class AdminSystemBuilderController {
                     : "원복 실행은 전체 관리자만 수행할 수 있습니다.");
             return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
         }
-        return ResponseEntity.ok(adminSummaryService.runSecurityInsightRollback(currentUserId, isEn, payload == null ? Map.of() : payload));
+        return ResponseEntity.ok(adminSummaryCommandService.runSecurityInsightRollback(currentUserId, isEn, payload == null ? Map.of() : payload));
     }
 
     @PostMapping("/api/admin/system/security-policy/dispatch")
@@ -312,7 +312,7 @@ public class AdminSystemBuilderController {
                     : "알림 발송은 전체 관리자만 수행할 수 있습니다.");
             return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
         }
-        return ResponseEntity.ok(adminSummaryService.dispatchSecurityInsightNotifications(currentUserId, isEn, payload == null ? Map.of() : payload));
+        return ResponseEntity.ok(adminSummaryCommandService.dispatchSecurityInsightNotifications(currentUserId, isEn, payload == null ? Map.of() : payload));
     }
 
     @GetMapping("/api/admin/menu-placeholder")

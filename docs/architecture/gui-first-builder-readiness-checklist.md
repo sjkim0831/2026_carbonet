@@ -6,6 +6,11 @@ Generated on 2026-03-21 for Resonance GUI-first authoring maturity.
 
 Confirm that operators and AI-assisted flows can build a governed screen through GUI surfaces without falling back to raw source editing for normal work.
 
+Use together with:
+
+- `docs/architecture/page-systemization-minimum-contract.md`
+- `docs/architecture/system-folder-structure-alignment.md`
+
 ## 1. Project And Scenario Readiness
 
 Confirm the GUI can:
@@ -13,6 +18,7 @@ Confirm the GUI can:
 - require `projectId` selection before authoring
 - require scenario family and scenario selection
 - show linked menu, route, actor policy, and release-unit target
+- show stable `pageId`, `menuCode`, install scope, and ownership lane before publish
 
 ## 2. Theme And Layout Readiness
 
@@ -58,6 +64,7 @@ Confirm the GUI can:
 Confirm the GUI can:
 
 - select actor policy
+- select explicit data scope and action scope
 - select classification and CSRF policy
 - select help anchors and diagnostics policy
 - preview accessibility blockers
@@ -76,3 +83,5 @@ Confirm the GUI can:
 ## Completion Standard
 
 Resonance is GUI-first ready only when all seven areas above can be completed from governed screens without raw manual source edits for ordinary page, component, and binding work.
+
+No page should be called GUI-first ready if authority scope remains implicit or if the page cannot still be recognized as one systemized unit after regeneration, install, and runtime binding.

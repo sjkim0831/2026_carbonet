@@ -1,6 +1,71 @@
 import { tracedFetch } from "../../platform/telemetry/fetch";
 import type { MigrationPageId } from "../../app/routes/definitions";
 import { buildLocalizedPath, getCsrfMeta, getRuntimeLocale } from "../navigation/runtime";
+import * as adminMemberApi from "./adminMember";
+import {
+  fetchJsonWithoutCache,
+  readSessionStorageCache,
+  removeSessionStorageCache,
+  SESSION_STORAGE_CACHE_PREFIX,
+  writeSessionStorageCache
+} from "./pageCache";
+import {
+  fetchEmissionDataHistoryPage,
+  fetchEmissionLciClassificationPage,
+  fetchEmissionResultDetailPage,
+  fetchEmissionResultListPage,
+  fetchEmissionValidatePage
+} from "./emission";
+import * as memberApi from "./member";
+import * as platformApi from "./platform";
+import * as portalApi from "./portal";
+import * as securityApi from "./security";
+import * as tradeApi from "./trade";
+import {
+  buildSecurityAuditExportUrl,
+  fetchBackupConfigPage,
+  fetchBatchManagementPage,
+  fetchExternalConnectionFormPage,
+  fetchExternalConnectionListPage,
+  fetchExternalKeysPage,
+  fetchExternalLogsPage,
+  fetchExternalMaintenancePage,
+  fetchExternalMonitoringPage,
+  fetchExternalRetryPage,
+  fetchExternalSchemaPage,
+  fetchExternalSyncPage,
+  fetchExternalUsagePage,
+  fetchExternalWebhooksPage,
+  fetchOperationsCenterPage,
+  fetchPerformancePage,
+  fetchSchedulerManagementPage,
+  fetchSensorListPage,
+  saveBackupConfig,
+  saveExternalConnection
+} from "./ops";
+export {
+  buildSecurityAuditExportUrl,
+  fetchBackupConfigPage,
+  fetchBatchManagementPage,
+  fetchExternalConnectionFormPage,
+  fetchExternalConnectionListPage,
+  fetchExternalKeysPage,
+  fetchExternalLogsPage,
+  fetchExternalMaintenancePage,
+  fetchExternalMonitoringPage,
+  fetchExternalRetryPage,
+  fetchExternalSchemaPage,
+  fetchExternalSyncPage,
+  fetchExternalUsagePage,
+  fetchExternalWebhooksPage,
+  fetchOperationsCenterPage,
+  fetchPerformancePage,
+  fetchSchedulerManagementPage,
+  fetchSensorListPage,
+  saveBackupConfig,
+  saveExternalConnection
+};
+export { createIpWhitelistRequest, restoreBackupConfigVersion, runBackupExecution } from "./ops";
 
 const fetch = tracedFetch;
 
@@ -53,13 +118,6 @@ export type AdminSessionSimulationPayload = {
   selectedInsttId: string;
   selectedEmplyrId: string;
   selectedAuthorCode: string;
-};
-
-type MypageContext = {
-  authenticated: boolean;
-  userId?: string;
-  insttId: string;
-  redirectUrl?: string;
 };
 
 export type AdminMenuLink = {
@@ -150,6 +208,76 @@ export type FileManagementSaveResponse = {
   message?: string;
   fileId?: string;
   file?: Record<string, string>;
+};
+
+export type ProjectVersionOverviewPayload = {
+  projectId: string;
+  projectDisplayName?: string;
+  activeRuntimeVersion?: string;
+  activeCommonCoreVersion?: string;
+  activeAdapterContractVersion?: string;
+  activeAdapterArtifactVersion?: string;
+  installedArtifactSet?: Array<Record<string, unknown>>;
+  installedPackageSet?: Array<Record<string, unknown>>;
+  rollbackReadyReleaseUnitId?: string;
+};
+
+export type ProjectVersionListPayload = {
+  projectId: string;
+  itemSet?: Array<Record<string, unknown>>;
+  totalCount?: number;
+};
+
+export type ProjectVersionServerStatePayload = {
+  projectId: string;
+  serverStateSet?: Array<Record<string, unknown>>;
+};
+
+export type ProjectVersionManagementPagePayload = {
+  overview: ProjectVersionOverviewPayload;
+  adapterHistory: ProjectVersionListPayload;
+  releaseUnits: ProjectVersionListPayload;
+  serverDeployState: ProjectVersionServerStatePayload;
+  candidateArtifacts: ProjectVersionListPayload;
+};
+
+export type ProjectVersionTargetArtifactPayload = {
+  artifactId: string;
+  artifactVersion: string;
+};
+
+export type ProjectUpgradeImpactResponse = {
+  projectId: string;
+  currentVersionSet?: Record<string, unknown>;
+  targetVersionSet?: Record<string, unknown>;
+  compatibilityClass?: string;
+  adapterImpactSummary?: string;
+  artifactDelta?: Array<Record<string, unknown>>;
+  packageDelta?: Array<Record<string, unknown>>;
+  runtimePackageDelta?: string;
+  blockerSet?: string[];
+  rollbackTargetReleaseId?: string;
+  upgradeReadyYn?: boolean;
+};
+
+export type ProjectApplyUpgradeResponse = {
+  projectId: string;
+  releaseUnitId?: string;
+  runtimePackageId?: string;
+  appliedArtifactSet?: Array<Record<string, unknown>>;
+  compatibilityClass?: string;
+  deployReadyYn?: boolean;
+  rollbackTargetReleaseId?: string;
+};
+
+export type ProjectRollbackResponse = {
+  projectId: string;
+  rolledBackToReleaseUnitId?: string;
+  runtimePackageId?: string;
+  deployTraceId?: string;
+  status?: string;
+  restoredArtifactSet?: Array<Record<string, unknown>>;
+  rollbackTargetReleaseId?: string;
 };
 
 export type PostManagementPagePayload = Record<string, unknown> & {
@@ -260,6 +388,31 @@ export type EmissionGwpValuesPagePayload = Record<string, unknown> & {
   selectedRow?: Record<string, string>;
   governanceNotes?: Array<Record<string, string>>;
   methaneGuidance?: Array<Record<string, string>>;
+};
+
+export type EmissionLciClassificationPagePayload = Record<string, unknown> & {
+  isEn?: boolean;
+  menuCode?: string;
+  searchKeyword?: string;
+  level?: string;
+  useAt?: string;
+  selectedCode?: string;
+  catalogSource?: string;
+  catalogSourceLabel?: string;
+  summaryCards?: Array<Record<string, string>>;
+  levelOptions?: Array<Record<string, string>>;
+  classificationRows?: Array<Record<string, unknown>>;
+  selectedClassification?: Record<string, unknown> | null;
+  governanceNotes?: Array<Record<string, string>>;
+};
+
+export type EmissionLciClassificationSavePayload = {
+  originalCode?: string;
+  code: string;
+  label: string;
+  tierLabel: string;
+  aliases: string;
+  useAt: string;
 };
 
 export type EmissionGwpValueSavePayload = {
@@ -401,6 +554,30 @@ async function readJsonResponse<T>(response: Response): Promise<T> {
   throw new Error(compact.startsWith("<!DOCTYPE") || compact.startsWith("<html")
     ? `Server returned HTML instead of JSON (${response.status})`
     : (compact || `Unexpected response format (${response.status})`));
+}
+
+type DuplicateCheckResponse = {
+  valid?: boolean;
+  duplicated?: boolean;
+  message?: string;
+};
+
+async function checkIdentifierAvailability(
+  url: string,
+  fallbackMessage: string
+): Promise<{ valid: boolean; duplicated: boolean; message: string }> {
+  const response = await fetch(url, {
+    credentials: "include"
+  });
+  const body = await readJsonResponse<DuplicateCheckResponse>(response);
+  if (!response.ok) {
+    throw new Error(body.message || `${fallbackMessage}: ${response.status}`);
+  }
+  return {
+    valid: Boolean(body.valid),
+    duplicated: Boolean(body.duplicated),
+    message: String(body.message || "")
+  };
 }
 
 function buildCsrfHeaders(extraHeaders?: Record<string, string>): Record<string, string> {
@@ -639,9 +816,20 @@ export type EmissionSurveyAdminSection = {
   rows?: EmissionSurveyAdminRow[];
 };
 
+export type EmissionSurveyClassificationLoadResponse = Record<string, unknown> & {
+  lciMajorCode?: string;
+  lciMiddleCode?: string;
+  lciSmallCode?: string;
+  caseCode?: string;
+  matchedCount?: number;
+  matchedCaseMap?: Record<string, Record<string, unknown>>;
+  message?: string;
+};
+
 export type EmissionSurveyAdminPagePayload = Record<string, unknown> & {
   isEn?: boolean;
   menuCode?: string;
+  currentActorId?: string;
   pageTitle?: string;
   pageDescription?: string;
   sourceFileName?: string;
@@ -656,12 +844,23 @@ export type EmissionSurveyAdminPagePayload = Record<string, unknown> & {
   sections?: EmissionSurveyAdminSection[];
   savedCaseMap?: Record<string, Record<string, unknown>>;
   savedSetMap?: Record<string, Record<string, unknown>>;
+  uploadLogRows?: Array<Record<string, unknown>>;
+  uploadAudit?: Record<string, unknown>;
 };
 
 export type EmissionSurveyCaseDraftSavePayload = {
+  ownerActorId?: string;
+  datasetId?: string;
+  datasetName?: string;
   sectionCode: string;
   caseCode: string;
   majorCode: string;
+  lciMajorCode: string;
+  lciMajorLabel?: string;
+  lciMiddleCode: string;
+  lciMiddleLabel?: string;
+  lciSmallCode: string;
+  lciSmallLabel?: string;
   sectionLabel: string;
   sourceFileName?: string;
   sourcePath?: string;
@@ -682,6 +881,31 @@ export type EmissionSurveyDraftSetSavePayload = {
   sourcePath?: string;
   targetPath?: string;
   sections: Array<Record<string, unknown>>;
+};
+
+export type EmissionSurveyAdminDataPagePayload = Record<string, unknown> & {
+  isEn?: boolean;
+  menuCode?: string;
+  currentActorId?: string;
+  pageTitle?: string;
+  pageDescription?: string;
+  lciMajorCode?: string;
+  lciMiddleCode?: string;
+  lciSmallCode?: string;
+  status?: string;
+  datasetId?: string;
+  logId?: string;
+  pageIndex?: number;
+  pageSize?: number;
+  totalCount?: number;
+  totalPages?: number;
+  summaryCards?: Array<Record<string, string>>;
+  statusOptions?: Array<Record<string, string>>;
+  datasetRows?: Array<Record<string, unknown>>;
+  uploadLogRows?: Array<Record<string, unknown>>;
+  selectedDatasetSectionRows?: Array<Record<string, unknown>>;
+  selectedLog?: Record<string, unknown>;
+  selectedLogSectionResults?: Array<Record<string, unknown>>;
 };
 
 export type EmissionManagementElementSavePayload = {
@@ -779,6 +1003,9 @@ export type EmissionCategoryItem = Record<string, unknown> & {
   majorName?: string;
   subCode?: string;
   subName?: string;
+  classificationCode?: string;
+  classificationPath?: string;
+  classificationTierLabel?: string;
   useYn?: string;
 };
 
@@ -1022,6 +1249,8 @@ export type ScreenBuilderPagePayload = {
   publishedVersionId?: string;
   publishedSavedAt?: string;
   releaseUnitId?: string;
+  runtimePackageId?: string;
+  deployTraceId?: string;
   artifactEvidence?: {
     artifactSourceSystem?: string;
     artifactTargetSystem?: string;
@@ -2676,10 +2905,6 @@ let frontendSessionCache: FrontendSession | null = null;
 let frontendSessionPromise: Promise<FrontendSession> | null = null;
 let adminMenuTreeCache: AdminMenuTreePayload | null = null;
 let adminMenuTreePromise: Promise<AdminMenuTreePayload> | null = null;
-let mypageContextCache: MypageContext | null = null;
-let mypageContextPromise: Promise<MypageContext> | null = null;
-let joinSessionCache: JoinSessionPayload | null = null;
-let joinSessionPromise: Promise<JoinSessionPayload> | null = null;
 const ADMIN_MENU_CODE_LABEL_OVERRIDES_KO: Record<string, string> = {
   A001: "회원",
   A00101: "회원",
@@ -2768,65 +2993,12 @@ type BootstrapPayloadKey =
   | "screenBuilderPageData";
 let runtimeBootstrapCache: Partial<Record<BootstrapPayloadKey, unknown>> = {};
 let runtimeBootstrapCachePath = "";
-const SESSION_STORAGE_CACHE_PREFIX = "carbonet:api-cache:v3:";
 const FRONTEND_SESSION_STORAGE_KEY = `${SESSION_STORAGE_CACHE_PREFIX}frontend-session`;
 const ADMIN_MENU_TREE_STORAGE_KEY = `${SESSION_STORAGE_CACHE_PREFIX}admin-menu-tree`;
 const HOME_PAYLOAD_STORAGE_KEY_KO = `${SESSION_STORAGE_CACHE_PREFIX}home-payload:ko`;
 const HOME_PAYLOAD_STORAGE_KEY_EN = `${SESSION_STORAGE_CACHE_PREFIX}home-payload:en`;
 const ADMIN_MENU_TREE_REFRESH_EVENT = "carbonet:admin-menu-tree:refresh";
-const DEFAULT_PAGE_CACHE_TTL_MS = 60 * 1000;
 const SESSION_CACHE_TTL_MS = 5 * 60 * 1000;
-
-type SessionStorageCacheEntry<T> = {
-  expiresAt: number;
-  value: T;
-};
-
-function readSessionStorageCache<T>(key: string): T | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-  try {
-    const raw = window.sessionStorage.getItem(key);
-    if (!raw) {
-      return null;
-    }
-    const parsed = JSON.parse(raw) as SessionStorageCacheEntry<T>;
-    if (!parsed || typeof parsed.expiresAt !== "number" || parsed.expiresAt <= Date.now()) {
-      window.sessionStorage.removeItem(key);
-      return null;
-    }
-    return parsed.value ?? null;
-  } catch {
-    return null;
-  }
-}
-
-function writeSessionStorageCache<T>(key: string, value: T, ttlMs: number) {
-  if (typeof window === "undefined") {
-    return;
-  }
-  try {
-    const payload: SessionStorageCacheEntry<T> = {
-      expiresAt: Date.now() + ttlMs,
-      value
-    };
-    window.sessionStorage.setItem(key, JSON.stringify(payload));
-  } catch {
-    // Ignore storage quota or serialization errors and keep the runtime path working.
-  }
-}
-
-function removeSessionStorageCache(key: string) {
-  if (typeof window === "undefined") {
-    return;
-  }
-  try {
-    window.sessionStorage.removeItem(key);
-  } catch {
-    // Ignore sessionStorage failures.
-  }
-}
 
 function isLikelyAdminMenuCodeLabel(value: string) {
   const normalized = String(value || "").trim();
@@ -2890,10 +3062,6 @@ function normalizeAdminMenuTree(payload: AdminMenuTreePayload | null | undefined
   return normalizedTree;
 }
 
-function buildPageCacheKey(path: string) {
-  return `${SESSION_STORAGE_CACHE_PREFIX}${path}`;
-}
-
 function currentBootstrapScopePath() {
   if (typeof window === "undefined") {
     return "";
@@ -2949,81 +3117,25 @@ function writeHomePayloadCache(payload: BootstrappedHomePayload | null | undefin
   writeSessionStorageCache(resolveHomePayloadStorageKey(Boolean(payload.isEn)), payload, SESSION_CACHE_TTL_MS);
 }
 
-function invalidateAdminPageCaches() {
-  if (typeof window === "undefined") {
-    return;
+function buildQueryString(params?: Record<string, string | number | boolean | null | undefined>): string {
+  if (!params) {
+    return "";
   }
-  try {
-    const keysToDelete: string[] = [];
-    for (let index = 0; index < window.sessionStorage.length; index += 1) {
-      const key = window.sessionStorage.key(index);
-      if (!key) {
-        continue;
-      }
-      if (
-        key.startsWith(SESSION_STORAGE_CACHE_PREFIX) &&
-        key !== FRONTEND_SESSION_STORAGE_KEY &&
-        key !== ADMIN_MENU_TREE_STORAGE_KEY
-      ) {
-        keysToDelete.push(key);
-      }
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === "") {
+      return;
     }
-    keysToDelete.forEach((key) => window.sessionStorage.removeItem(key));
-  } catch {
-    // Ignore cache eviction failures.
-  }
+    search.set(key, String(value));
+  });
+  const query = search.toString();
+  return query ? `?${query}` : "";
 }
 
-async function fetchCachedJson<T>(options: {
-  cacheKey: string;
-  url: string;
-  ttlMs?: number;
-  mapError?: (body: any, status: number) => string;
-}): Promise<T> {
-  const cached = readSessionStorageCache<T>(options.cacheKey);
-  if (cached) {
-    return cached;
-  }
-
-  const response = await fetch(options.url, {
-    credentials: "include"
+async function fetchLocalizedPageJson<T>(koPath: string, enPath: string, params?: Record<string, string | number | boolean | null | undefined>): Promise<T> {
+  return fetchJsonWithoutCache<T>({
+    url: `${buildLocalizedPath(koPath, enPath)}${buildQueryString(params)}`
   });
-  const body = await readJsonResponse<T>(response).catch((error) => {
-    if (error instanceof Error && error.message.includes("Authentication required")) {
-      throw error;
-    }
-    if (error instanceof Error && error.message.includes("Server returned HTML instead of JSON")) {
-      throw error;
-    }
-    return {} as T;
-  });
-  if (!response.ok) {
-    throw new Error(options.mapError?.(body, response.status) || `Failed to load page: ${response.status}`);
-  }
-  writeSessionStorageCache(options.cacheKey, body as T, options.ttlMs ?? DEFAULT_PAGE_CACHE_TTL_MS);
-  return body as T;
-}
-
-async function fetchJsonWithoutCache<T>(options: {
-  url: string;
-  mapError?: (body: any, status: number) => string;
-}): Promise<T> {
-  const response = await fetch(options.url, {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<T>(response).catch((error) => {
-    if (error instanceof Error && error.message.includes("Authentication required")) {
-      throw error;
-    }
-    if (error instanceof Error && error.message.includes("Server returned HTML instead of JSON")) {
-      throw error;
-    }
-    return {} as T;
-  });
-  if (!response.ok) {
-    throw new Error(options.mapError?.(body, response.status) || `Failed to load page: ${response.status}`);
-  }
-  return body as T;
 }
 
 export function invalidateFrontendSessionCache() {
@@ -3031,12 +3143,263 @@ export function invalidateFrontendSessionCache() {
   frontendSessionPromise = null;
   adminMenuTreeCache = null;
   adminMenuTreePromise = null;
-  mypageContextCache = null;
-  mypageContextPromise = null;
   removeSessionStorageCache(FRONTEND_SESSION_STORAGE_KEY);
   removeSessionStorageCache(ADMIN_MENU_TREE_STORAGE_KEY);
 }
 
+export {
+  deleteFileManagementPage,
+  deleteQnaCategory,
+  fetchAdminSitemapPage,
+  fetchBannerEditPage,
+  fetchBannerManagementPage,
+  fetchBoardDistributionPage,
+  fetchBoardManagementPage,
+  fetchFaqManagementPage,
+  fetchFileManagementPage,
+  fetchPopupEditPage,
+  fetchPopupListPage,
+  fetchPostManagementPage,
+  fetchQnaCategoryPage,
+  fetchTagManagementPage,
+  replaceFileManagementPage,
+  restoreFileManagementPage,
+  saveBannerEditPage,
+  saveBoardDistributionPage,
+  saveFaqManagementPage,
+  saveFileManagementPage,
+  savePopupEditPage,
+  saveQnaCategory,
+  updateFileManagementPage
+} from "./content";
+export {
+  calculateEmissionInputSession,
+  deleteEmissionGwpValue,
+  deleteEmissionSurveyCaseDraft,
+  deleteEmissionSurveyDraftSet,
+  deleteEmissionLciClassification,
+  fetchEmissionCategories,
+  fetchEmissionDataHistoryPage,
+  fetchEmissionDefinitionStudioPage,
+  fetchEmissionInputSession,
+  fetchEmissionGwpValuesPage,
+  fetchEmissionLimeDefaultFactor,
+  fetchEmissionLciClassificationPage,
+  fetchEmissionManagementPage,
+  fetchEmissionResultDetailPage,
+  fetchEmissionResultListPage,
+  fetchEmissionScopeStatus,
+  fetchEmissionSiteManagementPage,
+  fetchEmissionSurveyAdminDataPage,
+  fetchEmissionSurveyAdminPage,
+  fetchEmissionTiers,
+  fetchEmissionValidatePage,
+  fetchEmissionVariableDefinitions,
+  getEmissionSurveySampleDownloadUrl,
+  getEmissionSurveyTemplateDownloadUrl,
+  loadEmissionSurveyCaseDraftsByClassification,
+  materializeEmissionDefinitionScope,
+  precheckEmissionDefinitionScope,
+  previewEmissionSurveySharedDataset,
+  publishEmissionDefinitionDraft,
+  replaceEmissionSurveySharedDataset,
+  saveEmissionInputSession,
+  saveEmissionDefinitionDraft,
+  saveEmissionGwpValue,
+  saveEmissionLciClassification,
+  saveEmissionManagementElementDefinition,
+  saveEmissionSurveyCaseDraft,
+  saveEmissionSurveyDraftSet,
+  uploadEmissionSurveyWorkbook
+} from "./emission";
+export {
+  createAdminAccount,
+  createAuthGroup,
+  resetMemberPasswordAction,
+  saveAdminAuthChange,
+  saveAdminPermission,
+  saveAuthGroupFeatures,
+  saveAuthorRoleProfile,
+  saveCompanyAccount,
+  saveDeptRoleMapping,
+  saveDeptRoleMember,
+  saveMemberEdit,
+  saveMemberRegister,
+  submitCertificateApproveAction,
+  submitCompanyApproveAction,
+  submitMemberApproveAction,
+  submitTradeApproveAction,
+  submitTradeRejectAction
+} from "./adminActions";
+export {
+  checkAdminAccountId,
+  fetchAdminAccountCreatePage,
+  fetchAdminListPage,
+  fetchAdminPermissionPage,
+  fetchAuthChangeHistory,
+  fetchAuthChangePage,
+  fetchAuthGroupPage,
+  fetchCertificateApprovePage,
+  fetchCompanyAccountPage,
+  fetchCompanyApprovePage,
+  fetchCompanyDetailPage,
+  fetchCompanyListPage,
+  fetchDeptRolePage,
+  fetchMemberApprovePage,
+  fetchMemberDetailPage,
+  fetchMemberEditPage,
+  fetchMemberListPage,
+  searchAdminCompanies
+} from "./adminMember";
+export {
+  fetchCertificateObjectionListPage,
+  fetchCertificatePendingPage,
+  fetchCertificateReviewPage,
+  fetchMemberRegisterPage,
+  fetchMemberStatsPage,
+  fetchPasswordResetPage,
+  fetchRefundAccountReviewPage,
+  fetchSystemCodePage
+} from "./member";
+export {
+  fetchCertificateStatisticsPage,
+  fetchRefundListPage,
+  fetchRefundProcessPage,
+  fetchSettlementCalendarPage,
+  fetchTradeApprovePage,
+  fetchTradeDuplicatePage,
+  fetchTradeListPage,
+  fetchTradeRejectPage,
+  fetchTradeStatisticsPage
+} from "./trade";
+export {
+  addScreenBuilderNodeFromComponent,
+  addScreenBuilderNodeTreeFromComponents,
+  addSrWorkbenchStackItem,
+  analyzeProjectUpgradeImpact,
+  applyProjectUpgrade,
+  approveSrTicket,
+  autoCollectFullStackGovernanceRegistry,
+  autoReplaceDeprecatedScreenBuilderComponents,
+  clearSrWorkbenchStack,
+  createSrTicket,
+  deleteCodexSrTicket,
+  deleteEnvironmentFeature,
+  deleteEnvironmentManagedPage,
+  deleteScreenBuilderComponentRegistryItem,
+  directExecuteCodexSrTicket,
+  directExecuteSrTicket,
+  executeCodexProvision,
+  executeCodexSrTicket,
+  executeSrTicket,
+  fetchAuditEvents,
+  fetchCodexHistory,
+  fetchCodexProvisionPage,
+  fetchCodexSrTicketArtifact,
+  fetchCodexSrTicketDetail,
+  fetchContentMenuManagementPage,
+  fetchEnvironmentFeatureImpact,
+  fetchEnvironmentManagedPageImpact,
+  fetchFullStackGovernanceRegistry,
+  fetchFullStackManagementPage,
+  fetchFunctionManagementPage,
+  fetchHelpManagementPage,
+  fetchMenuManagementPage,
+  fetchNewPagePage,
+  fetchPageManagementPage,
+  fetchProjectVersionManagementPage,
+  fetchScreenBuilderComponentRegistryUsage,
+  fetchScreenBuilderPage,
+  fetchScreenBuilderPreview,
+  fetchScreenCommandPage,
+  fetchSrWorkbenchPage,
+  fetchTraceEvents,
+  fetchWbsManagementPage,
+  inspectCodexHistory,
+  planCodexSrTicket,
+  planSrTicket,
+  prepareCodexSrTicket,
+  prepareSrExecution,
+  previewAutoReplaceDeprecatedScreenBuilderComponents,
+  publishScreenBuilderDraft,
+  quickExecuteSrTicket,
+  queueDirectExecuteCodexSrTicket,
+  registerScreenBuilderComponent,
+  reissueCodexSrTicket,
+  remapScreenBuilderComponentRegistryUsage,
+  remediateCodexHistory,
+  removeSrWorkbenchStackItem,
+  restoreScreenBuilderDraft,
+  rollbackCodexSrTicket,
+  rollbackProjectVersion,
+  runCodexLoginCheck,
+  saveFullStackGovernanceRegistry,
+  saveHelpManagementPage,
+  saveScreenBuilderDraft,
+  saveScreenCommandMenuMapping,
+  saveWbsManagementEntry,
+  scanScreenBuilderRegistryDiagnostics,
+  skipPlanExecuteCodexSrTicket,
+  skipPlanExecuteSrTicket,
+  updateEnvironmentFeature,
+  updateEnvironmentManagedPage,
+  updateScreenBuilderComponentRegistry
+} from "./platform";
+export {
+  fetchJoinSession,
+  invalidateJoinSessionCache,
+  resetJoinSession,
+  saveJoinStep1,
+  saveJoinStep2,
+  saveJoinStep3,
+  submitJoinCompanyReapply,
+  submitJoinStep4
+} from "./joinSession";
+export {
+  clearSecurityPolicySuppressions,
+  dispatchSecurityMonitoringNotification,
+  dispatchSecurityPolicyNotifications,
+  fetchAccessHistoryPage,
+  fetchBlocklistPage,
+  fetchErrorLogPage,
+  fetchLoginHistoryPage,
+  fetchMemberSecurityHistoryPage,
+  fetchNotificationPage,
+  fetchSecurityAuditPage,
+  fetchSecurityHistoryPage,
+  fetchSecurityMonitoringPage,
+  fetchSecurityPolicyPage,
+  registerSecurityMonitoringBlockCandidate,
+  runMenuPermissionAutoCleanup,
+  runSecurityPolicyAutoFix,
+  runSecurityPolicyBulkAutoFix,
+  runSecurityPolicyRollback,
+  saveSecurityHistoryAction,
+  saveSecurityMonitoringState,
+  saveSecurityPolicyFindingState,
+  saveSecurityPolicyNotificationConfig,
+  updateSecurityMonitoringBlockCandidate
+} from "./security";
+export {
+  checkCompanyNameDuplicate,
+  checkJoinEmail,
+  checkJoinMemberId,
+  fetchJoinCompanyReapplyPage,
+  fetchJoinCompanyRegisterPage,
+  fetchJoinCompanyStatusDetail,
+  searchJoinCompanies,
+  submitJoinCompanyRegister
+} from "./join";
+export {
+  fetchMypageSection,
+  invalidatePortalContextCache,
+  saveMypageCompany,
+  saveMypageEmail,
+  saveMypageMarketing,
+  saveMypagePassword,
+  saveMypageProfile,
+  saveMypageStaff
+} from "./portal";
 export function getAdminMenuTreeRefreshEventName() {
   return ADMIN_MENU_TREE_REFRESH_EVENT;
 }
@@ -3084,11 +3447,6 @@ export function refreshAdminMenuTree() {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new Event(ADMIN_MENU_TREE_REFRESH_EVENT));
   }
-}
-
-export function invalidateJoinSessionCache() {
-  joinSessionCache = null;
-  joinSessionPromise = null;
 }
 
 export async function fetchFrontendSession(): Promise<FrontendSession> {
@@ -3197,447 +3555,7 @@ async function fetchFreshFrontendSession(): Promise<FrontendSession> {
 }
 
 export async function fetchSitemapPage(): Promise<SitemapPagePayload> {
-  const response = await fetch(buildLocalizedPath("/api/sitemap", "/api/en/sitemap"), {
-    credentials: "include"
-  });
-  return readJsonResponse<SitemapPagePayload>(response);
-}
-
-export async function fetchAdminSitemapPage(): Promise<SitemapPagePayload> {
-  const response = await fetch(buildLocalizedPath("/admin/api/admin/content/sitemap", "/en/admin/api/admin/content/sitemap"), {
-    credentials: "include"
-  });
-  return readJsonResponse<SitemapPagePayload>(response);
-}
-
-export async function fetchTagManagementPage(params?: { searchKeyword?: string; status?: string; }): Promise<TagManagementPagePayload> {
-  const search = new URLSearchParams();
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.status) search.set("status", params.status);
-  const query = search.toString();
-  const response = await fetch(`${buildLocalizedPath("/admin/api/admin/content/tag", "/en/admin/api/admin/content/tag")}${query ? `?${query}` : ""}`, {
-    credentials: "include"
-  });
-  return readJsonResponse<TagManagementPagePayload>(response);
-}
-
-export async function fetchFaqManagementPage(params?: {
-  searchKeyword?: string;
-  status?: string;
-  exposure?: string;
-  category?: string;
-  faqId?: string;
-}): Promise<FaqManagementPagePayload> {
-  const search = new URLSearchParams();
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.status) search.set("status", params.status);
-  if (params?.exposure) search.set("exposure", params.exposure);
-  if (params?.category) search.set("category", params.category);
-  if (params?.faqId) search.set("faqId", params.faqId);
-  const query = search.toString();
-  const response = await fetch(`${buildLocalizedPath("/admin/api/admin/content/faq", "/en/admin/api/admin/content/faq")}${query ? `?${query}` : ""}`, {
-    credentials: "include"
-  });
-  return readJsonResponse<FaqManagementPagePayload>(response);
-}
-
-export async function fetchFileManagementPage(params?: {
-  searchKeyword?: string;
-  status?: string;
-  visibility?: string;
-  fileId?: string;
-}): Promise<FileManagementPagePayload> {
-  const search = new URLSearchParams();
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.status) search.set("status", params.status);
-  if (params?.visibility) search.set("visibility", params.visibility);
-  if (params?.fileId) search.set("fileId", params.fileId);
-  const query = search.toString();
-  const response = await fetch(`${buildLocalizedPath("/admin/api/admin/content/file", "/en/admin/api/admin/content/file")}${query ? `?${query}` : ""}`, {
-    credentials: "include"
-  });
-  return readJsonResponse<FileManagementPagePayload>(response);
-}
-
-export async function saveFileManagementPage(payload: {
-  uploadFile: File;
-  category: string;
-  visibility: string;
-  status: string;
-  description: string;
-}): Promise<FileManagementSaveResponse> {
-  const form = new FormData();
-  form.set("uploadFile", payload.uploadFile);
-  form.set("category", payload.category);
-  form.set("visibility", payload.visibility);
-  form.set("status", payload.status);
-  form.set("description", payload.description);
-
-  const headers = await buildResilientCsrfHeaders({
-    "X-Requested-With": "XMLHttpRequest"
-  });
-  delete headers["Content-Type"];
-  const response = await fetch(buildLocalizedPath("/admin/api/admin/content/file/save", "/en/admin/api/admin/content/file/save"), {
-    method: "POST",
-    credentials: "include",
-    headers,
-    body: form
-  });
-  return readJsonResponse<FileManagementSaveResponse>(response);
-}
-
-export async function replaceFileManagementPage(payload: {
-  fileId: string;
-  uploadFile: File;
-}): Promise<FileManagementSaveResponse> {
-  const form = new FormData();
-  form.set("fileId", payload.fileId);
-  form.set("uploadFile", payload.uploadFile);
-  const headers = await buildResilientCsrfHeaders({
-    "X-Requested-With": "XMLHttpRequest"
-  });
-  delete headers["Content-Type"];
-  const response = await fetch(buildLocalizedPath("/admin/api/admin/content/file/replace", "/en/admin/api/admin/content/file/replace"), {
-    method: "POST",
-    credentials: "include",
-    headers,
-    body: form
-  });
-  return readJsonResponse<FileManagementSaveResponse>(response);
-}
-
-export async function deleteFileManagementPage(fileId: string): Promise<{ success: boolean; message?: string; fileId?: string; }> {
-  const response = await fetch(buildLocalizedPath("/admin/api/admin/content/file/delete", "/en/admin/api/admin/content/file/delete"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: new URLSearchParams({ fileId }).toString()
-  });
-  return readJsonResponse<{ success: boolean; message?: string; fileId?: string; }>(response);
-}
-
-export async function restoreFileManagementPage(fileId: string, restoreNote?: string): Promise<FileManagementSaveResponse> {
-  const response = await fetch(buildLocalizedPath("/admin/api/admin/content/file/restore", "/en/admin/api/admin/content/file/restore"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: new URLSearchParams({
-      fileId,
-      restoreNote: restoreNote || ""
-    }).toString()
-  });
-  return readJsonResponse<FileManagementSaveResponse>(response);
-}
-
-export async function updateFileManagementPage(payload: {
-  fileId: string;
-  category: string;
-  visibility: string;
-  status: string;
-  description: string;
-}): Promise<FileManagementSaveResponse> {
-  const response = await fetch(buildLocalizedPath("/admin/api/admin/content/file/update", "/en/admin/api/admin/content/file/update"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: new URLSearchParams({
-      fileId: payload.fileId,
-      category: payload.category,
-      visibility: payload.visibility,
-      status: payload.status,
-      description: payload.description
-    }).toString()
-  });
-  return readJsonResponse<FileManagementSaveResponse>(response);
-}
-
-export async function fetchPostManagementPage(params?: {
-  searchKeyword?: string;
-  status?: string;
-  category?: string;
-  selectedPostId?: string;
-}): Promise<PostManagementPagePayload> {
-  const search = new URLSearchParams();
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.status) search.set("status", params.status);
-  if (params?.category) search.set("category", params.category);
-  if (params?.selectedPostId) search.set("selectedPostId", params.selectedPostId);
-  const query = search.toString();
-  const response = await fetch(`${buildLocalizedPath("/admin/api/admin/content/post", "/en/admin/api/admin/content/post")}${query ? `?${query}` : ""}`, {
-    credentials: "include"
-  });
-  return readJsonResponse<PostManagementPagePayload>(response);
-}
-
-export async function fetchBoardDistributionPage(): Promise<BoardDistributionPagePayload> {
-  const response = await fetch(buildLocalizedPath("/admin/api/admin/content/board/detail", "/en/admin/api/admin/content/board/detail"), {
-    credentials: "include"
-  });
-  return readJsonResponse<BoardDistributionPagePayload>(response);
-}
-
-export async function fetchBoardManagementPage(): Promise<BoardManagementPagePayload> {
-  const response = await fetch(buildLocalizedPath("/admin/api/admin/content/board/list", "/en/admin/api/admin/content/board/list"), {
-    credentials: "include"
-  });
-  return readJsonResponse<BoardManagementPagePayload>(response);
-}
-
-export async function saveBoardDistributionPage(payload: BoardDistributionSavePayload): Promise<BoardDistributionSaveResponse> {
-  const response = await fetch(buildLocalizedPath("/admin/api/admin/content/board/save", "/en/admin/api/admin/content/board/save"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  return readJsonResponse<BoardDistributionSaveResponse>(response);
-}
-
-export async function saveFaqManagementPage(payload: {
-  faqId: string;
-  category: string;
-  question: string;
-  answerScope: string;
-  exposure: string;
-  status: string;
-  displayOrder: string;
-}): Promise<FaqSaveResponse> {
-  const response = await fetch(buildLocalizedPath("/admin/api/admin/content/faq/save", "/en/admin/api/admin/content/faq/save"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: new URLSearchParams({
-      faqId: payload.faqId,
-      category: payload.category,
-      question: payload.question,
-      answerScope: payload.answerScope,
-      exposure: payload.exposure,
-      status: payload.status,
-      displayOrder: payload.displayOrder
-    }).toString()
-  });
-  return readJsonResponse<FaqSaveResponse>(response);
-}
-
-export async function fetchQnaCategoryPage(params?: { searchKeyword?: string; useAt?: string; channel?: string; categoryId?: string; }): Promise<QnaCategoryPagePayload> {
-  const search = new URLSearchParams();
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.useAt) search.set("useAt", params.useAt);
-  if (params?.channel) search.set("channel", params.channel);
-  if (params?.categoryId) search.set("categoryId", params.categoryId);
-  const query = search.toString();
-  const response = await fetch(`${buildLocalizedPath("/admin/api/admin/content/qna", "/en/admin/api/admin/content/qna")}${query ? `?${query}` : ""}`, {
-    credentials: "include"
-  });
-  return readJsonResponse<QnaCategoryPagePayload>(response);
-}
-
-export async function saveQnaCategory(payload: QnaCategorySavePayload): Promise<{ success: boolean; message: string; categoryId?: string; category?: Record<string, string> }> {
-  const { token, headerName } = getCsrfMeta();
-  const response = await fetch(buildAdminApiPath("/api/admin/content/qna/save"), {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { [headerName]: token } : {})
-    },
-    body: JSON.stringify(payload)
-  });
-  return readJsonResponse(response);
-}
-
-export async function deleteQnaCategory(categoryId: string): Promise<{ success: boolean; message: string; categoryId?: string }> {
-  const { token, headerName } = getCsrfMeta();
-  const response = await fetch(buildAdminApiPath("/api/admin/content/qna/delete"), {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { [headerName]: token } : {})
-    },
-    body: JSON.stringify({ categoryId })
-  });
-  return readJsonResponse(response);
-}
-
-export async function fetchEmissionGwpValuesPage(params?: {
-  searchKeyword?: string;
-  sectionCode?: string;
-  rowId?: string;
-  pdfComparePolicy?: string;
-  includePdfCompare?: boolean;
-  pdfCompareScope?: string;
-}): Promise<EmissionGwpValuesPagePayload> {
-  const search = new URLSearchParams();
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.sectionCode) search.set("sectionCode", params.sectionCode);
-  if (params?.rowId) search.set("rowId", params.rowId);
-  if (params?.pdfComparePolicy) search.set("pdfComparePolicy", params.pdfComparePolicy);
-  if (params?.includePdfCompare) search.set("includePdfCompare", "true");
-  if (params?.pdfCompareScope) search.set("pdfCompareScope", params.pdfCompareScope);
-  const query = search.toString();
-  const response = await fetch(`${buildLocalizedPath("/admin/emission/gwp-values/page-data", "/en/admin/emission/gwp-values/page-data")}${query ? `?${query}` : ""}`, {
-    credentials: "include"
-  });
-  return readJsonResponse<EmissionGwpValuesPagePayload>(response);
-}
-
-export async function saveEmissionGwpValue(payload: EmissionGwpValueSavePayload): Promise<EmissionGwpValueSaveResponse> {
-  const { token, headerName } = getCsrfMeta();
-  const response = await fetch(buildAdminApiPath("/emission/api/gwp-values/save"), {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { [headerName]: token } : {})
-    },
-    body: JSON.stringify(payload)
-  });
-  return readJsonResponse(response);
-}
-
-export async function deleteEmissionGwpValue(rowId: string): Promise<{ success: boolean; message: string; rowId?: string }> {
-  const { token, headerName } = getCsrfMeta();
-  const response = await fetch(buildAdminApiPath("/emission/api/gwp-values/delete"), {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { [headerName]: token } : {})
-    },
-    body: JSON.stringify({ rowId })
-  });
-  return readJsonResponse(response);
-}
-
-export async function fetchBannerManagementPage(params?: {
-  searchKeyword?: string;
-  status?: string;
-  placement?: string;
-  selectedBannerId?: string;
-}): Promise<BannerManagementPagePayload> {
-  const search = new URLSearchParams();
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.status) search.set("status", params.status);
-  if (params?.placement) search.set("placement", params.placement);
-  if (params?.selectedBannerId) search.set("selectedBannerId", params.selectedBannerId);
-  const query = search.toString();
-  const response = await fetch(`${buildLocalizedPath("/admin/api/admin/content/banner", "/en/admin/api/admin/content/banner")}${query ? `?${query}` : ""}`, {
-    credentials: "include"
-  });
-  return readJsonResponse<BannerManagementPagePayload>(response);
-}
-
-export async function fetchBannerEditPage(bannerId: string): Promise<BannerEditPagePayload> {
-  const query = bannerId ? `?bannerId=${encodeURIComponent(bannerId)}` : "";
-  const response = await fetch(`${buildLocalizedPath("/admin/api/admin/content/banner/detail", "/en/admin/api/admin/content/banner/detail")}${query}`, {
-    credentials: "include"
-  });
-  return readJsonResponse<BannerEditPagePayload>(response);
-}
-
-export async function saveBannerEditPage(payload: {
-  bannerId: string;
-  title: string;
-  targetUrl: string;
-  status: string;
-  startAt: string;
-  endAt: string;
-}): Promise<BannerSaveResponse> {
-  const response = await fetch(buildLocalizedPath("/admin/api/admin/content/banner/save", "/en/admin/api/admin/content/banner/save"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: new URLSearchParams({
-      bannerId: payload.bannerId,
-      title: payload.title,
-      targetUrl: payload.targetUrl,
-      status: payload.status,
-      startAt: payload.startAt,
-      endAt: payload.endAt
-    }).toString()
-  });
-  return readJsonResponse<BannerSaveResponse>(response);
-}
-
-export async function fetchPopupEditPage(popupId: string): Promise<PopupEditPagePayload> {
-  const query = popupId ? `?popupId=${encodeURIComponent(popupId)}` : "";
-  const response = await fetch(`${buildLocalizedPath("/admin/api/admin/content/popup/detail", "/en/admin/api/admin/content/popup/detail")}${query}`, {
-    credentials: "include"
-  });
-  return readJsonResponse<PopupEditPagePayload>(response);
-}
-
-export async function fetchPopupListPage(params?: {
-  searchKeyword?: string;
-  status?: string;
-  targetAudience?: string;
-  selectedPopupId?: string;
-}): Promise<PopupListPagePayload> {
-  const search = new URLSearchParams();
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.status) search.set("status", params.status);
-  if (params?.targetAudience) search.set("targetAudience", params.targetAudience);
-  if (params?.selectedPopupId) search.set("selectedPopupId", params.selectedPopupId);
-  const query = search.toString();
-  const response = await fetch(`${buildLocalizedPath("/admin/api/admin/content/popup", "/en/admin/api/admin/content/popup")}${query ? `?${query}` : ""}`, {
-    credentials: "include"
-  });
-  return readJsonResponse<PopupListPagePayload>(response);
-}
-
-export async function savePopupEditPage(payload: {
-  popupId: string;
-  popupTitle: string;
-  popupType: string;
-  exposureStatus: string;
-  priority: string;
-  useAt: string;
-  targetAudience: string;
-  displayScope: string;
-  startDate: string;
-  startTime: string;
-  endDate: string;
-  endTime: string;
-  closePolicy: string;
-  width: string;
-  height: string;
-  headline: string;
-  body: string;
-  ctaLabel: string;
-  ctaUrl: string;
-  ownerName: string;
-  ownerContact: string;
-  notes: string;
-}): Promise<PopupSaveResponse> {
-  const response = await fetch(buildLocalizedPath("/admin/api/admin/content/popup/save", "/en/admin/api/admin/content/popup/save"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  return readJsonResponse<PopupSaveResponse>(response);
+  return fetchLocalizedPageJson<SitemapPagePayload>("/api/sitemap", "/api/en/sitemap");
 }
 
 export async function fetchHomeMenuPlaceholderPage(requestPath: string): Promise<HomeMenuPlaceholderPagePayload> {
@@ -3654,52 +3572,6 @@ export async function fetchAdminMenuPlaceholderPage(requestPath: string): Promis
     credentials: "include"
   });
   return readJsonResponse<AdminMenuPlaceholderPagePayload>(response);
-}
-
-async function fetchMypageContext(en = false): Promise<MypageContext> {
-  const bootstrappedContext = consumeRuntimeBootstrap<MypageContext>("mypageContext");
-  if (bootstrappedContext) {
-    mypageContextCache = bootstrappedContext;
-    return bootstrappedContext;
-  }
-
-  if (mypageContextCache) {
-    return mypageContextCache;
-  }
-
-  if (!mypageContextPromise) {
-    mypageContextPromise = fetch(en ? "/api/en/mypage/context" : "/api/mypage/context", {
-      credentials: "include"
-    })
-      .then((response) => readJsonResponse<MypageContext>(response))
-      .then((context) => {
-        mypageContextCache = context;
-        return context;
-      })
-      .finally(() => {
-        mypageContextPromise = null;
-      });
-  }
-
-  if (!mypageContextPromise) {
-    throw new Error("Mypage context promise was not initialized");
-  }
-
-  return mypageContextPromise;
-}
-
-function appendInsttId(search: URLSearchParams, insttId?: string) {
-  const normalizedInsttId = String(insttId || "").trim();
-  if (normalizedInsttId) {
-    search.set("instt_id", normalizedInsttId);
-  }
-  return search;
-}
-
-async function buildMypageUrl(path: string) {
-  const context = await fetchMypageContext(path.startsWith("/api/en/")).catch(() => null);
-  const search = appendInsttId(new URLSearchParams(), context?.insttId);
-  return search.toString() ? `${path}?${search.toString()}` : path;
 }
 
 export async function fetchAdminMenuTree(): Promise<AdminMenuTreePayload> {
@@ -3888,83 +3760,11 @@ export function readBootstrappedScreenBuilderPageData(): ScreenBuilderPagePayloa
   return consumeRuntimeBootstrap<ScreenBuilderPagePayload>("screenBuilderPageData");
 }
 
-export async function fetchAuthGroupPage(params: {
-  authorCode?: string;
-  roleCategory?: string;
-  insttId?: string;
-  menuCode?: string;
-  featureCode?: string;
-  userSearchKeyword?: string;
-}): Promise<AuthGroupPagePayload> {
-  const search = new URLSearchParams();
-  if (params.authorCode) search.set("authorCode", params.authorCode);
-  if (params.roleCategory) search.set("roleCategory", params.roleCategory);
-  if (params.insttId) search.set("insttId", params.insttId);
-  if (params.menuCode) search.set("menuCode", params.menuCode);
-  if (params.featureCode) search.set("featureCode", params.featureCode);
-  if (params.userSearchKeyword) search.set("userSearchKeyword", params.userSearchKeyword);
-  const query = search.toString();
-  return fetchCachedJson<AuthGroupPagePayload>({
-    cacheKey: buildPageCacheKey(`auth-groups/page?${query}`),
-    url: `${buildAdminApiPath("/api/admin/auth-groups/page")}${query ? `?${query}` : ""}`,
-    mapError: (_body, status) => `Failed to load auth-group page: ${status}`
-  });
-}
-
-export async function fetchAuthChangePage(params?: { searchKeyword?: string; pageIndex?: number }): Promise<AuthChangePagePayload> {
-  const search = new URLSearchParams();
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.pageIndex && params.pageIndex > 1) search.set("pageIndex", String(params.pageIndex));
-  const query = search.toString() ? `?${search.toString()}` : "";
-  return fetchCachedJson<AuthChangePagePayload>({
-    cacheKey: buildPageCacheKey(`auth-change/page${query}`),
-    url: `${buildAdminApiPath("/api/admin/auth-change/page")}${query}`,
-    mapError: (_body, status) => `Failed to load auth-change page: ${status}`
-  });
-}
-
-export async function fetchAuthChangeHistory(): Promise<AuthChangeHistoryRow[]> {
-  const response = await fetchCachedJson<{ items?: AuthChangeHistoryRow[] }>({
-    cacheKey: buildPageCacheKey("auth-change/history"),
-    url: buildAdminApiPath("/api/admin/auth-change/history"),
-    mapError: (_body, status) => `Failed to load auth-change history: ${status}`
-  });
-  return Array.isArray(response.items) ? response.items : [];
-}
-
-export async function fetchDeptRolePage(params?: {
-  insttId?: string;
-  memberSearchKeyword?: string;
-  memberPageIndex?: number;
-}): Promise<DeptRolePagePayload> {
-  const search = new URLSearchParams();
-  if (params?.insttId) search.set("insttId", params.insttId);
-  if (params?.memberSearchKeyword) search.set("memberSearchKeyword", params.memberSearchKeyword);
-  if (params?.memberPageIndex && params.memberPageIndex > 1) search.set("memberPageIndex", String(params.memberPageIndex));
-  const query = search.toString() ? `?${search.toString()}` : "";
-  return fetchCachedJson<DeptRolePagePayload>({
-    cacheKey: buildPageCacheKey(`dept-role/page${query}`),
-    url: `${buildAdminApiPath("/api/admin/dept-role-mapping/page")}${query}`,
-    mapError: (_body, status) => `Failed to load dept-role page: ${status}`
-  });
-}
-
-export async function fetchMemberEditPage(memberId: string, options?: { updated?: string }): Promise<MemberEditPagePayload> {
-  const search = new URLSearchParams();
-  search.set("memberId", memberId);
-  if (options?.updated) search.set("updated", options.updated);
-  const query = search.toString();
-  return fetchJsonWithoutCache<MemberEditPagePayload>({
-    url: `${buildAdminApiPath("/api/admin/member/edit")}?${query}`,
-    mapError: (_body, status) => `Failed to load member edit page: ${status}`
-  });
-}
-
 export function prefetchRoutePageData(route: MigrationPageId, search = ""): Promise<unknown> {
   const params = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
   switch (route) {
     case "auth-group":
-      return fetchAuthGroupPage({
+      return adminMemberApi.fetchAuthGroupPage({
         authorCode: params.get("authorCode") || "",
         roleCategory: params.get("roleCategory") || "",
         insttId: params.get("insttId") || "",
@@ -3973,24 +3773,24 @@ export function prefetchRoutePageData(route: MigrationPageId, search = ""): Prom
         userSearchKeyword: params.get("userSearchKeyword") || ""
       });
     case "auth-change":
-      return fetchAuthChangePage({
+      return adminMemberApi.fetchAuthChangePage({
         searchKeyword: params.get("searchKeyword") || "",
         pageIndex: params.get("pageIndex") ? Number(params.get("pageIndex")) : undefined
       });
     case "dept-role":
-      return fetchDeptRolePage({
+      return adminMemberApi.fetchDeptRolePage({
         insttId: params.get("insttId") || "",
         memberSearchKeyword: params.get("memberSearchKeyword") || "",
         memberPageIndex: params.get("memberPageIndex") ? Number(params.get("memberPageIndex")) : undefined
       });
     case "member-edit": {
       const memberId = params.get("memberId") || "";
-      return memberId ? fetchMemberEditPage(memberId, { updated: params.get("updated") || "" }) : Promise.resolve(null);
+      return memberId ? adminMemberApi.fetchMemberEditPage(memberId, { updated: params.get("updated") || "" }) : Promise.resolve(null);
     }
     case "member-stats":
-      return fetchMemberStatsPage();
+      return memberApi.fetchMemberStatsPage();
     case "trade-statistics":
-      return fetchTradeStatisticsPage({
+      return tradeApi.fetchTradeStatisticsPage({
         pageIndex: params.get("pageIndex") ? Number(params.get("pageIndex")) : undefined,
         searchKeyword: params.get("searchKeyword") || "",
         periodFilter: params.get("periodFilter") || "",
@@ -3998,7 +3798,7 @@ export function prefetchRoutePageData(route: MigrationPageId, search = ""): Prom
         settlementStatus: params.get("settlementStatus") || ""
       });
     case "certificate-statistics":
-      return fetchCertificateStatisticsPage({
+      return tradeApi.fetchCertificateStatisticsPage({
         pageIndex: params.get("pageIndex") ? Number(params.get("pageIndex")) : undefined,
         searchKeyword: params.get("searchKeyword") || "",
         periodFilter: params.get("periodFilter") || "",
@@ -4006,16 +3806,16 @@ export function prefetchRoutePageData(route: MigrationPageId, search = ""): Prom
         issuanceStatus: params.get("issuanceStatus") || ""
       });
     case "virtual-issue":
-      return fetchRefundAccountReviewPage({
+      return memberApi.fetchRefundAccountReviewPage({
         pageIndex: params.get("pageIndex") ? Number(params.get("pageIndex")) : undefined,
         searchKeyword: params.get("searchKeyword") || "",
         verificationStatus: params.get("verificationStatus") || "",
         payoutStatus: params.get("payoutStatus") || ""
       });
     case "security-policy":
-      return fetchSecurityPolicyPage();
+      return securityApi.fetchSecurityPolicyPage();
     case "notification":
-      return fetchNotificationPage();
+      return securityApi.fetchNotificationPage();
     case "performance":
       return fetchPerformancePage();
     case "external-connection-list":
@@ -4037,9 +3837,9 @@ export function prefetchRoutePageData(route: MigrationPageId, search = ""): Prom
     case "external-retry":
       return fetchExternalRetryPage();
     case "security-monitoring":
-      return fetchSecurityMonitoringPage();
+      return securityApi.fetchSecurityMonitoringPage();
     case "security-audit":
-      return fetchSecurityAuditPage();
+      return securityApi.fetchSecurityAuditPage();
     case "certificate-audit-log":
       return fetchCertificateAuditLogPage();
     case "scheduler-management":
@@ -4052,11 +3852,13 @@ export function prefetchRoutePageData(route: MigrationPageId, search = ""): Prom
     case "backup-execution":
       return fetchBackupConfigPage("/admin/system/backup");
     case "new-page":
-      return fetchNewPagePage();
+      return platformApi.fetchNewPagePage();
     case "restore-execution":
       return fetchBackupConfigPage("/admin/system/restore");
     case "version-management":
-      return fetchBackupConfigPage("/admin/system/version");
+      return platformApi.fetchProjectVersionManagementPage({
+        projectId: params.get("projectId") || "carbonet"
+      });
     case "emission-result-list":
       return fetchEmissionResultListPage({
         pageIndex: params.get("pageIndex") ? Number(params.get("pageIndex")) : undefined,
@@ -4072,6 +3874,13 @@ export function prefetchRoutePageData(route: MigrationPageId, search = ""): Prom
         searchKeyword: params.get("searchKeyword") || "",
         changeType: params.get("changeType") || "",
         changeTarget: params.get("changeTarget") || ""
+      });
+    case "emission-lci-classification":
+      return fetchEmissionLciClassificationPage({
+        searchKeyword: params.get("searchKeyword") || "",
+        level: params.get("level") || "",
+        useAt: params.get("useAt") || "",
+        code: params.get("code") || ""
       });
     case "emission-validate":
       return fetchEmissionValidatePage({
@@ -4108,865 +3917,11 @@ export async function prefetchRouteBootstrap(route: MigrationPageId, path: strin
   mergeRuntimeBootstrap(responsePayload.reactBootstrapPayload || {});
 }
 
-export async function fetchPasswordResetPage(params?: { memberId?: string; pageIndex?: number; searchKeyword?: string; resetSource?: string; insttId?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.memberId) search.set("memberId", params.memberId);
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.resetSource) search.set("resetSource", params.resetSource);
-  if (params?.insttId) search.set("insttId", params.insttId);
-  const response = await fetch(`${buildAdminApiPath("/api/admin/member/reset-password")}${search.toString() ? `?${search.toString()}` : ""}`, {
-    credentials: "include"
-  });
-  if (!response.ok) throw new Error(`Failed to load password reset page: ${response.status}`);
-  return response.json() as Promise<PasswordResetPagePayload>;
-}
-
-export async function fetchAdminPermissionPage(emplyrId: string, options?: { updated?: string; mode?: string }) {
-  const search = new URLSearchParams();
-  search.set("emplyrId", emplyrId);
-  if (options?.updated) search.set("updated", options.updated);
-  if (options?.mode) search.set("mode", options.mode);
-  const query = search.toString();
-  return fetchCachedJson<AdminPermissionPagePayload>({
-    cacheKey: buildPageCacheKey(`admin-permission/page?${query}`),
-    url: `${buildAdminApiPath("/api/admin/member/admin-account/permissions")}?${query}`,
-    mapError: (_body, status) => `Failed to load admin permission page: ${status}`
-  });
-}
-
-export async function fetchAdminAccountCreatePage() {
-  return fetchCachedJson<AdminAccountCreatePagePayload>({
-    cacheKey: buildPageCacheKey("admin-account-create/page"),
-    url: buildAdminApiPath("/api/admin/member/admin-account/page"),
-    mapError: (_body, status) => `Failed to load admin account create page: ${status}`
-  });
-}
-
-export async function checkAdminAccountId(adminId: string) {
-  const response = await fetch(`${buildAdminApiPath("/api/admin/member/admin-account/check-id")}?adminId=${encodeURIComponent(adminId)}`, {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) {
-    throw new Error(body.message || `Failed to check admin ID: ${response.status}`);
-  }
-  return body as { valid: boolean; duplicated: boolean; message: string; };
-}
-
-export async function searchAdminCompanies(params: { keyword: string; page?: number; size?: number; status?: string; membershipType?: string; }) {
-  const search = new URLSearchParams();
-  search.set("keyword", params.keyword);
-  if (params.page) search.set("page", String(params.page));
-  if (params.size) search.set("size", String(params.size));
-  if (params.status) search.set("status", params.status);
-  if (params.membershipType) search.set("membershipType", params.membershipType);
-  const response = await fetch(`${buildAdminApiPath("/api/admin/companies/search")}?${search.toString()}`, {
-    credentials: "include"
-  });
-  if (!response.ok) throw new Error(`Failed to search companies: ${response.status}`);
-  return response.json() as Promise<CompanySearchPayload>;
-}
-
-export async function searchJoinCompanies(params: { keyword: string; page?: number; size?: number; status?: string; membershipType?: string; }) {
-  const search = new URLSearchParams();
-  search.set("keyword", params.keyword);
-  if (params.page) search.set("page", String(params.page));
-  if (params.size) search.set("size", String(params.size));
-  if (params.status) search.set("status", params.status);
-  if (params.membershipType) search.set("membershipType", params.membershipType);
-  const response = await fetch(`/join/searchCompany?${search.toString()}`, {
-    credentials: "include"
-  });
-  if (!response.ok) throw new Error(`Failed to search join companies: ${response.status}`);
-  return response.json() as Promise<CompanySearchPayload>;
-}
-
-export async function checkJoinMemberId(mberId: string) {
-  const response = await fetch(`/join/checkId?mberId=${encodeURIComponent(mberId)}`, {
-    credentials: "include"
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to check join member ID: ${response.status}`);
-  }
-  const body = await response.json() as { isDuplicated?: boolean; duplicated?: boolean };
-  return {
-    isDuplicated: Boolean(body.isDuplicated ?? body.duplicated)
-  };
-}
-
-export async function checkJoinEmail(email: string) {
-  const response = await fetch(`/join/checkEmail?email=${encodeURIComponent(email)}`, {
-    credentials: "include"
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to check join email: ${response.status}`);
-  }
-  const body = await response.json() as { isDuplicated?: boolean; duplicated?: boolean };
-  return {
-    isDuplicated: Boolean(body.isDuplicated ?? body.duplicated)
-  };
-}
-
-export async function fetchCompanyAccountPage(insttId?: string, options?: { saved?: string }) {
-  const search = new URLSearchParams();
-  if (insttId) search.set("insttId", insttId);
-  if (options?.saved) search.set("saved", options.saved);
-  const query = search.toString();
-  return fetchCachedJson<CompanyAccountPagePayload>({
-    cacheKey: buildPageCacheKey(`company-account/page${query ? `?${query}` : ""}`),
-    url: `${buildAdminApiPath("/api/admin/member/company-account/page")}${query ? `?${query}` : ""}`,
-    mapError: (body, status) => body.companyAccountErrors?.[0] || `Failed to load company account page: ${status}`
-  });
-}
-
-export async function fetchAdminListPage(params?: { pageIndex?: number; searchKeyword?: string; sbscrbSttus?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.sbscrbSttus) search.set("sbscrbSttus", params.sbscrbSttus);
-  const query = search.toString();
-  return fetchCachedJson<AdminListPagePayload>({
-    cacheKey: buildPageCacheKey(`admin-list/page?${query}`),
-    url: `${buildAdminApiPath("/api/admin/member/admin-list/page")}${query ? `?${query}` : ""}`,
-    mapError: (_body, status) => `Failed to load admin list page: ${status}`
-  });
-}
-
-export async function fetchCompanyListPage(params?: { pageIndex?: number; searchKeyword?: string; sbscrbSttus?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.sbscrbSttus) search.set("sbscrbSttus", params.sbscrbSttus);
-  const query = search.toString();
-  return fetchCachedJson<CompanyListPagePayload>({
-    cacheKey: buildPageCacheKey(`company-list/page?${query}`),
-    url: `${buildAdminApiPath("/api/admin/member/company-list/page")}${query ? `?${query}` : ""}`,
-    mapError: (body, status) => body.company_listError || `Failed to load company list page: ${status}`
-  });
-}
-
-export async function fetchMemberApprovePage(params?: { pageIndex?: number; searchKeyword?: string; membershipType?: string; sbscrbSttus?: string; result?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.membershipType) search.set("membershipType", params.membershipType);
-  if (params?.sbscrbSttus) search.set("sbscrbSttus", params.sbscrbSttus);
-  if (params?.result) search.set("result", params.result);
-  const query = search.toString();
-  return fetchCachedJson<MemberApprovePagePayload>({
-    cacheKey: buildPageCacheKey(`member-approve/page?${query}`),
-    url: `${buildAdminApiPath("/api/admin/member/approve/page")}${query ? `?${query}` : ""}`,
-    mapError: (body, status) => body.memberApprovalError || `Failed to load member approval page: ${status}`
-  });
-}
-
-export async function fetchCompanyApprovePage(params?: { pageIndex?: number; searchKeyword?: string; sbscrbSttus?: string; result?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.sbscrbSttus) search.set("sbscrbSttus", params.sbscrbSttus);
-  if (params?.result) search.set("result", params.result);
-  const query = search.toString();
-  return fetchCachedJson<CompanyApprovePagePayload>({
-    cacheKey: buildPageCacheKey(`company-approve/page?${query}`),
-    url: `${buildAdminApiPath("/api/admin/member/company-approve/page")}${query ? `?${query}` : ""}`,
-    mapError: (body, status) => body.memberApprovalError || `Failed to load company approval page: ${status}`
-  });
-}
-
-export async function fetchCertificateApprovePage(params?: { pageIndex?: number; searchKeyword?: string; requestType?: string; status?: string; result?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.requestType) search.set("requestType", params.requestType);
-  if (params?.status) search.set("status", params.status);
-  if (params?.result) search.set("result", params.result);
-  const query = search.toString();
-  return fetchCachedJson<CertificateApprovePagePayload>({
-    cacheKey: buildPageCacheKey(`certificate-approve/page?${query}`),
-    url: `${buildAdminApiPath("/api/admin/certificate/approve/page")}${query ? `?${query}` : ""}`,
-    mapError: (body, status) => body.certificateApprovalError || `Failed to load certificate approval page: ${status}`
-  });
-}
-
-export async function fetchCertificatePendingPage(params?: { pageIndex?: number; searchKeyword?: string; certificateType?: string; processStatus?: string; applicationId?: string; insttId?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.certificateType) search.set("certificateType", params.certificateType);
-  if (params?.processStatus) search.set("processStatus", params.processStatus);
-  if (params?.applicationId) search.set("applicationId", params.applicationId);
-  if (params?.insttId) search.set("insttId", params.insttId);
-  const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/admin/certificate/pending_list/page-data${query ? `?${query}` : ""}`, `/en/admin/certificate/pending_list/page-data${query ? `?${query}` : ""}`), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) {
-    throw new Error(body.certificatePendingError || `Failed to load certificate pending page: ${response.status}`);
-  }
-  return body as CertificatePendingPagePayload;
-}
-
-export async function fetchRefundAccountReviewPage(params?: { pageIndex?: number; searchKeyword?: string; verificationStatus?: string; payoutStatus?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.verificationStatus) search.set("verificationStatus", params.verificationStatus);
-  if (params?.payoutStatus) search.set("payoutStatus", params.payoutStatus);
-  const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/admin/payment/virtual_issue/page-data${query ? `?${query}` : ""}`, `/en/admin/payment/virtual_issue/page-data${query ? `?${query}` : ""}`), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) {
-    throw new Error(body.refundAccountReviewError || `Failed to load refund account review page: ${response.status}`);
-  }
-  return body as RefundAccountReviewPagePayload;
-}
-
-export async function fetchCertificateObjectionListPage(params?: { pageIndex?: number; searchKeyword?: string; status?: string; priority?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.status) search.set("status", params.status);
-  if (params?.priority) search.set("priority", params.priority);
-  const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/admin/certificate/objection_list/page-data${query ? `?${query}` : ""}`, `/en/admin/certificate/objection_list/page-data${query ? `?${query}` : ""}`), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) {
-    throw new Error(body.certificateObjectionError || `Failed to load certificate objection list page: ${response.status}`);
-  }
-  return body as CertificateObjectionListPagePayload;
-}
-
-export async function fetchCertificateReviewPage(params?: { pageIndex?: number; searchKeyword?: string; status?: string; certificateType?: string; applicationId?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.status) search.set("status", params.status);
-  if (params?.certificateType) search.set("certificateType", params.certificateType);
-  if (params?.applicationId) search.set("applicationId", params.applicationId);
-  const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/admin/certificate/review/page-data${query ? `?${query}` : ""}`, `/en/admin/certificate/review/page-data${query ? `?${query}` : ""}`), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) {
-    throw new Error(body.certificateReviewError || `Failed to load certificate review page: ${response.status}`);
-  }
-  return body as CertificateReviewPagePayload;
-}
-
-export async function fetchMemberListPage(params?: { pageIndex?: number; searchKeyword?: string; membershipType?: string; sbscrbSttus?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.membershipType) search.set("membershipType", params.membershipType);
-  if (params?.sbscrbSttus) search.set("sbscrbSttus", params.sbscrbSttus);
-  const query = search.toString();
-  return fetchCachedJson<MemberListPagePayload>({
-    cacheKey: buildPageCacheKey(`member-list/page?${query}`),
-    url: `${buildAdminApiPath("/api/admin/member/list/page")}${query ? `?${query}` : ""}`,
-    mapError: (_body, status) => `Failed to load member list page: ${status}`
-  });
-}
-
-export async function fetchMemberStatsPage() {
-  const response = await fetch(buildLocalizedPath("/admin/member/stats/page-data", "/en/admin/member/stats/page-data"), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(`Failed to load member stats page: ${response.status}`);
-  return body as MemberStatsPagePayload;
-}
-
-export async function fetchMemberRegisterPage() {
-  const response = await fetch(buildLocalizedPath("/admin/member/register/page-data", "/en/admin/member/register/page-data"), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(`Failed to load member register page: ${response.status}`);
-  return body as MemberRegisterPagePayload;
-}
-
 export async function checkMemberRegisterId(memberId: string) {
-  const response = await fetch(`${buildAdminApiPath("/api/admin/member/register/check-id")}?memberId=${encodeURIComponent(memberId)}`, {
-    credentials: "include"
-  });
-  const body = await response.json() as { valid?: boolean; duplicated?: boolean; message?: string };
-  if (!response.ok) {
-    throw new Error(body.message || `Failed to check member ID: ${response.status}`);
-  }
-  return {
-    valid: Boolean(body.valid),
-    duplicated: Boolean(body.duplicated),
-    message: String(body.message || "")
-  };
-}
-
-export async function fetchMemberDetailPage(memberId: string) {
-  return fetchJsonWithoutCache<MemberDetailPagePayload>({
-    url: `${buildAdminApiPath("/api/admin/member/detail/page")}?memberId=${encodeURIComponent(memberId)}`,
-    mapError: (body, status) => body.member_detailError || `Failed to load member detail page: ${status}`
-  });
-}
-
-export async function fetchCompanyDetailPage(insttId: string) {
-  return fetchCachedJson<CompanyDetailPagePayload>({
-    cacheKey: buildPageCacheKey(`company-detail/page?insttId=${encodeURIComponent(insttId)}`),
-    url: `${buildAdminApiPath("/api/admin/member/company-detail/page")}?insttId=${encodeURIComponent(insttId)}`,
-    mapError: (body, status) => body.companyDetailError || `Failed to load company detail page: ${status}`
-  });
-}
-
-export async function fetchSystemCodePage(detailCodeId?: string) {
-  const query = detailCodeId ? `?detailCodeId=${encodeURIComponent(detailCodeId)}` : "";
-  const response = await fetch(buildLocalizedPath(`/admin/system/code/page-data${query}`, `/en/admin/system/code/page-data${query}`), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body.codeMgmtError || `Failed to load system code page: ${response.status}`);
-  return body as SystemCodePagePayload;
-}
-
-export async function fetchFunctionManagementPage(params?: { menuType?: string; searchMenuCode?: string; searchKeyword?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.menuType) search.set("menuType", params.menuType);
-  if (params?.searchMenuCode) search.set("searchMenuCode", params.searchMenuCode);
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/admin/system/feature-management/page-data${query ? `?${query}` : ""}`, `/en/admin/system/feature-management/page-data${query ? `?${query}` : ""}`), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body.featureMgmtError || `Failed to load function management page: ${response.status}`);
-  return body as FunctionManagementPagePayload;
-}
-
-export async function fetchMenuManagementPage(menuType?: string, saved?: string) {
-  const search = new URLSearchParams();
-  if (menuType) search.set("menuType", menuType);
-  if (saved) search.set("saved", saved);
-  const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/admin/system/menu/page-data${query ? `?${query}` : ""}`, `/en/admin/system/menu/page-data${query ? `?${query}` : ""}`), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body.menuMgmtError || `Failed to load menu management page: ${response.status}`);
-  return body as MenuManagementPagePayload;
-}
-
-export async function fetchContentMenuManagementPage(saved?: string) {
-  const search = new URLSearchParams();
-  if (saved) search.set("saved", saved);
-  const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/admin/content/menu/page-data${query ? `?${query}` : ""}`, `/en/admin/content/menu/page-data${query ? `?${query}` : ""}`), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body.menuMgmtError || `Failed to load content menu management page: ${response.status}`);
-  return body as MenuManagementPagePayload;
-}
-
-export async function fetchScreenBuilderPage(params?: {
-  menuCode?: string;
-  pageId?: string;
-  menuTitle?: string;
-  menuUrl?: string;
-}) {
-  const search = new URLSearchParams();
-  if (params?.menuCode) search.set("menuCode", params.menuCode);
-  if (params?.pageId) search.set("pageId", params.pageId);
-  if (params?.menuTitle) search.set("menuTitle", params.menuTitle);
-  if (params?.menuUrl) search.set("menuUrl", params.menuUrl);
-  const query = search.toString();
-  return fetchCachedJson<ScreenBuilderPagePayload>({
-    cacheKey: buildPageCacheKey(`screen-builder/page?${query}`),
-    url: `${buildAdminApiPath("/api/admin/screen-builder/page")}${query ? `?${query}` : ""}`,
-    mapError: (body, status) => body.screenBuilderMessage || `Failed to load screen builder page: ${status}`
-  });
-}
-
-export async function fetchScreenBuilderPreview(params?: {
-  menuCode?: string;
-  pageId?: string;
-  menuTitle?: string;
-  menuUrl?: string;
-  versionStatus?: string;
-}) {
-  const search = new URLSearchParams();
-  if (params?.menuCode) search.set("menuCode", params.menuCode);
-  if (params?.pageId) search.set("pageId", params.pageId);
-  if (params?.menuTitle) search.set("menuTitle", params.menuTitle);
-  if (params?.menuUrl) search.set("menuUrl", params.menuUrl);
-  if (params?.versionStatus) search.set("versionStatus", params.versionStatus);
-  const query = search.toString();
-  const response = await fetch(`${buildAdminApiPath("/api/admin/screen-builder/preview")}${query ? `?${query}` : ""}`, {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<ScreenBuilderPreviewPayload & Record<string, unknown>>(response);
-  if (!response.ok) {
-    throw new Error(String(body.message || `Failed to load screen builder preview: ${response.status}`));
-  }
-  return body as ScreenBuilderPreviewPayload;
-}
-
-export async function saveScreenBuilderDraft(payload: {
-  menuCode: string;
-  pageId: string;
-  menuTitle: string;
-  menuUrl: string;
-  templateType: string;
-  nodes: ScreenBuilderNode[];
-  events: ScreenBuilderEventBinding[];
-}) {
-  const response = await fetch(buildAdminApiPath("/api/admin/screen-builder/draft"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || `Failed to save screen builder draft: ${response.status}`));
-  }
-  return body;
-}
-
-export async function restoreScreenBuilderDraft(payload: {
-  menuCode: string;
-  versionId: string;
-}) {
-  const response = await fetch(buildAdminApiPath("/api/admin/screen-builder/restore"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || `Failed to restore screen builder draft: ${response.status}`));
-  }
-  return body;
-}
-
-export async function publishScreenBuilderDraft(payload: {
-  menuCode: string;
-}) {
-  const response = await fetch(buildAdminApiPath("/api/admin/screen-builder/publish"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || `Failed to publish screen builder draft: ${response.status}`));
-  }
-  return body;
-}
-
-export async function registerScreenBuilderComponent(payload: {
-  menuCode: string;
-  pageId: string;
-  nodeId: string;
-  componentId?: string;
-  componentType: string;
-  label: string;
-  labelEn?: string;
-  description?: string;
-  propsTemplate?: Record<string, unknown>;
-}) {
-  const response = await fetch(buildAdminApiPath("/api/admin/screen-builder/component-registry"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string; item?: ScreenBuilderComponentRegistryItem } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success || !body.item) {
-    throw new Error(String(body.message || `Failed to register screen builder component: ${response.status}`));
-  }
-  return body as { success: boolean; message?: string; item: ScreenBuilderComponentRegistryItem };
-}
-
-export async function updateScreenBuilderComponentRegistry(payload: {
-  componentId: string;
-  componentType?: string;
-  label?: string;
-  labelEn?: string;
-  description?: string;
-  status?: string;
-  replacementComponentId?: string;
-  propsTemplate?: Record<string, unknown>;
-  menuCode?: string;
-}) {
-  const response = await fetch(buildAdminApiPath("/api/admin/screen-builder/component-registry/update"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string; item?: ScreenBuilderComponentRegistryItem } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success || !body.item) {
-    throw new Error(String(body.message || `Failed to update screen builder component registry: ${response.status}`));
-  }
-  return body as { success: boolean; message?: string; item: ScreenBuilderComponentRegistryItem };
-}
-
-export async function fetchScreenBuilderComponentRegistryUsage(componentId: string) {
-  const response = await fetch(buildAdminApiPath(`/api/admin/screen-builder/component-registry/usage?componentId=${encodeURIComponent(componentId)}`), {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<{ componentId?: string; items?: ScreenBuilderComponentUsage[] } & Record<string, unknown>>(response);
-  if (!response.ok) {
-    throw new Error(String(body.message || `Failed to load component usage: ${response.status}`));
-  }
-  return body as { componentId: string; items: ScreenBuilderComponentUsage[] };
-}
-
-export async function deleteScreenBuilderComponentRegistryItem(payload: {
-  componentId: string;
-}) {
-  const response = await fetch(buildAdminApiPath("/api/admin/screen-builder/component-registry/delete"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || `Failed to delete screen builder component: ${response.status}`));
-  }
-  return body as { success: boolean; message?: string };
-}
-
-export async function remapScreenBuilderComponentRegistryUsage(payload: {
-  fromComponentId: string;
-  toComponentId: string;
-}) {
-  const response = await fetch(buildAdminApiPath("/api/admin/screen-builder/component-registry/remap"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string; updatedDraftCount?: number; updatedPublishedCount?: number } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || `Failed to remap screen builder component usage: ${response.status}`));
-  }
-  return body as { success: boolean; message?: string; updatedDraftCount?: number; updatedPublishedCount?: number };
-}
-
-export async function autoReplaceDeprecatedScreenBuilderComponents(payload: {
-  menuCode: string;
-}) {
-  const response = await fetch(buildAdminApiPath("/api/admin/screen-builder/component-registry/auto-replace"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string; replacedCount?: number } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || `Failed to auto replace deprecated components: ${response.status}`));
-  }
-  return body as { success: boolean; message?: string; replacedCount?: number };
-}
-
-export async function previewAutoReplaceDeprecatedScreenBuilderComponents(payload: {
-  menuCode: string;
-}) {
-  const response = await fetch(buildAdminApiPath("/api/admin/screen-builder/component-registry/auto-replace-preview"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ replacedCount?: number; items?: ScreenBuilderAutoReplacePreviewItem[] } & Record<string, unknown>>(response);
-  if (!response.ok) {
-    throw new Error(String(body.message || `Failed to preview deprecated component replacement: ${response.status}`));
-  }
-  return body as { replacedCount: number; items: ScreenBuilderAutoReplacePreviewItem[] };
-}
-
-export async function scanScreenBuilderRegistryDiagnostics() {
-  const response = await fetch(buildAdminApiPath("/api/admin/screen-builder/component-registry/scan"), {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<{ items?: ScreenBuilderRegistryScanItem[]; totalCount?: number } & Record<string, unknown>>(response);
-  if (!response.ok) {
-    throw new Error(String(body.message || `Failed to scan screen builder registry diagnostics: ${response.status}`));
-  }
-  return body as { items: ScreenBuilderRegistryScanItem[]; totalCount: number };
-}
-
-export async function addScreenBuilderNodeFromComponent(payload: {
-  menuCode: string;
-  componentId: string;
-  parentNodeId?: string;
-  props?: Record<string, unknown>;
-}) {
-  const response = await fetch(buildAdminApiPath("/api/admin/screen-builder/component-registry/add-node"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string; nodeId?: string; componentId?: string } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || `Failed to add node from registered component: ${response.status}`));
-  }
-  return body as { success: boolean; message?: string; nodeId?: string; componentId?: string };
-}
-
-export async function addScreenBuilderNodeTreeFromComponents(payload: {
-  menuCode: string;
-  items: Array<{
-    componentId: string;
-    alias?: string;
-    parentAlias?: string;
-    parentNodeId?: string;
-    props?: Record<string, unknown>;
-  }>;
-}) {
-  const response = await fetch(buildAdminApiPath("/api/admin/screen-builder/component-registry/add-node-tree"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string; addedCount?: number; items?: Array<Record<string, unknown>> } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) {
-    throw new Error(String(body.message || `Failed to add node tree from components: ${response.status}`));
-  }
-  return body as { success: boolean; message?: string; addedCount?: number; items?: Array<Record<string, unknown>> };
-}
-
-export async function updateEnvironmentManagedPage(payload: {
-  menuType: string;
-  code: string;
-  codeNm: string;
-  codeDc: string;
-  menuUrl: string;
-  menuIcon: string;
-  useAt: string;
-}) {
-  const form = new URLSearchParams();
-  form.set("menuType", payload.menuType);
-  form.set("code", payload.code);
-  form.set("codeNm", payload.codeNm);
-  form.set("codeDc", payload.codeDc);
-  form.set("menuUrl", payload.menuUrl);
-  form.set("menuIcon", payload.menuIcon);
-  form.set("useAt", payload.useAt);
-  const response = await fetch(buildLocalizedPath("/admin/system/environment-management/page/update", "/en/admin/system/environment-management/page/update"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: form
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string; code?: string } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) throw new Error(body.message || `Failed to update environment managed page: ${response.status}`);
-  return body;
-}
-
-export async function fetchEnvironmentManagedPageImpact(menuType: string, code: string) {
-  const query = new URLSearchParams();
-  query.set("menuType", menuType);
-  query.set("code", code);
-  const response = await fetch(buildLocalizedPath(`/admin/system/environment-management/page-impact?${query.toString()}`, `/en/admin/system/environment-management/page-impact?${query.toString()}`), {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<{
-    success?: boolean;
-    message?: string;
-    code?: string;
-    defaultViewFeatureCode?: string;
-    linkedFeatureCodes?: string[];
-    nonDefaultFeatureCodes?: string[];
-    defaultViewRoleRefCount?: number;
-    defaultViewUserOverrideCount?: number;
-    blocked?: boolean;
-  } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) throw new Error(body.message || `Failed to load environment managed page impact: ${response.status}`);
-  return body;
-}
-
-export async function deleteEnvironmentManagedPage(menuType: string, code: string) {
-  const form = new URLSearchParams();
-  form.set("menuType", menuType);
-  form.set("code", code);
-  const response = await fetch(buildLocalizedPath("/admin/system/environment-management/page/delete", "/en/admin/system/environment-management/page/delete"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: form
-  });
-  const body = await readJsonResponse<{
-    success?: boolean;
-    message?: string;
-    code?: string;
-    nonDefaultFeatureCodes?: string[];
-    defaultViewRoleRefCount?: number;
-    defaultViewUserOverrideCount?: number;
-  } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) throw new Error(body.message || `Failed to delete environment managed page: ${response.status}`);
-  return body;
-}
-
-export async function updateEnvironmentFeature(payload: {
-  menuType: string;
-  menuCode: string;
-  featureCode: string;
-  featureNm: string;
-  featureNmEn: string;
-  featureDc: string;
-  useAt: string;
-}) {
-  const form = new URLSearchParams();
-  form.set("menuType", payload.menuType);
-  form.set("menuCode", payload.menuCode);
-  form.set("featureCode", payload.featureCode);
-  form.set("featureNm", payload.featureNm);
-  form.set("featureNmEn", payload.featureNmEn);
-  form.set("featureDc", payload.featureDc);
-  form.set("useAt", payload.useAt);
-  const response = await fetch(buildLocalizedPath("/admin/system/environment-management/feature/update", "/en/admin/system/environment-management/feature/update"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: form
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string; featureCode?: string } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) throw new Error(body.message || `Failed to update environment feature: ${response.status}`);
-  return body;
-}
-
-export async function fetchEnvironmentFeatureImpact(featureCode: string) {
-  const query = `?featureCode=${encodeURIComponent(featureCode)}`;
-  const response = await fetch(buildLocalizedPath(`/admin/system/environment-management/feature-impact${query}`, `/en/admin/system/environment-management/feature-impact${query}`), {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string; featureCode?: string; assignedRoleCount?: number; userOverrideCount?: number } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) throw new Error(body.message || `Failed to load environment feature impact: ${response.status}`);
-  return body;
-}
-
-export async function deleteEnvironmentFeature(featureCode: string) {
-  const form = new URLSearchParams();
-  form.set("featureCode", featureCode);
-  const response = await fetch(buildLocalizedPath("/admin/system/environment-management/feature/delete", "/en/admin/system/environment-management/feature/delete"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: form
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string; featureCode?: string; assignedRoleCount?: number; userOverrideCount?: number } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) throw new Error(body.message || `Failed to delete environment feature: ${response.status}`);
-  return body;
-}
-
-export async function fetchFullStackManagementPage(menuType?: string, saved?: string) {
-  const search = new URLSearchParams();
-  if (menuType) search.set("menuType", menuType);
-  if (saved) search.set("saved", saved);
-  const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/admin/system/full-stack-management/page-data${query ? `?${query}` : ""}`, `/en/admin/system/full-stack-management/page-data${query ? `?${query}` : ""}`), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body.menuMgmtError || `Failed to load full-stack management page: ${response.status}`);
-  return body as MenuManagementPagePayload;
-}
-
-export async function fetchWbsManagementPage(menuType?: string) {
-  const search = new URLSearchParams();
-  if (menuType) search.set("menuType", menuType);
-  const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/admin/system/wbs-management/page-data${query ? `?${query}` : ""}`, `/en/admin/system/wbs-management/page-data${query ? `?${query}` : ""}`), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(`Failed to load WBS management page: ${response.status}`);
-  return body as WbsManagementPagePayload;
-}
-
-export async function fetchNewPagePage() {
-  const response = await fetch(buildLocalizedPath("/admin/system/new-page/page-data", "/en/admin/system/new-page/page-data"), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(`Failed to load new page: ${response.status}`);
-  return body as NewPagePagePayload;
-}
-
-export async function fetchPageManagementPage(params?: { menuType?: string; searchKeyword?: string; searchUrl?: string; autoFeature?: string; updated?: string; deleted?: string; deletedRoleRefs?: string; deletedUserOverrides?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.menuType) search.set("menuType", params.menuType);
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.searchUrl) search.set("searchUrl", params.searchUrl);
-  if (params?.autoFeature) search.set("autoFeature", params.autoFeature);
-  if (params?.updated) search.set("updated", params.updated);
-  if (params?.deleted) search.set("deleted", params.deleted);
-  if (params?.deletedRoleRefs) search.set("deletedRoleRefs", params.deletedRoleRefs);
-  if (params?.deletedUserOverrides) search.set("deletedUserOverrides", params.deletedUserOverrides);
-  const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/admin/system/page-management/page-data${query ? `?${query}` : ""}`, `/en/admin/system/page-management/page-data${query ? `?${query}` : ""}`), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body.pageMgmtError || `Failed to load page management page: ${response.status}`);
-  return body as PageManagementPagePayload;
+  return checkIdentifierAvailability(
+    `${buildAdminApiPath("/api/admin/member/register/check-id")}?memberId=${encodeURIComponent(memberId)}`,
+    "Failed to check member ID"
+  );
 }
 
 export async function fetchIpWhitelistPage(params?: { searchIp?: string; accessScope?: string; status?: string; }) {
@@ -4981,24 +3936,6 @@ export async function fetchIpWhitelistPage(params?: { searchIp?: string; accessS
   const body = await response.json();
   if (!response.ok) throw new Error(`Failed to load IP whitelist page: ${response.status}`);
   return body as IpWhitelistPagePayload;
-}
-
-export async function createIpWhitelistRequest(payload: Record<string, unknown>) {
-  const response = await fetch(buildLocalizedPath("/admin/system/ip-whitelist/request", "/en/admin/system/ip-whitelist/request"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload || {})
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string; requestId?: string; ruleId?: string } & Record<string, unknown>>(response);
-  if (!response.ok || body.success === false) {
-    throw new Error(String(body.message || `Failed to create IP whitelist request: ${response.status}`));
-  }
-  return body;
 }
 
 export async function decideIpWhitelistRequest(payload: Record<string, unknown>) {
@@ -5017,398 +3954,6 @@ export async function decideIpWhitelistRequest(payload: Record<string, unknown>)
     throw new Error(String(body.message || `Failed to process IP whitelist request: ${response.status}`));
   }
   return body;
-}
-
-export async function fetchLoginHistoryPage(params?: { pageIndex?: number; searchKeyword?: string; userSe?: string; loginResult?: string; insttId?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.userSe) search.set("userSe", params.userSe);
-  if (params?.loginResult) search.set("loginResult", params.loginResult);
-  if (params?.insttId) search.set("insttId", params.insttId);
-  const response = await fetch(`${buildAdminApiPath("/api/admin/member/login-history/page")}${search.toString() ? `?${search.toString()}` : ""}`, {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body.loginHistoryError || `Failed to load login history page: ${response.status}`);
-  return body as LoginHistoryPagePayload;
-}
-
-export async function fetchAccessHistoryPage(params?: { pageIndex?: number; searchKeyword?: string; insttId?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.insttId) search.set("insttId", params.insttId);
-  const response = await fetch(buildLocalizedPath(`/admin/system/access_history/page-data${search.toString() ? `?${search.toString()}` : ""}`, `/en/admin/system/access_history/page-data${search.toString() ? `?${search.toString()}` : ""}`), {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<AccessHistoryPagePayload>(response);
-  if (!response.ok) throw new Error(body.accessHistoryError || `Failed to load access history page: ${response.status}`);
-  return body;
-}
-
-export async function fetchErrorLogPage(params?: { pageIndex?: number; searchKeyword?: string; insttId?: string; sourceType?: string; errorType?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.insttId) search.set("insttId", params.insttId);
-  if (params?.sourceType) search.set("sourceType", params.sourceType);
-  if (params?.errorType) search.set("errorType", params.errorType);
-  const response = await fetch(buildLocalizedPath(`/admin/system/error-log/page-data${search.toString() ? `?${search.toString()}` : ""}`, `/en/admin/system/error-log/page-data${search.toString() ? `?${search.toString()}` : ""}`), {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<ErrorLogPagePayload>(response);
-  if (!response.ok) throw new Error(body.errorLogError || `Failed to load error log page: ${response.status}`);
-  return body;
-}
-
-export async function fetchSecurityHistoryPage(params?: { pageIndex?: number; searchKeyword?: string; userSe?: string; insttId?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.userSe) search.set("userSe", params.userSe);
-  if (params?.insttId) search.set("insttId", params.insttId);
-  if ((params as { actionStatus?: string } | undefined)?.actionStatus) search.set("actionStatus", String((params as { actionStatus?: string }).actionStatus));
-  const response = await fetch(`/admin/system/security/page-data${search.toString() ? `?${search.toString()}` : ""}`, {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body.loginHistoryError || `Failed to load security history page: ${response.status}`);
-  return body as LoginHistoryPagePayload;
-}
-
-export async function fetchMemberSecurityHistoryPage(params?: { pageIndex?: number; searchKeyword?: string; userSe?: string; insttId?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.userSe) search.set("userSe", params.userSe);
-  if (params?.insttId) search.set("insttId", params.insttId);
-  if ((params as { actionStatus?: string } | undefined)?.actionStatus) search.set("actionStatus", String((params as { actionStatus?: string }).actionStatus));
-  const response = await fetch(buildLocalizedPath(`/admin/member/security/page-data${search.toString() ? `?${search.toString()}` : ""}`, `/en/admin/member/security/page-data${search.toString() ? `?${search.toString()}` : ""}`), {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<LoginHistoryPagePayload>(response);
-  if (!response.ok) throw new Error(body.loginHistoryError || `Failed to load member security history page: ${response.status}`);
-  return body as LoginHistoryPagePayload;
-}
-
-export async function saveSecurityHistoryAction(payload: Record<string, unknown>) {
-  const response = await fetch(buildAdminApiPath("/api/admin/system/security-history/action"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload || {})
-  });
-  const body = await readJsonResponse<SecurityHistoryActionResponse>(response);
-  if (!response.ok || body.success === false) {
-    throw new Error(String(body.message || `Failed to save security history action: ${response.status}`));
-  }
-  return body;
-}
-
-export async function fetchSecurityPolicyPage() {
-  const response = await fetch("/admin/system/security-policy/page-data", {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<SecurityPolicyPagePayload>(response);
-  if (!response.ok) throw new Error(`Failed to load security policy page: ${response.status}`);
-  return body as SecurityPolicyPagePayload;
-}
-
-export async function fetchNotificationPage(params?: {
-  deliveryChannel?: string;
-  deliveryStatus?: string;
-  deliveryKeyword?: string;
-  deliveryPage?: number;
-  activityAction?: string;
-  activityKeyword?: string;
-  activityPage?: number;
-}) {
-  const search = new URLSearchParams();
-  if (params?.deliveryChannel) search.set("deliveryChannel", params.deliveryChannel);
-  if (params?.deliveryStatus) search.set("deliveryStatus", params.deliveryStatus);
-  if (params?.deliveryKeyword) search.set("deliveryKeyword", params.deliveryKeyword);
-  if (params?.deliveryPage && params.deliveryPage > 1) search.set("deliveryPage", String(params.deliveryPage));
-  if (params?.activityAction) search.set("activityAction", params.activityAction);
-  if (params?.activityKeyword) search.set("activityKeyword", params.activityKeyword);
-  if (params?.activityPage && params.activityPage > 1) search.set("activityPage", String(params.activityPage));
-  const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/admin/system/notification/page-data${query ? `?${query}` : ""}`, `/en/admin/system/notification/page-data${query ? `?${query}` : ""}`), {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<SecurityPolicyPagePayload>(response);
-  if (!response.ok) throw new Error(`Failed to load notification page: ${response.status}`);
-  return body as SecurityPolicyPagePayload;
-}
-
-export async function runMenuPermissionAutoCleanup(menuUrls?: string[]) {
-  const response = await fetch(buildAdminApiPath("/api/admin/system/menu-permission-diagnostics/auto-cleanup"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify({ menuUrls: menuUrls || [] })
-  });
-  const body = await readJsonResponse<MenuPermissionAutoCleanupResponse>(response);
-  if (!response.ok || body.success === false) {
-    throw new Error(body.message || `Failed to run menu permission auto cleanup: ${response.status}`);
-  }
-  return body;
-}
-
-export async function saveSecurityPolicyFindingState(payload: Record<string, unknown>) {
-  const response = await fetch(buildAdminApiPath("/api/admin/system/security-policy/state"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload || {})
-  });
-  const body = await readJsonResponse<Record<string, unknown>>(response);
-  if (!response.ok || body.success === false) {
-    throw new Error(String(body.message || `Failed to save security policy finding state: ${response.status}`));
-  }
-  return body;
-}
-
-export async function clearSecurityPolicySuppressions() {
-  const response = await fetch(buildAdminApiPath("/api/admin/system/security-policy/clear-suppressions"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: "{}"
-  });
-  const body = await readJsonResponse<Record<string, unknown>>(response);
-  if (!response.ok || body.success === false) {
-    throw new Error(String(body.message || `Failed to clear suppressions: ${response.status}`));
-  }
-  return body;
-}
-
-export async function runSecurityPolicyAutoFix(payload: Record<string, unknown>) {
-  const response = await fetch(buildAdminApiPath("/api/admin/system/security-policy/auto-fix"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload || {})
-  });
-  const body = await readJsonResponse<Record<string, unknown>>(response);
-  if (!response.ok || body.success === false) {
-    throw new Error(String(body.message || `Failed to run security policy auto-fix: ${response.status}`));
-  }
-  return body;
-}
-
-export async function runSecurityPolicyBulkAutoFix(payload: Record<string, unknown>) {
-  const response = await fetch(buildAdminApiPath("/api/admin/system/security-policy/auto-fix-bulk"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload || {})
-  });
-  const body = await readJsonResponse<Record<string, unknown>>(response);
-  if (!response.ok || body.success === false) {
-    throw new Error(String(body.message || `Failed to run security policy bulk auto-fix: ${response.status}`));
-  }
-  return body;
-}
-
-export async function saveSecurityPolicyNotificationConfig(payload: Record<string, unknown>) {
-  const response = await fetch(buildAdminApiPath("/api/admin/system/security-policy/notification-config"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload || {})
-  });
-  const body = await readJsonResponse<Record<string, unknown>>(response);
-  if (!response.ok || body.success === false) {
-    throw new Error(String(body.message || `Failed to save security policy notification config: ${response.status}`));
-  }
-  return body;
-}
-
-export async function runSecurityPolicyRollback(payload: Record<string, unknown>) {
-  const response = await fetch(buildAdminApiPath("/api/admin/system/security-policy/rollback"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload || {})
-  });
-  const body = await readJsonResponse<Record<string, unknown>>(response);
-  if (!response.ok || body.success === false) {
-    throw new Error(String(body.message || `Failed to run security policy rollback: ${response.status}`));
-  }
-  return body;
-}
-
-export async function dispatchSecurityPolicyNotifications(payload: Record<string, unknown>) {
-  const response = await fetch(buildAdminApiPath("/api/admin/system/security-policy/dispatch"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload || {})
-  });
-  const body = await readJsonResponse<Record<string, unknown>>(response);
-  if (!response.ok || body.success === false) {
-    throw new Error(String(body.message || `Failed to dispatch security policy notifications: ${response.status}`));
-  }
-  return body;
-}
-
-export async function fetchSecurityMonitoringPage() {
-  const response = await fetch("/admin/system/security-monitoring/page-data", {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<SecurityMonitoringPagePayload>(response);
-  if (!response.ok) throw new Error(`Failed to load security monitoring page: ${response.status}`);
-  return body;
-}
-
-export async function saveSecurityMonitoringState(payload: Record<string, unknown>) {
-  const response = await fetch(buildAdminApiPath("/api/admin/system/security-monitoring/state"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload || {})
-  });
-  const body = await readJsonResponse<Record<string, unknown>>(response);
-  if (!response.ok || body.success === false) {
-    throw new Error(String(body.message || `Failed to save security monitoring state: ${response.status}`));
-  }
-  return body;
-}
-
-export async function registerSecurityMonitoringBlockCandidate(payload: Record<string, unknown>) {
-  const response = await fetch(buildAdminApiPath("/api/admin/system/security-monitoring/block-candidates"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload || {})
-  });
-  const body = await readJsonResponse<Record<string, unknown>>(response);
-  if (!response.ok || body.success === false) {
-    throw new Error(String(body.message || `Failed to register security monitoring block candidate: ${response.status}`));
-  }
-  return body;
-}
-
-export async function updateSecurityMonitoringBlockCandidate(payload: Record<string, unknown>) {
-  const response = await fetch(buildAdminApiPath("/api/admin/system/security-monitoring/block-candidates/state"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload || {})
-  });
-  const body = await readJsonResponse<Record<string, unknown>>(response);
-  if (!response.ok || body.success === false) {
-    throw new Error(String(body.message || `Failed to update security monitoring block candidate: ${response.status}`));
-  }
-  return body;
-}
-
-export async function dispatchSecurityMonitoringNotification(payload: Record<string, unknown>) {
-  const response = await fetch(buildAdminApiPath("/api/admin/system/security-monitoring/notify"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload || {})
-  });
-  const body = await readJsonResponse<Record<string, unknown>>(response);
-  if (!response.ok || body.success === false) {
-    throw new Error(String(body.message || `Failed to dispatch security monitoring notification: ${response.status}`));
-  }
-  return body;
-}
-
-export async function fetchBlocklistPage(params?: { searchKeyword?: string; blockType?: string; status?: string; source?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.blockType) search.set("blockType", params.blockType);
-  if (params?.status) search.set("status", params.status);
-  if (params?.source) search.set("source", params.source);
-  const response = await fetch(`/admin/system/blocklist/page-data${search.toString() ? `?${search.toString()}` : ""}`, {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(`Failed to load blocklist page: ${response.status}`);
-  return body as BlocklistPagePayload;
-}
-
-export async function fetchSecurityAuditPage(params?: {
-  pageIndex?: number;
-  searchKeyword?: string;
-  actionType?: string;
-  routeGroup?: string;
-  startDate?: string;
-  endDate?: string;
-  sortKey?: string;
-  sortDirection?: string;
-}) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex && params.pageIndex > 1) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.actionType && params.actionType !== "ALL") search.set("actionType", params.actionType);
-  if (params?.routeGroup && params.routeGroup !== "ALL") search.set("routeGroup", params.routeGroup);
-  if (params?.startDate) search.set("startDate", params.startDate);
-  if (params?.endDate) search.set("endDate", params.endDate);
-  if (params?.sortKey && params.sortKey !== "AUDIT_AT") search.set("sortKey", params.sortKey);
-  if (params?.sortDirection && params.sortDirection !== "DESC") search.set("sortDirection", params.sortDirection);
-  const response = await fetch(`/admin/system/security-audit/page-data${search.toString() ? `?${search.toString()}` : ""}`, {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(`Failed to load security audit page: ${response.status}`);
-  return body as SecurityAuditPagePayload;
 }
 
 export async function fetchCertificateAuditLogPage(params?: {
@@ -5439,2110 +3984,14 @@ export async function fetchCertificateAuditLogPage(params?: {
   return body;
 }
 
-export async function fetchOperationsCenterPage() {
-  const response = await fetch("/admin/monitoring/center/page-data", {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<OperationsCenterPagePayload>(response);
-  if (!response.ok) throw new Error(`Failed to load operations center page: ${response.status}`);
-  return body;
-}
-
-export async function fetchPerformancePage() {
-  const response = await fetch(buildLocalizedPath("/admin/system/performance/page-data", "/en/admin/system/performance/page-data"), {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<PerformancePagePayload>(response);
-  if (!response.ok) throw new Error(`Failed to load performance page: ${response.status}`);
-  return body;
-}
-
-export async function fetchExternalConnectionListPage() {
-  const response = await fetch(buildLocalizedPath("/admin/external/connection_list/page-data", "/en/admin/external/connection_list/page-data"), {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<ExternalConnectionListPagePayload>(response);
-  if (!response.ok) throw new Error(`Failed to load external connection list page: ${response.status}`);
-  return body;
-}
-
-export async function fetchExternalSchemaPage() {
-  const response = await fetch(buildLocalizedPath("/admin/external/schema/page-data", "/en/admin/external/schema/page-data"), {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<ExternalSchemaPagePayload>(response);
-  if (!response.ok) throw new Error(`Failed to load external schema page: ${response.status}`);
-  return body;
-}
-
-export async function fetchExternalKeysPage() {
-  const response = await fetch(buildLocalizedPath("/admin/external/keys/page-data", "/en/admin/external/keys/page-data"), {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<ExternalKeysPagePayload>(response);
-  if (!response.ok) throw new Error(`Failed to load external keys page: ${response.status}`);
-  return body;
-}
-
-export async function fetchExternalUsagePage() {
-  const response = await fetch(buildLocalizedPath("/admin/external/usage/page-data", "/en/admin/external/usage/page-data"), {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<ExternalUsagePagePayload>(response);
-  if (!response.ok) throw new Error(`Failed to load external usage page: ${response.status}`);
-  return body;
-}
-
-export async function fetchExternalLogsPage() {
-  const response = await fetch(buildLocalizedPath("/admin/external/logs/page-data", "/en/admin/external/logs/page-data"), {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<ExternalLogsPagePayload>(response);
-  if (!response.ok) throw new Error(`Failed to load external logs page: ${response.status}`);
-  return body;
-}
-
-export async function fetchExternalWebhooksPage(params?: {
-  keyword?: string;
-  syncMode?: string;
-  status?: string;
-}) {
-  const search = new URLSearchParams();
-  if (params?.keyword?.trim()) search.set("keyword", params.keyword.trim());
-  if (params?.syncMode && params.syncMode !== "ALL") search.set("syncMode", params.syncMode);
-  if (params?.status && params.status !== "ALL") search.set("status", params.status);
-  const response = await fetch(`${buildLocalizedPath("/admin/external/webhooks/page-data", "/en/admin/external/webhooks/page-data")}${search.toString() ? `?${search.toString()}` : ""}`, {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<ExternalWebhooksPagePayload>(response);
-  if (!response.ok) throw new Error(`Failed to load external webhooks page: ${response.status}`);
-  return body;
-}
-
-export async function fetchExternalSyncPage() {
-  const response = await fetch(buildLocalizedPath("/admin/external/sync/page-data", "/en/admin/external/sync/page-data"), {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<ExternalSyncPagePayload>(response);
-  if (!response.ok) throw new Error(`Failed to load external sync page: ${response.status}`);
-  return body;
-}
-
-export async function fetchExternalMonitoringPage() {
-  const response = await fetch(buildLocalizedPath("/admin/external/monitoring/page-data", "/en/admin/external/monitoring/page-data"), {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<ExternalMonitoringPagePayload>(response);
-  if (!response.ok) throw new Error(`Failed to load external monitoring page: ${response.status}`);
-  return body;
-}
-
-export async function fetchExternalMaintenancePage() {
-  const response = await fetch(buildLocalizedPath("/admin/external/maintenance/page-data", "/en/admin/external/maintenance/page-data"), {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<ExternalMaintenancePagePayload>(response);
-  if (!response.ok) throw new Error(`Failed to load external maintenance page: ${response.status}`);
-  return body;
-}
-
-export async function fetchExternalRetryPage() {
-  const response = await fetch(buildLocalizedPath("/admin/external/retry/page-data", "/en/admin/external/retry/page-data"), {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<ExternalRetryPagePayload>(response);
-  if (!response.ok) throw new Error(`Failed to load external retry page: ${response.status}`);
-  return body;
-}
-
-export async function fetchExternalConnectionFormPage(mode: "add" | "edit", connectionId?: string) {
-  const search = new URLSearchParams();
-  if (connectionId) search.set("connectionId", connectionId);
-  const path = mode === "add"
-    ? buildLocalizedPath("/admin/external/connection_add/page-data", "/en/admin/external/connection_add/page-data")
-    : buildLocalizedPath("/admin/external/connection_edit/page-data", "/en/admin/external/connection_edit/page-data");
-  const response = await fetch(`${path}${search.toString() ? `?${search.toString()}` : ""}`, {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<ExternalConnectionFormPagePayload>(response);
-  if (!response.ok) throw new Error(`Failed to load external connection form page: ${response.status}`);
-  return body;
-}
-
-export async function saveExternalConnection(payload: Record<string, string>) {
-  const response = await fetch(buildLocalizedPath("/admin/external/connection/save", "/en/admin/external/connection/save"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<ExternalConnectionFormPagePayload>(response);
-  if (body.success === false) throw new Error(body.message || "Failed to save external connection.");
-  if (!response.ok) throw new Error(body.message || `Failed to save external connection: ${response.status}`);
-  return body;
-}
-
-export async function fetchSensorListPage() {
-  const response = await fetch(buildLocalizedPath("/admin/monitoring/sensor_list/page-data", "/en/admin/monitoring/sensor_list/page-data"), {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<SensorListPagePayload>(response);
-  if (!response.ok) throw new Error(`Failed to load sensor list page: ${response.status}`);
-  return body;
-}
-
-export function buildSecurityAuditExportUrl(params?: {
-  searchKeyword?: string;
-  actionType?: string;
-  routeGroup?: string;
-  startDate?: string;
-  endDate?: string;
-  sortKey?: string;
-  sortDirection?: string;
-}) {
-  const search = new URLSearchParams();
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.actionType && params.actionType !== "ALL") search.set("actionType", params.actionType);
-  if (params?.routeGroup && params.routeGroup !== "ALL") search.set("routeGroup", params.routeGroup);
-  if (params?.startDate) search.set("startDate", params.startDate);
-  if (params?.endDate) search.set("endDate", params.endDate);
-  if (params?.sortKey && params.sortKey !== "AUDIT_AT") search.set("sortKey", params.sortKey);
-  if (params?.sortDirection && params.sortDirection !== "DESC") search.set("sortDirection", params.sortDirection);
-  const query = search.toString();
-  return buildLocalizedPath(
-    `/admin/system/security-audit/export.csv${query ? `?${query}` : ""}`,
-    `/en/admin/system/security-audit/export.csv${query ? `?${query}` : ""}`
-  );
-}
-
-export async function fetchSchedulerManagementPage(params?: { jobStatus?: string; executionType?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.jobStatus) search.set("jobStatus", params.jobStatus);
-  if (params?.executionType) search.set("executionType", params.executionType);
-  const response = await fetch(`/admin/system/scheduler/page-data${search.toString() ? `?${search.toString()}` : ""}`, {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(`Failed to load scheduler management page: ${response.status}`);
-  return body as SchedulerManagementPagePayload;
-}
-
-export async function fetchBatchManagementPage() {
-  const response = await fetch("/admin/system/batch/page-data", {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(`Failed to load batch management page: ${response.status}`);
-  return body as BatchManagementPagePayload;
-}
-
-export async function fetchBackupConfigPage(pathname?: string) {
-  const currentPath = pathname || (typeof window === "undefined" ? "/admin/system/backup_config" : window.location.pathname);
-  const normalizedPath = currentPath.replace(/\/page-data$/, "");
-  const sharedPath = normalizedPath
-    .replace(/\/admin\/system\/backup$/, "/admin/system/backup_config")
-    .replace(/\/admin\/system\/restore$/, "/admin/system/backup_config")
-    .replace(/\/admin\/system\/version$/, "/admin/system/backup_config")
-    .replace(/\/en\/admin\/system\/backup$/, "/en/admin/system/backup_config")
-    .replace(/\/en\/admin\/system\/restore$/, "/en/admin/system/backup_config")
-    .replace(/\/en\/admin\/system\/version$/, "/en/admin/system/backup_config");
-  const url = sharedPath.startsWith("/en/")
-    ? `${sharedPath}/page-data`
-    : buildLocalizedPath(`${sharedPath}/page-data`, `/en${sharedPath}/page-data`);
-  const response = await fetch(url, {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<BackupConfigPagePayload>(response);
-  if (!response.ok) throw new Error(`Failed to load backup config page: ${response.status}`);
-  return body;
-}
-
-export async function saveBackupConfig(payload: Record<string, string>) {
-  const response = await fetch(buildLocalizedPath("/admin/system/backup_config/save", "/en/admin/system/backup_config/save"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await readJsonResponse<BackupConfigPagePayload>(response);
-  if (!response.ok) throw new Error(body.backupConfigMessage || `Failed to save backup config: ${response.status}`);
-  return body;
-}
-
-export async function restoreBackupConfigVersion(versionId: string) {
-  const response = await fetch(buildLocalizedPath("/admin/system/version/restore", "/en/admin/system/version/restore"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify({ versionId })
-  });
-  const body = await readJsonResponse<BackupConfigPagePayload>(response);
-  if (!response.ok) throw new Error(body.backupConfigMessage || `Failed to restore backup version: ${response.status}`);
-  return body;
-}
-
-export async function runBackupExecution(
-  executionType:
-    | "DB"
-    | "GIT"
-    | "GIT_PRECHECK"
-    | "GIT_CLEANUP_SAFE"
-    | "GIT_BUNDLE"
-    | "GIT_COMMIT_AND_PUSH_BASE"
-    | "GIT_PUSH_BASE"
-    | "GIT_PUSH_RESTORE"
-    | "GIT_TAG_PUSH"
-    | "GIT_RESTORE_COMMIT"
-    | "DB_RESTORE_SQL"
-    | "DB_RESTORE_PHYSICAL"
-    | "DB_RESTORE_PITR",
-  options?: {
-    gitRestoreCommit?: string;
-    dbRestoreType?: string;
-    dbRestoreTarget?: string;
-    dbRestorePointInTime?: string;
-    sudoPassword?: string;
-  }
-) {
-  const response = await fetch(buildLocalizedPath("/admin/system/backup/run", "/en/admin/system/backup/run"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify({
-      executionType,
-      gitRestoreCommit: options?.gitRestoreCommit || "",
-      dbRestoreType: options?.dbRestoreType || "",
-      dbRestoreTarget: options?.dbRestoreTarget || "",
-      dbRestorePointInTime: options?.dbRestorePointInTime || "",
-      sudoPassword: options?.sudoPassword || ""
-    })
-  });
-  const body = await readJsonResponse<BackupConfigPagePayload>(response);
-  if (!response.ok) {
-    const fallbackMessage = (body as BackupConfigPagePayload & { message?: string; retryAfterSeconds?: number; }).message;
-    const retryAfterSeconds = Number((body as BackupConfigPagePayload & { retryAfterSeconds?: number; }).retryAfterSeconds || 0);
-    const retrySuffix = retryAfterSeconds > 0
-      ? ` (${retryAfterSeconds}s)`
-      : "";
-    throw new Error(body.backupConfigMessage || fallbackMessage || `Failed to run backup execution: ${response.status}${retrySuffix}`);
-  }
-  return body;
-}
-
-export async function fetchCodexProvisionPage() {
-  const response = await fetch(buildLocalizedPath("/admin/system/codex-request/page-data", "/en/admin/system/codex-request/page-data"), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(`Failed to load Codex provision page: ${response.status}`);
-  return body as CodexProvisionPagePayload;
-}
-
-export async function fetchEmissionResultListPage(params?: { pageIndex?: number; searchKeyword?: string; resultStatus?: string; verificationStatus?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.resultStatus) search.set("resultStatus", params.resultStatus);
-  if (params?.verificationStatus) search.set("verificationStatus", params.verificationStatus);
-  const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/admin/emission/result_list/page-data${query ? `?${query}` : ""}`, `/en/admin/emission/result_list/page-data${query ? `?${query}` : ""}`), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(`Failed to load emission result list page: ${response.status}`);
-  return body as EmissionResultListPagePayload;
-}
-
-export async function fetchTradeListPage(params?: { pageIndex?: number; searchKeyword?: string; tradeStatus?: string; settlementStatus?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.tradeStatus) search.set("tradeStatus", params.tradeStatus);
-  if (params?.settlementStatus) search.set("settlementStatus", params.settlementStatus);
-  const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/trade/list/page-data${query ? `?${query}` : ""}`, `/en/trade/list/page-data${query ? `?${query}` : ""}`), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(`Failed to load trade list page: ${response.status}`);
-  return body as TradeListPagePayload;
-}
-
-export async function fetchTradeStatisticsPage(params?: { pageIndex?: number; searchKeyword?: string; periodFilter?: string; tradeType?: string; settlementStatus?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.periodFilter) search.set("periodFilter", params.periodFilter);
-  if (params?.tradeType) search.set("tradeType", params.tradeType);
-  if (params?.settlementStatus) search.set("settlementStatus", params.settlementStatus);
-  const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/admin/trade/statistics/page-data${query ? `?${query}` : ""}`, `/en/admin/trade/statistics/page-data${query ? `?${query}` : ""}`), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(`Failed to load trade statistics page: ${response.status}`);
-  return body as TradeStatisticsPagePayload;
-}
-
-export async function fetchTradeDuplicatePage(params?: { pageIndex?: number; searchKeyword?: string; detectionType?: string; reviewStatus?: string; riskLevel?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.detectionType) search.set("detectionType", params.detectionType);
-  if (params?.reviewStatus) search.set("reviewStatus", params.reviewStatus);
-  if (params?.riskLevel) search.set("riskLevel", params.riskLevel);
-  const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/admin/trade/duplicate/page-data${query ? `?${query}` : ""}`, `/en/admin/trade/duplicate/page-data${query ? `?${query}` : ""}`), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(`Failed to load abnormal trade review page: ${response.status}`);
-  return body as TradeDuplicatePagePayload;
-}
-
-export async function fetchRefundListPage(params?: { pageIndex?: number; searchKeyword?: string; status?: string; riskLevel?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.status) search.set("status", params.status);
-  if (params?.riskLevel) search.set("riskLevel", params.riskLevel);
-  const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/admin/payment/refund_list/page-data${query ? `?${query}` : ""}`, `/en/admin/payment/refund_list/page-data${query ? `?${query}` : ""}`), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(`Failed to load refund list page: ${response.status}`);
-  return body as RefundListPagePayload;
-}
-
-export async function fetchSettlementCalendarPage(params?: { pageIndex?: number; selectedMonth?: string; searchKeyword?: string; settlementStatus?: string; riskLevel?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.selectedMonth) search.set("selectedMonth", params.selectedMonth);
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.settlementStatus) search.set("settlementStatus", params.settlementStatus);
-  if (params?.riskLevel) search.set("riskLevel", params.riskLevel);
-  const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/admin/payment/settlement/page-data${query ? `?${query}` : ""}`, `/en/admin/payment/settlement/page-data${query ? `?${query}` : ""}`), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(`Failed to load settlement calendar page: ${response.status}`);
-  return body as SettlementCalendarPagePayload;
-}
-
-export async function fetchTradeApprovePage(params?: { pageIndex?: number; searchKeyword?: string; approvalStatus?: string; tradeType?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.approvalStatus) search.set("approvalStatus", params.approvalStatus);
-  if (params?.tradeType) search.set("tradeType", params.tradeType);
-  const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/admin/trade/approve/page-data${query ? `?${query}` : ""}`, `/en/admin/trade/approve/page-data${query ? `?${query}` : ""}`), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(String(body?.message || `Failed to load trade approval page: ${response.status}`));
-  return body as TradeApprovePagePayload;
-}
-
-export async function fetchRefundProcessPage(params?: { pageIndex?: number; searchKeyword?: string; refundStatus?: string; refundChannel?: string; priority?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.refundStatus) search.set("refundStatus", params.refundStatus);
-  if (params?.refundChannel) search.set("refundChannel", params.refundChannel);
-  if (params?.priority) search.set("priority", params.priority);
-  const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/admin/payment/refund_process/page-data${query ? `?${query}` : ""}`, `/en/admin/payment/refund_process/page-data${query ? `?${query}` : ""}`), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(String(body?.refundProcessError || `Failed to load refund processing page: ${response.status}`));
-  return body as RefundProcessPagePayload;
-}
-
-export async function fetchTradeRejectPage(params?: { tradeId?: string; returnUrl?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.tradeId) search.set("tradeId", params.tradeId);
-  if (params?.returnUrl) search.set("returnUrl", params.returnUrl);
-  const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/admin/trade/reject/page-data${query ? `?${query}` : ""}`, `/en/admin/trade/reject/page-data${query ? `?${query}` : ""}`), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(`Failed to load trade reject page: ${response.status}`);
-  return body as TradeRejectPagePayload;
-}
-
-export async function fetchEmissionResultDetailPage(resultId: string) {
-  const search = new URLSearchParams();
-  if (resultId) search.set("resultId", resultId);
-  const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/admin/emission/result_detail/page-data${query ? `?${query}` : ""}`, `/en/admin/emission/result_detail/page-data${query ? `?${query}` : ""}`), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(String(body?.pageError || `Failed to load emission result detail page: ${response.status}`));
-  return body as EmissionResultDetailPagePayload;
-}
-
-export async function fetchCertificateStatisticsPage(params?: { pageIndex?: number; searchKeyword?: string; periodFilter?: string; certificateType?: string; issuanceStatus?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.periodFilter) search.set("periodFilter", params.periodFilter);
-  if (params?.certificateType) search.set("certificateType", params.certificateType);
-  if (params?.issuanceStatus) search.set("issuanceStatus", params.issuanceStatus);
-  const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/admin/certificate/statistics/page-data${query ? `?${query}` : ""}`, `/en/admin/certificate/statistics/page-data${query ? `?${query}` : ""}`), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(`Failed to load certificate statistics page: ${response.status}`);
-  return body as CertificateStatisticsPagePayload;
-}
-
-export async function fetchEmissionDataHistoryPage(params?: { pageIndex?: number; searchKeyword?: string; changeType?: string; changeTarget?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.changeType) search.set("changeType", params.changeType);
-  if (params?.changeTarget) search.set("changeTarget", params.changeTarget);
-  const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/admin/emission/data_history/page-data${query ? `?${query}` : ""}`, `/en/admin/emission/data_history/page-data${query ? `?${query}` : ""}`), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(`Failed to load emission data history page: ${response.status}`);
-  return body as EmissionDataHistoryPagePayload;
-}
-
-export async function fetchEmissionSiteManagementPage() {
-  const response = await fetch(buildLocalizedPath("/admin/emission/site-management/page-data", "/en/admin/emission/site-management/page-data"), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(`Failed to load emission site management page: ${response.status}`);
-  return body as EmissionSiteManagementPagePayload;
-}
-
-export async function fetchEmissionManagementPage() {
-  const response = await fetch(buildLocalizedPath("/admin/emission/management/page-data", "/en/admin/emission/management/page-data"), {
-    credentials: "include"
-  });
-  return readJsonResponse<EmissionManagementPagePayload>(response);
-}
-
-export async function fetchEmissionSurveyAdminPage() {
-  const response = await fetch(buildLocalizedPath("/admin/emission/survey-admin/page-data", "/en/admin/emission/survey-admin/page-data"), {
-    credentials: "include",
-    headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
-  });
-  return readJsonResponse<EmissionSurveyAdminPagePayload>(response);
-}
-
-export async function uploadEmissionSurveyWorkbook(uploadFile: File) {
-  const form = new FormData();
-  form.set("uploadFile", uploadFile);
-  const headers = await buildResilientCsrfHeaders({
-    "X-Requested-With": "XMLHttpRequest"
-  });
-  delete headers["Content-Type"];
-  const response = await fetch(buildLocalizedPath("/admin/api/admin/emission-survey-admin/parse-workbook", "/en/admin/api/admin/emission-survey-admin/parse-workbook"), {
-    method: "POST",
-    credentials: "include",
-    headers,
-    body: form
-  });
-  return readJsonResponse<EmissionSurveyAdminPagePayload>(response);
-}
-
-export async function saveEmissionSurveyCaseDraft(payload: EmissionSurveyCaseDraftSavePayload) {
-  const response = await fetch(buildLocalizedPath("/admin/api/admin/emission-survey-admin/case-drafts", "/en/admin/api/admin/emission-survey-admin/case-drafts"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  return readJsonResponse<Record<string, unknown>>(response);
-}
-
-export async function deleteEmissionSurveyCaseDraft(sectionCode: string, caseCode: string) {
-  const query = new URLSearchParams({ sectionCode, caseCode }).toString();
-  const response = await fetch(`${buildLocalizedPath("/admin/api/admin/emission-survey-admin/case-drafts", "/en/admin/api/admin/emission-survey-admin/case-drafts")}?${query}`, {
-    method: "DELETE",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "X-Requested-With": "XMLHttpRequest"
-    })
-  });
-  return readJsonResponse<Record<string, unknown>>(response);
-}
-
-export async function saveEmissionSurveyDraftSet(payload: EmissionSurveyDraftSetSavePayload) {
-  const response = await fetch(buildLocalizedPath("/admin/api/admin/emission-survey-admin/draft-sets", "/en/admin/api/admin/emission-survey-admin/draft-sets"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  return readJsonResponse<Record<string, unknown>>(response);
-}
-
-export async function deleteEmissionSurveyDraftSet(setId: string) {
-  const query = new URLSearchParams({ setId }).toString();
-  const response = await fetch(`${buildLocalizedPath("/admin/api/admin/emission-survey-admin/draft-sets", "/en/admin/api/admin/emission-survey-admin/draft-sets")}?${query}`, {
-    method: "DELETE",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "X-Requested-With": "XMLHttpRequest"
-    })
-  });
-  return readJsonResponse<Record<string, unknown>>(response);
-}
-
-export function getEmissionSurveyTemplateDownloadUrl() {
-  return buildLocalizedPath("/admin/api/admin/emission-survey-admin/template-download", "/en/admin/api/admin/emission-survey-admin/template-download");
-}
-
-export function getEmissionSurveySampleDownloadUrl() {
-  return buildLocalizedPath("/admin/api/admin/emission-survey-admin/sample-download", "/en/admin/api/admin/emission-survey-admin/sample-download");
-}
-
-export async function saveEmissionManagementElementDefinition(payload: EmissionManagementElementSavePayload) {
-  const response = await fetch(buildLocalizedPath("/admin/api/admin/emission-management/element-definitions", "/en/admin/api/admin/emission-management/element-definitions"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  return readJsonResponse<EmissionManagementElementSaveResponse>(response);
-}
-
-export async function fetchEmissionDefinitionStudioPage() {
-  const response = await fetch(buildLocalizedPath("/admin/emission/definition-studio/page-data", "/en/admin/emission/definition-studio/page-data"), {
-    credentials: "include"
-  });
-  return readJsonResponse<EmissionDefinitionStudioPagePayload>(response);
-}
-
-export async function saveEmissionDefinitionDraft(payload: EmissionDefinitionDraftSavePayload) {
-  const response = await fetch(buildLocalizedPath("/admin/api/admin/emission-definition-studio/drafts", "/en/admin/api/admin/emission-definition-studio/drafts"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  return readJsonResponse<EmissionDefinitionDraftSaveResponse>(response);
-}
-
-export async function publishEmissionDefinitionDraft(draftId: string) {
-  const response = await fetch(buildLocalizedPath(`/admin/api/admin/emission-definition-studio/drafts/${encodeURIComponent(draftId)}/publish`, `/en/admin/api/admin/emission-definition-studio/drafts/${encodeURIComponent(draftId)}/publish`), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "X-Requested-With": "XMLHttpRequest"
-    })
-  });
-  return readJsonResponse<EmissionDefinitionDraftSaveResponse>(response);
-}
-
-export async function fetchEmissionValidatePage(params?: { pageIndex?: number; resultId?: string; searchKeyword?: string; verificationStatus?: string; priorityFilter?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.resultId) search.set("resultId", params.resultId);
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.verificationStatus) search.set("verificationStatus", params.verificationStatus);
-  if (params?.priorityFilter) search.set("priorityFilter", params.priorityFilter);
-  const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/admin/emission/validate/page-data${query ? `?${query}` : ""}`, `/en/admin/emission/validate/page-data${query ? `?${query}` : ""}`), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(`Failed to load emission validate page: ${response.status}`);
-  return body as EmissionValidatePagePayload;
-}
-
-export async function fetchEmissionCategories(searchKeyword?: string) {
-  const search = new URLSearchParams();
-  if (searchKeyword) {
-    search.set("searchKeyword", searchKeyword);
-  }
-  const query = search.toString();
-  const response = await fetch(`${buildAdminApiPath("/api/admin/emission-management/categories")}${query ? `?${query}` : ""}`, {
-    credentials: "include",
-    headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
-  });
-  return readJsonResponse<{ items: EmissionCategoryItem[] }>(response);
-}
-
-export async function fetchEmissionTiers(categoryId: number) {
-  const response = await fetch(buildAdminApiPath(`/api/admin/emission-management/categories/${encodeURIComponent(String(categoryId))}/tiers`), {
-    credentials: "include",
-    headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
-  });
-  return readJsonResponse<EmissionTierResponse>(response);
-}
-
-export async function fetchEmissionVariableDefinitions(categoryId: number, tier: number) {
-  const response = await fetch(buildAdminApiPath(`/api/admin/emission-management/categories/${encodeURIComponent(String(categoryId))}/tiers/${encodeURIComponent(String(tier))}/variables`), {
-    credentials: "include",
-    headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
-  });
-  return readJsonResponse<{
-    category?: EmissionCategoryItem;
-    tier?: number;
-    variables?: EmissionVariableDefinition[];
-    factors?: EmissionFactorDefinition[];
-    formulaSummary?: string;
-    formulaDisplay?: string;
-    publishedDefinition?: Record<string, unknown>;
-    publishedDefinitionApplied?: boolean;
-  }>(response);
-}
-
-export async function saveEmissionInputSession(payload: EmissionInputSessionSavePayload) {
-  const response = await fetch(buildAdminApiPath("/api/admin/emission-management/input-sessions"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({ "Content-Type": "application/json", Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }),
-    body: JSON.stringify(payload)
-  });
-  return readJsonResponse<Record<string, unknown>>(response);
-}
-
-export async function fetchEmissionInputSession(sessionId: number) {
-  const response = await fetch(buildAdminApiPath(`/api/admin/emission-management/input-sessions/${encodeURIComponent(String(sessionId))}`), {
-    credentials: "include",
-    headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
-  });
-  return readJsonResponse<Record<string, unknown>>(response);
-}
-
-export async function calculateEmissionInputSession(sessionId: number) {
-  const response = await fetch(buildAdminApiPath(`/api/admin/emission-management/input-sessions/${encodeURIComponent(String(sessionId))}/calculate`), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
-  });
-  return readJsonResponse<Record<string, unknown>>(response);
-}
-
-export async function materializeEmissionDefinitionScope(draftId: string) {
-  const response = await fetch(buildAdminApiPath(`/api/admin/emission-management/definition-scopes/${encodeURIComponent(draftId)}/materialize`), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
-  });
-  return readJsonResponse<EmissionDefinitionMaterializeResponse>(response);
-}
-
-export async function fetchEmissionScopeStatus(categoryCode: string, tier: number) {
-  const response = await fetch(buildAdminApiPath(`/api/admin/emission-management/scopes/${encodeURIComponent(categoryCode)}/${encodeURIComponent(String(tier))}/status`), {
-    credentials: "include",
-    headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
-  });
-  return readJsonResponse<Record<string, unknown>>(response);
-}
-
-export async function precheckEmissionDefinitionScope(draftId: string) {
-  const response = await fetch(buildAdminApiPath(`/api/admin/emission-management/definition-scopes/${encodeURIComponent(draftId)}/precheck`), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
-  });
-  return readJsonResponse<Record<string, unknown>>(response);
-}
-
-export async function fetchEmissionLimeDefaultFactor() {
-  const response = await fetch(buildAdminApiPath("/api/admin/emission-management/lime/default-factor"), {
-    credentials: "include",
-    headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
-  });
-  return readJsonResponse<Record<string, unknown>>(response);
-}
-
-export async function runCodexLoginCheck() {
-  const response = await fetch(buildLocalizedPath("/admin/system/codex-request/login", "/en/admin/system/codex-request/login"), {
-    method: "POST",
-    credentials: "include",
-    headers: buildCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
-  });
-  return readJsonResponse<Record<string, unknown>>(response);
-}
-
-export async function executeCodexProvision(payload: Record<string, unknown>) {
-  const response = await fetch(buildLocalizedPath("/admin/system/codex-request/execute", "/en/admin/system/codex-request/execute"), {
-    method: "POST",
-    credentials: "include",
-    headers: buildCsrfHeaders({ "Content-Type": "application/json", Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }),
-    body: JSON.stringify(payload)
-  });
-  return readJsonResponse<Record<string, unknown>>(response);
-}
-
-export async function fetchCodexHistory() {
-  const response = await fetch(buildLocalizedPath("/admin/system/codex-request/history", "/en/admin/system/codex-request/history"), {
-    credentials: "include",
-    headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
-  });
-  return readJsonResponse<CodexHistoryPayload>(response);
-}
-
-export async function inspectCodexHistory(logId: string) {
-  const response = await fetch(buildLocalizedPath(`/admin/system/codex-request/history/${encodeURIComponent(logId)}/inspect`, `/en/admin/system/codex-request/history/${encodeURIComponent(logId)}/inspect`), {
-    method: "POST",
-    credentials: "include",
-    headers: buildCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
-  });
-  return readJsonResponse<Record<string, unknown>>(response);
-}
-
-export async function remediateCodexHistory(logId: string) {
-  const response = await fetch(buildLocalizedPath(`/admin/system/codex-request/history/${encodeURIComponent(logId)}/remediate`, `/en/admin/system/codex-request/history/${encodeURIComponent(logId)}/remediate`), {
-    method: "POST",
-    credentials: "include",
-    headers: buildCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
-  });
-  return readJsonResponse<Record<string, unknown>>(response);
-}
-
-export async function prepareCodexSrTicket(ticketId: string) {
-  const response = await fetch(buildLocalizedPath(`/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/prepare`, `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/prepare`), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow }>(response);
-}
-
-export async function planCodexSrTicket(ticketId: string) {
-  const response = await fetch(buildLocalizedPath(`/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/plan`, `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/plan`), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow }>(response);
-}
-
-export async function executeCodexSrTicket(ticketId: string) {
-  const response = await fetch(buildLocalizedPath(`/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/execute`, `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/execute`), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow }>(response);
-}
-
-export async function directExecuteCodexSrTicket(ticketId: string) {
-  const response = await fetch(buildLocalizedPath(`/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/direct-execute`, `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/direct-execute`), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow }>(response);
-}
-
-export async function queueDirectExecuteCodexSrTicket(ticketId: string) {
-  const response = await fetch(buildLocalizedPath(`/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/queue-direct-execute`, `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/queue-direct-execute`), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow; executionLanes?: Array<Record<string, unknown>> }>(response);
-}
-
-export async function skipPlanExecuteCodexSrTicket(ticketId: string) {
-  const response = await fetch(buildLocalizedPath(`/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/skip-plan-execute`, `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/skip-plan-execute`), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow }>(response);
-}
-
-export async function reissueCodexSrTicket(ticketId: string) {
-  const response = await fetch(buildLocalizedPath(`/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/reissue`, `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/reissue`), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow; sourceTicketId: string }>(response);
-}
-
-export async function rollbackCodexSrTicket(ticketId: string) {
-  const response = await fetch(buildLocalizedPath(`/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/rollback`, `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/rollback`), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow }>(response);
-}
-
-export async function deleteCodexSrTicket(ticketId: string) {
-  const response = await fetch(buildLocalizedPath(`/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/delete`, `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/delete`), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({ Accept: "application/json", "X-Requested-With": "XMLHttpRequest" })
-  });
-  return readJsonResponse<{ success: boolean; message: string; deletedTicketId: string }>(response);
-}
-
-export async function fetchCodexSrTicketDetail(ticketId: string) {
-  const response = await fetch(buildLocalizedPath(`/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}`, `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}`), {
-    credentials: "include",
-    headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
-  });
-  return readJsonResponse<SrTicketDetailPayload>(response);
-}
-
-export async function fetchCodexSrTicketArtifact(ticketId: string, artifactType: string) {
-  const response = await fetch(buildLocalizedPath(`/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/artifacts/${encodeURIComponent(artifactType)}`, `/en/admin/system/codex-request/tickets/${encodeURIComponent(ticketId)}/artifacts/${encodeURIComponent(artifactType)}`), {
-    credentials: "include",
-    headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
-  });
-  return readJsonResponse<SrTicketArtifactPayload>(response);
-}
-
-export async function fetchAuditEvents(params?: {
-  pageIndex?: number;
-  pageSize?: number;
-  traceId?: string;
-  actorId?: string;
-  actionCode?: string;
-  menuCode?: string;
-  pageId?: string;
-  resultStatus?: string;
-  searchKeyword?: string;
-}): Promise<AuditEventSearchPayload> {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.pageSize) search.set("pageSize", String(params.pageSize));
-  if (params?.traceId) search.set("traceId", params.traceId);
-  if (params?.actorId) search.set("actorId", params.actorId);
-  if (params?.actionCode) search.set("actionCode", params.actionCode);
-  if (params?.menuCode) search.set("menuCode", params.menuCode);
-  if (params?.pageId) search.set("pageId", params.pageId);
-  if (params?.resultStatus) search.set("resultStatus", params.resultStatus);
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  const response = await fetch(`${buildAdminApiPath("/api/admin/observability/audit-events")}${search.toString() ? `?${search.toString()}` : ""}`, {
-    credentials: "include",
-    apiId: "admin.observability.audit-events.search"
-  });
-  return readJsonResponse<AuditEventSearchPayload>(response);
-}
-
-export async function fetchTraceEvents(params?: {
-  pageIndex?: number;
-  pageSize?: number;
-  traceId?: string;
-  pageId?: string;
-  componentId?: string;
-  functionId?: string;
-  apiId?: string;
-  eventType?: string;
-  resultCode?: string;
-  searchKeyword?: string;
-}): Promise<TraceEventSearchPayload> {
-  const search = new URLSearchParams();
-  if (params?.pageIndex) search.set("pageIndex", String(params.pageIndex));
-  if (params?.pageSize) search.set("pageSize", String(params.pageSize));
-  if (params?.traceId) search.set("traceId", params.traceId);
-  if (params?.pageId) search.set("pageId", params.pageId);
-  if (params?.componentId) search.set("componentId", params.componentId);
-  if (params?.functionId) search.set("functionId", params.functionId);
-  if (params?.apiId) search.set("apiId", params.apiId);
-  if (params?.eventType) search.set("eventType", params.eventType);
-  if (params?.resultCode) search.set("resultCode", params.resultCode);
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  const response = await fetch(`${buildAdminApiPath("/api/admin/observability/trace-events")}${search.toString() ? `?${search.toString()}` : ""}`, {
-    credentials: "include",
-    apiId: "admin.observability.trace-events.search"
-  });
-  return readJsonResponse<TraceEventSearchPayload>(response);
-}
-
-export async function fetchHelpManagementPage(pageId: string): Promise<HelpManagementPagePayload> {
-  const query = pageId ? `?pageId=${encodeURIComponent(pageId)}` : "";
-  const response = await fetch(`${buildAdminApiPath("/api/admin/help-management/page")}${query}`, {
-    credentials: "include",
-    apiId: "admin.help-management.page"
-  });
-  return readJsonResponse<HelpManagementPagePayload>(response);
-}
-
-export async function saveHelpManagementPage(payload: {
-  pageId: string;
-  title: string;
-  summary: string;
-  helpVersion: string;
-  activeYn: string;
-  items: HelpManagementItem[];
-}) {
-  const response = await fetch(buildAdminApiPath("/api/admin/help-management/save"), {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.help-management.save",
-    headers: buildCsrfHeaders({
-      "Content-Type": "application/json"
-    }),
-    body: JSON.stringify(payload)
-  });
-  return readJsonResponse<{ success: boolean; pageId: string; message: string }>(response);
-}
-
-export async function fetchScreenCommandPage(pageId: string): Promise<ScreenCommandPagePayload> {
-  const query = pageId ? `?pageId=${encodeURIComponent(pageId)}` : "";
-  const response = await fetch(`${buildAdminApiPath("/api/admin/help-management/screen-command/page")}${query}`, {
-    credentials: "include",
-    apiId: "admin.help-management.screen-command.page"
-  });
-  return readJsonResponse<ScreenCommandPagePayload>(response);
-}
-
-export async function saveScreenCommandMenuMapping(payload: {
-  pageId: string;
-  menuCode: string;
-  menuName: string;
-  menuUrl: string;
-  domainCode: string;
-}) {
-  const response = await fetch(buildAdminApiPath("/api/admin/help-management/screen-command/map-menu"), {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.help-management.screen-command.map-menu",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json"
-    }),
-    body: JSON.stringify(payload)
-  });
-  return readJsonResponse<{ success: boolean; message: string; pageId: string; menuCode: string; routePath: string }>(response);
-}
-
-export async function fetchFullStackGovernanceRegistry(menuCode: string): Promise<FullStackGovernanceRegistryEntry> {
-  const query = menuCode ? `?menuCode=${encodeURIComponent(menuCode)}` : "";
-  const response = await fetch(`/api/admin/full-stack-management/registry${query}`, {
-    credentials: "include",
-    apiId: "admin.full-stack-management.registry"
-  });
-  return readJsonResponse<FullStackGovernanceRegistryEntry>(response);
-}
-
-export async function saveFullStackGovernanceRegistry(payload: FullStackGovernanceRegistryEntry) {
-  const response = await fetch("/api/admin/full-stack-management/registry", {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.full-stack-management.registry-save",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json"
-    }),
-    body: JSON.stringify(payload)
-  });
-  return readJsonResponse<{ success: boolean; message: string; entry: FullStackGovernanceRegistryEntry }>(response);
-}
-
-export async function saveWbsManagementEntry(payload: {
-  menuType: string;
-  menuCode: string;
-  owner: string;
-  status: string;
-  progress: number;
-  plannedStartDate: string;
-  plannedEndDate: string;
-  actualStartDate: string;
-  actualEndDate: string;
-  startDate: string;
-  endDate: string;
-  notes: string;
-  codexInstruction: string;
-}) {
-  const response = await fetch("/api/admin/wbs-management/entry", {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.wbs-management.entry-save",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json"
-    }),
-    body: JSON.stringify(payload)
-  });
-  return readJsonResponse<{ success: boolean; message: string; entry: Record<string, unknown> }>(response);
-}
-
-export async function autoCollectFullStackGovernanceRegistry(payload: FullStackGovernanceAutoCollectRequest) {
-  const response = await fetch("/api/admin/full-stack-management/registry/auto-collect", {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.full-stack-management.registry-auto-collect",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json"
-    }),
-    body: JSON.stringify(payload)
-  });
-  return readJsonResponse<{ success: boolean; message: string; entry: FullStackGovernanceRegistryEntry }>(response);
-}
-
-export async function fetchSrWorkbenchPage(pageId: string): Promise<SrWorkbenchPagePayload> {
-  const query = pageId ? `?pageId=${encodeURIComponent(pageId)}` : "";
-  const response = await fetch(`${buildAdminApiPath("/api/admin/sr-workbench/page")}${query}`, {
-    credentials: "include",
-    apiId: "admin.sr-workbench.page"
-  });
-  return readJsonResponse<SrWorkbenchPagePayload>(response);
-}
-
-export async function createSrTicket(payload: {
-  pageId: string;
-  pageLabel: string;
-  routePath: string;
-  menuCode: string;
-  menuLookupUrl: string;
-  surfaceId: string;
-  surfaceLabel: string;
-  eventId: string;
-  eventLabel: string;
-  targetId: string;
-  targetLabel: string;
-  summary: string;
-  instruction: string;
-  technicalContext?: string;
-  generatedDirection: string;
-  commandPrompt: string;
-  stackItemIds?: string[];
-}) {
-  const response = await fetch(buildAdminApiPath("/api/admin/sr-workbench/tickets"), {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.sr-workbench.ticket.create",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json"
-    }),
-    body: JSON.stringify(payload)
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow }>(response);
-}
-
-export async function quickExecuteSrTicket(payload: {
-  pageId: string;
-  pageLabel: string;
-  routePath: string;
-  menuCode: string;
-  menuLookupUrl: string;
-  surfaceId: string;
-  surfaceLabel: string;
-  eventId: string;
-  eventLabel: string;
-  targetId: string;
-  targetLabel: string;
-  summary: string;
-  instruction: string;
-  technicalContext?: string;
-  generatedDirection: string;
-  commandPrompt: string;
-  stackItemIds?: string[];
-}) {
-  const response = await fetch(buildAdminApiPath("/api/admin/sr-workbench/quick-execute"), {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.sr-workbench.ticket.quick-execute",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json"
-    }),
-    body: JSON.stringify(payload)
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow; ticketId: string }>(response);
-}
-
-export async function addSrWorkbenchStackItem(payload: {
-  pageId: string;
-  pageLabel: string;
-  routePath: string;
-  menuCode: string;
-  menuLookupUrl: string;
-  surfaceId: string;
-  surfaceLabel: string;
-  selector: string;
-  componentId: string;
-  eventId: string;
-  eventLabel: string;
-  targetId: string;
-  targetLabel: string;
-  summary: string;
-  instruction: string;
-  technicalContext?: string;
-  traceId: string;
-  requestId: string;
-}) {
-  const response = await fetch(buildAdminApiPath("/api/admin/sr-workbench/stack-items"), {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.sr-workbench.stack-item.create",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json"
-    }),
-    body: JSON.stringify(payload)
-  });
-  return readJsonResponse<{ success: boolean; message: string; stackItem: SrWorkbenchStackItem }>(response);
-}
-
-export async function removeSrWorkbenchStackItem(stackItemId: string) {
-  const response = await fetch(buildAdminApiPath(`/api/admin/sr-workbench/stack-items/${encodeURIComponent(stackItemId)}/delete`), {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.sr-workbench.stack-item.delete",
-    headers: await buildResilientCsrfHeaders()
-  });
-  return readJsonResponse<{ success: boolean; message: string; removedCount: number }>(response);
-}
-
-export async function clearSrWorkbenchStack() {
-  const response = await fetch(buildAdminApiPath("/api/admin/sr-workbench/stack-items/clear"), {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.sr-workbench.stack-item.clear",
-    headers: await buildResilientCsrfHeaders()
-  });
-  return readJsonResponse<{ success: boolean; message: string }>(response);
-}
-
-export async function approveSrTicket(ticketId: string, decision: "APPROVE" | "REJECT", comment: string) {
-  const response = await fetch(`${buildAdminApiPath(`/api/admin/sr-workbench/tickets/${encodeURIComponent(ticketId)}/approve`)}`, {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.sr-workbench.ticket.approve",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json"
-    }),
-    body: JSON.stringify({ decision, comment })
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow }>(response);
-}
-
-export async function prepareSrExecution(ticketId: string) {
-  const response = await fetch(`${buildAdminApiPath(`/api/admin/sr-workbench/tickets/${encodeURIComponent(ticketId)}/prepare-execution`)}`, {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.sr-workbench.ticket.prepare-execution",
-    headers: await buildResilientCsrfHeaders()
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow }>(response);
-}
-
-export async function planSrTicket(ticketId: string) {
-  const response = await fetch(`${buildAdminApiPath(`/api/admin/sr-workbench/tickets/${encodeURIComponent(ticketId)}/plan`)}`, {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.sr-workbench.ticket.plan",
-    headers: await buildResilientCsrfHeaders()
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow }>(response);
-}
-
-export async function executeSrTicket(ticketId: string) {
-  const response = await fetch(`${buildAdminApiPath(`/api/admin/sr-workbench/tickets/${encodeURIComponent(ticketId)}/execute`)}`, {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.sr-workbench.ticket.execute",
-    headers: await buildResilientCsrfHeaders()
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow }>(response);
-}
-
-export async function directExecuteSrTicket(ticketId: string) {
-  const response = await fetch(`${buildAdminApiPath(`/api/admin/sr-workbench/tickets/${encodeURIComponent(ticketId)}/direct-execute`)}`, {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.sr-workbench.ticket.direct-execute",
-    headers: await buildResilientCsrfHeaders()
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow }>(response);
-}
-
-export async function skipPlanExecuteSrTicket(ticketId: string) {
-  const response = await fetch(`${buildAdminApiPath(`/api/admin/sr-workbench/tickets/${encodeURIComponent(ticketId)}/skip-plan-execute`)}`, {
-    method: "POST",
-    credentials: "include",
-    apiId: "admin.sr-workbench.ticket.skip-plan-execute",
-    headers: await buildResilientCsrfHeaders()
-  });
-  return readJsonResponse<{ success: boolean; message: string; ticket: SrTicketRow }>(response);
-}
-
-export async function fetchJoinCompanyRegisterPage() {
-  const response = await fetch("/join/api/company-register/page", {
-    credentials: "include"
-  });
-  if (!response.ok) throw new Error(`Failed to load join company register page: ${response.status}`);
-  return response.json() as Promise<JoinCompanyRegisterPagePayload>;
-}
-
-export async function fetchJoinSession(): Promise<JoinSessionPayload> {
-  if (joinSessionCache) {
-    return joinSessionCache;
-  }
-
-  if (!joinSessionPromise) {
-    joinSessionPromise = fetch("/join/api/session", {
-      credentials: "include"
-    })
-      .then(async (response: Response) => {
-        if (!response.ok) throw new Error(`Failed to load join session: ${response.status}`);
-        const session = await readJsonResponse<JoinSessionPayload>(response);
-        joinSessionCache = session;
-        return session;
-      })
-      .finally(() => {
-        joinSessionPromise = null;
-      });
-  }
-
-  if (!joinSessionPromise) {
-    throw new Error("Join session promise was not initialized");
-  }
-
-  return joinSessionPromise;
-}
-
 export async function fetchMypage(en = false) {
   const bootstrappedPayload = consumeRuntimeBootstrap<MypagePayload>("mypagePayload");
   if (bootstrappedPayload) {
     return bootstrappedPayload;
   }
-  const response = await fetch(await buildMypageUrl(en ? "/api/en/mypage" : "/api/mypage"), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok && response.status !== 401) {
-    throw new Error(`Failed to load mypage: ${response.status}`);
-  }
-  return body as MypagePayload;
+  return portalApi.fetchMypage(en) as Promise<MypagePayload>;
 }
 
-export async function fetchMypageSection(section: string, en = false) {
-  const response = await fetch(await buildMypageUrl(en ? `/api/en/mypage/section/${encodeURIComponent(section)}` : `/api/mypage/section/${encodeURIComponent(section)}`), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok && response.status !== 401) {
-    throw new Error(`Failed to load mypage section: ${response.status}`);
-  }
-  return body as MypageSectionPayload;
-}
-
-export async function saveMypageMarketing(session: FrontendSession, marketingYn: string, en = false, insttId?: string) {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    "X-Requested-With": "XMLHttpRequest"
-  };
-  if (session.csrfHeaderName && session.csrfToken) {
-    headers[session.csrfHeaderName] = session.csrfToken;
-  }
-  const response = await fetch(en ? "/api/en/mypage/marketing" : "/api/mypage/marketing", {
-    method: "POST",
-    credentials: "include",
-    headers,
-    body: appendInsttId(new URLSearchParams({ marketingYn }), insttId || session.insttId).toString()
-  });
-  const body = await response.json();
-  if (!response.ok && response.status !== 401) {
-    throw new Error(body.message || `Failed to save marketing setting: ${response.status}`);
-  }
-  return body as MypageSectionPayload;
-}
-
-export async function saveMypageProfile(
-  session: FrontendSession,
-  payload: { zip: string; address: string; detailAddress: string },
-  en = false,
-  insttId?: string
-) {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    "X-Requested-With": "XMLHttpRequest"
-  };
-  if (session.csrfHeaderName && session.csrfToken) {
-    headers[session.csrfHeaderName] = session.csrfToken;
-  }
-  const response = await fetch(en ? "/api/en/mypage/profile" : "/api/mypage/profile", {
-    method: "POST",
-    credentials: "include",
-    headers,
-    body: appendInsttId(new URLSearchParams(payload), insttId || session.insttId).toString()
-  });
-  const body = await response.json();
-  if (!response.ok && response.status !== 401) {
-    throw new Error(body.message || `Failed to save profile setting: ${response.status}`);
-  }
-  return body as MypageSectionPayload;
-}
-
-export async function saveMypageCompany(
-  session: FrontendSession,
-  payload: { companyName: string; representativeName: string; zip: string; address: string; detailAddress: string },
-  en = false,
-  insttId?: string
-) {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    "X-Requested-With": "XMLHttpRequest"
-  };
-  if (session.csrfHeaderName && session.csrfToken) {
-    headers[session.csrfHeaderName] = session.csrfToken;
-  }
-  const response = await fetch(en ? "/api/en/mypage/company" : "/api/mypage/company", {
-    method: "POST",
-    credentials: "include",
-    headers,
-    body: appendInsttId(new URLSearchParams(payload), insttId || session.insttId).toString()
-  });
-  const body = await response.json();
-  if (!response.ok && response.status !== 401) {
-    throw new Error(body.message || `Failed to save company setting: ${response.status}`);
-  }
-  return body as MypageSectionPayload;
-}
-
-export async function saveMypageStaff(
-  session: FrontendSession,
-  payload: { staffName: string; deptNm: string; areaNo: string; middleTelno: string; endTelno: string },
-  en = false,
-  insttId?: string
-) {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    "X-Requested-With": "XMLHttpRequest"
-  };
-  if (session.csrfHeaderName && session.csrfToken) {
-    headers[session.csrfHeaderName] = session.csrfToken;
-  }
-  const response = await fetch(en ? "/api/en/mypage/staff" : "/api/mypage/staff", {
-    method: "POST",
-    credentials: "include",
-    headers,
-    body: appendInsttId(new URLSearchParams(payload), insttId || session.insttId).toString()
-  });
-  const body = await response.json();
-  if (!response.ok && response.status !== 401) {
-    throw new Error(body.message || `Failed to save staff setting: ${response.status}`);
-  }
-  return body as MypageSectionPayload;
-}
-
-export async function saveMypageEmail(session: FrontendSession, email: string, en = false, insttId?: string) {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    "X-Requested-With": "XMLHttpRequest"
-  };
-  if (session.csrfHeaderName && session.csrfToken) {
-    headers[session.csrfHeaderName] = session.csrfToken;
-  }
-  const response = await fetch(en ? "/api/en/mypage/email" : "/api/mypage/email", {
-    method: "POST",
-    credentials: "include",
-    headers,
-    body: appendInsttId(new URLSearchParams({ email }), insttId || session.insttId).toString()
-  });
-  const body = await response.json();
-  if (!response.ok && response.status !== 401) {
-    throw new Error(body.message || `Failed to save email setting: ${response.status}`);
-  }
-  return body as MypageSectionPayload;
-}
-
-export async function saveMypagePassword(session: FrontendSession, currentPassword: string, newPassword: string, en = false, insttId?: string) {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-    "X-Requested-With": "XMLHttpRequest"
-  };
-  if (session.csrfHeaderName && session.csrfToken) {
-    headers[session.csrfHeaderName] = session.csrfToken;
-  }
-  const response = await fetch(en ? "/api/en/mypage/password" : "/api/mypage/password", {
-    method: "POST",
-    credentials: "include",
-    headers,
-    body: appendInsttId(new URLSearchParams({ currentPassword, newPassword }), insttId || session.insttId).toString()
-  });
-  const body = await response.json();
-  if (!response.ok && response.status !== 401) {
-    throw new Error(body.message || `Failed to save password setting: ${response.status}`);
-  }
-  return body as MypageSectionPayload;
-}
-
-export async function checkCompanyNameDuplicate(agencyName: string) {
-  const response = await fetch(`/join/checkCompanyNameDplct?agencyName=${encodeURIComponent(agencyName)}`, {
-    credentials: "include"
-  });
-  if (!response.ok) throw new Error(`Failed to check company name: ${response.status}`);
-  const body = await response.text();
-  return Number(body) > 0;
-}
-
-export async function fetchJoinCompanyStatusDetail(params: { bizNo?: string; appNo?: string; repName: string; }) {
-  const search = new URLSearchParams();
-  if (params.bizNo) search.set("bizNo", params.bizNo);
-  if (params.appNo) search.set("appNo", params.appNo);
-  search.set("repName", params.repName);
-  const response = await fetch(`/join/api/company-status/detail?${search.toString()}`, {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok || !body.success) throw new Error(body.message || `Failed to load company status detail: ${response.status}`);
-  return body as JoinCompanyStatusDetailPayload;
-}
-
-export async function fetchJoinCompanyReapplyPage(params: { bizNo: string; repName: string; }) {
-  const search = new URLSearchParams();
-  search.set("bizNo", params.bizNo);
-  search.set("repName", params.repName);
-  const response = await fetch(`/join/api/company-reapply/page?${search.toString()}`, {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok || !body.success) throw new Error(body.message || `Failed to load company reapply page: ${response.status}`);
-  return body as JoinCompanyReapplyPagePayload;
-}
-
-function buildJsonHeaders(session: FrontendSession) {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    "X-Requested-With": "XMLHttpRequest"
-  };
-  if (session.csrfHeaderName && session.csrfToken) {
-    headers[session.csrfHeaderName] = session.csrfToken;
-  }
-  return headers;
-}
-
-export async function createAuthGroup(
-  session: FrontendSession,
-  payload: {
-    authorCode: string;
-    authorNm: string;
-    authorDc: string;
-    roleCategory: string;
-    insttId?: string;
-  }
-) {
-  const response = await fetch(buildAdminApiPath("/api/admin/auth-groups"), {
-    method: "POST",
-    credentials: "include",
-    headers: buildJsonHeaders(session),
-    body: JSON.stringify(payload)
-  });
-  const body = await response.json();
-  if (!response.ok || !body.success) {
-    throw new Error(body.message || `Failed to create auth group: ${response.status}`);
-  }
-  invalidateAdminPageCaches();
-  return body;
-}
-
-export async function saveAuthGroupFeatures(
-  session: FrontendSession,
-  payload: {
-    authorCode: string;
-    roleCategory: string;
-    featureCodes: string[];
-  }
-) {
-  const response = await fetch(buildAdminApiPath("/api/admin/auth-groups/features"), {
-    method: "POST",
-    credentials: "include",
-    headers: buildJsonHeaders(session),
-    body: JSON.stringify(payload)
-  });
-  const body = await response.json();
-  if (!response.ok || !body.success) {
-    throw new Error(body.message || `Failed to save auth-group features: ${response.status}`);
-  }
-  invalidateAdminPageCaches();
-  return body;
-}
-
-export async function saveAdminAuthChange(
-  session: FrontendSession,
-  payload: {
-    emplyrId: string;
-    authorCode: string;
-  }
-) {
-  const response = await fetch(buildAdminApiPath("/api/admin/auth-change/save"), {
-    method: "POST",
-    credentials: "include",
-    headers: buildJsonHeaders(session),
-    body: JSON.stringify(payload)
-  });
-  const body = await response.json();
-  if (!response.ok || !body.success) {
-    throw new Error(body.message || `Failed to save auth change: ${response.status}`);
-  }
-  invalidateAdminPageCaches();
-  return body;
-}
-
-export async function saveAuthorRoleProfile(
-  session: FrontendSession,
-  payload: {
-    authorCode: string;
-    roleCategory: string;
-    displayTitle: string;
-    priorityWorks: string[];
-    description: string;
-    memberEditVisibleYn: string;
-    roleType?: string;
-    baseRoleYn?: string;
-    parentAuthorCode?: string;
-    assignmentScope?: string;
-    defaultMemberTypes?: string[];
-  }
-) {
-  const response = await fetch(buildAdminApiPath("/api/admin/auth-groups/profile-save"), {
-    method: "POST",
-    credentials: "include",
-    headers: buildJsonHeaders(session),
-    body: JSON.stringify(payload)
-  });
-  const body = await response.json();
-  if (!response.ok || !body.success) {
-    throw new Error(body.message || `Failed to save author role profile: ${response.status}`);
-  }
-  invalidateAdminPageCaches();
-  return body as { success: boolean; authorCode: string; profile: AuthorRoleProfile };
-}
-
-export async function saveDeptRoleMapping(
-  session: FrontendSession,
-  payload: {
-    insttId: string;
-    cmpnyNm: string;
-    deptNm: string;
-    authorCode: string;
-  }
-) {
-  const response = await fetch(buildAdminApiPath("/api/admin/dept-role-mapping/save"), {
-    method: "POST",
-    credentials: "include",
-    headers: buildJsonHeaders(session),
-    body: JSON.stringify(payload)
-  });
-  const body = await response.json();
-  if (!response.ok || !body.success) {
-    throw new Error(body.message || `Failed to save dept mapping: ${response.status}`);
-  }
-  invalidateAdminPageCaches();
-  return body;
-}
-
-export async function saveDeptRoleMember(
-  session: FrontendSession,
-  payload: {
-    insttId: string;
-    entrprsMberId: string;
-    authorCode: string;
-  }
-) {
-  const response = await fetch(buildAdminApiPath("/api/admin/dept-role-mapping/member-save"), {
-    method: "POST",
-    credentials: "include",
-    headers: buildJsonHeaders(session),
-    body: JSON.stringify(payload)
-  });
-  const body = await response.json();
-  if (!response.ok || !body.success) {
-    throw new Error(body.message || `Failed to save dept member role: ${response.status}`);
-  }
-  invalidateAdminPageCaches();
-  return body;
-}
-
-export async function saveMemberEdit(
-  _session: FrontendSession,
-  payload: {
-    memberId: string;
-    applcntNm: string;
-    applcntEmailAdres: string;
-    phoneNumber: string;
-    entrprsSeCode: string;
-    entrprsMberSttus: string;
-    authorCode: string;
-    featureCodes: string[];
-    zip: string;
-    adres: string;
-    detailAdres: string;
-    marketingYn: string;
-    deptNm: string;
-  }
-) {
-  const response = await fetch(buildAdminApiPath("/api/admin/member/edit"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await response.json();
-  if (!response.ok || !body.success) {
-    throw new Error(body.message || (body.errors ? body.errors.join(", ") : `Failed to save member edit: ${response.status}`));
-  }
-  invalidateAdminPageCaches();
-  return body;
-}
-
-export async function saveMemberRegister(
-  _session: FrontendSession,
-  payload: {
-    memberId: string;
-    applcntNm: string;
-    password: string;
-    passwordConfirm: string;
-    applcntEmailAdres: string;
-    phoneNumber: string;
-    entrprsSeCode: string;
-    insttId: string;
-    deptNm: string;
-    authorCode: string;
-    zip: string;
-    adres: string;
-    detailAdres: string;
-  }
-) {
-  const response = await fetch(buildAdminApiPath("/api/admin/member/register"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await response.json();
-  if (!response.ok || !body.success) {
-    throw new Error(body.message || (body.errors ? body.errors.join(", ") : `Failed to save member register: ${response.status}`));
-  }
-  invalidateAdminPageCaches();
-  return body;
-}
-
-export async function resetMemberPasswordAction(session: FrontendSession, memberId: string) {
-  const form = new URLSearchParams();
-  form.set("memberId", memberId);
-  const headers = buildJsonHeaders(session);
-  delete headers["Content-Type"];
-  const response = await fetch("/admin/member/reset_password", {
-    method: "POST",
-    credentials: "include",
-    headers,
-    body: form
-  });
-  const body = await response.json();
-  if (!response.ok || body.status !== "success") {
-    throw new Error(body.errors || `Failed to reset password: ${response.status}`);
-  }
-  invalidateAdminPageCaches();
-  return body;
-}
-
-export async function saveAdminPermission(_session: FrontendSession, payload: { emplyrId: string; authorCode: string; featureCodes: string[]; }) {
-  const response = await fetch(buildAdminApiPath("/api/admin/member/admin-account/permissions"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await response.json();
-  if (!response.ok || !body.success) {
-    throw new Error(body.message || (body.errors ? body.errors.join(", ") : `Failed to save admin permission: ${response.status}`));
-  }
-  invalidateAdminPageCaches();
-  return body;
-}
-
-export async function createAdminAccount(
-  _session: FrontendSession,
-  payload: {
-    rolePreset: string;
-    adminId: string;
-    adminName: string;
-    password: string;
-    passwordConfirm: string;
-    adminEmail: string;
-    phone1: string;
-    phone2: string;
-    phone3: string;
-    deptNm: string;
-    insttId: string;
-    zip: string;
-    adres: string;
-    detailAdres: string;
-    featureCodes: string[];
-  }
-) {
-  const response = await fetch(buildAdminApiPath("/api/admin/member/admin-account"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload)
-  });
-  const body = await response.json();
-  if (!response.ok || !body.success) {
-    throw new Error(body.message || (body.errors ? body.errors.join(", ") : `Failed to create admin account: ${response.status}`));
-  }
-  invalidateAdminPageCaches();
-  return body;
-}
-
-export async function saveCompanyAccount(
-  _session: FrontendSession,
-  payload: {
-    insttId?: string;
-    membershipType: string;
-    agencyName?: string;
-    representativeName?: string;
-    bizRegistrationNumber?: string;
-    zipCode: string;
-    companyAddress: string;
-    companyAddressDetail?: string;
-    chargerName: string;
-    chargerEmail: string;
-    chargerTel: string;
-    fileUploads: File[];
-  }
-) {
-  const form = new FormData();
-  if (payload.insttId) form.set("insttId", payload.insttId);
-  form.set("membershipType", payload.membershipType);
-  if (typeof payload.agencyName === "string") form.set("agencyName", payload.agencyName);
-  if (typeof payload.representativeName === "string") form.set("representativeName", payload.representativeName);
-  if (typeof payload.bizRegistrationNumber === "string") form.set("bizRegistrationNumber", payload.bizRegistrationNumber);
-  form.set("zipCode", payload.zipCode);
-  form.set("companyAddress", payload.companyAddress);
-  form.set("companyAddressDetail", payload.companyAddressDetail || "");
-  form.set("chargerName", payload.chargerName);
-  form.set("chargerEmail", payload.chargerEmail);
-  form.set("chargerTel", payload.chargerTel);
-  payload.fileUploads.forEach((file) => form.append("fileUploads", file));
-
-  const headers = await buildResilientCsrfHeaders({
-    "X-Requested-With": "XMLHttpRequest"
-  });
-  delete headers["Content-Type"];
-  const response = await fetch(buildAdminApiPath("/api/admin/member/company-account"), {
-    method: "POST",
-    credentials: "include",
-    headers,
-    body: form
-  });
-  const body = await response.json();
-  if (!response.ok || !body.success) {
-    throw new Error(body.message || (body.errors ? body.errors.join(", ") : `Failed to save company account: ${response.status}`));
-  }
-  invalidateAdminPageCaches();
-  return body;
-}
-
-export async function submitMemberApproveAction(
-  session: FrontendSession,
-  payload: { action: string; memberId?: string; selectedIds?: string[]; rejectReason?: string; }
-) {
-  const response = await fetch(buildAdminApiPath("/api/admin/member/approve/action"), {
-    method: "POST",
-    credentials: "include",
-    headers: buildJsonHeaders(session),
-    body: JSON.stringify(payload)
-  });
-  const body = await response.json();
-  if (!response.ok || !body.success) {
-    throw new Error(body.message || `Failed to approve member: ${response.status}`);
-  }
-  invalidateAdminPageCaches();
-  return body;
-}
-
-export async function submitCompanyApproveAction(
-  session: FrontendSession,
-  payload: { action: string; insttId?: string; selectedIds?: string[]; rejectReason?: string; }
-) {
-  const response = await fetch(buildAdminApiPath("/api/admin/member/company-approve/action"), {
-    method: "POST",
-    credentials: "include",
-    headers: buildJsonHeaders(session),
-    body: JSON.stringify(payload)
-  });
-  const body = await response.json();
-  if (!response.ok || !body.success) {
-    throw new Error(body.message || `Failed to approve company: ${response.status}`);
-  }
-  invalidateAdminPageCaches();
-  return body;
-}
-
-export async function submitCertificateApproveAction(
-  session: FrontendSession,
-  payload: { action: string; certificateId?: string; selectedIds?: string[]; rejectReason?: string; }
-) {
-  const response = await fetch(buildAdminApiPath("/api/admin/certificate/approve/action"), {
-    method: "POST",
-    credentials: "include",
-    headers: buildJsonHeaders(session),
-    body: JSON.stringify(payload)
-  });
-  const body = await response.json();
-  if (!response.ok || !body.success) {
-    throw new Error(body.message || `Failed to approve certificate: ${response.status}`);
-  }
-  invalidateAdminPageCaches();
-  return body;
-}
-
-export async function submitTradeRejectAction(
-  session: FrontendSession,
-  payload: { tradeId?: string; rejectReason?: string; operatorNote?: string; }
-) {
-  const response = await fetch(buildAdminApiPath("/trade/reject/action"), {
-    method: "POST",
-    credentials: "include",
-    headers: buildJsonHeaders(session),
-    body: JSON.stringify(payload)
-  });
-  const body = await response.json();
-  if (!response.ok || !body.success) {
-    throw new Error(body.message || `Failed to submit trade reject action: ${response.status}`);
-  }
-  invalidateAdminPageCaches();
-  return body;
-}
-
-export async function submitTradeApproveAction(
-  session: FrontendSession,
-  payload: { action: string; tradeId?: string; selectedIds?: string[]; rejectReason?: string; }
-) {
-  const response = await fetch(buildAdminApiPath("/api/admin/trade/approve/action"), {
-    method: "POST",
-    credentials: "include",
-    headers: buildJsonHeaders(session),
-    body: JSON.stringify(payload)
-  });
-  const body = await response.json();
-  if (!response.ok || !body.success) {
-    throw new Error(body.message || `Failed to approve trade: ${response.status}`);
-  }
-  invalidateAdminPageCaches();
-  return body;
-}
-
-export async function submitJoinCompanyRegister(payload: {
-  membershipType: string;
-  agencyName: string;
-  representativeName: string;
-  bizRegistrationNumber: string;
-  zipCode: string;
-  companyAddress: string;
-  companyAddressDetail?: string;
-  chargerName: string;
-  chargerEmail: string;
-  chargerTel: string;
-  lang?: string;
-  fileUploads: File[];
-}) {
-  invalidateJoinSessionCache();
-  const form = new FormData();
-  form.set("membershipType", payload.membershipType);
-  form.set("agencyName", payload.agencyName);
-  form.set("representativeName", payload.representativeName);
-  form.set("bizRegistrationNumber", payload.bizRegistrationNumber);
-  form.set("zipCode", payload.zipCode);
-  form.set("companyAddress", payload.companyAddress);
-  form.set("companyAddressDetail", payload.companyAddressDetail || "");
-  form.set("chargerName", payload.chargerName);
-  form.set("chargerEmail", payload.chargerEmail);
-  form.set("chargerTel", payload.chargerTel);
-  form.set("lang", payload.lang || "ko");
-  payload.fileUploads.forEach((file) => form.append("fileUploads", file));
-
-  const response = await fetch("/join/api/company-register", {
-    method: "POST",
-    credentials: "include",
-    headers: buildCsrfHeaders(),
-    body: form
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) throw new Error(body.message || `Failed to submit company register: ${response.status}`);
-  return body;
-}
-
-export async function resetJoinSession() {
-  invalidateJoinSessionCache();
-  const response = await fetch("/join/api/reset", {
-    method: "POST",
-    credentials: "include",
-    headers: buildCsrfHeaders()
-  });
-  if (!response.ok) throw new Error(`Failed to reset join session: ${response.status}`);
-  return readJsonResponse<{ success: boolean }>(response);
-}
-
-export async function saveJoinStep1(membershipType: string) {
-  invalidateJoinSessionCache();
-  const form = new URLSearchParams();
-  form.set("membership_type", membershipType);
-  const response = await fetch("/join/api/step1", {
-    method: "POST",
-    credentials: "include",
-    headers: buildCsrfHeaders({
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: form
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) throw new Error(body.message || `Failed to save join step1: ${response.status}`);
-  return body;
-}
-
-export async function saveJoinStep2(marketingYn: string) {
-  invalidateJoinSessionCache();
-  const form = new URLSearchParams();
-  form.set("marketing_yn", marketingYn);
-  const response = await fetch("/join/api/step2", {
-    method: "POST",
-    credentials: "include",
-    headers: buildCsrfHeaders({
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: form
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) throw new Error(body.message || `Failed to save join step2: ${response.status}`);
-  return body;
-}
-
-export async function saveJoinStep3(authMethod: string) {
-  invalidateJoinSessionCache();
-  const form = new URLSearchParams();
-  form.set("auth_method", authMethod);
-  const response = await fetch("/join/api/step3", {
-    method: "POST",
-    credentials: "include",
-    headers: buildCsrfHeaders({
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: form
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) throw new Error(body.message || `Failed to save join step3: ${response.status}`);
-  return body;
-}
-
-export async function submitJoinStep4(payload: {
-  membershipType?: string;
-  mberId: string;
-  password: string;
-  mberNm: string;
-  insttNm: string;
-  insttId: string;
-  representativeName: string;
-  bizrno: string;
-  zip: string;
-  adres: string;
-  detailAdres?: string;
-  deptNm?: string;
-  moblphonNo1: string;
-  moblphonNo2: string;
-  moblphonNo3: string;
-  applcntEmailAdres: string;
-  fileUploads: File[];
-}) {
-  invalidateJoinSessionCache();
-  const form = new FormData();
-  Object.entries(payload).forEach(([key, value]) => {
-    if (key === "fileUploads") return;
-    form.set(key, String(value ?? ""));
-  });
-  payload.fileUploads.forEach((file) => form.append("fileUploads", file));
-  const response = await fetch("/join/api/step4/submit", {
-    method: "POST",
-    credentials: "include",
-    headers: buildCsrfHeaders(),
-    body: form
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) throw new Error(body.message || `Failed to submit join step4: ${response.status}`);
-  return body;
-}
-
-export async function submitJoinCompanyReapply(payload: {
-  insttId: string;
-  agencyName: string;
-  representativeName: string;
-  bizRegistrationNumber: string;
-  zipCode: string;
-  companyAddress: string;
-  companyAddressDetail?: string;
-  chargerName: string;
-  chargerEmail: string;
-  chargerTel: string;
-  fileUploads: File[];
-}) {
-  invalidateJoinSessionCache();
-  const form = new FormData();
-  form.set("insttId", payload.insttId);
-  form.set("agencyName", payload.agencyName);
-  form.set("representativeName", payload.representativeName);
-  form.set("bizRegistrationNumber", payload.bizRegistrationNumber);
-  form.set("zipCode", payload.zipCode);
-  form.set("companyAddress", payload.companyAddress);
-  form.set("companyAddressDetail", payload.companyAddressDetail || "");
-  form.set("chargerName", payload.chargerName);
-  form.set("chargerEmail", payload.chargerEmail);
-  form.set("chargerTel", payload.chargerTel);
-  payload.fileUploads.forEach((file) => form.append("fileUploads", file));
-
-  const response = await fetch("/join/api/company-reapply", {
-    method: "POST",
-    credentials: "include",
-    headers: buildCsrfHeaders(),
-    body: form
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string } & Record<string, unknown>>(response);
-  if (!response.ok || !body.success) throw new Error(body.message || `Failed to submit company reapply: ${response.status}`);
-  return body;
-}
 export function readBootstrappedEmissionResultDetailPageData(): EmissionResultDetailPagePayload | null {
   return consumeRuntimeBootstrap<EmissionResultDetailPagePayload>("emissionResultDetailPageData");
 }

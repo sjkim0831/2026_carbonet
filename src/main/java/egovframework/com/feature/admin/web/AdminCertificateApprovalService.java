@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
-class AdminCertificateApprovalService {
+public class AdminCertificateApprovalService {
 
     private static final int PAGE_SIZE = 10;
 
@@ -190,7 +190,7 @@ class AdminCertificateApprovalService {
                 gridCheckSummary, reviewerMemo, rejectReason, attachmentFiles);
     }
 
-    List<Map<String, Object>> buildAuditSnapshotRows() {
+    public List<Map<String, Object>> buildAuditSnapshotRows() {
         return recordStore.values().stream()
                 .sorted(Comparator.comparing(CertificateApprovalRecord::getRequestedAt).reversed())
                 .map(CertificateApprovalRecord::toAuditSnapshotMap)

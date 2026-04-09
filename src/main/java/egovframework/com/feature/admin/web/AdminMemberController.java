@@ -4,8 +4,8 @@ import egovframework.com.feature.admin.dto.request.AdminAdminAccountCreateReques
 import egovframework.com.feature.admin.dto.request.AdminMemberEditSaveRequestDTO;
 import egovframework.com.feature.admin.dto.request.AdminMemberRegisterSaveRequestDTO;
 import egovframework.com.feature.admin.dto.request.AdminPermissionSaveRequestDTO;
-import egovframework.com.feature.admin.web.AdminObservabilityPageService;
 import egovframework.com.feature.member.dto.response.CompanySearchResponseDTO;
+import egovframework.com.platform.observability.service.PlatformObservabilityAdminPageFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.web.csrf.CsrfToken;
@@ -32,8 +32,9 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AdminMemberController {
 
+    private final AdminReactRouteSupport adminReactRouteSupport;
     private final AdminMainController adminMainController;
-    private final AdminObservabilityPageService adminObservabilityPageService;
+    private final PlatformObservabilityAdminPageFacade platformObservabilityAdminPageFacade;
 
     @RequestMapping(value = "/member/stats", method = { RequestMethod.GET, RequestMethod.POST })
     public String memberStatsPage(HttpServletRequest request, Locale locale) {
@@ -191,14 +192,14 @@ public class AdminMemberController {
             HttpServletRequest request,
             Locale locale) {
         primeCsrfToken(request);
-        return ResponseEntity.ok(adminObservabilityPageService.buildSecurityHistoryPagePayload(
+        return ResponseEntity.ok(platformObservabilityAdminPageFacade.buildSecurityHistoryPagePayload(
                 pageIndexParam,
                 searchKeyword,
                 userSe,
                 insttId,
                 actionStatus,
                 request,
-                isEnglishRequest(request, locale)));
+                adminReactRouteSupport.isEnglishRequest(request, locale)));
     }
 
     @RequestMapping(value = { "/member/admin_account" }, method = RequestMethod.GET)
@@ -264,22 +265,8 @@ public class AdminMemberController {
         return adminMainController.adminAccountPermissionsSubmitApi(payload, request, locale);
     }
 
-    private boolean isEnglishRequest(HttpServletRequest request, Locale locale) {
-        if (request != null && request.getRequestURI() != null && request.getRequestURI().startsWith("/en/admin")) {
-            return true;
-        }
-        return locale != null && "en".equalsIgnoreCase(locale.getLanguage());
-    }
-
     private String forwardReactMigration(HttpServletRequest request, Locale locale, String route) {
-        StringBuilder builder = new StringBuilder("forward:");
-        builder.append(isEnglishRequest(request, locale) ? "/en/admin/app?route=" : "/admin/app?route=");
-        builder.append(route);
-        String query = request == null ? "" : request.getQueryString();
-        if (query != null && !query.trim().isEmpty()) {
-            builder.append("&").append(query.trim());
-        }
-        return builder.toString();
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, route);
     }
 
     private void primeCsrfToken(HttpServletRequest request) {

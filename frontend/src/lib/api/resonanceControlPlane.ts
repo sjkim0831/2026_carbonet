@@ -1,6 +1,26 @@
 import { apiFetch, buildAdminApiPath, buildResilientCsrfHeaders, readJsonResponse } from "./core";
 
 export const RESONANCE_PROJECT_ID = "carbonet-main";
+const RESONANCE_PROJECT_PARAM_KEYS = ["resonanceProjectId", "projectId"];
+
+function readProjectIdFromSearch() {
+  if (typeof window === "undefined") {
+    return "";
+  }
+  const search = new URLSearchParams(window.location.search);
+  for (const key of RESONANCE_PROJECT_PARAM_KEYS) {
+    const value = (search.get(key) || "").trim();
+    if (value) {
+      return value;
+    }
+  }
+  return "";
+}
+
+export function resolveResonanceProjectId(explicitProjectId?: string) {
+  const candidate = (explicitProjectId || "").trim();
+  return candidate || readProjectIdFromSearch() || RESONANCE_PROJECT_ID;
+}
 
 export type ResonanceParityCompareRow = {
   target: string;
@@ -51,6 +71,9 @@ export type ResonanceRepairOpenResponse = {
   status: string;
   result: string;
   releaseUnitId: string;
+  deployTraceId?: string;
+  deployContract?: ResonanceDeployContract;
+  serverStateSet?: ResonancePipelineServerState[];
   compareBaseline: string;
   reasonCode: string;
   requestedBy: string;
@@ -70,6 +93,7 @@ export type ResonanceRepairApplyResponse = {
   runtimeEvidence: Record<string, unknown>;
   updatedAssetTraceSet: string[];
   updatedReleaseCandidateId: string;
+  candidateRuntimePackageId?: string;
   parityRecheckRequiredYn: boolean;
   uniformityRecheckRequiredYn: boolean;
   smokeRequiredYn: boolean;
@@ -84,12 +108,79 @@ export type ResonanceRepairApplyResponse = {
   updatedThemeOrLayoutSet: string[];
   sqlDraftSet: string[];
   publishMode: string;
+  deployTraceId?: string;
+  deployContract?: ResonanceDeployContract;
+  serverStateSet?: ResonancePipelineServerState[];
   requestedBy: string;
   requestedByType: string;
   changeSummary: string;
   compareBaseline: string;
   occurredAt: string;
   traceId: string;
+};
+
+export type ResonanceDeploymentRoute = {
+  serverId: string;
+  serverRole: string;
+  promotionState: string;
+};
+
+export type ResonancePipelineServerState = {
+  serverId: string;
+  serverRole: string;
+  projectId?: string;
+  activeReleaseUnitId: string;
+  deployTraceId: string;
+  deployedAt: string;
+  healthStatus: string;
+  promotionState: string;
+};
+
+export type ResonanceDeployContract = {
+  artifactTargetSystem: string;
+  deploymentTarget: string;
+  deploymentRouteSet?: ResonanceDeploymentRoute[];
+  deploymentMode: string;
+  versionTrackingYn: boolean;
+  releaseFamilyId: string;
+  releaseUnitId?: string;
+};
+
+export type ResonanceProjectPipelineResponse = {
+  pipelineRunId: string;
+  traceId: string;
+  projectId: string;
+  scenarioId: string;
+  guidedStateId: string;
+  templateLineId: string;
+  screenFamilyRuleId: string;
+  ownerLane: string;
+  menuRoot: string;
+  runtimeClass: string;
+  menuScope: string;
+  artifactTargetSystem: string;
+  deploymentTarget: string;
+  releaseUnitId: string;
+  runtimePackageId: string;
+  deployTraceId: string;
+  commonArtifactSet: string[];
+  projectAdapterArtifactSet: string[];
+  installableArtifactSet: string[];
+  installableProduct: Record<string, unknown>;
+  boundarySummary: Record<string, unknown>;
+  validatorCheckSet: Array<Record<string, unknown>>;
+  validatorPassCount: number;
+  validatorTotalCount: number;
+  stageSet: Array<Record<string, unknown>>;
+  artifactVersionSet: Record<string, unknown>;
+  artifactLineage: Record<string, unknown>;
+  artifactRegistryEntrySet: Array<Record<string, unknown>>;
+  deployContract: ResonanceDeployContract;
+  serverStateSet?: ResonancePipelineServerState[];
+  rollbackPlan: Record<string, unknown>;
+  operator: string;
+  result: string;
+  occurredAt: string;
 };
 
 export async function fetchParityCompare(params: {
@@ -116,7 +207,7 @@ export async function fetchParityCompare(params: {
   if (params.requestedBy) search.set("requestedBy", params.requestedBy);
   if (params.requestedByType) search.set("requestedByType", params.requestedByType);
 
-  const response = await apiFetch(`${buildAdminApiPath("/api/admin/ops/parity/compare")}?${search.toString()}`, {
+  const response = await apiFetch(`${buildAdminApiPath("/api/platform/runtime/parity/compare")}?${search.toString()}`, {
     credentials: "include"
   });
   const body = await readJsonResponse<ResonanceParityCompareResponse & { message?: string }>(response);
@@ -144,7 +235,7 @@ export async function fetchRepairOpen(payload: {
   requestedByType: string;
   requestNote?: string;
 }) {
-  const response = await apiFetch(buildAdminApiPath("/api/admin/ops/repair/open"), {
+  const response = await apiFetch(buildAdminApiPath("/api/platform/runtime/repair/open"), {
     method: "POST",
     credentials: "include",
     headers: await buildResilientCsrfHeaders({
@@ -182,7 +273,7 @@ export async function fetchRepairApply(payload: {
   requestedByType: string;
   changeSummary: string;
 }) {
-  const response = await apiFetch(buildAdminApiPath("/api/admin/ops/repair/apply"), {
+  const response = await apiFetch(buildAdminApiPath("/api/platform/runtime/repair/apply"), {
     method: "POST",
     credentials: "include",
     headers: await buildResilientCsrfHeaders({
@@ -196,4 +287,59 @@ export async function fetchRepairApply(payload: {
     throw new Error(String(body.message || `Failed to apply repair session: ${response.status}`));
   }
   return body as ResonanceRepairApplyResponse;
+}
+
+export async function runProjectPipeline(payload: {
+  projectId: string;
+  scenarioId?: string;
+  guidedStateId?: string;
+  templateLineId?: string;
+  screenFamilyRuleId?: string;
+  ownerLane?: string;
+  menuRoot: string;
+  runtimeClass: string;
+  menuScope: string;
+  releaseUnitId?: string;
+  runtimePackageId?: string;
+  releaseUnitPrefix: string;
+  runtimePackagePrefix: string;
+  artifactTargetSystem?: string;
+  deploymentTarget?: string;
+  operator?: string;
+}) {
+  const response = await apiFetch(buildAdminApiPath("/api/platform/runtime/project-pipeline/run"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload)
+  });
+  const body = await readJsonResponse<ResonanceProjectPipelineResponse & { message?: string }>(response);
+  if (!response.ok) {
+    throw new Error(String(body.message || `Failed to run project pipeline: ${response.status}`));
+  }
+  return body as ResonanceProjectPipelineResponse;
+}
+
+export async function fetchProjectPipelineStatus(payload: {
+  projectId: string;
+  pipelineRunId?: string;
+  releaseUnitId?: string;
+}) {
+  const response = await apiFetch(buildAdminApiPath("/api/platform/runtime/project-pipeline/status"), {
+    method: "POST",
+    credentials: "include",
+    headers: await buildResilientCsrfHeaders({
+      "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest"
+    }),
+    body: JSON.stringify(payload)
+  });
+  const body = await readJsonResponse<ResonanceProjectPipelineResponse & { message?: string }>(response);
+  if (!response.ok) {
+    throw new Error(String(body.message || `Failed to load project pipeline status: ${response.status}`));
+  }
+  return body as ResonanceProjectPipelineResponse;
 }

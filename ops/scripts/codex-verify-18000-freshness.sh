@@ -30,7 +30,9 @@ CONFIG_DIR="${CONFIG_DIR:-$ROOT_DIR/ops/config}"
 ENV_FILE="${ENV_FILE:-$CONFIG_DIR/carbonet-${PORT}.env}"
 RUN_DIR="${RUN_DIR:-$ROOT_DIR/var/run}"
 LOG_DIR="${LOG_DIR:-$ROOT_DIR/var/logs}"
-TARGET_JAR_PATH="${TARGET_JAR_PATH:-$ROOT_DIR/target/carbonet.jar}"
+ROOT_TARGET_JAR_PATH="$ROOT_DIR/target/carbonet.jar"
+APP_TARGET_JAR_PATH="$ROOT_DIR/apps/carbonet-app/target/carbonet.jar"
+TARGET_JAR_PATH="${TARGET_JAR_PATH:-}"
 RUNTIME_JAR_PATH="${RUNTIME_JAR_PATH:-$RUN_DIR/carbonet-${PORT}.jar}"
 PID_FILE="${PID_FILE:-$RUN_DIR/carbonet-${PORT}.pid}"
 LOG_FILE="${LOG_FILE:-$LOG_DIR/carbonet-${PORT}.log}"
@@ -44,6 +46,14 @@ if [[ -f "$ENV_FILE" ]]; then
   # shellcheck disable=SC1090
   source "$ENV_FILE"
   set +a
+fi
+
+if [[ -z "$TARGET_JAR_PATH" ]]; then
+  if [[ -f "$ROOT_TARGET_JAR_PATH" ]]; then
+    TARGET_JAR_PATH="$ROOT_TARGET_JAR_PATH"
+  else
+    TARGET_JAR_PATH="$APP_TARGET_JAR_PATH"
+  fi
 fi
 
 carbonet_set_curl_args
@@ -64,6 +74,40 @@ resolve_running_pid() {
       exit 0;
     }
   '
+}
+
+pid_is_live() {
+  local pid="$1"
+  [[ -n "${pid:-}" ]] || return 1
+  ps -p "$pid" -o args= 2>/dev/null | awk -v jar_path="$RUNTIME_JAR_PATH" -v port="--server.port=${PORT}" '
+    index($0, jar_path) && index($0, port) {
+      found = 1
+    }
+    END {
+      exit(found ? 0 : 1)
+    }
+  '
+}
+
+refresh_pid_file_from_runtime() {
+  local resolved_pid=""
+  resolved_pid="$(resolve_running_pid || true)"
+  if pid_is_live "$resolved_pid"; then
+    printf '%s\n' "$resolved_pid" > "$PID_FILE"
+    printf '%s\n' "$resolved_pid"
+    return 0
+  fi
+  return 1
+}
+
+read_live_pid() {
+  local pid=""
+  pid="$(cat "$PID_FILE" 2>/dev/null || true)"
+  if pid_is_live "$pid"; then
+    printf '%s\n' "$pid"
+    return 0
+  fi
+  refresh_pid_file_from_runtime
 }
 
 compute_hash() {
@@ -89,17 +133,14 @@ require_file "$TARGET_JAR_PATH"
 for _ in $(seq 1 "$VERIFY_WAIT_SECONDS"); do
   [[ -f "$RUNTIME_JAR_PATH" && -f "$LOG_FILE" && -f "$PID_FILE" ]] || {
     if [[ ! -f "$PID_FILE" ]]; then
-      APP_PID="$(resolve_running_pid || true)"
-      if [[ -n "${APP_PID:-}" ]] && kill -0 "$APP_PID" 2>/dev/null; then
-        printf '%s\n' "$APP_PID" > "$PID_FILE"
-      fi
+      refresh_pid_file_from_runtime >/dev/null || true
     fi
     sleep 1
     continue
   }
 
-  APP_PID="$(cat "$PID_FILE" 2>/dev/null || true)"
-  if [[ -z "${APP_PID:-}" ]] || ! kill -0 "$APP_PID" 2>/dev/null; then
+  APP_PID="$(read_live_pid || true)"
+  if [[ -z "${APP_PID:-}" ]]; then
     sleep 1
     continue
   fi
@@ -114,16 +155,22 @@ done
 
 require_file "$RUNTIME_JAR_PATH"
 require_file "$LOG_FILE"
-if [[ ! -f "$PID_FILE" ]]; then
-  APP_PID="$(resolve_running_pid || true)"
-  if [[ -n "${APP_PID:-}" ]] && kill -0 "$APP_PID" 2>/dev/null; then
-    printf '%s\n' "$APP_PID" > "$PID_FILE"
-  fi
+if [[ ! -s "$PID_FILE" ]]; then
+  refresh_pid_file_from_runtime >/dev/null || true
 fi
 [[ -f "$PID_FILE" ]] || fail "missing pid file: $PID_FILE after waiting ${VERIFY_WAIT_SECONDS}s"
-APP_PID="$(cat "$PID_FILE" 2>/dev/null || true)"
-[[ -n "${APP_PID:-}" ]] || fail "empty pid file: $PID_FILE"
-kill -0 "$APP_PID" 2>/dev/null || fail "process not running for pid=$APP_PID"
+APP_PID="$(read_live_pid || true)"
+if [[ -z "${APP_PID:-}" ]]; then
+  for _ in $(seq 1 5); do
+    sleep 1
+    APP_PID="$(read_live_pid || true)"
+    if [[ -n "${APP_PID:-}" ]]; then
+      break
+    fi
+  done
+fi
+[[ -n "${APP_PID:-}" ]] || fail "unable to resolve running pid from $PID_FILE or process table"
+pid_is_live "$APP_PID" || fail "process not running for pid=$APP_PID"
 
 if ! ss -ltn "( sport = :$PORT )" 2>/dev/null | grep -q ":$PORT"; then
   fail "port is not listening: $PORT"

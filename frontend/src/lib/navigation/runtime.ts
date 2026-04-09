@@ -63,6 +63,10 @@ function normalizeAdminRootPath(path: string): string {
     .replace(/^\/en\/admin\/([?#]|$)/, "/en/admin$1");
 }
 
+function resolveNavigationUrl(path: string): URL {
+  return new URL(normalizeAdminRootPath(path), window.location.origin);
+}
+
 export function getRuntimeLocale(): "ko" | "en" {
   const locale = window.__CARBONET_REACT_MIGRATION__?.locale;
   return locale === "en" || document.documentElement.lang === "en" || isEnglishPath(window.location.pathname)
@@ -91,7 +95,7 @@ export function buildLocalizedPath(koPath: string, enPath: string): string {
 }
 
 export function navigate(path: string) {
-  const nextUrl = new URL(normalizeAdminRootPath(path), window.location.origin);
+  const nextUrl = resolveNavigationUrl(path);
   const currentUrl = new URL(window.location.href);
   if (isEnglishPath(nextUrl.pathname) !== isEnglishPath(currentUrl.pathname)) {
     window.location.href = nextUrl.toString();
@@ -110,7 +114,7 @@ export function navigate(path: string) {
 }
 
 export function replace(path: string) {
-  const nextUrl = new URL(normalizeAdminRootPath(path), window.location.origin);
+  const nextUrl = resolveNavigationUrl(path);
   window.history.replaceState({}, "", `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`);
   window.dispatchEvent(new Event(NAVIGATION_EVENT));
 }

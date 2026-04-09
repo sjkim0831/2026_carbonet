@@ -1,6 +1,5 @@
 package egovframework.com.feature.home.web;
 
-import egovframework.com.common.util.ReactPageUrlMapper;
 import org.springframework.stereotype.Controller;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
@@ -23,12 +22,8 @@ import java.util.concurrent.TimeUnit;
 public class ReactAppPageController {
     private final ReactAppViewSupport reactAppViewSupport;
 
-    private String normalizeRoute(String route) {
-        return route == null ? "" : route.trim().replace('_', '-');
-    }
-
     private Object renderHomeShell(String route, Model model, boolean english) {
-        String normalizedRoute = normalizeRoute(route);
+        String normalizedRoute = ReactRouteSupport.normalizeViewRoute(route, false);
         if ("mypage".equals(normalizedRoute)) {
             return new RedirectView(english ? "/en/mypage/profile" : "/mypage/profile");
         }
@@ -39,7 +34,7 @@ public class ReactAppPageController {
     }
 
     private String renderAdminShell(String route, Model model, boolean english) {
-        return reactAppViewSupport.render(model, normalizeRoute(route), english, true);
+        return reactAppViewSupport.render(model, ReactRouteSupport.normalizeViewRoute(route, true), english, true);
     }
 
     @GetMapping("/app")
@@ -89,22 +84,8 @@ public class ReactAppPageController {
     }
 
     private Map<String, Object> buildBootstrapPayload(String route, String path, HttpServletRequest request, boolean admin) {
-        String resolvedRoute = normalizeRoute(route);
-        String requestedPath = path == null || path.isBlank()
-                ? request != null ? request.getHeader("X-Carbonet-Path") : ""
-                : path;
-        String normalizedRequestedPath = requestedPath == null ? "" : requestedPath.trim();
-        if ("/signin/findId/overseas".equals(normalizedRequestedPath) || "/en/signin/findId/overseas".equals(normalizedRequestedPath)) {
-            resolvedRoute = "signin_find_id";
-        } else if ("/signin/findPassword/overseas".equals(normalizedRequestedPath) || "/en/signin/findPassword/overseas".equals(normalizedRequestedPath)) {
-            resolvedRoute = "signin_find_password";
-        }
-        if (resolvedRoute.isEmpty() || "mypage".equals(resolvedRoute) || "auth-group".equals(resolvedRoute)) {
-            String routeByPath = ReactPageUrlMapper.resolveRouteIdForPath(requestedPath);
-            if (!routeByPath.isBlank()) {
-                resolvedRoute = routeByPath;
-            }
-        }
+        String requestedPath = ReactRouteSupport.resolveRequestedPath(path, request);
+        String resolvedRoute = ReactRouteSupport.resolveBootstrapRoute(route, requestedPath, admin);
 
         Map<String, Object> payload = new LinkedHashMap<>(reactAppViewSupport.createBootstrapPayload(resolvedRoute, isEnglishRequest(request), admin));
         if (request != null) {

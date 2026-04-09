@@ -21,10 +21,11 @@ import java.util.Map;
 public class AdminEmissionDataHistoryController {
 
     private final AdminShellBootstrapPageService adminShellBootstrapPageService;
+    private final AdminReactRouteSupport adminReactRouteSupport;
 
     @RequestMapping(value = "/data_history", method = RequestMethod.GET)
     public String emissionDataHistoryPage(HttpServletRequest request, Locale locale) {
-        return redirectReactMigration(request, locale, "emission-data-history");
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "emission-data-history");
     }
 
     @GetMapping("/data_history/page-data")
@@ -36,32 +37,13 @@ public class AdminEmissionDataHistoryController {
             @RequestParam(value = "changeTarget", required = false) String changeTarget,
             HttpServletRequest request,
             Locale locale) {
-        boolean isEn = isEnglishRequest(request, locale);
+        boolean isEn = adminReactRouteSupport.isEnglishRequest(request, locale);
         return ResponseEntity.ok(new LinkedHashMap<>(adminShellBootstrapPageService.buildEmissionDataHistoryPageData(
                 pageIndexParam,
                 searchKeyword,
                 changeType,
                 changeTarget,
                 isEn)));
-    }
-
-    private boolean isEnglishRequest(HttpServletRequest request, Locale locale) {
-        String uri = request == null ? "" : safe(request.getRequestURI());
-        if (uri.startsWith("/en/")) {
-            return true;
-        }
-        return locale != null && Locale.ENGLISH.getLanguage().equalsIgnoreCase(locale.getLanguage());
-    }
-
-    private String redirectReactMigration(HttpServletRequest request, Locale locale, String route) {
-        StringBuilder builder = new StringBuilder("forward:");
-        builder.append(isEnglishRequest(request, locale) ? "/en/admin/app?route=" : "/admin/app?route=");
-        builder.append(route == null ? "" : route.replace('-', '_'));
-        String query = request == null ? "" : safe(request.getQueryString());
-        if (!query.isEmpty()) {
-            builder.append("&").append(query);
-        }
-        return builder.toString();
     }
 
     private String safe(String value) {

@@ -1,0 +1,4 @@
+/opt/projects/carbonet/modules/carbonet-builder-observability/src/main/java/egovframework/com/common/trace/UiManifestRegistryPort.java
+/opt/projects/carbonet/modules/carbonet-builder-observability/src/main/java/egovframework/com/framework/builder/runtime/mapper/FrameworkBuilderObservabilityMapper.java
+/opt/projects/carbonet/modules/carbonet-builder-observability/src/main/java/egovframework/com/common/mapper/UiObservabilityRegistryMapper.java
+/opt/projects/carbonet/modules/carbonet-builder-observability/src/main/java/egovframework/com/common/trace/UiManifestRegistryService.java

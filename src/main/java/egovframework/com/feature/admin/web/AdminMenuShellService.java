@@ -1,9 +1,9 @@
 package egovframework.com.feature.admin.web;
 
 import egovframework.com.feature.admin.dto.response.MenuInfoDTO;
-import egovframework.com.feature.admin.service.MenuInfoService;
 import egovframework.com.feature.auth.util.JwtTokenProvider;
 import egovframework.com.feature.home.web.ReactAppViewSupport;
+import egovframework.com.platform.read.MenuInfoReadPort;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,14 +24,15 @@ public class AdminMenuShellService {
     private static final Logger log = LoggerFactory.getLogger(AdminMenuShellService.class);
 
     private final JwtTokenProvider jwtProvider;
-    private final MenuInfoService menuInfoService;
+    private final MenuInfoReadPort menuInfoReadPort;
     private final ObjectProvider<ReactAppViewSupport> reactAppViewSupportProvider;
+    private final AdminReactRouteSupport adminReactRouteSupport;
 
     public Map<String, Object> buildMenuPlaceholderPayload(
             String requestPath,
             HttpServletRequest request,
             Locale locale) {
-        boolean isEn = isEnglishRequest(request, locale);
+        boolean isEn = adminReactRouteSupport.isEnglishRequest(request, locale);
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("isEn", isEn);
         MenuInfoDTO menu = loadMenuByPath(requestPath);
@@ -47,7 +48,7 @@ public class AdminMenuShellService {
             return resolveAdminLoginRedirect(request);
         }
         MenuInfoDTO menu = loadMenuByRequestPath(request);
-        boolean isEn = isEnglishRequest(request, locale);
+        boolean isEn = adminReactRouteSupport.isEnglishRequest(request, locale);
         if (menu != null) {
             return reactAppViewSupportProvider.getObject().render(model, "admin-menu-placeholder", isEn, true);
         }
@@ -82,7 +83,7 @@ public class AdminMenuShellService {
             normalized = normalized.substring(3);
         }
         try {
-            MenuInfoDTO menu = menuInfoService.selectMenuDetailByUrl(normalized);
+            MenuInfoDTO menu = menuInfoReadPort.selectMenuDetailByUrl(normalized);
             if (menu == null || ObjectUtils.isEmpty(menu.getCode())) {
                 return null;
             }
@@ -106,22 +107,8 @@ public class AdminMenuShellService {
         return value.isEmpty() ? safeString(fallback) : value;
     }
 
-    private boolean isEnglishRequest(HttpServletRequest request, Locale locale) {
-        if (request != null) {
-            String requestUri = safeString(request.getRequestURI());
-            if (requestUri.startsWith("/en/admin")) {
-                return true;
-            }
-            String language = safeString(request.getParameter("language"));
-            if ("en".equalsIgnoreCase(language)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private String adminPrefix(HttpServletRequest request) {
-        return isEnglishRequest(request, null) ? "/en/admin" : "/admin";
+        return adminReactRouteSupport.isEnglishRequest(request, null) ? "/en/admin" : "/admin";
     }
 
     private String safeString(String value) {

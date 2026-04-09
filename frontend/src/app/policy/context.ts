@@ -70,7 +70,7 @@ export function buildPageContext(manifest: PageManifest, pageType: GovernancePag
     pageId: manifest.pageId,
     menuCode: manifest.menuCode,
     routePath: manifest.routePath,
-    domainCode: manifest.domainCode === "admin" ? "admin" : "home",
+    domainCode: manifest.domainCode === "home" ? "home" : "admin",
     pageType
   };
 }

@@ -1535,7 +1535,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     pageId: "observability",
     routePath: "/admin/system/observability",
     menuCode: "A0060303",
-    domainCode: "admin",
+    domainCode: "platform",
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
     components: [
@@ -1548,7 +1548,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     pageId: "help-management",
     routePath: "/admin/system/help-management",
     menuCode: "A1900101",
-    domainCode: "admin",
+    domainCode: "platform",
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
     components: [
@@ -1561,7 +1561,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     pageId: "codex-request",
     routePath: "/admin/system/codex-request",
     menuCode: "A1900103",
-    domainCode: "admin",
+    domainCode: "platform",
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
     components: [
@@ -1592,7 +1592,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     pageId: "platform-studio",
     routePath: "/admin/system/platform-studio",
     menuCode: "A0060109",
-    domainCode: "admin",
+    domainCode: "platform",
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
     components: [
@@ -1606,7 +1606,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     pageId: "screen-elements-management",
     routePath: "/admin/system/screen-elements-management",
     menuCode: "A0060110",
-    domainCode: "admin",
+    domainCode: "platform",
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
     components: [
@@ -1618,7 +1618,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     pageId: "event-management-console",
     routePath: "/admin/system/event-management-console",
     menuCode: "A0060111",
-    domainCode: "admin",
+    domainCode: "platform",
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
     components: [
@@ -1630,7 +1630,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     pageId: "function-management-console",
     routePath: "/admin/system/function-management-console",
     menuCode: "A0060112",
-    domainCode: "admin",
+    domainCode: "platform",
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
     components: [
@@ -1642,7 +1642,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     pageId: "api-management-console",
     routePath: "/admin/system/api-management-console",
     menuCode: "A0060113",
-    domainCode: "admin",
+    domainCode: "platform",
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
     components: [
@@ -1654,7 +1654,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     pageId: "controller-management-console",
     routePath: "/admin/system/controller-management-console",
     menuCode: "A0060114",
-    domainCode: "admin",
+    domainCode: "platform",
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
     components: [
@@ -1666,7 +1666,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     pageId: "db-table-management",
     routePath: "/admin/system/db-table-management",
     menuCode: "A0060115",
-    domainCode: "admin",
+    domainCode: "platform",
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
     components: [
@@ -1678,7 +1678,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     pageId: "column-management-console",
     routePath: "/admin/system/column-management-console",
     menuCode: "A0060116",
-    domainCode: "admin",
+    domainCode: "platform",
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
     components: [
@@ -1690,7 +1690,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     pageId: "automation-studio",
     routePath: "/admin/system/automation-studio",
     menuCode: "A0060117",
-    domainCode: "admin",
+    domainCode: "platform",
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
     components: [
@@ -2404,7 +2404,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     pageId: "environment-management",
     routePath: "/admin/system/environment-management",
     menuCode: "A0060118",
-    domainCode: "admin",
+    domainCode: "platform",
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
     components: [
@@ -2417,7 +2417,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     pageId: "screen-builder",
     routePath: "/admin/system/screen-builder",
     menuCode: "A1900106",
-    domainCode: "admin",
+    domainCode: "platform",
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
     components: [
@@ -2431,7 +2431,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     pageId: "screen-runtime",
     routePath: "/admin/system/screen-runtime",
     menuCode: "A1900107",
-    domainCode: "admin",
+    domainCode: "platform",
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
     components: [
@@ -2445,7 +2445,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     pageId: "current-runtime-compare",
     routePath: "/admin/system/current-runtime-compare",
     menuCode: "A1900108",
-    domainCode: "admin",
+    domainCode: "platform",
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
     components: [
@@ -2458,7 +2458,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
   "repair-workbench": {
     pageId: "repair-workbench",
     routePath: "/admin/system/repair-workbench",
-    domainCode: "admin",
+    domainCode: "platform",
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
     components: [
@@ -2544,7 +2544,7 @@ export const PAGE_MANIFESTS: Record<string, PageManifest> = {
     pageId: "sr-workbench",
     routePath: "/admin/system/sr-workbench",
     menuCode: "A1900102",
-    domainCode: "admin",
+    domainCode: "platform",
     layoutVersion: "v1",
     designTokenVersion: "krds-current",
     components: [

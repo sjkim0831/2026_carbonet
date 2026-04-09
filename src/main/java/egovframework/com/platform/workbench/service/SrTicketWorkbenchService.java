@@ -1,8 +1,8 @@
 package egovframework.com.platform.workbench.service;
 
-import egovframework.com.feature.admin.dto.request.SrTicketApprovalRequest;
-import egovframework.com.feature.admin.dto.request.SrTicketCreateRequest;
-import egovframework.com.feature.admin.dto.request.SrWorkbenchStackItemCreateRequest;
+import egovframework.com.platform.request.workbench.SrTicketApprovalRequest;
+import egovframework.com.platform.request.workbench.SrTicketCreateRequest;
+import egovframework.com.platform.request.workbench.SrWorkbenchStackItemCreateRequest;
 
 import java.util.Map;
 

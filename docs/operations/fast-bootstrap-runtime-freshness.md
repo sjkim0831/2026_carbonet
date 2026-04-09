@@ -46,16 +46,18 @@ That script already enforces:
 
 ## Why Restart Alone Is Not Enough
 
-`ops/scripts/restart-18000.sh` only restarts the supervised runtime.
+`ops/scripts/restart-18000.sh` now defaults to a freshness-safe restart.
 
-It does not:
+It does:
 
 - rebuild frontend assets
-- rebuild `target/carbonet.jar`
-- guarantee new bootstrap resources were packaged
+- rebuild the packaged app jar, typically `apps/carbonet-app/target/carbonet.jar`
+- restart the supervised runtime with the rebuilt jar
 
-So `restart-18000.sh` alone is not a freshness command.
-It is only a process restart command.
+If you explicitly need process restart only, use:
+
+- `RESTART_MODE=runtime-only bash ops/scripts/restart-18000.sh`
+- or `bash ops/scripts/restart-18000-runtime.sh`
 
 ## Runtime Freshness Chain
 
@@ -64,7 +66,7 @@ The latest user-visible output reaches the running server through this chain:
 1. `frontend/src`
 2. frontend build output written into source-controlled static resources
 3. `target/classes`
-4. `target/carbonet.jar`
+4. packaged app jar, typically `apps/carbonet-app/target/carbonet.jar`
 5. `var/run/carbonet-18000.jar`
 6. Java process started by `ops/scripts/start-18000.sh`
 
@@ -82,7 +84,7 @@ Behavior:
 
 - runs frontend build
 - runs backend package
-- restarts `:18000`
+- restarts `:18000` through the runtime-only helper
 
 Use when:
 
@@ -91,6 +93,27 @@ Use when:
 - backend changed and you want one standard command
 
 ### `ops/scripts/restart-18000.sh`
+
+Purpose:
+
+- default freshness-safe local restart
+
+Behavior:
+
+- runs frontend build
+- runs backend package
+- restarts `:18000` through the supervised runtime flow
+
+Use when:
+
+- the user expects local `:18000` to reflect the newest frontend, backend, or shell output
+
+If you need process restart only, use:
+
+- `RESTART_MODE=runtime-only bash ops/scripts/restart-18000.sh`
+- `bash ops/scripts/restart-18000-runtime.sh`
+
+### `ops/scripts/restart-18000-runtime.sh`
 
 Purpose:
 
@@ -107,6 +130,11 @@ Use when:
 - env or process supervision changed
 - a fresh jar already exists and only process restart is needed
 
+Guard:
+
+- runtime-only restart now refuses to start when the packaged app jar is older than `src/main/resources/static/react-app` assets or the Vite manifest
+- this prevents stale frontend bundles from being copied into `var/run` when someone restarts before packaging finishes
+
 ### `ops/scripts/start-18000.sh`
 
 Purpose:
@@ -116,7 +144,7 @@ Purpose:
 Behavior:
 
 - loads optional env files
-- copies `target/carbonet.jar` into `var/run/carbonet-18000.jar`
+- copies the packaged app jar into `var/run/carbonet-18000.jar`
 - starts Java with DB settings
 - waits for startup confirmation
 - writes runtime log evidence
@@ -124,7 +152,7 @@ Behavior:
 Critical implication:
 
 - the running process starts from `var/run/carbonet-18000.jar`
-- if `target/carbonet.jar` is stale, runtime will also be stale
+- if the packaged app jar is stale, runtime will also be stale
 
 ## Bootstrap Freshness Rules
 
@@ -205,6 +233,7 @@ When frontend freshness matters, also verify:
 1. the latest frontend build completed
 2. packaged jar was rebuilt afterward
 3. hard refresh loads the new shell and asset set
+4. `/react-shell/index.html` responds with no-store cache headers when the changed route is a React migration page
 
 Preferred repository check:
 
@@ -214,6 +243,12 @@ Recommended route smoke-check after freshness verification:
 
 - `curl -sI http://127.0.0.1:18000/<changed-route>`
 - `curl -s http://127.0.0.1:18000/<changed-route> | sed -n '1,80p'`
+
+When the user reports "same screen still shows" for a React admin route such as `/admin/emission/survey-admin`, also verify:
+
+- `curl -sI http://127.0.0.1:18000/react-shell/index.html`
+- confirm `Cache-Control: no-store, no-cache, must-revalidate, max-age=0` or equivalent no-store policy
+- confirm the latest hashed bundle names are present under `src/main/resources/static/react-app/assets/`
 
 Use this when:
 

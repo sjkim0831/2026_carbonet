@@ -1,18 +1,19 @@
 package egovframework.com.platform.workbench.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import egovframework.com.feature.admin.dto.request.SrTicketApprovalRequest;
-import egovframework.com.feature.admin.dto.request.SrTicketCreateRequest;
-import egovframework.com.feature.admin.dto.request.SrWorkbenchStackItemCreateRequest;
 import egovframework.com.feature.admin.model.vo.SrTicketRecordVO;
 import egovframework.com.feature.admin.model.vo.SrTicketRunnerExecutionVO;
 import egovframework.com.feature.admin.model.vo.SrWorkbenchStackItemVO;
 import egovframework.com.feature.admin.service.ScreenCommandCenterService;
 import egovframework.com.feature.admin.service.SrTicketCodexRunnerService;
+import egovframework.com.platform.request.workbench.SrTicketApprovalRequest;
+import egovframework.com.platform.request.workbench.SrTicketCreateRequest;
+import egovframework.com.platform.request.workbench.SrWorkbenchStackItemCreateRequest;
 import egovframework.com.platform.workbench.service.SrTicketWorkbenchService;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -44,8 +45,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service("srTicketWorkbenchService")
-@Slf4j
 public class SrTicketWorkbenchServiceImpl implements SrTicketWorkbenchService {
+
+    private static final Logger log = LoggerFactory.getLogger(SrTicketWorkbenchServiceImpl.class);
 
     private static final DateTimeFormatter TS_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final int ARTIFACT_PREVIEW_LIMIT = 12000;
@@ -116,19 +118,18 @@ public class SrTicketWorkbenchServiceImpl implements SrTicketWorkbenchService {
 
     @Override
     public Map<String, Object> getPage(String selectedPageId) throws Exception {
-        Map<String, Object> response = new LinkedHashMap<>();
         List<Map<String, Object>> stackRows = readStackRows();
-        response.put("selectedPageId", safe(selectedPageId));
-        response.put("codexEnabled", codexEnabled);
-        response.put("codexHistoryFile", safe(codexHistoryFilePath));
-        response.put("ticketCount", readTickets().size());
-        response.put("tickets", readTicketRows());
-        response.put("executionLaneCount", Math.max(parallelLaneCount, 1));
-        response.put("executionLanes", buildExecutionLaneRows());
-        response.put("stackCount", stackRows.size());
-        response.put("stackItems", stackRows);
-        response.put("screenOptions", screenCommandCenterService.getScreenCommandPage(selectedPageId).get("pages"));
-        return response;
+        return orderedMap(
+                "selectedPageId", safe(selectedPageId),
+                "codexEnabled", codexEnabled,
+                "codexHistoryFile", safe(codexHistoryFilePath),
+                "ticketCount", readTickets().size(),
+                "tickets", readTicketRows(),
+                "executionLaneCount", Math.max(parallelLaneCount, 1),
+                "executionLanes", buildExecutionLaneRows(),
+                "stackCount", stackRows.size(),
+                "stackItems", stackRows,
+                "screenOptions", screenCommandCenterService.getScreenCommandPage(selectedPageId).get("pages"));
     }
 
     @Override
@@ -182,11 +183,7 @@ public class SrTicketWorkbenchServiceImpl implements SrTicketWorkbenchService {
             removeStackItemsById(extractStackItemIds(stackItems));
         }
 
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("success", true);
-        response.put("ticket", ticketRow(ticket));
-        response.put("message", "SR 티켓을 발행했습니다.");
-        return response;
+        return successResponse("SR 티켓을 발행했습니다.", "ticket", ticketRow(ticket));
     }
 
     @Override
@@ -244,32 +241,22 @@ public class SrTicketWorkbenchServiceImpl implements SrTicketWorkbenchService {
         item.setRequestId(safe(request == null ? null : request.getRequestId()));
         appendStackItem(item);
 
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("success", true);
-        response.put("stackItem", stackItemRow(item));
-        response.put("message", "워크벤치 스택에 컨텍스트를 추가했습니다.");
-        return response;
+        return successResponse("워크벤치 스택에 컨텍스트를 추가했습니다.", "stackItem", stackItemRow(item));
     }
 
     @Override
     public Map<String, Object> removeStackItem(String stackItemId, String actorId) throws Exception {
         int removed = removeStackItemsById(Collections.singleton(safe(stackItemId)));
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("success", true);
-        response.put("removedCount", removed);
-        response.put("actorId", defaultActor(actorId));
-        response.put("message", removed > 0 ? "워크벤치 스택 항목을 제거했습니다." : "제거할 스택 항목이 없습니다.");
-        return response;
+        return successResponse(
+                removed > 0 ? "워크벤치 스택 항목을 제거했습니다." : "제거할 스택 항목이 없습니다.",
+                "removedCount", removed,
+                "actorId", defaultActor(actorId));
     }
 
     @Override
     public Map<String, Object> clearStack(String actorId) throws Exception {
         saveStackItems(Collections.emptyList());
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("success", true);
-        response.put("actorId", defaultActor(actorId));
-        response.put("message", "워크벤치 스택을 비웠습니다.");
-        return response;
+        return successResponse("워크벤치 스택을 비웠습니다.", "actorId", defaultActor(actorId));
     }
 
     @Override
@@ -298,11 +285,9 @@ public class SrTicketWorkbenchServiceImpl implements SrTicketWorkbenchService {
         }
         saveTickets(readTicketsReplacing(ticket));
 
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("success", true);
-        response.put("ticket", ticketRow(ticket));
-        response.put("message", "APPROVE".equals(decision) ? "SR 티켓을 승인했습니다." : "SR 티켓을 반려했습니다.");
-        return response;
+        return successResponse(
+                "APPROVE".equals(decision) ? "SR 티켓을 승인했습니다." : "SR 티켓을 반려했습니다.",
+                "ticket", ticketRow(ticket));
     }
 
     @Override
@@ -326,11 +311,7 @@ public class SrTicketWorkbenchServiceImpl implements SrTicketWorkbenchService {
                 : "Codex 비활성 상태입니다. command prompt를 수동 실행 프로세스에 전달하세요.");
         saveTickets(readTicketsReplacing(ticket));
 
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("success", true);
-        response.put("ticket", ticketRow(ticket));
-        response.put("message", "실행 준비 상태로 전환했습니다.");
-        return response;
+        return successResponse("실행 준비 상태로 전환했습니다.", "ticket", ticketRow(ticket));
     }
 
     @Override
@@ -395,13 +376,11 @@ public class SrTicketWorkbenchServiceImpl implements SrTicketWorkbenchService {
         ticket.setExecutionComment(buildExecutionComment(execution));
         saveTickets(readTicketsReplacing(ticket));
 
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("success", true);
-        response.put("ticket", ticketRow(ticket));
-        response.put("message", "PLAN_COMPLETED".equalsIgnoreCase(safe(execution.getStatus()))
-                ? "SR Codex 계획 수립을 완료했습니다."
-                : "SR Codex 계획 수립 결과를 기록했습니다.");
-        return response;
+        return successResponse(
+                "PLAN_COMPLETED".equalsIgnoreCase(safe(execution.getStatus()))
+                        ? "SR Codex 계획 수립을 완료했습니다."
+                        : "SR Codex 계획 수립 결과를 기록했습니다.",
+                "ticket", ticketRow(ticket));
     }
 
     private List<Map<String, Object>> readTicketRows() throws Exception {
@@ -425,103 +404,101 @@ public class SrTicketWorkbenchServiceImpl implements SrTicketWorkbenchService {
     }
 
     private Map<String, Object> ticketRow(SrTicketRecordVO ticket) {
-        Map<String, Object> row = new LinkedHashMap<>();
-        row.put("ticketId", safe(ticket.getTicketId()));
-        row.put("status", safe(ticket.getStatus()));
-        row.put("createdAt", safe(ticket.getCreatedAt()));
-        row.put("updatedAt", safe(ticket.getUpdatedAt()));
-        row.put("createdBy", safe(ticket.getCreatedBy()));
-        row.put("lastActionBy", safe(ticket.getLastActionBy()));
-        row.put("approvedBy", safe(ticket.getApprovedBy()));
-        row.put("approvedAt", safe(ticket.getApprovedAt()));
-        row.put("approvalComment", safe(ticket.getApprovalComment()));
-        row.put("executionPreparedAt", safe(ticket.getExecutionPreparedAt()));
-        row.put("executionPreparedBy", safe(ticket.getExecutionPreparedBy()));
-        row.put("executionStatus", safe(ticket.getExecutionStatus()));
-        row.put("executionComment", safe(ticket.getExecutionComment()));
-        row.put("queueStatus", safe(ticket.getQueueStatus()));
-        row.put("queueMode", safe(ticket.getQueueMode()));
-        row.put("queueSubmittedAt", safe(ticket.getQueueSubmittedAt()));
-        row.put("queueStartedAt", safe(ticket.getQueueStartedAt()));
-        row.put("queueCompletedAt", safe(ticket.getQueueCompletedAt()));
-        row.put("queueRequestedBy", safe(ticket.getQueueRequestedBy()));
-        row.put("queueLaneId", safe(ticket.getQueueLaneId()));
-        row.put("queueTmuxSessionName", safe(ticket.getQueueTmuxSessionName()));
-        row.put("queueErrorMessage", safe(ticket.getQueueErrorMessage()));
-        row.put("pageId", safe(ticket.getPageId()));
-        row.put("pageLabel", safe(ticket.getPageLabel()));
-        row.put("routePath", safe(ticket.getRoutePath()));
-        row.put("menuCode", safe(ticket.getMenuCode()));
-        row.put("menuLookupUrl", safe(ticket.getMenuLookupUrl()));
-        row.put("surfaceId", safe(ticket.getSurfaceId()));
-        row.put("surfaceLabel", safe(ticket.getSurfaceLabel()));
-        row.put("eventId", safe(ticket.getEventId()));
-        row.put("eventLabel", safe(ticket.getEventLabel()));
-        row.put("targetId", safe(ticket.getTargetId()));
-        row.put("targetLabel", safe(ticket.getTargetLabel()));
-        row.put("summary", safe(ticket.getSummary()));
-        row.put("instruction", safe(ticket.getInstruction()));
-        row.put("technicalContext", safe(ticket.getTechnicalContext()));
-        row.put("generatedDirection", safe(ticket.getGeneratedDirection()));
-        row.put("commandPrompt", safe(ticket.getCommandPrompt()));
-        row.put("planRunId", safe(ticket.getPlanRunId()));
-        row.put("planStartedAt", safe(ticket.getPlanStartedAt()));
-        row.put("planCompletedAt", safe(ticket.getPlanCompletedAt()));
-        row.put("planLogPath", safe(ticket.getPlanLogPath()));
-        row.put("planStderrPath", safe(ticket.getPlanStderrPath()));
-        row.put("planResultPath", safe(ticket.getPlanResultPath()));
-        row.put("executionRunId", safe(ticket.getExecutionRunId()));
-        row.put("executionStartedAt", safe(ticket.getExecutionStartedAt()));
-        row.put("executionStartedBy", safe(ticket.getExecutionStartedBy()));
-        row.put("executionCompletedAt", safe(ticket.getExecutionCompletedAt()));
-        row.put("executionCompletedBy", safe(ticket.getExecutionCompletedBy()));
-        row.put("executionLogPath", safe(ticket.getExecutionLogPath()));
-        row.put("executionStderrPath", safe(ticket.getExecutionStderrPath()));
-        row.put("executionDiffPath", safe(ticket.getExecutionDiffPath()));
-        row.put("executionChangedFiles", safe(ticket.getExecutionChangedFiles()));
-        row.put("executionWorktreePath", safe(ticket.getExecutionWorktreePath()));
-        row.put("backendVerifyLogPath", safe(ticket.getBackendVerifyLogPath()));
-        row.put("backendVerifyStderrPath", safe(ticket.getBackendVerifyStderrPath()));
-        row.put("frontendVerifyLogPath", safe(ticket.getFrontendVerifyLogPath()));
-        row.put("frontendVerifyStderrPath", safe(ticket.getFrontendVerifyStderrPath()));
-        row.put("deployLogPath", safe(ticket.getDeployLogPath()));
-        row.put("deployStderrPath", safe(ticket.getDeployStderrPath()));
-        row.put("backendVerifyExitCode", ticket.getBackendVerifyExitCode());
-        row.put("frontendVerifyExitCode", ticket.getFrontendVerifyExitCode());
-        row.put("deployExitCode", ticket.getDeployExitCode());
-        row.put("deployCommand", safe(ticket.getDeployCommand()));
-        row.put("healthCheckStatus", safe(ticket.getHealthCheckStatus()));
-        row.put("rollbackStatus", safe(ticket.getRollbackStatus()));
-        row.put("rollbackLogPath", safe(ticket.getRollbackLogPath()));
-        row.put("rollbackStderrPath", safe(ticket.getRollbackStderrPath()));
-        return row;
+        return orderedMap(
+                "ticketId", safe(ticket.getTicketId()),
+                "status", safe(ticket.getStatus()),
+                "createdAt", safe(ticket.getCreatedAt()),
+                "updatedAt", safe(ticket.getUpdatedAt()),
+                "createdBy", safe(ticket.getCreatedBy()),
+                "lastActionBy", safe(ticket.getLastActionBy()),
+                "approvedBy", safe(ticket.getApprovedBy()),
+                "approvedAt", safe(ticket.getApprovedAt()),
+                "approvalComment", safe(ticket.getApprovalComment()),
+                "executionPreparedAt", safe(ticket.getExecutionPreparedAt()),
+                "executionPreparedBy", safe(ticket.getExecutionPreparedBy()),
+                "executionStatus", safe(ticket.getExecutionStatus()),
+                "executionComment", safe(ticket.getExecutionComment()),
+                "queueStatus", safe(ticket.getQueueStatus()),
+                "queueMode", safe(ticket.getQueueMode()),
+                "queueSubmittedAt", safe(ticket.getQueueSubmittedAt()),
+                "queueStartedAt", safe(ticket.getQueueStartedAt()),
+                "queueCompletedAt", safe(ticket.getQueueCompletedAt()),
+                "queueRequestedBy", safe(ticket.getQueueRequestedBy()),
+                "queueLaneId", safe(ticket.getQueueLaneId()),
+                "queueTmuxSessionName", safe(ticket.getQueueTmuxSessionName()),
+                "queueErrorMessage", safe(ticket.getQueueErrorMessage()),
+                "pageId", safe(ticket.getPageId()),
+                "pageLabel", safe(ticket.getPageLabel()),
+                "routePath", safe(ticket.getRoutePath()),
+                "menuCode", safe(ticket.getMenuCode()),
+                "menuLookupUrl", safe(ticket.getMenuLookupUrl()),
+                "surfaceId", safe(ticket.getSurfaceId()),
+                "surfaceLabel", safe(ticket.getSurfaceLabel()),
+                "eventId", safe(ticket.getEventId()),
+                "eventLabel", safe(ticket.getEventLabel()),
+                "targetId", safe(ticket.getTargetId()),
+                "targetLabel", safe(ticket.getTargetLabel()),
+                "summary", safe(ticket.getSummary()),
+                "instruction", safe(ticket.getInstruction()),
+                "technicalContext", safe(ticket.getTechnicalContext()),
+                "generatedDirection", safe(ticket.getGeneratedDirection()),
+                "commandPrompt", safe(ticket.getCommandPrompt()),
+                "planRunId", safe(ticket.getPlanRunId()),
+                "planStartedAt", safe(ticket.getPlanStartedAt()),
+                "planCompletedAt", safe(ticket.getPlanCompletedAt()),
+                "planLogPath", safe(ticket.getPlanLogPath()),
+                "planStderrPath", safe(ticket.getPlanStderrPath()),
+                "planResultPath", safe(ticket.getPlanResultPath()),
+                "executionRunId", safe(ticket.getExecutionRunId()),
+                "executionStartedAt", safe(ticket.getExecutionStartedAt()),
+                "executionStartedBy", safe(ticket.getExecutionStartedBy()),
+                "executionCompletedAt", safe(ticket.getExecutionCompletedAt()),
+                "executionCompletedBy", safe(ticket.getExecutionCompletedBy()),
+                "executionLogPath", safe(ticket.getExecutionLogPath()),
+                "executionStderrPath", safe(ticket.getExecutionStderrPath()),
+                "executionDiffPath", safe(ticket.getExecutionDiffPath()),
+                "executionChangedFiles", safe(ticket.getExecutionChangedFiles()),
+                "executionWorktreePath", safe(ticket.getExecutionWorktreePath()),
+                "backendVerifyLogPath", safe(ticket.getBackendVerifyLogPath()),
+                "backendVerifyStderrPath", safe(ticket.getBackendVerifyStderrPath()),
+                "frontendVerifyLogPath", safe(ticket.getFrontendVerifyLogPath()),
+                "frontendVerifyStderrPath", safe(ticket.getFrontendVerifyStderrPath()),
+                "deployLogPath", safe(ticket.getDeployLogPath()),
+                "deployStderrPath", safe(ticket.getDeployStderrPath()),
+                "backendVerifyExitCode", ticket.getBackendVerifyExitCode(),
+                "frontendVerifyExitCode", ticket.getFrontendVerifyExitCode(),
+                "deployExitCode", ticket.getDeployExitCode(),
+                "deployCommand", safe(ticket.getDeployCommand()),
+                "healthCheckStatus", safe(ticket.getHealthCheckStatus()),
+                "rollbackStatus", safe(ticket.getRollbackStatus()),
+                "rollbackLogPath", safe(ticket.getRollbackLogPath()),
+                "rollbackStderrPath", safe(ticket.getRollbackStderrPath()));
     }
 
     private Map<String, Object> stackItemRow(SrWorkbenchStackItemVO item) {
-        Map<String, Object> row = new LinkedHashMap<>();
-        row.put("stackItemId", safe(item.getStackItemId()));
-        row.put("createdAt", safe(item.getCreatedAt()));
-        row.put("updatedAt", safe(item.getUpdatedAt()));
-        row.put("createdBy", safe(item.getCreatedBy()));
-        row.put("pageId", safe(item.getPageId()));
-        row.put("pageLabel", safe(item.getPageLabel()));
-        row.put("routePath", safe(item.getRoutePath()));
-        row.put("menuCode", safe(item.getMenuCode()));
-        row.put("menuLookupUrl", safe(item.getMenuLookupUrl()));
-        row.put("surfaceId", safe(item.getSurfaceId()));
-        row.put("surfaceLabel", safe(item.getSurfaceLabel()));
-        row.put("selector", safe(item.getSelector()));
-        row.put("componentId", safe(item.getComponentId()));
-        row.put("eventId", safe(item.getEventId()));
-        row.put("eventLabel", safe(item.getEventLabel()));
-        row.put("targetId", safe(item.getTargetId()));
-        row.put("targetLabel", safe(item.getTargetLabel()));
-        row.put("summary", safe(item.getSummary()));
-        row.put("instruction", safe(item.getInstruction()));
-        row.put("technicalContext", safe(item.getTechnicalContext()));
-        row.put("traceId", safe(item.getTraceId()));
-        row.put("requestId", safe(item.getRequestId()));
-        return row;
+        return orderedMap(
+                "stackItemId", safe(item.getStackItemId()),
+                "createdAt", safe(item.getCreatedAt()),
+                "updatedAt", safe(item.getUpdatedAt()),
+                "createdBy", safe(item.getCreatedBy()),
+                "pageId", safe(item.getPageId()),
+                "pageLabel", safe(item.getPageLabel()),
+                "routePath", safe(item.getRoutePath()),
+                "menuCode", safe(item.getMenuCode()),
+                "menuLookupUrl", safe(item.getMenuLookupUrl()),
+                "surfaceId", safe(item.getSurfaceId()),
+                "surfaceLabel", safe(item.getSurfaceLabel()),
+                "selector", safe(item.getSelector()),
+                "componentId", safe(item.getComponentId()),
+                "eventId", safe(item.getEventId()),
+                "eventLabel", safe(item.getEventLabel()),
+                "targetId", safe(item.getTargetId()),
+                "targetLabel", safe(item.getTargetLabel()),
+                "summary", safe(item.getSummary()),
+                "instruction", safe(item.getInstruction()),
+                "technicalContext", safe(item.getTechnicalContext()),
+                "traceId", safe(item.getTraceId()),
+                "requestId", safe(item.getRequestId()));
     }
 
     @Override
@@ -620,11 +597,7 @@ public class SrTicketWorkbenchServiceImpl implements SrTicketWorkbenchService {
         ticket.setExecutionComment("선택한 배포 실행을 이전 백업 JAR 기준으로 수동 롤백했습니다.");
         saveTickets(readTicketsReplacing(ticket));
 
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("success", true);
-        response.put("ticket", ticketRow(ticket));
-        response.put("message", "선택한 SR 배포 실행을 이전 상태로 롤백했습니다.");
-        return response;
+        return successResponse("선택한 SR 배포 실행을 이전 상태로 롤백했습니다.", "ticket", ticketRow(ticket));
     }
 
     private Map<String, Object> runBuildTicket(SrTicketRecordVO ticket, String actorId, String approvalToken, boolean skipPlanValidation) throws Exception {
@@ -690,13 +663,11 @@ public class SrTicketWorkbenchServiceImpl implements SrTicketWorkbenchService {
         ticket.setExecutionComment(buildExecutionComment(execution));
         saveTickets(readTicketsReplacing(ticket));
 
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("success", true);
-        response.put("ticket", ticketRow(ticket));
-        response.put("message", "COMPLETED".equalsIgnoreCase(safe(execution.getStatus()))
-                ? "SR Codex runner 실행을 완료했습니다."
-                : "SR Codex runner 실행 결과를 기록했습니다.");
-        return response;
+        return successResponse(
+                "COMPLETED".equalsIgnoreCase(safe(execution.getStatus()))
+                        ? "SR Codex runner 실행을 완료했습니다."
+                        : "SR Codex runner 실행 결과를 기록했습니다.",
+                "ticket", ticketRow(ticket));
     }
 
     private void runLoggedCommand(List<String> command, Path workingDirectory, Path stdoutPath, Path stderrPath) throws Exception {
@@ -773,12 +744,10 @@ public class SrTicketWorkbenchServiceImpl implements SrTicketWorkbenchService {
         saveTickets(readTicketsReplacing(ticket));
         dispatchQueuedTickets();
 
-        Map<String, Object> response = new LinkedHashMap<String, Object>();
-        response.put("success", true);
-        response.put("ticket", ticketRow(findTicket(ticketId)));
-        response.put("message", "SR 티켓을 병렬 실행 대기열에 등록했습니다.");
-        response.put("executionLanes", buildExecutionLaneRows());
-        return response;
+        return successResponse(
+                "SR 티켓을 병렬 실행 대기열에 등록했습니다.",
+                "ticket", ticketRow(findTicket(ticketId)),
+                "executionLanes", buildExecutionLaneRows());
     }
 
     @Override
@@ -838,12 +807,10 @@ public class SrTicketWorkbenchServiceImpl implements SrTicketWorkbenchService {
         }
         saveTickets(filtered);
 
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("success", true);
-        response.put("deletedTicketId", safe(ticketId));
-        response.put("actorId", defaultActor(actorId));
-        response.put("message", "SR 티켓을 삭제했습니다.");
-        return response;
+        return successResponse(
+                "SR 티켓을 삭제했습니다.",
+                "deletedTicketId", safe(ticketId),
+                "actorId", defaultActor(actorId));
     }
 
     @Override
@@ -852,12 +819,11 @@ public class SrTicketWorkbenchServiceImpl implements SrTicketWorkbenchService {
         if (ticket == null) {
             throw new IllegalArgumentException("SR 티켓을 찾을 수 없습니다.");
         }
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("success", true);
-        response.put("ticket", ticketRow(ticket));
-        response.put("availableArtifacts", buildAvailableArtifacts(ticket));
-        response.put("reviewSummary", buildReviewSummary(ticket));
-        return response;
+        return successResponse(
+                "",
+                "ticket", ticketRow(ticket),
+                "availableArtifacts", buildAvailableArtifacts(ticket),
+                "reviewSummary", buildReviewSummary(ticket));
     }
 
     @Override
@@ -868,40 +834,44 @@ public class SrTicketWorkbenchServiceImpl implements SrTicketWorkbenchService {
         }
         String normalizedArtifactType = safe(artifactType).toLowerCase(Locale.ROOT);
         ArtifactDescriptor artifact = resolveArtifact(ticket, normalizedArtifactType);
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("success", true);
-        response.put("ticketId", safe(ticketId));
-        response.put("artifactType", artifact.getArtifactType());
-        response.put("label", artifact.getLabel());
-        response.put("filePath", artifact.getPath());
+        Map<String, Object> response = successResponse(
+                "",
+                "ticketId", safe(ticketId),
+                "artifactType", artifact.getArtifactType(),
+                "label", artifact.getLabel(),
+                "filePath", artifact.getPath());
         if (!artifact.getInlineContent().isEmpty()) {
-            response.put("available", true);
-            response.put("content", artifact.getInlineContent());
-            response.put("truncated", artifact.getInlineContent().length() > ARTIFACT_PREVIEW_LIMIT);
-            response.put("message", "아티팩트 미리보기를 불러왔습니다.");
+            response.putAll(orderedMap(
+                    "available", true,
+                    "content", artifact.getInlineContent(),
+                    "truncated", artifact.getInlineContent().length() > ARTIFACT_PREVIEW_LIMIT,
+                    "message", "아티팩트 미리보기를 불러왔습니다."));
             return response;
         }
         if (artifact.getPath().isEmpty()) {
-            response.put("available", false);
-            response.put("content", "");
-            response.put("truncated", false);
-            response.put("message", "아직 생성된 아티팩트가 없습니다.");
+            response.putAll(orderedMap(
+                    "available", false,
+                    "content", "",
+                    "truncated", false,
+                    "message", "아직 생성된 아티팩트가 없습니다."));
             return response;
         }
 
         Path previewPath = Paths.get(artifact.getPath()).normalize();
         if (!Files.exists(previewPath, LinkOption.NOFOLLOW_LINKS) || !Files.isRegularFile(previewPath, LinkOption.NOFOLLOW_LINKS)) {
-            response.put("available", false);
-            response.put("content", "");
-            response.put("truncated", false);
-            response.put("message", "아티팩트 파일을 찾을 수 없습니다.");
+            response.putAll(orderedMap(
+                    "available", false,
+                    "content", "",
+                    "truncated", false,
+                    "message", "아티팩트 파일을 찾을 수 없습니다."));
             return response;
         }
 
-        response.put("available", true);
-        response.put("content", readArtifactPreview(previewPath));
-        response.put("truncated", Files.size(previewPath) > ARTIFACT_PREVIEW_LIMIT);
-        response.put("message", "아티팩트 미리보기를 불러왔습니다.");
+        response.putAll(orderedMap(
+                "available", true,
+                "content", readArtifactPreview(previewPath),
+                "truncated", Files.size(previewPath) > ARTIFACT_PREVIEW_LIMIT,
+                "message", "아티팩트 미리보기를 불러왔습니다."));
         return response;
     }
 
@@ -927,12 +897,11 @@ public class SrTicketWorkbenchServiceImpl implements SrTicketWorkbenchService {
     }
 
     private Map<String, Object> artifactSummary(String artifactType, String label, String path) {
-        Map<String, Object> item = new LinkedHashMap<>();
-        item.put("artifactType", artifactType);
-        item.put("label", label);
-        item.put("filePath", safe(path));
-        item.put("available", !safe(path).isEmpty());
-        return item;
+        return orderedMap(
+                "artifactType", artifactType,
+                "label", label,
+                "filePath", safe(path),
+                "available", !safe(path).isEmpty());
     }
 
     private ArtifactDescriptor resolveArtifact(SrTicketRecordVO ticket, String artifactType) {
@@ -1007,14 +976,13 @@ public class SrTicketWorkbenchServiceImpl implements SrTicketWorkbenchService {
     }
 
     private Map<String, Object> buildReviewSummary(SrTicketRecordVO ticket) throws Exception {
-        Map<String, Object> summary = new LinkedHashMap<>();
-        summary.put("planStderrSnippet", readArtifactSnippet(safe(ticket.getPlanStderrPath())));
-        summary.put("buildStderrSnippet", readArtifactSnippet(safe(ticket.getExecutionStderrPath())));
-        summary.put("backendVerifySnippet", readArtifactSnippet(safe(ticket.getBackendVerifyStderrPath())));
-        summary.put("frontendVerifySnippet", readArtifactSnippet(safe(ticket.getFrontendVerifyStderrPath())));
-        summary.put("deploySnippet", readArtifactSnippet(safe(ticket.getDeployStderrPath())));
-        summary.put("rollbackSnippet", readArtifactSnippet(firstNonBlank(safe(ticket.getRollbackStderrPath()), safe(ticket.getRollbackLogPath()))));
-        return summary;
+        return orderedMap(
+                "planStderrSnippet", readArtifactSnippet(safe(ticket.getPlanStderrPath())),
+                "buildStderrSnippet", readArtifactSnippet(safe(ticket.getExecutionStderrPath())),
+                "backendVerifySnippet", readArtifactSnippet(safe(ticket.getBackendVerifyStderrPath())),
+                "frontendVerifySnippet", readArtifactSnippet(safe(ticket.getFrontendVerifyStderrPath())),
+                "deploySnippet", readArtifactSnippet(safe(ticket.getDeployStderrPath())),
+                "rollbackSnippet", readArtifactSnippet(firstNonBlank(safe(ticket.getRollbackStderrPath()), safe(ticket.getRollbackLogPath()))));
     }
 
     private String readArtifactSnippet(String filePath) throws Exception {
@@ -1558,12 +1526,11 @@ public class SrTicketWorkbenchServiceImpl implements SrTicketWorkbenchService {
         List<Map<String, Object>> rows = new ArrayList<Map<String, Object>>();
         synchronized (laneMonitor) {
             for (Map.Entry<String, String> entry : activeLaneTickets.entrySet()) {
-                Map<String, Object> row = new LinkedHashMap<String, Object>();
-                row.put("laneId", entry.getKey());
-                row.put("tmuxSessionName", buildLaneSessionName(entry.getKey()));
-                row.put("activeTicketId", safe(entry.getValue()));
-                row.put("status", safe(entry.getValue()).isEmpty() ? "IDLE" : "RUNNING");
-                rows.add(row);
+                rows.add(orderedMap(
+                        "laneId", entry.getKey(),
+                        "tmuxSessionName", buildLaneSessionName(entry.getKey()),
+                        "activeTicketId", safe(entry.getValue()),
+                        "status", safe(entry.getValue()).isEmpty() ? "IDLE" : "RUNNING"));
             }
         }
         return rows;
@@ -1878,6 +1845,30 @@ public class SrTicketWorkbenchServiceImpl implements SrTicketWorkbenchService {
             }
         }
         return "";
+    }
+
+    private Map<String, Object> successResponse(String message, Object... fields) {
+        Map<String, Object> response = orderedMap("success", true);
+        if (fields != null) {
+            for (int index = 0; index + 1 < fields.length; index += 2) {
+                response.put(String.valueOf(fields[index]), fields[index + 1]);
+            }
+        }
+        if (!safe(message).isEmpty()) {
+            response.put("message", safe(message));
+        }
+        return response;
+    }
+
+    private Map<String, Object> orderedMap(Object... fields) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        if (fields == null) {
+            return response;
+        }
+        for (int index = 0; index + 1 < fields.length; index += 2) {
+            response.put(String.valueOf(fields[index]), fields[index + 1]);
+        }
+        return response;
     }
 
     private String joinNonBlank(String separator, String... values) {

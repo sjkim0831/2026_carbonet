@@ -1,4 +1,4 @@
-# carbonet-react-migration
+# carbonet
 
 ## Working Directory
 
@@ -30,21 +30,21 @@ npm run dev
 
 Read these first before making structural changes:
 
-1. [STRUCTURE.md](/opt/projects/carbonet-react-migration/STRUCTURE.md)
-2. [PROJECT_PATHS.md](/opt/projects/carbonet-react-migration/PROJECT_PATHS.md)
-3. [docs/ai/README.md](/opt/projects/carbonet-react-migration/docs/ai/README.md)
-4. [docs/ai/00-governance/ai-fast-path.md](/opt/projects/carbonet-react-migration/docs/ai/00-governance/ai-fast-path.md)
-5. [docs/ai/10-architecture/repo-layout.md](/opt/projects/carbonet-react-migration/docs/ai/10-architecture/repo-layout.md)
+1. [STRUCTURE.md](/opt/projects/carbonet/STRUCTURE.md)
+2. [PROJECT_PATHS.md](/opt/projects/carbonet/PROJECT_PATHS.md)
+3. [docs/ai/README.md](/opt/projects/carbonet/docs/ai/README.md)
+4. [docs/ai/00-governance/ai-fast-path.md](/opt/projects/carbonet/docs/ai/00-governance/ai-fast-path.md)
+5. [docs/ai/10-architecture/repo-layout.md](/opt/projects/carbonet/docs/ai/10-architecture/repo-layout.md)
 
 Operational and history docs:
 
-- [docs/operations/stable-restart-guide.md](/opt/projects/carbonet-react-migration/docs/operations/stable-restart-guide.md)
+- [docs/operations/stable-restart-guide.md](/opt/projects/carbonet/docs/operations/stable-restart-guide.md)
 - [docs/operations/backup-db-fast-workflow.md](/opt/projects/carbonet/docs/operations/backup-db-fast-workflow.md)
-- [docs/operations/codex-provision-api.md](/opt/projects/carbonet-react-migration/docs/operations/codex-provision-api.md)
-- [docs/history/refactor-summary-20260310.md](/opt/projects/carbonet-react-migration/docs/history/refactor-summary-20260310.md)
-- [docs/frontend/react-migration.md](/opt/projects/carbonet-react-migration/docs/frontend/react-migration.md)
-- [docs/audit/non-admin-react-migration-audit.md](/opt/projects/carbonet-react-migration/docs/audit/non-admin-react-migration-audit.md)
-- [docs/architecture/system-observability-audit-trace-design.md](/opt/projects/carbonet-react-migration/docs/architecture/system-observability-audit-trace-design.md)
+- [docs/operations/codex-provision-api.md](/opt/projects/carbonet/docs/operations/codex-provision-api.md)
+- [docs/history/refactor-summary-20260310.md](/opt/projects/carbonet/docs/history/refactor-summary-20260310.md)
+- [docs/frontend/react-migration.md](/opt/projects/carbonet/docs/frontend/react-migration.md)
+- [docs/audit/non-admin-react-migration-audit.md](/opt/projects/carbonet/docs/audit/non-admin-react-migration-audit.md)
+- [docs/architecture/system-observability-audit-trace-design.md](/opt/projects/carbonet/docs/architecture/system-observability-audit-trace-design.md)
 
 Design-driven tasks should also start from:
 
@@ -56,6 +56,7 @@ Design-driven tasks should also start from:
 ## Notes
 
 - `<PROJECT_ROOT>` default is documented in `PROJECT_PATHS.md` and `ops/project-paths.sh`.
+- This repository is the active full-stack Carbonet workspace: React authoring sources live under `frontend/`, and the packaged runtime is served by Spring Boot from `src/main/resources/static/react-app`.
 - This app runs Carbonet directly without Eureka/Config/Gateway orchestration.
 - DB host default is `localhost` and can be overridden with `CUBRID_HOST`.
 - Runtime logs are written under `var/logs/`.

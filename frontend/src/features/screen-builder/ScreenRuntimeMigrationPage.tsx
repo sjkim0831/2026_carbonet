@@ -25,11 +25,18 @@ function formatCountLabel(count: number, singular: string, plural: string) {
 export function ScreenRuntimeMigrationPage() {
   const en = isEnglish();
   const query = useMemo(() => resolveScreenBuilderQuery({ get: getSearchParam }), []);
+  const snapshotVersionId = getSearchParam("snapshotVersionId") || "";
   const pageState = useAsyncValue(
     () => fetchScreenBuilderPage(query),
     [query.menuCode, query.pageId, query.menuTitle, query.menuUrl]
   );
   const page = pageState.value;
+  const focusedSnapshot = useMemo(
+    () => (Array.isArray(page?.versionHistory)
+      ? page.versionHistory.find((version) => String(version?.versionId || "") === snapshotVersionId) || null
+      : null),
+    [page?.versionHistory, snapshotVersionId]
+  );
   const previewState = useAsyncValue(
     () => fetchScreenBuilderPreview({ ...query, versionStatus: "PUBLISHED" }),
     [query.menuCode, query.pageId, query.menuTitle, query.menuUrl, page?.publishedVersionId || ""],
@@ -65,6 +72,12 @@ export function ScreenRuntimeMigrationPage() {
     () => screenBuilderAudits.find((row) => String(row.actionCode || "").includes("PUBLISH")) || null,
     [screenBuilderAudits]
   );
+  const snapshotMatchesPublished = Boolean(snapshotVersionId && snapshotVersionId === String(page?.publishedVersionId || ""));
+  const runtimeSnapshotFocusMode = snapshotVersionId
+    ? (snapshotMatchesPublished
+      ? (en ? "published runtime anchor" : "발행 런타임 앵커")
+      : (en ? "manual snapshot review" : "수동 스냅샷 검토"))
+    : (en ? "latest published runtime" : "최신 발행 런타임");
   const registryIssueRows = [
     ...unregisteredNodes.map((item) => ({ status: en ? "Unregistered" : "미등록", nodeId: stringifyValue(item.nodeId), componentType: stringifyValue(item.componentType), componentId: stringifyValue(item.componentId) })),
     ...missingNodes.map((item) => ({ status: en ? "Missing" : "누락", nodeId: stringifyValue(item.nodeId), componentType: stringifyValue(item.componentType), componentId: stringifyValue(item.componentId) })),
@@ -106,10 +119,10 @@ export function ScreenRuntimeMigrationPage() {
         { label: en ? "Home" : "홈", href: buildLocalizedPath("/admin/", "/en/admin/") },
         { label: en ? "System" : "시스템" },
         { label: en ? "Screen Builder" : "화면 빌더", href: buildLocalizedPath("/admin/system/screen-builder", "/en/admin/system/screen-builder") },
-        { label: en ? "Published Runtime" : "발행 런타임" }
+        { label: en ? "Runtime Validator Console" : "런타임 검증 콘솔" }
       ]}
-      title={en ? "Published Screen Runtime" : "발행 화면 런타임"}
-      subtitle={en ? "Review the latest published screen-builder snapshot as a read-only runtime surface." : "최신 publish 스냅샷을 읽기 전용 런타임 화면으로 확인합니다."}
+      title={en ? "Runtime Validator Console" : "런타임 검증 콘솔"}
+      subtitle={en ? "Validate the latest published screen-builder snapshot as install-ready runtime evidence." : "최신 publish 스냅샷을 설치 가능한 런타임 검증 근거로 확인합니다."}
       contextStrip={<ContextKeyStrip items={runtimeContextKeys} />}
       loading={(pageState.loading && !page) || (previewState.loading && !preview)}
       loadingLabel={en ? "Loading published runtime..." : "발행 런타임을 불러오는 중입니다."}
@@ -119,7 +132,64 @@ export function ScreenRuntimeMigrationPage() {
           {pageState.error || previewState.error}
         </PageStatusNotice>
       ) : null}
+      {snapshotVersionId ? (
+        <PageStatusNotice tone="success">
+          {en ? `Snapshot focus: ${snapshotVersionId}` : `현재 검증 스냅샷: ${snapshotVersionId}`}
+        </PageStatusNotice>
+      ) : null}
+      {snapshotVersionId && !focusedSnapshot ? (
+        <PageStatusNotice tone="warning">
+          {en
+            ? "The focused snapshot was not found in the current snapshot registry. Review snapshot history before treating this validator run as anchored evidence."
+            : "현재 스냅샷 레지스트리에서 포커스 스냅샷을 찾지 못했습니다. 이 검증 실행을 앵커 증거로 보기 전에 먼저 스냅샷 이력을 확인해야 합니다."}
+        </PageStatusNotice>
+      ) : null}
+      {snapshotVersionId && !snapshotMatchesPublished ? (
+        <PageStatusNotice tone="warning">
+          {en
+            ? "Runtime validator still renders the latest published snapshot. The focused snapshot is treated as a manual review anchor until it becomes the published runtime."
+            : "런타임 검증 콘솔은 여전히 최신 발행 스냅샷을 렌더링합니다. 현재 포커스 스냅샷은 발행 런타임이 되기 전까지 수동 검토 앵커로 처리됩니다."}
+        </PageStatusNotice>
+      ) : null}
       <AdminWorkspacePageFrame>
+        {snapshotVersionId ? (
+          <section className="grid grid-cols-1 gap-4 md:grid-cols-3" data-help-id="screen-runtime-snapshot-focus">
+            <SummaryMetricCard
+              title={en ? "Snapshot Focus" : "스냅샷 포커스"}
+              value={snapshotVersionId}
+              description={en ? "Validator target snapshot" : "현재 검증 대상 스냅샷"}
+            />
+            <SummaryMetricCard
+              title={en ? "Published Match" : "발행 일치"}
+              value={snapshotMatchesPublished ? (en ? "MATCH" : "일치") : (en ? "DIFF" : "불일치")}
+              description={page?.publishedVersionId || "-"}
+              accentClassName={snapshotMatchesPublished ? "text-emerald-700" : "text-amber-700"}
+              surfaceClassName={snapshotMatchesPublished ? "bg-emerald-50" : "bg-amber-50"}
+            />
+            <SummaryMetricCard
+              title={en ? "Validator Lane" : "검증 레인"}
+              value={snapshotMatchesPublished ? (en ? "published runtime" : "발행 런타임") : (en ? "manual snapshot review" : "수동 스냅샷 검토")}
+              description={en ? "Current runtime validator source" : "현재 런타임 검증 소스"}
+            />
+          </section>
+        ) : null}
+        {snapshotVersionId && focusedSnapshot ? (
+          <div data-help-id="screen-runtime-focused-snapshot-evidence">
+            <KeyValueGridPanel
+              title={en ? "Focused Snapshot Evidence" : "포커스 스냅샷 증거"}
+              description={en ? "This registry row is the snapshot record currently being used as validator anchor evidence." : "이 레지스트리 행은 현재 검증 앵커 증거로 사용하는 스냅샷 레코드입니다."}
+              items={[
+                { label: en ? "Snapshot Version" : "스냅샷 버전", value: String(focusedSnapshot.versionId || "-") },
+                { label: en ? "Snapshot Status" : "스냅샷 상태", value: String(focusedSnapshot.versionStatus || "-") },
+                { label: en ? "Saved At" : "저장 시각", value: String(focusedSnapshot.savedAt || "-") },
+                { label: en ? "Template Type" : "템플릿 타입", value: String(focusedSnapshot.templateType || "-") },
+                { label: en ? "Node Count" : "노드 수", value: String(focusedSnapshot.nodeCount || 0) },
+                { label: en ? "Event Count" : "이벤트 수", value: String(focusedSnapshot.eventCount || 0) },
+                { label: en ? "Published Anchor Match" : "발행 앵커 일치", value: snapshotMatchesPublished ? (en ? "MATCH" : "일치") : (en ? "DIFF" : "불일치") }
+              ]}
+            />
+          </div>
+        ) : null}
         <div data-help-id="screen-runtime-summary">
           <DiagnosticCard
             actions={(
@@ -197,8 +267,8 @@ export function ScreenRuntimeMigrationPage() {
         </section>
         <section className="grid grid-cols-1 gap-4 xl:grid-cols-2" data-help-id="screen-runtime-binding">
           <KeyValueGridPanel
-            title={en ? "Governed Runtime Binding" : "Governed 런타임 바인딩"}
-            description={en ? "The runtime page keeps the same identity keys from builder handoff through published output." : "이 런타임 페이지는 builder handoff부터 발행 출력까지 동일한 identity key를 유지합니다."}
+            title={en ? "Runtime Validator Binding" : "런타임 검증 바인딩"}
+            description={en ? "The runtime validator keeps the same identity keys from builder handoff through published output." : "이 런타임 검증 콘솔은 builder handoff부터 발행 출력까지 동일한 identity key를 유지합니다."}
             items={[
               { label: "guidedStateId", value: runtimeContextKeys[0]?.value || "-" },
               { label: "templateLineId", value: runtimeContextKeys[1]?.value || "-" },
@@ -210,8 +280,8 @@ export function ScreenRuntimeMigrationPage() {
             ]}
           />
           <KeyValueGridPanel
-            title={en ? "Component Output Linkage" : "구성요소 출력 연결"}
-            description={en ? "Use these counters to decide whether the runtime output is safe to hand off to compare and repair flows." : "이 카운트는 런타임 출력이 compare / repair 흐름으로 넘어가도 되는지 판단하는 기준입니다."}
+            title={en ? "Validator Linkage Summary" : "검증 연결 요약"}
+            description={en ? "Use these counters to decide whether the runtime output is safe to hand off to repair and compare validators." : "이 카운트는 런타임 출력이 복구 및 비교 검증 흐름으로 넘어가도 되는지 판단하는 기준입니다."}
             items={[
               { label: en ? "Unregistered Nodes" : "미등록 노드", value: String(unregisteredNodes.length) },
               { label: en ? "Missing Nodes" : "누락 노드", value: String(missingNodes.length) },
@@ -224,8 +294,20 @@ export function ScreenRuntimeMigrationPage() {
         </section>
         <section className="grid grid-cols-1 gap-4 xl:grid-cols-2" data-help-id="screen-runtime-artifact-evidence">
           <KeyValueGridPanel
-            title={en ? "Artifact Handoff Evidence" : "산출물 인계 증거"}
-            description={en ? "These values define the publish boundary from carbonet-ops to carbonet-general." : "이 값들은 carbonet-ops에서 carbonet-general로 넘어가는 publish 경계를 나타냅니다."}
+            title={en ? "Snapshot Runtime Anchor" : "스냅샷 런타임 앵커"}
+            description={en ? "The runtime validator keeps one snapshot anchor while still rendering the published runtime output." : "런타임 검증 콘솔은 발행 런타임을 렌더링하면서도 하나의 스냅샷 앵커를 유지합니다."}
+            items={[
+              { label: en ? "Focus Snapshot" : "포커스 스냅샷", value: snapshotVersionId || (page?.publishedVersionId || "-") },
+              { label: en ? "Focus Mode" : "포커스 모드", value: runtimeSnapshotFocusMode },
+              { label: en ? "Published Anchor" : "발행 앵커", value: page?.publishedVersionId || "-" },
+              { label: en ? "Anchor Match" : "앵커 일치", value: snapshotVersionId ? (snapshotMatchesPublished ? (en ? "MATCH" : "일치") : (en ? "DIFF" : "불일치")) : (en ? "CURRENT" : "현재값") },
+              { label: en ? "Published Saved At" : "발행 저장 시각", value: stringifyValue(page?.publishedSavedAt) },
+              { label: en ? "Runtime Render Source" : "런타임 렌더 소스", value: en ? "published snapshot only" : "발행 스냅샷만 렌더링" }
+            ]}
+          />
+          <KeyValueGridPanel
+            title={en ? "Install Artifact Evidence" : "설치 산출물 증거"}
+            description={en ? "These values define the publish boundary used to install or bind runtime artifacts downstream." : "이 값들은 downstream 설치 및 바인딩에 사용하는 publish 경계를 나타냅니다."}
             items={[
               { label: en ? "Source System" : "소스 시스템", value: stringifyValue(artifactEvidence.artifactSourceSystem, "carbonet-ops") },
               { label: en ? "Target System" : "타깃 시스템", value: stringifyValue(artifactEvidence.artifactTargetSystem, "carbonet-general") },
@@ -236,8 +318,8 @@ export function ScreenRuntimeMigrationPage() {
             ]}
           />
           <KeyValueGridPanel
-            title={en ? "Publish Snapshot Evidence" : "발행 스냅샷 증거"}
-            description={en ? "Use this block when handing the published runtime to compare, repair, or downstream runtime targets." : "이 블록은 발행 런타임을 compare, repair, 또는 downstream runtime target으로 넘길 때 사용합니다."}
+            title={en ? "Published Validator Snapshot" : "발행 검증 스냅샷"}
+            description={en ? "Use this block when handing the published runtime to validator, repair, or downstream runtime targets." : "이 블록은 발행 런타임을 검증, 복구, 또는 downstream runtime target으로 넘길 때 사용합니다."}
             items={[
               { label: en ? "Artifact Kind" : "산출물 종류", value: stringifyValue(artifactEvidence.artifactKind, "screen-builder-runtime") },
               { label: en ? "Published Version" : "발행 버전", value: stringifyValue(artifactEvidence.publishedVersionId, page?.publishedVersionId) },
@@ -293,7 +375,7 @@ export function ScreenRuntimeMigrationPage() {
         <section className="gov-card p-0 overflow-hidden" data-help-id="screen-runtime-preview">
           <GridToolbar
             meta={`${page?.menuUrl || query.menuUrl || "-"} / PUBLISHED`}
-            title={en ? "Runtime Preview" : "런타임 미리보기"}
+            title={en ? "Validator Runtime Preview" : "검증 런타임 미리보기"}
           />
           <div className="min-h-[680px] bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_100%)] p-4">
             {previewNodes.length && !runtimeBlocked ? (
@@ -323,7 +405,7 @@ export function ScreenRuntimeMigrationPage() {
               </MemberLinkButton>
             ) : null}
             meta={en ? "Recent screen-builder save, publish, and restore activity for this page." : "이 페이지의 최근 screen-builder 저장, publish, 복원 이력입니다."}
-            title={en ? "Builder Activity" : "빌더 활동 이력"}
+            title={en ? "Validator Evidence Activity" : "검증 증거 활동 이력"}
           />
           <div className="divide-y divide-gray-100">
             {screenBuilderAudits.length ? screenBuilderAudits.map((row, index) => (
@@ -363,7 +445,7 @@ export function ScreenRuntimeMigrationPage() {
         <section className="gov-card overflow-hidden p-0" data-help-id="screen-runtime-registry-linkage">
           <GridToolbar
             meta={en ? "Registry linkage issues that still affect the published runtime surface." : "발행 런타임 화면에 아직 영향을 주는 레지스트리 연결 이슈입니다."}
-            title={en ? "Registry Linkage Queue" : "레지스트리 연결 대기열"}
+            title={en ? "Validator Linkage Queue" : "검증 연결 대기열"}
           />
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-[var(--kr-gov-border-light)]">

@@ -97,7 +97,7 @@ public class MemberJoinController {
      * Step 1: 회원유형 선택 화면
      * ?init=T 파라미터가 있으면 세션을 초기화함 (언어 전환 등에서 사용)
      */
-    @GetMapping({"/step1", "/ko/step1"})
+    @GetMapping({"/step1", "/ko/step1", "/overseas/step1", "/ko/overseas/step1", "/en/step1", "/en/overseas/step1"})
     public String step1View(@RequestParam(value = "init", required = false) String init, HttpSession session,
             HttpServletRequest request,
             Model model) {
@@ -105,12 +105,7 @@ public class MemberJoinController {
             session.removeAttribute(SESSION_JOIN_VO);
             session.removeAttribute(SESSION_JOIN_STEP);
         }
-        return reactAppViewSupport.render(model, "join-wizard", false, false);
-    }
-
-    @GetMapping({"/overseas/step1", "/ko/overseas/step1"})
-    public String overseasStep1View(HttpServletRequest request, Model model) {
-        return reactAppViewSupport.render(model, "join-wizard", false, false);
+        return renderJoinPage(model, "join-wizard", isEnglishJoinRequest(request));
     }
 
     /**
@@ -181,12 +176,13 @@ public class MemberJoinController {
         return "redirect:/join/step2";
     }
 
-    @GetMapping({"/step2", "/ko/step2"})
+    @GetMapping({"/step2", "/ko/step2", "/en/step2"})
     public String step2ReactView(HttpSession session, HttpServletRequest request, Model model) {
+        boolean english = isEnglishJoinRequest(request);
         if (getJoinStep(session) < 1 || session.getAttribute(SESSION_JOIN_VO) == null) {
-            return "redirect:/join/step1?expired=1";
+            return redirectJoinStep(english, "step1?expired=1");
         }
-        return reactAppViewSupport.render(model, "join-terms", false, false);
+        return renderJoinPage(model, "join-terms", english);
     }
 
     /**
@@ -360,13 +356,14 @@ public class MemberJoinController {
         return "redirect:/join/step3";
     }
 
-    @GetMapping({"/step3", "/ko/step3"})
+    @GetMapping({"/step3", "/ko/step3", "/en/step3"})
     public String step3ReactView(HttpSession session, HttpServletRequest request, Model model) {
+        boolean english = isEnglishJoinRequest(request);
         if (getJoinStep(session) < 2 || session.getAttribute(SESSION_JOIN_VO) == null) {
-            return "redirect:/join/step1?expired=1";
+            return redirectJoinStep(english, "step1?expired=1");
         }
         setJoinStep(session, 3);
-        return reactAppViewSupport.render(model, "join-auth", false, false);
+        return renderJoinPage(model, "join-auth", english);
     }
 
     /**
@@ -393,17 +390,18 @@ public class MemberJoinController {
         return "redirect:/join/step4";
     }
 
-    @GetMapping({"/step4", "/ko/step4"})
+    @GetMapping({"/step4", "/ko/step4", "/en/step4"})
     public String step4View(HttpSession session, HttpServletRequest request, Model model) {
+        boolean english = isEnglishJoinRequest(request);
         EntrprsManageVO joinVO = (EntrprsManageVO) session.getAttribute(SESSION_JOIN_VO);
         if (joinVO == null || getJoinStep(session) < 4) {
-            return "redirect:/join/step1?expired=1";
+            return redirectJoinStep(english, "step1?expired=1");
         }
         if (!hasVerifiedIdentity(joinVO) || !hasRequiredJoinSessionValues(joinVO)) {
-            return "redirect:/join/step3";
+            return redirectJoinStep(english, "step3");
         }
         setJoinStep(session, 4);
-        return reactAppViewSupport.render(model, "join-info", false, false);
+        return renderJoinPage(model, "join-info", english);
     }
 
     /**
@@ -508,28 +506,9 @@ public class MemberJoinController {
                 + "&insttNm=" + urlEncode(joinVO.getCmpnyNm());
     }
 
-    @GetMapping({"/step5", "/ko/step5"})
+    @GetMapping({"/step5", "/ko/step5", "/en/step5"})
     public String step5View(HttpSession session, HttpServletRequest request, Model model) {
-        return reactAppViewSupport.render(model, "join-complete", false, false);
-    }
-
-    // ── English versions ──────────────────────────────────────────
-
-    /** EN Step 1: Member type selection */
-    @GetMapping("/en/step1")
-    public String step1EnView(@RequestParam(value = "init", required = false) String init, HttpSession session,
-            HttpServletRequest request,
-            Model model) {
-        if ("T".equals(init)) {
-            session.removeAttribute(SESSION_JOIN_VO);
-            session.removeAttribute(SESSION_JOIN_STEP);
-        }
-        return reactAppViewSupport.render(model, "join-wizard", true, false);
-    }
-
-    @GetMapping("/en/overseas/step1")
-    public String overseasStep1EnView(HttpServletRequest request, Model model) {
-        return reactAppViewSupport.render(model, "join-wizard", true, false);
+        return renderJoinPage(model, "join-complete", isEnglishJoinRequest(request));
     }
 
     /** EN Step 2: Terms (form submit from step1 EN) */
@@ -553,14 +532,6 @@ public class MemberJoinController {
         return "redirect:/join/en/step2";
     }
 
-    @GetMapping("/en/step2")
-    public String step2EnView(HttpSession session, HttpServletRequest request, Model model) {
-        if (getJoinStep(session) < 1 || session.getAttribute(SESSION_JOIN_VO) == null) {
-            return "redirect:/join/en/step1?expired=1";
-        }
-        return reactAppViewSupport.render(model, "join-terms", true, false);
-    }
-
     /** EN Step 3: Verification (form submit from step2 EN) */
     @PostMapping("/en/step3")
     public String step3EnProcess(@RequestParam(value = "marketing_agree", required = false) String marketingAgree,
@@ -570,15 +541,6 @@ public class MemberJoinController {
         }
         setJoinStep(session, 3);
         return "redirect:/join/en/step3";
-    }
-
-    @GetMapping("/en/step3")
-    public String step3EnView(HttpSession session, HttpServletRequest request, Model model) {
-        if (getJoinStep(session) < 2 || session.getAttribute(SESSION_JOIN_VO) == null) {
-            return "redirect:/join/en/step1?expired=1";
-        }
-        setJoinStep(session, 3);
-        return reactAppViewSupport.render(model, "join-auth", true, false);
     }
 
     /** EN Step 4: Info form (form submit from step3 EN) */
@@ -600,19 +562,6 @@ public class MemberJoinController {
         session.setAttribute(SESSION_JOIN_VO, joinVO);
         setJoinStep(session, 4);
         return "redirect:/join/en/step4";
-    }
-
-    @GetMapping("/en/step4")
-    public String step4EnView(HttpSession session, HttpServletRequest request, Model model) {
-        EntrprsManageVO joinVO = (EntrprsManageVO) session.getAttribute(SESSION_JOIN_VO);
-        if (joinVO == null || getJoinStep(session) < 4) {
-            return "redirect:/join/en/step1?expired=1";
-        }
-        if (!hasVerifiedIdentity(joinVO) || !hasRequiredJoinSessionValues(joinVO)) {
-            return "redirect:/join/en/step3";
-        }
-        setJoinStep(session, 4);
-        return reactAppViewSupport.render(model, "join-info", true, false);
     }
 
     /** EN Step 5: Complete (form submit from step4 EN) */
@@ -693,33 +642,18 @@ public class MemberJoinController {
                 + "&insttNm=" + urlEncode(joinVO.getCmpnyNm());
     }
 
-    @GetMapping("/en/step5")
-    public String step5EnView(HttpSession session, HttpServletRequest request, Model model) {
-        return reactAppViewSupport.render(model, "join-complete", true, false);
-    }
-
     // ==========================================
     // 신규 회원사(기업/기관) 등록 및 모달 검색 API
     // ==========================================
 
-    @GetMapping({"/companyRegister", "/ko/companyRegister"})
+    @GetMapping({"/companyRegister", "/ko/companyRegister", "/en/companyRegister"})
     public String companyRegisterView(HttpServletRequest request, Model model) {
-        return reactAppViewSupport.render(model, "join-company-register", false, false);
+        return renderJoinPage(model, "join-company-register", isEnglishJoinRequest(request));
     }
 
-    @GetMapping("/en/companyRegister")
-    public String companyRegisterViewEn(HttpServletRequest request, Model model) {
-        return reactAppViewSupport.render(model, "join-company-register", true, false);
-    }
-
-    @GetMapping({"/companyRegisterComplete", "/ko/companyRegisterComplete"})
+    @GetMapping({"/companyRegisterComplete", "/ko/companyRegisterComplete", "/en/companyRegisterComplete"})
     public String companyRegisterCompleteView(HttpServletRequest request, Model model) {
-        return reactAppViewSupport.render(model, "join-company-register-complete", false, false);
-    }
-
-    @GetMapping("/en/companyRegisterComplete")
-    public String companyRegisterCompleteViewEn(HttpServletRequest request, Model model) {
-        return reactAppViewSupport.render(model, "join-company-register-complete", true, false);
+        return renderJoinPage(model, "join-company-register-complete", isEnglishJoinRequest(request));
     }
 
     @GetMapping("/api/company-register/page")
@@ -923,24 +857,14 @@ public class MemberJoinController {
         return entrprsManageService.searchCompanyListPaged(buildCompanySearchParams(keyword, "", 0, 100, resolveScopedInstitutionType(session)));
     }
 
-    @GetMapping({"/companyJoinStatusSearch", "/ko/companyJoinStatusSearch"})
+    @GetMapping({"/companyJoinStatusSearch", "/ko/companyJoinStatusSearch", "/en/companyJoinStatusSearch"})
     public String companyJoinStatusSearch(HttpServletRequest request, Model model) {
-        return reactAppViewSupport.render(model, "join-company-status", false, false);
+        return renderJoinPage(model, "join-company-status", isEnglishJoinRequest(request));
     }
 
-    @GetMapping("/en/companyJoinStatusSearch")
-    public String companyJoinStatusSearchEn(HttpServletRequest request, Model model) {
-        return reactAppViewSupport.render(model, "join-company-status", true, false);
-    }
-
-    @GetMapping({"/companyJoinStatusGuide", "/ko/companyJoinStatusGuide"})
+    @GetMapping({"/companyJoinStatusGuide", "/ko/companyJoinStatusGuide", "/en/companyJoinStatusGuide"})
     public String companyJoinStatusGuide(HttpServletRequest request, Model model) {
-        return reactAppViewSupport.render(model, "join-company-status-guide", false, false);
-    }
-
-    @GetMapping("/en/companyJoinStatusGuide")
-    public String companyJoinStatusGuideEn(HttpServletRequest request, Model model) {
-        return reactAppViewSupport.render(model, "join-company-status-guide", true, false);
+        return renderJoinPage(model, "join-company-status-guide", isEnglishJoinRequest(request));
     }
 
     @GetMapping("/api/company-status/detail")
@@ -973,42 +897,23 @@ public class MemberJoinController {
         }
     }
 
-    @GetMapping({"/companyJoinStatusDetail", "/ko/companyJoinStatusDetail"})
+    @GetMapping({"/companyJoinStatusDetail", "/ko/companyJoinStatusDetail", "/en/companyJoinStatusDetail"})
     public String companyJoinStatusDetail(
             @RequestParam(value = "bizNo", required = false) String bizNo,
             @RequestParam(value = "appNo", required = false) String appNo,
             @RequestParam("repName") String repName,
             HttpServletRequest request,
             org.springframework.ui.Model model) throws Exception {
-        return reactAppViewSupport.render(model, "join-company-status", false, false);
+        return renderJoinPage(model, "join-company-status", isEnglishJoinRequest(request));
     }
 
-    @GetMapping("/en/companyJoinStatusDetail")
-    public String companyJoinStatusDetailEn(
-            @RequestParam(value = "bizNo", required = false) String bizNo,
-            @RequestParam(value = "appNo", required = false) String appNo,
-            @RequestParam("repName") String repName,
-            HttpServletRequest request,
-            org.springframework.ui.Model model) throws Exception {
-        return reactAppViewSupport.render(model, "join-company-status", true, false);
-    }
-
-    @GetMapping({"/companyReapply", "/ko/companyReapply"})
+    @GetMapping({"/companyReapply", "/ko/companyReapply", "/en/companyReapply"})
     public String companyReapply(
             @RequestParam("bizNo") String bizNo,
             @RequestParam("repName") String repName,
             HttpServletRequest request,
             org.springframework.ui.Model model) throws Exception {
-        return reactAppViewSupport.render(model, "join-company-reapply", false, false);
-    }
-
-    @GetMapping("/en/companyReapply")
-    public String companyReapplyEn(
-            @RequestParam("bizNo") String bizNo,
-            @RequestParam("repName") String repName,
-            HttpServletRequest request,
-            org.springframework.ui.Model model) throws Exception {
-        return reactAppViewSupport.render(model, "join-company-reapply", true, false);
+        return renderJoinPage(model, "join-company-reapply", isEnglishJoinRequest(request));
     }
 
     @GetMapping("/api/company-reapply/page")
@@ -1257,6 +1162,19 @@ public class MemberJoinController {
 
     private void setJoinStep(HttpSession session, int step) {
         session.setAttribute(SESSION_JOIN_STEP, step);
+    }
+
+    private String renderJoinPage(Model model, String routeId, boolean english) {
+        return reactAppViewSupport.render(model, routeId, english, false);
+    }
+
+    private String redirectJoinStep(boolean english, String stepPath) {
+        return "redirect:" + (english ? "/join/en/" : "/join/") + stepPath;
+    }
+
+    private boolean isEnglishJoinRequest(HttpServletRequest request) {
+        String requestUri = request == null ? "" : request.getRequestURI();
+        return requestUri != null && requestUri.startsWith("/join/en/");
     }
 
     private int getJoinStep(HttpSession session) {

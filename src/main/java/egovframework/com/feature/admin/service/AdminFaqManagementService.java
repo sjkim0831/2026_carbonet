@@ -17,8 +17,10 @@ public class AdminFaqManagementService {
 
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private final Map<String, FaqItem> faqStore = new ConcurrentHashMap<>();
+    private final AdminPagePayloadFactory adminPagePayloadFactory;
 
-    public AdminFaqManagementService() {
+    public AdminFaqManagementService(AdminPagePayloadFactory adminPagePayloadFactory) {
+        this.adminPagePayloadFactory = adminPagePayloadFactory;
         seed(new FaqItem("FAQ_001", "ACCOUNT", "회원사 계정 잠금은 어떻게 해제하나요?", "How do I unlock a company account?", "로그인 실패 누적, 관리자 잠금 해제 절차", "Repeated login failures and admin unlock procedure", "PUBLIC", "PUBLISHED", 1, "회원운영팀", "Member Ops", "2026-03-29 10:20", "member_admin"));
         seed(new FaqItem("FAQ_002", "APPLICATION", "가입 반려 후 재신청은 어디에서 하나요?", "Where do I re-apply after registration rejection?", "가입현황 조회, 반려 사유, 재신청 링크", "Join-status search, rejection reason, and re-apply link", "PUBLIC", "PUBLISHED", 2, "가입심사팀", "Registration Review", "2026-03-28 14:05", "join_reviewer"));
         seed(new FaqItem("FAQ_003", "DATA", "배출량 업로드 오류는 어디서 확인하나요?", "Where can I review emission upload errors?", "업로드 결과, 형식 오류, 재제출 경로", "Upload result, format errors, and resubmission path", "PUBLIC", "REVIEW", 3, "배출량운영팀", "Emission Ops", "2026-03-27 09:40", "emission_mgr"));
@@ -63,9 +65,7 @@ public class AdminFaqManagementService {
 
         Map<String, String> selected = selectRow(filtered, catalog, safe(faqId));
 
-        Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("isEn", isEn);
-        payload.put("menuCode", "A0040301");
+        Map<String, Object> payload = adminPagePayloadFactory.create(isEn, "A0040301");
         payload.put("searchKeyword", safe(searchKeyword));
         payload.put("status", safe(status));
         payload.put("exposure", safe(exposure));

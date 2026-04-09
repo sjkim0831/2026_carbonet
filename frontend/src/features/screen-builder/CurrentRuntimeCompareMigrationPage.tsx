@@ -1,13 +1,20 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
 import { fetchAuditEvents } from "../../platform/observability/observability";
-import { RESONANCE_PROJECT_ID, fetchParityCompare, type ResonanceParityCompareRow } from "../../lib/api/resonanceControlPlane";
+import {
+  fetchParityCompare,
+  fetchProjectPipelineStatus,
+  resolveResonanceProjectId,
+  runProjectPipeline,
+  type ResonanceParityCompareRow,
+  type ResonanceProjectPipelineResponse
+} from "../../lib/api/resonanceControlPlane";
 import { fetchScreenBuilderPage, fetchScreenBuilderPreview } from "../../lib/api/screenBuilder";
 import { buildLocalizedPath, getSearchParam, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";
-import { GridToolbar, KeyValueGridPanel, MemberLinkButton, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
+import { GridToolbar, KeyValueGridPanel, MemberButton, MemberLinkButton, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 import { resolveRuntimeCompareContextKeys } from "../admin-ui/contextKeyPresets";
 import { resolveScreenBuilderQuery, sortScreenBuilderNodes } from "./shared/screenBuilderUtils";
@@ -63,6 +70,36 @@ function formatCountLabel(count: number, singular: string, plural: string) {
 function normalizeToken(value: string, fallback: string) {
   const normalized = value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
   return normalized || fallback;
+}
+
+function toList(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.filter((item) => item !== null && item !== undefined);
+  }
+  return [];
+}
+
+function toRecord(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function deploymentStateTone(value: string) {
+  const normalized = value.toUpperCase();
+  if (normalized.includes("HEALTHY") || normalized.includes("PROMOTED") || normalized.includes("TARGET")) {
+    return "bg-emerald-100 text-emerald-700";
+  }
+  if (normalized.includes("VALIDATING") || normalized.includes("PENDING")) {
+    return "bg-amber-100 text-amber-800";
+  }
+  return "bg-slate-100 text-slate-700";
+}
+
+function normalizePipelineRole(value: unknown) {
+  const upper = stringifyValue(value, "").toUpperCase();
+  if (upper === "ACTIVE" || upper === "MAIN" || upper === "PROD" || upper === "PRIMARY") return "PRIMARY";
+  if (upper === "STAGE") return "STAGE";
+  if (upper === "PREVIEW") return "PREVIEW";
+  return upper;
 }
 
 function buildDeployEvidence(options: {
@@ -215,11 +252,18 @@ function buildCompareContextStripItems(
 export function CurrentRuntimeCompareMigrationPage() {
   const en = isEnglish();
   const query = useMemo(() => resolveScreenBuilderQuery({ get: getSearchParam }), []);
+  const snapshotVersionId = getSearchParam("snapshotVersionId") || "";
   const pageState = useAsyncValue(
     () => fetchScreenBuilderPage(query),
     [query.menuCode, query.pageId, query.menuTitle, query.menuUrl]
   );
   const page = pageState.value;
+  const focusedSnapshot = useMemo(
+    () => (Array.isArray(page?.versionHistory)
+      ? page.versionHistory.find((version) => String(version?.versionId || "") === snapshotVersionId) || null
+      : null),
+    [page?.versionHistory, snapshotVersionId]
+  );
   const publishedPreviewState = useAsyncValue(
     () => fetchScreenBuilderPreview({ ...query, versionStatus: "PUBLISHED" }),
     [query.menuCode, query.pageId, query.menuTitle, query.menuUrl, page?.publishedVersionId || ""],
@@ -250,6 +294,7 @@ export function CurrentRuntimeCompareMigrationPage() {
     menuUrl: page?.menuUrl || query.menuUrl,
     templateType: currentPreview?.templateType || publishedPreview?.templateType || page?.templateType
   }), [currentPreview?.templateType, page?.menuUrl, page?.templateType, publishedPreview?.templateType, query.menuUrl]);
+  const resonanceProjectId = useMemo(() => resolveResonanceProjectId(getSearchParam("projectId") || ""), []);
   const templateLineId = findContextKeyValue(compareContextKeys, "Template Line");
   const screenFamilyRuleId = findContextKeyValue(compareContextKeys, "Screen Family Rule");
   const guidedStateId = findContextKeyValue(compareContextKeys, "Guided State");
@@ -290,7 +335,7 @@ export function CurrentRuntimeCompareMigrationPage() {
   }), [currentIssueCount, currentNodes.length, currentPreview?.authorityProfile?.scopePolicy, generatedIssueCount, generatedNodes.length, page?.authorityProfile?.scopePolicy, publishedPreview?.authorityProfile?.scopePolicy, screenFamilyRuleId, templateLineId]);
   const parityCompareState = useAsyncValue(
     () => fetchParityCompare({
-      projectId: RESONANCE_PROJECT_ID,
+      projectId: resonanceProjectId,
       guidedStateId,
       templateLineId,
       screenFamilyRuleId,
@@ -308,15 +353,46 @@ export function CurrentRuntimeCompareMigrationPage() {
       page?.releaseUnitId,
       query.menuCode,
       query.pageId,
+      resonanceProjectId,
       screenFamilyRuleId,
       selectedScreenId,
       templateLineId
     ],
     { enabled: Boolean(selectedScreenId && guidedStateId && templateLineId && screenFamilyRuleId && ownerLane) }
   );
+  const [projectPipeline, setProjectPipeline] = useState<ResonanceProjectPipelineResponse | null>(null);
+  const [pipelineRunLoading, setPipelineRunLoading] = useState(false);
+  const [pipelineRunError, setPipelineRunError] = useState("");
+  const [pipelineRunSuccess, setPipelineRunSuccess] = useState("");
+  const pipelineStatusState = useAsyncValue(
+    () => fetchProjectPipelineStatus({ projectId: resonanceProjectId }),
+    [resonanceProjectId],
+    {
+      enabled: false,
+      onSuccess: (value) => {
+        setProjectPipeline(value);
+        setPipelineRunError("");
+      },
+      onError: (error) => {
+        setPipelineRunError(error.message);
+      }
+    }
+  );
   const compareRows = parityCompareState.value?.compareTargetSet?.length
     ? mapParityRows(parityCompareState.value.compareTargetSet)
     : fallbackCompareRows;
+  const snapshotMatchesPublished = Boolean(snapshotVersionId && snapshotVersionId === String(page?.publishedVersionId || ""));
+  const snapshotMatchesDraft = Boolean(snapshotVersionId && snapshotVersionId === String(page?.versionId || ""));
+  const snapshotAnchorState = !snapshotVersionId
+    ? (en ? "CURRENT" : "현재값")
+    : (!focusedSnapshot
+      ? (en ? "MISSING" : "누락")
+      : (snapshotMatchesPublished ? (en ? "PUBLISHED" : "발행본") : (snapshotMatchesDraft ? (en ? "DRAFT" : "초안") : (en ? "MANUAL" : "수동"))));
+  const repairSnapshotFocusMode = snapshotVersionId
+    ? (snapshotMatchesPublished
+      ? (en ? "published compare anchor" : "발행 비교 앵커")
+      : (snapshotMatchesDraft ? (en ? "draft compare anchor" : "초안 비교 앵커") : (en ? "manual snapshot compare" : "수동 스냅샷 비교")))
+    : (en ? "latest draft vs published compare" : "최신 초안과 발행본 비교");
   const compareContextStripItems = useMemo(
     () => buildCompareContextStripItems(compareContextKeys, compareRows, releaseUnitId),
     [compareContextKeys, compareRows, releaseUnitId]
@@ -394,7 +470,7 @@ export function CurrentRuntimeCompareMigrationPage() {
     }
   ];
   const repairPayloadItems = [
-    { label: "projectId", value: RESONANCE_PROJECT_ID },
+    { label: "projectId", value: resonanceProjectId },
     { label: "releaseUnitId", value: deployEvidence.releaseUnitId },
     { label: "runtimePackageId", value: deployEvidence.runtimePackageId },
     { label: "deployTraceId", value: deployEvidence.deployTraceId },
@@ -420,6 +496,7 @@ export function CurrentRuntimeCompareMigrationPage() {
     { label: en ? "repairCandidateSet" : "repairCandidateSet", value: repairQueue.length ? repairQueue.map((row) => row.candidate).join(", ") : "-" }
   ];
   const smokeReadinessItems = [
+    { label: en ? "Snapshot Anchor State" : "스냅샷 앵커 상태", value: snapshotAnchorState },
     { label: en ? "Parity Score" : "정합성 점수", value: `${parityScore}%` },
     { label: en ? "Uniformity Score" : "일관성 점수", value: `${uniformityScore}%` },
     { label: en ? "Current Result" : "현재 결과", value: parityCompareState.value?.result || "-" },
@@ -458,6 +535,75 @@ export function CurrentRuntimeCompareMigrationPage() {
       value: en ? "operator stop, DONE, BLOCKED, or ownership change" : "운영자 중지, DONE, BLOCKED, 또는 소유 범위 변경"
     }
   ];
+  const pipelineValidatorRows = toList(projectPipeline?.validatorCheckSet);
+  const pipelineStageRows = toList(projectPipeline?.stageSet);
+  const pipelineArtifactRows = toList(projectPipeline?.artifactRegistryEntrySet);
+  const pipelineInstallableProduct = toRecord(projectPipeline?.installableProduct);
+  const pipelineDeployContract = toRecord(projectPipeline?.deployContract);
+  const pipelineDeploymentRoutes = toList(pipelineDeployContract.deploymentRouteSet);
+  const pipelineArtifactLineage = toRecord(projectPipeline?.artifactLineage);
+  const pipelineRollbackPlan = toRecord(projectPipeline?.rollbackPlan);
+  const pipelineServerStateRows = toList(projectPipeline?.serverStateSet);
+  const pipelinePromotionSummary = useMemo(() => {
+    const counts = new Map<string, number>();
+    pipelineServerStateRows.forEach((item) => {
+      const promotionState = stringifyValue(toRecord(item).promotionState, "UNKNOWN");
+      counts.set(promotionState, (counts.get(promotionState) || 0) + 1);
+    });
+    return Array.from(counts.entries()).map(([state, count]) => `${state} ${count}`).join(" / ");
+  }, [pipelineServerStateRows]);
+  const promotedServerCount = useMemo(
+    () => pipelineServerStateRows.filter((item) => stringifyValue(toRecord(item).promotionState).toUpperCase().includes("PROMOTED")).length,
+    [pipelineServerStateRows]
+  );
+  const pendingServerCount = useMemo(
+    () => pipelineServerStateRows.filter((item) => {
+      const promotionState = stringifyValue(toRecord(item).promotionState).toUpperCase();
+      return promotionState.includes("PENDING") || promotionState.includes("TARGET");
+    }).length,
+    [pipelineServerStateRows]
+  );
+  const rollbackAnchorState = stringifyValue(pipelineRollbackPlan.rollbackTargetReleaseUnitId);
+  const primaryRoute = useMemo(
+    () => pipelineDeploymentRoutes.find((item) => normalizePipelineRole(toRecord(item).serverRole) === "PRIMARY"),
+    [pipelineDeploymentRoutes]
+  );
+
+  async function handleRunProjectPipeline() {
+    setPipelineRunLoading(true);
+    setPipelineRunError("");
+    setPipelineRunSuccess("");
+    try {
+      const response = await runProjectPipeline({
+        projectId: resonanceProjectId,
+        scenarioId: guidedStateId !== "-" ? guidedStateId : undefined,
+        guidedStateId: guidedStateId !== "-" ? guidedStateId : undefined,
+        templateLineId: templateLineId !== "-" ? templateLineId : undefined,
+        screenFamilyRuleId: screenFamilyRuleId !== "-" ? screenFamilyRuleId : undefined,
+        ownerLane: ownerLane !== "-" ? ownerLane : undefined,
+        menuRoot: page?.menuCode || query.menuCode || query.pageId || selectedScreenId,
+        runtimeClass: selectedScreenId,
+        menuScope: stringifyValue(page?.authorityProfile?.scopePolicy, "ADMIN"),
+        releaseUnitPrefix: "release-unit",
+        runtimePackagePrefix: "runtime-package",
+        artifactTargetSystem: "carbonet-general",
+        deploymentTarget: "ops-runtime",
+        operator: "current-runtime-compare-ui"
+      });
+      setProjectPipeline(response);
+      setPipelineRunSuccess(en ? "Project pipeline run recorded." : "프로젝트 파이프라인 실행 결과를 기록했습니다.");
+      pipelineStatusState.setError("");
+    } catch (error) {
+      setPipelineRunError(error instanceof Error ? error.message : (en ? "Failed to run project pipeline." : "프로젝트 파이프라인 실행에 실패했습니다."));
+    } finally {
+      setPipelineRunLoading(false);
+    }
+  }
+
+  async function handleRefreshProjectPipeline() {
+    setPipelineRunSuccess("");
+    await pipelineStatusState.reload();
+  }
 
   return (
     <AdminPageShell
@@ -465,10 +611,10 @@ export function CurrentRuntimeCompareMigrationPage() {
         { label: en ? "Home" : "홈", href: buildLocalizedPath("/admin/", "/en/admin/") },
         { label: en ? "System" : "시스템" },
         { label: en ? "Screen Builder" : "화면 빌더", href: buildLocalizedPath("/admin/system/screen-builder", "/en/admin/system/screen-builder") },
-        { label: en ? "Current Runtime Compare" : "현재 런타임 비교" }
+        { label: en ? "Repair Validator Console" : "복구 검증 콘솔" }
       ]}
-      title={en ? "Current Runtime Compare" : "현재 런타임 비교"}
-      subtitle={en ? "Compare the published runtime against the current generated snapshot and the governed baseline." : "발행 런타임을 현재 생성 스냅샷과 governed baseline에 맞춰 비교합니다."}
+      title={en ? "Repair Validator Console" : "복구 검증 콘솔"}
+      subtitle={en ? "Validate repair readiness by comparing the published runtime against the current generated snapshot and governed baseline." : "발행 런타임을 현재 생성 스냅샷 및 governed baseline과 비교해 복구 준비 상태를 검증합니다."}
       contextStrip={<ContextKeyStrip items={compareContextStripItems} />}
       loading={(pageState.loading && !page) || (currentPreviewState.loading && !currentPreview)}
       loadingLabel={en ? "Loading runtime compare..." : "런타임 비교를 불러오는 중입니다."}
@@ -476,6 +622,27 @@ export function CurrentRuntimeCompareMigrationPage() {
       {pageState.error || currentPreviewState.error || publishedPreviewState.error || parityCompareState.error ? (
         <PageStatusNotice tone="error">
           {pageState.error || currentPreviewState.error || publishedPreviewState.error || parityCompareState.error}
+        </PageStatusNotice>
+      ) : null}
+      {pipelineRunError ? <PageStatusNotice tone="error">{pipelineRunError}</PageStatusNotice> : null}
+      {pipelineRunSuccess ? <PageStatusNotice tone="success">{pipelineRunSuccess}</PageStatusNotice> : null}
+      {snapshotVersionId ? (
+        <PageStatusNotice tone="success">
+          {en ? `Snapshot focus: ${snapshotVersionId}` : `현재 검증 스냅샷: ${snapshotVersionId}`}
+        </PageStatusNotice>
+      ) : null}
+      {snapshotVersionId && !focusedSnapshot ? (
+        <PageStatusNotice tone="warning">
+          {en
+            ? "The focused snapshot was not found in the current snapshot registry. Treat compare evidence as unanchored until the snapshot history is restored."
+            : "현재 스냅샷 레지스트리에서 포커스 스냅샷을 찾지 못했습니다. 스냅샷 이력이 복구되기 전까지 compare 증거를 비앵커 상태로 취급해야 합니다."}
+        </PageStatusNotice>
+      ) : null}
+      {snapshotVersionId && !snapshotMatchesPublished && !snapshotMatchesDraft ? (
+        <PageStatusNotice tone="warning">
+          {en
+            ? "This compare console is anchored to a snapshot that is neither the current draft nor the current published version. Treat compare evidence as manual snapshot review until one of those anchors matches."
+            : "현재 비교 콘솔은 최신 초안이나 최신 발행본과 일치하지 않는 스냅샷을 기준으로 보고 있습니다. 둘 중 하나와 일치하기 전까지는 수동 스냅샷 검토로 취급해야 합니다."}
         </PageStatusNotice>
       ) : null}
 
@@ -488,17 +655,257 @@ export function CurrentRuntimeCompareMigrationPage() {
       ) : null}
 
       <AdminWorkspacePageFrame>
+        {snapshotVersionId ? (
+          <section className="grid grid-cols-1 gap-4 md:grid-cols-4" data-help-id="runtime-compare-snapshot-focus">
+            <SummaryMetricCard
+              title={en ? "Snapshot Focus" : "스냅샷 포커스"}
+              value={snapshotVersionId}
+              description={en ? "Repair validator target snapshot" : "현재 복구 검증 대상 스냅샷"}
+            />
+            <SummaryMetricCard
+              title={en ? "Published Match" : "발행 일치"}
+              value={snapshotMatchesPublished ? (en ? "MATCH" : "일치") : (en ? "DIFF" : "불일치")}
+              description={page?.publishedVersionId || "-"}
+              accentClassName={snapshotMatchesPublished ? "text-emerald-700" : "text-amber-700"}
+              surfaceClassName={snapshotMatchesPublished ? "bg-emerald-50" : "bg-amber-50"}
+            />
+            <SummaryMetricCard
+              title={en ? "Draft Match" : "초안 일치"}
+              value={snapshotMatchesDraft ? (en ? "MATCH" : "일치") : (en ? "DIFF" : "불일치")}
+              description={page?.versionId || "-"}
+              accentClassName={snapshotMatchesDraft ? "text-emerald-700" : "text-amber-700"}
+              surfaceClassName={snapshotMatchesDraft ? "bg-emerald-50" : "bg-amber-50"}
+            />
+            <SummaryMetricCard
+              title={en ? "Focus Mode" : "포커스 모드"}
+              value={snapshotMatchesPublished ? (en ? "published compare" : "발행 비교") : (snapshotMatchesDraft ? (en ? "draft compare" : "초안 비교") : (en ? "manual snapshot compare" : "수동 스냅샷 비교"))}
+              description={en ? "Current repair validator source" : "현재 복구 검증 소스"}
+            />
+          </section>
+        ) : null}
+        {snapshotVersionId && focusedSnapshot ? (
+          <div data-help-id="runtime-compare-focused-snapshot-evidence">
+            <KeyValueGridPanel
+              title={en ? "Focused Snapshot Evidence" : "포커스 스냅샷 증거"}
+              description={en ? "This snapshot registry row is the current compare anchor between draft, published runtime, and governed baseline." : "이 스냅샷 레지스트리 행은 현재 초안, 발행 런타임, governed baseline 사이의 compare 앵커입니다."}
+              items={[
+                { label: en ? "Snapshot Version" : "스냅샷 버전", value: String(focusedSnapshot.versionId || "-") },
+                { label: en ? "Snapshot Status" : "스냅샷 상태", value: String(focusedSnapshot.versionStatus || "-") },
+                { label: en ? "Saved At" : "저장 시각", value: String(focusedSnapshot.savedAt || "-") },
+                { label: en ? "Template Type" : "템플릿 타입", value: String(focusedSnapshot.templateType || "-") },
+                { label: en ? "Node Count" : "노드 수", value: String(focusedSnapshot.nodeCount || 0) },
+                { label: en ? "Event Count" : "이벤트 수", value: String(focusedSnapshot.eventCount || 0) },
+                { label: en ? "Anchor Match" : "앵커 일치", value: snapshotMatchesPublished ? (en ? "PUBLISHED" : "발행본") : (snapshotMatchesDraft ? (en ? "DRAFT" : "초안") : (en ? "MANUAL" : "수동")) },
+                { label: en ? "Compare Trace" : "비교 추적", value: parityCompareState.value?.traceId || "-" }
+              ]}
+            />
+          </div>
+        ) : null}
         <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4" data-help-id="runtime-compare-metrics">
-          <SummaryMetricCard title={en ? "Parity Score" : "정합성 점수"} value={`${parityScore}%`} description={en ? "Current compare score" : "현재 compare 점수"} />
-          <SummaryMetricCard title={en ? "Uniformity Score" : "일관성 점수"} value={`${uniformityScore}%`} description={en ? "Uniformity closure" : "uniformity 종료 기준"} />
-          <SummaryMetricCard title={en ? "Mismatches" : "불일치"} value={mismatchCount} description={en ? "Current vs generated vs baseline" : "current / generated / baseline 비교"} accentClassName="text-red-700" surfaceClassName="bg-red-50" />
-          <SummaryMetricCard title={en ? "Repair Candidates" : "복구 후보"} value={repairQueue.length} description={en ? "Queue-ready compare targets" : "큐에 올릴 수 있는 비교 대상"} />
+          <SummaryMetricCard
+            title={en ? "Pipeline Promotion" : "파이프라인 승격"}
+            value={projectPipeline ? `${promotedServerCount}/${pipelineServerStateRows.length || 0}` : `${parityScore}%`}
+            description={projectPipeline ? (pipelinePromotionSummary || (en ? "Promotion summary unavailable" : "승격 요약 없음")) : (en ? "Current compare score" : "현재 compare 점수")}
+          />
+          <SummaryMetricCard
+            title={en ? "Validator Closure" : "검증 종료"}
+            value={projectPipeline ? `${projectPipeline.validatorPassCount}/${projectPipeline.validatorTotalCount}` : `${uniformityScore}%`}
+            description={projectPipeline ? (en ? "Validator pass ratio" : "검증 통과 비율") : (en ? "Uniformity closure" : "uniformity 종료 기준")}
+          />
+          <SummaryMetricCard
+            title={en ? "Release Drift" : "릴리스 드리프트"}
+            value={projectPipeline ? pendingServerCount : mismatchCount}
+            description={projectPipeline ? (en ? "Servers still pending target promotion" : "목표 승격 전 서버 수") : (en ? "Current vs generated vs baseline" : "current / generated / baseline 비교")}
+            accentClassName="text-red-700"
+            surfaceClassName="bg-red-50"
+          />
+          <SummaryMetricCard
+            title={en ? "Rollback Anchor" : "롤백 앵커"}
+            value={projectPipeline ? rollbackAnchorState : repairQueue.length}
+            description={projectPipeline
+              ? `${stringifyValue(toRecord(primaryRoute).serverId)} / ${stringifyValue(toRecord(primaryRoute).promotionState)}`
+              : (en ? "Queue-ready compare targets" : "큐에 올릴 수 있는 비교 대상")}
+          />
         </section>
+
+        <div className="overflow-hidden rounded-2xl border border-[var(--kr-gov-border)] bg-white shadow-sm" data-help-id="runtime-compare-project-pipeline">
+          <GridToolbar
+            title={en ? "Project Pipeline Control Plane" : "프로젝트 파이프라인 컨트롤 플레인"}
+            meta={en
+              ? "Lock projectId-scoped scaffold, validator, package, deploy, and rollback evidence from the current compare scope."
+              : "현재 compare 범위에서 projectId 기준 scaffold, validator, package, deploy, rollback 증거를 고정합니다."}
+            actions={(
+              <div className="flex flex-wrap gap-2">
+                <MemberButton disabled={pipelineRunLoading} onClick={handleRefreshProjectPipeline} size="sm" type="button" variant="secondary">
+                  {pipelineStatusState.loading ? (en ? "Loading..." : "불러오는 중...") : (en ? "Load Latest" : "최신 실행 조회")}
+                </MemberButton>
+                <MemberButton disabled={pipelineRunLoading} onClick={handleRunProjectPipeline} size="sm" type="button">
+                  {pipelineRunLoading ? (en ? "Running..." : "실행 중...") : (en ? "Run Pipeline" : "파이프라인 실행")}
+                </MemberButton>
+              </div>
+            )}
+          />
+          <div className="space-y-6 px-6 py-5">
+            <KeyValueGridPanel
+              title={en ? "Pipeline Summary" : "파이프라인 요약"}
+              description={en
+                ? "This snapshot binds the current runtime compare scope to an installable product and artifact-centered deployment contract."
+                : "이 스냅샷은 현재 runtime compare 범위를 installable product와 artifact 중심 배포 계약으로 묶습니다."}
+              items={[
+                { label: "projectId", value: resonanceProjectId },
+                { label: "pipelineRunId", value: projectPipeline?.pipelineRunId || "-" },
+                { label: "releaseUnitId", value: projectPipeline?.releaseUnitId || "-" },
+                { label: "runtimePackageId", value: projectPipeline?.runtimePackageId || "-" },
+                { label: "deployTraceId", value: projectPipeline?.deployTraceId || "-" },
+                { label: en ? "Pipeline Result" : "파이프라인 결과", value: projectPipeline?.result || "-" },
+                { label: en ? "Validator Pass" : "검증 통과", value: projectPipeline ? `${projectPipeline.validatorPassCount}/${projectPipeline.validatorTotalCount}` : "-" },
+                { label: en ? "Deploy Mode" : "배포 모드", value: stringifyValue(pipelineDeployContract.deploymentMode) },
+                { label: en ? "Release Family" : "릴리스 패밀리", value: stringifyValue(pipelineArtifactLineage.releaseFamilyId) },
+                { label: en ? "Rollback Target" : "롤백 대상", value: stringifyValue(pipelineRollbackPlan.rollbackTargetReleaseUnitId) }
+              ]}
+            />
+
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+              <KeyValueGridPanel
+                title={en ? "Installable Product" : "설치형 프로덕트"}
+                items={[
+                  { label: "installableProductId", value: stringifyValue(pipelineInstallableProduct.installableProductId) },
+                  { label: "productType", value: stringifyValue(pipelineInstallableProduct.productType) },
+                  { label: "packageId", value: stringifyValue(pipelineInstallableProduct.packageId) },
+                  { label: "packageFormat", value: stringifyValue(pipelineInstallableProduct.packageFormat) },
+                  { label: "menuBinding.projectId", value: stringifyValue(toRecord(pipelineInstallableProduct.menuBinding).projectId) },
+                  { label: "menuBinding.menuRoot", value: stringifyValue(toRecord(pipelineInstallableProduct.menuBinding).menuRoot) },
+                  { label: "menuBinding.runtimeClass", value: stringifyValue(toRecord(pipelineInstallableProduct.menuBinding).runtimeClass) },
+                  { label: "menuBinding.menuScope", value: stringifyValue(toRecord(pipelineInstallableProduct.menuBinding).menuScope) }
+                ]}
+              />
+              <KeyValueGridPanel
+                title={en ? "Deploy Contract" : "배포 계약"}
+                items={[
+                  { label: "artifactTargetSystem", value: stringifyValue(pipelineDeployContract.artifactTargetSystem) },
+                  { label: "deploymentTarget", value: stringifyValue(pipelineDeployContract.deploymentTarget) },
+                  { label: "deploymentMode", value: stringifyValue(pipelineDeployContract.deploymentMode) },
+                  { label: "versionTrackingYn", value: stringifyValue(pipelineDeployContract.versionTrackingYn) },
+                  { label: "releaseFamilyId", value: stringifyValue(pipelineDeployContract.releaseFamilyId) },
+                  { label: "releaseUnitId", value: stringifyValue(pipelineDeployContract.releaseUnitId) },
+                  { label: "artifactManifestId", value: stringifyValue(pipelineArtifactLineage.artifactManifestId) },
+                  { label: "releaseTrackVersion", value: stringifyValue(pipelineArtifactLineage.releaseTrackVersion) }
+                ]}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+              <section className="rounded-2xl border border-[var(--kr-gov-border-light)] bg-slate-50/70 p-4">
+                <h3 className="text-sm font-bold">{en ? "Deployment Route" : "배포 승격 경로"}</h3>
+                <div className="mt-3 space-y-2">
+                  {pipelineDeploymentRoutes.length ? pipelineDeploymentRoutes.map((item, index) => {
+                    const row = toRecord(item);
+                    const promotionState = stringifyValue(row.promotionState);
+                    return (
+                      <div className="flex items-center justify-between rounded-xl border border-[var(--kr-gov-border-light)] bg-white p-3" key={`${stringifyValue(row.serverRole)}-${index}`}>
+                        <div>
+                          <p className="text-sm font-semibold">{stringifyValue(row.serverRole)}</p>
+                          <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{stringifyValue(row.serverId)}</p>
+                        </div>
+                        <span className={`rounded-full px-3 py-1 text-xs font-bold ${deploymentStateTone(promotionState)}`}>{promotionState}</span>
+                      </div>
+                    );
+                  }) : <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "No deployment route is attached yet." : "연결된 배포 승격 경로가 없습니다."}</p>}
+                </div>
+              </section>
+              <section className="rounded-2xl border border-[var(--kr-gov-border-light)] bg-slate-50/70 p-4">
+                <h3 className="text-sm font-bold">{en ? "Server Promotion State" : "서버 승격 상태"}</h3>
+                <div className="mt-3 space-y-2">
+                  {pipelineServerStateRows.length ? pipelineServerStateRows.map((item, index) => {
+                    const row = toRecord(item);
+                    const healthStatus = stringifyValue(row.healthStatus);
+                    const promotionState = stringifyValue(row.promotionState);
+                    return (
+                      <div className="rounded-xl border border-[var(--kr-gov-border-light)] bg-white p-3" key={`${stringifyValue(row.serverId)}-${index}`}>
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold">{stringifyValue(row.serverId)}</p>
+                            <p className="mt-1 text-xs text-[var(--kr-gov-text-secondary)]">{stringifyValue(row.serverRole)}</p>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`rounded-full px-3 py-1 text-xs font-bold ${deploymentStateTone(promotionState)}`}>{promotionState}</span>
+                            <span className={`rounded-full px-3 py-1 text-xs font-bold ${deploymentStateTone(healthStatus)}`}>{healthStatus}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }) : <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "No pipeline server state is available." : "파이프라인 서버 상태가 없습니다."}</p>}
+                </div>
+              </section>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+              <section className="rounded-2xl border border-[var(--kr-gov-border-light)] bg-slate-50/70 p-4">
+                <h3 className="text-sm font-bold">{en ? "Validator Checks" : "검증 체크"}</h3>
+                <div className="mt-3 space-y-2">
+                  {pipelineValidatorRows.length ? pipelineValidatorRows.map((item, index) => {
+                    const row = toRecord(item);
+                    const status = stringifyValue(row.status);
+                    const tone = status === "PASS" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700";
+                    return (
+                      <div className="rounded-xl border border-[var(--kr-gov-border-light)] bg-white p-3" key={`${stringifyValue(row.validatorCheckId, String(index))}-${index}`}>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-sm font-semibold">{stringifyValue(row.validatorCheckId)}</div>
+                          <span className={`inline-flex rounded-full px-2 py-1 text-xs font-bold ${tone}`}>{status || "-"}</span>
+                        </div>
+                        <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">{stringifyValue(row.summary)}</p>
+                      </div>
+                    );
+                  }) : <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "No pipeline status loaded." : "불러온 파이프라인 상태가 없습니다."}</p>}
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-[var(--kr-gov-border-light)] bg-slate-50/70 p-4">
+                <h3 className="text-sm font-bold">{en ? "Stage Progress" : "단계 진행"}</h3>
+                <div className="mt-3 space-y-2">
+                  {pipelineStageRows.length ? pipelineStageRows.map((item, index) => {
+                    const row = toRecord(item);
+                    const status = stringifyValue(row.status);
+                    const tone = status === "DONE" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-800";
+                    return (
+                      <div className="rounded-xl border border-[var(--kr-gov-border-light)] bg-white p-3" key={`${stringifyValue(row.stageId, String(index))}-${index}`}>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-sm font-semibold">{stringifyValue(row.stageId)}</div>
+                          <span className={`inline-flex rounded-full px-2 py-1 text-xs font-bold ${tone}`}>{status || "-"}</span>
+                        </div>
+                        <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">{stringifyValue(row.summary)}</p>
+                      </div>
+                    );
+                  }) : <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "No stage evidence loaded." : "불러온 단계 정보가 없습니다."}</p>}
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-[var(--kr-gov-border-light)] bg-slate-50/70 p-4">
+                <h3 className="text-sm font-bold">{en ? "Artifact Registry" : "아티팩트 레지스트리"}</h3>
+                <div className="mt-3 space-y-2">
+                  {pipelineArtifactRows.length ? pipelineArtifactRows.map((item, index) => {
+                    const row = toRecord(item);
+                    return (
+                      <div className="rounded-xl border border-[var(--kr-gov-border-light)] bg-white p-3" key={`${stringifyValue(row.artifactId, String(index))}-${index}`}>
+                        <div className="text-sm font-semibold">{stringifyValue(row.artifactId)}</div>
+                        <p className="mt-1 text-xs uppercase tracking-[0.16em] text-[var(--kr-gov-text-secondary)]">{stringifyValue(row.artifactFamily)}</p>
+                        <p className="mt-2 text-sm text-[var(--kr-gov-text-secondary)]">{stringifyValue(row.artifactVersion)}</p>
+                      </div>
+                    );
+                  }) : <p className="text-sm text-[var(--kr-gov-text-secondary)]">{en ? "No artifact registry evidence loaded." : "불러온 아티팩트 정보가 없습니다."}</p>}
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
 
         <div data-help-id="runtime-compare-scope">
           <KeyValueGridPanel
             description={en ? "Baseline values are derived from the governed context keys for the current lane." : "baseline 값은 현재 레인의 governed context key 기준으로 계산합니다."}
             items={[
+              { label: en ? "Focus Snapshot" : "포커스 스냅샷", value: snapshotVersionId || "-" },
+              { label: en ? "Anchor State" : "앵커 상태", value: snapshotAnchorState },
+              { label: en ? "Focus Mode" : "포커스 모드", value: repairSnapshotFocusMode },
               { label: en ? "Menu Code" : "메뉴 코드", value: page?.menuCode || query.menuCode || "-" },
               { label: "pageId", value: page?.pageId || query.pageId || "-" },
               { label: en ? "Published Version" : "발행 버전", value: page?.publishedVersionId || "-" },
@@ -510,7 +917,7 @@ export function CurrentRuntimeCompareMigrationPage() {
               { label: en ? "Blocker Count" : "차단 항목 수", value: String(blockerRows.length) },
               { label: en ? "Repair Queue" : "복구 큐", value: String(repairQueue.length) }
             ]}
-            title={en ? "Compare Scope" : "비교 범위"}
+            title={en ? "Repair Validator Scope" : "복구 검증 범위"}
           />
         </div>
 
@@ -518,6 +925,9 @@ export function CurrentRuntimeCompareMigrationPage() {
           <KeyValueGridPanel
             description={en ? "This panel closes the verify handoff between the builder lane input and the frontend runtime evidence used for compare and repair." : "이 패널은 compare/repair에 사용하는 빌더 레인 입력물과 프런트엔드 런타임 증거 사이의 verify handoff를 닫습니다."}
             items={[
+              { label: en ? "Focus Snapshot" : "포커스 스냅샷", value: snapshotVersionId || "-" },
+              { label: en ? "Focus Mode" : "포커스 모드", value: repairSnapshotFocusMode },
+              { label: en ? "Snapshot Anchor Match" : "스냅샷 앵커 일치", value: snapshotAnchorState },
               { label: en ? "Builder Id" : "빌더 ID", value: page?.builderId || "-" },
               { label: en ? "Builder Draft" : "빌더 초안", value: page?.versionId || "-" },
               { label: en ? "Published Runtime" : "발행 런타임", value: page?.publishedVersionId || "-" },
@@ -529,7 +939,7 @@ export function CurrentRuntimeCompareMigrationPage() {
               { label: en ? "Generated Registry Issues" : "생성 레지스트리 이슈", value: String(generatedIssueCount) },
               { label: en ? "Current Registry Issues" : "현재 레지스트리 이슈", value: String(currentIssueCount) }
             ]}
-            title={en ? "Builder / Runtime Evidence" : "빌더 / 런타임 증거"}
+            title={en ? "Validator Evidence Handoff" : "검증 증거 인계"}
           />
         </div>
 
@@ -537,13 +947,14 @@ export function CurrentRuntimeCompareMigrationPage() {
           <KeyValueGridPanel
             description={en ? "Lane 09 must preserve the latest 08 deploy evidence without renaming these fields before repair or handoff." : "09 레인은 repair나 handoff 전에 최신 08 배포 증거를 이 필드 이름 그대로 유지해야 합니다."}
             items={[
+              { label: en ? "Focus Snapshot" : "포커스 스냅샷", value: snapshotVersionId || "-" },
               { label: "releaseUnitId", value: deployEvidence.releaseUnitId },
               { label: "runtimePackageId", value: deployEvidence.runtimePackageId },
               { label: "deployTraceId", value: deployEvidence.deployTraceId },
               { label: "ownerLane", value: deployEvidence.ownerLane },
               { label: "rollbackAnchorYn", value: deployEvidence.rollbackAnchorYn }
             ]}
-            title={en ? "08 Deploy Evidence" : "08 배포 증거"}
+            title={en ? "Install Deploy Evidence" : "설치 배포 증거"}
           />
         </div>
 
@@ -551,7 +962,7 @@ export function CurrentRuntimeCompareMigrationPage() {
           <KeyValueGridPanel
             description={en ? "This checklist maps parity and smoke closure directly to compare response fields and publish evidence." : "이 체크리스트는 parity 및 smoke 종료 기준을 compare 응답 필드와 publish 증거에 직접 매핑합니다."}
             items={smokeReadinessItems}
-            title={en ? "Parity / Smoke Readiness" : "정합성 / 스모크 준비 상태"}
+            title={en ? "Validator Gate Readiness" : "검증 게이트 준비 상태"}
           />
         </div>
 
@@ -559,7 +970,7 @@ export function CurrentRuntimeCompareMigrationPage() {
           <KeyValueGridPanel
             description={en ? "Use the same lane-09 repeat order every minute: recover the last unfinished compare item first, then rerun only when the unfinished scope is closed." : "1분마다 같은 09 레인 반복 순서를 유지합니다. 마지막 미완료 compare 항목을 먼저 복구하고, 그 범위가 닫힌 뒤에만 재실행합니다."}
             items={loopStatusItems}
-            title={en ? "Lane 09 Loop Continuation" : "09 레인 루프 이어가기"}
+            title={en ? "Repair Loop Continuation" : "복구 루프 이어가기"}
           />
         </div>
 
@@ -567,8 +978,14 @@ export function CurrentRuntimeCompareMigrationPage() {
           <section className="gov-card overflow-hidden p-0" data-help-id="runtime-compare-verify-closure">
             <GridToolbar
               meta={en ? "These checks close the 04 builder input and 05 runtime evidence into one verify handoff." : "이 체크는 04 빌더 입력물과 05 런타임 증거를 하나의 verify handoff로 닫습니다."}
-              title={en ? "Verify Closure" : "검증 종료 기준"}
+              title={en ? "Validator Closure" : "검증 종료 기준"}
             />
+            {snapshotVersionId ? (
+              <div className={`border-b px-5 py-3 text-sm ${snapshotAnchorState === (en ? "PUBLISHED" : "발행본") || snapshotAnchorState === (en ? "DRAFT" : "초안") ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-amber-200 bg-amber-50 text-amber-900"}`}>
+                <span className="font-bold">{en ? "Closure anchor" : "종료 기준 앵커"}</span>
+                {`: ${snapshotVersionId} / ${snapshotAnchorState} / ${repairSnapshotFocusMode}`}
+              </div>
+            ) : null}
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-[var(--kr-gov-border-light)]">
                 <thead className="bg-slate-50 text-left text-[12px] font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
@@ -598,7 +1015,7 @@ export function CurrentRuntimeCompareMigrationPage() {
             <KeyValueGridPanel
               description={en ? "Use this payload preview to open repair without renaming governed keys from the compare scope." : "이 payload 미리보기는 compare 범위의 governed key를 바꾸지 않고 repair를 열기 위한 기준입니다."}
               items={repairPayloadItems}
-              title={en ? "repair/open Payload Preview" : "repair/open 페이로드 미리보기"}
+              title={en ? "Repair Handoff Payload" : "복구 인계 페이로드"}
             />
           </div>
         </section>
@@ -640,8 +1057,14 @@ export function CurrentRuntimeCompareMigrationPage() {
               </>
             )}
             meta={en ? "Published runtime is treated as current evidence; the draft builder snapshot is used as the generated target." : "발행 런타임을 current evidence로, 현재 빌더 스냅샷을 generated target으로 사용합니다."}
-            title={en ? "Compare Matrix" : "비교 매트릭스"}
+            title={en ? "Repair Validator Matrix" : "복구 검증 매트릭스"}
           />
+          {snapshotVersionId ? (
+            <div className={`border-b px-5 py-3 text-sm ${snapshotAnchorState === (en ? "PUBLISHED" : "발행본") || snapshotAnchorState === (en ? "DRAFT" : "초안") ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-amber-200 bg-amber-50 text-amber-900"}`}>
+              <span className="font-bold">{en ? "Matrix anchor" : "매트릭스 앵커"}</span>
+              {`: ${snapshotVersionId} / ${snapshotAnchorState} / ${repairSnapshotFocusMode}`}
+            </div>
+          ) : null}
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-[var(--kr-gov-border-light)]">
               <thead className="bg-slate-50 text-left text-[12px] font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
@@ -676,7 +1099,7 @@ export function CurrentRuntimeCompareMigrationPage() {
         <section className="gov-card overflow-hidden p-0" data-help-id="runtime-compare-events">
           <GridToolbar
             meta={en ? "Latest compare-linked publish evidence and recent builder activity." : "비교와 연결된 최근 publish 증거와 빌더 활동입니다."}
-            title={en ? "Recent Compare Events" : "최근 비교 이벤트"}
+            title={en ? "Recent Validator Events" : "최근 검증 이벤트"}
           />
           <div className="divide-y divide-[var(--kr-gov-border-light)] bg-white">
             <div className="px-5 py-4 text-sm">
@@ -707,7 +1130,7 @@ export function CurrentRuntimeCompareMigrationPage() {
           <section className="gov-card overflow-hidden p-0" data-help-id="runtime-compare-blockers">
             <GridToolbar
               meta={en ? "Blockers must keep the verify lane owner before handoff." : "차단 항목은 인계 전까지 verify owner lane을 유지해야 합니다."}
-              title={en ? "Blocker List" : "차단 항목 목록"}
+              title={en ? "Install Blocker List" : "설치 차단 항목 목록"}
             />
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-[var(--kr-gov-border-light)]">
@@ -739,7 +1162,7 @@ export function CurrentRuntimeCompareMigrationPage() {
           <section className="gov-card overflow-hidden p-0" data-help-id="runtime-compare-repair-queue">
             <GridToolbar
               meta={en ? "Repair queue rows keep governed identity keys for repair/open handoff." : "복구 큐 행은 repair/open 인계를 위해 governed identity key를 유지합니다."}
-              title={en ? "Repair Queue" : "복구 큐"}
+              title={en ? "Repair Validator Queue" : "복구 검증 큐"}
             />
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-[var(--kr-gov-border-light)]">

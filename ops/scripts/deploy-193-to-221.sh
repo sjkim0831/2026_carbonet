@@ -23,6 +23,12 @@ DEPLOY_ARTIFACT_NAME="${DEPLOY_ARTIFACT_NAME:-carbonet.jar}"
 DEPLOY_SSH_TARGET="${DEPLOY_REMOTE_USER}@${DEPLOY_REMOTE_HOST}"
 
 IDLE_SSH_TARGETS="${IDLE_SSH_TARGETS:-sjkim08314@34.82.132.175 sjkim08315@35.247.80.209}"
+NGINX_SITE_SYNC_ENABLED="${NGINX_SITE_SYNC_ENABLED:-true}"
+NGINX_SITE_CONFIG_SOURCE="${NGINX_SITE_CONFIG_SOURCE:-$ROOT_DIR/ops/config/nginx/carbonet-duckdns.org.conf.example}"
+NGINX_SITE_INSTALL_SCRIPT_SOURCE="${NGINX_SITE_INSTALL_SCRIPT_SOURCE:-$ROOT_DIR/ops/scripts/install-carbonet-duckdns-nginx.sh}"
+NGINX_SITE_REMOTE_TMP_CONFIG="${NGINX_SITE_REMOTE_TMP_CONFIG:-/tmp/carbonet-duckdns.org.conf}"
+NGINX_SITE_REMOTE_TMP_INSTALL="${NGINX_SITE_REMOTE_TMP_INSTALL:-/tmp/install-carbonet-duckdns-nginx.sh}"
+NGINX_SITE_REMOTE_TARGET="${NGINX_SITE_REMOTE_TARGET:-/etc/nginx/sites-enabled/carbonet}"
 
 SSH_OPTS=(
   -o StrictHostKeyChecking=no
@@ -132,6 +138,28 @@ deploy_remote() {
 
   log "prepare remote directories"
   ssh_cmd "mkdir -p '$DEPLOY_REMOTE_ROOT/target' '$remote_backup_dir'"
+
+  if [[ "$NGINX_SITE_SYNC_ENABLED" == "true" ]]; then
+    if [[ ! -f "$NGINX_SITE_CONFIG_SOURCE" ]]; then
+      echo "Nginx site config not found: $NGINX_SITE_CONFIG_SOURCE" >&2
+      exit 1
+    fi
+    if [[ ! -f "$NGINX_SITE_INSTALL_SCRIPT_SOURCE" ]]; then
+      echo "Nginx install script not found: $NGINX_SITE_INSTALL_SCRIPT_SOURCE" >&2
+      exit 1
+    fi
+
+    log "upload nginx site config"
+    scp_cmd "$NGINX_SITE_CONFIG_SOURCE" "${DEPLOY_SSH_TARGET}:${NGINX_SITE_REMOTE_TMP_CONFIG}"
+    scp_cmd "$NGINX_SITE_INSTALL_SCRIPT_SOURCE" "${DEPLOY_SSH_TARGET}:${NGINX_SITE_REMOTE_TMP_INSTALL}"
+    ssh_cmd "
+      set -euo pipefail
+      chmod +x '$NGINX_SITE_REMOTE_TMP_INSTALL'
+      sudo '$NGINX_SITE_REMOTE_TMP_INSTALL' '$NGINX_SITE_REMOTE_TMP_CONFIG' '$NGINX_SITE_REMOTE_TARGET'
+    "
+  else
+    log "nginx site sync skipped"
+  fi
 
   log "upload jar to $DEPLOY_SSH_TARGET:$remote_tmp"
   scp_cmd "$jar_path" "${DEPLOY_SSH_TARGET}:${remote_tmp}"

@@ -1,0 +1,204 @@
+---
+name: carbonet-common-project-boundary-switcher
+description: Keep Carbonet work reversible between common-platform ownership and project-specific ownership. Use when requests involve common vs project splitting, platform-common extraction, project adapter creation, common DB vs project DB ownership, menu scope separation, installable builder/module packaging, or making code easy to move between core and project layers later.
+---
+
+# Carbonet Common Project Boundary Switcher
+
+Use this skill before implementation when the real goal is not only "make it work" but also "make it easy to move between common and project ownership later".
+
+Read only what you need:
+
+- Read [`/opt/projects/carbonet/docs/architecture/common-project-reversible-transition-rules.md`](/opt/projects/carbonet/docs/architecture/common-project-reversible-transition-rules.md) first for the canonical reversible-boundary rules.
+- Read [`/opt/projects/carbonet/docs/architecture/page-systemization-minimum-contract.md`](/opt/projects/carbonet/docs/architecture/page-systemization-minimum-contract.md) when the request involves page-by-page systemization, installable screens, page manifests, authority scope, or deciding whether a page is common definition plus project binding.
+- Read [`/opt/projects/carbonet/docs/architecture/system-folder-structure-alignment.md`](/opt/projects/carbonet/docs/architecture/system-folder-structure-alignment.md) when the request also affects folder placement, module extraction, app assembly placement, or keeping new files out of the root legacy tree.
+- Read [`/opt/projects/carbonet/docs/architecture/large-move-completion-contract.md`](/opt/projects/carbonet/docs/architecture/large-move-completion-contract.md) when the request explicitly asks for a fully completed large move instead of an open-ended transitional cleanup.
+- Read [`/opt/projects/carbonet/docs/architecture/common-db-and-project-db-splitting.md`](/opt/projects/carbonet/docs/architecture/common-db-and-project-db-splitting.md) when DB ownership or table split is involved.
+- Read [`/opt/projects/carbonet/docs/architecture/screenbuilder-core-jar-adapter-plan.md`](/opt/projects/carbonet/docs/architecture/screenbuilder-core-jar-adapter-plan.md) when the task affects builder-core extraction, shared jar packaging, or project adapter lines.
+- Read [`/opt/projects/carbonet/docs/architecture/installable-builder-upgrade-roadmap.md`](/opt/projects/carbonet/docs/architecture/installable-builder-upgrade-roadmap.md) when the task is driven by "3-minute new-project bootstrap", installable builder/module delivery, theme-installable upgrades, API-installable upgrades, or framework-level builder packaging.
+- Read [`/opt/projects/carbonet/docs/architecture/installable-business-process-package-model.md`](/opt/projects/carbonet/docs/architecture/installable-business-process-package-model.md) when the task involves installable workflow/process packaging, reusable process stages, or thin project executors.
+- Read [`/opt/projects/carbonet/docs/architecture/reusable-read-module-separation-plan.md`](/opt/projects/carbonet/docs/architecture/reusable-read-module-separation-plan.md) when the task involves reusable list/detail/dashboard queries or screen-installable read models.
+- Read [`/opt/projects/carbonet/docs/architecture/platform-common-module-versioning.md`](/opt/projects/carbonet/docs/architecture/platform-common-module-versioning.md) when the task affects reusable jars, frontend shared bundles, or version-pinned rollout.
+- Read [`/opt/projects/carbonet/docs/architecture/stable-adapter-and-common-core-versioning.md`](/opt/projects/carbonet/docs/architecture/stable-adapter-and-common-core-versioning.md) when the user wants AI agents to keep evolving the common system while project adapters remain stable and versioned.
+- Read [`/opt/projects/carbonet/docs/architecture/artifact-registry-and-project-version-governance.md`](/opt/projects/carbonet/docs/architecture/artifact-registry-and-project-version-governance.md) when the task affects artifact preservation, project-installed version records, adapter change history, or project-management-console upgrade flow.
+- Read [`/opt/projects/carbonet/docs/architecture/artifact-and-release-naming-contract.md`](/opt/projects/carbonet/docs/architecture/artifact-and-release-naming-contract.md) when the task affects artifact naming, release-unit IDs, runtime-package IDs, or deploy-trace identity rules.
+
+## Use Cases
+
+- common vs project ownership split
+- making code movable from project into common later
+- making common code re-bindable into project later
+- extracting reusable core and leaving thin project adapters
+- menu scope split such as platform/common/project/runtime
+- theme/common/project split such as primitive/theme/binding
+- builder runtime versus editor/admin split
+- reusable read layer versus project write layer split
+- installable business process package split
+- common DB vs project DB decision
+- builder core jar and project adapter preparation
+- 3-minute new-project bootstrap preparation
+- installable builder/module packaging with versioned upgrades
+- stable adapter plus changeable common-core governance
+- artifact registry and adapter change recording governance
+- "do this first so future conversion is easy"
+
+## Core Rule
+
+Before writing or moving code, classify every changed asset as one of:
+
+- `COMMON_ONLY`
+- `PROJECT_ONLY`
+- `COMMON_DEF_PROJECT_BIND`
+- `MIXED_TRANSITION`
+
+Default handling:
+
+- `COMMON_ONLY`
+  - keep project DTO, route, or DB details out
+- `PROJECT_ONLY`
+  - keep common-layer abstractions out unless they are already stable
+- `COMMON_DEF_PROJECT_BIND`
+  - split definition from project binding
+- `MIXED_TRANSITION`
+  - add ports, adapters, or wrappers first before deeper refactor
+
+## Workflow
+
+1. Classify the request:
+   - pure common extraction
+   - pure project implementation
+   - mixed transition
+2. Identify which assets need reversible ownership:
+   - DTO and model types
+   - ports and adapters
+   - menu definitions
+   - theme tokens and overrides
+   - DB tables
+   - runtime routes
+   - frontend shared widgets
+   - read-heavy query layers
+   - process definitions and project executors
+3. Choose the transition pattern:
+   - `MOVE`
+   - `WRAP`
+   - `PORT_ADAPTER`
+   - `COMMON_DEF_PROJECT_BIND`
+   - `LEAVE_FOR_NOW`
+4. Prefer these changes first:
+   - core-owned DTOs instead of project DTOs
+   - ports instead of direct project service calls
+   - stable adapter contract before faster common-core iteration
+   - definition tables plus binding tables instead of hard-coded mixed rows
+   - thin project controllers and thin project adapters
+   - property-driven defaults and starter templates before custom project logic
+   - install validators before claiming "fast bootstrap"
+5. Only after that, continue with feature implementation.
+
+## Menu Rule
+
+Do not model menus as one undifferentiated pool.
+
+At minimum classify menus as:
+
+- `PLATFORM_COMMON`
+- `PROJECT_COMMON`
+- `PROJECT_RUNTIME`
+
+If the core needs menu data, return a core-owned descriptor from a port.
+Do not let core services depend on project DTO classes or project menu table semantics.
+
+## Theme Rule
+
+Do not collapse theme and project into one lane.
+
+Classify theme-related assets as:
+
+- `COMMON_PRIMITIVE`
+- `THEME_PRESENTATION`
+- `PROJECT_BINDING`
+
+Theme packages may contain many visual elements.
+That is not a problem by itself.
+
+The problem starts when theme packages own:
+
+- project business services
+- project DTOs
+- project DB logic
+- project controller or route semantics
+
+Prefer:
+
+- common primitive behavior
+- theme presentation overrides
+- project binding selection
+
+## Builder Editor Split Rule
+
+Do not assume the admin editing tool must ship in the same artifact as the runtime builder framework.
+
+Prefer these lanes:
+
+- `screenbuilder-core`
+- `screenbuilder-runtime-common-adapter`
+- `project binding adapter`
+- `editor/admin tool`
+
+If the user wants future separation, keep editor workflow and admin-console logic out of runtime core jars.
+
+## DB Rule
+
+Do not force two tables for everything.
+
+Use one of these:
+
+- `COMMON_ONLY`
+- `PROJECT_ONLY`
+- `COMMON_DEF_PROJECT_BIND`
+
+When reversibility matters, prefer:
+
+- common definition table
+- project binding or override table
+
+## Packaging Rule
+
+If the user wants very fast reuse across projects:
+
+- backend core should move toward shared `jar`
+- frontend core should move toward shared package or bundle
+- project systems should provide adapters, bindings, and overlays
+- installation should be input-driven and validator-backed, not source-copy-driven
+
+For a real "3-minute bootstrap" target, prioritize:
+
+- fewer required input values
+- starter adapter skeletons
+- install validators
+- versioned manifests and compatibility checks
+
+Adapter safety rule:
+
+- prefer stable project-facing ports and DTOs
+- let common-core internals evolve behind them
+- when breaking adapter changes are unavoidable, publish a new versioned contract line instead of silently rewriting existing project adapters
+
+When business-facing screens are involved, prefer:
+
+- reusable `read` contracts first
+- process definition packages second
+- project executors last
+
+Do not force write-heavy business behavior into common packages just to increase reuse numbers.
+
+Copying source is allowed only for prototypes, not as the normal delivery rule.
+
+## Delivery Shape
+
+For implementation requests, provide:
+
+- ownership classification
+- chosen transition pattern
+- changed files
+- what became easier to move later
+- what is still mixed and should move next

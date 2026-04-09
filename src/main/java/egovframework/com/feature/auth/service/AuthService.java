@@ -22,6 +22,10 @@ public interface AuthService {
 
     void updateAuthInfo(String userId, String userSe, String authTy, String authDn, String authCi, String authDi);
 
+    LoginResponseDTO selectLoginUser(String userSe, String userId);
+
+    LoginResponseDTO findLoginUserByExternalIdentity(String authCi, String authDi);
+
     boolean resetPassword(String userId, String newPassword);
 
     boolean resetPassword(String userId, String newPassword, String resetByUserId, String resetIp, String resetSource);

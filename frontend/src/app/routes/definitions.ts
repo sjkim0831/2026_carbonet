@@ -1,3 +1,5 @@
+import { PLATFORM_ROUTES } from "./platformRouteDefinitions";
+
 export type MigrationPageId =
   | "home"
   | "admin-home"
@@ -47,9 +49,11 @@ export type MigrationPageId =
   | "certificate-statistics"
   | "emission-validate"
   | "emission-management"
+  | "emission-lci-classification"
   | "emission-definition-studio"
   | "emission-gwp-values"
   | "emission-survey-admin"
+  | "emission-survey-admin-data"
   | "emission-data-history"
   | "emission-site-management"
   | "certificate-rec-check"
@@ -211,7 +215,7 @@ export type MigrationPageId =
 export type RouteDefinition = {
   id: MigrationPageId;
   label: string;
-  group: "admin" | "join" | "home";
+  group: "admin" | "platform" | "join" | "home";
   koPath: string;
   enPath: string;
 };
@@ -265,9 +269,11 @@ export const ROUTES: RouteDefinition[] = [
   { id: "certificate-statistics", label: "인증서 통계", group: "admin", koPath: "/admin/certificate/statistics", enPath: "/en/admin/certificate/statistics" },
   { id: "emission-validate", label: "검증 관리", group: "admin", koPath: "/admin/emission/validate", enPath: "/en/admin/emission/validate" },
   { id: "emission-management", label: "배출 변수 관리", group: "admin", koPath: "/admin/emission/management", enPath: "/en/admin/emission/management" },
+  { id: "emission-lci-classification", label: "LCI 분류 관리", group: "admin", koPath: "/admin/emission/lci-classification", enPath: "/en/admin/emission/lci-classification" },
   { id: "emission-definition-studio", label: "배출 정의 관리", group: "admin", koPath: "/admin/emission/definition-studio", enPath: "/en/admin/emission/definition-studio" },
   { id: "emission-gwp-values", label: "GWP 값 관리", group: "admin", koPath: "/admin/emission/gwp-values", enPath: "/en/admin/emission/gwp-values" },
   { id: "emission-survey-admin", label: "배출 설문 관리", group: "admin", koPath: "/admin/emission/survey-admin", enPath: "/en/admin/emission/survey-admin" },
+  { id: "emission-survey-admin-data", label: "배출 설문 데이터셋", group: "admin", koPath: "/admin/emission/survey-admin-data", enPath: "/en/admin/emission/survey-admin-data" },
   { id: "emission-data-history", label: "데이터 변경 이력", group: "admin", koPath: "/admin/emission/data_history", enPath: "/en/admin/emission/data_history" },
   { id: "emission-site-management", label: "배출지 관리", group: "admin", koPath: "/admin/emission/site-management", enPath: "/en/admin/emission/site-management" },
   { id: "certificate-rec-check", label: "REC 중복 확인", group: "admin", koPath: "/admin/certificate/rec_check", enPath: "/en/admin/certificate/rec_check" },
@@ -280,20 +286,7 @@ export const ROUTES: RouteDefinition[] = [
   { id: "faq-menu-management", label: "FAQ 메뉴 관리", group: "admin", koPath: "/admin/content/menu", enPath: "/en/admin/content/menu" },
   { id: "full-stack-management", label: "풀스택 관리", group: "admin", koPath: "/admin/system/full-stack-management", enPath: "/en/admin/system/full-stack-management" },
   { id: "infra", label: "인프라", group: "admin", koPath: "/admin/system/infra", enPath: "/en/admin/system/infra" },
-  { id: "platform-studio", label: "플랫폼 스튜디오", group: "admin", koPath: "/admin/system/platform-studio", enPath: "/en/admin/system/platform-studio" },
-  { id: "screen-elements-management", label: "화면 요소 관리", group: "admin", koPath: "/admin/system/screen-elements-management", enPath: "/en/admin/system/screen-elements-management" },
-  { id: "event-management-console", label: "이벤트 관리", group: "admin", koPath: "/admin/system/event-management-console", enPath: "/en/admin/system/event-management-console" },
-  { id: "function-management-console", label: "함수 콘솔", group: "admin", koPath: "/admin/system/function-management-console", enPath: "/en/admin/system/function-management-console" },
-  { id: "api-management-console", label: "API 관리", group: "admin", koPath: "/admin/system/api-management-console", enPath: "/en/admin/system/api-management-console" },
-  { id: "controller-management-console", label: "컨트롤러 관리", group: "admin", koPath: "/admin/system/controller-management-console", enPath: "/en/admin/system/controller-management-console" },
-  { id: "db-table-management", label: "DB 테이블 관리", group: "admin", koPath: "/admin/system/db-table-management", enPath: "/en/admin/system/db-table-management" },
-  { id: "column-management-console", label: "컬럼 관리", group: "admin", koPath: "/admin/system/column-management-console", enPath: "/en/admin/system/column-management-console" },
-  { id: "automation-studio", label: "자동화 스튜디오", group: "admin", koPath: "/admin/system/automation-studio", enPath: "/en/admin/system/automation-studio" },
-  { id: "environment-management", label: "메뉴 통합 관리", group: "admin", koPath: "/admin/system/environment-management", enPath: "/en/admin/system/environment-management" },
-  { id: "screen-builder", label: "화면 빌더", group: "admin", koPath: "/admin/system/screen-builder", enPath: "/en/admin/system/screen-builder" },
-  { id: "screen-runtime", label: "발행 화면 런타임", group: "admin", koPath: "/admin/system/screen-runtime", enPath: "/en/admin/system/screen-runtime" },
-  { id: "current-runtime-compare", label: "현재 런타임 비교", group: "admin", koPath: "/admin/system/current-runtime-compare", enPath: "/en/admin/system/current-runtime-compare" },
-  { id: "repair-workbench", label: "복구 워크벤치", group: "admin", koPath: "/admin/system/repair-workbench", enPath: "/en/admin/system/repair-workbench" },
+  ...PLATFORM_ROUTES,
   { id: "screen-flow-management", label: "화면 흐름 관리", group: "admin", koPath: "/admin/system/screen-flow-management", enPath: "/en/admin/system/screen-flow-management" },
   { id: "screen-menu-assignment-management", label: "화면-메뉴 귀속 관리", group: "admin", koPath: "/admin/system/screen-menu-assignment-management", enPath: "/en/admin/system/screen-menu-assignment-management" },
   { id: "wbs-management", label: "WBS 관리", group: "admin", koPath: "/admin/system/wbs-management", enPath: "/en/admin/system/wbs-management" },
@@ -332,11 +325,6 @@ export const ROUTES: RouteDefinition[] = [
   { id: "backup-execution", label: "백업 실행", group: "admin", koPath: "/admin/system/backup", enPath: "/en/admin/system/backup" },
   { id: "restore-execution", label: "복구 실행", group: "admin", koPath: "/admin/system/restore", enPath: "/en/admin/system/restore" },
   { id: "version-management", label: "버전 관리", group: "admin", koPath: "/admin/system/version", enPath: "/en/admin/system/version" },
-  { id: "codex-request", label: "Codex Execution Console", group: "admin", koPath: "/admin/system/codex-request", enPath: "/en/admin/system/codex-request" },
-  { id: "unified-log", label: "통합 로그", group: "admin", koPath: "/admin/system/unified_log", enPath: "/en/admin/system/unified_log" },
-  { id: "observability", label: "추적 조회", group: "admin", koPath: "/admin/system/observability", enPath: "/en/admin/system/observability" },
-  { id: "help-management", label: "도움말 운영", group: "admin", koPath: "/admin/system/help-management", enPath: "/en/admin/system/help-management" },
-  { id: "sr-workbench", label: "SR 워크벤치", group: "admin", koPath: "/admin/system/sr-workbench", enPath: "/en/admin/system/sr-workbench" },
   { id: "board-list", label: "게시판 관리", group: "admin", koPath: "/admin/content/board_list", enPath: "/en/admin/content/board_list" },
   { id: "board-add", label: "공지 배포", group: "admin", koPath: "/admin/content/board_add", enPath: "/en/admin/content/board_add" },
   { id: "post-list", label: "게시글 목록", group: "admin", koPath: "/admin/content/post_list", enPath: "/en/admin/content/post_list" },
@@ -427,6 +415,32 @@ export const ROUTES: RouteDefinition[] = [
   { id: "home-menu-placeholder", label: "사용자 메뉴 플레이스홀더", group: "home", koPath: "/placeholder", enPath: "/en/placeholder" }
 ];
 
+const routeById = new Map<string, RouteDefinition>(ROUTES.map((entry) => [entry.id, entry] as const));
+const routeByLookupPath = new Map<string, RouteDefinition>();
+
+ROUTES.forEach((entry) => {
+  routeByLookupPath.set(normalizeRouteLookupPath(entry.koPath), entry);
+  routeByLookupPath.set(normalizeRouteLookupPath(entry.enPath), entry);
+});
+
+export function normalizeRouteLookupPath(value: string): string {
+  if (!value) {
+    return "/";
+  }
+  return value.length > 1 && value.endsWith("/") ? value.slice(0, -1) : value;
+}
+
+export function getRouteDefinition(value: string | null | undefined): RouteDefinition | null {
+  if (!value) {
+    return null;
+  }
+  return routeById.get(value) || null;
+}
+
+export function findRouteDefinitionByPath(path: string): RouteDefinition | null {
+  return routeByLookupPath.get(normalizeRouteLookupPath(path)) || null;
+}
+
 export function normalizeRouteId(value: string | null | undefined): MigrationPageId | "" {
   if (!value) {
     return "";
@@ -435,5 +449,5 @@ export function normalizeRouteId(value: string | null | undefined): MigrationPag
   if (normalized === "codex-provision") {
     return "codex-request";
   }
-  return ROUTES.some((entry) => entry.id === normalized) ? normalized as MigrationPageId : "";
+  return routeById.has(normalized) ? normalized as MigrationPageId : "";
 }

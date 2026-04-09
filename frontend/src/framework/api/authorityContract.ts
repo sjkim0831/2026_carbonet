@@ -1,6 +1,6 @@
 import { apiFetch, buildAdminApiPath, readJsonResponse } from "../../lib/api/core";
 import { getFrameworkContractMetadata } from "../contractMetadata";
-import type { FrameworkAuthorityContract } from "../contracts/authorityContract";
+import type { FrameworkAuthorityContract } from "../contracts";
 
 export async function fetchFrameworkAuthorityContract(): Promise<FrameworkAuthorityContract> {
   const response = await apiFetch(buildAdminApiPath("/api/admin/framework/authority-contract"), {

@@ -28,20 +28,21 @@ public class AdminBoardDistributionService {
     private final ObjectMapper objectMapper;
     private final Path registryPath = Paths.get("data", "admin", "board-add", "drafts.json");
     private final AdminPostManagementService adminPostManagementService;
+    private final AdminPagePayloadFactory adminPagePayloadFactory;
 
     public AdminBoardDistributionService(ObjectMapper objectMapper,
-                                        AdminPostManagementService adminPostManagementService) {
+                                        AdminPostManagementService adminPostManagementService,
+                                        AdminPagePayloadFactory adminPagePayloadFactory) {
         this.objectMapper = objectMapper;
         this.adminPostManagementService = adminPostManagementService;
+        this.adminPagePayloadFactory = adminPagePayloadFactory;
     }
 
     public synchronized Map<String, Object> buildPagePayload(boolean isEn) {
         Map<String, Map<String, Object>> entries = loadAll();
         Map<String, Object> draft = mergeDraft(entries.get(DEFAULT_DRAFT_ID));
 
-        Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("isEn", isEn);
-        payload.put("menuCode", "A0040103");
+        Map<String, Object> payload = adminPagePayloadFactory.create(isEn, "A0040103");
         payload.put("draftId", DEFAULT_DRAFT_ID);
         payload.put("draftDetail", localizeDraft(draft, isEn));
         payload.put("summaryCards", buildSummaryCards(draft, isEn));
@@ -60,9 +61,7 @@ public class AdminBoardDistributionService {
         }
 
         Map<String, Object> selectedBoard = boardRows.get(0);
-        Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("isEn", isEn);
-        payload.put("menuCode", "A0040102");
+        Map<String, Object> payload = adminPagePayloadFactory.create(isEn, "A0040102");
         payload.put("boardRows", boardRows);
         payload.put("selectedBoard", selectedBoard);
         payload.put("summaryCards", buildListSummaryCards(boardRows, isEn));

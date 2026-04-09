@@ -10,10 +10,11 @@ When AI starts work, prefer this order:
 4. `docs/ai/README.md`
 5. `docs/ai/00-governance/ai-fast-path.md`
 6. `docs/ai/10-architecture/repo-layout.md`
-7. `/home/imaneya/workspace/화면설계/1. main_home_menu_designed.html`
-8. `/home/imaneya/workspace/화면설계/2. main_home_menu.html`
-9. `/home/imaneya/workspace/화면설계/3. admin_menu_dashboard.html`
-10. `/home/imaneya/workspace/화면설계/4. requirements_gap_dashboard.html`
+7. `docs/architecture/system-folder-structure-alignment.md`
+8. `/home/imaneya/workspace/화면설계/1. main_home_menu_designed.html`
+9. `/home/imaneya/workspace/화면설계/2. main_home_menu.html`
+10. `/home/imaneya/workspace/화면설계/3. admin_menu_dashboard.html`
+11. `/home/imaneya/workspace/화면설계/4. requirements_gap_dashboard.html`
 
 Avoid spending time in `target/`, `frontend/node_modules/`, and `var/logs/` unless the task is specifically about runtime output or build artifacts.
 
@@ -32,12 +33,21 @@ Avoid spending time in `target/`, `frontend/node_modules/`, and `var/logs/` unle
   - history and change summaries under `docs/history`
 - `frontend`
   - React migration frontend
+  - full-stack frontend authoring source for routes, screen registry, page manifests, and framework contracts
+- `modules`
+  - reusable backend module lines
+  - builder core, builder adapters, platform contracts, platform observability/help/runtime-control/version-control families
+- `apps`
+  - executable runtime assemblies
+  - current executable app target under `apps/carbonet-app`
+- `templates`
+  - project bootstrap templates and install manifests
 - `ops`
   - operational helpers such as cron-related assets
   - shared path variables under `ops/project-paths.sh`
   - reusable project scripts under `ops/scripts`
 - `src`
-  - Spring application source
+  - legacy root Spring application source still being cut over
 - `target`
   - generated build output, not a source-of-truth location
 - `var`
@@ -58,6 +68,19 @@ Avoid spending time in `target/`, `frontend/node_modules/`, and `var/logs/` unle
   - 홈, 마이페이지, 공통 홈 메뉴
 - `src/main/java/egovframework/com/feature/member`
   - 회원, 회원사, 부서, 가입
+- `src/main/java/egovframework/com/platform`
+  - 레거시 루트에 남아 있는 플랫폼 제어면 경로
+  - 점진적으로 `modules/platform-*` 계열로 줄여나가는 전환 영역
+- `modules/screenbuilder-core`
+  - 빌더 공통 코어와 포트
+- `modules/screenbuilder-runtime-common-adapter`
+  - 프로젝트 공통 런타임 기본 어댑터
+- `modules/screenbuilder-carbonet-adapter`
+  - Carbonet 전용 빌더 어댑터와 브리지
+- `modules/platform-*`
+  - request/service contracts, help, observability, runtime-control, version-control 등 공통 플랫폼 모듈
+- `apps/carbonet-app`
+  - 실행 앱 조립과 부트스트랩 대상
 
 ## Resources
 - `src/main/resources/templates/egovframework/com/common`
@@ -82,11 +105,17 @@ Avoid spending time in `target/`, `frontend/node_modules/`, and `var/logs/` unle
   - 회원/회원사 MyBatis XML
 - `src/main/resources/static/react-migration`
   - built React assets consumed by Spring
+- `templates/screenbuilder-project-bootstrap`
+  - 빌더/프로젝트 bootstrap 템플릿과 install manifest
 
 ## Frontend
 
 - `frontend/src/app`
   - app shell, routing, shared frontend composition
+- `frontend/src/platform`
+  - platform telemetry, manifest, observability, screen-registry source
+- `frontend/src/framework`
+  - frontend-facing full-stack contract boundary for builder, authority, and metadata
 - `frontend/src/features`
   - screen-oriented React migration modules
 - `frontend/src/components`
@@ -102,6 +131,7 @@ Avoid spending time in `target/`, `frontend/node_modules/`, and `var/logs/` unle
   - AI rules, forbidden changes, fast-path entry docs
 - `docs/ai/10-architecture`
   - repo layout, package map, request flow
+  - full-stack package and ownership map should be kept current when frontend/backend contract boundaries move
 - `docs/ai/20-ui`
   - screen, route, component, event maps
 - `docs/ai/30-domain`
@@ -123,6 +153,15 @@ Avoid spending time in `target/`, `frontend/node_modules/`, and `var/logs/` unle
 - 템플릿 파일명: `snake_case`
 - 영문 템플릿: `_en` suffix
 - 공통 리소스는 `common` 아래에만 둠
+
+## Folder Alignment Rules
+
+- 새 공통 플랫폼 백엔드 코드는 가능하면 `modules/` 아래에 둔다.
+- 새 실행 조립 관련 코드는 `apps/` 아래에 둔다.
+- 새 React authoring 소스는 `frontend/src/` 아래에 둔다.
+- 새 bootstrap/install 자산은 `templates/` 아래에 둔다.
+- 루트 `src/` 는 전환 경로로 보고, 이미 live module이 있는 family는 다시 루트로 키우지 않는다.
+- 빌더 관련 공통 코어는 `screenbuilder-core`, 공통 기본정책은 `screenbuilder-runtime-common-adapter`, Carbonet 전용 연결은 `screenbuilder-carbonet-adapter` 를 우선한다.
 
 ## Notes
 - 외부 프레임워크 타입명 `Egov*` 는 유지한다.

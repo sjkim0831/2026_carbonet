@@ -8,6 +8,45 @@ import { postJsonWithSession } from "./publicEntryApi";
 import { LoginResponse, PublicFrame } from "./publicEntryShared";
 import { AppButton, AppCheckbox, AppInput, AppLinkButton } from "../app-ui/primitives";
 
+type ExternalAuthMethod = {
+  providerCode: string;
+  methodCode: string;
+  displayName: string;
+  description: string;
+  icon: string;
+  available: boolean;
+  status: string;
+  statusMessage: string;
+  publicKeyJwk?: string;
+};
+
+type ExternalAuthMethodsPayload = {
+  status?: string;
+  methods?: ExternalAuthMethod[];
+};
+
+type ExternalAuthStartPayload = {
+  status?: string;
+  providerCode?: string;
+  methodCode?: string;
+  txId?: string;
+  nextAction?: string;
+  appScheme?: string;
+  qrScheme?: string;
+  urlScheme?: string;
+  message?: string;
+  mock?: boolean;
+};
+
+type ExternalAuthCompletePayload = {
+  status?: string;
+  errors?: string;
+  userId?: string;
+  userSe?: string;
+  certified?: boolean;
+  linkRequired?: boolean;
+};
+
 function isOverseasPath() {
   const path = window.location.pathname;
   return path.includes("/overseas/") || path.endsWith("/overseas");
@@ -21,6 +60,36 @@ function resolveLoginTabFromLocation(): "domestic" | "overseas" {
   return isOverseasPath() ? "overseas" : "domestic";
 }
 
+async function fetchExternalAuthMethods() {
+  const response = await fetchJson<ExternalAuthMethodsPayload>(
+    buildLocalizedPath("/signin/external-auth/methods", "/en/signin/external-auth/methods")
+  );
+  return Array.isArray(response.methods) ? response.methods : [];
+}
+
+async function startExternalAuth(methodCode: string, userId?: string, userSe?: string) {
+  return postJsonWithSession<ExternalAuthStartPayload>(
+    buildLocalizedPath("/signin/external-auth/start", "/en/signin/external-auth/start"),
+    {
+      methodCode,
+      userId: userId || undefined,
+      userSe: userSe || undefined
+    }
+  );
+}
+
+async function completeExternalAuth(methodCode: string, txId: string, userId?: string, userSe?: string) {
+  return postJsonWithSession<ExternalAuthCompletePayload>(
+    buildLocalizedPath("/signin/external-auth/complete", "/en/signin/external-auth/complete"),
+    {
+      methodCode,
+      txId,
+      userId: userId || undefined,
+      userSe: userSe || undefined
+    }
+  );
+}
+
 export function PublicLoginPage() {
   const en = isEnglish();
   const [userId, setUserId] = useState("");
@@ -29,11 +98,16 @@ export function PublicLoginPage() {
   const [autoLogin, setAutoLogin] = useState(false);
   const [tab, setTab] = useState<"domestic" | "overseas">(() => resolveLoginTabFromLocation());
   const [submitting, setSubmitting] = useState(false);
+  const [externalAuthSubmitting, setExternalAuthSubmitting] = useState("");
   const autoLoginAttemptedRef = useRef(false);
   const loginPath = useMemo(
     () => buildLocalizedPath("/signin/loginView", "/en/signin/loginView"),
     [en]
   );
+  const externalAuthState = useAsyncValue(fetchExternalAuthMethods, [en], {
+    initialValue: []
+  });
+  const externalAuthMethods = externalAuthState.value || [];
 
   function buildLoginPath(nextEnglish: boolean, nextTab: "domestic" | "overseas") {
     const basePath = nextEnglish ? "/en/signin/loginView" : "/signin/loginView";
@@ -183,6 +257,45 @@ export function PublicLoginPage() {
       window.alert(error instanceof Error ? error.message : "로그인 요청 중 오류가 발생했습니다.");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleExternalAuth(methodCode: string) {
+    setExternalAuthSubmitting(methodCode);
+    try {
+      const started = await startExternalAuth(methodCode);
+      if (!started.txId) {
+        throw new Error(started.message || (en ? "Failed to start authentication." : "인증 시작에 실패했습니다."));
+      }
+      if (started.nextAction === "COMPLETE") {
+        const completed = await completeExternalAuth(methodCode, started.txId);
+        if (completed.status !== "loginSuccess") {
+          throw new Error(completed.errors || (en ? "External authentication failed." : "외부 인증에 실패했습니다."));
+        }
+        invalidateFrontendSessionCache();
+        window.sessionStorage.setItem("loginUserId", completed.userId || "");
+        window.sessionStorage.setItem("loginUserSe", completed.userSe || "ENT");
+        navigate(completed.certified === false
+          ? buildLocalizedPath("/signin/authChoice", "/en/signin/authChoice")
+          : buildLocalizedPath("/home", "/en/home"));
+        return;
+      }
+
+      if (started.urlScheme) {
+        window.alert(started.message || (en
+          ? "The external authentication channel is ready. Complete the vendor flow and then call the completion API."
+          : "외부 인증 채널이 준비되었습니다. 벤더 인증 완료 후 completion API를 호출하도록 연결해 주세요."));
+        if (/^https?:\/\//i.test(started.urlScheme)) {
+          window.location.href = started.urlScheme;
+        }
+        return;
+      }
+
+      throw new Error(started.message || (en ? "No external authentication route was returned." : "인증 경로가 반환되지 않았습니다."));
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : (en ? "External authentication request failed." : "외부 인증 요청에 실패했습니다."));
+    } finally {
+      setExternalAuthSubmitting("");
     }
   }
 
@@ -383,20 +496,45 @@ export function PublicLoginPage() {
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-3" data-help-id="signin-login-simple-auth">
-                <AppButton className="w-full h-12 text-sm" type="button">
-                  <span className="material-symbols-outlined text-blue-700">verified_user</span>
-                  {en ? "Simple Authentication (Kakao, Toss, etc.)" : "간편인증 (카카오, 토스 등)"}
-                </AppButton>
-                <div className="grid grid-cols-2 gap-3">
-                  <AppButton className="h-12 text-sm" type="button">
-                    <span className="material-symbols-outlined text-gray-600">badge</span>
-                    {en ? "Joint Certificate" : "공동인증서"}
-                  </AppButton>
-                  <AppButton className="h-12 text-sm" type="button">
-                    <span className="material-symbols-outlined text-gray-600">account_balance</span>
-                    {en ? "Financial Certificate" : "금융인증서"}
-                  </AppButton>
-                </div>
+                {externalAuthMethods.length > 0 ? (
+                  <>
+                    {externalAuthMethods[0] ? (
+                      <AppButton
+                        className="w-full h-12 text-sm"
+                        disabled={!externalAuthMethods[0].available || !!externalAuthSubmitting}
+                        onClick={() => void handleExternalAuth(externalAuthMethods[0].methodCode)}
+                        type="button"
+                      >
+                        <span className="material-symbols-outlined text-blue-700">{externalAuthMethods[0].icon || "verified_user"}</span>
+                        {externalAuthSubmitting === externalAuthMethods[0].methodCode
+                          ? (en ? "Processing..." : "처리 중...")
+                          : externalAuthMethods[0].displayName}
+                      </AppButton>
+                    ) : null}
+                    <div className="grid grid-cols-2 gap-3">
+                      {externalAuthMethods.slice(1, 3).map((method) => (
+                        <AppButton
+                          className="h-12 text-sm"
+                          disabled={!method.available || !!externalAuthSubmitting}
+                          key={`${method.providerCode}-${method.methodCode}`}
+                          onClick={() => void handleExternalAuth(method.methodCode)}
+                          type="button"
+                        >
+                          <span className="material-symbols-outlined text-gray-600">{method.icon || "verified_user"}</span>
+                          {externalAuthSubmitting === method.methodCode
+                            ? (en ? "Processing..." : "처리 중...")
+                            : method.displayName}
+                        </AppButton>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="rounded-[var(--kr-gov-radius)] border border-dashed border-[var(--kr-gov-border-light)] px-4 py-5 text-sm text-[var(--kr-gov-text-secondary)]">
+                    {externalAuthState.loading
+                      ? (en ? "Loading authentication methods..." : "인증 수단을 불러오는 중입니다...")
+                      : (externalAuthState.error || (en ? "No external authentication methods are configured." : "설정된 외부 인증 수단이 없습니다."))}
+                  </div>
+                )}
               </div>
             </form>
           </div>
@@ -476,23 +614,25 @@ function deleteCookie(cookieName: string) {
 export function AuthChoicePage() {
   const en = isEnglish();
   const [saving, setSaving] = useState("");
+  const methodsState = useAsyncValue(fetchExternalAuthMethods, [en], {
+    initialValue: []
+  });
+  const methods = methodsState.value || [];
 
   async function handleAuthChoice(authTy: string) {
     setSaving(authTy);
     try {
       const storedUserId = window.sessionStorage.getItem("loginUserId") || "";
       const storedUserSe = window.sessionStorage.getItem("loginUserSe") || "ENT";
-      const body = await postJsonWithSession<{ status?: string; errors?: string }>(buildLocalizedPath("/signin/updateAuthInfo", "/en/signin/updateAuthInfo"), {
-        userId: storedUserId || undefined,
-        userSe: storedUserSe,
-        authTy,
-        authDn: authTy === "JOINT" ? `cn=${storedUserId}` : null,
-        authCi: authTy === "SIMPLE" ? `CI_${Date.now()}` : null,
-        authDi: authTy === "SIMPLE" ? `DI_${Date.now()}` : null
-      });
-      if (body.status !== "success") {
-        throw new Error(body.errors || "인증 정보 저장에 실패했습니다.");
+      const started = await startExternalAuth(authTy, storedUserId, storedUserSe);
+      if (!started.txId) {
+        throw new Error(started.message || (en ? "Failed to start authentication." : "인증 시작에 실패했습니다."));
       }
+      const body = await completeExternalAuth(authTy, started.txId, storedUserId, storedUserSe);
+      if (body.status !== "loginSuccess") {
+        throw new Error(body.errors || (en ? "Failed to save authentication info." : "인증 정보 저장에 실패했습니다."));
+      }
+      invalidateFrontendSessionCache();
       navigate(buildLocalizedPath("/home", "/en/home"));
     } catch (error) {
       window.alert(error instanceof Error ? error.message : (en ? "An error occurred while processing authentication." : "인증 처리 중 오류가 발생했습니다."));
@@ -524,48 +664,30 @@ export function AuthChoicePage() {
       }
     >
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6" data-help-id="signin-auth-choice-options">
-        <button
-          className="flex flex-col items-center p-8 bg-white border border-[var(--kr-gov-border-light)] rounded-lg transition-all hover:border-[var(--kr-gov-blue)] hover:shadow-md focus-visible text-center w-full"
-          disabled={!!saving}
-          onClick={() => handleAuthChoice("SIMPLE")}
-          type="button"
-        >
-          <div className="w-12 h-12 flex items-center justify-center bg-gray-50 text-[var(--kr-gov-blue)] rounded-[5px] mb-4 border border-gray-100">
-            <span className="material-symbols-outlined">verified_user</span>
+        {methods.length > 0 ? methods.map((method) => (
+          <button
+            className={`flex flex-col items-center p-8 bg-white border border-[var(--kr-gov-border-light)] rounded-lg transition-all hover:border-[var(--kr-gov-blue)] hover:shadow-md focus-visible text-center w-full ${method.available ? "" : "opacity-60"}`}
+            disabled={!!saving || !method.available}
+            key={`${method.providerCode}-${method.methodCode}`}
+            onClick={() => void handleAuthChoice(method.methodCode)}
+            type="button"
+          >
+            <div className="w-12 h-12 flex items-center justify-center bg-gray-50 text-[var(--kr-gov-blue)] rounded-[5px] mb-4 border border-gray-100">
+              <span className="material-symbols-outlined">{method.icon || "verified_user"}</span>
+            </div>
+            <h3 className="text-lg font-bold mb-3">{method.displayName}</h3>
+            <p className="text-sm text-[var(--kr-gov-text-secondary)] leading-relaxed">{method.description}</p>
+            <span className="mt-4 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
+              {saving === method.methodCode ? (en ? "Processing" : "진행중") : (method.statusMessage || method.status)}
+            </span>
+          </button>
+        )) : (
+          <div className="md:col-span-3 rounded-[var(--kr-gov-radius)] border border-dashed border-[var(--kr-gov-border-light)] bg-white px-5 py-8 text-center text-sm text-[var(--kr-gov-text-secondary)]">
+            {methodsState.loading
+              ? (en ? "Loading authentication methods..." : "인증 수단을 불러오는 중입니다...")
+              : (methodsState.error || (en ? "No authentication methods are available." : "사용 가능한 인증 수단이 없습니다."))}
           </div>
-          <h3 className="text-lg font-bold mb-3">{en ? "Simple Authentication" : "간편인증"}</h3>
-          <p className="text-sm text-[var(--kr-gov-text-secondary)] leading-relaxed">
-            {en ? <>Fast authentication via Kakao, Naver, Toss,<br />and other popular apps</> : <>카카오, 네이버, 토스 등<br />다양한 앱으로 빠르게 인증</>}
-          </p>
-        </button>
-        <button
-          className="flex flex-col items-center p-8 bg-white border border-[var(--kr-gov-border-light)] rounded-lg transition-all hover:border-[var(--kr-gov-blue)] hover:shadow-md focus-visible text-center w-full"
-          disabled={!!saving}
-          onClick={() => handleAuthChoice("JOINT")}
-          type="button"
-        >
-          <div className="w-12 h-12 flex items-center justify-center bg-gray-50 text-[var(--kr-gov-blue)] rounded-[5px] mb-4 border border-gray-100">
-            <span className="material-symbols-outlined">badge</span>
-          </div>
-          <h3 className="text-lg font-bold mb-3">{en ? "Joint Certificate" : "공동인증서"}</h3>
-          <p className="text-sm text-[var(--kr-gov-text-secondary)] leading-relaxed">
-            {en ? <>Secure identity verification based on<br />former Accredited Certificates</> : <>(구) 공인인증서 기반<br />안전한 본인 확인</>}
-          </p>
-        </button>
-        <button
-          className="flex flex-col items-center p-8 bg-white border border-[var(--kr-gov-border-light)] rounded-lg transition-all hover:border-[var(--kr-gov-blue)] hover:shadow-md focus-visible text-center w-full"
-          disabled={!!saving}
-          onClick={() => handleAuthChoice("FINANCIAL")}
-          type="button"
-        >
-          <div className="w-12 h-12 flex items-center justify-center bg-gray-50 text-[var(--kr-gov-blue)] rounded-[5px] mb-4 border border-gray-100">
-            <span className="material-symbols-outlined">account_balance</span>
-          </div>
-          <h3 className="text-lg font-bold mb-3">{en ? "Financial Certificate" : "금융인증서"}</h3>
-          <p className="text-sm text-[var(--kr-gov-text-secondary)] leading-relaxed">
-            {en ? <>Convenient browser authentication with<br />a KFTC cloud-based certificate</> : <>금융결제원 클라우드 기반<br />편리한 브라우저 인증</>}
-          </p>
-        </button>
+        )}
       </section>
     </PublicFrame>
   );

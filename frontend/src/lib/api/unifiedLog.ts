@@ -95,7 +95,7 @@ export async function fetchUnifiedLog(params?: UnifiedLogSearchParams): Promise<
   if (params?.fromDate) search.set("fromDate", params.fromDate);
   if (params?.toDate) search.set("toDate", params.toDate);
   if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  const response = await apiFetch(`${buildAdminApiPath("/api/admin/observability/unified-log")}${search.toString() ? `?${search.toString()}` : ""}`, {
+  const response = await apiFetch(`${buildAdminApiPath("/api/platform/observability/unified-log")}${search.toString() ? `?${search.toString()}` : ""}`, {
     credentials: "include",
     apiId: "admin.observability.unified-log.search"
   });

@@ -17,6 +17,8 @@ Use this document for:
 
 No screen, menu, or feature should be generated without an explicit actor and scope policy.
 
+Use `docs/architecture/page-systemization-minimum-contract.md` together with this document when deciding whether a page is systemized enough for builder generation, installable delivery, or project rebinding.
+
 Authority must propagate through one chain:
 
 `actor -> scenario -> menu/page -> feature -> endpoint -> component -> button/action`

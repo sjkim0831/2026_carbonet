@@ -9,6 +9,10 @@
 
 목표는 관리자 기능, 운영 기능, 공통 거버넌스 기능, 프로젝트 업무 기능이 한 경계 안에서 혼재되는 문제를 줄이는 것이다.
 
+현재 진행 상태와 파일 단위 혼재 지점은 별도 상태 문서에서 추적한다.
+
+- `docs/architecture/carbonet-resonance-separation-status.md`
+
 ## 2. 분류 원칙
 
 ### Carbonet Runtime
@@ -65,7 +69,7 @@
 
 - `ScreenCommandCenterServiceImpl`
 - `ScreenBuilderDraftServiceImpl`
-- `ResonanceControlPlaneServiceImpl`
+- `RuntimeControlPlaneServiceImpl`
 - `CodexExecutionAdminServiceImpl`
 - `CodexProvisioningServiceImpl`
 - `SrTicketWorkbenchServiceImpl`

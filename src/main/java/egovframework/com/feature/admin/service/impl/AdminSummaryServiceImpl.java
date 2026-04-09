@@ -17,12 +17,14 @@ import egovframework.com.feature.admin.model.vo.FeatureCatalogSummarySnapshot;
 import egovframework.com.feature.admin.model.vo.FeatureReferenceCountVO;
 import egovframework.com.feature.admin.model.vo.SecurityAuditAggregate;
 import egovframework.com.feature.admin.model.vo.SecurityAuditSnapshot;
+import egovframework.com.feature.admin.service.AdminSummaryCommandService;
 import egovframework.com.feature.admin.service.AdminSummaryService;
 import egovframework.com.feature.admin.service.BlocklistPersistenceService;
 import org.egovframe.rte.fdl.cmmn.EgovAbstractServiceImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -56,7 +58,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 @Service("adminSummaryService")
-public class AdminSummaryServiceImpl extends EgovAbstractServiceImpl implements AdminSummaryService {
+@Primary
+public class AdminSummaryServiceImpl extends EgovAbstractServiceImpl implements AdminSummaryService, AdminSummaryCommandService {
 
     private static final Logger log = LoggerFactory.getLogger(AdminSummaryServiceImpl.class);
     private static final TypeReference<List<Map<String, String>>> CARD_LIST_TYPE = new TypeReference<List<Map<String, String>>>() {};
@@ -1289,8 +1292,8 @@ public class AdminSummaryServiceImpl extends EgovAbstractServiceImpl implements 
         String authorizeFilter = readSourceFile("src/main/java/egovframework/com/common/filter/AuthorizeFilter.java");
         String adminAuthInterceptor = readSourceFile("src/main/java/egovframework/com/common/interceptor/AdminMainAuthInterceptor.java");
         String requestExecutionLogVo = readSourceFile("src/main/java/egovframework/com/common/logging/RequestExecutionLogVO.java");
-        String observabilityController = readSourceFile("src/main/java/egovframework/com/feature/admin/web/AdminObservabilityController.java");
-        String codexController = readSourceFile("src/main/java/egovframework/com/feature/admin/web/CodexProvisionAdminController.java");
+        String observabilityController = readSourceFile("src/main/java/egovframework/com/platform/observability/web/PlatformObservabilityActionController.java");
+        String codexController = readSourceFile("src/main/java/egovframework/com/platform/codex/web/CodexProvisionAdminApiController.java");
         String backupService = readSourceFile("src/main/java/egovframework/com/feature/admin/service/BackupConfigManagementService.java");
         String backupPage = readSourceFile("frontend/src/features/backup-config/BackupConfigMigrationPage.tsx");
         String codexPage = readSourceFile("frontend/src/features/codex-provision/CodexProvisionMigrationPage.tsx");
@@ -1358,7 +1361,7 @@ public class AdminSummaryServiceImpl extends EgovAbstractServiceImpl implements 
                     "missing-rate-limit",
                     "heuristic-engine",
                     "/admin/system/backup/run",
-                    "AdminObservabilityController",
+                    "PlatformObservabilityActionController",
                     isEn ? "Sensitive admin action without rate limiting" : "민감 관리자 작업에 rate limit 부재",
                     isEn ? "Apply throttling or rate limiting to backup, restore, and version restore actions." : "백업, 복구, 버전 복원 같은 민감 작업에 호출 제한을 적용해야 합니다.",
                     "required",
@@ -1375,7 +1378,7 @@ public class AdminSummaryServiceImpl extends EgovAbstractServiceImpl implements 
                     "missing-rate-limit",
                     "heuristic-engine",
                     "/admin/system/codex-request",
-                    "CodexProvisionAdminController",
+                    "CodexProvisionAdminApiController",
                     isEn ? "Codex execution endpoint without rate limiting" : "Codex 실행 엔드포인트에 rate limit 부재",
                     isEn ? "Protect Codex execution endpoints with per-user throttling." : "Codex 실행 엔드포인트에 사용자 단위 호출 제한을 적용해야 합니다.",
                     "required",
@@ -1392,7 +1395,7 @@ public class AdminSummaryServiceImpl extends EgovAbstractServiceImpl implements 
                     "audit-gap",
                     "heuristic-engine",
                     "/admin/system/backup,/admin/system/restore,/admin/system/version",
-                    "AdminObservabilityController",
+                    "PlatformObservabilityActionController",
                     isEn ? "Sensitive action without explicit audit hook" : "민감 작업에 명시적 감사 기록 훅 부재",
                     isEn ? "Ensure backup, restore, and version restore actions emit explicit audit records." : "백업, 복구, 버전 복원 작업에 명시적 감사 기록을 남겨야 합니다.",
                     "required",
@@ -1498,7 +1501,7 @@ public class AdminSummaryServiceImpl extends EgovAbstractServiceImpl implements 
                     "public-endpoint-admin-prefix",
                     "heuristic-engine",
                     "/admin/system/*",
-                    "AdminObservabilityController",
+                    "PlatformObservabilityActionController",
                     isEn ? "Admin-prefixed endpoint relies on external auth chain only" : "관리자 경로가 외부 인증 체인에만 의존",
                     isEn ? "Reconfirm that admin endpoints are consistently protected by interceptors or method security." : "관리자 경로가 인터셉터나 메서드 보안으로 일관되게 보호되는지 재확인해야 합니다.",
                     "review",

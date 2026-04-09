@@ -1,6 +1,6 @@
 package egovframework.com.feature.admin.service.impl;
 
-import egovframework.com.common.trace.UiManifestRegistryService;
+import egovframework.com.common.trace.UiManifestRegistryPort;
 import egovframework.com.common.util.ReactPageUrlMapper;
 import egovframework.com.feature.admin.dto.response.MenuInfoDTO;
 import egovframework.com.feature.admin.model.vo.FeatureCatalogItemVO;
@@ -24,14 +24,14 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
 
     private final AuthGroupManageService authGroupManageService;
     private final MenuInfoService menuInfoService;
-    private final UiManifestRegistryService uiManifestRegistryService;
+    private final UiManifestRegistryPort uiManifestRegistryPort;
 
     public ScreenCommandCenterServiceImpl(AuthGroupManageService authGroupManageService,
                                           MenuInfoService menuInfoService,
-                                          UiManifestRegistryService uiManifestRegistryService) {
+                                          UiManifestRegistryPort uiManifestRegistryPort) {
         this.authGroupManageService = authGroupManageService;
         this.menuInfoService = menuInfoService;
-        this.uiManifestRegistryService = uiManifestRegistryService;
+        this.uiManifestRegistryPort = uiManifestRegistryPort;
     }
 
     @Override
@@ -58,7 +58,7 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         page.put("menuLookupUrl", menuLookupUrl);
         page.put("menuCode", menuCode);
         page.put("menuPermission", buildMenuPermission(menuCode, menuLookupUrl, routePath));
-        page.put("manifestRegistry", uiManifestRegistryService.syncPageRegistry(page));
+        page.put("manifestRegistry", uiManifestRegistryPort.syncPageRegistry(page));
         page.put("summaryMetrics", buildSummaryMetrics(page));
         response.put("page", page);
         return response;
@@ -118,7 +118,7 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         addStaticPageOption(pages, knownPageIds, "new-page", "새 페이지", "/admin/system/new-page", "A1900106", "admin");
         addManagedMenuPageOptions(pages, knownPageIds, "AMENU1");
         addManagedMenuPageOptions(pages, knownPageIds, "HMENU1");
-        for (Map<String, Object> registryPage : uiManifestRegistryService.selectActivePageOptions()) {
+        for (Map<String, Object> registryPage : uiManifestRegistryPort.selectActivePageOptions()) {
             String pageId = canonicalPageId(stringValue(registryPage.get("pageId")));
             if (!pageId.isEmpty() && !knownPageIds.contains(pageId)) {
                 registryPage.put("pageId", pageId);
@@ -274,14 +274,14 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
 
     private Map<String, Object> buildRegistryDraftPage(String pageId) {
         String normalizedPageId = canonicalPageId(pageId);
-        Map<String, Object> manifestRegistry = uiManifestRegistryService.getPageRegistry(normalizedPageId);
+        Map<String, Object> manifestRegistry = uiManifestRegistryPort.getPageRegistry(normalizedPageId);
         MenuInfoDTO menuInfo = findManagedMenuByPageId(normalizedPageId);
         String routePath = firstNonBlank(stringValue(manifestRegistry.get("routePath")), menuInfo == null ? "" : stringValue(menuInfo.getMenuUrl()));
         String menuCode = firstNonBlank(stringValue(manifestRegistry.get("menuCode")), menuInfo == null ? "" : stringValue(menuInfo.getCode()));
         String domainCode = firstNonBlank(stringValue(manifestRegistry.get("domainCode")), inferDomainCode(routePath, menuCode));
         String pageName = firstNonBlank(stringValue(manifestRegistry.get("pageName")), menuInfo == null ? "" : stringValue(menuInfo.getCodeNm()), normalizedPageId);
         if (stringValue(manifestRegistry.get("pageId")).isEmpty()) {
-            manifestRegistry = uiManifestRegistryService.ensureManagedPageDraft(normalizedPageId, pageName, routePath, menuCode, domainCode);
+            manifestRegistry = uiManifestRegistryPort.ensureManagedPageDraft(normalizedPageId, pageName, routePath, menuCode, domainCode);
         }
         Map<String, Object> page = pageOption(normalizedPageId, pageName, routePath, menuCode, domainCode);
         List<Map<String, Object>> events = buildDraftEvents(pageName, routePath, menuCode, domainCode);
@@ -2220,20 +2220,20 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         ));
         page.put("events", Arrays.asList(
                 event("observability-search-audit", "감사 로그 조회", "click", "loadAudit", "[data-help-id=\"observability-filters\"] button",
-                        Arrays.asList("admin.observability.audit-events.search"), "감사 테이블을 갱신합니다."),
+                        Arrays.asList("platform.observability.audit-events.search"), "감사 테이블을 갱신합니다."),
                 event("observability-search-trace", "추적 이벤트 조회", "click", "loadTrace", "[data-help-id=\"observability-filters\"] button",
-                        Arrays.asList("admin.observability.trace-events.search"), "추적 테이블을 갱신합니다."),
+                        Arrays.asList("platform.observability.trace-events.search"), "추적 테이블을 갱신합니다."),
                 event("observability-move-trace", "감사 -> trace 이동", "click", "moveToTrace", "[data-help-id=\"observability-audit-table\"] .text-button",
-                        Arrays.asList("admin.observability.trace-events.search"), "선택한 traceId로 탭 전환 후 상세 조회합니다.")
+                        Arrays.asList("platform.observability.trace-events.search"), "선택한 traceId로 탭 전환 후 상세 조회합니다.")
         ));
         page.put("apis", Arrays.asList(
-                api("admin.observability.audit-events.search", "감사 이벤트 조회", "GET", "/api/admin/observability/audit-events",
-                        "AdminObservabilityController.searchAuditEvents", "ObservabilityQueryService.selectAuditEventList",
+                api("platform.observability.audit-events.search", "감사 이벤트 조회", "GET", "/api/platform/observability/audit-events",
+                        "AdminObservabilityApiController.searchAuditEvents", "ObservabilityQueryService.selectAuditEventList",
                         "ObservabilityMapper.selectAuditEventList / selectAuditEventCount",
                         Arrays.asList("AUDIT_EVENT"), Arrays.asList("audit-event-schema"),
                         "감사 로그와 검색 조건을 함께 조회합니다."),
-                api("admin.observability.trace-events.search", "추적 이벤트 조회", "GET", "/api/admin/observability/trace-events",
-                        "AdminObservabilityController.searchTraceEvents", "ObservabilityQueryService.selectTraceEventList",
+                api("platform.observability.trace-events.search", "추적 이벤트 조회", "GET", "/api/platform/observability/trace-events",
+                        "AdminObservabilityApiController.searchTraceEvents", "ObservabilityQueryService.selectTraceEventList",
                         "ObservabilityMapper.selectTraceEventList / selectTraceEventCount",
                         Arrays.asList("TRACE_EVENT"), Arrays.asList("trace-event-schema"),
                         "traceId, apiId, resultCode 기준으로 이벤트를 조회합니다.")
@@ -2278,7 +2278,7 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         ));
         page.put("apis", Arrays.asList(
                 api("admin.sensor-list.page", "센서 목록 화면 조회", "GET", "/admin/monitoring/sensor_list/page-data",
-                        "AdminObservabilityController.sensorListPageApi", "AdminObservabilityPageService.buildSensorListPagePayload",
+                        "PlatformObservabilityPageDataController.sensorListPageApi", "PlatformObservabilityPagePayloadService.buildSensorListPagePayload",
                         "AdminSummaryService.getSecurityMonitoringEvents / getSecurityMonitoringActivityRows / getSecurityMonitoringBlockCandidateRows",
                         Arrays.asList("REQUEST_EXECUTION_LOG", "SNAPSHOT_CARD"),
                         Arrays.asList("sensor-list-row-schema", "sensor-activity-schema"),
@@ -2329,8 +2329,8 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         ));
         page.put("apis", Arrays.asList(
                 api("admin.batch-management.page", "배치 관리 화면 조회", "GET", "/admin/system/batch/page-data",
-                        "AdminObservabilityController.batchPageApi", "AdminObservabilityPageService.buildBatchManagementPagePayload",
-                        "AdminSystemPageModelAssembler.populateSchedulerPage + AdminObservabilityPageService",
+                        "PlatformObservabilityPageDataController.batchPageApi", "PlatformObservabilityAdminPageFacade.buildBatchManagementPagePayload",
+                        "PlatformObservabilityAdminPageFacade.buildBatchManagementPagePayload",
                         Arrays.asList("SNAPSHOT_CARD"),
                         Arrays.asList("batch-job-row-schema", "batch-queue-row-schema", "batch-node-row-schema", "batch-execution-row-schema"),
                         "스케줄러 원본 payload를 배치 운영 화면에 맞게 재구성합니다."),
@@ -2591,7 +2591,7 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         ));
         page.put("apis", Arrays.asList(
                 api("admin.external.monitoring.page", "연계 모니터링 페이지 데이터 조회", "GET", "/admin/external/monitoring/page-data",
-                        "AdminObservabilityController.externalMonitoringPageApi", "AdminObservabilityPageService.buildExternalMonitoringPagePayload",
+                        "PlatformObservabilityPageDataController.externalMonitoringPageApi", "PlatformObservabilityAdminPageFacade.buildExternalMonitoringPagePayload",
                         "READ_ONLY", Arrays.asList("ACCESS_EVENT", "ERROR_EVENT", "TRACE_EVENT"), Collections.emptyList(), "외부연계 관측 데이터와 운영 경보를 통합한 payload를 반환합니다."),
                 routeApi("route.admin.external.connection-list", "외부연계 목록 이동", "/admin/external/connection_list", "A0050101"),
                 routeApi("route.admin.external.sync", "외부연계 동기화 이동", "/admin/external/sync", "A0050104"),
@@ -2660,7 +2660,7 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         ));
         page.put("apis", Arrays.asList(
                 api("admin.external.logs.page", "외부연계 로그 페이지 조회", "GET", "/admin/external/logs/page-data",
-                        "AdminObservabilityController.externalLogsPageApi", "AdminObservabilityPageService.buildExternalLogsPagePayload",
+                        "PlatformObservabilityPageDataController.externalLogsPageApi", "PlatformObservabilityAdminPageFacade.buildExternalLogsPagePayload",
                         "ObservabilityQueryService.selectAccessEventList / selectErrorEventList / selectTraceEventList",
                         Arrays.asList("ACCESS_EVENT", "ERROR_EVENT", "TRACE_EVENT"),
                         Arrays.asList("external-log-runtime-schema"), "외부연계 로그와 감시 대상을 함께 조회합니다.")
@@ -2699,7 +2699,7 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                 event("full-stack-menu-order-save", "메뉴 순서 저장", "click", "saveOrder", "[data-help-id=\"full-stack-management-tree\"] .gov-btn-primary",
                         Arrays.asList("admin.menu-management.order-save"), "선택한 범위의 메뉴 순서를 저장합니다."),
                 event("full-stack-command-load", "메뉴 연결 메타데이터 로드", "click", "loadCommandPage", "[data-help-id=\"menu-management-governance-select\"]",
-                        Arrays.asList("admin.help-management.screen-command.page"), "선택한 페이지 메뉴 기준 화면 요소, 함수, API, 스키마 메타데이터를 조회합니다."),
+                        Arrays.asList("platform.help-management.screen-command.page"), "선택한 페이지 메뉴 기준 화면 요소, 함수, API, 스키마 메타데이터를 조회합니다."),
                 event("full-stack-registry-save", "풀스택 레지스트리 저장", "click", "saveRegistry", "[data-help-id=\"menu-management-governance-panel\"] .gov-btn-primary",
                         Arrays.asList("admin.full-stack-management.registry-save"), "메뉴별 프론트/백엔드/API/DB 컬럼 메타데이터를 저장합니다.")
         ));
@@ -2721,7 +2721,7 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                         "MenuInfoMapper.insertMenuOrder / updateMenuOrder",
                         Arrays.asList("COMTNMENUORDER", "AUDIT_EVENT"), Arrays.asList("menu-order-schema"),
                         "현재 메뉴 트리 정렬 순서를 저장합니다."),
-                api("admin.help-management.screen-command.page", "화면 command 메타데이터 조회", "GET", "/api/admin/help-management/screen-command/page",
+                api("platform.help-management.screen-command.page", "화면 command 메타데이터 조회", "GET", "/api/platform/help-management/screen-command/page",
                         "AdminHelpManagementController.getScreenCommandPage", "ScreenCommandCenterService.getScreenCommandPage",
                         "Metadata-only", Arrays.asList("COMTNMENUINFO", "COMTNMENUFUNCTIONINFO", "COMTNAUTHORFUNCTIONRELATE"),
                         Arrays.asList("menu-feature-schema"), "선택한 페이지 메뉴와 연결된 화면 메타데이터를 조회합니다."),
@@ -2838,13 +2838,13 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
                 event("platform-studio-focus-change", "포커스 탭 변경", "click", "setFocus", ".gov-card .gov-btn",
                         Collections.singletonList("admin.full-stack-management.page"), "탭별 초점만 바꾸고 동일한 registry source를 유지합니다."),
                 event("platform-studio-menu-select", "메뉴 선택", "click", "setSelectedMenuCode", ".gov-card aside button",
-                        Arrays.asList("admin.full-stack-management.page", "admin.help-management.screen-command.page"), "선택 메뉴의 screen command와 registry를 함께 불러옵니다."),
+                        Arrays.asList("admin.full-stack-management.page", "platform.help-management.screen-command.page"), "선택 메뉴의 screen command와 registry를 함께 불러옵니다."),
                 event("platform-studio-registry-save", "레지스트리 저장", "click", "saveRegistry", ".gov-card .gov-btn-primary",
                         Arrays.asList("admin.full-stack-management.registry-save"), "한 페이지에서 편집한 자원 레지스트리를 저장합니다."),
                 event("platform-studio-visibility-toggle", "메뉴 숨김/보이기", "click", "toggleVisibility", ".gov-card .gov-btn-outline",
                         Arrays.asList("admin.full-stack-management.visibility"), "선택한 페이지 메뉴를 hide/show 처리합니다."),
                 event("platform-studio-ticket-create", "AI 작업 티켓 생성", "click", "createAutomationTicket", ".gov-card .gov-btn-primary",
-                        Arrays.asList("admin.sr-workbench.ticket.create"), "현재 선택된 자원 기준으로 SR 티켓과 실행 지시를 생성합니다.")
+                        Arrays.asList("platform.workbench.ticket.create"), "현재 선택된 자원 기준으로 SR 티켓과 실행 지시를 생성합니다.")
         ));
         page.put("apis", Arrays.asList(
                 api("admin.full-stack-management.visibility", "메뉴 표시 상태 변경", "POST", "/admin/system/full-stack-management/menu-visibility",
@@ -2883,30 +2883,30 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         ));
         page.put("events", Arrays.asList(
                 event("help-page-load", "도움말 불러오기", "click", "handleLoad", "[data-help-id=\"help-management-select\"] button",
-                        Arrays.asList("admin.help-management.page"), "선택한 페이지 도움말을 불러옵니다."),
+                        Arrays.asList("platform.help-management.page"), "선택한 페이지 도움말을 불러옵니다."),
                 event("help-save", "도움말 저장", "click", "handleSave", "[data-help-id=\"help-management-select\"] .primary-button",
-                        Arrays.asList("admin.help-management.save"), "도움말 메타데이터와 단계를 저장합니다."),
+                        Arrays.asList("platform.help-management.save"), "도움말 메타데이터와 단계를 저장합니다."),
                 event("help-item-add", "도움말 단계 추가", "click", "addItem", "[data-help-id=\"help-management-items\"] .secondary-button",
                         Collections.emptyList(), "신규 도움말 단계를 편집 리스트에 추가합니다."),
                 event("help-item-remove", "도움말 단계 삭제", "click", "removeItem", "[data-help-id=\"help-management-items\"] .secondary-button",
                         Collections.emptyList(), "기존 단계의 순서를 재정렬합니다."),
                 event("help-command-page-load", "수정 디렉션 대상 로드", "change", "loadCommandPage", "[data-help-id=\"help-management-command-center\"] select",
-                        Arrays.asList("admin.help-management.screen-command.page"), "선택한 화면의 연결 메타데이터를 조회합니다."),
+                        Arrays.asList("platform.help-management.screen-command.page"), "선택한 화면의 연결 메타데이터를 조회합니다."),
                 event("help-command-direction-generate", "수정 디렉션 생성", "click", "buildDirectionPreview", "[data-help-id=\"help-management-command-center\"] [data-action=\"generate\"]",
                         Collections.emptyList(), "선택한 레이어/이벤트/API 기준으로 작업 지시 초안을 만듭니다.")
         ));
         page.put("apis", Arrays.asList(
-                api("admin.help-management.page", "도움말 페이지 조회", "GET", "/api/admin/help-management/page",
+                api("platform.help-management.page", "도움말 페이지 조회", "GET", "/api/platform/help-management/page",
                         "AdminHelpManagementController.getHelpPage", "HelpContentService.getPageHelpForAdmin",
                         "HelpContentMapper.selectPage / selectItems",
                         Arrays.asList("UI_HELP_PAGE", "UI_HELP_ITEM"), Arrays.asList("ui-help-page-schema"),
                         "도움말 기본 정보와 step 항목을 함께 조회합니다."),
-                api("admin.help-management.save", "도움말 저장", "POST", "/api/admin/help-management/save",
+                api("platform.help-management.save", "도움말 저장", "POST", "/api/platform/help-management/save",
                         "AdminHelpManagementController.saveHelpPage", "HelpContentService.savePageHelp",
                         "HelpContentMapper.upsertPage / replaceItems",
                         Arrays.asList("UI_HELP_PAGE", "UI_HELP_ITEM", "AUDIT_EVENT"), Arrays.asList("ui-help-page-schema", "audit-event-schema"),
                         "도움말 저장 후 감사 로그를 남깁니다."),
-                api("admin.help-management.screen-command.page", "수정 디렉션 메타데이터 조회", "GET", "/api/admin/help-management/screen-command/page",
+                api("platform.help-management.screen-command.page", "수정 디렉션 메타데이터 조회", "GET", "/api/platform/help-management/screen-command/page",
                         "AdminHelpManagementController.getScreenCommandPage", "ScreenCommandCenterService.getScreenCommandPage",
                         "Metadata-only", Arrays.asList("COMTNMENUINFO", "COMTNMENUFUNCTIONINFO", "COMTNAUTHORFUNCTIONRELATE"),
                         Arrays.asList("menu-feature-schema"), "화면-요소-이벤트-API-권한 연결 메타데이터를 조회합니다.")
@@ -2952,83 +2952,83 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         ));
         page.put("events", Arrays.asList(
                 event("codex-ticket-refresh", "티켓 큐 새로고침", "load", "fetchCodexProvisionPage", "[data-help-id=\"codex-request-runtime\"]",
-                        Arrays.asList("admin.codex-request.tickets"), "SR 실행 큐와 runtime config를 다시 불러옵니다."),
+                        Arrays.asList("platform.codex-request.tickets"), "SR 실행 큐와 runtime config를 다시 불러옵니다."),
                 event("codex-ticket-select", "SR 티켓 선택", "click", "setSelectedTicketId", "[data-help-id=\"codex-history-table\"] tr",
-                        Arrays.asList("admin.codex-request.ticket-detail", "admin.codex-request.ticket-artifact"), "선택한 티켓의 상세와 아티팩트를 조회합니다."),
+                        Arrays.asList("platform.codex-request.ticket-detail", "platform.codex-request.ticket-artifact"), "선택한 티켓의 상세와 아티팩트를 조회합니다."),
                 event("codex-ticket-detail-load", "선택 티켓 상세 조회", "load", "fetchCodexSrTicketDetail", "[data-help-id=\"codex-request-ticket-detail\"]",
-                        Arrays.asList("admin.codex-request.ticket-detail"), "선택 티켓의 요약, instruction, runner comment를 조회합니다."),
+                        Arrays.asList("platform.codex-request.ticket-detail"), "선택 티켓의 요약, instruction, runner comment를 조회합니다."),
                 event("codex-ticket-artifact-plan", "Plan 아티팩트 조회", "load", "fetchCodexSrTicketArtifact", "[data-help-id=\"codex-request-plan-result\"]",
-                        Arrays.asList("admin.codex-request.ticket-artifact"), "plan result 또는 plan stdout 파일을 미리 조회합니다."),
+                        Arrays.asList("platform.codex-request.ticket-artifact"), "plan result 또는 plan stdout 파일을 미리 조회합니다."),
                 event("codex-ticket-artifact-build", "Build 아티팩트 조회", "load", "fetchCodexSrTicketArtifact", "[data-help-id=\"codex-request-build-result\"]",
-                        Arrays.asList("admin.codex-request.ticket-artifact"), "build stdout, diff, changed files를 미리 조회합니다."),
+                        Arrays.asList("platform.codex-request.ticket-artifact"), "build stdout, diff, changed files를 미리 조회합니다."),
                 event("codex-ticket-prepare", "SR 티켓 준비", "click", "prepareCodexSrTicket", "[data-help-id=\"codex-history-table\"] .gov-btn-outline",
-                        Arrays.asList("admin.codex-request.ticket-prepare"), "선택 티켓을 READY_FOR_CODEX 상태로 전환합니다."),
+                        Arrays.asList("platform.codex-request.ticket-prepare"), "선택 티켓을 READY_FOR_CODEX 상태로 전환합니다."),
                 event("codex-ticket-plan", "SR 티켓 계획 수립", "click", "planCodexSrTicket", "[data-help-id=\"codex-history-table\"] .gov-btn-outline",
-                        Arrays.asList("admin.codex-request.ticket-plan"), "선택 티켓에 대해 read-only Codex plan 을 실행합니다."),
+                        Arrays.asList("platform.codex-request.ticket-plan"), "선택 티켓에 대해 read-only Codex plan 을 실행합니다."),
                 event("codex-ticket-build", "SR 티켓 빌드 실행", "click", "executeCodexSrTicket", "[data-help-id=\"codex-history-table\"] .gov-btn-primary",
-                        Arrays.asList("admin.codex-request.ticket-build"), "PLAN_COMPLETED 티켓에 대해 build 실행을 시작합니다."),
+                        Arrays.asList("platform.codex-request.ticket-build"), "PLAN_COMPLETED 티켓에 대해 build 실행을 시작합니다."),
                 event("codex-ticket-delete", "SR 티켓 삭제", "click", "deleteCodexSrTicket", "[data-help-id=\"codex-history-table\"] .gov-btn-outline",
-                        Arrays.asList("admin.codex-request.ticket-delete"), "중앙 실행 큐에서 SR 티켓을 제거합니다."),
+                        Arrays.asList("platform.codex-request.ticket-delete"), "중앙 실행 큐에서 SR 티켓을 제거합니다."),
                 event("codex-login-check", "Codex 인증 확인", "click", "runCodexLoginCheck", ".gov-btn",
-                        Arrays.asList("admin.codex-request.login"), "내부 프록시와 API 키 구성을 확인합니다."),
+                        Arrays.asList("platform.codex-request.login"), "내부 프록시와 API 키 구성을 확인합니다."),
                 event("codex-run-provision", "Codex 등록 실행", "click", "executeCodexProvision", ".gov-btn",
-                        Arrays.asList("admin.codex-request.execute"), "입력한 payload로 메뉴/기능/권한 등록을 실행합니다."),
+                        Arrays.asList("platform.codex-request.execute"), "입력한 payload로 메뉴/기능/권한 등록을 실행합니다."),
                 event("codex-format-payload", "Payload 정렬", "click", "JSON.parse", ".gov-btn",
                         Collections.emptyList(), "JSON payload를 보기 좋은 형태로 정렬합니다."),
                 event("codex-history-refresh", "이력 새로고침", "click", "historyState.reload", ".gov-btn",
-                        Arrays.asList("admin.codex-request.history"), "최근 실행 이력을 다시 불러옵니다."),
+                        Arrays.asList("platform.codex-request.history"), "최근 실행 이력을 다시 불러옵니다."),
                 event("codex-history-inspect", "실행 이력 재점검", "click", "inspectCodexHistory", "table .gov-btn-outline",
-                        Arrays.asList("admin.codex-request.inspect"), "선택한 요청의 회사/페이지/메뉴/기능 매핑 상태를 재점검합니다."),
+                        Arrays.asList("platform.codex-request.inspect"), "선택한 요청의 회사/페이지/메뉴/기능 매핑 상태를 재점검합니다."),
                 event("codex-history-remediate", "실행 이력 조치", "click", "remediateCodexHistory", "table .gov-btn-primary",
-                        Arrays.asList("admin.codex-request.remediate"), "선택한 요청을 기준으로 다시 조치 실행합니다.")
+                        Arrays.asList("platform.codex-request.remediate"), "선택한 요청을 기준으로 다시 조치 실행합니다.")
         ));
         page.put("apis", Arrays.asList(
-                api("admin.codex-request.login", "Codex 인증 확인", "POST", "/admin/system/codex-request/login",
-                        "CodexProvisionAdminController.login", "CodexExecutionAdminService.validateInternalAvailability",
+                api("platform.codex-request.login", "Codex 인증 확인", "POST", "/admin/system/codex-request/login",
+                        "CodexProvisionAdminApiController.login", "CodexExecutionAdminPort.validateInternalAvailability",
                         "Metadata-only", Arrays.asList("CODEX_API_CONFIG"), Arrays.asList("codex-request-schema"),
                         "Codex API 활성화와 내부 프록시 가능 여부를 확인합니다."),
-                api("admin.codex-request.execute", "Codex 등록 실행", "POST", "/admin/system/codex-request/execute",
-                        "CodexProvisionAdminController.execute", "CodexExecutionAdminService.execute",
+                api("platform.codex-request.execute", "Codex 등록 실행", "POST", "/admin/system/codex-request/execute",
+                        "CodexProvisionAdminApiController.execute", "CodexExecutionAdminPort.execute",
                         "CodexExecutionLogMapper.insert / CodexProvisioningService.provision", Arrays.asList("COMTNMENUINFO", "COMTNMENUFUNCTIONINFO", "COMTNAUTHORFUNCTIONRELATE", "COMTNDETAILCODE", "COMTCCMMNDETAILCODE"),
                         Arrays.asList("codex-request-schema", "menu-feature-schema"), "메뉴/기능/권한 등록을 실행하고 로그를 남깁니다."),
-                api("admin.codex-request.history", "Codex 실행 이력", "GET", "/admin/system/codex-request/history",
-                        "CodexProvisionAdminController.history", "CodexExecutionAdminService.getRecentHistory",
+                api("platform.codex-request.history", "Codex 실행 이력", "GET", "/admin/system/codex-request/history",
+                        "CodexProvisionAdminApiController.history", "CodexExecutionAdminPort.getRecentHistory",
                         "CodexExecutionLogMapper.selectRecentHistory", Arrays.asList("CODEX_EXECUTION_LOG"), Arrays.asList("codex-request-schema"),
                         "최근 실행 이력을 조회합니다."),
-                api("admin.codex-request.tickets", "SR 실행 큐 조회", "GET", "/admin/system/codex-request/tickets",
-                        "CodexProvisionAdminController.tickets", "SrTicketWorkbenchService.getPage",
+                api("platform.codex-request.tickets", "SR 실행 큐 조회", "GET", "/admin/system/codex-request/tickets",
+                        "CodexProvisionAdminApiController.tickets", "SrTicketWorkbenchService.getPage",
                         "security.codex.sr-ticket-file JSONL", Arrays.asList("SR_TICKET_JSONL"), Arrays.asList("sr-ticket-runner-schema"),
                         "SR 기반 중앙 실행 큐와 상태를 조회합니다."),
-                api("admin.codex-request.ticket-detail", "SR 티켓 상세 조회", "GET", "/admin/system/codex-request/tickets/{ticketId}",
-                        "CodexProvisionAdminController.ticketDetail", "SrTicketWorkbenchService.getTicketDetail",
+                api("platform.codex-request.ticket-detail", "SR 티켓 상세 조회", "GET", "/admin/system/codex-request/tickets/{ticketId}",
+                        "CodexProvisionAdminApiController.ticketDetail", "SrTicketWorkbenchService.getTicketDetail",
                         "security.codex.sr-ticket-file JSONL", Arrays.asList("SR_TICKET_JSONL"), Arrays.asList("sr-ticket-runner-schema"),
                         "선택한 SR 티켓의 상세와 조회 가능한 artifact 목록을 확인합니다."),
-                api("admin.codex-request.ticket-artifact", "SR 티켓 아티팩트 조회", "GET", "/admin/system/codex-request/tickets/{ticketId}/artifacts/{artifactType}",
-                        "CodexProvisionAdminController.ticketArtifact", "SrTicketWorkbenchService.getTicketArtifact",
+                api("platform.codex-request.ticket-artifact", "SR 티켓 아티팩트 조회", "GET", "/admin/system/codex-request/tickets/{ticketId}/artifacts/{artifactType}",
+                        "CodexProvisionAdminApiController.ticketArtifact", "SrTicketWorkbenchService.getTicketArtifact",
                         "runner artifact files", Arrays.asList("SR_RUNNER_ARTIFACTS"), Arrays.asList("sr-ticket-runner-schema"),
                         "선택한 SR 티켓의 plan/build artifact 내용을 미리 조회합니다."),
-                api("admin.codex-request.ticket-prepare", "SR 티켓 준비", "POST", "/admin/system/codex-request/tickets/{ticketId}/prepare",
-                        "CodexProvisionAdminController.prepareTicket", "SrTicketWorkbenchService.prepareExecution",
+                api("platform.codex-request.ticket-prepare", "SR 티켓 준비", "POST", "/admin/system/codex-request/tickets/{ticketId}/prepare",
+                        "CodexProvisionAdminApiController.prepareTicket", "SrTicketWorkbenchService.prepareExecution",
                         "security.codex.sr-ticket-file JSONL", Arrays.asList("SR_TICKET_JSONL"), Arrays.asList("sr-ticket-runner-schema"),
                         "승인된 티켓을 Codex 실행 준비 상태로 전환합니다."),
-                api("admin.codex-request.ticket-plan", "SR 티켓 계획 수립", "POST", "/admin/system/codex-request/tickets/{ticketId}/plan",
-                        "CodexProvisionAdminController.planTicket", "SrTicketWorkbenchService.planTicket",
+                api("platform.codex-request.ticket-plan", "SR 티켓 계획 수립", "POST", "/admin/system/codex-request/tickets/{ticketId}/plan",
+                        "CodexProvisionAdminApiController.planTicket", "SrTicketWorkbenchService.planTicket",
                         "SR runner workspace + history", Arrays.asList("SR_TICKET_JSONL", "SR_RUNNER_ARTIFACTS"), Arrays.asList("sr-ticket-runner-schema"),
                         "선택 티켓에 대해 read-only plan 실행과 artifact 생성을 수행합니다."),
-                api("admin.codex-request.ticket-build", "SR 티켓 빌드 실행", "POST", "/admin/system/codex-request/tickets/{ticketId}/execute",
-                        "CodexProvisionAdminController.executeTicket", "SrTicketWorkbenchService.executeTicket",
+                api("platform.codex-request.ticket-build", "SR 티켓 빌드 실행", "POST", "/admin/system/codex-request/tickets/{ticketId}/execute",
+                        "CodexProvisionAdminApiController.executeTicket", "SrTicketWorkbenchService.executeTicket",
                         "SR runner workspace + history", Arrays.asList("SR_TICKET_JSONL", "SR_RUNNER_ARTIFACTS"), Arrays.asList("sr-ticket-runner-schema"),
                         "PLAN_COMPLETED 티켓에 대해 build 실행과 verify를 수행합니다."),
-                api("admin.codex-request.ticket-delete", "SR 티켓 삭제", "POST", "/admin/system/codex-request/tickets/{ticketId}/delete",
-                        "CodexProvisionAdminController.deleteTicket", "SrTicketWorkbenchService.deleteTicket",
+                api("platform.codex-request.ticket-delete", "SR 티켓 삭제", "POST", "/admin/system/codex-request/tickets/{ticketId}/delete",
+                        "CodexProvisionAdminApiController.deleteTicket", "SrTicketWorkbenchService.deleteTicket",
                         "security.codex.sr-ticket-file JSONL", Arrays.asList("SR_TICKET_JSONL"), Arrays.asList("sr-ticket-runner-schema"),
                         "중앙 실행 큐에서 선택한 SR 티켓을 제거합니다."),
-                api("admin.codex-request.inspect", "Codex 실행 이력 점검", "POST", "/admin/system/codex-request/history/{logId}/inspect",
-                        "CodexProvisionAdminController.inspect", "CodexExecutionAdminService.inspect",
+                api("platform.codex-request.inspect", "Codex 실행 이력 점검", "POST", "/admin/system/codex-request/history/{logId}/inspect",
+                        "CodexProvisionAdminApiController.inspect", "CodexExecutionAdminPort.inspect",
                         "CodexExecutionLogMapper.select / Menu-feature inspection", Arrays.asList("CODEX_EXECUTION_LOG", "COMTNMENUINFO", "COMTNMENUFUNCTIONINFO"),
                         Arrays.asList("codex-request-schema", "menu-feature-schema"), "실행 이력의 매핑 상태를 재점검합니다."),
-                api("admin.codex-request.remediate", "Codex 실행 이력 조치", "POST", "/admin/system/codex-request/history/{logId}/remediate",
-                        "CodexProvisionAdminController.remediate", "CodexExecutionAdminService.remediate",
+                api("platform.codex-request.remediate", "Codex 실행 이력 조치", "POST", "/admin/system/codex-request/history/{logId}/remediate",
+                        "CodexProvisionAdminApiController.remediate", "CodexExecutionAdminPort.remediate",
                         "CodexExecutionLogMapper.select / CodexProvisioningService.provision", Arrays.asList("CODEX_EXECUTION_LOG", "COMTNMENUINFO", "COMTNMENUFUNCTIONINFO", "COMTNAUTHORFUNCTIONRELATE"),
                         Arrays.asList("codex-request-schema", "menu-feature-schema"), "실행 이력을 바탕으로 다시 조치 실행합니다.")
         ));
@@ -3064,32 +3064,32 @@ public class ScreenCommandCenterServiceImpl implements ScreenCommandCenterServic
         ));
         page.put("events", Arrays.asList(
                 event("sr-page-load", "워크벤치 화면 로드", "click", "load", "[data-help-id=\"sr-ticket-draft\"] .primary-button",
-                        Arrays.asList("admin.sr-workbench.page", "admin.help-management.screen-command.page"), "선택한 화면 기준 워크벤치와 연결 메타데이터를 불러옵니다."),
+                        Arrays.asList("platform.workbench.page", "platform.help-management.screen-command.page"), "선택한 화면 기준 워크벤치와 연결 메타데이터를 불러옵니다."),
                 event("sr-direction-generate", "해결 지시 생성", "click", "handleGenerate", "[data-help-id=\"sr-ticket-draft\"] .secondary-button",
                         Collections.emptyList(), "선택한 메타데이터를 바탕으로 SR 해결 direction을 생성합니다."),
                 event("sr-ticket-create", "SR 티켓 발행", "click", "handleCreateTicket", "[data-help-id=\"sr-ticket-draft\"] .primary-button",
-                        Arrays.asList("admin.sr-workbench.ticket.create"), "현재 direction을 기준으로 티켓을 저장합니다."),
+                        Arrays.asList("platform.workbench.ticket.create"), "현재 direction을 기준으로 티켓을 저장합니다."),
                 event("sr-ticket-approve", "SR 승인", "click", "handleApprove", "[data-help-id=\"sr-ticket-table\"] .secondary-button",
-                        Arrays.asList("admin.sr-workbench.ticket.approve"), "티켓을 승인 상태로 바꿉니다."),
+                        Arrays.asList("platform.workbench.ticket.approve"), "티켓을 승인 상태로 바꿉니다."),
                 event("sr-ticket-reject", "SR 반려", "click", "handleApprove", "[data-help-id=\"sr-ticket-table\"] .secondary-button",
-                        Arrays.asList("admin.sr-workbench.ticket.approve"), "티켓을 반려 상태로 바꿉니다."),
+                        Arrays.asList("platform.workbench.ticket.approve"), "티켓을 반려 상태로 바꿉니다."),
                 event("sr-ticket-prepare-execution", "실행 준비", "click", "handlePrepareExecution", "[data-help-id=\"sr-ticket-table\"] .primary-button",
-                        Arrays.asList("admin.sr-workbench.ticket.prepare-execution"), "승인된 티켓을 Codex 실행 준비 상태로 전환합니다.")
+                        Arrays.asList("platform.workbench.ticket.prepare-execution"), "승인된 티켓을 Codex 실행 준비 상태로 전환합니다.")
         ));
         page.put("apis", Arrays.asList(
-                api("admin.sr-workbench.page", "SR 워크벤치 조회", "GET", "/api/admin/sr-workbench/page",
+                api("platform.workbench.page", "SR 워크벤치 조회", "GET", "/api/platform/workbench/page",
                         "AdminSrWorkbenchController.getPage", "SrTicketWorkbenchService.getPage",
                         "File-backed read", Arrays.asList("SR_TICKET_JSONL", "COMTNMENUINFO", "COMTNMENUFUNCTIONINFO", "COMTNAUTHORFUNCTIONRELATE"),
                         Arrays.asList("sr-ticket-schema", "menu-feature-schema"), "워크벤치 화면 데이터와 최근 티켓 목록을 조회합니다."),
-                api("admin.sr-workbench.ticket.create", "SR 티켓 발행", "POST", "/api/admin/sr-workbench/tickets",
+                api("platform.workbench.ticket.create", "SR 티켓 발행", "POST", "/api/platform/workbench/tickets",
                         "AdminSrWorkbenchController.createTicket", "SrTicketWorkbenchService.createTicket",
                         "File-backed append", Arrays.asList("SR_TICKET_JSONL"), Arrays.asList("sr-ticket-schema"),
                         "SR 티켓을 신규 발행합니다."),
-                api("admin.sr-workbench.ticket.approve", "SR 승인/반려", "POST", "/api/admin/sr-workbench/tickets/{ticketId}/approve",
+                api("platform.workbench.ticket.approve", "SR 승인/반려", "POST", "/api/platform/workbench/tickets/{ticketId}/approve",
                         "AdminSrWorkbenchController.approveTicket", "SrTicketWorkbenchService.updateApproval",
                         "File-backed rewrite", Arrays.asList("SR_TICKET_JSONL"), Arrays.asList("sr-ticket-schema"),
                         "SR 티켓 상태를 승인 또는 반려로 전환합니다."),
-                api("admin.sr-workbench.ticket.prepare-execution", "SR 실행 준비", "POST", "/api/admin/sr-workbench/tickets/{ticketId}/prepare-execution",
+                api("platform.workbench.ticket.prepare-execution", "SR 실행 준비", "POST", "/api/platform/workbench/tickets/{ticketId}/prepare-execution",
                         "AdminSrWorkbenchController.prepareExecution", "SrTicketWorkbenchService.prepareExecution",
                         "File-backed rewrite", Arrays.asList("SR_TICKET_JSONL"), Arrays.asList("sr-ticket-schema"),
                         "승인된 티켓을 Codex 실행 준비 상태로 전환합니다.")

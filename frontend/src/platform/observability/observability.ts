@@ -22,7 +22,7 @@ export async function fetchAuditEvents(params?: {
   if (params?.pageId) search.set("pageId", params.pageId);
   if (params?.resultStatus) search.set("resultStatus", params.resultStatus);
   if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  const response = await apiFetch(`${buildAdminApiPath("/api/admin/observability/audit-events")}${search.toString() ? `?${search.toString()}` : ""}`, {
+  const response = await apiFetch(`${buildAdminApiPath("/api/platform/observability/audit-events")}${search.toString() ? `?${search.toString()}` : ""}`, {
     credentials: "include",
     apiId: "admin.observability.audit-events.search"
   });
@@ -52,7 +52,7 @@ export async function fetchTraceEvents(params?: {
   if (params?.eventType) search.set("eventType", params.eventType);
   if (params?.resultCode) search.set("resultCode", params.resultCode);
   if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  const response = await apiFetch(`${buildAdminApiPath("/api/admin/observability/trace-events")}${search.toString() ? `?${search.toString()}` : ""}`, {
+  const response = await apiFetch(`${buildAdminApiPath("/api/platform/observability/trace-events")}${search.toString() ? `?${search.toString()}` : ""}`, {
     credentials: "include",
     apiId: "admin.observability.trace-events.search"
   });

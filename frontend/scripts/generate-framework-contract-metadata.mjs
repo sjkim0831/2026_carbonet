@@ -6,11 +6,20 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const frontendRoot = path.resolve(__dirname, "..");
 const repoRoot = path.resolve(frontendRoot, "..");
-const sourcePath = path.join(repoRoot, "src/main/resources/framework/contracts/framework-contract-metadata.json");
+const candidateSourcePaths = [
+  path.join(repoRoot, "modules/carbonet-contract-metadata/src/main/resources/framework/contracts/framework-contract-metadata.json"),
+  path.join(repoRoot, "src/main/resources/framework/contracts/framework-contract-metadata.json")
+];
 const outputPath = path.join(frontendRoot, "src/generated/frameworkContractMetadata.json");
 
 function ensureDir(filePath) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
+}
+
+const sourcePath = candidateSourcePaths.find((candidate) => fs.existsSync(candidate));
+
+if (!sourcePath) {
+  throw new Error(`framework-contract-metadata.json not found in any expected path: ${candidateSourcePaths.join(", ")}`);
 }
 
 const metadata = JSON.parse(fs.readFileSync(sourcePath, "utf8"));

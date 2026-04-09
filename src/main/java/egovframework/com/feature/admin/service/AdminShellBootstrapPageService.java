@@ -1,11 +1,14 @@
 package egovframework.com.feature.admin.service;
 
-import egovframework.com.common.trace.UiManifestRegistryService;
+import egovframework.com.common.trace.UiManifestRegistryPort;
 import egovframework.com.feature.admin.dto.response.MenuInfoDTO;
 import egovframework.com.feature.admin.model.vo.AuthorInfoVO;
 import egovframework.com.feature.admin.model.vo.EmissionResultFilterSnapshot;
 import egovframework.com.feature.admin.model.vo.EmissionResultSummaryView;
 import egovframework.com.feature.admin.model.vo.SecurityAuditSnapshot;
+import egovframework.com.platform.observability.service.PlatformObservabilityAdminPageFacade;
+import egovframework.com.platform.read.AdminSummaryReadPort;
+import egovframework.com.platform.read.MenuInfoReadPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
@@ -25,18 +28,24 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AdminShellBootstrapPageService {
 
-    private final AdminSummaryService adminSummaryService;
+    private final AdminSummaryReadPort adminSummaryReadPort;
+    private final AdminSecurityBootstrapReadService adminSecurityBootstrapReadService;
+    private final AdminHomeBootstrapReadService adminHomeBootstrapReadService;
+    private final AdminSchedulerBootstrapReadService adminSchedulerBootstrapReadService;
+    private final AdminEmissionResultBootstrapReadService adminEmissionResultBootstrapReadService;
+    private final AdminTradeBootstrapReadService adminTradeBootstrapReadService;
+    private final AdminPaymentBootstrapReadService adminPaymentBootstrapReadService;
     private final BackupConfigManagementService backupConfigManagementService;
-    private final MenuInfoService menuInfoService;
+    private final MenuInfoReadPort menuInfoReadPort;
     private final AuthGroupManageService authGroupManageService;
-    private final UiManifestRegistryService uiManifestRegistryService;
-    private final ObjectProvider<egovframework.com.feature.admin.web.AdminObservabilityPageService> adminObservabilityPageServiceProvider;
+    private final UiManifestRegistryPort uiManifestRegistryPort;
+    private final ObjectProvider<PlatformObservabilityAdminPageFacade> platformObservabilityAdminPageFacadeProvider;
 
     private static final int SECURITY_AUDIT_BOOTSTRAP_PAGE_SIZE = 10;
     private final Map<String, Map<String, String>> tradeApprovalState = new ConcurrentHashMap<>();
 
-    private egovframework.com.feature.admin.web.AdminObservabilityPageService adminObservabilityPageService() {
-        return adminObservabilityPageServiceProvider.getObject();
+    private PlatformObservabilityAdminPageFacade platformObservabilityAdminPageFacade() {
+        return platformObservabilityAdminPageFacadeProvider.getObject();
     }
 
     public Map<String, Object> buildMemberStatsPageData(boolean isEn) {
@@ -65,33 +74,15 @@ public class AdminShellBootstrapPageService {
     }
 
     public Map<String, Object> buildSecurityPolicyPageData(boolean isEn) {
-        Map<String, Object> response = new LinkedHashMap<>();
-        String adminPrefix = isEn ? "/en/admin" : "/admin";
-        response.put("isEn", isEn);
-        response.put("securityPolicySummary", adminSummaryService.getSecurityPolicySummary(isEn));
-        response.put("securityPolicyRows", buildSecurityPolicyRows(isEn));
-        response.put("securityPolicyPlaybooks", buildSecurityPolicyPlaybooks(isEn));
-        response.put("menuPermissionDiagnostics", adminSummaryService.buildMenuPermissionDiagnosticSummary(isEn));
-        response.put("menuPermissionDiagnosticSqlDownloadUrl", "/downloads/menu-permission-diagnostics.sql");
-        response.put("menuPermissionAuthGroupUrl", adminPrefix + "/auth/group");
-        response.put("menuPermissionEnvironmentUrl", adminPrefix + "/system/environment-management");
-        return response;
+        return adminSecurityBootstrapReadService.buildSecurityPolicyPageData(isEn);
     }
 
     public Map<String, Object> buildSecurityMonitoringPageData(boolean isEn) {
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("isEn", isEn);
-        response.put("securityMonitoringCards", adminSummaryService.getSecurityMonitoringCards(isEn));
-        response.put("securityMonitoringTargets", adminSummaryService.getSecurityMonitoringTargets(isEn));
-        response.put("securityMonitoringIps", adminSummaryService.getSecurityMonitoringIps(isEn));
-        response.put("securityMonitoringEvents", adminSummaryService.mergeSecurityMonitoringEventState(adminSummaryService.getSecurityMonitoringEvents(isEn), isEn));
-        response.put("securityMonitoringActivityRows", adminSummaryService.getSecurityMonitoringActivityRows(isEn));
-        response.put("securityMonitoringBlockCandidates", adminSummaryService.getSecurityMonitoringBlockCandidateRows(isEn));
-        return response;
+        return adminSecurityBootstrapReadService.buildSecurityMonitoringPageData(isEn);
     }
 
     public Map<String, Object> buildExternalMonitoringPageData(boolean isEn) {
-        return adminObservabilityPageService().buildExternalMonitoringPagePayload(isEn);
+        return platformObservabilityAdminPageFacade().buildExternalMonitoringPagePayload(isEn);
     }
 
     public Map<String, Object> buildSecurityAuditPageData(
@@ -104,73 +95,16 @@ public class AdminShellBootstrapPageService {
             String sortKey,
             String sortDirection,
             boolean isEn) {
-        Map<String, Object> response = new LinkedHashMap<>();
-        int pageIndex = 1;
-        if (!safeString(pageIndexParam).isEmpty()) {
-            try {
-                pageIndex = Integer.parseInt(pageIndexParam.trim());
-            } catch (NumberFormatException ignored) {
-                pageIndex = 1;
-            }
-        }
-        String normalizedKeyword = safeString(searchKeyword);
-        String normalizedActionType = normalizeSecurityAuditActionType(actionType);
-        String normalizedRouteGroup = normalizeSecurityAuditRouteGroup(routeGroup);
-        String normalizedSortKey = normalizeSecurityAuditSortKey(sortKey);
-        String normalizedSortDirection = normalizeSecurityAuditSortDirection(sortDirection);
-        SecurityAuditSnapshot auditSnapshot = adminSummaryService.loadSecurityAuditSnapshot();
-        List<Map<String, String>> allRows = adminSummaryService.buildSecurityAuditRows(auditSnapshot.getAuditLogs(), isEn);
-        List<Map<String, String>> filteredRows = filterAndSortSecurityAuditRows(
-                allRows,
-                normalizedKeyword,
-                normalizedActionType,
-                normalizedRouteGroup,
-                normalizedSortKey,
-                normalizedSortDirection);
-        int totalCount = filteredRows.size();
-        int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) SECURITY_AUDIT_BOOTSTRAP_PAGE_SIZE);
-        int currentPage = Math.max(1, Math.min(pageIndex, totalPages));
-        int startIndex = Math.max(currentPage - 1, 0) * SECURITY_AUDIT_BOOTSTRAP_PAGE_SIZE;
-        int endIndex = Math.min(startIndex + SECURITY_AUDIT_BOOTSTRAP_PAGE_SIZE, filteredRows.size());
-        List<Map<String, String>> pagedRows = startIndex >= endIndex
-                ? Collections.emptyList()
-                : new ArrayList<>(filteredRows.subList(startIndex, endIndex));
-
-        response.put("isEn", isEn);
-        response.put("pageIndex", currentPage);
-        response.put("pageSize", SECURITY_AUDIT_BOOTSTRAP_PAGE_SIZE);
-        response.put("totalCount", totalCount);
-        response.put("totalPages", totalPages);
-        response.put("searchKeyword", normalizedKeyword);
-        response.put("actionType", normalizedActionType);
-        response.put("routeGroup", normalizedRouteGroup);
-        response.put("startDate", safeString(startDate));
-        response.put("endDate", safeString(endDate));
-        response.put("sortKey", normalizedSortKey);
-        response.put("sortDirection", normalizedSortDirection);
-        response.put("filteredErrorCount", filteredRows.stream().filter(this::isSecurityAuditErrorRow).count());
-        response.put("filteredRepeatedActorCount",
-                countRepeatedSecurityAuditValues(filteredRows, row -> extractSecurityAuditActorId(safeString(row.get("actor")))));
-        response.put("filteredRepeatedTargetCount",
-                countRepeatedSecurityAuditValues(filteredRows, row -> safeString(row.get("target"))));
-        response.put("filteredRepeatedRemoteAddrCount",
-                countRepeatedSecurityAuditValues(filteredRows, row -> safeString(row.get("remoteAddr"))));
-        response.put("filteredSlowCount", filteredRows.stream().filter(this::isSecurityAuditSlowRow).count());
-        response.put("securityAuditSummary", adminSummaryService.getSecurityAuditSummary(auditSnapshot, isEn));
-        response.put("securityAuditRepeatedActors",
-                buildRepeatedSecurityAuditRows(filteredRows,
-                        row -> extractSecurityAuditActorId(safeString(row.get("actor"))),
-                        isEn ? "Actor" : "수행자"));
-        response.put("securityAuditRepeatedTargets",
-                buildRepeatedSecurityAuditRows(filteredRows,
-                        row -> safeString(row.get("target")),
-                        isEn ? "Target Route" : "대상 경로"));
-        response.put("securityAuditRepeatedRemoteAddrs",
-                buildRepeatedSecurityAuditRows(filteredRows,
-                        row -> safeString(row.get("remoteAddr")),
-                        isEn ? "Remote IP" : "원격 IP"));
-        response.put("securityAuditRows", pagedRows);
-        return response;
+        return adminSecurityBootstrapReadService.buildSecurityAuditPageData(
+                pageIndexParam,
+                searchKeyword,
+                actionType,
+                routeGroup,
+                startDate,
+                endDate,
+                sortKey,
+                sortDirection,
+                isEn);
     }
 
     public Map<String, Object> buildCertificateAuditLogPageData(
@@ -182,7 +116,7 @@ public class AdminShellBootstrapPageService {
             String startDate,
             String endDate,
             boolean isEn) {
-        return adminObservabilityPageService().buildCertificateAuditLogPagePayload(
+        return platformObservabilityAdminPageFacade().buildCertificateAuditLogPagePayload(
                 pageIndexParam,
                 searchKeyword,
                 auditType,
@@ -218,42 +152,20 @@ public class AdminShellBootstrapPageService {
     }
 
     public Map<String, Object> buildAdminHomePageData(boolean isEn) {
-        Map<String, Object> response = new LinkedHashMap<>();
-        SecurityAuditSnapshot auditSnapshot = adminSummaryService.loadSecurityAuditSnapshot();
-        EmissionResultFilterSnapshot emissionSnapshot = adminSummaryService.buildEmissionResultFilterSnapshot(isEn, "", "", "");
-
-        response.put("isEn", isEn);
-        response.put("summaryCards", buildAdminHomeSummaryCards(isEn));
-        response.put("reviewQueueRows", buildAdminHomeReviewQueueRows(emissionSnapshot.getItems(), isEn));
-        response.put("reviewProgressRows", buildAdminHomeReviewProgressRows(emissionSnapshot.getItems(), isEn));
-        response.put("operationalStatusRows", buildAdminHomeOperationalStatusRows(isEn));
-        response.put("systemLogs", buildAdminHomeSystemLogs(auditSnapshot, isEn));
-        return response;
+        SecurityAuditSnapshot auditSnapshot = adminSummaryReadPort.loadSecurityAuditSnapshot();
+        EmissionResultFilterSnapshot emissionSnapshot = adminSummaryReadPort.buildEmissionResultFilterSnapshot(isEn, "", "", "");
+        return adminHomeBootstrapReadService.buildAdminHomePageData(
+                isEn,
+                emissionSnapshot.getItems(),
+                auditSnapshot);
     }
 
     public Map<String, Object> buildSchedulerPageData(String jobStatus, String executionType, boolean isEn) {
-        Map<String, Object> response = new LinkedHashMap<>();
-        String normalizedJobStatus = safeString(jobStatus).toUpperCase(Locale.ROOT);
-        String normalizedExecutionType = safeString(executionType).toUpperCase(Locale.ROOT);
-        List<Map<String, String>> jobRows = buildSchedulerJobRows(isEn);
-        List<Map<String, String>> filteredRows = new ArrayList<>();
-        for (Map<String, String> row : jobRows) {
-            String rowStatus = safeString(row.get("jobStatus")).toUpperCase(Locale.ROOT);
-            String rowType = safeString(row.get("executionTypeCode")).toUpperCase(Locale.ROOT);
-            boolean matchesStatus = normalizedJobStatus.isEmpty() || normalizedJobStatus.equals(rowStatus);
-            boolean matchesType = normalizedExecutionType.isEmpty() || normalizedExecutionType.equals(rowType);
-            if (matchesStatus && matchesType) {
-                filteredRows.add(row);
-            }
-        }
+        Map<String, Object> response = new LinkedHashMap<>(adminSchedulerBootstrapReadService.buildSchedulerPageData(
+                jobStatus,
+                executionType,
+                isEn));
         response.put("isEn", isEn);
-        response.put("jobStatus", normalizedJobStatus);
-        response.put("executionType", normalizedExecutionType);
-        response.put("schedulerSummary", adminSummaryService.getSchedulerSummary(isEn));
-        response.put("schedulerJobRows", filteredRows);
-        response.put("schedulerNodeRows", buildSchedulerNodeRows(isEn));
-        response.put("schedulerExecutionRows", buildSchedulerExecutionRows(isEn));
-        response.put("schedulerPlaybooks", buildSchedulerPlaybooks(isEn));
         return response;
     }
 
@@ -269,10 +181,10 @@ public class AdminShellBootstrapPageService {
         String requiredViewFeatureCode = "";
         List<String> featureCodes = Collections.emptyList();
         MenuInfoDTO menuDetail = null;
-        Map<String, Object> manifest = uiManifestRegistryService.getPageRegistry("new-page");
+        Map<String, Object> manifest = uiManifestRegistryPort.getPageRegistry("new-page");
 
         try {
-            menuDetail = menuInfoService.selectMenuDetailByUrl(canonicalMenuUrl);
+            menuDetail = menuInfoReadPort.selectMenuDetailByUrl(canonicalMenuUrl);
         } catch (Exception ignored) {
             menuDetail = null;
         }
@@ -334,57 +246,12 @@ public class AdminShellBootstrapPageService {
             String resultStatus,
             String verificationStatus,
             boolean isEn) {
-        int pageIndex = 1;
-        if (!safeString(pageIndexParam).isEmpty()) {
-            try {
-                pageIndex = Integer.parseInt(pageIndexParam.trim());
-            } catch (NumberFormatException ignored) {
-                pageIndex = 1;
-            }
-        }
-
-        String keyword = safeString(searchKeyword).toLowerCase(Locale.ROOT);
-        String normalizedResultStatus = safeString(resultStatus).toUpperCase(Locale.ROOT);
-        String normalizedVerificationStatus = safeString(verificationStatus).toUpperCase(Locale.ROOT);
-
-        EmissionResultFilterSnapshot filterSnapshot = adminSummaryService.buildEmissionResultFilterSnapshot(
-                isEn,
-                keyword,
-                normalizedResultStatus,
-                normalizedVerificationStatus);
-        List<EmissionResultSummaryView> filteredItems = filterSnapshot.getItems();
-
-        int pageSize = 10;
-        int totalCount = filterSnapshot.getTotalCount();
-        int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
-        int currentPage = Math.max(1, Math.min(pageIndex, totalPages));
-        int fromIndex = Math.min((currentPage - 1) * pageSize, totalCount);
-        int toIndex = Math.min(fromIndex + pageSize, totalCount);
-        List<EmissionResultSummaryView> pageItems = filteredItems.subList(fromIndex, toIndex);
-
-        int startPage = Math.max(1, currentPage - 4);
-        int endPage = Math.min(totalPages, startPage + 9);
-        if (endPage - startPage < 9) {
-            startPage = Math.max(1, endPage - 9);
-        }
-
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("isEn", isEn);
-        response.put("emissionResultList", pageItems);
-        response.put("totalCount", totalCount);
-        response.put("reviewCount", filterSnapshot.getReviewCount());
-        response.put("verifiedCount", filterSnapshot.getVerifiedCount());
-        response.put("pageIndex", currentPage);
-        response.put("pageSize", pageSize);
-        response.put("totalPages", totalPages);
-        response.put("startPage", startPage);
-        response.put("endPage", endPage);
-        response.put("prevPage", Math.max(1, currentPage - 1));
-        response.put("nextPage", Math.min(totalPages, currentPage + 1));
-        response.put("searchKeyword", safeString(searchKeyword));
-        response.put("resultStatus", normalizedResultStatus);
-        response.put("verificationStatus", normalizedVerificationStatus);
-        return response;
+        return adminEmissionResultBootstrapReadService.buildEmissionResultListPageData(
+                pageIndexParam,
+                searchKeyword,
+                resultStatus,
+                verificationStatus,
+                isEn);
     }
 
     public Map<String, Object> buildTradeListPageData(
@@ -393,94 +260,12 @@ public class AdminShellBootstrapPageService {
             String tradeStatus,
             String settlementStatus,
             boolean isEn) {
-        int pageIndex = 1;
-        if (!safeString(pageIndexParam).isEmpty()) {
-            try {
-                pageIndex = Integer.parseInt(pageIndexParam.trim());
-            } catch (NumberFormatException ignored) {
-                pageIndex = 1;
-            }
-        }
-
-        String keyword = safeString(searchKeyword).toLowerCase(Locale.ROOT);
-        String normalizedTradeStatus = safeString(tradeStatus).toUpperCase(Locale.ROOT);
-        String normalizedSettlementStatus = safeString(settlementStatus).toUpperCase(Locale.ROOT);
-
-        List<Map<String, String>> allRows = buildTradeListRows(isEn);
-        List<Map<String, String>> filteredRows = new ArrayList<>();
-        for (Map<String, String> row : allRows) {
-            String searchable = String.join(" ",
-                    safeString(row.get("tradeId")),
-                    safeString(row.get("productType")),
-                    safeString(row.get("sellerName")),
-                    safeString(row.get("buyerName")),
-                    safeString(row.get("contractName"))).toLowerCase(Locale.ROOT);
-            String rowTradeStatus = safeString(row.get("tradeStatusCode")).toUpperCase(Locale.ROOT);
-            String rowSettlementStatus = safeString(row.get("settlementStatusCode")).toUpperCase(Locale.ROOT);
-            boolean matchesKeyword = keyword.isEmpty() || searchable.contains(keyword);
-            boolean matchesTradeStatus = normalizedTradeStatus.isEmpty() || normalizedTradeStatus.equals(rowTradeStatus);
-            boolean matchesSettlementStatus = normalizedSettlementStatus.isEmpty() || normalizedSettlementStatus.equals(rowSettlementStatus);
-            if (matchesKeyword && matchesTradeStatus && matchesSettlementStatus) {
-                filteredRows.add(row);
-            }
-        }
-
-        int pageSize = 10;
-        int totalCount = filteredRows.size();
-        int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
-        int currentPage = Math.max(1, Math.min(pageIndex, totalPages));
-        int fromIndex = Math.min((currentPage - 1) * pageSize, totalCount);
-        int toIndex = Math.min(fromIndex + pageSize, totalCount);
-        List<Map<String, String>> pageRows = filteredRows.subList(fromIndex, toIndex);
-
-        long matchingCount = allRows.stream()
-                .filter(row -> "MATCHING".equalsIgnoreCase(safeString(row.get("tradeStatusCode"))))
-                .count();
-        long settlementPendingCount = allRows.stream()
-                .filter(row -> "PENDING".equalsIgnoreCase(safeString(row.get("settlementStatusCode"))))
-                .count();
-        long completedCount = allRows.stream()
-                .filter(row -> "COMPLETED".equalsIgnoreCase(safeString(row.get("tradeStatusCode"))))
-                .count();
-
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("isEn", isEn);
-        response.put("tradeRows", pageRows);
-        response.put("totalCount", totalCount);
-        response.put("matchingCount", matchingCount);
-        response.put("settlementPendingCount", settlementPendingCount);
-        response.put("completedCount", completedCount);
-        response.put("pageIndex", currentPage);
-        response.put("pageSize", pageSize);
-        response.put("totalPages", totalPages);
-        response.put("searchKeyword", safeString(searchKeyword));
-        response.put("tradeStatus", normalizedTradeStatus);
-        response.put("settlementStatus", normalizedSettlementStatus);
-        response.put("tradeStatusOptions", List.of(
-                option("", isEn ? "All" : "전체"),
-                option("REQUESTED", isEn ? "Requested" : "요청"),
-                option("MATCHING", isEn ? "Matching" : "매칭중"),
-                option("APPROVED", isEn ? "Approved" : "승인"),
-                option("COMPLETED", isEn ? "Completed" : "완료"),
-                option("HOLD", isEn ? "On Hold" : "보류")));
-        response.put("settlementStatusOptions", List.of(
-                option("", isEn ? "All" : "전체"),
-                option("PENDING", isEn ? "Pending" : "정산 대기"),
-                option("IN_PROGRESS", isEn ? "In Progress" : "정산 진행"),
-                option("DONE", isEn ? "Done" : "정산 완료"),
-                option("EXCEPTION", isEn ? "Exception" : "예외")));
-        response.put("settlementAlerts", List.of(
-                mapOf(
-                        "title", isEn ? "Pending settlement review" : "정산 대기 거래 점검",
-                        "detail", isEn ? "Trades with pending settlement should be reviewed before the daily close window."
-                                : "정산 대기 거래는 일 마감 전에 담당자가 우선 점검해야 합니다.",
-                        "tone", "warning"),
-                mapOf(
-                        "title", isEn ? "Exception handling path" : "예외 거래 처리 경로",
-                        "detail", isEn ? "Exception trades require operator note and counterparty confirmation."
-                                : "예외 거래는 운영 메모와 상대 기관 확인 절차가 필요합니다.",
-                        "tone", "info")));
-        return response;
+        return adminTradeBootstrapReadService.buildTradeListPageData(
+                pageIndexParam,
+                searchKeyword,
+                tradeStatus,
+                settlementStatus,
+                isEn);
     }
 
     public Map<String, Object> buildTradeStatisticsPageData(
@@ -490,70 +275,13 @@ public class AdminShellBootstrapPageService {
             String tradeType,
             String settlementStatus,
             boolean isEn) {
-        int pageIndex = 1;
-        if (!safeString(pageIndexParam).isEmpty()) {
-            try {
-                pageIndex = Integer.parseInt(pageIndexParam.trim());
-            } catch (NumberFormatException ignored) {
-                pageIndex = 1;
-            }
-        }
-
-        String normalizedKeyword = safeString(searchKeyword).toLowerCase(Locale.ROOT);
-        String normalizedPeriodFilter = normalizeTradeStatisticsPeriodFilter(periodFilter);
-        String normalizedTradeType = safeString(tradeType).toUpperCase(Locale.ROOT);
-        String normalizedSettlementStatus = safeString(settlementStatus).toUpperCase(Locale.ROOT);
-
-        List<Map<String, String>> institutionRows = buildTradeStatisticsInstitutionRows(isEn).stream()
-                .filter(row -> normalizedTradeType.isEmpty() || normalizedTradeType.equals(safeString(row.get("tradeTypeCode")).toUpperCase(Locale.ROOT)))
-                .filter(row -> normalizedSettlementStatus.isEmpty() || normalizedSettlementStatus.equals(safeString(row.get("settlementStatusCode")).toUpperCase(Locale.ROOT)))
-                .filter(row -> normalizedKeyword.isEmpty() || matchesTradeStatisticsKeyword(row, normalizedKeyword))
-                .collect(Collectors.toList());
-
-        List<Map<String, String>> monthlyRows = selectTradeStatisticsMonthlyRows(buildTradeStatisticsMonthlyRows(isEn), normalizedPeriodFilter);
-        List<Map<String, String>> tradeTypeRows = buildTradeStatisticsTypeRows(isEn).stream()
-                .filter(row -> normalizedTradeType.isEmpty() || normalizedTradeType.equals(safeString(row.get("tradeTypeCode")).toUpperCase(Locale.ROOT)))
-                .collect(Collectors.toList());
-
-        int pageSize = 6;
-        int totalCount = institutionRows.size();
-        int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
-        int currentPage = Math.max(1, Math.min(pageIndex, totalPages));
-        int fromIndex = Math.min((currentPage - 1) * pageSize, totalCount);
-        int toIndex = Math.min(fromIndex + pageSize, totalCount);
-        List<Map<String, String>> pageRows = institutionRows.subList(fromIndex, toIndex);
-
-        long totalTradeVolume = sumTradeStatistic(institutionRows, "tradeVolume");
-        long totalSettlementAmount = sumTradeStatistic(institutionRows, "settlementAmount");
-        long pendingSettlementCount = sumTradeStatistic(institutionRows, "pendingCount");
-        long exceptionCount = sumTradeStatistic(institutionRows, "exceptionCount");
-        long completedCount = sumTradeStatistic(institutionRows, "completedCount");
-        long requestCount = sumTradeStatistic(institutionRows, "requestCount");
-        String settlementCompletionRate = requestCount <= 0
-                ? "0.0"
-                : String.format(Locale.ROOT, "%.1f", (completedCount * 100.0) / requestCount);
-
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("isEn", isEn);
-        response.put("pageIndex", currentPage);
-        response.put("pageSize", pageSize);
-        response.put("totalPages", totalPages);
-        response.put("totalCount", totalCount);
-        response.put("searchKeyword", safeString(searchKeyword));
-        response.put("periodFilter", normalizedPeriodFilter);
-        response.put("tradeType", normalizedTradeType);
-        response.put("settlementStatus", normalizedSettlementStatus);
-        response.put("totalTradeVolume", totalTradeVolume);
-        response.put("totalSettlementAmount", totalSettlementAmount);
-        response.put("pendingSettlementCount", pendingSettlementCount);
-        response.put("exceptionCount", exceptionCount);
-        response.put("settlementCompletionRate", settlementCompletionRate);
-        response.put("avgSettlementDays", formatTradeLeadDays(institutionRows));
-        response.put("monthlyRows", monthlyRows);
-        response.put("tradeTypeRows", tradeTypeRows);
-        response.put("institutionRows", pageRows);
-        response.put("alertRows", buildTradeStatisticsAlertRows(isEn));
-        return response;
+        return adminTradeBootstrapReadService.buildTradeStatisticsPageData(
+                pageIndexParam,
+                searchKeyword,
+                periodFilter,
+                tradeType,
+                settlementStatus,
+                isEn);
     }
 
     public Map<String, Object> buildTradeDuplicatePageData(
@@ -563,120 +291,13 @@ public class AdminShellBootstrapPageService {
             String reviewStatus,
             String riskLevel,
             boolean isEn) {
-        int pageIndex = 1;
-        if (!safeString(pageIndexParam).isEmpty()) {
-            try {
-                pageIndex = Integer.parseInt(pageIndexParam.trim());
-            } catch (NumberFormatException ignored) {
-                pageIndex = 1;
-            }
-        }
-
-        String keyword = safeString(searchKeyword).toLowerCase(Locale.ROOT);
-        String normalizedDetectionType = safeString(detectionType).toUpperCase(Locale.ROOT);
-        String normalizedReviewStatus = safeString(reviewStatus).toUpperCase(Locale.ROOT);
-        String normalizedRiskLevel = safeString(riskLevel).toUpperCase(Locale.ROOT);
-
-        List<Map<String, String>> allRows = buildTradeDuplicateRows(isEn);
-        List<Map<String, String>> filteredRows = new ArrayList<>();
-        for (Map<String, String> row : allRows) {
-            String searchable = String.join(" ",
-                    safeString(row.get("reviewId")),
-                    safeString(row.get("tradeId")),
-                    safeString(row.get("contractName")),
-                    safeString(row.get("sellerName")),
-                    safeString(row.get("buyerName")),
-                    safeString(row.get("analyst")),
-                    safeString(row.get("reason"))).toLowerCase(Locale.ROOT);
-            String rowDetectionType = safeString(row.get("detectionTypeCode")).toUpperCase(Locale.ROOT);
-            String rowReviewStatus = safeString(row.get("reviewStatusCode")).toUpperCase(Locale.ROOT);
-            String rowRiskLevel = safeString(row.get("riskLevelCode")).toUpperCase(Locale.ROOT);
-            boolean matchesKeyword = keyword.isEmpty() || searchable.contains(keyword);
-            boolean matchesDetectionType = normalizedDetectionType.isEmpty() || normalizedDetectionType.equals(rowDetectionType);
-            boolean matchesReviewStatus = normalizedReviewStatus.isEmpty() || normalizedReviewStatus.equals(rowReviewStatus);
-            boolean matchesRiskLevel = normalizedRiskLevel.isEmpty() || normalizedRiskLevel.equals(rowRiskLevel);
-            if (matchesKeyword && matchesDetectionType && matchesReviewStatus && matchesRiskLevel) {
-                filteredRows.add(row);
-            }
-        }
-
-        int pageSize = 10;
-        int totalCount = filteredRows.size();
-        int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
-        int currentPage = Math.max(1, Math.min(pageIndex, totalPages));
-        int fromIndex = Math.min((currentPage - 1) * pageSize, totalCount);
-        int toIndex = Math.min(fromIndex + pageSize, totalCount);
-        List<Map<String, String>> pageRows = filteredRows.subList(fromIndex, toIndex);
-
-        long criticalCount = allRows.stream()
-                .filter(row -> "CRITICAL".equalsIgnoreCase(safeString(row.get("riskLevelCode"))))
-                .count();
-        long reviewCount = allRows.stream()
-                .filter(row -> "REVIEW".equalsIgnoreCase(safeString(row.get("reviewStatusCode"))))
-                .count();
-        long settlementBlockedCount = allRows.stream()
-                .filter(row -> "BLOCKED".equalsIgnoreCase(safeString(row.get("reviewStatusCode"))))
-                .count();
-
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("isEn", isEn);
-        response.put("abnormalTradeRows", pageRows);
-        response.put("totalCount", totalCount);
-        response.put("criticalCount", criticalCount);
-        response.put("reviewCount", reviewCount);
-        response.put("settlementBlockedCount", settlementBlockedCount);
-        response.put("pageIndex", currentPage);
-        response.put("pageSize", pageSize);
-        response.put("totalPages", totalPages);
-        response.put("searchKeyword", safeString(searchKeyword));
-        response.put("detectionType", normalizedDetectionType);
-        response.put("reviewStatus", normalizedReviewStatus);
-        response.put("riskLevel", normalizedRiskLevel);
-        response.put("lastRefreshedAt", "2026-03-31 09:10");
-        response.put("detectionTypeOptions", List.of(
-                option("", isEn ? "All" : "전체"),
-                option("DUPLICATE_PARTY", isEn ? "Duplicate party" : "거래 당사자 중복"),
-                option("SPLIT_ORDER", isEn ? "Split order" : "주문 분할"),
-                option("SETTLEMENT_GAP", isEn ? "Settlement gap" : "정산 불일치"),
-                option("LIMIT_BREACH", isEn ? "Limit breach" : "한도 초과"),
-                option("PRICE_OUTLIER", isEn ? "Price outlier" : "가격 이상")));
-        response.put("reviewStatusOptions", List.of(
-                option("", isEn ? "All" : "전체"),
-                option("REVIEW", isEn ? "Under review" : "검토 중"),
-                option("ESCALATED", isEn ? "Escalated" : "상향 검토"),
-                option("BLOCKED", isEn ? "Settlement blocked" : "정산 보류"),
-                option("CLEARED", isEn ? "Cleared" : "해소")));
-        response.put("riskLevelOptions", List.of(
-                option("", isEn ? "All" : "전체"),
-                option("CRITICAL", isEn ? "Critical" : "치명"),
-                option("HIGH", isEn ? "High" : "높음"),
-                option("MEDIUM", isEn ? "Medium" : "중간"),
-                option("LOW", isEn ? "Low" : "낮음")));
-        response.put("escalationAlerts", List.of(
-                mapOf(
-                        "title", isEn ? "Linked counterpart duplication requires same-day review" : "동일 거래 당사자 반복 탐지 건은 당일 검토 필요",
-                        "detail", isEn ? "Three critical reviews share counterpart overlap and should remain blocked until operator sign-off."
-                                : "치명 등급 3건이 동일 당사자 중복 패턴을 보여 운영 승인 전까지 거래를 유지 차단해야 합니다.",
-                        "tone", "warning"),
-                mapOf(
-                        "title", isEn ? "Settlement mismatch is propagating to close queue" : "정산 불일치가 마감 큐로 전파 중",
-                        "detail", isEn ? "Mismatch cases should be reconciled before end-of-day settlement to avoid carry-over exceptions."
-                                : "정산 불일치 건은 일마감 전에 조정하지 않으면 예외 건이 다음 정산일로 이월됩니다.",
-                        "tone", "info")));
-        response.put("operatorGuidance", List.of(
-                mapOf(
-                        "title", isEn ? "Keep analyst note before release" : "해제 전 운영 메모 기록",
-                        "detail", isEn ? "Releasing a blocked trade requires an analyst note and counterpart confirmation in the same shift."
-                                : "정산 보류 거래를 해제할 때는 같은 근무조 안에서 운영 메모와 상대 기관 확인 기록을 함께 남깁니다."),
-                mapOf(
-                        "title", isEn ? "Escalate duplicate party patterns first" : "당사자 중복 패턴 우선 상향",
-                        "detail", isEn ? "Duplicate parties with repeated price deviation should move to escalated review before price-only outliers."
-                                : "거래 당사자 중복과 가격 편차가 함께 보이면 단순 가격 이상보다 먼저 상향 검토 대상으로 전환합니다."),
-                mapOf(
-                        "title", isEn ? "Clear settlement gap after ledger sync" : "원장 동기화 후 정산 불일치 해소",
-                        "detail", isEn ? "Settlement gap rows can be cleared only after the closing ledger and operator memo share the same values."
-                                : "정산 불일치 건은 마감 원장과 운영 메모 값이 일치한 뒤에만 해소 처리합니다.")));
-        return response;
+        return adminTradeBootstrapReadService.buildTradeDuplicatePageData(
+                pageIndexParam,
+                searchKeyword,
+                detectionType,
+                reviewStatus,
+                riskLevel,
+                isEn);
     }
 
     public Map<String, Object> buildSettlementCalendarPageData(
@@ -686,104 +307,13 @@ public class AdminShellBootstrapPageService {
             String settlementStatus,
             String riskLevel,
             boolean isEn) {
-        int pageIndex = 1;
-        if (!safeString(pageIndexParam).isEmpty()) {
-            try {
-                pageIndex = Integer.parseInt(pageIndexParam.trim());
-            } catch (NumberFormatException ignored) {
-                pageIndex = 1;
-            }
-        }
-
-        String normalizedMonth = safeString(selectedMonth).isEmpty() ? "2026-04" : safeString(selectedMonth);
-        String normalizedKeyword = safeString(searchKeyword).toLowerCase(Locale.ROOT);
-        String normalizedStatus = safeString(settlementStatus).toUpperCase(Locale.ROOT);
-        String normalizedRisk = safeString(riskLevel).toUpperCase(Locale.ROOT);
-
-        List<Map<String, String>> allRows = buildSettlementCalendarRows(isEn);
-        List<Map<String, String>> filteredRows = new ArrayList<>();
-        for (Map<String, String> row : allRows) {
-            String searchable = String.join(" ",
-                    safeString(row.get("settlementId")),
-                    safeString(row.get("settlementTitle")),
-                    safeString(row.get("institutionName")),
-                    safeString(row.get("ownerName")),
-                    safeString(row.get("blockerReason"))).toLowerCase(Locale.ROOT);
-            boolean matchesMonth = normalizedMonth.equals(safeString(row.get("settlementMonth")));
-            boolean matchesKeyword = normalizedKeyword.isEmpty() || searchable.contains(normalizedKeyword);
-            boolean matchesStatus = normalizedStatus.isEmpty() || normalizedStatus.equals(safeString(row.get("statusCode")).toUpperCase(Locale.ROOT));
-            boolean matchesRisk = normalizedRisk.isEmpty() || normalizedRisk.equals(safeString(row.get("riskLevelCode")).toUpperCase(Locale.ROOT));
-            if (matchesMonth && matchesKeyword && matchesStatus && matchesRisk) {
-                filteredRows.add(row);
-            }
-        }
-
-        int pageSize = 10;
-        int totalCount = filteredRows.size();
-        int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
-        int currentPage = Math.max(1, Math.min(pageIndex, totalPages));
-        int fromIndex = Math.min((currentPage - 1) * pageSize, totalCount);
-        int toIndex = Math.min(fromIndex + pageSize, totalCount);
-        List<Map<String, String>> pageRows = filteredRows.subList(fromIndex, toIndex);
-
-        long dueTodayCount = filteredRows.stream()
-                .filter(row -> "2026-04-01".equals(safeString(row.get("dueDate"))))
-                .count();
-        long highRiskCount = filteredRows.stream()
-                .filter(row -> "HIGH".equalsIgnoreCase(safeString(row.get("riskLevelCode"))))
-                .count();
-        long completedCount = filteredRows.stream()
-                .filter(row -> "COMPLETED".equalsIgnoreCase(safeString(row.get("statusCode"))))
-                .count();
-
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("isEn", isEn);
-        response.put("selectedMonth", normalizedMonth);
-        response.put("searchKeyword", safeString(searchKeyword));
-        response.put("settlementStatus", normalizedStatus);
-        response.put("riskLevel", normalizedRisk);
-        response.put("totalScheduledCount", totalCount);
-        response.put("dueTodayCount", dueTodayCount);
-        response.put("highRiskCount", highRiskCount);
-        response.put("completedCount", completedCount);
-        response.put("pageIndex", currentPage);
-        response.put("pageSize", pageSize);
-        response.put("totalPages", totalPages);
-        response.put("monthOptions", List.of(
-                mapOf("value", "2026-04", "label", isEn ? "April 2026" : "2026년 4월"),
-                mapOf("value", "2026-05", "label", isEn ? "May 2026" : "2026년 5월"),
-                mapOf("value", "2026-06", "label", isEn ? "June 2026" : "2026년 6월")));
-        response.put("settlementStatusOptions", List.of(
-                option("", isEn ? "All" : "전체"),
-                option("PENDING", isEn ? "Pending" : "대기"),
-                option("READY", isEn ? "Ready" : "준비 완료"),
-                option("COMPLETED", isEn ? "Completed" : "완료"),
-                option("BLOCKED", isEn ? "Blocked" : "차단")));
-        response.put("riskLevelOptions", List.of(
-                option("", isEn ? "All" : "전체"),
-                option("HIGH", isEn ? "High" : "높음"),
-                option("MEDIUM", isEn ? "Medium" : "보통"),
-                option("LOW", isEn ? "Low" : "낮음")));
-        response.put("calendarDays", buildSettlementCalendarDays(normalizedMonth, isEn));
-        response.put("scheduleRows", pageRows);
-        response.put("alertRows", List.of(
-                mapOf(
-                        "title", isEn ? "Counterparty evidence still pending" : "상대 기관 증빙 대기",
-                        "description", isEn ? "Three high-risk schedules are blocked by unsigned counterparty evidence packets."
-                                : "고위험 일정 3건이 상대 기관 미서명 증빙 묶음 때문에 차단되어 있습니다.",
-                        "badgeLabel", isEn ? "High" : "높음",
-                        "badgeClassName", "bg-rose-100 text-rose-700",
-                        "actionLabel", isEn ? "Open trade list" : "거래 목록 열기",
-                        "actionUrl", isEn ? "/en/admin/trade/list?settlementStatus=PENDING" : "/admin/trade/list?settlementStatus=PENDING"),
-                mapOf(
-                        "title", isEn ? "Treasury confirmation window" : "재무 확인 시간대",
-                        "description", isEn ? "Ready schedules due on April 3 should be handed off before 15:00 treasury close."
-                                : "4월 3일 마감 준비 완료 건은 15시 재무 마감 전에 이관해야 합니다.",
-                        "badgeLabel", isEn ? "Watch" : "주의",
-                        "badgeClassName", "bg-amber-100 text-amber-700",
-                        "actionLabel", isEn ? "Open refund queue" : "환불 큐 열기",
-                        "actionUrl", isEn ? "/en/admin/payment/refund_list" : "/admin/payment/refund_list")));
-        return response;
+        return adminPaymentBootstrapReadService.buildSettlementCalendarPageData(
+                pageIndexParam,
+                selectedMonth,
+                searchKeyword,
+                settlementStatus,
+                riskLevel,
+                isEn);
     }
 
     public Map<String, Object> buildRefundListPageData(
@@ -792,100 +322,12 @@ public class AdminShellBootstrapPageService {
             String status,
             String riskLevel,
             boolean isEn) {
-        int pageIndex = 1;
-        if (!safeString(pageIndexParam).isEmpty()) {
-            try {
-                pageIndex = Integer.parseInt(pageIndexParam.trim());
-            } catch (NumberFormatException ignored) {
-                pageIndex = 1;
-            }
-        }
-
-        String keyword = safeString(searchKeyword).toLowerCase(Locale.ROOT);
-        String normalizedStatus = safeString(status).toUpperCase(Locale.ROOT);
-        String normalizedRiskLevel = safeString(riskLevel).toUpperCase(Locale.ROOT);
-
-        List<Map<String, String>> allRows = buildRefundListRows(isEn);
-        List<Map<String, String>> filteredRows = new ArrayList<>();
-        for (Map<String, String> row : allRows) {
-            String searchable = String.join(" ",
-                    safeString(row.get("refundId")),
-                    safeString(row.get("companyName")),
-                    safeString(row.get("applicantName")),
-                    safeString(row.get("paymentMethodLabel")),
-                    safeString(row.get("reasonSummary")),
-                    safeString(row.get("accountMasked"))).toLowerCase(Locale.ROOT);
-            String rowStatus = safeString(row.get("statusCode")).toUpperCase(Locale.ROOT);
-            String rowRiskLevel = safeString(row.get("riskLevelCode")).toUpperCase(Locale.ROOT);
-            boolean matchesKeyword = keyword.isEmpty() || searchable.contains(keyword);
-            boolean matchesStatus = normalizedStatus.isEmpty() || normalizedStatus.equals(rowStatus);
-            boolean matchesRiskLevel = normalizedRiskLevel.isEmpty() || normalizedRiskLevel.equals(rowRiskLevel);
-            if (matchesKeyword && matchesStatus && matchesRiskLevel) {
-                filteredRows.add(row);
-            }
-        }
-
-        int pageSize = 8;
-        int totalCount = filteredRows.size();
-        int totalPages = totalCount == 0 ? 1 : (int) Math.ceil(totalCount / (double) pageSize);
-        int currentPage = Math.max(1, Math.min(pageIndex, totalPages));
-        int fromIndex = Math.min((currentPage - 1) * pageSize, totalCount);
-        int toIndex = Math.min(fromIndex + pageSize, totalCount);
-        List<Map<String, String>> pageRows = filteredRows.subList(fromIndex, toIndex);
-
-        long pendingCount = allRows.stream()
-                .filter(row -> "RECEIVED".equalsIgnoreCase(safeString(row.get("statusCode"))) || "ACCOUNT_REVIEW".equalsIgnoreCase(safeString(row.get("statusCode"))))
-                .count();
-        long inReviewCount = allRows.stream()
-                .filter(row -> "IN_REVIEW".equalsIgnoreCase(safeString(row.get("statusCode"))))
-                .count();
-        long transferScheduledCount = allRows.stream()
-                .filter(row -> "TRANSFER_SCHEDULED".equalsIgnoreCase(safeString(row.get("statusCode"))))
-                .count();
-        long completedCount = allRows.stream()
-                .filter(row -> "COMPLETED".equalsIgnoreCase(safeString(row.get("statusCode"))))
-                .count();
-
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("isEn", isEn);
-        response.put("refundRows", pageRows);
-        response.put("totalCount", totalCount);
-        response.put("pendingCount", pendingCount);
-        response.put("inReviewCount", inReviewCount);
-        response.put("transferScheduledCount", transferScheduledCount);
-        response.put("completedCount", completedCount);
-        response.put("pageIndex", currentPage);
-        response.put("pageSize", pageSize);
-        response.put("totalPages", totalPages);
-        response.put("searchKeyword", safeString(searchKeyword));
-        response.put("status", normalizedStatus);
-        response.put("riskLevel", normalizedRiskLevel);
-        response.put("statusOptions", List.of(
-                option("", isEn ? "All" : "전체"),
-                option("RECEIVED", isEn ? "Received" : "접수"),
-                option("ACCOUNT_REVIEW", isEn ? "Account Review" : "계좌 검수"),
-                option("IN_REVIEW", isEn ? "In Review" : "검토중"),
-                option("APPROVED", isEn ? "Approved" : "승인"),
-                option("TRANSFER_SCHEDULED", isEn ? "Transfer Scheduled" : "이체 예정"),
-                option("COMPLETED", isEn ? "Completed" : "처리 완료"),
-                option("REJECTED", isEn ? "Rejected" : "반려")));
-        response.put("riskLevelOptions", List.of(
-                option("", isEn ? "All" : "전체"),
-                option("HIGH", isEn ? "High" : "높음"),
-                option("MEDIUM", isEn ? "Medium" : "보통"),
-                option("LOW", isEn ? "Low" : "낮음")));
-        response.put("refundAlerts", List.of(
-                mapOf(
-                        "title", isEn ? "Same-day transfer cut-off" : "당일 이체 마감 확인",
-                        "detail", isEn ? "Approved refunds after 16:00 move to the next business-day transfer batch."
-                                : "16시 이후 승인된 환불은 다음 영업일 이체 배치로 이월됩니다.",
-                        "tone", "warning"),
-                mapOf(
-                        "title", isEn ? "Account verification backlog" : "환불 계좌 검수 적체",
-                        "detail", isEn ? "Requests missing account-owner validation should stay blocked before approval."
-                                : "예금주 검증이 끝나지 않은 요청은 승인 전에 계속 보류해야 합니다.",
-                        "tone", "info")));
-        return response;
+        return adminPaymentBootstrapReadService.buildRefundListPageData(
+                pageIndexParam,
+                searchKeyword,
+                status,
+                riskLevel,
+                isEn);
     }
 
     public Map<String, Object> buildTradeRejectPageData(String tradeId, String returnUrl, boolean isEn) {
@@ -895,7 +337,7 @@ public class AdminShellBootstrapPageService {
             normalizedReturnUrl = buildAdminPath(isEn, "/trade/list");
         }
 
-        Map<String, String> selectedTrade = buildTradeListRows(isEn).stream()
+        Map<String, String> selectedTrade = adminTradeBootstrapReadService.buildTradeListRows(isEn).stream()
                 .filter(row -> normalizedTradeId.equalsIgnoreCase(safeString(row.get("tradeId"))))
                 .findFirst()
                 .orElse(null);
@@ -1113,45 +555,7 @@ public class AdminShellBootstrapPageService {
     }
 
     public Map<String, Object> buildEmissionResultDetailPageData(String resultId, boolean isEn) {
-        String normalizedResultId = safeString(resultId);
-        EmissionResultFilterSnapshot filterSnapshot = adminSummaryService.buildEmissionResultFilterSnapshot(isEn, "", "", "");
-        EmissionResultSummaryView summary = filterSnapshot.getItems().stream()
-                .filter(item -> normalizedResultId.equalsIgnoreCase(safeString(item.getResultId())))
-                .findFirst()
-                .orElse(null);
-
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("isEn", isEn);
-        response.put("resultId", normalizedResultId);
-        response.put("listUrl", buildAdminPath(isEn, "/emission/result_list"));
-        response.put("found", summary != null);
-        if (summary == null) {
-            response.put("pageError", isEn ? "The requested emission result could not be found." : "요청한 산정 결과를 찾을 수 없습니다.");
-            return response;
-        }
-
-        response.put("projectName", summary.getProjectName());
-        response.put("companyName", summary.getCompanyName());
-        response.put("calculatedAt", summary.getCalculatedAt());
-        response.put("totalEmission", summary.getTotalEmission());
-        response.put("resultStatusCode", summary.getResultStatusCode());
-        response.put("resultStatusLabel", summary.getResultStatusLabel());
-        response.put("verificationStatusCode", summary.getVerificationStatusCode());
-        response.put("verificationStatusLabel", summary.getVerificationStatusLabel());
-        response.put("reportPeriod", resolveEmissionReportPeriod(summary.getResultId(), isEn));
-        response.put("submittedAt", resolveEmissionSubmittedAt(summary.getResultId()));
-        response.put("formulaVersion", resolveEmissionFormulaVersion(summary.getResultId()));
-        response.put("verificationOwner", resolveEmissionVerificationOwner(summary.getResultId(), isEn));
-        response.put("reviewMessage", resolveEmissionReviewMessage(summary.getResultStatusCode(), summary.getVerificationStatusCode(), isEn));
-        response.put("reviewChecklist", buildEmissionReviewChecklist(summary.getResultId(), isEn));
-        response.put("siteRows", buildEmissionResultSiteRows(summary.getResultId(), isEn));
-        response.put("evidenceRows", buildEmissionEvidenceRows(summary.getResultId(), isEn));
-        response.put("historyRows", buildEmissionHistoryRows(summary.getResultId(), isEn));
-        response.put("siteCount", ((List<?>) response.get("siteRows")).size());
-        response.put("evidenceCount", ((List<?>) response.get("evidenceRows")).size());
-        response.put("verificationActionUrl", buildAdminPath(isEn, "/emission/validate?resultId=" + urlQueryValue(summary.getResultId())));
-        response.put("historyUrl", buildAdminPath(isEn, "/emission/data_history?resultId=" + urlQueryValue(summary.getResultId())));
-        return response;
+        return adminEmissionResultBootstrapReadService.buildEmissionResultDetailPageData(resultId, isEn);
     }
 
     public Map<String, Object> buildCertificateStatisticsPageData(
@@ -1229,82 +633,7 @@ public class AdminShellBootstrapPageService {
         return response;
     }
 
-    private String resolveEmissionReportPeriod(String resultId, boolean isEn) {
-        switch (safeString(resultId)) {
-            case "ER-2026-001":
-            case "ER-2026-002":
-                return isEn ? "2026 Q1" : "2026년 1분기";
-            case "ER-2026-003":
-            case "ER-2026-004":
-            case "ER-2026-005":
-            default:
-                return isEn ? "2026 February" : "2026년 2월";
-        }
-    }
-
-    private String resolveEmissionSubmittedAt(String resultId) {
-        switch (safeString(resultId)) {
-            case "ER-2026-001": return "2026-03-05 10:24";
-            case "ER-2026-002": return "2026-03-04 16:10";
-            case "ER-2026-003": return "-";
-            case "ER-2026-004": return "2026-02-27 09:40";
-            case "ER-2026-005": return "2026-02-25 14:22";
-            default: return "2026-02-21 11:05";
-        }
-    }
-
-    private String resolveEmissionFormulaVersion(String resultId) {
-        switch (safeString(resultId)) {
-            case "ER-2026-001": return "CCUS-CALC-2.4";
-            case "ER-2026-002": return "BLUE-H2-1.9";
-            case "ER-2026-003": return "TRANS-NET-0.8";
-            case "ER-2026-004": return "STORAGE-VERIFY-3.1";
-            case "ER-2026-005": return "MEOH-CONV-1.4";
-            default: return "REGIONAL-AUDIT-1.2";
-        }
-    }
-
-    private String resolveEmissionVerificationOwner(String resultId, boolean isEn) {
-        switch (safeString(resultId)) {
-            case "ER-2026-001": return isEn ? "Verification Team A" : "검증 1팀";
-            case "ER-2026-002": return isEn ? "Verification Team B" : "검증 2팀";
-            case "ER-2026-003": return isEn ? "Calculation Operator" : "산정 담당자";
-            case "ER-2026-004": return isEn ? "Storage Quality Team" : "저장소 품질팀";
-            case "ER-2026-005": return isEn ? "Verification Team B" : "검증 2팀";
-            default: return isEn ? "Regional Audit Cell" : "권역 감사 셀";
-        }
-    }
-
-    private String resolveEmissionReviewMessage(String resultStatusCode, String verificationStatusCode, boolean isEn) {
-        if ("VERIFIED".equalsIgnoreCase(verificationStatusCode)) {
-            return isEn ? "Verification is complete. Review the site-level evidence and final calculation trace."
-                    : "검증이 완료되었습니다. 배출지별 증빙과 최종 산정 이력을 확인하세요.";
-        }
-        if ("REVIEW".equalsIgnoreCase(resultStatusCode)) {
-            return isEn ? "This result is in review. Confirm evidence completeness and anomaly notes before approval."
-                    : "현재 검토 진행 중입니다. 승인 전 증빙 누락과 이상치 메모를 확인하세요.";
-        }
-        return isEn ? "The calculation draft is available for internal review before verification."
-                : "검증 전 내부 검토를 위한 산정 초안입니다.";
-    }
-
-    private List<Map<String, String>> buildEmissionReviewChecklist(String resultId, boolean isEn) {
-        List<Map<String, String>> rows = new ArrayList<>();
-        rows.add(mapOf("title", isEn ? "Calculation formula version" : "산정식 버전", "detail", resolveEmissionFormulaVersion(resultId)));
-        rows.add(mapOf("title", isEn ? "Submission timestamp" : "제출 시각", "detail", resolveEmissionSubmittedAt(resultId)));
-        rows.add(mapOf("title", isEn ? "Verification owner" : "검증 담당", "detail", resolveEmissionVerificationOwner(resultId, isEn)));
-        return rows;
-    }
-
     private String normalizeCertificatePeriodFilter(String value) {
-        String normalized = safeString(value).toUpperCase(Locale.ROOT);
-        if ("LAST_6_MONTHS".equals(normalized) || "Q1_2026".equals(normalized)) {
-            return normalized;
-        }
-        return "LAST_12_MONTHS";
-    }
-
-    private String normalizeTradeStatisticsPeriodFilter(String value) {
         String normalized = safeString(value).toUpperCase(Locale.ROOT);
         if ("LAST_6_MONTHS".equals(normalized) || "Q1_2026".equals(normalized)) {
             return normalized;
@@ -1323,28 +652,7 @@ public class AdminShellBootstrapPageService {
                 .contains(normalizedKeyword);
     }
 
-    private boolean matchesTradeStatisticsKeyword(Map<String, String> row, String normalizedKeyword) {
-        return String.join(" ",
-                        safeString(row.get("insttId")),
-                        safeString(row.get("insttName")),
-                        safeString(row.get("counterpartyName")),
-                        safeString(row.get("tradeTypeLabel")),
-                        safeString(row.get("primaryContractName")))
-                .toLowerCase(Locale.ROOT)
-                .contains(normalizedKeyword);
-    }
-
     private List<Map<String, String>> selectCertificateMonthlyRows(List<Map<String, String>> sourceRows, String periodFilter) {
-        if ("LAST_6_MONTHS".equals(periodFilter)) {
-            return sourceRows.subList(Math.max(sourceRows.size() - 6, 0), sourceRows.size());
-        }
-        if ("Q1_2026".equals(periodFilter)) {
-            return sourceRows.subList(Math.max(sourceRows.size() - 3, 0), sourceRows.size());
-        }
-        return sourceRows;
-    }
-
-    private List<Map<String, String>> selectTradeStatisticsMonthlyRows(List<Map<String, String>> sourceRows, String periodFilter) {
         if ("LAST_6_MONTHS".equals(periodFilter)) {
             return sourceRows.subList(Math.max(sourceRows.size() - 6, 0), sourceRows.size());
         }
@@ -1370,48 +678,11 @@ public class AdminShellBootstrapPageService {
         return total;
     }
 
-    private long sumTradeStatistic(List<Map<String, String>> rows, String key) {
-        long total = 0L;
-        for (Map<String, String> row : rows) {
-            String rawValue = safeString(row.get(key)).replace(",", "");
-            if (rawValue.isEmpty()) {
-                continue;
-            }
-            try {
-                total += Long.parseLong(rawValue);
-            } catch (NumberFormatException ignored) {
-                // Ignore malformed seed data and keep the screen available.
-            }
-        }
-        return total;
-    }
-
     private String formatCertificateLeadDays(List<Map<String, String>> rows) {
         double totalLeadDays = 0.0;
         int measuredRows = 0;
         for (Map<String, String> row : rows) {
             String rawValue = safeString(row.get("avgLeadDays")).replace(",", "");
-            if (rawValue.isEmpty()) {
-                continue;
-            }
-            try {
-                totalLeadDays += Double.parseDouble(rawValue);
-                measuredRows += 1;
-            } catch (NumberFormatException ignored) {
-                // Ignore malformed seed data and keep the screen available.
-            }
-        }
-        if (measuredRows == 0) {
-            return "0.0";
-        }
-        return String.format(Locale.ROOT, "%.1f", totalLeadDays / measuredRows);
-    }
-
-    private String formatTradeLeadDays(List<Map<String, String>> rows) {
-        double totalLeadDays = 0.0;
-        int measuredRows = 0;
-        for (Map<String, String> row : rows) {
-            String rawValue = safeString(row.get("avgSettlementDays")).replace(",", "");
             if (rawValue.isEmpty()) {
                 continue;
             }
@@ -1484,110 +755,6 @@ public class AdminShellBootstrapPageService {
                         "toneClassName", "bg-rose-100 text-rose-700",
                         "actionLabel", isEn ? "Open objections" : "이의신청 열기",
                         "actionUrl", buildAdminPath(isEn, "/certificate/objection_list")));
-    }
-
-    private List<Map<String, String>> buildTradeStatisticsMonthlyRowsLegacyA(boolean isEn) {
-        return List.of(
-                mapOf("monthLabel", isEn ? "Apr" : "04월", "tradeVolume", "31800", "settlementAmount", "784000000", "pendingCount", "12", "exceptionCount", "2"),
-                mapOf("monthLabel", isEn ? "May" : "05월", "tradeVolume", "33200", "settlementAmount", "826000000", "pendingCount", "11", "exceptionCount", "2"),
-                mapOf("monthLabel", isEn ? "Jun" : "06월", "tradeVolume", "34800", "settlementAmount", "874000000", "pendingCount", "13", "exceptionCount", "3"),
-                mapOf("monthLabel", isEn ? "Jul" : "07월", "tradeVolume", "36500", "settlementAmount", "915000000", "pendingCount", "14", "exceptionCount", "3"),
-                mapOf("monthLabel", isEn ? "Aug" : "08월", "tradeVolume", "38100", "settlementAmount", "963000000", "pendingCount", "15", "exceptionCount", "3"),
-                mapOf("monthLabel", isEn ? "Sep" : "09월", "tradeVolume", "39700", "settlementAmount", "1008000000", "pendingCount", "17", "exceptionCount", "4"),
-                mapOf("monthLabel", isEn ? "Oct" : "10월", "tradeVolume", "41200", "settlementAmount", "1055000000", "pendingCount", "16", "exceptionCount", "4"),
-                mapOf("monthLabel", isEn ? "Nov" : "11월", "tradeVolume", "42600", "settlementAmount", "1094000000", "pendingCount", "18", "exceptionCount", "4"),
-                mapOf("monthLabel", isEn ? "Dec" : "12월", "tradeVolume", "44100", "settlementAmount", "1148000000", "pendingCount", "19", "exceptionCount", "5"),
-                mapOf("monthLabel", isEn ? "Jan" : "01월", "tradeVolume", "45800", "settlementAmount", "1196000000", "pendingCount", "18", "exceptionCount", "4"),
-                mapOf("monthLabel", isEn ? "Feb" : "02월", "tradeVolume", "47200", "settlementAmount", "1232000000", "pendingCount", "20", "exceptionCount", "5"),
-                mapOf("monthLabel", isEn ? "Mar" : "03월", "tradeVolume", "48900", "settlementAmount", "1284000000", "pendingCount", "22", "exceptionCount", "6"));
-    }
-
-    private List<Map<String, String>> buildTradeStatisticsTypeRowsLegacyA(boolean isEn) {
-        return List.of(
-                mapOf("tradeTypeCode", "KETS", "tradeTypeLabel", isEn ? "K-ETS Credit" : "배출권", "requestCount", "164", "completedCount", "131", "pendingCount", "18", "exceptionCount", "5", "avgSettlementDays", "2.4", "settlementShare", "45.8"),
-                mapOf("tradeTypeCode", "REC", "tradeTypeLabel", isEn ? "REC Package" : "REC 패키지", "requestCount", "118", "completedCount", "89", "pendingCount", "19", "exceptionCount", "4", "avgSettlementDays", "2.8", "settlementShare", "28.6"),
-                mapOf("tradeTypeCode", "VOLUNTARY", "tradeTypeLabel", isEn ? "Voluntary Credit" : "자발적 감축실적", "requestCount", "96", "completedCount", "74", "pendingCount", "15", "exceptionCount", "6", "avgSettlementDays", "3.2", "settlementShare", "25.6"));
-    }
-
-    private List<Map<String, String>> buildTradeStatisticsInstitutionRowsLegacyA(boolean isEn) {
-        return List.of(
-                mapOf("insttId", "TRD-STAT-001", "insttName", isEn ? "Blue Energy" : "블루에너지", "counterpartyName", isEn ? "Hanul Steel" : "한울제철", "tradeTypeCode", "KETS", "tradeTypeLabel", isEn ? "K-ETS Credit" : "배출권", "settlementStatusCode", "PENDING", "tradeVolume", "12500", "settlementAmount", "418000000", "requestCount", "18", "completedCount", "12", "pendingCount", "4", "exceptionCount", "0", "avgSettlementDays", "2.6", "lastSettledAt", "2026-03-30 18:10", "primaryContractName", isEn ? "Quarterly offset bundle" : "분기 상쇄 배치", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=Blue%20Energy")),
-                mapOf("insttId", "TRD-STAT-002", "insttName", isEn ? "Seoul Mobility" : "서울모빌리티", "counterpartyName", isEn ? "Green Grid" : "그린그리드", "tradeTypeCode", "REC", "tradeTypeLabel", isEn ? "REC Package" : "REC 패키지", "settlementStatusCode", "IN_PROGRESS", "tradeVolume", "8000", "settlementAmount", "192000000", "requestCount", "14", "completedCount", "9", "pendingCount", "3", "exceptionCount", "0", "avgSettlementDays", "2.8", "lastSettledAt", "2026-03-30 16:25", "primaryContractName", isEn ? "Scope 2 hedge" : "Scope 2 헤지", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=Seoul%20Mobility")),
-                mapOf("insttId", "TRD-STAT-003", "insttName", isEn ? "Carbon Labs" : "카본랩스", "counterpartyName", isEn ? "Eco Farm" : "에코팜", "tradeTypeCode", "VOLUNTARY", "tradeTypeLabel", isEn ? "Voluntary Credit" : "자발적 감축실적", "settlementStatusCode", "PENDING", "tradeVolume", "4250", "settlementAmount", "87500000", "requestCount", "11", "completedCount", "7", "pendingCount", "3", "exceptionCount", "0", "avgSettlementDays", "3.1", "lastSettledAt", "2026-03-29 15:40", "primaryContractName", isEn ? "Biochar contract" : "바이오차 계약", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=Carbon%20Labs")),
-                mapOf("insttId", "TRD-STAT-004", "insttName", isEn ? "River Cement" : "리버시멘트", "counterpartyName", isEn ? "East Port" : "이스트포트", "tradeTypeCode", "KETS", "tradeTypeLabel", isEn ? "K-ETS Credit" : "배출권", "settlementStatusCode", "DONE", "tradeVolume", "15300", "settlementAmount", "522400000", "requestCount", "22", "completedCount", "20", "pendingCount", "1", "exceptionCount", "0", "avgSettlementDays", "2.2", "lastSettledAt", "2026-03-29 14:05", "primaryContractName", isEn ? "March balancing lot" : "3월 밸런싱 물량", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=River%20Cement")),
-                mapOf("insttId", "TRD-STAT-005", "insttName", isEn ? "Urban Data" : "어반데이터", "counterpartyName", isEn ? "Sun Network" : "선네트워크", "tradeTypeCode", "REC", "tradeTypeLabel", isEn ? "REC Package" : "REC 패키지", "settlementStatusCode", "EXCEPTION", "tradeVolume", "6400", "settlementAmount", "154000000", "requestCount", "13", "completedCount", "8", "pendingCount", "2", "exceptionCount", "3", "avgSettlementDays", "4.4", "lastSettledAt", "2026-03-28 13:15", "primaryContractName", isEn ? "Data center reserve" : "데이터센터 예비물량", "detailUrl", buildAdminPath(isEn, "/trade/reject?tradeId=TRD-202603-005")),
-                mapOf("insttId", "TRD-STAT-006", "insttName", isEn ? "Metro Heat" : "메트로히트", "counterpartyName", isEn ? "CCUS Plant A" : "CCUS 플랜트 A", "tradeTypeCode", "VOLUNTARY", "tradeTypeLabel", isEn ? "Voluntary Credit" : "자발적 감축실적", "settlementStatusCode", "IN_PROGRESS", "tradeVolume", "10100", "settlementAmount", "301000000", "requestCount", "19", "completedCount", "13", "pendingCount", "4", "exceptionCount", "1", "avgSettlementDays", "3.3", "lastSettledAt", "2026-03-28 17:42", "primaryContractName", isEn ? "Capture storage block" : "포집 저장 블록", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=Metro%20Heat")),
-                mapOf("insttId", "TRD-STAT-007", "insttName", isEn ? "Blue Energy" : "블루에너지", "counterpartyName", isEn ? "Nova Chemical" : "노바케미칼", "tradeTypeCode", "KETS", "tradeTypeLabel", isEn ? "K-ETS Credit" : "배출권", "settlementStatusCode", "PENDING", "tradeVolume", "9900", "settlementAmount", "333600000", "requestCount", "17", "completedCount", "11", "pendingCount", "5", "exceptionCount", "0", "avgSettlementDays", "2.7", "lastSettledAt", "2026-03-28 12:10", "primaryContractName", isEn ? "Seasonal hedge" : "계절성 헤지", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=Nova%20Chemical")),
-                mapOf("insttId", "TRD-STAT-008", "insttName", isEn ? "Harbor Cold Chain" : "하버콜드체인", "counterpartyName", isEn ? "Wind Core" : "윈드코어", "tradeTypeCode", "REC", "tradeTypeLabel", isEn ? "REC Package" : "REC 패키지", "settlementStatusCode", "DONE", "tradeVolume", "3200", "settlementAmount", "71000000", "requestCount", "9", "completedCount", "8", "pendingCount", "1", "exceptionCount", "0", "avgSettlementDays", "2.0", "lastSettledAt", "2026-03-28 10:32", "primaryContractName", isEn ? "Cold-chain coverage" : "콜드체인 커버리지", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=Harbor%20Cold%20Chain")),
-                mapOf("insttId", "TRD-STAT-009", "insttName", isEn ? "Green Grid" : "그린그리드", "counterpartyName", isEn ? "Forest Link" : "포레스트링크", "tradeTypeCode", "VOLUNTARY", "tradeTypeLabel", isEn ? "Voluntary Credit" : "자발적 감축실적", "settlementStatusCode", "PENDING", "tradeVolume", "5800", "settlementAmount", "126000000", "requestCount", "12", "completedCount", "9", "pendingCount", "2", "exceptionCount", "0", "avgSettlementDays", "2.9", "lastSettledAt", "2026-03-27 18:24", "primaryContractName", isEn ? "Afforestation offset" : "조림 상쇄 거래", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=Green%20Grid")),
-                mapOf("insttId", "TRD-STAT-010", "insttName", isEn ? "Seoul Mobility" : "서울모빌리티", "counterpartyName", isEn ? "River Cement" : "리버시멘트", "tradeTypeCode", "KETS", "tradeTypeLabel", isEn ? "K-ETS Credit" : "배출권", "settlementStatusCode", "DONE", "tradeVolume", "7700", "settlementAmount", "257000000", "requestCount", "15", "completedCount", "14", "pendingCount", "1", "exceptionCount", "0", "avgSettlementDays", "2.1", "lastSettledAt", "2026-03-27 09:08", "primaryContractName", isEn ? "Compliance shortfall fill" : "의무량 보전 계약", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=Seoul%20Mobility")),
-                mapOf("insttId", "TRD-STAT-011", "insttName", isEn ? "Metro Heat" : "메트로히트", "counterpartyName", isEn ? "North Solar" : "노스솔라", "tradeTypeCode", "REC", "tradeTypeLabel", isEn ? "REC Package" : "REC 패키지", "settlementStatusCode", "IN_PROGRESS", "tradeVolume", "2850", "settlementAmount", "59400000", "requestCount", "8", "completedCount", "5", "pendingCount", "2", "exceptionCount", "0", "avgSettlementDays", "3.0", "lastSettledAt", "2026-03-26 13:46", "primaryContractName", isEn ? "Heat network mix" : "열공급 믹스 거래", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=Metro%20Heat")),
-                mapOf("insttId", "TRD-STAT-012", "insttName", isEn ? "Hanul Steel" : "한울제철", "counterpartyName", isEn ? "Eco Farm" : "에코팜", "tradeTypeCode", "VOLUNTARY", "tradeTypeLabel", isEn ? "Voluntary Credit" : "자발적 감축실적", "settlementStatusCode", "EXCEPTION", "tradeVolume", "6900", "settlementAmount", "143500000", "requestCount", "10", "completedCount", "4", "pendingCount", "3", "exceptionCount", "2", "avgSettlementDays", "4.1", "lastSettledAt", "2026-03-25 16:18", "primaryContractName", isEn ? "Agriculture offset pool" : "농업 상쇄 풀", "detailUrl", buildAdminPath(isEn, "/trade/reject?tradeId=TRD-202603-012")));
-    }
-
-    private List<Map<String, String>> buildTradeStatisticsAlertRowsLegacyA(boolean isEn) {
-        return List.of(
-                mapOf("title", isEn ? "Pending settlement backlog" : "정산 대기 백로그",
-                        "description", isEn ? "Blue Energy and Seoul Mobility hold the largest unsettled queues this week." : "블루에너지와 서울모빌리티의 미정산 큐가 이번 주 가장 큽니다.",
-                        "badge", isEn ? "Attention" : "주의",
-                        "toneClassName", "bg-amber-100 text-amber-700",
-                        "actionLabel", isEn ? "Open trade queue" : "거래 목록 열기",
-                        "actionUrl", buildAdminPath(isEn, "/trade/list?settlementStatus=PENDING")),
-                mapOf("title", isEn ? "Settlement exceptions concentrated" : "정산 예외 기관 집중",
-                        "description", isEn ? "Urban Data and Hanul Steel need operator follow-up for exception resolution." : "어반데이터와 한울제철 건은 예외 해소를 위한 운영자 후속 조치가 필요합니다.",
-                        "badge", isEn ? "Action" : "조치",
-                        "toneClassName", "bg-rose-100 text-rose-700",
-                        "actionLabel", isEn ? "Open exception queue" : "예외 큐 열기",
-                        "actionUrl", buildAdminPath(isEn, "/trade/list?settlementStatus=EXCEPTION")),
-                mapOf("title", isEn ? "REC settlement pace slowing" : "REC 정산 속도 저하",
-                        "description", isEn ? "REC package settlement lead time exceeded the watch line for two consecutive weeks." : "REC 패키지의 정산 소요일이 2주 연속 감시선 이상입니다.",
-                        "badge", isEn ? "Watch" : "관찰",
-                        "toneClassName", "bg-sky-100 text-sky-700",
-                        "actionLabel", isEn ? "Filter REC reports" : "REC 리포트 보기",
-                        "actionUrl", buildAdminPath(isEn, "/trade/statistics?tradeType=REC")));
-    }
-
-    private List<Map<String, String>> buildTradeStatisticsMonthlyRows(boolean isEn) {
-        return buildTradeStatisticsMonthlyRowsLegacyA(isEn);
-    }
-
-    private List<Map<String, String>> buildTradeStatisticsTypeRows(boolean isEn) {
-        return buildTradeStatisticsTypeRowsLegacyA(isEn);
-    }
-
-    private List<Map<String, String>> buildTradeStatisticsInstitutionRows(boolean isEn) {
-        return buildTradeStatisticsInstitutionRowsLegacyA(isEn);
-    }
-
-    private List<Map<String, String>> buildTradeStatisticsAlertRows(boolean isEn) {
-        return buildTradeStatisticsAlertRowsLegacyA(isEn);
-    }
-
-    private List<Map<String, String>> buildEmissionResultSiteRows(String resultId, boolean isEn) {
-        if ("ER-2026-002".equalsIgnoreCase(safeString(resultId))) {
-            return List.of(
-                    mapOf("siteName", isEn ? "Hydrogen Reforming Unit" : "수소 개질 설비", "scopeLabel", "Scope 1", "activityLabel", isEn ? "Natural gas 18,420 Nm3" : "천연가스 18,420 Nm3", "emissionValue", "41,200 tCO2e", "statusLabel", isEn ? "Evidence pending" : "증빙 보완 필요"),
-                    mapOf("siteName", isEn ? "Steam Generator" : "스팀 발생기", "scopeLabel", "Scope 1", "activityLabel", isEn ? "Fuel 12,110 GJ" : "연료 12,110 GJ", "emissionValue", "21,480 tCO2e", "statusLabel", isEn ? "Reviewed" : "검토 완료"),
-                    mapOf("siteName", isEn ? "Utility Power Feed" : "유틸리티 전력", "scopeLabel", "Scope 2", "activityLabel", isEn ? "Power 9,880 MWh" : "전력 9,880 MWh", "emissionValue", "21,530 tCO2e", "statusLabel", isEn ? "Reviewed" : "검토 완료"));
-        }
-        return List.of(
-                mapOf("siteName", isEn ? "Capture Train A" : "포집 트레인 A", "scopeLabel", "Scope 1", "activityLabel", isEn ? "Fuel 22,400 GJ" : "연료 22,400 GJ", "emissionValue", "52,140 tCO2e", "statusLabel", isEn ? "Reviewed" : "검토 완료"),
-                mapOf("siteName", isEn ? "Compression Line" : "압축 라인", "scopeLabel", "Scope 2", "activityLabel", isEn ? "Power 14,220 MWh" : "전력 14,220 MWh", "emissionValue", "37,880 tCO2e", "statusLabel", isEn ? "Reviewed" : "검토 완료"),
-                mapOf("siteName", isEn ? "Storage & Transfer" : "저장·이송 설비", "scopeLabel", "Scope 3", "activityLabel", isEn ? "Transport 480 runs" : "운송 480회", "emissionValue", "35,420 tCO2e", "statusLabel", isEn ? "Reviewed" : "검토 완료"));
-    }
-
-    private List<Map<String, String>> buildEmissionEvidenceRows(String resultId, boolean isEn) {
-        return List.of(
-                mapOf("fileName", safeString(resultId) + "_activity-data.xlsx", "categoryLabel", isEn ? "Activity data" : "활동자료", "updatedAt", "2026-03-04 09:10", "owner", isEn ? "Emission operator" : "배출 담당자", "statusLabel", isEn ? "Submitted" : "제출 완료"),
-                mapOf("fileName", safeString(resultId) + "_meter-log.pdf", "categoryLabel", isEn ? "Meter log" : "계측 로그", "updatedAt", "2026-03-04 11:30", "owner", isEn ? "Site manager" : "현장 관리자", "statusLabel", isEn ? "Reviewed" : "검토 완료"),
-                mapOf("fileName", safeString(resultId) + "_verification-note.docx", "categoryLabel", isEn ? "Verification note" : "검증 메모", "updatedAt", "2026-03-05 14:00", "owner", resolveEmissionVerificationOwner(resultId, isEn), "statusLabel", isEn ? "Linked" : "연결 완료"));
-    }
-
-    private List<Map<String, String>> buildEmissionHistoryRows(String resultId, boolean isEn) {
-        return List.of(
-                mapOf("actionAt", "2026-03-04 08:55", "actor", isEn ? "Emission operator" : "배출 담당자", "actionLabel", isEn ? "Calculation executed" : "산정 실행", "note", resolveEmissionFormulaVersion(resultId) + (isEn ? " applied" : " 적용")),
-                mapOf("actionAt", "2026-03-04 13:40", "actor", resolveEmissionVerificationOwner(resultId, isEn), "actionLabel", isEn ? "Review requested" : "검토 요청", "note", isEn ? "Evidence bundle attached." : "증빙 묶음 첨부"),
-                mapOf("actionAt", "2026-03-05 10:05", "actor", resolveEmissionVerificationOwner(resultId, isEn), "actionLabel", isEn ? "Status updated" : "상태 변경", "note", resolveEmissionReviewMessage("", "VERIFIED", isEn)));
     }
 
     public Map<String, Object> buildEmissionDataHistoryPageData(
@@ -1781,7 +948,7 @@ public class AdminShellBootstrapPageService {
         String resultListUrl = adminPrefix + "/emission/result_list";
         String functionManagementUrl = adminPrefix + "/system/feature-management?menuType=ADMIN&searchMenuCode=" + menuCode;
 
-        EmissionResultFilterSnapshot filterSnapshot = adminSummaryService.buildEmissionResultFilterSnapshot(
+        EmissionResultFilterSnapshot filterSnapshot = adminSummaryReadPort.buildEmissionResultFilterSnapshot(
                 isEn,
                 keyword,
                 "",
@@ -2298,193 +1465,6 @@ public class AdminShellBootstrapPageService {
         return value.replace(" ", "+");
     }
 
-    private List<Map<String, String>> buildAdminHomeSummaryCards(boolean isEn) {
-        List<Map<String, String>> monitoringCards = adminSummaryService.getSecurityMonitoringCards(isEn);
-        List<Map<String, String>> schedulerCards = adminSummaryService.getSchedulerSummary(isEn);
-        List<Map<String, String>> blocklistCards = adminSummaryService.getBlocklistSummary(isEn);
-        return List.of(
-                homeSummaryCard(
-                        safeCardValue(monitoringCards, 0, "title", isEn ? "Current RPS" : "현재 RPS"),
-                        safeCardValue(monitoringCards, 0, "value", "0"),
-                        safeCardValue(monitoringCards, 0, "description", ""),
-                        "monitoring",
-                        "text-[var(--kr-gov-green)]",
-                        "border-l-[var(--kr-gov-green)]"),
-                homeSummaryCard(
-                        safeCardValue(schedulerCards, 2, "title", isEn ? "Failed Today" : "오늘 실패"),
-                        safeCardValue(schedulerCards, 2, "value", "0"),
-                        safeCardValue(schedulerCards, 2, "description", ""),
-                        "schedule",
-                        "text-orange-400",
-                        "border-l-orange-400"),
-                homeSummaryCard(
-                        safeCardValue(blocklistCards, 0, "title", isEn ? "Active Blocks" : "활성 차단"),
-                        safeCardValue(blocklistCards, 0, "value", "0"),
-                        safeCardValue(blocklistCards, 0, "description", ""),
-                        "gpp_bad",
-                        "text-[var(--kr-gov-blue)]",
-                        "border-l-[var(--kr-gov-blue)]"));
-    }
-
-    private List<Map<String, String>> buildAdminHomeReviewQueueRows(List<EmissionResultSummaryView> items, boolean isEn) {
-        List<Map<String, String>> rows = new ArrayList<>();
-        if (items != null) {
-            for (EmissionResultSummaryView item : items) {
-                if (item == null) {
-                    continue;
-                }
-                if (!"REVIEW".equals(safeString(item.getResultStatusCode()))) {
-                    continue;
-                }
-                rows.add(mapOf(
-                        "title", safeString(item.getProjectName()),
-                        "type", safeString(item.getCompanyName()),
-                        "appliedOn", safeString(item.getCalculatedAt()),
-                        "detailUrl", safeString(item.getDetailUrl()),
-                        "statusLabel", safeString(item.getVerificationStatusLabel())));
-                if (rows.size() >= 3) {
-                    break;
-                }
-            }
-        }
-        if (!rows.isEmpty()) {
-            return rows;
-        }
-        return List.of(
-                mapOf(
-                        "title", isEn ? "Blue Hydrogen Process Review" : "블루수소 공정 검토",
-                        "type", isEn ? "Hanbit Energy" : "한빛에너지",
-                        "appliedOn", "2026-03-03",
-                        "detailUrl", buildAdminPath(isEn, "/emission/result_list?resultStatus=REVIEW"),
-                        "statusLabel", isEn ? "Pending" : "검증 대기"),
-                mapOf(
-                        "title", isEn ? "Methanol Conversion Project" : "메탄올 전환 프로젝트",
-                        "type", isEn ? "Daehan Synthesis" : "대한신소재",
-                        "appliedOn", "2026-02-24",
-                        "detailUrl", buildAdminPath(isEn, "/emission/result_list?resultStatus=REVIEW"),
-                        "statusLabel", isEn ? "Pending" : "검증 대기"));
-    }
-
-    private List<Map<String, String>> buildAdminHomeReviewProgressRows(List<EmissionResultSummaryView> items, boolean isEn) {
-        int draftCount = 0;
-        int reviewCount = 0;
-        int completedCount = 0;
-        int verifiedCount = 0;
-        int totalCount = 0;
-        if (items != null) {
-            for (EmissionResultSummaryView item : items) {
-                if (item == null) {
-                    continue;
-                }
-                totalCount++;
-                String resultStatus = safeString(item.getResultStatusCode());
-                String verificationStatus = safeString(item.getVerificationStatusCode());
-                if ("DRAFT".equals(resultStatus)) {
-                    draftCount++;
-                }
-                if ("REVIEW".equals(resultStatus)) {
-                    reviewCount++;
-                }
-                if ("COMPLETED".equals(resultStatus)) {
-                    completedCount++;
-                }
-                if ("VERIFIED".equals(verificationStatus)) {
-                    verifiedCount++;
-                }
-            }
-        }
-        int normalizedTotal = Math.max(totalCount, 1);
-        return List.of(
-                homeProgressRow(isEn ? "Draft" : "임시 저장", draftCount, normalizedTotal, "bg-slate-400"),
-                homeProgressRow(isEn ? "Under Review" : "검토 중", reviewCount, normalizedTotal, "bg-blue-500"),
-                homeProgressRow(isEn ? "Completed" : "산정 완료", completedCount, normalizedTotal, "bg-emerald-500"),
-                homeProgressRow(isEn ? "Verified" : "검증 완료", verifiedCount, normalizedTotal, "bg-[var(--kr-gov-green)]"));
-    }
-
-    private List<Map<String, String>> buildAdminHomeOperationalStatusRows(boolean isEn) {
-        List<Map<String, String>> policyCards = adminSummaryService.getSecurityPolicySummary(isEn);
-        List<Map<String, String>> whitelistCards = adminSummaryService.getIpWhitelistSummary(isEn);
-        List<Map<String, String>> blocklistCards = adminSummaryService.getBlocklistSummary(isEn);
-        return List.of(
-                homeOperationalStatusRow(
-                        "policy",
-                        isEn ? "Security Policy Engine" : "보안 정책 엔진",
-                        safeCardValue(policyCards, 0, "value", "0") + " " + safeCardValue(policyCards, 0, "title", ""),
-                        "HEALTHY"),
-                homeOperationalStatusRow(
-                        "verified_user",
-                        isEn ? "IP Allowlist Guard" : "IP 허용목록 가드",
-                        safeCardValue(whitelistCards, 0, "value", "0") + " " + safeCardValue(whitelistCards, 0, "title", ""),
-                        "HEALTHY"),
-                homeOperationalStatusRow(
-                        "shield_locked",
-                        isEn ? "Threat Block Queue" : "위협 차단 큐",
-                        safeCardValue(blocklistCards, 0, "value", "0") + " " + safeCardValue(blocklistCards, 0, "title", ""),
-                        "WARNING"));
-    }
-
-    private List<Map<String, String>> buildAdminHomeSystemLogs(SecurityAuditSnapshot auditSnapshot, boolean isEn) {
-        List<Map<String, String>> rows = new ArrayList<>();
-        if (auditSnapshot != null && auditSnapshot.getAuditLogs() != null) {
-            adminSummaryService.buildSecurityAuditRows(auditSnapshot.getAuditLogs(), isEn).stream()
-                    .limit(3)
-                    .forEach(item -> rows.add(mapOf(
-                            "level", safeString(item.get("action")).contains(isEn ? "Blocked" : "차단") ? "WARNING" : "INFO",
-                            "message", safeString(item.get("detail")),
-                            "timestamp", safeString(item.get("auditAt")))));
-        }
-        if (!rows.isEmpty()) {
-            return rows;
-        }
-        return List.of(
-                mapOf("level", "INFO",
-                        "message", isEn ? "Admin home summary snapshot loaded successfully." : "관리자 홈 요약 스냅샷을 정상적으로 불러왔습니다.",
-                        "timestamp", "2026-03-18 09:00"),
-                mapOf("level", "WARNING",
-                        "message", isEn ? "No recent security audit events were found." : "최근 보안 감사 이벤트가 없어 기본 로그를 사용 중입니다.",
-                        "timestamp", "2026-03-18 08:58"));
-    }
-
-    private Map<String, String> homeSummaryCard(
-            String title,
-            String value,
-            String description,
-            String icon,
-            String iconClass,
-            String borderClass) {
-        return mapOf(
-                "title", title,
-                "value", value,
-                "description", description,
-                "icon", icon,
-                "iconClass", iconClass,
-                "borderClass", borderClass);
-    }
-
-    private Map<String, String> homeProgressRow(String label, int value, int total, String barClass) {
-        int width = Math.max(8, (int) Math.round((value * 100.0d) / Math.max(total, 1)));
-        return mapOf(
-                "label", label,
-                "value", String.valueOf(value),
-                "width", width + "%",
-                "barClass", barClass);
-    }
-
-    private Map<String, String> homeOperationalStatusRow(String icon, String label, String meta, String status) {
-        return mapOf(
-                "icon", icon,
-                "label", label,
-                "meta", meta,
-                "status", status);
-    }
-
-    private String safeCardValue(List<Map<String, String>> cards, int index, String key, String defaultValue) {
-        if (cards == null || index < 0 || index >= cards.size() || cards.get(index) == null) {
-            return defaultValue;
-        }
-        return safeString(cards.get(index).get(key)).isEmpty() ? defaultValue : safeString(cards.get(index).get(key));
-    }
-
     private String buildAdminPath(boolean isEn, String path) {
         return isEn ? "/en/admin" + path : "/admin" + path;
     }
@@ -2548,54 +1528,6 @@ public class AdminShellBootstrapPageService {
         return List.of(
                 mapOf("detectedAt", "2026-03-12 09:18", "title", isEn ? "Burst login attack detected" : "로그인 버스트 공격 감지", "detail", isEn ? "Admin login burst exceeded threshold from 3 IPs." : "3개 IP에서 관리자 로그인 burst 임계치 초과", "severity", "HIGH"),
                 mapOf("detectedAt", "2026-03-12 09:12", "title", isEn ? "Search API abuse pattern" : "검색 API 남용 패턴", "detail", isEn ? "Single token generated 429 for 6 consecutive minutes." : "단일 토큰에서 6분 연속 429 다발", "severity", "MEDIUM"));
-    }
-
-    private List<Map<String, String>> buildSchedulerJobRows(boolean isEn) {
-        return List.of(
-                mapOf("jobId", "SCH-001", "jobName", isEn ? "Nightly emissions aggregation" : "야간 배출량 집계",
-                        "cronExpression", "0 0 2 * * ?", "executionTypeCode", "CRON", "executionType", isEn ? "CRON" : "정기",
-                        "jobStatus", "ACTIVE", "lastRunAt", "2026-03-13 02:00", "nextRunAt", "2026-03-14 02:00",
-                        "owner", isEn ? "Emissions Ops" : "배출 운영팀"),
-                mapOf("jobId", "SCH-002", "jobName", isEn ? "Certificate expiry sync" : "인증서 만료 동기화",
-                        "cronExpression", "0 */30 * * * ?", "executionTypeCode", "CRON", "executionType", isEn ? "CRON" : "정기",
-                        "jobStatus", "ACTIVE", "lastRunAt", "2026-03-13 11:30", "nextRunAt", "2026-03-13 12:00",
-                        "owner", isEn ? "Certificate Admin" : "인증 운영자"),
-                mapOf("jobId", "SCH-003", "jobName", isEn ? "External API token refresh" : "외부연계 토큰 갱신",
-                        "cronExpression", "0 0/10 * * * ?", "executionTypeCode", "CRON", "executionType", isEn ? "CRON" : "정기",
-                        "jobStatus", "PAUSED", "lastRunAt", "2026-03-13 10:40", "nextRunAt", "-",
-                        "owner", isEn ? "Integration Team" : "외부연계팀"),
-                mapOf("jobId", "SCH-004", "jobName", isEn ? "Manual backfill for trade settlement" : "거래 정산 수동 보정",
-                        "cronExpression", "-", "executionTypeCode", "MANUAL", "executionType", isEn ? "MANUAL" : "수동",
-                        "jobStatus", "REVIEW", "lastRunAt", "2026-03-12 18:10",
-                        "nextRunAt", isEn ? "On request" : "요청 시 실행", "owner", isEn ? "Settlement Ops" : "정산 운영팀"));
-    }
-
-    private List<Map<String, String>> buildSchedulerNodeRows(boolean isEn) {
-        return List.of(
-                mapOf("nodeId", "batch-node-01", "role", isEn ? "Primary scheduler" : "주 스케줄러", "status", "HEALTHY", "runningJobs", "5", "heartbeatAt", "2026-03-13 11:46:11"),
-                mapOf("nodeId", "batch-node-02", "role", isEn ? "Failover worker" : "대기 워커", "status", "STANDBY", "runningJobs", "0", "heartbeatAt", "2026-03-13 11:46:04"),
-                mapOf("nodeId", "batch-node-03", "role", isEn ? "Settlement queue worker" : "정산 큐 워커", "status", "DEGRADED", "runningJobs", "2", "heartbeatAt", "2026-03-13 11:45:31"));
-    }
-
-    private List<Map<String, String>> buildSchedulerExecutionRows(boolean isEn) {
-        return List.of(
-                mapOf("executedAt", "2026-03-13 11:30", "jobId", "SCH-002", "result", "SUCCESS", "duration", "18s", "message", isEn ? "Certificate expiration cache synchronized." : "인증서 만료 캐시 동기화 완료"),
-                mapOf("executedAt", "2026-03-13 11:10", "jobId", "SCH-003", "result", "FAILED", "duration", "47s", "message", isEn ? "Token endpoint timeout. Retry queued." : "토큰 엔드포인트 타임아웃, 재시도 대기"),
-                mapOf("executedAt", "2026-03-13 10:00", "jobId", "SCH-001", "result", "SUCCESS", "duration", "3m 12s", "message", isEn ? "1,284 aggregation rows persisted." : "집계 1,284건 적재 완료"),
-                mapOf("executedAt", "2026-03-12 18:10", "jobId", "SCH-004", "result", "REVIEW", "duration", "9m 05s", "message", isEn ? "Manual backfill requires settlement approval." : "수동 보정 후 정산 승인 필요"));
-    }
-
-    private List<Map<String, String>> buildSchedulerPlaybooks(boolean isEn) {
-        return List.of(
-                mapOf("title", isEn ? "Cron expression review" : "Cron 표현식 점검",
-                        "body", isEn ? "Validate time zone, duplicate trigger windows, and collision with settlement cut-off times before enabling a new job."
-                                : "신규 잡 활성화 전 시간대, 중복 실행 구간, 정산 마감 시간과의 충돌 여부를 점검합니다."),
-                mapOf("title", isEn ? "Failure response" : "실패 대응",
-                        "body", isEn ? "Failed jobs should record retry policy, root cause, and linked operator before rerun approval."
-                                : "실패 잡은 재시도 정책, 원인, 담당 운영자를 기록한 뒤 재실행 승인 절차를 거칩니다."),
-                mapOf("title", isEn ? "Manual execution guardrail" : "수동 실행 가드레일",
-                        "body", isEn ? "High-impact jobs such as trade settlement or certificate re-issuance should require a dual review and an execution reason."
-                                : "거래 정산, 인증서 재발급처럼 영향이 큰 잡은 이중 검토와 실행 사유 기록을 요구합니다."));
     }
 
     private List<Map<String, String>> buildCertificateAuditLogRows(boolean isEn) {
@@ -2775,126 +1707,6 @@ public class AdminShellBootstrapPageService {
                     "tone", "neutral"));
         }
         return alerts;
-    }
-
-    private List<Map<String, String>> buildTradeStatisticsMonthlyRowsLegacyB(boolean isEn) {
-        return List.of(
-                mapOf("monthLabel", isEn ? "Apr" : "04월", "tradeVolume", "118000", "settlementAmount", "428000000", "pendingCount", "12", "exceptionCount", "3"),
-                mapOf("monthLabel", isEn ? "May" : "05월", "tradeVolume", "126500", "settlementAmount", "451000000", "pendingCount", "11", "exceptionCount", "2"),
-                mapOf("monthLabel", isEn ? "Jun" : "06월", "tradeVolume", "132800", "settlementAmount", "469000000", "pendingCount", "13", "exceptionCount", "4"),
-                mapOf("monthLabel", isEn ? "Jul" : "07월", "tradeVolume", "141400", "settlementAmount", "495000000", "pendingCount", "9", "exceptionCount", "3"),
-                mapOf("monthLabel", isEn ? "Aug" : "08월", "tradeVolume", "149600", "settlementAmount", "522000000", "pendingCount", "10", "exceptionCount", "2"),
-                mapOf("monthLabel", isEn ? "Sep" : "09월", "tradeVolume", "156200", "settlementAmount", "548000000", "pendingCount", "8", "exceptionCount", "3"),
-                mapOf("monthLabel", isEn ? "Oct" : "10월", "tradeVolume", "164300", "settlementAmount", "573000000", "pendingCount", "9", "exceptionCount", "3"),
-                mapOf("monthLabel", isEn ? "Nov" : "11월", "tradeVolume", "171900", "settlementAmount", "598000000", "pendingCount", "7", "exceptionCount", "2"),
-                mapOf("monthLabel", isEn ? "Dec" : "12월", "tradeVolume", "180500", "settlementAmount", "624000000", "pendingCount", "8", "exceptionCount", "3"),
-                mapOf("monthLabel", isEn ? "Jan" : "01월", "tradeVolume", "174200", "settlementAmount", "601000000", "pendingCount", "10", "exceptionCount", "4"),
-                mapOf("monthLabel", isEn ? "Feb" : "02월", "tradeVolume", "169800", "settlementAmount", "589000000", "pendingCount", "9", "exceptionCount", "4"),
-                mapOf("monthLabel", isEn ? "Mar" : "03월", "tradeVolume", "182400", "settlementAmount", "642000000", "pendingCount", "11", "exceptionCount", "5"));
-    }
-
-    private List<Map<String, String>> buildTradeStatisticsTypeRowsLegacyB(boolean isEn) {
-        return List.of(
-                mapOf("tradeTypeCode", "KETS", "tradeTypeLabel", isEn ? "K-ETS Credit" : "배출권", "requestCount", "248", "completedCount", "201", "pendingCount", "18", "exceptionCount", "6", "avgSettlementDays", "2.7", "shareRate", "38.6"),
-                mapOf("tradeTypeCode", "REC", "tradeTypeLabel", isEn ? "REC Package" : "REC 패키지", "requestCount", "214", "completedCount", "171", "pendingCount", "16", "exceptionCount", "5", "avgSettlementDays", "2.3", "shareRate", "33.3"),
-                mapOf("tradeTypeCode", "VOLUNTARY", "tradeTypeLabel", isEn ? "Voluntary Credit" : "자발적 감축실적", "requestCount", "136", "completedCount", "103", "pendingCount", "12", "exceptionCount", "7", "avgSettlementDays", "3.1", "shareRate", "21.2"),
-                mapOf("tradeTypeCode", "MIXED", "tradeTypeLabel", isEn ? "Mixed Settlement" : "혼합 정산", "requestCount", "44", "completedCount", "29", "pendingCount", "6", "exceptionCount", "3", "avgSettlementDays", "3.8", "shareRate", "6.9"));
-    }
-
-    private List<Map<String, String>> buildTradeStatisticsInstitutionRowsLegacyB(boolean isEn) {
-        return List.of(
-                mapOf("insttId", "INST-T001", "insttName", isEn ? "Hanul Steel" : "한울제철", "counterpartyName", isEn ? "Blue Energy" : "블루에너지", "tradeTypeCode", "KETS", "tradeTypeLabel", isEn ? "K-ETS Credit" : "배출권", "primaryContractName", isEn ? "Quarterly offset bundle" : "분기 상쇄 배치", "settlementStatusCode", "PENDING", "requestCount", "58", "tradeVolume", "41200", "settlementAmount", "148000000", "pendingCount", "6", "exceptionCount", "1", "completedCount", "49", "avgSettlementDays", "2.4", "lastSettledAt", "2026-03-29 17:10", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=Hanul")),
-                mapOf("insttId", "INST-T002", "insttName", isEn ? "Green Grid" : "그린그리드", "counterpartyName", isEn ? "Seoul Mobility" : "서울모빌리티", "tradeTypeCode", "REC", "tradeTypeLabel", isEn ? "REC Package" : "REC 패키지", "primaryContractName", isEn ? "Scope 2 hedge" : "Scope 2 헤지", "settlementStatusCode", "IN_PROGRESS", "requestCount", "61", "tradeVolume", "36800", "settlementAmount", "132000000", "pendingCount", "4", "exceptionCount", "1", "completedCount", "52", "avgSettlementDays", "2.1", "lastSettledAt", "2026-03-29 15:42", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=Green")),
-                mapOf("insttId", "INST-T003", "insttName", isEn ? "Eco Farm" : "에코팜", "counterpartyName", isEn ? "Carbon Labs" : "카본랩스", "tradeTypeCode", "VOLUNTARY", "tradeTypeLabel", isEn ? "Voluntary Credit" : "자발적 감축실적", "primaryContractName", isEn ? "Biochar contract" : "바이오차 계약", "settlementStatusCode", "EXCEPTION", "requestCount", "37", "tradeVolume", "21400", "settlementAmount", "78000000", "pendingCount", "5", "exceptionCount", "3", "completedCount", "26", "avgSettlementDays", "3.4", "lastSettledAt", "2026-03-27 10:18", "detailUrl", buildAdminPath(isEn, "/trade/duplicate?searchKeyword=Eco")),
-                mapOf("insttId", "INST-T004", "insttName", isEn ? "East Port" : "이스트포트", "counterpartyName", isEn ? "River Cement" : "리버시멘트", "tradeTypeCode", "KETS", "tradeTypeLabel", isEn ? "K-ETS Credit" : "배출권", "primaryContractName", isEn ? "March balancing lot" : "3월 밸런싱 물량", "settlementStatusCode", "DONE", "requestCount", "44", "tradeVolume", "29800", "settlementAmount", "121000000", "pendingCount", "1", "exceptionCount", "0", "completedCount", "41", "avgSettlementDays", "2.0", "lastSettledAt", "2026-03-30 09:05", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=East")),
-                mapOf("insttId", "INST-T005", "insttName", isEn ? "Sun Network" : "선네트워크", "counterpartyName", isEn ? "Urban Data" : "어반데이터", "tradeTypeCode", "REC", "tradeTypeLabel", isEn ? "REC Package" : "REC 패키지", "primaryContractName", isEn ? "Data center reserve" : "데이터센터 예비물량", "settlementStatusCode", "PENDING", "requestCount", "33", "tradeVolume", "18500", "settlementAmount", "64000000", "pendingCount", "4", "exceptionCount", "1", "completedCount", "26", "avgSettlementDays", "2.8", "lastSettledAt", "2026-03-26 14:28", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=Sun")),
-                mapOf("insttId", "INST-T006", "insttName", isEn ? "CCUS Plant A" : "CCUS 플랜트 A", "counterpartyName", isEn ? "Metro Heat" : "메트로히트", "tradeTypeCode", "VOLUNTARY", "tradeTypeLabel", isEn ? "Voluntary Credit" : "자발적 감축실적", "primaryContractName", isEn ? "Capture storage block" : "포집 저장 블록", "settlementStatusCode", "IN_PROGRESS", "requestCount", "29", "tradeVolume", "16900", "settlementAmount", "59000000", "pendingCount", "3", "exceptionCount", "0", "completedCount", "24", "avgSettlementDays", "2.6", "lastSettledAt", "2026-03-28 18:04", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=CCUS")),
-                mapOf("insttId", "INST-T007", "insttName", isEn ? "Nova Chemical" : "노바케미칼", "counterpartyName", isEn ? "Blue Energy" : "블루에너지", "tradeTypeCode", "KETS", "tradeTypeLabel", isEn ? "K-ETS Credit" : "배출권", "primaryContractName", isEn ? "Seasonal hedge" : "계절성 헤지", "settlementStatusCode", "PENDING", "requestCount", "31", "tradeVolume", "19200", "settlementAmount", "71000000", "pendingCount", "3", "exceptionCount", "1", "completedCount", "25", "avgSettlementDays", "2.9", "lastSettledAt", "2026-03-25 16:11", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=Nova")),
-                mapOf("insttId", "INST-T008", "insttName", isEn ? "Forest Link" : "포레스트링크", "counterpartyName", isEn ? "Green Grid" : "그린그리드", "tradeTypeCode", "MIXED", "tradeTypeLabel", isEn ? "Mixed Settlement" : "혼합 정산", "primaryContractName", isEn ? "Afforestation offset" : "조림 상쇄 거래", "settlementStatusCode", "EXCEPTION", "requestCount", "18", "tradeVolume", "8600", "settlementAmount", "29000000", "pendingCount", "2", "exceptionCount", "2", "completedCount", "11", "avgSettlementDays", "4.0", "lastSettledAt", "2026-03-24 11:39", "detailUrl", buildAdminPath(isEn, "/trade/duplicate?searchKeyword=Forest")));
-    }
-
-    private List<Map<String, String>> buildTradeStatisticsAlertRowsLegacyB(boolean isEn) {
-        return List.of(
-                mapOf("title", isEn ? "Pending settlement backlog is rising" : "정산 대기 백로그 증가",
-                        "description", isEn ? "K-ETS and REC trades due this week should be reviewed before treasury close." : "이번 주 마감 예정인 배출권·REC 거래는 재무 마감 전에 우선 점검해야 합니다.",
-                        "badge", isEn ? "Attention" : "주의",
-                        "toneClassName", "bg-amber-100 text-amber-700",
-                        "actionLabel", isEn ? "Open trade list" : "거래 목록 열기",
-                        "actionUrl", buildAdminPath(isEn, "/trade/list?settlementStatus=PENDING")),
-                mapOf("title", isEn ? "Exception concentration by institution" : "기관별 예외 거래 집중",
-                        "description", isEn ? "Eco Farm and Forest Link account for most settlement exceptions in the current window." : "현재 정산 예외는 에코팜과 포레스트링크에 집중되어 있습니다.",
-                        "badge", isEn ? "Watch" : "관찰",
-                        "toneClassName", "bg-sky-100 text-sky-700",
-                        "actionLabel", isEn ? "Open abnormal trade queue" : "이상거래 큐 열기",
-                        "actionUrl", buildAdminPath(isEn, "/trade/duplicate")),
-                mapOf("title", isEn ? "High-value month-end close" : "고액 월말 정산 마감",
-                        "description", isEn ? "High-value balancing lots should be handed off with a final operator memo." : "고액 밸런싱 거래는 최종 운영 메모를 남긴 뒤 정산 이관해야 합니다.",
-                        "badge", isEn ? "Action" : "조치",
-                        "toneClassName", "bg-rose-100 text-rose-700",
-                        "actionLabel", isEn ? "Open settlement calendar" : "정산 캘린더 열기",
-                        "actionUrl", buildAdminPath(isEn, "/payment/settlement")));
-    }
-
-    private List<Map<String, String>> buildTradeDuplicateRows(boolean isEn) {
-        return List.of(
-                mapOf("reviewId", "TDR-2026-0411", "tradeId", "TRD-202603-005", "contractName", isEn ? "Data center reserve" : "데이터센터 예비물량", "sellerName", isEn ? "Sun Network" : "선네트워크", "buyerName", isEn ? "Urban Data" : "어반데이터", "analyst", isEn ? "Jiwon Park" : "박지원", "reason", isEn ? "Repeated counterparties and settlement gap in the same closing window." : "같은 마감 창구에서 거래 당사자 반복과 정산 불일치가 함께 감지되었습니다.", "detectionTypeCode", "SETTLEMENT_GAP", "detectionTypeLabel", isEn ? "Settlement gap" : "정산 불일치", "reviewStatusCode", "BLOCKED", "reviewStatusLabel", isEn ? "Settlement blocked" : "정산 보류", "riskLevelCode", "CRITICAL", "riskLevelLabel", isEn ? "Critical" : "치명", "detectedAt", "2026-03-31 08:45", "quantity", "6,400 MWh", "amount", "KRW 154,000,000", "investigationSummary", isEn ? "Closing ledger and trade ledger diverged after a duplicate counterparty check." : "중복 상대기관 확인 이후 마감 원장과 거래 원장 값이 어긋났습니다.", "recommendedAction", isEn ? "Keep blocked until ledger sync is complete." : "원장 동기화 완료 전까지 차단을 유지합니다.", "settlementActionLabel", isEn ? "Block settlement batch" : "정산 배치 차단", "detailUrl", buildAdminPath(isEn, "/trade/reject?tradeId=TRD-202603-005")),
-                mapOf("reviewId", "TDR-2026-0410", "tradeId", "TRD-202603-007", "contractName", isEn ? "Seasonal hedge" : "계절성 헤지", "sellerName", isEn ? "Nova Chemical" : "노바케미칼", "buyerName", isEn ? "Blue Energy" : "블루에너지", "analyst", isEn ? "Dahye Seo" : "서다혜", "reason", isEn ? "Counterparty overlap with unusual price movement." : "거래 상대 중복과 비정상 가격 편차가 동시에 탐지되었습니다.", "detectionTypeCode", "DUPLICATE_PARTY", "detectionTypeLabel", isEn ? "Duplicate party" : "거래 당사자 중복", "reviewStatusCode", "ESCALATED", "reviewStatusLabel", isEn ? "Escalated" : "상향 검토", "riskLevelCode", "HIGH", "riskLevelLabel", isEn ? "High" : "높음", "detectedAt", "2026-03-31 08:12", "quantity", "9,900 tCO2eq", "amount", "KRW 333,600,000", "investigationSummary", isEn ? "The same counterpart group appeared in a high-premium hedge cluster." : "고프리미엄 헤지 묶음에서 동일 상대기관 그룹이 반복 확인되었습니다.", "recommendedAction", isEn ? "Escalate to supervisor and compare prior-day orders." : "상급자 검토로 전환하고 전일 주문과 대조합니다.", "settlementActionLabel", isEn ? "Supervisor approval required" : "상급자 승인 필요", "detailUrl", buildAdminPath(isEn, "/trade/duplicate?searchKeyword=Nova")),
-                mapOf("reviewId", "TDR-2026-0409", "tradeId", "TRD-202603-003", "contractName", isEn ? "Biochar contract" : "바이오차 계약", "sellerName", isEn ? "Eco Farm" : "에코팜", "buyerName", isEn ? "Carbon Labs" : "카본랩스", "analyst", isEn ? "Yuna Choi" : "최유나", "reason", isEn ? "Order split pattern was repeated within the same day." : "동일 일자 내 주문 분할 패턴이 반복 확인되었습니다.", "detectionTypeCode", "SPLIT_ORDER", "detectionTypeLabel", isEn ? "Split order" : "주문 분할", "reviewStatusCode", "REVIEW", "reviewStatusLabel", isEn ? "Under review" : "검토 중", "riskLevelCode", "MEDIUM", "riskLevelLabel", isEn ? "Medium" : "중간", "detectedAt", "2026-03-30 17:40", "quantity", "4,250 tCO2eq", "amount", "KRW 87,500,000", "investigationSummary", isEn ? "Child orders stayed below review threshold but share the same pattern." : "하위 주문이 검토 임계치 이하로 쪼개졌지만 동일 패턴이 반복됩니다.", "recommendedAction", isEn ? "Review trader note and execution policy." : "거래 메모와 실행 정책을 검토합니다.", "settlementActionLabel", isEn ? "Review before settlement" : "정산 전 검토", "detailUrl", buildAdminPath(isEn, "/trade/duplicate?searchKeyword=Eco")),
-                mapOf("reviewId", "TDR-2026-0407", "tradeId", "TRD-202603-012", "contractName", isEn ? "Agriculture offset pool" : "농업 상쇄 풀", "sellerName", isEn ? "Eco Farm" : "에코팜", "buyerName", isEn ? "Hanul Steel" : "한울제철", "analyst", isEn ? "Minji Lee" : "이민지", "reason", isEn ? "Trade volume exceeded the configured exposure threshold." : "거래 물량이 설정된 노출 한도를 초과했습니다.", "detectionTypeCode", "LIMIT_BREACH", "detectionTypeLabel", isEn ? "Limit breach" : "한도 초과", "reviewStatusCode", "REVIEW", "reviewStatusLabel", isEn ? "Under review" : "검토 중", "riskLevelCode", "HIGH", "riskLevelLabel", isEn ? "High" : "높음", "detectedAt", "2026-03-30 15:08", "quantity", "6,900 tCO2eq", "amount", "KRW 143,500,000", "investigationSummary", isEn ? "Exposure cap was already near limit from an earlier exception case." : "기존 예외 거래 영향으로 노출 한도가 이미 임계점에 가까웠습니다.", "recommendedAction", isEn ? "Confirm committee override or reject." : "위원회 예외승인 여부를 확인하거나 반려합니다.", "settlementActionLabel", isEn ? "Risk override required" : "리스크 예외승인 필요", "detailUrl", buildAdminPath(isEn, "/trade/reject?tradeId=TRD-202603-012")),
-                mapOf("reviewId", "TDR-2026-0405", "tradeId", "TRD-202603-011", "contractName", isEn ? "Heat network mix" : "열공급 믹스 거래", "sellerName", isEn ? "North Solar" : "노스솔라", "buyerName", isEn ? "Metro Heat" : "메트로히트", "analyst", isEn ? "Ara Yun" : "윤아라", "reason", isEn ? "Price outlier flagged against the same-week REC bundle benchmark." : "동주차 REC 묶음 벤치마크 대비 가격 이상이 감지되었습니다.", "detectionTypeCode", "PRICE_OUTLIER", "detectionTypeLabel", isEn ? "Price outlier" : "가격 이상", "reviewStatusCode", "CLEARED", "reviewStatusLabel", isEn ? "Cleared" : "해소", "riskLevelCode", "LOW", "riskLevelLabel", isEn ? "Low" : "낮음", "detectedAt", "2026-03-30 11:26", "quantity", "2,850 MWh", "amount", "KRW 59,400,000", "investigationSummary", isEn ? "Operator note matched a temporary REC market premium and was accepted." : "운영 메모상 일시적 REC 프리미엄 사유가 확인되어 해소 처리되었습니다.", "recommendedAction", isEn ? "Proceed with settlement and keep note attached." : "메모를 첨부한 채 정산을 진행합니다.", "settlementActionLabel", isEn ? "Settlement can proceed" : "정산 진행 가능", "detailUrl", buildAdminPath(isEn, "/trade/list?searchKeyword=North")));
-    }
-
-    private List<Map<String, String>> buildTradeListRows(boolean isEn) {
-        List<Map<String, String>> rows = new ArrayList<>();
-        rows.add(tradeRow("TRD-202603-001", isEn ? "K-ETS Credit" : "배출권", isEn ? "Hanul Steel" : "한울제철",
-                isEn ? "Blue Energy" : "블루에너지", isEn ? "Quarterly offset bundle" : "분기 상쇄 배치",
-                "12,500 tCO2eq", "KRW 418,000,000", "2026-03-30 09:10", "REQUESTED",
-                isEn ? "Requested" : "요청", "PENDING", isEn ? "Pending" : "정산 대기"));
-        rows.add(tradeRow("TRD-202603-002", isEn ? "REC Package" : "REC 패키지", isEn ? "Green Grid" : "그린그리드",
-                isEn ? "Seoul Mobility" : "서울모빌리티", isEn ? "Scope 2 hedge" : "Scope 2 헤지",
-                "8,000 MWh", "KRW 192,000,000", "2026-03-30 08:35", "MATCHING",
-                isEn ? "Matching" : "매칭중", "IN_PROGRESS", isEn ? "In Progress" : "정산 진행"));
-        rows.add(tradeRow("TRD-202603-003", isEn ? "Voluntary Credit" : "자발적 감축실적", isEn ? "Eco Farm" : "에코팜",
-                isEn ? "Carbon Labs" : "카본랩스", isEn ? "Biochar contract" : "바이오차 계약",
-                "4,250 tCO2eq", "KRW 87,500,000", "2026-03-29 16:40", "APPROVED",
-                isEn ? "Approved" : "승인", "PENDING", isEn ? "Pending" : "정산 대기"));
-        rows.add(tradeRow("TRD-202603-004", isEn ? "K-ETS Credit" : "배출권", isEn ? "East Port" : "이스트포트",
-                isEn ? "River Cement" : "리버시멘트", isEn ? "March balancing lot" : "3월 밸런싱 물량",
-                "15,300 tCO2eq", "KRW 522,400,000", "2026-03-29 15:20", "COMPLETED",
-                isEn ? "Completed" : "완료", "DONE", isEn ? "Done" : "정산 완료"));
-        rows.add(tradeRow("TRD-202603-005", isEn ? "REC Package" : "REC 패키지", isEn ? "Sun Network" : "선네트워크",
-                isEn ? "Urban Data" : "어반데이터", isEn ? "Data center reserve" : "데이터센터 예비물량",
-                "6,400 MWh", "KRW 154,000,000", "2026-03-29 11:05", "HOLD",
-                isEn ? "On Hold" : "보류", "EXCEPTION", isEn ? "Exception" : "예외"));
-        rows.add(tradeRow("TRD-202603-006", isEn ? "Voluntary Credit" : "자발적 감축실적", isEn ? "CCUS Plant A" : "CCUS 플랜트 A",
-                isEn ? "Metro Heat" : "메트로히트", isEn ? "Capture storage block" : "포집 저장 블록",
-                "10,100 tCO2eq", "KRW 301,000,000", "2026-03-28 17:42", "MATCHING",
-                isEn ? "Matching" : "매칭중", "IN_PROGRESS", isEn ? "In Progress" : "정산 진행"));
-        rows.add(tradeRow("TRD-202603-007", isEn ? "K-ETS Credit" : "배출권", isEn ? "Nova Chemical" : "노바케미칼",
-                isEn ? "Blue Energy" : "블루에너지", isEn ? "Seasonal hedge" : "계절성 헤지",
-                "9,900 tCO2eq", "KRW 333,600,000", "2026-03-28 14:10", "REQUESTED",
-                isEn ? "Requested" : "요청", "PENDING", isEn ? "Pending" : "정산 대기"));
-        rows.add(tradeRow("TRD-202603-008", isEn ? "REC Package" : "REC 패키지", isEn ? "Wind Core" : "윈드코어",
-                isEn ? "Harbor Cold Chain" : "하버콜드체인", isEn ? "Cold-chain coverage" : "콜드체인 커버리지",
-                "3,200 MWh", "KRW 71,000,000", "2026-03-28 10:32", "COMPLETED",
-                isEn ? "Completed" : "완료", "DONE", isEn ? "Done" : "정산 완료"));
-        rows.add(tradeRow("TRD-202603-009", isEn ? "Voluntary Credit" : "자발적 감축실적", isEn ? "Forest Link" : "포레스트링크",
-                isEn ? "Green Grid" : "그린그리드", isEn ? "Afforestation offset" : "조림 상쇄 거래",
-                "5,800 tCO2eq", "KRW 126,000,000", "2026-03-27 18:24", "APPROVED",
-                isEn ? "Approved" : "승인", "PENDING", isEn ? "Pending" : "정산 대기"));
-        rows.add(tradeRow("TRD-202603-010", isEn ? "K-ETS Credit" : "배출권", isEn ? "River Cement" : "리버시멘트",
-                isEn ? "Seoul Mobility" : "서울모빌리티", isEn ? "Compliance shortfall fill" : "의무량 보전 계약",
-                "7,700 tCO2eq", "KRW 257,000,000", "2026-03-27 09:08", "COMPLETED",
-                isEn ? "Completed" : "완료", "DONE", isEn ? "Done" : "정산 완료"));
-        rows.add(tradeRow("TRD-202603-011", isEn ? "REC Package" : "REC 패키지", isEn ? "North Solar" : "노스솔라",
-                isEn ? "Metro Heat" : "메트로히트", isEn ? "Heat network mix" : "열공급 믹스 거래",
-                "2,850 MWh", "KRW 59,400,000", "2026-03-26 13:46", "MATCHING",
-                isEn ? "Matching" : "매칭중", "IN_PROGRESS", isEn ? "In Progress" : "정산 진행"));
-        rows.add(tradeRow("TRD-202603-012", isEn ? "Voluntary Credit" : "자발적 감축실적", isEn ? "Eco Farm" : "에코팜",
-                isEn ? "Hanul Steel" : "한울제철", isEn ? "Agriculture offset pool" : "농업 상쇄 풀",
-                "6,900 tCO2eq", "KRW 143,500,000", "2026-03-25 16:18", "HOLD",
-                isEn ? "On Hold" : "보류", "EXCEPTION", isEn ? "Exception" : "예외"));
-        return rows;
     }
 
     private List<Map<String, String>> buildSettlementCalendarRows(boolean isEn) {
@@ -3101,7 +1913,7 @@ public class AdminShellBootstrapPageService {
     private List<Map<String, String>> buildTradeApproveRows(boolean isEn) {
         ensureTradeApprovalState();
         List<Map<String, String>> rows = new ArrayList<>();
-        for (Map<String, String> baseRow : buildTradeListRows(isEn)) {
+        for (Map<String, String> baseRow : adminTradeBootstrapReadService.buildTradeListRows(isEn)) {
             Map<String, String> state = tradeApprovalState.computeIfAbsent(
                     safeString(baseRow.get("tradeId")),
                     key -> defaultTradeApprovalState());
@@ -3223,34 +2035,6 @@ public class AdminShellBootstrapPageService {
             return "VOLUNTARY";
         }
         return "KETS";
-    }
-
-    private Map<String, String> tradeRow(
-            String tradeId,
-            String productType,
-            String sellerName,
-            String buyerName,
-            String contractName,
-            String quantity,
-            String amount,
-            String requestedAt,
-            String tradeStatusCode,
-            String tradeStatusLabel,
-            String settlementStatusCode,
-            String settlementStatusLabel) {
-        return mapOf(
-                "tradeId", tradeId,
-                "productType", productType,
-                "sellerName", sellerName,
-                "buyerName", buyerName,
-                "contractName", contractName,
-                "quantity", quantity,
-                "amount", amount,
-                "requestedAt", requestedAt,
-                "tradeStatusCode", tradeStatusCode,
-                "tradeStatusLabel", tradeStatusLabel,
-                "settlementStatusCode", settlementStatusCode,
-                "settlementStatusLabel", settlementStatusLabel);
     }
 
     private Map<String, String> option(String code, String label) {
@@ -3601,7 +2385,7 @@ public class AdminShellBootstrapPageService {
 
     private List<MenuInfoDTO> loadMenuTreeRows(String codeId) {
         try {
-            List<MenuInfoDTO> rows = new ArrayList<>(menuInfoService.selectMenuTreeList(codeId));
+            List<MenuInfoDTO> rows = new ArrayList<>(menuInfoReadPort.selectMenuTreeList(codeId));
             rows.sort(Comparator.comparing(row -> safeString(row == null ? null : row.getCode())));
             return rows;
         } catch (Exception ignored) {

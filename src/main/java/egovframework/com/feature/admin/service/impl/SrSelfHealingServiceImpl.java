@@ -1,8 +1,8 @@
 package egovframework.com.feature.admin.service.impl;
 
-import egovframework.com.feature.admin.dto.request.SrTicketCreateRequest;
 import egovframework.com.feature.admin.model.vo.SrTicketRecordVO;
 import egovframework.com.feature.admin.service.SrSelfHealingService;
+import egovframework.com.platform.request.workbench.SrTicketCreateRequest;
 import egovframework.com.platform.workbench.service.SrTicketWorkbenchService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

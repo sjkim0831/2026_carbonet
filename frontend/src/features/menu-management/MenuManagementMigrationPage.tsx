@@ -8,18 +8,19 @@ import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { numberOf, stringOf } from "../admin-system/adminSystemShared";
 import { CollectionResultPanel, GridToolbar, PageStatusNotice, SummaryMetricCard, WarningPanel } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
+import {
+  BUILDER_INSTALL_ARTIFACTS,
+  BUILDER_INSTALL_REQUIRED_BINDINGS,
+  BUILDER_INSTALL_VALIDATOR_CHECKS,
+  type BuilderInstallBindingKey,
+  type BuilderInstallValidatorCheckKey,
+  describeBuilderInstallBinding,
+  describeBuilderValidatorCheck
+} from "../screen-builder/shared/installableBuilderContract";
+import { buildMenuTree, buildSuggestedPageCode, flattenMenuOrderPayload, type MenuTreeNode, updateMenuSortOrders } from "./menuTreeShared";
 import { toDisplayMenuUrl } from "./menuUrlDisplay";
 
-type MenuNode = {
-  code: string;
-  label: string;
-  url: string;
-  icon: string;
-  useAt: string;
-  expsrAt: string;
-  sortOrdr: number;
-  children: MenuNode[];
-};
+type MenuNode = MenuTreeNode;
 
 type MenuSnapshot = {
   sortOrdr: number;
@@ -28,72 +29,6 @@ type MenuSnapshot = {
 
 function readMenuTypeFromLocation() {
   return new URLSearchParams(window.location.search).get("menuType") || "ADMIN";
-}
-
-function parentCode(code: string) {
-  if (code.length === 8) return code.slice(0, 6);
-  if (code.length === 6) return code.slice(0, 4);
-  return "";
-}
-
-function buildTree(rows: Array<Record<string, unknown>>) {
-  const nodes = new Map<string, MenuNode>();
-  rows.forEach((row) => {
-    const code = stringOf(row, "code").toUpperCase();
-    if (!code) {
-      return;
-    }
-    nodes.set(code, {
-      code,
-      label: stringOf(row, "codeNm", "codeDc", "code"),
-      url: toDisplayMenuUrl(stringOf(row, "menuUrl")),
-      icon: stringOf(row, "menuIcon") || "menu",
-      useAt: stringOf(row, "useAt") || "Y",
-      expsrAt: stringOf(row, "expsrAt") || "Y",
-      sortOrdr: numberOf(row, "sortOrdr"),
-      children: []
-    });
-  });
-
-  const roots: MenuNode[] = [];
-  nodes.forEach((node) => {
-    const parent = nodes.get(parentCode(node.code));
-    if (parent) {
-      parent.children.push(node);
-    } else {
-      roots.push(node);
-    }
-  });
-
-  const sortNodes = (items: MenuNode[]) => {
-    items.sort((a, b) => {
-      const orderA = a.sortOrdr > 0 ? a.sortOrdr : Number.MAX_SAFE_INTEGER;
-      const orderB = b.sortOrdr > 0 ? b.sortOrdr : Number.MAX_SAFE_INTEGER;
-      if (orderA !== orderB) {
-        return orderA - orderB;
-      }
-      return a.code.localeCompare(b.code);
-    });
-    items.forEach((item) => sortNodes(item.children));
-  };
-
-  sortNodes(roots);
-  return roots;
-}
-
-function updateSortOrders(items: MenuNode[]) {
-  items.forEach((item, index) => {
-    item.sortOrdr = index + 1;
-    updateSortOrders(item.children);
-  });
-}
-
-function flattenPayload(items: MenuNode[], output: string[] = []) {
-  items.forEach((item, index) => {
-    output.push(`${item.code}:${index + 1}`);
-    flattenPayload(item.children, output);
-  });
-  return output;
 }
 
 function flattenNodes(items: MenuNode[], output: MenuNode[] = []) {
@@ -192,6 +127,7 @@ export function MenuManagementMigrationPage() {
   const groupMenuOptions = ((page?.groupMenuOptions || []) as Array<Record<string, string>>);
   const iconOptions = ((page?.iconOptions || []) as string[]);
   const useAtOptions = ((page?.useAtOptions || []) as string[]);
+  const menuCodeRows = useMemo(() => rows.map((row) => ({ code: stringOf(row, "code").toUpperCase() })), [rows]);
 
   const originalSnapshot = useMemo(() => buildSnapshot(rows), [rows]);
   const filteredTreeData = useMemo(() => filterTree(treeData, deferredSearchKeyword), [deferredSearchKeyword, treeData]);
@@ -204,6 +140,73 @@ export function MenuManagementMigrationPage() {
       return snapshot && snapshot.sortOrdr !== node.sortOrdr;
     })
   ), [allNodes, originalSnapshot]);
+  const intakeValidationMessage = useMemo(() => validateCreateForm({
+    en,
+    parentCodeValue,
+    codeNm,
+    menuUrl,
+    menuType
+  }), [codeNm, en, menuType, menuUrl, parentCodeValue]);
+  const intakeReady = intakeValidationMessage.length === 0;
+  const intakeBindingStatuses = useMemo(() => ([
+    {
+      key: "projectId" as BuilderInstallBindingKey,
+      ready: true,
+      detail: en ? `Lane ${menuType} selected` : `${menuType} 레인 선택`
+    },
+    {
+      key: "menuRoot" as BuilderInstallBindingKey,
+      ready: menuType === "ADMIN" ? menuUrl.startsWith("/admin/") : menuUrl.startsWith("/home/"),
+      detail: menuUrl || "-"
+    },
+    {
+      key: "runtimeClass" as BuilderInstallBindingKey,
+      ready: Boolean(parentCodeValue),
+      detail: parentCodeValue || "-"
+    },
+    {
+      key: "menuScope" as BuilderInstallBindingKey,
+      ready: Boolean(parentCodeValue),
+      detail: menuType
+    },
+    {
+      key: "releaseUnitPrefix" as BuilderInstallBindingKey,
+      ready: Boolean(codeNm.trim()),
+      detail: codeNm.trim() || "-"
+    },
+    {
+      key: "runtimePackagePrefix" as BuilderInstallBindingKey,
+      ready: Boolean(findSuggestedPageCode()),
+      detail: findSuggestedPageCode() || "-"
+    }
+  ]), [codeNm, menuType, menuUrl, parentCodeValue, en, menuCodeRows]);
+  const intakeValidatorStatuses = useMemo(() => ([
+    {
+      key: "required-beans-present" as BuilderInstallValidatorCheckKey,
+      ready: true,
+      detail: en ? "Handled in install-bind console after registry creation." : "레지스트리 생성 후 install-bind 콘솔에서 확인"
+    },
+    {
+      key: "required-properties-present" as BuilderInstallValidatorCheckKey,
+      ready: Boolean(codeNm.trim() && menuUrl.trim()),
+      detail: intakeValidationMessage || (en ? "Registry intake fields are present." : "레지스트리 인테이크 필드가 준비됨")
+    },
+    {
+      key: "menu-root-resolvable" as BuilderInstallValidatorCheckKey,
+      ready: menuType === "ADMIN" ? menuUrl.startsWith("/admin/") : menuUrl.startsWith("/home/"),
+      detail: menuUrl || "-"
+    },
+    {
+      key: "storage-writable" as BuilderInstallValidatorCheckKey,
+      ready: true,
+      detail: en ? "Validated when the builder package is attached." : "빌더 패키지 연결 시 검증"
+    },
+    {
+      key: "builder-routes-exposed" as BuilderInstallValidatorCheckKey,
+      ready: Boolean(menuUrl.trim()),
+      detail: menuUrl || "-"
+    }
+  ]), [codeNm, en, intakeValidationMessage, menuType, menuUrl]);
 
   useEffect(() => {
     function syncMenuTypeFromLocation() {
@@ -265,7 +268,7 @@ export function MenuManagementMigrationPage() {
   ]);
 
   useEffect(() => {
-    setTreeData(buildTree(rows));
+    setTreeData(buildMenuTree(rows, { includeExposure: true, includeUseAt: true, mapUrl: toDisplayMenuUrl }));
   }, [rows]);
 
   useEffect(() => {
@@ -292,12 +295,12 @@ export function MenuManagementMigrationPage() {
       return;
     }
     const nextNodes = [...nodes];
-    const moved = nextNodes[index];
-    nextNodes[index] = nextNodes[nextIndex];
-    nextNodes[nextIndex] = moved;
-    updateSortOrders(nextNodes);
-    return nextNodes;
-  }
+      const moved = nextNodes[index];
+      nextNodes[index] = nextNodes[nextIndex];
+      nextNodes[nextIndex] = moved;
+      updateMenuSortOrders(nextNodes);
+      return nextNodes;
+    }
 
   function updateLevel(path: number[], direction: number) {
     setTreeData((current) => {
@@ -324,14 +327,14 @@ export function MenuManagementMigrationPage() {
   async function saveOrder() {
     logGovernanceScope("ACTION", "menu-management-save-order", {
       menuType,
-      payloadCount: flattenPayload(treeData).length,
+      payloadCount: flattenMenuOrderPayload(treeData).length,
       dirtyOrderCount: dirtyOrderRows.length
     });
     setActionError("");
     setActionMessage("");
     const body = new URLSearchParams();
     body.set("menuType", menuType);
-    body.set("orderPayload", flattenPayload(treeData).join(","));
+    body.set("orderPayload", flattenMenuOrderPayload(treeData).join(","));
     await postFormUrlEncoded(
       buildLocalizedPath("/admin/system/menu/order", "/en/admin/system/menu/order"),
       body
@@ -342,24 +345,7 @@ export function MenuManagementMigrationPage() {
   }
 
   function findSuggestedPageCode() {
-    if (!parentCodeValue || parentCodeValue.length !== 6) {
-      return "";
-    }
-    let maxSuffix = 0;
-    rows.forEach((row) => {
-      const code = stringOf(row, "code").toUpperCase();
-      if (!code.startsWith(parentCodeValue) || code.length !== 8) {
-        return;
-      }
-      const suffix = Number(code.slice(6));
-      if (Number.isFinite(suffix) && suffix > maxSuffix) {
-        maxSuffix = suffix;
-      }
-    });
-    if (maxSuffix >= 99) {
-      return "";
-    }
-    return `${parentCodeValue}${String(maxSuffix + 1).padStart(2, "0")}`;
+    return buildSuggestedPageCode(parentCodeValue, menuCodeRows);
   }
 
   async function createPageMenu() {
@@ -439,32 +425,98 @@ export function MenuManagementMigrationPage() {
       breadcrumbs={[
         { label: en ? "Home" : "홈", href: buildLocalizedPath("/admin/", "/en/admin/") },
         { label: en ? "System" : "시스템" },
-        { label: en ? "Environment" : "환경설정" },
-        { label: en ? "Menu Management" : "메뉴 관리" }
+        { label: en ? "Builder Install / Bind Console" : "빌더 설치 / 바인딩 콘솔" },
+        { label: en ? "Menu Registry Console" : "메뉴 레지스트리 콘솔" }
       ]}
-      title={en ? "Menu Management" : "메뉴 관리"}
-      subtitle={en ? "Manage the system environment menu hierarchy, register page menus quickly, and keep sibling order aligned." : "시스템 환경설정 메뉴 계층을 정리하고, 페이지 메뉴를 빠르게 등록하며, 같은 부모 아래 정렬 순서를 맞춥니다."}
+      title={en ? "Menu Registry Console" : "메뉴 레지스트리 콘솔"}
+      subtitle={en ? "Register package-ready menus, keep the menu registry hierarchy governed, and hand off clean bindings to install and package flows." : "패키지 가능한 메뉴를 등록하고, 메뉴 레지스트리 계층을 거버넌스 기준으로 유지하며, 설치와 패키지 흐름으로 넘길 바인딩 기준을 정리합니다."}
     >
       <AdminWorkspacePageFrame>
         {page?.menuMgmtMessage || actionMessage ? <PageStatusNotice tone="success">{actionMessage || String(page?.menuMgmtMessage)}</PageStatusNotice> : null}
         {pageState.error || actionError || page?.menuMgmtError ? <PageStatusNotice tone="error">{actionError || page?.menuMgmtError || pageState.error}</PageStatusNotice> : null}
 
         <section className="grid grid-cols-1 gap-3 xl:grid-cols-4">
-          <SummaryMetricCard title={en ? "Visible Nodes" : "표시 노드"} value={`${visibleNodes.length} / ${allNodes.length}`} description={en ? "Search results / total" : "검색 결과 / 전체"} />
-          <SummaryMetricCard title={en ? "Order Changes" : "순서 변경"} value={String(dirtyOrderRows.length)} description={en ? "Pending before save" : "저장 전 변경 건"} />
-          <SummaryMetricCard title={en ? "Group Menus" : "그룹 메뉴"} value={String(groupMenuOptions.length)} description={en ? "Available parents" : "등록 가능 부모 메뉴"} />
-          <SummaryMetricCard title={en ? "Current Scope" : "현재 구분"} value={menuType} description={en ? "Synced to URL query" : "URL 쿼리와 동기화"} />
+          <SummaryMetricCard title={en ? "Registry Nodes" : "레지스트리 노드"} value={`${visibleNodes.length} / ${allNodes.length}`} description={en ? "Visible search result / total" : "표시 검색 결과 / 전체"} />
+          <SummaryMetricCard title={en ? "Binding Order Changes" : "바인딩 순서 변경"} value={String(dirtyOrderRows.length)} description={en ? "Pending registry reorder" : "저장 전 레지스트리 정렬 변경"} />
+          <SummaryMetricCard title={en ? "Registry Parents" : "레지스트리 부모"} value={String(groupMenuOptions.length)} description={en ? "Available intake parents" : "등록 가능한 intake 부모"} />
+          <SummaryMetricCard title={en ? "Current Lane" : "현재 레인"} value={menuType} description={en ? "Synced to URL query" : "URL 쿼리와 동기화"} />
         </section>
 
         <CollectionResultPanel
+          data-help-id="menu-management-install-contract"
+          description={en ? "Registry intake should already match the installable builder contract before the page moves into install-bind." : "페이지가 install-bind 로 넘어가기 전에 레지스트리 인테이크 단계부터 설치형 빌더 계약을 맞춰야 합니다."}
+          icon="inventory_2"
+          title={en ? "Install Package Contract" : "설치 패키지 계약"}
+        >
+          <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className={`rounded-[var(--kr-gov-radius)] border px-4 py-3 ${intakeReady ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
+                <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Registry Intake Readiness" : "레지스트리 인테이크 준비도"}</p>
+                <p className="mt-2 text-sm font-black text-[var(--kr-gov-text-primary)]">{intakeReady ? (en ? "Ready to hand off" : "인계 가능") : (en ? "Needs more intake fields" : "추가 인테이크 필요")}</p>
+                <p className="mt-1 text-[12px] text-[var(--kr-gov-text-secondary)]">{intakeValidationMessage || (en ? "Bindings and URL shape are aligned with installable-builder intake." : "바인딩과 URL 형태가 설치형 빌더 인테이크 기준과 정렬됨")}</p>
+              </div>
+              <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Artifacts" : "산출물"}</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {BUILDER_INSTALL_ARTIFACTS.map((artifact) => (
+                    <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-[12px] font-mono text-[var(--kr-gov-text-primary)]" key={artifact}>{artifact}</span>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-white px-4 py-3">
+                <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Required Bindings" : "필수 바인딩"}</p>
+                <div className="mt-2 space-y-2">
+                  {intakeBindingStatuses.map((item) => (
+                    <div className="flex items-start justify-between gap-3 text-sm" key={item.key}>
+                      <div>
+                        <p className="font-bold text-[var(--kr-gov-text-primary)]">{describeBuilderInstallBinding(item.key, en)}</p>
+                        <p className="text-[12px] text-[var(--kr-gov-text-secondary)]">{item.detail}</p>
+                      </div>
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-black ${item.ready ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                        {item.ready ? (en ? "READY" : "준비") : (en ? "PENDING" : "대기")}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-white px-4 py-3">
+                <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Validator Checks" : "검증 체크"}</p>
+                <div className="mt-2 space-y-2">
+                  {intakeValidatorStatuses.map((item) => (
+                    <div className="flex items-start justify-between gap-3 text-sm" key={item.key}>
+                      <div>
+                        <p className="font-bold text-[var(--kr-gov-text-primary)]">{describeBuilderValidatorCheck(item.key, en)}</p>
+                        <p className="text-[12px] text-[var(--kr-gov-text-secondary)]">{item.detail}</p>
+                      </div>
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-black ${item.ready ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                        {item.ready ? (en ? "PASS" : "통과") : (en ? "WAIT" : "대기")}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-5 py-4">
+              <h4 className="font-bold text-[var(--kr-gov-text-primary)]">{en ? "Registry-to-Install Handoff" : "레지스트리에서 설치로 인계"}</h4>
+              <ul className="mt-3 space-y-2 text-sm text-[var(--kr-gov-text-secondary)]">
+                <li>{en ? `Bindings tracked: ${BUILDER_INSTALL_REQUIRED_BINDINGS.length}` : `추적 바인딩: ${BUILDER_INSTALL_REQUIRED_BINDINGS.length}`}</li>
+                <li>{en ? `Validator checks tracked: ${BUILDER_INSTALL_VALIDATOR_CHECKS.length}` : `추적 검증 체크: ${BUILDER_INSTALL_VALIDATOR_CHECKS.length}`}</li>
+                <li>{en ? "Once the registry entry is created, the install-bind console should inherit the same menu code and binding URL without remapping." : "레지스트리 엔트리가 생성되면 install-bind 콘솔은 같은 메뉴 코드와 바인딩 URL을 재매핑 없이 이어받아야 합니다."}</li>
+                <li>{en ? "Do not create a page registry entry unless the binding URL already matches the intended install lane." : "바인딩 URL이 목표 설치 레인과 맞지 않으면 페이지 레지스트리 엔트리를 만들지 않습니다."}</li>
+              </ul>
+            </div>
+          </div>
+        </CollectionResultPanel>
+
+        <CollectionResultPanel
           data-help-id="menu-management-scope"
-          description={en ? "Reordering is limited to siblings under the same parent. Search disables movement to avoid mismatching filtered positions." : "같은 부모 메뉴 아래에서만 순서를 바꿀 수 있고, 검색 중에는 필터 결과와 실제 순서가 어긋나지 않도록 이동을 막습니다."}
+          description={en ? "Registry reordering is limited to siblings under the same parent. Search disables movement so intake review and saved binding order do not diverge." : "레지스트리 재정렬은 같은 부모 메뉴 아래에서만 가능합니다. 검색 중에는 intake 검토와 저장 순서가 어긋나지 않도록 이동을 막습니다."}
           icon="tune"
-          title={en ? "Menu Scope and Search" : "메뉴 범위와 검색"}
+          title={en ? "Registry Scope and Search" : "레지스트리 범위와 검색"}
         >
         <div className="grid grid-cols-1 gap-4 md:grid-cols-[16rem_1fr] xl:grid-cols-[16rem_1fr_1.2fr] items-end">
           <div>
-            <label className="gov-label" htmlFor="menuType">{en ? "Page Scope" : "화면 구분"}</label>
+            <label className="gov-label" htmlFor="menuType">{en ? "Registry Lane" : "레지스트리 레인"}</label>
             <select className="gov-select" id="menuType" value={menuType} onChange={(event) => setMenuType(event.target.value)}>
               {menuTypes.map((type) => (
                 <option key={stringOf(type, "value")} value={stringOf(type, "value")}>{stringOf(type, "label")}</option>
@@ -472,11 +524,11 @@ export function MenuManagementMigrationPage() {
             </select>
           </div>
           <div>
-            <label className="gov-label" htmlFor="menuSearchKeyword">{en ? "Search menu tree" : "메뉴 트리 검색"}</label>
+            <label className="gov-label" htmlFor="menuSearchKeyword">{en ? "Search registry tree" : "레지스트리 트리 검색"}</label>
             <input className="gov-input" id="menuSearchKeyword" onChange={(event) => setSearchKeyword(event.target.value)} placeholder={en ? "Menu code, name, URL" : "메뉴 코드, 메뉴명, URL"} value={searchKeyword} />
           </div>
           <div className="rounded-[var(--kr-gov-radius)] border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-[var(--kr-gov-text-secondary)]">
-            {en ? "Only sibling menus under the same parent can move up or down. Reordering is disabled while search is active to avoid mismatching filtered positions." : "같은 부모 메뉴 아래에서만 위/아래 이동이 가능합니다. 검색 중에는 필터 결과와 실제 순서가 엇갈리지 않도록 순서 이동을 잠시 막습니다."}
+            {en ? "Only sibling menus under the same parent can move up or down. Reordering is disabled while search is active so registry review and saved binding order stay aligned." : "같은 부모 메뉴 아래에서만 위/아래 이동이 가능합니다. 검색 중에는 레지스트리 검토와 저장 순서가 어긋나지 않도록 순서 이동을 잠시 막습니다."}
           </div>
         </div>
         </CollectionResultPanel>
@@ -484,17 +536,17 @@ export function MenuManagementMigrationPage() {
         <section className="gov-card overflow-hidden p-0" data-help-id="menu-management-register">
           <GridToolbar
             meta={String(page?.menuMgmtGuide || "")}
-            title={en ? "Quick Page Registration" : "빠른 페이지 등록"}
+            title={en ? "Registry Intake" : "레지스트리 인테이크"}
           />
           <div className="p-6">
-            <WarningPanel className="mb-4" title={en ? "Sitemap linkage" : "사이트맵 연동"}>
+            <WarningPanel className="mb-4" title={en ? "Registry linkage" : "레지스트리 연동"}>
               {String(page?.siteMapMgmtGuide || "")}
             </WarningPanel>
 
         <div className="grid grid-cols-1 xl:grid-cols-[1.2fr_0.8fr] gap-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="gov-label" htmlFor="parentCode">{en ? "Group Menu" : "그룹 메뉴"}</label>
+              <label className="gov-label" htmlFor="parentCode">{en ? "Registry Parent" : "레지스트리 부모"}</label>
               <select className="gov-select" id="parentCode" value={parentCodeValue} onChange={(event) => setParentCodeValue(event.target.value)}>
                 {groupMenuOptions.map((option) => (
                   <option key={stringOf(option, "value")} value={stringOf(option, "value")}>{stringOf(option, "label")}</option>
@@ -502,19 +554,19 @@ export function MenuManagementMigrationPage() {
               </select>
             </div>
             <div>
-              <label className="gov-label" htmlFor="suggestedCode">{en ? "Generated Page Code" : "생성 예정 페이지 코드"}</label>
+              <label className="gov-label" htmlFor="suggestedCode">{en ? "Generated Registry Code" : "생성 예정 레지스트리 코드"}</label>
               <input className="gov-input bg-gray-50" id="suggestedCode" readOnly value={findSuggestedPageCode()} />
             </div>
             <div>
-              <label className="gov-label" htmlFor="codeNm">{en ? "Page Name" : "페이지명"}</label>
+              <label className="gov-label" htmlFor="codeNm">{en ? "Registry Name" : "레지스트리명"}</label>
               <input className="gov-input" id="codeNm" value={codeNm} onChange={(event) => setCodeNm(event.target.value)} />
             </div>
             <div>
-              <label className="gov-label" htmlFor="codeDc">{en ? "English Page Name" : "영문 페이지명"}</label>
+              <label className="gov-label" htmlFor="codeDc">{en ? "English Registry Name" : "영문 레지스트리명"}</label>
               <input className="gov-input" id="codeDc" value={codeDc} onChange={(event) => setCodeDc(event.target.value)} />
             </div>
             <div className="md:col-span-2">
-              <label className="gov-label" htmlFor="menuUrl">{en ? "Page URL" : "페이지 URL"}</label>
+              <label className="gov-label" htmlFor="menuUrl">{en ? "Binding URL" : "바인딩 URL"}</label>
               <input className="gov-input" id="menuUrl" placeholder={menuType === "USER" ? "/home/..." : "/admin/..."} value={menuUrl} onChange={(event) => setMenuUrl(event.target.value)} />
             </div>
             <div>
@@ -536,16 +588,16 @@ export function MenuManagementMigrationPage() {
           </div>
 
           <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[#f8fbff] px-5 py-4">
-            <h4 className="font-bold text-[var(--kr-gov-blue)]">{en ? "What gets created" : "함께 생성되는 항목"}</h4>
+            <h4 className="font-bold text-[var(--kr-gov-blue)]">{en ? "What the intake creates" : "인테이크가 만드는 항목"}</h4>
             <ul className="mt-3 space-y-2 text-sm text-[var(--kr-gov-text-secondary)] list-disc pl-5">
-              <li>{en ? "Common detail code and menu URL metadata" : "공통 상세코드와 메뉴 URL 메타데이터"}</li>
-              <li>{en ? "Default PAGE_CODE_VIEW feature" : "기본 PAGE_CODE_VIEW 기능"}</li>
-              <li>{en ? "Initial sibling sort order under the selected group" : "선택 그룹 하위의 초기 정렬 순서"}</li>
-              <li>{en ? "Legacy screens stay intact and can be hidden later" : "기존 화면은 유지되고 나중에 숨김 처리 가능"}</li>
+              <li>{en ? "Registry code and binding URL metadata" : "레지스트리 코드와 바인딩 URL 메타데이터"}</li>
+              <li>{en ? "Default PAGE_CODE_VIEW feature seed" : "기본 PAGE_CODE_VIEW 기능 시드"}</li>
+              <li>{en ? "Initial sibling registry order under the selected parent" : "선택 부모 하위의 초기 레지스트리 정렬"}</li>
+              <li>{en ? "A menu entry that can hand off to install-bind and package-builder flows" : "설치-바인딩과 패키지 빌더 흐름으로 넘길 수 있는 메뉴 엔트리"}</li>
             </ul>
             <div className="mt-4">
               <button className="gov-btn gov-btn-primary w-full" onClick={() => { void createPageMenu().catch((error: Error) => setActionError(error.message)); }} type="button">
-                {en ? "Create Page Menu" : "페이지 메뉴 생성"}
+                {en ? "Create Registry Entry" : "레지스트리 엔트리 생성"}
               </button>
             </div>
           </div>
@@ -555,40 +607,40 @@ export function MenuManagementMigrationPage() {
 
         <section className="gov-card overflow-hidden p-0" data-help-id="menu-management-tree">
           <GridToolbar
-            actions={<div className="flex flex-wrap items-center gap-2"><button className="gov-btn gov-btn-primary" onClick={() => { void saveOrder().catch((error: Error) => setActionError(error.message)); }} type="button">{en ? "Save Order" : "순서 저장"}</button></div>}
-            meta={en ? "Review node depth and pending sibling order changes before saving." : "노드 깊이와 같은 부모 기준의 정렬 변경을 확인한 뒤 저장합니다."}
-            title={en ? "Menu Tree" : "메뉴 트리"}
+            actions={<div className="flex flex-wrap items-center gap-2"><button className="gov-btn gov-btn-primary" onClick={() => { void saveOrder().catch((error: Error) => setActionError(error.message)); }} type="button">{en ? "Save Registry Order" : "레지스트리 순서 저장"}</button></div>}
+            meta={en ? "Review node depth and pending sibling registry order changes before saving." : "노드 깊이와 같은 부모 기준의 레지스트리 정렬 변경을 확인한 뒤 저장합니다."}
+            title={en ? "Registry Tree" : "레지스트리 트리"}
           />
           <div className="p-6">
 
         <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
           <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[#f8fbff] px-4 py-3">
-            <p className="font-bold text-[var(--kr-gov-blue)]">{en ? "Top Menu" : "상위 메뉴"}</p>
+            <p className="font-bold text-[var(--kr-gov-blue)]">{en ? "Top Registry" : "상위 레지스트리"}</p>
             <p className="text-[var(--kr-gov-text-secondary)]">{en ? "4-digit code" : "4자리 코드"}</p>
           </div>
           <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[#fcfbf7] px-4 py-3">
-            <p className="font-bold text-[#8a5a00]">{en ? "Group Menu" : "그룹 메뉴"}</p>
+            <p className="font-bold text-[#8a5a00]">{en ? "Group Registry" : "그룹 레지스트리"}</p>
             <p className="text-[var(--kr-gov-text-secondary)]">{en ? "6-digit code" : "6자리 코드"}</p>
           </div>
           <div className="rounded-[var(--kr-gov-radius)] border border-[var(--kr-gov-border-light)] bg-[#f7fbf8] px-4 py-3">
-            <p className="font-bold text-[#196c2e]">{en ? "Page Menu" : "페이지 메뉴"}</p>
+            <p className="font-bold text-[#196c2e]">{en ? "Page Registry" : "페이지 레지스트리"}</p>
             <p className="text-[var(--kr-gov-text-secondary)]">{en ? "8-digit code" : "8자리 코드"}</p>
           </div>
         </div>
 
         {dirtyOrderRows.length > 0 ? (
-          <CollectionResultPanel className="mb-4" description={en ? "Rows below still have unsaved sibling order changes." : "아래 행에는 아직 저장되지 않은 같은 부모 기준 정렬 변경이 남아 있습니다."} icon="pending_actions" title={en ? "Pending changes" : "저장 대기 변경"}>
+          <CollectionResultPanel className="mb-4" description={en ? "Rows below still have unsaved sibling registry order changes." : "아래 행에는 아직 저장되지 않은 같은 부모 기준 레지스트리 정렬 변경이 남아 있습니다."} icon="pending_actions" title={en ? "Pending registry changes" : "저장 대기 레지스트리 변경"}>
             <div className="mt-2 flex flex-wrap gap-2">
-              {dirtyOrderRows.slice(0, 8).map((node) => <span className="gov-chip bg-indigo-100 text-indigo-700" key={`order-${node.code}`}>{`${node.code} ${en ? "order" : "순서"}`}</span>)}
-              {dirtyOrderRows.length > 8 ? <span className="gov-chip bg-slate-100 text-slate-700">+{dirtyOrderRows.length - 8}</span> : null}
+                {dirtyOrderRows.slice(0, 8).map((node) => <span className="gov-chip bg-indigo-100 text-indigo-700" key={`order-${node.code}`}>{`${node.code} ${en ? "registry order" : "레지스트리 순서"}`}</span>)}
+                {dirtyOrderRows.length > 8 ? <span className="gov-chip bg-slate-100 text-slate-700">+{dirtyOrderRows.length - 8}</span> : null}
             </div>
           </CollectionResultPanel>
         ) : null}
 
-        <WarningPanel className="mb-4" title={en ? "Visibility rule" : "노출 규칙"}>
+        <WarningPanel className="mb-4" title={en ? "Registry visibility rule" : "레지스트리 노출 규칙"}>
           {en
-            ? "Sidebar or sitemap exposure is governed separately. This screen focuses on menu registration and sibling ordering."
-            : "사이드바나 사이트맵 노출 정책은 별도 관리 대상으로 분리합니다. 이 화면은 메뉴 등록과 같은 부모 기준 정렬에 집중합니다."}
+            ? "Sidebar or sitemap exposure is governed separately. This console focuses on registry intake and sibling binding order."
+            : "사이드바나 사이트맵 노출 정책은 별도 관리 대상으로 분리합니다. 이 콘솔은 레지스트리 인테이크와 같은 부모 기준 바인딩 순서에 집중합니다."}
         </WarningPanel>
 
         {visibleNodes.length === 0 ? (

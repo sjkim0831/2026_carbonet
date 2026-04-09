@@ -18,7 +18,7 @@ import {
 import { fetchJson } from "../../lib/api/core";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
-import { ROUTES } from "../../app/routes/definitions";
+import { findRouteDefinitionByPath } from "../../app/routes/definitions";
 
 type BreadcrumbItem = {
   label: string;
@@ -277,7 +277,7 @@ function resolveRouteBackedMenuLabel(runtimeUrl: string, en: boolean) {
   if (!targetPath || targetPath === "/") {
     return "";
   }
-  const matchedRoute = ROUTES.find((route) => route.koPath === targetPath || route.enPath === targetPath);
+  const matchedRoute = findRouteDefinitionByPath(targetPath);
   if (!matchedRoute) {
     return "";
   }

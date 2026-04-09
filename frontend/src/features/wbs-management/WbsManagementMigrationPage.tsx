@@ -7,15 +7,9 @@ import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { CollectionResultPanel, GridToolbar, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 import { numberOf, stringOf } from "../admin-system/adminSystemShared";
+import { buildMenuTree, type MenuTreeNode } from "../menu-management/menuTreeShared";
 
-type MenuNode = {
-  code: string;
-  label: string;
-  url: string;
-  icon: string;
-  sortOrdr: number;
-  children: MenuNode[];
-};
+type MenuNode = MenuTreeNode;
 
 type WbsEditorState = {
   owner: string;
@@ -28,48 +22,6 @@ type WbsEditorState = {
   notes: string;
   codexInstruction: string;
 };
-
-function parentCode(code: string) {
-  if (code.length === 8) return code.slice(0, 6);
-  if (code.length === 6) return code.slice(0, 4);
-  return "";
-}
-
-function buildTree(rows: Array<Record<string, unknown>>) {
-  const nodes = new Map<string, MenuNode>();
-  rows.forEach((row) => {
-    const code = stringOf(row, "code").toUpperCase();
-    if (!code) return;
-    nodes.set(code, {
-      code,
-      label: stringOf(row, "codeNm", "code"),
-      url: stringOf(row, "menuUrl"),
-      icon: stringOf(row, "menuIcon") || "menu",
-      sortOrdr: numberOf(row, "sortOrdr"),
-      children: []
-    });
-  });
-  const roots: MenuNode[] = [];
-  nodes.forEach((node) => {
-    const parent = nodes.get(parentCode(node.code));
-    if (parent) {
-      parent.children.push(node);
-    } else {
-      roots.push(node);
-    }
-  });
-  const sortNodes = (items: MenuNode[]) => {
-    items.sort((a, b) => {
-      const orderA = a.sortOrdr > 0 ? a.sortOrdr : Number.MAX_SAFE_INTEGER;
-      const orderB = b.sortOrdr > 0 ? b.sortOrdr : Number.MAX_SAFE_INTEGER;
-      if (orderA !== orderB) return orderA - orderB;
-      return a.code.localeCompare(b.code);
-    });
-    items.forEach((item) => sortNodes(item.children));
-  };
-  sortNodes(roots);
-  return roots;
-}
 
 function editorFromRow(row: Record<string, unknown> | null): WbsEditorState {
   return {
@@ -173,7 +125,7 @@ export function WbsManagementMigrationPage() {
     setEditor(editorFromRow(selectedRow));
   }, [selectedMenuCode, selectedRow]);
 
-  const tree = useMemo(() => buildTree(menuRows), [menuRows]);
+  const tree = useMemo(() => buildMenuTree(menuRows, { labelKeys: ["codeNm", "code"] }), [menuRows]);
 
   const filteredRows = useMemo(() => wbsRows.filter((row) => {
     if (statusFilter !== "ALL" && stringOf(row, "status") !== statusFilter) {

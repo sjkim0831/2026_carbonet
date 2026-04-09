@@ -5,9 +5,9 @@ import egovframework.com.common.menu.service.SiteMapService;
 import egovframework.com.common.util.ReactPageUrlMapper;
 import egovframework.com.feature.admin.dto.response.MenuInfoDTO;
 import egovframework.com.feature.admin.service.AuthGroupManageService;
-import egovframework.com.feature.admin.service.MenuInfoService;
 import egovframework.com.feature.auth.util.JwtTokenProvider;
 import egovframework.com.framework.authority.service.FrameworkAuthorityPolicyService;
+import egovframework.com.platform.read.MenuInfoReadPort;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +36,7 @@ public class SiteMapServiceImpl implements SiteMapService {
     private static final int PUBLIC_COMPANY_SORT = 30;
     private static final int PUBLIC_MYPAGE_SORT = 40;
 
-    private final MenuInfoService menuInfoService;
+    private final MenuInfoReadPort menuInfoReadPort;
     private final AuthGroupManageService authGroupManageService;
     private final JwtTokenProvider jwtTokenProvider;
     private final FrameworkAuthorityPolicyService frameworkAuthorityPolicyService;
@@ -58,7 +58,7 @@ public class SiteMapServiceImpl implements SiteMapService {
     }
 
     private List<SiteMapNode> resolveUserSnapshot(boolean isEn) {
-        long version = menuInfoService.getMenuTreeVersion();
+        long version = menuInfoReadPort.getMenuTreeVersion();
         CachedSiteMapSnapshot cached = isEn ? userEnglishSnapshot : userKoreanSnapshot;
         if (cached != null && cached.version == version) {
             return cloneSiteMapNodes(cached.nodes);
@@ -80,7 +80,7 @@ public class SiteMapServiceImpl implements SiteMapService {
     }
 
     private CompiledAdminSiteMapSnapshot resolveAdminSnapshot(boolean isEn) {
-        long version = menuInfoService.getMenuTreeVersion();
+        long version = menuInfoReadPort.getMenuTreeVersion();
         CachedCompiledAdminSnapshot cached = isEn ? adminEnglishSnapshot : adminKoreanSnapshot;
         if (cached != null && cached.version == version) {
             return cached.snapshot;
@@ -102,7 +102,7 @@ public class SiteMapServiceImpl implements SiteMapService {
     }
 
     private List<SiteMapNode> buildSiteMap(String codeId, boolean isEn) {
-        List<MenuInfoDTO> rows = loadMenuTreeRows(codeId);
+        List<MenuTreeRow> rows = loadSiteMapRows(codeId, isEn, false);
         if (rows.isEmpty()) {
             return Collections.emptyList();
         }
@@ -111,28 +111,20 @@ public class SiteMapServiceImpl implements SiteMapService {
         Map<String, SiteMapNode> topMap = new LinkedHashMap<>();
         Map<String, SiteMapNode> midMap = new LinkedHashMap<>();
 
-        for (MenuInfoDTO row : rows) {
-            String code = safeString(row.getCode()).toUpperCase(Locale.ROOT);
-            if (code.isEmpty() || !"Y".equalsIgnoreCase(safeString(row.getUseAt()))) {
-                continue;
-            }
-            sortOrderMap.put(code, row.getSortOrdr());
-            String label = resolveLabel(row, isEn);
-            String rawUrl = normalizeMenuUrl(row.getMenuUrl());
-            String url = mapMenuUrl(rawUrl, isEn);
-            String icon = safeString(row.getMenuIcon());
-
+        for (MenuTreeRow row : rows) {
+            String code = row.code;
+            sortOrderMap.put(code, row.sortOrder);
             if (code.length() == 4) {
-                SiteMapNode top = topMap.computeIfAbsent(code, key -> createNode(key, label, url, icon));
-                top.setLabel(label);
-                top.setUrl(url);
-                if (!icon.isEmpty()) {
-                    top.setIcon(icon);
+                SiteMapNode top = topMap.computeIfAbsent(code, key -> createNode(key, row.label, row.url, row.icon));
+                top.setLabel(row.label);
+                top.setUrl(row.url);
+                if (!row.icon.isEmpty()) {
+                    top.setIcon(row.icon);
                 }
             } else if (code.length() == 6) {
                 String parentCode = code.substring(0, 4);
                 SiteMapNode top = topMap.computeIfAbsent(parentCode, key -> createNode(key, parentCode, "#", ""));
-                SiteMapNode mid = createNode(code, label, url, icon);
+                SiteMapNode mid = createNode(code, row.label, row.url, row.icon);
                 top.getChildren().add(mid);
                 midMap.put(code, mid);
             } else if (code.length() == 8) {
@@ -145,7 +137,7 @@ public class SiteMapServiceImpl implements SiteMapService {
                     top.getChildren().add(mid);
                     midMap.put(parentCode, mid);
                 }
-                mid.getChildren().add(createNode(code, label, url, icon));
+                mid.getChildren().add(createNode(code, row.label, row.url, row.icon));
             }
         }
 
@@ -155,7 +147,7 @@ public class SiteMapServiceImpl implements SiteMapService {
     }
 
     private CompiledAdminSiteMapSnapshot buildCompiledAdminSiteMap(String codeId, boolean isEn) {
-        List<MenuInfoDTO> rows = loadMenuTreeRows(codeId);
+        List<MenuTreeRow> rows = loadSiteMapRows(codeId, isEn, true);
         if (rows.isEmpty()) {
             return new CompiledAdminSiteMapSnapshot(Collections.emptyList());
         }
@@ -164,28 +156,20 @@ public class SiteMapServiceImpl implements SiteMapService {
         Map<String, CompiledSiteMapNode> topMap = new LinkedHashMap<>();
         Map<String, CompiledSiteMapNode> midMap = new LinkedHashMap<>();
 
-        for (MenuInfoDTO row : rows) {
-            String code = safeString(row.getCode()).toUpperCase(Locale.ROOT);
-            if (code.isEmpty() || !"Y".equalsIgnoreCase(safeString(row.getUseAt()))) {
-                continue;
-            }
-            sortOrderMap.put(code, row.getSortOrdr());
-            String label = resolveLabel(row, isEn);
-            String rawUrl = normalizeMenuUrl(row.getMenuUrl());
-            String url = mapMenuUrl(rawUrl, isEn);
-            String icon = safeString(row.getMenuIcon());
-
+        for (MenuTreeRow row : rows) {
+            String code = row.code;
+            sortOrderMap.put(code, row.sortOrder);
             if (code.length() == 4) {
-                CompiledSiteMapNode top = topMap.computeIfAbsent(code, key -> createCompiledNode(key, label, url, icon, "", false));
-                top.label = label;
-                top.url = url;
-                if (!icon.isEmpty()) {
-                    top.icon = icon;
+                CompiledSiteMapNode top = topMap.computeIfAbsent(code, key -> createCompiledNode(key, row.label, row.url, row.icon, "", false));
+                top.label = row.label;
+                top.url = row.url;
+                if (!row.icon.isEmpty()) {
+                    top.icon = row.icon;
                 }
             } else if (code.length() == 6) {
                 String parentCode = code.substring(0, 4);
                 CompiledSiteMapNode top = topMap.computeIfAbsent(parentCode, key -> createCompiledNode(key, parentCode, "#", "", "", false));
-                CompiledSiteMapNode mid = createCompiledNode(code, label, url, icon, "", false);
+                CompiledSiteMapNode mid = createCompiledNode(code, row.label, row.url, row.icon, "", false);
                 top.children.add(mid);
                 midMap.put(code, mid);
             } else if (code.length() == 8) {
@@ -200,11 +184,11 @@ public class SiteMapServiceImpl implements SiteMapService {
                 }
                 mid.children.add(createCompiledNode(
                         code,
-                        label,
-                        url,
-                        icon,
-                        resolveRequiredViewFeatureCode(rawUrl),
-                        isGlobalOnlyRoute(ReactPageUrlMapper.toCanonicalMenuUrl(rawUrl))));
+                        row.label,
+                        row.url,
+                        row.icon,
+                        row.requiredFeatureCode,
+                        row.globalOnlyRoute));
             }
         }
 
@@ -289,6 +273,31 @@ public class SiteMapServiceImpl implements SiteMapService {
         }
     }
 
+    private List<MenuTreeRow> loadSiteMapRows(String codeId, boolean isEn, boolean includeAdminMetadata) {
+        List<MenuInfoDTO> rows = loadMenuTreeRows(codeId);
+        if (rows.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<MenuTreeRow> normalizedRows = new ArrayList<>(rows.size());
+        for (MenuInfoDTO row : rows) {
+            String code = safeString(row.getCode()).toUpperCase(Locale.ROOT);
+            if (code.isEmpty() || !"Y".equalsIgnoreCase(safeString(row.getUseAt()))) {
+                continue;
+            }
+            String rawUrl = normalizeMenuUrl(row.getMenuUrl());
+            String canonicalUrl = includeAdminMetadata ? ReactPageUrlMapper.toCanonicalMenuUrl(rawUrl) : "";
+            normalizedRows.add(new MenuTreeRow(
+                    code,
+                    resolveLabel(row, isEn),
+                    mapMenuUrl(rawUrl, isEn),
+                    safeString(row.getMenuIcon()),
+                    row.getSortOrdr(),
+                    includeAdminMetadata ? resolveRequiredViewFeatureCode(rawUrl) : "",
+                    includeAdminMetadata && isGlobalOnlyRoute(canonicalUrl)));
+        }
+        return normalizedRows;
+    }
+
     private String firstChildUrl(List<SiteMapNode> children) {
         for (SiteMapNode child : children) {
             String url = safeString(child.getUrl());
@@ -320,7 +329,7 @@ public class SiteMapServiceImpl implements SiteMapService {
 
     private List<MenuInfoDTO> loadMenuTreeRows(String codeId) {
         try {
-            return new ArrayList<>(menuInfoService.selectMenuTreeList(codeId));
+            return new ArrayList<>(menuInfoReadPort.selectMenuTreeList(codeId));
         } catch (Exception e) {
             log.error("Failed to load sitemap menu tree. codeId={}", codeId, e);
             return Collections.emptyList();
@@ -679,6 +688,27 @@ public class SiteMapServiceImpl implements SiteMapService {
         private String requiredFeatureCode;
         private boolean globalOnlyRoute;
         private List<CompiledSiteMapNode> children = new ArrayList<>();
+    }
+
+    private static final class MenuTreeRow {
+        private final String code;
+        private final String label;
+        private final String url;
+        private final String icon;
+        private final Integer sortOrder;
+        private final String requiredFeatureCode;
+        private final boolean globalOnlyRoute;
+
+        private MenuTreeRow(String code, String label, String url, String icon, Integer sortOrder,
+                            String requiredFeatureCode, boolean globalOnlyRoute) {
+            this.code = code;
+            this.label = label;
+            this.url = url;
+            this.icon = icon;
+            this.sortOrder = sortOrder;
+            this.requiredFeatureCode = requiredFeatureCode;
+            this.globalOnlyRoute = globalOnlyRoute;
+        }
     }
 
     private static final class AuthorPermissionContext {

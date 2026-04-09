@@ -8,13 +8,43 @@ import java.util.Map;
 
 public interface AdminEmissionSurveyWorkbookService {
 
-    Map<String, Object> getPagePayload(boolean isEn);
+    Map<String, Object> getPagePayload(String actorId, boolean isEn);
 
-    Map<String, Object> parseWorkbook(MultipartFile uploadFile, boolean isEn);
+    Map<String, Object> parseWorkbook(MultipartFile uploadFile,
+                                      String actorId,
+                                      String lciMajorCode,
+                                      String lciMajorLabel,
+                                      String lciMiddleCode,
+                                      String lciMiddleLabel,
+                                      String lciSmallCode,
+                                      String lciSmallLabel,
+                                      boolean isEn);
+
+    Map<String, Object> previewSharedDatasetWorkbook(MultipartFile uploadFile, boolean isEn);
+
+    Map<String, Object> replaceSharedDatasetWorkbook(MultipartFile uploadFile, boolean isEn);
+
+    Map<String, Object> getDataPagePayload(String actorId,
+                                           String lciMajorCode,
+                                           String lciMiddleCode,
+                                           String lciSmallCode,
+                                           String status,
+                                           String datasetId,
+                                           String logId,
+                                           int pageIndex,
+                                           int pageSize,
+                                           boolean isEn);
+
+    Map<String, Object> loadClassificationCaseDrafts(String lciMajorCode,
+                                                     String lciMiddleCode,
+                                                     String lciSmallCode,
+                                                     String caseCode,
+                                                     String actorId,
+                                                     boolean isEn);
 
     Map<String, Object> saveCaseDraft(EmissionSurveyCaseSaveRequest request, String actorId, boolean isEn);
 
-    Map<String, Object> deleteCaseDraft(String sectionCode, String caseCode, boolean isEn);
+    Map<String, Object> deleteCaseDraft(String sectionCode, String caseCode, String actorId, boolean isEn);
 
     Map<String, Object> saveDraftSet(EmissionSurveyDraftSetSaveRequest request, String actorId, boolean isEn);
 

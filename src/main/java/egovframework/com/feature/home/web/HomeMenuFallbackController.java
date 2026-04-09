@@ -2,8 +2,8 @@ package egovframework.com.feature.home.web;
 
 import egovframework.com.common.util.ReactPageUrlMapper;
 import egovframework.com.feature.admin.dto.response.MenuInfoDTO;
-import egovframework.com.feature.admin.service.MenuInfoService;
 import egovframework.com.feature.home.service.HomeMenuService;
+import egovframework.com.platform.read.MenuInfoReadPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -24,7 +24,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class HomeMenuFallbackController {
 
-    private final MenuInfoService menuInfoService;
+    private final MenuInfoReadPort menuInfoReadPort;
     private final HomeMenuService homeMenuService;
     private final ReactAppViewSupport reactAppViewSupport;
 
@@ -37,7 +37,7 @@ public class HomeMenuFallbackController {
                     "/en/payment/**", "/en/edu/**", "/en/support/**", "/en/mtn/**",
                     "/en/mypage/**"
             },
-            method = { RequestMethod.GET })
+            method = { RequestMethod.GET, RequestMethod.POST })
     public String homeMenuPlaceholder(HttpServletRequest request, Locale locale, Model model) {
         boolean isEn = isEnglishRequest(request, locale);
         String normalized = normalizeRequestUri(request);
@@ -52,7 +52,7 @@ public class HomeMenuFallbackController {
             return reactAppViewSupport.render(model, "emission-home-validate", isEn, false);
         }
         if (!routeId.isEmpty()) {
-            return reactAppViewSupport.render(model, routeId.replace('_', '-'), isEn, false);
+            return reactAppViewSupport.render(model, ReactRouteSupport.normalizeViewRoute(routeId, false), isEn, false);
         }
         MenuInfoDTO menu = loadMenu(normalized);
         if (menu == null) {
@@ -81,7 +81,7 @@ public class HomeMenuFallbackController {
 
     private MenuInfoDTO loadMenu(String normalizedUrl) {
         try {
-            return menuInfoService.selectMenuDetailByUrl(normalizedUrl);
+            return menuInfoReadPort.selectMenuDetailByUrl(normalizedUrl);
         } catch (Exception e) {
             return null;
         }

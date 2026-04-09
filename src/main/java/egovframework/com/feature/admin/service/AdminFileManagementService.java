@@ -29,9 +29,11 @@ public class AdminFileManagementService {
 
     private final ObjectMapper objectMapper;
     private final Map<String, FileItem> fileStore = new ConcurrentHashMap<>();
+    private final AdminPagePayloadFactory adminPagePayloadFactory;
 
-    public AdminFileManagementService(ObjectMapper objectMapper) {
+    public AdminFileManagementService(ObjectMapper objectMapper, AdminPagePayloadFactory adminPagePayloadFactory) {
         this.objectMapper = objectMapper;
+        this.adminPagePayloadFactory = adminPagePayloadFactory;
         seed(new FileItem("FILE_001", "2026_탄소배출_제출가이드_v3.pdf", "가이드", "Guide", "PDF", "4.2 MB",
                 "ACTIVE", "PUBLIC", 6, 1840, "게시 종료 후 3년", "3 years after retirement",
                 "공개", "Public", "배출 운영팀", "Emission Operations", "2026-03-31 09:20", "content_mgr",
@@ -83,9 +85,7 @@ public class AdminFileManagementService {
 
         Map<String, String> selected = selectRow(filtered, catalog, safe(fileId));
 
-        Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("isEn", isEn);
-        payload.put("menuCode", "A0040104");
+        Map<String, Object> payload = adminPagePayloadFactory.create(isEn, "A0040104");
         payload.put("searchKeyword", safe(searchKeyword));
         payload.put("status", safe(status));
         payload.put("visibility", safe(visibility));

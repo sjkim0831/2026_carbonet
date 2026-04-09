@@ -5,7 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import egovframework.com.common.audit.AuditTrailService;
 import egovframework.com.feature.admin.dto.request.FullStackGovernanceAutoCollectRequest;
 import egovframework.com.feature.admin.dto.request.FullStackGovernanceSaveRequest;
-import egovframework.com.feature.admin.service.FullStackGovernanceRegistryService;
+import egovframework.com.feature.admin.service.FullStackGovernanceRegistryCommandService;
+import egovframework.com.platform.read.FullStackGovernanceRegistryReadPort;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,14 +34,15 @@ public class AdminFullStackManagementApiController {
 
     private static final Logger log = LoggerFactory.getLogger(AdminFullStackManagementApiController.class);
 
-    private final FullStackGovernanceRegistryService fullStackGovernanceRegistryService;
+    private final FullStackGovernanceRegistryReadPort fullStackGovernanceRegistryReadPort;
+    private final FullStackGovernanceRegistryCommandService fullStackGovernanceRegistryCommandService;
     private final AuditTrailService auditTrailService;
     private final ObjectMapper objectMapper;
 
     @GetMapping("/registry")
     public ResponseEntity<Map<String, Object>> getRegistry(
             @RequestParam(value = "menuCode", required = false) String menuCode) {
-        return ResponseEntity.ok(fullStackGovernanceRegistryService.getEntry(menuCode));
+        return ResponseEntity.ok(fullStackGovernanceRegistryReadPort.getEntry(menuCode));
     }
 
     @PostMapping("/registry")
@@ -49,8 +51,8 @@ public class AdminFullStackManagementApiController {
             HttpServletRequest httpServletRequest) {
         Map<String, Object> response = new LinkedHashMap<>();
         try {
-        Map<String, Object> beforeState = fullStackGovernanceRegistryService.getEntry(request == null ? "" : request.getMenuCode());
-        Map<String, Object> saved = fullStackGovernanceRegistryService.saveEntry(request);
+        Map<String, Object> beforeState = fullStackGovernanceRegistryReadPort.getEntry(request == null ? "" : request.getMenuCode());
+        Map<String, Object> saved = fullStackGovernanceRegistryCommandService.saveEntry(request);
         auditTrailService.record(
                 resolveActorId(httpServletRequest),
                 resolveActorRole(httpServletRequest),
@@ -84,8 +86,8 @@ public class AdminFullStackManagementApiController {
             HttpServletRequest httpServletRequest) throws Exception {
         Map<String, Object> response = new LinkedHashMap<>();
         try {
-            Map<String, Object> beforeState = fullStackGovernanceRegistryService.getEntry(request == null ? "" : request.getMenuCode());
-            Map<String, Object> collected = fullStackGovernanceRegistryService.autoCollectEntry(request);
+            Map<String, Object> beforeState = fullStackGovernanceRegistryReadPort.getEntry(request == null ? "" : request.getMenuCode());
+            Map<String, Object> collected = fullStackGovernanceRegistryCommandService.autoCollectEntry(request);
             auditTrailService.record(
                     resolveActorId(httpServletRequest),
                     resolveActorRole(httpServletRequest),

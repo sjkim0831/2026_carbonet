@@ -1,6 +1,6 @@
 package egovframework.com.feature.admin.service.impl;
 
-import egovframework.com.feature.admin.service.AdminSummaryService;
+import egovframework.com.feature.admin.service.AdminSummaryCommandService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -9,25 +9,25 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class SecurityPolicyMaintenanceScheduler {
 
-    private final AdminSummaryService adminSummaryService;
+    private final AdminSummaryCommandService adminSummaryCommandService;
 
     @Scheduled(cron = "0 */10 * * * *")
     public void expireSuppressionsKo() {
-        adminSummaryService.expireSecurityInsightSuppressions(false);
+        adminSummaryCommandService.expireSecurityInsightSuppressions(false);
     }
 
     @Scheduled(cron = "30 */10 * * * *")
     public void expireSuppressionsEn() {
-        adminSummaryService.expireSecurityInsightSuppressions(true);
+        adminSummaryCommandService.expireSecurityInsightSuppressions(true);
     }
 
     @Scheduled(cron = "0 5-59/10 * * * *")
     public void dispatchDigestKo() {
-        adminSummaryService.runScheduledSecurityInsightDigest(false);
+        adminSummaryCommandService.runScheduledSecurityInsightDigest(false);
     }
 
     @Scheduled(cron = "30 5-59/10 * * * *")
     public void dispatchDigestEn() {
-        adminSummaryService.runScheduledSecurityInsightDigest(true);
+        adminSummaryCommandService.runScheduledSecurityInsightDigest(true);
     }
 }

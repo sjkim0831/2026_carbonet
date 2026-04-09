@@ -19,6 +19,12 @@ IDLE_RESTORE_ENABLED="${IDLE_RESTORE_ENABLED:-true}"
 IDLE_SSH_PASSWORD="${IDLE_SSH_PASSWORD:-}"
 LAST_DEPLOYED_COMMIT_FILE="${LAST_DEPLOYED_COMMIT_FILE:-$ARTIFACT_DIR/last-deployed-${BRANCH}.txt}"
 CURRENT_COMMIT_SHA=""
+NGINX_SITE_SYNC_ENABLED="${NGINX_SITE_SYNC_ENABLED:-true}"
+NGINX_SITE_CONFIG_SOURCE="${NGINX_SITE_CONFIG_SOURCE:-$ROOT_DIR/ops/config/nginx/carbonet-duckdns.org.conf.example}"
+NGINX_SITE_INSTALL_SCRIPT_SOURCE="${NGINX_SITE_INSTALL_SCRIPT_SOURCE:-$ROOT_DIR/ops/scripts/install-carbonet-duckdns-nginx.sh}"
+NGINX_SITE_REMOTE_TMP_CONFIG="${NGINX_SITE_REMOTE_TMP_CONFIG:-/tmp/carbonet-duckdns.org.conf}"
+NGINX_SITE_REMOTE_TMP_INSTALL="${NGINX_SITE_REMOTE_TMP_INSTALL:-/tmp/install-carbonet-duckdns-nginx.sh}"
+NGINX_SITE_REMOTE_TARGET="${NGINX_SITE_REMOTE_TARGET:-/etc/nginx/sites-enabled/carbonet}"
 
 log() {
   printf '[jenkins-deploy-carbonet] %s\n' "$*"
@@ -86,8 +92,45 @@ archive_artifact() {
   printf '%s\n' "$CURRENT_COMMIT_SHA" > "$LAST_DEPLOYED_COMMIT_FILE"
 }
 
+sync_nginx_site() {
+  if [[ "$NGINX_SITE_SYNC_ENABLED" != "true" ]]; then
+    log "nginx site sync skipped"
+    return 0
+  fi
+
+  if [[ ! -f "$NGINX_SITE_CONFIG_SOURCE" ]]; then
+    echo "Nginx site config not found: $NGINX_SITE_CONFIG_SOURCE" >&2
+    exit 1
+  fi
+
+  if [[ ! -f "$NGINX_SITE_INSTALL_SCRIPT_SOURCE" ]]; then
+    echo "Nginx install script not found: $NGINX_SITE_INSTALL_SCRIPT_SOURCE" >&2
+    exit 1
+  fi
+
+  log "upload nginx site config"
+  if [[ -n "$MAIN_REMOTE_PASSWORD" ]]; then
+    require_command sshpass
+    sshpass -p "$MAIN_REMOTE_PASSWORD" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+      "$NGINX_SITE_CONFIG_SOURCE" "${MAIN_TARGET}:${NGINX_SITE_REMOTE_TMP_CONFIG}"
+    sshpass -p "$MAIN_REMOTE_PASSWORD" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+      "$NGINX_SITE_INSTALL_SCRIPT_SOURCE" "${MAIN_TARGET}:${NGINX_SITE_REMOTE_TMP_INSTALL}"
+    sshpass -p "$MAIN_REMOTE_PASSWORD" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$MAIN_TARGET" \
+      "chmod +x '$NGINX_SITE_REMOTE_TMP_INSTALL' && sudo '$NGINX_SITE_REMOTE_TMP_INSTALL' '$NGINX_SITE_REMOTE_TMP_CONFIG' '$NGINX_SITE_REMOTE_TARGET'"
+    return 0
+  fi
+
+  scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+    "$NGINX_SITE_CONFIG_SOURCE" "${MAIN_TARGET}:${NGINX_SITE_REMOTE_TMP_CONFIG}"
+  scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+    "$NGINX_SITE_INSTALL_SCRIPT_SOURCE" "${MAIN_TARGET}:${NGINX_SITE_REMOTE_TMP_INSTALL}"
+  ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$MAIN_TARGET" \
+    "chmod +x '$NGINX_SITE_REMOTE_TMP_INSTALL' && sudo '$NGINX_SITE_REMOTE_TMP_INSTALL' '$NGINX_SITE_REMOTE_TMP_CONFIG' '$NGINX_SITE_REMOTE_TARGET'"
+}
+
 deploy_main() {
   local remote_tmp="/tmp/$ARTIFACT_NAME"
+  sync_nginx_site
   if [[ -n "$MAIN_REMOTE_PASSWORD" ]]; then
     require_command sshpass
     sshpass -p "$MAIN_REMOTE_PASSWORD" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \

@@ -75,7 +75,7 @@ Every new request should be classified into one or more of these families:
 - logging/cron/retention/monitoring
 - parity/uniformity/repair
 - productization and installable modules
-- AI provider or automation support
+- AI provider, automation support, and token optimization
 
 ## Update Workflow
 

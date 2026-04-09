@@ -516,7 +516,7 @@ Primary backend files:
 
 - `src/main/java/egovframework/com/common/trace/TraceEventService.java`
 - `src/main/java/egovframework/com/common/web/TelemetryController.java`
-- `src/main/java/egovframework/com/common/trace/UiManifestRegistryService.java`
+- `modules/carbonet-builder-observability/src/main/java/egovframework/com/common/trace/UiManifestRegistryService.java`
 - `src/main/java/egovframework/com/feature/admin/service/impl/ScreenCommandCenterServiceImpl.java`
 - `src/main/resources/egovframework/mapper/com/common/ObservabilityMapper.xml`
 

@@ -11,6 +11,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository("uiaEmployeeMemberRepository")
 public interface EmployeeMemberRepository extends JpaRepository<EmplyrInfo, String> {
 
@@ -62,5 +64,9 @@ public interface EmployeeMemberRepository extends JpaRepository<EmplyrInfo, Stri
             @Param("status") String status,
             @Param("insttId") String insttId,
             Sort sort);
+
+    Optional<EmplyrInfo> findFirstByAuthCi(String authCi);
+
+    Optional<EmplyrInfo> findFirstByAuthDi(String authDi);
 
 }

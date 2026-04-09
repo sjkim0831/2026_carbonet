@@ -11,6 +11,12 @@ import java.util.Map;
 @Service
 public class AdminTagManagementService {
 
+    private final AdminPagePayloadFactory adminPagePayloadFactory;
+
+    public AdminTagManagementService(AdminPagePayloadFactory adminPagePayloadFactory) {
+        this.adminPagePayloadFactory = adminPagePayloadFactory;
+    }
+
     public Map<String, Object> buildPagePayload(String searchKeyword, String status, boolean isEn) {
         String keyword = safe(searchKeyword).toLowerCase(Locale.ROOT);
         String normalizedStatus = safe(status).toUpperCase(Locale.ROOT);
@@ -27,9 +33,7 @@ public class AdminTagManagementService {
             filtered.add(row);
         }
 
-        Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("isEn", isEn);
-        payload.put("menuCode", "A0040303");
+        Map<String, Object> payload = adminPagePayloadFactory.create(isEn, "A0040303");
         payload.put("searchKeyword", safe(searchKeyword));
         payload.put("status", safe(status));
         payload.put("summaryCards", buildSummaryCards(catalog, filtered, isEn));

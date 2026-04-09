@@ -1,0 +1,9 @@
+/opt/projects/carbonet/modules/platform-version-control/src/main/java/egovframework/com/platform/versioncontrol/model/ProjectVersionOverviewRequest.java
+/opt/projects/carbonet/modules/platform-version-control/src/main/java/egovframework/com/platform/versioncontrol/service/ProjectVersionManagementService.java
+/opt/projects/carbonet/modules/platform-version-control/src/main/java/egovframework/com/platform/versioncontrol/web/ProjectVersionManagementApiController.java
+/opt/projects/carbonet/modules/platform-version-control/src/main/java/egovframework/com/platform/versioncontrol/service/impl/ProjectVersionManagementServiceImpl.java
+/opt/projects/carbonet/modules/platform-version-control/src/main/java/egovframework/com/platform/versioncontrol/model/ProjectUpgradeImpactRequest.java
+/opt/projects/carbonet/modules/platform-version-control/src/main/java/egovframework/com/platform/versioncontrol/model/ProjectVersionPageRequest.java
+/opt/projects/carbonet/modules/platform-version-control/src/main/java/egovframework/com/platform/versioncontrol/model/ProjectApplyUpgradeRequest.java
+/opt/projects/carbonet/modules/platform-version-control/src/main/java/egovframework/com/platform/versioncontrol/model/ProjectRollbackRequest.java
+/opt/projects/carbonet/modules/platform-version-control/src/main/java/egovframework/com/platform/versioncontrol/mapper/ProjectVersionManagementMapper.java

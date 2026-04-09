@@ -273,12 +273,13 @@ export function CopyableCodeBlock({
   );
 }
 
-type PageStatusNoticeTone = "success" | "error" | "warning";
+type PageStatusNoticeTone = "success" | "error" | "warning" | "info";
 
 const pageStatusNoticeToneClassName: Record<PageStatusNoticeTone, string> = {
   success: "border-emerald-200 bg-emerald-50 text-emerald-800",
   error: "border-red-200 bg-red-50 text-red-700",
-  warning: "border-amber-200 bg-amber-50 text-amber-800"
+  warning: "border-amber-200 bg-amber-50 text-amber-800",
+  info: "border-sky-200 bg-sky-50 text-sky-800"
 };
 
 export function PageStatusNotice({

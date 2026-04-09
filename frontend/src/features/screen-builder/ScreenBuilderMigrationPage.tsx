@@ -19,7 +19,9 @@ import { DiagnosticCard, MemberButton, MemberLinkButton, PageStatusNotice } from
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 import { resolveScreenBuilderQuery } from "./shared/screenBuilderUtils";
 import {
-} from "./shared/screenBuilderShared";
+  BUILDER_INSTALL_VALIDATOR_CHECKS,
+  buildBuilderInstallQueueSummary as buildInstallQueueSummaryFromContract
+} from "./shared/installableBuilderContract";
 import { useScreenBuilderEditor } from "./hooks/useScreenBuilderEditor";
 import { useScreenBuilderGovernanceState } from "./hooks/useScreenBuilderGovernanceState";
 import { useScreenBuilderMutations } from "./hooks/useScreenBuilderMutations";
@@ -305,6 +307,19 @@ export function ScreenBuilderMigrationPage() {
     routePath: String(commandState.value?.page?.routePath || page?.menuUrl || ""),
     menuLookupUrl: String(commandState.value?.page?.menuLookupUrl || "")
   }), [commandState.value?.page, page?.menuUrl]);
+  const packageArtifactEvidence = (page?.artifactEvidence || {}) as Record<string, unknown>;
+  const packageQueueSummary = useMemo(() => buildInstallQueueSummaryFromContract({
+    menuCode: page?.menuCode,
+    pageId: page?.pageId,
+    menuUrl: page?.menuUrl,
+    releaseUnitId: page?.releaseUnitId || page?.publishedVersionId,
+    runtimePackageId: String(packageArtifactEvidence.runtimePackageId || page?.publishedVersionId || ""),
+    deployTraceId: String(packageArtifactEvidence.deployTraceId || page?.publishedSavedAt || ""),
+    publishReady,
+    issueCount: publishIssueCount,
+    validatorPassCount: publishReady ? BUILDER_INSTALL_VALIDATOR_CHECKS.length : Math.max(BUILDER_INSTALL_VALIDATOR_CHECKS.length - 2, 0),
+    validatorTotalCount: BUILDER_INSTALL_VALIDATOR_CHECKS.length
+  }), [packageArtifactEvidence.deployTraceId, packageArtifactEvidence.runtimePackageId, page?.menuCode, page?.menuUrl, page?.pageId, page?.publishedSavedAt, page?.publishedVersionId, page?.releaseUnitId, publishIssueCount, publishReady]);
   useEffect(() => {
     if (!page) {
       return;
@@ -360,11 +375,11 @@ export function ScreenBuilderMigrationPage() {
       breadcrumbs={[
         { label: en ? "Home" : "홈", href: buildLocalizedPath("/admin/", "/en/admin/") },
         { label: en ? "System" : "시스템" },
-        { label: en ? "Environment Management" : "메뉴 통합 관리", href: rootMenuHref },
-        { label: en ? "Screen Builder" : "화면 빌더" }
+        { label: en ? "Builder Install / Bind Console" : "빌더 설치 / 바인딩 콘솔", href: rootMenuHref },
+        { label: en ? "Builder Package Studio" : "빌더 패키지 스튜디오" }
       ]}
-      title={en ? "Screen Builder" : "화면 빌더"}
-      subtitle={en ? "Build a page draft from menu metadata, reusable components, and lightweight event bindings." : "메뉴 메타데이터를 기준으로 컴포넌트와 이벤트 연결을 조합해 화면 초안을 구성합니다."}
+      title={en ? "Builder Package Studio" : "빌더 패키지 스튜디오"}
+      subtitle={en ? "Assemble a package-ready page draft from menu metadata, governed components, authority evidence, and install validation context." : "메뉴 메타데이터, 거버넌스 컴포넌트, 권한 증거, 설치 검증 문맥을 묶어 패키지 가능한 페이지 초안을 구성합니다."}
       contextStrip={
         <ContextKeyStrip items={authorDesignContextKeys} />
       }
@@ -394,7 +409,7 @@ export function ScreenBuilderMigrationPage() {
                     )}
                     variant="secondary"
                   >
-                    {en ? "Open Environment Management" : "환경관리 열기"}
+                    {en ? "Open Install / Bind Console" : "설치 / 바인딩 콘솔 열기"}
                   </MemberLinkButton>
                 ) : null}
                 {page?.menuCode ? (
@@ -405,35 +420,58 @@ export function ScreenBuilderMigrationPage() {
                     )}
                     variant="secondary"
                   >
-                    {en ? "Open Published Runtime" : "발행 런타임 열기"}
+                    {en ? "Open Install Runtime" : "설치 런타임 열기"}
                   </MemberLinkButton>
                 ) : null}
                 <MemberLinkButton href={screenFlowHref} variant="secondary">
-                  {en ? "Open Screen Flow" : "화면 흐름 관리"}
+                  {en ? "Open Package Flow" : "패키지 흐름 관리"}
                 </MemberLinkButton>
                 <MemberLinkButton href={screenMenuAssignmentHref} variant="secondary">
-                  {en ? "Open Screen Assignment" : "화면-메뉴 귀속 관리"}
+                  {en ? "Open Menu Package Binding" : "메뉴 패키지 바인딩"}
                 </MemberLinkButton>
                 <MemberButton disabled={!page?.menuCode || saving} onClick={() => { void handleSave(); }} variant="primary">
-                  {saving ? (en ? "Saving..." : "저장 중...") : (en ? "Save Draft" : "초안 저장")}
+                  {saving ? (en ? "Saving..." : "저장 중...") : (en ? "Save Package Draft" : "패키지 초안 저장")}
                 </MemberButton>
                 <MemberButton disabled={!page?.menuCode || saving || publishIssueCount > 0} onClick={() => { void handlePublish(); }} variant="info">
-                  {saving ? (en ? "Working..." : "처리 중...") : (en ? "Publish Snapshot" : "Publish 스냅샷")}
+                  {saving ? (en ? "Working..." : "처리 중...") : (en ? "Build Install Snapshot" : "설치 스냅샷 빌드")}
                 </MemberButton>
                 <MemberButton disabled={!page?.menuCode || previewLoading} onClick={() => { void handlePreviewRefresh(false); }} variant="secondary">
-                  {previewLoading ? (en ? "Refreshing..." : "갱신 중...") : (en ? "Refresh Preview" : "미리보기 갱신")}
+                  {previewLoading ? (en ? "Refreshing..." : "갱신 중...") : (en ? "Refresh Package Preview" : "패키지 미리보기 갱신")}
                 </MemberButton>
               </>
             )}
-            description={en ? "Draft save, publish, and runtime verification actions for the current menu." : "현재 메뉴의 draft 저장, publish, runtime 검증 액션입니다."}
+            description={en ? "Use this studio to save package drafts, build install snapshots, and hand off runtime validation for the current menu." : "현재 메뉴 기준으로 패키지 초안을 저장하고, 설치 스냅샷을 만들고, 런타임 검증으로 넘기는 스튜디오입니다."}
             eyebrow={page?.templateType || "EDIT_PAGE"}
             status={publishReady ? (en ? "READY" : "준비 완료") : (en ? "BLOCKED" : "차단")}
             statusTone={publishReady ? "healthy" : "danger"}
-            title={en ? "Builder Actions" : "빌더 액션"}
+            summary={(
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3">
+                  <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">menuCode / pageId</p>
+                  <p className="mt-2 font-mono text-sm">{packageQueueSummary.menuCode} / {packageQueueSummary.pageId}</p>
+                </div>
+                <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3">
+                  <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Install Target" : "설치 타깃"}</p>
+                  <p className="mt-2 font-mono text-sm break-all">{packageQueueSummary.menuUrl}</p>
+                </div>
+                <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3">
+                  <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">releaseUnit / package</p>
+                  <p className="mt-2 font-mono text-sm">{packageQueueSummary.releaseUnitId} / {packageQueueSummary.runtimePackageId}</p>
+                </div>
+                <div className="rounded-lg border border-[var(--kr-gov-border-light)] bg-[var(--kr-gov-surface-subtle)] px-4 py-3">
+                  <p className="text-xs font-bold text-[var(--kr-gov-text-secondary)]">{en ? "Validator Gate" : "검증 게이트"}</p>
+                  <p className="mt-2 text-lg font-black">{packageQueueSummary.validatorPassCount} / {packageQueueSummary.validatorTotalCount}</p>
+                  <p className="mt-1 text-[11px] text-[var(--kr-gov-text-secondary)]">
+                    {en ? `Issues ${packageQueueSummary.issueCount} / Trace ${packageQueueSummary.deployTraceId}` : `이슈 ${packageQueueSummary.issueCount} / 추적 ${packageQueueSummary.deployTraceId}`}
+                  </p>
+                </div>
+              </div>
+            )}
+            title={en ? "Package Builder Actions" : "패키지 빌더 액션"}
           />
         </div>
         <DiagnosticCard
-          description={en ? "Authority profile embedded in the current draft artifact." : "현재 draft 산출물에 포함되는 권한 프로필입니다."}
+          description={en ? "Authority profile embedded in the current package draft artifact." : "현재 패키지 초안 산출물에 포함되는 권한 프로필입니다."}
           eyebrow={draftAuthorityProfile?.tier || (en ? "UNASSIGNED" : "미지정")}
           status={draftAuthorityProfile?.authorCode || (en ? "MISSING" : "없음")}
           statusTone={draftAuthorityProfile?.authorCode ? "healthy" : "warning"}
@@ -453,7 +491,7 @@ export function ScreenBuilderMigrationPage() {
               </div>
             </div>
           )}
-          title={draftAuthorityProfile?.label || (en ? "Draft Authority Profile" : "Draft 권한 프로필")}
+          title={draftAuthorityProfile?.label || (en ? "Package Draft Authority Profile" : "패키지 초안 권한 프로필")}
         />
         <div data-help-id="screen-builder-overview">
           <Suspense
@@ -472,6 +510,7 @@ export function ScreenBuilderMigrationPage() {
               eventsLength={events.length}
               handleApplyTemplatePreset={handleApplyTemplatePreset}
               handleRestoreVersion={handleRestoreVersion}
+              installQueueSummary={packageQueueSummary}
               nodesLength={nodes.length}
               page={page ? {
                 ...page,

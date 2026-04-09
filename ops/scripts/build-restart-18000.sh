@@ -10,6 +10,6 @@ echo "[build-restart-18000] backend package started"
 (cd "$ROOT_DIR" && mvn -q -DskipTests package)
 
 echo "[build-restart-18000] service restart started"
-bash "$ROOT_DIR/ops/scripts/restart-18000.sh"
+bash "$ROOT_DIR/ops/scripts/restart-18000-runtime.sh"
 
 echo "[build-restart-18000] completed"

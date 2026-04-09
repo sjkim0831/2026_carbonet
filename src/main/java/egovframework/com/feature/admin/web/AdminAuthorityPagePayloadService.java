@@ -6,9 +6,9 @@ import egovframework.com.feature.admin.model.vo.DepartmentRoleMappingVO;
 import egovframework.com.feature.admin.model.vo.FeatureCatalogSectionVO;
 import egovframework.com.feature.admin.model.vo.FeatureCatalogSummarySnapshot;
 import egovframework.com.feature.admin.model.vo.UserAuthorityTargetVO;
-import egovframework.com.feature.admin.service.AdminSummaryService;
 import egovframework.com.feature.admin.service.AuthorRoleProfileService;
 import egovframework.com.feature.admin.service.AuthGroupManageService;
+import egovframework.com.platform.read.AdminSummaryReadPort;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,7 +34,7 @@ public class AdminAuthorityPagePayloadService {
 
     private final ObjectProvider<AdminMainController> adminMainControllerProvider;
     private final AuthGroupManageService authGroupManageService;
-    private final AdminSummaryService adminSummaryService;
+    private final AdminSummaryReadPort adminSummaryReadPort;
     private final AuthorRoleProfileService authorRoleProfileService;
     private final AdminAuthorityPagePayloadSupport authorityPagePayloadSupport;
     private final AdminCompanyScopeService adminCompanyScopeService;
@@ -145,7 +145,7 @@ public class AdminAuthorityPagePayloadService {
                 "GENERAL",
                 currentUserId,
                 currentUserAuthorCode));
-        FeatureCatalogSummarySnapshot featureCatalogSummary = adminSummaryService.summarizeFeatureCatalog(featureSections);
+        FeatureCatalogSummarySnapshot featureCatalogSummary = adminSummaryReadPort.summarizeFeatureCatalog(featureSections);
         response.put("featureSections", featureSections);
         response.put("authorGroupCount", filteredAuthorGroups.size());
         response.put("featureCount", selectedFeatureCodes.size());

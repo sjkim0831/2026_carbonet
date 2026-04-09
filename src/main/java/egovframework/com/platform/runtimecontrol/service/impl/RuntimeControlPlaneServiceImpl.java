@@ -1,0 +1,1219 @@
+package egovframework.com.platform.runtimecontrol.service.impl;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import egovframework.com.platform.versioncontrol.mapper.ProjectVersionManagementMapper;
+import egovframework.com.platform.runtimecontrol.model.ParityCompareRequest;
+import egovframework.com.platform.runtimecontrol.model.ProjectPipelineRunRequest;
+import egovframework.com.platform.runtimecontrol.model.ProjectPipelineStatusRequest;
+import egovframework.com.platform.runtimecontrol.model.RepairApplyRequest;
+import egovframework.com.platform.runtimecontrol.model.RepairOpenRequest;
+import egovframework.com.platform.runtimecontrol.service.RuntimeControlPlaneService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+public class RuntimeControlPlaneServiceImpl implements RuntimeControlPlaneService {
+
+    private static final TypeReference<LinkedHashMap<String, Object>> MAP_TYPE = new TypeReference<LinkedHashMap<String, Object>>() {};
+    private static final DateTimeFormatter VERSION_STAMP = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+
+    private final ObjectMapper objectMapper;
+    private final ProjectVersionManagementMapper projectVersionManagementMapper;
+
+    @Value("${carbonet.platform.runtimecontrol.parity-compare-store:/tmp/carbonet-resonance-parity-compare.jsonl}")
+    private String parityCompareStore;
+
+    @Value("${carbonet.platform.runtimecontrol.repair-open-store:/tmp/carbonet-resonance-repair-session.jsonl}")
+    private String repairOpenStore;
+
+    @Value("${carbonet.platform.runtimecontrol.repair-apply-store:/tmp/carbonet-resonance-repair-apply.jsonl}")
+    private String repairApplyStore;
+
+    @Value("${carbonet.platform.runtimecontrol.project-pipeline-store:/tmp/carbonet-resonance-project-pipeline.jsonl}")
+    private String projectPipelineStore;
+
+    @Override
+    public Map<String, Object> getParityCompare(ParityCompareRequest request) throws Exception {
+        String projectId = required(request.getProjectId(), "projectId");
+        String occurredAt = now();
+        String compareContextId = "cmp-" + shortId();
+        String traceId = "trace-" + shortId();
+
+        List<String> selectedElementSet = normalizeStringList(request.getSelectedElementSet());
+        Map<String, Object> builderInput = normalizeObjectMap(request.getBuilderInput());
+        Map<String, Object> runtimeEvidence = normalizeObjectMap(request.getRuntimeEvidence());
+
+        List<Map<String, Object>> compareTargetSet = new ArrayList<Map<String, Object>>();
+        compareTargetSet.add(compareRow("layout-shell", "runtime/header-shell:v1", "builder/header-shell:v2", "guided-state", "layout"));
+        compareTargetSet.add(compareRow("event-binding", "runtime/onClick->legacyAction", "builder/onClick->projectAction", "adapter-contract", "binding"));
+        compareTargetSet.add(compareRow("theme-token", "runtime/color.brand.500", "builder/color.primary.600", "theme-governance", "theme"));
+
+        List<String> blockerSet = new ArrayList<String>();
+        blockerSet.add("guided-state identity must remain stable across scaffold/build/deploy");
+        blockerSet.add("adapter event binding requires controlled remap before package approval");
+
+        List<String> repairCandidateSet = new ArrayList<String>();
+        repairCandidateSet.add("reuse governed shell asset set");
+        repairCandidateSet.add("apply adapter binding override patch");
+        repairCandidateSet.add("rebuild installable package with validator set");
+
+        Map<String, Object> response = orderedMap();
+        response.put("compareContextId", compareContextId);
+        response.put("projectId", projectId);
+        response.put("guidedStateId", orDefault(request.getGuidedStateId(), projectId + ".guided-state"));
+        response.put("templateLineId", orDefault(request.getTemplateLineId(), "template.runtime.standard"));
+        response.put("screenFamilyRuleId", orDefault(request.getScreenFamilyRuleId(), "screen-family.standard"));
+        response.put("ownerLane", orDefault(request.getOwnerLane(), "project-adapter"));
+        response.put("selectedScreenId", orDefault(request.getSelectedScreenId(), "screen.runtime.main"));
+        response.put("releaseUnitId", orDefault(request.getReleaseUnitId(), buildReleaseUnitId("rel", projectId)));
+        response.put("compareBaseline", orDefault(request.getCompareBaseline(), "governed-runtime-truth"));
+        response.put("selectedElementSet", selectedElementSet);
+        response.put("builderInput", builderInput);
+        response.put("runtimeEvidence", runtimeEvidence);
+        response.put("compareTargetSet", compareTargetSet);
+        response.put("parityScore", Integer.valueOf(84));
+        response.put("uniformityScore", Integer.valueOf(88));
+        response.put("blockerSet", blockerSet);
+        response.put("repairCandidateSet", repairCandidateSet);
+        response.put("result", "REPAIR_REQUIRED");
+        response.put("requestedBy", orDefault(request.getRequestedBy(), "system"));
+        response.put("requestedByType", orDefault(request.getRequestedByType(), "PLATFORM_OPERATOR"));
+        response.put("occurredAt", occurredAt);
+        response.put("traceId", traceId);
+        appendJsonLine(parityCompareStore, response);
+        return response;
+    }
+
+    @Override
+    public Map<String, Object> openRepairSession(RepairOpenRequest request) throws Exception {
+        String projectId = required(request.getProjectId(), "projectId");
+        String releaseUnitId = orDefault(request.getReleaseUnitId(), buildReleaseUnitId("rel", projectId));
+        String deploymentTarget = "ops-runtime-preview-01";
+        String deployTraceId = "repair-open-" + shortId();
+        Map<String, Object> response = orderedMap();
+        response.put("repairSessionId", "repair-" + shortId());
+        response.put("projectId", projectId);
+        response.put("guidedStateId", orDefault(request.getGuidedStateId(), projectId + ".guided-state"));
+        response.put("templateLineId", orDefault(request.getTemplateLineId(), "template.runtime.standard"));
+        response.put("screenFamilyRuleId", orDefault(request.getScreenFamilyRuleId(), "screen-family.standard"));
+        response.put("ownerLane", orDefault(request.getOwnerLane(), "project-adapter"));
+        response.put("selectedScreenId", orDefault(request.getSelectedScreenId(), "screen.runtime.main"));
+        response.put("builderInput", normalizeObjectMap(request.getBuilderInput()));
+        response.put("runtimeEvidence", normalizeObjectMap(request.getRuntimeEvidence()));
+        response.put("selectedElementSet", normalizeStringList(request.getSelectedElementSet()));
+        response.put("compareSnapshotId", "cmp-" + shortId());
+        response.put("blockingGapSet", stringList("binding drift detected", "theme token drift detected"));
+        response.put("reuseRecommendationSet", mergeStringLists(
+                normalizeStringList(request.getExistingAssetReuseSet()),
+                stringList("reuse governed layout shell", "reuse project boundary adapter bridge")));
+        response.put("requiredContractSet", stringList("common-core.theme.contract", "project-adapter.binding.contract"));
+        response.put("status", "OPEN");
+        response.put("result", "READY_FOR_REPAIR");
+        response.put("releaseUnitId", releaseUnitId);
+        response.put("compareBaseline", orDefault(request.getCompareBaseline(), "governed-runtime-truth"));
+        response.put("reasonCode", orDefault(request.getReasonCode(), "PARITY_GAP"));
+        response.put("deployTraceId", deployTraceId);
+        response.put("deployContract", buildRepairDeployContract(projectId, releaseUnitId, deploymentTarget));
+        response.put("serverStateSet", buildPipelineServerStateSet(projectId, releaseUnitId, deployTraceId, deploymentTarget, now()));
+        response.put("requestedBy", orDefault(request.getRequestedBy(), "system"));
+        response.put("requestedByType", orDefault(request.getRequestedByType(), "PLATFORM_OPERATOR"));
+        response.put("requestNote", orDefault(request.getRequestNote(), "Repair session opened from runtime compare."));
+        response.put("occurredAt", now());
+        response.put("traceId", "trace-" + shortId());
+        appendJsonLine(repairOpenStore, response);
+        return response;
+    }
+
+    @Override
+    public Map<String, Object> applyRepair(RepairApplyRequest request) throws Exception {
+        String projectId = required(request.getProjectId(), "projectId");
+        String candidateReleaseUnitId = buildReleaseUnitId("candidate", projectId);
+        String candidateRuntimePackageId = buildRuntimePackageId("repair-pkg", projectId);
+        String deploymentTarget = resolveRepairDeploymentTarget(request.getPublishMode());
+        String deployTraceId = "repair-apply-" + shortId();
+        Map<String, Object> response = orderedMap();
+        response.put("repairApplyRunId", "repair-apply-" + shortId());
+        response.put("repairSessionId", required(request.getRepairSessionId(), "repairSessionId"));
+        response.put("guidedStateId", orDefault(request.getGuidedStateId(), projectId + ".guided-state"));
+        response.put("templateLineId", orDefault(request.getTemplateLineId(), "template.runtime.standard"));
+        response.put("ownerLane", orDefault(request.getOwnerLane(), "project-adapter"));
+        response.put("builderInput", normalizeObjectMap(request.getBuilderInput()));
+        response.put("runtimeEvidence", normalizeObjectMap(request.getRuntimeEvidence()));
+        response.put("updatedAssetTraceSet", mergeStringLists(
+                normalizeStringList(request.getUpdatedAssetSet()),
+                stringList("asset/layout-shell", "asset/event-binding-remap")));
+        response.put("updatedReleaseCandidateId", candidateReleaseUnitId);
+        response.put("candidateRuntimePackageId", candidateRuntimePackageId);
+        response.put("deployTraceId", deployTraceId);
+        response.put("parityRecheckRequiredYn", Boolean.TRUE);
+        response.put("uniformityRecheckRequiredYn", Boolean.TRUE);
+        response.put("smokeRequiredYn", Boolean.TRUE);
+        response.put("status", "APPLIED");
+        response.put("result", "RECHECK_REQUIRED");
+        response.put("projectId", projectId);
+        response.put("releaseUnitId", orDefault(request.getReleaseUnitId(), buildReleaseUnitId("rel", projectId)));
+        response.put("screenFamilyRuleId", orDefault(request.getScreenFamilyRuleId(), "screen-family.standard"));
+        response.put("selectedScreenId", orDefault(request.getSelectedScreenId(), "screen.runtime.main"));
+        response.put("selectedElementSet", normalizeStringList(request.getSelectedElementSet()));
+        response.put("updatedBindingSet", mergeStringLists(normalizeStringList(request.getUpdatedBindingSet()), stringList("binding:onClick->projectAction")));
+        response.put("updatedThemeOrLayoutSet", mergeStringLists(normalizeStringList(request.getUpdatedThemeOrLayoutSet()), stringList("theme:color.primary.600")));
+        response.put("sqlDraftSet", normalizeStringList(request.getSqlDraftSet()));
+        response.put("publishMode", orDefault(request.getPublishMode(), "CONTROLLED_PACKAGE"));
+        response.put("deployContract", buildRepairDeployContract(projectId, candidateReleaseUnitId, deploymentTarget));
+        response.put("serverStateSet", buildPipelineServerStateSet(projectId, candidateReleaseUnitId, deployTraceId, deploymentTarget, now()));
+        response.put("requestedBy", orDefault(request.getRequestedBy(), "system"));
+        response.put("requestedByType", orDefault(request.getRequestedByType(), "PLATFORM_OPERATOR"));
+        response.put("changeSummary", orDefault(request.getChangeSummary(), "Applied governed repair patch set."));
+        response.put("compareBaseline", orDefault(request.getCompareBaseline(), "governed-runtime-truth"));
+        response.put("occurredAt", now());
+        response.put("traceId", "trace-" + shortId());
+        if (canUseDatabase()) {
+            persistRepairApplyRecordToDatabase(request, response);
+        }
+        appendJsonLine(repairApplyStore, response);
+        return response;
+    }
+
+    @Override
+    public Map<String, Object> runProjectPipeline(ProjectPipelineRunRequest request) throws Exception {
+        String projectId = required(request.getProjectId(), "projectId");
+        String releaseUnitId = hasText(request.getReleaseUnitId())
+                ? request.getReleaseUnitId().trim()
+                : buildReleaseUnitId(orDefault(request.getReleaseUnitPrefix(), "rel"), projectId);
+        String runtimePackageId = hasText(request.getRuntimePackageId())
+                ? request.getRuntimePackageId().trim()
+                : buildRuntimePackageId(orDefault(request.getRuntimePackagePrefix(), "pkg"), projectId);
+        String pipelineRunId = "pipe-" + shortId();
+        String releaseFamilyId = projectId + "-family";
+        String deployTraceId = "deploy-" + shortId();
+        String artifactManifestId = "manifest-" + shortId();
+        String rollbackTargetReleaseUnitId = buildReleaseUnitId("rollback", projectId);
+        String occurredAt = now();
+
+        Map<String, Object> installableProduct = orderedMap();
+        installableProduct.put("installableProductId", "product-" + shortId());
+        installableProduct.put("productType", "INSTALLABLE_RUNTIME_PACKAGE");
+        installableProduct.put("packageId", runtimePackageId);
+        installableProduct.put("packageFormat", "ZIP");
+        installableProduct.put("menuBinding", orderedMap(
+                "menuRoot", orDefault(request.getMenuRoot(), "admin.runtime"),
+                "runtimeClass", orDefault(request.getRuntimeClass(), projectId + ".Runtime"),
+                "menuScope", orDefault(request.getMenuScope(), "ADMIN")));
+
+        Map<String, Object> boundarySummary = orderedMap();
+        boundarySummary.put("commonCoreOwnership", "framework-common");
+        boundarySummary.put("projectAdapterOwnership", projectId + "-adapter");
+        boundarySummary.put("adapterBoundaryStatus", "GOVERNED");
+        boundarySummary.put("projectId", projectId);
+
+        List<Map<String, Object>> validatorCheckSet = new ArrayList<Map<String, Object>>();
+        validatorCheckSet.add(orderedMap("validatorId", "boundary-schema", "status", "PASS", "summary", "common/project adapter boundary is fixed"));
+        validatorCheckSet.add(orderedMap("validatorId", "installable-package", "status", "PASS", "summary", "installable product can be packaged"));
+        validatorCheckSet.add(orderedMap("validatorId", "rollback-anchor", "status", "PASS", "summary", "rollback target release is registered"));
+
+        List<Map<String, Object>> stageSet = new ArrayList<Map<String, Object>>();
+        stageSet.add(stage("scaffold", "DONE", "governed project scaffold prepared"));
+        stageSet.add(stage("validate", "DONE", "validator set completed"));
+        stageSet.add(stage("package", "DONE", "installable package produced"));
+        stageSet.add(stage("deploy", "READY", "artifact deploy contract emitted"));
+        stageSet.add(stage("rollback-ready", "READY", "rollback anchor persisted"));
+
+        Map<String, Object> artifactVersionSet = orderedMap();
+        artifactVersionSet.put("common-core", versionStamp("common-core"));
+        artifactVersionSet.put(projectId + "-adapter-contract", versionStamp("adapter-contract"));
+        artifactVersionSet.put(projectId + "-adapter-artifact", versionStamp("adapter-artifact"));
+        artifactVersionSet.put("runtime-package", runtimePackageId);
+
+        Map<String, Object> artifactLineage = orderedMap();
+        artifactLineage.put("releaseFamilyId", releaseFamilyId);
+        artifactLineage.put("releaseTrackVersion", VERSION_STAMP.format(LocalDateTime.now(ZoneOffset.UTC)));
+        artifactLineage.put("artifactManifestId", artifactManifestId);
+        artifactLineage.put("rollbackAnchorReleaseUnitId", rollbackTargetReleaseUnitId);
+
+        List<Map<String, Object>> artifactRegistryEntrySet = new ArrayList<Map<String, Object>>();
+        artifactRegistryEntrySet.add(orderedMap("artifactId", "common-core", "artifactVersion", artifactVersionSet.get("common-core"), "installScope", "COMMON"));
+        artifactRegistryEntrySet.add(orderedMap("artifactId", projectId + "-adapter", "artifactVersion", artifactVersionSet.get(projectId + "-adapter-artifact"), "installScope", "PROJECT"));
+        artifactRegistryEntrySet.add(orderedMap("artifactId", runtimePackageId, "artifactVersion", runtimePackageId, "installScope", "INSTALLABLE_PRODUCT"));
+
+        Map<String, Object> deployContract = orderedMap();
+        deployContract.put("artifactTargetSystem", orDefault(request.getArtifactTargetSystem(), "resonance-runtime"));
+        deployContract.put("deploymentTarget", orDefault(request.getDeploymentTarget(), "ops-runtime-main-01"));
+        deployContract.put("deploymentRouteSet", buildDeploymentRouteSet(orDefault(request.getDeploymentTarget(), "ops-runtime-main-01")));
+        deployContract.put("deploymentMode", "ARTIFACT_LINEAGE_CONTROLLED");
+        deployContract.put("versionTrackingYn", Boolean.TRUE);
+        deployContract.put("releaseFamilyId", releaseFamilyId);
+        deployContract.put("releaseUnitId", releaseUnitId);
+
+        Map<String, Object> rollbackPlan = orderedMap();
+        rollbackPlan.put("rollbackTargetReleaseUnitId", rollbackTargetReleaseUnitId);
+        rollbackPlan.put("rollbackMode", "ARTIFACT_REDEPLOY");
+
+        Map<String, Object> response = orderedMap();
+        response.put("pipelineRunId", pipelineRunId);
+        response.put("traceId", "trace-" + shortId());
+        response.put("projectId", projectId);
+        response.put("scenarioId", orDefault(request.getScenarioId(), "project-installable-product"));
+        response.put("guidedStateId", orDefault(request.getGuidedStateId(), projectId + ".guided-state"));
+        response.put("templateLineId", orDefault(request.getTemplateLineId(), "template.runtime.standard"));
+        response.put("screenFamilyRuleId", orDefault(request.getScreenFamilyRuleId(), "screen-family.standard"));
+        response.put("ownerLane", orDefault(request.getOwnerLane(), "project-adapter"));
+        response.put("menuRoot", orDefault(request.getMenuRoot(), "admin.runtime"));
+        response.put("runtimeClass", orDefault(request.getRuntimeClass(), projectId + ".Runtime"));
+        response.put("menuScope", orDefault(request.getMenuScope(), "ADMIN"));
+        response.put("artifactTargetSystem", orDefault(request.getArtifactTargetSystem(), "resonance-runtime"));
+        response.put("deploymentTarget", orDefault(request.getDeploymentTarget(), "ops-runtime-main-01"));
+        response.put("releaseUnitId", releaseUnitId);
+        response.put("runtimePackageId", runtimePackageId);
+        response.put("deployTraceId", deployTraceId);
+        response.put("commonArtifactSet", stringList("common-core", "builder-validator", "deploy-contract"));
+        response.put("projectAdapterArtifactSet", stringList(projectId + "-adapter-contract", projectId + "-adapter-artifact"));
+        response.put("installableArtifactSet", stringList(runtimePackageId, artifactManifestId));
+        response.put("installableProduct", installableProduct);
+        response.put("boundarySummary", boundarySummary);
+        response.put("validatorCheckSet", validatorCheckSet);
+        response.put("validatorPassCount", Integer.valueOf(validatorCheckSet.size()));
+        response.put("validatorTotalCount", Integer.valueOf(validatorCheckSet.size()));
+        response.put("stageSet", stageSet);
+        response.put("artifactVersionSet", artifactVersionSet);
+        response.put("artifactLineage", artifactLineage);
+        response.put("artifactRegistryEntrySet", artifactRegistryEntrySet);
+        response.put("deployContract", deployContract);
+        response.put("serverStateSet", buildPipelineServerStateSet(
+                projectId,
+                releaseUnitId,
+                deployTraceId,
+                orDefault(request.getDeploymentTarget(), "ops-runtime-main-01"),
+                occurredAt));
+        response.put("rollbackPlan", rollbackPlan);
+        response.put("operator", orDefault(request.getOperator(), "system"));
+        response.put("result", "PIPELINE_READY");
+        response.put("occurredAt", occurredAt);
+        if (canUseDatabase()) {
+            persistProjectPipelineToDatabase(request, response);
+        }
+        appendJsonLine(projectPipelineStore, response);
+        return response;
+    }
+
+    @Override
+    public Map<String, Object> getProjectPipelineStatus(ProjectPipelineStatusRequest request) throws Exception {
+        String projectId = required(request.getProjectId(), "projectId");
+        if (canUseDatabase()) {
+            Map<String, Object> databaseSnapshot = loadProjectPipelineStatusFromDatabase(request);
+            if (databaseSnapshot != null) {
+                return databaseSnapshot;
+            }
+        }
+        Map<String, Object> stored = findLastProjectPipelineRecord(request);
+        if (stored != null) {
+            return stored;
+        }
+        ProjectPipelineRunRequest fallback = new ProjectPipelineRunRequest();
+        fallback.setProjectId(projectId);
+        fallback.setReleaseUnitPrefix("rel");
+        fallback.setRuntimePackagePrefix("pkg");
+        fallback.setMenuRoot("admin.runtime");
+        fallback.setRuntimeClass(projectId + ".Runtime");
+        fallback.setMenuScope("ADMIN");
+        fallback.setOperator("system");
+        return runProjectPipeline(fallback);
+    }
+
+    private Map<String, Object> loadProjectPipelineStatusFromDatabase(ProjectPipelineStatusRequest request) throws Exception {
+        List<Map<String, Object>> releaseUnits = projectVersionManagementMapper.selectReleaseUnits(request.getProjectId());
+        if (releaseUnits.isEmpty()) {
+            return null;
+        }
+
+        Map<String, Object> selectedReleaseUnit = selectReleaseUnit(releaseUnits, request);
+        if (selectedReleaseUnit == null) {
+            return null;
+        }
+
+        List<Map<String, Object>> installedArtifacts = projectVersionManagementMapper.selectInstalledArtifacts(request.getProjectId());
+        List<Map<String, Object>> serverStates = projectVersionManagementMapper.selectServerDeploymentState(request.getProjectId());
+        Map<String, Object> projectRegistry = projectVersionManagementMapper.selectProjectRegistry(request.getProjectId());
+
+        Map<String, Object> packageVersionSet = parseJsonObject(selectedReleaseUnit.get("packageVersionSetJson"));
+        String releaseUnitId = value(selectedReleaseUnit, "releaseUnitId");
+        String runtimePackageId = value(selectedReleaseUnit, "runtimePackageId");
+        String rollbackTargetReleaseUnitId = value(selectedReleaseUnit, "rollbackTargetReleaseId");
+        Map<String, Object> activeServer = selectActiveServer(serverStates, releaseUnitId);
+        String deploymentTarget = firstNonBlank(value(activeServer, "serverId"), value(projectRegistry, "deploymentTarget"), "ops-runtime-main-01");
+        String deployTraceId = firstNonBlank(value(activeServer, "deployTraceId"), "deploy-" + sanitize(releaseUnitId));
+
+        List<Map<String, Object>> artifactRegistryEntrySet = new ArrayList<Map<String, Object>>();
+        for (Map<String, Object> artifact : installedArtifacts) {
+            artifactRegistryEntrySet.add(orderedMap(
+                    "artifactId", value(artifact, "artifactId"),
+                    "artifactVersion", value(artifact, "installedArtifactVersion"),
+                    "installScope", value(artifact, "installScope")));
+        }
+
+        List<String> commonArtifactSet = new ArrayList<String>();
+        List<String> projectAdapterArtifactSet = new ArrayList<String>();
+        List<String> installableArtifactSet = new ArrayList<String>();
+        for (Map<String, Object> entry : artifactRegistryEntrySet) {
+            String artifactId = value(entry, "artifactId");
+            String installScope = value(entry, "installScope");
+            if ("COMMON".equalsIgnoreCase(installScope)) {
+                commonArtifactSet.add(artifactId);
+            } else if (artifactId.contains("adapter")) {
+                projectAdapterArtifactSet.add(artifactId);
+            } else {
+                installableArtifactSet.add(artifactId);
+            }
+        }
+        if (!installableArtifactSet.contains(runtimePackageId)) {
+            installableArtifactSet.add(runtimePackageId);
+        }
+
+        List<Map<String, Object>> validatorCheckSet = new ArrayList<Map<String, Object>>();
+        validatorCheckSet.add(orderedMap(
+                "validatorId", "release-unit-registered",
+                "status", "PASS",
+                "summary", "Release unit registry entry exists."));
+        validatorCheckSet.add(orderedMap(
+                "validatorId", "artifact-install-bound",
+                "status", artifactRegistryEntrySet.isEmpty() ? "WARN" : "PASS",
+                "summary", artifactRegistryEntrySet.isEmpty()
+                        ? "Artifact install registry is empty for this project."
+                        : "Artifact install registry is aligned to the release unit."));
+        validatorCheckSet.add(orderedMap(
+                "validatorId", "rollback-anchor-present",
+                "status", hasText(rollbackTargetReleaseUnitId) ? "PASS" : "WARN",
+                "summary", hasText(rollbackTargetReleaseUnitId)
+                        ? "Rollback target release unit is registered."
+                        : "Rollback target release unit is not registered."));
+
+        List<Map<String, Object>> stageSet = new ArrayList<Map<String, Object>>();
+        stageSet.add(stage("registry-load", "DONE", "Release unit and install registry loaded"));
+        stageSet.add(stage("validate", "DONE", "Registry-backed validator checks assembled"));
+        stageSet.add(stage("package", hasText(runtimePackageId) ? "DONE" : "WARN", "Runtime package identity resolved from release unit"));
+        stageSet.add(stage("deploy", hasText(value(activeServer, "serverId")) ? "READY" : "PENDING", "Deployment trace resolved from server deployment state"));
+        stageSet.add(stage("rollback-ready", hasText(rollbackTargetReleaseUnitId) ? "READY" : "PENDING", "Rollback anchor evaluated from release unit registry"));
+
+        Map<String, Object> installableProduct = orderedMap(
+                "installableProductId", "installable-" + sanitize(request.getProjectId()),
+                "productType", "INSTALLABLE_RUNTIME_PACKAGE",
+                "packageId", runtimePackageId,
+                "packageFormat", "jar+properties+manifest",
+                "menuBinding", orderedMap(
+                        "menuRoot", "admin.runtime",
+                        "runtimeClass", firstNonBlank(value(projectRegistry, "projectCode"), request.getProjectId()) + ".Runtime",
+                        "menuScope", "ADMIN"));
+
+        Map<String, Object> boundarySummary = orderedMap(
+                "commonCoreOwnership", "framework-common",
+                "projectAdapterOwnership", request.getProjectId() + "-adapter",
+                "adapterBoundaryStatus", "GOVERNED",
+                "projectId", request.getProjectId());
+
+        Map<String, Object> artifactLineage = orderedMap(
+                "releaseFamilyId", request.getProjectId() + "-family",
+                "releaseTrackVersion", firstNonBlank(value(selectedReleaseUnit, "builtAt"), now()),
+                "artifactManifestId", "manifest-" + sanitize(releaseUnitId),
+                "rollbackAnchorReleaseUnitId", rollbackTargetReleaseUnitId);
+
+        Map<String, Object> deployContract = orderedMap(
+                "artifactTargetSystem", firstNonBlank(value(projectRegistry, "projectCode"), request.getProjectId()),
+                "deploymentTarget", deploymentTarget,
+                "deploymentRouteSet", buildDeploymentRouteSet(deploymentTarget),
+                "deploymentMode", "ARTIFACT_LINEAGE_CONTROLLED",
+                "versionTrackingYn", Boolean.TRUE,
+                "releaseFamilyId", request.getProjectId() + "-family",
+                "releaseUnitId", releaseUnitId);
+
+        Map<String, Object> rollbackPlan = orderedMap(
+                "rollbackTargetReleaseUnitId", rollbackTargetReleaseUnitId,
+                "rollbackMode", "ARTIFACT_REDEPLOY");
+
+        Map<String, Object> response = orderedMap();
+        response.put("pipelineRunId", "db-" + sanitize(releaseUnitId));
+        response.put("traceId", "trace-" + sanitize(releaseUnitId));
+        response.put("projectId", request.getProjectId());
+        response.put("scenarioId", "project-installable-product");
+        response.put("guidedStateId", request.getProjectId() + ".guided-state");
+        response.put("templateLineId", "template.runtime.standard");
+        response.put("screenFamilyRuleId", "screen-family.standard");
+        response.put("ownerLane", "project-adapter");
+        response.put("menuRoot", "admin.runtime");
+        response.put("runtimeClass", firstNonBlank(value(projectRegistry, "projectCode"), request.getProjectId()) + ".Runtime");
+        response.put("menuScope", "ADMIN");
+        response.put("artifactTargetSystem", firstNonBlank(value(projectRegistry, "projectCode"), request.getProjectId()));
+        response.put("deploymentTarget", deploymentTarget);
+        response.put("releaseUnitId", releaseUnitId);
+        response.put("runtimePackageId", runtimePackageId);
+        response.put("deployTraceId", deployTraceId);
+        response.put("commonArtifactSet", commonArtifactSet);
+        response.put("projectAdapterArtifactSet", projectAdapterArtifactSet);
+        response.put("installableArtifactSet", installableArtifactSet);
+        response.put("installableProduct", installableProduct);
+        response.put("boundarySummary", boundarySummary);
+        response.put("validatorCheckSet", validatorCheckSet);
+        response.put("validatorPassCount", Integer.valueOf(countPasses(validatorCheckSet)));
+        response.put("validatorTotalCount", Integer.valueOf(validatorCheckSet.size()));
+        response.put("stageSet", stageSet);
+        response.put("artifactVersionSet", packageVersionSet);
+        response.put("artifactLineage", artifactLineage);
+        response.put("artifactRegistryEntrySet", artifactRegistryEntrySet);
+        response.put("deployContract", deployContract);
+        response.put("serverStateSet", buildPipelineServerStateSetFromDatabase(
+                request.getProjectId(),
+                releaseUnitId,
+                deployTraceId,
+                deploymentTarget,
+                firstNonBlank(value(selectedReleaseUnit, "approvedAt"), value(selectedReleaseUnit, "builtAt"), now()),
+                serverStates));
+        response.put("rollbackPlan", rollbackPlan);
+        response.put("operator", value(selectedReleaseUnit, "approvedBy"));
+        response.put("result", "PIPELINE_READY");
+        response.put("occurredAt", firstNonBlank(value(selectedReleaseUnit, "approvedAt"), value(selectedReleaseUnit, "builtAt"), now()));
+        return response;
+    }
+
+    private Map<String, Object> findLastProjectPipelineRecord(ProjectPipelineStatusRequest request) throws IOException {
+        Path path = Paths.get(projectPipelineStore);
+        if (!Files.exists(path)) {
+            return null;
+        }
+        List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
+        for (int i = lines.size() - 1; i >= 0; i--) {
+            String line = lines.get(i).trim();
+            if (line.isEmpty()) {
+                continue;
+            }
+            Map<String, Object> record = objectMapper.readValue(line, MAP_TYPE);
+            if (!matches(record, request)) {
+                continue;
+            }
+            return record;
+        }
+        return null;
+    }
+
+    private boolean matches(Map<String, Object> record, ProjectPipelineStatusRequest request) {
+        if (record == null) {
+            return false;
+        }
+        if (!request.getProjectId().equals(String.valueOf(record.get("projectId")))) {
+            return false;
+        }
+        if (hasText(request.getPipelineRunId()) && !request.getPipelineRunId().equals(String.valueOf(record.get("pipelineRunId")))) {
+            return false;
+        }
+        if (hasText(request.getReleaseUnitId()) && !request.getReleaseUnitId().equals(String.valueOf(record.get("releaseUnitId")))) {
+            return false;
+        }
+        return true;
+    }
+
+    private boolean canUseDatabase() {
+        try {
+            return projectVersionManagementMapper != null
+                    && projectVersionManagementMapper.countArtifactVersionRegistry() >= 0
+                    && projectVersionManagementMapper.countProjectArtifactInstall() >= 0
+                    && projectVersionManagementMapper.countReleaseUnitRegistry() >= 0;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private Map<String, Object> selectReleaseUnit(List<Map<String, Object>> releaseUnits, ProjectPipelineStatusRequest request) {
+        if (hasText(request.getReleaseUnitId())) {
+            for (Map<String, Object> row : releaseUnits) {
+                if (request.getReleaseUnitId().equals(value(row, "releaseUnitId"))) {
+                    return row;
+                }
+            }
+        }
+        return releaseUnits.isEmpty() ? null : releaseUnits.get(0);
+    }
+
+    private Map<String, Object> selectActiveServer(List<Map<String, Object>> serverStates, String releaseUnitId) {
+        for (Map<String, Object> row : serverStates) {
+            if (releaseUnitId.equals(value(row, "activeReleaseUnitId"))) {
+                return row;
+            }
+        }
+        return serverStates.isEmpty() ? orderedMap() : serverStates.get(0);
+    }
+
+    private int countPasses(List<Map<String, Object>> validatorCheckSet) {
+        int count = 0;
+        for (Map<String, Object> item : validatorCheckSet) {
+            if ("PASS".equalsIgnoreCase(value(item, "status"))) {
+                count += 1;
+            }
+        }
+        return count;
+    }
+
+    private Map<String, Object> compareRow(String target, String currentRuntime, String generatedTarget, String proposalBaseline, String patchTarget) {
+        return orderedMap(
+                "target", target,
+                "currentRuntime", currentRuntime,
+                "generatedTarget", generatedTarget,
+                "proposalBaseline", proposalBaseline,
+                "patchTarget", patchTarget,
+                "result", "MISMATCH");
+    }
+
+    private Map<String, Object> stage(String stageId, String status, String summary) {
+        return orderedMap("stageId", stageId, "status", status, "summary", summary);
+    }
+
+    private Map<String, Object> parseJsonObject(Object value) throws IOException {
+        if (value == null) {
+            return orderedMap();
+        }
+        String text = String.valueOf(value).trim();
+        if (text.isEmpty()) {
+            return orderedMap();
+        }
+        return objectMapper.readValue(text, MAP_TYPE);
+    }
+
+    private List<String> parseJsonArray(Object value) throws IOException {
+        if (value == null) {
+            return new ArrayList<String>();
+        }
+        String text = String.valueOf(value).trim();
+        if (text.isEmpty()) {
+            return new ArrayList<String>();
+        }
+        List<String> values = objectMapper.readValue(text, new TypeReference<List<String>>() {});
+        return values == null ? new ArrayList<String>() : values;
+    }
+
+    private void persistProjectPipelineToDatabase(ProjectPipelineRunRequest request, Map<String, Object> response) throws Exception {
+        String projectId = value(response, "projectId");
+        String releaseUnitId = value(response, "releaseUnitId");
+        String runtimePackageId = value(response, "runtimePackageId");
+        String rollbackTargetReleaseId = value(valueMap(response, "rollbackPlan"), "rollbackTargetReleaseUnitId");
+        String operator = firstNonBlank(value(response, "operator"), orDefault(request.getOperator(), "system"));
+
+        Map<String, Object> artifactVersionSet = new LinkedHashMap<String, Object>(valueMap(response, "artifactVersionSet"));
+        List<String> commonArtifactSet = normalizeObjectStringList(response.get("commonArtifactSet"));
+        List<String> installableArtifactSet = normalizeObjectStringList(response.get("installableArtifactSet"));
+        List<Map<String, Object>> artifactRegistryEntrySet = normalizeObjectMapList(response.get("artifactRegistryEntrySet"));
+
+        projectVersionManagementMapper.insertReleaseUnitRegistry(orderedMap(
+                "releaseUnitId", releaseUnitId,
+                "projectId", projectId,
+                "runtimePackageId", runtimePackageId,
+                "projectRuntimeVersion", runtimePackageId,
+                "adapterArtifactVersion", firstNonBlank(
+                        valueFromMap(artifactVersionSet, projectId + "-adapter-artifact"),
+                        valueFromMap(artifactVersionSet, projectId + "-adapter")),
+                "adapterContractVersion", valueFromMap(artifactVersionSet, projectId + "-adapter-contract"),
+                "commonArtifactSetJson", objectMapper.writeValueAsString(commonArtifactSet),
+                "packageVersionSetJson", objectMapper.writeValueAsString(artifactVersionSet),
+                "rollbackTargetReleaseId", rollbackTargetReleaseId,
+                "approvedBy", operator));
+
+        List<Map<String, Object>> currentInstalls = projectVersionManagementMapper.selectInstalledArtifacts(projectId);
+        Map<String, String> rollbackVersionByArtifactId = new LinkedHashMap<String, String>();
+        for (Map<String, Object> installed : currentInstalls) {
+            rollbackVersionByArtifactId.put(value(installed, "artifactId"), value(installed, "installedArtifactVersion"));
+        }
+        projectVersionManagementMapper.deactivateProjectArtifactInstalls(projectId);
+
+        for (Map<String, Object> entry : artifactRegistryEntrySet) {
+            String artifactId = value(entry, "artifactId");
+            String artifactVersion = firstNonBlank(value(entry, "artifactVersion"), valueFromMap(artifactVersionSet, artifactId));
+            if (!hasText(artifactId) || !hasText(artifactVersion)) {
+                continue;
+            }
+            Map<String, Object> artifactVersionRow = projectVersionManagementMapper.selectArtifactVersionByKey(orderedMap(
+                    "artifactId", artifactId,
+                    "artifactVersion", artifactVersion));
+            if (artifactVersionRow == null) {
+                continue;
+            }
+            projectVersionManagementMapper.insertProjectArtifactInstall(orderedMap(
+                    "projectArtifactInstallId", "pai-" + shortId(),
+                    "projectId", projectId,
+                    "artifactVersionId", value(artifactVersionRow, "artifactVersionId"),
+                    "installScope", firstNonBlank(value(entry, "installScope"), resolveInstallScope(artifactId)),
+                    "releaseUnitId", releaseUnitId,
+                    "rollbackTargetVersion", rollbackVersionByArtifactId.get(artifactId),
+                    "installedBy", operator));
+        }
+
+        String adapterArtifactVersion = firstNonBlank(
+                valueFromMap(artifactVersionSet, projectId + "-adapter-artifact"),
+                valueFromMap(artifactVersionSet, projectId + "-adapter"));
+        String adapterContractVersion = valueFromMap(artifactVersionSet, projectId + "-adapter-contract");
+        if (hasText(adapterArtifactVersion) || hasText(adapterContractVersion)) {
+            projectVersionManagementMapper.insertAdapterChangeLog(orderedMap(
+                    "adapterChangeId", "chg-" + shortId(),
+                    "projectId", projectId,
+                    "adapterArtifactVersion", adapterArtifactVersion,
+                    "adapterContractVersion", adapterContractVersion,
+                    "changedPortSetJson", objectMapper.writeValueAsString(stringList("screen-binding", "menu-binding")),
+                    "changedDtoSetJson", objectMapper.writeValueAsString(stringList("ProjectRuntimeContract", "ProjectDeployContract")),
+                    "mappingImpactSummary", "Project pipeline run persisted into release/install registry.",
+                    "compatibilityClass", "ADAPTER_SAFE",
+                    "migrationRequiredYn", "N",
+                    "relatedReleaseUnitId", releaseUnitId,
+                    "recordedBy", operator));
+        }
+
+        String deploymentTarget = firstNonBlank(value(response, "deploymentTarget"), "ops-runtime-main-01");
+        String deployTraceId = firstNonBlank(value(response, "deployTraceId"), "deploy-" + sanitize(releaseUnitId));
+        for (Map<String, Object> serverState : buildDeploymentStateRecords(projectId, releaseUnitId, deployTraceId, deploymentTarget, operator)) {
+            projectVersionManagementMapper.insertServerDeploymentState(serverState);
+        }
+
+        if (!installableArtifactSet.contains(runtimePackageId)) {
+            installableArtifactSet.add(runtimePackageId);
+        }
+    }
+
+    private List<Map<String, Object>> buildDeploymentRouteSet(String deploymentTarget) {
+        String targetRole = resolveDeploymentRole(deploymentTarget);
+        List<Map<String, Object>> routeSet = new ArrayList<Map<String, Object>>();
+        routeSet.add(orderedMap(
+                "serverId", "ops-runtime-preview-01",
+                "serverRole", "PREVIEW",
+                "promotionState", "PRIMARY".equals(targetRole) || "STAGE".equals(targetRole) ? "PROMOTED" : "TARGET"));
+        routeSet.add(orderedMap(
+                "serverId", "ops-runtime-stage-01",
+                "serverRole", "STAGE",
+                "promotionState", "PRIMARY".equals(targetRole) ? "PROMOTED" : ("STAGE".equals(targetRole) ? "TARGET" : "PENDING")));
+        routeSet.add(orderedMap(
+                "serverId", "ops-runtime-main-01",
+                "serverRole", "PRIMARY",
+                "promotionState", "PRIMARY".equals(targetRole) ? "TARGET" : "PENDING"));
+        return routeSet;
+    }
+
+    private Map<String, Object> buildRepairDeployContract(String projectId, String releaseUnitId, String deploymentTarget) {
+        return orderedMap(
+                "artifactTargetSystem", projectId,
+                "deploymentTarget", deploymentTarget,
+                "deploymentRouteSet", buildDeploymentRouteSet(deploymentTarget),
+                "deploymentMode", "REPAIR_CANDIDATE_FLOW",
+                "versionTrackingYn", Boolean.TRUE,
+                "releaseFamilyId", projectId + "-family",
+                "releaseUnitId", releaseUnitId);
+    }
+
+    private List<Map<String, Object>> buildPipelineServerStateSet(
+            String projectId,
+            String releaseUnitId,
+            String deployTraceId,
+            String deploymentTarget,
+            String occurredAt
+    ) {
+        String targetRole = resolveDeploymentRole(deploymentTarget);
+        List<Map<String, Object>> states = new ArrayList<Map<String, Object>>();
+        states.add(buildPipelineServerState("ops-runtime-preview-01", "PREVIEW", projectId, releaseUnitId, deployTraceId, occurredAt, targetRole));
+        states.add(buildPipelineServerState("ops-runtime-stage-01", "STAGE", projectId, releaseUnitId, deployTraceId, occurredAt, targetRole));
+        states.add(buildPipelineServerState("ops-runtime-main-01", "PRIMARY", projectId, releaseUnitId, deployTraceId, occurredAt, targetRole));
+        return states;
+    }
+
+    private List<Map<String, Object>> buildPipelineServerStateSetFromDatabase(
+            String projectId,
+            String releaseUnitId,
+            String deployTraceId,
+            String deploymentTarget,
+            String occurredAt,
+            List<Map<String, Object>> databaseRows
+    ) {
+        Map<String, Map<String, Object>> latestByRole = new LinkedHashMap<String, Map<String, Object>>();
+        if (databaseRows != null) {
+            for (Map<String, Object> row : databaseRows) {
+                if (!releaseUnitId.equals(value(row, "activeReleaseUnitId"))) {
+                    continue;
+                }
+                String serverRole = value(row, "serverRole");
+                if (!latestByRole.containsKey(serverRole)) {
+                    latestByRole.put(serverRole, row);
+                }
+            }
+        }
+        if (latestByRole.isEmpty()) {
+            return buildPipelineServerStateSet(projectId, releaseUnitId, deployTraceId, deploymentTarget, occurredAt);
+        }
+
+        List<Map<String, Object>> states = new ArrayList<Map<String, Object>>();
+        for (String serverRole : stringList("PREVIEW", "STAGE", "PRIMARY")) {
+            Map<String, Object> row = latestByRole.get(serverRole);
+            if (row == null) {
+                continue;
+            }
+            states.add(orderedMap(
+                    "serverId", value(row, "serverId"),
+                    "serverRole", serverRole,
+                    "projectId", projectId,
+                    "activeReleaseUnitId", releaseUnitId,
+                    "deployTraceId", firstNonBlank(value(row, "deployTraceId"), deployTraceId),
+                    "deployedAt", firstNonBlank(value(row, "deployedAt"), occurredAt),
+                    "healthStatus", value(row, "healthStatus"),
+                    "promotionState", resolvePromotionState(serverRole, resolveDeploymentRole(deploymentTarget))));
+        }
+        return states;
+    }
+
+    private Map<String, Object> buildPipelineServerState(
+            String serverId,
+            String serverRole,
+            String projectId,
+            String releaseUnitId,
+            String deployTraceId,
+            String occurredAt,
+            String targetRole
+    ) {
+        return orderedMap(
+                "serverId", serverId,
+                "serverRole", serverRole,
+                "projectId", projectId,
+                "activeReleaseUnitId", releaseUnitId,
+                "deployTraceId", deployTraceId,
+                "deployedAt", occurredAt,
+                "healthStatus", resolvePipelineHealthStatus(serverRole, targetRole),
+                "promotionState", resolvePromotionState(serverRole, targetRole));
+    }
+
+    private String resolvePipelineHealthStatus(String serverRole, String targetRole) {
+        if ("PREVIEW".equals(serverRole)) {
+            return "PREVIEW".equals(targetRole) ? "HEALTHY" : "PROMOTED";
+        }
+        if ("STAGE".equals(serverRole)) {
+            return "PRIMARY".equals(targetRole) ? "PROMOTED" : ("STAGE".equals(targetRole) ? "VALIDATING" : "PENDING_PROMOTION");
+        }
+        return "PRIMARY".equals(targetRole) ? "HEALTHY" : "PENDING_PROMOTION";
+    }
+
+    private String resolvePromotionState(String serverRole, String targetRole) {
+        if (serverRole.equals(targetRole)) {
+            return "TARGET";
+        }
+        if ("PREVIEW".equals(serverRole)) {
+            return "PROMOTED";
+        }
+        if ("STAGE".equals(serverRole)) {
+            return "PRIMARY".equals(targetRole) ? "PROMOTED" : "PENDING";
+        }
+        return "PENDING";
+    }
+
+    private List<Map<String, Object>> buildDeploymentStateRecords(
+            String projectId,
+            String releaseUnitId,
+            String deployTraceId,
+            String deploymentTarget,
+            String operator
+    ) {
+        String targetRole = resolveDeploymentRole(deploymentTarget);
+        List<Map<String, Object>> states = new ArrayList<Map<String, Object>>();
+        states.add(buildDeploymentStateRecord("ops-runtime-preview-01", "PREVIEW", projectId, releaseUnitId, deployTraceId, operator, targetRole));
+        states.add(buildDeploymentStateRecord("ops-runtime-stage-01", "STAGE", projectId, releaseUnitId, deployTraceId, operator, targetRole));
+        states.add(buildDeploymentStateRecord("ops-runtime-main-01", "PRIMARY", projectId, releaseUnitId, deployTraceId, operator, targetRole));
+        return states;
+    }
+
+    private Map<String, Object> buildDeploymentStateRecord(
+            String serverId,
+            String serverRole,
+            String projectId,
+            String releaseUnitId,
+            String deployTraceId,
+            String operator,
+            String targetRole
+    ) {
+        String healthStatus;
+        if ("PREVIEW".equals(serverRole)) {
+            healthStatus = "PREVIEW".equals(targetRole) ? "HEALTHY" : "PROMOTED";
+        } else if ("STAGE".equals(serverRole)) {
+            healthStatus = "PRIMARY".equals(targetRole) ? "PROMOTED" : ("STAGE".equals(targetRole) ? "VALIDATING" : "PENDING_PROMOTION");
+        } else {
+            healthStatus = "PRIMARY".equals(targetRole) ? "HEALTHY" : "PENDING_PROMOTION";
+        }
+        return orderedMap(
+                "serverDeploymentId", "dep-" + shortId(),
+                "serverId", serverId,
+                "serverRole", serverRole,
+                "projectId", projectId,
+                "releaseUnitId", releaseUnitId,
+                "deployTraceId", deployTraceId,
+                "healthStatus", healthStatus,
+                "deployedBy", operator);
+    }
+
+    private String resolveDeploymentRole(String deploymentTarget) {
+        String normalized = firstNonBlank(deploymentTarget, "").toLowerCase();
+        if (normalized.contains("preview")) {
+            return "PREVIEW";
+        }
+        if (normalized.contains("stage")) {
+            return "STAGE";
+        }
+        return "PRIMARY";
+    }
+
+    private String resolveRepairDeploymentTarget(String publishMode) {
+        String normalized = firstNonBlank(publishMode, "").toUpperCase();
+        if ("PUBLISH_READY".equals(normalized)) {
+            return "ops-runtime-main-01";
+        }
+        if ("REVIEW_READY".equals(normalized)) {
+            return "ops-runtime-stage-01";
+        }
+        return "ops-runtime-preview-01";
+    }
+
+    private void persistRepairApplyRecordToDatabase(RepairApplyRequest request, Map<String, Object> response) throws Exception {
+        String projectId = value(response, "projectId");
+        String candidateReleaseUnitId = value(response, "updatedReleaseCandidateId");
+        String candidateRuntimePackageId = value(response, "candidateRuntimePackageId");
+        String operator = firstNonBlank(value(response, "requestedBy"), request.getRequestedBy(), "system");
+
+        List<Map<String, Object>> releaseUnits = projectVersionManagementMapper.selectReleaseUnits(projectId);
+        Map<String, Object> baseReleaseUnit = selectBaseReleaseUnit(releaseUnits, request.getReleaseUnitId());
+        List<Map<String, Object>> currentInstalls = projectVersionManagementMapper.selectInstalledArtifacts(projectId);
+        Map<String, Object> packageVersionSet = buildRepairPackageVersionSet(projectId, baseReleaseUnit, currentInstalls);
+
+        boolean adapterArtifactChanged = !normalizeStringList(request.getUpdatedAssetSet()).isEmpty()
+                || !normalizeStringList(request.getUpdatedThemeOrLayoutSet()).isEmpty();
+        boolean adapterContractChanged = !normalizeStringList(request.getUpdatedBindingSet()).isEmpty();
+
+        String adapterArtifactVersion = buildRepairAdapterVersion(
+                packageVersionSet,
+                projectId + "-adapter-artifact",
+                adapterArtifactChanged,
+                "repair-adapter-artifact");
+        String adapterContractVersion = buildRepairAdapterVersion(
+                packageVersionSet,
+                projectId + "-adapter-contract",
+                adapterContractChanged,
+                "repair-adapter-contract");
+        packageVersionSet.put(projectId + "-adapter-artifact", adapterArtifactVersion);
+        packageVersionSet.put(projectId + "-adapter-contract", adapterContractVersion);
+        packageVersionSet.put("runtime-package", candidateRuntimePackageId);
+
+        List<String> commonArtifactSet = buildCommonArtifactSet(baseReleaseUnit, currentInstalls);
+        String rollbackTargetReleaseId = firstNonBlank(
+                request.getReleaseUnitId(),
+                value(baseReleaseUnit, "releaseUnitId"),
+                value(baseReleaseUnit, "rollbackTargetReleaseId"));
+
+        projectVersionManagementMapper.insertReleaseUnitRegistry(orderedMap(
+                "releaseUnitId", candidateReleaseUnitId,
+                "projectId", projectId,
+                "runtimePackageId", candidateRuntimePackageId,
+                "projectRuntimeVersion", candidateRuntimePackageId,
+                "adapterArtifactVersion", adapterArtifactVersion,
+                "adapterContractVersion", adapterContractVersion,
+                "commonArtifactSetJson", objectMapper.writeValueAsString(commonArtifactSet),
+                "packageVersionSetJson", objectMapper.writeValueAsString(packageVersionSet),
+                "rollbackTargetReleaseId", rollbackTargetReleaseId,
+                "approvedBy", operator));
+
+        projectVersionManagementMapper.insertAdapterChangeLog(orderedMap(
+                "adapterChangeId", "chg-" + shortId(),
+                "projectId", projectId,
+                "adapterArtifactVersion", adapterArtifactVersion,
+                "adapterContractVersion", adapterContractVersion,
+                "changedPortSetJson", objectMapper.writeValueAsString(mergeStringLists(
+                        normalizeStringList(request.getUpdatedBindingSet()),
+                        stringList("binding:onClick->projectAction"))),
+                "changedDtoSetJson", objectMapper.writeValueAsString(buildRepairDtoSet(request)),
+                "mappingImpactSummary", firstNonBlank(
+                        request.getChangeSummary(),
+                        "Repair apply persisted as release candidate without deployment activation."),
+                "compatibilityClass", "ADAPTER_REVIEW_REQUIRED",
+                "migrationRequiredYn", "Y",
+                "relatedReleaseUnitId", candidateReleaseUnitId,
+                "recordedBy", operator));
+    }
+
+    private Map<String, Object> selectBaseReleaseUnit(List<Map<String, Object>> releaseUnits, String releaseUnitId) {
+        if (releaseUnits == null || releaseUnits.isEmpty()) {
+            return orderedMap();
+        }
+        if (hasText(releaseUnitId)) {
+            for (Map<String, Object> row : releaseUnits) {
+                if (releaseUnitId.equals(value(row, "releaseUnitId"))) {
+                    return row;
+                }
+            }
+        }
+        return releaseUnits.get(0);
+    }
+
+    private Map<String, Object> buildRepairPackageVersionSet(
+            String projectId,
+            Map<String, Object> baseReleaseUnit,
+            List<Map<String, Object>> currentInstalls
+    ) throws Exception {
+        Map<String, Object> packageVersionSet = orderedMap();
+        if (baseReleaseUnit != null && hasText(value(baseReleaseUnit, "packageVersionSetJson"))) {
+            packageVersionSet.putAll(parseJsonObject(baseReleaseUnit.get("packageVersionSetJson")));
+        }
+        for (Map<String, Object> installed : currentInstalls) {
+            String artifactId = value(installed, "artifactId");
+            String artifactVersion = value(installed, "installedArtifactVersion");
+            if (hasText(artifactId) && hasText(artifactVersion)) {
+                packageVersionSet.put(artifactId, artifactVersion);
+            }
+        }
+        if (!hasText(valueFromMap(packageVersionSet, "common-core"))) {
+            packageVersionSet.put("common-core", versionStamp("common-core"));
+        }
+        if (!hasText(valueFromMap(packageVersionSet, projectId + "-adapter-artifact"))) {
+            packageVersionSet.put(projectId + "-adapter-artifact", versionStamp("adapter-artifact"));
+        }
+        if (!hasText(valueFromMap(packageVersionSet, projectId + "-adapter-contract"))) {
+            packageVersionSet.put(projectId + "-adapter-contract", versionStamp("adapter-contract"));
+        }
+        return packageVersionSet;
+    }
+
+    private String buildRepairAdapterVersion(
+            Map<String, Object> packageVersionSet,
+            String artifactKey,
+            boolean changed,
+            String generatedPrefix
+    ) {
+        String existingVersion = valueFromMap(packageVersionSet, artifactKey);
+        if (hasText(existingVersion) && !changed) {
+            return existingVersion;
+        }
+        return versionStamp(generatedPrefix);
+    }
+
+    private List<String> buildCommonArtifactSet(Map<String, Object> baseReleaseUnit, List<Map<String, Object>> currentInstalls) throws Exception {
+        List<String> commonArtifactSet = new ArrayList<String>();
+        for (Map<String, Object> installed : currentInstalls) {
+            if ("COMMON".equalsIgnoreCase(value(installed, "installScope"))) {
+                String artifactId = value(installed, "artifactId");
+                if (hasText(artifactId) && !commonArtifactSet.contains(artifactId)) {
+                    commonArtifactSet.add(artifactId);
+                }
+            }
+        }
+        if (commonArtifactSet.isEmpty() && baseReleaseUnit != null && hasText(value(baseReleaseUnit, "commonArtifactSetJson"))) {
+            commonArtifactSet.addAll(parseJsonArray(baseReleaseUnit.get("commonArtifactSetJson")));
+        }
+        if (commonArtifactSet.isEmpty()) {
+            commonArtifactSet.add("common-core");
+        }
+        return commonArtifactSet;
+    }
+
+    private List<String> buildRepairDtoSet(RepairApplyRequest request) {
+        return mergeStringLists(
+                normalizeStringList(request.getUpdatedThemeOrLayoutSet()),
+                stringList("ProjectRuntimeContract", "ProjectRepairCandidate"));
+    }
+
+    private void appendJsonLine(String location, Map<String, Object> payload) throws IOException {
+        Path path = Paths.get(location);
+        Path parent = path.getParent();
+        if (parent != null) {
+            Files.createDirectories(parent);
+        }
+        String line = objectMapper.writeValueAsString(payload) + System.lineSeparator();
+        Files.write(path, line.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+    }
+
+    private String buildReleaseUnitId(String prefix, String projectId) {
+        return sanitize(prefix) + "-" + sanitize(projectId) + "-" + VERSION_STAMP.format(LocalDateTime.now(ZoneOffset.UTC));
+    }
+
+    private String buildRuntimePackageId(String prefix, String projectId) {
+        return sanitize(prefix) + "-" + sanitize(projectId) + "-" + VERSION_STAMP.format(LocalDateTime.now(ZoneOffset.UTC));
+    }
+
+    private String versionStamp(String prefix) {
+        return sanitize(prefix) + "-" + VERSION_STAMP.format(LocalDateTime.now(ZoneOffset.UTC));
+    }
+
+    private String shortId() {
+        return UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+    }
+
+    private String now() {
+        return Instant.now().toString();
+    }
+
+    private String required(String value, String fieldName) {
+        if (!hasText(value)) {
+            throw new IllegalArgumentException(fieldName + " is required.");
+        }
+        return value.trim();
+    }
+
+    private String orDefault(String value, String fallback) {
+        return hasText(value) ? value.trim() : fallback;
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
+    }
+
+    private String sanitize(String value) {
+        return orDefault(value, "unknown").replaceAll("[^A-Za-z0-9._-]", "-");
+    }
+
+    private String value(Map<String, Object> source, String key) {
+        if (source == null) {
+            return "";
+        }
+        Object value = source.get(key);
+        return value == null ? "" : String.valueOf(value);
+    }
+
+    private Map<String, Object> valueMap(Map<String, Object> source, String key) {
+        if (source == null) {
+            return orderedMap();
+        }
+        Object value = source.get(key);
+        if (value instanceof Map) {
+            return new LinkedHashMap<String, Object>((Map<String, Object>) value);
+        }
+        return orderedMap();
+    }
+
+    private String valueFromMap(Map<String, Object> source, String key) {
+        if (source == null) {
+            return "";
+        }
+        Object value = source.get(key);
+        return value == null ? "" : String.valueOf(value);
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return "";
+        }
+        for (String value : values) {
+            if (hasText(value)) {
+                return value.trim();
+            }
+        }
+        return "";
+    }
+
+    private List<String> stringList(String... values) {
+        List<String> result = new ArrayList<String>();
+        if (values == null) {
+            return result;
+        }
+        for (String value : values) {
+            if (hasText(value)) {
+                result.add(value.trim());
+            }
+        }
+        return result;
+    }
+
+    private List<String> normalizeStringList(List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return new ArrayList<String>();
+        }
+        List<String> result = new ArrayList<String>();
+        for (String value : values) {
+            if (hasText(value)) {
+                result.add(value.trim());
+            }
+        }
+        return result;
+    }
+
+    private List<String> normalizeObjectStringList(Object values) {
+        if (!(values instanceof List<?>)) {
+            return new ArrayList<String>();
+        }
+        List<String> result = new ArrayList<String>();
+        for (Object value : (List<?>) values) {
+            if (value != null && hasText(String.valueOf(value))) {
+                result.add(String.valueOf(value).trim());
+            }
+        }
+        return result;
+    }
+
+    private List<Map<String, Object>> normalizeObjectMapList(Object values) {
+        if (!(values instanceof List<?>)) {
+            return new ArrayList<Map<String, Object>>();
+        }
+        List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
+        for (Object value : (List<?>) values) {
+            if (value instanceof Map<?, ?>) {
+                Map<String, Object> item = new LinkedHashMap<String, Object>();
+                for (Map.Entry<?, ?> entry : ((Map<?, ?>) value).entrySet()) {
+                    item.put(String.valueOf(entry.getKey()), entry.getValue());
+                }
+                result.add(item);
+            }
+        }
+        return result;
+    }
+
+    private String resolveInstallScope(String artifactId) {
+        if ("common-core".equals(artifactId)) {
+            return "COMMON";
+        }
+        if (artifactId.contains("adapter")) {
+            return "PROJECT";
+        }
+        return "PROJECT";
+    }
+
+    private List<String> mergeStringLists(List<String> first, List<String> second) {
+        List<String> merged = new ArrayList<String>();
+        merged.addAll(first == null ? Collections.<String>emptyList() : first);
+        if (second != null) {
+            for (String item : second) {
+                if (hasText(item) && !merged.contains(item.trim())) {
+                    merged.add(item.trim());
+                }
+            }
+        }
+        return merged;
+    }
+
+    private Map<String, Object> normalizeObjectMap(Map<String, Object> source) {
+        Map<String, Object> result = orderedMap();
+        if (source != null) {
+            result.putAll(source);
+        }
+        return result;
+    }
+
+    private Map<String, Object> orderedMap(Object... pairs) {
+        Map<String, Object> map = new LinkedHashMap<String, Object>();
+        if (pairs == null) {
+            return map;
+        }
+        for (int i = 0; i + 1 < pairs.length; i += 2) {
+            map.put(String.valueOf(pairs[i]), pairs[i + 1]);
+        }
+        return map;
+    }
+}

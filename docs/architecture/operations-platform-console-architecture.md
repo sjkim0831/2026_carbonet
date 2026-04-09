@@ -79,6 +79,9 @@ See also:
 - `docs/architecture/missing-asset-queue-ia.md`
 - `docs/architecture/operator-feature-completeness-checklist.md`
 - `docs/architecture/gui-first-builder-readiness-checklist.md`
+- `docs/architecture/page-systemization-minimum-contract.md`
+- `docs/architecture/system-folder-structure-alignment.md`
+- `docs/architecture/system-folder-refactor-checklist.md`
 - `docs/ai/80-skills/resonance-skill-and-doc-update-pattern.md`
 
 ## Goal
@@ -98,6 +101,20 @@ Build a separate Carbonet operations system that acts as the control plane for:
 This console is not another business app.
 
 It is the operational authority that manages deployed systems as runtime targets.
+
+## Canonical Builder And Folder Rules
+
+Use these documents as the current canonical baseline when the console governs builder pages, installable screens, or folder cleanup direction:
+
+- `docs/architecture/page-systemization-minimum-contract.md`
+- `docs/architecture/system-folder-structure-alignment.md`
+- `docs/architecture/system-folder-refactor-checklist.md`
+
+Use this interpretation:
+
+- a page is not considered a governed installable asset unless it satisfies the page-systemization minimum contract
+- folder cleanup should move new common/platform code toward `modules/`, executable assembly toward `apps/`, frontend authoring toward `frontend/src/`, and bootstrap assets toward `templates/`
+- the root `src/` tree should be treated as transitional where a live module line already exists
 
 ## Governed Identity Naming Rule
 

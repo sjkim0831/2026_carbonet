@@ -8,89 +8,15 @@ import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { numberOf, stringOf } from "../admin-system/adminSystemShared";
 import { CollectionResultPanel, GridToolbar, PageStatusNotice, SummaryMetricCard, WarningPanel } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
+import { buildMenuTree, buildSuggestedPageCode, flattenMenuOrderPayload, type MenuTreeNode, updateMenuSortOrders } from "./menuTreeShared";
 import { toDisplayMenuUrl } from "./menuUrlDisplay";
 
-type MenuNode = {
-  code: string;
-  label: string;
-  url: string;
-  icon: string;
-  useAt: string;
-  expsrAt: string;
-  sortOrdr: number;
-  children: MenuNode[];
-};
+type MenuNode = MenuTreeNode;
 
 type MenuSnapshot = {
   sortOrdr: number;
   expsrAt: string;
 };
-
-function parentCode(code: string) {
-  if (code.length === 8) return code.slice(0, 6);
-  if (code.length === 6) return code.slice(0, 4);
-  return "";
-}
-
-function buildTree(rows: Array<Record<string, unknown>>) {
-  const nodes = new Map<string, MenuNode>();
-  rows.forEach((row) => {
-    const code = stringOf(row, "code").toUpperCase();
-    if (!code) {
-      return;
-    }
-    nodes.set(code, {
-      code,
-      label: stringOf(row, "codeNm", "codeDc", "code"),
-      url: toDisplayMenuUrl(stringOf(row, "menuUrl")),
-      icon: stringOf(row, "menuIcon") || "menu",
-      useAt: stringOf(row, "useAt") || "Y",
-      expsrAt: stringOf(row, "expsrAt") || "Y",
-      sortOrdr: numberOf(row, "sortOrdr"),
-      children: []
-    });
-  });
-
-  const roots: MenuNode[] = [];
-  nodes.forEach((node) => {
-    const parent = nodes.get(parentCode(node.code));
-    if (parent) {
-      parent.children.push(node);
-    } else {
-      roots.push(node);
-    }
-  });
-
-  const sortNodes = (items: MenuNode[]) => {
-    items.sort((a, b) => {
-      const orderA = a.sortOrdr > 0 ? a.sortOrdr : Number.MAX_SAFE_INTEGER;
-      const orderB = b.sortOrdr > 0 ? b.sortOrdr : Number.MAX_SAFE_INTEGER;
-      if (orderA !== orderB) {
-        return orderA - orderB;
-      }
-      return a.code.localeCompare(b.code);
-    });
-    items.forEach((item) => sortNodes(item.children));
-  };
-
-  sortNodes(roots);
-  return roots;
-}
-
-function updateSortOrders(items: MenuNode[]) {
-  items.forEach((item, index) => {
-    item.sortOrdr = index + 1;
-    updateSortOrders(item.children);
-  });
-}
-
-function flattenPayload(items: MenuNode[], output: string[] = []) {
-  items.forEach((item, index) => {
-    output.push(`${item.code}:${index + 1}`);
-    flattenPayload(item.children, output);
-  });
-  return output;
-}
 
 function flattenNodes(items: MenuNode[], output: MenuNode[] = []) {
   items.forEach((item) => {
@@ -169,6 +95,7 @@ export function FaqMenuManagementMigrationPage() {
   const pageState = useAsyncValue<MenuManagementPagePayload>(() => fetchContentMenuManagementPage(), []);
   const page = pageState.value;
   const rows = useMemo(() => ((page?.menuRows || []) as Array<Record<string, unknown>>), [page?.menuRows]);
+  const menuCodeRows = useMemo(() => rows.map((row) => ({ code: stringOf(row, "code").toUpperCase() })), [rows]);
   const groupMenuOptions = ((page?.groupMenuOptions || []) as Array<Record<string, string>>);
   const iconOptions = ((page?.iconOptions || []) as string[]);
   const useAtOptions = ((page?.useAtOptions || []) as string[]);
@@ -185,7 +112,7 @@ export function FaqMenuManagementMigrationPage() {
   ), [allNodes, originalSnapshot]);
 
   useEffect(() => {
-    setTreeData(buildTree(rows));
+    setTreeData(buildMenuTree(rows, { includeExposure: true, includeUseAt: true, mapUrl: toDisplayMenuUrl }));
   }, [rows]);
 
   useEffect(() => {
@@ -215,7 +142,7 @@ export function FaqMenuManagementMigrationPage() {
     const moved = nextNodes[index];
     nextNodes[index] = nextNodes[nextIndex];
     nextNodes[nextIndex] = moved;
-    updateSortOrders(nextNodes);
+    updateMenuSortOrders(nextNodes);
     return nextNodes;
   }
 
@@ -246,7 +173,7 @@ export function FaqMenuManagementMigrationPage() {
     setActionMessage("");
     const body = new URLSearchParams();
     body.set("menuType", "ADMIN");
-    body.set("orderPayload", flattenPayload(treeData).join(","));
+    body.set("orderPayload", flattenMenuOrderPayload(treeData).join(","));
     await postFormUrlEncoded(buildLocalizedPath("/admin/content/menu/order", "/en/admin/content/menu/order"), body);
     refreshAdminMenuTree();
     await pageState.reload();
@@ -254,24 +181,7 @@ export function FaqMenuManagementMigrationPage() {
   }
 
   function findSuggestedPageCode() {
-    if (!parentCodeValue || parentCodeValue.length !== 6) {
-      return "";
-    }
-    let maxSuffix = 0;
-    rows.forEach((row) => {
-      const code = stringOf(row, "code").toUpperCase();
-      if (!code.startsWith(parentCodeValue) || code.length !== 8) {
-        return;
-      }
-      const suffix = Number(code.slice(6));
-      if (Number.isFinite(suffix) && suffix > maxSuffix) {
-        maxSuffix = suffix;
-      }
-    });
-    if (maxSuffix >= 99) {
-      return "";
-    }
-    return `${parentCodeValue}${String(maxSuffix + 1).padStart(2, "0")}`;
+    return buildSuggestedPageCode(parentCodeValue, menuCodeRows);
   }
 
   async function createPageMenu() {

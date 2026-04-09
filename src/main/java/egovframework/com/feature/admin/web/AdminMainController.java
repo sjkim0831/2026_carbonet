@@ -35,10 +35,8 @@ import egovframework.com.feature.admin.model.vo.UserAuthorityTargetVO;
 import egovframework.com.feature.admin.model.vo.UserFeatureOverrideVO;
 import egovframework.com.feature.admin.service.AdminLoginHistoryService;
 import egovframework.com.feature.admin.service.AdminShellBootstrapPageService;
-import egovframework.com.feature.admin.service.AdminSummaryService;
 import egovframework.com.feature.admin.service.AuthorRoleProfileService;
 import egovframework.com.feature.admin.service.AuthGroupManageService;
-import egovframework.com.feature.admin.service.MenuInfoService;
 import egovframework.com.feature.admin.dto.request.AdminAuthGroupCreateRequestDTO;
 import egovframework.com.feature.admin.dto.request.AdminAuthorRoleProfileSaveRequestDTO;
 import egovframework.com.feature.admin.dto.request.AdminAuthChangeSaveRequestDTO;
@@ -67,6 +65,8 @@ import egovframework.com.common.util.FeatureCodeBitmap;
 import egovframework.com.common.util.ReactPageUrlMapper;
 import egovframework.com.framework.authority.service.FrameworkAuthorityPolicyService;
 import egovframework.com.feature.home.web.ReactAppViewSupport;
+import egovframework.com.platform.observability.service.PlatformObservabilityAdminPageFacade;
+import egovframework.com.platform.read.AdminSummaryReadPort;
 import io.jsonwebtoken.Claims;
 import egovframework.com.common.service.CmmnDetailCode;
 import egovframework.com.common.model.ComDefaultCodeVO;
@@ -167,11 +167,11 @@ public class AdminMainController {
     private final AdminApprovalActionService adminApprovalActionService;
     private final AdminCertificateApprovalService adminCertificateApprovalService;
     private final AuthService authService;
-    private final AdminSummaryService adminSummaryService;
+    private final AdminSummaryReadPort adminSummaryReadPort;
     private final AuthorRoleProfileService authorRoleProfileService;
     private final AdminAuthorityPagePayloadSupport adminAuthorityPagePayloadSupport;
     private final AdminAuthorityCommandService adminAuthorityCommandService;
-    private final AdminObservabilityPageService adminObservabilityPageService;
+    private final PlatformObservabilityAdminPageFacade platformObservabilityAdminPageFacade;
     private final AdminMenuShellService adminMenuShellService;
     private final AdminMemberExportService adminMemberExportService;
     private final AuditTrailService auditTrailService;
@@ -179,6 +179,7 @@ public class AdminMainController {
     private final RequestExecutionLogService requestExecutionLogService;
     private final ObservabilityQueryService observabilityQueryService;
     private final ObjectMapper objectMapper;
+    private final AdminReactRouteSupport adminReactRouteSupport;
     private final ConcurrentMap<String, String> companyNameCache = new ConcurrentHashMap<>();
 
     private AdminHotPathPagePayloadService adminHotPathPagePayloadService() {
@@ -242,6 +243,16 @@ public class AdminMainController {
         return redirectReactMigration(request, locale, "external-connection-edit");
     }
 
+    @RequestMapping(value = "/emission/survey-admin", method = { RequestMethod.GET, RequestMethod.POST })
+    public String emissionSurveyAdminPage(HttpServletRequest request, Locale locale) {
+        return redirectReactMigration(request, locale, "emission-survey-admin");
+    }
+
+    @RequestMapping(value = "/emission/survey-admin-data", method = { RequestMethod.GET, RequestMethod.POST })
+    public String emissionSurveyAdminDataPage(HttpServletRequest request, Locale locale) {
+        return redirectReactMigration(request, locale, "emission-survey-admin-data");
+    }
+
     ResponseEntity<Map<String, Object>> memberRegisterPageApi(HttpServletRequest request, Locale locale) {
         return ResponseEntity.ok(adminHotPathPagePayloadService().buildMemberRegisterPagePayload(request, locale));
     }
@@ -251,25 +262,18 @@ public class AdminMainController {
             HttpServletRequest request,
             Locale locale) {
         boolean isEn = isEnglishRequest(request, locale);
-        Map<String, Object> response = new LinkedHashMap<>();
         String currentUserId = extractCurrentUserId(request);
         String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
         if (!hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)
                 && !requiresMemberManagementCompanyScope(currentUserId, currentUserAuthorCode)) {
-            response.put("valid", false);
-            response.put("duplicated", false);
-            response.put("message", isEn ? "You do not have permission to validate member IDs." : "회원 ID를 확인할 권한이 없습니다.");
-            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
+            return duplicateCheckError(HttpServletResponse.SC_FORBIDDEN, false,
+                    isEn ? "You do not have permission to validate member IDs." : "회원 ID를 확인할 권한이 없습니다.");
         }
 
         String normalizedMemberId = safeString(memberId);
         if (!normalizedMemberId.matches("^[A-Za-z0-9]{6,12}$")) {
-            response.put("valid", false);
-            response.put("duplicated", false);
-            response.put("message", isEn
-                    ? "Use 6 to 12 letters or numbers for the member ID."
-                    : "회원 ID는 영문/숫자 6~12자로 입력해 주세요.");
-            return ResponseEntity.badRequest().body(response);
+            return duplicateCheckError(HttpServletResponse.SC_BAD_REQUEST, false,
+                    isEn ? "Use 6 to 12 letters or numbers for the member ID." : "회원 ID는 영문/숫자 6~12자로 입력해 주세요.");
         }
 
         boolean duplicated;
@@ -277,20 +281,14 @@ public class AdminMainController {
             duplicated = entrprsManageService.checkIdDplct(normalizedMemberId) > 0;
         } catch (Exception e) {
             log.error("Failed to check member id duplication. memberId={}", normalizedMemberId, e);
-            response.put("valid", false);
-            response.put("duplicated", false);
-            response.put("message", isEn
-                    ? "An error occurred while checking the member ID."
-                    : "회원 ID 중복 확인 중 오류가 발생했습니다.");
-            return ResponseEntity.internalServerError().body(response);
+            return duplicateCheckError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, false,
+                    isEn ? "An error occurred while checking the member ID." : "회원 ID 중복 확인 중 오류가 발생했습니다.");
         }
 
-        response.put("valid", !duplicated);
-        response.put("duplicated", duplicated);
-        response.put("message", duplicated
-                ? (isEn ? "This member ID is already in use." : "이미 사용 중인 회원 ID입니다.")
-                : (isEn ? "This member ID is available." : "사용 가능한 회원 ID입니다."));
-        return ResponseEntity.ok(response);
+        return duplicateCheckSuccess(duplicated,
+                duplicated
+                        ? (isEn ? "This member ID is already in use." : "이미 사용 중인 회원 ID입니다.")
+                        : (isEn ? "This member ID is available." : "사용 가능한 회원 ID입니다."));
     }
 
     ResponseEntity<Map<String, Object>> memberRegisterSubmitApi(
@@ -298,17 +296,14 @@ public class AdminMainController {
             HttpServletRequest request,
             Locale locale) {
         boolean isEn = isEnglishRequest(request, locale);
-        Map<String, Object> response = new LinkedHashMap<>();
         String currentUserId = extractCurrentUserId(request);
         String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
         boolean masterAccess = hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode);
         boolean companyScopedAccess = requiresMemberManagementCompanyScope(currentUserId, currentUserAuthorCode);
         if (!masterAccess && !companyScopedAccess) {
-            response.put("success", false);
-            response.put("message", isEn
+            return failureMessageResponse(HttpServletResponse.SC_FORBIDDEN, isEn
                     ? "You do not have permission to register members."
                     : "회원을 등록할 권한이 없습니다.");
-            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
         }
 
         String normalizedMemberId = trimToLen(safeString(payload == null ? null : payload.getMemberId()), 20);
@@ -413,9 +408,7 @@ public class AdminMainController {
         }
 
         if (!errors.isEmpty()) {
-            response.put("success", false);
-            response.put("errors", errors);
-            return ResponseEntity.badRequest().body(response);
+            return failureErrorsResponse(HttpServletResponse.SC_BAD_REQUEST, errors);
         }
 
         EntrprsManageVO member = new EntrprsManageVO();
@@ -457,10 +450,6 @@ public class AdminMainController {
                     baselineFeatureCodes,
                     currentUserId,
                     resolveGrantableFeatureCodeSet(currentUserId, isWebmaster(currentUserId)));
-            response.put("success", true);
-            response.put("memberId", normalizedMemberId);
-            response.put("authorCode", normalizedAuthorCode);
-            response.put("insttId", canonicalInsttId);
             recordAdminActionAudit(request,
                     currentUserId,
                     currentUserAuthorCode,
@@ -471,12 +460,15 @@ public class AdminMainController {
                     normalizedMemberId,
                     "{\"memberId\":\"" + safeJson(normalizedMemberId) + "\",\"insttId\":\"" + safeJson(canonicalInsttId) + "\",\"authorCode\":\"" + safeJson(normalizedAuthorCode) + "\"}",
                     "{\"status\":\"SUCCESS\"}");
-            return ResponseEntity.ok(response);
+            Map<String, Object> payloadBody = new LinkedHashMap<>();
+            payloadBody.put("memberId", normalizedMemberId);
+            payloadBody.put("authorCode", normalizedAuthorCode);
+            payloadBody.put("insttId", canonicalInsttId);
+            return successResponse(payloadBody);
         } catch (Exception e) {
             log.error("Failed to register member. memberId={}, insttId={}", normalizedMemberId, canonicalInsttId, e);
-            response.put("success", false);
-            response.put("message", isEn ? "An error occurred while saving the member registration." : "회원 등록 저장 중 오류가 발생했습니다.");
-            return ResponseEntity.internalServerError().body(response);
+            return failureMessageResponse(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    isEn ? "An error occurred while saving the member registration." : "회원 등록 저장 중 오류가 발생했습니다.");
         }
     }
 
@@ -757,14 +749,12 @@ public class AdminMainController {
             @RequestBody AdminMemberEditSaveRequestDTO payload,
             HttpServletRequest request,
             Locale locale) {
-        Map<String, Object> response = new LinkedHashMap<>();
         boolean isEn = isEnglishRequest(request, locale);
         String normalizedMemberId = safeString(payload == null ? null : payload.getMemberId());
 
         if (normalizedMemberId.isEmpty()) {
-            response.put("success", false);
-            response.put("message", isEn ? "Member ID was not provided." : "회원 ID가 전달되지 않았습니다.");
-            return ResponseEntity.badRequest().body(response);
+            return failureMessageResponse(HttpServletResponse.SC_BAD_REQUEST,
+                    isEn ? "Member ID was not provided." : "회원 ID가 전달되지 않았습니다.");
         }
 
         EntrprsManageVO member;
@@ -772,22 +762,18 @@ public class AdminMainController {
             member = entrprsManageService.selectEntrprsmberByMberId(normalizedMemberId);
         } catch (Exception e) {
             log.error("Failed to load member for edit submit api. memberId={}", normalizedMemberId, e);
-            response.put("success", false);
-            response.put("message", isEn ? "An error occurred while retrieving member information." : "회원 정보 조회 중 오류가 발생했습니다.");
-            return ResponseEntity.internalServerError().body(response);
+            return failureMessageResponse(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    isEn ? "An error occurred while retrieving member information." : "회원 정보 조회 중 오류가 발생했습니다.");
         }
 
         if (member == null || safeString(member.getEntrprsmberId()).isEmpty()) {
-            response.put("success", false);
-            response.put("message", isEn ? "Member information was not found." : "회원 정보를 찾을 수 없습니다.");
-            return ResponseEntity.badRequest().body(response);
+            return failureMessageResponse(HttpServletResponse.SC_BAD_REQUEST,
+                    isEn ? "Member information was not found." : "회원 정보를 찾을 수 없습니다.");
         }
         if (!canCurrentAdminAccessMember(request, member)) {
-            response.put("success", false);
-            response.put("message", isEn
+            return failureMessageResponse(HttpServletResponse.SC_FORBIDDEN, isEn
                     ? "You can only edit members in your own company."
                     : "본인 회사 소속 회원만 수정할 수 있습니다.");
-            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
         }
 
         List<String> errors = new ArrayList<>();
@@ -861,9 +847,7 @@ public class AdminMainController {
         member.setDeptNm(normalizedDeptNm);
 
         if (!errors.isEmpty()) {
-            response.put("success", false);
-            response.put("errors", errors);
-            return ResponseEntity.badRequest().body(response);
+            return failureErrorsResponse(HttpServletResponse.SC_BAD_REQUEST, errors);
         }
 
         try {
@@ -878,13 +862,10 @@ public class AdminMainController {
                     resolveGrantableFeatureCodeSet(extractCurrentUserId(request), isWebmaster(extractCurrentUserId(request))));
         } catch (Exception e) {
             log.error("Failed to save member edit api. memberId={}", normalizedMemberId, e);
-            response.put("success", false);
-            response.put("message", isEn ? "An error occurred while saving member information." : "회원 정보 저장 중 오류가 발생했습니다.");
-            return ResponseEntity.internalServerError().body(response);
+            return failureMessageResponse(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    isEn ? "An error occurred while saving member information." : "회원 정보 저장 중 오류가 발생했습니다.");
         }
 
-        response.put("success", true);
-        response.put("memberId", normalizedMemberId);
         recordAdminActionAudit(request,
                 extractCurrentUserId(request),
                 resolveCurrentUserAuthorCode(extractCurrentUserId(request)),
@@ -895,7 +876,9 @@ public class AdminMainController {
                 normalizedMemberId,
                 "{\"memberId\":\"" + safeJson(normalizedMemberId) + "\",\"authorCode\":\"" + safeJson(normalizedAuthorCode) + "\"}",
                 "{\"status\":\"SUCCESS\"}");
-        return ResponseEntity.ok(response);
+        Map<String, Object> payloadBody = new LinkedHashMap<>();
+        payloadBody.put("memberId", normalizedMemberId);
+        return successResponse(payloadBody);
     }
 
     String member_editSubmit(
@@ -1153,13 +1136,11 @@ public class AdminMainController {
             HttpServletRequest request,
             Locale locale) {
         boolean isEn = isEnglishRequest(request, locale);
-        Map<String, Object> response = new LinkedHashMap<>();
 
         String normalizedMemberId = safeString(memberId);
         if (normalizedMemberId.isEmpty()) {
-            response.put("status", "fail");
-            response.put("errors", isEn ? "Member ID was not provided." : "회원 ID가 전달되지 않았습니다.");
-            return ResponseEntity.badRequest().body(response);
+            return statusFailureResponse(HttpServletResponse.SC_BAD_REQUEST,
+                    isEn ? "Member ID was not provided." : "회원 ID가 전달되지 않았습니다.");
         }
 
         String temporaryPassword = buildTemporaryPassword();
@@ -1169,16 +1150,13 @@ public class AdminMainController {
         try {
             EntrprsManageVO member = entrprsManageService.selectEntrprsmberByMberId(normalizedMemberId);
             if (member == null || safeString(member.getEntrprsmberId()).isEmpty()) {
-                response.put("status", "fail");
-                response.put("errors", isEn ? "No matching user was found." : "일치하는 사용자를 찾을 수 없습니다.");
-                return ResponseEntity.ok(response);
+                return statusFailureResponse(HttpServletResponse.SC_OK,
+                        isEn ? "No matching user was found." : "일치하는 사용자를 찾을 수 없습니다.");
             }
             if (!canCurrentAdminAccessMember(request, member)) {
-                response.put("status", "fail");
-                response.put("errors", isEn
+                return statusFailureResponse(HttpServletResponse.SC_FORBIDDEN, isEn
                         ? "You can only reset passwords for members in your own company."
                         : "본인 회사 소속 회원만 비밀번호를 초기화할 수 있습니다.");
-                return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
             }
             boolean updated = authService.resetPassword(
                     normalizedMemberId,
@@ -1187,20 +1165,15 @@ public class AdminMainController {
                     clientIp,
                     "ADMIN_MEMBER_RESET");
             if (!updated) {
-                response.put("status", "fail");
-                response.put("errors", isEn ? "No matching user was found." : "일치하는 사용자를 찾을 수 없습니다.");
-                return ResponseEntity.ok(response);
+                return statusFailureResponse(HttpServletResponse.SC_OK,
+                        isEn ? "No matching user was found." : "일치하는 사용자를 찾을 수 없습니다.");
             }
         } catch (Exception e) {
             log.error("Failed to reset member credentials. memberId={}, adminId={}", normalizedMemberId, currentAdminUserId, e);
-            response.put("status", "fail");
-            response.put("errors", isEn ? "Failed to reset the password." : "비밀번호 초기화에 실패했습니다.");
-            return ResponseEntity.internalServerError().body(response);
+            return statusFailureResponse(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    isEn ? "Failed to reset the password." : "비밀번호 초기화에 실패했습니다.");
         }
 
-        response.put("status", "success");
-        response.put("temporaryPassword", temporaryPassword);
-        response.put("message", isEn ? "The password has been reset." : "비밀번호가 초기화되었습니다.");
         recordAdminActionAudit(request,
                 currentAdminUserId,
                 resolveCurrentUserAuthorCode(currentAdminUserId),
@@ -1211,7 +1184,10 @@ public class AdminMainController {
                 normalizedMemberId,
                 "{\"memberId\":\"" + safeJson(normalizedMemberId) + "\"}",
                 "{\"status\":\"SUCCESS\"}");
-        return ResponseEntity.ok(response);
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("temporaryPassword", temporaryPassword);
+        payload.put("message", isEn ? "The password has been reset." : "비밀번호가 초기화되었습니다.");
+        return statusSuccessResponse(payload);
     }
 
     String admin_account(
@@ -1239,13 +1215,11 @@ public class AdminMainController {
         String currentUserId = extractCurrentUserId(request);
         String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
         if (!isWebmaster(currentUserId) && !hasGlobalDeptRoleAccess(currentUserId, currentUserAuthorCode)) {
-            Map<String, Object> response = new LinkedHashMap<>();
-            response.put("message", isEn
+            return failureMessageResponse(HttpServletResponse.SC_FORBIDDEN, isEn
                     ? "Only global administrators can view menu permission diagnostics."
                     : "메뉴 권한 진단은 전체 관리자만 조회할 수 있습니다.");
-            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
         }
-        return ResponseEntity.ok(adminSummaryService.buildMenuPermissionDiagnosticSummary(isEn));
+        return ResponseEntity.ok(adminSummaryReadPort.buildMenuPermissionDiagnosticSummary(isEn));
     }
 
     ResponseEntity<Map<String, Object>> adminAccountCheckIdApi(
@@ -1253,48 +1227,34 @@ public class AdminMainController {
             HttpServletRequest request,
             Locale locale) {
         boolean isEn = isEnglishRequest(request, locale);
-        Map<String, Object> response = new LinkedHashMap<>();
         String currentUserId = extractCurrentUserId(request);
         String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
         if (!canCreateAdminAccounts(currentUserId, currentUserAuthorCode)) {
-            response.put("valid", false);
-            response.put("duplicated", false);
-            response.put("message", isEn ? "You do not have permission to validate administrator IDs." : "관리자 ID를 확인할 권한이 없습니다.");
-            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
+            return duplicateCheckError(HttpServletResponse.SC_FORBIDDEN, false,
+                    isEn ? "You do not have permission to validate administrator IDs." : "관리자 ID를 확인할 권한이 없습니다.");
         }
         String normalizedAdminId = safeString(adminId);
         if (normalizedAdminId.isEmpty()) {
-            response.put("valid", false);
-            response.put("duplicated", false);
-            response.put("message", isEn ? "Administrator ID is required." : "관리자 ID를 입력해 주세요.");
-            return ResponseEntity.badRequest().body(response);
+            return duplicateCheckError(HttpServletResponse.SC_BAD_REQUEST, false,
+                    isEn ? "Administrator ID is required." : "관리자 ID를 입력해 주세요.");
         }
         if (!normalizedAdminId.matches("^[A-Za-z0-9]{6,16}$")) {
-            response.put("valid", false);
-            response.put("duplicated", false);
-            response.put("message", isEn
-                    ? "Use 6 to 16 letters or numbers for the administrator ID."
-                    : "관리자 ID는 영문/숫자 6~16자로 입력해 주세요.");
-            return ResponseEntity.badRequest().body(response);
+            return duplicateCheckError(HttpServletResponse.SC_BAD_REQUEST, false,
+                    isEn ? "Use 6 to 16 letters or numbers for the administrator ID."
+                            : "관리자 ID는 영문/숫자 6~16자로 입력해 주세요.");
         }
         boolean duplicated;
         try {
             duplicated = userManageService.checkIdDplct(normalizedAdminId) > 0;
         } catch (Exception e) {
             log.error("Failed to check admin id duplication. adminId={}", normalizedAdminId, e);
-            response.put("valid", false);
-            response.put("duplicated", false);
-            response.put("message", isEn
-                    ? "An error occurred while checking the administrator ID."
-                    : "관리자 ID 중복 확인 중 오류가 발생했습니다.");
-            return ResponseEntity.internalServerError().body(response);
+            return duplicateCheckError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, false,
+                    isEn ? "An error occurred while checking the administrator ID." : "관리자 ID 중복 확인 중 오류가 발생했습니다.");
         }
-        response.put("valid", !duplicated);
-        response.put("duplicated", duplicated);
-        response.put("message", duplicated
-                ? (isEn ? "This administrator ID is already in use." : "이미 사용 중인 관리자 ID입니다.")
-                : (isEn ? "This administrator ID is available." : "사용 가능한 관리자 ID입니다."));
-        return ResponseEntity.ok(response);
+        return duplicateCheckSuccess(duplicated,
+                duplicated
+                        ? (isEn ? "This administrator ID is already in use." : "이미 사용 중인 관리자 ID입니다.")
+                        : (isEn ? "This administrator ID is available." : "사용 가능한 관리자 ID입니다."));
     }
 
     ResponseEntity<CompanySearchResponseDTO> adminCompanySearchApi(
@@ -1347,15 +1307,12 @@ public class AdminMainController {
             HttpServletRequest request,
             Locale locale) {
         boolean isEn = isEnglishRequest(request, locale);
-        Map<String, Object> response = new LinkedHashMap<>();
         String currentUserId = extractCurrentUserId(request);
         String currentUserAuthorCode = resolveCurrentUserAuthorCode(currentUserId);
         if (!canCreateAdminAccounts(currentUserId, currentUserAuthorCode)) {
-            response.put("success", false);
-            response.put("message", isEn
+            return failureMessageResponse(HttpServletResponse.SC_FORBIDDEN, isEn
                     ? "You do not have permission to create administrator accounts."
                     : "관리자 계정을 생성할 권한이 없습니다.");
-            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
         }
 
         String adminId = trimToLen(safeString(payload == null ? null : payload.getAdminId()), 20);
@@ -1375,11 +1332,9 @@ public class AdminMainController {
         String authorCode = resolveAdminPresetAuthorCode(rolePreset);
         List<String> featureCodes = normalizeFeatureCodes(payload == null ? null : payload.getFeatureCodes());
         if (!canCreateAdminRolePreset(currentUserId, currentUserAuthorCode, rolePreset)) {
-            response.put("success", false);
-            response.put("message", isEn
+            return failureMessageResponse(HttpServletResponse.SC_FORBIDDEN, isEn
                     ? "You cannot create the selected administrator type."
                     : "선택한 관리자 유형을 생성할 수 없습니다.");
-            return ResponseEntity.status(HttpServletResponse.SC_FORBIDDEN).body(response);
         }
         String scopedInsttId = hasMemberManagementMasterAccess(currentUserId, currentUserAuthorCode)
                 ? insttId
@@ -1445,9 +1400,7 @@ public class AdminMainController {
         }
 
         if (!errors.isEmpty()) {
-            response.put("success", false);
-            response.put("errors", errors);
-            return ResponseEntity.badRequest().body(response);
+            return failureErrorsResponse(HttpServletResponse.SC_BAD_REQUEST, errors);
         }
 
         String fullPhone = buildPhoneNumber(phone1, phone2, phone3);
@@ -1507,11 +1460,6 @@ public class AdminMainController {
                     featureCodes.isEmpty() ? baselineFeatureCodes : featureCodes,
                     currentUserId,
                     resolveGrantableFeatureCodeSet(currentUserId, true));
-            response.put("success", true);
-            response.put("emplyrId", adminId);
-            response.put("authorCode", authorCode);
-            response.put("insttId", scopedInsttId);
-            response.put("companyName", institutionInfo == null ? "" : safeString(institutionInfo.getInsttNm()));
             recordAdminActionAudit(request,
                     currentUserId,
                     resolveCurrentUserAuthorCode(currentUserId),
@@ -1522,14 +1470,17 @@ public class AdminMainController {
                     adminId,
                     "{\"adminId\":\"" + safeJson(adminId) + "\",\"authorCode\":\"" + safeJson(authorCode) + "\",\"insttId\":\"" + safeJson(scopedInsttId) + "\"}",
                     "{\"status\":\"SUCCESS\"}");
-            return ResponseEntity.ok(response);
+            Map<String, Object> payloadBody = new LinkedHashMap<>();
+            payloadBody.put("emplyrId", adminId);
+            payloadBody.put("authorCode", authorCode);
+            payloadBody.put("insttId", scopedInsttId);
+            payloadBody.put("companyName", institutionInfo == null ? "" : safeString(institutionInfo.getInsttNm()));
+            return successResponse(payloadBody);
         } catch (Exception e) {
             log.error("Failed to create admin account. adminId={}, authorCode={}", adminId, authorCode, e);
-            response.put("success", false);
-            response.put("message", isEn
+            return failureMessageResponse(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, isEn
                     ? "An error occurred while creating the administrator account."
                     : "관리자 계정 생성 중 오류가 발생했습니다.");
-            return ResponseEntity.internalServerError().body(response);
         }
     }
 
@@ -2141,6 +2092,61 @@ public class AdminMainController {
 
     private boolean appendRedirectErrorQuery(StringBuilder redirect, boolean hasQuery, String errorMessage) {
         return appendRedirectQuery(redirect, hasQuery, "errorMessage", errorMessage);
+    }
+
+    private ResponseEntity<Map<String, Object>> duplicateCheckError(int status, boolean duplicated, String message) {
+        return ResponseEntity.status(status).body(buildDuplicateCheckResponse(false, duplicated, message));
+    }
+
+    private ResponseEntity<Map<String, Object>> duplicateCheckSuccess(boolean duplicated, String message) {
+        return ResponseEntity.ok(buildDuplicateCheckResponse(!duplicated, duplicated, message));
+    }
+
+    private Map<String, Object> buildDuplicateCheckResponse(boolean valid, boolean duplicated, String message) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("valid", valid);
+        response.put("duplicated", duplicated);
+        response.put("message", message);
+        return response;
+    }
+
+    private ResponseEntity<Map<String, Object>> successResponse(Map<String, Object> body) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("success", true);
+        if (body != null && !body.isEmpty()) {
+            response.putAll(body);
+        }
+        return ResponseEntity.ok(response);
+    }
+
+    private ResponseEntity<Map<String, Object>> failureMessageResponse(int status, String message) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("success", false);
+        response.put("message", message);
+        return ResponseEntity.status(status).body(response);
+    }
+
+    private ResponseEntity<Map<String, Object>> failureErrorsResponse(int status, Object errors) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("success", false);
+        response.put("errors", errors);
+        return ResponseEntity.status(status).body(response);
+    }
+
+    private ResponseEntity<Map<String, Object>> statusFailureResponse(int status, String errors) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("status", "fail");
+        response.put("errors", errors);
+        return ResponseEntity.status(status).body(response);
+    }
+
+    private ResponseEntity<Map<String, Object>> statusSuccessResponse(Map<String, Object> body) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("status", "success");
+        if (body != null && !body.isEmpty()) {
+            response.putAll(body);
+        }
+        return ResponseEntity.ok(response);
     }
 
     private String extractResponseErrorMessage(Map<String, Object> body) {
@@ -3026,14 +3032,7 @@ public class AdminMainController {
     }
 
     private String redirectReactMigration(HttpServletRequest request, Locale locale, String route) {
-        StringBuilder builder = new StringBuilder("forward:");
-        builder.append(isEnglishRequest(request, locale) ? "/en/admin/app?route=" : "/admin/app?route=");
-        builder.append(route == null ? "" : route.replace('-', '_'));
-        String query = request == null ? "" : safeString(request.getQueryString());
-        if (!query.isEmpty()) {
-            builder.append("&").append(query);
-        }
-        return builder.toString();
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, route);
     }
 
     List<Map<String, String>> buildPasswordResetHistoryListRows(List<PasswordResetHistory> histories, boolean isEn) {
@@ -3101,11 +3100,11 @@ public class AdminMainController {
     }
 
     List<Map<String, String>> loadAccessHistoryCompanyOptions() {
-        return adminObservabilityPageService.loadAccessHistoryCompanyOptions();
+        return platformObservabilityAdminPageFacade.loadAccessHistoryCompanyOptions();
     }
 
     List<Map<String, String>> buildScopedAccessHistoryCompanyOptions(String insttId) {
-        return adminObservabilityPageService.buildScopedAccessHistoryCompanyOptions(insttId);
+        return platformObservabilityAdminPageFacade.buildScopedAccessHistoryCompanyOptions(insttId);
     }
 
     private String lookupCompanyNameByInsttId(String normalizedInsttId) {
@@ -4434,20 +4433,6 @@ public class AdminMainController {
         return scopes;
     }
 
-    private void populateIpWhitelistPage(
-            String searchIp,
-            String accessScope,
-            String status,
-            Model model,
-            boolean isEn) {
-        model.addAttribute("searchIp", safeString(searchIp));
-        model.addAttribute("accessScope", safeString(accessScope).toUpperCase(Locale.ROOT));
-        model.addAttribute("status", safeString(status).toUpperCase(Locale.ROOT));
-        model.addAttribute("ipWhitelistSummary", adminSummaryService.getIpWhitelistSummary(isEn));
-        model.addAttribute("ipWhitelistRows", buildIpWhitelistRows(isEn));
-        model.addAttribute("ipWhitelistRequestRows", buildIpWhitelistRequestRows(isEn));
-    }
-
     private void populateSecurityPolicyPage(Model model, boolean isEn) {
         adminSystemPageModelAssembler().populateSecurityPolicyPage(model, isEn);
     }
@@ -4476,87 +4461,6 @@ public class AdminMainController {
             Model model,
             boolean isEn) {
         adminSystemPageModelAssembler().populateSchedulerPage(jobStatus, executionType, model, isEn);
-    }
-
-    private List<Map<String, String>> buildIpWhitelistSummary(boolean isEn) {
-        List<Map<String, String>> rows = new ArrayList<>();
-        rows.add(summaryCard(isEn ? "Active Rules" : "활성 규칙", "12",
-                isEn ? "CIDR and single-IP policies currently applied." : "현재 게이트웨이에 반영 중인 CIDR/단일 IP 정책"));
-        rows.add(summaryCard(isEn ? "Pending Requests" : "승인 대기", "3",
-                isEn ? "Approval requests waiting for security review." : "보안담당 승인 대기 중인 예외 허용 요청"));
-        rows.add(summaryCard(isEn ? "Expiring Today" : "오늘 만료", "2",
-                isEn ? "Temporary exceptions scheduled to expire today." : "오늘 자동 회수 예정인 임시 허용"));
-        rows.add(summaryCard(isEn ? "Protected Scopes" : "보호 범위", "4",
-                isEn ? "Admin, API, Batch, and Internal access scopes." : "관리자, API, Batch, 내부망 범위 운영"));
-        return rows;
-    }
-
-    private List<Map<String, String>> buildIpWhitelistRows(boolean isEn) {
-        List<Map<String, String>> rows = new ArrayList<>();
-        rows.add(mapOf(
-                "ruleId", "WL-001",
-                "ipAddress", "203.248.117.0/24",
-                "accessScope", "ADMIN",
-                "description", "운영센터 고정망",
-                "descriptionEn", "Primary operations network",
-                "owner", "정책관리팀",
-                "ownerEn", "Policy Admin Team",
-                "status", "ACTIVE",
-                "updatedAt", "2026-03-12 08:40",
-                "memo", "상시 허용",
-                "memoEn", "Always allowed"));
-        rows.add(mapOf(
-                "ruleId", "WL-002",
-                "ipAddress", "10.10.24.15",
-                "accessScope", "BATCH",
-                "description", "배치 서버 고정 IP",
-                "descriptionEn", "Batch server fixed IP",
-                "owner", "인프라운영팀",
-                "ownerEn", "Infrastructure Team",
-                "status", "ACTIVE",
-                "updatedAt", "2026-03-11 22:10",
-                "memo", "인증서 갱신 완료",
-                "memoEn", "Certificate rotation completed"));
-        rows.add(mapOf(
-                "ruleId", "WL-003",
-                "ipAddress", "175.213.44.82",
-                "accessScope", "API",
-                "description", "협력사 취약점 점검",
-                "descriptionEn", "Vendor security assessment",
-                "owner", "보안담당",
-                "ownerEn", "Security Office",
-                "status", "PENDING",
-                "updatedAt", "2026-03-12 09:05",
-                "memo", "금일 18시까지",
-                "memoEn", "Valid until 18:00 today"));
-        return rows;
-    }
-
-    private List<Map<String, String>> buildIpWhitelistRequestRows(boolean isEn) {
-        List<Map<String, String>> rows = new ArrayList<>();
-        rows.add(mapOf(
-                "requestId", "REQ-240312-01",
-                "ipAddress", "175.213.44.82",
-                "accessScope", "ADMIN",
-                "reason", "협력사 취약점 점검",
-                "reasonEn", "Vendor security inspection",
-                "approvalStatus", "검토중",
-                "approvalStatusEn", "Under Review",
-                "requestedAt", "2026-03-12 08:45",
-                "requester", "보안담당 김민수",
-                "requesterEn", "Security Officer Minsu Kim"));
-        rows.add(mapOf(
-                "requestId", "REQ-240312-02",
-                "ipAddress", "61.77.12.44",
-                "accessScope", "API",
-                "reason", "연계 점검",
-                "reasonEn", "Integration test window",
-                "approvalStatus", "승인대기",
-                "approvalStatusEn", "Pending Approval",
-                "requestedAt", "2026-03-12 09:10",
-                "requester", "대외연계 담당",
-                "requesterEn", "External Integration Lead"));
-        return rows;
     }
 
     private List<Map<String, String>> buildSecurityPolicySummary(boolean isEn) {

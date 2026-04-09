@@ -56,7 +56,7 @@ For `/admin/emission/management` save/calculate verification, you can also use:
 
 After changing files that affect runtime behavior on `:18000`, verify at least:
 
-- runtime jar matches `target/carbonet.jar`
+- runtime jar matches the packaged app jar, typically `apps/carbonet-app/target/carbonet.jar`
 - pid is alive
 - port `18000` is listening
 - startup log contains the current startup marker

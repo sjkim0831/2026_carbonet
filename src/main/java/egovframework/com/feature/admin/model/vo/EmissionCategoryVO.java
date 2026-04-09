@@ -13,6 +13,9 @@ public class EmissionCategoryVO {
     private String subCode;
     private String subName;
     private String useYn;
+    private String classificationCode;
+    private String classificationPath;
+    private String classificationTierLabel;
 
     public String scopeKey(Integer tier) {
         if (subCode == null || subCode.trim().isEmpty() || tier == null) {

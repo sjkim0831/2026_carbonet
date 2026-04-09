@@ -2,9 +2,9 @@ package egovframework.com.feature.home.service.impl;
 
 import egovframework.com.common.util.ReactPageUrlMapper;
 import egovframework.com.feature.admin.dto.response.MenuInfoDTO;
-import egovframework.com.feature.admin.service.MenuInfoService;
 import egovframework.com.feature.home.model.vo.HomeMenuNode;
 import egovframework.com.feature.home.service.HomeMenuService;
+import egovframework.com.platform.read.MenuInfoReadPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,7 +26,7 @@ public class HomeMenuServiceImpl implements HomeMenuService {
     private static final Map<String, String> HOME_MENU_LABEL_OVERRIDES_KO = buildMenuLabelOverridesKo();
     private static final Map<String, String> HOME_MENU_LABEL_OVERRIDES_EN = buildMenuLabelOverridesEn();
 
-    private final MenuInfoService menuInfoService;
+    private final MenuInfoReadPort menuInfoReadPort;
     private final Object snapshotMonitor = new Object();
     private volatile CachedHomeMenuSnapshot koreanSnapshot;
     private volatile CachedHomeMenuSnapshot englishSnapshot;
@@ -42,7 +42,7 @@ public class HomeMenuServiceImpl implements HomeMenuService {
     }
 
     private List<HomeMenuNode> resolveSnapshot(boolean isEn) {
-        long version = menuInfoService.getMenuTreeVersion();
+        long version = menuInfoReadPort.getMenuTreeVersion();
         CachedHomeMenuSnapshot cached = isEn ? englishSnapshot : koreanSnapshot;
         if (cached != null && cached.version == version) {
             return cloneMenuNodes(cached.nodes);
@@ -189,7 +189,7 @@ public class HomeMenuServiceImpl implements HomeMenuService {
 
     private List<MenuInfoDTO> loadMenuTreeRows(String codeId) {
         try {
-            return menuInfoService.selectMenuTreeList(codeId);
+            return menuInfoReadPort.selectMenuTreeList(codeId);
         } catch (Exception e) {
             log.error("Failed to load menu tree rows. codeId={}", codeId, e);
             return Collections.emptyList();

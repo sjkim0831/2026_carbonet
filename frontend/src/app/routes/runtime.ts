@@ -1,8 +1,19 @@
 import { getRuntimeLocale } from "../../lib/navigation/runtime";
-import { MigrationPageId, ROUTES, normalizeRouteId } from "./definitions";
+import { MigrationPageId, ROUTES, getRouteDefinition, normalizeRouteId, normalizeRouteLookupPath } from "./definitions";
+import { resolvePlatformSpecialCasePage } from "./platformRuntimeRules";
 
-const routeById = new Map(ROUTES.map((entry) => [entry.id, entry] as const));
 const routeByComparablePath = new Map<string, MigrationPageId>();
+const reactShellPaths = new Set(["/app", "/en/app", "/admin/app", "/en/admin/app"]);
+const specialCasePages = new Map<string, MigrationPageId>([
+  ["/admin/member/withdrawn", "member-list"],
+  ["/admin/member/activate", "member-list"],
+  ["/admin/system/menu", "menu-management"],
+  ["/admin/system/menu-management", "menu-management"],
+  ["/admin/content/menu", "faq-menu-management"],
+  ["/signin/findId/overseas", "signin-find-id"],
+  ["/signin/findPassword/overseas", "signin-find-password"],
+  ["/co2/credit", "co2-credit"]
+]);
 const routeAliases: Array<readonly [string, MigrationPageId]> = [
   ["/admin/trade/list", "trade-list"],
   ["/en/admin/trade/list", "trade-list"],
@@ -28,57 +39,37 @@ routeAliases.forEach(([path, pageId]) => {
 });
 
 export function normalizeComparablePath(value: string): string {
-  if (!value) {
-    return "/";
-  }
-  return value.length > 1 && value.endsWith("/") ? value.slice(0, -1) : value;
+  return normalizeRouteLookupPath(value);
+}
+
+export function isReactShellPath(pathname: string): boolean {
+  return reactShellPaths.has(normalizeComparablePath(pathname));
+}
+
+function resolveKoComparablePath(pathname: string): string {
+  return normalizeComparablePath(pathname.replace(/^\/en/, "") || "/home");
+}
+
+function resolveSpecialCasePage(pathname: string): MigrationPageId | null {
+  const normalizedKoPath = resolveKoComparablePath(pathname);
+  return resolvePlatformSpecialCasePage(normalizedKoPath) || specialCasePages.get(normalizedKoPath) || null;
 }
 
 export function isReactManagedPath(pathname: string): boolean {
   const normalizedPath = normalizeComparablePath(pathname);
-  const koComparable = normalizeComparablePath(normalizedPath.replace(/^\/en/, "") || "/home");
-  const isReactShellPath = normalizedPath === "/app"
-    || normalizedPath === "/en/app"
-    || normalizedPath === "/admin/app"
-    || normalizedPath === "/en/admin/app";
-
-  if (isReactShellPath) {
+  const koComparable = resolveKoComparablePath(normalizedPath);
+  if (isReactShellPath(normalizedPath)) {
     return true;
   }
-
-  if (koComparable === "/admin/member/withdrawn" || koComparable === "/admin/member/activate") {
+  if (resolveSpecialCasePage(koComparable)) {
     return true;
   }
-
-  if (koComparable === "/admin/system/menu"
-    || koComparable === "/admin/system/menu-management"
-    || koComparable === "/admin/content/menu") {
-    return true;
-  }
-
-  if (koComparable === "/signin/findId/overseas" || koComparable === "/signin/findPassword/overseas") {
-    return true;
-  }
-
-  if (koComparable === "/co2/credit") {
-    return true;
-  }
-
-  if (koComparable === "/admin/system/unified_log"
-    || koComparable.startsWith("/admin/system/unified_log/")) {
-    return true;
-  }
-
   return routeByComparablePath.has(koComparable) || routeByComparablePath.has(normalizedPath);
 }
 
 export function resolveCanonicalRuntimePath(): string {
   const pathname = window.location.pathname;
-  const isReactShellPath = pathname === "/app"
-    || pathname === "/en/app"
-    || pathname === "/admin/app"
-    || pathname === "/en/admin/app";
-  if (!isReactShellPath) {
+  if (!isReactShellPath(pathname)) {
     return "";
   }
 
@@ -87,7 +78,7 @@ export function resolveCanonicalRuntimePath(): string {
   if (!route) {
     return "";
   }
-  const matched = routeById.get(route);
+  const matched = getRouteDefinition(route);
   if (!matched) {
     return "";
   }
@@ -103,29 +94,11 @@ export function resolveCanonicalRuntimePath(): string {
 
 export function resolvePageFromPath(pathname: string, search = ""): MigrationPageId {
   const normalizedCurrentPath = normalizeComparablePath(pathname);
-  const normalizedKoPath = normalizeComparablePath(pathname.replace(/^\/en/, "") || "/home");
-  if (normalizedKoPath === "/admin/member/withdrawn" || normalizedKoPath === "/admin/member/activate") {
-    return "member-list";
+  const specialCasePage = resolveSpecialCasePage(normalizedCurrentPath);
+  if (specialCasePage) {
+    return specialCasePage;
   }
-  if (normalizedKoPath === "/admin/system/menu" || normalizedKoPath === "/admin/system/menu-management") {
-    return "menu-management";
-  }
-  if (normalizedKoPath === "/admin/content/menu") {
-    return "faq-menu-management";
-  }
-  if (normalizedKoPath === "/signin/findId/overseas") {
-    return "signin-find-id";
-  }
-  if (normalizedKoPath === "/signin/findPassword/overseas") {
-    return "signin-find-password";
-  }
-  if (normalizedKoPath === "/co2/credit") {
-    return "co2-credit";
-  }
-  if (normalizedKoPath === "/admin/system/unified_log"
-    || normalizedKoPath.startsWith("/admin/system/unified_log/")) {
-    return "unified-log";
-  }
+  const normalizedKoPath = resolveKoComparablePath(pathname);
   const matched = routeByComparablePath.get(normalizedKoPath) || routeByComparablePath.get(normalizedCurrentPath);
   if (matched) {
     return matched;

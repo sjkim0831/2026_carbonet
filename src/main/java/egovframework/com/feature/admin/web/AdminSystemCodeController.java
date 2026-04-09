@@ -4,7 +4,7 @@ import egovframework.com.common.audit.AuditTrailService;
 import egovframework.com.common.logging.RequestExecutionLogService;
 import egovframework.com.common.logging.RequestExecutionLogPage;
 import egovframework.com.common.logging.RequestExecutionLogVO;
-import egovframework.com.common.trace.UiManifestRegistryService;
+import egovframework.com.common.trace.UiManifestRegistryPort;
 import egovframework.com.common.util.ReactPageUrlMapper;
 import egovframework.com.feature.admin.model.vo.ClassCodeVO;
 import egovframework.com.feature.admin.model.vo.CommonCodeVO;
@@ -17,13 +17,12 @@ import egovframework.com.feature.admin.model.vo.UserAuthorityTargetVO;
 import egovframework.com.feature.admin.service.AdminCodeManageService;
 import egovframework.com.feature.admin.dto.response.MenuInfoDTO;
 import egovframework.com.feature.admin.dto.response.SystemAccessHistoryRowResponse;
+import egovframework.com.feature.admin.service.AdminIpWhitelistSupportService;
 import egovframework.com.feature.admin.service.AdminShellBootstrapPageService;
 import egovframework.com.feature.admin.service.AuthGroupManageService;
-import egovframework.com.feature.admin.service.FullStackGovernanceRegistryService;
 import egovframework.com.feature.admin.service.IpWhitelistFirewallService;
-import egovframework.com.feature.admin.service.IpWhitelistPersistenceService;
 import egovframework.com.feature.admin.service.MenuFeatureManageService;
-import egovframework.com.feature.admin.service.MenuInfoService;
+import egovframework.com.feature.admin.service.MenuInfoCommandService;
 import egovframework.com.feature.admin.service.ScreenCommandCenterService;
 import egovframework.com.feature.admin.service.WbsManagementService;
 import egovframework.com.feature.auth.domain.repository.EmployeeMemberRepository;
@@ -66,6 +65,8 @@ import java.util.LinkedHashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
+import egovframework.com.platform.read.FullStackGovernanceRegistryReadPort;
+import egovframework.com.platform.read.MenuInfoReadPort;
 
 @Controller
 @RequestMapping({"/admin/system", "/en/admin/system"})
@@ -83,21 +84,23 @@ public class AdminSystemCodeController {
     private static final DateTimeFormatter IP_WHITELIST_TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private final AdminCodeManageService adminCodeManageService;
+    private final AdminIpWhitelistSupportService adminIpWhitelistSupportService;
     private final AdminShellBootstrapPageService adminShellBootstrapPageService;
-    private final MenuInfoService menuInfoService;
+    private final MenuInfoCommandService menuInfoCommandService;
+    private final MenuInfoReadPort menuInfoReadPort;
     private final MenuFeatureManageService menuFeatureManageService;
     private final AuthGroupManageService authGroupManageService;
     private final AuditTrailService auditTrailService;
-    private final UiManifestRegistryService uiManifestRegistryService;
+    private final UiManifestRegistryPort uiManifestRegistryPort;
     private final ScreenCommandCenterService screenCommandCenterService;
-    private final FullStackGovernanceRegistryService fullStackGovernanceRegistryService;
+    private final FullStackGovernanceRegistryReadPort fullStackGovernanceRegistryReadPort;
     private final WbsManagementService wbsManagementService;
     private final RequestExecutionLogService requestExecutionLogService;
     private final EmployeeMemberRepository employeeMemberRepository;
     private final EnterpriseMemberRepository enterpriseMemberRepository;
     private final CurrentUserContextService currentUserContextService;
+    private final AdminReactRouteSupport adminReactRouteSupport;
     private final ConcurrentMap<String, String> companyNameCache = new ConcurrentHashMap<>();
-    private final ObjectProvider<IpWhitelistPersistenceService> ipWhitelistPersistenceServiceProvider;
     private final ObjectProvider<IpWhitelistFirewallService> ipWhitelistFirewallServiceProvider;
 
     @RequestMapping(value = "/code", method = { RequestMethod.GET, RequestMethod.POST })
@@ -182,7 +185,8 @@ public class AdminSystemCodeController {
             HttpServletRequest request,
             Locale locale) {
         boolean isEn = isEnglishRequest(request, locale);
-        return buildPageDataResponse(request, model -> populateIpWhitelistModel(model, isEn, searchIp, accessScope, status));
+        return buildPageDataResponse(request, model -> model.addAllAttributes(
+                adminIpWhitelistSupportService.buildPageData(isEn, searchIp, accessScope, status)));
     }
 
     @PostMapping("/ip-whitelist/request")
@@ -238,7 +242,7 @@ public class AdminSystemCodeController {
         requestRow.put("reviewedAt", "");
         requestRow.put("reviewedBy", "");
         requestRow.put("reviewedByEn", "");
-        saveIpWhitelistRequestRow(requestRow);
+        adminIpWhitelistSupportService.saveIpWhitelistRequestRow(requestRow);
 
         Map<String, String> ruleRow = ipWhitelistRow(
                 ruleId,
@@ -254,7 +258,7 @@ public class AdminSystemCodeController {
                 buildIpWhitelistExecutionMemo(applicationName, port, firewallAction, memo, expiresAt, true));
         ruleRow.put("requestId", requestId);
         ruleRow.put("expiresAt", expiresAt);
-        saveIpWhitelistRuleRow(ruleRow);
+        adminIpWhitelistSupportService.saveIpWhitelistRuleRow(ruleRow);
 
         auditTrailService.record(
                 actorId,
@@ -300,7 +304,7 @@ public class AdminSystemCodeController {
             return ResponseEntity.badRequest().body(response);
         }
 
-        Map<String, String> existingRequest = findIpWhitelistRequestById(requestId);
+        Map<String, String> existingRequest = adminIpWhitelistSupportService.findIpWhitelistRequestById(requestId);
         if (existingRequest == null) {
             response.put("success", false);
             response.put("message", isEn ? "Request was not found." : "승인 요청을 찾지 못했습니다.");
@@ -322,10 +326,10 @@ public class AdminSystemCodeController {
         updatedRequest.put("reviewedAt", reviewedAt);
         updatedRequest.put("reviewedBy", reviewedBy);
         updatedRequest.put("reviewedByEn", reviewedBy);
-        saveIpWhitelistRequestRow(updatedRequest);
+        adminIpWhitelistSupportService.saveIpWhitelistRequestRow(updatedRequest);
 
         String ruleId = safeString(updatedRequest.get("ruleId"));
-        Map<String, String> currentRule = findIpWhitelistRuleById(ruleId);
+        Map<String, String> currentRule = adminIpWhitelistSupportService.findIpWhitelistRuleById(ruleId);
         if (currentRule == null && "APPROVE".equals(decision)) {
             currentRule = ipWhitelistRow(
                     ruleId.isEmpty() ? "WL-" + requestId.replaceAll("[^0-9A-Z]", "") : ruleId,
@@ -367,7 +371,7 @@ public class AdminSystemCodeController {
                 updatedRule.put("memoEn", existingMemoEn + (existingMemoEn.isEmpty() ? "" : " | ") + firewallFeedback);
             }
             updatedRule.put("requestId", requestId);
-            saveIpWhitelistRuleRow(updatedRule);
+            adminIpWhitelistSupportService.saveIpWhitelistRuleRow(updatedRule);
         }
 
         auditTrailService.record(
@@ -640,7 +644,7 @@ public class AdminSystemCodeController {
                 }
                 String code = safeString(parts[0]).toUpperCase(Locale.ROOT);
                 int sortOrdr = Integer.parseInt(safeString(parts[1]));
-                menuInfoService.saveMenuOrder(code, sortOrdr);
+                menuInfoCommandService.saveMenuOrder(code, sortOrdr);
             }
             recordMenuManagementAudit(
                     request,
@@ -719,9 +723,9 @@ public class AdminSystemCodeController {
                     normalizedUseAt,
                     actorId.isEmpty() ? "admin" : actorId);
             ensureDefaultViewFeature(nextPageCode, normalizedName, normalizedNameEn, normalizedUseAt);
-            menuInfoService.saveMenuOrder(nextPageCode, resolveNextSiblingSortOrder(codeId, normalizedParentCode));
+            menuInfoCommandService.saveMenuOrder(nextPageCode, resolveNextSiblingSortOrder(codeId, normalizedParentCode));
             String draftPageId = buildManagedDraftPageId(normalizedUrl, nextPageCode);
-            Map<String, Object> draftRegistry = uiManifestRegistryService.ensureManagedPageDraft(
+            Map<String, Object> draftRegistry = uiManifestRegistryPort.ensureManagedPageDraft(
                     draftPageId,
                     normalizedName,
                     normalizedUrl,
@@ -1933,8 +1937,8 @@ public class AdminSystemCodeController {
         }
         Map<String, Map<String, Object>> registryByMenuCode = new HashMap<>();
         Map<String, Map<String, Object>> registryByRoutePath = new HashMap<>();
-        Map<String, Map<String, Object>> governanceRegistryByMenuCode = fullStackGovernanceRegistryService.getAllEntries();
-        for (Map<String, Object> option : uiManifestRegistryService.selectActivePageOptions()) {
+        Map<String, Map<String, Object>> governanceRegistryByMenuCode = fullStackGovernanceRegistryReadPort.getAllEntries();
+        for (Map<String, Object> option : uiManifestRegistryPort.selectActivePageOptions()) {
             String menuCode = safeString(asString(option.get("menuCode"))).toUpperCase(Locale.ROOT);
             String routePath = safeString(asString(option.get("routePath")));
             if (!menuCode.isEmpty()) {
@@ -2279,42 +2283,6 @@ public class AdminSystemCodeController {
         return options;
     }
 
-    private void populateIpWhitelistModel(Model model, boolean isEn, String searchIp, String accessScope, String status) {
-        String normalizedKeyword = safeString(searchIp).toLowerCase(Locale.ROOT);
-        String normalizedScope = safeString(accessScope).toUpperCase(Locale.ROOT);
-        String normalizedStatus = safeString(status).toUpperCase(Locale.ROOT);
-        List<Map<String, String>> allRows = buildEffectiveIpWhitelistRows();
-        List<Map<String, String>> filteredRows = new ArrayList<>();
-        for (Map<String, String> row : allRows) {
-            if (!normalizedKeyword.isEmpty() && !matchesIpWhitelistKeyword(row, normalizedKeyword)) {
-                continue;
-            }
-            if (!normalizedScope.isEmpty() && !normalizedScope.equalsIgnoreCase(safeString(row.get("accessScope")))) {
-                continue;
-            }
-            if (!normalizedStatus.isEmpty() && !normalizedStatus.equalsIgnoreCase(safeString(row.get("status")))) {
-                continue;
-            }
-            filteredRows.add(row);
-        }
-
-        List<Map<String, String>> allRequests = buildEffectiveIpWhitelistRequests();
-        List<Map<String, String>> filteredRequests = new ArrayList<>();
-        for (Map<String, String> row : allRequests) {
-            if (!matchesIpWhitelistRequestFilter(row, normalizedKeyword, normalizedScope, normalizedStatus)) {
-                continue;
-            }
-            filteredRequests.add(row);
-        }
-
-        model.addAttribute("ipWhitelistRows", filteredRows);
-        model.addAttribute("ipWhitelistRequestRows", filteredRequests);
-        model.addAttribute("searchIp", safeString(searchIp));
-        model.addAttribute("accessScope", normalizedScope);
-        model.addAttribute("status", normalizedStatus);
-        model.addAttribute("ipWhitelistSummary", buildIpWhitelistSummaryCards(isEn, allRows, allRequests));
-    }
-
     private void populateAccessHistoryModel(Model model,
                                             boolean isEn,
                                             String pageIndexParam,
@@ -2638,184 +2606,6 @@ public class AdminSystemCodeController {
         return companyOptions.isEmpty() ? "" : safeString(companyOptions.get(0).get("insttId"));
     }
 
-    private boolean matchesIpWhitelistKeyword(Map<String, String> row, String keyword) {
-        return safeString(row.get("ipAddress")).toLowerCase(Locale.ROOT).contains(keyword)
-                || safeString(row.get("description")).toLowerCase(Locale.ROOT).contains(keyword)
-                || safeString(row.get("owner")).toLowerCase(Locale.ROOT).contains(keyword)
-                || safeString(row.get("memo")).toLowerCase(Locale.ROOT).contains(keyword);
-    }
-
-    private boolean matchesIpWhitelistRequestFilter(Map<String, String> row, String keyword, String scope, String status) {
-        if (!keyword.isEmpty()) {
-            String searchable = String.join(" ",
-                    safeString(row.get("requestId")),
-                    safeString(row.get("ipAddress")),
-                    safeString(row.get("accessScope")),
-                    safeString(row.get("reason")),
-                    safeString(row.get("requester")),
-                    safeString(row.get("reviewNote"))).toLowerCase(Locale.ROOT);
-            if (!searchable.contains(keyword)) {
-                return false;
-            }
-        }
-        if (!scope.isEmpty() && !scope.equalsIgnoreCase(safeString(row.get("accessScope")))) {
-            return false;
-        }
-        if (!status.isEmpty()) {
-            String approvalStatus = safeString(row.get("approvalStatus"));
-            String approvalStatusEn = approvalStatus.toUpperCase(Locale.ROOT) + " " + safeString(row.get("approvalStatusEn")).toUpperCase(Locale.ROOT);
-            if ("ACTIVE".equals(status) && !(approvalStatus.contains("승인") || approvalStatusEn.contains("APPROV"))) {
-                return false;
-            }
-            if ("PENDING".equals(status) && !(approvalStatus.contains("검토") || approvalStatus.contains("대기") || approvalStatusEn.contains("PENDING") || approvalStatusEn.contains("REVIEW"))) {
-                return false;
-            }
-            if ("INACTIVE".equals(status) && !(approvalStatus.contains("반려") || approvalStatusEn.contains("REJECT"))) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private List<Map<String, String>> buildEffectiveIpWhitelistRows() {
-        List<Map<String, String>> merged = new ArrayList<>();
-        for (Map<String, String> row : defaultIpWhitelistRows()) {
-            merged.add(new LinkedHashMap<>(row));
-        }
-        for (Map<String, String> row : selectIpWhitelistRuleRows()) {
-            upsertIpWhitelistRow(merged, row, "ruleId");
-        }
-        merged.sort(Comparator.comparing((Map<String, String> row) -> safeString(row.get("updatedAt"))).reversed());
-        return merged;
-    }
-
-    private List<Map<String, String>> buildEffectiveIpWhitelistRequests() {
-        List<Map<String, String>> merged = new ArrayList<>();
-        for (Map<String, String> row : defaultIpWhitelistRequests()) {
-            merged.add(new LinkedHashMap<>(row));
-        }
-        for (Map<String, String> row : selectIpWhitelistRequestRows()) {
-            upsertIpWhitelistRow(merged, row, "requestId");
-        }
-        merged.sort(Comparator.comparing((Map<String, String> row) -> safeString(row.get("requestedAt"))).reversed());
-        return merged;
-    }
-
-    private List<Map<String, String>> selectIpWhitelistRuleRows() {
-        IpWhitelistPersistenceService persistenceService = ipWhitelistPersistenceServiceProvider.getIfAvailable();
-        if (persistenceService == null) {
-            return Collections.emptyList();
-        }
-        return persistenceService.selectRuleRows();
-    }
-
-    private List<Map<String, String>> selectIpWhitelistRequestRows() {
-        IpWhitelistPersistenceService persistenceService = ipWhitelistPersistenceServiceProvider.getIfAvailable();
-        if (persistenceService == null) {
-            return Collections.emptyList();
-        }
-        return persistenceService.selectRequestRows();
-    }
-
-    private void saveIpWhitelistRuleRow(Map<String, String> row) {
-        IpWhitelistPersistenceService persistenceService = ipWhitelistPersistenceServiceProvider.getIfAvailable();
-        if (persistenceService == null) {
-            log.warn("IpWhitelistPersistenceService bean is not available. Skipping rule persistence.");
-            return;
-        }
-        persistenceService.saveRuleRow(row);
-    }
-
-    private void saveIpWhitelistRequestRow(Map<String, String> row) {
-        IpWhitelistPersistenceService persistenceService = ipWhitelistPersistenceServiceProvider.getIfAvailable();
-        if (persistenceService == null) {
-            log.warn("IpWhitelistPersistenceService bean is not available. Skipping request persistence.");
-            return;
-        }
-        persistenceService.saveRequestRow(row);
-    }
-
-    private void upsertIpWhitelistRow(List<Map<String, String>> target, Map<String, String> source, String keyName) {
-        String key = safeString(source.get(keyName));
-        for (int index = 0; index < target.size(); index++) {
-            if (key.equalsIgnoreCase(safeString(target.get(index).get(keyName)))) {
-                target.set(index, new LinkedHashMap<>(source));
-                return;
-            }
-        }
-        target.add(new LinkedHashMap<>(source));
-    }
-
-    private List<Map<String, String>> defaultIpWhitelistRows() {
-        List<Map<String, String>> rows = new ArrayList<>();
-        rows.add(ipWhitelistRow("WL-001", "203.248.117.0/24", "ADMIN", "운영센터 고정망", "정책관리팀", "ACTIVE", "2026-03-10 09:20", "상시 허용", "Primary office network", "Policy Admin Team", "Always allowed"));
-        rows.add(ipWhitelistRow("WL-002", "10.10.20.15", "BATCH", "배치 서버", "플랫폼운영팀", "ACTIVE", "2026-03-09 18:40", "API 연동 전용", "Batch server", "Platform Ops Team", "API integration only"));
-        Map<String, String> pendingRule = ipWhitelistRow("WL-003", "175.213.44.82", "ADMIN", "외부 협력사 점검 단말", "보안담당", "PENDING", "2026-03-12 08:50", "2026-03-20까지 임시 허용", "Vendor inspection terminal", "Security Officer", "Temporary access until 2026-03-20");
-        pendingRule.put("requestId", "REQ-240312-01");
-        pendingRule.put("expiresAt", "2026-03-20 18:00");
-        rows.add(pendingRule);
-        rows.add(ipWhitelistRow("WL-004", "192.168.0.0/16", "INTERNAL", "사내 VPN 대역", "인프라팀", "INACTIVE", "2026-02-25 14:05", "VPN 정책 재정비 대기", "Internal VPN range", "Infrastructure Team", "Waiting for VPN policy update"));
-        return rows;
-    }
-
-    private List<Map<String, String>> defaultIpWhitelistRequests() {
-        List<Map<String, String>> rows = new ArrayList<>();
-        Map<String, String> pending = ipWhitelistRequestRow("REQ-240312-01", "175.213.44.82", "ADMIN", "협력사 취약점 점검", "검토중", "2026-03-12 08:45", "보안담당 김민수", "Vendor security inspection", "Under Review", "Security Officer Minsu Kim");
-        pending.put("ruleId", "WL-003");
-        pending.put("expiresAt", "2026-03-20 18:00");
-        pending.put("memo", "2026-03-20까지 임시 허용");
-        pending.put("memoEn", "Temporary access until 2026-03-20");
-        rows.add(pending);
-        Map<String, String> approved = ipWhitelistRequestRow("REQ-240311-07", "210.96.14.0/24", "API", "관계기관 API 테스트", "승인완료", "2026-03-11 16:10", "플랫폼운영팀 이지훈", "Partner API test", "Approved", "Platform Ops Jihun Lee");
-        approved.put("reviewedAt", "2026-03-11 16:40");
-        approved.put("reviewedBy", "이지훈");
-        approved.put("reviewedByEn", "Jihun Lee");
-        rows.add(approved);
-        Map<String, String> rejected = ipWhitelistRequestRow("REQ-240307-02", "121.166.77.19", "ADMIN", "퇴사자 계정 사용 종료", "반려", "2026-03-07 11:20", "감사담당 박선영", "User retired", "Rejected", "Audit Officer Sunyoung Park");
-        rejected.put("reviewedAt", "2026-03-07 11:45");
-        rejected.put("reviewedBy", "보안운영자");
-        rejected.put("reviewedByEn", "Security Operator");
-        rejected.put("reviewNote", "허용 사유 종료");
-        rows.add(rejected);
-        return rows;
-    }
-
-    private List<Map<String, String>> buildIpWhitelistSummaryCards(boolean isEn,
-                                                                   List<Map<String, String>> allRows,
-                                                                   List<Map<String, String>> allRequests) {
-        long activeCount = allRows.stream()
-                .filter(row -> "ACTIVE".equalsIgnoreCase(safeString(row.get("status"))))
-                .count();
-        long pendingCount = allRequests.stream()
-                .filter(row -> {
-                    String approvalStatus = safeString(row.get("approvalStatus"));
-                    String approvalStatusEn = safeString(row.get("approvalStatusEn")).toUpperCase(Locale.ROOT);
-                    return approvalStatus.contains("검토") || approvalStatus.contains("대기") || approvalStatusEn.contains("PENDING") || approvalStatusEn.contains("REVIEW");
-                })
-                .count();
-        long temporaryCount = allRows.stream()
-                .filter(row -> safeString(row.get("memo")).contains("임시") || safeString(row.get("memoEn")).toLowerCase(Locale.ROOT).contains("temporary"))
-                .count();
-        long scopeCount = allRows.stream()
-                .map(row -> safeString(row.get("accessScope")).toUpperCase(Locale.ROOT))
-                .filter(value -> !value.isEmpty())
-                .distinct()
-                .count();
-        return List.of(
-                metricCard(isEn ? "Active Rules" : "활성 규칙", String.valueOf(activeCount), isEn ? "Rules currently reflected in gateway and admin access." : "게이트웨이와 관리자 접근에 현재 반영 중인 규칙"),
-                metricCard(isEn ? "Pending Requests" : "승인 대기", String.valueOf(pendingCount), isEn ? "Temporary access requests waiting for operator review." : "운영 승인 대기 중인 임시 허용 요청"),
-                metricCard(isEn ? "Temporary Exceptions" : "임시 예외", String.valueOf(temporaryCount), isEn ? "Rules carrying temporary access conditions." : "임시 허용 조건을 가진 규칙 수"),
-                metricCard(isEn ? "Protected Scopes" : "보호 범위", String.valueOf(scopeCount), isEn ? "Access scopes managed in the allowlist console." : "화이트리스트 콘솔에서 관리 중인 접근 범위")
-        );
-    }
-
-    private Map<String, String> metricCard(String title, String value, String description) {
-        Map<String, String> card = new LinkedHashMap<>();
-        card.put("title", title);
-        card.put("value", value);
-        card.put("description", description);
-        return card;
-    }
 
     private String normalizeIpWhitelistScope(String value) {
         String normalized = safeString(value).toUpperCase(Locale.ROOT);
@@ -2995,25 +2785,6 @@ public class AdminSystemCodeController {
         return value == null ? "" : IP_WHITELIST_TIMESTAMP_FORMAT.format(value);
     }
 
-    private Map<String, String> findIpWhitelistRequestById(String requestId) {
-        return buildEffectiveIpWhitelistRequests().stream()
-                .filter(row -> requestId.equalsIgnoreCase(safeString(row.get("requestId"))))
-                .findFirst()
-                .map(LinkedHashMap::new)
-                .orElse(null);
-    }
-
-    private Map<String, String> findIpWhitelistRuleById(String ruleId) {
-        if (ruleId.isEmpty()) {
-            return null;
-        }
-        return buildEffectiveIpWhitelistRows().stream()
-                .filter(row -> ruleId.equalsIgnoreCase(safeString(row.get("ruleId"))))
-                .findFirst()
-                .map(LinkedHashMap::new)
-                .orElse(null);
-    }
-
     private Map<String, String> ipWhitelistRow(
             String ruleId,
             String ipAddress,
@@ -3160,7 +2931,7 @@ public class AdminSystemCodeController {
 
     private List<Map<String, String>> loadPageDomainOptions(boolean isEn, String codeId) {
         try {
-            List<MenuInfoDTO> rows = menuInfoService.selectAdminMenuDetailList(codeId);
+            List<MenuInfoDTO> rows = menuInfoReadPort.selectAdminMenuDetailList(codeId);
             List<Map<String, String>> options = new java.util.ArrayList<>();
             for (MenuInfoDTO row : rows) {
                 String code = safeString(row.getCode());
@@ -3484,7 +3255,7 @@ public class AdminSystemCodeController {
 
     private List<MenuInfoDTO> loadMenuTreeRows(String codeId) {
         try {
-            List<MenuInfoDTO> rows = new ArrayList<>(menuInfoService.selectMenuTreeList(codeId));
+            List<MenuInfoDTO> rows = new ArrayList<>(menuInfoReadPort.selectMenuTreeList(codeId));
             for (MenuInfoDTO row : rows) {
                 row.setMenuUrl(canonicalMenuUrl(row.getMenuUrl()));
                 normalizeManagedAdminMenuRow(row);
@@ -3906,14 +3677,7 @@ public class AdminSystemCodeController {
     }
 
     private String redirectReactMigration(HttpServletRequest request, Locale locale, String route) {
-        StringBuilder builder = new StringBuilder("forward:");
-        builder.append(isEnglishRequest(request, locale) ? "/en/admin/app?route=" : "/admin/app?route=");
-        builder.append(route);
-        String query = request == null ? "" : safeString(request.getQueryString());
-        if (!query.isEmpty()) {
-            builder.append("&").append(query);
-        }
-        return builder.toString();
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, route);
     }
 
     private String normalizeUseAt(String useAt) {

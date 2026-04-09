@@ -86,6 +86,7 @@ function readInitialQuery() {
     return {
       tab: "audit" as ObservabilityTab,
       unifiedTab: "all" as UnifiedLogTab,
+      projectId: "",
       traceId: "",
       actorId: "",
       actionCode: "",
@@ -104,7 +105,10 @@ function readInitialQuery() {
   return {
     tab,
     unifiedTab: UNIFIED_LOG_TABS.includes(requestedUnifiedTab) ? requestedUnifiedTab : "all",
+    projectId: params.get("projectId") || "",
     traceId: params.get("traceId") || "",
+    targetType: params.get("targetType") || "",
+    targetId: params.get("targetId") || "",
     actorId: params.get("actorId") || "",
     actionCode: params.get("actionCode") || "",
     pageId: params.get("pageId") || "",
@@ -127,7 +131,10 @@ export function ObservabilityMigrationPage() {
   const [auditPage, setAuditPage] = useState<AuditEventSearchPayload | null>(null);
   const [tracePage, setTracePage] = useState<TraceEventSearchPayload | null>(null);
   const [unifiedPage, setUnifiedPage] = useState<UnifiedLogSearchPayload | null>(null);
+  const [projectId, setProjectId] = useState(initialQuery.projectId);
   const [traceId, setTraceId] = useState(initialQuery.traceId);
+  const [targetType, setTargetType] = useState(initialQuery.targetType);
+  const [targetId, setTargetId] = useState(initialQuery.targetId);
   const [actorId, setActorId] = useState(initialQuery.actorId);
   const [actionCode, setActionCode] = useState(initialQuery.actionCode);
   const [pageId, setPageId] = useState(initialQuery.pageId);
@@ -149,6 +156,7 @@ export function ObservabilityMigrationPage() {
   const isUiErrorFocusedUnifiedPage = isUnifiedLogPage && unifiedPreset.pathSuffix === "/system/unified_log/ui-errors";
   const isLayoutRenderFocusedUnifiedPage = isUnifiedLogPage && unifiedPreset.pathSuffix === "/system/unified_log/layout-render";
   const unifiedItems = unifiedPage?.items || [];
+  const evidenceContextLabel = [targetType, targetId].filter(Boolean).join(" / ");
   const uniqueTraceCount = new Set(unifiedItems.map((item) => String(item.traceId || "")).filter(Boolean)).size;
   const uniquePageCount = new Set(unifiedItems.map((item) => String(item.pageId || "")).filter(Boolean)).size;
   const uniqueApiCount = new Set(unifiedItems.map((item) => String(item.apiId || "")).filter(Boolean)).size;
@@ -260,6 +268,8 @@ export function ObservabilityMigrationPage() {
       tab: effectiveTab,
       logType: effectiveLogType,
       traceId,
+      targetType,
+      targetId,
       actorId,
       actionCode,
       pageId,
@@ -279,6 +289,8 @@ export function ObservabilityMigrationPage() {
         tab: effectiveTab,
         logType: effectiveLogType,
         traceId,
+        targetType,
+        targetId,
         actorId,
         actionCode,
         pageId,
@@ -302,7 +314,10 @@ export function ObservabilityMigrationPage() {
     }
     const url = new URL(window.location.href);
     url.searchParams.set("tab", nextTab);
+    if (projectId) url.searchParams.set("projectId", projectId); else url.searchParams.delete("projectId");
     if (traceId) url.searchParams.set("traceId", traceId); else url.searchParams.delete("traceId");
+    if (targetType) url.searchParams.set("targetType", targetType); else url.searchParams.delete("targetType");
+    if (targetId) url.searchParams.set("targetId", targetId); else url.searchParams.delete("targetId");
     if (actorId) url.searchParams.set("actorId", actorId); else url.searchParams.delete("actorId");
     if (actionCode) url.searchParams.set("actionCode", actionCode); else url.searchParams.delete("actionCode");
     if (pageId) url.searchParams.set("pageId", pageId); else url.searchParams.delete("pageId");
@@ -343,6 +358,8 @@ export function ObservabilityMigrationPage() {
       route: window.location.pathname,
       tab: isUnifiedLogPage ? unifiedTab : tab,
       traceId,
+      targetType,
+      targetId,
       pageId,
       actorId,
       actionCode,
@@ -355,7 +372,7 @@ export function ObservabilityMigrationPage() {
       rowCount: Number(isUnifiedLogPage ? unifiedPage?.items?.length || 0 : tab === "audit" ? auditPage?.items?.length || 0 : tracePage?.items?.length || 0),
       totalCount: Number(isUnifiedLogPage ? unifiedPage?.totalCount || 0 : tab === "audit" ? auditPage?.totalCount || 0 : tracePage?.totalCount || 0)
     });
-  }, [actionCode, actorId, apiId, auditPage?.items?.length, auditPage?.totalCount, componentId, functionId, isUnifiedLogPage, pageId, tab, traceId, tracePage?.items?.length, tracePage?.totalCount, unifiedPage?.items?.length, unifiedPage?.totalCount, unifiedTab]);
+  }, [actionCode, actorId, apiId, auditPage?.items?.length, auditPage?.totalCount, componentId, functionId, isUnifiedLogPage, pageId, tab, targetId, targetType, traceId, tracePage?.items?.length, tracePage?.totalCount, unifiedPage?.items?.length, unifiedPage?.totalCount, unifiedTab]);
 
   useEffect(() => {
     if (!isUnifiedLogPage) {
@@ -402,14 +419,46 @@ export function ObservabilityMigrationPage() {
     >
       {error ? <PageStatusNotice tone="error">조회 중 오류: {error}</PageStatusNotice> : null}
       <AdminWorkspacePageFrame>
+      {isUnifiedLogPage && projectId ? (
+        <div className="mb-4 flex flex-wrap justify-end gap-2">
+          <MemberButton
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              window.location.assign(`${buildLocalizedPath("/admin/system/version", "/en/admin/system/version")}?projectId=${encodeURIComponent(projectId)}`);
+            }}
+          >
+            {en ? "Back To Version Management" : "버전 관리로 돌아가기"}
+          </MemberButton>
+        </div>
+      ) : null}
+      {isUnifiedLogPage && (targetType || targetId) ? (
+        <PageStatusNotice tone="info">
+          {en
+            ? `Version-governance evidence context is active. projectId=${projectId || "-"}, targetType=${targetType || "-"}, targetId=${targetId || "-"}.`
+            : `버전 거버넌스 증거 문맥이 적용되었습니다. projectId=${projectId || "-"}, targetType=${targetType || "-"}, targetId=${targetId || "-"}.`}
+        </PageStatusNotice>
+      ) : null}
       <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
         <SummaryMetricCard title={isUnifiedLogPage ? (en ? "Unified Rows" : "통합 로그 건수") : (en ? "Visible Rows" : "조회 건수")} value={Number(isUnifiedLogPage ? unifiedPage?.totalCount || 0 : tab === "audit" ? auditPage?.totalCount || 0 : tracePage?.totalCount || 0).toLocaleString()} description={en ? "Current search total" : "현재 검색 총 건수"} />
         <SummaryMetricCard title={en ? "Trace IDs" : "고유 traceId"} value={uniqueTraceCount.toLocaleString()} description={en ? "Visible trace groups" : "현재 화면의 trace 묶음"} />
         <SummaryMetricCard title={en ? "Pages / APIs" : "화면 / API"} value={`${uniquePageCount.toLocaleString()} / ${uniqueApiCount.toLocaleString()}`} description={en ? "Observed pageId and apiId" : "관찰된 pageId와 apiId"} />
-        <SummaryMetricCard title={en ? "Error-like Events" : "오류 계열 이벤트"} value={errorLikeCount.toLocaleString()} description={en ? "Fail or error signals" : "실패 또는 오류 신호"} />
+        {isUnifiedLogPage && evidenceContextLabel ? (
+          <SummaryMetricCard
+            title={en ? "Evidence Target" : "증거 대상"}
+            value={targetType || "-"}
+            description={targetId || "-"}
+          />
+        ) : (
+          <SummaryMetricCard title={en ? "Error-like Events" : "오류 계열 이벤트"} value={errorLikeCount.toLocaleString()} description={en ? "Fail or error signals" : "실패 또는 오류 신호"} />
+        )}
       </section>
       <CollectionResultPanel description={isUnifiedLogPage ? (en ? "Move between access, audit, error, and trace slices through one common log contract." : "하나의 공통 로그 계약으로 접속, 감사, 오류, 추적 슬라이스를 전환합니다.") : (en ? "Audit-first investigation stays linked to trace follow-up through shared IDs." : "감사 중심 조회와 추적 후속 확인을 공통 ID로 연결합니다.")} title={isUnifiedLogPage ? (en ? "Unified log workflow" : "통합 로그 운영 흐름") : (en ? "Observability workflow" : "관측 운영 흐름")}>
-        {en ? "Keep filters, tab changes, and selected event detail in one workspace so investigation context remains stable." : "필터, 탭 전환, 선택 이벤트 상세를 한 작업 공간에 두어 조사 컨텍스트가 끊기지 않게 유지합니다."}
+        {isUnifiedLogPage && evidenceContextLabel
+          ? (en
+            ? `Current version-governance evidence target: ${evidenceContextLabel}. Keep filters, tab changes, and selected event detail in one workspace so investigation context remains stable.`
+            : `현재 버전 거버넌스 증거 대상: ${evidenceContextLabel}. 필터, 탭 전환, 선택 이벤트 상세를 한 작업 공간에 두어 조사 컨텍스트가 끊기지 않게 유지합니다.`)
+          : (en ? "Keep filters, tab changes, and selected event detail in one workspace so investigation context remains stable." : "필터, 탭 전환, 선택 이벤트 상세를 한 작업 공간에 두어 조사 컨텍스트가 끊기지 않게 유지합니다.")}
       </CollectionResultPanel>
 
       {isTraceFocusedUnifiedPage ? (
@@ -850,8 +899,20 @@ export function ObservabilityMigrationPage() {
           {isUnifiedLogPage ? (
             <>
               <div>
+                <span className="mb-2 block text-[14px] font-bold text-[var(--kr-gov-text-secondary)]">projectId</span>
+                <AdminInput value={projectId} onChange={(e) => setProjectId(e.target.value)} />
+              </div>
+              <div>
                 <span className="mb-2 block text-[14px] font-bold text-[var(--kr-gov-text-secondary)]">actorId</span>
                 <AdminInput value={actorId} onChange={(e) => setActorId(e.target.value)} />
+              </div>
+              <div>
+                <span className="mb-2 block text-[14px] font-bold text-[var(--kr-gov-text-secondary)]">targetType</span>
+                <AdminInput value={targetType} onChange={(e) => setTargetType(e.target.value)} />
+              </div>
+              <div>
+                <span className="mb-2 block text-[14px] font-bold text-[var(--kr-gov-text-secondary)]">targetId</span>
+                <AdminInput value={targetId} onChange={(e) => setTargetId(e.target.value)} />
               </div>
               <div>
                 <span className="mb-2 block text-[14px] font-bold text-[var(--kr-gov-text-secondary)]">actionCode</span>
@@ -961,7 +1022,11 @@ export function ObservabilityMigrationPage() {
       <div className="gov-card overflow-hidden p-0" data-help-id={isUnifiedLogPage ? "unified-log-table" : tab === "audit" ? "observability-audit-table" : "observability-trace-table"}>
         <div className="border-b border-[var(--kr-gov-border-light)] px-6 py-5">
           <MemberSectionToolbar
-            meta={isUnifiedLogPage ? "공통 로그 이벤트를 시간순으로 확인합니다." : tab === "audit" ? "감사 이벤트를 시간순으로 확인합니다." : "추적 이벤트를 시간순으로 확인합니다."}
+            meta={isUnifiedLogPage
+              ? (evidenceContextLabel
+                ? `${evidenceContextLabel} 문맥에서 공통 로그 이벤트를 시간순으로 확인합니다.`
+                : "공통 로그 이벤트를 시간순으로 확인합니다.")
+              : tab === "audit" ? "감사 이벤트를 시간순으로 확인합니다." : "추적 이벤트를 시간순으로 확인합니다."}
             title={(
               <span className="text-[15px] font-semibold text-[var(--kr-gov-text-primary)]">
                 전체 <span className="text-[var(--kr-gov-blue)]">{Number(isUnifiedLogPage ? unifiedPage?.totalCount || 0 : tab === "audit" ? auditPage?.totalCount || 0 : tracePage?.totalCount || 0).toLocaleString()}</span>건

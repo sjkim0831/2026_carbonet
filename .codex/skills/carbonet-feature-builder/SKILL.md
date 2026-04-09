@@ -9,9 +9,22 @@ Implement new Carbonet features by matching the existing project structure first
 
 Use this as the default implementation skill for normal Carbonet features. If the main problem is design-source selection, Codex runner lifecycle, refresh/cache delivery, or system-wide audit architecture, switch to the specialized skill first and return here only for repository implementation.
 
+If the request explicitly wants common-platform extraction, project-common separation, reversible common/project switching, shared jar preparation, or "make this easy to move later", use `carbonet-common-project-boundary-switcher` first and only then return here for repository implementation.
+
+If the request asks whether an existing page is really systemized, builder-ready, installable, or authority-scope-complete, read `docs/architecture/page-systemization-minimum-contract.md` first before deciding where code should land.
+
+If the request is likely to create new common/platform/backend/frontend folder ownership rather than a simple feature edit, read `docs/architecture/system-folder-structure-alignment.md` first before placing new files.
+
 Keep `SKILL.md` procedural. Load the reference files only when needed:
 
 - If the task is primarily about interpreting `/home/imaneya/workspace/화면설계` itself, use `carbonet-screen-design-workspace` first to determine the canonical design sources and workflow scope, then return here for implementation.
+- Prefer `apps/`, `modules/`, `frontend/src/`, and `templates/` as the current clean ownership lanes; treat the root `src/` tree as transitional unless the target family still clearly lives there.
+
+Incremental cleanup rule:
+
+- when implementing a feature slice, improve folder placement and local structural clarity inside the same owned family when it directly reduces future drift
+- prefer "implement plus same-family cleanup" over leaving obviously misplaced new code behind
+- avoid unrelated broad folder cleanup that is not required for the current feature slice
 
 - Read [references/project-patterns.md](references/project-patterns.md) for the current Java, route, React shell, URL, locale, mapper, and naming conventions.
 - Read [references/menu-db-map.md](references/menu-db-map.md) when adding or changing menu codes, page registration, feature codes, or authority mappings.

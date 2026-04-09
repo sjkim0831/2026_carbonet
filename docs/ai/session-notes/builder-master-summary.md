@@ -30,7 +30,7 @@
 - Publish is now the default projection warm-up trigger. Successful publish regenerates both locale projections for the affected menu immediately, while the rebuild route remains available for manual or bulk refresh.
 - The rebuild path is now exposed in `/admin/system/environment-management` as operator buttons for selected-menu rebuild and full-summary rebuild, so projection maintenance is available from the same console that surfaces freshness, parity, and handoff metadata.
 - Frontend production build completed with `npm run build` in `/opt/projects/carbonet/frontend`.
-- Backend package completed with `mvn -q -Dmaven.test.skip=true package` in `/opt/projects/carbonet` because the current repository still has unrelated test-compile issues under `src/test/java/egovframework/com/feature/admin/service/impl/ResonanceControlPlaneServiceImplTest.java`.
+- Backend package completed with `mvn -q -Dmaven.test.skip=true package` in `/opt/projects/carbonet`; the older unrelated runtime-control test-compile drift note is now stale because tests were realigned to `platform/runtimecontrol`.
 - Runtime restart completed through `ops/scripts/restart-18000.sh`; port `18000` is listening and `/admin/system/screen-builder`, `/admin/system/environment-management`, `/admin/system/current-runtime-compare`, `/admin/api/admin/screen-builder/status-summary`, and `/admin/api/admin/screen-builder/status-summary/rebuild` all redirect to login, confirming the app is up.
 
 ## Cross-Session Blockers

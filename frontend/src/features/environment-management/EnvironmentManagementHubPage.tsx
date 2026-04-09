@@ -16,6 +16,7 @@ import {
   updateEnvironmentManagedPage
 } from "../../lib/api/environmentManagement";
 import { postFormUrlEncoded } from "../../lib/api/core";
+import { resolveResonanceProjectId } from "../../lib/api/resonanceControlPlane";
 import { fetchAuditEvents } from "../../platform/observability/observability";
 import { rebuildScreenBuilderStatusSummary } from "../../lib/api/screenBuilder";
 import { buildLocalizedPath, isEnglish, navigate } from "../../lib/navigation/runtime";
@@ -25,6 +26,16 @@ import { ContextKeyStrip } from "../admin-ui/ContextKeyStrip";
 import { authorDesignContextKeys } from "../admin-ui/contextKeyPresets";
 import { BinaryStatusCard, CollectionResultPanel, DiagnosticCard, GridToolbar, KeyValueGridPanel, MemberButton, MemberLinkButton, MetaListPanel, PageStatusNotice, SummaryMetricCard, WarningPanel } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
+import {
+  BUILDER_INSTALL_ARTIFACTS,
+  BUILDER_INSTALL_REQUIRED_BINDINGS,
+  BUILDER_INSTALL_VALIDATOR_CHECKS,
+  buildBuilderInstallQueueSummary,
+  type BuilderInstallBindingKey,
+  type BuilderInstallValidatorCheckKey,
+  describeBuilderInstallBinding,
+  describeBuilderValidatorCheck
+} from "../screen-builder/shared/installableBuilderContract";
 import {
   buildSuggestedPageCode,
   createEmptyFeatureDraft,
@@ -68,6 +79,7 @@ function renderMetaList(items: string[], emptyLabel: string) {
 export function EnvironmentManagementHubPage() {
   const en = isEnglish();
   const searchParams = new URLSearchParams(window.location.search);
+  const resonanceProjectId = useMemo(() => resolveResonanceProjectId(searchParams.get("projectId") || ""), [searchParams]);
   const initialMenuType = searchParams.get("menuType") || "ADMIN";
   const [menuType, setMenuType] = useState(initialMenuType);
   const [menuSearch, setMenuSearch] = useState(searchParams.get("keyword") || "");
@@ -563,6 +575,167 @@ export function EnvironmentManagementHubPage() {
     if (selectedMenu.useAt !== selectedMenuDraft.useAt) changes.push(`${en ? "Use" : "사용 여부"}: ${selectedMenu.useAt} -> ${selectedMenuDraft.useAt}`);
     return changes;
   }, [en, selectedMenu, selectedMenuDraft.codeDc, selectedMenuDraft.codeNm, selectedMenuDraft.menuIcon, selectedMenuDraft.menuUrl, selectedMenuDraft.useAt]);
+  const installBindingChecklist = useMemo(() => ([
+    {
+      key: "scope",
+      label: en ? "Project scope selected" : "프로젝트 스코프 선택",
+      ready: Boolean(menuType),
+      detail: en ? `Scope ${menuType}` : `스코프 ${menuType}`
+    },
+    {
+      key: "menu",
+      label: en ? "Page menu selected" : "페이지 메뉴 선택",
+      ready: Boolean(selectedMenu && selectedMenuIsPage),
+      detail: selectedMenu
+        ? `${selectedMenu.label} (${selectedMenu.code})`
+        : (en ? "Select a page menu to bind." : "바인딩할 페이지 메뉴를 선택하세요.")
+    },
+    {
+      key: "url",
+      label: en ? "Runtime URL valid" : "런타임 URL 검증",
+      ready: !selectedMenu || !selectedMenuIsPage ? false : selectedUrlValidation.tone === "success",
+      detail: selectedMenu && selectedMenuIsPage
+        ? selectedUrlValidation.message
+        : (en ? "URL validation starts after page selection." : "페이지를 선택하면 URL 검증을 시작합니다.")
+    },
+    {
+      key: "governance",
+      label: en ? "Governance page resolved" : "거버넌스 페이지 연결",
+      ready: Boolean(governancePageId),
+      detail: governancePageId || (en ? "No pageId resolved yet." : "아직 pageId가 연결되지 않았습니다.")
+    },
+    {
+      key: "publish",
+      label: en ? "Builder publish-ready" : "빌더 publish 준비",
+      ready: Boolean(selectedMenu && selectedMenuIsPage && selectedMenuPublishReady),
+      detail: selectedMenu && selectedMenuIsPage
+        ? summarizeBuilderBlockingReason(selectedMenuBuilderIssueCount, en)
+        : (en ? "Publish readiness is checked for page menus only." : "Publish 준비도는 페이지 메뉴 기준으로만 계산합니다.")
+    }
+  ]), [
+    en,
+    governancePageId,
+    menuType,
+    selectedMenuBuilderIssueCount,
+    selectedMenu,
+    selectedMenuIsPage,
+    selectedMenuPublishReady,
+    selectedUrlValidation.message,
+    selectedUrlValidation.tone
+  ]);
+  const installBindingReadyCount = useMemo(
+    () => installBindingChecklist.filter((item) => item.ready).length,
+    [installBindingChecklist]
+  );
+  const installManifestBindingStatuses = useMemo(() => ([
+    {
+      key: "projectId" as BuilderInstallBindingKey,
+      ready: true,
+      detail: resonanceProjectId
+    },
+    {
+      key: "menuRoot" as BuilderInstallBindingKey,
+      ready: Boolean(selectedMenu?.menuUrl),
+      detail: selectedMenu?.menuUrl || "-"
+    },
+    {
+      key: "runtimeClass" as BuilderInstallBindingKey,
+      ready: Boolean(selectedMenu && selectedMenuIsPage),
+      detail: selectedMenu && selectedMenuIsPage ? "ADMIN" : "-"
+    },
+    {
+      key: "menuScope" as BuilderInstallBindingKey,
+      ready: Boolean(selectedMenu && selectedMenuIsPage),
+      detail: selectedMenu && selectedMenuIsPage ? "PROJECT_RUNTIME" : "-"
+    },
+    {
+      key: "releaseUnitPrefix" as BuilderInstallBindingKey,
+      ready: Boolean(selectedBuilderStatus?.releaseUnitId || selectedBuilderStatus?.publishedVersionId),
+      detail: selectedBuilderStatus?.releaseUnitId || selectedBuilderStatus?.publishedVersionId || "-"
+    },
+    {
+      key: "runtimePackagePrefix" as BuilderInstallBindingKey,
+      ready: Boolean(selectedBuilderStatus?.runtimePackageId || selectedBuilderStatus?.publishedVersionId),
+      detail: selectedBuilderStatus?.runtimePackageId || selectedBuilderStatus?.publishedVersionId || "-"
+    }
+  ]), [resonanceProjectId, selectedBuilderStatus?.publishedVersionId, selectedBuilderStatus?.releaseUnitId, selectedBuilderStatus?.runtimePackageId, selectedMenu, selectedMenuIsPage]);
+  const installValidatorStatuses = useMemo(() => ([
+    {
+      key: "required-beans-present" as BuilderInstallValidatorCheckKey,
+      ready: Boolean(selectedMenu && selectedMenuIsPage),
+      detail: selectedMenu && selectedMenuIsPage ? (en ? "Builder-owned page selected." : "빌더 소유 페이지 선택됨") : (en ? "Select a page registry row first." : "페이지 레지스트리 행을 먼저 선택")
+    },
+    {
+      key: "required-properties-present" as BuilderInstallValidatorCheckKey,
+      ready: installManifestBindingStatuses.every((item) => item.ready),
+      detail: installManifestBindingStatuses.filter((item) => !item.ready).map((item) => describeBuilderInstallBinding(item.key, en)).join(", ") || (en ? "All install bindings are present." : "설치 바인딩이 모두 준비됨")
+    },
+    {
+      key: "menu-root-resolvable" as BuilderInstallValidatorCheckKey,
+      ready: selectedUrlValidation.tone === "success",
+      detail: selectedUrlValidation.message
+    },
+    {
+      key: "storage-writable" as BuilderInstallValidatorCheckKey,
+      ready: Boolean(selectedBuilderStatus?.versionCount || latestSelectedMenuBuilderAudit),
+      detail: selectedBuilderStatus?.publishedSavedAt || String(latestSelectedMenuBuilderAudit?.createdAt || (en ? "No storage evidence yet." : "스토리지 증거 없음"))
+    },
+    {
+      key: "builder-routes-exposed" as BuilderInstallValidatorCheckKey,
+      ready: Boolean(selectedMenu && selectedMenuIsPage && governancePageId),
+      detail: governancePageId || (en ? "Collect governance pageId first." : "거버넌스 pageId를 먼저 수집")
+    }
+  ]), [en, governancePageId, installManifestBindingStatuses, latestSelectedMenuBuilderAudit, selectedBuilderStatus?.publishedSavedAt, selectedBuilderStatus?.versionCount, selectedMenu, selectedMenuIsPage, selectedUrlValidation.message, selectedUrlValidation.tone]);
+  const installManifestReadyCount = useMemo(
+    () => installManifestBindingStatuses.filter((item) => item.ready).length,
+    [installManifestBindingStatuses]
+  );
+  const installValidatorPassCount = useMemo(
+    () => installValidatorStatuses.filter((item) => item.ready).length,
+    [installValidatorStatuses]
+  );
+  const selectedInstallQueueSummary = useMemo(() => buildBuilderInstallQueueSummary({
+    menuCode: selectedMenu?.code,
+    pageId: governancePageId || selectedMenu?.code?.toLowerCase(),
+    menuUrl: selectedMenu?.menuUrl,
+    releaseUnitId: selectedBuilderStatus?.releaseUnitId || selectedBuilderStatus?.publishedVersionId,
+    runtimePackageId: selectedBuilderStatus?.runtimePackageId || selectedBuilderStatus?.publishedVersionId,
+    deployTraceId: selectedBuilderStatus?.deployTraceId || selectedBuilderStatus?.parityTraceId,
+    publishReady: selectedMenuPublishReady,
+    issueCount: selectedMenuBuilderIssueCount,
+    validatorPassCount: installValidatorPassCount,
+    validatorTotalCount: BUILDER_INSTALL_VALIDATOR_CHECKS.length
+  }), [governancePageId, installValidatorPassCount, selectedBuilderStatus?.deployTraceId, selectedBuilderStatus?.parityTraceId, selectedBuilderStatus?.publishedVersionId, selectedBuilderStatus?.releaseUnitId, selectedBuilderStatus?.runtimePackageId, selectedMenu?.code, selectedMenu?.menuUrl, selectedMenuBuilderIssueCount, selectedMenuPublishReady]);
+  const installBindingNextActions = useMemo(() => {
+    const actions: string[] = [];
+    if (!selectedMenu || !selectedMenuIsPage) {
+      actions.push(en ? "Select a page menu from the inventory first." : "먼저 인벤토리에서 페이지 메뉴를 선택하세요.");
+    } else {
+      if (selectedUrlValidation.tone !== "success") {
+        actions.push(selectedUrlValidation.message);
+      }
+      if (!governancePageId) {
+        actions.push(en ? "Collect or bind the governance pageId before install." : "설치 전에 거버넌스 pageId를 수집하거나 바인딩하세요.");
+      }
+      if (!selectedMenuPublishReady) {
+        actions.push(recommendBuilderNextAction(selectedBuilderStatus, en));
+      }
+    }
+    if (governanceRemediationItems.length > 0) {
+      actions.push(en ? "Resolve the top remediation item before package install." : "패키지 설치 전에 최상위 remediation 항목을 처리하세요.");
+    }
+    return actions.slice(0, 3);
+  }, [
+    en,
+    governancePageId,
+    governanceRemediationItems.length,
+    selectedBuilderStatus,
+    selectedMenu,
+    selectedMenuIsPage,
+    selectedMenuPublishReady,
+    selectedUrlValidation.message,
+    selectedUrlValidation.tone
+  ]);
   useEffect(() => {
     if (!parentCodeValue && groupMenuOptions.length > 0) {
       setParentCodeValue(stringOf(groupMenuOptions[0], "value"));
@@ -991,13 +1164,13 @@ export function EnvironmentManagementHubPage() {
       breadcrumbs={[
         { label: en ? "Home" : "홈", href: buildLocalizedPath("/admin/", "/en/admin/") },
         { label: en ? "System" : "시스템" },
-        { label: en ? "Environment" : "환경" },
-        { label: en ? "Menu Unified Management" : "메뉴 통합 관리" }
+        { label: en ? "Installable Builder" : "설치형 빌더" },
+        { label: en ? "Install / Bind Console" : "설치 / 바인딩 콘솔" }
       ]}
-      title={en ? "Menu Unified Management" : "메뉴 통합 관리"}
+      title={en ? "Builder Install / Bind Console" : "빌더 설치 / 바인딩 콘솔"}
       subtitle={en
-        ? "Search menus, register new pages with URL and group assignment, and continue feature editing from the same screen."
-        : "메뉴를 검색해 수정하고, 그룹/공통코드와 URL을 지정해 페이지 메뉴를 등록한 뒤 같은 화면에서 기능 추가와 편집까지 이어서 처리합니다."}
+        ? "Bind page inventory, governance metadata, builder readiness, and next install actions from one governed workspace."
+        : "페이지 인벤토리, 거버넌스 메타데이터, 빌더 준비도, 다음 설치 액션을 하나의 거버넌스 작업공간에서 연결합니다."}
       contextStrip={
         <ContextKeyStrip items={authorDesignContextKeys} />
       }
@@ -1014,64 +1187,110 @@ export function EnvironmentManagementHubPage() {
         </PageStatusNotice>
       ) : null}
 
-      <div data-help-id="environment-management-summary">
+      <div data-help-id="environment-management-summary" id="environment-install-bind">
         <DiagnosticCard
           description={en
-            ? "Register the target menu under a group code, assign the runtime URL, let the default VIEW permission be created automatically, and then add page-specific feature codes without switching to multiple screens."
-            : "그룹 메뉴 아래에 대상 메뉴를 등록하고 URL을 할당하면 기본 VIEW 권한이 함께 생성됩니다. 이후 선택 메뉴 기준으로 기능 코드를 바로 추가해 여러 화면을 오가지 않도록 구성했습니다."}
+            ? "This page is the install-bind console for builder-managed pages. Use it to choose the target page, verify required bindings, and decide whether the package can move into install or validation."
+            : "이 페이지는 빌더 관리 페이지의 설치/바인딩 콘솔입니다. 대상 페이지를 고르고, 필수 바인딩을 확인하고, 패키지를 설치나 검증 단계로 넘길 수 있는지 판단하는 데 사용합니다."}
           summary={(
             <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
-                {en ? "Unified Workspace" : "통합 작업공간"}
+                {en ? "Install / Bind Workspace" : "설치 / 바인딩 작업공간"}
               </p>
               <h3 className="mt-2 text-2xl font-black text-[var(--kr-gov-text-primary)]">
-                {en ? "Create menus simply, then keep editing on the same screen" : "메뉴를 단순하게 추가하고 같은 화면에서 계속 편집"}
+                {en ? "Attach the builder package only after bindings are clear" : "바인딩이 명확할 때만 빌더 패키지를 붙입니다"}
               </h3>
               <p className="mt-3 text-sm leading-6 text-[var(--kr-gov-text-secondary)]">
                 {en
-                  ? "Register the target menu under a group code, assign the runtime URL, let the default VIEW permission be created automatically, and then add page-specific feature codes without switching to multiple screens."
-                  : "그룹 메뉴 아래에 대상 메뉴를 등록하고 URL을 할당하면 기본 VIEW 권한이 함께 생성됩니다. 이후 선택 메뉴 기준으로 기능 코드를 바로 추가해 여러 화면을 오가지 않도록 구성했습니다."}
+                  ? "Instead of treating this page as a generic menu editor, use it as the governed checkpoint before install. Confirm page inventory, runtime URL, pageId binding, and publish readiness here first."
+                  : "이 화면을 단순 메뉴 편집기가 아니라 설치 전 거버넌스 체크포인트로 사용합니다. 페이지 인벤토리, 런타임 URL, pageId 바인딩, publish 준비도를 여기서 먼저 확인합니다."}
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
+                <MemberButton onClick={() => scrollToSection("environment-install-bind")} size="sm" type="button" variant="primary">
+                  {en ? "Install Checklist" : "설치 체크리스트"}
+                </MemberButton>
                 <MemberButton onClick={() => scrollToSection("environment-register-menu")} size="sm" type="button" variant="secondary">
-                  {en ? "Register Menu" : "메뉴 등록"}
+                  {en ? "Menu Registry" : "메뉴 인벤토리"}
                 </MemberButton>
                 <MemberButton onClick={() => scrollToSection("environment-search-menu")} size="sm" type="button" variant="secondary">
-                  {en ? "Search Menu" : "메뉴 검색"}
+                  {en ? "Binding Inventory" : "바인딩 인벤토리"}
                 </MemberButton>
                 <MemberButton onClick={() => scrollToSection("environment-feature-management")} size="sm" type="button" variant="secondary">
-                  {en ? "Manage Features" : "기능 관리"}
+                  {en ? "Authority / Features" : "권한 / 기능"}
                 </MemberButton>
                 <MemberButton onClick={() => scrollToSection("environment-metadata")} size="sm" type="button" variant="secondary">
-                  {en ? "Metadata" : "메타데이터"}
+                  {en ? "Validator / Metadata" : "검증 / 메타데이터"}
                 </MemberButton>
               </div>
             </div>
             <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 p-5">
               <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
-                {en ? "Auto Provision" : "자동 생성 항목"}
+                {en ? "Install Readiness" : "설치 준비도"}
               </p>
-              <ul className="mt-3 space-y-2 text-sm text-[var(--kr-gov-text-secondary)]">
-                <li className="rounded-lg border border-slate-200 bg-white px-3 py-2">{en ? "8-digit page menu code under selected group" : "선택한 그룹 하위의 8자리 페이지 메뉴 코드"}</li>
-                <li className="rounded-lg border border-slate-200 bg-white px-3 py-2">{en ? "Menu URL and icon metadata" : "메뉴 URL과 아이콘 메타데이터"}</li>
-                <li className="rounded-lg border border-slate-200 bg-white px-3 py-2">{en ? "Default PAGE_CODE_VIEW feature" : "기본 PAGE_CODE_VIEW 기능"}</li>
-                <li className="rounded-lg border border-slate-200 bg-white px-3 py-2">{en ? "Initial sort order under the same parent" : "같은 부모 메뉴 기준 초기 정렬 순서"}</li>
-              </ul>
+              <div className="mt-3 space-y-2 text-sm">
+                {installBindingChecklist.map((item) => (
+                  <div className={`rounded-lg border px-3 py-2 ${item.ready ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`} key={item.key}>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-bold text-[var(--kr-gov-text-primary)]">{item.label}</span>
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-black ${item.ready ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                        {item.ready ? (en ? "READY" : "준비") : (en ? "PENDING" : "대기")}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-[12px] text-[var(--kr-gov-text-secondary)]">{item.detail}</p>
+                  </div>
+                ))}
+              </div>
               <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
                 <div className="rounded-lg border border-slate-200 bg-white px-3 py-3">
-                  <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Menus" : "메뉴 수"}</p>
-                  <p className="mt-1 text-lg font-black text-[var(--kr-gov-text-primary)]">{filteredMenus.length}</p>
+                  <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Bindings Ready" : "준비된 바인딩"}</p>
+                  <p className="mt-1 text-lg font-black text-[var(--kr-gov-text-primary)]">{installBindingReadyCount} / {installBindingChecklist.length}</p>
                 </div>
                 <div className="rounded-lg border border-slate-200 bg-white px-3 py-3">
-                  <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Features" : "기능 수"}</p>
-                  <p className="mt-1 text-lg font-black text-[var(--kr-gov-text-primary)]">{featureRows.length}</p>
+                  <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Next Actions" : "다음 액션"}</p>
+                  <p className="mt-1 text-lg font-black text-[var(--kr-gov-text-primary)]">{installBindingNextActions.length}</p>
+                </div>
+              </div>
+              {installBindingNextActions.length > 0 ? (
+                <div className="mt-4 rounded-lg border border-slate-200 bg-white px-3 py-3">
+                  <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
+                    {en ? "Recommended Next" : "권장 다음 단계"}
+                  </p>
+                  <ul className="mt-2 space-y-1 text-[12px] text-[var(--kr-gov-text-secondary)]">
+                    {installBindingNextActions.map((item) => (
+                      <li key={item}>- {item}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              <div className="mt-4 rounded-lg border border-slate-200 bg-white px-3 py-3">
+                <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
+                  {en ? "Install Package Contract" : "설치 패키지 계약"}
+                </p>
+                <div className="mt-2 grid gap-2 md:grid-cols-3">
+                  <div className="rounded border border-slate-200 bg-slate-50 px-3 py-2">
+                    <p className="text-[11px] font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Bindings" : "바인딩"}</p>
+                    <p className="mt-1 text-sm font-black text-[var(--kr-gov-text-primary)]">{installManifestReadyCount} / {BUILDER_INSTALL_REQUIRED_BINDINGS.length}</p>
+                  </div>
+                  <div className="rounded border border-slate-200 bg-slate-50 px-3 py-2">
+                    <p className="text-[11px] font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Validator Checks" : "검증 체크"}</p>
+                    <p className="mt-1 text-sm font-black text-[var(--kr-gov-text-primary)]">{installValidatorPassCount} / {BUILDER_INSTALL_VALIDATOR_CHECKS.length}</p>
+                  </div>
+                  <div className="rounded border border-slate-200 bg-slate-50 px-3 py-2">
+                    <p className="text-[11px] font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Artifacts" : "산출물"}</p>
+                    <p className="mt-1 text-sm font-black text-[var(--kr-gov-text-primary)]">{BUILDER_INSTALL_ARTIFACTS.length}</p>
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {BUILDER_INSTALL_ARTIFACTS.map((artifact) => (
+                    <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-mono text-[var(--kr-gov-text-primary)]" key={artifact}>{artifact}</span>
+                  ))}
                 </div>
               </div>
             </div>
           </div>
           )}
-          title={en ? "Unified Workspace" : "통합 작업공간"}
+          title={en ? "Install / Bind Workspace" : "설치 / 바인딩 작업공간"}
         />
       </div>
 
@@ -1090,12 +1309,12 @@ export function EnvironmentManagementHubPage() {
               </MemberLinkButton>
             </div>
           )}
-          title={en ? "Governance Engines To Add" : "추가할 거버넌스 엔진"}
+          title={en ? "Install / Validate Engines" : "설치 / 검증 엔진"}
         />
         <p className="mb-4 text-sm text-[var(--kr-gov-text-secondary)]">
           {en
-            ? "Environment management should not stop at menu and feature registration. The engines below are the next operating layer for dynamic authority-driven screens."
-            : "환경 관리는 메뉴/기능 등록으로 끝나지 않습니다. 아래 엔진들이 동적 권한 기반 화면으로 가기 위한 다음 운영 레이어입니다."}
+            ? "This console should not stop at menu and feature editing. The engines below are the required install, validation, and runtime-governance layers for an installable builder."
+            : "이 콘솔은 메뉴/기능 편집에서 멈추면 안 됩니다. 아래 엔진들은 설치형 빌더를 위한 설치, 검증, 런타임 거버넌스 레이어입니다."}
         </p>
         <div className="grid gap-4 xl:grid-cols-2">
           {governanceEngineCards.map((item) => (
@@ -1117,7 +1336,12 @@ export function EnvironmentManagementHubPage() {
       <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]" data-help-id="environment-management-cards">
         <div className="space-y-6">
           <section className="gov-card" id="environment-register-menu">
-            <GridToolbar title={en ? "Register New Menu" : "신규 메뉴 등록"} />
+            <GridToolbar title={en ? "Menu Registry Intake" : "메뉴 인벤토리 등록"} />
+            <p className="mb-4 text-sm text-[var(--kr-gov-text-secondary)]">
+              {en
+                ? "Create or extend the page inventory first. This section owns menu registration, URL ownership, and default permission seeding."
+                : "먼저 페이지 인벤토리를 만들거나 확장합니다. 이 구역은 메뉴 등록, URL 소유권, 기본 권한 시딩을 담당합니다."}
+            </p>
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="gov-label" htmlFor="parentCode">{en ? "Group / Common Code" : "그룹 / 공통코드"}</label>
@@ -1169,7 +1393,12 @@ export function EnvironmentManagementHubPage() {
           </section>
 
           <section className="gov-card" id="environment-search-menu">
-            <GridToolbar title={en ? "Search Menu" : "메뉴 검색"} />
+            <GridToolbar title={en ? "Binding Inventory Queue" : "바인딩 인벤토리 큐"} />
+            <p className="mb-4 text-sm text-[var(--kr-gov-text-secondary)]">
+              {en
+                ? "Use this queue to decide which page can move into builder attach, which page is blocked, and which page should move next into validator flows."
+                : "이 큐에서 어떤 페이지를 빌더에 연결할지, 어떤 페이지가 차단 상태인지, 어떤 페이지를 다음 검증 단계로 보낼지 결정합니다."}
+            </p>
             <div className="grid gap-4 md:grid-cols-[12rem_1fr]">
               <div>
                 <label className="gov-label" htmlFor="environmentMenuType">{en ? "Scope" : "화면 구분"}</label>
@@ -1304,6 +1533,50 @@ export function EnvironmentManagementHubPage() {
               <p className="text-[var(--kr-gov-text-secondary)]">
                 {en ? "Search by code, label, or runtime URL." : "코드, 메뉴명, URL 기준으로 바로 찾을 수 있습니다."}
               </p>
+            </div>
+
+            <div className="mt-4 grid gap-3 xl:grid-cols-3">
+              <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
+                  {en ? "Queue Focus" : "큐 집중 영역"}
+                </p>
+                <p className="mt-2 text-sm font-black text-[var(--kr-gov-text-primary)]">
+                  {hasActiveScreenBuilderFilter ? activeScreenBuilderFilterLabel : (en ? "All inventory" : "전체 인벤토리")}
+                </p>
+                <p className="mt-1 text-[12px] text-[var(--kr-gov-text-secondary)]">
+                  {en
+                    ? `${visibleSameIssueMenus.length} issue-family menus and ${visibleOtherMenus.length} other menus are visible now.`
+                    : `현재 이슈군 메뉴 ${visibleSameIssueMenus.length}건, 기타 메뉴 ${visibleOtherMenus.length}건이 보입니다.`}
+                </p>
+              </div>
+              <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
+                  {en ? "Ready vs Blocked" : "가능 / 차단"}
+                </p>
+                <p className="mt-2 text-sm font-black text-[var(--kr-gov-text-primary)]">
+                  {en
+                    ? `Ready ${screenBuilderPageCounts.readyPages} / Blocked ${screenBuilderPageCounts.blockedPages}`
+                    : `가능 ${screenBuilderPageCounts.readyPages} / 차단 ${screenBuilderPageCounts.blockedPages}`}
+                </p>
+                <p className="mt-1 text-[12px] text-[var(--kr-gov-text-secondary)]">
+                  {en
+                    ? "Blocked pages should stay here until validator-result becomes clean."
+                    : "차단 페이지는 validator-result가 깨끗해질 때까지 이 큐에 남겨야 합니다."}
+                </p>
+              </div>
+              <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
+                  {en ? "Install Handoff" : "설치 핸드오프"}
+                </p>
+                <p className="mt-2 text-sm font-black text-[var(--kr-gov-text-primary)]">
+                  {selectedMenu && selectedMenuIsPage
+                    ? (selectedMenuPublishReady ? (en ? "Can move to validator" : "검증 단계로 이동 가능") : (en ? "Fix blockers before attach" : "연결 전 차단 이슈 해결"))
+                    : (en ? "Select a page first" : "먼저 페이지를 선택하세요")}
+                </p>
+                <p className="mt-1 text-[12px] text-[var(--kr-gov-text-secondary)]">
+                  {installBindingNextActions[0] || (en ? "No blocking action is open." : "열려 있는 차단 액션이 없습니다.")}
+                </p>
+              </div>
             </div>
 
             {selectedIssueReason ? (
@@ -1597,7 +1870,7 @@ export function EnvironmentManagementHubPage() {
                                   size="xs"
                                   variant={rowPublishReady ? "secondary" : "info"}
                                 >
-                                  {en ? "Builder" : "빌더"}
+                                  {en ? "Attach" : "연결"}
                                 </MemberLinkButton>
                                 {screenBuilderPublishedMap[row.code] ? (
                                   <>
@@ -1609,7 +1882,7 @@ export function EnvironmentManagementHubPage() {
                                       size="xs"
                                       variant="secondary"
                                     >
-                                      {en ? "Runtime" : "런타임"}
+                                      {en ? "Validate Runtime" : "런타임 검증"}
                                     </MemberLinkButton>
                                     <MemberLinkButton
                                       href={buildLocalizedPath(
@@ -1619,7 +1892,7 @@ export function EnvironmentManagementHubPage() {
                                       size="xs"
                                       variant={rowParity?.state === "GAP" || rowParity?.state === "DRIFT" ? "info" : "secondary"}
                                     >
-                                      {en ? "Compare" : "비교"}
+                                      {en ? "Repair / Compare" : "복구 / 비교"}
                                     </MemberLinkButton>
                                   </>
                                 ) : null}
@@ -1631,7 +1904,7 @@ export function EnvironmentManagementHubPage() {
                                   size="xs"
                                   variant="secondary"
                                 >
-                                  {en ? "Activity" : "활동"}
+                                  {en ? "Observe" : "관측"}
                                 </MemberLinkButton>
                               </div>
                             </>
@@ -1675,7 +1948,12 @@ export function EnvironmentManagementHubPage() {
 
         <div className="min-w-0 space-y-6">
           <section className="gov-card min-w-0">
-            <GridToolbar title={en ? "Selected Menu / Edit" : "선택 메뉴 / 수정"} />
+            <GridToolbar title={en ? "Selected Binding Detail" : "선택 바인딩 상세"} />
+            <p className="mb-4 text-sm text-[var(--kr-gov-text-secondary)]">
+              {en
+                ? "This panel owns the current page binding detail. Review draft values, builder status, and next handoff actions for the selected page here."
+                : "이 패널은 현재 페이지의 바인딩 상세를 담당합니다. 선택 페이지의 draft 값, 빌더 상태, 다음 핸드오프 액션을 여기서 확인합니다."}
+            </p>
             {selectedMenu ? (
               <div className="space-y-4">
                 <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
@@ -1704,22 +1982,22 @@ export function EnvironmentManagementHubPage() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <MemberLinkButton href={buildLocalizedPath("/admin/auth/group", "/en/admin/auth/group")} size="sm" variant="secondary">
-                    {en ? "Open Permission Groups" : "권한 그룹 바로가기"}
+                    {en ? "Open Authority Binding" : "권한 바인딩 열기"}
                   </MemberLinkButton>
                   <MemberLinkButton href={buildLocalizedPath(`/admin/system/feature-management?menuType=${encodeURIComponent(menuType)}&searchMenuCode=${encodeURIComponent(selectedMenu.code)}`, `/en/admin/system/feature-management?menuType=${encodeURIComponent(menuType)}&searchMenuCode=${encodeURIComponent(selectedMenu.code)}`)} size="sm" variant="secondary">
-                    {en ? "Open Feature Management" : "기능 관리 바로가기"}
+                    {en ? "Open Feature Binding" : "기능 바인딩 열기"}
                   </MemberLinkButton>
-                  <MemberButton
-                    disabled={allSummaryRebuildBusy}
-                    onClick={() => { void handleRebuildAllSummaries(); }}
-                    size="sm"
-                    type="button"
-                    variant="secondary"
-                  >
-                    {allSummaryRebuildBusy
-                      ? (en ? "Rebuilding All..." : "전체 재생성 중...")
-                      : (en ? "Rebuild All Summaries" : "전체 요약 재생성")}
-                  </MemberButton>
+                    <MemberButton
+                      disabled={allSummaryRebuildBusy}
+                      onClick={() => { void handleRebuildAllSummaries(); }}
+                      size="sm"
+                      type="button"
+                      variant="secondary"
+                    >
+                      {allSummaryRebuildBusy
+                      ? (en ? "Refreshing All Gates..." : "전체 게이트 갱신 중...")
+                      : (en ? "Refresh All Install Gates" : "전체 설치 게이트 갱신")}
+                    </MemberButton>
                   {selectedMenuIsPage ? (
                     <>
                       <MemberButton
@@ -2200,7 +2478,7 @@ export function EnvironmentManagementHubPage() {
                                     size="xs"
                                     variant="secondary"
                                   >
-                                    {en ? "Current Builder" : "현재 빌더"}
+                                    {en ? "Current Attach" : "현재 연결"}
                                   </MemberLinkButton>
                                   {screenBuilderStatus?.publishedVersionId ? (
                                     <MemberLinkButton
@@ -2211,7 +2489,7 @@ export function EnvironmentManagementHubPage() {
                                       size="xs"
                                       variant="secondary"
                                     >
-                                      {en ? "Current Runtime" : "현재 런타임"}
+                                      {en ? "Current Validate" : "현재 검증"}
                                     </MemberLinkButton>
                                   ) : null}
                                   <MemberLinkButton
@@ -2222,7 +2500,7 @@ export function EnvironmentManagementHubPage() {
                                     size="xs"
                                     variant="secondary"
                                   >
-                                    {en ? "Current Activity" : "현재 활동"}
+                                    {en ? "Current Observe" : "현재 관측"}
                                   </MemberLinkButton>
                                   {screenBuilderStatus?.publishedVersionId ? (
                                     <MemberLinkButton
@@ -2233,7 +2511,7 @@ export function EnvironmentManagementHubPage() {
                                       size="xs"
                                       variant="secondary"
                                     >
-                                      {en ? "Current Compare" : "현재 비교"}
+                                      {en ? "Current Repair" : "현재 복구"}
                                     </MemberLinkButton>
                                   ) : null}
                                 </div>
@@ -2248,7 +2526,7 @@ export function EnvironmentManagementHubPage() {
                                   </div>
                                   <div className="rounded border border-slate-200 bg-white px-3 py-2">
                                     <p className="text-[10px] font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
-                                      {en ? "Runtime Target" : "런타임 타깃"}
+                                      {en ? "Install Target" : "설치 타깃"}
                                     </p>
                                     <p className="mt-1 font-mono text-[11px] text-[var(--kr-gov-text-primary)]">
                                       {screenBuilderStatus?.artifactTargetSystem || "carbonet-general"}
@@ -2256,7 +2534,7 @@ export function EnvironmentManagementHubPage() {
                                   </div>
                                   <div className="rounded border border-slate-200 bg-white px-3 py-2">
                                     <p className="text-[10px] font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
-                                      {en ? "Runtime Package" : "런타임 패키지"}
+                                      {en ? "Attach Package" : "연결 패키지"}
                                     </p>
                                     <p className="mt-1 font-mono text-[11px] text-[var(--kr-gov-text-primary)] break-all">
                                       {screenBuilderStatus?.runtimePackageId || "-"}
@@ -2264,7 +2542,7 @@ export function EnvironmentManagementHubPage() {
                                   </div>
                                   <div className="rounded border border-slate-200 bg-white px-3 py-2">
                                     <p className="text-[10px] font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
-                                      {en ? "Deploy Trace" : "배포 추적"}
+                                      {en ? "Install Trace" : "설치 추적"}
                                     </p>
                                     <p className="mt-1 font-mono text-[11px] text-[var(--kr-gov-text-primary)] break-all">
                                       {screenBuilderStatus?.deployTraceId || "-"}
@@ -2275,7 +2553,7 @@ export function EnvironmentManagementHubPage() {
                                   <div className={`rounded border px-3 py-2 ${selectedPublishFreshnessClasses}`}>
                                     <div className="flex items-center justify-between gap-3">
                                       <p className="text-[10px] font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
-                                        {en ? "Publish Freshness" : "발행 신선도"}
+                                        {en ? "Validator Status" : "검증 상태"}
                                       </p>
                                       <span className="font-mono text-[10px] text-[var(--kr-gov-text-secondary)]">
                                         {screenBuilderStatus?.publishedSavedAt || "-"}
@@ -2285,13 +2563,13 @@ export function EnvironmentManagementHubPage() {
                                       {screenBuilderStatus?.publishFreshnessLabel || (en ? "Not checked" : "미확인")}
                                     </p>
                                     <p className="mt-1 text-[11px] text-[var(--kr-gov-text-secondary)]">
-                                      {screenBuilderStatus?.publishFreshnessDetail || (en ? "Publish freshness summary is not available." : "발행 신선도 요약이 아직 없습니다.")}
+                                      {screenBuilderStatus?.publishFreshnessDetail || (en ? "Validator summary is not available yet." : "검증 상태 요약이 아직 없습니다.")}
                                     </p>
                                   </div>
                                   <div className={`rounded border px-3 py-2 ${selectedParityClasses}`}>
                                     <div className="flex items-center justify-between gap-3">
                                       <p className="text-[10px] font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
-                                        {en ? "Runtime Parity" : "런타임 정합성"}
+                                        {en ? "Repair Status" : "복구 상태"}
                                       </p>
                                       <span className="font-mono text-[10px] text-[var(--kr-gov-text-secondary)] break-all">
                                         {screenBuilderStatus?.parityTraceId || "-"}
@@ -2301,7 +2579,7 @@ export function EnvironmentManagementHubPage() {
                                       {screenBuilderStatus?.parityLabel || (en ? "Not checked" : "미확인")}
                                     </p>
                                     <p className="mt-1 text-[11px] text-[var(--kr-gov-text-secondary)]">
-                                      {screenBuilderStatus?.parityDetail || (en ? "Runtime parity summary is not available." : "런타임 정합성 요약이 아직 없습니다.")}
+                                      {screenBuilderStatus?.parityDetail || (en ? "Repair and compare summary is not available yet." : "복구 및 비교 요약이 아직 없습니다.")}
                                     </p>
                                   </div>
                                 </div>
@@ -2311,7 +2589,7 @@ export function EnvironmentManagementHubPage() {
                               <div className="rounded border border-white bg-white/80 px-3 py-2">
                                 <div className="flex flex-wrap items-center gap-2">
                                   <span className="text-[11px] font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
-                                    {en ? "Previous target" : "이전 대상"}
+                                    {en ? "Previous queue item" : "이전 큐 항목"}
                                   </span>
                                   <span className="font-mono text-[11px] text-[var(--kr-gov-text-primary)]">
                                     {previousSameIssueMenu.code}
@@ -2335,7 +2613,7 @@ export function EnvironmentManagementHubPage() {
                                     size="xs"
                                     variant="secondary"
                                   >
-                                    {en ? "Previous Builder" : "이전 빌더"}
+                                    {en ? "Previous Attach" : "이전 연결"}
                                   </MemberLinkButton>
                                   {previousSameIssueMenuIsPublished ? (
                                     <MemberLinkButton
@@ -2346,7 +2624,7 @@ export function EnvironmentManagementHubPage() {
                                       size="xs"
                                       variant="secondary"
                                     >
-                                      {en ? "Previous Runtime" : "이전 런타임"}
+                                      {en ? "Previous Validate" : "이전 검증"}
                                     </MemberLinkButton>
                                   ) : null}
                                   <MemberLinkButton
@@ -2357,16 +2635,21 @@ export function EnvironmentManagementHubPage() {
                                     size="xs"
                                     variant="secondary"
                                   >
-                                    {en ? "Previous Activity" : "이전 활동"}
+                                    {en ? "Previous Observe" : "이전 관측"}
                                   </MemberLinkButton>
                                 </div>
+                                <p className="mt-2 text-[11px] text-[var(--kr-gov-text-secondary)]">
+                                  {en
+                                    ? "Review the last blocked item in the same issue family before moving the current install queue."
+                                    : "현재 설치 큐를 넘기기 전에 같은 이슈 계열의 직전 차단 항목을 검토합니다."}
+                                </p>
                               </div>
                             ) : null}
                             {nextSameIssueMenu ? (
                               <div className="rounded border border-white bg-white/80 px-3 py-2">
                                 <div className="flex flex-wrap items-center gap-2">
                                   <span className="text-[11px] font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
-                                    {en ? "Next target" : "다음 대상"}
+                                    {en ? "Next queue item" : "다음 큐 항목"}
                                   </span>
                                   <span className="font-mono text-[11px] text-[var(--kr-gov-text-primary)]">
                                     {nextSameIssueMenu.code}
@@ -2390,7 +2673,7 @@ export function EnvironmentManagementHubPage() {
                                     size="xs"
                                     variant="secondary"
                                   >
-                                    {en ? "Next Builder" : "다음 빌더"}
+                                    {en ? "Next Attach" : "다음 연결"}
                                   </MemberLinkButton>
                                   {nextSameIssueMenuIsPublished ? (
                                     <MemberLinkButton
@@ -2401,7 +2684,7 @@ export function EnvironmentManagementHubPage() {
                                       size="xs"
                                       variant="secondary"
                                     >
-                                      {en ? "Next Runtime" : "다음 런타임"}
+                                      {en ? "Next Validate" : "다음 검증"}
                                     </MemberLinkButton>
                                   ) : null}
                                   <MemberLinkButton
@@ -2412,9 +2695,14 @@ export function EnvironmentManagementHubPage() {
                                     size="xs"
                                     variant="secondary"
                                   >
-                                    {en ? "Next Activity" : "다음 활동"}
+                                    {en ? "Next Observe" : "다음 관측"}
                                   </MemberLinkButton>
                                 </div>
+                                <p className="mt-2 text-[11px] text-[var(--kr-gov-text-secondary)]">
+                                  {en
+                                    ? "Open the next blocked item in the same issue family and continue the attach or validate handoff."
+                                    : "같은 이슈 계열의 다음 차단 항목을 열어 연결 또는 검증 핸드오프를 이어갑니다."}
+                                </p>
                               </div>
                             ) : null}
                           </div>
@@ -2424,22 +2712,22 @@ export function EnvironmentManagementHubPage() {
                     {latestSelectedMenuBuilderAudit ? (
                       <div className="mt-3 grid gap-3 md:grid-cols-3">
                         <div className="rounded border border-slate-200 bg-slate-50 px-3 py-2">
-                          <p className="text-[11px] font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Latest Action" : "최신 액션"}</p>
+                          <p className="text-[11px] font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Latest Evidence Action" : "최신 증거 액션"}</p>
                           <p className="mt-1 text-sm font-bold text-[var(--kr-gov-text-primary)]">{stringOf(latestSelectedMenuBuilderAudit, "actionCode") || "-"}</p>
                         </div>
                         <div className="rounded border border-slate-200 bg-slate-50 px-3 py-2">
-                          <p className="text-[11px] font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Latest Actor" : "최신 작업자"}</p>
+                          <p className="text-[11px] font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Evidence Owner" : "증거 작업자"}</p>
                           <p className="mt-1 text-sm font-bold text-[var(--kr-gov-text-primary)]">{stringOf(latestSelectedMenuBuilderAudit, "actorId") || "-"}</p>
                         </div>
                         <div className="rounded border border-slate-200 bg-slate-50 px-3 py-2">
-                          <p className="text-[11px] font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Latest Time" : "최신 시각"}</p>
+                          <p className="text-[11px] font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Evidence Time" : "증거 시각"}</p>
                           <p className="mt-1 text-sm font-bold text-[var(--kr-gov-text-primary)]">{stringOf(latestSelectedMenuBuilderAudit, "createdAt") || "-"}</p>
                         </div>
                       </div>
                     ) : null}
                     <div className="mt-3 rounded-[var(--kr-gov-radius)] border border-slate-200 bg-white px-3 py-3">
                       <div className="flex items-center justify-between gap-3">
-                        <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Recent Builder Activity" : "최근 빌더 활동"}</p>
+                        <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Recent Validator Evidence" : "최근 검증 증거 피드"}</p>
                         <span className="text-[11px] text-[var(--kr-gov-text-secondary)]">{selectedMenuBuilderAudits.length}{en ? " items" : "건"}</span>
                       </div>
                       {selectedMenuBuilderAudits.length ? (
@@ -2458,7 +2746,7 @@ export function EnvironmentManagementHubPage() {
                         </div>
                       ) : (
                         <p className="mt-3 text-[12px] text-[var(--kr-gov-text-secondary)]">
-                          {en ? "No recent screen-builder activity was found for this menu." : "이 메뉴에 대한 최근 screen-builder 활동 이력이 없습니다."}
+                          {en ? "No recent validator evidence was found for this menu." : "이 메뉴에 대한 최근 검증 증거 이력이 없습니다."}
                         </p>
                       )}
                     </div>
@@ -2623,7 +2911,12 @@ export function EnvironmentManagementHubPage() {
           </section>
 
           <section className="gov-card" id="environment-feature-management">
-            <GridToolbar title={en ? "Feature Add / Edit" : "기능 추가 / 편집"} />
+            <GridToolbar title={en ? "Authority / Feature Binding" : "권한 / 기능 바인딩"} />
+            <p className="mb-4 text-sm text-[var(--kr-gov-text-secondary)]">
+              {en
+                ? "Keep authority and feature bindings aligned with the selected page before install. This section should stay focused on binding, not generic feature sprawl."
+                : "설치 전에 선택 페이지의 권한과 기능 바인딩을 맞춥니다. 이 구역은 일반 기능 나열이 아니라 바인딩 정합성에 집중해야 합니다."}
+            </p>
             {selectedMenu && selectedMenuIsPage ? (
               <>
                 <form action={buildLocalizedPath("/admin/system/feature-management/create", "/en/admin/system/feature-management/create")} className="grid gap-4" method="post" onSubmit={handleFeatureSubmit}>
@@ -2811,7 +3104,7 @@ export function EnvironmentManagementHubPage() {
             <div className="flex items-center justify-between gap-3 border-b pb-4 mb-4 flex-wrap">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">dataset</span>
-                <h3 className="text-lg font-bold">{en ? "Collected Metadata" : "수집 메타데이터"}</h3>
+                <h3 className="text-lg font-bold">{en ? "Validator / Metadata Result" : "검증 / 메타데이터 결과"}</h3>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <button
@@ -2832,6 +3125,11 @@ export function EnvironmentManagementHubPage() {
                 </button>
               </div>
             </div>
+            <p className="mb-4 text-sm text-[var(--kr-gov-text-secondary)]">
+              {en
+                ? "Treat this section as the validator-result console. Collected metadata matters only if it explains install readiness, blocking issues, and rollback-safe evidence."
+                : "이 구역은 validator-result 콘솔로 봐야 합니다. 수집 메타데이터는 설치 준비도, 차단 이슈, 롤백 가능한 증거를 설명할 때만 의미가 있습니다."}
+            </p>
 
             {governanceMessage ? (
               <PageStatusNotice tone="success">
@@ -2841,7 +3139,7 @@ export function EnvironmentManagementHubPage() {
             {lastAutoCollectAt && (postCollectAuditRows.length > 0 || postCollectTraceRows.length > 0) ? (
               <CollectionResultPanel
                 description={en ? "Collected metadata and linked the newest observability records." : "메타데이터 수집 직후 연결된 최신 observability 기록입니다."}
-                title={en ? "Latest Auto-Collect Result" : "최근 자동 수집 결과"}
+                title={en ? "Latest Validator Evidence" : "최근 검증 증거"}
               >
                 <div className="mt-3 grid gap-3 xl:grid-cols-2">
                   <div className="rounded-[var(--kr-gov-radius)] border border-white bg-white px-4 py-3">
@@ -2886,6 +3184,117 @@ export function EnvironmentManagementHubPage() {
                 {governanceError}
               </PageStatusNotice>
             ) : null}
+
+            <div className="mb-4 grid gap-3 xl:grid-cols-3">
+              <div className={`rounded-[var(--kr-gov-radius)] border px-4 py-3 ${selectedMenuPublishReady ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
+                <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
+                  {en ? "Install Gate" : "설치 게이트"}
+                </p>
+                <p className="mt-2 text-sm font-black text-[var(--kr-gov-text-primary)]">
+                  {selectedMenuPublishReady ? (en ? "Ready for validator handoff" : "검증 단계로 이동 가능") : (en ? "Blocked before install" : "설치 전 차단 상태")}
+                </p>
+                <p className="mt-1 text-[12px] text-[var(--kr-gov-text-secondary)]">
+                  {summarizeBuilderBlockingReason(selectedMenuBuilderIssueCount, en)}
+                </p>
+              </div>
+              <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
+                  {en ? "Remediation Queue" : "리메디에이션 큐"}
+                </p>
+                <p className="mt-2 text-sm font-black text-[var(--kr-gov-text-primary)]">
+                  {en ? `${governanceRemediationItems.length} open actions` : `열린 액션 ${governanceRemediationItems.length}건`}
+                </p>
+                <p className="mt-1 text-[12px] text-[var(--kr-gov-text-secondary)]">
+                  {governanceRemediationItems.length > 0
+                    ? (en ? "Resolve the highest-priority remediation before package install." : "패키지 설치 전에 우선순위가 가장 높은 remediation을 해결하세요.")
+                    : (en ? "No remediation item is blocking right now." : "현재 차단 중인 remediation 항목이 없습니다.")}
+                </p>
+              </div>
+              <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
+                  {en ? "Validator Evidence" : "검증 증거"}
+                </p>
+                <p className="mt-2 text-sm font-black text-[var(--kr-gov-text-primary)]">
+                  {en ? `Audit ${postCollectAuditRows.length} / Trace ${postCollectTraceRows.length}` : `Audit ${postCollectAuditRows.length} / Trace ${postCollectTraceRows.length}`}
+                </p>
+                <p className="mt-1 text-[12px] text-[var(--kr-gov-text-secondary)]">
+                  {en ? "Install, validate, and rollback should all use these records as governed evidence." : "설치, 검증, 롤백 모두 이 기록들을 거버넌스 증거로 사용해야 합니다."}
+                </p>
+              </div>
+            </div>
+
+            <div className="mb-4 rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-4">
+              <div className="flex items-center justify-between gap-3">
+                <h4 className="text-sm font-black text-[var(--kr-gov-text-primary)]">{en ? "Current Install Queue Item" : "현재 설치 큐 항목"}</h4>
+                <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-black ${selectedInstallQueueSummary.publishReady ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                  {selectedInstallQueueSummary.publishReady ? (en ? "READY_FOR_PACKAGE" : "패키지 가능") : (en ? "BLOCKED" : "차단")}
+                </span>
+              </div>
+              <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4 text-sm">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">menuCode / pageId</p>
+                  <p className="mt-1 font-mono text-[var(--kr-gov-text-primary)]">{selectedInstallQueueSummary.menuCode} / {selectedInstallQueueSummary.pageId}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Install Target" : "설치 타깃"}</p>
+                  <p className="mt-1 font-mono text-[var(--kr-gov-text-primary)] break-all">{selectedInstallQueueSummary.menuUrl}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">releaseUnit / package</p>
+                  <p className="mt-1 font-mono text-[var(--kr-gov-text-primary)]">{selectedInstallQueueSummary.releaseUnitId} / {selectedInstallQueueSummary.runtimePackageId}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">{en ? "Validator Gate" : "검증 게이트"}</p>
+                  <p className="mt-1 font-mono text-[var(--kr-gov-text-primary)]">{selectedInstallQueueSummary.validatorPassCount} / {selectedInstallQueueSummary.validatorTotalCount}</p>
+                </div>
+              </div>
+              <p className="mt-3 text-[12px] text-[var(--kr-gov-text-secondary)]">
+                {en
+                  ? `Issues ${selectedInstallQueueSummary.issueCount}. Deploy trace ${selectedInstallQueueSummary.deployTraceId}.`
+                  : `이슈 ${selectedInstallQueueSummary.issueCount}건. 배포 추적 ${selectedInstallQueueSummary.deployTraceId}.`}
+              </p>
+            </div>
+
+            <div className="mb-4 grid gap-4 xl:grid-cols-2">
+              <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-white px-4 py-4">
+                <div className="flex items-center justify-between gap-3">
+                  <h4 className="text-sm font-black text-[var(--kr-gov-text-primary)]">{en ? "Install Manifest Binding Status" : "설치 Manifest 바인딩 상태"}</h4>
+                  <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-[var(--kr-gov-text-secondary)]">{installManifestReadyCount} / {BUILDER_INSTALL_REQUIRED_BINDINGS.length}</span>
+                </div>
+                <div className="mt-3 space-y-2">
+                  {installManifestBindingStatuses.map((item) => (
+                    <div className="flex items-start justify-between gap-3 text-sm" key={item.key}>
+                      <div>
+                        <p className="font-bold text-[var(--kr-gov-text-primary)]">{describeBuilderInstallBinding(item.key, en)}</p>
+                        <p className="text-[12px] text-[var(--kr-gov-text-secondary)]">{item.detail}</p>
+                      </div>
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-black ${item.ready ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                        {item.ready ? (en ? "READY" : "준비") : (en ? "PENDING" : "대기")}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-white px-4 py-4">
+                <div className="flex items-center justify-between gap-3">
+                  <h4 className="text-sm font-black text-[var(--kr-gov-text-primary)]">{en ? "Bootstrap Validator Checks" : "부트스트랩 검증 체크"}</h4>
+                  <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-black text-[var(--kr-gov-text-secondary)]">{installValidatorPassCount} / {BUILDER_INSTALL_VALIDATOR_CHECKS.length}</span>
+                </div>
+                <div className="mt-3 space-y-2">
+                  {installValidatorStatuses.map((item) => (
+                    <div className="flex items-start justify-between gap-3 text-sm" key={item.key}>
+                      <div>
+                        <p className="font-bold text-[var(--kr-gov-text-primary)]">{describeBuilderValidatorCheck(item.key, en)}</p>
+                        <p className="text-[12px] text-[var(--kr-gov-text-secondary)]">{item.detail}</p>
+                      </div>
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-black ${item.ready ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                        {item.ready ? (en ? "PASS" : "통과") : (en ? "WAIT" : "대기")}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
 
             <div className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
               <SummaryMetricCard
@@ -3035,9 +3444,53 @@ export function EnvironmentManagementHubPage() {
                 </div>
 
                 <div>
-                  <p className="gov-label mb-2">{en ? "Summary" : "요약"}</p>
+                  <p className="gov-label mb-2">{en ? "Install Blocker Summary" : "설치 차단 요약"}</p>
                   <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-[var(--kr-gov-text-primary)]">
                     {governanceOverview.summary || (en ? "No summary collected yet." : "아직 수집된 요약이 없습니다.")}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
+                  <div className={`rounded-[var(--kr-gov-radius)] border px-4 py-3 ${selectedMenuPublishReady ? "border-emerald-200 bg-emerald-50" : "border-red-200 bg-red-50"}`}>
+                    <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
+                      {en ? "Primary Install Blocker" : "주요 설치 차단"}
+                    </p>
+                    <p className="mt-2 text-sm font-black text-[var(--kr-gov-text-primary)]">
+                      {selectedMenuPublishReady
+                        ? (en ? "No primary blocker is open." : "주요 차단 이슈가 없습니다.")
+                        : summarizeBuilderBlockingReason(selectedMenuBuilderIssueCount, en)}
+                    </p>
+                    <p className="mt-1 text-[12px] text-[var(--kr-gov-text-secondary)]">
+                      {selectedIssueReason
+                        ? (en ? `Current queue is focused on ${describeScreenBuilderIssueReason(selectedIssueReason, en)} issues.` : `현재 큐는 ${describeScreenBuilderIssueReason(selectedIssueReason, en)} 이슈 중심으로 정렬돼 있습니다.`)
+                        : (en ? "Current menu does not expose a single issue family yet." : "현재 메뉴는 단일 이슈 계열로 좁혀지지 않았습니다.")}
+                    </p>
+                  </div>
+                  <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
+                    <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
+                      {en ? "Validator Evidence Coverage" : "검증 증거 커버리지"}
+                    </p>
+                    <p className="mt-2 text-sm font-black text-[var(--kr-gov-text-primary)]">
+                      {en ? `Audit ${postCollectAuditRows.length} / Trace ${postCollectTraceRows.length}` : `Audit ${postCollectAuditRows.length} / Trace ${postCollectTraceRows.length}`}
+                    </p>
+                    <p className="mt-1 text-[12px] text-[var(--kr-gov-text-secondary)]">
+                      {en
+                        ? "Use the latest audit and trace bundle before handing off install validation."
+                        : "설치 검증 핸드오프 전에 최신 audit/trace 묶음을 확보해야 합니다."}
+                    </p>
+                  </div>
+                  <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3">
+                    <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-text-secondary)]">
+                      {en ? "Rollback Evidence Anchor" : "롤백 증거 앵커"}
+                    </p>
+                    <p className="mt-2 text-sm font-black text-[var(--kr-gov-text-primary)]">
+                      {latestSelectedMenuBuilderAudit ? (stringOf(latestSelectedMenuBuilderAudit, "actionCode") || "-") : (en ? "No recent action" : "최근 액션 없음")}
+                    </p>
+                    <p className="mt-1 text-[12px] text-[var(--kr-gov-text-secondary)]">
+                      {latestSelectedMenuBuilderAudit
+                        ? `${stringOf(latestSelectedMenuBuilderAudit, "actorId") || "-"} / ${stringOf(latestSelectedMenuBuilderAudit, "createdAt") || "-"}`
+                        : (en ? "Capture a governed builder action before rollback packaging." : "롤백 패키징 전에 거버넌스 빌더 액션을 남겨야 합니다.")}
+                    </p>
                   </div>
                 </div>
 
@@ -3052,30 +3505,30 @@ export function EnvironmentManagementHubPage() {
                       { label: "Design Token", value: String(governancePage?.page?.manifestRegistry?.designTokenVersion || "-") },
                       { label: "VIEW Feature", value: String(governancePage?.page?.menuPermission?.requiredViewFeatureCode || "-") }
                     ]}
-                    title={en ? "Screen / Manifest" : "화면 / 매니페스트"}
+                    title={en ? "Install Manifest Registry" : "설치 매니페스트 레지스트리"}
                   />
                   <div className="rounded-[var(--kr-gov-radius)] border-2 border-[rgba(28,100,242,0.18)] bg-[linear-gradient(180deg,rgba(239,246,255,0.95),rgba(248,250,252,0.98))] p-4 shadow-[0_12px_32px_rgba(28,100,242,0.08)]">
                     <div className="flex items-center gap-2">
                       <span className="material-symbols-outlined text-[var(--kr-gov-blue)]">policy</span>
-                      <h4 className="font-black text-[var(--kr-gov-text-primary)]">{en ? "Common Code / Permission" : "공통코드 / 권한"}</h4>
+                      <h4 className="font-black text-[var(--kr-gov-text-primary)]">{en ? "Validator Permission Evidence" : "검증 권한 증거"}</h4>
                     </div>
                     <p className="mt-3 text-sm text-[var(--kr-gov-text-secondary)]">
                       {(governancePage?.page?.commonCodeGroups || []).map((item) => `${item.codeGroupId}[${item.values.join(", ")}]`).join(" / ") || "-"}
                     </p>
                     <div className="mt-4 rounded-[var(--kr-gov-radius)] border border-white/70 bg-white/80 px-4 py-3">
-                      <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-blue)]">Resolver Notes</p>
+                      <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-blue)]">{en ? "Resolver Evidence" : "권한 해석 증거"}</p>
                       <p className="mt-2 text-sm leading-6 text-[var(--kr-gov-text-primary)]">
                         {(governancePage?.page?.menuPermission?.resolverNotes || []).join(" ") || "-"}
                       </p>
                     </div>
                     <div className="mt-3 rounded-[var(--kr-gov-radius)] border border-white/70 bg-white/80 px-4 py-3">
-                      <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-blue)]">{en ? "Relation Tables" : "권한 해석 테이블"}</p>
+                      <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-blue)]">{en ? "Permission Relation Tables" : "권한 해석 테이블"}</p>
                       <div className="mt-2">
                         {renderMetaList(governancePage?.page?.menuPermission?.relationTables || [], en ? "No relation tables collected yet." : "수집된 권한 해석 테이블이 없습니다.")}
                       </div>
                     </div>
                     <div className="mt-3 rounded-[var(--kr-gov-radius)] border border-white/70 bg-white/80 px-4 py-3">
-                      <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-blue)]">{en ? "Tags" : "태그"}</p>
+                      <p className="text-xs font-black uppercase tracking-[0.08em] text-[var(--kr-gov-blue)]">{en ? "Evidence Tags" : "증거 태그"}</p>
                       <div className="mt-2">
                       {renderMetaList(governanceOverview.tags, en ? "No tags collected yet." : "수집된 태그가 없습니다.")}
                       </div>
@@ -3085,60 +3538,87 @@ export function EnvironmentManagementHubPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 text-sm">
                   <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-[#f8fbff] px-4 py-3">
-                    <p className="font-bold text-[var(--kr-gov-blue)]">{en ? "Tables" : "테이블"}</p>
+                    <p className="font-bold text-[var(--kr-gov-blue)]">{en ? "Rollback Tables" : "롤백 테이블"}</p>
                     <p className="mt-1">{governanceOverview.tableNames.length}</p>
                     <p className="text-[var(--kr-gov-text-secondary)] break-all">{governanceOverview.tableNames.join(", ") || "-"}</p>
                   </div>
                   <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-[#fcfbf7] px-4 py-3">
-                    <p className="font-bold text-[#8a5a00]">{en ? "Columns" : "컬럼"}</p>
+                    <p className="font-bold text-[#8a5a00]">{en ? "Rollback Columns" : "롤백 컬럼"}</p>
                     <p className="mt-1">{governanceOverview.columnNames.length}</p>
                     <p className="text-[var(--kr-gov-text-secondary)] break-all">{governanceOverview.columnNames.join(", ") || "-"}</p>
                   </div>
                   <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-[#f7fbf8] px-4 py-3">
-                    <p className="font-bold text-[#196c2e]">{en ? "Events / APIs" : "이벤트 / API"}</p>
+                    <p className="font-bold text-[#196c2e]">{en ? "Validator Events / APIs" : "검증 이벤트 / API"}</p>
                     <p className="mt-1">{(governancePage?.page?.events || []).length} / {(governancePage?.page?.apis || []).length}</p>
                     <p className="text-[var(--kr-gov-text-secondary)]">{en ? "Function and backend linkage count" : "함수 및 백엔드 연결 수"}</p>
                   </div>
                   <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-[#f9f7fb] px-4 py-3">
-                    <p className="font-bold text-[#6b3ea1]">{en ? "Permission Rows" : "권한 행"}</p>
+                    <p className="font-bold text-[#6b3ea1]">{en ? "Permission Evidence Rows" : "권한 증거 행"}</p>
                     <p className="mt-1">{(governancePage?.page?.menuPermission?.featureRows || []).length}</p>
                     <p className="text-[var(--kr-gov-text-secondary)]">{(governancePage?.page?.menuPermission?.featureCodes || []).join(", ") || "-"}</p>
                   </div>
                 </div>
 
-                <MetaListPanel
-                  sections={[
-                    { label: en ? "Screen Elements / Components" : "화면 요소 / 컴포넌트", content: renderMetaList(governanceOverview.componentIds, en ? "No components collected yet." : "수집된 컴포넌트가 없습니다.") },
-                    { label: en ? "Events" : "이벤트", content: renderMetaList(governanceOverview.eventIds, en ? "No events collected yet." : "수집된 이벤트가 없습니다.") },
-                    { label: en ? "Functions" : "함수", content: renderMetaList(governanceOverview.functionIds, en ? "No functions collected yet." : "수집된 함수가 없습니다.") },
-                    { label: en ? "Feature Codes" : "기능 코드", content: renderMetaList(governanceOverview.featureCodes, en ? "No feature codes collected yet." : "수집된 기능 코드가 없습니다.") },
-                    { label: en ? "Parameters" : "파라미터", content: renderMetaList(governanceOverview.parameterSpecs, en ? "No parameters collected yet." : "수집된 파라미터가 없습니다.") },
-                    { label: en ? "Results" : "출력값", content: renderMetaList(governanceOverview.resultSpecs, en ? "No results collected yet." : "수집된 출력값이 없습니다.") },
-                    { label: "API", content: renderMetaList(governanceOverview.apiIds, en ? "No APIs collected yet." : "수집된 API가 없습니다.") },
-                    { label: "Controller", content: renderMetaList(governanceOverview.controllerActions, en ? "No controller actions collected yet." : "수집된 Controller 액션이 없습니다.") },
-                    { label: "Service", content: renderMetaList(governanceOverview.serviceMethods, en ? "No service methods collected yet." : "수집된 Service 메서드가 없습니다.") },
-                    { label: "Mapper", content: renderMetaList(governanceOverview.mapperQueries, en ? "No mapper queries collected yet." : "수집된 Mapper 쿼리가 없습니다.") },
-                    { label: en ? "Schemas" : "스키마", content: renderMetaList(governanceOverview.schemaIds, en ? "No schemas collected yet." : "수집된 스키마가 없습니다.") },
-                    { label: en ? "Common Codes" : "공통코드", content: renderMetaList(governanceOverview.commonCodeGroups, en ? "No common code groups collected yet." : "수집된 공통코드가 없습니다.") },
-                    { label: en ? "DB Tables" : "DB 테이블", content: renderMetaList(governanceOverview.tableNames, en ? "No tables collected yet." : "수집된 테이블이 없습니다.") },
-                    { label: en ? "DB Columns" : "DB 컬럼", content: renderMetaList(governanceOverview.columnNames, en ? "No columns collected yet." : "수집된 컬럼이 없습니다.") }
-                  ]}
-                />
-
-                <div className="space-y-4">
-                  <div>
-                    <p className="gov-label mb-2">{en ? "Surface-Centric Detail" : "화면 요소 기준 상세 체인"}</p>
-                    <p className="text-sm text-[var(--kr-gov-text-secondary)]">
-                      {en
-                        ? "Each screen element shows child elements, events, functions, API/backend chains, schemas, DB resources, and related codes in one flow."
-                        : "각 화면 요소별로 작은 요소, 이벤트, 함수, API/백엔드 체인, 스키마, DB 자원, 코드 연결을 한 흐름으로 확인합니다."}
-                    </p>
-                  </div>
-                  {governanceSurfaceChains.length === 0 ? (
-                    <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[var(--kr-gov-text-secondary)]">
-                      {en ? "No screen elements collected yet." : "수집된 화면 요소가 없습니다."}
+                <details className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-4" open={!selectedMenuPublishReady || governanceWarnings.length > 0 || governanceRemediationItems.length > 0}>
+                  <summary className="cursor-pointer list-none">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="gov-label mb-1">{en ? "Validator Evidence Inventory" : "검증 증거 인벤토리"}</p>
+                        <p className="text-sm text-[var(--kr-gov-text-secondary)]">
+                          {en
+                            ? "Expand when you need the full metadata inventory for blocker analysis or package review."
+                            : "차단 이슈 분석이나 패키지 검토에 전체 메타데이터 인벤토리가 필요할 때 펼칩니다."}
+                        </p>
+                      </div>
+                      <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-bold text-[var(--kr-gov-text-secondary)]">
+                        {en ? "Components / APIs / DB / Codes" : "컴포넌트 / API / DB / 코드"}
+                      </span>
                     </div>
-                  ) : governanceSurfaceChains.map((surface) => (
+                  </summary>
+                  <div className="mt-4">
+                    <MetaListPanel
+                      sections={[
+                        { label: en ? "Screen Elements / Components" : "화면 요소 / 컴포넌트", content: renderMetaList(governanceOverview.componentIds, en ? "No components collected yet." : "수집된 컴포넌트가 없습니다.") },
+                        { label: en ? "Events" : "이벤트", content: renderMetaList(governanceOverview.eventIds, en ? "No events collected yet." : "수집된 이벤트가 없습니다.") },
+                        { label: en ? "Functions" : "함수", content: renderMetaList(governanceOverview.functionIds, en ? "No functions collected yet." : "수집된 함수가 없습니다.") },
+                        { label: en ? "Feature Codes" : "기능 코드", content: renderMetaList(governanceOverview.featureCodes, en ? "No feature codes collected yet." : "수집된 기능 코드가 없습니다.") },
+                        { label: en ? "Parameters" : "파라미터", content: renderMetaList(governanceOverview.parameterSpecs, en ? "No parameters collected yet." : "수집된 파라미터가 없습니다.") },
+                        { label: en ? "Results" : "출력값", content: renderMetaList(governanceOverview.resultSpecs, en ? "No results collected yet." : "수집된 출력값이 없습니다.") },
+                        { label: "API", content: renderMetaList(governanceOverview.apiIds, en ? "No APIs collected yet." : "수집된 API가 없습니다.") },
+                        { label: "Controller", content: renderMetaList(governanceOverview.controllerActions, en ? "No controller actions collected yet." : "수집된 Controller 액션이 없습니다.") },
+                        { label: "Service", content: renderMetaList(governanceOverview.serviceMethods, en ? "No service methods collected yet." : "수집된 Service 메서드가 없습니다.") },
+                        { label: "Mapper", content: renderMetaList(governanceOverview.mapperQueries, en ? "No mapper queries collected yet." : "수집된 Mapper 쿼리가 없습니다.") },
+                        { label: en ? "Schemas" : "스키마", content: renderMetaList(governanceOverview.schemaIds, en ? "No schemas collected yet." : "수집된 스키마가 없습니다.") },
+                        { label: en ? "Common Codes" : "공통코드", content: renderMetaList(governanceOverview.commonCodeGroups, en ? "No common code groups collected yet." : "수집된 공통코드가 없습니다.") },
+                        { label: en ? "DB Tables" : "DB 테이블", content: renderMetaList(governanceOverview.tableNames, en ? "No tables collected yet." : "수집된 테이블이 없습니다.") },
+                        { label: en ? "DB Columns" : "DB 컬럼", content: renderMetaList(governanceOverview.columnNames, en ? "No columns collected yet." : "수집된 컬럼이 없습니다.") }
+                      ]}
+                    />
+                  </div>
+                </details>
+
+                <details className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-white px-4 py-4" open={!selectedMenuPublishReady || governanceWarnings.length > 0 || governanceRemediationItems.length > 0}>
+                  <summary className="cursor-pointer list-none">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="gov-label mb-1">{en ? "Validator Evidence Chain" : "검증 증거 체인"}</p>
+                        <p className="text-sm text-[var(--kr-gov-text-secondary)]">
+                          {en
+                            ? "Expand when you need the full install-validation chain and rollback-ready backend evidence."
+                            : "전체 설치 검증 체인과 롤백 가능 백엔드 증거가 필요할 때 펼칩니다."}
+                        </p>
+                      </div>
+                      <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-[var(--kr-gov-text-secondary)]">
+                        {en ? `${governanceSurfaceChains.length} surfaces` : `화면 요소 ${governanceSurfaceChains.length}개`}
+                      </span>
+                    </div>
+                  </summary>
+                  <div className="mt-4 space-y-4">
+                    {governanceSurfaceChains.length === 0 ? (
+                      <div className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[var(--kr-gov-text-secondary)]">
+                        {en ? "No screen elements collected yet." : "수집된 화면 요소가 없습니다."}
+                      </div>
+                    ) : governanceSurfaceChains.map((surface) => (
                     <article key={surface.surfaceId} className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-white p-4 shadow-sm">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
@@ -3331,19 +3811,27 @@ export function EnvironmentManagementHubPage() {
                         ))}
                       </div>
                     </article>
-                  ))}
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <p className="gov-label mb-2">{en ? "Surface-Event Mapping Table" : "화면 요소-이벤트 매핑 표"}</p>
-                    <p className="text-sm text-[var(--kr-gov-text-secondary)]">
-                      {en
-                        ? "Review screen elements, child elements, events, functions, and backend chains in a single table."
-                        : "화면 요소, 작은 요소, 이벤트, 함수, 백엔드 체인을 한 표에서 확인합니다."}
-                    </p>
+                    ))}
                   </div>
-                  <div className="table-wrap max-w-full">
+                </details>
+
+                <details className="rounded-[var(--kr-gov-radius)] border border-slate-200 bg-slate-50 px-4 py-4" open={!selectedMenuPublishReady || governanceWarnings.length > 0}>
+                  <summary className="cursor-pointer list-none">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="gov-label mb-1">{en ? "Rollback Evidence Mapping" : "롤백 증거 매핑 표"}</p>
+                        <p className="text-sm text-[var(--kr-gov-text-secondary)]">
+                          {en
+                            ? "Expand for a single-table review before install or rollback packaging."
+                            : "설치 또는 롤백 패키징 전 단일 표 검토가 필요할 때 펼칩니다."}
+                        </p>
+                      </div>
+                      <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-bold text-[var(--kr-gov-text-secondary)]">
+                        {en ? `${governanceSurfaceEventRows.length} mappings` : `매핑 ${governanceSurfaceEventRows.length}건`}
+                      </span>
+                    </div>
+                  </summary>
+                  <div className="mt-4 table-wrap max-w-full">
                     <table className="data-table min-w-[1200px]">
                       <thead>
                         <tr>
@@ -3391,7 +3879,7 @@ export function EnvironmentManagementHubPage() {
                       </tbody>
                     </table>
                   </div>
-                </div>
+                </details>
               </div>
             )}
           </section>

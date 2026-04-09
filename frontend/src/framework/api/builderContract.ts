@@ -1,4 +1,4 @@
-import type { FrameworkBuilderContract } from "../contracts/builderContract";
+import type { FrameworkBuilderContract } from "../contracts";
 import { apiFetch, buildAdminApiPath, readJsonResponse } from "../../lib/api/core";
 
 export async function fetchFrameworkBuilderContract(): Promise<FrameworkBuilderContract> {
@@ -10,4 +10,3 @@ export async function fetchFrameworkBuilderContract(): Promise<FrameworkBuilderC
   }
   return readJsonResponse<FrameworkBuilderContract>(response);
 }
-

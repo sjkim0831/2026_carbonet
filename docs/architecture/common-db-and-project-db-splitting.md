@@ -12,6 +12,9 @@ Do not try to move every table into project-specific DBs.
 
 Keep a `common DB` for platform-wide governance and use separate `project DB` instances or schemas for project-owned business data.
 
+Also keep the split reversible.
+When future promotion or rebinding is likely, prefer `common definition + project binding` over mixed ownership rows.
+
 This split is required so the platform can:
 
 - register projects

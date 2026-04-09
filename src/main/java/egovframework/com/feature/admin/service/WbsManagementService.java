@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import egovframework.com.common.util.ReactPageUrlMapper;
 import egovframework.com.feature.admin.dto.request.WbsManagementSaveRequest;
 import egovframework.com.feature.admin.dto.response.MenuInfoDTO;
+import egovframework.com.platform.read.FullStackGovernanceRegistryReadPort;
+import egovframework.com.platform.read.MenuInfoReadPort;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.FillPatternType;
@@ -46,16 +48,16 @@ public class WbsManagementService {
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ISO_LOCAL_DATE;
 
     private final ObjectMapper objectMapper;
-    private final MenuInfoService menuInfoService;
-    private final FullStackGovernanceRegistryService fullStackGovernanceRegistryService;
+    private final MenuInfoReadPort menuInfoReadPort;
+    private final FullStackGovernanceRegistryReadPort fullStackGovernanceRegistryReadPort;
     private final Path registryPath = Paths.get("data", "wbs-management", "entries.json");
 
     public WbsManagementService(ObjectMapper objectMapper,
-                                MenuInfoService menuInfoService,
-                                FullStackGovernanceRegistryService fullStackGovernanceRegistryService) {
+                                MenuInfoReadPort menuInfoReadPort,
+                                FullStackGovernanceRegistryReadPort fullStackGovernanceRegistryReadPort) {
         this.objectMapper = objectMapper;
-        this.menuInfoService = menuInfoService;
-        this.fullStackGovernanceRegistryService = fullStackGovernanceRegistryService;
+        this.menuInfoReadPort = menuInfoReadPort;
+        this.fullStackGovernanceRegistryReadPort = fullStackGovernanceRegistryReadPort;
     }
 
     public synchronized Map<String, Object> buildPagePayload(String menuType) {
@@ -69,7 +71,7 @@ public class WbsManagementService {
         List<Map<String, Object>> wbsRows = new ArrayList<>();
         int totalProgress = 0;
         for (WbsDraftRow row : buildDraftRows(scope, pageMenus)) {
-            Map<String, Object> registryEntry = fullStackGovernanceRegistryService.getEntry(row.menuCode);
+            Map<String, Object> registryEntry = fullStackGovernanceRegistryReadPort.getEntry(row.menuCode);
             Map<String, Object> savedEntry = savedEntries.get(entryKey(normalizedMenuType, row.menuCode));
             Map<String, Object> merged = buildMergedRow(normalizedMenuType, row, registryEntry, savedEntry);
             totalProgress += safeInt(merged.get("progress"));
@@ -570,7 +572,7 @@ public class WbsManagementService {
 
     private List<MenuInfoDTO> loadMenus(String codeId) {
         try {
-            List<MenuInfoDTO> rows = new ArrayList<>(menuInfoService.selectMenuTreeList(codeId));
+            List<MenuInfoDTO> rows = new ArrayList<>(menuInfoReadPort.selectMenuTreeList(codeId));
             rows.sort(Comparator
                     .comparingInt((MenuInfoDTO row) -> row.getSortOrdr() == null ? Integer.MAX_VALUE : row.getSortOrdr())
                     .thenComparing(row -> safe(row.getCode())));

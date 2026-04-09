@@ -24,6 +24,7 @@ import java.util.Map;
 })
 public class AdminEmissionDefinitionStudioApiController {
 
+    private final AdminReactRouteSupport adminReactRouteSupport;
     private final AdminEmissionDefinitionStudioService adminEmissionDefinitionStudioService;
 
     @PostMapping("/drafts")
@@ -33,7 +34,7 @@ public class AdminEmissionDefinitionStudioApiController {
         return ResponseEntity.ok(adminEmissionDefinitionStudioService.saveDraft(
                 request,
                 resolveActorId(httpServletRequest),
-                isEnglishRequest(httpServletRequest, locale)));
+                adminReactRouteSupport.isEnglishRequest(httpServletRequest, locale)));
     }
 
     @PostMapping("/drafts/{draftId}/publish")
@@ -43,15 +44,7 @@ public class AdminEmissionDefinitionStudioApiController {
         return ResponseEntity.ok(adminEmissionDefinitionStudioService.publishDraft(
                 draftId,
                 resolveActorId(httpServletRequest),
-                isEnglishRequest(httpServletRequest, locale)));
-    }
-
-    private boolean isEnglishRequest(HttpServletRequest request, Locale locale) {
-        String uri = request == null ? "" : safe(request.getRequestURI());
-        if (uri.startsWith("/en/")) {
-            return true;
-        }
-        return locale != null && Locale.ENGLISH.getLanguage().equalsIgnoreCase(locale.getLanguage());
+                adminReactRouteSupport.isEnglishRequest(httpServletRequest, locale)));
     }
 
     private String resolveActorId(HttpServletRequest request) {
@@ -72,9 +65,5 @@ public class AdminEmissionDefinitionStudioApiController {
         } catch (Exception ignored) {
             return "";
         }
-    }
-
-    private String safe(String value) {
-        return value == null ? "" : value.trim();
     }
 }

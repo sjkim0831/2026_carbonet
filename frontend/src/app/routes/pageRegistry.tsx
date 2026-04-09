@@ -1,5 +1,6 @@
 import { ComponentType, lazy } from "react";
 import type { MigrationPageId } from "./definitions";
+import { platformPageComponents, platformPagePreloaders } from "./platformPageRegistry";
 
 function lazyNamed<TModule, TKey extends keyof TModule>(
   loader: () => Promise<TModule>,
@@ -11,12 +12,11 @@ function lazyNamed<TModule, TKey extends keyof TModule>(
   });
 }
 
-const sharedPlatformLoader = () => import("../../features/platform-studio/PlatformStudioMigrationPage");
 const sharedAdminEntryLoader = () => import("../../features/admin-entry/AdminEntryPages");
 const sharedPublicEntryLoader = () => import("../../features/public-entry/PublicEntryPages");
 const sharedJoinCompanyStatusLoader = () => import("../../features/join-company-status/JoinCompanyStatusMigrationPage");
 
-export const pageComponents: Record<MigrationPageId, ComponentType> = {
+export const pageComponents = {
   "home": lazyNamed(() => import("../../features/home-entry/HomeEntryPages"), "HomeLandingPage"),
   "admin-home": lazyNamed(sharedAdminEntryLoader, "AdminHomePage"),
   "signin-login": lazyNamed(sharedPublicEntryLoader, "PublicLoginPage"),
@@ -65,9 +65,11 @@ export const pageComponents: Record<MigrationPageId, ComponentType> = {
   "emission-result-detail": lazyNamed(() => import("../../features/emission-result-detail/EmissionResultDetailMigrationPage"), "EmissionResultDetailMigrationPage"),
   "emission-validate": lazyNamed(() => import("../../features/emission-validate/EmissionValidateMigrationPage"), "EmissionValidateMigrationPage"),
   "emission-management": lazyNamed(() => import("../../features/emission-management/EmissionManagementMigrationPage"), "EmissionManagementMigrationPage"),
+  "emission-lci-classification": lazyNamed(() => import("../../features/emission-lci-classification/EmissionLciClassificationMigrationPage"), "EmissionLciClassificationMigrationPage"),
   "emission-definition-studio": lazyNamed(() => import("../../features/emission-definition-studio"), "EmissionDefinitionStudioMigrationPage"),
   "emission-gwp-values": lazyNamed(() => import("../../features/emission-gwp-values/EmissionGwpValuesMigrationPage"), "EmissionGwpValuesMigrationPage"),
   "emission-survey-admin": lazyNamed(() => import("../../features/emission-survey-admin/EmissionSurveyAdminMigrationPage"), "EmissionSurveyAdminMigrationPage"),
+  "emission-survey-admin-data": lazyNamed(() => import("../../features/emission-survey-admin-data/EmissionSurveyAdminDataMigrationPage"), "EmissionSurveyAdminDataMigrationPage"),
   "emission-data-history": lazyNamed(() => import("../../features/emission-data-history/EmissionDataHistoryMigrationPage"), "EmissionDataHistoryMigrationPage"),
   "emission-site-management": lazyNamed(() => import("../../features/emission-site-management/EmissionSiteManagementMigrationPage"), "EmissionSiteManagementMigrationPage"),
   "certificate-rec-check": lazyNamed(() => import("../../features/certificate-rec-check/CertificateRecCheckMigrationPage"), "CertificateRecCheckMigrationPage"),
@@ -80,20 +82,6 @@ export const pageComponents: Record<MigrationPageId, ComponentType> = {
   "faq-menu-management": lazyNamed(() => import("../../features/menu-management/FaqMenuManagementMigrationPage"), "FaqMenuManagementMigrationPage"),
   "full-stack-management": lazyNamed(() => import("../../features/menu-management/FullStackManagementMigrationPage"), "FullStackManagementMigrationPage"),
   "infra": lazyNamed(() => import("../../features/system-infra/InfraManagementMigrationPage"), "InfraManagementMigrationPage"),
-  "platform-studio": lazyNamed(sharedPlatformLoader, "PlatformStudioMigrationPage"),
-  "screen-elements-management": lazyNamed(sharedPlatformLoader, "PlatformStudioMigrationPage"),
-  "event-management-console": lazyNamed(sharedPlatformLoader, "PlatformStudioMigrationPage"),
-  "function-management-console": lazyNamed(sharedPlatformLoader, "PlatformStudioMigrationPage"),
-  "api-management-console": lazyNamed(sharedPlatformLoader, "PlatformStudioMigrationPage"),
-  "controller-management-console": lazyNamed(sharedPlatformLoader, "PlatformStudioMigrationPage"),
-  "db-table-management": lazyNamed(sharedPlatformLoader, "PlatformStudioMigrationPage"),
-  "column-management-console": lazyNamed(sharedPlatformLoader, "PlatformStudioMigrationPage"),
-  "automation-studio": lazyNamed(sharedPlatformLoader, "PlatformStudioMigrationPage"),
-  "environment-management": lazyNamed(() => import("../../features/environment-management/EnvironmentManagementHubPage"), "EnvironmentManagementHubPage"),
-  "screen-builder": lazyNamed(() => import("../../features/screen-builder/ScreenBuilderMigrationPage"), "ScreenBuilderMigrationPage"),
-  "screen-runtime": lazyNamed(() => import("../../features/screen-builder/ScreenRuntimeMigrationPage"), "ScreenRuntimeMigrationPage"),
-  "current-runtime-compare": lazyNamed(() => import("../../features/screen-builder/CurrentRuntimeCompareMigrationPage"), "CurrentRuntimeCompareMigrationPage"),
-  "repair-workbench": lazyNamed(() => import("../../features/screen-builder/RepairWorkbenchMigrationPage"), "RepairWorkbenchMigrationPage"),
   "screen-flow-management": lazyNamed(() => import("../../features/screen-management/ScreenFlowManagementMigrationPage"), "ScreenFlowManagementMigrationPage"),
   "screen-menu-assignment-management": lazyNamed(() => import("../../features/screen-management/ScreenMenuAssignmentManagementMigrationPage"), "ScreenMenuAssignmentManagementMigrationPage"),
   "wbs-management": lazyNamed(() => import("../../features/wbs-management/WbsManagementMigrationPage"), "WbsManagementMigrationPage"),
@@ -131,12 +119,8 @@ export const pageComponents: Record<MigrationPageId, ComponentType> = {
   "backup-config": lazyNamed(() => import("../../features/backup-config/BackupConfigMigrationPage"), "BackupConfigMigrationPage"),
   "backup-execution": lazyNamed(() => import("../../features/backup-config/BackupConfigMigrationPage"), "BackupConfigMigrationPage"),
   "restore-execution": lazyNamed(() => import("../../features/backup-config/BackupConfigMigrationPage"), "BackupConfigMigrationPage"),
-  "version-management": lazyNamed(() => import("../../features/backup-config/BackupConfigMigrationPage"), "BackupConfigMigrationPage"),
-  "codex-request": lazyNamed(() => import("../../features/codex-provision/CodexProvisionMigrationPage"), "CodexProvisionMigrationPage"),
-  "unified-log": lazyNamed(() => import("../../features/observability/ObservabilityMigrationPage"), "ObservabilityMigrationPage"),
-  "observability": lazyNamed(() => import("../../features/observability/ObservabilityMigrationPage"), "ObservabilityMigrationPage"),
-  "help-management": lazyNamed(() => import("../../features/help-management/HelpManagementMigrationPage"), "HelpManagementMigrationPage"),
-  "sr-workbench": lazyNamed(() => import("../../features/sr-workbench/SrWorkbenchMigrationPage"), "SrWorkbenchMigrationPage"),
+  "version-management": lazyNamed(() => import("../../features/project-version-management/ProjectVersionManagementMigrationPage"), "ProjectVersionManagementMigrationPage"),
+  ...platformPageComponents,
   "board-list": lazyNamed(() => import("../../features/board-list/BoardListMigrationPage"), "BoardListMigrationPage"),
   "board-add": lazyNamed(() => import("../../features/board-add/BoardAddMigrationPage"), "BoardAddMigrationPage"),
   "post-list": lazyNamed(() => import("../../features/post-list/PostListMigrationPage"), "PostListMigrationPage"),
@@ -225,7 +209,7 @@ export const pageComponents: Record<MigrationPageId, ComponentType> = {
   "qna-list": lazyNamed(() => import("../../features/qna-list"), "QnaListMigrationPage"),
   "sitemap": lazyNamed(() => import("../../features/sitemap/SitemapMigrationPage"), "SitemapMigrationPage"),
   "home-menu-placeholder": lazyNamed(() => import("../../features/home-placeholder/HomeMenuPlaceholderPage"), "HomeMenuPlaceholderPage")
-};
+} as unknown as Record<MigrationPageId, ComponentType>;
 
 const preloadedModules: Partial<Record<MigrationPageId, Promise<unknown>>> = {};
 
@@ -269,6 +253,7 @@ const pagePreloaders: Partial<Record<MigrationPageId, () => Promise<unknown>>> =
   "emission-result-list": () => import("../../features/emission-result-list/EmissionResultListMigrationPage"),
   "emission-result-detail": () => import("../../features/emission-result-detail/EmissionResultDetailMigrationPage"),
   "emission-management": () => import("../../features/emission-management/EmissionManagementMigrationPage"),
+  "emission-lci-classification": () => import("../../features/emission-lci-classification/EmissionLciClassificationMigrationPage"),
   "emission-definition-studio": () => import("../../features/emission-definition-studio"),
   "emission-gwp-values": () => import("../../features/emission-gwp-values/EmissionGwpValuesMigrationPage"),
   "emission-data-history": () => import("../../features/emission-data-history/EmissionDataHistoryMigrationPage"),
@@ -284,20 +269,6 @@ const pagePreloaders: Partial<Record<MigrationPageId, () => Promise<unknown>>> =
   "faq-menu-management": () => import("../../features/menu-management/FaqMenuManagementMigrationPage"),
   "full-stack-management": () => import("../../features/menu-management/FullStackManagementMigrationPage"),
   "infra": () => import("../../features/system-infra/InfraManagementMigrationPage"),
-  "platform-studio": sharedPlatformLoader,
-  "screen-elements-management": sharedPlatformLoader,
-  "event-management-console": sharedPlatformLoader,
-  "function-management-console": sharedPlatformLoader,
-  "api-management-console": sharedPlatformLoader,
-  "controller-management-console": sharedPlatformLoader,
-  "db-table-management": sharedPlatformLoader,
-  "column-management-console": sharedPlatformLoader,
-  "automation-studio": sharedPlatformLoader,
-  "environment-management": () => import("../../features/environment-management/EnvironmentManagementHubPage"),
-  "screen-builder": () => import("../../features/screen-builder/ScreenBuilderMigrationPage"),
-  "screen-runtime": () => import("../../features/screen-builder/ScreenRuntimeMigrationPage"),
-  "current-runtime-compare": () => import("../../features/screen-builder/CurrentRuntimeCompareMigrationPage"),
-  "repair-workbench": () => import("../../features/screen-builder/RepairWorkbenchMigrationPage"),
   "screen-flow-management": () => import("../../features/screen-management/ScreenFlowManagementMigrationPage"),
   "screen-menu-assignment-management": () => import("../../features/screen-management/ScreenMenuAssignmentManagementMigrationPage"),
   "wbs-management": () => import("../../features/wbs-management/WbsManagementMigrationPage"),
@@ -309,7 +280,6 @@ const pagePreloaders: Partial<Record<MigrationPageId, () => Promise<unknown>>> =
   "member-security-history": () => import("../../features/security-history/MemberSecurityHistoryMigrationPage"),
   "security-history": () => import("../../features/security-history/SecurityHistoryMigrationPage"),
   "security-policy": () => import("../../features/security-policy/SecurityPolicyMigrationPage"),
-  "help-management": () => import("../../features/help-management/HelpManagementMigrationPage"),
   "notification": () => import("../../features/notification-center/NotificationCenterMigrationPage"),
   "performance": () => import("../../features/performance/PerformanceMigrationPage"),
   "external-connection-list": () => import("../../features/external-connection-list/ExternalConnectionListMigrationPage"),
@@ -335,8 +305,8 @@ const pagePreloaders: Partial<Record<MigrationPageId, () => Promise<unknown>>> =
   "backup-config": () => import("../../features/backup-config/BackupConfigMigrationPage"),
   "backup-execution": () => import("../../features/backup-config/BackupConfigMigrationPage"),
   "restore-execution": () => import("../../features/backup-config/BackupConfigMigrationPage"),
-  "version-management": () => import("../../features/backup-config/BackupConfigMigrationPage"),
-  "unified-log": () => import("../../features/observability/ObservabilityMigrationPage"),
+  "version-management": () => import("../../features/project-version-management/ProjectVersionManagementMigrationPage"),
+  ...platformPagePreloaders,
   "board-list": () => import("../../features/board-list/BoardListMigrationPage"),
   "board-add": () => import("../../features/board-add/BoardAddMigrationPage"),
   "post-list": () => import("../../features/post-list/PostListMigrationPage"),

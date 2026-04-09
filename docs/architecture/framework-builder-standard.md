@@ -9,6 +9,11 @@ Carbonet front and back must expose one recognizable framework contract so an AI
 - export builder drafts as governed framework artifacts
 - treat admin, home, and join as domains on one platform instead of separate products
 
+Use together with:
+
+- `docs/architecture/page-systemization-minimum-contract.md`
+- `docs/architecture/system-folder-structure-alignment.md`
+
 Operating ownership split:
 
 - `carbonet-ops` owns builder rules, publish policy, compatibility, and regeneration control
@@ -21,17 +26,33 @@ Frontend canonical layer:
 - `frontend/src/framework/contracts`
 - `frontend/src/framework/registry`
 - `frontend/src/framework/api`
+- `frontend/src/framework/hooks`
+- `frontend/src/framework/index.ts`
 
 Backend canonical layer:
+- `modules/screenbuilder-core`
+- `modules/screenbuilder-runtime-common-adapter`
+- `modules/screenbuilder-carbonet-adapter`
+- `modules/carbonet-contract-metadata`
+- `modules/carbonet-builder-observability`
+- `modules/carbonet-web-support`
 
-- `src/main/java/egovframework/com/framework/builder/model`
-- `src/main/java/egovframework/com/framework/builder/service`
-- `src/main/java/egovframework/com/framework/builder/web`
-- `src/main/java/egovframework/com/framework/authority/model`
-- `src/main/java/egovframework/com/framework/authority/service`
-- `src/main/java/egovframework/com/framework/authority/web`
+Legacy root framework paths under `src/main/java/egovframework/com/framework/**` should be treated as transitional when equivalent live module ownership exists.
 
 Existing feature folders remain valid. They are implementation folders, not contract folders.
+
+Page standard rule:
+
+- no page should be treated as framework-builder compliant unless its identity, manifest, authority scope, and binding contracts satisfy `page-systemization-minimum-contract.md`
+
+Admin-binding rule:
+
+- request locale, menu semantics, and repository wiring that remain Carbonet-specific should stay behind admin adapters
+- framework services should depend on support ports, not admin controller helper logic
+- framework API controllers should reuse shared response and error handling support instead of per-controller ad hoc wrappers
+- Carbonet adapter implementations should use `Carbonet*Adapter` naming so framework ports and project bindings stay easy to distinguish during module cutover
+- framework compatibility row-to-contract mapping should stay in `framework/builder/support` so DB-shape translation does not sprawl across services
+- screenbuilder project bindings should follow the same `Carbonet*Adapter` naming rule instead of mixing `Admin*Adapter` and `Carbonet*Adapter`
 
 Canonical shared metadata source:
 
@@ -40,6 +61,13 @@ Canonical shared metadata source:
 Frontend should consume generated metadata copied from that source:
 
 - `frontend/src/generated/frameworkContractMetadata.json`
+
+Frontend import rule:
+
+- import public framework APIs from `frontend/src/framework`
+- import type-only shared contracts from `frontend/src/framework/contracts`
+- keep framework-wide fetch and normalization hooks inside `frontend/src/framework/hooks`
+- avoid scattering direct imports across multiple sibling files when the barrel already exposes the same contract
 
 Do not hand-edit frontend metadata first. Update the canonical resource and regenerate.
 
@@ -158,8 +186,8 @@ Frontend static contract source:
 
 Backend runtime contract source:
 
-- page registry: `UiManifestRegistryService` + `ObservabilityMapper`
-- component registry: `ScreenBuilderDraftService` + `ObservabilityMapper`
+- page registry: `carbonet-builder-observability` `UiManifestRegistryService` + `UiObservabilityRegistryMapper`
+- component registry: `ScreenBuilderDraftService` + `carbonet-builder-observability` `UiObservabilityRegistryMapper`
 - normalized API: `/api/admin/framework/builder-contract`
 - authority registry: `AuthGroupManageService` + existing author/feature conventions
 - normalized API: `/api/admin/framework/authority-contract`

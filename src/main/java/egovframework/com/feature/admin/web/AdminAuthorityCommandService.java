@@ -27,6 +27,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class AdminAuthorityCommandService {
 
+    private final AdminReactRouteSupport adminReactRouteSupport;
     private final AuthGroupManageService authGroupManageService;
     private final AuthorRoleProfileService authorRoleProfileService;
     private final AdminAuthorityPagePayloadSupport adminAuthorityPagePayloadSupport;
@@ -34,7 +35,7 @@ public class AdminAuthorityCommandService {
     private final AdminCompanyScopeService adminCompanyScopeService;
 
     public CommandResult saveAuthGroupProfile(AdminAuthorRoleProfileSaveRequestDTO payload, HttpServletRequest request, Locale locale) {
-        boolean isEn = isEnglishRequest(request, locale);
+        boolean isEn = adminReactRouteSupport.isEnglishRequest(request, locale);
         CurrentUserContextService.CurrentUserContext context = currentUserContextService.resolve(request);
         boolean ownCompanyAccess = "own-company".equals(context.getCompanyScope()) || "role-scoped".equals(context.getCompanyScope());
         String selectedRoleCategory = adminAuthorityPagePayloadSupport.resolveRoleCategory(payload == null ? null : payload.getRoleCategory());
@@ -92,7 +93,7 @@ public class AdminAuthorityCommandService {
     }
 
     public CommandResult createAuthGroup(AdminAuthGroupCreateRequestDTO payload, HttpServletRequest request, Locale locale) {
-        boolean isEn = isEnglishRequest(request, locale);
+        boolean isEn = adminReactRouteSupport.isEnglishRequest(request, locale);
         CurrentUserContextService.CurrentUserContext context = currentUserContextService.resolve(request);
         boolean ownCompanyAccess = "own-company".equals(context.getCompanyScope()) || "role-scoped".equals(context.getCompanyScope());
         String selectedRoleCategory = adminAuthorityPagePayloadSupport.resolveRoleCategory(payload == null ? null : payload.getRoleCategory());
@@ -140,7 +141,7 @@ public class AdminAuthorityCommandService {
     }
 
     public CommandResult saveAuthGroupFeatures(AdminAuthGroupFeatureSaveRequestDTO payload, HttpServletRequest request, Locale locale) {
-        boolean isEn = isEnglishRequest(request, locale);
+        boolean isEn = adminReactRouteSupport.isEnglishRequest(request, locale);
         CurrentUserContextService.CurrentUserContext context = currentUserContextService.resolve(request);
         boolean ownCompanyAccess = "own-company".equals(context.getCompanyScope()) || "role-scoped".equals(context.getCompanyScope());
         String selectedRoleCategory = adminAuthorityPagePayloadSupport.resolveRoleCategory(payload == null ? null : payload.getRoleCategory());
@@ -198,7 +199,7 @@ public class AdminAuthorityCommandService {
     }
 
     public CommandResult saveAuthChange(AdminAuthChangeSaveRequestDTO payload, HttpServletRequest request, Locale locale) {
-        boolean isEn = isEnglishRequest(request, locale);
+        boolean isEn = adminReactRouteSupport.isEnglishRequest(request, locale);
         CurrentUserContextService.CurrentUserContext context = currentUserContextService.resolve(request);
         AdminCompanyScopeService.CompanyScope companyScope = adminCompanyScopeService.resolve(context.getUserId());
         boolean masterAccess = context.isWebmaster() || companyScope.canManageMemberScopeAllCompanies();
@@ -268,7 +269,7 @@ public class AdminAuthorityCommandService {
     }
 
     public CommandResult saveDeptRoleMapping(AdminDeptRoleMappingSaveRequestDTO payload, HttpServletRequest request, Locale locale) {
-        boolean isEn = isEnglishRequest(request, locale);
+        boolean isEn = adminReactRouteSupport.isEnglishRequest(request, locale);
         CurrentUserContextService.CurrentUserContext context = currentUserContextService.resolve(request);
         AdminCompanyScopeService.CompanyScope companyScope = adminCompanyScopeService.resolve(context.getUserId());
         boolean globalDeptRoleAccess = companyScope.canManageAllCompanies();
@@ -329,7 +330,7 @@ public class AdminAuthorityCommandService {
     }
 
     public CommandResult saveDeptRoleMember(AdminDeptRoleMemberSaveRequestDTO payload, HttpServletRequest request, Locale locale) {
-        boolean isEn = isEnglishRequest(request, locale);
+        boolean isEn = adminReactRouteSupport.isEnglishRequest(request, locale);
         CurrentUserContextService.CurrentUserContext context = currentUserContextService.resolve(request);
         AdminCompanyScopeService.CompanyScope companyScope = adminCompanyScopeService.resolve(context.getUserId());
         boolean globalDeptRoleAccess = companyScope.canManageAllCompanies();
@@ -438,20 +439,6 @@ public class AdminAuthorityCommandService {
         body.put("success", false);
         body.put("message", safeString(message));
         return body;
-    }
-
-    private boolean isEnglishRequest(HttpServletRequest request, Locale locale) {
-        if (request != null) {
-            String requestUri = safeString(request.getRequestURI());
-            if (requestUri.startsWith("/en/admin")) {
-                return true;
-            }
-            String language = safeString(request.getParameter("language"));
-            if ("en".equalsIgnoreCase(language)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private String safeString(String value) {

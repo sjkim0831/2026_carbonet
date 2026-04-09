@@ -1,20 +1,19 @@
-export { fetchFrameworkBuilderContract } from "./api/builderContract";
-export { fetchFrameworkAuthorityContract } from "./api/authorityContract";
+export { fetchFrameworkAuthorityContract, fetchFrameworkBuilderContract, normalizeFrameworkAuthorityContract } from "./api";
+export { useFrameworkAuthorityContract } from "./hooks";
 export { buildFrameworkBuilderContract } from "./builderContract";
 export { getFrameworkContractMetadata } from "./contractMetadata";
 export type {
+  FrameworkAuthorityActorType,
+  FrameworkAuthorityContract,
+  FrameworkAuthorityDefaults,
+  FrameworkAuthorityOption,
+  FrameworkAuthorityRoleContract,
+  FrameworkAuthorityText,
+  FrameworkAuthorityTier,
   FrameworkBuilderComponentContract,
   FrameworkBuilderContract,
   FrameworkBuilderPageContract,
   FrameworkBuilderProfiles,
-  FrameworkBuilderSurfaceContract
-} from "./contracts/builderContract";
-export type {
-  FrameworkAuthorityContract,
-  FrameworkAuthorityActorType,
-  FrameworkAuthorityOption,
-  FrameworkAuthorityRoleContract,
-  FrameworkAuthorityText,
-  FrameworkAuthorityTier
-} from "./contracts/authorityContract";
-export type { FrameworkContractMetadata } from "./contracts/contractMetadata";
+  FrameworkBuilderSurfaceContract,
+  FrameworkContractMetadata
+} from "./contracts";

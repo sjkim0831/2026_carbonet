@@ -1,6 +1,7 @@
 import { findManifestByMenuCodeOrRoutePath, normalizeManifestLookupPath } from "../../platform/screen-registry/pageManifestIndex";
 import { getScreenCommandChainValues, type FullStackGovernanceRegistryEntry, type ScreenCommandPagePayload } from "../../lib/api/client";
 import { numberOf, stringOf } from "../admin-system/adminSystemShared";
+import { buildSuggestedPageCode as buildSharedSuggestedPageCode } from "../menu-management/menuTreeShared";
 import { toDisplayMenuUrl } from "../menu-management/menuUrlDisplay";
 
 export type ManagedMenuRow = {
@@ -218,23 +219,7 @@ export function normalizeRows(rows: Array<Record<string, unknown>>): ManagedMenu
 }
 
 export function buildSuggestedPageCode(parentCode: string, rows: ManagedMenuRow[]) {
-  if (parentCode.length !== 6) {
-    return "";
-  }
-  let maxSuffix = 0;
-  rows.forEach((row) => {
-    if (!row.code.startsWith(parentCode) || row.code.length !== 8) {
-      return;
-    }
-    const suffix = Number(row.code.slice(6));
-    if (Number.isFinite(suffix) && suffix > maxSuffix) {
-      maxSuffix = suffix;
-    }
-  });
-  if (maxSuffix >= 99) {
-    return "";
-  }
-  return `${parentCode}${String(maxSuffix + 1).padStart(2, "0")}`;
+  return buildSharedSuggestedPageCode(parentCode, rows);
 }
 
 export function createEmptyFeatureDraft(): FeatureDraft {

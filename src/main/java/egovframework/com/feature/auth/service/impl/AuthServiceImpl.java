@@ -277,6 +277,79 @@ public class AuthServiceImpl extends EgovAbstractServiceImpl implements AuthServ
     }
 
     @Override
+    public LoginResponseDTO selectLoginUser(String userSe, String userId) {
+        if (ObjectUtils.isEmpty(userSe) || ObjectUtils.isEmpty(userId)) {
+            return null;
+        }
+        return authLoginMapper.selectLoginUser(userSe, normalizeUserId(userId));
+    }
+
+    @Override
+    public LoginResponseDTO findLoginUserByExternalIdentity(String authCi, String authDi) {
+        String normalizedCi = normalizeExternalIdentity(authCi);
+        String normalizedDi = normalizeExternalIdentity(authDi);
+
+        if (!ObjectUtils.isEmpty(normalizedCi)) {
+            LoginResponseDTO byCi = findLoginUserByCi(normalizedCi);
+            if (byCi != null) {
+                return byCi;
+            }
+        }
+
+        if (!ObjectUtils.isEmpty(normalizedDi)) {
+            return findLoginUserByDi(normalizedDi);
+        }
+
+        return null;
+    }
+
+    private LoginResponseDTO findLoginUserByCi(String authCi) {
+        Optional<EntrprsMber> enterprise = entRepository.findFirstByAuthCi(authCi);
+        if (enterprise.isPresent()) {
+            return authLoginMapper.selectLoginUser("ENT", enterprise.get().getEntrprsMberId());
+        }
+
+        Optional<GnrlMber> general = genRepository.findFirstByAuthCi(authCi);
+        if (general.isPresent()) {
+            return authLoginMapper.selectLoginUser("GNR", general.get().getMberId());
+        }
+
+        Optional<EmplyrInfo> employee = empRepository.findFirstByAuthCi(authCi);
+        if (employee.isPresent()) {
+            return authLoginMapper.selectLoginUser("USR", employee.get().getEmplyrId());
+        }
+
+        return null;
+    }
+
+    private LoginResponseDTO findLoginUserByDi(String authDi) {
+        Optional<EntrprsMber> enterprise = entRepository.findFirstByAuthDi(authDi);
+        if (enterprise.isPresent()) {
+            return authLoginMapper.selectLoginUser("ENT", enterprise.get().getEntrprsMberId());
+        }
+
+        Optional<GnrlMber> general = genRepository.findFirstByAuthDi(authDi);
+        if (general.isPresent()) {
+            return authLoginMapper.selectLoginUser("GNR", general.get().getMberId());
+        }
+
+        Optional<EmplyrInfo> employee = empRepository.findFirstByAuthDi(authDi);
+        if (employee.isPresent()) {
+            return authLoginMapper.selectLoginUser("USR", employee.get().getEmplyrId());
+        }
+
+        return null;
+    }
+
+    private String normalizeExternalIdentity(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    @Override
     public boolean resetPassword(String userId, String newPassword) {
         return resetPassword(userId, newPassword, null, null, "SELF_SERVICE");
     }

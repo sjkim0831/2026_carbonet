@@ -36,9 +36,9 @@ public class HomePageController {
         return "redirect:/home";
     }
 
-    @RequestMapping(value = { "/home" }, method = { RequestMethod.GET, RequestMethod.POST })
+    @RequestMapping(value = { "/home", "/en/home" }, method = { RequestMethod.GET, RequestMethod.POST })
     public String index(HttpServletRequest request, Model model) {
-        return reactAppViewSupport.render(model, "home", false, false);
+        return reactAppViewSupport.render(model, "home", isEnglishRequest(request), false);
     }
 
     @RequestMapping(value = { "/ko/home" }, method = { RequestMethod.GET, RequestMethod.POST })
@@ -51,29 +51,16 @@ public class HomePageController {
         return "redirect:/en/home";
     }
 
-    @RequestMapping(value = { "/en/home" }, method = { RequestMethod.GET, RequestMethod.POST })
-    public String indexEn(HttpServletRequest request, Model model) {
-        return reactAppViewSupport.render(model, "home", true, false);
-    }
-
-    @GetMapping("/api/home")
+    @GetMapping({ "/api/home", "/api/en/home" })
     @ResponseBody
     public ResponseEntity<Map<String, Object>> homeApi(
-            @CookieValue(value = "accessToken", required = false) String accessToken) {
+            @CookieValue(value = "accessToken", required = false) String accessToken,
+            HttpServletRequest request) {
+        boolean english = isEnglishRequest(request);
         return ResponseEntity.ok(Map.of(
                 "isLoggedIn", accessToken != null,
-                "isEn", false,
-                "homeMenu", homeMenuService.getHomeMenu(false)));
-    }
-
-    @GetMapping("/api/en/home")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> homeApiEn(
-            @CookieValue(value = "accessToken", required = false) String accessToken) {
-        return ResponseEntity.ok(Map.of(
-                "isLoggedIn", accessToken != null,
-                "isEn", true,
-                "homeMenu", homeMenuService.getHomeMenu(true)));
+                "isEn", english,
+                "homeMenu", homeMenuService.getHomeMenu(english)));
     }
 
     @RequestMapping(value = { "/mypage" }, method = { RequestMethod.GET, RequestMethod.POST })
@@ -106,161 +93,53 @@ public class HomePageController {
         return "redirect:/en/mypage/profile";
     }
 
-    @RequestMapping(value = { "/trade/list" }, method = { RequestMethod.GET, RequestMethod.POST })
-    public String tradeList(HttpServletRequest request, Model model) {
-        return reactAppViewSupport.render(model, "trade-list", false, false);
-    }
-
-    @RequestMapping(value = { "/en/trade/list" }, method = { RequestMethod.GET, RequestMethod.POST })
-    public String tradeListEn(HttpServletRequest request, Model model) {
-        return reactAppViewSupport.render(model, "trade-list", true, false);
-    }
-
-    @RequestMapping(value = { "/trade/market" }, method = { RequestMethod.GET, RequestMethod.POST })
-    public String tradeMarket(HttpServletRequest request, Model model) {
-        return reactAppViewSupport.render(model, "trade-market", false, false);
-    }
-
-    @RequestMapping(value = { "/en/trade/market" }, method = { RequestMethod.GET, RequestMethod.POST })
-    public String tradeMarketEn(HttpServletRequest request, Model model) {
-        return reactAppViewSupport.render(model, "trade-market", true, false);
-    }
-
-    @RequestMapping(value = { "/trade/report" }, method = { RequestMethod.GET, RequestMethod.POST })
-    public String tradeReport(HttpServletRequest request, Model model) {
-        return reactAppViewSupport.render(model, "trade-report", false, false);
-    }
-
-    @RequestMapping(value = { "/en/trade/report" }, method = { RequestMethod.GET, RequestMethod.POST })
-    public String tradeReportEn(HttpServletRequest request, Model model) {
-        return reactAppViewSupport.render(model, "trade-report", true, false);
-    }
-
-    @RequestMapping(value = { "/monitoring/statistics", "/monitoring/esg" }, method = { RequestMethod.GET, RequestMethod.POST })
-    public String monitoringStatistics(HttpServletRequest request, Model model) {
-        return reactAppViewSupport.render(model, "monitoring-statistics", false, false);
-    }
-
-    @RequestMapping(value = { "/en/monitoring/statistics", "/en/monitoring/esg" }, method = { RequestMethod.GET, RequestMethod.POST })
-    public String monitoringStatisticsEn(HttpServletRequest request, Model model) {
-        return reactAppViewSupport.render(model, "monitoring-statistics", true, false);
-    }
-
-    @RequestMapping(value = { "/payment/refund" }, method = { RequestMethod.GET, RequestMethod.POST })
-    public String paymentRefund(HttpServletRequest request, Model model) {
-        return reactAppViewSupport.render(model, "payment-refund", false, false);
-    }
-
-    @RequestMapping(value = { "/en/payment/refund" }, method = { RequestMethod.GET, RequestMethod.POST })
-    public String paymentRefundEn(HttpServletRequest request, Model model) {
-        return reactAppViewSupport.render(model, "payment-refund", true, false);
-    }
-
-    @GetMapping("/trade/list/page-data")
+    @GetMapping({ "/trade/list/page-data", "/en/trade/list/page-data" })
     @ResponseBody
     public ResponseEntity<Map<String, Object>> tradeListPageData(
             @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
             @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
             @RequestParam(value = "tradeStatus", required = false) String tradeStatus,
-            @RequestParam(value = "settlementStatus", required = false) String settlementStatus) {
+            @RequestParam(value = "settlementStatus", required = false) String settlementStatus,
+            HttpServletRequest request) {
         return ResponseEntity.ok(adminShellBootstrapPageService.buildTradeListPageData(
                 pageIndexParam,
                 searchKeyword,
                 tradeStatus,
                 settlementStatus,
-                false));
+                isEnglishRequest(request)));
     }
 
-    @GetMapping("/en/trade/list/page-data")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> tradeListPageDataEn(
-            @RequestParam(value = "pageIndex", required = false) String pageIndexParam,
-            @RequestParam(value = "searchKeyword", required = false) String searchKeyword,
-            @RequestParam(value = "tradeStatus", required = false) String tradeStatus,
-            @RequestParam(value = "settlementStatus", required = false) String settlementStatus) {
-        return ResponseEntity.ok(adminShellBootstrapPageService.buildTradeListPageData(
-                pageIndexParam,
-                searchKeyword,
-                tradeStatus,
-                settlementStatus,
-                true));
-    }
-
-    @GetMapping("/api/mypage/context")
+    @GetMapping({ "/api/mypage/context", "/api/en/mypage/context" })
     @ResponseBody
     public ResponseEntity<Map<String, Object>> mypageContextApi(HttpServletRequest request) {
-        Map<String, Object> payload = homeMypageService.buildMypageContext(false, request);
-        boolean authenticated = Boolean.TRUE.equals(payload.get("authenticated"));
-        return authenticated ? ResponseEntity.ok(payload) : ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).body(payload);
+        return mypageResponse(homeMypageService.buildMypageContext(isEnglishRequest(request), request));
     }
 
-    @GetMapping("/api/en/mypage/context")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> mypageContextApiEn(HttpServletRequest request) {
-        Map<String, Object> payload = homeMypageService.buildMypageContext(true, request);
-        boolean authenticated = Boolean.TRUE.equals(payload.get("authenticated"));
-        return authenticated ? ResponseEntity.ok(payload) : ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).body(payload);
-    }
-
-    @GetMapping("/api/mypage")
+    @GetMapping({ "/api/mypage", "/api/en/mypage" })
     @ResponseBody
     public ResponseEntity<Map<String, Object>> mypageApi(HttpServletRequest request) {
-        Map<String, Object> payload = homeMypageService.buildMypagePayload(false, request);
-        boolean authenticated = Boolean.TRUE.equals(payload.get("authenticated"));
-        return authenticated ? ResponseEntity.ok(payload) : ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).body(payload);
+        return mypageResponse(homeMypageService.buildMypagePayload(isEnglishRequest(request), request));
     }
 
-    @GetMapping("/api/en/mypage")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> mypageApiEn(HttpServletRequest request) {
-        Map<String, Object> payload = homeMypageService.buildMypagePayload(true, request);
-        boolean authenticated = Boolean.TRUE.equals(payload.get("authenticated"));
-        return authenticated ? ResponseEntity.ok(payload) : ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).body(payload);
-    }
-
-    @GetMapping("/api/mypage/section/{section}")
+    @GetMapping({ "/api/mypage/section/{section}", "/api/en/mypage/section/{section}" })
     @ResponseBody
     public ResponseEntity<Map<String, Object>> mypageSectionApi(@PathVariable("section") String section,
             HttpServletRequest request) {
-        Map<String, Object> payload = homeMypageService.buildMypageSectionPayload(false, section, request);
-        boolean authenticated = Boolean.TRUE.equals(payload.get("authenticated"));
-        return authenticated ? ResponseEntity.ok(payload) : ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).body(payload);
+        return mypageResponse(homeMypageService.buildMypageSectionPayload(isEnglishRequest(request), section, request));
     }
 
-    @GetMapping("/api/en/mypage/section/{section}")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> mypageSectionApiEn(@PathVariable("section") String section,
-            HttpServletRequest request) {
-        Map<String, Object> payload = homeMypageService.buildMypageSectionPayload(true, section, request);
-        boolean authenticated = Boolean.TRUE.equals(payload.get("authenticated"));
-        return authenticated ? ResponseEntity.ok(payload) : ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).body(payload);
-    }
-
-    @PostMapping("/api/mypage/profile")
+    @PostMapping({ "/api/mypage/profile", "/api/en/mypage/profile" })
     @ResponseBody
     public ResponseEntity<Map<String, Object>> updateMypageProfile(
             @RequestParam(value = "zip", required = false) String zip,
             @RequestParam(value = "address", required = false) String address,
             @RequestParam(value = "detailAddress", required = false) String detailAddress,
             HttpServletRequest request) {
-        Map<String, Object> payload = homeMypageService.updateProfile(false, zip, address, detailAddress, request);
-        boolean authenticated = Boolean.TRUE.equals(payload.get("authenticated"));
-        return authenticated ? ResponseEntity.ok(payload) : ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).body(payload);
+        return mypageResponse(homeMypageService.updateProfile(
+                isEnglishRequest(request), zip, address, detailAddress, request));
     }
 
-    @PostMapping("/api/en/mypage/profile")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> updateMypageProfileEn(
-            @RequestParam(value = "zip", required = false) String zip,
-            @RequestParam(value = "address", required = false) String address,
-            @RequestParam(value = "detailAddress", required = false) String detailAddress,
-            HttpServletRequest request) {
-        Map<String, Object> payload = homeMypageService.updateProfile(true, zip, address, detailAddress, request);
-        boolean authenticated = Boolean.TRUE.equals(payload.get("authenticated"));
-        return authenticated ? ResponseEntity.ok(payload) : ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).body(payload);
-    }
-
-    @PostMapping("/api/mypage/company")
+    @PostMapping({ "/api/mypage/company", "/api/en/mypage/company" })
     @ResponseBody
     public ResponseEntity<Map<String, Object>> updateMypageCompany(
             @RequestParam(value = "companyName", required = false) String companyName,
@@ -269,48 +148,20 @@ public class HomePageController {
             @RequestParam(value = "address", required = false) String address,
             @RequestParam(value = "detailAddress", required = false) String detailAddress,
             HttpServletRequest request) {
-        Map<String, Object> payload = homeMypageService.updateCompany(false, companyName, representativeName, zip,
-                address, detailAddress, request);
-        boolean authenticated = Boolean.TRUE.equals(payload.get("authenticated"));
-        return authenticated ? ResponseEntity.ok(payload) : ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).body(payload);
+        return mypageResponse(homeMypageService.updateCompany(
+                isEnglishRequest(request), companyName, representativeName, zip, address, detailAddress, request));
     }
 
-    @PostMapping("/api/en/mypage/company")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> updateMypageCompanyEn(
-            @RequestParam(value = "companyName", required = false) String companyName,
-            @RequestParam(value = "representativeName", required = false) String representativeName,
-            @RequestParam(value = "zip", required = false) String zip,
-            @RequestParam(value = "address", required = false) String address,
-            @RequestParam(value = "detailAddress", required = false) String detailAddress,
-            HttpServletRequest request) {
-        Map<String, Object> payload = homeMypageService.updateCompany(true, companyName, representativeName, zip,
-                address, detailAddress, request);
-        boolean authenticated = Boolean.TRUE.equals(payload.get("authenticated"));
-        return authenticated ? ResponseEntity.ok(payload) : ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).body(payload);
-    }
-
-    @PostMapping("/api/mypage/marketing")
+    @PostMapping({ "/api/mypage/marketing", "/api/en/mypage/marketing" })
     @ResponseBody
     public ResponseEntity<Map<String, Object>> updateMypageMarketing(
             @RequestParam(value = "marketingYn", required = false) String marketingYn,
             HttpServletRequest request) {
-        Map<String, Object> payload = homeMypageService.updateMarketingPreference(false, marketingYn, request);
-        boolean authenticated = Boolean.TRUE.equals(payload.get("authenticated"));
-        return authenticated ? ResponseEntity.ok(payload) : ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).body(payload);
+        return mypageResponse(homeMypageService.updateMarketingPreference(
+                isEnglishRequest(request), marketingYn, request));
     }
 
-    @PostMapping("/api/en/mypage/marketing")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> updateMypageMarketingEn(
-            @RequestParam(value = "marketingYn", required = false) String marketingYn,
-            HttpServletRequest request) {
-        Map<String, Object> payload = homeMypageService.updateMarketingPreference(true, marketingYn, request);
-        boolean authenticated = Boolean.TRUE.equals(payload.get("authenticated"));
-        return authenticated ? ResponseEntity.ok(payload) : ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).body(payload);
-    }
-
-    @PostMapping("/api/mypage/staff")
+    @PostMapping({ "/api/mypage/staff", "/api/en/mypage/staff" })
     @ResponseBody
     public ResponseEntity<Map<String, Object>> updateMypageStaff(
             @RequestParam(value = "staffName", required = false) String staffName,
@@ -319,68 +170,37 @@ public class HomePageController {
             @RequestParam(value = "middleTelno", required = false) String middleTelno,
             @RequestParam(value = "endTelno", required = false) String endTelno,
             HttpServletRequest request) {
-        Map<String, Object> payload = homeMypageService.updateStaffContact(false, staffName, deptNm, areaNo,
-                middleTelno, endTelno, request);
-        boolean authenticated = Boolean.TRUE.equals(payload.get("authenticated"));
-        return authenticated ? ResponseEntity.ok(payload)
-                : ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).body(payload);
+        return mypageResponse(homeMypageService.updateStaffContact(
+                isEnglishRequest(request), staffName, deptNm, areaNo, middleTelno, endTelno, request));
     }
 
-    @PostMapping("/api/en/mypage/staff")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> updateMypageStaffEn(
-            @RequestParam(value = "staffName", required = false) String staffName,
-            @RequestParam(value = "deptNm", required = false) String deptNm,
-            @RequestParam(value = "areaNo", required = false) String areaNo,
-            @RequestParam(value = "middleTelno", required = false) String middleTelno,
-            @RequestParam(value = "endTelno", required = false) String endTelno,
-            HttpServletRequest request) {
-        Map<String, Object> payload = homeMypageService.updateStaffContact(true, staffName, deptNm, areaNo,
-                middleTelno, endTelno, request);
-        boolean authenticated = Boolean.TRUE.equals(payload.get("authenticated"));
-        return authenticated ? ResponseEntity.ok(payload)
-                : ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).body(payload);
-    }
-
-    @PostMapping("/api/mypage/email")
+    @PostMapping({ "/api/mypage/email", "/api/en/mypage/email" })
     @ResponseBody
     public ResponseEntity<Map<String, Object>> updateMypageEmail(
             @RequestParam(value = "email", required = false) String email,
             HttpServletRequest request) {
-        Map<String, Object> payload = homeMypageService.updateEmailAddress(false, email, request);
-        boolean authenticated = Boolean.TRUE.equals(payload.get("authenticated"));
-        return authenticated ? ResponseEntity.ok(payload) : ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).body(payload);
+        return mypageResponse(homeMypageService.updateEmailAddress(isEnglishRequest(request), email, request));
     }
 
-    @PostMapping("/api/en/mypage/email")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> updateMypageEmailEn(
-            @RequestParam(value = "email", required = false) String email,
-            HttpServletRequest request) {
-        Map<String, Object> payload = homeMypageService.updateEmailAddress(true, email, request);
-        boolean authenticated = Boolean.TRUE.equals(payload.get("authenticated"));
-        return authenticated ? ResponseEntity.ok(payload) : ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).body(payload);
-    }
-
-    @PostMapping("/api/mypage/password")
+    @PostMapping({ "/api/mypage/password", "/api/en/mypage/password" })
     @ResponseBody
     public ResponseEntity<Map<String, Object>> updateMypagePassword(
             @RequestParam(value = "currentPassword", required = false) String currentPassword,
             @RequestParam(value = "newPassword", required = false) String newPassword,
             HttpServletRequest request) {
-        Map<String, Object> payload = homeMypageService.updatePassword(false, currentPassword, newPassword, request);
-        boolean authenticated = Boolean.TRUE.equals(payload.get("authenticated"));
-        return authenticated ? ResponseEntity.ok(payload) : ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).body(payload);
+        return mypageResponse(homeMypageService.updatePassword(
+                isEnglishRequest(request), currentPassword, newPassword, request));
     }
 
-    @PostMapping("/api/en/mypage/password")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> updateMypagePasswordEn(
-            @RequestParam(value = "currentPassword", required = false) String currentPassword,
-            @RequestParam(value = "newPassword", required = false) String newPassword,
-            HttpServletRequest request) {
-        Map<String, Object> payload = homeMypageService.updatePassword(true, currentPassword, newPassword, request);
+    private ResponseEntity<Map<String, Object>> mypageResponse(Map<String, Object> payload) {
         boolean authenticated = Boolean.TRUE.equals(payload.get("authenticated"));
-        return authenticated ? ResponseEntity.ok(payload) : ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).body(payload);
+        return authenticated
+                ? ResponseEntity.ok(payload)
+                : ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).body(payload);
+    }
+
+    private boolean isEnglishRequest(HttpServletRequest request) {
+        String uri = request == null ? "" : request.getRequestURI();
+        return uri != null && (uri.startsWith("/en/") || uri.startsWith("/api/en/"));
     }
 }

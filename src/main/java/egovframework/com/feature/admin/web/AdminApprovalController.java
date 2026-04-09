@@ -28,6 +28,7 @@ public class AdminApprovalController {
 
     private final AdminMainController adminMainController;
     private final AdminShellBootstrapPageService adminShellBootstrapPageService;
+    private final AdminReactRouteSupport adminReactRouteSupport;
 
     @RequestMapping(value = "/member/approve", method = RequestMethod.GET)
     public String memberApprovePage(
@@ -107,32 +108,32 @@ public class AdminApprovalController {
 
     @RequestMapping(value = "/certificate/pending_list", method = RequestMethod.GET)
     public String certificatePendingPage(HttpServletRequest request, Locale locale) {
-        return redirectReactMigration(request, locale, "certificate-pending");
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "certificate-pending");
     }
 
     @RequestMapping(value = "/payment/virtual_issue", method = RequestMethod.GET)
     public String refundAccountReviewPage(HttpServletRequest request, Locale locale) {
-        return redirectReactMigration(request, locale, "virtual-issue");
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "virtual-issue");
     }
 
     @RequestMapping(value = "/certificate/objection_list", method = RequestMethod.GET)
     public String certificateObjectionListPage(HttpServletRequest request, Locale locale) {
-        return redirectReactMigration(request, locale, "certificate-objection-list");
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "certificate-objection-list");
     }
 
     @RequestMapping(value = "/certificate/review", method = RequestMethod.GET)
     public String certificateReviewPage(HttpServletRequest request, Locale locale) {
-        return redirectReactMigration(request, locale, "certificate-review");
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "certificate-review");
     }
 
     @RequestMapping(value = "/certificate/statistics", method = RequestMethod.GET)
     public String certificateStatisticsPage(HttpServletRequest request, Locale locale) {
-        return redirectReactMigration(request, locale, "certificate-statistics");
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "certificate-statistics");
     }
 
     @RequestMapping(value = "/payment/refund_process", method = RequestMethod.GET)
     public String refundProcessPage(HttpServletRequest request, Locale locale) {
-        return redirectReactMigration(request, locale, "refund-process");
+        return adminReactRouteSupport.forwardAdminRoute(request, locale, "refund-process");
     }
 
     @GetMapping("/certificate/statistics/page-data")
@@ -151,7 +152,7 @@ public class AdminApprovalController {
                 periodFilter,
                 certificateType,
                 issuanceStatus,
-                isEnglishRequest(request, locale))));
+                adminReactRouteSupport.isEnglishRequest(request, locale))));
     }
 
     @GetMapping("/certificate/pending_list/page-data")
@@ -165,7 +166,7 @@ public class AdminApprovalController {
             @RequestParam(value = "insttId", required = false) String insttId,
             HttpServletRequest request,
             Locale locale) {
-        boolean isEn = isEnglishRequest(request, locale);
+        boolean isEn = adminReactRouteSupport.isEnglishRequest(request, locale);
         int pageIndex = parsePositiveInt(pageIndexParam, 1);
         int pageSize = 5;
         Locale searchLocale = locale == null ? Locale.KOREAN : locale;
@@ -250,7 +251,7 @@ public class AdminApprovalController {
             @RequestParam(value = "payoutStatus", required = false) String payoutStatus,
             HttpServletRequest request,
             Locale locale) {
-        boolean isEn = isEnglishRequest(request, locale);
+        boolean isEn = adminReactRouteSupport.isEnglishRequest(request, locale);
         int pageIndex = parsePositiveInt(pageIndexParam, 1);
         int pageSize = 5;
         Locale searchLocale = locale == null ? Locale.KOREAN : locale;
@@ -320,7 +321,7 @@ public class AdminApprovalController {
             @RequestParam(value = "priority", required = false) String priority,
             HttpServletRequest request,
             Locale locale) {
-        boolean isEn = isEnglishRequest(request, locale);
+        boolean isEn = adminReactRouteSupport.isEnglishRequest(request, locale);
         int pageIndex = parsePositiveInt(pageIndexParam, 1);
         int pageSize = 5;
         Locale searchLocale = locale == null ? Locale.KOREAN : locale;
@@ -389,7 +390,7 @@ public class AdminApprovalController {
             @RequestParam(value = "priority", required = false) String priority,
             HttpServletRequest request,
             Locale locale) {
-        boolean isEn = isEnglishRequest(request, locale);
+        boolean isEn = adminReactRouteSupport.isEnglishRequest(request, locale);
         int pageIndex = parsePositiveInt(pageIndexParam, 1);
         int pageSize = 5;
         Locale searchLocale = locale == null ? Locale.KOREAN : locale;
@@ -481,7 +482,7 @@ public class AdminApprovalController {
             String applicationId,
             HttpServletRequest request,
             Locale locale) {
-        boolean isEn = isEnglishRequest(request, locale);
+        boolean isEn = adminReactRouteSupport.isEnglishRequest(request, locale);
         int pageIndex = parsePositiveInt(pageIndexParam, 1);
         int pageSize = 5;
         Locale searchLocale = locale == null ? Locale.KOREAN : locale;
@@ -604,25 +605,6 @@ public class AdminApprovalController {
             HttpServletRequest request,
             Locale locale) {
         return adminMainController.certificateApproveSubmitApi(payload, request, locale);
-    }
-
-    private boolean isEnglishRequest(HttpServletRequest request, Locale locale) {
-        String uri = request == null ? "" : safe(request.getRequestURI());
-        if (uri.startsWith("/en/")) {
-            return true;
-        }
-        return locale != null && Locale.ENGLISH.getLanguage().equalsIgnoreCase(locale.getLanguage());
-    }
-
-    private String redirectReactMigration(HttpServletRequest request, Locale locale, String route) {
-        StringBuilder builder = new StringBuilder("forward:");
-        builder.append(isEnglishRequest(request, locale) ? "/en/admin/app?route=" : "/admin/app?route=");
-        builder.append(route == null ? "" : route.replace('-', '_'));
-        String query = request == null ? "" : safe(request.getQueryString());
-        if (!query.isEmpty()) {
-            builder.append("&").append(query);
-        }
-        return builder.toString();
     }
 
     private int parsePositiveInt(String value, int defaultValue) {

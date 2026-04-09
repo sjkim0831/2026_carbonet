@@ -1,5 +1,7 @@
-import { DiagnosticCard, GridToolbar, MemberButton, MemberButtonGroup } from "../../admin-ui/common";
+import { DiagnosticCard, GridToolbar, MemberButton, MemberButtonGroup, MemberLinkButton } from "../../admin-ui/common";
+import { buildLocalizedPath } from "../../../lib/navigation/runtime";
 import { TEMPLATE_OPTIONS, type BuilderTemplateType } from "../shared/screenBuilderShared";
+import type { BuilderInstallQueueSummary } from "../shared/installableBuilderContract";
 
 type Props = {
   en: boolean;
@@ -47,6 +49,7 @@ type Props = {
   setSelectedTemplateType: (value: BuilderTemplateType) => void;
   handleApplyTemplatePreset: () => void;
   handleRestoreVersion: (versionId: string) => Promise<void>;
+  installQueueSummary: BuilderInstallQueueSummary;
 };
 
 export default function ScreenBuilderOverviewPanels({
@@ -64,7 +67,8 @@ export default function ScreenBuilderOverviewPanels({
   selectedTemplateType,
   setSelectedTemplateType,
   handleApplyTemplatePreset,
-  handleRestoreVersion
+  handleRestoreVersion,
+  installQueueSummary
 }: Props) {
   return (
     <>
@@ -218,6 +222,97 @@ export default function ScreenBuilderOverviewPanels({
             <p className="text-xs font-black uppercase tracking-[0.08em] text-rose-800">Deprecated</p>
             <p className="mt-2 text-2xl font-black text-rose-900">{backendDeprecatedCount}</p>
           </div>
+        </div>
+      </section>
+      <section className="gov-card p-0 overflow-hidden">
+        <GridToolbar
+          meta={en ? "Every saved draft version should be readable as one install queue snapshot before package handoff." : "저장된 모든 초안 버전은 패키지 인계 전에 하나의 설치 큐 스냅샷으로 읽혀야 합니다."}
+          title={en ? "Package Snapshot Registry" : "패키지 스냅샷 레지스트리"}
+        />
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left border-collapse">
+            <thead>
+              <tr className="gov-table-header">
+                <th className="px-4 py-3">{en ? "Snapshot" : "스냅샷"}</th>
+                <th className="px-4 py-3">{en ? "Saved At" : "저장 시각"}</th>
+                <th className="px-4 py-3">{en ? "Install Queue Item" : "설치 큐 항목"}</th>
+                <th className="px-4 py-3">{en ? "Release / Package" : "릴리즈 / 패키지"}</th>
+                <th className="px-4 py-3">{en ? "Validator Gate" : "검증 게이트"}</th>
+                <th className="px-4 py-3">{en ? "Actions" : "액션"}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {(page?.versionHistory || []).length === 0 ? (
+                <tr>
+                  <td className="px-4 py-8 text-center text-[var(--kr-gov-text-secondary)]" colSpan={6}>
+                    {en ? "No install snapshot registry rows exist yet." : "아직 설치 스냅샷 레지스트리 행이 없습니다."}
+                  </td>
+                </tr>
+              ) : (
+                (page?.versionHistory || []).map((version) => (
+                  <tr key={`snapshot-${version.versionId}`}>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-[12px]">{version.versionId}</span>
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-bold ${version.versionStatus === "PUBLISHED" ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"}`}>
+                          {version.versionStatus}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">{version.savedAt || "-"}</td>
+                    <td className="px-4 py-3">
+                      <div className="font-mono text-[12px]">{installQueueSummary.menuCode} / {installQueueSummary.pageId}</div>
+                      <div className="mt-1 text-[12px] text-[var(--kr-gov-text-secondary)] break-all">{installQueueSummary.menuUrl}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="font-mono text-[12px]">{installQueueSummary.releaseUnitId}</div>
+                      <div className="mt-1 font-mono text-[12px] text-[var(--kr-gov-text-secondary)]">{installQueueSummary.runtimePackageId}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="font-black text-[var(--kr-gov-text-primary)]">{installQueueSummary.validatorPassCount} / {installQueueSummary.validatorTotalCount}</div>
+                      <div className="mt-1 text-[12px] text-[var(--kr-gov-text-secondary)]">
+                        {en ? `Issues ${installQueueSummary.issueCount} / Trace ${installQueueSummary.deployTraceId}` : `이슈 ${installQueueSummary.issueCount} / 추적 ${installQueueSummary.deployTraceId}`}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-2">
+                        <MemberLinkButton
+                          href={buildLocalizedPath(
+                            `/admin/system/screen-runtime?menuCode=${encodeURIComponent(page?.menuCode || "")}&pageId=${encodeURIComponent(page?.pageId || "")}&menuTitle=${encodeURIComponent(page?.menuTitle || "")}&menuUrl=${encodeURIComponent(page?.menuUrl || "")}&snapshotVersionId=${encodeURIComponent(version.versionId)}`,
+                            `/en/admin/system/screen-runtime?menuCode=${encodeURIComponent(page?.menuCode || "")}&pageId=${encodeURIComponent(page?.pageId || "")}&menuTitle=${encodeURIComponent(page?.menuTitle || "")}&menuUrl=${encodeURIComponent(page?.menuUrl || "")}&snapshotVersionId=${encodeURIComponent(version.versionId)}`
+                          )}
+                          size="xs"
+                          variant="secondary"
+                        >
+                          {en ? "Runtime Validator" : "런타임 검증"}
+                        </MemberLinkButton>
+                        <MemberLinkButton
+                          href={buildLocalizedPath(
+                            `/admin/system/current-runtime-compare?menuCode=${encodeURIComponent(page?.menuCode || "")}&pageId=${encodeURIComponent(page?.pageId || "")}&menuTitle=${encodeURIComponent(page?.menuTitle || "")}&menuUrl=${encodeURIComponent(page?.menuUrl || "")}&snapshotVersionId=${encodeURIComponent(version.versionId)}`,
+                            `/en/admin/system/current-runtime-compare?menuCode=${encodeURIComponent(page?.menuCode || "")}&pageId=${encodeURIComponent(page?.pageId || "")}&menuTitle=${encodeURIComponent(page?.menuTitle || "")}&menuUrl=${encodeURIComponent(page?.menuUrl || "")}&snapshotVersionId=${encodeURIComponent(version.versionId)}`
+                          )}
+                          size="xs"
+                          variant="secondary"
+                        >
+                          {en ? "Repair Validator" : "복구 검증"}
+                        </MemberLinkButton>
+                        <MemberLinkButton
+                          href={buildLocalizedPath(
+                            `/admin/system/repair-workbench?menuCode=${encodeURIComponent(page?.menuCode || "")}&pageId=${encodeURIComponent(page?.pageId || "")}&menuTitle=${encodeURIComponent(page?.menuTitle || "")}&menuUrl=${encodeURIComponent(page?.menuUrl || "")}&snapshotVersionId=${encodeURIComponent(version.versionId)}`,
+                            `/en/admin/system/repair-workbench?menuCode=${encodeURIComponent(page?.menuCode || "")}&pageId=${encodeURIComponent(page?.pageId || "")}&menuTitle=${encodeURIComponent(page?.menuTitle || "")}&menuUrl=${encodeURIComponent(page?.menuUrl || "")}&snapshotVersionId=${encodeURIComponent(version.versionId)}`
+                          )}
+                          size="xs"
+                          variant="secondary"
+                        >
+                          {en ? "Rollback History" : "롤백 이력"}
+                        </MemberLinkButton>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </section>
       <section className="gov-card p-0 overflow-hidden">

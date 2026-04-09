@@ -20,6 +20,27 @@ This is not a simple extension of `/admin/system/environment-management`. It is 
 - runtime page rendering
 - component registry governance
 
+Use `docs/architecture/system-folder-structure-alignment.md` as the canonical placement rule when deciding whether builder code belongs in `modules/`, `apps/`, `frontend/src/`, `templates/`, or the transitional root `src/` tree.
+
+## Page Systemization Rule
+
+The builder should not treat an existing admin page as "already reusable" just because the route works.
+
+A page is systemized only when it is governed as one installable unit with:
+
+- stable `pageId`
+- stable `menuCode`
+- canonical route path
+- page manifest
+- approved component or template structure
+- bootstrap/query/mutation contracts
+- event/function/API linkage
+- help, accessibility, security, and authority bindings
+- install scope and ownership lane
+- validator and rollback visibility
+
+If a page lacks these fields, it is still a fixed page implementation, not a reusable builder asset.
+
 Operating split:
 
 - `carbonet-ops` owns the builder, governed settings, and publish control
@@ -251,6 +272,31 @@ Thin-runtime rules:
 - every published page should have explicit authority or feature binding metadata
 - runtime should prefer rendering from governed DB or JSON definitions plus approved common component/runtime layers
 - builder output should not duplicate common runtime behavior on a page-by-page basis unless a project-specific delta is truly required
+
+### Authority Scope Is Mandatory
+
+Authority scope is not optional metadata.
+It is one of the core conditions that makes a page reusable, installable, and safe to regenerate.
+
+Every page intended for builder management should declare at minimum:
+
+- actor family
+- data scope such as `GLOBAL`, `INSTT_SCOPED`, `DEPT_SCOPED`, `PROJECT_SCOPED`
+- action scope such as `view`, `create`, `update`, `delete`, `approve`, `execute`, `export`
+- approval-authority requirement where relevant
+- grantable or delegated scope where a higher actor configures a lower actor
+
+This scope must align across:
+
+- menu visibility
+- page payload and bootstrap loading
+- query filtering
+- mutation guards
+- row actions and popup actions
+- export, download, approve, and delete actions
+- audit records and trace context
+
+If the UI hides a button but the backend does not enforce the same scope, or if the backend filters rows but the manifest does not declare that scope, the page is not considered systemized.
 
 ### 9. GUI-First Builder Completion
 

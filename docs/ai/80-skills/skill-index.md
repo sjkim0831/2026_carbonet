@@ -14,6 +14,18 @@ See also:
   - Use for: any implementation that touches shared controllers, templates, contracts, or docs.
   - Boundary: use to plan ownership first, then hand off actual design or implementation work to a primary domain skill.
   - Key references: `STRUCTURE.md`, `docs/ai/00-governance/ai-fast-path.md`, `docs/ai/00-governance/ai-session-partitioning.md`
+- `carbonet-common-project-boundary-switcher`
+  - Purpose: keep common-platform ownership and project-specific ownership easy to switch later through ports, adapters, wrappers, and definition-plus-binding splits.
+  - Group: coordination
+  - Use for: common vs project splitting, common DB vs project DB ownership, menu scope separation, shared jar extraction, theme/common/project separation, builder runtime versus editor split, reusable read-layer extraction, installable business-process packaging, page-by-page systemization, authority-scope-aware page rebinding, project adapter lines, 3-minute bootstrap preparation, installable module packaging, stable adapter versus changeable common-core governance, and requests that explicitly say future conversion should stay fast.
+  - Boundary: use to lock reversible boundary rules first, then hand off concrete repository implementation to `carbonet-feature-builder` or `carbonet-screen-builder`.
+  - Key references: `.codex/skills/carbonet-common-project-boundary-switcher/SKILL.md`, `docs/architecture/common-project-reversible-transition-rules.md`, `docs/architecture/page-systemization-minimum-contract.md`, `docs/architecture/system-folder-structure-alignment.md`, `docs/architecture/common-db-and-project-db-splitting.md`, `docs/architecture/screenbuilder-core-jar-adapter-plan.md`, `docs/architecture/installable-builder-upgrade-roadmap.md`, `docs/architecture/framework-common-theme-project-separation-map.md`, `docs/architecture/builder-editor-runtime-module-split.md`, `docs/architecture/installable-business-process-package-model.md`, `docs/architecture/reusable-read-module-separation-plan.md`, `docs/architecture/installable-screen-process-inventory.md`, `docs/architecture/reusable-read-and-executor-candidate-map.md`, `docs/architecture/stable-adapter-and-common-core-versioning.md`, `docs/architecture/artifact-registry-and-project-version-governance.md`
+- `carbonet-screen-builder`
+  - Purpose: design and implement the installable Carbonet screen-builder platform and its governed admin consoles.
+  - Group: feature implementation
+  - Use for: screen builder authoring/runtime/governance, installable builder productization, page-by-page systemization, authority-scope-complete builder pages, installable screen packaging, reusable read-heavy console flows, stable project-adapter-safe builder evolution, and keeping the current console map aligned: `Menu Registry Console`, `Registry Detail Console`, `Builder Install / Bind Console`, validator-result family, rollback-history family, and `Builder Package Studio`.
+  - Boundary: use for builder-platform design and implementation, not for generic CRUD unless the builder platform itself is in scope.
+  - Key references: `.codex/skills/carbonet-screen-builder/SKILL.md`, `docs/architecture/admin-screen-builder-architecture.md`, `docs/architecture/page-systemization-minimum-contract.md`, `docs/architecture/system-folder-structure-alignment.md`, `docs/architecture/builder-folder-refactor-priority-map.md`, `docs/architecture/installable-builder-upgrade-roadmap.md`, `docs/architecture/installable-builder-admin-console-refactor-plan.md`, `docs/architecture/installable-business-process-package-model.md`, `docs/architecture/reusable-read-module-separation-plan.md`, `docs/architecture/installable-screen-process-inventory.md`, `docs/architecture/reusable-read-and-executor-candidate-map.md`, `docs/architecture/stable-adapter-and-common-core-versioning.md`
 - `carbonet-screen-design-workspace`
   - Purpose: resolve canonical design sources under `/home/imaneya/workspace/화면설계`.
   - Group: source interpretation
@@ -59,9 +71,9 @@ See also:
 - `admin-screen-unifier`
   - Purpose: normalize existing admin screens to one governed design system across list, detail, edit, create, approve, and authority pages.
   - Group: feature implementation
-  - Use for: button size drift, field height drift, inconsistent search cards, divergent status messages, and menu active or hidden-screen consistency issues.
+  - Use for: button size drift, field height drift, inconsistent search cards, divergent status messages, menu active or hidden-screen consistency issues, and converting placeholder admin pages into clearer registry/detail/install/validator operations surfaces.
   - Boundary: use when the screen already exists and the main problem is design drift rather than feature creation from scratch.
-  - Key references: `.codex/skills/admin-screen-unifier/SKILL.md`, `docs/architecture/screen-context-and-flow.md`, `docs/architecture/screen-family-model.md`
+  - Key references: `.codex/skills/admin-screen-unifier/SKILL.md`, `docs/architecture/screen-context-and-flow.md`, `docs/architecture/screen-family-model.md`, `docs/architecture/installable-builder-admin-console-refactor-plan.md`
 - `carbonet-codex-execution-console`
   - Purpose: continue or extend the Carbonet Codex execution console and SR Workbench execution lifecycle.
   - Group: specialized admin execution
@@ -74,6 +86,12 @@ See also:
   - Use for: join step flows, company status/reapply, Korean-English parity in React migration.
   - Boundary: use as a focused variant of feature implementation for join flows instead of the broader `carbonet-feature-builder` guidance.
   - Key references: `/home/imaneya/.codex/skills/carbonet-join-react-migration/SKILL.md`
+- `carbonet-codex-token-optimizer`
+  - Purpose: select the most token-efficient execution mode in the launcher based on task classification.
+  - Group: specialized admin execution
+  - Use for: minimizing token costs, choosing between `explain`, `plan`, `prompt`, and `apply` modes.
+  - Boundary: use whenever preparing a prompt for `codex` or `freeagent`.
+  - Key references: `docs/operations/codex-token-optimization-guide.md`, `.codex/skills/carbonet-codex-token-optimizer/SKILL.md`
 - `carbonet-runtime-topology-ops`
   - Purpose: design or document Carbonet runtime topology and centralized operations-system build ownership for small-memory multi-node operations.
   - Group: infrastructure operations

@@ -10,6 +10,10 @@ This document defines the current Carbonet skill taxonomy, overlap rules, and th
   - Role: classify ownership, split work safely, and define session boundaries.
   - Use first when the request can touch shared files, cross-cutting contracts, or multi-step implementation.
   - Do not use as the primary implementation guide for feature logic or page behavior.
+- `carbonet-common-project-boundary-switcher`
+  - Role: keep work reversible between common-platform ownership and project-specific ownership.
+  - Use before implementation when the request is about common vs project splitting, jar extraction, adapter lines, common DB vs project DB ownership, menu scope separation, page-by-page systemization, installable page rebinding, or "make this easy to move later".
+  - Do not use as the primary guide for detailed page behavior or ordinary feature CRUD.
 
 ### Source interpretation
 
@@ -20,6 +24,10 @@ This document defines the current Carbonet skill taxonomy, overlap rules, and th
 
 ### Feature implementation
 
+- `carbonet-screen-builder`
+  - Role: design and implement builder-managed, installable, authority-scope-complete page units and the governed builder console.
+  - Use when the request is really about systemizing pages for builder/runtime/install flows, even if drag-and-drop UI is not the only concern.
+  - Pair with `carbonet-common-project-boundary-switcher` when common-vs-project rebinding is central.
 - `carbonet-feature-builder`
   - Role: implement Carbonet menus, pages, services, mappers, templates, metadata, and related admin flows.
   - Use after the design source is known and the session boundary is understood.
@@ -31,6 +39,10 @@ This document defines the current Carbonet skill taxonomy, overlap rules, and th
   - Role: extend `/admin/system/codex-request`, SR Workbench execution lifecycle, runner scripts, and Codex handoff behavior.
   - Use when the request is specifically about the Codex runner, `prepare -> plan -> build`, stack/queue behavior, or console page-data ownership.
   - If the task also changes ordinary admin menus or screen CRUD, pair with `carbonet-feature-builder` but keep execution-console ownership primary.
+- `carbonet-codex-token-optimizer`
+  - Role: optimize token usage by selecting the most efficient execution mode (`explain`, `plan`, `prompt`, `apply`) in the Codex launcher.
+  - Use whenever a prompt is prepared for `codex` or `freeagent` to ensure appropriate context levels.
+  - Priority: use alongside any implementation skill to verify cost-effectiveness.
 
 ### Cross-cutting architecture
 
@@ -65,6 +77,24 @@ This document defines the current Carbonet skill taxonomy, overlap rules, and th
 - Use `carbonet-feature-builder` to implement it in Carbonet.
 - Rule: design interpretation first, repository implementation second.
 
+### `carbonet-common-project-boundary-switcher` vs implementation skills
+
+- Use `carbonet-common-project-boundary-switcher` to decide what should become common, what should stay project-owned, and where ports, adapters, wrappers, or def-plus-bind splits are needed first.
+- Use `carbonet-feature-builder` or `carbonet-screen-builder` after that to implement the chosen shape.
+- Rule: reversible ownership first, concrete implementation second.
+
+### `carbonet-screen-builder` vs `carbonet-feature-builder`
+
+- Use `carbonet-screen-builder` when the requested outcome is a builder-managed page unit, installable page family, governed manifest, or page-systemization rule.
+- Use `carbonet-feature-builder` when the requested outcome is a normal Carbonet business page or admin feature implementation that is not primarily about builder-managed reuse.
+- Rule: systemized page unit first means `carbonet-screen-builder`; ordinary feature implementation first means `carbonet-feature-builder`.
+
+### Builder work vs folder cleanup
+
+- Do not assume builder work and folder cleanup must always be split into separate waves.
+- If the cleanup stays inside the same builder ownership family, prefer implementing the builder slice and cleaning its folder placement in the same turn.
+- If the cleanup crosses many shared paths or owner families, use a dedicated refactor wave instead.
+
 ### `carbonet-feature-builder` vs `carbonet-codex-execution-console`
 
 - Use `carbonet-codex-execution-console` when the core problem is Codex runner behavior, queue/stack flow, console page-data, or runner scripts.
@@ -91,14 +121,21 @@ This document defines the current Carbonet skill taxonomy, overlap rules, and th
 ## Selection Order
 
 1. Start with `carbonet-ai-session-orchestrator` when ownership or conflict risk is unclear.
-2. Use `carbonet-screen-design-workspace` if the task is design-driven.
-3. Choose exactly one primary implementation skill:
-   - `carbonet-feature-builder`
-   - `carbonet-codex-execution-console`
-   - `carbonet-audit-trace-architecture`
-   - `carbonet-react-refresh-consistency`
-   - `carbonet-fast-bootstrap-ops`
-4. Add a secondary skill only when the task truly spans both domains.
+2. Use `carbonet-common-project-boundary-switcher` when common/project reversibility, extraction, or adapter boundaries are central.
+3. Use `carbonet-screen-design-workspace` if the task is design-driven.
+4. Choose exactly one primary implementation skill:
+  - `carbonet-screen-builder`
+  - `carbonet-feature-builder`
+  - `carbonet-codex-execution-console`
+  - `carbonet-audit-trace-architecture`
+  - `carbonet-react-refresh-consistency`
+  - `carbonet-fast-bootstrap-ops`
+5. Add a secondary skill only when the task truly spans both domains.
+
+Default session rule:
+
+- if the current active sessions already cover the required ownership families safely, continue with them instead of opening additional implementation lanes
+- for builder-oriented platformization, common/project boundary moves, large folder moves, or ownership-closure work, use four sessions as the default work partition regardless of account count
 
 ## Anti-Duplication Rules
 
@@ -114,6 +151,8 @@ This document defines the current Carbonet skill taxonomy, overlap rules, and th
 
 - New admin screen from design workspace:
   - `carbonet-ai-session-orchestrator` -> `carbonet-screen-design-workspace` -> `carbonet-feature-builder`
+- Builder-ready or installable page-systemization work:
+  - `carbonet-ai-session-orchestrator` -> `carbonet-common-project-boundary-switcher` -> `carbonet-screen-builder`
 - Codex queue or SR execution change:
   - `carbonet-ai-session-orchestrator` -> `carbonet-codex-execution-console`
 - Audit/trace registry rollout:

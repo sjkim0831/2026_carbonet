@@ -1,5 +1,6 @@
 import { tracedFetch } from "../../platform/telemetry/fetch";
 import { buildLocalizedPath, getCsrfMeta } from "../navigation/runtime";
+import { SESSION_STORAGE_CACHE_PREFIX } from "./pageCache";
 
 export const apiFetch = tracedFetch;
 
@@ -91,6 +92,42 @@ export async function buildResilientCsrfHeaders(extraHeaders?: Record<string, st
     // Keep request handling deterministic. The server will still reject if no token is available.
   }
   return headers;
+}
+
+export function buildJsonHeaders(session: { csrfHeaderName?: string; csrfToken?: string }) {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "X-Requested-With": "XMLHttpRequest"
+  };
+  if (session.csrfHeaderName && session.csrfToken) {
+    headers[session.csrfHeaderName] = session.csrfToken;
+  }
+  return headers;
+}
+
+export function invalidateAdminPageCaches() {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    const keysToDelete: string[] = [];
+    for (let index = 0; index < window.sessionStorage.length; index += 1) {
+      const key = window.sessionStorage.key(index);
+      if (!key) {
+        continue;
+      }
+      if (
+        key.startsWith(SESSION_STORAGE_CACHE_PREFIX) &&
+        key !== "carbonet:frontend-session" &&
+        key !== "carbonet:admin-menu-tree"
+      ) {
+        keysToDelete.push(key);
+      }
+    }
+    keysToDelete.forEach((key) => window.sessionStorage.removeItem(key));
+  } catch {
+    // Ignore cache eviction failures.
+  }
 }
 
 export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {

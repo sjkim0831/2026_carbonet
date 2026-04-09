@@ -24,9 +24,11 @@ public class AdminPostManagementService {
 
     private final ObjectMapper objectMapper;
     private final Path registryPath = Paths.get("data", "admin", "post-list", "posts.json");
+    private final AdminPagePayloadFactory adminPagePayloadFactory;
 
-    public AdminPostManagementService(ObjectMapper objectMapper) {
+    public AdminPostManagementService(ObjectMapper objectMapper, AdminPagePayloadFactory adminPagePayloadFactory) {
         this.objectMapper = objectMapper;
+        this.adminPagePayloadFactory = adminPagePayloadFactory;
     }
 
     public Map<String, Object> buildPagePayload(String searchKeyword,
@@ -56,9 +58,7 @@ public class AdminPostManagementService {
 
         Map<String, String> selectedPost = selectPost(filtered, catalog, safe(selectedPostId));
 
-        Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("isEn", isEn);
-        payload.put("menuCode", "A0040102");
+        Map<String, Object> payload = adminPagePayloadFactory.create(isEn, "A0040102");
         payload.put("searchKeyword", safe(searchKeyword));
         payload.put("status", safe(status));
         payload.put("category", safe(category));

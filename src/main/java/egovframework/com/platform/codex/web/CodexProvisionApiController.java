@@ -1,8 +1,8 @@
 package egovframework.com.platform.codex.web;
 
-import egovframework.com.feature.admin.dto.request.CodexProvisionRequest;
-import egovframework.com.feature.admin.dto.response.CodexProvisionResponse;
+import egovframework.com.platform.codex.model.CodexProvisionResponse;
 import egovframework.com.platform.codex.service.CodexProvisioningService;
+import egovframework.com.platform.request.codex.CodexProvisionRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.egovframe.boot.security.bean.EgovReloadableFilterInvocationSecurityMetadataSource;

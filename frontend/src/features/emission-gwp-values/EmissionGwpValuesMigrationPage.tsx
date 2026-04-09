@@ -6,6 +6,7 @@ import { buildLocalizedPath, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
 import { CollectionResultPanel, LookupContextStrip, PageStatusNotice, SummaryMetricCard } from "../admin-ui/common";
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
+import { EmissionClassificationCatalogPanel } from "../emission-common/EmissionClassificationCatalogPanel";
 import { AdminCheckbox, AdminInput, AdminSelect, AdminTable, AdminTextarea, MemberButton, MemberLinkButton, MemberSectionToolbar } from "../member/common";
 
 type Filters = {
@@ -986,6 +987,11 @@ export function EmissionGwpValuesMigrationPage() {
             />
           ))}
         </section>
+
+        <EmissionClassificationCatalogPanel
+          catalog={(page?.classificationCatalog || null) as Record<string, unknown> | null}
+          title={en ? "LCI DB Classification Reference" : "LCI DB 분류 기준"}
+        />
 
         <CollectionResultPanel
           title={en ? "Reference Comparison" : "정본 대조"}
