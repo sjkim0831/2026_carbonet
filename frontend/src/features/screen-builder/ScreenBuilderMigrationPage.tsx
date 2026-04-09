@@ -19,6 +19,12 @@ import { DiagnosticCard, MemberButton, MemberLinkButton, PageStatusNotice } from
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 import { resolveScreenBuilderQuery } from "./shared/screenBuilderUtils";
 import {
+  buildEnvironmentManagementPath,
+  buildScreenFlowManagementPath,
+  buildScreenMenuAssignmentManagementPath,
+  buildScreenRuntimePath
+} from "./screenBuilderPaths";
+import {
   BUILDER_INSTALL_VALIDATOR_CHECKS,
   buildBuilderInstallQueueSummary as buildInstallQueueSummaryFromContract
 } from "./shared/installableBuilderContract";
@@ -292,9 +298,9 @@ export function ScreenBuilderMigrationPage() {
     setSelectedRegistryComponentId
   });
 
-  const rootMenuHref = buildLocalizedPath("/admin/system/environment-management", "/en/admin/system/environment-management");
-  const screenFlowHref = buildLocalizedPath("/admin/system/screen-flow-management", "/en/admin/system/screen-flow-management");
-  const screenMenuAssignmentHref = buildLocalizedPath("/admin/system/screen-menu-assignment-management", "/en/admin/system/screen-menu-assignment-management");
+  const rootMenuHref = buildEnvironmentManagementPath();
+  const screenFlowHref = buildScreenFlowManagementPath();
+  const screenMenuAssignmentHref = buildScreenMenuAssignmentManagementPath();
   const screenGovernanceSummary = useMemo(() => ({
     requiredViewFeatureCode: String(commandState.value?.page?.menuPermission?.requiredViewFeatureCode || ""),
     featureCodeCount: commandState.value?.page?.menuPermission?.featureCodes?.length || 0,
@@ -403,10 +409,7 @@ export function ScreenBuilderMigrationPage() {
               <>
                 {page?.menuCode ? (
                   <MemberLinkButton
-                    href={buildLocalizedPath(
-                      `/admin/system/environment-management?menuCode=${encodeURIComponent(page.menuCode)}`,
-                      `/en/admin/system/environment-management?menuCode=${encodeURIComponent(page.menuCode)}`
-                    )}
+                    href={buildEnvironmentManagementPath(page.menuCode)}
                     variant="secondary"
                   >
                     {en ? "Open Install / Bind Console" : "설치 / 바인딩 콘솔 열기"}
@@ -414,10 +417,12 @@ export function ScreenBuilderMigrationPage() {
                 ) : null}
                 {page?.menuCode ? (
                   <MemberLinkButton
-                    href={buildLocalizedPath(
-                      `/admin/system/screen-runtime?menuCode=${encodeURIComponent(page.menuCode)}&pageId=${encodeURIComponent(page.pageId || "")}&menuTitle=${encodeURIComponent(page.menuTitle || "")}&menuUrl=${encodeURIComponent(page.menuUrl || "")}`,
-                      `/en/admin/system/screen-runtime?menuCode=${encodeURIComponent(page.menuCode)}&pageId=${encodeURIComponent(page.pageId || "")}&menuTitle=${encodeURIComponent(page.menuTitle || "")}&menuUrl=${encodeURIComponent(page.menuUrl || "")}`
-                    )}
+                    href={buildScreenRuntimePath({
+                      menuCode: page.menuCode,
+                      pageId: page.pageId || "",
+                      menuTitle: page.menuTitle || "",
+                      menuUrl: page.menuUrl || ""
+                    })}
                     variant="secondary"
                   >
                     {en ? "Open Install Runtime" : "설치 런타임 열기"}

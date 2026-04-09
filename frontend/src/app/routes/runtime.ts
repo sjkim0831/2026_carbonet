@@ -1,40 +1,16 @@
 import { getRuntimeLocale } from "../../lib/navigation/runtime";
+import { resolvePlatformSpecialCasePage } from "../../platform/routes/families/platformRuntimeRules";
 import { MigrationPageId, ROUTES, getRouteDefinition, normalizeRouteId, normalizeRouteLookupPath } from "./definitions";
-import { resolvePlatformSpecialCasePage } from "./platformRuntimeRules";
+import { appRouteAliases, appSpecialCasePages, reactShellPaths } from "./appRuntimeRules";
 
 const routeByComparablePath = new Map<string, MigrationPageId>();
-const reactShellPaths = new Set(["/app", "/en/app", "/admin/app", "/en/admin/app"]);
-const specialCasePages = new Map<string, MigrationPageId>([
-  ["/admin/member/withdrawn", "member-list"],
-  ["/admin/member/activate", "member-list"],
-  ["/admin/system/menu", "menu-management"],
-  ["/admin/system/menu-management", "menu-management"],
-  ["/admin/content/menu", "faq-menu-management"],
-  ["/signin/findId/overseas", "signin-find-id"],
-  ["/signin/findPassword/overseas", "signin-find-password"],
-  ["/co2/credit", "co2-credit"]
-]);
-const routeAliases: Array<readonly [string, MigrationPageId]> = [
-  ["/admin/trade/list", "trade-list"],
-  ["/en/admin/trade/list", "trade-list"],
-  ["/trade/matching", "co2-search"],
-  ["/en/trade/matching", "co2-search"],
-  ["/monitoring/esg", "monitoring-statistics"],
-  ["/en/monitoring/esg", "monitoring-statistics"],
-  ["/payment/detail", "payment-history"],
-  ["/en/payment/detail", "payment-history"],
-  ["/payment/refund_account", "payment-refund-account"],
-  ["/en/payment/refund_account", "payment-refund-account"],
-  ["/payment/refundAccount", "payment-refund-account"],
-  ["/en/payment/refundAccount", "payment-refund-account"]
-];
 
 ROUTES.forEach((entry) => {
   routeByComparablePath.set(normalizeComparablePath(entry.koPath), entry.id);
   routeByComparablePath.set(normalizeComparablePath(entry.enPath), entry.id);
 });
 
-routeAliases.forEach(([path, pageId]) => {
+appRouteAliases.forEach(([path, pageId]) => {
   routeByComparablePath.set(normalizeComparablePath(path), pageId);
 });
 
@@ -52,7 +28,7 @@ function resolveKoComparablePath(pathname: string): string {
 
 function resolveSpecialCasePage(pathname: string): MigrationPageId | null {
   const normalizedKoPath = resolveKoComparablePath(pathname);
-  return resolvePlatformSpecialCasePage(normalizedKoPath) || specialCasePages.get(normalizedKoPath) || null;
+  return resolvePlatformSpecialCasePage(normalizedKoPath) || appSpecialCasePages.get(normalizedKoPath) || null;
 }
 
 export function isReactManagedPath(pathname: string): boolean {

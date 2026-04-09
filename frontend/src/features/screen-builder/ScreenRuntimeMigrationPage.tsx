@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useAsyncValue } from "../../app/hooks/useAsyncValue";
 import { logGovernanceScope } from "../../app/policy/debug";
 import { fetchAuditEvents } from "../../platform/observability/observability";
+import { buildObservabilityPath } from "../../platform/routes/families/platformPaths";
 import { fetchScreenBuilderPage, fetchScreenBuilderPreview } from "../../lib/api/screenBuilder";
 import { buildLocalizedPath, getSearchParam, isEnglish } from "../../lib/navigation/runtime";
 import { AdminPageShell } from "../admin-entry/AdminPageShell";
@@ -11,6 +12,7 @@ import { resolveRuntimeSurfaceContextKeys } from "../admin-ui/contextKeyPresets"
 import { AdminWorkspacePageFrame } from "../admin-ui/pageFrames";
 import { renderScreenBuilderNodePreview } from "./shared/screenBuilderPreview";
 import { resolveScreenBuilderQuery, sortScreenBuilderNodes } from "./shared/screenBuilderUtils";
+import { buildEnvironmentManagementPath, buildScreenBuilderPath } from "./screenBuilderPaths";
 import { useEffect } from "react";
 
 function stringifyValue(value: unknown, empty = "-") {
@@ -118,7 +120,7 @@ export function ScreenRuntimeMigrationPage() {
       breadcrumbs={[
         { label: en ? "Home" : "홈", href: buildLocalizedPath("/admin/", "/en/admin/") },
         { label: en ? "System" : "시스템" },
-        { label: en ? "Screen Builder" : "화면 빌더", href: buildLocalizedPath("/admin/system/screen-builder", "/en/admin/system/screen-builder") },
+        { label: en ? "Screen Builder" : "화면 빌더", href: buildScreenBuilderPath() },
         { label: en ? "Runtime Validator Console" : "런타임 검증 콘솔" }
       ]}
       title={en ? "Runtime Validator Console" : "런타임 검증 콘솔"}
@@ -196,10 +198,7 @@ export function ScreenRuntimeMigrationPage() {
               <>
                 {page?.menuCode ? (
                   <MemberLinkButton
-                    href={buildLocalizedPath(
-                      `/admin/system/environment-management?menuCode=${encodeURIComponent(page.menuCode)}`,
-                      `/en/admin/system/environment-management?menuCode=${encodeURIComponent(page.menuCode)}`
-                    )}
+                    href={buildEnvironmentManagementPath(page.menuCode)}
                     variant="secondary"
                   >
                     {en ? "Open Environment Management" : "환경관리 열기"}
@@ -207,10 +206,12 @@ export function ScreenRuntimeMigrationPage() {
                 ) : null}
                 {page?.menuCode ? (
                   <MemberLinkButton
-                    href={buildLocalizedPath(
-                      `/admin/system/screen-builder?menuCode=${encodeURIComponent(page.menuCode)}&pageId=${encodeURIComponent(page.pageId || "")}&menuTitle=${encodeURIComponent(page.menuTitle || "")}&menuUrl=${encodeURIComponent(page.menuUrl || "")}`,
-                      `/en/admin/system/screen-builder?menuCode=${encodeURIComponent(page.menuCode)}&pageId=${encodeURIComponent(page.pageId || "")}&menuTitle=${encodeURIComponent(page.menuTitle || "")}&menuUrl=${encodeURIComponent(page.menuUrl || "")}`
-                    )}
+                    href={buildScreenBuilderPath({
+                      menuCode: page.menuCode,
+                      pageId: page.pageId || "",
+                      menuTitle: page.menuTitle || "",
+                      menuUrl: page.menuUrl || ""
+                    })}
                     variant="secondary"
                   >
                     {en ? "Open Builder" : "빌더 열기"}
@@ -394,10 +395,11 @@ export function ScreenRuntimeMigrationPage() {
           <GridToolbar
             actions={page?.menuCode ? (
               <MemberLinkButton
-                href={buildLocalizedPath(
-                  `/admin/system/observability?menuCode=${encodeURIComponent(page.menuCode)}&pageId=${encodeURIComponent(page.pageId || "")}&searchKeyword=${encodeURIComponent("SCREEN_BUILDER_")}`,
-                  `/en/admin/system/observability?menuCode=${encodeURIComponent(page.menuCode)}&pageId=${encodeURIComponent(page.pageId || "")}&searchKeyword=${encodeURIComponent("SCREEN_BUILDER_")}`
-                )}
+                href={buildObservabilityPath({
+                  menuCode: page.menuCode,
+                  pageId: page.pageId || "",
+                  searchKeyword: "SCREEN_BUILDER_"
+                })}
                 size="sm"
                 variant="secondary"
               >
@@ -415,10 +417,12 @@ export function ScreenRuntimeMigrationPage() {
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-[var(--kr-gov-text-secondary)]">{String(row.createdAt || "-")}</span>
                     <MemberLinkButton
-                      href={buildLocalizedPath(
-                        `/admin/system/observability?traceId=${encodeURIComponent(String(row.traceId || ""))}&menuCode=${encodeURIComponent(page?.menuCode || "")}&pageId=${encodeURIComponent(page?.pageId || "")}&actionCode=${encodeURIComponent(String(row.actionCode || ""))}`,
-                        `/en/admin/system/observability?traceId=${encodeURIComponent(String(row.traceId || ""))}&menuCode=${encodeURIComponent(page?.menuCode || "")}&pageId=${encodeURIComponent(page?.pageId || "")}&actionCode=${encodeURIComponent(String(row.actionCode || ""))}`
-                      )}
+                      href={buildObservabilityPath({
+                        traceId: String(row.traceId || ""),
+                        menuCode: page?.menuCode || "",
+                        pageId: page?.pageId || "",
+                        actionCode: String(row.actionCode || "")
+                      })}
                       size="xs"
                       variant="secondary"
                     >

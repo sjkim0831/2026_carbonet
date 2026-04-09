@@ -1,48 +1,10 @@
-import { tracedFetch } from "../../platform/telemetry/fetch";
-import type { MigrationPageId } from "../../app/routes/definitions";
-import { buildLocalizedPath, getCsrfMeta, getRuntimeLocale } from "../navigation/runtime";
-import * as adminMemberApi from "./adminMember";
+import * as adminShellApi from "./adminShell";
+import * as appBootstrapApi from "./appBootstrap";
 import {
-  fetchJsonWithoutCache,
-  readSessionStorageCache,
   removeSessionStorageCache,
-  SESSION_STORAGE_CACHE_PREFIX,
-  writeSessionStorageCache
+  SESSION_STORAGE_CACHE_PREFIX
 } from "./pageCache";
-import {
-  fetchEmissionDataHistoryPage,
-  fetchEmissionLciClassificationPage,
-  fetchEmissionResultDetailPage,
-  fetchEmissionResultListPage,
-  fetchEmissionValidatePage
-} from "./emission";
-import * as memberApi from "./member";
-import * as platformApi from "./platform";
-import * as portalApi from "./portal";
-import * as securityApi from "./security";
-import * as tradeApi from "./trade";
-import {
-  buildSecurityAuditExportUrl,
-  fetchBackupConfigPage,
-  fetchBatchManagementPage,
-  fetchExternalConnectionFormPage,
-  fetchExternalConnectionListPage,
-  fetchExternalKeysPage,
-  fetchExternalLogsPage,
-  fetchExternalMaintenancePage,
-  fetchExternalMonitoringPage,
-  fetchExternalRetryPage,
-  fetchExternalSchemaPage,
-  fetchExternalSyncPage,
-  fetchExternalUsagePage,
-  fetchExternalWebhooksPage,
-  fetchOperationsCenterPage,
-  fetchPerformancePage,
-  fetchSchedulerManagementPage,
-  fetchSensorListPage,
-  saveBackupConfig,
-  saveExternalConnection
-} from "./ops";
+export { checkMemberRegisterId } from "./adminMember";
 export {
   buildSecurityAuditExportUrl,
   fetchBackupConfigPage,
@@ -64,21 +26,8 @@ export {
   fetchSensorListPage,
   saveBackupConfig,
   saveExternalConnection
-};
+} from "./ops";
 export { createIpWhitelistRequest, restoreBackupConfigVersion, runBackupExecution } from "./ops";
-
-const fetch = tracedFetch;
-
-function buildAdminApiPath(path: string): string {
-  const normalized = path.startsWith("/") ? path : `/${path}`;
-  if (normalized.startsWith("/api/admin/")) {
-    return buildLocalizedPath(`/admin${normalized}`, `/en/admin${normalized}`);
-  }
-  if (normalized.startsWith("/api/")) {
-    return buildLocalizedPath(normalized, `/en${normalized}`);
-  }
-  return buildLocalizedPath(`/admin${normalized}`, `/en/admin${normalized}`);
-}
 
 export type FrontendSession = {
   authenticated: boolean;
@@ -528,80 +477,6 @@ export type HomeMenuPlaceholderPagePayload = {
 };
 
 export type AdminMenuPlaceholderPagePayload = HomeMenuPlaceholderPagePayload;
-
-async function readJsonResponse<T>(response: Response): Promise<T> {
-  if (response.redirected && response.url && typeof window !== "undefined") {
-    try {
-      const redirectedUrl = new URL(response.url, window.location.origin);
-      if (redirectedUrl.pathname === "/admin/login/loginView"
-        || redirectedUrl.pathname === "/en/admin/login/loginView"
-        || redirectedUrl.pathname === "/signin/loginView"
-        || redirectedUrl.pathname === "/en/signin/loginView") {
-        window.location.replace(response.url);
-        throw new Error("Authentication required. Redirecting to login.");
-      }
-    } catch {
-      // Fall through to the normal response parser.
-    }
-  }
-  const contentType = response.headers.get("content-type") || "";
-  if (contentType.includes("application/json")) {
-    return response.json() as Promise<T>;
-  }
-
-  const text = await response.text();
-  const compact = text.replace(/\s+/g, " ").trim();
-  throw new Error(compact.startsWith("<!DOCTYPE") || compact.startsWith("<html")
-    ? `Server returned HTML instead of JSON (${response.status})`
-    : (compact || `Unexpected response format (${response.status})`));
-}
-
-type DuplicateCheckResponse = {
-  valid?: boolean;
-  duplicated?: boolean;
-  message?: string;
-};
-
-async function checkIdentifierAvailability(
-  url: string,
-  fallbackMessage: string
-): Promise<{ valid: boolean; duplicated: boolean; message: string }> {
-  const response = await fetch(url, {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<DuplicateCheckResponse>(response);
-  if (!response.ok) {
-    throw new Error(body.message || `${fallbackMessage}: ${response.status}`);
-  }
-  return {
-    valid: Boolean(body.valid),
-    duplicated: Boolean(body.duplicated),
-    message: String(body.message || "")
-  };
-}
-
-function buildCsrfHeaders(extraHeaders?: Record<string, string>): Record<string, string> {
-  const headers: Record<string, string> = { ...(extraHeaders || {}) };
-  const { token, headerName } = getCsrfMeta();
-  if (token) {
-    headers[headerName] = token;
-  }
-  return headers;
-}
-
-async function buildResilientCsrfHeaders(extraHeaders?: Record<string, string>): Promise<Record<string, string>> {
-  const headers: Record<string, string> = { ...(extraHeaders || {}) };
-  try {
-    const session = await fetchFreshFrontendSession();
-    if (session.csrfHeaderName && session.csrfToken) {
-      headers[session.csrfHeaderName] = session.csrfToken;
-    }
-  } catch {
-    const fallbackHeaders = buildCsrfHeaders(extraHeaders);
-    Object.assign(headers, fallbackHeaders);
-  }
-  return headers;
-}
 
 export type AuthGroupOption = {
   code: string;
@@ -2285,6 +2160,8 @@ export type SecurityPolicyPagePayload = Record<string, unknown> & {
   isEn?: boolean;
 };
 
+export type NotificationPagePayload = SecurityPolicyPagePayload;
+
 export type MenuPermissionAutoCleanupResponse = {
   success?: boolean;
   message?: string;
@@ -2901,11 +2778,7 @@ export type MypageSectionPayload = MypagePayload & {
   message?: string;
 };
 
-let frontendSessionCache: FrontendSession | null = null;
-let frontendSessionPromise: Promise<FrontendSession> | null = null;
-let adminMenuTreeCache: AdminMenuTreePayload | null = null;
-let adminMenuTreePromise: Promise<AdminMenuTreePayload> | null = null;
-const ADMIN_MENU_CODE_LABEL_OVERRIDES_KO: Record<string, string> = {
+export const ADMIN_MENU_CODE_LABEL_OVERRIDES_KO: Record<string, string> = {
   A001: "회원",
   A00101: "회원",
   A00105: "이력",
@@ -2929,7 +2802,7 @@ const ADMIN_MENU_CODE_LABEL_OVERRIDES_KO: Record<string, string> = {
   AMENU_ADMIN: "관리자",
   AMENU_SYSTEM: "시스템"
 };
-const ADMIN_MENU_CODE_LABEL_OVERRIDES_EN: Record<string, string> = {
+export const ADMIN_MENU_CODE_LABEL_OVERRIDES_EN: Record<string, string> = {
   A001: "Members",
   A00101: "Members",
   A00105: "History",
@@ -2953,196 +2826,11 @@ const ADMIN_MENU_CODE_LABEL_OVERRIDES_EN: Record<string, string> = {
   AMENU_ADMIN: "Admins",
   AMENU_SYSTEM: "System"
 };
-type BootstrapPayloadKey =
-  | "frontendSession"
-  | "adminMenuTree"
-  | "adminHomePageData"
-  | "newPagePageData"
-  | "authGroupPageData"
-  | "authChangePageData"
-  | "deptRolePageData"
-  | "memberEditPageData"
-  | "homePayload"
-  | "mypagePayload"
-  | "mypageContext"
-  | "memberStatsPageData"
-  | "tradeListPageData"
-  | "tradeStatisticsPageData"
-  | "settlementCalendarPageData"
-  | "tradeDuplicatePageData"
-  | "refundListPageData"
-  | "tradeApprovePageData"
-  | "tradeRejectPageData"
-  | "certificateReviewPageData"
-  | "securityPolicyPageData"
-  | "notificationPageData"
-  | "externalMonitoringPageData"
-  | "securityMonitoringPageData"
-  | "securityAuditPageData"
-  | "certificateAuditLogPageData"
-  | "certificateRecCheckPageData"
-  | "schedulerManagementPageData"
-  | "backupConfigPageData"
-  | "emissionResultListPageData"
-  | "emissionResultDetailPageData"
-  | "certificateStatisticsPageData"
-  | "emissionDataHistoryPageData"
-  | "emissionDefinitionStudioPageData"
-  | "emissionSiteManagementPageData"
-  | "emissionValidatePageData"
-  | "screenBuilderPageData";
-let runtimeBootstrapCache: Partial<Record<BootstrapPayloadKey, unknown>> = {};
-let runtimeBootstrapCachePath = "";
 const FRONTEND_SESSION_STORAGE_KEY = `${SESSION_STORAGE_CACHE_PREFIX}frontend-session`;
 const ADMIN_MENU_TREE_STORAGE_KEY = `${SESSION_STORAGE_CACHE_PREFIX}admin-menu-tree`;
-const HOME_PAYLOAD_STORAGE_KEY_KO = `${SESSION_STORAGE_CACHE_PREFIX}home-payload:ko`;
-const HOME_PAYLOAD_STORAGE_KEY_EN = `${SESSION_STORAGE_CACHE_PREFIX}home-payload:en`;
-const ADMIN_MENU_TREE_REFRESH_EVENT = "carbonet:admin-menu-tree:refresh";
-const SESSION_CACHE_TTL_MS = 5 * 60 * 1000;
-
-function isLikelyAdminMenuCodeLabel(value: string) {
-  const normalized = String(value || "").trim();
-  if (!normalized) {
-    return false;
-  }
-  return /^[A-Z][A-Z0-9_]{3,}$/.test(normalized) || /^[A-Z]\d{3,}$/.test(normalized);
-}
-
-function resolveAdminMenuCodeLabel(value: string, en: boolean) {
-  const normalized = String(value || "").trim().toUpperCase();
-  if (!normalized) {
-    return "";
-  }
-  return en
-    ? (ADMIN_MENU_CODE_LABEL_OVERRIDES_EN[normalized] || "")
-    : (ADMIN_MENU_CODE_LABEL_OVERRIDES_KO[normalized] || "");
-}
-
-function normalizeAdminMenuText(value: string | undefined, en: boolean) {
-  const fallback = String(value || "").trim();
-  if (!isLikelyAdminMenuCodeLabel(fallback)) {
-    return fallback;
-  }
-  return resolveAdminMenuCodeLabel(fallback, en) || fallback;
-}
-
-function normalizeAdminMenuTree(payload: AdminMenuTreePayload | null | undefined): AdminMenuTreePayload | null {
-  if (!payload || typeof payload !== "object") {
-    return null;
-  }
-  const normalizedTree = Object.entries(payload).reduce<AdminMenuTreePayload>((accumulator, [domainKey, domain]) => {
-    const normalizedDomain: AdminMenuDomain = {
-      ...domain,
-      label: normalizeAdminMenuText(domain?.label || domainKey, false),
-      labelEn: normalizeAdminMenuText(domain?.labelEn || domain?.label || domainKey, true),
-      groups: (domain?.groups || []).map((group) => {
-        const normalizedLinks = (group?.links || []).map((link) => ({
-          ...link,
-          text: normalizeAdminMenuText(link?.text, false),
-          tEn: normalizeAdminMenuText(link?.tEn || link?.text, true)
-        }));
-        const fallbackGroupKo = normalizeAdminMenuText(group?.title, false);
-        const fallbackGroupEn = normalizeAdminMenuText(group?.titleEn || group?.title, true);
-        const firstLink = normalizedLinks[0];
-        return {
-          ...group,
-          title: isLikelyAdminMenuCodeLabel(fallbackGroupKo) && firstLink?.text
-            ? firstLink.text
-            : fallbackGroupKo,
-          titleEn: isLikelyAdminMenuCodeLabel(fallbackGroupEn)
-            ? (firstLink?.tEn || firstLink?.text || fallbackGroupEn)
-            : fallbackGroupEn,
-          links: normalizedLinks
-        };
-      })
-    };
-    accumulator[domainKey] = normalizedDomain;
-    return accumulator;
-  }, {});
-  return normalizedTree;
-}
-
-function currentBootstrapScopePath() {
-  if (typeof window === "undefined") {
-    return "";
-  }
-  return `${window.location.pathname}${window.location.search}`;
-}
-
-function syncRuntimeBootstrapCacheScope() {
-  const nextPath = currentBootstrapScopePath();
-  if (runtimeBootstrapCachePath === nextPath) {
-    return;
-  }
-  runtimeBootstrapCache = {};
-  runtimeBootstrapCachePath = nextPath;
-}
-
-function consumeRuntimeBootstrap<T>(key: BootstrapPayloadKey): T | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-  syncRuntimeBootstrapCacheScope();
-  const bootstrapStore = window.__CARBONET_REACT_BOOTSTRAP__ as Partial<Record<BootstrapPayloadKey, unknown>> | undefined;
-  if (!bootstrapStore) {
-    return (runtimeBootstrapCache[key] as T | undefined) ?? null;
-  }
-  const payload = bootstrapStore[key] as T | undefined;
-  if (typeof payload === "undefined") {
-    return (runtimeBootstrapCache[key] as T | undefined) ?? null;
-  }
-  runtimeBootstrapCache[key] = payload;
-  delete bootstrapStore[key];
-  return payload ?? null;
-}
-
-function mergeRuntimeBootstrap(payload: Partial<Record<BootstrapPayloadKey, unknown>>) {
-  if (typeof window === "undefined") {
-    return;
-  }
-  if (!window.__CARBONET_REACT_BOOTSTRAP__) {
-    window.__CARBONET_REACT_BOOTSTRAP__ = {} as Partial<Record<BootstrapPayloadKey, unknown>>;
-  }
-  Object.assign(window.__CARBONET_REACT_BOOTSTRAP__ as Partial<Record<BootstrapPayloadKey, unknown>>, payload);
-}
-
-function resolveHomePayloadStorageKey(isEn: boolean) {
-  return isEn ? HOME_PAYLOAD_STORAGE_KEY_EN : HOME_PAYLOAD_STORAGE_KEY_KO;
-}
-
-function writeHomePayloadCache(payload: BootstrappedHomePayload | null | undefined) {
-  if (!payload) {
-    return;
-  }
-  writeSessionStorageCache(resolveHomePayloadStorageKey(Boolean(payload.isEn)), payload, SESSION_CACHE_TTL_MS);
-}
-
-function buildQueryString(params?: Record<string, string | number | boolean | null | undefined>): string {
-  if (!params) {
-    return "";
-  }
-  const search = new URLSearchParams();
-  Object.entries(params).forEach(([key, value]) => {
-    if (value === undefined || value === null || value === "") {
-      return;
-    }
-    search.set(key, String(value));
-  });
-  const query = search.toString();
-  return query ? `?${query}` : "";
-}
-
-async function fetchLocalizedPageJson<T>(koPath: string, enPath: string, params?: Record<string, string | number | boolean | null | undefined>): Promise<T> {
-  return fetchJsonWithoutCache<T>({
-    url: `${buildLocalizedPath(koPath, enPath)}${buildQueryString(params)}`
-  });
-}
 
 export function invalidateFrontendSessionCache() {
-  frontendSessionCache = null;
-  frontendSessionPromise = null;
-  adminMenuTreeCache = null;
-  adminMenuTreePromise = null;
+  adminShellApi.invalidateFrontendSessionCache();
   removeSessionStorageCache(FRONTEND_SESSION_STORAGE_KEY);
   removeSessionStorageCache(ADMIN_MENU_TREE_STORAGE_KEY);
 }
@@ -3357,11 +3045,13 @@ export {
 } from "./joinSession";
 export {
   clearSecurityPolicySuppressions,
+  decideIpWhitelistRequest,
   dispatchSecurityMonitoringNotification,
   dispatchSecurityPolicyNotifications,
   fetchAccessHistoryPage,
   fetchBlocklistPage,
   fetchErrorLogPage,
+  fetchIpWhitelistPage,
   fetchLoginHistoryPage,
   fetchMemberSecurityHistoryPage,
   fetchNotificationPage,
@@ -3400,598 +3090,90 @@ export {
   saveMypageProfile,
   saveMypageStaff
 } from "./portal";
+export {
+  fetchAdminMenuPlaceholderPage,
+  fetchCertificateAuditLogPage,
+  fetchHomeMenuPlaceholderPage,
+  fetchHomePayload,
+  fetchSitemapPage,
+  prefetchRouteBootstrap,
+  prefetchRoutePageData
+} from "./appBootstrap";
+export {
+  readBootstrappedAdminHomePageData,
+  readBootstrappedAuthChangePageData,
+  readBootstrappedAuthGroupPageData,
+  readBootstrappedBackupConfigPageData,
+  readBootstrappedCertificateAuditLogPageData,
+  readBootstrappedCertificateRecCheckPageData,
+  readBootstrappedCertificateReviewPageData,
+  readBootstrappedCertificateStatisticsPageData,
+  readBootstrappedDeptRolePageData,
+  readBootstrappedEmissionDataHistoryPageData,
+  readBootstrappedEmissionDefinitionStudioPageData,
+  readBootstrappedEmissionResultDetailPageData,
+  readBootstrappedEmissionResultListPageData,
+  readBootstrappedEmissionSiteManagementPageData,
+  readBootstrappedEmissionValidatePageData,
+  readBootstrappedExternalMonitoringPageData,
+  readBootstrappedHomePayload,
+  readBootstrappedMemberEditPageData,
+  readBootstrappedMemberStatsPageData,
+  readBootstrappedMypagePayload,
+  readBootstrappedNewPagePageData,
+  readBootstrappedNotificationPageData,
+  readBootstrappedRefundListPageData,
+  readBootstrappedSchedulerManagementPageData,
+  readBootstrappedScreenBuilderPageData,
+  readBootstrappedSecurityAuditPageData,
+  readBootstrappedSecurityMonitoringPageData,
+  readBootstrappedSecurityPolicyPageData,
+  readBootstrappedSettlementCalendarPageData,
+  readBootstrappedTradeApprovePageData,
+  readBootstrappedTradeDuplicatePageData,
+  readBootstrappedTradeListPageData,
+  readBootstrappedTradeRejectPageData,
+  readBootstrappedTradeStatisticsPageData
+} from "./bootstrap";
 export function getAdminMenuTreeRefreshEventName() {
-  return ADMIN_MENU_TREE_REFRESH_EVENT;
+  return adminShellApi.getAdminMenuTreeRefreshEventName();
 }
 
 export function readAdminMenuTreeSnapshot(): AdminMenuTreePayload | null {
-  const bootstrappedMenuTree = normalizeAdminMenuTree(
-    consumeRuntimeBootstrap<AdminMenuTreePayload>("adminMenuTree")
-  );
-  if (bootstrappedMenuTree) {
-    adminMenuTreeCache = bootstrappedMenuTree;
-    writeSessionStorageCache(ADMIN_MENU_TREE_STORAGE_KEY, bootstrappedMenuTree, SESSION_CACHE_TTL_MS);
-    return bootstrappedMenuTree;
-  }
-
-  const storedMenuTree = normalizeAdminMenuTree(
-    readSessionStorageCache<AdminMenuTreePayload>(ADMIN_MENU_TREE_STORAGE_KEY)
-  );
-  if (storedMenuTree) {
-    adminMenuTreeCache = storedMenuTree;
-    return storedMenuTree;
-  }
-
-  return adminMenuTreeCache;
+  return adminShellApi.readAdminMenuTreeSnapshot() as AdminMenuTreePayload | null;
 }
 
 export function readFrontendSessionSnapshot(): FrontendSession | null {
-  const bootstrappedSession = consumeRuntimeBootstrap<FrontendSession>("frontendSession");
-  if (bootstrappedSession) {
-    frontendSessionCache = bootstrappedSession;
-    writeSessionStorageCache(FRONTEND_SESSION_STORAGE_KEY, bootstrappedSession, SESSION_CACHE_TTL_MS);
-    return bootstrappedSession;
-  }
-
-  const storedSession = readSessionStorageCache<FrontendSession>(FRONTEND_SESSION_STORAGE_KEY);
-  if (storedSession) {
-    frontendSessionCache = storedSession;
-    return storedSession;
-  }
-
-  return frontendSessionCache;
+  return adminShellApi.readFrontendSessionSnapshot() as FrontendSession | null;
 }
 
 export function refreshAdminMenuTree() {
-  invalidateFrontendSessionCache();
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new Event(ADMIN_MENU_TREE_REFRESH_EVENT));
-  }
+  adminShellApi.refreshAdminMenuTree();
 }
 
 export async function fetchFrontendSession(): Promise<FrontendSession> {
-  const bootstrappedSession = consumeRuntimeBootstrap<FrontendSession>("frontendSession");
-  if (bootstrappedSession) {
-    frontendSessionCache = bootstrappedSession;
-    writeSessionStorageCache(FRONTEND_SESSION_STORAGE_KEY, bootstrappedSession, SESSION_CACHE_TTL_MS);
-    return bootstrappedSession;
-  }
-
-  const storedSession = readSessionStorageCache<FrontendSession>(FRONTEND_SESSION_STORAGE_KEY);
-  if (storedSession) {
-    frontendSessionCache = storedSession;
-  }
-
-  if (frontendSessionCache) {
-    return frontendSessionCache;
-  }
-
-  if (!frontendSessionPromise) {
-    frontendSessionPromise = fetch("/api/frontend/session", {
-      credentials: "include"
-    })
-      .then(async (response: Response) => {
-        if (!response.ok) {
-          throw new Error(`Failed to load session: ${response.status}`);
-        }
-        const session = await response.json() as FrontendSession;
-        frontendSessionCache = session;
-        writeSessionStorageCache(FRONTEND_SESSION_STORAGE_KEY, session, SESSION_CACHE_TTL_MS);
-        return session;
-      })
-      .finally(() => {
-        frontendSessionPromise = null;
-      });
-  }
-
-  if (!frontendSessionPromise) {
-    throw new Error("Frontend session promise was not initialized");
-  }
-
-  return frontendSessionPromise;
+  return adminShellApi.fetchFrontendSession() as Promise<FrontendSession>;
 }
 
 export async function fetchAdminSessionSimulator(insttId?: string): Promise<AdminSessionSimulationPayload> {
-  const url = new URL(buildAdminApiPath("/api/admin/dev/session-simulator"), window.location.origin);
-  if (insttId) {
-    url.searchParams.set("insttId", insttId);
-  }
-  const response = await fetch(url.toString(), {
-    credentials: "include",
-    headers: {
-      "X-Requested-With": "XMLHttpRequest"
-    }
-  });
-  return readJsonResponse<AdminSessionSimulationPayload>(response);
+  return adminShellApi.fetchAdminSessionSimulator(insttId) as Promise<AdminSessionSimulationPayload>;
 }
 
 export async function applyAdminSessionSimulator(
   _session: FrontendSession,
   payload: { insttId: string; emplyrId: string; authorCode: string; }
 ): Promise<AdminSessionSimulationPayload> {
-  const headers = await buildResilientCsrfHeaders({
-    "Content-Type": "application/json",
-    "X-Requested-With": "XMLHttpRequest"
-  });
-  const response = await fetch(buildAdminApiPath("/api/admin/dev/session-simulator"), {
-    method: "POST",
-    credentials: "include",
-    headers,
-    body: JSON.stringify(payload)
-  });
-  invalidateFrontendSessionCache();
-  return readJsonResponse<AdminSessionSimulationPayload>(response);
+  return adminShellApi.applyAdminSessionSimulator(_session as never, payload) as Promise<AdminSessionSimulationPayload>;
 }
 
 export async function resetAdminSessionSimulator(session: FrontendSession): Promise<AdminSessionSimulationPayload> {
-  void session;
-  const headers = await buildResilientCsrfHeaders({
-    "X-Requested-With": "XMLHttpRequest"
-  });
-  const response = await fetch(buildAdminApiPath("/api/admin/dev/session-simulator"), {
-    method: "DELETE",
-    credentials: "include",
-    headers
-  });
-  invalidateFrontendSessionCache();
-  return readJsonResponse<AdminSessionSimulationPayload>(response);
-}
-
-async function fetchFreshFrontendSession(): Promise<FrontendSession> {
-  const response = await globalThis.fetch("/api/frontend/session", {
-    credentials: "include",
-    cache: "no-store",
-    headers: {
-      "X-Requested-With": "XMLHttpRequest"
-    }
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to load session: ${response.status}`);
-  }
-  const session = await response.json() as FrontendSession;
-  frontendSessionCache = session;
-  writeSessionStorageCache(FRONTEND_SESSION_STORAGE_KEY, session, SESSION_CACHE_TTL_MS);
-  return session;
-}
-
-export async function fetchSitemapPage(): Promise<SitemapPagePayload> {
-  return fetchLocalizedPageJson<SitemapPagePayload>("/api/sitemap", "/api/en/sitemap");
-}
-
-export async function fetchHomeMenuPlaceholderPage(requestPath: string): Promise<HomeMenuPlaceholderPagePayload> {
-  const query = requestPath ? `?requestPath=${encodeURIComponent(requestPath)}` : "";
-  const response = await fetch(`${buildLocalizedPath("/api/home/menu-placeholder", "/api/en/home/menu-placeholder")}${query}`, {
-    credentials: "include"
-  });
-  return readJsonResponse<HomeMenuPlaceholderPagePayload>(response);
-}
-
-export async function fetchAdminMenuPlaceholderPage(requestPath: string): Promise<AdminMenuPlaceholderPagePayload> {
-  const query = requestPath ? `?requestPath=${encodeURIComponent(requestPath)}` : "";
-  const response = await fetch(`${buildLocalizedPath("/admin/api/admin/menu-placeholder", "/en/admin/api/admin/menu-placeholder")}${query}`, {
-    credentials: "include"
-  });
-  return readJsonResponse<AdminMenuPlaceholderPagePayload>(response);
+  return adminShellApi.resetAdminSessionSimulator(session as never) as Promise<AdminSessionSimulationPayload>;
 }
 
 export async function fetchAdminMenuTree(): Promise<AdminMenuTreePayload> {
-  const cachedMenuTree = readAdminMenuTreeSnapshot();
-
-  if (!adminMenuTreePromise) {
-    adminMenuTreePromise = fetch(buildLocalizedPath("/admin/system/menu-data", "/en/admin/system/menu-data"), {
-      credentials: "include",
-      cache: "no-store",
-      headers: {
-        "X-Requested-With": "XMLHttpRequest"
-      }
-    })
-      .then((response) => readJsonResponse<AdminMenuTreePayload>(response))
-      .then((payload) => {
-        const normalizedPayload = normalizeAdminMenuTree(payload) || payload;
-        adminMenuTreeCache = normalizedPayload;
-        writeSessionStorageCache(ADMIN_MENU_TREE_STORAGE_KEY, normalizedPayload, SESSION_CACHE_TTL_MS);
-        return normalizedPayload;
-      })
-      .catch((error) => {
-        if (cachedMenuTree) {
-          adminMenuTreeCache = cachedMenuTree;
-          return cachedMenuTree;
-        }
-        throw error;
-      })
-      .finally(() => {
-        adminMenuTreePromise = null;
-      });
-  }
-
-  if (!adminMenuTreePromise) {
-    throw new Error("Admin menu tree promise was not initialized");
-  }
-
-  return adminMenuTreePromise;
-}
-
-export function readBootstrappedHomePayload(): BootstrappedHomePayload | null {
-  const bootstrappedPayload = consumeRuntimeBootstrap<BootstrappedHomePayload>("homePayload");
-  if (bootstrappedPayload) {
-    writeHomePayloadCache(bootstrappedPayload);
-    return bootstrappedPayload;
-  }
-  return readSessionStorageCache<BootstrappedHomePayload>(
-    resolveHomePayloadStorageKey(getRuntimeLocale() === "en")
-  );
-}
-
-export async function fetchHomePayload(): Promise<BootstrappedHomePayload> {
-  const response = await fetch(buildLocalizedPath("/api/home", "/en/api/home"), {
-    credentials: "include"
-  });
-  const payload = await readJsonResponse<BootstrappedHomePayload>(response);
-  writeHomePayloadCache(payload);
-  return payload;
-}
-
-export function readBootstrappedAdminHomePageData(): AdminHomePagePayload | null {
-  return consumeRuntimeBootstrap<AdminHomePagePayload>("adminHomePageData");
-}
-
-export function readBootstrappedNewPagePageData(): NewPagePagePayload | null {
-  return consumeRuntimeBootstrap<NewPagePagePayload>("newPagePageData");
-}
-
-export function readBootstrappedEmissionDefinitionStudioPageData(): EmissionDefinitionStudioPagePayload | null {
-  return consumeRuntimeBootstrap<EmissionDefinitionStudioPagePayload>("emissionDefinitionStudioPageData");
-}
-
-export function readBootstrappedAuthGroupPageData(): AuthGroupPagePayload | null {
-  return consumeRuntimeBootstrap<AuthGroupPagePayload>("authGroupPageData");
-}
-
-export function readBootstrappedAuthChangePageData(): AuthChangePagePayload | null {
-  return consumeRuntimeBootstrap<AuthChangePagePayload>("authChangePageData");
-}
-
-export function readBootstrappedDeptRolePageData(): DeptRolePagePayload | null {
-  return consumeRuntimeBootstrap<DeptRolePagePayload>("deptRolePageData");
-}
-
-export function readBootstrappedMemberEditPageData(): MemberEditPagePayload | null {
-  return consumeRuntimeBootstrap<MemberEditPagePayload>("memberEditPageData");
-}
-
-export function readBootstrappedMypagePayload(): MypagePayload | null {
-  return consumeRuntimeBootstrap<MypagePayload>("mypagePayload");
-}
-
-export function readBootstrappedMemberStatsPageData(): MemberStatsPagePayload | null {
-  return consumeRuntimeBootstrap<MemberStatsPagePayload>("memberStatsPageData");
-}
-
-export function readBootstrappedTradeDuplicatePageData(): TradeDuplicatePagePayload | null {
-  return consumeRuntimeBootstrap<TradeDuplicatePagePayload>("tradeDuplicatePageData");
-}
-
-export function readBootstrappedSecurityPolicyPageData(): SecurityPolicyPagePayload | null {
-  return consumeRuntimeBootstrap<SecurityPolicyPagePayload>("securityPolicyPageData");
-}
-
-export function readBootstrappedNotificationPageData(): SecurityPolicyPagePayload | null {
-  return consumeRuntimeBootstrap<SecurityPolicyPagePayload>("notificationPageData")
-    || consumeRuntimeBootstrap<SecurityPolicyPagePayload>("securityPolicyPageData");
-}
-
-export function readBootstrappedExternalMonitoringPageData(): ExternalMonitoringPagePayload | null {
-  return consumeRuntimeBootstrap<ExternalMonitoringPagePayload>("externalMonitoringPageData");
-}
-
-export function readBootstrappedSecurityMonitoringPageData(): SecurityMonitoringPagePayload | null {
-  return consumeRuntimeBootstrap<SecurityMonitoringPagePayload>("securityMonitoringPageData");
-}
-
-export function readBootstrappedSecurityAuditPageData(): SecurityAuditPagePayload | null {
-  return consumeRuntimeBootstrap<SecurityAuditPagePayload>("securityAuditPageData");
-}
-
-export function readBootstrappedCertificateAuditLogPageData(): CertificateAuditLogPagePayload | null {
-  return consumeRuntimeBootstrap<CertificateAuditLogPagePayload>("certificateAuditLogPageData");
-}
-
-export function readBootstrappedCertificateRecCheckPageData(): CertificateRecCheckPagePayload | null {
-  return consumeRuntimeBootstrap<CertificateRecCheckPagePayload>("certificateRecCheckPageData");
-}
-
-export function readBootstrappedSchedulerManagementPageData(): SchedulerManagementPagePayload | null {
-  return consumeRuntimeBootstrap<SchedulerManagementPagePayload>("schedulerManagementPageData");
-}
-
-export function readBootstrappedBackupConfigPageData(): BackupConfigPagePayload | null {
-  return consumeRuntimeBootstrap<BackupConfigPagePayload>("backupConfigPageData");
-}
-
-export function readBootstrappedEmissionResultListPageData(): EmissionResultListPagePayload | null {
-  return consumeRuntimeBootstrap<EmissionResultListPagePayload>("emissionResultListPageData");
-}
-
-export function readBootstrappedTradeListPageData(): TradeListPagePayload | null {
-  return consumeRuntimeBootstrap<TradeListPagePayload>("tradeListPageData");
-}
-
-export function readBootstrappedTradeStatisticsPageData(): TradeStatisticsPagePayload | null {
-  return consumeRuntimeBootstrap<TradeStatisticsPagePayload>("tradeStatisticsPageData");
-}
-
-export function readBootstrappedRefundListPageData(): RefundListPagePayload | null {
-  return consumeRuntimeBootstrap<RefundListPagePayload>("refundListPageData");
-}
-
-export function readBootstrappedSettlementCalendarPageData(): SettlementCalendarPagePayload | null {
-  return consumeRuntimeBootstrap<SettlementCalendarPagePayload>("settlementCalendarPageData");
-}
-
-export function readBootstrappedTradeApprovePageData(): TradeApprovePagePayload | null {
-  return consumeRuntimeBootstrap<TradeApprovePagePayload>("tradeApprovePageData");
-}
-
-export function readBootstrappedTradeRejectPageData(): TradeRejectPagePayload | null {
-  return consumeRuntimeBootstrap<TradeRejectPagePayload>("tradeRejectPageData");
-}
-
-export function readBootstrappedCertificateReviewPageData(): CertificateReviewPagePayload | null {
-  return consumeRuntimeBootstrap<CertificateReviewPagePayload>("certificateReviewPageData");
-}
-
-export function readBootstrappedCertificateStatisticsPageData(): CertificateStatisticsPagePayload | null {
-  return consumeRuntimeBootstrap<CertificateStatisticsPagePayload>("certificateStatisticsPageData");
-}
-
-export function readBootstrappedEmissionDataHistoryPageData(): EmissionDataHistoryPagePayload | null {
-  return consumeRuntimeBootstrap<EmissionDataHistoryPagePayload>("emissionDataHistoryPageData");
-}
-
-export function readBootstrappedEmissionSiteManagementPageData(): EmissionSiteManagementPagePayload | null {
-  return consumeRuntimeBootstrap<EmissionSiteManagementPagePayload>("emissionSiteManagementPageData");
-}
-
-export function readBootstrappedEmissionValidatePageData(): EmissionValidatePagePayload | null {
-  return consumeRuntimeBootstrap<EmissionValidatePagePayload>("emissionValidatePageData");
-}
-
-export function readBootstrappedScreenBuilderPageData(): ScreenBuilderPagePayload | null {
-  return consumeRuntimeBootstrap<ScreenBuilderPagePayload>("screenBuilderPageData");
-}
-
-export function prefetchRoutePageData(route: MigrationPageId, search = ""): Promise<unknown> {
-  const params = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
-  switch (route) {
-    case "auth-group":
-      return adminMemberApi.fetchAuthGroupPage({
-        authorCode: params.get("authorCode") || "",
-        roleCategory: params.get("roleCategory") || "",
-        insttId: params.get("insttId") || "",
-        menuCode: params.get("menuCode") || "",
-        featureCode: params.get("featureCode") || "",
-        userSearchKeyword: params.get("userSearchKeyword") || ""
-      });
-    case "auth-change":
-      return adminMemberApi.fetchAuthChangePage({
-        searchKeyword: params.get("searchKeyword") || "",
-        pageIndex: params.get("pageIndex") ? Number(params.get("pageIndex")) : undefined
-      });
-    case "dept-role":
-      return adminMemberApi.fetchDeptRolePage({
-        insttId: params.get("insttId") || "",
-        memberSearchKeyword: params.get("memberSearchKeyword") || "",
-        memberPageIndex: params.get("memberPageIndex") ? Number(params.get("memberPageIndex")) : undefined
-      });
-    case "member-edit": {
-      const memberId = params.get("memberId") || "";
-      return memberId ? adminMemberApi.fetchMemberEditPage(memberId, { updated: params.get("updated") || "" }) : Promise.resolve(null);
-    }
-    case "member-stats":
-      return memberApi.fetchMemberStatsPage();
-    case "trade-statistics":
-      return tradeApi.fetchTradeStatisticsPage({
-        pageIndex: params.get("pageIndex") ? Number(params.get("pageIndex")) : undefined,
-        searchKeyword: params.get("searchKeyword") || "",
-        periodFilter: params.get("periodFilter") || "",
-        tradeType: params.get("tradeType") || "",
-        settlementStatus: params.get("settlementStatus") || ""
-      });
-    case "certificate-statistics":
-      return tradeApi.fetchCertificateStatisticsPage({
-        pageIndex: params.get("pageIndex") ? Number(params.get("pageIndex")) : undefined,
-        searchKeyword: params.get("searchKeyword") || "",
-        periodFilter: params.get("periodFilter") || "",
-        certificateType: params.get("certificateType") || "",
-        issuanceStatus: params.get("issuanceStatus") || ""
-      });
-    case "virtual-issue":
-      return memberApi.fetchRefundAccountReviewPage({
-        pageIndex: params.get("pageIndex") ? Number(params.get("pageIndex")) : undefined,
-        searchKeyword: params.get("searchKeyword") || "",
-        verificationStatus: params.get("verificationStatus") || "",
-        payoutStatus: params.get("payoutStatus") || ""
-      });
-    case "security-policy":
-      return securityApi.fetchSecurityPolicyPage();
-    case "notification":
-      return securityApi.fetchNotificationPage();
-    case "performance":
-      return fetchPerformancePage();
-    case "external-connection-list":
-      return fetchExternalConnectionListPage();
-    case "external-schema":
-      return fetchExternalSchemaPage();
-    case "external-usage":
-      return fetchExternalUsagePage();
-    case "external-logs":
-      return fetchExternalLogsPage();
-    case "external-webhooks":
-      return fetchExternalWebhooksPage();
-    case "external-sync":
-      return fetchExternalSyncPage();
-    case "external-monitoring":
-      return fetchExternalMonitoringPage();
-    case "external-maintenance":
-      return fetchExternalMaintenancePage();
-    case "external-retry":
-      return fetchExternalRetryPage();
-    case "security-monitoring":
-      return securityApi.fetchSecurityMonitoringPage();
-    case "security-audit":
-      return securityApi.fetchSecurityAuditPage();
-    case "certificate-audit-log":
-      return fetchCertificateAuditLogPage();
-    case "scheduler-management":
-      return fetchSchedulerManagementPage({
-        jobStatus: params.get("jobStatus") || "",
-        executionType: params.get("executionType") || ""
-      });
-    case "backup-config":
-      return fetchBackupConfigPage("/admin/system/backup_config");
-    case "backup-execution":
-      return fetchBackupConfigPage("/admin/system/backup");
-    case "new-page":
-      return platformApi.fetchNewPagePage();
-    case "restore-execution":
-      return fetchBackupConfigPage("/admin/system/restore");
-    case "version-management":
-      return platformApi.fetchProjectVersionManagementPage({
-        projectId: params.get("projectId") || "carbonet"
-      });
-    case "emission-result-list":
-      return fetchEmissionResultListPage({
-        pageIndex: params.get("pageIndex") ? Number(params.get("pageIndex")) : undefined,
-        searchKeyword: params.get("searchKeyword") || "",
-        resultStatus: params.get("resultStatus") || "",
-        verificationStatus: params.get("verificationStatus") || ""
-      });
-    case "emission-result-detail":
-      return fetchEmissionResultDetailPage(params.get("resultId") || "");
-    case "emission-data-history":
-      return fetchEmissionDataHistoryPage({
-        pageIndex: params.get("pageIndex") ? Number(params.get("pageIndex")) : undefined,
-        searchKeyword: params.get("searchKeyword") || "",
-        changeType: params.get("changeType") || "",
-        changeTarget: params.get("changeTarget") || ""
-      });
-    case "emission-lci-classification":
-      return fetchEmissionLciClassificationPage({
-        searchKeyword: params.get("searchKeyword") || "",
-        level: params.get("level") || "",
-        useAt: params.get("useAt") || "",
-        code: params.get("code") || ""
-      });
-    case "emission-validate":
-      return fetchEmissionValidatePage({
-        pageIndex: params.get("pageIndex") ? Number(params.get("pageIndex")) : undefined,
-        searchKeyword: params.get("searchKeyword") || "",
-        verificationStatus: params.get("verificationStatus") || "",
-        priorityFilter: params.get("priorityFilter") || ""
-      });
-    default:
-      return Promise.resolve(null);
-  }
-}
-
-export async function prefetchRouteBootstrap(route: MigrationPageId, path: string): Promise<void> {
-  if (typeof window === "undefined") {
-    return;
-  }
-  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  const isAdminPath = normalizedPath.startsWith("/admin") || normalizedPath.startsWith("/en/admin");
-  const bootstrapEndpoint = isAdminPath
-    ? buildLocalizedPath("/admin/api/admin/app/bootstrap", "/en/admin/api/admin/app/bootstrap")
-    : buildLocalizedPath("/api/app/bootstrap", "/en/api/app/bootstrap");
-  const url = new URL(bootstrapEndpoint, window.location.origin);
-  url.searchParams.set("route", route);
-  url.searchParams.set("path", normalizedPath);
-
-  const responsePayload = await fetch(url.toString(), {
-    credentials: "include",
-    headers: {
-      "X-Carbonet-Path": normalizedPath
-    }
-  }).then((response) => readJsonResponse<{ reactBootstrapPayload?: Partial<Record<BootstrapPayloadKey, unknown>> }>(response));
-
-  mergeRuntimeBootstrap(responsePayload.reactBootstrapPayload || {});
-}
-
-export async function checkMemberRegisterId(memberId: string) {
-  return checkIdentifierAvailability(
-    `${buildAdminApiPath("/api/admin/member/register/check-id")}?memberId=${encodeURIComponent(memberId)}`,
-    "Failed to check member ID"
-  );
-}
-
-export async function fetchIpWhitelistPage(params?: { searchIp?: string; accessScope?: string; status?: string; }) {
-  const search = new URLSearchParams();
-  if (params?.searchIp) search.set("searchIp", params.searchIp);
-  if (params?.accessScope) search.set("accessScope", params.accessScope);
-  if (params?.status) search.set("status", params.status);
-  const query = search.toString();
-  const response = await fetch(buildLocalizedPath(`/admin/system/ip_whitelist/page-data${query ? `?${query}` : ""}`, `/en/admin/system/ip_whitelist/page-data${query ? `?${query}` : ""}`), {
-    credentials: "include"
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(`Failed to load IP whitelist page: ${response.status}`);
-  return body as IpWhitelistPagePayload;
-}
-
-export async function decideIpWhitelistRequest(payload: Record<string, unknown>) {
-  const response = await fetch(buildLocalizedPath("/admin/system/ip-whitelist/request-decision", "/en/admin/system/ip-whitelist/request-decision"), {
-    method: "POST",
-    credentials: "include",
-    headers: await buildResilientCsrfHeaders({
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "X-Requested-With": "XMLHttpRequest"
-    }),
-    body: JSON.stringify(payload || {})
-  });
-  const body = await readJsonResponse<{ success?: boolean; message?: string; requestId?: string } & Record<string, unknown>>(response);
-  if (!response.ok || body.success === false) {
-    throw new Error(String(body.message || `Failed to process IP whitelist request: ${response.status}`));
-  }
-  return body;
-}
-
-export async function fetchCertificateAuditLogPage(params?: {
-  pageIndex?: number;
-  searchKeyword?: string;
-  auditType?: string;
-  status?: string;
-  certificateType?: string;
-  startDate?: string;
-  endDate?: string;
-}) {
-  const search = new URLSearchParams();
-  if (params?.pageIndex && params.pageIndex > 1) search.set("pageIndex", String(params.pageIndex));
-  if (params?.searchKeyword) search.set("searchKeyword", params.searchKeyword);
-  if (params?.auditType && params.auditType !== "ALL") search.set("auditType", params.auditType);
-  if (params?.status && params.status !== "ALL") search.set("status", params.status);
-  if (params?.certificateType && params.certificateType !== "ALL") search.set("certificateType", params.certificateType);
-  if (params?.startDate) search.set("startDate", params.startDate);
-  if (params?.endDate) search.set("endDate", params.endDate);
-  const response = await fetch(buildLocalizedPath(
-    `/admin/certificate/audit-log/page-data${search.toString() ? `?${search.toString()}` : ""}`,
-    `/en/admin/certificate/audit-log/page-data${search.toString() ? `?${search.toString()}` : ""}`
-  ), {
-    credentials: "include"
-  });
-  const body = await readJsonResponse<CertificateAuditLogPagePayload>(response);
-  if (!response.ok) throw new Error(`Failed to load certificate audit log page: ${response.status}`);
-  return body;
+  return adminShellApi.fetchAdminMenuTree() as Promise<AdminMenuTreePayload>;
 }
 
 export async function fetchMypage(en = false) {
-  const bootstrappedPayload = consumeRuntimeBootstrap<MypagePayload>("mypagePayload");
-  if (bootstrappedPayload) {
-    return bootstrappedPayload;
-  }
-  return portalApi.fetchMypage(en) as Promise<MypagePayload>;
-}
-
-export function readBootstrappedEmissionResultDetailPageData(): EmissionResultDetailPagePayload | null {
-  return consumeRuntimeBootstrap<EmissionResultDetailPagePayload>("emissionResultDetailPageData");
+  return appBootstrapApi.fetchMypage(en) as Promise<MypagePayload>;
 }
